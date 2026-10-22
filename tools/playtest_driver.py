@@ -2952,6 +2952,12 @@ class Digest:
             self.meta["name_census"] = names.summary()
             for line in names.digest_lines():
                 self._md(line)
+        # S14c part 4: the moments' trace, when the run carried one — its
+        # verdict in meta.json ONLY, so the digest stays byte-identical.
+        trace = getattr(self, "moments_trace", None)
+        if trace is not None:
+            self.meta["moments_trace"] = trace.summary()
+            trace.uninstall()
         self._md(f"\n---\nfinished: **{status}** · commands "
                  f"{self.counters['commands']} · popups {self.counters['popups']}"
                  f" · battles {self.counters['battles']}")
@@ -4492,6 +4498,16 @@ def run(args):
             transport.observers.append(names.observe)
             transport.get_observers.append(names.observe_get)
             digest.name_census = names
+    # S14c part 4 (docs/EVENTS_SPEC.md §7): the moments' trace (opt-in), in
+    # process only — it wraps the engine's own reads and calls through.
+    if getattr(args, "moments_trace", False):
+        from tools._moments_trace import MomentsTrace, unmeasured as _mt_unmeasured
+        if args.http:
+            digest.meta["moments_trace"] = _mt_unmeasured(
+                "--http: the trace reads the in-process engine")
+        else:
+            digest.moments_trace = MomentsTrace(
+                lambda: transport.backend_main.world).install()
 
     # Boot ------------------------------------------------------------------
     if not args.http:
@@ -5566,6 +5582,9 @@ def main():
                     help="run the SF-DC-1 doctrine census (T9 drift + T10 unnamed "
                          "effects) on an in-process run; the summary lands in "
                          "meta.json and at the digest's foot")
+    ap.add_argument("--moments-trace", dest="moments_trace", action="store_true",
+                    help="trace the moments' mornings and answers on an in-process "
+                         "run (tools/_moments_trace.py); the verdict lands in meta.json")
     ap.add_argument("--fresh", action="store_true",
                     help="delete the run directory first")
     ap.add_argument("--archive", action="store_true",

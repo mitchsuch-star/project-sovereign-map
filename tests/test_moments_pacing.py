@@ -1,6 +1,10 @@
 """S14c — the moments' pacing, measured (`docs/EVENTS_SPEC.md` §7). Part 2's
-first landing (S14C-X3): the instruments see a moment letter. Part 4 adds the
-10-seed sweep's ceilings and the arms' floors here.
+first landing (S14C-X3): the instruments see a moment letter. Part 4: the
+moments' production-time trace (`tools/_moments_trace.py`) judges the
+ceilings, the floors and shown = applied — its teeth on synthetic rows, the
+S14C-X24 board read through it, and part 4's measurement
+(`tools/_s14c_sweep_final.json`: the 10-seed sweep, the archived commanded
+arms, the accept arms, the VP-1 road arms) pinned against the shipped deck.
 
 The sweep (`tools/ai_v_sweep.py`) counts the letters by object identity and
 their rows per producing turn, never as a court's courting; the driver
@@ -10,6 +14,7 @@ with its reason, where it used to fall to the Decline in silence.
 """
 import argparse
 import contextlib
+import copy
 import importlib.util
 import io
 import json
@@ -23,6 +28,11 @@ from tests import _chip_census as C
 from tests.test_moments_engine import _at, _block, _tick
 
 REPO = Path(__file__).resolve().parents[1]
+SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
+RECORD = REPO / "tools" / "_s14c_sweep_final.json"
+FAMILIES = ("sweep", "commanded", "accept", "road", "road_accept")
+CRISIS = {"Prussia": {"coveter": "Prussia", "target": "Hanover", "opened_turn": 7,
+                      "foregrounded": True, "foregrounded_turn": 7}}
 
 
 def _sweep():
@@ -150,3 +160,161 @@ class TestTheDriverAnswersByIntent:
         assert any("LOG moment:" in ln for ln in lines)
         assert any("left unanswered" in ln for ln in lines)
         assert not any("Sweden" in ln for ln in lines)          # every other lapse stays unprinted
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Part 4 — the trace, its teeth, the X24 board, the measured arms
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _m(turn, **fields):
+    row = {"turn": turn, "open": 0, "crisis": None, "true": [], "false": [], "delivered": [], "passed": {}}
+    row.update(fields)
+    return row
+
+
+class TestTheTraceHasTeeth:
+    """The judge sees each rule broken — an instrument that cannot fail measures nothing."""
+
+    def _judge(self, mornings, applications=(), state=None):
+        from tools._moments_trace import judge
+        return judge(list(mornings), list(applications), state or {}, {"max_open": 1, "min_gap": 3})
+
+    def test_each_ceiling_is_seen_broken(self):
+        judged = self._judge([
+            _m(8, true=["a", "b"], delivered=["a", "b"]),       # two in one morning, two open
+            _m(12, open=1, true=["c"], delivered=["c"]),        # a second letter open
+            _m(16, crisis=True, true=["d"], delivered=["d"]),   # under a foregrounded crisis
+            _m(20, false=["e"], delivered=["e"])])              # its premise false
+        assert [(b["turn"], b["rule"]) for b in judged["ceiling_breaches"]] == [
+            (8, "R3"), (8, "max_open"), (12, "max_open"), (16, "R1"), (20, "premise")]
+
+    def test_a_due_moment_passed_in_silence_breaks_the_floor(self):
+        due = [_m(8, crisis=True, true=["a"])]
+        assert self._judge(due, state={"a": {"status": "passed", "reason": "premise"}})["floor_breaches"] == ["a"]
+        crowded = self._judge(due, state={"a": {"status": "passed", "reason": "crowded"}})
+        assert crowded["floor_breaches"] == [] and crowded["floors"]["a"]["verdict"] == "ok"
+        assert self._judge(due)["floors"]["a"]["verdict"] == "pending"   # the run stopped inside its window
+        never_due = self._judge([_m(8, false=["a"])], state={"a": {"status": "passed", "reason": "premise"}})
+        assert never_due["floors"] == {} and never_due["floor_breaches"] == []
+
+    def test_a_figure_off_its_quote_is_seen(self):
+        app = {"turn": 8, "moment": "a", "kind": "answer", "answer": "accept",
+               "shown": "Yes: 100 gold.", "applied": "Yes: 90 gold.",
+               "rows": [{"op": "gold", "figure": "treasury", "quoted": 900, "delivered": 910}]}
+        judged = self._judge([], [app])
+        assert judged["shown_equals_applied"] is False
+        assert [m["figure"] for m in judged["mismatches"]] == ["quote", "treasury"]
+
+
+class TestTheTraceOnTheX24Board:
+    """S14C-X24 read through the trace: the Match due under a crisis on T8 and
+    T9, Bavaria cooled that evening. The part-3 tick (the due mark held down)
+    passes it in silence and the floor names it; the fix ends it on screen —
+    the instrument and the fix, each the other's control."""
+
+    def _walk(self, world, monkeypatch, *, marked=True, traced=True):
+        from tools._moments_trace import MomentsTrace
+        if not marked:
+            monkeypatch.setattr(MO, "_mark_due", lambda *_a, **_k: None)
+        world.moments = MO.from_block(_block())
+        world.war_intents = copy.deepcopy(CRISIS)
+        trace = MomentsTrace(lambda: world).install() if traced else None
+        try:
+            for turn in (8, 9):
+                _at(world, turn)
+                _tick(world)
+            key = world._make_diplo_key("France", "Bavaria")
+            world.diplomatic_states[key] = "PEACE"
+            world.nation_relations[key] = 10
+            for turn in (10, 11):
+                _at(world, turn)
+                _tick(world)
+            return trace.summary()["judged"] if trace else None
+        finally:
+            if trace:
+                trace.uninstall()
+
+    def test_the_part_3_tick_is_read_silent(self, world, monkeypatch):
+        judged = self._walk(world, monkeypatch, marked=False)
+        assert judged["floor_breaches"] == ["bavarian_match"]
+        assert judged["floors"]["bavarian_match"] == {
+            "first_due": 8, "status": "passed", "reason": "premise", "verdict": "silent"}
+
+    def test_the_fix_ends_it_on_screen(self, world, monkeypatch):
+        judged = self._walk(world, monkeypatch)
+        assert judged["floor_breaches"] == [] and judged["ceiling_breaches"] == []
+        assert judged["passed"] == {"bavarian_match": "crowded"}
+        assert [(a["kind"], a["figures"]) for a in judged["answers"]] == [("crowded", 1)]
+        assert judged["shown_equals_applied"]
+
+    def test_the_trace_calls_through(self, world, monkeypatch):
+        self._walk(world, monkeypatch, traced=False)
+        plain = (copy.deepcopy(world.moments), [dict(e) for e in world.event_log if e.get("type") == "moment"],
+                 int(world.nation_relations[world._make_diplo_key("France", "Bavaria")]))
+        C.boot()
+        world = M.world
+        self._walk(world, monkeypatch)
+        traced = (copy.deepcopy(world.moments), [dict(e) for e in world.event_log if e.get("type") == "moment"],
+                  int(world.nation_relations[world._make_diplo_key("France", "Bavaria")]))
+        assert traced == plain
+        assert MO._tick.__qualname__ == "_tick" and MO.premise.__qualname__ == "premise"   # uninstalled
+
+
+class TestTheMeasuredArms:
+    """`tools/_s14c_sweep_final.json` (`tools/_s14c_sweep_record.py`): the
+    10-seed sweep with its control, variance and scripted-France arms, the
+    nine archived commanded arms, the three accept arms, the VP-1 road arms
+    and Road I answered — every run carrying the trace. Seeded paths, not
+    laws: each moment's reach is reported per arm."""
+
+    @pytest.fixture(scope="class")
+    def record(self):
+        return json.loads(RECORD.read_text(encoding="utf-8"))
+
+    def _rows(self, record, families=FAMILIES):
+        for family in families:
+            for name, row in record[family].items():
+                yield family, name, row
+
+    def test_it_measured_the_shipped_deck(self, record):
+        from tools._s14c_sweep_record import deck_sha
+        block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
+        assert record["deck_sha"] == deck_sha(block), "the deck changed: re-measure (tools/_s14c_sweep_record.py)"
+        assert record["pacing"] == block["pacing"] and record["deck"] == [e["id"] for e in block["deck"]]
+
+    def test_every_family_was_measured_with_the_trace(self, record):
+        arm_c = {row["seed"] for name, row in record["sweep"].items() if name.startswith("armC_")}
+        assert arm_c == set(_sweep().SWEEP_SEEDS)
+        assert set(record["commanded"]) == {"CMD-A", "CMD-H", "CMD-M", "DL", "FC", "FLD", "LAW", "OP", "VOLTE"}
+        assert set(record["accept"]) == {"CMD-A-ACCEPT", "CMD-H-ACCEPT", "CMD-M-ACCEPT"}
+        assert {n.rsplit("-", 1)[0] for n in record["road"]} == {"VP1-RH", "VP1-CS", "VP1-TH"}
+        assert set(record["road_accept"]) == {"VP1-RH-historical", "VP1-RH-austerlitz", "VP1-RH-marengo"}
+        for family, name, row in self._rows(record):
+            assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
+
+    def test_the_ceilings_hold_on_every_arm(self, record):
+        max_open = int(record["pacing"]["max_open"])
+        for family, name, row in self._rows(record):
+            assert row["ceiling_breaches"] == [], (family, name)
+        for name, row in record["sweep"].items():
+            metrics = row["metrics"]
+            assert metrics["max_per_turn"] <= 1 and metrics["open_max"] <= max_open, name
+            assert metrics["during_foreground"] == 0, name
+
+    def test_the_floors_hold_where_moments_can_fire(self, record):
+        for family, name, row in self._rows(record):
+            assert row["floor_breaches"] == [], (family, name)
+        fired = {mid for _f, _n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))
+                 for mid, floor in row["floors"].items() if floor["verdict"] == "ok"}
+        assert {"bavarian_match", "throne_of_holland", "crown_of_the_reich"} <= fired
+
+    def test_each_moment_s_reach_is_reported_per_arm(self, record):
+        for family, name, row in self._rows(record):
+            assert list(row["reach"]) == record["deck"], (family, name)
+
+    def test_every_delivered_figure_equals_its_quote(self, record):
+        for family, name, row in self._rows(record):
+            assert row["shown_equals_applied"] and row["mismatches"] == [], (family, name)
+        accepted = {a["moment"] for _f, _n, row in self._rows(record, ("accept", "road_accept"))
+                    for a in row["answers"] if a["kind"] == "answer" and a["answer"] == "accept" and a["figures"]}
+        assert accepted == {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}

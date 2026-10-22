@@ -1,6 +1,6 @@
 # S14c — "Events and Historical Moments": the gate record
 
-**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation**; **part 1 ✅ LANDED October 22, 2026** (the engine and its transport, unarmed — the landing record §13); **part 2 ✅ LANDED October 22, 2026** in two landings (the client and the instruments — §14; three letters armed — §15); **part 3 ✅ LANDED October 22, 2026** (the Crown of the Reich, the windows, the matrix — §16) ("make design calls please do research"), on master at `131eeebf`. **Owner:** Pre-Deploy S14c (`docs/PRE_DEPLOY_PLAN.md` §2, sized 4.0), built in four parts (§9). Nothing is built. In code the deck is **moments** — module `backend/game_logic/moments.py`, world field `world.moments`, scenario key `moments`, log type `moment` — because "event" already means `event_log`, `log_event` and `queue_dispatch_event`.
+**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation**; **part 1 ✅ LANDED October 22, 2026** (the engine and its transport, unarmed — the landing record §13); **part 2 ✅ LANDED October 22, 2026** in two landings (the client and the instruments — §14; three letters armed — §15); **part 3 ✅ LANDED October 22, 2026** (the Crown of the Reich, the windows, the matrix — §16); **part 4 ✅ LANDED October 22, 2026** (the sweep, the walk, the close — §17): **S14c COMPLETE** ("make design calls please do research"), on master at `131eeebf`. **Owner:** Pre-Deploy S14c (`docs/PRE_DEPLOY_PLAN.md` §2, sized 4.0), built in four parts (§9). Nothing is built. In code the deck is **moments** — module `backend/game_logic/moments.py`, world field `world.moments`, scenario key `moments`, log type `moment` — because "event" already means `event_log`, `log_event` and `queue_dispatch_event`.
 
 **How it was ruled.** Eight read-only researchers mapped the seed machinery, the content menu, the transports, the seams, the history and the calendar, the drama the game already derives, pacing and caps, and the client, series and pins. Three designers drafted complete proposals from three angles (history-first, player-experience-first, systems-reuse-first); three judges scored them through a historian's, an architect's and a playtester's lens (history-first 8 / 7 / 8, player-first 7 / 8 / 7, systems-first 5 / 5 / 4); a synthesis took the history-first base and grafted the judges' named improvements; two adversarial critics checked it against the repo (with probes on the booted 1805 world) and against the rules and the history, and returned 30 corrections — three blocking — **every one applied below or answered (§12)**. The critics' probes changed the deck: the first synthesis promised consequences the shipped board does not have (the Holland letter's closure, the Decree's bite), and those are now gated on the board that makes them true, or measured as zero and said so.
 
@@ -234,7 +234,7 @@ A moment letter has **no court**: no `target_nation`, no `context.source`; `cont
 - *Scope:* M3 and its Moniteur special; the M3 matrix cells (the full 12 green); R1 and R2 on staged crisis and crowd boards; clauses A–G over `SWEEP_SEEDS`; the backfill's `passed(before_save)` marks on the T10 and T20 fixtures (a causal entry included).
 - *Done when:* on a staged Road I board the Confederation fulfils and the Reich letter arrives a turn later; Accept raises each vassal member's loyalty, costs Austria 15 and the alarm 3, and the special runs in the next issue; on Roads II and III it never arrives; all 12 cells pass; a staged crisis defers a letter and a crowded-out letter ends on screen; the same seed twice compares EQUAL and variance forced off compares EQUAL to `historical`.
 
-**Part 4 — measurement, the walk, the close**
+**Part 4 — measurement, the walk, the close** — ✅ LANDED October 22, 2026 (§17)
 - *Scope:* the 10-seed sweep with `tests/test_moments_pacing.py`; the archived arms attributed; the VP-1 road arms re-read for M3's reach; the accept arm; the Mode C walk on `SOVEREIGN_PORT=8007`; the sibling sweep; docs (`SYSTEMS_REFERENCE.md` §147, `MODDING_FORMAT.md`, `SAVE_FORMAT_REFERENCE.md`, `ROADMAP.md`'s 8.5 rows, the S14c row text per A1, STATUS).
 - *Done when:* ceilings green on every arm, floors green where moments can fire, each moment's reach reported per seed; the walk shows a letter answered and one lapsed; the census reads 0 open S14C rows.
 
@@ -440,3 +440,78 @@ The block armed on a scratch tree (`git archive` of the first landing's commit),
 ### 16.3 Measured
 
 `BASELINE_SERIES` byte-identical on all ten arms with the whole deck armed (`tools/_s14c_series_arms_final.json` — the passive France proclaims no road, so the Reich never anchors); the nine commanded arms equal part 2b's tree record for record (no commanded France proclaims Road I); the VP-1 road arms stamp as before (RH turn 13, TH turn 20 on all three seeds, CS never) — the Reich reaches VP1-RH on marengo (turn 17, declined), and Holland's letter waiting behind it is crowded out on its last eligible turn with its receipt (R2 on a real arm); on historical and austerlitz the Reich passes on its premise (Austria stands France's vassal through the window). The census reads 9 open rows (UXR-4); the ratchet unchanged.
+
+---
+
+## §17 Part 4 — the sweep, the walk, the close (October 22, 2026)
+
+**✅ LANDED October 22, 2026; S14c COMPLETE.** Rules `SYSTEMS_REFERENCE.md` §147.12; rows `BUG_FIXES.md` §S14C (the finds S14C-X24 … X28, all FIXED); the instrument `tools/_moments_trace.py`; the record `tools/_s14c_sweep_final.json` (`tools/_s14c_sweep_record.py`); pins `tests/test_moments_pacing.py`; the walk's frames `docs/audits/s14c_walk_2026_10_22/`.
+
+### 17.1 The head, reproduced first — S14C-X24
+
+The floor's own sentence (§7: every moment whose premise holds in its window arrives in it or ends on screen as a receipt) failed on a staged board before any instrument ran: the Match due on T8 and T9 while a crisis stood foregrounded, Bavaria's alliance broken that evening — on T11 the tick wrote `passed(premise)`, the silent word for a board that contradicted the letter for its whole window, with no receipt and no row. The tick now remembers the first morning a deferred letter was due (`world.moments["due"]`); once due, a letter arrives or is crowded out on its last morning with its receipt and its decline (R2).
+
+### 17.2 Built
+
+- **The trace** (`tools/_moments_trace.py`): one read-only observer that wraps the engine's own reads — `moments._tick`, `premise`, `_apply`, `answer` and the tick's crisis read — and calls through, so a run with it is the run without it (arm A byte-identical with it; `test_the_trace_calls_through`; the nine commanded arms equal on every stream). It judges the ceilings (R3, `max_open`, R1, none delivered with its premise false), the floor (every moment ever due ends arrived or crowded on screen; a moment still pending when a run stops is reported, not judged) and shown = applied (every answer's applied quote is the one shown; every quoted figure equals the world's after). Its teeth: `TestTheTraceHasTeeth` (each rule seen broken on synthetic rows) and the X24 board read both ways.
+- **Where it rides:** every `tools/ai_v_sweep.py` run (`final.moments_trace`, `derived.moments_judged`, arm C's summary); the driver's `--moments-trace` (opt-in, in process, `meta.json` only — every digest record byte-identical); every VP-1 road arm (`tools/_vp1_road_arms.py`, each result's `moments`); the armed module's passive 31-turn campaign in the suite (`test_the_trace_reads_the_ceilings_and_the_floors_live`).
+- **The record** (`tools/_s14c_sweep_final.json`): 45 runs, each with the trace's verdict and each moment's reach; it carries the shipped deck's hash, so an edited deck reds `TestTheMeasuredArms` until it is measured again.
+- **The series tool** gains seam MD (the due mark), its reach counted.
+- **The walk's finds** (the Mode C walk below): S14C-X25 (the Load list's "Turn 6.0"), X26 (the end-turn gate named a lapsing moment as a nameless envoy — it now names it with its decline, planned now, from `moments.lapse_gate_rows`), X27 (a lapsed petition's sentence printed twice in one dispatch — once now, under LAPSED ENVOYS), X28 (the walk's own harness died on its first line in the background).
+
+### 17.3 Measured
+
+`BASELINE_SERIES` byte-identical on all eleven series arms (the new MD, the due mark, among them: its reach 0 — no letter on the series is due and deferred); all 45 measured runs carry the trace — the 21 sweep runs (arm A twice, byte-identical with the trace; arm B; arm C's ten seeds; the scripted France), the nine archived commanded arms, three accept arms, the nine VP-1 road arms and Road I answered — with **0 ceiling breaches, 0 floor breaches and shown = applied on every one**; on arm C's ten passive seeds Holland arrives on three (historical 18, eylau 17, rivoli 18) and lapses as its empty decline, the Match on three (ulm 10, marengo 8, friedland 9) and lapses as its −5, the rest pass never due, the Decree is never due (no port to shut) and rivoli's campaign ends on turn 28 before its window; the commanded arms equal part 3's tree on every stream; the accept arms deliver every quoted figure (the Match's four, Holland's three, the Reich's on VP1-RH marengo); the road arms stamp as before (RH 13, TH 20, CS never). The walk (Mode C, the real client on 8007): the Match opened from its rail row and sealed — DP 7 → 5, gold 3,876 → 2,876, threat 85 → 88, Bavaria's goodwill 53 → 73, as quoted; Holland's letter left on its last day and lapsing under LAPSED ENVOYS as "Keep the Republic: no change."; 0 script errors.
+
+Each moment's reach, per seed (seeded paths, not laws — arm C's ten seeds and the VP-1 road arms; the record holds every arm):
+
+| Arm | the Match | Holland | the Reich | the Decree |
+|---|---|---|---|---|
+| C · historical | passed T11 (premise) | arrived T18, lapsed T19 (its decline) | pending — the last morning T41 | passed T32 (premise) |
+| C · ulm | arrived T10, lapsed T11 (its decline) | passed T22 (premise) | pending — the last morning T41 | passed T31 (premise) |
+| C · austerlitz | passed T13 (premise) | passed T22 (premise) | pending — the last morning T34 | passed T31 (premise) |
+| C · jena | passed T12 (premise) | passed T22 (premise) | pending — the last morning T41 | passed T31 (premise) |
+| C · marengo | arrived T8, lapsed T9 (its decline) | passed T20 (premise) | pending — the last morning T41 | passed T32 (premise) |
+| C · eylau | passed T12 (premise) | arrived T17, lapsed T18 (its decline) | pending — the last morning T34 | passed T31 (premise) |
+| C · friedland | arrived T9, lapsed T10 (its decline) | passed T20 (premise) | pending — the last morning T41 | passed T32 (premise) |
+| C · wagram | passed T11 (premise) | passed T21 (premise) | pending — the last morning T35 | passed T33 (premise) |
+| C · lodi | passed T12 (premise) | passed T21 (premise) | pending — the last morning T39 | passed T33 (premise) |
+| C · rivoli | passed T13 (premise) | arrived T18, lapsed T19 (its decline) | pending — the last morning T28 | pending — the last morning T28 |
+| VP1-CS-austerlitz (road) | arrived T10, answered decline T10 | arrived T21, answered decline T21 | passed T2 (forsworn) | passed T31 (premise) |
+| VP1-CS-historical (road) | arrived T8, answered decline T8 | passed T21 (premise) | passed T2 (forsworn) | passed T32 (premise) |
+| VP1-CS-marengo (road) | arrived T8, answered decline T8 | passed T20 (premise) | passed T2 (forsworn) | passed T32 (premise) |
+| VP1-RH-austerlitz (road) | arrived T10, answered decline T10 | arrived T19, answered decline T19 | passed T18 (premise) | passed T10 (forsworn) |
+| VP1-RH-historical (road) | arrived T8, answered decline T8 | arrived T18, answered decline T18 | passed T18 (premise) | passed T10 (forsworn) |
+| VP1-RH-marengo (road) | arrived T8, answered decline T8 | crowded out T19 (its receipt) | arrived T17, answered decline T17 | passed T10 (forsworn) |
+| VP1-TH-austerlitz (road) | arrived T10, answered decline T10 | arrived T19, answered decline T19 | passed T8 (forsworn) | passed T8 (forsworn) |
+| VP1-TH-historical (road) | arrived T8, answered decline T8 | arrived T18, answered decline T18 | passed T8 (forsworn) | passed T8 (forsworn) |
+| VP1-TH-marengo (road) | arrived T8, answered decline T8 | arrived T17, answered decline T17 | passed T8 (forsworn) | passed T8 (forsworn) |
+| VP1-RH-austerlitz (road, answered) | arrived T10, answered accept T10 | arrived T19, answered accept T19 | passed T18 (premise) | passed T10 (forsworn) |
+| VP1-RH-historical (road, answered) | arrived T8, answered accept T8 | arrived T18, answered accept T18 | passed T18 (premise) | passed T10 (forsworn) |
+| VP1-RH-marengo (road, answered) | arrived T8, answered accept T8 | crowded out T19 (its receipt) | arrived T17, answered accept T17 | passed T10 (forsworn) |
+
+### 17.4 The walk (Mode C)
+
+The real client (`tools/dd_b_play.py`, the one engine at 5120×1440) against a sandboxed backend on `SOVEREIGN_PORT=8007`, from two saves cut out of CMD-H two turns before each letter:
+
+1. Turn 8: the Bavarian Match arrived behind a marshal's petition; set aside, it waited in Envoys; its rail row opened ("answer by Late January 1806", **Read the letter**) and mounted the letter — the record, Bavaria's standing, both answers' figures and the unanswered line (frames 1, 2).
+2. **Seal the match**: DP 7 → 5, gold 3,876 → 2,876, threat 85 → 88, Bavaria's goodwill 53 → 73 — the quote to the figure; the row left the rail and Envoys lost its count (frame 3).
+3. Turn 18: the Throne of Holland arrived behind a standing settlement offer; on turn 19, its last day, opened from the rail (frame 4) and set aside with Not Now; the end-turn gate counted it (and, since X26, names it with its decline).
+4. Turn 20: the dispatch's LAPSED ENVOYS reads "The Throne of Holland was left unanswered — Keep the Republic: no change." (frame 5); the row left the rail. The engine closed with 0 script errors.
+
+### 17.5 The done-when, item by item
+
+| §9 Part 4 done-when | Landed |
+|---|---|
+| ceilings green on every arm | 0 ceiling breaches on all 45 runs (`test_the_ceilings_hold_on_every_arm`), the sweep's own metrics read against the authored block, and live on the suite's passive campaign |
+| floors green where moments can fire | 0 floor breaches on every arm; the Match, Holland and the Reich each due and ending on screen somewhere (`test_the_floors_hold_where_moments_can_fire`) |
+| each moment's reach reported per seed | the table above; every arm's `reach` in the record (`test_each_moment_s_reach_is_reported_per_arm`) |
+| the accept arm's figures equal their quotes | the Match's four, Holland's three and the Reich's on Road I, shown = applied (`test_every_delivered_figure_equals_its_quote`) |
+| the walk shows a letter answered and one lapsed | §17.4 |
+| the census reads 0 open S14C rows | 26 rows, all closed |
+
+### 17.6 The close
+
+- **A1 applied:** the S14c row in `PRE_DEPLOY_PLAN.md` §2 now reads what landed — four letters, two answers and the free lapse, the closed op table — with Trafalgar's news, Tilsit and the three situational examples struck, each beside its covering surface (§11).
+- **A4 applied:** the ROADMAP's "Positive Events" table is struck (each row is a derived mechanic: combat morale, the capture choice, the vindication tracker, the Win/Loss relationships); the Content Menu row in `DESIGN_REFINEMENT.md` was recorded at the gate.
+- **The hand-off (§11):** S14d's row carries "the first moment letter names the mechanic when it first opens"; the Match's keep-or-delete stays S14e's.

@@ -346,7 +346,8 @@ func _on_dispatch_received(response):
 	bbcode += "\n"
 
 	# ═══ TURN EVENTS ═══
-	var turn_events = data.get("turn_events", [])
+	# S14C-X27: a lapsed petition's receipt prints once — under LAPSED ENVOYS.
+	var turn_events = Utils.turn_events_beside_lapses(data)
 	if turn_events.size() > 0:
 		bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]TURN EVENTS[/color]\n"
 		for evt in turn_events:

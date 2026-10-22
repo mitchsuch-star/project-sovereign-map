@@ -32,7 +32,14 @@ and adds a seam per piece of a letter's reach (the record §7):
     MR = the crowd-out receipt (`moments._crowd_out`) — down: the letter
          passes silently, no decline, no receipt. Reach: crowd-outs.
 
-    python tools/_s14c_series_arms.py [--arms 0,M0,X8,MW,ML,MK,MN,MH,MR,ALL] [--jobs 3]
+Part 4 adds the due mark (S14C-X24):
+
+    MD = the due mark (`moments._mark_due`) — down: a deferred letter is
+         forgotten (the part-3 tick: a letter due and deferred whose premise
+         fails before its last morning passes silently). Reach: the marks
+         written.
+
+    python tools/_s14c_series_arms.py [--arms 0,M0,X8,MW,ML,MK,MN,MH,MR,MD,ALL] [--jobs 3]
 
 Writes tools/_s14c_series_arms_final.json (committed with the landing record).
 """
@@ -50,7 +57,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests" / "test_ai_intent_threat_migration.py"
 PRIOR_RECORD = ROOT / "tools" / "_vp1_series_arms_final.json"  # the unarmed series (S14b part 3's ALL)
-SEAMS = ("M0", "X8", "MW", "ML", "MK", "MN", "MH", "MR")
+SEAMS = ("M0", "X8", "MW", "ML", "MK", "MN", "MH", "MR", "MD")
 ARMS = {"0": set(), **{s: {s} for s in SEAMS}, "ALL": set(SEAMS)}
 
 CHILD = r"""
@@ -90,6 +97,13 @@ def _counted_crowd(world, e, turn):
         return MO._pass(world, e, MO.PASS_CROWDED, turn)
     return _crowd(world, e, turn)
 MO._crowd_out = _counted_crowd
+_mark = MO._mark_due
+def _counted_mark(world, e, turn):
+    _c["due_marks"] += 1
+    if "MD" in DOWN:
+        return None
+    return _mark(world, e, turn)
+MO._mark_due = _counted_mark
 from backend.game_logic import campaign_variance as CV
 _rmt = CV.resolve_moment_turns
 def _counted_rmt(moments, seed, historical=None):
@@ -154,7 +168,7 @@ def _counted_eli(self, dialogue):
 DMOD.DialogueManager._extract_lapse_info = _counted_eli
 _KEYS = ("moments_armed_ticks", "letters_delivered", "moment_lapses", "moment_receipts",
          "non_treaty_reads", "courtless_lapses", "windows_off_value", "kept_across_a_phase",
-         "moment_rows", "wizard_reads_unlocked")
+         "moment_rows", "wizard_reads_unlocked", "due_marks")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

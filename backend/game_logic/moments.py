@@ -56,7 +56,7 @@ STATUS_PASSED = "passed"
 STATUSES = (STATUS_FIRED, STATUS_ANSWERED, STATUS_LAPSED, STATUS_PASSED)
 ARRIVED_STATUSES = (STATUS_FIRED, STATUS_ANSWERED, STATUS_LAPSED)
 
-PASS_PREMISE = "premise"          # the board contradicted it for its whole window (silent)
+PASS_PREMISE = "premise"          # the board contradicted it for its whole window (silent; S14C-X24)
 PASS_FORSWORN = "forsworn"        # another road of the Empire was proclaimed (silent)
 PASS_CROWDED = "crowded"          # R2: still waiting when its grace ended (a receipt)
 PASS_VERDICT = "verdict"          # a causal window at or past the Verdict (silent)
@@ -150,7 +150,12 @@ def store_from_data(data: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(block.get("deck"), list) or not block["deck"]:
             return {}
         state = copy.deepcopy(raw.get("state") or {})
-        return {"block": block, "state": state if isinstance(state, dict) else {}}
+        store = {"block": block, "state": state if isinstance(state, dict) else {}}
+        due = raw.get("due")
+        if isinstance(due, dict) and due:
+            store["due"] = {str(k): int(v) for k, v in due.items()
+                            if isinstance(v, int) and not isinstance(v, bool)}
+        return store
     return from_block(raw)
 
 
@@ -194,6 +199,23 @@ def pacing(world) -> Dict[str, int]:
         if isinstance(value, int) and not isinstance(value, bool):
             out[key] = int(value)
     return out
+
+
+def was_due(world, moment_id: str) -> bool:
+    """S14C-X24: the letter was DUE on some morning of its window — its
+    premise true, its road gate open — and was deferred (R1's crisis, the
+    gap, the open letter, R3's one a morning). A letter once due ends
+    arrived or on screen (R2), whatever its premise reads when its grace
+    ends; `passed(premise)` is the word only for a board that contradicted
+    it for its whole window."""
+    due = _store(world).get("due")
+    return isinstance(due, dict) and moment_id in due
+
+
+def _mark_due(world, e: Dict[str, Any], turn: int) -> None:
+    store = _store(world)
+    if store:
+        store.setdefault("due", {}).setdefault(str(e["id"]), int(turn))
 
 
 def status_row(world, moment_id: str) -> Dict[str, Any]:
@@ -885,6 +907,30 @@ def keeps_open(dialogue: Dict[str, Any], current_turn: int) -> bool:
     return int(current_turn) < int(_context(dialogue).get("answer_by_turn") or 0)
 
 
+def lapse_gate_rows(world) -> List[Dict[str, Any]]:
+    """S14C-X26: each standing moment letter the end of THIS turn would lapse
+    (the one predicate, `DialogueManager.item_lapses`), with its decline
+    planned now — the end-turn gate names it as it names a petition (IQ-7
+    R8(d): a lapse is priced aloud), never as a nameless envoy."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None or not armed(world):
+        return []
+    turn = _turn(world)
+    current = dm.peek()
+    rows: List[Dict[str, Any]] = []
+    for letter in ([current] if current else []) + list(dm.iter_queue()):
+        if not is_moment_letter(letter) or not dm.item_lapses(letter, turn):
+            continue
+        mid = moment_id_of(letter)
+        e = entry(world, mid)
+        if e is None or status(world, mid) != STATUS_FIRED:
+            continue
+        p = plan(world, e, ANSWER_DECLINE)
+        rows.append({"moment": mid, "title": str(e.get("title") or ""),
+                     "price_line": f"{p['caption']} — {p['effect']}"})
+    return rows
+
+
 def lapse_default(world, letter: Dict[str, Any]) -> Dict[str, Any]:
     """Seam 5: an unanswered letter lapses as the decline — its plan applied,
     the store written `lapsed`, its notice dismissed; returns the key the
@@ -997,9 +1043,16 @@ def _tick(world) -> List[str]:
             _pass(world, e, PASS_VERDICT, turn)
             continue
         if turn > hi:
-            _pass(world, e, PASS_PREMISE, turn)   # silent — nothing was promised
+            if was_due(world, mid):
+                _crowd_out(world, e, turn)        # S14C-X24: due once, it ends on screen
+            else:
+                _pass(world, e, PASS_PREMISE, turn)   # silent — nothing was promised
             continue
-        if turn < lo or gate != GATE_OPEN or not premise(world, e):
+        if turn < lo or gate != GATE_OPEN:
+            continue
+        if not premise(world, e):
+            if turn >= hi and was_due(world, mid):
+                _crowd_out(world, e, turn)        # S14C-X24: its last morning — due once, on screen
             continue
         candidates.append((lo, index, e, hi))
     if not candidates:
@@ -1019,6 +1072,8 @@ def _tick(world) -> List[str]:
             delivered.append(str(e["id"]))
         elif turn >= hi:
             _crowd_out(world, e, turn)
+        else:
+            _mark_due(world, e, turn)             # S14C-X24: deferred while due — remembered
     return delivered
 
 

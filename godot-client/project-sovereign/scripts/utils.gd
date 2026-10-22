@@ -392,6 +392,23 @@ static func wrap_text(text: String, width: int = 96) -> String:
 	return "\n".join(out)
 
 
+static func turn_events_beside_lapses(data: Dictionary) -> Array:
+	"""S14C-X27: the dispatch's TURN EVENTS without a sentence LAPSED ENVOYS
+	prints — IQ-7 R8(b) threads a lapsed petition's priced receipt into both
+	(the payload keeps both rows); the player reads it once, under the
+	envoys, where every lapsed letter's sentence stands."""
+	var lapsed := {}
+	for lapse in data.get("lapsed_offers", []):
+		if lapse is Dictionary and str(lapse.get("line", "")) != "":
+			lapsed[str(lapse.get("line"))] = true
+	var out: Array = []
+	for evt in data.get("turn_events", []):
+		if evt is Dictionary and lapsed.has(str(evt.get("message", ""))):
+			continue
+		out.append(evt)
+	return out
+
+
 static func plural(n: int, noun: String) -> String:
 	if n == 1:
 		return str(n) + " " + noun

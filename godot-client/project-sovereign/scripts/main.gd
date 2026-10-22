@@ -324,6 +324,9 @@ var _current_lapsing_count: int = 0
 # IQ-7 review R8(d): the client PETITIONS among the lapsing envoys, each
 # with its price — the end-turn gate names them (a lapse is a refusal).
 var _current_lapsing_petitions: Array = []
+# S14C-X26: the moment letters among them, each with what its lapse does —
+# a moment lapses as its decline, so the gate names it too.
+var _current_lapsing_moments: Array = []
 # FA-16 review round (Sept 4 2026): the cornered marshals whose last stand is
 # unanswered (backend `pending_marshal_decisions`) — the end-turn soft-stop
 # names them, because the enemy phase decides the question for him (FA-1).
@@ -2488,6 +2491,12 @@ func _show_lapse_confirmation():
 					refused = true
 			var verb = "REFUSED" if refused else "left unanswered"
 			parts.append("%s will be %s if you end the turn: %s." % [Utils.plural(named.size(), "petition"), verb, ", ".join(named)])
+		# S14C-X26: a moment letter lapses as its decline — the backend's
+		# `price_line` is that decline planned now ("Let Baden keep her —
+		# Bavaria's goodwill 53 → 48.").
+		for mom in _current_lapsing_moments:
+			if mom is Dictionary and str(mom.get("title", "")) != "":
+				parts.append("%s will lapse unanswered if you end the turn: %s" % [str(mom.get("title")), str(mom.get("price_line", ""))])
 	if not _current_decision_names.is_empty():
 		var names := ", ".join(PackedStringArray(_current_decision_names))
 		# LV-9: the verb agrees with the count of men, never "await(s)".
@@ -5472,7 +5481,8 @@ func _display_morning_dispatch(data: Dictionary):
 	add_output("")
 
 	# ═══ TURN EVENTS ═══
-	var turn_events = data.get("turn_events", [])
+	# S14C-X27: a lapsed petition's receipt prints once — under LAPSED ENVOYS.
+	var turn_events = Utils.turn_events_beside_lapses(data)
 	if turn_events.size() > 0:
 		add_output("[color=#" + Utils.COLOR_BERTHIER + "]TURN EVENTS[/color]")
 		for evt in turn_events:
@@ -5948,6 +5958,9 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		# IQ-7 review R8(d): the same join, for the priced petitions.
 		diplo_data["pending_lapsing_petitions"] = response.get(
 			"pending_lapsing_petitions", [])
+		# S14C-X26: the same join, for the moment letters.
+		diplo_data["pending_lapsing_moments"] = response.get(
+			"pending_lapsing_moments", [])
 		# FA-16 review round: the same join, for the marshal's question.
 		diplo_data["pending_marshal_decisions"] = response.get(
 			"pending_marshal_decisions", [])
@@ -5956,6 +5969,8 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))
 		var lapsing_petitions = diplo_data.get("pending_lapsing_petitions", [])
 		_current_lapsing_petitions = lapsing_petitions if lapsing_petitions is Array else []
+		var lapsing_moments = diplo_data.get("pending_lapsing_moments", [])
+		_current_lapsing_moments = lapsing_moments if lapsing_moments is Array else []
 		_set_pending_decisions(diplo_data.get("pending_marshal_decisions", []))
 		top_bar.update_diplomatic_fields(diplo_data)
 	# PC15-10 B1: the antechamber's badge rides every envelope.

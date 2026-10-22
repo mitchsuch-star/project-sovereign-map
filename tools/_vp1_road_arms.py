@@ -82,7 +82,8 @@ def run_one(arm: str, seed: str, out: Path) -> dict:
     if probe.exists():
         probe.unlink()
     argv = ["--name", name, "--fresh", "--out", str(out / "arms"), "--llm", "mock",
-            "--script", str(SCRIPTS / spec["script"]), "--seed", seed] + spec["argv"]
+            "--script", str(SCRIPTS / spec["script"]), "--seed", seed,
+            "--moments-trace"] + spec["argv"]   # S14c part 4: the moments' verdict, meta.json only
     child = CHILD.format(root=str(ROOT), out=str(probe),
                          driver=str(ROOT / "tools" / "playtest_driver.py"), argv=argv)
     env = dict(os.environ)
@@ -128,10 +129,16 @@ def summarise(arm: str, seed: str, rows: list, code: int, digest: Path) -> dict:
                   + ", ".join(f"{k} ({n})" for k, n in worst[:4]))
         if fell:
             reason += f"; {fell}"
+    moments = {}
+    meta = digest.parent / "meta.json"
+    if meta.exists():
+        judged = (json.loads(meta.read_text(encoding="utf-8")).get("moments_trace") or {}).get("judged") or {}
+        moments = {k: judged.get(k) for k in ("arrived", "passed", "floors", "floor_breaches",
+                                               "ceiling_breaches", "shown_equals_applied")}
     return {"arm": f"VP1-{arm}", "seed": seed, "exit": int(code), "end_turns": len(rows),
             "stamped_turn": int(stamped["turn"]) if stamped else -1,
             "fulfilled": last.get("fulfilled") or {}, "terms": last.get("terms") or {},
-            "reason": reason}
+            "reason": reason, "moments": moments}
 
 
 def main() -> int:

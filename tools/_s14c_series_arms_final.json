@@ -68,8 +68,12 @@
   "MR": [
    "MR"
   ],
+  "MD": [
+   "MD"
+  ],
   "ALL": [
    "M0",
+   "MD",
    "MH",
    "MK",
    "ML",
@@ -137,7 +141,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -200,7 +205,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 0,
      "moment_rows": 0,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -263,7 +269,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -326,7 +333,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -389,7 +397,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -452,7 +461,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -515,7 +525,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -578,7 +589,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
@@ -641,13 +653,79 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 1,
      "moment_rows": 1,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
+    }
+   }
+  },
+  "MD": {
+   "down": [
+    "MD"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    45,
+    42,
+    39,
+    36,
+    33,
+    30,
+    27,
+    24,
+    21,
+    18,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "moments_armed_ticks": 40,
+     "letters_delivered": 1,
+     "moment_lapses": 1,
+     "moment_receipts": 0,
+     "non_treaty_reads": 3,
+     "courtless_lapses": 1,
+     "windows_off_value": 0,
+     "kept_across_a_phase": 1,
+     "moment_rows": 1,
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   },
   "ALL": {
    "down": [
     "M0",
+    "MD",
     "MH",
     "MK",
     "ML",
@@ -711,7 +789,8 @@
      "windows_off_value": 0,
      "kept_across_a_phase": 0,
      "moment_rows": 0,
-     "wizard_reads_unlocked": 0
+     "wizard_reads_unlocked": 0,
+     "due_marks": 0
     }
    }
   }

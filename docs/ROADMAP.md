@@ -19,7 +19,7 @@
 | **S13b** (four parts) | DD-B's 62 fixes, the nine design rulings' builds (`docs/audits/DD_B_RULINGS_2026_10_14.md`), their siblings; **DW-2** (the bilateral scorer's victory weight, DDB-X5) and **the naval rail alerts** (blockade begins / lifts, a diversion window opens, DDB-X6) brought forward October 14 |
 | **S14** | **SF-RR7 "the morning of the peace"** (SFR-B3, brought from row 13), then the Score Finish residue SF-RR1 (ii) … RR6 |
 | **S14b** | **VP-1 "The Emperor's Designs"** (brought from row 12): France's own objectives, the decisive-peace triumph short of the Congress; absorbs WO-D4(b) (winning by economic dominance) and SF-ECON-1 (Acts of the Empire). This is "Campaign Objectives" |
-| **S14c** | **Events and historical moments** (brought from §8.5 and the August 3 cut list by the user, October 14): the event engine on the mailbox transport, a first authored 1805–07 deck, paced by the one-crisis tempo rule; the **Diplomacy & Flavor Content Menu** is picked at its gate; the "Positive Events" table below is weighed there too |
+| **S14c** | **Events and historical moments — ✅ COMPLETE October 22, 2026** (`docs/EVENTS_SPEC.md`: four letters of the record — the Bavarian Match, the Throne of Holland, the Crown of the Reich, the Decree of Berlin — each gated on the board that makes its fork real; Trafalgar's news, Tilsit and the situational examples struck beside their covering surfaces, A1) (brought from §8.5 and the August 3 cut list by the user, October 14): the event engine on the mailbox transport, a first authored 1805–07 deck, paced by the one-crisis tempo rule; the **Diplomacy & Flavor Content Menu** is picked at its gate; the "Positive Events" table below is weighed there too |
 | **S14d** | **The table lesson** — the onboarding pass (R159: every core screen names its mechanic) and the School's second lesson, "The Table" |
 | **S14e / S14f** | DD-B's re-measure (three fresh players in the client) and, if needed, its rows |
 | **S15** | UXR-4 (the user's eyes at 5120×1440), **code signing** (brought from row 16), the release build and the clean-machine run. The release build waits for 0 open defect rows |
@@ -662,13 +662,13 @@ Player: "I offer Austria peace if they cede Tyrol"
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Events System** | Random + historical events with choices | High | **▶ Pre-Deploy S14c** (October 14, 2026) |
+| **Events System** | Random + historical events with choices | High | **✅ Pre-Deploy S14c, COMPLETE October 22, 2026** — the moments' engine on the letter transport, a four-letter deck, timing-only per-seed bands (`docs/EVENTS_SPEC.md`); random and situational events struck (A1 — the board already derives them) |
 | **National Goals** | AI nation intent + formables ("Redeem Italy", the Risorgimento formation; "Unite Germany" REJECTED as post-period) | Medium | **SPECCED July 17, 2026; NA-0+NA-1 BUILT July 17, 2026** — `NATION_AGENDAS_SPEC.md` v1.2 (NA-0..3 core + NA-5 ultimatums + NA-6 Formable Dreams; Free Ireland → DEF-5); player-France goals → Pre-Ship Victory & Objectives Pass (agenda-substrate seed, spec §9) |
 | **National Flavor** | ~~France FEELS different from Austria~~ **National doctrines** (SR-D2, RULED September 27, 2026 by the user; `docs/DOCTRINES_SPEC.md`): a strength and a flaw for each of the five great powers, each flaw cured by a reform law | Medium | **RULED** — built at the Score Mandate's Chunk 7 (SR-7d) |
 | **Light Tech/Reforms** | ~~Simple upgrades: conscription, tactics, administration~~ **"Reforms of State" — laws with upkeep** (SR-D1, RULED September 27, 2026 by the user; `docs/REFORMS_SPEC.md`): a named 1805 act bought once and paid for in gold every turn; the Staff is the only road to a fifth action point, on both boards | Medium | **RULED** — built at the Score Mandate's Chunk 5 head (SR-5r) |
 | **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | **▶ Pre-Deploy S14b** — VP-1 "The Emperor's Designs" (October 14, 2026) |
 | **Battle History Screen** | Detailed past-battle viewer (ledger sub-tab or standalone). Full modifier breakdowns including coordination stats (combined arms %, per-ally %, dedicated %, adjacent %, total). Replaces coordination data removed from Berthier's Report modifier snapshots in Gate 4. | Low | Planned |
-| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | **▶ Pre-Deploy S14c**, the 1805–07 moments (October 14, 2026) |
+| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | **✅ Pre-Deploy S14c, COMPLETE October 22, 2026** — the 1805–07 moments that offer a real fork (the Match, Holland, the Reich, the Decree); Tilsit struck (VP-1's decisive peace and the Verdict own it, A1); the Coronation and Moscow lie outside the 1805–07 deck |
 | **Imperial Governance Events** | Marshal-as-governor events, personality-driven regional outcomes. See `FUTURE_DESIGN.md`. | Medium | Planned |
 | **Gazette System** | ~~Period newspaper every 3-5 turns, LLM-generated~~ **SUPERSEDED Aug 14, 2026 → slice HC-G of row HC** (deterministic v1, every 5 turns + forced specials, dated by the HC-0 calendar; contract = `docs/audits/HEALTH_CHECK_DESIGN_GATE_2026_08_14.md` §7a) | Medium | **▶ Queued (row HC)** |
 | **Marshal Voice (Tier 1)** | Template personality responses for all events | Low | ✅ **BUILT August 8, 2026** (row 9) |
@@ -764,6 +764,8 @@ These ideas are downstream of the post-diplomacy command-layer queue above. Do n
 **Key insight:** Carrot, not stick. "attack wellington" always works perfectly. Creative phrasing earns bonuses.
 
 ### Positive Events
+
+> **✅ STRUCK at Pre-Deploy S14c's gate (October 22, 2026; `docs/EVENTS_SPEC.md` §0 Q7, A4) — not deferred.** Each row is already a derived mechanic: a decisive victory's and a run of victories' morale (combat), a rallying army's trust (morale recovery), captured supplies (the plunder-or-secure capture choice), the vindication narrative (`backend/commands/vindication.py`), a rivalry resolved (the Win/Loss relationship formula, `relationship.py`). Kept below as history.
 
 | Event | Trigger | Effect |
 |-------|---------|--------|

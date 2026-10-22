@@ -672,6 +672,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         # IQ-7 review R8(d): the priced petitions among them.
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
+        "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
         # IGR-F: the letter-book. Derived fresh from the dialogue manager on
         # every response so it can never go stale against the queue it
@@ -1097,6 +1098,20 @@ def _pending_lapsing_petitions(world) -> list:
             "refused": refused,
         })
     return out
+
+
+def _pending_lapsing_moments(world) -> list:
+    """S14C-X26: the moment letters that would lapse if the turn ended now,
+    beside `pending_lapsing_count`, each with what its lapse does (its
+    decline, planned now) — the end-turn gate names them as it names a
+    petition, never as a nameless envoy. Derived from the live dialogue
+    manager on every response (`moments.lapse_gate_rows`)."""
+    from backend.game_logic.moments import lapse_gate_rows
+    try:
+        return list(lapse_gate_rows(world))
+    except Exception as exc:
+        _errors.report(exc, "main._pending_lapsing_moments: lapse_gate_rows")
+        return []
 
 
 def _copy_truthy_result_fields(
@@ -2919,6 +2934,7 @@ def test_connection():
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
+        "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
         # PC15-10 B1: the antechamber's badge from the first frame.
         "marshal_audience": _marshal_audience(world),
@@ -6669,6 +6685,7 @@ def get_pending_envoy():
         "pending_envoy_count": int(dm.get_mailbox_count()),
         "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
+        "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
 
@@ -7163,6 +7180,7 @@ def get_diplomatic_preview_endpoint(
                 "pending_envoy_count": int(dm.get_mailbox_count()),
                 "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
                 "pending_lapsing_petitions": _pending_lapsing_petitions(world),
+                "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
                 "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
@@ -7202,6 +7220,7 @@ def get_diplomatic_preview_endpoint(
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
             "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
             "pending_lapsing_petitions": _pending_lapsing_petitions(world),
+            "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
             "pending_marshal_decisions": _pending_marshal_decisions(world),
             **preview,
         }

@@ -765,5 +765,100 @@
    }
   },
   "_reading": "The Crown of the Reich reaches VP1-RH on marengo (turn 17, declined — no change; Holland's letter, waiting behind it, is crowded out on its last eligible turn: passed(crowded), its decline applied, its receipt on screen — R2 on a real arm); on historical and austerlitz it passes on its premise (Austria, brought to terms by subjugation, stands France's vassal through the window — no fork to offer). It is forsworn on every CS and TH arm, the Decree on every RH and TH arm."
+ },
+ "_attribution_part4": "S14c part 4 (S14C-X24 the due mark; X26 the gate's moment rows; X27 the dispatch's one sentence; the moments' trace on every driver via --moments-trace, meta.json only): the nine archived commanded arms re-run on part 4's FINAL tree equal part 3's tree on every stream (game, view, records) — X24 has no reach on them (no letter was due, deferred and then contradicted), X26/X27 are display and the trace writes no digest record; the VP-1 road arms stamp as before (RH 13, TH 20, CS never). Each moment's reach per arm: tools/_s14c_sweep_final.json.",
+ "vs_part3_tree": {
+  "CMD-A": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1179,
+    1179
+   ]
+  },
+  "CMD-M": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1146,
+    1146
+   ]
+  },
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1229,
+    1229
+   ]
+  },
+  "DL": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    148,
+    148
+   ]
+  },
+  "FC": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    101,
+    101
+   ]
+  },
+  "FLD": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    441,
+    441
+   ]
+  },
+  "LAW": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    451,
+    451
+   ]
+  },
+  "VOLTE": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1288,
+    1288
+   ]
+  },
+  "OP": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    757,
+    757
+   ]
+  }
+ },
+ "road_arms_part4": {
+  "VP1-RH-historical": 13,
+  "VP1-RH-austerlitz": 13,
+  "VP1-RH-marengo": 13,
+  "VP1-CS-historical": -1,
+  "VP1-CS-austerlitz": -1,
+  "VP1-CS-marengo": -1,
+  "VP1-TH-historical": 20,
+  "VP1-TH-austerlitz": 20,
+  "VP1-TH-marengo": 20
  }
 }

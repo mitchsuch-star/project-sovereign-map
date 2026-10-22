@@ -671,6 +671,65 @@ class TestPacing:
         _at(world, 11)
         assert _tick(world) == []                           # one open letter
 
+    # S14C-X24 (S14c part 4): a letter once DUE — its premise true, its gate
+    # open, inside its window — and deferred ends arrived or on screen;
+    # `passed(premise)` is the silent word only for a board that contradicted
+    # it for its whole window.
+    _CRISIS = {"Prussia": {"coveter": "Prussia", "target": "Hanover", "opened_turn": 7,
+                           "foregrounded": True, "foregrounded_turn": 7}}
+
+    def _cool_bavaria(self, world):
+        key = world._make_diplo_key("France", "Bavaria")
+        world.diplomatic_states[key] = "PEACE"              # the alliance broken...
+        world.nation_relations[key] = 10                    # ...and the court cold
+
+    def test_x24_a_letter_due_under_a_crisis_ends_on_screen_when_its_court_cools(self, armed):
+        armed.war_intents = copy.deepcopy(self._CRISIS)
+        for turn in (8, 9):
+            _at(armed, turn)
+            assert _tick(armed) == []
+        assert MO.was_due(armed, "bavarian_match") and armed.moments["due"] == {"bavarian_match": 8}
+        self._cool_bavaria(armed)                           # the evening of T9
+        _at(armed, 10)                                      # its last morning, the premise now false
+        assert _tick(armed) == []
+        assert MO.status_row(armed, "bavarian_match") == {"status": "passed", "turn": 10, "reason": "crowded"}
+        assert _rel(armed, "Bavaria") == 5                  # the decline applied, as for any crowd-out
+        receipt = [e for e in armed.pending_dispatch_events if e["type"] == "moment_receipt"]
+        assert len(receipt) == 1 and "goodwill 10 → 5" in receipt[0]["template_vars"]["line"]
+        assert [(e["phase"], e.get("reason")) for e in armed.event_log
+                if e.get("type") == "moment"] == [("passed", "crowded")]
+
+    def test_x24_a_due_letter_whose_premise_returns_still_arrives(self, armed):
+        armed.war_intents = copy.deepcopy(self._CRISIS)
+        _at(armed, 8)
+        assert _tick(armed) == []                           # due, deferred
+        armed.war_intents = {}
+        self._cool_bavaria(armed)
+        _at(armed, 9)
+        assert _tick(armed) == [] and MO.status(armed, "bavarian_match") == ""   # not its last morning
+        armed.diplomatic_states[armed._make_diplo_key("France", "Bavaria")] = "ALLIANCE"
+        _at(armed, 10)
+        assert _tick(armed) == ["bavarian_match"]
+
+    def test_x24_a_letter_never_due_passes_in_silence(self, armed):
+        self._cool_bavaria(armed)
+        for turn in (8, 9, 10):
+            _at(armed, turn)
+            assert _tick(armed) == []
+        _at(armed, 11)
+        _tick(armed)
+        assert MO.status_row(armed, "bavarian_match")["reason"] == "premise"
+        assert not MO.was_due(armed, "bavarian_match") and "due" not in armed.moments
+        assert not [e for e in armed.pending_dispatch_events if e["type"] == "moment_receipt"]
+
+    def test_x24_the_due_mark_survives_a_save(self, armed):
+        from backend.models.world_state import WorldState
+        armed.war_intents = copy.deepcopy(self._CRISIS)
+        _at(armed, 8)
+        _tick(armed)
+        restored = WorldState.from_dict(json.loads(json.dumps(armed.to_dict())))
+        assert restored.moments == armed.moments and MO.was_due(restored, "bavarian_match")
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Saves — every status round-trips; the backfill

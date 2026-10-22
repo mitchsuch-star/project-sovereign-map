@@ -125,6 +125,32 @@ class TestX15EveryLapseSurfacePrintsASentence:
         assert spec is not None
 
 
+class TestPart4TheWalksFinds:
+    """S14c part 4's Mode C walk (`docs/audits/s14c_walk_2026_10_22/`, the
+    record §17): what the real client showed that no backend pin could."""
+
+    def test_x25_a_save_is_listed_by_its_turn_as_an_int(self):
+        body = _gd("load_dialog.gd")
+        assert "str(int(turn_val))" in body and "str(turn_val)" not in body
+
+    def test_x26_the_gate_names_a_lapsing_moment(self):
+        src = _gd("main.gd")
+        assert 'diplo_data["pending_lapsing_moments"] = response.get(' in src   # the join (the Aug 30 trap)
+        assert "_current_lapsing_moments = lapsing_moments if lapsing_moments is Array else []" in src
+        gate = _func(src, "_show_lapse_confirmation")
+        assert "for mom in _current_lapsing_moments:" in gate
+        assert "will lapse unanswered if you end the turn: %s" in gate
+
+    def test_x27_a_lapsed_petition_prints_once(self):
+        assert "static func turn_events_beside_lapses(data: Dictionary) -> Array:" in _gd("utils.gd")
+        for name in ("main.gd", "dispatch_view.gd"):
+            src = _gd(name)
+            block = src[src.index("# ═══ TURN EVENTS ═══"):]
+            block = block[:block.index("\n\n")]
+            assert "Utils.turn_events_beside_lapses(data)" in block, name
+            assert 'data.get("turn_events"' not in block, name
+
+
 class TestTheFrames:
     def _runner(self):
         spec = importlib.util.spec_from_file_location("_iq10_runner", REPO / "tools" / "iq10_run_captures.py")

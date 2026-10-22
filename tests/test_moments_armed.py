@@ -169,14 +169,33 @@ class TestThePassiveBoard:
             tm = TurnManager(world, executor=executor)
             game_state = {"world": world, "executor": executor}
             lapse_rows = []
-            for turn in range(31):
-                random.seed(10_000 + turn)
-                tm.end_turn(game_state)
-                if int(world.current_turn) == 20:     # before the 500-row roll can evict it
-                    lapse_rows = [dict(e) for e in world.event_log if e.get("type") == "offer_lapsed"
-                                  and e.get("proposal_type") == "moment_letter"]
+            # S14c part 4: the moments' trace rides the campaign — it calls
+            # through, so every assertion below doubles as its control.
+            from tools._moments_trace import MomentsTrace
+            trace = MomentsTrace(lambda: world).install()
+            try:
+                for turn in range(31):
+                    random.seed(10_000 + turn)
+                    tm.end_turn(game_state)
+                    if int(world.current_turn) == 20:     # before the 500-row roll can evict it
+                        lapse_rows = [dict(e) for e in world.event_log if e.get("type") == "offer_lapsed"
+                                      and e.get("proposal_type") == "moment_letter"]
+            finally:
+                trace.uninstall()
         world._s14c_lapse_rows = lapse_rows
+        world._s14c_trace = trace.summary(world)
         return world
+
+    def test_the_trace_reads_the_ceilings_and_the_floors_live(self, campaign):
+        """S14c part 4 (EVENTS_SPEC §7): the ceilings and the floor, read where
+        the engine decided — Holland due on 18 and answered by her lapse; the
+        Match and the Decree never due, so their silence is the honest word."""
+        judged = campaign._s14c_trace["judged"]
+        assert judged["ceiling_breaches"] == [] and judged["floor_breaches"] == []
+        assert judged["floors"] == {"throne_of_holland": {
+            "first_due": 18, "status": "lapsed", "reason": "", "verdict": "ok"}}
+        assert judged["passed"] == {"bavarian_match": "premise", "decree_of_berlin": "premise"}
+        assert judged["shown_equals_applied"] and campaign._s14c_trace["errors"] == []
 
     def test_holland_arrives_where_she_slips_and_lapses_as_her_decline(self, campaign):
         row = MO.status_row(campaign, "throne_of_holland")

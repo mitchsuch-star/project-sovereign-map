@@ -1,0 +1,1763 @@
+{
+ "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17)",
+ "deck_sha": "a8aa291357ef4676a5650f2f3b52472fd432b310c125db92a0125ad1b880a8c3",
+ "pacing": {
+  "max_open": 1,
+  "min_gap": 3
+ },
+ "deck": [
+  "bavarian_match",
+  "throne_of_holland",
+  "crown_of_the_reich",
+  "decree_of_berlin"
+ ],
+ "sweep": {
+  "armA_historical_run1": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "arrived T18, lapsed T19 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      18
+     ]
+    }
+   }
+  },
+  "armA_historical_run2": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "arrived T18, lapsed T19 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      18
+     ]
+    }
+   }
+  },
+  "armB_austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T13 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "austerlitz",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armB_jena": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 20,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "arrived T19, lapsed T20 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "jena",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      19
+     ]
+    }
+   }
+  },
+  "armb_scripted_austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T13 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "austerlitz",
+   "ambient_base": 10000,
+   "script": "france",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armb_scripted_austerlitz_soil": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T13 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "austerlitz",
+   "ambient_base": 10000,
+   "script": "france_soil",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armb_scripted_historical": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": "france",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armb_scripted_historical_soil": {
+   "measured": true,
+   "mornings": 37,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T38",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": "france_soil",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armb_scripted_ulm": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "ulm",
+   "ambient_base": 10000,
+   "script": "france",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armb_scripted_ulm_soil": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "ulm",
+   "ambient_base": 10000,
+   "script": "france_soil",
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armB_ulm": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "ulm",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armC_00_historical": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "arrived T18, lapsed T19 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      18
+     ]
+    }
+   }
+  },
+  "armC_01_ulm": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 11,
+     "moment": "bavarian_match",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, lapsed T11 (its decline)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "ulm",
+   "ambient_base": 17919,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "bavarian_match": [
+      10
+     ]
+    }
+   }
+  },
+  "armC_02_austerlitz": {
+   "measured": true,
+   "mornings": 33,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T13 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T34",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "austerlitz",
+   "ambient_base": 25838,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armC_03_jena": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "jena",
+   "ambient_base": 33757,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armC_04_marengo": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 9,
+     "moment": "bavarian_match",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, lapsed T9 (its decline)",
+    "throne_of_holland": "passed T20 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "marengo",
+   "ambient_base": 41676,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "bavarian_match": [
+      8
+     ]
+    }
+   }
+  },
+  "armC_05_eylau": {
+   "measured": true,
+   "mornings": 33,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "arrived T17, lapsed T18 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T34",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "seed": "eylau",
+   "ambient_base": 49595,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      17
+     ]
+    }
+   }
+  },
+  "armC_06_friedland": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T9, lapsed T10 (its decline)",
+    "throne_of_holland": "passed T20 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "seed": "friedland",
+   "ambient_base": 57514,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "bavarian_match": [
+      9
+     ]
+    }
+   }
+  },
+  "armC_07_wagram": {
+   "measured": true,
+   "mornings": 34,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T35",
+    "decree_of_berlin": "passed T33 (premise)"
+   },
+   "errors": [],
+   "seed": "wagram",
+   "ambient_base": 65433,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armC_08_lodi": {
+   "measured": true,
+   "mornings": 38,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "passed T12 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T39",
+    "decree_of_berlin": "passed T33 (premise)"
+   },
+   "errors": [],
+   "seed": "lodi",
+   "ambient_base": 73352,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 0,
+    "open_max": 0,
+    "during_foreground": 0,
+    "fire_turns": {}
+   }
+  },
+  "armC_09_rivoli": {
+   "measured": true,
+   "mornings": 27,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T13 (premise)",
+    "throne_of_holland": "arrived T18, lapsed T19 (its decline)",
+    "crown_of_the_reich": "pending — the last morning T28",
+    "decree_of_berlin": "pending — the last morning T28"
+   },
+   "errors": [],
+   "seed": "rivoli",
+   "ambient_base": 81271,
+   "script": null,
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {
+     "throne_of_holland": [
+      18
+     ]
+    }
+   }
+  }
+ },
+ "commanded": {
+  "CMD-A": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered decline T10",
+    "throne_of_holland": "arrived T19, answered decline T19",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "CMD-H": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T18, answered decline T18",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "CMD-M": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T19, answered decline T19",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "DL": {
+   "measured": true,
+   "mornings": 3,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "pending — the last morning T4",
+    "throne_of_holland": "pending — the last morning T4",
+    "crown_of_the_reich": "pending — the last morning T4",
+    "decree_of_berlin": "pending — the last morning T4"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "FC": {
+   "measured": true,
+   "mornings": 2,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {},
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [],
+   "reach": {
+    "bavarian_match": "pending — the last morning T3",
+    "throne_of_holland": "pending — the last morning T3",
+    "crown_of_the_reich": "pending — the last morning T3",
+    "decree_of_berlin": "pending — the last morning T3"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "FLD": {
+   "measured": true,
+   "mornings": 10,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "pending — the last morning T11",
+    "crown_of_the_reich": "pending — the last morning T11",
+    "decree_of_berlin": "pending — the last morning T11"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "LAW": {
+   "measured": true,
+   "mornings": 10,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "pending — the last morning T11",
+    "crown_of_the_reich": "pending — the last morning T11",
+    "decree_of_berlin": "pending — the last morning T11"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "OP": {
+   "measured": true,
+   "mornings": 18,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T18, answered decline T18",
+    "crown_of_the_reich": "pending — the last morning T19",
+    "decree_of_berlin": "pending — the last morning T19"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VOLTE": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T18, answered decline T18",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  }
+ },
+ "accept": {
+  "CMD-A-ACCEPT": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 4
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered accept T10",
+    "throne_of_holland": "arrived T19, answered accept T19",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "CMD-H-ACCEPT": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 4
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "arrived T18, answered accept T18",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "CMD-M-ACCEPT": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 4
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "arrived T19, answered accept T19",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "completed"
+  }
+ },
+ "road": {
+  "VP1-CS-austerlitz": {
+   "measured": true,
+   "mornings": 32,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 21,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 21,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered decline T10",
+    "throne_of_holland": "arrived T21, answered decline T21",
+    "crown_of_the_reich": "passed T2 (forsworn)",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "errors": [],
+   "status": "game-over"
+  },
+  "VP1-CS-historical": {
+   "measured": true,
+   "mornings": 35,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "passed T2 (forsworn)",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "game-over"
+  },
+  "VP1-CS-marengo": {
+   "measured": true,
+   "mornings": 37,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "passed T20 (premise)",
+    "crown_of_the_reich": "passed T2 (forsworn)",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "errors": [],
+   "status": "game-over"
+  },
+  "VP1-RH-austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered decline T10",
+    "throne_of_holland": "arrived T19, answered decline T19",
+    "crown_of_the_reich": "passed T18 (premise)",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-RH-historical": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T18, answered decline T18",
+    "crown_of_the_reich": "passed T18 (premise)",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-RH-marengo": {
+   "measured": true,
+   "mornings": 27,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "crown_of_the_reich": {
+     "first_due": 17,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "passed",
+     "reason": "crowded",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 17,
+     "moment": "crown_of_the_reich",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "crowded",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "crowded out T19 (its receipt)",
+    "crown_of_the_reich": "arrived T17, answered decline T17",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "game-over"
+  },
+  "VP1-TH-austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered decline T10",
+    "throne_of_holland": "arrived T19, answered decline T19",
+    "crown_of_the_reich": "passed T8 (forsworn)",
+    "decree_of_berlin": "passed T8 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-TH-historical": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T18, answered decline T18",
+    "crown_of_the_reich": "passed T8 (forsworn)",
+    "decree_of_berlin": "passed T8 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-TH-marengo": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 17,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "arrived T17, answered decline T17",
+    "crown_of_the_reich": "passed T8 (forsworn)",
+    "decree_of_berlin": "passed T8 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  }
+ },
+ "road_accept": {
+  "VP1-RH-austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 19,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 5
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered accept T10",
+    "throne_of_holland": "arrived T19, answered accept T19",
+    "crown_of_the_reich": "passed T18 (premise)",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-RH-historical": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 18,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 5
+    },
+    {
+     "turn": 18,
+     "moment": "throne_of_holland",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "arrived T18, answered accept T18",
+    "crown_of_the_reich": "passed T18 (premise)",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "VP1-RH-marengo": {
+   "measured": true,
+   "mornings": 27,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "crown_of_the_reich": {
+     "first_due": 17,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "throne_of_holland": {
+     "first_due": 17,
+     "status": "passed",
+     "reason": "crowded",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 5
+    },
+    {
+     "turn": 17,
+     "moment": "crown_of_the_reich",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 5
+    },
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "kind": "crowded",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "crowded out T19 (its receipt)",
+    "crown_of_the_reich": "arrived T17, answered accept T17",
+    "decree_of_berlin": "passed T10 (forsworn)"
+   },
+   "errors": [],
+   "status": "game-over"
+  }
+ }
+}

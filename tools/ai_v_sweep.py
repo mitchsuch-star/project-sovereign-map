@@ -730,6 +730,10 @@ def derive_metrics(digest: dict) -> dict:
         "open_letters_max": max([int(row.get("moments_open", 0) or 0) for row in turns] or [0]),
         "letters_during_foreground": during_foreground,
         "fire_turns": fire_turns,
+        # S14c part 4: the trace's verdict — the ceilings, the floors and
+        # shown = applied, read where the engine decided ({} on a digest
+        # written before the trace).
+        "moments_judged": ((digest.get("final") or {}).get("moments_trace") or {}).get("judged") or {},
     })
 
 
@@ -1103,6 +1107,10 @@ def run_one(seed: str, ambient_base: int, turns: int,
     game_state = {"world": world, "executor": executor}
 
     capture = RunCapture(world)
+    # S14c part 4 (EVENTS_SPEC §7): the moments' production-time trace —
+    # it calls through and evaluates nothing the engine does not.
+    from tools._moments_trace import MomentsTrace
+    trace = MomentsTrace(lambda: world).install()
     if script not in SCRIPT_ARMS:
         _die(f"unknown --script {script!r}; one of {sorted(SCRIPT_ARMS)}")
     france_script = (FranceScript(stage_soil=(script == "france_soil"))
@@ -1129,6 +1137,8 @@ def run_one(seed: str, ambient_base: int, turns: int,
         digest["turns"].append(capture.capture_turn(result))
 
     digest["final"] = capture.capture_final()
+    digest["final"]["moments_trace"] = _jsonify(trace.summary())
+    trace.uninstall()
     digest["derived"] = derive_metrics(digest)
     if france_script is not None:
         digest["script_log"] = france_script.log
@@ -1355,7 +1365,10 @@ def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
                         "max_per_turn": derived.get("moments_max_per_producing_turn", 0),
                         "open_max": derived.get("open_letters_max", 0),
                         "during_foreground": derived.get("letters_during_foreground", 0),
-                        "fire_turns": derived.get("fire_turns", {})},
+                        "fire_turns": derived.get("fire_turns", {}),
+                        "ceiling_breaches": len((derived.get("moments_judged") or {}).get("ceiling_breaches") or []),
+                        "floor_breaches": (derived.get("moments_judged") or {}).get("floor_breaches") or [],
+                        "floors": (derived.get("moments_judged") or {}).get("floors") or {}},
         }
         print(f"ARM C {index:02d} {seed} k={k}: "
               f"{json.dumps(arm_c[f'{index:02d}_{seed}_k{k}'])[:200]}")

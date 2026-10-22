@@ -658,6 +658,11 @@ def main(argv=None) -> int:
     p.add_argument("--n", type=int, required=True)
     p.set_defaults(fn=lambda a: print(summary(pathlib.Path(a.out).resolve(), a.n)) or 0)
     args = ap.parse_args(argv)
+    # S14c part 4: run in the background (as `start` must be) stdout is a file
+    # in the Windows code page, and the first summary's "—" raised mid-print —
+    # the supervisor's `finally` then closed the engine and the backend.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     return int(args.fn(args) or 0)
 
 

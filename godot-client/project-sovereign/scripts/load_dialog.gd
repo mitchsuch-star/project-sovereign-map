@@ -43,7 +43,9 @@ func show_saves(saves: Array, damaged: Array = []):
 			var filename_val = save_data.get("filename", "")
 
 			var display_name = save_name_val if save_name_val != null else "Unknown"
-			var display_turn = str(turn_val) if turn_val != null else "?"
+			# S14c part 4 (the walk): JSON numbers parse as floats in Godot —
+			# a save listed as "Turn 6.0". Rule 2: every figure shown as an int.
+			var display_turn = str(int(turn_val)) if turn_val != null else "?"
 
 			btn.text = "%s (Turn %s)" % [display_name, display_turn]
 			btn.custom_minimum_size = Vector2(0, 40)

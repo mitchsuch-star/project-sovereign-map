@@ -106,6 +106,53 @@ class TestX1TheWarningCountsWhatLapses:
         assert len(calls) == 5 and all(c == "int(world.current_turn" for c in calls), calls
 
 
+class TestX26TheGateNamesAMomentAndItsPrice:
+    """S14C-X26 (S14c part 4, found by the Mode C walk): the end-turn gate
+    counted a lapsing moment letter as a nameless envoy, though its lapse
+    applies its decline (the Match's costs Bavaria 5 goodwill). Every response
+    that carries the count carries the letters among it, each with its decline
+    planned now (`moments.lapse_gate_rows`), and the gate names them."""
+
+    def _the_match(self, world):
+        world.moments = MO.from_block(_block())
+        _at(world, 8)
+        _tick(world)
+
+    def _rel(self, world):
+        return int(world.nation_relations.get(world._make_diplo_key("France", "Bavaria"), 0))
+
+    def test_the_letter_is_named_only_on_its_last_turn(self, world):
+        self._the_match(world)
+        assert MO.lapse_gate_rows(world) == []            # it stands next turn too
+        _at(world, 9)
+        rel = self._rel(world)
+        assert MO.lapse_gate_rows(world) == [{
+            "moment": "bavarian_match", "title": "The Bavarian Match",
+            "price_line": f"Let Baden keep her — Bavaria's goodwill {rel} → {rel - 5}."}]
+
+    def test_the_gate_line_is_the_lapse_that_follows(self, world):
+        self._the_match(world)
+        _at(world, 9)
+        rel = self._rel(world)
+        assert f"{rel} → {rel - 5}" in MO.lapse_gate_rows(world)[0]["price_line"]
+        with _quiet():
+            world.dialogue_manager.lapse_pending_offers(current_turn=9, world=world)
+        assert MO.status(world, "bavarian_match") == "lapsed" and self._rel(world) == rel - 5
+        assert MO.lapse_gate_rows(world) == []
+
+    def test_a_response_carries_it(self, world):
+        from fastapi.testclient import TestClient
+        self._the_match(world)
+        _at(world, 9)
+        response = C.post(TestClient(M.app), {"command": "status"})
+        assert [r["moment"] for r in response["pending_lapsing_moments"]] == ["bavarian_match"]
+
+    def test_every_response_that_counts_carries_the_letters(self):
+        src = (BACKEND / "main.py").read_text(encoding="utf-8")
+        assert src.count('"pending_lapsing_petitions": _pending_lapsing_petitions(world),') == 5
+        assert src.count('"pending_lapsing_moments": _pending_lapsing_moments(world),') == 5
+
+
 class TestX2TheWizardLock:
     """RULED (S14c part 2, under the standing delegation): DDB-2's ruling is
     silent on the wizard; the lock is the offer-lifetime spec's ("avoids the
