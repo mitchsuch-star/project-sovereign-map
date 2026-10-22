@@ -2627,6 +2627,18 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     _fresh = refresh_client_petition_dialogue(world, _current)
                     if isinstance(_fresh, dict) and _fresh:
                         popup.update(_fresh)
+            elif popup.get("is_moment"):
+                # S14c (docs/EVENTS_SPEC.md §3.4 seam 4): a moment letter is
+                # re-planned whole at the hand-over — its quotes, board and
+                # stamps — bound to the CURRENT dialogue.
+                _current = getattr(world, "pending_diplomatic_dialogue", None)
+                if (isinstance(_current, dict)
+                        and _current.get("dialogue_id") is not None
+                        and popup.get("dialogue_id") == _current.get("dialogue_id")):
+                    from backend.game_logic.moments import refresh_letter
+                    _fresh = refresh_letter(world, _current)
+                    if isinstance(_fresh, dict) and _fresh:
+                        popup.update(_fresh)
             else:
                 # DD-1 Slice B: a treaty letter's Accept is re-stamped from
                 # the ONE verdict at this read too (the board may have moved
@@ -6572,6 +6584,14 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
             if proposal_type is not None:
                 refreshed["proposal_type_display"] = proposal_display_name(proposal_type)
         return _stamp_dialogue_id(refreshed)
+    # S14c (docs/EVENTS_SPEC.md §3.4 seam 4): a moment letter is re-planned
+    # and re-stamped at every read — never the court-indexed fallbacks below.
+    from backend.game_logic.moments import refresh_letter as _refresh_moment
+    _moment_popup = _refresh_moment(world, dialogue)
+    if isinstance(_moment_popup, dict) and _moment_popup:
+        _moment_popup = dict(_moment_popup)
+        _moment_popup["is_counter_offer"] = False
+        return _stamp_dialogue_id(_moment_popup)
     # DD-1 Slice B: a treaty letter (an incoming proposal, a counter) is
     # re-stamped from the ONE verdict on every read — the popup's `options`
     # mirror carries `enabled` / `reason` for its Accept.
@@ -6590,7 +6610,7 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
         return _stamp_dialogue_id(popup)
 
     existing_popup = getattr(world, "incoming_proposal_popup", None)
-    expected_nation = dialogue.get("target_nation", context.get("source_nation", "Unknown"))
+    expected_nation = dialogue.get("target_nation") or context.get("source_nation") or ""  # S14C-X9
     expected_type = terms.get("type")
     if isinstance(existing_popup, dict) and existing_popup:
         if (

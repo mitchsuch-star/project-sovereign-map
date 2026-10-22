@@ -5690,8 +5690,10 @@ class CombatExecutor:
                 and int(r.get("amount", 0) or 0) > 0]
         if not rows:
             return ""
-        from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
-        parts = [f"{_THREAT_SOURCE_LABELS.get(r.get('source'), str(r.get('source')))} "
+        # S14C-X4: the ONE resolver (its dynamic arms included), never the
+        # raw table with a raw-key fallback.
+        from backend.game_logic.diplomatic_ledger import _threat_source_label
+        parts = [f"{_threat_source_label(world, str(r.get('source') or ''))} "
                  f"+{int(r.get('amount', 0))}" for r in rows]
         total = sum(int(r.get("applied", r.get("amount", 0)) or 0) for r in rows)
         return f"\n[Alarm] Europe's alarm rises +{total} — {', '.join(parts)}."

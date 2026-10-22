@@ -436,6 +436,10 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # VP-1 (S14b): a pre-VP-1 save of a scenario that NOW authors the
     # Emperor's designs is armed with them, a fresh state (no road).
     _backfill_imperial_designs(world)
+    # S14c (docs/EVENTS_SPEC.md §3.5): a pre-S14c save of a scenario that
+    # authors the moments gains them, resolved with its own seed; a window
+    # closed by the save turn is `passed(before_save)` — nothing retroactive.
+    _backfill_moments(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -750,6 +754,35 @@ def _backfill_imperial_designs(world: WorldState) -> None:
         if store:
             world.imperial_designs = store
             return
+
+
+def _backfill_moments(world: WorldState) -> None:
+    """S14c (docs/EVENTS_SPEC.md §3.5): arm a pre-S14c save with the moments
+    its scenario NOW authors (the `_backfill_imperial_designs` idiom): ONLY
+    the 1805 campaign, and a save already carrying a store is never
+    overwritten. The block's windows resolve with the save's own
+    `campaign_seed` (`moments.backfill_store`), so a saved campaign reads the
+    turns its boot would have."""
+    if getattr(world, "moments", None):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    from backend.game_logic.moments import backfill_store
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        store = backfill_store(world, data, str(getattr(world, "campaign_seed", "") or "historical"))
+        if store:
+            world.moments = store
+        return
 
 
 def _backfill_contingent_commanders(world: WorldState) -> None:

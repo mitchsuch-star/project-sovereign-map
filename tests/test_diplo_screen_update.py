@@ -272,16 +272,25 @@ class TestThreatSourceLabelFallback(unittest.TestCase):
     """TH3: Unknown source keys get title-cased fallback."""
 
     def test_unknown_source_key_fallback(self):
+        # S14C-X4 (S14c part 1, Oct 22, 2026) re-seated consciously: this pin
+        # used `broke_non_aggression` as its "unknown" key — a REAL source
+        # (`diplomacy.break_treaty`) that printed "Broke Non Aggression" on
+        # the panel. Every real source is now labelled (the census in
+        # tests/test_moments_engine.py); the fallback is pinned on a key no
+        # producer writes, and the real one on its label.
         world = _make_world()
         world.threat_sources_this_turn = [
+            {"source": "an_unwritten_source", "amount": 8},
             {"source": "broke_non_aggression", "amount": 8},
         ]
         ledger = build_diplomatic_ledger(world)
         sources = ledger["balance_of_europe"]["threat_sources_this_turn"]
-        self.assertEqual(len(sources), 1)
-        # Fallback: "broke_non_aggression" → "Broke Non Aggression"
-        self.assertEqual(sources[0]["label"], "Broke Non Aggression")
-        self.assertIn("+8", sources[0]["display"])
+        self.assertEqual(len(sources), 2)
+        labels = {s["label"] for s in sources}
+        # Fallback: "an_unwritten_source" → "An Unwritten Source"
+        self.assertIn("An Unwritten Source", labels)
+        self.assertIn("Broke a non-aggression pact", labels)
+        self.assertTrue(all("+8" in s["display"] for s in sources))
 
 
 class TestDPBreakdownAuthority(unittest.TestCase):

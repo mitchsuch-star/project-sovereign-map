@@ -5013,6 +5013,15 @@ def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
         line = str(petition.get("message") or "").strip()
         if line:
             row["line"] = line
+    # S14c (docs/EVENTS_SPEC.md §3.4 seam 6, the backend half): a moment
+    # letter has no court — the row carries its own sentence ("The Throne of
+    # Holland was left unanswered — …"), never "'s … offer lapsed".
+    moment = offer.get("moment")
+    if isinstance(moment, dict) and moment:
+        row["is_moment"] = True
+        line = str(moment.get("line") or "").strip()
+        if line:
+            row["line"] = line
     return row
 
 
@@ -7504,6 +7513,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_vassal_transferred": "{vassal} passes from {from_lord}'s suzerainty to {to_lord}'s.",
     # VD-C "The Contingent": the beat's own sentence, composed at the producer.
     "diplomatic_vassal_contingent": "{line}",
+    # S14c R2 (docs/EVENTS_SPEC.md §4): a moment letter crowded out of its
+    # season ends on screen — composed at the producer (`moments._crowd_out`).
+    "moment_receipt": "{line}",
     "diplomatic_vassal_defected": "THE DEFECTION: {briber_display}'s gold turns {vassal_display} against {lord_display}.",
     "diplomatic_ai_proposal": "An envoy from {nation_display} has arrived with a proposal.",
     # IQ-4 (R7): the three mission templates name the court through the
@@ -7888,6 +7900,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_vassal_refuses_call": "HIGH",
     "diplomatic_vassal_transferred": "HIGH",
     "diplomatic_vassal_contingent": "MEDIUM",   # VD-C: the client's men (raised / home / walked out)
+    "moment_receipt": "HIGH",   # S14c R2: a crowded-out moment's receipt (nothing silent)
     "diplomatic_vassal_defected": "HIGH",
     "diplomatic_ai_proposal": "HIGH",
     "diplomatic_mission_progress": "LOW",

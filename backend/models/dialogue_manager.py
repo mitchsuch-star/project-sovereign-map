@@ -227,6 +227,9 @@ class DialogueManager:
         "incoming_settlement_offer": "Settlement offer",
         "ally_settlement_petition": "Ally settlement petition",
         "incoming_ultimatum": "Ultimatum",
+        # S14c (docs/EVENTS_SPEC.md §3.4 seam 8): keyed by proposal type — a
+        # moment letter's dtype is `incoming_proposal`.
+        "moment_letter": "A Moment of History",
     }
 
     def __init__(self):
@@ -587,8 +590,17 @@ class DialogueManager:
                         + (f": {war_id}" if war_id else "")
                     )
                 ).strip()
+            elif ctx.get("proposal_type") == "moment_letter":
+                # S14c (seam 8): a moment letter has no court — the Cabinet
+                # lays it before the Emperor; the row is its title.
+                source = "The Cabinet"
+                ptype = "moment_letter"
+                summary = (f"{self.MAILBOX_SUMMARY_LABELS['moment_letter']}: "
+                           f"{d.get('proposal_terms_summary') or ''}").strip()
             else:
-                source = d.get("target_nation", ctx.get("source", "Unknown"))
+                # S14C-X9: the dead `context.source` fallback named a court
+                # called "Unknown"; every builder writes `source_nation`.
+                source = d.get("target_nation") or ctx.get("source_nation") or ""
                 terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
                 ptype = terms.get("type", dtype)
                 summary = str(
@@ -641,12 +653,17 @@ class DialogueManager:
         Used by diplomacy gating to block new diplomacy initiation while
         unanswered offers are pending.
         """
-        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+        # S14c (docs/EVENTS_SPEC.md §3.4 seam 9, A2): a moment letter is the
+        # Cabinet's, not a court's offer — it never locks the wizard.
+        from backend.game_logic.moments import is_moment_letter
+
+        def _offer(item) -> bool:
+            return (item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES
+                    and not is_moment_letter(item))
+
+        if self._current and _offer(self._current):
             return True
-        return any(
-            item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES
-            for item in self._queue
-        )
+        return any(_offer(item) for item in self._queue)
 
     def lapse_pending_offers(self, current_turn: Optional[int] = None,
                              world=None) -> list:
@@ -662,16 +679,22 @@ class DialogueManager:
         carries the priced result under `call_to_arms`.
         """
         from backend.game_logic.call_to_arms import keeps_open, refuse_lapsed_letter
+        from backend.game_logic import moments
 
         def _lapses(item: dict) -> bool:
             if item.get("type", "") not in self.CURRENT_TURN_OFFER_TYPES:
                 return False
-            return not (current_turn is not None and keeps_open(item, current_turn))
+            return not (current_turn is not None
+                        and (keeps_open(item, current_turn)
+                             or moments.keeps_open(item, current_turn)))
 
         def _info(item: dict) -> dict:
             info = self._extract_lapse_info(item)
             if world is not None:
                 info.update(refuse_lapsed_letter(world, item))
+                # S14c (seam 5): an unanswered moment letter lapses as its
+                # decline; the row carries its own sentence under `moment`.
+                info.update(moments.lapse_default(world, item))
             return info
 
         lapsed = []
@@ -705,7 +728,12 @@ class DialogueManager:
         lapse type-cooldown on the rewritten value is the documented
         cooldown trap (the P-rule checks would never read it)."""
         ctx = dialogue.get("context", {})
-        nation = dialogue.get("target_nation", ctx.get("source", "Unknown"))
+        # S14C-X9 (S14c part 1): the old fallback read a `context.source` no
+        # builder writes and named the court "Unknown" — a court-less letter
+        # (a moment) wrote cooldown keys for it. Every builder sets
+        # `target_nation` or `context.source_nation`; a letter with neither
+        # lapses with no nation, and the cooldown writes stay `if nation`.
+        nation = dialogue.get("target_nation") or ctx.get("source_nation") or ""
         terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
         return {
             "nation": nation,

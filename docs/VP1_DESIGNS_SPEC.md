@@ -249,6 +249,8 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 
 ## §11 Deferrals and hand-offs (Rule 9)
 
+> **S14c part 1 (October 22, 2026; `docs/EVENTS_SPEC.md` §3.6, §13 — the A6 amendment):** `imperial_designs.road_state(world, road_id)` → proclaimed | forsworn | open is the ONE reader of a road against the proclamation (every inline "forsworn" test routes through it, S14C-X17), and `fulfilled_turn(world, design_id)` sits beside `is_fulfilled`; the moments read only `armed`, `proclaimed_road`, `is_fulfilled`, `fulfilled_turn` and `road_state`, and no moment op reaches a VP-1 source or verb. The 12-cell matrix is pinned as each moment arms (parts 2–3).
+
 | Item | Owner / landing | Completion | Test | STATUS line |
 |---|---|---|---|---|
 | The land roads' played reach (Rhine, Crowns) — ✅ LANDED October 22, 2026 (§14.2) | this row, Part 3 | VP1-RH and VP1-TH reported per seed; any seal unreached stated on its design's row of this record | `tests/test_vp1_the_decisive_peace.py` (an archived-digest pin) | "S14b part 3 — VP-1's arms" |

@@ -186,6 +186,32 @@ def is_fulfilled(world, design_id: str) -> bool:
     return design_id in (_state(world).get("fulfilled") or {})
 
 
+def fulfilled_turn(world, design_id: str) -> Optional[int]:
+    """The turn a design was stamped fulfilled (the turn that ENDED), or None
+    — a public reader beside `is_fulfilled` (S14c: the Reich letter's lag
+    counts from it, `docs/EVENTS_SPEC.md` §3.6)."""
+    turn = (_state(world).get("fulfilled") or {}).get(design_id) if armed(world) else None
+    return None if turn is None else int(turn)
+
+
+ROAD_STATE_PROCLAIMED = "proclaimed"
+ROAD_STATE_FORSWORN = "forsworn"
+ROAD_STATE_OPEN = "open"
+
+
+def road_state(world, road_id: str) -> str:
+    """S14C-X17: the ONE reading of a road against the proclamation —
+    "proclaimed" (it is the Emperor's road), "forsworn" (another road was
+    proclaimed; irreversible), "open" (no road yet, or an unarmed world).
+    Every "forsworn" test in this module, the moments' road gate and the
+    payload's flags route through it (a census pins that none re-derives
+    it)."""
+    chosen = proclaimed_road(world)
+    if not chosen:
+        return ROAD_STATE_OPEN
+    return ROAD_STATE_PROCLAIMED if chosen == road_id else ROAD_STATE_FORSWORN
+
+
 # ════════════════════════════════════════════════════════════════════════
 # Readings — pure reads of live state (the record §2)
 # ════════════════════════════════════════════════════════════════════════
@@ -814,7 +840,7 @@ def _pay_one_shot(world, d: Dict[str, Any]) -> None:
 # ── The live-gated reward seams (held down by the series arms) ─────────────
 
 def _live_reward(world, road_id: str, reward_type: str) -> Optional[Dict[str, Any]]:
-    if proclaimed_road(world) != road_id:
+    if road_state(world, road_id) != ROAD_STATE_PROCLAIMED:
         return None
     for d in designs_of(road(world, road_id)):
         if d.get("role") == ROLE_CONSTRUCTION and (d.get("reward") or {}).get("type") == reward_type:
@@ -1206,7 +1232,7 @@ def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Opti
     if not chosen:
         return (f"{title} serves a road of the Empire, Sire — proclaim one first "
                 f"({DESIGNS_CONTROL}).")
-    if want not in (ACT_ANY_ROAD, chosen):
+    if want != ACT_ANY_ROAD and road_state(world, want) == ROAD_STATE_FORSWORN:
         mine, other = road(world, want) or {}, road(world, chosen) or {}
         return (f"{title} belongs to Road {_ROAD_NUMERALS.get(want, '')}, {mine.get('title')} — "
                 f"forsworn when the Emperor proclaimed {other.get('title')}.")
@@ -1311,7 +1337,7 @@ def act_rows(world) -> List[Dict[str, Any]]:
             "price": price, "admin_cost": int(ACT_ADMIN_COST), "relief": relief,
             "effects_line": "; ".join(act_effect_lines(world, a)),
             "decreed_turn": act_decreed_turn(world, aid),
-            "forsworn": bool(chosen) and want not in (ACT_ANY_ROAD, chosen),
+            "forsworn": want != ACT_ANY_ROAD and road_state(world, want) == ROAD_STATE_FORSWORN,
             "available": refusal is None, "disabled_reason": refusal or "",
             "command": decree_command(a),
         })
@@ -1518,8 +1544,8 @@ def build_designs_payload(world) -> Optional[Dict[str, Any]]:
                 "reward_line": reward_line(d),
                 "links": _links(world, d, reading),
             })
-        proclaimed = rid == chosen
-        forsworn = bool(chosen) and rid != chosen
+        proclaimed = road_state(world, rid) == ROAD_STATE_PROCLAIMED
+        forsworn = road_state(world, rid) == ROAD_STATE_FORSWORN
         refusal = proclaim_refusal(world, rid) or ""
         disabled = "" if (proclaimed or forsworn) else (price_refusal(world, rid) or "")
         gate = r.get("gate") or {}
@@ -1672,7 +1698,7 @@ def court_line(world, court: str) -> str:
     rows = []
     for r in roads(world):
         rid = str(r.get("id"))
-        if chosen and rid != chosen:
+        if road_state(world, rid) == ROAD_STATE_FORSWORN:
             continue
         for d in designs_of(r):
             courts = [str(c) for c in (d.get("courts") or [])]

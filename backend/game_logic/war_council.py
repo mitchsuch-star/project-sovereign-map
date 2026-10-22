@@ -409,6 +409,25 @@ def get_war_intent(world, nation: str) -> Optional[Dict]:
     return (getattr(world, "war_intents", {}) or {}).get(nation)
 
 
+def record_in_tenure(record: Optional[Dict], turn: int) -> bool:
+    """A war-intent record holds the world-wide foreground at `turn` — its
+    whole tenure, the forewarn, the coercion and the soft and hard stalls
+    included (S14c, `docs/EVENTS_SPEC.md` §4 R1). The one test the
+    foreground promotion and a newly opened crisis read."""
+    if not isinstance(record, dict) or not record.get("foregrounded"):
+        return False
+    since = record.get("foregrounded_turn")
+    return since is None or int(since) <= int(turn)
+
+
+def foreground_in_tenure(world) -> bool:
+    """A foregrounded crisis stands this morning — R1: a moment letter waits
+    it out within its grace (`moments.tick`)."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    return any(record_in_tenure(r, turn)
+               for r in (getattr(world, "war_intents", {}) or {}).values())
+
+
 def _crisis_cause_of_death(world, coveter: str, record: Dict) -> Optional[str]:
     """None while the crisis lives; else the §12.1 cause. Derived per turn
     — `price` is a reading, never a latch (§3.1a)."""
@@ -1103,7 +1122,7 @@ def process_war_council(world) -> List[Dict]:
             del store[coveter]
 
     # ── 2. Foreground promotion: one crisis on stage world-wide ──
-    if not any(r.get("foregrounded") for r in store.values()):
+    if not any(record_in_tenure(r, turn) for r in store.values()):
         waiting = sorted(
             (int(r.get("opened_turn", 0)), coveter)
             for coveter, r in store.items()
@@ -1153,7 +1172,7 @@ def process_war_council(world) -> List[Dict]:
             if not _ladder_climbed(world, nation, target):
                 continue
             foreground_free = not any(
-                r.get("foregrounded") for r in store.values())
+                record_in_tenure(r, turn) for r in store.values())
             record = {
                 "coveter": nation,
                 "target": target,

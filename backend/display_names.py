@@ -360,6 +360,8 @@ PROPOSAL_TYPE_DISPLAY = {
     "broker_peace": "Brokered Peace",  # AI-4b (§4.2b): mediate a third-party war
     # DDB-2 (DDB-D8): an ally's offensive war asks France to join (a letter)
     "call_to_arms": "Call to Arms",
+    # S14c (docs/EVENTS_SPEC.md §3.4 seam 8): an authored letter of the record
+    "moment_letter": "A Moment of History",
     "ultimatum_demand": "Ultimatum",  # PL-14
     # W6-10: the P3 relation-band gift ask (stable P-rule label; the terms
     # type underneath is non_aggression or open_borders)

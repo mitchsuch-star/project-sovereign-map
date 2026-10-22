@@ -1,0 +1,87 @@
+{
+  "_comment": "S14c part 1 (docs/EVENTS_SPEC.md §2-§5): the staged ARMED moments block the engine is pinned on. The shipped scenario carries NO moments key until part 2 arms M1, M2, M4 (part 3 arms M3); this fixture is the deck exactly as ruled, so the engine's pins read the real content.",
+  "owner": "France",
+  "pacing": {"max_open": 1, "min_gap": 3},
+  "deck": [
+    {
+      "id": "bavarian_match",
+      "kind": "letter",
+      "title": "The Bavarian Match",
+      "date": "1806-01-14",
+      "turn": {"value": 8, "band": [8, 10]},
+      "grace": 2,
+      "when": {"predicate": "court_warm", "court": "Bavaria", "min_relation": 30},
+      "roads": ["any"],
+      "voice": {"speaker": "cabinet"},
+      "record": "Eugène, adopted by Napoleon, wed Augusta of Bavaria at Munich (historically 14 January 1806); she had been promised to Baden's heir, and Munich yielded to the Emperor's pressing.",
+      "accept": {
+        "caption": "Seal the match",
+        "ops": [
+          {"op": "dp", "amount": 2},
+          {"op": "gold", "amount": 1000},
+          {"op": "relation", "court": "Bavaria", "delta": 20},
+          {"op": "loyalty", "court": "Bavaria", "delta": 15},
+          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"}
+        ]
+      },
+      "decline": {
+        "caption": "Let Baden keep her",
+        "ops": [{"op": "relation", "court": "Bavaria", "delta": -5}]
+      }
+    },
+    {
+      "id": "throne_of_holland",
+      "kind": "letter",
+      "title": "The Throne of Holland",
+      "date": "1806-06-05",
+      "turn": {"value": 18, "band": [17, 19]},
+      "grace": 2,
+      "when": {"predicate": "vassal_slipping", "court": "Holland", "below_autonomy": 2, "loyalty_at_most": 70},
+      "roads": ["any"],
+      "voice": {"speaker": "envoy", "nation": "Holland"},
+      "record": "Historically the Batavian Republic asked for a king and was given Napoleon's brother Louis (5 June 1806); the alternative was annexation, which came in 1810 when Louis would not enforce the System.",
+      "accept": {
+        "caption": "Crown Louis",
+        "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]
+      },
+      "decline": {"caption": "Keep the Republic", "ops": []}
+    },
+    {
+      "id": "crown_of_the_reich",
+      "kind": "letter",
+      "title": "The Crown of the Reich",
+      "lag": 1,
+      "grace": 2,
+      "when": {"predicate": "design_fulfilled", "design": "rhine.confederation", "court": "Austria"},
+      "roads": ["rhine"],
+      "voice": {"speaker": "cabinet"},
+      "record": "With the Confederation signed, Napoleon told Francis II to lay down the crown of the Holy Roman Empire (historically 22 July 1806); Francis did so on 6 August, and the Reich of a thousand years ended.",
+      "accept": {
+        "caption": "Demand the abdication",
+        "ops": [
+          {"op": "loyalty", "design_courts": "rhine.confederation", "delta": 10},
+          {"op": "relation", "court": "Austria", "delta": -15},
+          {"op": "alarm", "amount": 3, "source": "moment_reich"}
+        ]
+      },
+      "decline": {"caption": "Let Francis keep his crown", "ops": []}
+    },
+    {
+      "id": "decree_of_berlin",
+      "kind": "letter",
+      "title": "The Decree of Berlin",
+      "date": "1806-11-21",
+      "turn": {"value": 29, "band": [28, 30]},
+      "grace": 2,
+      "when": {"predicate": "law_bites", "law": "berlin_decree"},
+      "roads": ["none", "system"],
+      "voice": {"speaker": "talleyrand"},
+      "record": "Historically, from Berlin after Jena (21 November 1806), Napoleon declared the British Isles in a state of blockade and shut every port of his allies to British goods.",
+      "accept": {
+        "caption": "Sign the Decree",
+        "ops": [{"op": "enact_law", "law": "berlin_decree"}]
+      },
+      "decline": {"caption": "Not yet", "ops": []}
+    }
+  ]
+}

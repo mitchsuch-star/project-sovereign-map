@@ -80,3 +80,25 @@ def calendar_label(start_date: str, turn: int) -> str:
     out_month = within // 2
     half = "Early" if within % 2 == 0 else "Late"
     return f"{half} {MONTH_NAMES[out_month]} {out_year}"
+
+
+def turn_for_date(start_date: str, date: str) -> Optional[int]:
+    """The inverse of `calendar_label`: the 1-based turn whose half-month
+    holds `date` ("YYYY-MM-DD"), or None when either date is invalid or the
+    date falls before the anchor's half.
+
+    VALIDATOR-SIDE ONLY (S14c, `docs/EVENTS_SPEC.md` §1 and S14C-X6): the
+    moments validator checks an authored `date` against its `turn`; no
+    mechanic imports it — the calendar stays display-only, pinned by
+    `tests/test_moments_engine.py`."""
+    anchor = parse_start_date(start_date)
+    target = parse_start_date(date)
+    if anchor is None or target is None:
+        return None
+
+    def _half(parts: Tuple[int, int, int]) -> int:
+        year, month, day = parts
+        return year * TURNS_PER_YEAR + (month - 1) * 2 + (1 if day > 15 else 0)
+
+    turn = _half(target) - _half(anchor) + 1
+    return turn if turn >= 1 else None

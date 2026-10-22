@@ -218,6 +218,14 @@ CAMPAIGN_LOG_TYPES = {
     # writes every one with the owner's `nation`, so the fog filter's player
     # arm passes it. 178 -> 179 flipped consciously; no inert type retired.
     "imperial_design",
+    # S14c "Events and Historical Moments" (part 1): the authored letters of
+    # the record — one row per phase: `arrived` (a letter laid before the
+    # Emperor), `answered` (his answer, applied), `passed` (crowded out of its
+    # season, its decline applied — R2's receipt). moments.py writes every one
+    # with the owner's `nation`. A lapse rides `offer_lapsed` (its `moment`
+    # key carries the sentence). 179 -> 180 flipped consciously; no inert type
+    # retired.
+    "moment",
     # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
     # the countdown when a corps dawdles on soil that is no longer its own.
     # (Internment itself rides PC15-1's `marshal_destroyed` with
@@ -536,6 +544,7 @@ CATEGORY_MAP = {
     # purse, a sweetener at the table, the War of the Congress, the end.
     "congress": "diplomacy",
     "imperial_design": "diplomacy",
+    "moment": "diplomacy",
     "evacuation_granted": "diplomacy",
     # The clock is the treaty's, but the decision it demands is an order to a
     # marshal — so it files with the command traffic the player must answer.
@@ -750,7 +759,7 @@ LOG_TIER_NOTABLE = frozenset({
     "garrison_assault", "glory_crowned", "jealousy_autonomous",
     "jealousy_confrontation", "jealousy_escalation", "jealousy_fired",
     "law_enacted", "marshal_broken", "marshal_commissioned",
-    "marshal_released", "marshal_wounded", "offensive_cascade",
+    "marshal_released", "marshal_wounded", "moment", "offensive_cascade",
     "proposal_arrived", "region_captured", "retreat",
     "rivalry_confrontation", "settlement_summary", "strait_open",
     "strait_shut", "third_party_peace", "ultimatum_accepted",
@@ -2472,6 +2481,18 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
             return f"{title} — an Act of the Empire is decreed ({price:,} gold)"
         return f"The Emperor's designs: {title or phase}"
 
+    if ctx.event_type == "moment":
+        # S14c: the authored letters of the record, one line per phase.
+        phase = str(ctx.event.get("phase") or "")
+        title = str(ctx.event.get("title") or "A letter of the record")
+        if phase == "arrived":
+            return f"{title} — a letter of the record is laid before the Emperor"
+        if phase == "answered":
+            return f"{title} — the Emperor answers: {ctx.event.get('caption') or 'answered'}"
+        if phase == "passed":
+            return str(ctx.event.get("line") or f"{title} passed out of its season")
+        return f"A moment of history: {title}"
+
     if ctx.event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).
         return ctx.event.get("message", "A literal marshal held to his orders.")
@@ -3544,6 +3565,10 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
             if call.get("penalty"):
                 return f"{court}'s call to arms lapsed unanswered — refused, at its price"
             return f"{court}'s call to arms lapsed unanswered — nothing charged"
+        # S14c (seam 6): a moment letter has no court — its own sentence.
+        if str(ctx.event.get("proposal_type") or "") == "moment_letter":
+            moment = ctx.event.get("moment") if isinstance(ctx.event.get("moment"), dict) else {}
+            return str(moment.get("line") or "A letter of the record was left unanswered")
         proposal_type = _proposal_label(ctx.event)
         return f"{nation}'s {proposal_type} offer lapsed unanswered"
 

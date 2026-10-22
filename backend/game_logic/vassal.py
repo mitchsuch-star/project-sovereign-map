@@ -2078,6 +2078,98 @@ def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
 # AUTONOMY CHANGES
 # ═══════════════════════════════════════════════════════
 
+def adjust_loyalty(world, court: str, delta: int, *, lord: Optional[str] = None) -> Optional[dict]:
+    """S14c (`docs/EVENTS_SPEC.md` §3.2): move ONE vassal row's loyalty by
+    `delta`, clamped to LOYALTY_MIN … LOYALTY_MAX — the moments' `loyalty` op
+    (the 17 raw writes elsewhere stay as they are). With `lord`, only that
+    lord's vassal moves. Returns {"before", "after", "delivered"}, or None when
+    `court` is no such vassal (nothing written)."""
+    state = (getattr(world, "vassals", {}) or {}).get(court)
+    if not isinstance(state, dict):
+        return None
+    if lord is not None and state.get("lord") != lord:
+        return None
+    before = int(state.get("loyalty", 0) or 0)
+    after = int(max(LOYALTY_MIN, min(LOYALTY_MAX, before + int(delta))))
+    state["loyalty"] = after
+    return {"before": before, "after": after, "delivered": after - before}
+
+
+def autonomy_change_plan(world, vassal_name: str, new_level: int,
+                         actor: str = None) -> dict:
+    """S14C-X10 (S14c part 1): the ONE plan of an autonomy change — read by
+    `change_vassal_autonomy` (which applies exactly it) and by the moments'
+    `autonomy` op, so shown = applied. Pure: nothing is charged or written.
+
+    {"ok", "message" (the refusal, in the executor's own words), "lord",
+     "old_level", "new_level", "dp_cost", "loyalty_before", "loyalty_after",
+     "gain" (signed), "blunted", "tribute_before", "tribute_after" (percent),
+     "drift_before", "drift_after"}."""
+    # R4-5 (R7, September 18, 2026): the court by its display name, with its
+    # article — measured: "KingdomOfItaly autonomy changed: Satellite →
+    # Autonomous…" on all three arms.
+    client = _court_name(world, vassal_name, article=True)
+    client_cap = _court_name(world, vassal_name, article=True, capitalize=True)
+    plan = {"ok": False, "message": "", "lord": "", "old_level": 0,
+            "new_level": int(new_level) if isinstance(new_level, int) else 0,
+            "dp_cost": 1, "loyalty_before": 0, "loyalty_after": 0,
+            "gain": 0, "blunted": False, "tribute_before": 0, "tribute_after": 0,
+            "drift_before": 0, "drift_after": 0}
+    if vassal_name not in world.vassals:
+        plan["message"] = f"{client_cap} is not a vassal."
+        return plan
+
+    if new_level not in AUTONOMY_NAMES:
+        plan["message"] = (f"Invalid autonomy level: {new_level}. Use 0 (Puppet), "
+                           f"1 (Satellite), or 2 (Autonomous).")
+        return plan
+
+    state = world.vassals[vassal_name]
+    lord = state.get("lord", getattr(world, 'player_nation', 'France'))
+    old_level = state.get("autonomy", AUTONOMY_SATELLITE)
+    plan.update(lord=lord, old_level=int(old_level))
+
+    # Validate caller is the lord (defaults to the player for the typed path)
+    if actor is None:
+        actor = getattr(world, 'player_nation', 'France')
+    if lord != actor:
+        plan["message"] = f"Cannot change {client}'s autonomy: not your vassal."
+        return plan
+
+    if old_level == new_level:
+        plan["message"] = f"{client_cap} is already {AUTONOMY_NAMES[new_level]}."
+        return plan
+
+    # 1 DP, nation-neutrally (player pool vs nation_dp) — `_charge_dp`'s test.
+    if lord == getattr(world, 'player_nation', 'France'):
+        available = int(getattr(world, 'diplomatic_points', 0) or 0)
+    else:
+        available = int((getattr(world, 'nation_dp', {}) or {}).get(lord, 0) or 0)
+    if available < 1:
+        plan["message"] = f"Insufficient diplomatic points ({available}/1 required)."
+        return plan
+
+    before = int(state.get("loyalty", 0) or 0)
+    if new_level > old_level:
+        # More autonomy = vassal is happier. VS-R: the +10 is a CHEAP one-shot,
+        # blunted in the lord's spiral band (byte-identical at healthy grip).
+        mult = get_authority_lever_multiplier(world, lord)
+        gain = int(10 * mult)
+        after = int(min(LOYALTY_MAX, before + gain))
+        plan["blunted"] = gain < 10
+    else:
+        # Less autonomy = vassal is unhappy. NEVER softened — low grip must not
+        # cushion a downgrade (VS-R Q3).
+        gain = -15
+        after = int(max(LOYALTY_MIN, before - 15))
+    plan.update(ok=True, loyalty_before=before, loyalty_after=after, gain=int(gain),
+                tribute_before=int(round(TRIBUTE_RATES[old_level] * 100)),
+                tribute_after=int(round(TRIBUTE_RATES[new_level] * 100)),
+                drift_before=int(autonomy_drift(world, vassal_name, old_level)),
+                drift_after=int(autonomy_drift(world, vassal_name, new_level)))
+    return plan
+
+
 def change_vassal_autonomy(world, vassal_name: str, new_level: int,
                            actor: str = None) -> dict:
     """
@@ -2091,59 +2183,37 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int,
     would have drained the PLAYER's DP for its own vassal. The actor must now
     be the vassal's lord and pays from its own pool (GR5).
 
+    S14C-X10 (S14c part 1): the figures are `autonomy_change_plan`'s — the
+    executor applies exactly the plan the moments' `autonomy` op quotes.
+
     Returns result dict.
     """
-    # R4-5 (R7, September 18, 2026): the court by its display name, with its
-    # article — measured: "KingdomOfItaly autonomy changed: Satellite →
-    # Autonomous…" on all three arms.
-    client = _court_name(world, vassal_name, article=True)
+    plan = autonomy_change_plan(world, vassal_name, new_level, actor)
+    if not plan["ok"]:
+        return {"success": False, "message": plan["message"]}
     client_cap = _court_name(world, vassal_name, article=True, capitalize=True)
-    if vassal_name not in world.vassals:
-        return {"success": False, "message": f"{client_cap} is not a vassal."}
-
-    if new_level not in AUTONOMY_NAMES:
-        return {"success": False, "message": f"Invalid autonomy level: {new_level}. Use 0 (Puppet), 1 (Satellite), or 2 (Autonomous)."}
-
     state = world.vassals[vassal_name]
-    lord = state.get("lord", getattr(world, 'player_nation', 'France'))
-    old_level = state.get("autonomy", AUTONOMY_SATELLITE)
-
-    # Validate caller is the lord (defaults to the player for the typed path)
-    if actor is None:
-        actor = getattr(world, 'player_nation', 'France')
-    if lord != actor:
-        return {"success": False, "message": f"Cannot change {client}'s autonomy: not your vassal."}
-
-    if old_level == new_level:
-        return {"success": False, "message": f"{client_cap} is already {AUTONOMY_NAMES[new_level]}."}
+    lord = plan["lord"]
+    old_level = plan["old_level"]
 
     # Charge 1 DP nation-neutrally (player pool vs nation_dp)
-    dp_charge = _charge_dp(world, lord, 1)
+    dp_charge = _charge_dp(world, lord, plan["dp_cost"])
     if not dp_charge["ok"]:
         return {"success": False, "message": f"Insufficient diplomatic points ({dp_charge['available']}/1 required)."}
 
     # Apply change
     state["autonomy"] = int(new_level)
     state["tribute_rate"] = TRIBUTE_RATES[new_level]
+    state["loyalty"] = int(plan["loyalty_after"])
 
-    # Loyalty adjustment
+    # Loyalty adjustment, in words
     if new_level > old_level:
-        # More autonomy = vassal is happier. VS-R: the +10 is a CHEAP one-shot,
-        # blunted in the lord's spiral band (byte-identical at healthy grip).
-        mult = get_authority_lever_multiplier(world, lord)
-        gain = int(10 * mult)
-        state["loyalty"] = int(min(LOYALTY_MAX, state["loyalty"] + gain))
         # C2 (playtest): name the cause when the gesture is blunted, matching
         # invest_in_vassal — otherwise the player who followed the "grant
         # autonomy" hint hits an unexplained reduced value.
-        blunted = "" if gain >= 10 else (
-            " - the Emperor's faltering grip blunts the gesture"
-        )
-        loyalty_msg = f"+{gain} loyalty (increased autonomy){blunted}"
+        blunted = " - the Emperor's faltering grip blunts the gesture" if plan["blunted"] else ""
+        loyalty_msg = f"+{plan['gain']} loyalty (increased autonomy){blunted}"
     else:
-        # Less autonomy = vassal is unhappy. NEVER softened — low grip must not
-        # cushion a downgrade (VS-R Q3).
-        state["loyalty"] = int(max(LOYALTY_MIN, state["loyalty"] - 15))
         loyalty_msg = "-15 loyalty (decreased autonomy)"
 
     # VP-D5 (Sweep 4): surface the tribute TRADE-OFF, not just the new rate.

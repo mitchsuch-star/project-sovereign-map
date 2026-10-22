@@ -1586,6 +1586,11 @@ class WorldState:
         # road, holds, latches, terms}. Empty (unarmed) on a world whose
         # scenario authors none. No AI code reads it.
         self.imperial_designs: Dict[str, object] = {}
+        # S14c part 1 (docs/EVENTS_SPEC.md §3.5): the ONE store of the
+        # moments — {block: the scenario's authored `moments` key (windows
+        # resolved at boot), state: {moment_id: {status, turn, …}}}. Empty
+        # (unarmed) on a world whose scenario authors none.
+        self.moments: Dict[str, object] = {}
         # AI-3r §2.6 (gate ruling R1): the authored statecraft OVERRIDE —
         # scenario key `statecraft`, per-nation, `wary_of` sub-key only in
         # v1. Merged over the nation_config code table at get_statecraft.
@@ -8800,7 +8805,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
-            "imperial_designs": copy.deepcopy(self.imperial_designs),  # VP-1: scenario key = save key
+            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments),  # VP-1 / S14c: scenario key = save key
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -9388,6 +9393,10 @@ class WorldState:
         # scenario's authored block and the save's store.
         from backend.game_logic.imperial_designs import store_from_data as _designs_store
         world.imperial_designs = _designs_store(data)
+        # S14c part 1 (docs/EVENTS_SPEC.md §3.5): the moments — the same one
+        # shape for the scenario key and the save; {} = unarmed.
+        from backend.game_logic.moments import store_from_data as _moments_store
+        world.moments = _moments_store(data)
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
         # The scenario key and the save key are one ("statecraft").
@@ -12422,6 +12431,11 @@ class WorldState:
         # the rung channel; only a same-want rung change is "weather".
         from backend.game_logic.intent import process_intent_movements
         process_intent_movements(self)
+        # S14c (docs/EVENTS_SPEC.md §3.5): the morning's moments — after the
+        # war council and the intent movements (R1 reads this morning's
+        # foreground), before the fog and Le Moniteur. Unarmed: returns at once.
+        from backend.game_logic import moments as _moments
+        _moments.tick(self)
 
         # ════════════════════════════════════════════════════════════
         # FOG OF WAR - Recalculate visibility (Phase 6 Session 33)

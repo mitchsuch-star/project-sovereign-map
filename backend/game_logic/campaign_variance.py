@@ -175,7 +175,37 @@ def apply_scenario_variance(scenario_data: Dict[str, Any],
             agendas[nation] = _resolve_deck_order(seed, nation, deck,
                                                   historical)
 
+    moments = scenario_data.get("moments")
+    if isinstance(moments, dict):
+        resolve_moment_turns(moments, seed, historical=historical)
+
     return scenario_data
+
+
+def resolve_moment_turns(moments: Dict[str, Any], seed: str,
+                         historical: Optional[bool] = None) -> Dict[str, Any]:
+    """S14c (`docs/EVENTS_SPEC.md` §5): collapse each moment's authored
+    window band {"value": N, "band": [lo, hi]} to a concrete turn — the
+    authored `value` on `historical`, a seeded int in the band otherwise
+    (namespace `moment::<id>::turn`). The band is stripped and the int
+    serialized, so a later edit to the authored band cannot disturb a save.
+    Idempotent on a resolved int; a causal entry (`lag`, no `turn`) and an
+    unbanded `{"value": N}` never vary. The boot (`apply_scenario_variance`)
+    and the pre-S14c backfill (the save's own seed) share it."""
+    if historical is None:
+        historical = is_historical(seed)
+    for entry in (moments.get("deck") or []):
+        turn = entry.get("turn") if isinstance(entry, dict) else None
+        if not isinstance(turn, dict):
+            continue
+        value = int(turn.get("value") or 0)
+        band = turn.get("band")
+        if (not historical and isinstance(band, (list, tuple))
+                and len(band) == 2):
+            value = seeded_int(seed, f"moment::{entry.get('id')}::turn",
+                               int(band[0]), int(band[1]))
+        entry["turn"] = value
+    return moments
 
 
 def _resolve_deck_order(seed: str, nation: str, deck: List[Any],

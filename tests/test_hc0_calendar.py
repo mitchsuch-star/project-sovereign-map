@@ -215,10 +215,12 @@ class TestDisplayOnlyPin:
                 assert "world" not in args, (
                     f"{node.name} must stay a pure (anchor, turn) "
                     "derivation — it must never take a world")
-        # And the callable surface is exactly the pure pair.
+        # And the callable surface is exactly the pure pair — plus S14c's
+        # validator-side inverse `turn_for_date` (S14C-X6: no mechanic imports
+        # it, pinned in tests/test_moments_engine.py).
         public = [n for n, f in vars(cal).items()
                   if inspect.isfunction(f) and not n.startswith("_")]
-        assert sorted(public) == ["calendar_label", "parse_start_date"]
+        assert sorted(public) == ["calendar_label", "parse_start_date", "turn_for_date"]
 
     def test_label_derivation_does_not_mutate_the_world(self):
         world = WorldState.from_scenario(str(EUROPE_SCENARIO))

@@ -479,7 +479,7 @@ class TurnManager:
                     "proposal_type": lapse["proposal_type"],
                     "turn": int(self.world.current_turn),
                 }
-                for _priced in ("petition", "call_to_arms"):  # R8(e) / DDB-2: the price
+                for _priced in ("petition", "call_to_arms", "moment"):  # R8(e) / DDB-2: the price; S14c: the moment's own line
                     if isinstance(lapse.get(_priced), dict):
                         _lapse_row[_priced] = dict(lapse[_priced])
                 self.world.log_event(_lapse_row)

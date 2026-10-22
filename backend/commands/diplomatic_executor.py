@@ -7805,6 +7805,12 @@ class DiplomaticExecutor:
 
     def _handle_accept_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Accept an incoming AI proposal. Executes the state transition."""
+        # S14c (docs/EVENTS_SPEC.md §3.4 seam 3): a moment letter has no
+        # court — answered on its own road, before the court guard below
+        # would pop it as "proposal data missing".
+        from backend.game_logic import moments
+        if moments.is_moment_letter(dialogue):
+            return moments.answer(world, dialogue, moments.ANSWER_ACCEPT)
         from backend.game_logic.ai_diplomacy import check_alliance_conflict
 
         context = dialogue.get("context", {})
@@ -8174,6 +8180,9 @@ class DiplomaticExecutor:
 
     def _handle_reject_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Reject an incoming AI proposal. Applies cooldowns."""
+        from backend.game_logic import moments
+        if moments.is_moment_letter(dialogue):
+            return moments.answer(world, dialogue, moments.ANSWER_DECLINE)
         from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
 
         context = dialogue.get("context", {})
@@ -8500,6 +8509,12 @@ class DiplomaticExecutor:
         )
         from backend.game_logic.diplomacy import calculate_acceptance
         from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
+
+        # S14c (seam 3): a moment letter is answered, never bargained — the
+        # Counter refuses and the letter stands (before the pop below).
+        from backend.game_logic import moments
+        if moments.is_moment_letter(dialogue):
+            return moments.counter_refusal(dialogue)
 
         context = dialogue.get("context", {})
         terms = context.get("proposal", {})

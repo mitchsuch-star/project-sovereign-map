@@ -91,6 +91,10 @@ _COURT_TYPES = {
     # signing or withdrawing, the London purse, the War of the Congress, the
     # dissolution (congress.py writes each with a literal `log_event`).
     "congress",
+    # S14c: a letter of the record laid before the Emperor, answered, or
+    # passed out of its season (moments.py writes each with a literal
+    # `log_event`; armed from part 2 — the shipped boot authors none).
+    "moment",
 }
 _ARMY_TYPES = {
     # FA-N52 (slice 17): `glory_crown_lost` is LIVE now (jealousy.py logs

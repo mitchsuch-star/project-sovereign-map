@@ -1225,6 +1225,211 @@ def _validate_imperial_acts(result, block: dict, known_nations: Set[str],
                         result.add_error(f"{path}.precondition.courts", f"Unknown nation '{court}'")
 
 
+def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
+    """S14c (docs/EVENTS_SPEC.md §3.1, §5): the authored `moments` block —
+    {owner, pacing {max_open, min_gap}, deck: [{id, kind, title, date + turn
+    {value, band} | lag, grace, when {predicate, …}, roads, voice, record,
+    accept {caption, ops}, decline {caption, ops}}]}. Every predicate and op
+    is a name the engine holds; every window's date checks against its turn
+    (`calendar.turn_for_date`, validator-side only — S14C-X6); windowed
+    letters are spaced by the pacing's gap and close before the Verdict;
+    no op reaches a VP-1 source, and no decline is priced."""
+    if "moments" not in data:
+        return
+    from backend.game_logic import moments as MO
+    from backend.game_logic.calendar import turn_for_date
+    from backend.game_logic.diplomatic_ledger import _THREAT_SOURCE_LABELS
+    block = data.get("moments")
+    if not isinstance(block, dict):
+        result.add_error("moments", f"Must be an object, got {type(block).__name__}")
+        return
+    known_nations = set(known_nations or ())
+    if data.get("sovereign_map") == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
+
+    def _int_in(path: str, value, lo: int, hi: int) -> bool:
+        if isinstance(value, bool) or not isinstance(value, int) or not lo <= value <= hi:
+            result.add_error(path, f"Must be an integer in {lo}..{hi}, got {value!r}")
+            return False
+        return True
+
+    def _court(path: str, court) -> None:
+        if not isinstance(court, str) or not court:
+            result.add_error(path, "Must name a court")
+        elif known_nations and court not in known_nations:
+            result.add_error(path, f"Unknown nation '{court}'")
+
+    def _text(path: str, value, limit: int) -> None:
+        if not isinstance(value, str) or not value.strip():
+            result.add_error(path, "Must be a non-empty string")
+        elif len(value) > limit:
+            result.add_error(path, f"At most {limit} characters, got {len(value)}")
+
+    owner = block.get("owner")
+    _court("moments.owner", owner)
+    pacing = block.get("pacing") or {}
+    if not isinstance(pacing, dict):
+        result.add_error("moments.pacing", "Must be an object")
+        pacing = {}
+    for key, (lo, hi) in MO.PACING_BOUNDS.items():
+        if key in pacing:
+            _int_in(f"moments.pacing.{key}", pacing[key], lo, hi)
+    min_gap = pacing.get("min_gap", MO.PACING_DEFAULTS["min_gap"])
+    deck = block.get("deck")
+    if not isinstance(deck, list) or not deck:
+        result.add_error("moments.deck", "Must be a non-empty list")
+        return
+    designs = data.get("imperial_designs") if isinstance(data.get("imperial_designs"), dict) else {}
+    road_ids = {str(r.get("id")) for r in (designs.get("roads") or []) if isinstance(r, dict)}
+    design_ids = {str(d.get("id")) for r in (designs.get("roads") or []) if isinstance(r, dict)
+                  for d in (r.get("designs") or []) if isinstance(d, dict)}
+    reforms = data.get("reforms") if isinstance(data.get("reforms"), dict) else {}
+    law_ids = {str(row.get("id")) for rows in reforms.values() if isinstance(rows, list)
+               for row in rows if isinstance(row, dict)}
+    owner_laws = {str(row.get("id")) for row in (reforms.get(owner) or [])
+                  if isinstance(row, dict)} if isinstance(owner, str) else set()
+    # §3.6: VP-1's teeth — every `alarm_source` its block authors, the Acts'
+    # and the decisive peace's — are never a moment's.
+    from backend.game_logic import imperial_designs as ID
+    vp1_sources = {ID.ACT_ALARM_SOURCE, ID.DECISIVE_PEACE_SOURCE}
+
+    def _collect_sources(node) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "alarm_source" and isinstance(v, str):
+                    vp1_sources.add(v)
+                else:
+                    _collect_sources(v)
+        elif isinstance(node, list):
+            for v in node:
+                _collect_sources(v)
+
+    _collect_sources(designs)
+    start_date = str(data.get("start_date") or "")
+    verdict = ((data.get("campaign_end") or {}) if isinstance(data.get("campaign_end"), dict)
+               else {}).get("verdict_turn")
+    seen: Set[str] = set()
+    windows: List[tuple] = []
+    for i, e in enumerate(deck):
+        path = f"moments.deck[{i}]"
+        if not isinstance(e, dict):
+            result.add_error(path, "Must be an object")
+            continue
+        mid = e.get("id")
+        if not isinstance(mid, str) or not mid:
+            result.add_error(f"{path}.id", "Must be a non-empty string")
+            continue
+        if mid in seen:
+            result.add_error(f"{path}.id", f"Duplicate moment id '{mid}'")
+        if mid in law_ids:
+            result.add_error(f"{path}.id", f"Moment id '{mid}' collides with a law id")
+        seen.add(mid)
+        if e.get("kind") not in MO.KINDS:
+            result.add_error(f"{path}.kind", f"Must be one of {list(MO.KINDS)}")
+        _text(f"{path}.title", e.get("title"), MO.TITLE_MAX)
+        _text(f"{path}.record", e.get("record"), MO.RECORD_MAX)
+        grace = e.get("grace")
+        _int_in(f"{path}.grace", grace, *MO.GRACE_BOUNDS)
+        when = e.get("when")
+        if not isinstance(when, dict) or when.get("predicate") not in MO.PREDICATES:
+            result.add_error(f"{path}.when", f"Must name a predicate of {sorted(MO.PREDICATES)}")
+            when = {}
+        for param in MO.PREDICATE_PARAMS.get(str(when.get("predicate") or ""), ()):
+            if not when.get(param):
+                result.add_error(f"{path}.when.{param}", "Required by the predicate")
+        if when.get("court"):
+            _court(f"{path}.when.court", when.get("court"))
+        if when.get("design") and design_ids and when["design"] not in design_ids:
+            result.add_error(f"{path}.when.design", f"Unknown design '{when['design']}'")
+        if when.get("law") and when["law"] not in owner_laws:
+            result.add_error(f"{path}.when.law", f"'{when['law']}' is no law of the owner's")
+        has_turn, has_lag = "turn" in e, "lag" in e
+        if has_turn == has_lag:
+            result.add_error(path, "Must carry exactly one of `turn` (a dated window) or `lag` (causal)")
+        elif has_lag:
+            _int_in(f"{path}.lag", e.get("lag"), *MO.LAG_BOUNDS)
+            if when.get("predicate") not in MO.ANCHORS:
+                result.add_error(f"{path}.when", "A causal moment's predicate must have an anchor")
+        else:
+            turn = e.get("turn")
+            value = turn.get("value") if isinstance(turn, dict) else turn
+            band = turn.get("band") if isinstance(turn, dict) else None
+            if _int_in(f"{path}.turn.value", value, 1, 400):
+                lo, hi = value, value
+                if band is not None:
+                    if (not isinstance(band, (list, tuple)) or len(band) != 2
+                            or not all(isinstance(b, int) and not isinstance(b, bool) for b in band)
+                            or not band[0] <= value <= band[1]):
+                        result.add_error(f"{path}.turn.band", "Must be [lo, hi] containing the value")
+                    else:
+                        lo, hi = int(band[0]), int(band[1])
+                date = e.get("date")
+                dated = turn_for_date(start_date, str(date or "")) if start_date else None
+                if not isinstance(date, str) or not date:
+                    result.add_error(f"{path}.date", "A dated moment must carry its ISO date")
+                elif start_date and dated != value:
+                    result.add_error(f"{path}.date", f"{date} is turn {dated}, not {value}")
+                g = grace if isinstance(grace, int) and not isinstance(grace, bool) else 0
+                windows.append((lo, hi, g, mid))
+                if isinstance(verdict, int) and hi + g >= verdict:
+                    result.add_error(f"{path}.turn", f"Must close before the Verdict (turn {verdict})")
+        roads = e.get("roads", [MO.ROAD_ANY])
+        allowed = {MO.ROAD_ANY, MO.ROAD_NONE} | road_ids
+        if (not isinstance(roads, list) or not roads
+                or any(not isinstance(r, str) or r not in allowed for r in roads)):
+            result.add_error(f"{path}.roads", f"Must be a list of {sorted(allowed)}")
+        voice = e.get("voice") or {}
+        if not isinstance(voice, dict) or voice.get("speaker") not in MO.VOICES:
+            result.add_error(f"{path}.voice", f"Must name a speaker of {list(MO.VOICES)}")
+        elif voice.get("speaker") == MO.VOICE_ENVOY:
+            _court(f"{path}.voice.nation", voice.get("nation"))
+        for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
+            spath = f"{path}.{side}"
+            answer = e.get(side)
+            if not isinstance(answer, dict):
+                result.add_error(spath, "Must be an object {caption, ops}")
+                continue
+            _text(f"{spath}.caption", answer.get("caption"), MO.CAPTION_MAX)
+            ops = answer.get("ops")
+            if not isinstance(ops, list):
+                result.add_error(f"{spath}.ops", "Must be a list")
+                continue
+            for k, op in enumerate(ops):
+                opath = f"{spath}.ops[{k}]"
+                name = op.get("op") if isinstance(op, dict) else None
+                if name not in MO.OPS:
+                    result.add_error(opath, f"Must name an op of {sorted(MO.OPS)}")
+                    continue
+                if side == MO.ANSWER_DECLINE and name in MO.DECLINE_FORBIDDEN_OPS:
+                    result.add_error(opath, "A decline is never priced (the popup greys accept-shaped answers only)")
+                if name in ("gold", "dp", "alarm"):
+                    _int_in(f"{opath}.amount", op.get("amount"), *MO.OP_BOUNDS[name])
+                if name in ("relation", "loyalty"):
+                    _int_in(f"{opath}.delta", op.get("delta"), *MO.OP_BOUNDS[name])
+                if name in ("relation", "autonomy") or (name == "loyalty" and not op.get("design_courts")):
+                    _court(f"{opath}.court", op.get("court"))
+                if name == "loyalty" and op.get("design_courts") and design_ids \
+                        and op["design_courts"] not in design_ids:
+                    result.add_error(f"{opath}.design_courts", f"Unknown design '{op['design_courts']}'")
+                if name == "autonomy":
+                    _int_in(f"{opath}.level", op.get("level"), 0, 2)
+                if name == "enact_law" and op.get("law") not in owner_laws:
+                    result.add_error(f"{opath}.law", f"'{op.get('law')}' is no law of the owner's")
+                if name == "alarm":
+                    source = str(op.get("source") or "")
+                    if not source.startswith(MO.ALARM_SOURCE_PREFIX) or source in vp1_sources:
+                        result.add_error(f"{opath}.source",
+                                         f"A moment's alarm source starts '{MO.ALARM_SOURCE_PREFIX}' and is never VP-1's")
+                    elif source not in _THREAT_SOURCE_LABELS:
+                        result.add_error(f"{opath}.source", f"'{source}' has no label on the Balance of Europe")
+    windows.sort()
+    for (lo_a, hi_a, g_a, id_a), (lo_b, _hi_b, _g_b, id_b) in zip(windows, windows[1:]):
+        if isinstance(min_gap, int) and hi_a + g_a + int(min_gap) > lo_b:
+            result.add_error("moments.deck",
+                             f"'{id_a}' and '{id_b}' overlap: {hi_a} + {g_a} + {min_gap} > {lo_b}")
+
+
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:
     """SR-7d DC-0 (DOCTRINES_SPEC §1, §9): the authored `doctrines` block —
     {court: {name, says, strength, flaw, cured_by, shared_on_purpose?}} and
@@ -2207,6 +2412,9 @@ def validate_scenario(
 
     # VP-1 (docs/VP1_DESIGNS_SPEC.md §3): the authored `imperial_designs` block.
     _validate_imperial_designs(result, data, statecraft_known)
+
+    # S14c (docs/EVENTS_SPEC.md §3.1, §5): the authored `moments` block.
+    _validate_moments(result, data, statecraft_known)
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

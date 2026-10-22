@@ -67,6 +67,24 @@ ACCEPT_ACTIONS = frozenset({
 # The marker `stamp_option` writes on a closed option; the answer seam
 # (`handle_diplomatic_dialogue_response`) refuses an option that carries it.
 CLOSED_CLAUSE_KEY = "closed_clause"
+# S14C-X8 (S14c part 1, October 22, 2026): the letters that ride a treaty
+# letter's transport but RATIFY no treaty between the court and the recipient
+# — each is answered on its own road (the moment's `moments.answer`, the
+# ultimatum's `_handle_accept_ai_ultimatum`, the vassalage and broker arms of
+# `_handle_accept_ai_proposal`). `_letter_kind` reads this registry before the
+# generic `context` test, which judged every one of them as a peace between
+# the pair: a pair at PEACE had its Yield or Accept closed as "a downgrade" on
+# the first read (S14C-X18 the ultimatum, X19 the offered crown, X20 the
+# broker's ask — measured on the booted 1805 world). Keyed on the stable
+# `context.proposal_type` label and `context.proposal.type` of a DIALOGUE,
+# never on a bare proposal dict (the ratifier's, which keeps the treaty road).
+NON_TREATY_LETTERS = {
+    "moment_letter": "moment",
+    "ultimatum": "ultimatum",
+    "ultimatum_demand": "ultimatum",
+    "offer_vassalage": "offer_vassalage",
+    "broker_peace": "broker_peace",
+}
 
 
 @dataclass(frozen=True)
@@ -169,8 +187,23 @@ def declaration_refusal_words(world, aggressor: str, target: str,
 # The letter's kind
 # ═══════════════════════════════════════════════════════════════════════════
 
+def non_treaty_kind(letter: Any) -> str:
+    """The `NON_TREATY_LETTERS` kind of a dialogue, or "" (S14C-X8)."""
+    if not isinstance(letter, dict) or not isinstance(letter.get("context"), dict):
+        return ""
+    context = letter["context"]
+    terms = context.get("proposal") if isinstance(context.get("proposal"), dict) else {}
+    for key in (context.get("proposal_type"), terms.get("type")):
+        kind = NON_TREATY_LETTERS.get(str(key or ""))
+        if kind:
+            return kind
+    return ""
+
+
 def _letter_kind(letter: Any) -> str:
-    """'treaty' | 'settlement' | 'ally_petition' | 'client_petition' | ''."""
+    """'treaty' | 'settlement' | 'ally_petition' | 'client_petition' |
+    a `NON_TREATY_LETTERS` kind ('moment', 'ultimatum', 'offer_vassalage',
+    'broker_peace') | ''."""
     if not isinstance(letter, dict):
         return ""
     dtype = str(letter.get("type") or letter.get("dialogue_type") or "")
@@ -182,6 +215,9 @@ def _letter_kind(letter: Any) -> str:
     from backend.game_logic.vassal import CLIENT_PETITION_TYPE, is_client_petition
     if is_client_petition(letter) or dtype == CLIENT_PETITION_TYPE:
         return "client_petition"
+    kind = non_treaty_kind(letter)
+    if kind:
+        return kind
     if "context" in letter and isinstance(letter.get("context"), dict):
         return "treaty"
     if (letter.get("proposer_nation") or letter.get("proposer")) and (
@@ -626,6 +662,14 @@ def can_sign(world, letter: Dict[str, Any], *, action: Optional[str] = None,
         return _ally_petition_verdict(world, letter, action)
     if kind == "client_petition":
         return _client_petition_verdict(world, letter)
+    if kind == "moment":
+        from backend.game_logic.moments import answer_verdict
+        return answer_verdict(world, letter, action)
+    if kind in NON_TREATY_LETTERS.values():
+        # S14C-X18 … X20: answered on its own road, which re-validates at the
+        # press — no treaty between the pair is ratified, so the treaty
+        # verdict never closes it.
+        return _ok()
     if kind == "treaty":
         proposal = proposal_of(letter, str(getattr(world, "player_nation", "France") or ""))
         if not proposal:
@@ -749,8 +793,13 @@ def refresh_letter_verdict(world, dialogue: Dict[str, Any]) -> Optional[Dict[str
     keep their own refreshers (`refresh_client_petition_dialogue`,
     `refresh_ally_petition_availability`), which stamp through the same
     `stamp_option`. Returns the refreshed popup payload, or None when the
-    letter is not one of the two."""
-    if _letter_kind(dialogue) not in ("treaty", "settlement"):
+    letter is not one of the two.
+
+    S14C-X8: a `NON_TREATY_LETTERS` letter (a moment, an ultimatum, an
+    offered crown, a broker's ask) is stamped from its own arm of `can_sign`
+    — never judged as a treaty, and a closed stamp is never erased by one."""
+    kind = _letter_kind(dialogue)
+    if kind not in ("treaty", "settlement") and kind not in NON_TREATY_LETTERS.values():
         return None
     stamp_letter(world, dialogue)
     payload = dialogue.get("popup_payload")

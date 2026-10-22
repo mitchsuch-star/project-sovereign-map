@@ -1327,11 +1327,15 @@ def _decree_counts(world, lord: str) -> bool:
     return decree_counts_every_client(world, lord) is not None
 
 
-def decree_clients(world, target: str) -> List[str]:
+def decree_clients(world, target: str, decree_by: str = "") -> List[str]:
     """T8: the clients whose ports are counted against `target` ONLY by
     their lord's decree (autonomous clients under the Berlin Decree) — the
-    same test `closure_against` applies, for the Admiralty's CS line."""
-    if not getattr(world, "reforms", None):
+    same test `closure_against` applies, for the Admiralty's CS line.
+
+    S14c (`docs/EVENTS_SPEC.md` M4): with `decree_by`, read as if THAT lord
+    held the decree — the Decree letter's premise and quote ("would shut a
+    port") without touching the live law."""
+    if not getattr(world, "reforms", None) and not decree_by:
         return []
     from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
     out = []
@@ -1347,7 +1351,7 @@ def decree_clients(world, target: str) -> List[str]:
         if (lord and world.is_at_war(lord, target)
                 and vstate.get("autonomy", AUTONOMY_SATELLITE)
                 not in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)
-                and _decree_counts(world, lord)):
+                and (lord == decree_by or _decree_counts(world, lord))):
             out.append(nation)
     return out
 
@@ -1408,13 +1412,16 @@ def closure_against(world, target: str) -> float:
     return closed_ports_against(world, target) / float(total)
 
 
-def closed_ports_against(world, target: str, extra_members=()) -> int:
+def closed_ports_against(world, target: str, extra_members=(), decree_by: str = "") -> int:
     """The closure's numerator: the ports closed against `target` today —
     or, with `extra_members`, as if those courts kept the System too (the
-    Tilsit clause's row reads "closes 14 → 15 of 26 ports" off it). A pure
-    read; `closure_against` is this divided by the Continent's ports."""
+    Tilsit clause's row reads "closes 14 → 15 of 26 ports" off it), or, with
+    `decree_by`, as if that lord held the Berlin Decree (S14c, the Decree
+    letter's quote). A pure read; `closure_against` is this divided by the
+    Continent's ports."""
     return sum(ports for _nation, ports, closed
-               in ports_by_court_against(world, target, extra_members) if closed)
+               in ports_by_court_against(world, target, extra_members, decree_by=decree_by)
+               if closed)
 
 
 # DDB-58 (Pre-Deploy S13b part 4): the rule, in the Admiralty's one sentence.
@@ -1424,7 +1431,8 @@ PORT_CLOSURE_RULE = ("A court's ports are shut to {target} while it is at war "
                      "power at war with her.")
 
 
-def ports_by_court_against(world, target: str, extra_members=()) -> List[Tuple[str, int, bool]]:
+def ports_by_court_against(world, target: str, extra_members=(),
+                           decree_by: str = "") -> List[Tuple[str, int, bool]]:
     """DDB-58: every continental court with ports, as (court, ports, closed
     against `target`) — the ONE per-court reading `closed_ports_against`
     sums and the Admiralty's open-courts line lists (the payload counted the
@@ -1457,6 +1465,7 @@ def ports_by_court_against(world, target: str, extra_members=()) -> List[Tuple[s
                          # the lord's Berlin Decree every client shuts its
                          # ports, whatever its autonomy — read LAST so an
                          # unreformed board never asks.
+                         or lord == decree_by
                          or _decree_counts(world, lord))):
                 counted = True
             else:

@@ -162,6 +162,31 @@ _THREAT_SOURCE_LABELS = {
     # PC-R7 (ii) part 2 (PC-X39): a war's articles, declared and dropped
     "declared_articles": "Declared the articles of a war",
     "declared_article_dropped": "A declared article dropped at the peace",
+    # S14c (docs/EVENTS_SPEC.md §3.2): a moment's alarm names its letter.
+    "moment_bavarian_match": "A Bonaparte match",
+    "moment_reich": "The end of the Reich",
+    # S14C-X4 (S14c part 1, the sibling census): every source `add_threat` /
+    # `reduce_threat` is called with — each printed its raw key title-cased
+    # ("Ultimatum Annex Attempt") on the Balance-of-Europe panel. The census
+    # (tests/test_moments_engine.py) walks every call by AST.
+    "ultimatum_issued": "Issued an ultimatum",
+    "ultimatum_annex_attempt": "Demanded a court's annexation",
+    "ultimatum_rump_state": "Demanded a court's last provinces",
+    "ultimatum_major_territorial": "Demanded many provinces by ultimatum",
+    "ultimatum_significant_territorial": "Demanded provinces by ultimatum",
+    "ultimatum_accepted": "A court yielded to an ultimatum",
+    "ultimatum_annex": "Annexed provinces by ultimatum",
+    "hegemony_passive": "The weight of the hegemon",
+    "defensive_refusal_memory": "Left an ally to its fate",
+    "continental_system": "Bound a court to the Continental System",
+    "forced_alliance": "Forced a court into alliance",
+    "liberation": "Liberated a nation",
+    "vassal_defection": "A satellite defected",
+    "broke_alliance": "Broke an alliance",
+    "broke_defensive_alliance": "Broke a defensive alliance",
+    "broke_non_aggression": "Broke a non-aggression pact",
+    "broke_open_borders": "Broke an open-borders treaty",
+    "broke_treaty": "Broke a treaty",
 }
 
 
@@ -180,6 +205,10 @@ def _threat_source_label(world, source_key: str) -> str:
         from backend.game_logic.formations import formation_grudge_source_label
         label = formation_grudge_source_label(world, source_key)
         return label or _THREAT_SOURCE_LABELS["formation_grudge"]
+    # S14C-X4: `diplomacy.break_treaty` writes `broke_<treaty_type>` — a
+    # treaty type with no row of its own reads as the family.
+    if source_key.startswith("broke_") and source_key not in _THREAT_SOURCE_LABELS:
+        return _THREAT_SOURCE_LABELS["broke_treaty"]
     return _THREAT_SOURCE_LABELS.get(
         source_key, source_key.replace("_", " ").title())
 
