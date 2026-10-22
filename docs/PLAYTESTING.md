@@ -64,7 +64,12 @@ bilateral sues it is handed can still refuse the turn-4 table that ends every
 war at once) · `--decline-from Hanover,Naples` (GE-V: envoys from the named
 courts are refused whatever `--diplomacy` says — the arm conquering Hanover
 refuses Hanover's armistice; read off the dialogue's own court fields, so the
-player's own confirms are never touched)
+player's own confirms are never touched) · `--decline-until-latch Britain`
+(VP-1 S14b part 3, the VP1-CS arm: the court's envoys are refused until the
+Continental System's Blockade latches — read off GET `/imperial_designs`,
+sticky once latched — then its first qualifying offer is answered by
+`--diplomacy`; absent, every arm is byte-identical and the transport is never
+read)
 · `--missions off|advisor` (IQ-4: `advisor` sends Talleyrand on the missions the
 game's own counsel names; `off`, the default, mirrors `--diplomacy` — see
 [the Cabinet arm](#--missions-advisor--the-cabinet-arm-iq-4-september-14-2026))

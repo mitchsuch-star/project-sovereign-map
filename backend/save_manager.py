@@ -723,8 +723,11 @@ def _backfill_doctrines(world: WorldState) -> None:
 def _backfill_imperial_designs(world: WorldState) -> None:
     """VP-1 (docs/VP1_DESIGNS_SPEC.md §3): arm a pre-VP-1 save with the
     designs its scenario NOW authors (the `_backfill_reforms` idiom): ONLY the
-    1805 campaign, and a save already carrying a store is never overwritten."""
-    if getattr(world, "imperial_designs", None):
+    1805 campaign, and a save already carrying a store is never overwritten —
+    S14b part 3: a store saved before the Acts of the Empire gains the block's
+    `acts` list (its state, `acts` included, is kept)."""
+    existing = getattr(world, "imperial_designs", None)
+    if existing and (existing.get("block") or {}).get("acts") is not None:
         return
     parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
     if not parts:
@@ -740,6 +743,10 @@ def _backfill_imperial_designs(world: WorldState) -> None:
                 store = store_from_data(json.load(fh))
         except (OSError, ValueError):
             continue
+        if store and existing:
+            if "acts" in store["block"]:
+                existing["block"]["acts"] = store["block"]["acts"]
+            return
         if store:
             world.imperial_designs = store
             return

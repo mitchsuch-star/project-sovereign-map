@@ -178,6 +178,12 @@ CAUSE_VERDICT = "verdict"
 # `record_ending(world, "victory", CAUSE_IMPERIAL_PEACE)` needs no client
 # change. Nothing stamps it before GE-3 lands the Congress.
 CAUSE_IMPERIAL_PEACE = "imperial_peace"
+# VP-1 (S14b part 3, docs/VP1_DESIGNS_SPEC.md §4): a road of the Empire sealed —
+# both its designs latched, its construction holding, the sealing court
+# brought to terms and at peace, the realm free and whole. Stamped ONLY by
+# `imperial_designs.stamp_decisive_peace`, after the designs' tick. Marked
+# and continued: a waypoint toward the Congress, never its end.
+CAUSE_DECISIVE_PEACE = "decisive_peace"
 
 TERMINAL_CAUSES = frozenset({CAUSE_SOIL, CAUSE_CHAINS, CAUSE_EAGLE_FALLS})
 
@@ -188,6 +194,7 @@ REGISTERS = {
     CAUSE_HUMBLED: "humbled_peace",
     CAUSE_VERDICT: "verdict",
     CAUSE_IMPERIAL_PEACE: "imperial_peace",
+    CAUSE_DECISIVE_PEACE: "decisive_peace",
 }
 
 REGISTER_TITLES = {
@@ -195,6 +202,7 @@ REGISTER_TITLES = {
     "humbled_peace": "THE HUMBLED PEACE",
     "verdict": "THE VERDICT OF HISTORY",
     "imperial_peace": "THE IMPERIAL PEACE",
+    "decisive_peace": "THE DECISIVE PEACE",
 }
 
 
@@ -249,6 +257,10 @@ def _cause_line(world, cause: str, detail: Dict[str, Any]) -> str:
             return ("No great power remains to contest the order of the "
                     "French Empire.")
         return "Europe accepts the order of the French Empire."
+    if cause == CAUSE_DECISIVE_PEACE:
+        # VP-1: the treaty and its manner, from the stamp's own detail.
+        from backend.game_logic import imperial_designs as _designs
+        return _designs.cause_line(detail)
     return ""
 
 
@@ -533,6 +545,10 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         # Verdict. THE DECISIVE PEACE's stamp is part 3's (its seam is held).
         from backend.game_logic import imperial_designs as _designs
         _designs.tick(world, int(turn_ended))
+        # S14b part 3: THE DECISIVE PEACE — stamped here only, once.
+        rec = _designs.stamp_decisive_peace(world, int(turn_ended))
+        if rec is not None:
+            stamped.append(rec)
     vt = verdict_turn(world)
     if (vt is not None and int(turn_ended) >= vt
             and terminal_ending(world) is None
@@ -2125,6 +2141,10 @@ VERDICT_TIERS = (
 # ascendant tier's minimum score) — a Humbled Peace or a Fall still forces
 # the eclipse, whenever it came.
 IMPERIAL_PEACE_TIER_FLOOR = 2
+# VP-1 (A2, docs/VP1_DESIGNS_SPEC.md §4): THE DECISIVE PEACE adds to the score
+# (a waypoint toward the Congress), it floors nothing — the Imperial Peace
+# keeps its exclusive floor.
+DECISIVE_PEACE_VERDICT_TERM = 2
 
 TIER_LINE_CLOSINGS = {
     "triumph": "The Verdict of History: a reign of triumph.",
@@ -2225,6 +2245,12 @@ def verdict_inputs(world) -> Dict[str, Any]:
         "imperial_peace_route": next(
             (str((r.get("detail") or {}).get("route") or "congress")
              for r in endings(world) if r.get("cause") == CAUSE_IMPERIAL_PEACE), ""),
+        # VP-1 (A2): the decisive peace is a SCORE term (+2), not a floor —
+        # and the treaty that sealed it, for the tier lines.
+        "decisive_peace": has_ending(world, CAUSE_DECISIVE_PEACE),
+        "decisive_treaty": next(
+            (str((r.get("detail") or {}).get("treaty") or "")
+             for r in endings(world) if r.get("cause") == CAUSE_DECISIVE_PEACE), ""),
     }
 
 
@@ -2265,6 +2291,8 @@ def verdict_tier(world, inputs: Optional[Dict[str, Any]] = None) -> Dict[str, An
         score -= 1
     if inputs["treasury"] < 0:
         score -= 1
+    if inputs.get("decisive_peace"):
+        score += DECISIVE_PEACE_VERDICT_TERM
     tier_id, title, lines = VERDICT_TIERS[-1][0], VERDICT_TIERS[-1][2], VERDICT_TIERS[-1][3]
     if not inputs["humbled"] and not inputs.get("fallen"):
         # The floor holds a SETTLED peace (review #17): never a reign whose
@@ -2310,6 +2338,11 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
     qualifier = ("its Emperor is a prisoner" if emperor == "captive" else
                  f"{capital} is in enemy hands" if capital_lost else "")
     signed = bool(inputs.get("imperial_peace"))
+    # VP-1: a reign that sealed a road decided one question at the table —
+    # the copy stops saying "unbeaten at the table" (the record §4).
+    decisive = bool(inputs.get("decisive_peace")) and not signed
+    treaty = str(inputs.get("decisive_treaty") or "the decisive peace")
+    treaty = treaty[0].upper() + treaty[1:]
     monarchy = inputs.get("imperial_peace_route") == "universal_monarchy"
     signed_line = ("No great power remained to contest the order."
                    if monarchy else "The great powers signed the order at Paris.")
@@ -2324,6 +2357,9 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
         if signed:
             out[1] = ("No great power remained to contest the order." if monarchy
                       else "The great powers have signed the order at Paris.")
+        elif decisive:
+            out[1] = f"{treaty} decided the question it was fought for."
+
         if qualifier:
             out[0] = (f"The Empire stands larger than it began, though {qualifier}."
                       if held > opening else
@@ -2343,7 +2379,10 @@ def _tier_lines(world, tier_id: str, lines, inputs: Dict[str, Any]) -> List[str]
                       f"it held, though {qualifier}, and Europe has not accepted it.")
         elif held > opening:
             out[0] = "The Empire holds more than it held, and Europe has not accepted it."
-        if lost > won:
+        if decisive:
+            out[1] = (f"{treaty} decided one question at the table; the rest of "
+                      "Europe has not signed.")
+        elif lost > won:
             out[1] = ("The field has gone against it more often than not, and "
                       "the table is no kinder.")
         elif won == lost:
@@ -2421,6 +2460,11 @@ def build_campaign_summary(world, ending: Dict[str, Any]) -> Dict[str, Any]:
         block = _congress.summary_block(ending.get("detail") or {})
         summary["congress"] = block
         summary["moniteur_line"] = block.get("moniteur_line", "")
+    elif ending.get("register") == "decisive_peace":
+        # VP-1: the road, its two designs and the treaty — from the ending's
+        # OWN detail, as the gold card's blocks are.
+        from backend.game_logic import imperial_designs as _designs
+        summary["designs"] = _designs.summary_block(ending.get("detail") or {})
     return summary
 
 

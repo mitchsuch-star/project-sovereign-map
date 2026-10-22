@@ -507,8 +507,10 @@ class TestTheSceneAndItsWiring:
         assert "122: campaign_end" in _gd("dialog_manager")
 
     def test_the_four_registers_and_their_buttons(self):
+        # Re-seated consciously at S14b part 3 (VP-1, the record's A4): FIVE
+        # registers — THE DECISIVE PEACE joins with one button.
         gd = _gd("campaign_end")
-        for reg in ("fall", "humbled_peace", "verdict", "imperial_peace"):
+        for reg in ("fall", "humbled_peace", "verdict", "imperial_peace", "decisive_peace"):
             assert f'"{reg}": {{' in gd
         assert '"primary": "Load a campaign"' in gd and '"secondary": "Main Menu"' in gd
         assert '"primary": "Continue the reign"' in gd
@@ -749,10 +751,12 @@ class TestTheFrames:
         for shot in ("campaign_end_fall_funeral", "campaign_end_fall_chains",
                      "campaign_end_fall_abdication", "campaign_end_humbled",
                      "campaign_end_verdict", "campaign_end_imperial",
+                     "campaign_end_decisive",
                      "ledger_fall_clock_territories", "dispatch_fall_clock"):
             assert shot in ids, shot
             assert ids[shot]["must_show"] and ids[shot]["surface"]
-        for reg in ("fall_funeral", "fall_chains", "fall_abdication", "humbled", "verdict", "imperial"):
+        for reg in ("fall_funeral", "fall_chains", "fall_abdication", "humbled", "verdict", "imperial",
+                    "decisive"):
             row = ids[f"campaign_end_{reg}"]
             assert row["scene"] == "res://scenes/campaign_end.tscn"
             assert row["mode"] == "call" and row["method"] == "show_ending"
@@ -768,6 +772,13 @@ class TestTheFrames:
     def test_the_frame_is_committed_at_both_scales(self, stem):
         for tail in ("", "_X2"):
             png = AUDITS / f"{stem}{tail}_{FRAME_DATE}.png"
+            assert png.exists(), f"missing evidence frame: {png.name}"
+            assert png.stat().st_size > 8000, f"{png.name} is too small to be a real frame"
+
+    def test_the_fifth_registers_frame_is_committed_at_both_scales(self):
+        """VP-1 (S14b part 3): THE DECISIVE PEACE, shot on the part's staged road."""
+        for tail in ("", "_X2"):
+            png = AUDITS / f"IQ10_CAMPAIGN_END_DECISIVE{tail}_2026_10_22.png"
             assert png.exists(), f"missing evidence frame: {png.name}"
             assert png.stat().st_size > 8000, f"{png.name} is too small to be a real frame"
 

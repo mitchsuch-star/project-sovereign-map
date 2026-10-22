@@ -120,12 +120,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -184,7 +186,9 @@
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -238,12 +242,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -297,12 +303,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -356,12 +364,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -415,12 +425,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 19
+     "boot_purses_seeded": 19,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -474,12 +486,14 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "designs_armed_reads": 396,
+     "designs_armed_reads": 476,
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 0
+     "boot_purses_seeded": 0,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   },
@@ -543,7 +557,9 @@
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
      "dry_run_purse_projections": 0,
-     "boot_purses_seeded": 0
+     "boot_purses_seeded": 0,
+     "decisive_stamps": 0,
+     "acts_decreed": 0
     }
    }
   }

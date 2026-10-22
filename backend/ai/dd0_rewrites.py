@@ -667,6 +667,12 @@ def rewrite_pass_a_law(text: str) -> str:
                  r"(?:the\s+|a\s+|an\s+)?(?P<name>.+?)\s*[.!]*$", text, flags=re.IGNORECASE)
     if not m:
         return text
+    # VP-1 (S14b part 3): "decree the Temple of Glory" is an Act of the Empire
+    # (`decree_act`'s own head) — the verb is no law noun of its own; only a
+    # decree that names a law ("decree the conscription act") is the Laws'.
+    if (re.match(r"^\s*(?:please\s+)?decree\b", text, flags=re.IGNORECASE)
+            and not _LAW_NOUN_RX.search(m.group("name"))):
+        return text
     name = re.sub(r"\s*\b(?:law|act|bill|ordinance|decree)\b\s*$", "", m.group("name"), flags=re.IGNORECASE).strip()
     name = re.sub(r"^(?:a\s+)?(?:law|act|bill)\s+(?:raising|lowering|on|for|about|that|which)\s+", "", name,
                   flags=re.IGNORECASE).strip()

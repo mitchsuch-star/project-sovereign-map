@@ -3,7 +3,7 @@ extends PopupBase
 # =============================================================================
 # INK & IRON — The End Screen (row EP, GE-2 "the client"; ENDGAME_PLAN §4)
 # =============================================================================
-# ONE scene, FOUR registers, fed by ONE backend payload — `game_end.
+# ONE scene, FIVE registers, fed by ONE backend payload — `game_end.
 # screen_payload(record)`: {kind, cause, register, title, cause_line, turn,
 # calendar_label, terminal, tier, tier_title, summary}. The client never
 # recomputes any of it: every figure and every sentence on this card is the
@@ -22,6 +22,10 @@ extends PopupBase
 #   imperial_peace  gold         THE IMPERIAL PEACE (GE-3's; the scene takes
 #                                it now) — [Continue the reign] / [Retire to
 #                                the Tuileries].
+#   decisive_peace  laurel       THE DECISIVE PEACE (VP-1, S14b part 3): the
+#                                road sealed — its designs and the treaty
+#                                (`summary.designs`), a waypoint toward the
+#                                Congress, never its end. [Continue the reign].
 #
 # Raised by main.gd through the NA-6b stash-and-raise discipline: stashed the
 # moment a response arrives (`_stash_ending`), shown where control would
@@ -82,6 +86,16 @@ const REGISTER_STYLE := {
 		"cue": "fanfare",
 		"primary": "Continue the reign",
 		"secondary": "Retire to the Tuileries",
+	},
+	"decisive_peace": {
+		"title": "THE DECISIVE PEACE",
+		"title_hex": "c8d8a0",          # laurel
+		"border": Color(0.56, 0.64, 0.40, 1.0),
+		"bg": Color(0.075, 0.095, 0.06, 1.0),
+		"overlay": Color(0.01, 0.02, 0.0, 0.86),
+		"cue": "fanfare",
+		"primary": "Continue the reign",
+		"secondary": "",
 	},
 }
 
@@ -244,6 +258,10 @@ func _render(style: Dictionary) -> void:
 	#     Universal Monarchy's line), from the ending's own detail.
 	if _register == "imperial_peace":
 		bbcode += _congress_block(summary.get("congress"), style)
+	# 2c. VP-1: the decisive peace's own block — the road, its two designs and
+	#     the treaty that sealed it, from the ending's own detail.
+	if _register == "decisive_peace":
+		bbcode += _designs_block(summary.get("designs"), style)
 	# 3. The record — the campaign's totals, taken at the moment.
 	bbcode += _record_block(summary, style)
 	if _register != "verdict":
@@ -438,6 +456,30 @@ func _congress_block(congress, style: Dictionary) -> String:
 	return out + "\n"
 
 
+func _designs_block(designs, style: Dictionary) -> String:
+	"""VP-1 (S14b part 3): THE DECISIVE PEACE's block — built by the backend
+	from the ending's OWN detail (`imperial_designs.summary_block`), never
+	from live state: the road, its two designs with the turn each was
+	fulfilled, and the treaty that sealed it."""
+	if not (designs is Dictionary) or (designs as Dictionary).is_empty():
+		return ""
+	var out := _heading("THE EMPEROR'S DESIGNS", style)
+	var road_v = designs.get("road_line")
+	if road_v is String and road_v != "":
+		out += _esc(road_v) + "\n"
+	var rows = designs.get("designs")
+	if rows is Array:
+		for row in rows:
+			if row is Dictionary:
+				var line_v = row.get("line")
+				if line_v is String and line_v != "":
+					out += Utils.bbcode_color("✓ ", Utils.COLOR_SUCCESS) + _esc(line_v) + "\n"
+	var treaty_v = designs.get("treaty_line")
+	if treaty_v is String and treaty_v != "":
+		out += Utils.bbcode_color(_esc(treaty_v), Utils.COLOR_INFO) + "\n"
+	return out + "\n"
+
+
 func _sitting_strip(rows: Array) -> String:
 	"""The sitting's days as a strip — one cell per day: the hold (✓ held /
 	✗ broke) and how many courts had answered (recognizes / shut out / gone)
@@ -502,6 +544,8 @@ func _what_now_line() -> String:
 			return Utils.bbcode_color("[i]The reign goes on, under the terms every court in Europe has read. The Verdict of History will grade it as an eclipse.[/i]", Utils.COLOR_INFO)
 		"imperial_peace":
 			return Utils.bbcode_color("[i]The order of the French Empire stands. Continue the reign, or retire to the Tuileries.[/i]", Utils.COLOR_INFO)
+		"decisive_peace":
+			return Utils.bbcode_color("[i]The road is sealed. The reign goes on — the Congress of Paris still waits, and the Empire can still fall.[/i]", Utils.COLOR_INFO)
 		_:
 			return Utils.bbcode_color("[i]The reign goes on; the Empire can still fall.[/i]", Utils.COLOR_INFO)
 

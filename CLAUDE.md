@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b's head LANDED; VP-1's gate RULED; parts 1–2 LANDED; part 3 is next.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b COMPLETE (VP-1 landed, the decisive peace stamped); S14c's gate is next.
 
 **▶ LIVE STATE (October 22, 2026).** The three most recent landed rows:
-- **S14b part 2 (Oct 22) — VP-1's road armed on the existing screens — LANDED** (§144–§145; `docs/VP1_DESIGNS_SPEC.md` §13). **NEXT = S14b part 3, the Acts and THE DECISIVE PEACE.**
+- **S14b part 3 (Oct 22) — the Acts, THE DECISIVE PEACE, the arms — LANDED; S14b COMPLETE** (§146; `docs/VP1_DESIGNS_SPEC.md` §14). **NEXT = S14c's gate (events).**
+- **S14b part 2 (Oct 22) — VP-1's road armed on the existing screens — LANDED** (§144–§145).
 - **S14b part 1 (Oct 22) — VP-1's substrate, unarmed — LANDED** (§143).
-- **S14b (Oct 21–22) — its head LANDED (§142); VP-1's gate RULED.**
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

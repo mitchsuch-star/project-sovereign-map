@@ -1270,6 +1270,21 @@ def cap_campaign_end():
                    "GE-3 will add its own blocks to the summary",
            facts=_facts(payload))
 
+    # VP-1 (S14b part 3): the fifth register — THE DECISIVE PEACE stamped
+    # through the real end-of-turn chokepoint on the part's own staged road
+    # (`tests/test_vp1_the_decisive_peace.py::_rhine_sealed`).
+    V = test_module("test_vp1_the_decisive_peace")
+    world, c = fresh()
+    with contextlib.redirect_stdout(io.StringIO()):
+        V._rhine_sealed(c, world)
+        stamped = game_end.process_end_of_turn(world, int(world.current_turn))
+    payload = game_end.screen_payload(next(r for r in stamped if r.get("cause") == "decisive_peace"))
+    record("campaign_end_decisive", payload, source="game_end.process_end_of_turn → screen_payload",
+           staging="1805 boot; the Rhine proclaimed through the road page's button, Bavaria, Hesse "
+                   "and Saxony held four end turns, then a partition peace with Austria (Tyrol, "
+                   "Bohemia) — the stamp at the end-of-turn chokepoint",
+           facts=_facts(payload))
+
     world, c = fresh()
     ledger = T.stage_ledger_clock(c, world)
     clock = (ledger.get("ledger") or {}).get("fall_clock") or {}

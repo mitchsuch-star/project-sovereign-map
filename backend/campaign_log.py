@@ -213,7 +213,8 @@ CAMPAIGN_LOG_TYPES = {
     "congress",
     # VP-1 "The Emperor's Designs" (S14b part 2): the Emperor's own roads —
     # one row per phase: `proclaimed` (a road chosen), `fulfilled` (a design
-    # latched), `prologue` (THE SUN OF AUSTERLITZ). imperial_designs.py
+    # latched), `prologue` (THE SUN OF AUSTERLITZ), `decreed` (an Act of the
+    # Empire, S14b part 3 — a phase, not a type). imperial_designs.py
     # writes every one with the owner's `nation`, so the fog filter's player
     # arm passes it. 178 -> 179 flipped consciously; no inert type retired.
     "imperial_design",
@@ -2466,6 +2467,9 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
         if phase == "prologue":
             court = display_nation(str(ctx.event.get("court") or ""))
             return f"THE SUN OF AUSTERLITZ — {court} has bent; the roads of the Empire wait"
+        if phase == "decreed":
+            price = int(ctx.event.get("price", 0) or 0)
+            return f"{title} — an Act of the Empire is decreed ({price:,} gold)"
         return f"The Emperor's designs: {title or phase}"
 
     if ctx.event_type == "literal_fidelity":

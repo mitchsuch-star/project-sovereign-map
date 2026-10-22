@@ -1153,6 +1153,76 @@ def _validate_imperial_designs(result, data: dict, known_nations: Set[str]) -> N
             if isinstance(control, str) and control.strip() and not control.startswith("F1 →"):
                 result.add_error(f"{dpath}.control",
                                  "Must name its Cabinet row (start 'F1 →'), never a typed order")
+    _validate_imperial_acts(result, block, known_nations, seen_roads)
+
+
+def _validate_imperial_acts(result, block: dict, known_nations: Set[str],
+                            road_ids: Set[str]) -> None:
+    """VP-1 (S14b part 3, docs/VP1_DESIGNS_SPEC.md §5): the optional `acts`
+    list — {id, title, road ('any' or a road id), price (gold, 1000..20000),
+    alarm (0..5), effects: [{type in the closed set, amount, courts?,
+    pick?}], precondition?, date?, says?, aliases?}. Never income, never war
+    score: the effect set is closed."""
+    if "acts" not in block:
+        return
+    from backend.game_logic import imperial_designs as ID
+    acts = block.get("acts")
+    if not isinstance(acts, list):
+        result.add_error("imperial_designs.acts", "Must be a list")
+        return
+    seen: Set[str] = set()
+    for i, act in enumerate(acts):
+        path = f"imperial_designs.acts[{i}]"
+        if not isinstance(act, dict):
+            result.add_error(path, "Must be an object")
+            continue
+        aid = act.get("id")
+        if not isinstance(aid, str) or not aid:
+            result.add_error(f"{path}.id", "Must be a non-empty string")
+        elif aid in seen:
+            result.add_error(f"{path}.id", f"Duplicate act '{aid}'")
+        seen.add(str(aid))
+        if not isinstance(act.get("title"), str) or not act.get("title"):
+            result.add_error(f"{path}.title", "Must be a non-empty string")
+        road = act.get("road", ID.ACT_ANY_ROAD)
+        if road != ID.ACT_ANY_ROAD and road not in road_ids:
+            result.add_error(f"{path}.road", f"Must be 'any' or one of {sorted(road_ids)}, got {road!r}")
+        price = act.get("price")
+        if isinstance(price, bool) or not isinstance(price, int) or not 1000 <= price <= 20000:
+            result.add_error(f"{path}.price", f"Must be an integer in 1000..20000, got {price!r}")
+        alarm = act.get("alarm", 0)
+        if isinstance(alarm, bool) or not isinstance(alarm, int) or not 0 <= alarm <= 5:
+            result.add_error(f"{path}.alarm", f"Must be an integer in 0..5, got {alarm!r}")
+        aliases = act.get("aliases")
+        if aliases is not None and (not isinstance(aliases, list)
+                                    or not all(isinstance(a, str) and a for a in aliases)):
+            result.add_error(f"{path}.aliases", "Must be a list of non-empty strings")
+        effects = act.get("effects")
+        if not isinstance(effects, list) or not effects:
+            result.add_error(f"{path}.effects", "Must be a non-empty list")
+            effects = []
+        for j, eff in enumerate(effects):
+            epath = f"{path}.effects[{j}]"
+            if not isinstance(eff, dict) or eff.get("type") not in ID.ACT_EFFECT_TYPES:
+                result.add_error(f"{epath}.type", f"Must be one of {list(ID.ACT_EFFECT_TYPES)}")
+                continue
+            amount = eff.get("amount")
+            if isinstance(amount, bool) or not isinstance(amount, int) or not 1 <= amount <= 30:
+                result.add_error(f"{epath}.amount", f"Must be an integer in 1..30, got {amount!r}")
+            for court in eff.get("courts") or []:
+                if known_nations and court not in known_nations:
+                    result.add_error(f"{epath}.courts", f"Unknown nation '{court}'")
+            if eff.get("pick") not in (None, "beaten"):
+                result.add_error(f"{epath}.pick", "Must be 'beaten' when given")
+        pre = act.get("precondition")
+        if pre is not None:
+            if not isinstance(pre, dict) or pre.get("type") not in ID.ACT_PRECONDITION_TYPES:
+                result.add_error(f"{path}.precondition.type",
+                                 f"Must be one of {list(ID.ACT_PRECONDITION_TYPES)}")
+            else:
+                for court in pre.get("courts") or []:
+                    if known_nations and court not in known_nations:
+                        result.add_error(f"{path}.precondition.courts", f"Unknown nation '{court}'")
 
 
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:

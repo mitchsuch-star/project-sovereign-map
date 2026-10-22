@@ -8738,6 +8738,79 @@
       },
       "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
       "notes": "The `designs` kind — each design ✓ / ✗ off the one payload."
+    },
+    {
+      "id": "vp1-decree-the-temple-of-glory",
+      "utterance": "decree the Temple of Glory",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "decree_act",
+        "target": "the Temple of Glory",
+        "marshal": null,
+        "strategic_type": null
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "vp1-decree-the-princes-dotations",
+      "utterance": "decree the Princes' Dotations",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "decree_act",
+        "target": "the Princes' Dotations",
+        "not_action": "grant_dotation"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12).",
+      "notes": "REGRESSION PIN: \"dotation\" is grant_dotation's noun below the Cabinet stage; the Decree head is read first."
+    },
+    {
+      "id": "vp1-decree-the-abolition-of-feudalism",
+      "utterance": "decree the Abolition of Feudalism",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "decree_act",
+        "target": "the Abolition of Feudalism"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "vp1-decree-the-raft-confirmed",
+      "utterance": "decree the Raft on the Niemen confirmed",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "decree_act",
+        "target": "the Raft on the Niemen"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12).",
+      "notes": "The quote's option: the confirm marker is read by the executor off the raw words; the target never carries it."
+    },
+    {
+      "id": "vp1-should-we-decree",
+      "utterance": "should we decree the Temple of Glory?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "decree_act"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12).",
+      "notes": "A question FAILS CLOSED — the designs answered, nothing decreed."
+    },
+    {
+      "id": "vp1-enact-an-act-stays-the-laws-parse",
+      "utterance": "enact the Temple of Glory",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "enact_law",
+        "not_action": "decree_act"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12).",
+      "notes": "The Laws' parse; the executor answers it with the Act and its road-page row (never 'no such law') — tests/test_vp1_the_decisive_peace.py pins the answer."
     }
   ]
 }

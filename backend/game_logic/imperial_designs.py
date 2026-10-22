@@ -12,15 +12,18 @@ store, so a France deck there would move every AI arm):
                "rewarded", "hold", "terms", "britain_signed", "acts"}}
 
 A world with no authored block is UNARMED: every reader here answers None /
-False / 0 and nothing is shown (the bare flag world, the tutorial, and — until
-S14b part 2 — the shipped 1805 boot). Every predicate is nation-parameterized
+False / 0 and nothing is shown (the bare flag world and the tutorial; the
+shipped 1805 boot is armed from S14b part 2). Every predicate is nation-parameterized
 on the block's authored `owner`; the roads are player CONTENT (an asymmetry of
 content, as the minors have no laws), never of code.
 
 The seams the series attribution holds down (`tools/_vp1_series_arms.py`):
 `note_ratification` (the terms latch), `drift_suspended` (the Rhine's shield),
 `order_decay` (the Continent's order) and `decisive_peace_released` (the
-stamp, held off until part 3).
+stamp — released by S14b part 3, with the register, the client and the arms).
+
+The Acts of the Empire (the record §5 — SF-ECON-1 absorbed) are authored in
+the block's `acts` list and decreed once each (`state.acts`, {act: turn}).
 """
 from __future__ import annotations
 
@@ -71,6 +74,8 @@ CS_ORDER_DECAY = 2             # the Continent's order (2.5's reward)
 NAPLES_AUTHORITY = 15          # 2.3's one-shot reward
 PROCLAIM_DP_COST = 2           # §8: the proclamation's price
 PROCLAIM_ADMIN_COST = 1
+DECISIVE_PEACE_ALARM = 15      # §4 / §8: the reward, never below the Armed Peace's watch
+ACT_ADMIN_COST = 1             # §5: each Act's administrative action
 
 # The Cabinet row every surface names (the user's rule: diplomacy is never
 # typed — the proclamation's one player road is the road page's button).
@@ -844,11 +849,158 @@ def order_decay(world, nation: str) -> int:
 # THE DECISIVE PEACE — the rule (the record §4); the stamp is part 3's
 # ════════════════════════════════════════════════════════════════════════
 
+DECISIVE_PEACE_SOURCE = "decisive_peace"
+# The treaty each sealing court signs (the record §4), named by its court.
+TREATY_NAMES = {"Austria": "the Peace of Pressburg", "Prussia": "the Peace of Tilsit"}
+SYSTEM_TREATY = "the Peace of the Continent"
+
+
 def decisive_peace_released() -> bool:
-    """The stamp's seam: False until S14b part 3 lands the register, the
-    client and the arms (the record §9) — the rule is computed and pinned
-    from part 1, nothing is stamped."""
-    return False
+    """The stamp's seam: released by S14b part 3 (the record §9) — the rule
+    computed from part 1, the stamp, the fifth register and the arms. A
+    FUNCTION seam, never a module lever (the code-health ratchet): the series
+    attribution holds it down with `--seam … =False`."""
+    return True
+
+
+def treaty_name(road_id: str, court: str) -> str:
+    """The treaty that seals a road: "the Peace of Pressburg" (Austria),
+    "the Peace of Tilsit" (Prussia), "the Peace of the Continent" (the
+    System's)."""
+    if road_id == ROAD_SYSTEM:
+        return SYSTEM_TREATY
+    if court in TREATY_NAMES:
+        return TREATY_NAMES[court]
+    from backend.display_names import humanize_entity_name as _h
+    return f"the peace with {_h(court)}" if court else "the decisive peace"
+
+
+def stamp_decisive_peace(world, turn_ended: int) -> Optional[Dict[str, Any]]:
+    """THE DECISIVE PEACE (the record §4) — the ONE place the cause is
+    stamped, called by `game_end.process_end_of_turn` right after `tick` (a
+    design that latched this tick completes it the same turn) and before the
+    Verdict (which grades its +2). Once per campaign, the owner the player,
+    all six conditions holding. The reward: Europe's alarm −15, never below
+    the Armed Peace's watch (45). Mark and continue. Returns the record."""
+    if not decisive_peace_released() or not armed(world) or not proclaimed_road(world):
+        return None
+    if owner(world) != getattr(world, "player_nation", None):
+        return None
+    from backend.game_logic import game_end
+    if (game_end.has_ending(world, game_end.CAUSE_DECISIVE_PEACE)
+            or game_end.terminal_ending(world) is not None):
+        return None
+    reading = decisive_peace_reading(world)
+    if not reading["ready"]:
+        return None
+    road_id = proclaimed_road(world)
+    row = road(world, road_id) or {}
+    state = _state(world)
+    lord = owner(world)
+    court = str(reading.get("court") or "")
+    from backend.game_logic import coalition as _co
+    before = int((getattr(world, "threat_by_target", {}) or {}).get(lord, 0) or 0)
+    cut = min(int(DECISIVE_PEACE_ALARM), max(0, before - int(_co.ARMED_PEACE_WATCH)))
+    detail = {
+        "route": road_id, "numeral": _ROAD_NUMERALS.get(road_id, ""),
+        "road_title": str(row.get("title") or road_id),
+        "court": court, "manner": str(reading.get("manner") or ""),
+        "treaty": treaty_name(road_id, court),
+        "designs": [{"id": str(d.get("id")), "title": str(d.get("title") or d.get("id")),
+                     "role": str(d.get("role") or ""),
+                     "fulfilled_turn": int((state.get("fulfilled") or {}).get(str(d.get("id")), -1))}
+                    for d in designs_of(row)],
+        "proclaimed_turn": int(state.get("proclaimed_turn", -1)),
+        "turn": int(turn_ended),
+        "alarm_from": before, "alarm_to": before - cut,
+    }
+    record = game_end.record_ending(world, "victory", game_end.CAUSE_DECISIVE_PEACE,
+                                    detail=detail, turn=int(turn_ended))
+    if record is None:
+        return None
+    if cut > 0:
+        _co.reduce_threat(world, cut, DECISIVE_PEACE_SOURCE)
+    return record
+
+
+def decisive_record(world) -> Optional[Dict[str, Any]]:
+    """The stamped DECISIVE PEACE, or None (VP1-X20: every surface that spoke
+    of it as ahead reads it once it is made)."""
+    from backend.game_logic import game_end
+    return next((r for r in game_end.endings(world)
+                 if r.get("cause") == game_end.CAUSE_DECISIVE_PEACE), None)
+
+
+def decisive_made_line(world) -> str:
+    """"THE DECISIVE PEACE was made on turn 5 — the Peace of Pressburg; the
+    Congress of Paris still waits." — or "" before the stamp."""
+    rec = decisive_record(world)
+    if rec is None:
+        return ""
+    treaty = str((rec.get("detail") or {}).get("treaty") or "the decisive peace")
+    return (f"THE DECISIVE PEACE was made on turn {int(rec.get('turn', 0) or 0)} — {treaty}; "
+            f"the Congress of Paris still waits.")
+
+
+def cause_line(detail: Optional[Dict[str, Any]]) -> str:
+    """The end screen's lead sentence for THE DECISIVE PEACE
+    (`game_end._cause_line`) — from the stamp's own detail only."""
+    from backend.display_names import humanize_entity_name as _h
+    detail = detail or {}
+    treaty = str(detail.get("treaty") or "the decisive peace")
+    treaty = treaty[0].upper() + treaty[1:]
+    court = str(detail.get("court") or "")
+    numeral = str(detail.get("numeral") or "")
+    road_title = _mid(str(detail.get("road_title") or "the road"))
+    title = f"Road {numeral}, {road_title}," if numeral else road_title
+    if detail.get("route") == ROAD_SYSTEM:
+        return (f"{treaty}: {_h(court) if court else 'Britain'} signs, and the Continent "
+                f"stays shut — {title} is sealed.")
+    manner = MANNER_WORDS.get(str(detail.get("manner") or ""), "")
+    construction = next((str(d.get("title") or "") for d in detail.get("designs") or []
+                         if d.get("role") == ROLE_CONSTRUCTION), "")
+    how = f" by {manner}" if manner else ""
+    holds = f", and {_mid(construction)} holds" if construction else ""
+    return f"{treaty}: {_h(court)} is brought to terms{how}{holds} — {title} is sealed."
+
+
+def summary_block(detail: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """THE DECISIVE PEACE's card block (`build_campaign_summary`) — the road,
+    its two designs and the treaty, from the ending's OWN detail (the summary
+    is persisted at the stamp; the live road moves on)."""
+    detail = detail or {}
+    numeral = str(detail.get("numeral") or "")
+    proclaimed = int(detail.get("proclaimed_turn", -1))
+    road_line = (f"Road {numeral}, {detail.get('road_title') or ''}"
+                 + (f" — proclaimed on turn {proclaimed}" if proclaimed >= 0 else ""))
+    rows = []
+    for d in detail.get("designs") or []:
+        turn = int(d.get("fulfilled_turn", -1))
+        rows.append({"id": str(d.get("id") or ""),
+                     "line": (f"{d.get('title')} — fulfilled on turn {turn}" if turn >= 0
+                              else str(d.get("title") or ""))})
+    alarm_from, alarm_to = int(detail.get("alarm_from", 0) or 0), int(detail.get("alarm_to", 0) or 0)
+    alarm = (f"Europe's alarm cools from {alarm_from} to {alarm_to}" if alarm_from > alarm_to
+             else f"Europe's alarm holds at {alarm_to}")
+    return {"route": str(detail.get("route") or ""), "road_line": road_line, "designs": rows,
+            "treaty_line": (f"{alarm}; the Verdict of History counts the decisive peace. "
+                            f"The Congress of Paris still waits.")}
+
+
+def decisive_headline_line(detail: Optional[Dict[str, Any]]) -> str:
+    """The morning's front page on the stamp (the dispatch's `decisive_peace`
+    class) — the cause line and what it is a waypoint to."""
+    return (f"THE DECISIVE PEACE — {cause_line(detail)} The reign goes on: the "
+            f"Congress of Paris still waits.")
+
+
+def moniteur_caption(detail: Optional[Dict[str, Any]]) -> str:
+    """Le Moniteur's special on the stamp — "THE PEACE OF PRESSBURG" (a
+    `gazette._SPECIAL_WEIGHTS` key per treaty)."""
+    treaty = str((detail or {}).get("treaty") or "")
+    if treaty in TREATY_NAMES.values() or treaty == SYSTEM_TREATY:
+        return treaty.upper()
+    return "THE DECISIVE PEACE"
 
 
 def decisive_peace_reading(world) -> Dict[str, Any]:
@@ -919,6 +1071,278 @@ def _homeland_held_against(world, lord: str, court: str) -> bool:
         if world.is_at_war(lord, holder):
             return False
     return True
+
+
+# ════════════════════════════════════════════════════════════════════════
+# The Acts of the Empire (the record §5 — SF-ECON-1 absorbed): `decree_act`,
+# a peace-road gold sink on the proclaimed road. Each one-shot, gold and one
+# administrative action, one refusal and one price; effects from a closed set
+# (authority, relation, client_loyalty); alarm through `add_threat`. Never
+# income, never war score, never a design completed alone.
+# ════════════════════════════════════════════════════════════════════════
+
+ACT_ALARM_SOURCE = "acts_of_the_empire"
+ACT_ANY_ROAD = "any"
+ACT_EFFECT_TYPES = ("authority", "relation", "client_loyalty")
+ACT_PRECONDITION_TYPES = ("vassal", "great_power_beaten")
+
+
+def acts(world) -> List[Dict[str, Any]]:
+    return [a for a in ((_store(world).get("block") or {}).get("acts") or [])
+            if isinstance(a, dict)]
+
+
+def act(world, act_id: str) -> Optional[Dict[str, Any]]:
+    return next((a for a in acts(world) if str(a.get("id")) == act_id), None)
+
+
+def act_decreed_turn(world, act_id: str) -> int:
+    value = (_state(world).get("acts") or {}).get(act_id)
+    return int(value) if isinstance(value, int) and not isinstance(value, bool) else -1
+
+
+def decree_command(a: Dict[str, Any]) -> str:
+    """The line the road page's Decree button sends."""
+    return f"decree {a.get('title')}"
+
+
+def resolve_act(world, words: str) -> str:
+    """The Act a line names — its id, its title or an alias (a leading
+    "the", the case, an apostrophe and the confirm marker ignored). "" for
+    none, or more than one."""
+    import re as _re
+
+    def _norm(text: str) -> str:
+        text = _re.sub(r"\s+", " ", str(text or "").lower().replace("’", "'")).strip()
+        text = _re.sub(r"\bconfirm(?:ed)?\s*$", "", text).strip()
+        text = _re.sub(r"^(?:the\s+)", "", text).strip()
+        return text.replace("'", "")
+
+    want = _norm(words)
+    if not want:
+        return ""
+    hits = []
+    for a in acts(world):
+        names = {_norm(a.get("id") or "").replace("_", " "), _norm(a.get("title") or "")}
+        names |= {_norm(x) for x in (a.get("aliases") or []) if isinstance(x, str)}
+        if want in names or want.replace("_", " ") in names:
+            hits.append(str(a.get("id")))
+    return hits[0] if len(hits) == 1 else ""
+
+
+def _is_client(world, court: str) -> bool:
+    row = (getattr(world, "vassals", {}) or {}).get(court) or {}
+    return bool(court) and court != owner(world) and row.get("lord") == owner(world)
+
+
+def act_beaten_court(world, a: Dict[str, Any]) -> str:
+    """The Raft's court: the first of its courts at war with the owner whom
+    the owner has beaten — a province of her homeland in the owner's bloc, or
+    her war score against him at or below the act's line. "" for none."""
+    pre = a.get("precondition") or {}
+    if pre.get("type") != "great_power_beaten":
+        return ""
+    lord = owner(world)
+    line = int(pre.get("war_score", -25) or -25)
+    from backend.game_logic.diplomacy import live_war_score_for
+    for court in [str(c) for c in (pre.get("courts") or [])]:
+        if _gone(world, court) or not world.is_at_war(lord, court):
+            continue
+        if any(_bloc_holds(world, lord, prov) for prov in sorted(_homeland(world, court))):
+            return court
+        if int(live_war_score_for(world, court, lord)) <= line:
+            return court
+    return ""
+
+
+def act_precondition_reason(world, a: Dict[str, Any]) -> str:
+    """The board-won precondition, in words — "" when it holds or none."""
+    from backend.display_names import humanize_entity_name as _h
+    from backend.campaign_log import and_join
+    pre = a.get("precondition") or {}
+    kind = pre.get("type")
+    courts = [str(c) for c in (pre.get("courts") or [])]
+    if kind == "vassal":
+        missing = [c for c in courts if not _is_client(world, c)]
+        if missing:
+            return (f"{a.get('title')} needs {and_join([_h(c) for c in missing])} as the "
+                    f"Emperor's vassal first.")
+    elif kind == "great_power_beaten" and not act_beaten_court(world, a):
+        names = [_h(c) for c in courts]
+        either = (", ".join(names[:-1]) + " or " + names[-1]) if len(names) > 1 else "".join(names)
+        return (f"{a.get('title')} needs a great power at war with the Empire beaten first "
+                f"({either}): a province of hers held, or her war score driven to "
+                f"{int(pre.get('war_score', -25) or -25)}.")
+    return ""
+
+
+def act_price(world, a: Dict[str, Any]) -> int:
+    """The Act's ONE price — gold, no arrears (the quote, the row and the
+    charge read it)."""
+    return int(a.get("price", 0) or 0)
+
+
+def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Optional[str]:
+    """The Act's WHOLE refusal, in the order the player meets it — the shared
+    executor's administrative pre-gate first (`price_refusal`'s idiom), then
+    once-only, the road, the board's precondition and the gold. The ONE
+    predicate the verb, the road page's Decree row and the morning's sink
+    read (shown = applied). None when it can be decreed."""
+    if not armed(world):
+        return "There are no Acts of the Empire in this campaign, Sire."
+    a = act(world, act_id)
+    if a is None:
+        return "There is no such Act of the Empire, Sire."
+    admin = (int(getattr(world, "admin_actions_remaining", 0) or 0)
+             if admin_actions is None else int(admin_actions))
+    if admin < ACT_ADMIN_COST:
+        return "No administrative actions remaining this turn."
+    title = str(a.get("title") or act_id)
+    turn = act_decreed_turn(world, act_id)
+    if turn >= 0:
+        return f"{title} was decreed on turn {turn} — an Act of the Empire is decreed once."
+    chosen = proclaimed_road(world)
+    want = str(a.get("road") or ACT_ANY_ROAD)
+    if not chosen:
+        return (f"{title} serves a road of the Empire, Sire — proclaim one first "
+                f"({DESIGNS_CONTROL}).")
+    if want not in (ACT_ANY_ROAD, chosen):
+        mine, other = road(world, want) or {}, road(world, chosen) or {}
+        return (f"{title} belongs to Road {_ROAD_NUMERALS.get(want, '')}, {mine.get('title')} — "
+                f"forsworn when the Emperor proclaimed {other.get('title')}.")
+    reason = act_precondition_reason(world, a)
+    if reason:
+        return reason
+    price = act_price(world, a)
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(owner(world), 0) or 0)
+    if chest < price:
+        return f"{title} costs {price:,} gold; the treasury holds {chest:,}."
+    return None
+
+
+def act_effect_lines(world, a: Dict[str, Any]) -> List[str]:
+    """The Act's effects in words, as `decree` applies them."""
+    from backend.display_names import humanize_entity_name as _h
+    out: List[str] = []
+    for e in a.get("effects") or []:
+        if not isinstance(e, dict):
+            continue
+        kind, amount = e.get("type"), int(e.get("amount", 0) or 0)
+        if kind == "authority":
+            out.append(f"authority +{amount}")
+        elif kind == "relation":
+            if e.get("pick") == "beaten":
+                court = act_beaten_court(world, a)
+                out.append(f"relations with {_h(court)} +{amount}" if court
+                           else f"relations +{amount} with the great power beaten")
+            else:
+                courts = [str(c) for c in (e.get("courts") or []) if not _gone(world, str(c))]
+                if courts:
+                    out.append("relations: " + ", ".join(f"{_h(c)} +{amount}" for c in courts))
+        elif kind == "client_loyalty":
+            held = [str(c) for c in (e.get("courts") or []) if _is_client(world, str(c))]
+            out.append(("loyalty: " + ", ".join(f"{_h(c)} +{amount}" for c in held)) if held
+                       else f"loyalty +{amount} for the Emperor's vassals among them (none yet)")
+    alarm = int(a.get("alarm", 0) or 0)
+    if alarm:
+        out.append(f"Europe's alarm +{alarm}")
+    return out
+
+
+def decree(world, act_id: str) -> Dict[str, Any]:
+    """The ONE mutation (shown = applied): the gold the quote names leaves the
+    chest, the effects apply, Europe's alarm rises, the turn is recorded."""
+    a = act(world, act_id) or {}
+    lord = owner(world)
+    price = act_price(world, a)
+    lines = act_effect_lines(world, a)
+    beaten = act_beaten_court(world, a)
+    world.nation_gold[lord] = int(world.nation_gold.get(lord, 0) or 0) - price
+    if hasattr(world, "record_gold_spent"):
+        world.record_gold_spent(lord, price)
+    for e in a.get("effects") or []:
+        if not isinstance(e, dict):
+            continue
+        kind, amount = e.get("type"), int(e.get("amount", 0) or 0)
+        if kind == "authority":
+            tracker = getattr(world, "authority_tracker", None)
+            if tracker is not None:
+                tracker.modify_authority(amount)
+        elif kind == "relation":
+            courts = [beaten] if e.get("pick") == "beaten" else [str(c) for c in (e.get("courts") or [])]
+            for court in courts:
+                if court and court != lord and not _gone(world, court):
+                    world.modify_nation_relation(lord, court, amount)
+        elif kind == "client_loyalty":
+            from backend.game_logic.vassal import LOYALTY_MAX
+            for court in [str(c) for c in (e.get("courts") or [])]:
+                if _is_client(world, court):
+                    row = world.vassals[court]
+                    row["loyalty"] = int(min(LOYALTY_MAX, int(row.get("loyalty", 0) or 0) + amount))
+    alarm = int(a.get("alarm", 0) or 0)
+    if alarm:
+        try:
+            from backend.game_logic.coalition import add_threat
+            add_threat(world, alarm, ACT_ALARM_SOURCE)
+        except Exception as exc:
+            report(exc, "imperial_designs.decree: coalition.add_threat")
+    _state(world)["acts"][act_id] = _turn(world)
+    _log(world, "decreed", act=act_id, title=str(a.get("title") or act_id), price=price)
+    return {"price": price, "lines": lines, "title": str(a.get("title") or act_id)}
+
+
+def act_rows(world) -> List[Dict[str, Any]]:
+    """The road page's Decree rows — every Act with its price, effects, the
+    Charges' relief, and the executor's own refusal as its disabled reason."""
+    out: List[Dict[str, Any]] = []
+    lord = owner(world)
+    chosen = proclaimed_road(world)
+    for a in acts(world):
+        aid = str(a.get("id"))
+        want = str(a.get("road") or ACT_ANY_ROAD)
+        price = act_price(world, a)
+        refusal = act_refusal(world, aid)
+        relief = (int(world.charges_relief(lord, price))
+                  if price > 0 and hasattr(world, "charges_relief") else 0)
+        out.append({
+            "id": aid, "title": str(a.get("title") or aid), "date": str(a.get("date") or ""),
+            "says": str(a.get("says") or ""), "road": want,
+            "road_numeral": "" if want == ACT_ANY_ROAD else _ROAD_NUMERALS.get(want, ""),
+            "price": price, "admin_cost": int(ACT_ADMIN_COST), "relief": relief,
+            "effects_line": "; ".join(act_effect_lines(world, a)),
+            "decreed_turn": act_decreed_turn(world, aid),
+            "forsworn": bool(chosen) and want not in (ACT_ANY_ROAD, chosen),
+            "available": refusal is None, "disabled_reason": refusal or "",
+            "command": decree_command(a),
+        })
+    return out
+
+
+def act_sink(world, nation: str) -> Optional[Dict[str, Any]]:
+    """The morning's peace-road sink once no law is left to buy (the record
+    §5; `reforms.peace_sink_law`'s idiom): at peace — no war, no truce — the
+    first Act the chest can decree, its administrative term set aside (the
+    morning reads it before the day's first order). None otherwise."""
+    if world is None or nation != getattr(world, "player_nation", None) or nation != owner(world):
+        return None
+    if not proclaimed_road(world):
+        return None
+    for key, dstate in (getattr(world, "diplomatic_states", None) or {}).items():
+        if dstate in ("WAR", "ARMISTICE") and nation in str(key).split("|"):
+            return None
+    for a in acts(world):
+        if act_refusal(world, str(a.get("id")), admin_actions=ACT_ADMIN_COST) is None:
+            return {"act": str(a.get("id")), "title": str(a.get("title")), "price": act_price(world, a)}
+    return None
+
+
+def act_sink_line(world, nation: str) -> str:
+    """The dispatch's treasury note — "the chest could decree the Temple of
+    Glory — 8,000g" — or ""."""
+    sink = act_sink(world, nation)
+    if sink is None:
+        return ""
+    return f"the chest could decree {_mid(sink['title'])} — {sink['price']:,}g"
 
 
 def progress_line(world, reading: Dict[str, Any]) -> str:
@@ -1123,6 +1547,9 @@ def build_designs_payload(world) -> Optional[Dict[str, Any]]:
         headline = (f"{str(chosen_row.get('proclamation') or chosen_row.get('title'))} "
                     f"was proclaimed on turn {int(state.get('proclaimed_turn', 0))}: "
                     f"{str(chosen_row.get('title'))}.")
+        made = decisive_made_line(world)        # VP1-X20
+        if made:
+            headline += " " + made
     else:
         headline = ("No road is proclaimed. Three roads — one proclamation, and it "
                     "cannot be undone.")
@@ -1132,7 +1559,9 @@ def build_designs_payload(world) -> Optional[Dict[str, Any]]:
                "control": DESIGNS_CONTROL,
                "dp_available": int(getattr(world, "diplomatic_points", 0) or 0),
                "admin_available": int(getattr(world, "admin_actions_remaining", 0) or 0),
-               "roads": out_roads}
+               "roads": out_roads,
+               # S14b part 3: the Acts of the Empire — the page's Decree rows.
+               "acts": act_rows(world)}
     return payload
 
 
@@ -1328,9 +1757,10 @@ def goal_clause(world) -> str:
                             for d in chosen["designs"])
         road_part = (f"Road {chosen['numeral']}, {chosen['title']}, is proclaimed: "
                      f"{designs}. The road page: {DESIGNS_CONTROL}.")
-    decisive = ("Both of a road's designs latched, its construction holding and the "
-                "sealing court at peace: THE DECISIVE PEACE, a waypoint on the road to "
-                "the Congress.")
+    decisive = (decisive_made_line(world)           # VP1-X20: once made, in the past tense
+                or ("Both of a road's designs latched, its construction holding and the "
+                    "sealing court at peace: THE DECISIVE PEACE, a waypoint on the road to "
+                    "the Congress."))
     return f"{CONDITION_C} {road_part} {decisive} "
 
 

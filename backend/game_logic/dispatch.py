@@ -73,6 +73,11 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # `sovereign_dead`). The two cannot share a page: `record_ending`
     # refuses a second ending once a terminal one has closed the war.
     "imperial_peace": 103,
+    # VP-1 (S14b part 3, the record §4): THE DECISIVE PEACE — a road of the
+    # Empire sealed. Below the Imperial Peace (a waypoint toward it), above
+    # the summons and every corps' fate; it does not stand alone (the reign
+    # goes on and the page carries its sub-beats). Free in the table.
+    "decisive_peace": 98,
     # Beat 1, the summons: an act of state the player chose, above every
     # triumph (a stormed capital is one court; the summons is Europe).
     "congress_summoned": 94,
@@ -503,6 +508,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # that signed the peace. Seats are the metonyms the table uses
     # (`congress.seat`) — "Vienna answers the Congress with cannon".
     "imperial_peace": "{line}",
+    "decisive_peace": "{line}",
     "congress_summoned": "Sire — {line}",
     "design_proclaimed": "Sire — {line}",
     "design_fulfilled": "Sire — {line}",
@@ -744,6 +750,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # True of both routes: a Europe that signed, and E1's Europe with no
     # great power left to sign.
     "imperial_peace": "The order is made, Sire, and no court stands against it. What remains is to reign — and to keep it.",
+    "decisive_peace": "One question is decided, Sire, and Europe has read the answer. The Congress is the next — and the coalitions do not forget.",
     "congress_summoned": "The powers have been asked, Sire; every turn now is an answer. Hold what we have, and declare no war.",
     "design_proclaimed": "The road is chosen, Sire, and every court has read it. The page in the Cabinet says what each design still asks.",
     "design_fulfilled": "One design holds, Sire — keep it holding. A lapse costs its reward until it is restored.",
@@ -1115,6 +1122,18 @@ def _congress_price_clause(price: str) -> str:
     if price.startswith("needs +") and ": " in price:
         return f" The table names its price: {price.split(': ', 1)[1]}."
     return f" The table names its price: {price}."
+
+
+def _decisive_peace_line(world) -> str:
+    """VP-1 (S14b part 3): THE DECISIVE PEACE's front page — composed from
+    the STAMPED ending record's detail (the treaty, the court, the manner),
+    never from live state."""
+    from backend.game_logic import game_end, imperial_designs
+    rec = next((r for r in game_end.endings(world)
+                if r.get("cause") == game_end.CAUSE_DECISIVE_PEACE), None)
+    if rec is None:
+        return ""
+    return imperial_designs.decisive_headline_line(rec.get("detail") or {})
 
 
 def _imperial_peace_line(world) -> str:
@@ -3104,6 +3123,15 @@ def _build_headline(world, player_nation: str,
             _line = _imperial_peace_line(world)
             if _line:
                 _add("imperial_peace", "imperial_peace", line=_line)
+        elif (etype == "campaign_ending"
+              and e.get("cause") == "decisive_peace"
+              and e.get("nation") == player_nation
+              and int(e.get("turn", -1)) == int(world.current_turn)):
+            # VP-1 (S14b part 3): stamped at the tick, post-advance, as the
+            # Imperial Peace is — the line read off the STAMPED record.
+            _line = _decisive_peace_line(world)
+            if _line:
+                _add("decisive_peace", "decisive_peace", line=_line)
         elif etype in ("coalition_formed", "coalition_brewing_started"):
             # Stage D review fix [r1/r6]: an ECLIPSE coalition's events
             # carry target_nation != player — those must never render as
@@ -5530,6 +5558,15 @@ def _build_situation(world, player_nation: str,
     _sink = peace_sink_line(world, player_nation)
     if _sink:
         situation["law_sink"] = _sink
+    else:
+        # VP-1 (S14b part 3, the record §5): once no law is left to buy, the
+        # Act of the Empire the chest could decree (the road page's row;
+        # absent before a road is proclaimed, so every older reader is
+        # byte-unchanged).
+        from backend.game_logic.imperial_designs import act_sink_line
+        _act_sink = act_sink_line(world, player_nation)
+        if _act_sink:
+            situation["act_sink"] = _act_sink
     if grip_fields:
         # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
         situation["imperial_grip"] = int(grip_fields["grip"])

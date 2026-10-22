@@ -61,6 +61,29 @@ def _misaddressed(command: Dict, world, actor: str, verb: str) -> Dict:
         f"commands a corps, not the state. Say '{verb} {words}'.")}
 
 
+def _act_named(command: Dict, world, actor: str) -> Dict:
+    """VP-1 (S14b part 3, the record §5): "enact the Temple of Glory" names an
+    Act of the Empire, not a law — answered with the Act and its road-page row
+    (never "no such law"), free; an Act is decreed only from the road page
+    (the user's rule). {} when the words name a law, or no Act."""
+    from backend.game_logic import imperial_designs as ID
+    if actor != getattr(world, "player_nation", None) or not ID.acts(world):
+        return {}
+    words = _CONFIRMED_RE.sub("", str(command.get("target") or command.get("law") or ""))
+    if reforms.resolve_law(world, actor, words) is not None:
+        return {}
+    act_id = ID.resolve_act(world, words)
+    if not act_id:
+        return {}
+    row = ID.act(world, act_id) or {}
+    refusal = ID.act_refusal(world, act_id)
+    state = (f" It cannot be decreed now: {refusal}" if refusal
+             else f" {ID.act_price(world, row):,} gold and one administrative action, once.")
+    return {"success": False, "variable_action_cost": 0, "message": (
+        f"{row.get('title')} is an Act of the Empire, Sire, not a law — it is "
+        f"decreed from its row on the road page ({ID.DESIGNS_CONTROL}).{state}")}
+
+
 class ReformsExecutor:
     """enact_law / repeal_law through the shared executor."""
 
@@ -90,6 +113,9 @@ class ReformsExecutor:
         misaddressed = _misaddressed(command, world, actor, "enact")
         if misaddressed:
             return misaddressed
+        an_act = _act_named(command, world, actor)
+        if an_act:
+            return an_act
         row, unresolved = self._resolve(command, world, actor)
         if unresolved:
             return {"success": False, "message": unresolved}

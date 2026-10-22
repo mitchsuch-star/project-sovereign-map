@@ -879,6 +879,90 @@ class DiplomaticExecutor:
             "game_state": world.get_filtered_game_state_summary(),
         }
 
+    def _execute_decree_act(self, command: Dict, game_state: Dict) -> Dict:
+        """VP-1 (S14b part 3, docs/VP1_DESIGNS_SPEC.md §5): decree an Act of the
+        Empire — once, on the proclaimed road. The road page's Decree button
+        sends the line; the order QUOTES first, free (the Laws' and the
+        Proclamation's quote-then-confirm), and the option reissues it
+        confirmed. The gold leaves the chest in `imperial_designs.decree`; the
+        administrative action is charged by the executor's generic ADMIN arm,
+        only on success. Refused with `act_refusal`'s sentence at no cost."""
+        from backend.game_logic import imperial_designs as ID
+        world = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+        acting = command.get("_acting_nation")
+        if acting not in (None, "", getattr(world, "player_nation", None)):
+            return {"success": False,
+                    "message": "Only the Emperor decrees the Acts of the Empire."}
+        if not ID.armed(world) or not ID.acts(world):
+            return {"success": False,
+                    "message": "There are no Acts of the Empire in this campaign, Sire."}
+        words = str(command.get("target") or command.get("raw_input") or "")
+        act_id = ID.resolve_act(world, words)
+        if not act_id:
+            listing = "; ".join(str(a.get("title")) for a in ID.acts(world))
+            return {"success": False, "message": (
+                f"Which Act, Sire? The Acts of the Empire are {listing} — each on the "
+                f"road page in the Cabinet ({ID.DESIGNS_CONTROL}).")}
+        refusal = ID.act_refusal(world, act_id)
+        if refusal:
+            return {"success": False, "message": refusal}
+        row = ID.act(world, act_id) or {}
+        from backend.commands.reforms_executor import _confirmed
+        if not _confirmed(command):
+            return self._quote_act(world, row, command)
+        outcome = ID.decree(world, act_id)
+        effects = "; ".join(outcome["lines"])
+        result = {
+            "success": True,
+            "message": (f"{outcome['title']} is decreed — {outcome['price']:,} gold paid, "
+                        f"once and never again{f': {effects}' if effects else ''}. "
+                        f"The road page: {ID.DESIGNS_CONTROL}."),
+            "events": [{"type": "imperial_design", "phase": "decreed",
+                        "nation": ID.owner(world), "act": act_id}],
+        }
+        result["new_state"] = game_state
+        return result
+
+    def _quote_act(self, world, row: Dict, command: Dict) -> Dict:
+        """The Act's confirm: the terms first, free — the price the charge takes
+        (`act_price`), the effects the decree applies (`act_effect_lines`) and
+        the Charges of Empire it lifts (`charges_relief`, the ONE source)."""
+        from backend.game_logic import imperial_designs as ID
+        price = ID.act_price(world, row)
+        effects = "; ".join(ID.act_effect_lines(world, row))
+        date = str(row.get("date") or "")
+        says = str(row.get("says") or "")
+        chest = int(getattr(world, "gold", 0) or 0)
+        relief = (int(world.charges_relief(ID.owner(world), price))
+                  if price > 0 and hasattr(world, "charges_relief") else 0)
+        relief_note = (f"; the Charges of Empire fall by {relief:,}g a turn" if relief > 0 else "")
+        message = (f"{row.get('title')}{f' ({date})' if date else ''}: {says} It costs "
+                   f"{price:,} gold and {ID.ACT_ADMIN_COST} administrative action, once"
+                   f"{f' — {effects}' if effects else ''}. The treasury holds {chest:,} gold"
+                   f"{relief_note}. Decree it? (yes / no)")
+        command_line = ID.decree_command(row)
+        return {
+            "success": True,
+            "free_action": True,
+            "state": "awaiting_clarification",
+            "type": "clarification",
+            "design_confirm": True,
+            "marshal": "The Cabinet",
+            "original_command": command.get("raw_command", ""),
+            "message": message,
+            "options": [
+                {"label": f"Decree {row.get('title')}",
+                 "command": f"{command_line} confirmed",
+                 "aliases": ["yes", "decree", "confirm"]},
+                {"label": "Not now", "command": "cancel",
+                 "aliases": ["no", "not now", "stand down"]},
+            ],
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
+
     def _execute_recognition_sweetener(self, command: Dict, game_state: Dict) -> Dict:
         """§2.4's sweetener — gold laid before a great power at the table:
         +10 per 1,000g, capped at +20, on the instrument verbs' transport

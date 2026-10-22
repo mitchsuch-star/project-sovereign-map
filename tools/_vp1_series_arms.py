@@ -4,7 +4,9 @@ reach COUNTED in the child (an arm whose seam never bites cannot pass for a
 byte-identical one):
 
     D  = the designs' store (`imperial_designs.tick`, `note_ratification`,
-         `drift_suspended`, `order_decay`) — down: inert. Reach: the calls
+         `drift_suspended`, `order_decay`; S14b part 3: the stamp
+         `stamp_decisive_peace` — reach `decisive_stamps` — and the Acts'
+         `decree` — reach `acts_decreed`) — down: inert. Reach: the calls
          that found an ARMED store (part 1: 0, the shipped boot authored
          none; part 2 ships the block — 396 reads on the ambient series, 12
          with the seam down — and the ambient France never proclaims, so
@@ -62,6 +64,20 @@ if "D" in DOWN:
     ID.note_ratification = lambda world, **k: None
     ID.drift_suspended = lambda world, nation: False
     ID.order_decay = lambda world, nation: 0
+_sdp = ID.stamp_decisive_peace
+def _counted_sdp(world, turn):
+    if "D" in DOWN:
+        return None
+    rec = _sdp(world, turn)
+    if rec is not None:
+        _c["decisive_stamps"] += 1
+    return rec
+ID.stamp_decisive_peace = _counted_sdp
+_dec = ID.decree
+def _counted_dec(world, act_id):
+    _c["acts_decreed"] += 1
+    return _dec(world, act_id)
+ID.decree = _counted_dec
 _rpc = ED.record_punitive_cessions
 def _counted_rpc(world, cessions, offsets=None):
     _c["punitive_pairs"] += sum(len(v or []) for v in (cessions or {{}}).values())
@@ -107,7 +123,8 @@ def _counted_sp(world, nation):
     return n
 DI.seed_purse = _counted_sp
 _KEYS = ("designs_armed_reads", "punitive_pairs", "player_armistice_exits",
-         "bloc_reads_not_literal", "dry_run_purse_projections", "boot_purses_seeded")
+         "bloc_reads_not_literal", "dry_run_purse_projections", "boot_purses_seeded",
+         "decisive_stamps", "acts_decreed")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

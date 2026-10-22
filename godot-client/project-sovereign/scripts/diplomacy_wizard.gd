@@ -718,7 +718,87 @@ func _render_designs(data: Dictionary):
 	for road in roads:
 		if road is Dictionary and not (road.get("proclaimed") is bool and road.get("proclaimed")):
 			_add_road_block(road)
+	# S14b part 3: the Acts of the Empire — the road's gold sink, decreed once.
+	var acts = data.get("acts")
+	if acts is Array and not (acts as Array).is_empty():
+		_add_acts_block(acts)
 	call_deferred("_update_more_below")
+
+
+func _add_acts_block(acts: Array) -> void:
+	"""THE ACTS OF THE EMPIRE (VP-1, the record §5): each Act's date, what it
+	is, its price and its effects (the payload's — the decree applies the
+	same), and its Decree button: the payload's own command when available,
+	disabled with the executor's own refusal otherwise (`act_refusal`)."""
+	var head = RichTextLabel.new()
+	head.bbcode_enabled = true
+	head.fit_content = true
+	head.scroll_active = false
+	head.text = ("
+[color=#" + Utils.COLOR_GOLD + "][b]THE ACTS OF THE EMPIRE[/b][/color] "
+		+ "[color=#" + Utils.COLOR_INFO + "]— gold for the road, each decreed once[/color]")
+	content_list.add_child(head)
+	for row in acts:
+		if not (row is Dictionary):
+			continue
+		var decreed := int(row.get("decreed_turn", -1))
+		var forsworn: bool = row.get("forsworn") is bool and row.get("forsworn")
+		var lbl = RichTextLabel.new()
+		lbl.bbcode_enabled = true
+		lbl.fit_content = true
+		lbl.scroll_active = false
+		lbl.theme_type_variation = &"CaptionRich"
+		var name_color: String = Utils.COLOR_INFO if forsworn else Utils.COLOR_GOLD
+		var bbcode := "[color=#" + name_color + "][b]" + _bb(row.get("title")) + "[/b][/color]"
+		var date := str(row.get("date", ""))
+		if date != "":
+			bbcode += " [color=#" + Utils.COLOR_INFO + "](" + _bb(date) + ")[/color]"
+		var numeral := str(row.get("road_numeral", ""))
+		bbcode += " [color=#" + Utils.COLOR_INFO + "]· " + ("Road " + numeral if numeral != "" else "any road") + "[/color]"
+		if not forsworn:
+			var says := str(row.get("says", ""))
+			if says != "":
+				bbcode += "
+  " + _bb(says)
+			bbcode += "
+  " + Utils.format_number(int(row.get("price", 0))) + " gold and " + str(int(row.get("admin_cost", 1))) + " administrative action, once"
+			var effects := str(row.get("effects_line", ""))
+			if effects != "":
+				bbcode += " — " + _bb(effects)
+			var relief := int(row.get("relief", 0))
+			if relief > 0:
+				bbcode += "; the Charges of Empire fall by " + Utils.format_number(relief) + "g a turn"
+		if decreed >= 0:
+			bbcode += "
+  [color=#" + Utils.COLOR_SUCCESS + "]✓ Decreed on turn " + str(decreed) + "[/color]"
+		lbl.text = bbcode
+		content_list.add_child(lbl)
+		if decreed >= 0 or forsworn:
+			continue
+		var available: bool = row.get("available") is bool and row.get("available")
+		var btn = Button.new()
+		btn.text = "Decree " + str(row.get("title", ""))
+		btn.custom_minimum_size = Vector2(0, 32)
+		btn.theme_type_variation = &"CaptionButton"
+		btn.disabled = not available
+		if available:
+			btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+			btn.pressed.connect(_on_proclaim_pressed.bind(str(row.get("command", ""))))
+			btn.tooltip_text = "Decreed once — the gold is not refunded."
+		else:
+			var reason = row.get("disabled_reason")
+			if reason is String and reason != "":
+				btn.tooltip_text = reason
+				var why = RichTextLabel.new()
+				why.bbcode_enabled = true
+				why.fit_content = true
+				why.scroll_active = false
+				why.theme_type_variation = &"CaptionRich"
+				why.text = "  [color=#" + Utils.COLOR_INFO + "]" + _bb(reason) + "[/color]"
+				content_list.add_child(btn)
+				content_list.add_child(why)
+				continue
+		content_list.add_child(btn)
 
 
 func _add_road_block(road: Dictionary) -> void:

@@ -11880,3 +11880,40 @@ The Cabinet's step 4 (`diplomacy_wizard.gd`; GET `/imperial_designs` = `build_de
 ### 145.7 Measured
 
 `BASELINE_SERIES` byte-identical on every arm (0, D, X1, X2, X3, X12, X13, ALL), the armed store read 396 times on the ambient series (12 with the store held down) and never moved: the ambient France never proclaims. The commanded arms: six equal the S14b head's archive record for record; CMD-A and CMD-M keep their game and view streams and part at one campaign-log record each — the prologue's one log entry moves the 500-row roll (`MAX_EVENT_LOG_SIZE`), so an IGR-B collapse at log turn 2 / 3 groups one refusal fewer — and equal the archive with the entry held down; FC's goal answer leads with condition (c). The Godot parse harness EXIT 0; the road page's IQ-10 frames at Interface Scale 1.0 and 2.0.
+
+## 146. THE DECISIVE PEACE AND THE ACTS OF THE EMPIRE (VP-1 part 3; VP1-X20, X21; Pre-Deploy S14b — COMPLETE — October 22, 2026)
+
+*The record `docs/VP1_DESIGNS_SPEC.md` §14 (the done-when item by item, §14.4). `BUG_FIXES.md` §VP1 (all 21 rows FIXED). Pins `tests/test_vp1_the_decisive_peace.py`. The arms `tools/_vp1_road_arms.py`, the series `tools/_vp1_series_arms.py`, the commanded arms `tools/_vp1_arm_attribution.py` (`_final.json` each).*
+
+### 146.1 The stamp
+
+`imperial_designs.stamp_decisive_peace(world, turn_ended)` is the ONE stamp of `game_end.CAUSE_DECISIVE_PEACE` — called by `game_end.process_end_of_turn` after the designs' tick (a design latched this tick completes it the same turn) and before the Verdict (which grades its term). It stamps once per campaign, when `decisive_peace_released()` (a function seam, never a module lever) and the owner is the player, no terminal ending stands, and `decisive_peace_reading` holds all six conditions (§143.5). `record_ending(world, "victory", …)` — register `decisive_peace`, title THE DECISIVE PEACE, never terminal (marked and continued) — with the detail {route, numeral, road_title, court, manner, treaty, designs (id, title, role, fulfilled_turn), proclaimed_turn, turn, alarm_from, alarm_to}; `treaty_name` names it (Austria → "the Peace of Pressburg", Prussia → "the Peace of Tilsit", the System → "the Peace of the Continent"). Then Europe's alarm against the Emperor falls by `DECISIVE_PEACE_ALARM` (15), never below `coalition.ARMED_PEACE_WATCH` (45), source `decisive_peace`. `turn_manager._attach_endings` leads with a terminal ending, then the Imperial Peace, then the decisive peace, then the last stamped.
+
+### 146.2 The register, the Verdict, the news
+
+- **The card:** `game_end._cause_line` → `imperial_designs.cause_line(detail)` ("The Peace of Pressburg: Austria is brought to terms by a partition, and the Confederation of the Rhine holds — Road I, the Protector of the Rhine, is sealed."; the System: "… Britain signs, and the Continent stays shut — Road III, …"); `build_campaign_summary` adds `summary.designs` = `summary_block(detail)` {route, road_line, designs: [{id, line}], treaty_line}. `campaign_end.gd` renders the fifth `REGISTER_STYLE` (laurel; "Continue the reign" only) with `_designs_block` and its what-now line.
+- **The Verdict (A2):** `verdict_inputs` gains `decisive_peace` and `decisive_treaty`; `verdict_tier` adds `DECISIVE_PEACE_VERDICT_TERM` (2) to the score (a term, not a floor — the Imperial Peace keeps `IMPERIAL_PEACE_TIER_FLOOR`); `_tier_lines`' decisive branch (when no Imperial Peace) rewrites the field line — ascendant "<Treaty> decided the question it was fought for.", contested "<Treaty> decided one question at the table; the rest of Europe has not signed."
+- **The front page:** the dispatch's class `decisive_peace` (98), its line `imperial_designs.decisive_headline_line` off the stamped record (`dispatch._decisive_peace_line`), on the stamp's own morning. **Le Moniteur:** `moniteur_caption` ("THE PEACE OF PRESSBURG", "… OF TILSIT", "… OF THE CONTINENT", else "THE DECISIVE PEACE" — each a `_SPECIAL_WEIGHTS` key, 98) in the next issue, keyed `decisive_peace:<turn>`.
+- **Once made (VP1-X20):** `decisive_record` / `decisive_made_line` — the road page's headline and `goal_clause` say "THE DECISIVE PEACE was made on turn N — <treaty>; the Congress of Paris still waits."
+
+### 146.3 The Acts of the Empire
+
+The block's `acts` list (validated by `_validate_imperial_acts`: road `any` or a road id, price 1,000–20,000 gold, alarm 0–5, effects from the closed set `authority` / `relation` (`courts`, or `pick: beaten`) / `client_loyalty` (`courts`), amounts 1–30, an optional precondition `vassal` / `great_power_beaten`). The state is `state.acts` ({act: turn}, no new field). `act_refusal(world, act, admin_actions=None)` — the ONE refusal, in the player's order: no administrative action (the shared executor's pre-gate), decreed once already, no road proclaimed, a forsworn road ("<Act> belongs to Road II, The Crowns of Italy — forsworn when the Emperor proclaimed …"), the board's precondition (`act_precondition_reason`: "needs Naples as the Emperor's vassal first"; the Raft's beaten great power, `act_beaten_court` — a province of her homeland in the Emperor's bloc or `live_war_score_for(her, France) ≤ −25`), the gold. `act_price` is the gold; `act_effect_lines` the effects in words, as `decree` applies them (gold out through `record_gold_spent`; `authority_tracker.modify_authority`; `modify_nation_relation`; a vassal row's loyalty to `LOYALTY_MAX`; `add_threat(…, "acts_of_the_empire")`; the log phase `decreed`). The payload's `acts` (`act_rows`) — the road page's Decree rows: price, relief (`charges_relief`), effects, the disabled reason (= `act_refusal`), the command `decree <title>`.
+
+The verb `decree_act` (a Cabinet act — `CABINET_ACTIONS`; the client door claims "decree the "): `diplomatic_executor._execute_decree_act` resolves the Act (`resolve_act`: id, title, aliases), refuses with `act_refusal`, quotes free (`_quote_act`: the date, what it is, the price, the effects, the Charges' relief) and decrees on the quote's option. The Laws' verb answers "enact the <Act>" with the Act's row, free (`reforms_executor._act_named`). The parser: `decree <words>` at the head of a line (`_decrees_an_act`), questions and hedges failing closed to the designs' answer (`_DECREE_ASK_RE`); DD-0's law rewrite leaves a decree alone unless it names a law of its own (VP1-X21). The dispatch's treasury line: `situation.act_sink` = `act_sink_line` ("the chest could decree the Temple of Glory — 8,000g") when no law sink is printed, at peace, a road proclaimed. `save_manager._backfill_imperial_designs` grafts the block's `acts` onto a store saved without them.
+
+### 146.4 The arms and the dial
+
+`tools/_vp1_road_arms.py` runs VP1-RH / CS / TH on the three benchmark seeds through the real driver and records, per seed, the stamp's turn or the conditions that stayed false (`tools/_vp1_road_arms_final.json`):
+
+| Arm | historical | austerlitz | marengo |
+|---|---|---|---|
+| VP1-RH (`sf_vp1_rh.json`) | stamped turn 13 — Austria brought to terms by subjugation, the Confederation holding | turn 13 | turn 13 |
+| VP1-TH (`sf_vp1_th.json`) | stamped turn 20 — the Peace of Pressburg by partition (Tyrol and Carniola to the Kingdom of Italy), Naples held | turn 20 | turn 20 |
+| VP1-CS (`sf_vp1_cs.json`) | never — the Blockade never latches (13 of 26 at most); the Fall (no sword) | never — the Fall (the Emperor captive) | never — the Fall (the Emperor captive) |
+
+The driver's `--decline-until-latch <court>` (VP1-CS) refuses that court's envoys until `system.blockade` latches, then answers by `--diplomacy`; absent, nothing is read.
+
+### 146.5 Measured
+
+`BASELINE_SERIES` byte-identical on every arm with the stamp's and the Acts' reach zero; the nine commanded arms equal part 2's tree record for record; the cassettes re-stamped keylessly (+178 characters a parse prompt). The Godot parse harness EXIT 0; the fifth register's frames at 1.0 and 2.0.

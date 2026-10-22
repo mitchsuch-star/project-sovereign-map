@@ -1,0 +1,63 @@
+{
+ "name": "sf-vp1-th",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "VP1-TH (S14b part 3, docs/VP1_DESIGNS_SPEC.md §9 Part 3): the Crowns of Italy, found by the part's road search on a frozen snapshot of the tree. Ulm on day one and Charles beaten in the field (loops 1-4); Soult down the peninsula to Rome (5) and war on Naples, Soult taking Naples (6, then every loop until it falls); on loop 7 the road is proclaimed by the command the Cabinet's road page sends (\"proclaim The Crowns of Italy\"; the driver answers the free quote with its first option) and France proposes the separate peace through the settlement table's own clicks: Carniola and Tyrol ceded to the Kingdom of Italy (a PARTITION of Austria's homeland to France's vassal chain), an offered 6,000 gold, and 'Make peace with Austria only'. The Iron Crown latches at that peace (Milan, Piedmont and Carniola titled, Austria brought to terms); Naples is titled once held and the construction holds — THE DECISIVE PEACE. Run with --turns 40 --objection insist --diplomacy accept --declare-war proceed --settlement decline --client-petition grant --decline-from Austria,Naples (Austria's and Naples' own offers refused, so France's partition is the peace signed; tools/_vp1_road_arms.py). `turns` keys are the driver's 1-based LOOP INDEX.",
+ "turns": {
+  "1": [
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, attack Mack",
+   "Murat, attack Mack",
+   "Massena, fortify"
+  ],
+  "2": [
+   "Ney, attack Mack",
+   "Soult, move to Piedmont",
+   "Davout, attack Archduke Charles",
+   "Lannes, attack Archduke Charles"
+  ],
+  "3": [
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "Lannes, attack Mack",
+   "Murat, attack Mack",
+   "Ney, attack Archduke Charles",
+   "Davout, attack Archduke Charles"
+  ],
+  "4": [
+   "Ney, attack Archduke Charles"
+  ],
+  "5": [
+   "Soult, move to Rome"
+  ],
+  "6": [
+   "declare war on Naples",
+   "Soult, take Naples"
+  ],
+  "7": [
+   "proclaim The Crowns of Italy",
+   "Soult, take Naples",
+   "propose common peace with Austria",
+   "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"territory_cede\", \"region\": \"Carniola\", \"to\": \"KingdomOfItaly\"}",
+   "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"demand\", \"clause_type\": \"territory_cede\", \"region\": \"Tyrol\", \"to\": \"KingdomOfItaly\"}",
+   "@settlement_demand_add {\"nation\": \"Austria\", \"group\": \"offer\", \"clause_type\": \"gold_indemnity\", \"amount\": 6000}",
+   "@seek_bilateral_peace {\"nation\": \"Austria\", \"selected_target_nation\": \"Austria\"}"
+  ],
+  "8": [
+   "Soult, take Naples"
+  ],
+  "9": [
+   "Soult, take Naples"
+  ],
+  "10": [
+   "Soult, take Naples"
+  ],
+  "11": [
+   "Soult, take Naples"
+  ],
+  "12": [
+   "Soult, take Naples"
+  ]
+ }
+}

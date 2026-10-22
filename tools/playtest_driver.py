@@ -3027,16 +3027,49 @@ def _interrupt_report(response):
     return reports[0] if reports else {}
 
 
+def _blockade_latched_in(payload) -> bool:
+    """VP1-CS: the Continental System's construction (`system.blockade`)
+    has latched, read off GET /imperial_designs (a later lapse keeps its
+    fulfilment turn)."""
+    for road in (payload or {}).get("roads") or []:
+        if not isinstance(road, dict) or road.get("id") != "system":
+            continue
+        for design in road.get("designs") or []:
+            if isinstance(design, dict) and design.get("id") == "system.blockade":
+                return int(design.get("fulfilled_turn", -1) or -1) >= 0
+    return False
+
+
 class Answerer:
     """Scans a response for blocking surfaces, answers them by policy,
     and digests everything. Returns the FOLLOW-UP responses it produced
     (each of which is scanned in turn by the caller, up to a cap)."""
+
+    def _court_declined(self, dialogue) -> bool:
+        """GE-V's `--decline-from` and VP1-CS's `--decline-until-latch`: the
+        court's envoy is refused — always, or until the Blockade latches
+        (then its first qualifying offer is answered by `--diplomacy`). The
+        latch is read only for that court's dialogue, so an arm without the
+        dial never touches the transport here."""
+        court = _court_of(dialogue)
+        if court in declined_courts(self.policy):
+            return True
+        until = str((self.policy or {}).get("decline_until_latch") or "")
+        if not court or court != until or self._design_latched:
+            return False
+        try:
+            self._design_latched = _blockade_latched_in(self.t.get("/imperial_designs") or {})
+        except Exception:
+            return True
+        return not self._design_latched
 
     def __init__(self, transport, digest, policy, strict):
         self.t = transport
         self.d = digest
         self.policy = policy
         self.strict = strict
+        # VP1-CS (S14b part 3): `--decline-until-latch` — sticky once read.
+        self._design_latched = False
         # W6-0 dialogue identities already answered during the CURRENT
         # answer chain (reset by drain()). See begin_post().
         self._answered_dialogue_ids = set()
@@ -3827,7 +3860,7 @@ class Answerer:
         if (not dtype and not options
                 and dialogue.get("from_nation")
                 and dialogue.get("proposal_type")):
-            if _court_of(dialogue) in declined_courts(self.policy):
+            if self._court_declined(dialogue):
                 return "reject"
             return ("accept"
                     if self.policy["diplomacy"] in ACCEPTING_DIPLOMACY_MODES
@@ -3922,7 +3955,7 @@ class Answerer:
         # Hanover's armistice because the dial that signs Austria's peace
         # is up. Read off the dialogue's own court fields; a dialogue that
         # names no court (the player's own confirms) is never touched.
-        if _court_of(dialogue) in declined_courts(self.policy):
+        if self._court_declined(dialogue):
             mode = "decline"
         if mode in ("accept", "propose"):
             # NOT the constant: `first` keeps its own "take options[0]"
@@ -5334,7 +5367,7 @@ class MissionAdvisor:
 POLICY_FLAG_KEYS = ("redemption", "petition", "audience", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
                     "declare_war", "missions", "client_petition",
-                    "settlement", "decline_from")
+                    "settlement", "decline_from", "decline_until_latch")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -5433,6 +5466,10 @@ def main():
                     help="GE-V: comma-separated courts whose envoys are "
                          "refused whatever --diplomacy says (the arm "
                          "conquering Hanover refuses Hanover's armistice)")
+    ap.add_argument("--decline-until-latch", dest="decline_until_latch", default="",
+                    help="VP1-CS (S14b part 3): refuse this court's envoys until the "
+                         "Continental System's Blockade latches, then answer its first "
+                         "qualifying offer by --diplomacy. Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")

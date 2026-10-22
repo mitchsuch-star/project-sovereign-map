@@ -214,6 +214,13 @@ _SPECIAL_WEIGHTS = {
     "a nation proclaimed": 85,
     "a design of the Empire fulfilled": 83,
     "THE SUN OF AUSTERLITZ": 82,
+    # VP-1 (S14b part 3, the record §4): THE DECISIVE PEACE — the treaty
+    # that sealed a road, printed in the NEXT issue (the stamp lands in the
+    # end-turn tail, after the paper went to press), as the Congress's is.
+    "THE PEACE OF PRESSBURG": 98,
+    "THE PEACE OF TILSIT": 98,
+    "THE PEACE OF THE CONTINENT": 98,
+    "THE DECISIVE PEACE": 98,
     "THE CONGRESS OF PARIS DISSOLVES": 84,
     "a crowned head taken": 80,
     "a crowned head struck down": 80,
@@ -391,6 +398,17 @@ def _special_candidates(world, turn_events: List[Dict]):
                 and str(event.get("cause") or "") == "imperial_peace"
                 and str(event.get("nation") or "") == player):
             _add(_imperial_peace_caption(world), "imperial_peace")
+        if (etype == "campaign_ending"
+                and str(event.get("cause") or "") == "decisive_peace"
+                and str(event.get("nation") or "") == player):
+            # VP-1 (S14b part 3): "THE PEACE OF PRESSBURG", off the STAMPED
+            # record's detail; the next issue, deduped on the stamp's turn.
+            from backend.game_logic import game_end as _ge, imperial_designs as _designs
+            _rec = next((r for r in _ge.endings(world)
+                         if r.get("cause") == _ge.CAUSE_DECISIVE_PEACE), None)
+            if _rec is not None:
+                _add(_designs.moniteur_caption(_rec.get("detail") or {}),
+                     f"decisive_peace:{int(_rec.get('turn', 0) or 0)}")
     if reduced is not None:
         # Keyed by the EVENT — the province and the turn its loss was
         # stamped — so WO-44's identity dedupe never prints the same fall

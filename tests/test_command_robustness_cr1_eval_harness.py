@@ -70,6 +70,8 @@ MOCK_REACHABLE_ACTIONS = [
     "summon_congress", "recognition_sweetener",
     # VP-1 (S14b part 2): the road page's Proclaim.
     "proclaim_design",
+    # VP-1 (S14b part 3): the road page's Decree.
+    "decree_act",
 ]
 
 

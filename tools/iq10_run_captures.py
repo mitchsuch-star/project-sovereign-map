@@ -736,6 +736,12 @@ SHOTS: list[dict] = [
             ("imperial", "THE IMPERIAL PEACE (GE-3's register, STAGED through record_ending)",
              "the gold register: 'Europe accepts the order of the French Empire.', the record, "
              "the tier; buttons 'Continue the reign' / 'Retire to the Tuileries'"),
+            # VP-1 (S14b part 3): the fifth register, stamped at the chokepoint.
+            ("decisive", "THE DECISIVE PEACE (VP-1's register, stamped on the staged Rhine road)",
+             "the laurel register: 'The Peace of Pressburg: Austria is brought to terms by a "
+             "partition …', THE EMPEROR'S DESIGNS (the road, both designs fulfilled, the alarm and "
+             "'The Congress of Paris still waits.'), the record, the Verdict; ONE button 'Continue "
+             "the reign'; nothing clipped at scale 2.0"),
         )
     ],
     # ── Row EP GE-2: the clock line on the two client surfaces ──────────────

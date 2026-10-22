@@ -319,7 +319,10 @@ class TestTheDecisivePeaceRule:
         reading = ID.decisive_peace_reading(w)
         assert reading["ready"] is True, reading["conditions"]
         assert (reading["court"], reading["manner"]) == ("Austria", ID.MANNER_PARTITION)
-        assert ID.decisive_peace_released() is False
+        # Re-seated consciously at S14b part 3: the seam is RELEASED — and a
+        # reading (or the designs' tick) still stamps nothing; only the end
+        # turn's chokepoint does (`tests/test_vp1_the_decisive_peace.py`).
+        assert ID.decisive_peace_released() is True
         assert not any(e.get("cause") == "decisive_peace" for e in (w.endings or []))
 
     def test_not_while_the_sealing_court_holds_french_soil(self, w):

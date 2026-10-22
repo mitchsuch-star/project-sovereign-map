@@ -1746,12 +1746,26 @@ _PROCLAIM_WORDS_RE = re.compile(r"\bproclaim\s+(.+?)[\s.!]*$", re.IGNORECASE)
 # Austria's designs?" stays the courts' answer).
 _DESIGNS_QUESTION_RE = re.compile(
     r"\b(?:emperor'?s|our|my|imperial|france'?s)\s+designs?\b|\bdesigns? of the empire\b|"
-    r"\broads? of the empire\b|\bproclam(?:ation|ations)\b|\bproclaim(?:s|ed|ing)?\b")
+    r"\broads? of the empire\b|\bproclam(?:ation|ations)\b|\bproclaim(?:s|ed|ing)?\b|"
+    r"\bacts? of the empire\b")
+# VP-1 (S14b part 3, the record §5): `decree <act>` — the road page's Decree
+# button (its own head, the Proclaim's guards). "enact the <act>" stays the
+# Laws' parse and the executor answers it with the Act (never "no such law").
+_DECREE_VERB_RE = re.compile(r"decree\s+\S")
+_DECREE_WORDS_RE = re.compile(r"\bdecree\s+(.+?)[\s.!]*$", re.IGNORECASE)
+# A question that asks whether to decree ("should we decree the Temple of
+# Glory?") — never "what is the Berlin Decree?" (a law's name).
+_DECREE_ASK_RE = re.compile(r"\b(?:should|shall|can|could|may|do|would|must)\s+(?:we|i)\s+decree\b")
 
 
 def _proclaims_a_road(command_lower: str) -> bool:
     """"proclaim the Protector of the Rhine" — at the HEAD of the line."""
     return bool(_PROCLAIM_VERB_RE.match(_law_rest(command_lower)))
+
+
+def _decrees_an_act(command_lower: str) -> bool:
+    """"decree the Temple of Glory" — at the HEAD of the line."""
+    return bool(_DECREE_VERB_RE.match(_law_rest(command_lower)))
 
 
 def _asks_about_the_designs(command_lower: str) -> bool:
@@ -3010,6 +3024,16 @@ class LLMClient:
         if not _congress_marshal_led and _proclaims_a_road(command_lower):
             action = "proclaim_design"
             return self._parse_proclaim_command(action, command_text)
+        # VP-1 (S14b part 3): the road page's Decree — the Proclaim's guards.
+        _decree_order = _decrees_an_act(command_lower)
+        if not _congress_marshal_led and (_decree_order or _DECREE_ASK_RE.search(command_lower)) \
+                and is_question(original_text, _question_subjects(game_state)):
+            return self._designs_question(original_text)
+        if not _congress_marshal_led and _decree_order and _congress_hedged(command_lower):
+            return self._designs_question(original_text)
+        if not _congress_marshal_led and _decrees_an_act(command_lower):
+            action = "decree_act"
+            return self._parse_decree_command(action, command_text)
 
         # The session exit of September 28, 2026 (its residue): "how many
         # diplomatic points do I have?" — "diplomatic" holds "diplomat", one
@@ -4702,6 +4726,30 @@ class LLMClient:
             ambiguity=5,
             strategic_score=0,
             interpretation=f"The Emperor's designs — proclaim {target or 'a road'}",
+            confidence=0.95 if target else 0.8,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+        )
+
+    def _parse_decree_command(self, action: str, command_text: str) -> ParseResult:
+        """VP-1 part 3: `decree <act>` — an Act of the Empire, no marshal. The
+        target is the Act as named (the executor resolves it; the confirm's
+        marker is read off the raw words)."""
+        words = _DECREE_WORDS_RE.search(command_text)
+        target = words.group(1).strip() if words else None
+        if target:
+            target = re.sub(r"\s*\bconfirm(?:ed)?\b\s*$", "", target,
+                            flags=re.IGNORECASE).strip() or None
+        return ParseResult(
+            matched=True,
+            command_type="specific",
+            marshals=[],
+            action=action,
+            target=target,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation=f"The Acts of the Empire — decree {target or 'an Act'}",
             confidence=0.95 if target else 0.8,
             mode="mock",
             key_source=self.key_source,

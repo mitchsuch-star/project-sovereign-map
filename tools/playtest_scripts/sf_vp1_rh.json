@@ -1,0 +1,184 @@
+{
+ "name": "sf-vp1-rh",
+ "seed": "historical",
+ "llm": "mock",
+ "_note": "VP1-RH (S14b part 3, docs/VP1_DESIGNS_SPEC.md §9 Part 3): the Protector of the Rhine, found by the part's road search on a frozen snapshot of the tree. Ulm on day one and Bavaria vassalized at once (her alliance qualifies; the proposal sweetened twice through the proposal's own 'generous' clicks); war declared on Hesse (loop 2) and Saxony (loop 3) and each made a vassal by the dictated peace the vassalage proposal asks for, re-asked after each refusal's cooldown; Massena against the Archdukes and on Vienna; the road proclaimed on loop 9 by the command the Cabinet's road page sends (\"proclaim the Protector of the Rhine\"; the driver answers the free quote with its first option) once the turn's points allow; the new members' loyalty raised past 40 (autonomy, investment) and held four end turns; Austria brought to terms by the vassalage France dictates once Vienna has fallen (from loop 12 Talleyrand's caution is answered 'modify' — `policy_at` — so the terms go as sweetened). Run with --turns 40 --objection insist --diplomacy accept --declare-war proceed --settlement decline --client-petition grant --decline-from Austria (Austria's own offers refused, so France's terms are the peace signed; tools/_vp1_road_arms.py). `turns` keys are the driver's 1-based LOOP INDEX.",
+ "turns": {
+  "1": [
+   "Ney, attack Mack",
+   "Davout, attack Mack",
+   "vassalize Bavaria",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "2": [
+   "Massena, attack Archduke Charles",
+   "declare war on Hesse",
+   "propose vassalage to Hesse",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "3": [
+   "Massena, attack Archduke Charles",
+   "declare war on Saxony",
+   "propose vassalage to Saxony",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "4": [
+   "Massena, attack Archduke John"
+  ],
+  "5": [
+   "propose vassalage to Hesse",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "6": [
+   "Massena, attack Vienna",
+   "propose vassalage to Saxony",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "7": [
+   "Massena, attack Vienna"
+  ],
+  "8": [
+   "Massena, attack Vienna",
+   "propose vassalage to Hesse",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "9": [
+   "proclaim the Protector of the Rhine",
+   "increase Hesse autonomy",
+   "invest in Hesse",
+   "propose vassalage to Saxony",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "10": [
+   "Massena, attack Vienna",
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "11": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "12": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony",
+   "propose vassalage to Austria",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "13": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "14": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "15": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony",
+   "propose vassalage to Austria",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "16": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "17": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "18": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony",
+   "propose vassalage to Austria",
+   "@modify_generous",
+   "@modify_generous",
+   "@execute_proposal"
+  ],
+  "19": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "20": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "21": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "22": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ],
+  "23": [
+   "increase Hesse autonomy",
+   "increase Saxony autonomy",
+   "invest in Hesse",
+   "invest in Saxony"
+  ]
+ },
+ "policy_at": {
+  "12": {
+   "diplomatic_objection": "modify"
+  },
+  "13": {
+   "diplomatic_objection": "proceed"
+  },
+  "15": {
+   "diplomatic_objection": "modify"
+  },
+  "16": {
+   "diplomatic_objection": "proceed"
+  },
+  "18": {
+   "diplomatic_objection": "modify"
+  },
+  "19": {
+   "diplomatic_objection": "proceed"
+  }
+ }
+}

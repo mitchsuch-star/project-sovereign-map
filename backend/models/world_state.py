@@ -1763,6 +1763,7 @@ class WorldState:
             # sweetener rides the instrument verbs (0 AP, 1 DP + the gold).
             "summon_congress": 1,
             "proclaim_design": 1,  # VP-1: 1 admin action (+ 2 DP in the verb)
+            "decree_act": 1,  # VP-1 part 3: 1 admin action (+ the Act's gold in the verb)
             "recognition_sweetener": 0,
             # SR-5r RF-1 (REFORMS_SPEC §2): enact / repeal a law — 1 ADMIN
             # action each (ADMIN_ACTIONS); the price is charged in-executor.

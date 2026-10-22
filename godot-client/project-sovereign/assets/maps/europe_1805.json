@@ -1940,6 +1940,122 @@
                     "road iii"
                 ]
             }
+        ],
+        "acts": [
+            {
+                "id": "temple_of_glory",
+                "title": "The Temple of Glory",
+                "date": "the decree of Posen, 2 December 1806",
+                "road": "any",
+                "price": 8000,
+                "alarm": 0,
+                "says": "The Madeleine rebuilt as a temple to the Grand Army — the names of the fallen on its walls, the Empire's glory made stone.",
+                "effects": [
+                    {
+                        "type": "authority",
+                        "amount": 15
+                    }
+                ],
+                "aliases": [
+                    "the Temple",
+                    "the Madeleine"
+                ]
+            },
+            {
+                "id": "princes_dotations",
+                "title": "The Princes' Dotations",
+                "date": "1806",
+                "road": "rhine",
+                "price": 6000,
+                "alarm": 3,
+                "says": "Domains and pensions for the German princes who sit in the Confederation — their crowns guaranteed, their loyalty bought.",
+                "effects": [
+                    {
+                        "type": "relation",
+                        "courts": [
+                            "Hesse",
+                            "Saxony"
+                        ],
+                        "amount": 20
+                    },
+                    {
+                        "type": "client_loyalty",
+                        "courts": [
+                            "Bavaria",
+                            "Hesse",
+                            "Saxony",
+                            "Hanover"
+                        ],
+                        "amount": 15
+                    }
+                ],
+                "aliases": [
+                    "the Dotations",
+                    "the Princes Dotations"
+                ]
+            },
+            {
+                "id": "abolition_of_feudalism",
+                "title": "The Abolition of Feudalism",
+                "date": "Naples, 2 August 1806",
+                "road": "crowns",
+                "price": 6000,
+                "alarm": 3,
+                "says": "The baronies of the Kingdom of Naples abolished by decree — the Code in the south, the barons' courts closed.",
+                "precondition": {
+                    "type": "vassal",
+                    "courts": [
+                        "Naples"
+                    ]
+                },
+                "effects": [
+                    {
+                        "type": "client_loyalty",
+                        "courts": [
+                            "Naples"
+                        ],
+                        "amount": 25
+                    }
+                ],
+                "aliases": [
+                    "the Abolition",
+                    "Feudalism"
+                ]
+            },
+            {
+                "id": "raft_on_the_niemen",
+                "title": "The Raft on the Niemen",
+                "date": "25 June 1807",
+                "road": "system",
+                "price": 6000,
+                "alarm": 3,
+                "says": "Two emperors on a raft midstream — the beaten court courted, not crushed, and asked to shut its ports against Britain.",
+                "precondition": {
+                    "type": "great_power_beaten",
+                    "courts": [
+                        "Russia",
+                        "Prussia",
+                        "Austria"
+                    ],
+                    "war_score": -25
+                },
+                "effects": [
+                    {
+                        "type": "relation",
+                        "courts": [
+                            "Russia",
+                            "Prussia",
+                            "Austria"
+                        ],
+                        "amount": 20,
+                        "pick": "beaten"
+                    }
+                ],
+                "aliases": [
+                    "the Raft",
+                    "the Raft of Tilsit"
+                ]
+            }
         ]
     }
 }

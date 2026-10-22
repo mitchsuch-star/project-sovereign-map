@@ -91,6 +91,8 @@ FAMILY_ACTIONS = {
     "summon_congress",
     # VP-1 (S14b part 2): a road of the Empire — the road page's Proclaim
     "proclaim_design",
+    # VP-1 (S14b part 3): an Act of the Empire — the road page's Decree
+    "decree_act",
 }
 
 def test_the_backend_names_the_same_cabinet_verbs():
@@ -964,6 +966,8 @@ CANDIDATE_SENTENCES = [
     "proclaim the Continental System", "Talleyrand, proclaim the Rhine",
     "proclaim the Blockade of the British Isles confirmed",
     "should we proclaim the Rhine?",
+    # VP-1 part 3: the Acts — the road page's Decree line
+    "decree the Temple of Glory", "decree the Princes' Dotations confirmed",
     # counsel and no-home verbs — must NOT be claimed
     "Talleyrand, assess our situation", "Talleyrand, assess Austria",
     "minister, assess Prussia",

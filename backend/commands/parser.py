@@ -1933,6 +1933,8 @@ class CommandParser:
             "repeal_law",   # "repeal the Staff" — 1 admin
             # VP-1 (S14b part 2): the road page's Proclaim — 2 DP + 1 admin
             "proclaim_design",
+            # VP-1 (S14b part 3): the road page's Decree — gold + 1 admin
+            "decree_act",
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -2299,7 +2301,7 @@ class CommandParser:
                 from backend.ai.state_desk import TALLEYRANDS_DESK_KINDS
                 if (addressed
                         and (llm_result.get("action") in ("enact_law", "repeal_law",
-                                                          "proclaim_design")
+                                                          "proclaim_design", "decree_act")
                              or (llm_result.get("question") or {}).get("kind")
                              in ({"laws", "points"} | TALLEYRANDS_DESK_KINDS))
                         and (any(name in addressed.lower()

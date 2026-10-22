@@ -3354,6 +3354,9 @@ class CommandExecutor:
         elif action == "proclaim_design":
             # VP-1 (S14b part 2): a road of the Empire, from the road page.
             result = self._diplomatic._execute_proclaim_design(command, game_state)
+        elif action == "decree_act":
+            # VP-1 (S14b part 3): an Act of the Empire, from the road page.
+            result = self._diplomatic._execute_decree_act(command, game_state)
         elif action == "recognition_sweetener":
             result = self._diplomatic._execute_recognition_sweetener(command, game_state)
         # ════════════════════════════════════════════════════════════

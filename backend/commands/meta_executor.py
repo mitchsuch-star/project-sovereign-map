@@ -44,7 +44,10 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  # VP-1 (S14b part 2): a road of the Empire is proclaimed for
                  # one admin action (+ 2 DP). Not in `objection_actions`: a
                  # decree, not an order (the `purchase_levy` judgement).
-                 "proclaim_design"}
+                 "proclaim_design",
+                 # VP-1 (S14b part 3): an Act of the Empire — one admin action
+                 # (+ its gold). Not in `objection_actions`: a purchase.
+                 "decree_act"}
 
 
 def collapse_turn_end_fields(world) -> Dict:

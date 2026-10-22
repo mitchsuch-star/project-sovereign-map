@@ -100,6 +100,7 @@ ROUTED_ORDER_WORDS = frozenset({
     'declared',
     'declares',
     'declaring',
+    'decree',
     'defeat',
     'defend',
     'defense',

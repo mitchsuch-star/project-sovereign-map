@@ -306,6 +306,18 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 5,
         },
     },
+    # VP-1 (S14b part 3): the road page's Decree — an Act of the Empire.
+    {
+        "input": "decree the Temple of Glory",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "decree_act",
+            "target": "the Temple of Glory",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",

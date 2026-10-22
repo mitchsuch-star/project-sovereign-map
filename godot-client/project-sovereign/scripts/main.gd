@@ -2665,6 +2665,10 @@ const DIPLO_FAMILY_KEYWORDS = [
 	# VP-1 (S14b part 2): a road of the Empire — the road page's Proclaim is
 	# its one road (`llm_client._PROCLAIM_VERB_RE` heads the line).
 	"proclaim ",
+	# VP-1 (S14b part 3): an Act of the Empire — the road page's Decree is its
+	# one road (`llm_client._DECREE_VERB_RE`). "decree the", never "decree ":
+	# the Berlin Decree is a LAW ("enact the Berlin Decree" stays typed).
+	"decree the ",
 	# VP1-X19 (S14b part 2, found by the proclamation's census): talks with a
 	# court are a proposal (NPC-10's parse) — the door let them through.
 	"hold talks with",
@@ -3029,6 +3033,7 @@ func _redirect_diplomatic_command(command: String) -> bool:
 const DIPLO_CABINET_TOP_ROWS = [
 	["the congress", "The Congress of Paris"],
 	["proclaim", "The Emperor's Designs"],
+	["decree the ", "The Emperor's Designs"],
 ]
 
 const DIPLO_CABINET_CONTROLS = [
@@ -5303,6 +5308,11 @@ func _display_morning_dispatch(data: Dictionary):
 	# the chest could buy (`law_sink`, absent otherwise).
 	var law_sink := str(situation.get("law_sink", ""))
 	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	# VP-1 (S14b part 3): once the laws are bought, the Act of the Empire the
+	# chest could decree — its row is on the road page (`act_sink`).
+	var act_sink := str(situation.get("act_sink", ""))
+	if sink_suffix == "" and act_sink != "":
+		sink_suffix = "[color=#" + Utils.COLOR_INFO + "] — " + act_sink + " (F1 → The Emperor's Designs)[/color]"
 	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix)
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named ("the
 	# dispatch names why"), and the forecast — the same source as the

@@ -1,6 +1,89 @@
 {
- "_part": "S14b part 2, second landing (the road page armed) — the commanded arms on the part's tree against the S14b head's archive (docs/audits/score_runs/2026_10_21_rr6x3); FC against a run of the part-1 tree (902cf755, git archive), the arm the archive lacks.",
- "arms": {
+ "_part": "S14b part 3 (the Acts, THE DECISIVE PEACE and its register) — the commanded arms on the part's tree against part 2's measured tree (the second landing, a808cb7f's working tree) and against the S14b head's archive (docs/audits/score_runs/2026_10_21_rr6x3).",
+ "vs_part2_tree": {
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1216,
+    1216
+   ]
+  },
+  "CMD-A": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1169,
+    1169
+   ]
+  },
+  "CMD-M": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1135,
+    1135
+   ]
+  },
+  "OP": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    745,
+    745
+   ]
+  },
+  "FLD": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    437,
+    437
+   ]
+  },
+  "DL": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    148,
+    148
+   ]
+  },
+  "LAW": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    446,
+    446
+   ]
+  },
+  "VOLTE": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1278,
+    1278
+   ]
+  },
+  "FC": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    101,
+    101
+   ]
+  }
+ },
+ "vs_s14b_head_archive": {
   "CMD-H": {
    "game": "equal",
    "view": "equal",
@@ -74,41 +157,10 @@
    ]
   }
  },
- "FC_vs_part1_tree": {
-  "FC": {
-   "game": "equal",
-   "view": "equal",
-   "records": "record 12: {\"kind\": \"command\", \"text\": \"how do I win\", \"success\": true, \"parse_mode\": \"mock\", \"parse_confidence\": 0.9, \"message\": \"Berthier unrolls the map. \\\"The reign is WON at the Congress of Paris, Sire: hold 45 TITLED provinces \\u2014 homeland, ceded by treaty, a client's soil, or held 12 quiet turns (35  | {\"kind\": \"command\", \"text\": \"how do I win\", \"success\": true, \"parse_mode\": \"mock\", \"parse_confidence\": 0.9, \"message\": \"Berthier unrolls the map. \\\"A campaign is for deciding what Napoleon's empire will be \\u2014 Protector of the Rhine, master of Italy from Milan to Naples, or a Continent shut again",
-   "n_records": [
-    101,
-    101
-   ]
-  }
- },
- "held_down_prologue_log": {
-  "CMD-A": {
-   "game": "equal",
-   "view": "equal",
-   "records": "equal",
-   "n_records": [
-    1168,
-    1168
-   ]
-  },
-  "CMD-M": {
-   "game": "equal",
-   "view": "equal",
-   "records": "equal",
-   "n_records": [
-    1135,
-    1135
-   ]
-  }
- },
  "_attribution": {
-  "CMD-H, OP, FLD, DL, LAW, VOLTE": "equal on every stream, record for record.",
-  "CMD-A, CMD-M": "game and view streams equal; ONE campaign-log record each parts (an IGR-B collapse of AI-AI refusals at log turns 2/3). The cause is the prologue's one new `imperial_design` event-log entry (Austria's separate peace in CMD-A, the first war-ending peace with Austria/Russia in CMD-M): the log rolls at 500 rows (MAX_EVENT_LOG_SIZE), so one more entry evicts the oldest one turn sooner and the collapse groups one refusal fewer. Held down (the prologue's `_log` call suppressed, 1 hit per arm), both arms equal the archive record for record (`held_down_prologue_log`). Reach: one log entry per arm; no game state moves.",
-  "the final tree": "the landing's last change (the quiet morning's `realm_designs` line, dormant until a road is proclaimed) re-run on all nine arms: every stream equal to the measured tree record for record, so the held-down attribution (measured on that tree) stands.",
-  "FC": "game and view streams equal; the goal answer ('how do I win') now leads with condition (c) and names the three roads — the part's intended change (first contact's `_designs_goal_clause`)."
+  "all nine arms": "equal to part 2's measured tree on every stream, record for record: no commanded arm proclaims, so the stamp, the Verdict's term, the Acts and the quiet-morning act sink are never reached (the series' reach counters: decisive_stamps 0, acts_decreed 0 — tools/_vp1_series_arms_final.json).",
+  "CMD-A, CMD-M vs the head's archive": "the part-2 parting carried unchanged: one campaign-log record each, the prologue's one log entry moving the 500-row roll (attributed by holding it down, S14b part 2 §13.2).",
+  "FC vs the head's archive": "the part-2 parting carried unchanged: the goal answer leads with condition (c).",
+  "after the measurement": "one backend line changed — the decisive peace's cause line names its road ('— Road II, the Crowns of Italy, is sealed.'); it is read only on a stamped world, which no commanded arm reaches."
  }
 }

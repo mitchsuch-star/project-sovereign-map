@@ -190,8 +190,10 @@ class TestTheScriptArm:
         assert len(resolved) >= 9, resolved
         # 8 -> 12 flipped consciously: VP-1 (S14b part 2) adds the road page's
         # four labels (the step-1 row, the empty page, the headline, a road's
-        # block) — every one in the wizard's scrolled list.
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 12
+        # block) — every one in the wizard's scrolled list. 12 -> 15 flipped
+        # consciously at S14b part 3: the Acts block's three (its heading, an
+        # Act's row, a refusal's reason) — the same scrolled list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 15
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

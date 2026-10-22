@@ -263,6 +263,11 @@ def _attach_endings(result: Dict, world: WorldState, before: int) -> None:
     if lead is None:
         lead = next((r for r in stamped
                      if r.get("cause") == _game_end.CAUSE_IMPERIAL_PEACE), None)
+    # VP-1 (S14b part 3): then THE DECISIVE PEACE — a Verdict stamped the same
+    # end turn follows the laurel card (the record §4's lead order).
+    if lead is None:
+        lead = next((r for r in stamped
+                     if r.get("cause") == _game_end.CAUSE_DECISIVE_PEACE), None)
     result["ending"] = _game_end.screen_payload(lead or stamped[-1])
 
 

@@ -251,9 +251,9 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 
 | Item | Owner / landing | Completion | Test | STATUS line |
 |---|---|---|---|---|
-| The land roads' played reach (Rhine, Crowns) | this row, Part 3 | VP1-RH and VP1-TH reported per seed; any seal unreached stated on its design's row of this record | `tests/test_vp1_the_decisive_peace.py` (an archived-digest pin) | "S14b part 3 — VP-1's arms" |
+| The land roads' played reach (Rhine, Crowns) — ✅ LANDED October 22, 2026 (§14.2) | this row, Part 3 | VP1-RH and VP1-TH reported per seed; any seal unreached stated on its design's row of this record | `tests/test_vp1_the_decisive_peace.py` (an archived-digest pin) | "S14b part 3 — VP-1's arms" |
 | HC-D1, NP-D7, NPC-D2, the Napoleon Comparison, the seed display | VP-2 (ROADMAP row 13, after the deploy) | their existing done-whens | their existing rows | unchanged |
-| WO-D4(b), SF-ECON-1, the EAD-2 residue | this row, Part 3 | closed against this record (§5) | `tests/test_vp1_the_decisive_peace.py` | "VP-1 landed" |
+| WO-D4(b), SF-ECON-1, the EAD-2 residue — ✅ CLOSED October 22, 2026 (§14.5) | this row, Part 3 | closed against this record (§5) | `tests/test_vp1_the_decisive_peace.py` | "VP-1 landed" |
 | S14c's events deck (the Confederation of the Rhine, the end of the Holy Roman Empire, the Berlin Decree, Tilsit) | S14c (`PRE_DEPLOY_PLAN.md` §2) — a hand-off line written into its row with this record | an event on one of these moments reads `world.imperial_designs`, never fires on a forsworn road, never doubles a proclamation | S14c's own pins | S14c's row |
 
 **Struck from every surface, not deferred:** Westphalia, a Bonaparte Naples, Rome 1809, a peacetime road into the System, Trianon licences, the Milan Decree's cut, an AI reading of France's road, a France deck in `world.agendas`.
@@ -304,7 +304,7 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 - **A1** — `NATION_AGENDAS_SPEC.md` §9's player-France row: France's goals live in `world.imperial_designs`, never `world.agendas`.
 - **A3** — `VASSAL_DEEPENING_SPEC.md` §2.3: the Protector's shield suspends a member's downward `AUTONOMY_DRIFT` term (the grip term untouched).
 - **A5** — `NATION_AGENDAS_SPEC.md` §9's seed note: no design pays gold.
-- A2, A4 (the Verdict's term, the fifth register) and A6 (ROADMAP row 13) land with part 3.
+- A2, A4 (the Verdict's term, the fifth register) and A6 (ROADMAP row 13) land with part 3 — LANDED October 22, 2026 (§14.5).
 
 ---
 
@@ -347,3 +347,56 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 | the IQ-10 frames at 1.0 and 2.0 show every button above the fold | `IQ10_WIZARD_DESIGNS_STEP4[_PROCLAIMED][_X2]_2026_10_22.png` — the page before and after the Crowns of Italy is proclaimed |
 | VP1-X4 … X8, X10, X13 FIXED with their pins | `BUG_FIXES.md` §VP1 — 19 of 19 FIXED |
 | the full suite green through the hook | this landing's commit |
+
+---
+
+## §14 Part 3 landing record — the Acts, THE DECISIVE PEACE and the arms (October 22, 2026)
+
+*Rules `SYSTEMS_REFERENCE.md` §146; rows `BUG_FIXES.md` §VP1 (the part's own finds X20, X21 FIXED — the section's 21 rows all FIXED); pins `tests/test_vp1_the_decisive_peace.py` (43); the arms `tools/_vp1_road_arms.py` (`tools/_vp1_road_arms_final.json`); the frames `docs/audits/IQ10_CAMPAIGN_END_DECISIVE[_X2]_2026_10_22.png`. **S14b is COMPLETE.***
+
+### 14.1 Built
+
+- **THE DECISIVE PEACE, stamped.** `decisive_peace_released()` reads True (a function seam — the series holds it down; the code-health ratchet admits no new module lever). `stamp_decisive_peace` — called by `game_end.process_end_of_turn` right after the designs' tick and before the Verdict, the only stamp — records `CAUSE_DECISIVE_PEACE` (kind `victory`, register `decisive_peace`, never terminal) once per campaign when the six conditions hold; its detail carries the route, the court, the manner, the treaty ("the Peace of Pressburg", "the Peace of Tilsit", "the Peace of the Continent"), both designs with their turns and the alarm it spent. The reward: Europe's alarm −15, never below the Armed Peace's watch (45), source `decisive_peace`. The lead order on an end turn: a terminal ending, then the Imperial Peace, then the decisive peace, then the last stamped.
+- **The fifth register (A4).** `campaign_end.gd`'s `decisive_peace` — laurel, THE DECISIVE PEACE, the cause line ("The Peace of Pressburg: Austria is brought to terms by a partition, and the Confederation of the Rhine holds — Road I, the Protector of the Rhine, is sealed."), THE EMPEROR'S DESIGNS block (`imperial_designs.summary_block`, from the stamp's own detail: the road, both designs fulfilled, the alarm, "The Congress of Paris still waits."), the record, the Verdict; one button, **Continue the reign**.
+- **The Verdict (A2).** `verdict_inputs` reads the decisive peace and its treaty; `verdict_tier` adds `DECISIVE_PEACE_VERDICT_TERM` (+2) — a score term, never a floor (the Imperial Peace keeps its floor); `_tier_lines` names the treaty — ascendant: "The Peace of Pressburg decided the question it was fought for."; contested: "… decided one question at the table; the rest of Europe has not signed." (never "unbeaten at the table" of such a reign); the Imperial Peace's own line takes precedence.
+- **The news.** The dispatch's `decisive_peace` class (98: below the Imperial Peace, above the summons; free in the table) leads the morning of the stamp, read off the stamped record; Le Moniteur prints "THE PEACE OF PRESSBURG" (Tilsit, the Continent) in the next issue, deduped on `decisive_peace:<turn>`.
+- **The Acts of the Empire (§5).** Authored in the block's `acts` list (the shipped block and its fixture, pinned equal; `_validate_imperial_acts`; `MODDING_FORMAT.md`): the Temple of Glory (any road; 8,000; authority +15), the Princes' Dotations (I; 6,000; alarm +3; Hesse and Saxony +20; the Confederation's vassals +15 loyalty), the Abolition of Feudalism (II; 6,000; alarm +3; Naples +25 loyalty, only while she is the Emperor's vassal), the Raft on the Niemen (III; 6,000; alarm +3; +20 with the great power at war with France whom France has beaten — a province of hers held, or her war score at −25). `decree_act` follows the recipe whole (validation's three lists, the parser's list and address rule, `_action_costs` 1, `ADMIN_ACTIONS`, three display maps, the mock's `decree` head behind the Proclamation's guards, the regenerated routed words (378), a few-shot, six golden-corpus rows (726)). The road page's Decree button sends `decree <title>`; the executor quotes it free and the quote's option decrees it — exactly `act_price` in gold and one administrative action, once. `act_refusal` is the one refusal in the order the player meets it (the shared executor's administrative pre-gate; once only; the road — "proclaim one first", "forsworn when the Emperor proclaimed …"; the board's precondition; the gold) and every Decree row prints it. "enact the <Act>" is answered with the Act and its road-page row, free — never "no such law", never decreed. The morning's treasury line names the next Act once no law is left to buy (`act_sink`, at peace only; "(F1 → The Emperor's Designs)" on both renderers). A save whose store predates the list gains it at load (the backfill grafts the block's `acts`, the state kept).
+- **The arm's dial.** `--decline-until-latch <court>` (the driver): that court's envoys refused until the Blockade latches — read off GET `/imperial_designs`, sticky — then answered by `--diplomacy`; absent, the transport is never read and every archived arm is byte-identical (pinned).
+- **The siblings (Rule 10):** VP1-X20 (once made, the road page and the goal answer still spoke of the decisive peace as ahead — they read the stamped record now) and VP1-X21 (DD-0's law rewrite read "decree" as a law noun and rewrote every Decree button's line "enact …" — a decree is the Laws' only when it names a law of its own).
+
+### 14.2 The arms — seeded paths, not laws
+
+The scripts were found by a road search (three searchers iterating scripted roads through the real driver on a frozen snapshot of the tree), then run on the part's own tree by `tools/_vp1_road_arms.py` (`--turns 40 --objection insist --diplomacy accept --declare-war proceed`, each arm's own dials):
+
+| Arm | historical | austerlitz | marengo |
+|---|---|---|---|
+| VP1-RH (`sf_vp1_rh.json`) | stamped turn 13 — Austria brought to terms by subjugation, the Confederation holding | turn 13 | turn 13 |
+| VP1-TH (`sf_vp1_th.json`) | stamped turn 20 — the Peace of Pressburg by partition (Tyrol and Carniola to the Kingdom of Italy), Naples held | turn 20 | turn 20 |
+| VP1-CS (`sf_vp1_cs.json`) | never — the Blockade never latches (13 of 26 at most); the Fall (no sword) | never — the Fall (the Emperor captive) | never — the Fall (the Emperor captive) |
+
+- **The done-when is met six times of nine.** VP1-RH — the arm part 1 named the done-when (§12.1) — stamps on every seed, and VP1-TH too; both play on to turn 40 after the stamp (`completed`), the Verdict reading the reign Ascendant. VP1-CS reproduces §12.1: the Tilsit road no longer latches the Blockade at K = 6 and, extended to 40 loops, falls on every seed. K stays 6; SF-NAV-1-D1 stays the user's.
+- **The Rhine reads fast, reported and not tuned.** RH makes Hesse and Saxony vassals by their own wars' dictated peaces and dictates Austria's vassalage once Vienna has fallen (loop 12; Talleyrand's caution answered "modify" by the script's `policy_at`); the construction latches on turn 13 — not before turn 10, so §10's re-open condition (raise the need to 4 or the hold to 6) has not fired. A great power subjugated in 1806 is the board's existing reach, not VP-1's; S14e's re-measure reads it.
+- **The proclamation's turn matters:** proclaimed on turn 1 it spends the 2 points Bavaria's vassalage needs (the first probe's failure on all three seeds); RH proclaims on loop 9, TH on loop 7, CS on loop 1.
+- **A status-quo settlement seals nothing,** even one that titles a court's homeland to the Emperor's bloc — the record's "never by the status-quo league peace", measured on a staged board (`test_a_status_quo_peace_seals_nothing`); the partition reads ceded provinces only.
+
+### 14.3 Measured
+
+`BASELINE_SERIES` byte-identical on every arm (0, D, X1, X2, X3, X12, X13, ALL); the stamp's and the Acts' reach counted and zero (`decisive_stamps`, `acts_decreed`) — the ambient France never proclaims — the armed store read 476 times (`tools/_vp1_series_arms_final.json`). The nine commanded arms equal part 2's measured tree record for record (`tools/_vp1_arm_attribution_final.json`). The parser cassettes re-stamped keylessly (every parse prompt +178 characters; the recovery prompt unchanged). The Godot parse harness EXIT 0; the fifth register's IQ-10 frames at Interface Scale 1.0 and 2.0.
+
+### 14.4 The done-when (§9 Part 3), item by item
+
+| Item | Met by |
+|---|---|
+| the decisive peace records on at least one benchmark seed, every seed reported with its reason | §14.2 — RH and TH on all three seeds, CS on none, each with its reason (`TestTheRoadArms`) |
+| the negative boards never stamp | `TestTheNegativeBoards` — no road, a status-quo peace, Paris lost, a homeland province in enemy hands, a lapsed construction, a Humbled reign, the seam held down |
+| the end card raises and the next end turn still reads `game_over` False | `test_the_next_end_turn_still_plays`; the RH and TH arms play on to turn 40 |
+| a staged turn-44 board with no negative term reads ascendant with the decisive peace and contested without it | `TestTheVerdict::test_a_status_quo_reign_reads_contested_without_and_ascendant_with` |
+| each act charges exactly its quote and refuses the second time | `TestTheActs::test_each_act_charges_exactly_its_quote_once`, with the Dotations, the Raft, the forsworn road and the preconditions |
+| the Godot parse harness EXIT 0 and the IQ-10 frames of the fifth register at 1.0 and 2.0 | `tools/godot_parse_report.json`; `IQ10_CAMPAIGN_END_DECISIVE[_X2]_2026_10_22.png` |
+| the series byte-identical or re-pinned with VP-1 named | byte-identical (§14.3) |
+| condition (c) reads met | `ROADMAP.md`, the store page's entry condition (c) ✅ MET |
+| the census reads 0 open VP1 rows | `BUG_FIXES.md` §VP1 — 21 of 21 FIXED |
+
+### 14.5 Carried into their specs
+
+A2 (`GAME_END_SPEC.md` R2: the decisive peace, a +2 score term, never a floor), A4 (`ENDGAME_PLAN.md` D10 and §4: the fifth register), A6 (`ROADMAP.md` row 13: the objective-shaped triumph and the decisive-peace victory moved here and landed; "un-gate `_check_victory_conditions`" struck); condition (c) marked met on the store page's row. WO-D4(b) (Road III) and SF-ECON-1 (the Acts) closed against this record; EAD-2's residue is the Acts' sink (`DESIGN_REFINEMENT.md` EAD-2, DDB-D7).

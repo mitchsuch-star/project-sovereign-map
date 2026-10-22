@@ -212,7 +212,12 @@ class TestTheCassetteAttribution:
     VP-1's verb (`proclaim_design`) and the prompt its one board-independent
     example — every parse prompt +204 characters, re-stamped keylessly; the
     Berthier recovery prompt 2,370 → 1,946 (VP1-X18: the recovery vocabulary
-    no longer offers a Cabinet act as a typed order)."""
+    no longer offers a Cabinet act as a typed order).
+
+    ⚑ Re-derived at S14b part 3 (October 22, 2026): `VALID_ACTIONS` gained the
+    Acts' verb (`decree_act`) and the prompt its one board-independent example
+    — every parse prompt +178 characters, re-stamped keylessly; the recovery
+    prompt unchanged (a Cabinet act is left out of its vocabulary)."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

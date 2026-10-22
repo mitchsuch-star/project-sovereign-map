@@ -91,11 +91,12 @@ exits named. **Losing Paris alone never triggers either arm** (PL-31 honoured).
   - the Emperor free;
   - great powers still at war with France, and each war's score;
   - satellites kept;
-  - the treasury.
+  - the treasury;
+  - **the decisive peace** (amended October 22, 2026 — VP-1's A2, `docs/VP1_DESIGNS_SPEC.md` §4): +2 to the score, a SCORE TERM, never a floor (`game_end.DECISIVE_PEACE_VERDICT_TERM`); the Imperial Peace keeps its exclusive floor, and the tier lines name the treaty ("The Peace of Pressburg decided the question it was fought for.").
 - **Tiers:** four, from a triumph down to an eclipse. The thresholds are in-band tunable, and GE-1 measures the tier distribution on the driver arms (ambient, and the commanded accept/decline arms) and reports it in the landing record.
 - **Why Tilsit and not 60.** Turn 60 (March 1808) has no historical anchor. Turn 44 is the natural close of the 1805–07 arc, and VP-2's Napoleon Comparison can later anchor on the same date. Both are after turn 40, so `BASELINE_SERIES` and M1–M7 cannot see either.
 - **Not in this row:**
-  - An objective-shaped victory — VP-1 owns it.
+  - An objective-shaped victory — VP-1 owns it, LANDED October 22, 2026 (Pre-Deploy S14b part 3: THE DECISIVE PEACE, `SYSTEMS_REFERENCE.md` §146).
   - "Coalition peace = victory" — PR-D1b's turn-4 peace would make it trivial. The decisive-peace triumph belongs to VP-1/VP-2.
 - **Re-open:** if the played campaign shows 44 turns is too short or too long for a first campaign, move the authored turn. It is scenario data, not code.
 

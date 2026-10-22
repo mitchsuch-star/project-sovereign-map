@@ -152,6 +152,11 @@ func _on_dispatch_received(response):
 	# peace — the same `law_sink` the terminal's dispatch reads.
 	var law_sink := str(situation.get("law_sink", ""))
 	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	# VP-1 (S14b part 3): once the laws are bought, the Act of the Empire the
+	# chest could decree — its row is on the road page (`act_sink`).
+	var act_sink := str(situation.get("act_sink", ""))
+	if sink_suffix == "" and act_sink != "":
+		sink_suffix = "[color=#" + Utils.COLOR_INFO + "] — " + act_sink + " (F1 → The Emperor's Designs)[/color]"
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named, and
 	# the forecast — the same source as the terminal's dispatch.

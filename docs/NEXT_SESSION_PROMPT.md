@@ -1,37 +1,36 @@
-# NEXT SESSION PROMPT — Pre-Deploy S14b part 3: the Acts, THE DECISIVE PEACE and the arms
+# NEXT SESSION PROMPT — Pre-Deploy S14c: events and historical moments — THE GATE
 
-> Overwritten each time a session hands off. Current hand-over: **October 22, 2026, after S14b part 2 LANDED**
-> (`docs/VP1_DESIGNS_SPEC.md` §13; commits through the hook — `git log -3`).
+> Overwritten each time a session hands off. Current hand-over: **October 22, 2026, after S14b COMPLETE**
+> (`docs/VP1_DESIGNS_SPEC.md` §12–§14; commits through the hook — `git log -4`).
 >
-> **What the last session delivered:**
-> - **S14b part 2 LANDED, in two landings** (`SYSTEMS_REFERENCE.md` §144–§145): every court opens with its regen purse
->   (VP1-X13); the shipped `europe_1805.json` carries the `imperial_designs` block (hints, Cabinet rows, aliases) so
->   the 1805 campaign boots armed; `proclaim_design` — a Cabinet button quoted first, free, then confirmed (1
->   administrative action, 2 diplomatic points, the teeth), its every refusal ONE predicate (`price_refusal`); the
->   road page (the Cabinet's step 4, GET `/imperial_designs`); the Balance block, `designs_clock`, the TODAY door, the
->   events (86 / 82 / 67) and the quiet morning's `realm_designs` line, Le Moniteur's specials, the goal answer led
->   by condition (c), Talleyrand's reading of a court, the manner and the Revanche on the four peace surfaces;
->   VP1-X4 … X8, X10, X13 … X19 FIXED — the census reads 0 open VP1 rows (9 open in all, every one S15's UXR-4).
-> - **Measured:** `BASELINE_SERIES` byte-identical on every arm (the armed store read 396 times, never moved); six
->   commanded arms equal record for record; CMD-A and CMD-M part at one campaign-log line each (the prologue's one
->   log entry moves the 500-row roll) and equal the archive with it held down; FC's goal answer leads with (c).
+> **What the last session delivered (S14b parts 2 and 3):**
+> - **VP-1 "The Emperor's Designs" landed whole** (`SYSTEMS_REFERENCE.md` §143–§146): three roads of a construction
+>   and a seal, proclaimed from the Cabinet's road page (a button whose command is the executor's, quoted then
+>   confirmed); every surface reading the one payload; THE DECISIVE PEACE stamped at the end-of-turn chokepoint
+>   (once, marked and continued, the fifth register, the Verdict's +2, the front page and Le Moniteur); the four
+>   Acts of the Empire (the road page's Decree rows, a peace-road gold sink). The census reads 9 open rows, every
+>   one S15's UXR-4; condition (c) on the store page MET.
+> - **The arms, per seed** (`tools/_vp1_road_arms_final.json`): VP1-RH stamps on turn 13 on all three seeds
+>   (Austria subjugated once Vienna falls), VP1-TH on turn 20 on all three (the Pressburg partition), VP1-CS on none
+>   (the Blockade never latches at K = 6; the Fall). S14e's re-measure should read the Rhine's fast subjugation.
 >
 > **Traps the last session paid for:**
-> - **While a quote is pending, re-sending the same command resolves as its confirm** (the option's label
->   matches) — drive a quote-then-confirm through the quote's own option, never by sending the command twice.
-> - **The event log rolls at 500 rows** (`MAX_EVENT_LOG_SIZE`): ONE new log entry on a 40-turn arm moves an IGR-B
->   collapse ("4 courts" → three named). Hold the entry's `_log` call down in a child run to attribute it.
-> - **`headline_lead_memory` is REBUILT every morning from an allowlist** (`dispatch._select_headline`: "league",
->   "realm", "designs") — a new memory key that is not added there vanishes silently.
-> - **The CX-R1 generator harvests only branches that assign `action = "<id>"` and call module-level
->   predicates**; regenerate `routed_order_words` after any new verb (`python -m tools.gen_routed_order_words`).
-> - **The parser cassettes re-stamp keylessly** — a throwaway test that calls `tests.test_iq9_keyless_parser_gate`
->   and `tests._parser_replay.fingerprint`; the recovery cassette has its own prompt and its own re-stamp.
-> - **A full run reads files mid-edit, and two pins need bytecode** — re-run a failure alone, with
->   `env -u PYTHONDONTWRITEBYTECODE`, before chasing it. The suite is ~32,630 tests, ~7.5 minutes at `-n 8`.
-> - `tools/score_run.py run --only` takes ONE arm per flag (`--only CMD-A --only CMD-M`); a comma list runs nothing.
-> - The Godot binary is `C:\Users\User\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe`
->   (the folder of the same name is not the exe).
+> - **Copy a found script WHOLE** — a script's `policy_at` (per-loop dials) is part of the road; dropping it moved
+>   the Rhine arm from turn 13 to 18 on one seed and to the Fall on another.
+> - **A search over scripted roads works best on a FROZEN snapshot** (`git archive <sha> backend tools tests
+>   godot-client/project-sovereign/assets/maps | tar --force-local -xf - -C <dir>`; or, for an uncommitted tree,
+>   `git ls-files -co --exclude-standard … | tar --force-local -cf - -T - | tar --force-local -xf - -C <dir>` —
+>   a plain `cp -r tests tools` copies ~8 GB of untracked run data), parallel agents iterating through the real
+>   driver; then re-run the winners on the live tree with the same flags.
+> - **A new verb's head can be stolen by a DD-0 rewrite** (`backend/ai/dd0_rewrites.py`): "decree X" was rewritten
+>   "enact X" before the parser saw it. Add the verb's golden-corpus rows FIRST and run them.
+> - **The Bash heredoc halves backslashes** — a `\b` became a backspace byte in a .py file. Write scripts with the
+>   Write tool; scan for `\x08` after any shell-written edit.
+> - **The executor's administrative pre-gate answers before the verb** — a test of a once-only refusal must refill
+>   `admin_actions_remaining` first.
+> - **`headline_lead_memory` is rebuilt every morning from an allowlist**; dispatch weights must stay tie-free.
+> - `tools/score_run.py run --only` takes ONE arm per flag; the full suite is ~32,700 tests, ~7.5 minutes at `-n 8`;
+>   two pins need bytecode (`env -u PYTHONDONTWRITEBYTECODE`).
 > - `CLAUDE.md` at ~61,900 of 62,000 bytes (LF-normalised).
 >
 > **Nothing waits on the user before S15** (UXR-4, the code-signing certificate, AO's three questions and
@@ -39,17 +38,14 @@
 
 ---
 
-Pre-Deploy S14b part 3 — VP-1 "The Emperor's Designs": the Acts of the Empire, THE DECISIVE PEACE and the arms — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -3` for the head).
+Pre-Deploy S14c — Events and historical moments: THE GATE, ruled under the standing delegation — work on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -4` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/VP1_DESIGNS_SPEC.md` (§4 THE DECISIVE PEACE, §5 the Acts, §6 the surfaces, §7 the series, §8 the numbers, §9 Part 3, §12–§13 the landing records), `backend/game_logic/imperial_designs.py` (`decisive_peace_reading`, `decisive_peace_released`, `build_designs_payload`, `price_refusal` — the one-refusal idiom the Acts copy), `backend/game_logic/game_end.py` (`record_ending`, the causes, `_attach_endings`' lead order, the Verdict's score terms and tier lines), `godot-client/project-sovereign/scripts/campaign_end.gd` (`REGISTER_STYLE`, `_cause_line`), `backend/commands/reforms_executor.py` (the quote idiom), `tools/playtest_driver.py` (the dials) and `tools/playtest_scripts/` (the Tilsit road the CS script copies).
+Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/PRE_DEPLOY_PLAN.md` (§2 the order; the S14c row in full, including the VP-1 hand-off), `docs/VP1_DESIGNS_SPEC.md` §11 (the hand-off row) and §14, `docs/AI_INTENT_SPEC.md` §4.6a (the one-foregrounded-crisis tempo rule) and §3.8.1 (D7's authored bounds), `docs/DESIGN_REFINEMENT.md` 8.EVAL (the Diplomacy & Flavor Content Menu), `docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` (the August 3 memo's question: does the derived drama already cover a moment?), `docs/VISION.md`, and the transports an event would ride (`backend/models/dialogue_manager.py`, the mailbox endpoints in `backend/main.py`, `backend/game_logic/dispatch.py`'s classes, `backend/game_logic/gazette.py`).
 
-Scope (the record's §9 Part 3 — the design is the record's; flag any reversal):
-0. **The user's rule (October 20, 2026): diplomacy is never typed.** The Acts are Cabinet rows on the road page whose commands are the executor's; every disabled reason is the act's one refusal predicate; no line tells the player to type one.
-1. **The Acts of the Empire:** `decree_act {act}` — the full recipe (its own head "decree the …"; "enact the <act>" resolves to the act before the laws, corpus-pinned; not in `objection_actions` — a purchase); the four acts of §5 (the Temple of Glory, the Princes' Dotations, the Abolition of Feudalism, the Raft on the Niemen), each one-shot, gold + 1 administrative action, one refusal predicate and one price function (quoted net through `charges_relief`, shown = applied); the road page's Decree rows; the dispatch's `peace_sink` line names the next act once the laws are bought (`TestDDBR7` re-seated).
-2. **THE DECISIVE PEACE:** release `decisive_peace_released()`; `CAUSE_DECISIVE_PEACE` stamped through `record_ending` (mark and continue); the fifth register in `campaign_end.gd` ("Continue the reign"), `_cause_line` naming the treaty, the summary block, the lead order (terminal, imperial_peace, decisive_peace, then the last stamped), the Verdict's +2 score term and tier lines (A2), the dispatch's `decisive_peace` class and Le Moniteur's "THE PEACE OF <TREATY>"; condition (c) marked met (ROADMAP's store-page row), A2, A4 and A6 written into their specs.
-3. **The arms:** VP1-CS (`tools/playtest_scripts/sf_vp1_cs.json` copied from the Tilsit road, 40 loops, Road III proclaimed on turn 1 with the Cabinet button's command and the quote's option; the driver dial `--decline-until-latch <court>`, absent by default — every archived arm byte-identical, pinned); **VP1-RH carries the done-when** (the Rhine; the Tilsit road no longer latches the Blockade on any seed); VP1-TH beside it; each reported per seed with its reason.
-4. **Measure:** `BASELINE_SERIES` byte-identical with every reach counted, or re-pinned naming VP-1 (S14b); the commanded arms attributed (`tools/_vp1_arm_attribution.py`).
+Scope (the gate, not the build):
+0. **The user's rules:** diplomacy is never typed (every answer an event offers is a button whose command is the executor's); the LLM never affects mechanics; events about AI courts reach them through the same functions (Golden Rule 5); no open-ended deferrals (Rule 9).
+1. **Research, read-only, in parallel:** the existing transports an event can ride without a new modal; the derived drama that already covers each candidate moment (Trafalgar's news, the Confederation of the Rhine, the end of the Holy Roman Empire, the Berlin Decree, Tilsit) and what an authored event would add; the seams each answer would use (gold, trust, relations, stability, a court's alarm); the pacing caps (IGR-1, §4.6a); the content menu's rows; how D7's authored bounds would vary the deck per seed.
+2. **Draft the gate from more than one angle** (history-first, player-first, systems-reuse-first), judge them (historian, architect, playtester), take the best base and graft; send it to adversarial critics; answer every correction.
+3. **Rule:** the engine's shape (an event = a decision letter on the mailbox road or a dispatch beat), the first deck (its historical moments and situational events, each with its trigger, its answers and their seams), the cap and the pacing, the per-seed variation, the content-menu picks, the VP-1 hand-off (an event on one of the four moments reads `world.imperial_designs`, never fires on a forsworn road, never doubles a proclamation), the series' attribution plan, and the parts it is sized into (about one session each, each landing green). Flag any reversal of a user ruling.
 
-Done when (§9 Part 3) the decisive peace records on at least one benchmark seed, every seed reported with its reason (seeded paths, not laws); the negative boards never stamp; the end card raises and the next end turn still reads `game_over` False; a staged turn-44 board with no negative term reads ascendant with the decisive peace and contested without it; each act charges exactly its quote and refuses the second time; the Godot parse harness EXIT 0 and the IQ-10 frames of the fifth register at 1.0 and 2.0; the series byte-identical or re-pinned with VP-1 named; condition (c) reads met; the census reads 0 open VP1 rows; the full suite green through the hook; STATUS ▶ NEXT UP names S14c and this file is overwritten for it.
-
-Rules: reproduce each gap on a board before building; the sibling sweep after every fix (CLAUDE.md Rule 10); a change that reaches the AI or the backend runs the attribution arms with `BASELINE_SERIES` byte-identical or every movement attributed (count the reach); edit CRLF files with a script that preserves line endings; grep-verify any agent's bulk `.gd` edits. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Done when the gate is recorded in a new spec (`docs/EVENTS_SPEC.md`), its siblings filed in `docs/BUG_FIXES.md` with owners, the S14c row and STATUS ▶ NEXT UP name part 1, and this file is overwritten for it. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
