@@ -32,10 +32,10 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b's head LANDED; VP-1's gate is next.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b's head LANDED; VP-1's gate RULED; part 1 is next.
 
 **▶ LIVE STATE (October 21, 2026).** The three most recent landed rows:
-- **S14b's head (Oct 21) — RR6-X3 one sighting rule + UXR3-F11 the titled tally — LANDED** (RR6-X4…X11): `SYSTEMS_REFERENCE.md` §142. **NEXT = VP-1's gate.**
+- **S14b (Oct 21–22) — its head LANDED (§142); VP-1's gate RULED (`docs/VP1_DESIGNS_SPEC.md`).** **NEXT = S14b part 1.**
 - **Score Finish residue 5 (Oct 21) — SF-RR6, the instrument reads what the player sees — LANDED** (§141).
 - **Score Finish residue 4 (Oct 21) — SF-RR5, the frames at both scales — LANDED** (§140).
 
