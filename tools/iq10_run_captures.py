@@ -1360,6 +1360,35 @@ SHOTS += [
 ]
 
 
+
+# ═══ S14c part 2 (docs/EVENTS_SPEC.md §6, §9 Part 2): the moment letters ═══
+# Capture group `moments` (tools/iq10_capture_payloads.py `cap_moments`): the
+# staged deck's Bavarian Match and Decree of Berlin as GET /pending_envoy
+# serves them, through incoming_proposal_popup.show_proposal (`is_moment`).
+SHOTS += [
+    *[
+        {
+            "id": f"moment_letter_{mid}",
+            "surface": f"A Moment of History — {label} (incoming_proposal_popup.tscn, is_moment)",
+            "payload": f"moment_letter_{mid}",
+            "scene": "res://scenes/incoming_proposal_popup.tscn",
+            "mode": "call", "method": "show_proposal",
+            "must_show": must,
+        }
+        for mid, label, must in (
+            ("bavarian_match", "The Bavarian Match (the Cabinet)",
+             "the 'A MOMENT OF HISTORY' header with the dateline, the title and the Cabinet, the "
+             "record, the board line, 'What each answer does' with BOTH quotes, the buttons 'Seal "
+             "the match' and 'Let Baden keep her', the 'If unanswered by …' line; no Counter, no "
+             "raw tag, no court, nothing clipped at scale 2.0"),
+            ("decree_of_berlin", "The Decree of Berlin (Talleyrand)",
+             "the same parts under Talleyrand's name — the ports-shut board and the Decree's terms "
+             "with its administrative action, the buttons 'Sign the Decree' and 'Not yet', the "
+             "unanswered line; nothing clipped at scale 2.0"),
+        )
+    ],
+]
+
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))
     return {c["name"]: c for c in m["captures"]}

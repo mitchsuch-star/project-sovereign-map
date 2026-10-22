@@ -59,6 +59,12 @@ SETTLEMENT_CRITICAL_SCRIPTS = [
     # settings store it writes through — extended in the slice that added them.
     "resize_grip.gd",
     "ui_settings.gd",
+    # S14c part 2 (October 22, 2026): the moment letter's register and the
+    # lapse twin — parsed by the harness all along, absent from this list, so
+    # an edit to either alone left the report stale; extended in the slice
+    # that touched them.
+    "incoming_proposal_popup.gd",
+    "dispatch_view.gd",
 ]
 GODOT_SCRIPTS_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scripts"
 GODOT_SCENES_DIR = REPO_ROOT / "godot-client" / "project-sovereign" / "scenes"

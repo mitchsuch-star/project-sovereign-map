@@ -372,6 +372,13 @@ func _on_dispatch_received(response):
 			if bool(lapse.get("is_petition", false)) and l_line != "":
 				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]\n"
 				continue
+			# S14C-X15: a carried sentence prints for any letter (the moment's, the call's).
+			if l_line != "":
+				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]\n"
+				continue
+			if bool(lapse.get("is_moment", false)):
+				bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  A letter of the record was left unanswered.[/color]\n"
+				continue
 			# PC-F45 (S13e part 4): the letter's display name (R7), never the raw key.
 			var l_ptype = str(lapse.get("proposal_type_display", str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()))
 			bbcode += "[color=#" + Utils.COLOR_BATTLE + "]  " + Utils.display_nation_name(l_nation) + "'s " + l_ptype + " offer lapsed unanswered[/color]\n"

@@ -669,7 +669,7 @@ def build_base_response(world, success: bool = True, message: str = "",
         # A persistent settlement offer survives the turn by design, so
         # including it made the warning claim a loss that could not happen
         # — and, when it was the only item, a warning nothing could clear.
-        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         # IQ-7 review R8(d): the priced petitions among them.
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
@@ -2917,7 +2917,7 @@ def test_connection():
         "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
-        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+        "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
         # PC15-10 B1: the antechamber's badge from the first frame.
@@ -6667,7 +6667,7 @@ def get_pending_envoy():
         "success": True,
         "has_pending": False,
         "pending_envoy_count": int(dm.get_mailbox_count()),
-        "pending_lapsing_count": int(dm.get_lapsing_count()),
+        "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_marshal_decisions": _pending_marshal_decisions(world),
     }
@@ -7161,7 +7161,7 @@ def get_diplomatic_preview_endpoint(
                 "dp_available": int(dp),
                 "dialogue_pending": dialogue_pending,
                 "pending_envoy_count": int(dm.get_mailbox_count()),
-                "pending_lapsing_count": int(dm.get_lapsing_count()),
+                "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
                 "pending_lapsing_petitions": _pending_lapsing_petitions(world),
                 "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
@@ -7200,7 +7200,7 @@ def get_diplomatic_preview_endpoint(
                 or world.dialogue_manager.is_local_planning()
             ),
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
-            "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count()),
+            "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
             "pending_lapsing_petitions": _pending_lapsing_petitions(world),
             "pending_marshal_decisions": _pending_marshal_decisions(world),
             **preview,

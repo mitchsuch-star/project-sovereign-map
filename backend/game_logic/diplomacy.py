@@ -13754,12 +13754,19 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if inc_available and dp < 1:
             inc_available = False
             inc_reason = "Insufficient DP"
+        # S14C-X10: the row says what the change does — the executor's own
+        # plan (`autonomy_change_plan`): loyalty, drift, tribute in gold and
+        # the ports that leave the count against the trade-dominant power.
+        from backend.game_logic.vassal import autonomy_change_plan
+        _inc_plan = (autonomy_change_plan(world, target_nation, autonomy + 1, actor=player)
+                     if inc_available else {})
         actions.append({
             "action": "increase_autonomy",
             "display_name": "Increase Autonomy",
             "dp_cost": 1,
             "available": inc_available,
             "disabled_reason": inc_reason,
+            "effect_text": str(_inc_plan.get("line") or ""),
             # PC-X50: a puppet loosened straight to autonomous (one order, 1 DP)
             "choices": ([{"label": "Straight to Autonomous (1 DP)", "action": "set_autonomy",
                           "payload": {"level": "autonomous"}}]
@@ -13773,12 +13780,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if dec_available and dp < 1:
             dec_available = False
             dec_reason = "Insufficient DP"
+        _dec_plan = (autonomy_change_plan(world, target_nation, autonomy - 1, actor=player)
+                     if dec_available else {})
         actions.append({
             "action": "decrease_autonomy",
             "display_name": "Decrease Autonomy",
             "dp_cost": 1,
             "available": dec_available,
             "disabled_reason": dec_reason,
+            "effect_text": str(_dec_plan.get("line") or ""),
             # PC-X50: an autonomous court tightened straight to puppet
             "choices": ([{"label": "Straight to Puppet (1 DP)", "action": "set_autonomy",
                           "payload": {"level": "puppet"}}]

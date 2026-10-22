@@ -388,8 +388,8 @@ def _board_law_bites(world, lord, params) -> List[str]:
     clients = _decree_clients_of(world, lord)
     return [f"At war with {_court(world, target)}; {naval.closed_ports_against(world, target)} "
             f"of {naval.continental_ports_total(world)} continental ports are shut against her.",
-            "The Decree would shut the ports of " + _and_join([_court(world, c) for c in clients])
-            + ", whatever their autonomy."]
+            "Enacted, the Decree shuts the ports of " + _and_join([_court(world, c) for c in clients])
+            + (" too, whatever its autonomy." if len(clients) == 1 else " too, whatever their autonomy.")]
 
 
 _BOARD: Dict[str, Callable[[Any, str, Dict[str, Any]], List[str]]] = {
@@ -537,12 +537,10 @@ def _plan_autonomy(world, lord, op) -> Dict[str, Any]:
                 "line": ""}
     return {"op": "autonomy", "court": court, "level": level, "refusal": "",
             "loyalty_before": p["loyalty_before"], "loyalty_after": p["loyalty_after"],
+            "ports_before": p["ports_before"], "ports_after": p["ports_after"],
             "line": (f"{_court(world, court, capitalize=True)} becomes "
-                     f"{AUTONOMY_NAMES.get(level, '')}: loyalty {p['loyalty_before']} → "
-                     f"{p['loyalty_after']}; its autonomy drift {p['drift_before']:+d} → "
-                     f"{p['drift_after']:+d} a turn; tribute {p['tribute_before']}% → "
-                     f"{p['tribute_after']}%; {p['dp_cost']} diplomatic point (you hold "
-                     f"{int(_dp_available(world, lord))})")}
+                     f"{AUTONOMY_NAMES.get(level, '')}: {p['line']}; {p['dp_cost']} diplomatic "
+                     f"point (you hold {int(_dp_available(world, lord))})")}
 
 
 def _apply_autonomy(world, lord, row) -> None:
@@ -569,7 +567,7 @@ def _plan_enact_law(world, lord, op) -> Dict[str, Any]:
                if target else "")
     return {"op": "enact_law", "law": law, "refusal": refusal,
             "ports_before": before, "ports_after": after,
-            "line": f"{reforms.terms_line(world, lord, row)} and 1 administrative action{closure}"}
+            "line": f"{reforms.terms_line(world, lord, row)}; 1 administrative action{closure}"}
 
 
 def _apply_enact_law(world, lord, row) -> None:
@@ -613,10 +611,10 @@ def plan(world, e: Dict[str, Any], answer: str) -> Dict[str, Any]:
                          "refusal": "The chancery cannot price this answer today, Sire."})
     refusal = next((str(r["refusal"]) for r in rows if r.get("refusal")), "")
     lines = [str(r["line"]) for r in rows if r.get("line")]
-    quote = f"{caption}: {'; '.join(lines)}." if lines else f"{caption}: no change."
+    effect = f"{'; '.join(lines)}." if lines else "no change."
     return {"id": str((e or {}).get("id") or ""), "answer": answer, "caption": caption,
             "ok": not refusal, "refusal": refusal, "rows": rows, "lines": lines,
-            "quote": quote}
+            "effect": effect, "quote": f"{caption}: {effect}"}
 
 
 def _apply(world, p: Dict[str, Any]) -> None:
@@ -723,7 +721,8 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int) -> Dic
     accept = plan(world, e, ANSWER_ACCEPT)
     decline = plan(world, e, ANSWER_DECLINE)
     board = board_lines(world, e)
-    unanswered = f"If unanswered by {_dateline(world, answer_by)}: {decline['quote']}"
+    unanswered = (f"If unanswered by {_dateline(world, answer_by)}: {decline['caption']} — "
+                  f"{decline['effect']}")
     record = str(e.get("record") or "")
     return {
         "is_moment": True,
@@ -952,8 +951,12 @@ def deliver_letter(world, e: Dict[str, Any], turn: int) -> Dict[str, Any]:
         (f"{payload['diplomat_name']} lays a letter before the Emperor — answer by "
          f"{_dateline(world, payload['answer_by_turn'])}."),
         int(turn),
+        # S14C-X14: the button opens THIS letter (`/mailbox/activate` with its
+        # mailbox id — main.gd's `moment_letter` review target), one click
+        # beside a standing settlement offer.
         details={"moment_id": mid, "mailbox_id": int(dialogue.get("mailbox_id") or 0),
-                 "review_target": "ally_settlement_petition_popup", "review_label": "Open Envoys"}))
+                 "route_id": str(int(dialogue.get("mailbox_id") or 0)),
+                 "review_target": "moment_letter", "review_label": "Read the letter"}))
     _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]))
     return dialogue
 

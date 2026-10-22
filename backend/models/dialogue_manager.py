@@ -514,29 +514,34 @@ class DialogueManager:
                 count += 1
         return count
 
-    def get_lapsing_count(self) -> int:
-        """Count of items that will actually LAPSE if the turn ends now.
+    def get_lapsing_count(self, current_turn: Optional[int] = None) -> int:
+        """How many letters lapse if the turn ends now — the end-turn
+        warning's count.
 
-        Aug 30, 2026 review. The client's end-turn warning ("N unanswered
-        envoy(s) that will lapse if you end the turn now") was fed from
-        `get_mailbox_count`, which counts SOFT_STOP_MAILBOX_TYPES — the
-        current-turn offers that DO lapse plus the PERSISTENT ones that
-        explicitly do not (`lapse_pending_offers` excludes them by design, so
-        a standing settlement offer survives every end turn). The player was
-        stopped, and told he was about to lose something he could not lose;
-        worse, a turn whose only "envoy" was persistent produced a warning
-        that could never be satisfied by answering anything.
-
-        The badge keeps `get_mailbox_count` — the letter-book really does
-        hold both. Only the LAPSE claim narrows.
-        """
+        S14C-X1 (S14c part 2): it asks the lapse's OWN predicate
+        (`item_lapses`), so a letter kept open for a second turn — an ally's
+        call to arms, a moment letter — is not counted on its first. With no
+        `current_turn` every current-turn offer counts (the old reading)."""
         count = 0
-        if self._current and self._current.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+        if self._current and self.item_lapses(self._current, current_turn):
             count += 1
         for item in self._queue:
-            if item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES:
+            if self.item_lapses(item, current_turn):
                 count += 1
         return count
+
+    def item_lapses(self, item: dict, current_turn: Optional[int] = None) -> bool:
+        """THE lapse predicate (`lapse_pending_offers` and `get_lapsing_count`
+        both ask it): a current-turn offer lapses at the end of
+        `current_turn` unless its own `keeps_open` holds it (DDB-2's call to
+        arms, S14c's moment letter)."""
+        from backend.game_logic.call_to_arms import keeps_open
+        from backend.game_logic import moments
+        if item.get("type", "") not in self.CURRENT_TURN_OFFER_TYPES:
+            return False
+        return not (current_turn is not None
+                    and (keeps_open(item, current_turn)
+                         or moments.keeps_open(item, current_turn)))
 
     def get_mailbox_items(self) -> List[Dict]:
         """Return ordered list of mailbox items for the inbox panel.
@@ -678,15 +683,11 @@ class DialogueManager:
         given the `world`, is refused at the letter's price — the lapse row
         carries the priced result under `call_to_arms`.
         """
-        from backend.game_logic.call_to_arms import keeps_open, refuse_lapsed_letter
+        from backend.game_logic.call_to_arms import refuse_lapsed_letter
         from backend.game_logic import moments
 
         def _lapses(item: dict) -> bool:
-            if item.get("type", "") not in self.CURRENT_TURN_OFFER_TYPES:
-                return False
-            return not (current_turn is not None
-                        and (keeps_open(item, current_turn)
-                             or moments.keeps_open(item, current_turn)))
+            return self.item_lapses(item, current_turn)
 
         def _info(item: dict) -> dict:
             info = self._extract_lapse_info(item)

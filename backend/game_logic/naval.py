@@ -1412,15 +1412,18 @@ def closure_against(world, target: str) -> float:
     return closed_ports_against(world, target) / float(total)
 
 
-def closed_ports_against(world, target: str, extra_members=(), decree_by: str = "") -> int:
+def closed_ports_against(world, target: str, extra_members=(), decree_by: str = "",
+                         autonomy_as=None) -> int:
     """The closure's numerator: the ports closed against `target` today —
     or, with `extra_members`, as if those courts kept the System too (the
     Tilsit clause's row reads "closes 14 → 15 of 26 ports" off it), or, with
     `decree_by`, as if that lord held the Berlin Decree (S14c, the Decree
-    letter's quote). A pure read; `closure_against` is this divided by the
-    Continent's ports."""
+    letter's quote), or with `autonomy_as` {court: level}, as if those
+    clients stood at that autonomy (S14C-X10, the autonomy plan's line). A
+    pure read; `closure_against` is this divided by the Continent's ports."""
     return sum(ports for _nation, ports, closed
-               in ports_by_court_against(world, target, extra_members, decree_by=decree_by)
+               in ports_by_court_against(world, target, extra_members, decree_by=decree_by,
+                                         autonomy_as=autonomy_as)
                if closed)
 
 
@@ -1432,7 +1435,7 @@ PORT_CLOSURE_RULE = ("A court's ports are shut to {target} while it is at war "
 
 
 def ports_by_court_against(world, target: str, extra_members=(),
-                           decree_by: str = "") -> List[Tuple[str, int, bool]]:
+                           decree_by: str = "", autonomy_as=None) -> List[Tuple[str, int, bool]]:
     """DDB-58: every continental court with ports, as (court, ports, closed
     against `target`) — the ONE per-court reading `closed_ports_against`
     sums and the Admiralty's open-courts line lists (the payload counted the
@@ -1458,8 +1461,9 @@ def ports_by_court_against(world, target: str, extra_members=(),
         else:
             vstate = vassals.get(nation) or {}
             lord = vstate.get("lord")
+            autonomy = (autonomy_as or {}).get(nation, vstate.get("autonomy", AUTONOMY_SATELLITE))
             if (lord and world.is_at_war(lord, target)
-                    and (vstate.get("autonomy", AUTONOMY_SATELLITE)
+                    and (autonomy
                          in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE)
                          # SR-5r RF-2 (REFORMS_SPEC §4 `cs_closure`): under
                          # the lord's Berlin Decree every client shuts its

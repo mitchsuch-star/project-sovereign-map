@@ -65,6 +65,7 @@ war at once) · `--decline-from Hanover,Naples` (GE-V: envoys from the named
 courts are refused whatever `--diplomacy` says — the arm conquering Hanover
 refuses Hanover's armistice; read off the dialogue's own court fields, so the
 player's own confirms are never touched) · `--decline-until-latch Britain`
+- `--moment accept|decline` (S14c): how a moment letter of the record is answered — by its action, never by position; absent = decline (the letter's own lapse), never the `--diplomacy` dial. A closed Accept is left standing with its reason in the digest.
 (VP-1 S14b part 3, the VP1-CS arm: the court's envoys are refused until the
 Continental System's Blockade latches — read off GET `/imperial_designs`,
 sticky once latched — then its first qualifying offer is answered by

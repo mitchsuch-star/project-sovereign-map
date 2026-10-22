@@ -1,5 +1,5 @@
 {
- "_part": "S14c part 1 (the moments' engine and its transport, unarmed) \u2014 the nine commanded arms on the part's tree against S14b part 3's measured tree (131eeebf's working tree, the run that landed with tools/_vp1_arm_attribution_final.json).",
+ "_part": "S14c \u2014 the nine commanded arms on each part's tree: part 1 against S14b part 3's measured tree (vs_s14b_part3_tree); part 2's first landing against part 1's (vs_part1_tree).",
  "vs_s14b_part3_tree": {
   "CMD-H": {
    "game": "equal",
@@ -83,5 +83,89 @@
    ]
   }
  },
- "_attribution": "Every arm equal record for record \u2014 the game and view streams and every digest record: the shipped boot authors no moments block, and no commanded France met an ultimatum, an offered crown or a broker's ask whose stamp the registry (S14C-X8, X18-X20) now opens."
+ "_attribution": "Every arm equal record for record \u2014 the game and view streams and every digest record: the shipped boot authors no moments block, and no commanded France met an ultimatum, an offered crown or a broker's ask whose stamp the registry (S14C-X8, X18-X20) now opens.",
+ "vs_part1_tree": {
+  "CMD-H": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1216,
+    1216
+   ]
+  },
+  "CMD-A": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1169,
+    1169
+   ]
+  },
+  "CMD-M": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1135,
+    1135
+   ]
+  },
+  "OP": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    745,
+    745
+   ]
+  },
+  "FLD": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    437,
+    437
+   ]
+  },
+  "DL": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    148,
+    148
+   ]
+  },
+  "LAW": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    446,
+    446
+   ]
+  },
+  "VOLTE": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    1278,
+    1278
+   ]
+  },
+  "FC": {
+   "game": "equal",
+   "view": "equal",
+   "records": "equal",
+   "n_records": [
+    101,
+    101
+   ]
+  }
+ },
+ "_attribution_part2a": "Every arm equal record for record: no commanded France met a moment letter (the shipped boot authors none), a two-turn call to arms beside a lapse, an open allegiance auction beside an answer, or an autonomy row the driver prints."
 }

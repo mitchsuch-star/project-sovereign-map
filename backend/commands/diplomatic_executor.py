@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
 from backend.nation_config import get_player_diplomat, get_player_nation
+from backend.notifications import dismiss_letter_notices  # S14C-X14
 from backend.models.world_state import WorldState
 
 
@@ -6940,7 +6941,7 @@ class DiplomaticExecutor:
             ctx.world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            ctx.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(ctx.world)
             # PL-7/PL-5C: Apply acceptance cooldown (same as _handle_accept_ai_proposal)
             from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
             apply_acceptance_cooldown(source_nation, ctx.world)
@@ -7000,7 +7001,7 @@ class DiplomaticExecutor:
             ctx.world.incoming_proposal_popup = None
             # Dismiss stale proposal notification
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            ctx.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(ctx.world)
             # PL-7/PL-5C: Apply AI rejection cooldown (prevents immediate re-proposal)
             from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
             if source_nation and ptype:
@@ -7832,7 +7833,7 @@ class DiplomaticExecutor:
         if dead:
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             from backend.display_names import display_nation
             return {
                 "success": False,
@@ -7852,7 +7853,7 @@ class DiplomaticExecutor:
         if proposal_type == CALL_TO_ARMS_TYPE:
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             from backend.display_names import proposal_display_name
             outcome = join_call(world, terms)
             world.proposal_result_popup = {
@@ -7875,7 +7876,7 @@ class DiplomaticExecutor:
             # Review fix [r3 LOW]: clear the envoy chip like the sibling
             # accept/reject handlers — else it lingers until clear_stale.
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             war_id = str(terms.get("war_id") or "")
             war = (getattr(world, "war_instances", {}) or {}).get(war_id)
             from backend.display_names import proposal_display_name
@@ -7924,7 +7925,7 @@ class DiplomaticExecutor:
         if proposal_type == "offer_vassalage":
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             from backend.display_names import proposal_display_name
             from backend.game_logic.vassal import create_vassal_treaty
             outcome = create_vassal_treaty(
@@ -7994,7 +7995,7 @@ class DiplomaticExecutor:
                     vassal, lord, petition)
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             # R1: `fulfilled` (the deed already ceded the province) is an
             # honoured petition; `granted` the ordinary one; anything else
             # the executor reports by its RETURNED outcome, never a
@@ -8093,7 +8094,7 @@ class DiplomaticExecutor:
                 and treaty_event.get("type") == "diplomatic_treaty_failed"):
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             # SFR-B2 (DD-1 Slice B): a refusal at ratification is NOT our
             # rejection — the campaign log read "We rejected Prussia's
             # alliance proposal" after the player pressed Accept. The letter
@@ -8142,7 +8143,7 @@ class DiplomaticExecutor:
         world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
         from backend.notifications import DIPLOMATIC_PROPOSAL
-        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        dismiss_letter_notices(world)
 
         # Apply acceptance cooldown to prevent immediate follow-up proposals
         from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
@@ -8197,7 +8198,7 @@ class DiplomaticExecutor:
             source_nation = context.get("source_nation", "")
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             from backend.display_names import proposal_display_name
             outcome = refuse_call(world, terms, how="refused")
             world.proposal_result_popup = {
@@ -8241,7 +8242,7 @@ class DiplomaticExecutor:
             verdict = str(outcome.get("outcome") or "")
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             message = str(outcome.get("message") or "")
             if not message:
                 from backend.game_logic.formations import formed_display_name
@@ -8300,7 +8301,7 @@ class DiplomaticExecutor:
         world.dialogue_manager.pop()
         # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
         from backend.notifications import DIPLOMATIC_PROPOSAL
-        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        dismiss_letter_notices(world)
 
         world.log_event({
             "type": "ai_proposal_rejected",
@@ -8368,7 +8369,7 @@ class DiplomaticExecutor:
             issuer = formed_display_name(world, source_nation)
             world.dialogue_manager.pop()
             from backend.notifications import DIPLOMATIC_PROPOSAL
-            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(world)
             message = (
                 f"There is nothing left to yield to, Sire — {issuer} is no "
                 f"longer a power in Europe. The demand dies with their court."
@@ -8396,7 +8397,7 @@ class DiplomaticExecutor:
             beneficiary=source_nation)
         world.dialogue_manager.pop()
         from backend.notifications import DIPLOMATIC_PROPOSAL
-        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        dismiss_letter_notices(world)
         apply_acceptance_cooldown(source_nation, world)
 
         transfer_text = "; ".join(transfers) if transfers else "no transferable demands"
@@ -8437,7 +8438,7 @@ class DiplomaticExecutor:
         from backend.game_logic.formations import formed_display_name
         world.dialogue_manager.pop()
         from backend.notifications import DIPLOMATIC_PROPOSAL
-        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        dismiss_letter_notices(world)
 
         # A demand nobody is left to press is not defiance — it lapsed.
         # Planting the pressure marker here would let a dead or already-
@@ -8574,7 +8575,7 @@ class DiplomaticExecutor:
 
         # Dismiss stale proposal notification (counter replaces original)
         from backend.notifications import DIPLOMATIC_PROPOSAL
-        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+        dismiss_letter_notices(world)
 
         acceptance = calculate_acceptance(counter_terms, world)
         popup_payload = build_pending_envoy_popup_from_terms(

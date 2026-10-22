@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b COMPLETE; S14c part 1 LANDED (`docs/EVENTS_SPEC.md` §13); part 2 is next.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b COMPLETE; S14c part 2's first landing LANDED (`docs/EVENTS_SPEC.md` §14); its second is next.
 
 **▶ LIVE STATE (October 22, 2026).** The three most recent landed rows:
-- **S14c part 1 (Oct 22) — the moments' engine, UNARMED — LANDED** (§147). **NEXT = S14c part 2.**
+- **S14c part 2a (Oct 22) — the client and the instruments — LANDED** (§147.7). **NEXT = part 2b, three letters armed.**
+- **S14c part 1 (Oct 22) — the moments' engine, UNARMED — LANDED** (§147).
 - **S14c (Oct 22) — its gate RULED: four letters** (`docs/EVENTS_SPEC.md`).
-- **S14b part 3 (Oct 22) — THE DECISIVE PEACE — LANDED; S14b COMPLETE** (§146).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

@@ -274,8 +274,8 @@ def build_call_dialogue(proposal: Dict, world) -> Dict:
 # ═══════════════════════ the answers ═══════════════════════
 
 def _close_letter_notice(world) -> None:
-    from backend.notifications import DIPLOMATIC_PROPOSAL
-    world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+    from backend.notifications import dismiss_letter_notices
+    dismiss_letter_notices(world)
 
 
 def join_call(world, terms: Dict) -> Dict:

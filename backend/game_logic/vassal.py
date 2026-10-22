@@ -2167,7 +2167,59 @@ def autonomy_change_plan(world, vassal_name: str, new_level: int,
                 tribute_after=int(round(TRIBUTE_RATES[new_level] * 100)),
                 drift_before=int(autonomy_drift(world, vassal_name, old_level)),
                 drift_after=int(autonomy_drift(world, vassal_name, new_level)))
+    plan.update(_autonomy_consequence(world, vassal_name, lord, int(new_level), plan))
     return plan
+
+
+def _autonomy_consequence(world, vassal_name: str, lord: str, new_level: int,
+                          plan: dict) -> dict:
+    """S14C-X10: what an autonomy change does beyond the loyalty — the gold
+    the tribute rate moves and the ports that leave (or join) the count
+    against the trade-dominant power, each read off the real function
+    (`vassal_tribute_owed`'s income, `naval.closed_ports_against` as if the
+    court stood at the new level). Pure. The `line` is what the wizard's
+    row, the ledger's chip and a moment letter all print."""
+    from backend.game_logic import naval
+    income = _vassal_tributable_income(world, vassal_name)
+    remitted = int(((getattr(world, "vassals", {}) or {}).get(vassal_name) or {}).get(
+        "remission_left", 0) or 0) > 0
+    gold_before = 0 if remitted else int(income * TRIBUTE_RATES[plan["old_level"]])
+    gold_after = 0 if remitted else int(income * TRIBUTE_RATES[new_level])
+    target = naval.trade_dominance_nation(world) or ""
+    ports_before = ports_after = ports_total = 0
+    closure = ""
+    if target and target != vassal_name:
+        ports_before = int(naval.closed_ports_against(world, target))
+        ports_after = int(naval.closed_ports_against(world, target,
+                                                     autonomy_as={vassal_name: new_level}))
+        ports_total = int(naval.continental_ports_total(world))
+        shown = _court_name(world, target, article=True)
+        court = _court_name(world, vassal_name, article=True, capitalize=True)
+        if ports_after < ports_before:
+            closure = (f"its ports leave the count against {shown}: {ports_before} → "
+                       f"{ports_after} of {ports_total}")
+        elif ports_after > ports_before:
+            closure = (f"its ports join the count against {shown}: {ports_before} → "
+                       f"{ports_after} of {ports_total}")
+        elif world.is_at_war(vassal_name, target):
+            closure = f"its ports stay counted — {court} is herself at war with {shown}"
+        elif naval._decree_counts(world, lord):
+            closure = "its ports stay counted — the Berlin Decree shuts every client's"
+        else:
+            closure = f"the ports shut against {shown} stay {ports_before} of {ports_total}"
+    delta = gold_after - gold_before
+    tribute = f"tribute {plan['tribute_before']}% → {plan['tribute_after']}%"
+    if delta:
+        tribute += f" ({delta:+,} gold a turn)"
+    if plan["loyalty_after"] == plan["loyalty_before"]:
+        loyalty = f"loyalty stays {plan['loyalty_before']}"
+    else:
+        loyalty = f"loyalty {plan['loyalty_before']} → {plan['loyalty_after']}"
+    line = (f"{loyalty}; its autonomy drift {plan['drift_before']:+d} → {plan['drift_after']:+d} "
+            f"a turn; {tribute}" + (f"; {closure}" if closure else ""))
+    return {"tribute_gold_before": gold_before, "tribute_gold_after": gold_after,
+            "closure_target": target, "ports_before": ports_before, "ports_after": ports_after,
+            "ports_total": ports_total, "closure_line": closure, "line": line}
 
 
 def change_vassal_autonomy(world, vassal_name: str, new_level: int,

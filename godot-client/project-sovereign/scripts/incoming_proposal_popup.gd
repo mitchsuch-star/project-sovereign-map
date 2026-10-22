@@ -58,6 +58,10 @@ func show_proposal(data: Dictionary):
 	# DDB-2 (DDB-D8): an ally's call to arms — joined or refused, never
 	# bargained; its price and its two-turn deadline are on the letter.
 	var is_call_to_arms = data.get("is_call_to_arms", false)
+	# S14c (docs/EVENTS_SPEC.md §6): a moment of history — an authored letter
+	# of the record with no court; the Cabinet (or Talleyrand) lays it before
+	# the Emperor. Two answers, each saying what it does; no Counter.
+	var is_moment = data.get("is_moment", false)
 	var decision_reason_display = str(data.get("decision_reason_display", ""))
 	# W6-10: the diplomat's own spoken line (voices the motive in-register)
 	var diplomat_line = str(data.get("diplomat_line", ""))
@@ -76,6 +80,11 @@ func show_proposal(data: Dictionary):
 		bbcode += "[center][color=#" + Utils.COLOR_WARNING + "][b]A CALL TO ARMS[/b][/color][/center]\n"
 		var cta_pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, cta_pers_str, from_display]
+		panel_style.border_color = _default_border_color
+	elif is_moment:
+		# The dateline is the in-game calendar label, never a historical date.
+		bbcode += "[center][color=#e0c060][b]A MOMENT OF HISTORY — " + _moment_text(data.get("dateline", "")) + "[/b][/color][/center]\n"
+		bbcode += "[b]" + _moment_text(data.get("title", "")) + "[/b] — " + _moment_text(diplomat_name) + " lays a letter before the Emperor.\n"
 		panel_style.border_color = _default_border_color
 	elif is_petition:
 		# Petition: the client's own header; the clauses ARE the petition
@@ -106,7 +115,9 @@ func show_proposal(data: Dictionary):
 		# Restore default gold border
 		panel_style.border_color = _default_border_color
 
-	if data.has("war_context_snapshot"):
+	if is_moment:
+		bbcode += _build_moment_body(data)
+	elif data.has("war_context_snapshot"):
 		bbcode += _build_peace_preview_section(data, clauses)
 	else:
 		for clause in clauses:
@@ -163,6 +174,8 @@ func show_proposal(data: Dictionary):
 		# one line the player had to scroll for. It goes under the header
 		# now, above the fold; the button's tooltip still carries it too.
 		var _verb := "Grant" if is_petition else "Accept"
+		if is_moment:
+			_verb = _moment_caption(data, "accept_ai_proposal", "Accept")
 		var _reason_line := "[color=#" + Utils.COLOR_ERROR + "]" + _verb + " unavailable: " + grant_reason + _tail + "[/color]"
 		var _head_end := bbcode.find("\n")
 		if _head_end >= 0:
@@ -180,6 +193,12 @@ func show_proposal(data: Dictionary):
 		# What a lapse COSTS is the backend's lapse clause above (a lever
 		# governs it); the client states only that the petition lapses.
 		bbcode += "\n[color=#e0c060][i]This petition will lapse at end of turn.[/i][/color]"
+	elif is_moment:
+		var unanswered := _moment_text(data.get("unanswered_line", ""))
+		if unanswered == "":
+			unanswered = "Unanswered by the end of turn %d, the letter takes its second answer." % int(data.get("answer_by_turn", 0))
+		# No blank line before it: the whole letter stands above the fold at 2.0.
+		bbcode += "[color=#e0c060][i]" + unanswered + "[/i][/color]"
 	elif is_counter:
 		bbcode += "\n[color=#e0c060][i]This response will lapse at end of turn.[/i][/color]"
 	else:
@@ -198,8 +217,10 @@ func show_proposal(data: Dictionary):
 	# DD-1 Slice B: `enabled` is read for ANY letter, not only a petition.
 	accept_btn.disabled = not grant_enabled
 	accept_btn.tooltip_text = grant_reason if not grant_enabled else ""
-	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms
-	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms
+	if is_moment and grant_enabled:
+		accept_btn.tooltip_text = _moment_quote(data, "accept_ai_proposal")
+	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms and not is_moment
+	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms or is_moment
 	# DDB-4 (S13b): the button says what it does and what it may cost — it
 	# is no editor; Talleyrand picks the counter, and a dry run spends nothing
 	# when he finds none.
@@ -221,6 +242,12 @@ func show_proposal(data: Dictionary):
 		# multi-word "Grant the petition" / "Refuse the petition".
 		accept_btn.text = "Grant"
 		reject_btn.text = "Refuse"
+	elif is_moment:
+		# The authored captions ("Seal the match" / "Let Baden keep her"); the
+		# buttons still emit the "accept" / "reject" keywords the router owns.
+		accept_btn.text = _moment_caption(data, "accept_ai_proposal", "Accept")
+		reject_btn.text = _moment_caption(data, "reject_ai_proposal", "Decline")
+		reject_btn.tooltip_text = _moment_quote(data, "reject_ai_proposal")
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"
@@ -231,6 +258,57 @@ func show_proposal(data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+
+func _moment_text(value) -> String:
+	"""S14c: backend copy into BBCode — a `[` escaped (never parsed as a tag)."""
+	if value == null:
+		return ""
+	return str(value).replace("[", "[lb]")
+
+
+func _moment_answer(data: Dictionary, action: String) -> Dictionary:
+	var answers = data.get("answers", [])
+	if answers is Array:
+		for a in answers:
+			if a is Dictionary and str(a.get("action", "")) == action:
+				return a
+	return {}
+
+
+func _moment_caption(data: Dictionary, action: String, fallback: String) -> String:
+	var caption := str(_moment_answer(data, action).get("caption", ""))
+	return caption if caption != "" else fallback
+
+
+func _moment_quote(data: Dictionary, action: String) -> String:
+	return str(_moment_answer(data, action).get("quote", ""))
+
+
+func _build_moment_body(data: Dictionary) -> String:
+	"""S14c (docs/EVENTS_SPEC.md §2's copy contract): the record, the board
+	(derived lines), then what each answer does — the plan's own quotes, the
+	caption in bold. The unanswered line is the footer."""
+	var out := ""
+	var record := _moment_text(data.get("record", ""))
+	if record != "":
+		out += "[i]" + record + "[/i]\n"
+	var board = data.get("board", [])
+	if board is Array:
+		for line in board:
+			out += "  - " + _moment_text(line) + "\n"
+	var answers = data.get("answers", [])
+	if answers is Array and answers.size() > 0:
+		out += "[b]What each answer does[/b]\n"
+		for a in answers:
+			if not (a is Dictionary):
+				continue
+			var caption := _moment_text(a.get("caption", ""))
+			var quote := _moment_text(a.get("quote", ""))
+			if caption != "" and quote.begins_with(caption + ":"):
+				quote = "[b]" + caption + "[/b]" + quote.substr(caption.length())
+			out += "  " + quote + "\n"
+	return out
+
 
 func _on_accept():
 	_disable_buttons()

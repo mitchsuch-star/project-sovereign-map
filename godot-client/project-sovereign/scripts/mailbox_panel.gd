@@ -14,6 +14,7 @@ signal panel_closed
 
 const ITEM_TYPE_DISPLAY = {
 	"incoming_proposal": "Proposal",
+	"moment_letter": "Moment",  # S14c: keyed by proposal type — a letter of the record
 	"counter_offer": "Counter-Offer",
 	"counter_offer_response": "Counter Response",
 }
@@ -196,7 +197,8 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	top_row.add_child(spacer)
 
 	var type_label = Label.new()
-	type_label.text = ITEM_TYPE_DISPLAY.get(item_type, item_type.replace("_", " ").capitalize())
+	var _type_key = "moment_letter" if str(item.get("proposal_type", "")) == "moment_letter" else item_type
+	type_label.text = ITEM_TYPE_DISPLAY.get(_type_key, item_type.replace("_", " ").capitalize())
 	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	type_label.theme_type_variation = &"Caption"
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))

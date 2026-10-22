@@ -3470,12 +3470,15 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     elif proposal.get("proposal_type") == "call_to_arms":
         # DDB-2: the call announces itself, its price and its deadline.
         from backend.game_logic.call_to_arms import letter_lines
+        _call_enemy = str((proposal.get("terms") or {}).get("enemy") or "")
         world.notifications.add(create_notification(
             DIPLOMATIC_PROPOSAL,
             NotificationPriority.HIGH,
             f"Call to Arms from {sender}",
             letter_lines(world, proposal.get("terms") or {})[0],
             int(world.current_turn),
+            # S14C-X14: the key the dismissal spares while the call stands.
+            details={"call_ally": nation, "call_enemy": _call_enemy, "counterpart": _call_enemy},
         ))
     elif proposal.get("proposal_type") == "harsh_peace":
         # PC-R3 / PC-F65: a dictated letter announces its tier and its
@@ -4257,6 +4260,9 @@ def process_allegiance_auctions(world) -> List[Dict]:
              f"Sponsorship, standing and a bid of gold win it."),
             turn,
             details={
+                # S14C-X23: the key the envoy dismissal spares while the
+                # auction stands its window (its close dismisses it by title).
+                "auction_court": nation,
                 "action_command": f"bid for {nation}, {int(DEFAULT_ALLEGIANCE_BID)} gold",
                 "action_label": f"Bid for {_shown} ({int(DEFAULT_ALLEGIANCE_BID)}g, 1 DP)",
                 "action_detail": (f"Lay {int(DEFAULT_ALLEGIANCE_BID)} gold before the court "

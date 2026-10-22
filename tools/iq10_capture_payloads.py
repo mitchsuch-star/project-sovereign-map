@@ -1957,6 +1957,68 @@ def cap_side_desk():
     fresh()
 
 
+MOMENTS_BLOCK = REPO / "tests" / "fixtures" / "moments_block.json"
+
+
+def cap_moments():
+    """S14c part 2 (docs/EVENTS_SPEC.md §6, §9 Part 2) — the moment letters as
+    the client draws them: the Bavarian Match (the Cabinet, turn 8) and the
+    Decree of Berlin (Talleyrand, turn 29), each delivered by the production
+    `moments.tick` off the staged deck tests/fixtures/moments_block.json on a
+    booted 1805 world. The popup is what GET /pending_envoy returned,
+    unedited (`moments.refresh_letter` re-planned it at the read)."""
+    from backend.game_logic import moments as MO
+    T = test_module("test_moments_engine")
+
+    def stage(moment_id, turn, prep=None):
+        world, c = fresh()
+        clear_dialogues(world)
+        world.moments = MO.from_block(json.loads(MOMENTS_BLOCK.read_text(encoding="utf-8")))
+        T._rich(world)
+        if prep is not None:
+            prep(world)
+        T._at(world, turn)
+        delivered = T._tick(world)
+        if delivered != [moment_id]:
+            raise RuntimeError(f"{moment_id} did not arrive at turn {turn}: {delivered}")
+        T._make_current(world, T._letter(world, moment_id))
+        popup = get(c, "/pending_envoy").get("incoming_proposal")
+        if not (popup or {}).get("is_moment"):
+            raise RuntimeError("the pending envoy is not a moment letter: " + str(popup)[:200])
+        return world, c, popup
+
+    def facts(popup):
+        return {"title": popup.get("title"), "dateline": popup.get("dateline"),
+                "diplomat_name": popup.get("diplomat_name"), "from_nation": popup.get("from_nation"),
+                "board": popup.get("board"),
+                "answers": [(a.get("caption"), a.get("quote")) for a in popup.get("answers") or []],
+                "unanswered_line": popup.get("unanswered_line"),
+                "answer_by_turn": popup.get("answer_by_turn"),
+                "options": [(o.get("label"), o.get("enabled"), o.get("reason"))
+                            for o in (popup.get("options") or []) if isinstance(o, dict)]}
+
+    world, c, popup = stage("bavarian_match", 8)
+    record("moment_letter_bavarian_match", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged deck (tests/fixtures/moments_block.json) armed on "
+                    "world.moments; France's gold 20000, DP 7, admin 2 WRITTEN (state writes: both "
+                    "answers open); current_turn set to 8; the production moments.tick delivered it"),
+           facts=facts(popup))
+
+    def decree_board(w):
+        for mid in ("bavarian_match", "throne_of_holland", "crown_of_the_reich"):
+            w.moments["state"][mid] = {"status": "passed", "turn": 20, "reason": "premise"}
+        T._stage_decree_board(w)
+
+    world, c, popup = stage("decree_of_berlin", 29, decree_board)
+    record("moment_letter_decree_of_berlin", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged deck armed; the other three moments marked passed (state "
+                    "write); Holland Autonomous and at peace with Britain (the tests' "
+                    "_stage_decree_board); gold, DP, admin WRITTEN; current_turn 29; the production "
+                    "moments.tick delivered it"),
+           facts=facts(popup))
+    fresh()  # leave the backend on a clean 1805 world for the next group
+
+
 def cap_popups_s12():
     """Pre-Deploy S12 (UXR3-56 … 58): the three popups the UXR-3 checklist
     names that the manifest had never shot, each off its row's OWN board.
@@ -2039,6 +2101,7 @@ CAPTURES = {
     "battles": cap_battles,
     "diorama_states": cap_diorama_states,
     "petition": cap_petition,
+    "moments": cap_moments,
     "prisoner": cap_prisoner,
     "regions": cap_regions,
     "fixtures": cap_fixtures,

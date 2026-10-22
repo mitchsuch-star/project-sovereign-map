@@ -2148,7 +2148,9 @@ class Digest:
         pending = [r for r in (pending or []) if isinstance(r, dict)]
         if lapsed:
             self._md("- LAPSED " + " · ".join(
-                f"{r.get('nation', '?')} {r.get('proposal_type', '?')}" for r in lapsed))
+                (str(r.get("line") or "a letter of the record") if r.get("is_moment")
+                 else f"{r.get('nation', '?')} {r.get('proposal_type', '?')}")
+                for r in lapsed))
         if pending:
             self._md(f"- ENVOYS WAITING {int(count or len(pending))} · " + " · ".join(
                 f"{r.get('nation', '?')} {r.get('proposal_type', '?')}"
@@ -2472,7 +2474,13 @@ class Digest:
             if not isinstance(event, dict):
                 continue
             etype = str(event.get("type") or "")
-            if (etype not in AI_AI_LOG_TYPES
+            # S14C-X3: the letters of the record (and a moment's lapse) are
+            # read too — `offer_lapsed` for any other letter stays unprinted,
+            # so every archived digest is unchanged.
+            is_moment_row = (etype in MOMENT_LOG_TYPES
+                             or (etype == "offer_lapsed"
+                                 and str(event.get("proposal_type") or "") == "moment_letter"))
+            if ((etype not in AI_AI_LOG_TYPES and not is_moment_row)
                     or etype in _seen(self, "_seen_rail_types")):
                 continue
             text = first_line(event.get("display") or event.get("text"), 150)
@@ -3816,6 +3824,24 @@ class Answerer:
             # endpoint resolves the label against the real dialogue's.
             return CLIENT_PETITION_LABELS[mode]
 
+        # S14C-X3 (S14c part 2): a moment letter answers from ITS OWN dial
+        # (`--moment`, absent = decline — the letter's own lapse), by the
+        # option's action id, never by position. A closed Accept is never
+        # pressed: the letter stands, the digest says why — it used to fall
+        # through to the first enabled option, the Decline, silently.
+        if _is_moment_surface(dialogue):
+            wanted = MOMENT_ACTIONS[moment_mode(self.policy)]
+            for option in all_options:
+                if str(_option_id(option) or "") != wanted:
+                    continue
+                if _enabled(option):
+                    return wanted
+                self.last_standing_reason = str(
+                    option.get("reason") or option.get("disabled_reason_display")
+                    or option.get("description") or option.get("label") or "")
+                return None
+            return wanted
+
         # WO slice 5 REVIEW (August 22, 2026) — the ultimatum discriminator.
         # An `incoming_ultimatum` recovers through the SAME transport as a
         # proposal: `main.py`'s incoming_proposal safety valve and the popup
@@ -5048,6 +5074,31 @@ CLIENT_PETITION_ACTIONS = {"grant": "accept_ai_proposal",
                            "refuse": "reject_ai_proposal"}
 
 
+# S14C-X3 (S14c part 2): the moment letter's own dial — `accept` or
+# `decline`, absent = decline (never the diplomacy dial: a letter of the
+# record is France's choice, not a court's offer).
+MOMENT_MODES = ("accept", "decline")
+MOMENT_ACTIONS = {"accept": "accept_ai_proposal", "decline": "reject_ai_proposal"}
+MOMENT_LOG_TYPES = frozenset({"moment"})
+
+
+def moment_mode(policy) -> str:
+    mode = str((policy or {}).get("moment") or "")
+    return mode if mode in MOMENT_MODES else "decline"
+
+
+def _is_moment_surface(dialogue) -> bool:
+    """A moment letter on EITHER shape the driver sees: the popup payload
+    (`is_moment`, `proposal_type` "moment_letter") or the dialogue dict (the
+    producer's own predicate)."""
+    if not isinstance(dialogue, dict):
+        return False
+    if dialogue.get("is_moment") or str(dialogue.get("proposal_type") or "") == "moment_letter":
+        return True
+    from backend.game_logic.moments import is_moment_letter
+    return bool(is_moment_letter(dialogue))
+
+
 def _is_client_petition_surface(dialogue) -> bool:
     """A client petition on EITHER shape the driver sees: the dialogue dict
     (the producer's own predicate, `vassal.is_client_petition`, reads
@@ -5367,7 +5418,7 @@ class MissionAdvisor:
 POLICY_FLAG_KEYS = ("redemption", "petition", "audience", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
                     "declare_war", "missions", "client_petition",
-                    "settlement", "decline_from", "decline_until_latch")
+                    "settlement", "decline_from", "decline_until_latch", "moment")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -5470,6 +5521,10 @@ def main():
                     help="VP1-CS (S14b part 3): refuse this court's envoys until the "
                          "Continental System's Blockade latches, then answer its first "
                          "qualifying offer by --diplomacy. Absent = every arm unchanged")
+    ap.add_argument("--moment", dest="moment", default="", choices=["", *MOMENT_MODES],
+                    help="S14c: how a moment letter of the record is answered — accept "
+                         "or decline (absent = decline, the letter's own lapse; never "
+                         "mirrors --diplomacy). Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")

@@ -1,53 +1,45 @@
-# NEXT SESSION PROMPT — Pre-Deploy S14c part 2: the client, the instruments, and three letters armed
+# NEXT SESSION PROMPT — Pre-Deploy S14c part 2, second landing: three letters armed
 
-> Overwritten each time a session hands off. Current hand-over: **October 22, 2026, after S14c part 1 LANDED**
-> (`docs/EVENTS_SPEC.md` §13; `SYSTEMS_REFERENCE.md` §147; commits through the hook — `git log -4`).
+> Overwritten each time a session hands off. Current hand-over: **October 22, 2026, after S14c part 2's first landing**
+> (`docs/EVENTS_SPEC.md` §13–§14; `SYSTEMS_REFERENCE.md` §147; commits through the hook — `git log -4`).
 >
 > **What the last session delivered:**
-> - **S14c part 1 — the moments' engine and its transport, UNARMED** (`backend/game_logic/moments.py`): the store
->   `world.moments`, the four predicates, the closed op table with one `plan` (shown = applied), the tick (R1 the
->   foreground, R2 the crowd-out receipt, R3 one a morning, `max_open`, `min_gap`), the validator, the variance branch,
->   the serialization and the backfill, the ten transport seams at their backend halves — pinned on the staged deck
->   `tests/fixtures/moments_block.json` (88 pins, `tests/test_moments_engine.py`). The shipped boot authors no block.
-> - **The head reproduced:** §1 on ten seeds (Bavaria warm in T8–12 on 0 of 10, Holland slips in T17–21 on 7 of 10, the
->   Decree bites on 0 of 10, a settlement offer stands as the current letter from T9–11 to T35 on every seed).
-> - **The siblings:** S14C-X4, X6, X7, X8, X9, X13, X16, X17 FIXED, and the finds **X18–X20** (reproducing X8 found its
->   second half LIVE: every AI ultimatum's Yield and every offered crown's Accept from a court at peace was closed as
->   "a downgrade" on the first read) — fixed by one registry, `treaty.NON_TREATY_LETTERS`. X10, X14, X15 landed their
->   backend halves and stay OPEN for part 2 with X1, X2, X3, X11.
+> - **Part 1 — the moments' engine, UNARMED** (`backend/game_logic/moments.py`, §13): the store, the four predicates,
+>   the closed op table and its one `plan`, the tick (R1–R4), the court-less letter transport, the validator, the bands,
+>   the backfill; the finds S14C-X18 … X20 (an ultimatum's Yield, an offered crown's Accept closed "a downgrade").
+> - **Part 2's first landing — the client and the instruments** (§14): one lapse predicate for the lapse and the warning
+>   (X1); the wizard lock RULED for a standing call (X2); one dismissal sparing a standing letter's row, the moment's row
+>   opening its letter in one click (X14); the autonomy plan's gold and ports on every surface (X10); the popup's
+>   `is_moment` register, the whole letter above the fold at 1.0 and 2.0; X11, X15, the finds X21 (a court-less letter
+>   swallowed by the empty "Not Now" key) and X22; the sweep and the driver see a moment (`--moment`, X3). The census
+>   reads 0 open S14C rows.
 >
 > **Traps the last session paid for:**
-> - **Never edit a backend file while a full suite runs** (the workers import lazily) — draft doc and code edits into
->   scratch files and apply them after the run.
-> - **The Bash heredoc halves backslashes** (it bit again: a `\\` line-continuation broke an edit script) — write
->   scripts with the Write tool. **CRLF files** in this area: `treaty.py`, `dialogue_manager.py`, `turn_manager.py`,
->   `gazette.py`, `notifications.py`, `envoy_digest.py`, `tools/ai_v_sweep.py`, `docs/MODDING_FORMAT.md`, `CLAUDE.md` —
->   byte-level scripts that keep `\r\n`.
-> - **The dismissal sites are 18, not 2** (S14C-X14): the lapse hook and 17 in the executors call
->   `dismiss_by_type(DIPLOMATIC_PROPOSAL)` unfiltered; route them through one helper that spares a still-open letter.
-> - **A moment letter rides behind a standing settlement offer on every seed** — the rail notice's button must open it
->   in one click (a new `review_target` with the mailbox id; `main.gd _on_notification_review_requested`).
-> - **Every new `add_threat` source needs a `_THREAT_SOURCE_LABELS` row** — the X4 census walks every call by AST.
-> - **The code-health ratchet is at every cap** (levers 231, functions over 500 lines 28 with `WorldState.to_dict` at
->   exactly 500, silent handlers 6, `CLAUDE.md` near 62,000 bytes); `TurnManager.end_turn` has 15 lines of headroom and
->   `filter_campaign_log` one.
-> - The full suite is ~22,200 + tests, ~6 minutes at `-n 8`; commit with `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING`.
+> - **Committing with `core.autocrlf` rewrites every touched file to CRLF in the working tree** — edit through a script
+>   that keeps the file's own endings (the session's `eu.py` helper idiom: read bytes, normalize, write back).
+> - **The Bash heredoc halves backslashes — every time.** Write scripts with the Write tool; scan for `\x08`.
+> - **Never edit a backend file while a suite runs.** Draft in scratch; apply after.
+> - **The driver's `Digest.campaign_log(events, turn)`** takes the events first; stub digests borrow public methods
+>   (module-level constants only).
+> - **IQ-10:** `tools/iq10_capture_payloads.py --only moments`, then `tools/iq10_run_captures.py --payload-dir <dir>
+>   --only moment_letter --date <date>` (a windowed Godot parked at x=5200); the parse harness by `Start-Process`.
 >
-> **Nothing waits on the user before S15** (UXR-4, the code-signing certificate, AO's three questions, SF-NAV-1-D1 and
-> A1 — the gate's reduction of the row — are theirs to overrule). Paste everything below the line as the opening
-> message of a fresh session.
+> **Nothing waits on the user before S15** (UXR-4, the code-signing certificate, AO's three questions, SF-NAV-1-D1, A1
+> and the X2 ruling are theirs to overrule). Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-Pre-Deploy S14c part 2 — the client, the instruments, and three letters armed (two landings) — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -4` for the head).
+Pre-Deploy S14c part 2, second landing — three letters armed — build on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -4` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/EVENTS_SPEC.md` (§2 the deck, §3.4 the ten seams, §6 the surfaces and the client, §7 the series and the arms, §9 Part 2, §10 the siblings, §13 part 1's landing record), `SYSTEMS_REFERENCE.md` §147, `docs/BUG_FIXES.md` §S14C, `backend/game_logic/moments.py`, `tests/test_moments_engine.py`, `godot-client/project-sovereign/scripts/incoming_proposal_popup.gd` (the `is_petition` / `is_call_to_arms` registers), `mailbox_panel.gd`, `main.gd` (`_on_mailbox_activate_result`, the LAPSED ENVOYS block, `_on_notification_review_requested`), `dispatch_view.gd`, `tools/playtest_driver.py`, `tools/ai_v_sweep.py`, `tools/iq10_capture_payloads.py`, `tools/_s14c_series_arms.py`.
+Read first: `docs/STATUS.md` ▶ NEXT UP, `docs/EVENTS_SPEC.md` (§2 the deck, §3.6 the hand-off and the matrix, §5 the bands, §7 the series and the arms, §9 Part 2, §13–§14 the landing records), `SYSTEMS_REFERENCE.md` §147, `backend/game_logic/moments.py`, `tests/fixtures/moments_block.json`, `tests/test_moments_engine.py`, `tools/_s14c_series_arms.py`, `tools/_vp1_arm_attribution.py`, `tools/ai_v_sweep.py`.
 
-Scope (the record's §9 Part 2 — the design is the record's; flag any reversal):
-0. **The rules:** every answer is a button whose command is the executor's; the LLM never affects mechanics; ints only to Godot; no module lever; serialization for any new field.
-1. **First landing — the client and the instruments:** reproduce each first — S14C-X1 (`get_lapsing_count(current_turn)`, `keeps_open`-aware for the call to arms and the moment, its five `main.py` callers), X2 (read DDB-2's ruling before building a `blocks_wizard` predicate), X3 (the sweep's `RunCapture`, `BEAT_TYPES`, the driver's `AI_AI_LOG_TYPES`, `--moment accept|decline` answering by intent), X10 (the wizard row reads `vassal.autonomy_change_plan`; the closure derived), X11 (`_on_mailbox_activate_result`'s else branch), X14 (the 18 sites through one helper; the notice's one-click route), X15 (both Godot lapse renderers print a carried line; the census over the six readers of `lapse["nation"]`). The `is_moment` register in `incoming_proposal_popup.gd` (the header "A MOMENT OF HISTORY — {label}", the record, the board, "What each answer does", the unanswered line, Counter hidden, captions from the payload), the mailbox label, IQ-10 frames (`cap_moment()` — the Match and the Decree at Interface Scale 1.0 and 2.0, both answers above the fold), the parse harness covering the popup.
-2. **Second landing — three letters armed:** the shipped block with M1, M2, M4 (pinned equal to the fixture's entries); the M1 / M2 / M4 matrix cells; the suite-reach head (arm the block on a scratch tree, run the suite, list every test that reads the dialogue queue, the mailbox counts, `lapsed_offers`, the `offer_lapsed` rows or the Gazette past turn 17 — re-seat consciously or keep dormant, the choice recorded); `tools/_s14c_series_arms.py` extended (MW, ML, MK, MN, MH, MR) and the archived arms attributed; re-pin as `SERIES_BEFORE_S14C` if any arm bites.
+Scope (the record's §9 Part 2, second landing — the design is the record's; flag any reversal):
+0. **The rules:** every answer is a button whose command is the executor's; the LLM never affects mechanics; ints only to Godot; no module lever; no per-region scan in a hot path.
+1. **The suite-reach head, FIRST:** arm the block (M1, M2, M4) on a scratch tree, run the full suite, list every test that reads the dialogue queue, the mailbox counts, `lapsed_offers`, the `offer_lapsed` rows or the Gazette past turn 17; re-seat each consciously or keep it dormant by a conftest pin (the `SOVEREIGN_SCENARIO=none` idiom), the choice recorded.
+2. **Ship the block:** `europe_1805.json` gains `moments` with M1, M2, M4 (pinned equal to the fixture's entries; M3 waits for part 3); the validator passes it; the backfill arms a pre-S14c save (the T10 / T20 fixtures: `passed(before_save)` where the window closed).
+3. **The matrix cells:** M1, M2 road-agnostic, M4 with no road and on Road III, silent on I and II — pinned now.
+4. **Measure:** `tools/_s14c_series_arms.py` extended (MW the window resolver, ML the lapse default, MK the queue residence, MN the notice and log rows, MH the wizard exclusion, MR the crowd-out receipt) with each reach counted; `BASELINE_SERIES` byte-identical or re-pinned as `SERIES_BEFORE_S14C` naming this row; the nine commanded arms attributed (`tools/_vp1_arm_attribution.py --baseline` against the first landing's run); each letter's reach per seed reported.
 
-Done when (§9 Part 2): each letter arrives on a staged board at its resolved turn (M2 also on the `historical` passive board where Holland's loyalty dips) and is `passed(premise)` where its premise fails; each answer applies exactly its quote through `/respond_to_diplomatic_dialogue`; the Holland closure line equals `closed_ports_against` after the op (at war with Britain: unchanged, said so); the Decree arrives only where `decree_clients` would be non-empty, its line `terms_line` plus the admin clause and the real closure delta; every lapse surface prints a whole sentence; a standing letter's notice survives an unrelated lapse; the `iter_queue` census green; frames at 1.0 and 2.0 show both answers above the fold; the parse harness exits 0; the series byte-identical or re-pinned naming S14c; S14C-X1, X2, X3, X10, X11, X14, X15 FIXED with their pins; the full suite green through the hook; STATUS ▶ NEXT UP names part 3 and this file is overwritten for it.
+Done when (§9 Part 2): each letter arrives on a staged board at its resolved turn (M2 also on the `historical` passive board where Holland's loyalty dips) and is `passed(premise)` where its premise fails; each answer applies exactly its quote through `/respond_to_diplomatic_dialogue`; the Holland closure line equals `closed_ports_against` after the op; the Decree arrives only where `decree_clients` would be non-empty; a standing letter's notice survives an unrelated lapse; the series byte-identical or re-pinned naming S14c; the full suite green through the hook; STATUS ▶ NEXT UP names part 3 and this file is overwritten for it.
 
-Rules: reproduce each gap on a board before building; the sibling sweep after every fix (CLAUDE.md Rule 10); a change that reaches the AI or the backend runs the attribution arms with `BASELINE_SERIES` byte-identical or every movement attributed (count the reach); grep-verify any agent's bulk `.gd` edits. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Rules: reproduce each gap on a board before building; the sibling sweep after every fix (CLAUDE.md Rule 10); a change that reaches the AI or the backend runs the attribution arms with every movement attributed (count the reach); grep-verify any agent's bulk `.gd` edits. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.

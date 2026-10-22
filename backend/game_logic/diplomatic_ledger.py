@@ -918,6 +918,13 @@ def _build_vassals(world) -> Dict[str, Any]:
             "invest_gain": int(invest_gain),
             "autonomy_up_gain": int(autonomy_up_gain),
             "autonomy_down_loss": 15,
+            # S14C-X10: what each autonomy chip does, from the executor's own
+            # plan — loyalty, drift, tribute in gold, the ports against the
+            # trade-dominant power ("" at the bound).
+            "autonomy_up_line": str((_vassal.autonomy_change_plan(world, name, autonomy + 1, actor=player)
+                                     if autonomy < _vassal.AUTONOMY_AUTONOMOUS else {}).get("line") or ""),
+            "autonomy_down_line": str((_vassal.autonomy_change_plan(world, name, autonomy - 1, actor=player)
+                                       if autonomy > _vassal.AUTONOMY_PUPPET else {}).get("line") or ""),
             "gains_blunted": gains_blunted,
             "capital": str(capital or ""),
             "regions": int(len(world.get_nation_regions(name))),

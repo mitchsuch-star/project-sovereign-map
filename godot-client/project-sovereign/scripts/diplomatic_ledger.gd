@@ -1763,9 +1763,18 @@ func _format_vassal_action_row(a: Dictionary, v: Dictionary) -> String:
 		"invest_vassal":
 			terms = "+" + str(int(v.get("invest_gain", 10))) + " loyalty — " + cost_text
 		"increase_autonomy":
-			terms = "+" + str(int(v.get("autonomy_up_gain", 10))) + " loyalty, they keep more income — " + cost_text
+			# S14C-X10: the plan's own line (the ports named) when the payload carries it.
+			var up_line = str(v.get("autonomy_up_line", ""))
+			if up_line != "":
+				terms = up_line + " — " + cost_text
+			else:
+				terms = "+" + str(int(v.get("autonomy_up_gain", 10))) + " loyalty, they keep more income — " + cost_text
 		"decrease_autonomy":
-			terms = "−" + str(int(v.get("autonomy_down_loss", 15))) + " loyalty, they remit more — " + cost_text
+			var down_line = str(v.get("autonomy_down_line", ""))
+			if down_line != "":
+				terms = down_line + " — " + cost_text
+			else:
+				terms = "−" + str(int(v.get("autonomy_down_loss", 15))) + " loyalty, they remit more — " + cost_text
 			blunted = false  # a downgrade is NEVER softened (VS-R Q3)
 		"release_vassal":
 			terms = "free them honorably — " + cost_text

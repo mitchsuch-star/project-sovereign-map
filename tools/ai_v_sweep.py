@@ -87,6 +87,10 @@ BEAT_TYPES = (
     "guarantee_called", "agenda_shift",
 )
 ROUTINE_INTENT_TYPES = ("intent_hardens", "intent_eases")
+# S14C-X3 (S14c part 2): the moments are not beats (R3 — they never take or
+# set the foreground); counted on their own, a crowd-out double-carried like
+# a beat (its `moment` / `passed` row and its `moment_receipt` dispatch row).
+MOMENT_TYPES = ("moment", "moment_receipt")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -167,6 +171,10 @@ class RunCapture:
             (getattr(world, "war_instances", None) or {}).items()
             if inst.get("ended_turn") is not None}
         self._proposal_keys = set()
+        # S14C-X3: moment letters seen, by object identity (the REV-X1 rule —
+        # the object held so its address is never re-issued); a value key
+        # would fold two letters of one turn into one row.
+        self._seen_letters = {}
 
     # -- boot ----------------------------------------------------------
     def capture_boot(self) -> dict:
@@ -237,10 +245,13 @@ class RunCapture:
             if current:
                 candidates.append(current)
             candidates.extend(manager.iter_queue())
+        from backend.game_logic.moments import is_moment_letter
         for dialogue in candidates:
             dtype = str(dialogue.get("type", ""))
             if dtype not in ("incoming_proposal", "incoming_ultimatum"):
                 continue
+            if is_moment_letter(dialogue):
+                continue  # S14C-X3: the Cabinet's letter is no court's courting
             context = dialogue.get("context") or {}
             proposer = (context.get("source_nation")
                         or dialogue.get("target_nation") or "")
@@ -257,11 +268,37 @@ class RunCapture:
                              context.get("decision_reason", "") or "")})
         return rows
 
+    def _moment_letters(self) -> list:
+        """S14C-X3: the moment letters newly in the dialogue manager, by
+        object identity. Deterministic row content only (no ids)."""
+        manager = getattr(self.world, "dialogue_manager", None)
+        if manager is None:
+            return []
+        from backend.game_logic.moments import is_moment_letter, moment_id_of
+        current = manager.peek()
+        rows = []
+        for dialogue in ([current] if current else []) + list(manager.iter_queue()):
+            if not is_moment_letter(dialogue) or id(dialogue) in self._seen_letters:
+                continue
+            self._seen_letters[id(dialogue)] = dialogue
+            context = dialogue.get("context") or {}
+            rows.append({"moment": moment_id_of(dialogue),
+                         "turn_created": int(dialogue.get("turn_created", -1)),
+                         "answer_by_turn": int(context.get("answer_by_turn") or 0),
+                         "queued": dialogue is not current})
+        return rows
+
+    def _moments_open(self) -> int:
+        """Letters standing open (the store's `fired` rows)."""
+        state = ((getattr(self.world, "moments", None) or {}).get("state") or {})
+        return sum(1 for row in state.values()
+                   if isinstance(row, dict) and row.get("status") == "fired")
+
     def capture_turn(self, endturn_result) -> dict:
         world = self.world
         active = [n for n in world.get_active_nations() if n != self.player]
         from backend.game_logic.intent import get_france_perceived_intent
-        from backend.game_logic.war_council import _standing_strength
+        from backend.game_logic.war_council import _standing_strength, foreground_in_tenure
 
         wars_now = getattr(world, "war_instances", None) or {}
         opened = []
@@ -331,6 +368,9 @@ class RunCapture:
             "events": self._drain_events(),
             "dispatch_queue": dispatch_queue,
             "incoming_proposals": self._incoming_proposals(),
+            "moment_letters": self._moment_letters(),
+            "moments_open": self._moments_open(),
+            "foreground_in_tenure": bool(foreground_in_tenure(world)),
             "endturn_keys": sorted(list((endturn_result or {}).keys())),
         })
 
@@ -380,6 +420,14 @@ class RunCapture:
                                      or {}).items()},
             "refusal_pairs": len(
                 getattr(world, "diplomatic_refusals", {}) or {}),
+            # S14C-X3: the moments' store — the only place the SILENT passes
+            # (premise, forsworn, verdict, before_save) are visible.
+            "moments": {
+                "deck": [str(e.get("id")) for e in
+                         (((getattr(world, "moments", None) or {}).get("block") or {}).get("deck") or [])
+                         if isinstance(e, dict)],
+                "state": _project(((getattr(world, "moments", None) or {}).get("state") or {}), 3),
+            },
         })
 
 
@@ -513,6 +561,8 @@ def derive_metrics(digest: dict) -> dict:
     non_france_lines = 0
     for row in turns:
         for entry in row["dispatch_queue"]:
+            if entry.get("type") == "moment_receipt":
+                continue  # S14C-X3: France's own letter, never a soap line
             total_lines += 1
             if not _mentions_any(entry, needles):
                 non_france_lines += 1
@@ -605,6 +655,47 @@ def derive_metrics(digest: dict) -> dict:
     crisis_passed = [e for row in turns for e in row["events"]
                      if str(e.get("type")) == "crisis_passed"]
 
+    # S14C-X3 (S14c part 2, EVENTS_SPEC §7): the moments, counted — the
+    # arrivals by their `moment` / `arrived` rows per producing turn (a value
+    # key would fold two into one: the R3 violation the sweep exists to see),
+    # those during a foregrounded crisis (R1: 0), the letters open, the passes
+    # by reason (a crowd-out by the max of its row and its receipt; the silent
+    # ones off the final store), the lapses (an unattended France answers none).
+    moments_arrived, per_turn_arrivals, during_foreground = 0, [], 0
+    fire_turns, crowded_rows, receipts = {}, 0, set()
+    moments_lapsed = 0
+    for row in turns:
+        here = 0
+        for event in row.get("events") or []:
+            etype = str(event.get("type", ""))
+            if etype == "offer_lapsed" and str(event.get("proposal_type") or "") == "moment_letter":
+                moments_lapsed += 1
+            if etype not in MOMENT_TYPES:
+                continue
+            phase = str(event.get("phase", ""))
+            if phase == "arrived":
+                here += 1
+                fire_turns.setdefault(str(event.get("moment", "")), []).append(int(row["turn"]))
+            elif phase == "passed" and str(event.get("reason", "")) == "crowded":
+                crowded_rows += 1
+        for entry in row.get("dispatch_queue") or []:
+            if entry.get("type") == "moment_receipt":
+                receipts.add((entry.get("queued_turn"),
+                               json.dumps(entry.get("vars"), sort_keys=True, default=str)))
+        moments_arrived += here
+        per_turn_arrivals.append(here)
+        if here and row.get("foreground_in_tenure"):
+            during_foreground += here
+    moments_passed = {}
+    final_moments = ((digest.get("final") or {}).get("moments") or {}).get("state") or {}
+    for state_row in final_moments.values():
+        if isinstance(state_row, dict) and state_row.get("status") == "passed":
+            reason = str(state_row.get("reason") or "")
+            moments_passed[reason] = moments_passed.get(reason, 0) + 1
+    crowded = max(moments_passed.get("crowded", 0), crowded_rows, len(receipts))
+    if crowded:
+        moments_passed["crowded"] = crowded
+
     return _jsonify({
         "ai_initiated_wars": ai_wars,
         "seam_ai_ai_wars": seam_wars,
@@ -632,6 +723,13 @@ def derive_metrics(digest: dict) -> dict:
         "volte_faces": volte_faces,
         "crisis_passed": crisis_passed,
         "threat_series": [row["threat"] for row in turns],
+        "moments_arrived": moments_arrived,
+        "moments_passed": moments_passed,
+        "moments_lapsed": moments_lapsed,
+        "moments_max_per_producing_turn": max(per_turn_arrivals) if per_turn_arrivals else 0,
+        "open_letters_max": max([int(row.get("moments_open", 0) or 0) for row in turns] or [0]),
+        "letters_during_foreground": during_foreground,
+        "fire_turns": fire_turns,
     })
 
 
@@ -1246,6 +1344,14 @@ def run_all(out_dir: Path, turns: int, acceptance_n: int) -> dict:
             "formations": list((digest["final"]["formations"] or {}).keys()),
             "soap_opera_share": derived["soap_opera_share"],
             "beats": derived["beats"],
+            # S14C-X3: each moment's reach, per seed (seeded paths, not laws).
+            "moments": {"arrived": derived.get("moments_arrived", 0),
+                        "passed": derived.get("moments_passed", {}),
+                        "lapsed": derived.get("moments_lapsed", 0),
+                        "max_per_turn": derived.get("moments_max_per_producing_turn", 0),
+                        "open_max": derived.get("open_letters_max", 0),
+                        "during_foreground": derived.get("letters_during_foreground", 0),
+                        "fire_turns": derived.get("fire_turns", {})},
         }
         print(f"ARM C {index:02d} {seed} k={k}: "
               f"{json.dumps(arm_c[f'{index:02d}_{seed}_k{k}'])[:200]}")

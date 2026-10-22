@@ -4087,8 +4087,16 @@ func _route_diplomatic_objection_response(response: Dictionary):
 func _response_has_incoming_proposal_route(response: Dictionary) -> bool:
 	if not response.has("incoming_proposal") or response.incoming_proposal == null or incoming_proposal_popup == null:
 		return false
-	var proposal_nation = response.incoming_proposal.get("from_nation", "")
-	return proposal_nation != _dismissed_proposal_nation
+	# S14C-X21: a moment letter has no court (`from_nation` ""), and "" equals
+	# the empty dismissal key — every one was swallowed. Its key is its id.
+	return _proposal_dismiss_key(response.incoming_proposal) != _dismissed_proposal_nation
+
+
+func _proposal_dismiss_key(proposal: Dictionary) -> String:
+	"""The key "Not Now" sets aside: the court, or a moment letter's id."""
+	if bool(proposal.get("is_moment", false)):
+		return "moment:" + str(proposal.get("moment_id", ""))
+	return str(proposal.get("from_nation", ""))
 
 func _route_incoming_proposal_response(response: Dictionary):
 	incoming_proposal_popup.show_proposal(response.incoming_proposal)
@@ -5547,6 +5555,14 @@ func _display_morning_dispatch(data: Dictionary):
 			var l_line = str(lapse.get("line", ""))
 			if bool(lapse.get("is_petition", false)) and l_line != "":
 				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]")
+				continue
+			# S14C-X15: a letter that carries its own sentence (a moment's, a
+			# call's) prints it — never "'s … offer lapsed unanswered".
+			if l_line != "":
+				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + l_line + "[/color]")
+				continue
+			if bool(lapse.get("is_moment", false)):
+				add_output("[color=#" + Utils.COLOR_BATTLE + "]  A letter of the record was left unanswered.[/color]")
 				continue
 			# PC-F45 (S13e part 4): the letter's display name (R7), never the raw key.
 			var l_ptype = str(lapse.get("proposal_type_display", str(lapse.get("proposal_type", "offer")).replace("_", " ").capitalize()))
@@ -7660,10 +7676,15 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal.
 	PL-27: Uses typed dialogue response instead of synthesized command."""
 	var from_nation = data.get("from_nation", "Unknown")
+	var is_moment = bool(data.get("is_moment", false))
 	if choice == "dismiss":
 		# PL-27 Mailbox UX: Hide popup, keep proposal in backend for later
-		_dismissed_proposal_nation = from_nation
-		add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
+		_dismissed_proposal_nation = _proposal_dismiss_key(data)
+		if is_moment:
+			# S14C-X22: a moment letter has no court to name.
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside " + str(data.get("title", "the letter")) + ". Click the envoy badge to revisit.[/color]")
+		else:
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -7675,7 +7696,10 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	var responding_choice = str(choice)
 	if choice_labels is Dictionary and choice_labels.has(choice):
 		responding_choice = str(choice_labels[choice])
-	add_output("[color=#" + Utils.COLOR_GOLD + "]Responding to %s's proposal: %s[/color]" % [responding_court, responding_choice])
+	if is_moment:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Answering " + str(data.get("title", "the letter")) + ": " + responding_choice + "[/color]")
+	else:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]Responding to %s's proposal: %s[/color]" % [responding_court, responding_choice])
 	set_input_enabled(false)
 	# W6-0 (BUG-CA-7): answer the proposal this popup RENDERED, not whatever
 	# is on top of the dialogue stack by the time the response arrives.
@@ -7843,6 +7867,14 @@ func _on_notification_review_requested(review_target: String, route_id: String =
 		return
 	if review_target == "ally_settlement_petition_popup":
 		_on_envoy_clicked()
+		return
+	# S14C-X14: a moment letter's rail row opens the letter itself (its
+	# mailbox id in `route_id`) — one click, even behind a standing offer.
+	if review_target == "moment_letter":
+		if route_id.is_valid_int() and int(route_id) > 0:
+			api_client.activate_mailbox_item(int(route_id), _on_mailbox_activate_result)
+		else:
+			_on_envoy_clicked()
 		return
 	# Aug 23, 2026 (user: "there's no way to do it without menuing"): the
 	# reward-rail rows now open the reward dialog on the marshal they name,
@@ -8116,6 +8148,12 @@ func _on_mailbox_activate_result(response: Dictionary):
 			add_output("[color=#" + Utils.COLOR_GOLD + "]Item activated but settlement-offer popup data missing.[/color]")
 	elif dtype in ["conflict_alert", "settlement_confirm", "ally_settlement_petition"]:
 		_show_confirm_dialogue_from_response(response, "Item activated but alert data missing.")
+	else:
+		# S14C-X11: a letter of a kind this client cannot open says so, and
+		# hands the terminal back (the row click hid the panel).
+		add_output("[color=#" + Utils.COLOR_GOLD + "]That letter cannot be opened here, Sire ("
+			+ str(dtype).replace("_", " ") + ").[/color]")
+		_return_control_to_player()
 
 func _on_mailbox_panel_closed():
 	"""Mailbox panel closed without selecting an item.

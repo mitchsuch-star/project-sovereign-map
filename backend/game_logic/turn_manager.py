@@ -410,11 +410,11 @@ class TurnManager:
         _petition_lapse_by_vassal = {p["vassal"]: p for p in petition_lapses}
         if lapsed_offers:
             self.world.incoming_proposal_popup = None  # Clear paired popup cache
-            from backend.notifications import DIPLOMATIC_PROPOSAL
+            from backend.notifications import dismiss_letter_notices
             from backend.game_logic.ai_diplomacy import (
                 apply_acceptance_cooldown, apply_lapse_type_cooldown,
             )
-            self.world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+            dismiss_letter_notices(self.world)  # S14C-X14: a standing letter keeps its row
             lapsed_nations = set()
             from backend.game_logic.vassal import CLIENT_PETITION_TYPE
             for lapse in lapsed_offers:

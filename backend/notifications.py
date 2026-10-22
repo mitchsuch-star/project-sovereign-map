@@ -571,6 +571,66 @@ def dismiss_marshal_ask(world, marshal_name: str) -> int:
         return 0
 
 
+def letter_notice_key(details) -> tuple:
+    """S14C-X14: the key a letter's envoy row carries while its letter can
+    stand past one answer or lapse — a moment letter's id, a call to arms'
+    ally and enemy; () for every other row (dismissed as it always was)."""
+    d = details if isinstance(details, dict) else {}
+    if d.get("moment_id"):
+        return ("moment", str(d["moment_id"]))
+    if d.get("call_ally") and d.get("call_enemy"):
+        return ("call", str(d["call_ally"]), str(d["call_enemy"]))
+    if d.get("auction_court"):
+        # S14C-X23: an allegiance auction's row (its Bid chip) stands its
+        # three-turn window; `_announce_allegiance_close` retires it.
+        return ("auction", str(d["auction_court"]))
+    return ()
+
+
+def standing_letter_keys(world) -> set:
+    """The `letter_notice_key`s of the letters still in the dialogue manager
+    (its current slot and its queue)."""
+    from backend.game_logic import moments
+    from backend.game_logic.call_to_arms import call_terms_of, is_call_to_arms
+    keys = {("auction", str(court)) for court in (getattr(world, "allegiance_auctions", {}) or {})}
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return keys
+    for d in [dm.peek()] + list(dm.iter_queue()):
+        if not isinstance(d, dict):
+            continue
+        if moments.is_moment_letter(d):
+            keys.add(("moment", moments.moment_id_of(d)))
+        elif is_call_to_arms(d):
+            terms = call_terms_of(d)
+            keys.add(("call", str(terms.get("proposer_nation") or ""), str(terms.get("enemy") or "")))
+    return keys
+
+
+def dismiss_letter_notices(world) -> int:
+    """S14C-X14 (S14c part 2): THE dismissal of the envoy rows when a letter
+    is answered or lapses — every `DIPLOMATIC_PROPOSAL` row goes, as it
+    always did, EXCEPT the row of a letter that still stands: a call to arms
+    in its second turn and a moment letter kept open used to lose their
+    notice at the first unrelated answer or lapse (measured: an open-borders
+    letter lapsed and Spain's standing call vanished from the rail). The
+    lapse hook, the answer handlers and the call's own close call it — no
+    site re-implements it.
+
+    Returns the number of rows retired (0 when the world carries no rail)."""
+    try:
+        collector = getattr(world, "notifications", None)
+        if collector is None:
+            return 0
+        standing = standing_letter_keys(world)
+        return int(collector.dismiss_by_type(
+            DIPLOMATIC_PROPOSAL,
+            lambda n: letter_notice_key(n.get("details")) not in standing) or 0)
+    except Exception as exc:
+        report(exc, "notifications.dismiss_letter_notices: retiring the settled letters' rows")
+        return 0
+
+
 def report_save_failure(world, detail: str, turn, *, final: bool = False) -> bool:
     """Put the failed autosave on the rail, once, until it saves again.
 
