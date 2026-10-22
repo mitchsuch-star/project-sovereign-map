@@ -15,8 +15,11 @@ byte-identical one):
     X12 = `diplomacy.regen_dp_for` read by the counter's dry run before a
          court's purse is written — down: the old zero. Reach: the
          projections made.
+    X13 = `diplomacy.seed_purse` (S14b part 2's head: the boot seed and a
+         carved court's birth) — down: the empty purses. Reach: the purses
+         seeded.
 
-    python tools/_vp1_series_arms.py [--arms 0,D,X1,X2,X3,X12,ALL] [--jobs 3]
+    python tools/_vp1_series_arms.py [--arms 0,D,X1,X2,X3,X12,X13,ALL] [--jobs 3]
 
 Writes tools/_vp1_series_arms_final.json (committed with the landing record).
 """
@@ -34,8 +37,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "tests" / "test_ai_intent_threat_migration.py"
 PRIOR_RECORD = ROOT / "tools" / "_rr6_x3_series_arms_final.json"
-SEAMS = ("D", "X1", "X2", "X3", "X12")
-ARMS = {"0": set(), "D": {"D"}, "X1": {"X1"}, "X2": {"X2"}, "X3": {"X3"}, "X12": {"X12"}, "ALL": set(SEAMS)}
+SEAMS = ("D", "X1", "X2", "X3", "X12", "X13")
+ARMS = {"0": set(), "D": {"D"}, "X1": {"X1"}, "X2": {"X2"}, "X3": {"X3"}, "X12": {"X12"}, "X13": {"X13"}, "ALL": set(SEAMS)}
 
 CHILD = r"""
 import sys, runpy, atexit, collections
@@ -81,12 +84,27 @@ def _counted_rib(world, receiver, player):
 GE.receiver_in_bloc = _counted_rib
 from backend.game_logic import diplomacy as DI
 _rdf = DI.regen_dp_for
+_in_seed = [False]
 def _counted_rdf(world, nation):
+    if _in_seed[0]:                 # the boot seed's own reading (X13), never X12's
+        return _rdf(world, nation)
     _c["dry_run_purse_projections"] += 1
     return -10 ** 6 if "X12" in DOWN else _rdf(world, nation)
 DI.regen_dp_for = _counted_rdf
+_sp = DI.seed_purse
+def _counted_sp(world, nation):
+    if "X13" in DOWN:
+        return 0
+    _in_seed[0] = True
+    try:
+        n = _sp(world, nation)
+    finally:
+        _in_seed[0] = False
+    _c["boot_purses_seeded"] += n
+    return n
+DI.seed_purse = _counted_sp
 _KEYS = ("designs_armed_reads", "punitive_pairs", "player_armistice_exits",
-         "bloc_reads_not_literal", "dry_run_purse_projections")
+         "bloc_reads_not_literal", "dry_run_purse_projections", "boot_purses_seeded")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

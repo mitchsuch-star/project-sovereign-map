@@ -7569,7 +7569,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "strait_open": "THE STRAIT: {line}.",
     "strait_shut": "THE STRAIT: {line}.",
     "cs_tier_shift": (
-        "THE CONTINENTAL SYSTEM {direction}: {closure_pct}% of the "
+        "THE CONTINENTAL SYSTEM {direction}: {ports_line} of the "
         "Continent's ports are closed to {target}."
     ),
     "trafalgar": (
@@ -8102,6 +8102,14 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     if event_type == "trafalgar" and "banner" not in template_vars:
         # SFR-B8: a beat queued before the banner was named reads as it did.
         template_vars = dict(template_vars, banner="TRAFALGAR")
+    if event_type == "cs_tier_shift" and "ports_line" not in template_vars:
+        # VP1-X5's sibling: "11 of 26 (42%)" — a beat queued before the ports
+        # were counted reads its percentage alone.
+        _shut, _total = template_vars.get("ports_closed"), template_vars.get("ports_total")
+        _pct = int(template_vars.get("closure_pct", 0) or 0)
+        template_vars = dict(template_vars, ports_line=(
+            f"{int(_shut)} of {int(_total)} ({_pct}%)" if _shut is not None and _total
+            else f"{_pct}%"))
     if event_type == "blockade_begins" and "trade_words" not in template_vars:
         # SR-5r RF-2: a beat queued before the Orders in Council could deepen
         # the cut carries no words — it was halved then (never a raw brace).

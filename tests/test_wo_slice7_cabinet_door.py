@@ -87,7 +87,17 @@ FAMILY_ACTIONS = {
     "recognition_sweetener",
     # PC-R7 (ii) part 3: the league's bond — Bind to the War on an ally's page
     "bind_to_war",
+    # VP1-X8 (S14b part 2): the Congress's summons — the row atop the Cabinet
+    "summon_congress",
 }
+
+def test_the_backend_names_the_same_cabinet_verbs():
+    """VP1-X8's sibling: the backend's one source (`validation.CABINET_ACTIONS`,
+    read by every reply that must name the door, not the typed line) is the
+    door's own family — a drift pin."""
+    from backend.ai.validation import CABINET_ACTIONS
+    assert set(CABINET_ACTIONS) == FAMILY_ACTIONS
+
 
 # Documented exclusions — these reach the backend as they always did,
 # each for a reason recorded in the spec's family table.
@@ -132,7 +142,13 @@ def _row_class(row: dict) -> str:
     # `test_a_negated_diplomatic_order_is_claimed_like_any_other`.
     not_action = str(expected.get("not_action") or "")
     if not_action:
-        return "order" if not_action.startswith("diplomatic") else "read_only"
+        # VP1-X8: a negated Cabinet verb ("don't summon the congress" — no
+        # action expected) is a negated diplomatic order too; a QUESTION about
+        # it (`help` expected) stays read-only.
+        if not_action.startswith("diplomatic") or (
+                not_action in FAMILY_ACTIONS and not action):
+            return "order"
+        return "read_only"
     # PC-X45 (S14 part 2): the priced bid is an order like any other — its
     # sum is chosen on the Cabinet row (DDB-10's pass retired).
     if action in EXCLUDED_ACTIONS:
@@ -439,9 +455,9 @@ class TestTheCorpusCensus:
         rows = [r for r in corpus
                 if (r.get("expected") or {}).get("not_action")]
         assert rows, "the corpus lost its PARSE-NEG rows — pin is blind"
-        diplomatic = [r for r in rows
-                      if str((r.get("expected") or {}).get("not_action", ""))
-                      .startswith("diplomatic")]
+        # VP1-X8: the negated Cabinet verbs ("don't summon the congress")
+        # by the census's own rule (`_row_class`).
+        diplomatic = [r for r in rows if _row_class(r) == "order"]
         assert diplomatic, "no negated DIPLOMATIC row to reason about"
         for row in diplomatic:
             assert _redirect_verdict(

@@ -3,6 +3,8 @@ the archived commanded arms re-run on the part's tree, every stream compared
 with the S14b head's archive (`docs/audits/score_runs/2026_10_21_rr6x3/`).
 
     python tools/_vp1_arm_attribution.py --run DIR [--record OUT.json]
+        [--baseline DIR --arms FC,...]   (S14b part 2: an arm the archive lacks,
+                                          compared with a run of the prior tree)
 
 DIR is a `tools/score_run.py run` of CMD-H, CMD-A, CMD-M, OP, FLD, DL, LAW and
 VOLTE on the part's tree. Part 1 ships unarmed — the shipped boot authors no
@@ -32,14 +34,14 @@ def _records(arm) -> list:
     return out
 
 
-def compare(run_dir: pathlib.Path) -> dict:
+def compare(run_dir: pathlib.Path, baseline: pathlib.Path = ARCHIVE, arms=ARMS) -> dict:
     sys.path.insert(0, str(ROOT))
     from tools import score_run as SR
     from tools._sf_rr6_arm_attribution import first_parting, stream
-    archive = SR.load_arms(ARCHIVE)
+    archive = SR.load_arms(baseline)
     run = SR.load_arms(run_dir)
     result = {}
-    for name in ARMS:
+    for name in arms:
         if name not in archive or name not in run:
             result[name] = {"missing": True}
             continue
@@ -63,8 +65,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", required=True)
     ap.add_argument("--record", default="")
+    ap.add_argument("--baseline", default=str(ARCHIVE))
+    ap.add_argument("--arms", default=",".join(ARMS))
     args = ap.parse_args()
-    result = compare(pathlib.Path(args.run))
+    result = compare(pathlib.Path(args.run), pathlib.Path(args.baseline),
+                     [a for a in args.arms.split(",") if a])
     for name, row in result.items():
         print(f"{name:6s} " + "  ".join(f"{k}={v}" for k, v in row.items()))
     if args.record:

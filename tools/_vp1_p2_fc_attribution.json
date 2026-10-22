@@ -1,0 +1,11 @@
+{
+ "FC": {
+  "game": "equal",
+  "view": "equal",
+  "records": "record 12: {\"kind\": \"command\", \"text\": \"how do I win\", \"success\": true, \"parse_mode\": \"mock\", \"parse_confidence\": 0.9, \"message\": \"Berthier unrolls the map. \\\"The reign is WON at the Congress of Paris, Sire: hold 45 TITLED provinces \\u2014 homeland, ceded by treaty, a client's soil, or held 12 quiet turns (35  | {\"kind\": \"command\", \"text\": \"how do I win\", \"success\": true, \"parse_mode\": \"mock\", \"parse_confidence\": 0.9, \"message\": \"Berthier unrolls the map. \\\"The reign is WON at the Congress of Paris, Sire: hold 45 TITLED provinces \\u2014 homeland, ceded by treaty, a client's soil, or held 12 quiet turns (35 ",
+  "n_records": [
+   101,
+   101
+  ]
+ }
+}

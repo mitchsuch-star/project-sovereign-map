@@ -2092,6 +2092,12 @@ class CommandExecutor:
                 _message = (f"There is no '{_unbound}' in the order of "
                             f"battle, Sire — the order was not given, and "
                             f"nothing was spent.")
+                from backend.ai.validation import CABINET_ACTIONS
+                if command.get("action") in CABINET_ACTIONS:
+                    # VP1-X8's sibling: a diplomatic act is handed back as
+                    # its door, never as a typed line (diplomacy is never typed).
+                    _message += " Matters of state are conducted at the Cabinet (F1)."
+                    _plain = ""
                 if _plain:
                     _message += (f" If it is yours to give, give it without "
                                  f"the name: '{_plain}'.")

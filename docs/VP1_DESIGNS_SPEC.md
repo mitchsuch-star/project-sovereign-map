@@ -1,6 +1,6 @@
 # VP-1 — "The Emperor's Designs": the gate record
 
-**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation** ("make design calls please do research"), on master at `200cdf91`. **Owner:** Pre-Deploy S14b (`docs/PRE_DEPLOY_PLAN.md` §2), built in three parts (§9). **Part 1 — the substrate, unarmed — ✅ LANDED October 22, 2026 (landing record §12).** Parts 2 and 3 to build.
+**Status:** ✅ **RULED October 22, 2026 under the user's standing delegation** ("make design calls please do research"), on master at `200cdf91`. **Owner:** Pre-Deploy S14b (`docs/PRE_DEPLOY_PLAN.md` §2), built in three parts (§9). **Part 1 — the substrate, unarmed — ✅ LANDED October 22, 2026 (landing record §12).** **Part 2's first landing (its head and the siblings) ✅ October 22, 2026 (§13).** Part 2's second landing and part 3 to build.
 
 **How it was ruled.** Eight read-only researchers verified the mechanics each design would hook; three designers drafted complete proposals from three angles (history-first, player-experience-first, systems-reuse-first); three judges scored them through a historian's, an architect's and a playtester's lens; one synthesis merged the highest-scored (history-first) with the best of the others; two adversarial critics checked it against the repo and the project's rules and returned 35 corrections, every one applied below or answered. Plan 3's "five gate questions" (`docs/audits/ROAD_TO_EA_REPLAN_2026_08_03.md` line 52) are not in the repo — only their recommendations are — so Q1–Q5 answer those recommendations and say so.
 
@@ -305,3 +305,17 @@ New threat sources carry ledger labels (`act_of_confederation`, `schonbrunn`, `b
 - **A3** — `VASSAL_DEEPENING_SPEC.md` §2.3: the Protector's shield suspends a member's downward `AUTONOMY_DRIFT` term (the grip term untouched).
 - **A5** — `NATION_AGENDAS_SPEC.md` §9's seed note: no design pays gold.
 - A2, A4 (the Verdict's term, the fifth register) and A6 (ROADMAP row 13) land with part 3.
+
+---
+
+## §13 Part 2 landing record — the road armed on the existing screens
+
+### 13.1 First landing — the head and the siblings (October 22, 2026)
+
+*Rules `SYSTEMS_REFERENCE.md` §144; rows `BUG_FIXES.md` §VP1.*
+
+- **The head, VP1-X13 — every court opens with its purse.** Reproduced (the boot booted `nation_dp == {}` against France's 5; the turn-1 phases run before the first regen); fixed at the scenario boot and at a carved court's birth (`diplomacy.seed_purse`). Measured inert on the shipped series and arms — nothing it skipped was live on the shipped boot; two staged pins met the mechanic it opens (a funded rival takes the courting slot it stakes, WO-8) or a warmed cache, and are recorded on the row.
+- **The siblings X4, X5, X6, X8, X10** fixed as their rows record; the part's map found **X14** (the outgoing preview drops its status-quo rows), **X15** (the re-read drops the doctrine line), **X16** (the goal fallback's literal 45) and **X17** (an AI court's settlement offer carries neither line) — X15 and X16 fixed here, X14 and X17 owned by the second landing with X7.
+- **A conscious ruling kept:** the door claims a negated summons ("don't summon the congress") like every negated diplomatic order — the recorded reversal in `test_a_negated_diplomatic_order_is_claimed_like_any_other` stands; the census's row rule names the negated Cabinet verb an order.
+- **Measured:** `BASELINE_SERIES` byte-identical on every arm with the reach counted; the eight commanded arms byte-identical; FC parts at the one X8 clause.
+- **§6 amended:** the payload is built on every read (part 1 removed a cache keyed on `id(world)` before it shipped — ids are reused, and a mid-turn treaty never invalidated it); "a proclaim then a GET in the same turn shows the road proclaimed" holds by construction and is pinned with the road page.

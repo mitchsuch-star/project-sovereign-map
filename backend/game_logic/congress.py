@@ -169,6 +169,10 @@ COURT_SEATS = {
 
 CABINET_HINT = "summon from the Cabinet (F1)"
 SUMMON_COMMAND = "summon the congress"
+# VP1-X8 (Pre-Deploy S14b part 2): the Cabinet row every line names — the
+# summons is a diplomatic act, so no copy quotes `SUMMON_COMMAND` (the
+# button's payload) to the player (the user's rule, October 20, 2026).
+SUMMON_CONTROL = "F1 → The Congress of Paris"
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1546,7 +1550,7 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                            "recognizes the order")
             out["levers"] = [{"key": "summon", "value": None,
                               "text": "summon the Congress", "command": SUMMON_COMMAND,
-                              "control": "F1 → The Congress of Paris"}]
+                              "control": SUMMON_CONTROL}]
         else:
             out["text"] = ("sign the peace it sues for — its envoy brings the terms "
                            "(a peace signed while the Congress sits recognizes the order)")

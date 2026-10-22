@@ -655,7 +655,7 @@ signal menu_clicked
 # "[THREAT]" / "[THREAT!]", a bracketed tag; it reads in the game's words —
 # the Balance of Europe tab's own figure — its colour still the warning or
 # the alert.
-const THREAT_TOOLTIP := "Europe's alarm at France, out of 100 — a coalition brews at 60 and forms at 80. The Diplomatic Ledger's Threat & Coalition book (D) tells the sources."
+const THREAT_TOOLTIP := "Europe's alarm at France, out of 100 — a coalition brews at 60 and forms at 80. The Diplomatic Ledger's Balance of Europe tab (D, then 3) tells the sources."
 
 
 static func _threat_words(threat: int) -> String:

@@ -4120,13 +4120,13 @@ def collapse_identical_packages(options: List[Dict], talleyrand_text: str,
 
 def continental_system_lift_offered(world, proposer: str, target: str) -> bool:
     """PC-F83 — the SEAM: Talleyrand drafts the System's lifting into a
-    PEACE with the court the System is aimed at (Britain — the only court
-    whose profile prices it) when the proposer is the System's lord, a court
+    PEACE with the court the System is aimed at (`diplomacy.system_target` —
+    the one court whose desires price it, VP1-X10) when the proposer is the System's lord, a court
     is enrolled, and it is not already lifted. Held down by the series."""
     from backend.game_logic.diplomacy import (
-        SPECIAL_BONUSES, continental_system_lifted, continental_system_lord,
+        continental_system_lifted, continental_system_lord, special_bonuses_for,
     )
-    if "continental_system_lifted" not in (SPECIAL_BONUSES.get(target) or {}):
+    if "continental_system_lifted" not in special_bonuses_for(world, target):
         return False
     if str(proposer) != continental_system_lord(world):
         return False

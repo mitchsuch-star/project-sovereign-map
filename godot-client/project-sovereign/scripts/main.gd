@@ -2654,6 +2654,14 @@ const DIPLO_FAMILY_KEYWORDS = [
 	"to recognize",
 	"to recognise",
 	"sweeten",
+	# VP1-X8 (Pre-Deploy S14b part 2): the Congress's summons is a diplomatic
+	# act — the Congress of Paris row atop the Cabinet is its one road. The
+	# parser's own heads (`llm_client._CONGRESS_SUMMONS_RE`); a question or a
+	# hedge stays spoken (the advisory guard); a negation meets the shut door
+	# like every negated diplomatic order (nothing executes either way).
+	"summon the congress",
+	"convene the congress",
+	"call the congress",
 	"repudiate bargain",
 	"repudiate the bargain",
 	"break bargain",
@@ -3010,6 +3018,12 @@ func _redirect_diplomatic_command(command: String) -> bool:
 # DDB-10: the Cabinet row each refused verb lives on (the wizard's own
 # display names), named in the door's refusal: "F1 → Prussia → Buy Off
 # Their Design".
+# VP1-X8: the rows that stand ATOP the Cabinet, under no court — named
+# "F1 → <row>" (checked before the court rows below).
+const DIPLO_CABINET_TOP_ROWS = [
+	["the congress", "The Congress of Paris"],
+]
+
 const DIPLO_CABINET_CONTROLS = [
 	["recognition", "Offer Gold for Recognition (while the Congress sits)"],
 	# PC-R7 (ii) part 3: the league's bond — bind an ally; outbid a paymaster
@@ -3054,6 +3068,9 @@ const DIPLO_CABINET_CONTROLS = [
 func _cabinet_control_for(lower: String) -> String:
 	"""DDB-10: "F1 → <court> → <row>" for the first verb the sentence names,
 	the court when it names one; "" when no row is recognised."""
+	for pair in DIPLO_CABINET_TOP_ROWS:
+		if str(pair[0]) in lower and not ("recognition" in lower or "recognise" in lower or "recognize" in lower):
+			return "F1 → " + str(pair[1])
 	var row := ""
 	for pair in DIPLO_CABINET_CONTROLS:
 		if str(pair[0]) in lower:

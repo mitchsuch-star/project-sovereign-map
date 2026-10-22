@@ -3327,9 +3327,15 @@ def process_naval_turn(world) -> List[Dict]:
             if tier > 0 and world.get_nations_at_war_with(target):
                 we[target] = int(min(200, int(we.get(target, 0)) + tier))
             if tier != prev_tier:
+                # VP1-X5's siblings: the closure in ports of the Continent
+                # beside its percentage (the Congress, the designs and the
+                # counsel all count ports).
+                _shut = int(closed_ports_against(world, target))
+                _total = int(continental_ports_total(world))
                 event = {
                     "type": "cs_tier_shift", "turn": int(world.current_turn),
                     "target": target, "closure_pct": int(round(closure * 100)),
+                    "ports_closed": _shut, "ports_total": _total,
                     "tier": int(tier), "previous_tier": int(prev_tier),
                 }
                 world.log_event(event)
@@ -3338,6 +3344,7 @@ def process_naval_turn(world) -> List[Dict]:
                 queue_dispatch_event(world, "cs_tier_shift", {
                     "target": target,
                     "closure_pct": int(round(closure * 100)),
+                    "ports_closed": _shut, "ports_total": _total,
                     "tier": int(tier),
                     "direction": "tightens" if tier > prev_tier else "loosens",
                 }, "always")

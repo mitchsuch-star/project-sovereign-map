@@ -10684,6 +10684,16 @@ class WorldState:
             if not world.get_marshals_by_nation(nation):
                 world.eliminated_nations_notified.add(nation)
 
+        # VP1-X13: every AI court opens with the purse its regen writes, as
+        # the Emperor opens with his; a scenario naming `nation_dp` keeps it.
+        if scenario_data.get("nation_dp") is None:
+            from backend.game_logic.diplomacy import seed_boot_purses
+            seed_boot_purses(world)
+            # The seed reads elimination through the per-turn region cache;
+            # the boot hands the world over with no cache warmed, as before
+            # (authoring steps and boards move soil directly after the boot).
+            world.invalidate_active_nations_cache()
+
         # Scenario worlds must boot with computed fog, exactly like the
         # constructor (:807) and the save-load path (save_manager.py):
         # from_dict replaces world.intel with the scenario's (usually

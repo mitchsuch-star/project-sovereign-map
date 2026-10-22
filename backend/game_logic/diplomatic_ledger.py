@@ -1151,7 +1151,7 @@ def _as_str_list(value) -> List[str]:
 
 
 # ============================================================================
-# TAB 3: BALANCE OF EUROPE / THREAT & COALITION
+# TAB 3: BALANCE OF EUROPE (VP1-X6: one title — the button, the header, every pointer)
 # ============================================================================
 
 def _build_balance_of_europe(world) -> Dict[str, Any]:

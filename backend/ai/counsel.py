@@ -646,7 +646,7 @@ def league_counsel(world, nation: str) -> List[str]:
 
 
 def congress_counsel(world, nation: str) -> List[str]:
-    """GE-3 "The Congress of Paris": `summon the congress — …`, only when
+    """GE-3 "The Congress of Paris": `F1 → The Congress of Paris — …`, only when
     the summons would be carried out THIS morning — every gate term met,
     the administrative action and the two diplomatic points included — read
     off the executor's own refusal (`congress.summon_refusal`), so the
@@ -664,7 +664,9 @@ def congress_counsel(world, nation: str) -> List[str]:
         if congress.summon_refusal(world, skip_admin=False) is not None:
             return []
         from backend.display_names import plural
-        return [f"{congress.SUMMON_COMMAND} — "
+        # VP1-X8: the Cabinet row, never the typed summons (the DDB-X8 rule
+        # the league's line already keeps).
+        return [f"{congress.SUMMON_CONTROL} — summon the Congress: "
                 f"{plural(congress.SUMMON_DP_COST, 'diplomatic point')} and "
                 f"1 administrative action; it cannot be undone"]
     except Exception as exc:

@@ -59,10 +59,14 @@
   "X12": [
    "X12"
   ],
+  "X13": [
+   "X13"
+  ],
   "ALL": [
    "D",
    "X1",
    "X12",
+   "X13",
    "X2",
    "X3"
   ]
@@ -120,7 +124,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
     }
    }
   },
@@ -178,7 +183,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
     }
    }
   },
@@ -236,7 +242,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
     }
    }
   },
@@ -294,7 +301,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
     }
    }
   },
@@ -352,7 +360,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
     }
    }
   },
@@ -410,7 +419,67 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 19
+    }
+   }
+  },
+  "X13": {
+   "down": [
+    "X13"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    47,
+    45,
+    42,
+    39,
+    36,
+    33,
+    30,
+    27,
+    24,
+    21,
+    18,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "designs_armed_reads": 0,
+     "punitive_pairs": 0,
+     "player_armistice_exits": 0,
+     "bloc_reads_not_literal": 0,
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 0
     }
    }
   },
@@ -419,6 +488,7 @@
     "D",
     "X1",
     "X12",
+    "X13",
     "X2",
     "X3"
    ],
@@ -472,7 +542,8 @@
      "punitive_pairs": 0,
      "player_armistice_exits": 0,
      "bloc_reads_not_literal": 0,
-     "dry_run_purse_projections": 0
+     "dry_run_purse_projections": 0,
+     "boot_purses_seeded": 0
     }
    }
   }

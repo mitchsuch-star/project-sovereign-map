@@ -4,7 +4,7 @@ extends CanvasLayer
 # PROJECT SOVEREIGN - Diplomatic Ledger Screen (Session 8B)
 # =============================================================================
 # 7-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: NATIONS, TREATIES, THREAT & COALITION, TALLEYRAND, WAR BARGAINS, VASSALS,
+# Tabs: NATIONS, TREATIES, BALANCE OF EUROPE, TALLEYRAND, WAR BARGAINS, VASSALS,
 # CONGRESS
 # Number keys 1-7 switch sub-tabs (guarded by visible check).
 # Pattern follows strategic_ledger.gd.
@@ -855,7 +855,7 @@ func _render_treaties():
 
 
 # =============================================================================
-# TAB 3: THREAT & COALITION
+# TAB 3: BALANCE OF EUROPE (VP1-X6: the button's title, every pointer's name)
 # =============================================================================
 
 func _render_balance_of_europe():

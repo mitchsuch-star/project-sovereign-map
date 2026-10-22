@@ -3035,11 +3035,14 @@ def _oneliner_the_sea(ctx: OnelinerContext):
         target = display_nation(ctx.event.get("target", "Unknown"))
         pct = int(ctx.event.get("closure_pct", 0))
         tier = int(ctx.event.get("tier", 0))
+        # VP1-X5's sibling: the ports of the Continent beside the percentage
+        # (an event logged before it carries the percentage alone).
+        shut, total = ctx.event.get("ports_closed"), ctx.event.get("ports_total")
+        ports = (f"{int(shut)} of {int(total)} of the Continent's ports closed ({pct}%)"
+                 if shut is not None and total else f"{pct}% of the Continent's ports closed")
         if tier > 0:
-            return (f"THE CONTINENTAL SYSTEM: {pct}% of the Continent's ports "
-                    f"closed — {target}'s war-weariness rises +{tier}/turn")
-        return (f"The Continental System loosens — {pct}% of the Continent's "
-                f"ports closed, {target} breathes")
+            return f"THE CONTINENTAL SYSTEM: {ports} — {target}'s war-weariness rises +{tier}/turn"
+        return f"The Continental System loosens — {ports}, {target} breathes"
 
     if ctx.event_type == "strait_open":
         a, b = ctx.event.get("link_a"), ctx.event.get("link_b")

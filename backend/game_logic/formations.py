@@ -923,6 +923,10 @@ def _seed_client_roster(world, tag: str, template: dict, carver: str) -> None:
                          "victory, and dependent on it.",
         }
         diplomats[tag] = create_diplomat_from_data(tag, defn)
+    # 5b. A purse (VP1-X13): the court opens with the regen its voice and
+    # authority write, as every boot-authored court now does.
+    from backend.game_logic.diplomacy import seed_purse
+    seed_purse(world, tag)
 
     # 6. Its dream, if the template authored one. Dormant while a client
     # (§3.2 is already the law) — it wakes only on independence.

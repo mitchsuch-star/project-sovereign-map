@@ -583,6 +583,11 @@ func _on_dispatch_received(response):
 		var today_cabinet = str(today.get("cabinet", ""))
 		if today_cabinet != "":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_cabinet + "[/color]\n"
+		# VP1-X15 (S14b part 2): the re-read prints the doctrine line the live
+		# dispatch prints (main.gd's TODAY block) — it was dropped here.
+		var today_doctrine = today.get("doctrine", "")
+		if today_doctrine is String and today_doctrine != "":
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_doctrine + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ BERTHIER'S NOTE ═══

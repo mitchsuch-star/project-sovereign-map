@@ -960,7 +960,9 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 	var cs = adm.get("continental_system")
 	if cs is Dictionary:
 		var tier = int(cs.get("tier", 0))
-		var cs_line = "  The Continental System: " + str(int(cs.get("closure_pct", 0))) + "% of the Continent's ports closed"
+		# VP1-X5 (S14b part 2): the closure in ports of the Continent — the
+		# Congress, the designs and the counsel all speak in ports of 26.
+		var cs_line = "  The Continental System: " + str(int(cs.get("ports_closed", 0))) + " of " + str(int(cs.get("ports_total", 0))) + " of the Continent's ports closed (" + str(int(cs.get("closure_pct", 0))) + "%)"
 		if tier > 0:
 			cs_line += " — " + Utils.humanize_nation_keys_in_text(str(cs.get("target", ""))) + "'s war-weariness rising +" + str(tier) + "/turn"
 		else:

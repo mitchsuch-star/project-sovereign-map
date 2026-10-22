@@ -209,9 +209,21 @@ SPECIAL_BONUSES = {
     # seat is Dresden, Bavaria's Munich) — the desire read on both maps.
     "Prussia": {"territory_saxony": 10, "territory_dresden": 10},
     "Austria": {"territory_bavaria": 8, "territory_munich": 8},
-    "Britain": {"continental_system_lifted": 15},
     "Saxony": {"protection_promised": 10},
 }
+# VP1-X10 (Pre-Deploy S14b part 2): the System's lifting is the desire of the
+# court the System is aimed at — `system_target(world)`, read off the world —
+# never a "Britain" key (GR5). `special_bonuses_for` merges it in.
+SYSTEM_LIFT_DESIRE = 15
+
+
+def special_bonuses_for(world, target: str) -> Dict[str, int]:
+    """The court's special desires (§6d): `SPECIAL_BONUSES`, plus the System's
+    lifting for the court the Continental System is aimed at."""
+    out = dict(SPECIAL_BONUSES.get(target, {}) or {})
+    if target and world is not None and target == system_target(world):
+        out.setdefault("continental_system_lifted", SYSTEM_LIFT_DESIRE)
+    return out
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
 SWEETENER_VALUES = {
@@ -8974,7 +8986,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # Nation-specific acceptance bonuses when proposal addresses core interests
     special_desire_bonus = 0
     clauses = proposal.get("clauses", [])
-    target_specials = SPECIAL_BONUSES.get(target, {})
+    target_specials = special_bonuses_for(world, target)
     # Check both string clauses and dict clauses
     for clause in clauses:
         if isinstance(clause, str):
@@ -11772,6 +11784,35 @@ def regen_dp_for(world, nation: str) -> int:
     return calculate_dp(*_regen_inputs(world, nation))
 
 
+def seed_boot_purses(world) -> int:
+    """VP1-X13 (Pre-Deploy S14b part 2): every AI court opens the campaign
+    with the purse its regen writes, as the Emperor opens with his —
+    `DIPLOMACY_SPEC.md` §4's "the SAME generation formula" (Building Blocks).
+    The purses booted empty and filled only at the first advance, so on turn
+    1 no AI court could court, counter, renege or pay a bond's point. Called
+    by `WorldState.from_scenario` when the scenario names no `nation_dp` (a
+    save never passes here). The eliminated are skipped, as the regen skips
+    them. Returns the courts written (the attribution's reach)."""
+    written = 0
+    for nation in list(getattr(world, 'enemy_nations', []) or []):
+        if nation == world.player_nation or _is_nation_eliminated(world, nation):
+            continue
+        written += seed_purse(world, nation)
+    return written
+
+
+def seed_purse(world, nation: str) -> int:
+    """VP1-X13: one court's opening purse — the regen's own reading plus the
+    seat, as the first advance would write it. Read by the boot seed and by
+    a court born mid-campaign (`formations.create_client_nation`, the carve —
+    its boot-authored sibling satellites open with theirs). Returns 1 when
+    written (the attribution's reach)."""
+    if not nation or nation == getattr(world, 'player_nation', None):
+        return 0
+    world.nation_dp[nation] = int(regen_dp_for(world, nation)) + int(sovereign_seat_bonus(world, nation))
+    return 1
+
+
 def _regen_inputs(world, nation: str):
     """(diplomat, authority, controls_capital) — the regen's three inputs."""
     diplomats = getattr(world, 'diplomats', {})
@@ -13043,6 +13084,19 @@ CONTINENTAL_SYSTEM_JOIN_CLAUSE = "continental_system_join"
 A_MEMBER_AT_WAR_LEAVES_THE_SYSTEM = True
 
 
+def system_target(world) -> str:
+    """VP1-X10: the court the Continental System is aimed at — the
+    trade-dominance court (`naval.trade_dominance_nation`), the one every
+    other System reader names; on a world with no naval layer (the legacy
+    fixture world, the bare flag world) Britain, as the shipped charge read.
+    "" when the naval layer names none (the dominance court gone)."""
+    from backend.game_logic import naval
+    target = naval.trade_dominance_nation(world)
+    if target:
+        return str(target)
+    return "" if naval.get_fleets(world) else "Britain"
+
+
 def continental_system_lord(world) -> str:
     """The court whose instrument the System is (the player)."""
     return str(getattr(world, "player_nation", "France") or "France")
@@ -13137,7 +13191,7 @@ def _continental_system_beat(world, nation: str, action: str, tail: str = "") ->
 
 CONTINENTAL_SYSTEM_LIFTED_CLAUSE = "continental_system_lifted"
 # PC-F83 (S13e part 4, October 17, 2026): the France-to-Britain sweetener
-# Britain's desire profile always priced (+15, `SPECIAL_BONUSES`) and nothing
+# Britain's desire profile always priced (+15, now `special_bonuses_for`) and nothing
 # produced. Lifted by treaty, the System stays lifted this long — no court
 # may be enrolled and the closure's charge rests — the length of a fresh
 # peace's floor doubled (Amiens held fourteen months).
@@ -13281,14 +13335,15 @@ def apply_continental_system(world) -> None:
                 bucket[nation] = int(bucket.get(nation, 0)) + taken
         return
 
-    # Cap trade income between Britain and members (the shipped charge)
+    # Cap trade income between the System's target and members (the shipped charge)
+    target = system_target(world)
     total_blocked = 0
     max_total_cap = 200
     for member in members:
         if total_blocked >= max_total_cap:
             break
         # Check trade income between member and Britain
-        member_state = world.get_diplomatic_state(member, "Britain")
+        member_state = world.get_diplomatic_state(member, target) if target else ""
         trade = TRADE_INCOME.get(member_state, 0)
         if trade > 0:
             blocked = min(75, trade, max_total_cap - total_blocked)
@@ -13304,9 +13359,9 @@ def apply_continental_system(world) -> None:
                 world.nation_gold[member] -= min(
                     int(blocked), max(0, world.nation_gold[member])
                 )
-            if "Britain" in world.nation_gold:
-                world.nation_gold["Britain"] -= min(
-                    int(blocked), max(0, world.nation_gold["Britain"])
+            if target in world.nation_gold:
+                world.nation_gold[target] -= min(
+                    int(blocked), max(0, world.nation_gold[target])
                 )
             total_blocked += blocked
 
@@ -13335,6 +13390,9 @@ def continental_system_losses(world) -> Dict[str, int]:
     members = list(getattr(world, 'continental_system_members', []) or [])
     if not members:
         return {}
+    target = system_target(world)   # VP1-X10: the court the System is aimed at
+    if not target:
+        return {}
     breakdown = calculate_trade_breakdown(world)
 
     def _earned(nation: str, partner: str) -> int:
@@ -13346,12 +13404,12 @@ def continental_system_losses(world) -> Dict[str, int]:
     for member in members:
         if total >= CS_TOTAL_CAP:
             break
-        blocked = min(CS_MEMBER_CAP, _earned(member, "Britain"),
-                      _earned("Britain", member), CS_TOTAL_CAP - total)
+        blocked = min(CS_MEMBER_CAP, _earned(member, target),
+                      _earned(target, member), CS_TOTAL_CAP - total)
         if blocked <= 0:
             continue
         losses[member] = int(losses.get(member, 0)) + int(blocked)
-        losses["Britain"] = int(losses.get("Britain", 0)) + int(blocked)
+        losses[target] = int(losses.get(target, 0)) + int(blocked)
         total += blocked
     return losses
 

@@ -11818,3 +11818,27 @@ Three roads of two designs each — a construction, then a seal: **rhine** (`cli
 ### 143.7 Measured
 
 `BASELINE_SERIES` byte-identical on every arm with the reach counted and zero; the eight commanded arms equal to the S14b head's archive record for record; the deckless pins untouched (`VP1_DESIGNS_SPEC.md` §12.3). The Tilsit road no longer latches the Blockade at K = 6 on any seed (longest run 3 / 4 / 3 end turns), so VP1-RH carries part 3's done-when (§12.1).
+
+## 144. THE COURTS' PURSES AND THE SYSTEM'S TARGET (VP-1 part 2, first landing: VP1-X4, X5, X6, X8, X10, X13, X15, X16; Pre-Deploy S14b, October 22, 2026)
+
+*`BUG_FIXES.md` §VP1 (each row's measurement). Pins `tests/test_vp1_the_emperors_designs.py` (the X4 … X16 classes), `tests/test_wo_slice7_cabinet_door.py`. The series `tools/_vp1_series_arms.py` (arm X13), the arms `tools/_vp1_arm_attribution.py` (`_final.json`; FC against a run of the prior tree, `tools/_vp1_p2_fc_attribution.json`).*
+
+### 144.1 Every court opens with its purse (VP1-X13)
+
+`diplomacy.seed_purse(world, nation)` writes a court's opening purse — `regen_dp_for` (the regen's own reading, shared with `_process_dp_regen`) plus `sovereign_seat_bonus` — and `seed_boot_purses` writes every active AI court's at the tail of `WorldState.from_scenario`, only when the scenario names no `nation_dp` (a save never passes there). France opens at 5, her regen; Austria at 5, every other court at 4. A court born mid-campaign opens the same way (`formations.create_client_nation`, the carve). The boot hands the world over with no region cache warmed (the seed reads elimination through it). Before, the purses filled only at the first advance — after the turn-1 enemy and AI-diplomacy phases — so on turn 1 no court could court, counter, renege or pay a bond's point (latent on the shipped boot: France's satellites boot at loyalty 100). The X12 dry-run projection stays for worlds built outside `from_scenario`.
+
+### 144.2 The Continental System's target is derived (VP1-X10, X4, X5)
+
+`diplomacy.system_target(world)` is the court the System is aimed at: the trade-dominance court (`naval.trade_dominance_nation`); Britain on a world with no naval layer; "" when the layer names none. `continental_system_losses`, the shipped charge's legacy arm and the lifting's desire (`special_bonuses_for(world, target)`, which replaces the `SPECIAL_BONUSES["Britain"]` key) read it. The desk's closure answer (`ai/state_desk._answer_closure`) states the System in ports — "10 of 26 of the Continent's ports are shut to Britain, Sire (38%, tier 0 of 3); her trade falls as they shut, to 40% at the least. The next tier is at 40% — 1 more port." — then `PORT_CLOSURE_RULE`; the Admiralty and the `cs_tier_shift` log line and dispatch beat count "N of 26" beside the percentage.
+
+### 144.3 The summons is a Cabinet act (VP1-X8) and the copy follows
+
+`congress.SUMMON_CONTROL` ("F1 → The Congress of Paris") is the row every line names — the goal clause, the world-less answer, the gate-open verdict, the counsel's summons line; the sweetener names "the Cabinet's Offer Gold for Recognition (F1 → the court)"; the parser's failure suggestion names the Cabinet. `validation.CABINET_ACTIONS` is the backend's one list of the acts whose only player road is the Cabinet (pinned equal to the door's family); an unbound name on one of them hands back the door, never the typed line. The client door claims "summon / convene / call the congress" (questions and hedges stay spoken; a negated summons meets the shut door like every negated diplomatic order), and names the row atop the Cabinet as "F1 → The Congress of Paris" (`DIPLO_CABINET_TOP_ROWS`).
+
+### 144.4 The small ones
+
+VP1-X6: the Diplomatic Ledger's third tab reads BALANCE OF EUROPE, as every pointer to it does. VP1-X15: the Dispatch re-read prints the first morning's doctrine line. VP1-X16: the goal fallback reads `congress.hold_titled`.
+
+### 144.5 Measured
+
+`BASELINE_SERIES` byte-identical on every arm (none, D, X1, X2, X3, X12, X13, ALL), 19 purses seeded with X13 up and none with it down. The eight commanded arms equal to the S14b head's archive record for record. FC (`sr_exit_first_contact.json`, its goal answer) against a run of the committed tree `902cf755`: one record parts — the summons clause names the Cabinet row (X8).

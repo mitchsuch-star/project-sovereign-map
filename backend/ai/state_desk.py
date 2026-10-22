@@ -2268,11 +2268,35 @@ def _answer_build_time(world) -> str:
 
 
 def _answer_closure(world) -> str:
+    """VP1-X4 (Pre-Deploy S14b part 2): the System in its own nouns — the
+    Continent's ports shut to the court it is aimed at (the derived
+    trade-dominance court, never the literal "Britain"), its tier and next
+    notch, and how a port shuts as the code applies it (`PORT_CLOSURE_RULE`).
+    The closure is a share of PORTS: her trade falls with it, to a floor
+    (`naval.trade_dominance_income`) — it was called "a share of her trade",
+    and its tail ("her own blockade answers it") matched nothing the closure
+    reads."""
     from backend.game_logic import naval
-    closure = float(naval.closure_against(world, "Britain") or 0.0)
+    from backend.display_names import display_nation
+    target = naval.trade_dominance_nation(world)
+    if not target:
+        return ("No court holds the mastery of the seas, Sire — the Continental System "
+                "has no one to shut out.")
+    whom = display_nation(target)
+    total = int(naval.continental_ports_total(world) or 0)
+    shut = int(naval.closed_ports_against(world, target) or 0)
+    closure = float(naval.closure_against(world, target) or 0.0)
     tier = int(naval.cs_closure_tier(closure) or 0)
-    return (f"The Continental System closes {int(round(closure * 100))}% of Britain's trade, Sire "
-            f"(tier {tier} of 3). Every port we shut raises it; her own blockade answers it.")
+    floor = int(round(naval.TRADE_DOMINANCE_FLOOR * 100))
+    out = (f"{shut} of {total} of the Continent's ports are shut to {whom}, Sire "
+           f"({int(round(closure * 100))}%, tier {tier} of 3); her trade falls as they shut, "
+           f"to {floor}% at the least.")
+    notch = next((pct for pct, _tier in sorted(naval.CS_WE_TIERS) if closure < pct), None)
+    if notch is not None:
+        more = max(1, int(-(-(notch * total - shut) // 1)))
+        out += (f" The next tier is at {int(round(notch * 100))}% — "
+                f"{more} more port{'s' if more != 1 else ''}.")
+    return out + " " + naval.PORT_CLOSURE_RULE.format(target=whom)
 
 
 # diplomacy ─────────────────────────────────────────────────────────────────
@@ -3377,7 +3401,14 @@ def _answer_what_is_in(world, place: str) -> str:
 
 def _answer_goal(world, asked: str) -> str:
     from backend.ai.first_contact import answer_first_contact
-    return answer_first_contact("goal", asked, world) or "The campaign's object is the Imperial Peace, Sire — the Congress of Paris, summoned at 45 titled provinces."
+    answer = answer_first_contact("goal", asked, world)
+    if answer:
+        return answer
+    # VP1-X16 (S14b part 2): the scenario's own bar, never a literal 45.
+    from backend.game_logic import congress
+    need = int(congress.hold_titled(world)) if world is not None else int(congress.HOLD_TITLED)
+    return (f"The campaign's object is the Imperial Peace, Sire — the Congress of "
+            f"Paris, summoned at {need} titled provinces.")
 
 
 def _answer_end_turn_asked(world) -> str:

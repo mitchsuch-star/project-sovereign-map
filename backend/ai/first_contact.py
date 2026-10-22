@@ -282,7 +282,7 @@ def _congress_goal_clause(world) -> tuple[str, bool]:
     return (f"The reign is WON at the Congress of Paris, Sire: hold {need} "
             f"TITLED provinces — homeland, ceded by treaty, a client's soil, or "
             f"held {quiet} quiet turns ({have} today) — summon the Congress "
-            f"('{congress.SUMMON_COMMAND}', or the Cabinet, F1), and for its "
+            f"from the Cabinet ({congress.SUMMON_CONTROL}), and for its "
             f"{turns} turns keep them, {capital} and the Emperor's freedom, "
             f"declare no war, and win every great power's recognition: that is "
             f"the Imperial Peace. "), False
@@ -370,9 +370,9 @@ def _congress_answer(asked: str, world) -> str:
     if world is None:
         return (f"The Congress of Paris, Sire, is how the reign is won: with "
                 f"{congress.HOLD_TITLED} titled provinces the Emperor may "
-                f"summon the powers ('{congress.SUMMON_COMMAND}', or the "
-                f"Cabinet, F1), and for {congress.CONGRESS_TURNS} turns every "
-                f"great power answers.{relayed}")
+                f"summon the powers from the Cabinet "
+                f"({congress.SUMMON_CONTROL}), and for {congress.CONGRESS_TURNS} "
+                f"turns every great power answers.{relayed}")
     if not congress.armed(world):
         return ("There is no Congress of Paris in this campaign, Sire — its "
                 "rules are not authored here." + relayed)
@@ -398,8 +398,8 @@ def _congress_answer(asked: str, world) -> str:
                            congress.SWEETENER_PER_1000))
     cap = int(game_end.cfg(world, "sweetener_cap", congress.SWEETENER_CAP))
     from backend.display_names import plural
-    sweetener = (f"A sweetener is laid at the table — 'offer <court> <gold> "
-                 f"gold for recognition': +{per} for every 1,000 gold, at most "
+    sweetener = (f"A sweetener is laid at the table — the Cabinet's Offer Gold "
+                 f"for Recognition (F1 → the court): +{per} for every 1,000 gold, at most "
                  f"+{cap} a court, and "
                  f"{plural(congress.SWEETENER_DP_COST, 'diplomatic point')} "
                  f"to carry it.")
@@ -445,8 +445,8 @@ def _congress_answer(asked: str, world) -> str:
                        for t in terms)
     refusal = congress.summon_refusal(world, skip_admin=False)
     if refusal is None:
-        verdict = (f"It can be summoned this morning, Sire: "
-                   f"'{congress.SUMMON_COMMAND}' — "
+        verdict = (f"It can be summoned this morning, Sire, from the Cabinet "
+                   f"({congress.SUMMON_CONTROL}) — "
                    f"{plural(congress.SUMMON_DP_COST, 'diplomatic point')} "
                    f"and 1 administrative action, and it cannot be undone.")
     else:

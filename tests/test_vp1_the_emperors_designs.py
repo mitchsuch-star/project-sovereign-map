@@ -486,10 +486,13 @@ class TestVP1X12TheTurnOneCounterReadsTheComingPurse:
             calculate_acceptance, counter_aware_likelihood, process_diplomacy_turn,
         )
         world = _shipped()
-        assert world.nation_dp == {}
         proposal = _vassal_draft(world, "Bavaria")
         score = int(calculate_acceptance(proposal, world)["score"])
         assert 30 <= score < 50
+        assert "counter is likely" in counter_aware_likelihood(world, proposal, score)
+        # the projection branch: a purse not yet written (a world built outside
+        # `from_scenario`, which seeds every purse since VP1-X13)
+        world.nation_dp = {}
         assert "counter is likely" in counter_aware_likelihood(world, proposal, score)
         assert world.nation_dp == {}  # the dry run writes no purse
         assert generate_counter_offer(dict(proposal), world, dry_run=True) is not None
@@ -514,7 +517,215 @@ class TestVP1X12TheTurnOneCounterReadsTheComingPurse:
             _process_dp_regen, regen_dp_for, sovereign_seat_bonus,
         )
         world = _shipped()
+        world.nation_dp = {}
         projected = {n: int(regen_dp_for(world, n)) + int(sovereign_seat_bonus(world, n))
                      for n in world.enemy_nations}
         _process_dp_regen(world)
         assert {n: world.nation_dp.get(n) for n in projected} == projected
+
+
+class TestVP1X13TheCourtsOpenWithTheirPurses:
+    """VP1-X13 (X12's sweep, part 2's head): France opened at her regen (5)
+    while every AI court opened with an empty purse until the first advance —
+    on turn 1 no court could court a sagging satellite, counter, renege or pay
+    a bond's point. `diplomacy.seed_boot_purses` writes each court's regen at
+    the scenario boot; a save, or a scenario naming `nation_dp`, keeps its own."""
+
+    def test_every_court_opens_with_its_regen_as_the_emperor_does(self):
+        from backend.game_logic.diplomacy import regen_dp_for, sovereign_seat_bonus
+        world = _shipped()
+        expected = {n: int(regen_dp_for(world, n)) + int(sovereign_seat_bonus(world, n))
+                    for n in world.enemy_nations}
+        assert world.nation_dp == expected
+        assert all(type(v) is int and v >= 1 for v in world.nation_dp.values())
+        assert int(world.diplomatic_points) == int(regen_dp_for(world, world.player_nation)) +             int(sovereign_seat_bonus(world, world.player_nation))
+
+    def test_a_save_keeps_its_purses_and_never_reseeds(self):
+        world = _shipped()
+        world.nation_dp["Austria"] = 1
+        again = WorldState.from_dict(world.to_dict())
+        assert again.nation_dp["Austria"] == 1
+        data = world.to_dict()
+        data.pop("nation_dp")
+        assert WorldState.from_dict(data).nation_dp == {}
+
+    def test_a_scenario_naming_its_purses_keeps_them(self, tmp_path):
+        scen = json.loads(SHIPPED.read_text(encoding="utf-8"))
+        scen["nation_dp"] = {"Austria": 1}
+        path = tmp_path / "purses.json"
+        path.write_text(json.dumps(scen), encoding="utf-8")
+        with _quiet():
+            world = WorldState.from_scenario(str(path))
+        assert world.nation_dp == {"Austria": 1}
+
+    def test_a_turn_one_courtier_can_pay_and_seam_down_could_not(self, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.vassal import attempt_vassal_courting
+
+        def _board():
+            world = _shipped()
+            world.vassals["Holland"]["loyalty"] = 30           # a sagging satellite
+            world.nation_relations[world._make_diplo_key("Britain", "Holland")] = 20
+            return world
+
+        world = _board()
+        events = attempt_vassal_courting(world, "Britain")
+        assert events and world.vassals["Holland"]["loyalty"] < 30
+        monkeypatch.setattr(D, "seed_boot_purses", lambda w: 0)
+        down = _board()
+        assert down.nation_dp == {}
+        assert attempt_vassal_courting(down, "Britain") == []
+        assert down.vassals["Holland"]["loyalty"] == 30
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S14b part 2's siblings (BUG_FIXES §VP1): X4, X5, X6, X8, X10, X15, X16
+# ═══════════════════════════════════════════════════════════════════════════
+
+GODOT = REPO / "godot-client" / "project-sovereign"
+
+
+def _dominance_to(world, court):
+    """Stage the trade-dominance court elsewhere (GR5: the System's target is
+    derived, never the literal)."""
+    from backend.game_logic import naval
+    fleets = naval.get_fleets(world)
+    dom = int(fleets["Britain"].get("trade_dominance") or 0)
+    fleets["Britain"]["trade_dominance"] = 0
+    fleets[court]["trade_dominance"] = dom or 450
+    assert naval.trade_dominance_nation(world) == court
+
+
+class TestVP1X4TheDeskStatesTheSystemInPorts:
+    def test_the_boot_answer_counts_ports_and_states_the_rule(self):
+        from backend.ai.state_desk import _answer_closure
+        from backend.game_logic import naval
+        world = _shipped()
+        answer = _answer_closure(world)
+        assert answer.startswith("10 of 26 of the Continent's ports are shut to Britain")
+        assert naval.PORT_CLOSURE_RULE.format(target="Britain") in answer
+        assert "The next tier is at 40% — 1 more port." in answer
+        assert "of Britain's trade" not in answer and "her own blockade" not in answer
+
+    def test_it_reads_the_derived_court(self):
+        from backend.ai.state_desk import _answer_closure
+        world = _shipped()
+        _dominance_to(world, "Spain")
+        assert "shut to Spain" in _answer_closure(world)
+
+    def test_a_world_with_no_mistress_of_the_seas_says_so(self):
+        from backend.ai.state_desk import _answer_closure
+        assert "no one to shut out" in _answer_closure(WorldState())
+
+
+class TestVP1X5TheClosureInPortsOfTheContinent:
+    def test_the_admiralty_prints_n_of_26(self):
+        gd = (GODOT / "scripts" / "strategic_ledger.gd").read_text(encoding="utf-8")
+        line = next(ln for ln in gd.splitlines() if "var cs_line =" in ln)
+        assert 'cs.get("ports_closed"' in line and 'cs.get("ports_total"' in line
+
+    def test_the_tier_shift_names_the_ports_and_an_old_event_its_percentage(self):
+        from backend.campaign_log import format_event_oneliner
+        from backend.game_logic.dispatch import _format_dispatch_event_text as _format_diplomatic_event
+        new = {"type": "cs_tier_shift", "turn": 9, "target": "Britain", "closure_pct": 42,
+               "ports_closed": 11, "ports_total": 26, "tier": 1, "previous_tier": 0}
+        assert "11 of 26 of the Continent's ports closed (42%)" in format_event_oneliner(new)
+        old = {k: v for k, v in new.items() if k not in ("ports_closed", "ports_total")}
+        assert "42% of the Continent's ports closed" in format_event_oneliner(old)
+        vars_new = {"target": "Britain", "closure_pct": 42, "ports_closed": 11,
+                    "ports_total": 26, "tier": 1, "direction": "tightens"}
+        assert "11 of 26 (42%) of the Continent's ports are closed to Britain" in \
+            _format_diplomatic_event("cs_tier_shift", vars_new)
+        vars_old = {k: v for k, v in vars_new.items() if k not in ("ports_closed", "ports_total")}
+        assert "42% of the Continent's ports are closed" in _format_diplomatic_event("cs_tier_shift", vars_old)
+
+
+class TestVP1X6OneTitleForTheBalanceOfEurope:
+    def test_the_tab_the_tooltip_and_the_pointer_agree(self):
+        import re
+        from backend.ai.counsel import _SURFACE_FOR_KIND
+        tscn = (GODOT / "scenes" / "diplomatic_ledger.tscn").read_text(encoding="utf-8")
+        block = tscn[tscn.index('[node name="ThreatTab"'):]
+        title = re.search(r'text = "([^"]*)"', block).group(1)
+        assert title == "BALANCE OF EUROPE"
+        assert "Balance of Europe" in _SURFACE_FOR_KIND["balance"][0]
+        top_bar = (GODOT / "scripts" / "top_bar.gd").read_text(encoding="utf-8")
+        assert "Balance of Europe tab" in top_bar
+        for path in (GODOT / "scripts").glob("*.gd"):
+            assert "threat & coalition" not in path.read_text(encoding="utf-8").lower(), path.name
+        assert "THREAT & COALITION" not in tscn
+
+
+class TestVP1X8TheCongressIsSummonedFromTheCabinet:
+    def test_first_contact_names_the_row_never_the_typed_summons(self, monkeypatch):
+        from backend.ai import first_contact as FC
+        from backend.game_logic import congress
+        world = _shipped()
+        clause, _signed = FC._congress_goal_clause(world)
+        assert congress.SUMMON_CONTROL in clause
+        none_answer = FC._congress_answer("how is the reign won", None)
+        assert congress.SUMMON_CONTROL in none_answer
+        monkeypatch.setattr(congress, "summon_refusal", lambda w, skip_admin=False: None)
+        verdict = FC._congress_answer("can we summon the congress", world)
+        assert "It can be summoned this morning, Sire, from the Cabinet" in verdict
+        for text in (clause, none_answer, verdict):
+            assert f"'{congress.SUMMON_COMMAND}'" not in text
+            assert "gold for recognition'" not in text
+
+    def test_the_counsel_and_the_parse_failure_name_the_cabinet(self, monkeypatch):
+        from backend.ai import counsel
+        from backend.ai.validation import validate_parse_result  # noqa: F401  (the module loads)
+        from backend.game_logic import congress
+        world = _shipped()
+        monkeypatch.setattr(congress, "summon_refusal", lambda w, skip_admin=False: None)
+        lines = counsel.congress_counsel(world, world.player_nation)
+        assert lines and lines[0].startswith(congress.SUMMON_CONTROL)
+        assert congress.SUMMON_COMMAND not in lines[0]
+        src = (REPO / "backend" / "ai" / "validation.py").read_text(encoding="utf-8")
+        assert "Try: propose peace with" not in src
+
+    def test_an_unbound_name_on_a_cabinet_act_hands_back_the_door(self):
+        from backend.commands import executor as E
+        src = (REPO / "backend" / "commands" / "executor.py").read_text(encoding="utf-8")
+        at = src.index("if command.get(\"action\") in CABINET_ACTIONS:")
+        assert "Matters of state are conducted at the Cabinet (F1)." in src[at:at + 400]
+        assert E.CommandExecutor.THE_UNBOUND_NAME_SPENDS_NOTHING
+
+
+class TestVP1X10TheSystemIsAimedAtTheDerivedCourt:
+    def test_the_target_is_derived_with_the_legacy_fallback(self):
+        from backend.game_logic.diplomacy import SPECIAL_BONUSES, system_target
+        assert system_target(_shipped()) == "Britain"
+        assert system_target(WorldState()) == "Britain"      # no naval layer
+        assert "Britain" not in SPECIAL_BONUSES
+
+    def test_the_lift_desire_follows_the_dominance(self):
+        from backend.game_logic.diplomacy import special_bonuses_for, system_target
+        from backend.game_logic.diplomatic_templates import continental_system_lift_offered
+        world = _shipped()
+        assert special_bonuses_for(world, "Britain") == {"continental_system_lifted": 15}
+        _dominance_to(world, "Spain")
+        assert system_target(world) == "Spain"
+        assert special_bonuses_for(world, "Spain") == {"continental_system_lifted": 15}
+        assert "continental_system_lifted" not in special_bonuses_for(world, "Britain")
+        world.continental_system_members = ["Denmark"]
+        assert continental_system_lift_offered(world, "France", "Spain") is True
+        assert continental_system_lift_offered(world, "France", "Britain") is False
+
+
+class TestVP1X15TheReReadPrintsTheDoctrine:
+    def test_both_renderers_print_today_doctrine(self):
+        for name in ("main.gd", "dispatch_view.gd"):
+            gd = (GODOT / "scripts" / name).read_text(encoding="utf-8")
+            assert 'today.get("doctrine"' in gd, name
+
+
+class TestVP1X16TheGoalFallbackReadsTheBar:
+    def test_no_literal_45(self, monkeypatch):
+        from backend.ai import first_contact as FC
+        from backend.ai.state_desk import _answer_goal
+        from backend.game_logic import congress
+        world = _shipped()
+        monkeypatch.setattr(FC, "answer_first_contact", lambda kind, asked, w: "")
+        monkeypatch.setattr(congress, "hold_titled", lambda w: 50)
+        assert "summoned at 50 titled provinces" in _answer_goal(world, "what is the goal")

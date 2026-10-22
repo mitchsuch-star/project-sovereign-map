@@ -234,6 +234,24 @@ ADMINISTRATIVE_ACTIONS = frozenset({
 NEVER_STRATEGIC_ACTIONS = frozenset(
     META_ACTIONS | NON_ORDER_ACTIONS | ADMINISTRATIVE_ACTIONS)
 
+# VP1-X8 (Pre-Deploy S14b part 2): the diplomatic acts whose only player road
+# is the Cabinet (F1) — the user's rule, October 20, 2026: diplomacy is never
+# typed. The client's door claims their typed heads (`main.gd`
+# DIPLO_FAMILY_KEYWORDS); `tests/test_wo_slice7_cabinet_door.py` FAMILY_ACTIONS
+# is pinned equal to this set. A reply about one of them names the Cabinet,
+# never the typed line.
+CABINET_ACTIONS = frozenset({
+    "diplomatic_declare_war", "diplomatic_proposal", "diplomatic_ultimatum",
+    "diplomatic_break", "diplomatic_downgrade", "diplomatic_mission",
+    "diplomatic_ask_return", "diplomatic_bid",
+    "make_vassal", "invest_vassal", "change_autonomy", "release_vassal",
+    "grant_region_to_vassal",
+    "sponsor_design", "buy_off_design", "guarantee_nation",
+    "propose_common_peace", "propose_white_peace", "request_terms",
+    "set_war_purpose", "make_amends", "repudiate_bargain",
+    "recognition_sweetener", "bind_to_war", "summon_congress",
+})
+
 # Valid stances for stance_change action
 VALID_STANCES: Set[str] = {
     "aggressive",
@@ -387,8 +405,8 @@ def validate_parse_result(
             result.diplomatic_data = None
             result.suggestion = (
                 f"Unknown diplomatic action: {diplo_action}. "
-                "Try: propose peace with <nation>, declare war on <nation>, "
-                "or address Talleyrand directly."
+                "Matters of state are conducted at the Cabinet (F1) — "
+                "choose the court, then the act."
             )
             return result
         else:

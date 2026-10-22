@@ -1365,7 +1365,11 @@ class TestCourtingBias:
         from backend.game_logic.vassal import attempt_vassal_courting
         for state in world.vassals.values():
             state["loyalty"] = 40
-        world.nation_dp["Russia"] = 4
+        # VP1-X13 (S14b part 2): every court now boots with its purse, so a
+        # funded rival whose design stakes Holland takes the slot (WO-8's
+        # yield, `courtier_yields_to_a_design_stake`) — this pin is the
+        # agenda bias ALONE, so the rivals' purses are emptied.
+        world.nation_dp = {"Russia": 4}
         events = attempt_vassal_courting(world, "Russia")
         courted = [e for e in events if e["type"] == "vassal_courting"]
         assert courted and courted[0]["vassal"] == "Holland"
