@@ -415,7 +415,17 @@ func _congress_block(congress, style: Dictionary) -> String:
 		# GE-3 review #59: the titled count is the BLOC's (the Empire and its
 		# satellites), while THE RECORD's realm line counts France alone —
 		# the card says so rather than print 50 beside 43 unexplained.
-		out += str(_n(congress, "titled")) + " of " + str(hold) + " titled provinces in the Empire and its satellites.\n"
+		# UXR3-F11: the line is the backend's (`congress.titled_summary_line`)
+		# — past the bar "50 of 45" read as more than all. An older stamp
+		# without it is phrased the same way here.
+		var titled_line_v = congress.get("titled_line")
+		var have := _n(congress, "titled")
+		if titled_line_v is String and titled_line_v != "":
+			out += _esc(str(titled_line_v)) + "\n"
+		elif have > hold:
+			out += str(have) + " titled provinces in the Empire and its satellites — " + str(hold) + " were needed.\n"
+		else:
+			out += str(have) + " of " + str(hold) + " titled provinces in the Empire and its satellites.\n"
 	# SF-RR7: the page names what the peace buys — the great powers'
 	# signatures, not the lesser courts' grievances (stamped with the ending).
 	var bought_v = congress.get("bought_line")

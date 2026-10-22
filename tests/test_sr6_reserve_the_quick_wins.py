@@ -99,13 +99,21 @@ class TestTheObjectionOffersAManWeHaveSeen:
         assert DS._get_aggressive_preferred(murat, world) == {"action": "attack", "target": "Mack"}
 
     def test_the_distance_is_measured_to_where_the_player_believes_him(self, shipped):
+        # RR6-X3 (October 21, 2026): the pin staged a man IN SIGHT (Bohemia
+        # reads PARTIAL at boot) whom the player "believed" at his old
+        # Swabia snapshot — the two-rule state RR6-X3 closed. One rule now:
+        # a man in sight is believed where he stands, and the offer measures
+        # its distance THERE (Bohemia is no neighbour of Murat's, so no
+        # attack on Mack is offered); a man out of sight is offered nothing.
+        from backend.commands.strategic import pursue_known_location
         client, world = shipped
         murat, mack = world.marshals["Murat"], world.marshals["Mack"]
         assert world.get_last_known_location("Mack")[0] == "Swabia"
-        mack.location = "Bohemia"          # the truth moves; the intel does not
+        mack.location = "Bohemia"          # the truth moves, in sight
         world._build_marshal_index()
+        assert pursue_known_location(world, murat, mack) == "Bohemia"
         preferred = DS._get_aggressive_preferred(murat, world)
-        assert preferred == {"action": "attack", "target": "Mack"}, preferred
+        assert preferred != {"action": "attack", "target": "Mack"}, preferred
 
     def test_a_shut_crossing_is_skipped(self, shipped, monkeypatch):
         client, world = shipped

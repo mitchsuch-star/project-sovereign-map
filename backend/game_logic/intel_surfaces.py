@@ -104,16 +104,163 @@ def live_sightings(world, viewer: str) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+# ── RR6-X3 (Pre-Deploy S14b's head, October 21, 2026): ONE SIGHTING RULE ──
+# Three readers of "where the player last saw a man" stood: the store's
+# snapshots (the order, its per-turn gate, the cautious objection), this
+# module's rows (the dispatch, the Ledger), and the live read under a PARTIAL
+# label (the desk, the map, `get_visible_enemies`). Measured on the FLD arm's
+# turn 7: the dialog showed Archduke John take Provence, the map and the desk
+# placed him there, and the order answered "No intelligence on Archduke John's
+# position" — Provence's own read was turn 6's, empty, and no shown action
+# wrote a sighting. Ruled under the standing delegation (BUG_FIXES §RR6):
+#   1. IN SIGHT — the map's rule: a foreign corps whose own province reads
+#      PARTIAL or better is placed where he stands, today (`in_sight`);
+#   2. OUT OF SIGHT — the newest snapshot naming him, each entry its own turn;
+#      a snapshot in a province in sight today that no longer holds him is
+#      yesterday's (it rides as `last_known`, as a FULL label's always did);
+#   3. THE STORE LEARNS WHAT THE DIALOG SHOWED — every enemy-phase action the
+#      fog filter shows writes its actor's sighting where the dialog places him
+#      (`record_shown_sightings`), so once the label decays he is "last seen
+#      at Provence", not "no intelligence".
+# `last_seen` is the one answer; the order, the per-turn gate, the cautious
+# objection, the desk, the dispatch, the Ledger and the status report ask it.
+
+
+def in_sight(world, viewer: str, man) -> bool:
+    """RR6-X3 rule 1 — the map's: a foreign corps stands IN SIGHT when the
+    province he stands in reads PARTIAL or better (what `get_visible_enemies`,
+    the map's markers and the desk read). Our own, an empty corps and a
+    prisoner are never sightings."""
+    if man is None or getattr(man, "nation", None) == viewer:
+        return False
+    if int(getattr(man, "strength", 0) or 0) <= 0 or getattr(man, "captured_by", ""):
+        return False
+    intel = world.intel.get(str(getattr(man, "location", "") or ""))
+    return (intel is not None
+            and VISIBILITY_PRIORITY.get(intel.visibility, 0) >= VISIBILITY_PRIORITY[PARTIAL])
+
+
+def _in_sight_rows(world, viewer: str) -> Dict[str, Dict[str, Any]]:
+    """Rule 1's rows: every foreign corps in sight, where he stands today —
+    exact at FULL, his own band at PARTIAL (the desk's and the map's figure,
+    never the province's aggregate)."""
+    out: Dict[str, Dict[str, Any]] = {}
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for m in (getattr(world, "marshals", {}) or {}).values():
+        if not in_sight(world, viewer, m):
+            continue
+        vis = world.intel[m.location].visibility
+        out[m.name] = {
+            "name": humanize_entity_name(m.name),
+            "roster_name": m.name,
+            "nation": m.nation,
+            "location": m.location,
+            "strength": int(m.strength),
+            "strength_display": (f"{int(m.strength):,}" if vis == FULL
+                                 else get_strength_band(int(m.strength))),
+            "visibility": vis,
+            "intel_turn": turn,
+            "source": "live",
+        }
+    return out
+
+
+def last_seen(world, viewer: str, name: str) -> Optional[Dict[str, Any]]:
+    """RR6-X3: THE answer to "where does the player place this man" — his row
+    under the one rule (in sight now, else his newest sighting), or None when
+    the player has no sighting of him. `location`, `intel_turn`, `visibility`
+    and `source` (`live` / `snapshot`) as the dispatch's rows carry them."""
+    if not name:
+        return None
+    for row in enemy_sightings(world, viewer):
+        if row.get("roster_name") == name:
+            return row
+    return None
+
+
+def _shown_place(world, action: Dict[str, Any], actor: str) -> Optional[str]:
+    """Where the enemy-phase dialog places `actor` for one shown action — only
+    what its lines print (`enemy_phase_dialog.gd` `_format_action`): the
+    province he "moves to" / "retreats to" (the march's own event, so a march
+    that did not happen places nobody) or "Region captured: X" under his
+    action, else the province he stands in when that is in full view (the
+    filter's region gate showed the action because of it). A battle's retreat
+    is never printed with its road, so it places nobody — the battle's own
+    intelligence (`update_intel_from_battle`) reads its field."""
+    place = None
+    verb = str((action.get("ai_action") or {}).get("action") or "")
+    for evt in action.get("events") or []:
+        if not isinstance(evt, dict) or evt.get("marshal") != actor:
+            continue
+        etype = str(evt.get("type") or "")
+        if etype == "conquest" and evt.get("region"):
+            place = str(evt["region"])
+        elif etype == verb and etype in ("move", "retreat") and evt.get("to"):
+            place = str(evt["to"])
+    if place is None:
+        man = world.marshals.get(actor)
+        here = str(getattr(man, "location", "") or "")
+        intel = world.intel.get(here)
+        if intel is not None and intel.visibility == FULL:
+            place = here
+    return place if place in getattr(world, "regions", {}) else None
+
+
+def record_shown_sightings(world, shown_phase: Optional[Dict[str, Any]]) -> int:
+    """RR6-X3 rule 3: the store learns what the enemy-phase dialog SHOWED.
+    Every shown action's actor is written into the snapshot of the province
+    the dialog places him in, stamped with this turn (`SEEN_TURN_KEY`) — the
+    province's own read and label untouched, so decay ages it as it would.
+    Skipped where a read of this turn already names him (the live end of the
+    phase is the newer knowledge). Returns the sightings written."""
+    from backend.models.intel import SEEN_TURN_KEY, snapshot_entry
+    if not shown_phase or not shown_phase.get("nations"):
+        return 0
+    viewer = getattr(world, "player_nation", "")
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    placed: Dict[str, str] = {}
+    for nation_data in shown_phase["nations"].values():
+        for action in nation_data.get("actions", []) or []:
+            ai = action.get("ai_action") or {}
+            actor = str(ai.get("marshal") or "") if isinstance(ai, dict) else ""
+            man = world.marshals.get(actor) if actor else None
+            if (man is None or man.nation == viewer
+                    or int(getattr(man, "strength", 0) or 0) <= 0
+                    or getattr(man, "captured_by", "")):
+                continue
+            place = _shown_place(world, action, actor)
+            if place:
+                placed[actor] = place   # the phase's last shown place wins
+    written = 0
+    for actor, place in placed.items():
+        known = world.get_last_known_location(actor)
+        if known is not None and known[1] >= turn:
+            continue
+        man = world.marshals[actor]
+        intel = world._intel_entry(place)
+        entry = world._build_marshal_snapshot([man], full=(intel.visibility == FULL))[0]
+        entry[SEEN_TURN_KEY] = turn
+        intel.known_marshals = ([km for km in intel.known_marshals
+                                 if snapshot_entry(km).get("name") != actor] + [entry])
+        written += 1
+    return written
+
+
 def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
     """AAR-5: the dispatch's / Ledger's rows — one per enemy marshal, the
-    live FULL sighting first, then the frozen snapshots where the fog is real
-    (PARTIAL / STALE / LAST_KNOWN, and a FULL label whose live read is empty
-    — that label is yesterday's), deduped so a "[partial]" row never outranks
-    a live one. Sorted FULL → PARTIAL → STALE → LAST_KNOWN."""
+    live sighting first, then the frozen snapshots where the fog is real
+    (PARTIAL / STALE / LAST_KNOWN, and a label in sight whose live read lacks
+    him — that label is yesterday's), deduped so a "[partial]" row never
+    outranks a live one. Sorted FULL → PARTIAL → STALE → LAST_KNOWN.
+
+    RR6-X3: THE sighting rule (`last_seen` reads it) — the live read covers
+    every corps IN SIGHT (a PARTIAL label too, the map's rule), and each
+    snapshot entry carries its own turn (`entry_seen_turn`)."""
+    from backend.models.intel import entry_seen_turn, snapshot_entry
     rank = VISIBILITY_PRIORITY
     sightings: Dict[str, Dict[str, Any]] = {}
     if THE_SIGHTING_IS_LIVE:
-        sightings.update(live_sightings(world, viewer))
+        sightings.update(_in_sight_rows(world, viewer))
     for region_name, intel in world.intel.items():
         vis = intel.visibility
         if vis == UNKNOWN:
@@ -127,12 +274,14 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
             # the man STANDS in a full-view province today, where the live
             # read is the whole truth and already decided (an empty corps,
             # a prisoner, a man in plain sight), or he is on no roster at
-            # all (a phantom label: SR-6a's own ledger pin).
+            # all (a phantom label: SR-6a's own ledger pin). (A PARTIAL
+            # label's snapshot keeps its tier — "reported" — as it always
+            # has; RR6-X3 moves only the place, never a report's word.)
             if not A_FULL_LABEL_KEEPS_ITS_LAST_SIGHTING:
                 continue
             frozen_full = True
             vis = LAST_KNOWN
-        for km in intel.known_marshals:
+        for km in map(snapshot_entry, intel.known_marshals):
             if km.get("nation") == viewer:
                 continue
             name = km.get("name", "Unknown")
@@ -144,8 +293,10 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
                 # no frozen snapshot of him, here or elsewhere, rides.
                 _standing = world.marshals.get(name) if hasattr(world, "marshals") else None
                 _where = world.intel.get(str(getattr(_standing, "location", "") or ""))
-                if _standing is not None and _where is not None and _where.visibility == FULL:
-                    continue  # the live read already spoke for him
+                if _standing is not None and _where is not None and (
+                        _where.visibility == FULL
+                        or in_sight(world, viewer, _standing)):
+                    continue  # the live read already spoke for him (RR6-X3: in sight)
             if A_PRISONER_IS_NOT_A_SIGHTING:
                 # Score Finish Step 3 exit (narration C4): a man the roster
                 # knows to be a PRISONER never rides as a frozen snapshot —
@@ -156,7 +307,7 @@ def enemy_sightings(world, viewer: str) -> List[Dict[str, Any]]:
                 _man = world.marshals.get(name) if hasattr(world, "marshals") else None
                 if _man is not None and getattr(_man, "captured_by", ""):
                     continue
-            updated = int(intel.last_updated_turn)
+            updated = entry_seen_turn(intel, km)
             existing = sightings.get(name)
             if existing is not None:
                 if existing.get("source") == "live":

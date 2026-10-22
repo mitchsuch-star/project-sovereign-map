@@ -1,0 +1,7 @@
+{
+ "note": "no findings file given; a hand-played campaign supplies rows filed per 10 turns played (§4.4)",
+ "hand": null,
+ "driver": {
+  "rows_filed": 0
+ }
+}

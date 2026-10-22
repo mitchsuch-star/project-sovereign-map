@@ -765,5 +765,7 @@ class TestTheLedgers:
             assert "✅ FIXED October 21, 2026" in line, row
 
     def test_the_sibling_routed_carries_its_owner(self):
+        # RR6-X3 closed where it was routed (Pre-Deploy S14b's head, October
+        # 21, 2026), on the pin the routing named.
         line = next(ln for ln in doc_text("BUG_FIXES.md").splitlines() if "| **RR6-X3** |" in ln)
-        assert "OPEN — owner: Pre-Deploy S14b" in line and "test_rr6_x3_one_sighting_rule.py" in line
+        assert "FIXED — Pre-Deploy S14b's head" in line and "test_rr6_x3_one_sighting_rule.py" in line

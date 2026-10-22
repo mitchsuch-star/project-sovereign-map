@@ -92,6 +92,29 @@ def scouted_view_expired(intel: "RegionIntel", turn: int, granted: bool = False)
             and int(turn) - int(intel.last_updated_turn) > FRESH_TURNS)
 
 
+# RR6-X3: the snapshot entry's own stamp — a sighting the enemy-phase dialog
+# showed, written into a province whose read is older (`intel_surfaces.
+# record_shown_sightings`). Carried in the entry dict, so it saves with it.
+SEEN_TURN_KEY = "seen_turn"
+
+
+def snapshot_entry(entry: Any) -> Dict[str, Any]:
+    """A snapshot entry as a dict — a bare name (a hand-staged or legacy
+    `known_marshals` list of strings) reads as `{"name": name}`, as the desk's
+    own scan always read it."""
+    return entry if isinstance(entry, dict) else {"name": str(entry)}
+
+
+def entry_seen_turn(intel: "RegionIntel", entry: Dict[str, Any]) -> int:
+    """RR6-X3: the turn a snapshot entry saw its man — the entry's own stamp
+    when the dialog showed him there after the province's last read, else the
+    province's read (`last_updated_turn`)."""
+    try:
+        return int(entry.get(SEEN_TURN_KEY, intel.last_updated_turn))
+    except (TypeError, ValueError):
+        return int(intel.last_updated_turn)
+
+
 def get_strength_band(strength: int) -> str:
     """
     Convert exact troop strength to a vague band description.

@@ -1008,7 +1008,7 @@ Reserved future `event_log` payloads:
 |-------|------|-------------|
 | `region_name` | string | Region this intel applies to |
 | `visibility` | string | Current visibility level: "full", "partial", "stale", "last_known", "unknown" |
-| `known_marshals` | list | Snapshot of marshals last seen: `[{name, nation, strength?, band?}]`. Frozen during decay. |
+| `known_marshals` | list | Snapshot of marshals last seen: `[{name, nation, strength?, band?, seen_turn?}]`. Frozen during decay. `seen_turn` (RR6-X3, October 21, 2026; optional, absent on older saves): the turn the enemy-phase dialog showed this man here, written after the province's own read (`intel_surfaces.record_shown_sightings`) — the entry's turn for `get_last_known_location` and the sighting rule (`intel.entry_seen_turn`), the province's `last_updated_turn` otherwise. A bare name in place of a dict reads as `{name}`. |
 | `strength_band` | string | Aggregate strength band: "no forces", "screening force", "small force", "substantial force", "large force", "massive force" |
 | `exact_strength` | int\|null | Exact total troop count. Only set at FULL visibility. |
 | `morale` | int\|null | Morale value. Only set at FULL visibility. |

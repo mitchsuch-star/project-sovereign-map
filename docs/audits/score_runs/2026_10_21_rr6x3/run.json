@@ -1,0 +1,312 @@
+{
+ "tree": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map",
+ "sha": "846097827dc8ed6ffd83eece7018485a9862cedf",
+ "started": "2026-10-21T23:54",
+ "jobs": 4,
+ "arms": {
+  "CMD-M": {
+   "arm": "CMD-M",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 27.7,
+   "cmd": [
+    "--name",
+    "CMD-M",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "marengo"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-M_t10.json",
+     "turn": 10,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-M_t20.json",
+     "turn": 20,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-M_t30.json",
+     "turn": 30,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-M_t40.json",
+     "turn": 40,
+     "titled": 35,
+     "hold_titled": 45,
+     "provinces": 28
+    }
+   ]
+  },
+  "CMD-A": {
+   "arm": "CMD-A",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 30.6,
+   "cmd": [
+    "--name",
+    "CMD-A",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "austerlitz"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 33,
+     "hold_titled": 45,
+     "provinces": 27
+    },
+    {
+     "save": "CMD-A_t10.json",
+     "turn": 10,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t20.json",
+     "turn": 20,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t30.json",
+     "turn": 30,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-A_t40.json",
+     "turn": 40,
+     "titled": 34,
+     "hold_titled": 45,
+     "provinces": 28
+    }
+   ]
+  },
+  "VOLTE": {
+   "arm": "VOLTE",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 31.9,
+   "cmd": [
+    "--name",
+    "VOLTE",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/volte_court_austria.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 26,
+     "hold_titled": 45,
+     "provinces": 21
+    }
+   ]
+  },
+  "CMD-H": {
+   "arm": "CMD-H",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 32.5,
+   "cmd": [
+    "--name",
+    "CMD-H",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/commanded_full40.json",
+    "--turns",
+    "40",
+    "--diplomacy",
+    "accept",
+    "--save-at",
+    "10,20,30,40",
+    "--seed",
+    "historical"
+   ],
+   "titled": [
+    {
+     "save": "autosave.json",
+     "turn": 41,
+     "titled": 14,
+     "hold_titled": 45,
+     "provinces": 9
+    },
+    {
+     "save": "CMD-H_t10.json",
+     "turn": 10,
+     "titled": 33,
+     "hold_titled": 45,
+     "provinces": 29
+    },
+    {
+     "save": "CMD-H_t20.json",
+     "turn": 20,
+     "titled": 33,
+     "hold_titled": 45,
+     "provinces": 28
+    },
+    {
+     "save": "CMD-H_t30.json",
+     "turn": 30,
+     "titled": 19,
+     "hold_titled": 45,
+     "provinces": 14
+    },
+    {
+     "save": "CMD-H_t40.json",
+     "turn": 40,
+     "titled": 14,
+     "hold_titled": 45,
+     "provinces": 9
+    }
+   ]
+  },
+  "DL": {
+   "arm": "DL",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 6.3,
+   "cmd": [
+    "--name",
+    "DL",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/score_docked_lines.json",
+    "--turns",
+    "3"
+   ]
+  },
+  "FLD": {
+   "arm": "FLD",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 12.2,
+   "cmd": [
+    "--name",
+    "FLD",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_chunk4_field.json",
+    "--turns",
+    "10",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "decline"
+   ]
+  },
+  "LAW": {
+   "arm": "LAW",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 12.3,
+   "cmd": [
+    "--name",
+    "LAW",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_chunk5_laws.json",
+    "--turns",
+    "10",
+    "--diplomacy",
+    "accept"
+   ]
+  },
+  "OP": {
+   "arm": "OP",
+   "exit": 0,
+   "status": "completed",
+   "seconds": 20.5,
+   "cmd": [
+    "--name",
+    "OP",
+    "--fresh",
+    "--out",
+    "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User--claude-spares-spare-gRhqyG\\df494325-3302-4a8a-aaea-c53c0723792f\\scratchpad\\final\\arms",
+    "--llm",
+    "mock",
+    "--script",
+    "tools/playtest_scripts/sr_exit_aar_typed.json",
+    "--turns",
+    "18",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept"
+   ]
+  }
+ },
+ "skipped": {},
+ "finished": "2026-10-21T23:55"
+}

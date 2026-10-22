@@ -536,15 +536,26 @@ def economy_c3_verdict(rows):
     itself: those battles land before the income phase draws the bill, so they
     move the chest and the campaign's dead (the pensions term) after the quote
     was read. The item passes only when every battle-free turn bills its quote
-    to the gold, and at least one battle-free turn was compared."""
-    calm = [r for r in rows if not r[5]]
-    fought = [r for r in rows if r[5]]
+    to the gold, and at least one battle-free turn was compared.
+
+    RR6-X9 (Pre-Deploy S14b's head, October 21, 2026): a seventh column, the
+    end turn's CAPTURES of our provinces (the enemy-phase record), explains a
+    gap the same way — measured on the moved CMD-H arm's turn 30: Bennigsen
+    walked into Picardy and Artois unopposed (no battle, no materiel), the
+    Emperor's grip fell under 70 and the "grip falters" term's +50 rate points
+    joined the draw — 331 quoted, 375 billed, the arithmetic exact. A quote
+    cannot know the enemy's march; a six-column row reads as before."""
+    def _struck(r) -> bool:
+        return bool(r[5]) or bool(r[6] if len(r) > 6 else 0)
+
+    calm = [r for r in rows if not _struck(r)]
+    fought = [r for r in rows if _struck(r)]
     bad = [r for r in calm if r[1] != r[2] or r[3] != r[4]]
     explained = [r for r in fought if r[1] != r[2] or r[3] != r[4]]
     tail = ""
     if explained:
-        tail += (" — explained by the end turn's own battles (turn, quoted, applied, "
-                 "quoted laws, applied, materiel): " + str(explained))
+        tail += (" — explained by the end turn's own battles or captures (turn, quoted, "
+                 "applied, quoted laws, applied, materiel[, captures]): " + str(explained))
     if bad:
         tail += " — mismatches on battle-free turns " + str(bad)
     if not calm:
@@ -580,6 +591,13 @@ def economy_c3_quote_equals_applied(arms, ctx):
     bills = {int(r.get("turn") or 0): r for r in a.kind("applied_bill")}
     if not bills:
         return _un("a pre-SF-V7 archive — the driver did not record the applied bill")
+    # RR6-X9: the end turn's own captures of our provinces, per turn.
+    captures, _turn = {}, None
+    for r in a.records:
+        if r.get("kind") == "turn":
+            _turn = int(r.get("turn") or 0)
+        elif r.get("kind") == "enemy_phase" and _turn is not None:
+            captures[_turn] = captures.get(_turn, 0) + int(r.get("captures") or 0)
     rows = []
     from backend.game_logic import ledger as L
 
@@ -598,6 +616,7 @@ def economy_c3_quote_equals_applied(arms, ctx):
                 int(eco.get("laws", 0) or 0),
                 int(applied.get("laws", 0) or 0),
                 int(applied.get("materiel", 0) or 0),
+                int(captures.get(t, 0)),
             )
         )
     if not rows:
@@ -1711,13 +1730,18 @@ def narration_c4_intel_row(arms, ctx):
                 # AAR-5 (Step 2): a LIVE row places the man where he STANDS in a
                 # province in full view this morning — the store's last sighting
                 # may be a turn older (it is written before the enemy phase).
+                # RR6-X3 (October 21, 2026): the one sighting rule reads a man
+                # live wherever he stands IN SIGHT (a PARTIAL label too — the
+                # map's rule), so a live row is confirmed by the man standing
+                # there under a label in sight, not only a FULL one.
                 live_ok = False
                 if row.get("source") == "live":
-                    from backend.models.intel import FULL as _FULL
+                    from backend.models.intel import FULL as _FULL, PARTIAL as _PARTIAL
                     _m = next((w.marshals.get(c) for c in candidates if w.marshals.get(c)), None)
                     _intel = w.intel.get(str(row.get("location") or ""))
                     live_ok = bool(_m is not None and _m.location == row.get("location")
-                                   and _intel is not None and _intel.visibility == _FULL)
+                                   and _intel is not None
+                                   and _intel.visibility in (_FULL, _PARTIAL))
                 # SF-CL-1 exit (October 3, 2026): the dispatch is the MORNING's
                 # and the save is the evening's. A frozen snapshot row whose
                 # province the store RE-READ after the row's own turn (its
@@ -1753,7 +1777,7 @@ def narration_c4_intel_row(arms, ctx):
         True,
         not bad,
         (f"{checked} intel rows; disagreeing with the store: {bad[:3]}" if bad
-         else f"{checked} intel rows, each where the store last saw the man or where he stands in full view")
+         else f"{checked} intel rows, each where the store last saw the man or where he stands in sight")
         + note,
     )
 

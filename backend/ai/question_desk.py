@@ -293,24 +293,16 @@ def _state_words(marshal) -> List[str]:
 
 
 def _last_report_of(world, name: str) -> Optional[Tuple[str, int]]:
-    """(region, turns ago) of the freshest STALE/LAST_KNOWN intel snapshot
-    naming this marshal — a one-off scan for a typed question, not a hot
-    path (the intelligence report makes the same pass)."""
-    from backend.models.intel import UNKNOWN
-    best = None
-    for region_name in world.regions.keys():
-        intel = world.get_region_intel(region_name)
-        # Review round (R2-6): every tier's snapshot counts — a corps that
-        # walked out of a still-PARTIAL province is "last reported" there.
-        if intel.visibility == UNKNOWN:
-            continue
-        known = getattr(intel, "known_marshals", None) or []
-        names = [k.get("name") if isinstance(k, dict) else k for k in known]
-        if name in names:
-            ago = int(world.current_turn - intel.last_updated_turn)
-            if best is None or ago < best[1]:
-                best = (region_name, ago)
-    return best
+    """(region, turns ago) of the player's newest sighting of this marshal —
+    RR6-X3: the ONE rule (`intel_surfaces.last_seen`), the order's and the
+    dispatch's, so "last reported at" names the province the order would
+    march on. (Review round R2-6's rule — a corps that walked out of a
+    still-PARTIAL province is "last reported" there — is the rule's own.)"""
+    from backend.game_logic.intel_surfaces import last_seen
+    seen = last_seen(world, world.player_nation, name)
+    if not seen:
+        return None
+    return (seen["location"], int(world.current_turn - int(seen["intel_turn"])))
 
 
 def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
@@ -348,15 +340,29 @@ def _answer_region(world, kind: str, region_name: str) -> Optional[str]:
                 f"{_display(m.name)} of {_court(world, m.nation)} ({int(m.strength):,})"
                 for m in foes) + ".")
     elif vis in (PARTIAL, STALE, LAST_KNOWN):
-        known = getattr(intel, "known_marshals", None) or []
-        names = [k.get("name") if isinstance(k, dict) else k for k in known]
-        if names:
-            ago = int(world.current_turn - intel.last_updated_turn)
+        # RR6-X11 (RR6-X3's sweep): the men the ONE sighting rule places here
+        # (`intel_surfaces.enemy_sightings` — in sight now, else last seen
+        # here and nowhere newer), never every name the province's snapshot
+        # holds: "who is at Provence" answered "No army stands in Provence"
+        # one line after "where is Archduke John" placed him there.
+        from backend.game_logic.intel_surfaces import enemy_sightings
+        from backend.models.intel import get_strength_band
+        rows = [s for s in enemy_sightings(world, player)
+                if s.get("location") == region_name and s.get("visibility") != FULL]
+        if rows:
+            newest = max(int(s.get("intel_turn") or 0) for s in rows)
+            ago = int(world.current_turn - newest)
             when = "this turn" if ago <= 0 else f"{ago} turn{'s' if ago != 1 else ''} ago"
+            if len(rows) == 1:
+                shown_band = str(rows[0].get("strength_display") or intel.strength_band)
+            elif all(s.get("source") == "live" for s in rows):
+                shown_band = get_strength_band(sum(int(s.get("strength") or 0) for s in rows))
+            else:
+                shown_band = intel.strength_band
             # Review round (R2-11): the intelligence report prints no band at
             # LAST_KNOWN, so neither does the desk.
-            band = f"{intel.strength_band}, " if vis != LAST_KNOWN else ""
-            lines.append(f"Reported: {', '.join(_display(n) for n in names)} — "
+            band = f"{shown_band}, " if vis != LAST_KNOWN else ""
+            lines.append(f"Reported: {', '.join(_display(s['roster_name']) for s in rows)} — "
                          f"{band}{when}.")
     elif vis == UNKNOWN and not own:
         return f"No word from {region_name}, Sire — it has not been scouted."
@@ -1723,6 +1729,15 @@ def _answer_what_if(world, player: str, enemy_name: str,
                     f"{shown} leads no army, Sire.")
                 + " There is no battle to weigh.")
     if not world.get_region_intel(enemy.location).visibility_at_least(PARTIAL):
+        # RR6-X6 (RR6-X3's sweep): out of sight is not "no word" when the
+        # player HAS a sighting — the where-desk and the order both name it.
+        last = _last_report_of(world, enemy.name)
+        if last:
+            region_name, ago = last
+            when = "this turn" if ago <= 0 else f"{ago} turn{'s' if ago != 1 else ''} ago"
+            return (f"{shown} was last reported at {region_name}, {when}, Sire — "
+                    f"he is out of sight, and there is no battle to weigh. "
+                    f"Scout for him to weigh one.")
         return (f"We have no word of {shown}'s whereabouts, Sire — there "
                 f"is no battle to weigh. Scout for him before naming him.")
     candidates = []

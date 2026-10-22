@@ -11,7 +11,7 @@ Usage:
     report = generate_intel_report(world)
 """
 
-from typing import Dict, Any
+from typing import Any, Dict, List
 from backend.display_names import humanize_entity_name, plural
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
@@ -86,6 +86,26 @@ def generate_intel_report(world) -> Dict[str, Any]:
     from backend.game_logic import intel_surfaces as _surf
     live_elsewhere = (set(_surf.live_sightings(world, player_nation))
                       if _surf.THE_SIGHTING_IS_LIVE else set())
+    # RR6-X3: below FULL a province lists the men the ONE sighting rule
+    # places there (`enemy_sightings` — the order's, the desk's, the
+    # dispatch's), never every name its snapshot ever held: a man in sight at
+    # a PARTIAL province elsewhere was listed twice, and one the dialog showed
+    # taking a province was listed nowhere.
+    placed: Dict[str, List[Dict[str, Any]]] = {}
+    if _surf.THE_SIGHTING_IS_LIVE:
+        for _s in _surf.enemy_sightings(world, player_nation):
+            if _s.get("visibility") != FULL:
+                placed.setdefault(str(_s["location"]), []).append({
+                    "name": _s["roster_name"], "nation": _s["nation"],
+                    "band": _s["strength_display"]})
+
+    def _band(region_name: str, intel) -> str:
+        """The band the listed men carry — one man's own, else the
+        province's (the snapshot's aggregate, as the report always read)."""
+        rows = placed.get(region_name, []) if _surf.THE_SIGHTING_IS_LIVE else []
+        if len(rows) == 1 and rows[0].get("band"):
+            return str(rows[0]["band"])
+        return intel.strength_band
     garrison_rows = {g["location"]: g
                      for g in _surf.known_garrisons(world, player_nation)}
 
@@ -138,8 +158,9 @@ def generate_intel_report(world) -> Dict[str, Any]:
 
         elif visibility in (PARTIAL, STALE):
             # Strength band only, from intel snapshot (may be stale)
-            known = [km for km in intel.known_marshals
-                     if km.get("name") not in live_elsewhere]
+            known = (placed.get(region_name, []) if _surf.THE_SIGHTING_IS_LIVE
+                     else [km for km in intel.known_marshals
+                           if km.get("name") not in live_elsewhere])
             garrison = garrison_rows.get(region_name)
             if garrison is not None:
                 region_info["garrison"] = {
@@ -156,7 +177,7 @@ def generate_intel_report(world) -> Dict[str, Any]:
                     recent_reports.append(region_info)
             if known:
                 region_info["known_marshals"] = known
-                region_info["strength_band"] = intel.strength_band
+                region_info["strength_band"] = _band(region_name, intel)
                 region_info["intel_source"] = intel.intel_source
                 region_info["last_updated_turn"] = int(intel.last_updated_turn)
                 turns_ago = int(world.current_turn - intel.last_updated_turn)
@@ -166,9 +187,11 @@ def generate_intel_report(world) -> Dict[str, Any]:
                 recent_reports.append(region_info)
 
         elif visibility == LAST_KNOWN:
-            if intel.known_marshals:
-                region_info["known_marshals"] = intel.known_marshals
-                region_info["strength_band"] = intel.strength_band
+            known = (placed.get(region_name, []) if _surf.THE_SIGHTING_IS_LIVE
+                     else intel.known_marshals)
+            if known:
+                region_info["known_marshals"] = known
+                region_info["strength_band"] = _band(region_name, intel)
                 turns_ago = int(world.current_turn - intel.last_updated_turn)
                 region_info["turns_ago"] = turns_ago
                 last_known.append(region_info)

@@ -1,0 +1,78 @@
+{
+ "exit": {
+  "all_down/CMD-H": 0,
+  "all_down/CMD-A": 0,
+  "all_down/CMD-M": 0,
+  "all_down/OP": 0,
+  "all_down/FLD": 0,
+  "all_down/DL": 0,
+  "all_down/LAW": 0,
+  "all_down/VOLTE": 0,
+  "rule_down/CMD-H": 0,
+  "rule_down/CMD-A": 0,
+  "rule_down/CMD-M": 0,
+  "rule_down/OP": 0,
+  "rule_down/FLD": 0,
+  "rule_down/DL": 0,
+  "rule_down/LAW": 0,
+  "rule_down/VOLTE": 0,
+  "x8_down/CMD-H": 0,
+  "x8_down/CMD-A": 0,
+  "x8_down/CMD-M": 0,
+  "x8_down/OP": 0,
+  "x8_down/FLD": 0,
+  "x8_down/DL": 0,
+  "x8_down/LAW": 0,
+  "x8_down/VOLTE": 0
+ },
+ "game_vs_entry": {
+  "CMD-H": {
+   "shipped": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)"
+  },
+  "CMD-A": {
+   "shipped": "equal",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "equal"
+  },
+  "CMD-M": {
+   "shipped": "equal",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "equal"
+  },
+  "OP": {
+   "shipped": "equal",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "equal"
+  },
+  "FLD": {
+   "shipped": "parts at turn 7: (7, 'command', 'Ney, attack Archduke John', False) | (7, 'command', 'Ney, attack Archduke John', True)",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "parts at turn 7: (7, 'command', 'Ney, attack Archduke John', False) | (7, 'command', 'Ney, attack Archduke John', True)"
+  },
+  "DL": {
+   "shipped": "equal",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "equal"
+  },
+  "LAW": {
+   "shipped": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)"
+  },
+  "VOLTE": {
+   "shipped": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)",
+   "all_down": "equal",
+   "rule_down": "equal",
+   "x8_down": "parts at turn 7: (7, 'command', 'Ney, attack Archduke Charles', False) | (7, 'command', 'Ney, attack Archduke Charles', True)"
+  }
+ }
+}

@@ -11727,3 +11727,57 @@ The baseline, the final reading, the gate's and today's entry arms re-read under
 ### 141.11 The instruments
 
 `tools/_sf_rr6_series_arms.py` (the series attribution, the reach counted), `tools/_sf_rr6_arm_attribution.py` (each arm's GAME and VIEW streams, entry → seam down → shipped), `tools/_sf_rr6_reread_deltas.py` (the deltas, v1.1's moves told apart). The driver's new records are display and measurement only — the arms' game streams byte-identical across the driver change.
+
+## 142. ONE SIGHTING RULE (RR6-X3 and its sweep RR6-X4 … X11; UXR3-F11; Pre-Deploy S14b's head, October 21, 2026)
+
+*`BUG_FIXES.md` §RR6 (RR6-X3 FIXED with its siblings RR6-X4 … X11) and §UXR-3 the review (UXR3-F11 FIXED). Pins `tests/test_rr6_x3_one_sighting_rule.py` (the reproduction through the real endpoint, every seam's bite, the siblings) and `tests/test_uxr3_f11_the_titled_tally.py`. The commanded arms' attribution `tools/_rr6_x3_arm_attribution.py` and the series' `tools/_rr6_x3_series_arms.py` (`_final.json`); the slice's reading `docs/audits/score_runs/2026_10_21_rr6x3/`.*
+
+### 142.1 Reproduced first
+
+On the FLD arm's turn-7 board (the slice tree of SF-RR6): the enemy-phase dialog had shown Archduke John take Provence (PT-E5's own-soil arm); the map drew him there and the desk answered "Ney stands at Munich, beyond reach of Archduke John at Provence"; `Ney, attack Archduke John` answered "No intelligence on Archduke John's position", and the morning's intelligence rows carried no row for him. No snapshot in the store named him — he had walked into Piedmont, then Provence, under labels read before he came (Provence's turn-6 own-soil read, empty). The same line refused on CMD-H, LAW and VOLTE (`Ney, attack Archduke Charles`, Charles in sight at Piedmont).
+
+### 142.2 The ruling (the standing delegation, measured)
+
+Three readers of "where the player last saw a man" stood: the store's snapshots (the order, its per-turn gate, the cautious objection), the dispatch's sighting rule (`enemy_sightings`: live at FULL, snapshots below) and the live read under a PARTIAL label (the desk, the map, `get_visible_enemies` and its forty readers). Ruled: **the map's rule is the player's sight** — what the map draws is what the player sees, so no order may contradict it — **and the store learns what the dialog shows** (the hand-over's recommendation (a), taken whole). (b) alone would forget him the morning the label decays; (c) would have the desk deny a man the map draws, and moves `get_visible_enemies`, which the enemy AI's player-nation arm reads for an autonomous French corps.
+
+### 142.3 The rule — `intel_surfaces.last_seen(world, viewer, name)`
+
+1. **In sight now** (`in_sight`): a foreign corps, alive and free, whose own province reads PARTIAL or better is placed where he stands, today — exact at FULL, his own band at PARTIAL (the desk's and the map's figure).
+2. **Out of sight:** the newest snapshot naming him, each entry its own turn (`intel.entry_seen_turn` — the entry's `seen_turn` stamp, else the province's read). A FULL label whose live read lacks him rides as `last_known` with its turn, as it always did; a PARTIAL report keeps its word ("reported") — the rule moves the place, never a report's tier (measured: converting it would re-word the cautious objection and the Ledger for no change of place). A prisoner is no sighting (Step 3's exit), a FULL label with no man on the roster is none either (SR-6a).
+3. One function: `last_seen` is `enemy_sightings`' row for the man, so the rows and every answer read one scan.
+
+### 142.4 The store learns what the dialog showed — `record_shown_sightings`
+
+- The enemy-phase fog filter moved verbatim from `backend/main.py` to `backend/game_logic/enemy_phase_fog.py` (`filter_enemy_phase_by_visibility`, `own_soil_event_types`, `shown_enemy_phase`); main.py keeps `_filter_enemy_phase_by_visibility` and `_own_soil_event_types` as aliases, and `_build_visible_enemy_phase` still calls them by name — one predicate for the dialog and the store.
+- `meta_executor._execute_end_turn` writes, right after the turn manager's end turn and before the morning dispatch and the autosave read the store, each shown actor's sighting where the dialog's own lines place him (`_shown_place`): the province his "moves to" / "retreats to" names (the march's own event — a march that did not happen places nobody), the "Region captured" under his action, else his province when it is in full view (the region gate's reason for showing it). A battle's retreat is never printed with its road, so it places nobody; the battle's own intelligence reads its field.
+- The entry is the snapshot shape (`_build_marshal_snapshot`, the band below FULL) with `seen_turn` = this turn, replacing any older entry of him in that province; the province's read (`last_updated_turn`) and label are untouched, so decay ages it as it would. Skipped where a read of this turn already names him — the live end of the phase is the newer knowledge. A bare-name entry (a hand-staged or legacy list of strings) reads as `{"name": …}` everywhere (`intel.snapshot_entry`).
+
+### 142.5 The readers
+
+The order (`strategic.pursue_known_location`, the single source of the issuance gate, the pursuit ask, the aggressive objection's offer and the blocked-path arms), the per-turn PURSUE gate (`strategic.py`), the cautious objection (`check_strategic_objection`, its visibility tier and its age), the desk (`_last_report_of`: where, the where-nation answer, the state desk; the what-if; who-is-at), the dispatch and the Ledger (`enemy_sightings`), the status report (`intel_report`: below FULL a province lists the men the rule places there), the map's STALE arm and the `enemies` list (`get_filtered_game_state_summary`), and the muster's band (`_fog_banded_strength`). The enemy AI reads none of it (GR5): `pursue_known_location` answers an AI marshal with his quarry's true province, as before.
+
+### 142.6 The siblings (RR6-X4 … X11)
+
+- **X4:** the cautious objection's "scout first" took the quarry's TRUE province (a leak on a button) and read "takes alternative action" — now his last-seen province, named ("Trust: Davout scouts Tyrol").
+- **X5:** the pursuit ask "stands at" only for a man in sight; out of sight "was last seen at Provence 2 turns ago".
+- **X6:** the what-if names the last sighting ("was last reported at Provence, 2 turns ago, Sire — he is out of sight, and there is no battle to weigh"), never "no word" over a sighting.
+- **X7:** under STALE the map draws the rule's rows (the men last seen there and nowhere newer, at the band they were seen at), never the live occupants; a STALE row in `enemies` carries the last-seen province.
+- **X8:** `get_visible_enemies_in_region` reads STALE as out of sight (`[]`) — the attack-quote endpoint, the province card's attack rows, the closed-soil march and SUPPORT's safety read sight as `get_visible_enemies` does.
+- **X9 (the instrument):** economy C3's verdict counts the end turn's captures of our provinces as explaining a quote-vs-bill gap, as a battle does — the moved CMD-H arm's turn 30 lost Picardy and Artois to walk-ins, the grip fell under 70 and "grip falters" billed 375 against a 331 quote.
+- **X10:** the muster bands a man in sight at his own band where the province's snapshot predates him ("strength unknown" no more).
+- **X11:** "who is at Provence" names the men the rule places there.
+
+### 142.7 Measured
+
+- **`BASELINE_SERIES` byte-identical** with every seam up and down; the reach counted and zero — the ambient sim ends its turns at the turn manager (no dialog, no store write) and its passive France orders nothing (`tools/_rr6_x3_series_arms_final.json`).
+- **The commanded arms** (`tools/_rr6_x3_arm_attribution.py` against the SF-RR6 slice archive): CMD-A, CMD-M, OP and DL byte-identical; FLD, CMD-H, LAW and VOLTE part at turn 7 at the one line (`Ney, attack Archduke John / Charles` asks the pursuit, the driver answers it); with the rule held down (`last_seen` from the store alone, no sighting written) every arm is the entry archive byte for byte; RR6-X8's seam alone moves none. The display changes never reach a GAME stream.
+- **The reading moves with the re-timed campaigns** (checklist v1.2 on the slice's arms; `docs/audits/score_runs/2026_10_21_rr6x3/README.md`): on CMD-H the pursuit re-times the war and from turn 20 Bennigsen and Shrapnel walk an undefended France on the lawful road (EG-D2, the user's keep) — France 25 → 9 provinces at turn 40, living balance F1 and C4 ✗, narration C1 ✗ (a homeland province leading nearly every morning: event news, the rotation rule's own exemption); economy C3 ✓ with RR6-X9's reader. VOLTE's pursuit lost the courted peace its pin (RS-27) needs (0 beats in forty turns): the arm keeps its corps concentrated, as its note says, so turn 7 asks Ney's odds instead of ordering the chase — the beat fires on turn 30 (the refused order had drawn on the objection's dice; the question does not, so the war is re-timed by a roll from turn 8 — the arm's re-script, never the rule). Seeded paths, not laws: recorded per seed, never claimed as a defect of the rule. The front page's driven pins re-seated consciously (C1 exempts `home_captured`; the league rows read off the arms that forecast one; the Step 7 page's lever-down arm holds the rule down too).
+
+### 142.8 UXR3-F11 — the titled tally past the bar
+
+`congress.titled_tally` ("43 of 45 titled" short of the bar or on it, "50 titled, 45 needed" past it), `titled_held_clause` (the gate term "45 titled provinces (50 held)") and `titled_summary_line` (the end screen: "50 titled provinces in the Empire and its satellites — 45 were needed.", carried as `titled_line` on the Congress block). Every Congress line, the gate terms, the dispatch's summons and realm line read them; `campaign_end.gd` prints the backend's line and phrases an older stamp the same way. The played Congress board holds 50 titled provinces against GE-V's bar of 45 — "N of M" had printed a numerator above its denominator.
+
+### 142.9 The instruments
+
+`tools/_rr6_x3_arm_attribution.py` (`child` runs the driver in-process with the rule or RR6-X8 held down at its seam; `run` drives every arm all-down, rule-down and X8-down beside a `score_run.py run` of the shipped tree and names the first GAME parting from the entry archive), `tools/_rr6_x3_series_arms.py` (the series with the reach counted). The C4 probe (`narration_c4_intel_row`) accepts a live row placed in sight (FULL or PARTIAL), the rule's own reading.
+

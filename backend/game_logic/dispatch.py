@@ -1316,8 +1316,11 @@ def _congress_summonable_candidates(world, player_nation: str,
         parts.append(f"{_join_places(_seats(world, signers))} would sign")
     table = ("; ".join(parts) + ".") if parts else ""
     out = [("congress_summonable", f"congress_summonable:{world.current_turn}",
-            (f"THE CONGRESS OF PARIS MAY BE SUMMONED — {have} of {need} titled "
-             f"provinces are held and {capital} is ours. {table} "
+            (f"THE CONGRESS OF PARIS MAY BE SUMMONED — "
+             # UXR3-F11: past the bar "50 of 45" read as more than all.
+             + (f"{have} of {need} titled provinces are held" if have <= need else
+                f"{have} titled provinces are held ({need} are needed)")
+             + f" and {capital} is ours. {table} "
              f"Summon it from the Cabinet (F1) — the Congress of Paris "
              f"row.").replace("  ", " "))]
     for court in refusers:
@@ -2120,7 +2123,10 @@ def _realm_candidates(world, player_nation: str) -> List[Dict[str, Any]]:
                             ([f"{_join_places(_won)} titled"] if _won else [])
                     if _bits:
                         moved += " (" + "; ".join(_bits) + ")"
+                # UXR3-F11: past the bar, "50, of the 45" read as more than all.
                 line = (f"our titled provinces stand at {count}{moved}, of the "
+                        f"{needed} the Congress of Paris requires" if count <= needed else
+                        f"our titled provinces stand at {count}{moved} — past the "
                         f"{needed} the Congress of Paris requires")
                 if soon is not None:
                     line += f"; {soon['short']}"

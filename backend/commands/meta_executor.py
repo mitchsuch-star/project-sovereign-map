@@ -352,6 +352,15 @@ class MetaExecutor:
         turn_manager = TurnManager(world, executor=self._executor)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
 
+        # RR6-X3: the store learns what the enemy-phase dialog SHOWS — before
+        # the morning dispatch and the autosave read it. The dialog's own fog
+        # predicate, so the store and the dialog cannot disagree.
+        if turn_result.get("enemy_phase"):
+            from backend.game_logic.enemy_phase_fog import shown_enemy_phase
+            from backend.game_logic.intel_surfaces import record_shown_sightings
+            record_shown_sightings(
+                world, shown_enemy_phase(turn_result["enemy_phase"], world))
+
         # C3: If turn was already ended by auto-advance, turn_ended == next_turn.
         # Show the current turn info instead of a confusing "Turn N ended. Turn N begins!"
         if turn_result["turn_ended"] == turn_result["next_turn"]:

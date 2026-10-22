@@ -70,7 +70,13 @@ class TestAPrisonerIsNotASighting:
     def test_a_free_mans_stale_label_still_rides(self):
         world = self._staged()
         world.marshals["Mack"].captured_by = ""
-        world.marshals["Mack"].location = "Brittany"        # out of every FULL province
+        # RR6-X3 (October 21, 2026): out of SIGHT — the one sighting rule
+        # places a man live wherever his province reads PARTIAL or better,
+        # and Brittany is French soil (PARTIAL by construction). A province
+        # the player cannot see stands in for "out of every FULL province".
+        from backend.models.intel import UNKNOWN
+        unseen = next(r for r, i in sorted(world.intel.items()) if i.visibility == UNKNOWN)
+        world.marshals["Mack"].location = unseen
         rows = IS.enemy_sightings(world, "France")
         row = next(r for r in rows if r["roster_name"] == "Mack")
         assert row["location"] == "Franconia" and row["source"] == "snapshot"

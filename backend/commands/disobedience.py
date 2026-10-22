@@ -2297,12 +2297,14 @@ def check_strategic_objection(
         # Determine target visibility from intel store
         target_visibility = None
         target_intel_age = 0
+        _seen = None
         if hasattr(world, 'get_last_known_location') and target:
-            last_known = world.get_last_known_location(target)
-            if last_known:
-                _region, last_turn, vis = last_known
-                target_visibility = vis
-                target_intel_age = world.current_turn - last_turn
+            # RR6-X3: the one sighting rule — the order's and the desk's.
+            from backend.game_logic.intel_surfaces import last_seen
+            _seen = last_seen(world, marshal.nation, target)
+            if _seen:
+                target_visibility = _seen["visibility"]
+                target_intel_age = world.current_turn - int(_seen["intel_turn"])
 
         if target_marshal and target_marshal.strength > 0:
             if target_visibility == FULL_VIS:
@@ -2392,11 +2394,10 @@ def check_strategic_objection(
                         return None
 
                     # Resolve marshal name to their last known location for scouting
-                    scout_region = None
-                    if target:
-                        target_marshal_obj = world.get_marshal(target) if world else None
-                        if target_marshal_obj:
-                            scout_region = target_marshal_obj.location
+                    # — RR6-X4 (RR6-X3's sweep): the LAST SEEN province, never
+                    # his true one (the "scout first" answer named it under
+                    # three-turn-old intelligence: a fog leak on a button).
+                    scout_region = _seen["location"] if _seen else None
                     preferred = {"action": "scout", "target": scout_region or marshal.location}
                     compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
 
@@ -2778,6 +2779,10 @@ def _build_strategic_options(
             desc = f"{marshal.name} drills troops"
         elif action == "fortify":
             desc = f"{marshal.name} fortifies position"
+        elif action == "scout" and target:
+            # RR6-X4: the cautious "scout first" button names its province
+            # (it read "takes alternative action").
+            desc = f"{marshal.name} scouts {target}"
         else:
             desc = f"{marshal.name} takes alternative action"
 

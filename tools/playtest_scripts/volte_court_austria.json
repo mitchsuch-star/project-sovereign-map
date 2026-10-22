@@ -44,7 +44,7 @@
   ],
   "7": [
    "Talleyrand, improve relations with Austria",
-   "Ney, attack Archduke Charles",
+   "what are Ney's odds against Archduke Charles",
    "Davout, move to Bohemia",
    "Murat, attack Archduke Charles",
    "status"
@@ -285,5 +285,6 @@
   "objection": "trust",
   "diplomacy": "accept"
  },
- "_note_iq6": "IQ-6 V1-V4 (September 14, 2026): the COMMANDED arm (commanded_full40.json, unchanged loop for loop) plus 'Talleyrand, improve relations with Austria' at the head of every loop from 5 on - re-issued each loop, a live mission refuses the duplicate harmlessly. Pair it with --diplomacy accept. On the historical seed Britain's war_1 settlement is ratified on world turn 4 and Austria's homeland stays in France's bloc's hands, so the beaten-then-courted Austria reaches the courted floor inside the widened window and takes France's hand: the digest carries volte_face exactly once. The plain commanded arm (no courting) carries it 0 times. Pinned by tests/test_iq6_volte_face.py (slow)."
+ "_note_iq6": "IQ-6 V1-V4 (September 14, 2026): the COMMANDED arm (commanded_full40.json, unchanged loop for loop) plus 'Talleyrand, improve relations with Austria' at the head of every loop from 5 on - re-issued each loop, a live mission refuses the duplicate harmlessly. Pair it with --diplomacy accept. On the historical seed Britain's war_1 settlement is ratified on world turn 4 and Austria's homeland stays in France's bloc's hands, so the beaten-then-courted Austria reaches the courted floor inside the widened window and takes France's hand: the digest carries volte_face exactly once. The plain commanded arm (no courting) carries it 0 times. Pinned by tests/test_iq6_volte_face.py (slow).",
+ "_note_rr6_x3": "RR6-X3 (Pre-Deploy S14b's head, October 21, 2026): turn 7's 'Ney, attack Archduke Charles' was refused 'No intelligence' while Charles stood in sight at Piedmont; under the one sighting rule it asks the pursuit, the driver answers it, and Ney's chase into Italy re-times the war so the courted peace this arm was scripted around never forms (0 beats in forty turns). The arm keeps its corps concentrated, as its own note says: the line is the question the Emperor asks before declining the chase - read-only, the arm's war as it was."
 }

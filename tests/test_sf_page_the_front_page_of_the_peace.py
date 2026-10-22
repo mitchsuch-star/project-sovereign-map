@@ -781,6 +781,15 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               "backend.game_logic.reforms:ai_holds_the_purse=False",
               "backend.game_logic.withdrawal:stranding_cause=None",
               "backend.game_logic.dispatch:lapsing_reading_key=(0, int(a[0].get('turns_left') or 0))",
+              # RR6-X3 (Pre-Deploy S14b's head, October 21, 2026): the one
+              # sighting rule re-times CMD-H at turn 7 — `Ney, attack Archduke
+              # Charles` asks the pursuit the store alone had refused ("No
+              # intelligence"); held down, the order reads the store's
+              # snapshots and the dialog writes no sighting
+              # (`tools/_rr6_x3_arm_attribution.py`: the arm is the entry
+              # archive byte for byte with the rule down).
+              "backend.game_logic.intel_surfaces:last_seen=(lambda k: k and {'location': k[0], 'intel_turn': k[1], 'visibility': k[2], 'source': 'snapshot'})(a[0].get_last_known_location(a[2]) if a[2] else None)",
+              "backend.game_logic.intel_surfaces:record_shown_sightings=0",
               ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
@@ -964,8 +973,22 @@ class TestTheDrivenArms:
         run, checklist = driven
         c1 = _item(checklist, "narration", "C1")
         assert c1["measured"], c1["evidence"]
+        # RE-SEATED by RR6-X3 (Pre-Deploy S14b's head, October 21, 2026),
+        # consciously: the order now places a man where the desk and the map
+        # do, so historical's turn-7 `Ney, attack Archduke Charles` asks the
+        # pursuit it used to refuse ("No intelligence") — the driver answers
+        # it, the campaign re-times, and from turn 20 Bennigsen and Shrapnel
+        # walk an undefended France on the lawful road (EG-D2, the user's
+        # keep) as austerlitz's Kutuzov and Paget did: a homeland province
+        # falls nearly every morning and the page leads with it — EVENT news,
+        # exempt by the rotation rule's own statement. Any OTHER class
+        # flooding the page still fails here (attribution:
+        # `tools/_rr6_x3_arm_attribution.py` — the rule down, the arm is the
+        # entry archive byte for byte).
         for name in ("CMD-H", "CMD-M"):
-            cls, n = _worst_window(_pages(run / "arms" / name / "digest.jsonl"))
+            pages = _pages(run / "arms" / name / "digest.jsonl")
+            cls, n = _worst_window([(t, r) for t, r in pages
+                                    if r.get("headline_class") != "home_captured"])
             assert n <= 4, (name, cls, n)
         # RE-SEATED by DDB-19 (Pre-Deploy S13b part 2, October 15, 2026),
         # consciously: the objection reads the muster's totals, so Davout's
@@ -1026,7 +1049,13 @@ class TestTheDrivenArms:
         run, _checklist = driven
         records = [r for _t, r in _pages(run / "arms" / "CMD-H" / "digest.jsonl")]
         assert all("sub_beats" in r and "headline_text" in r for r in records)
-        assert any(r.get("league_rows") for r in records)
+        # RE-SEATED by RR6-X3 (October 21, 2026), consciously: re-timed from
+        # turn 7, CMD-H's France falls to nine provinces and no league is
+        # forecast against her on any morning — the rows are read off the
+        # commanded arms that keep one (CMD-A, CMD-M).
+        league = [r for name in ("CMD-H", "CMD-A", "CMD-M")
+                  for _t, r in _pages(run / "arms" / name / "digest.jsonl")]
+        assert any(r.get("league_rows") for r in league)
 
     def test_every_lever_down_is_the_step_7_page(self, driven):
         """CMD-H with every Step 7b page lever down reproduces the Step 7

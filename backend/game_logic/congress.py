@@ -300,6 +300,37 @@ def titled(world) -> Dict[str, Any]:
             "needed": hold_titled(world)}
 
 
+def titled_tally(have: int, need: int) -> str:
+    """UXR3-F11 (Pre-Deploy S14b's head, October 21, 2026): the held count
+    against the bar, in words that cannot read as "more than all" — "43 of 45
+    titled" short of it or on it, "50 titled, 45 needed" past it. The played
+    Congress board holds 50 titled provinces and GE-V lowered the bar to 45, so
+    "N of M" printed a numerator above its denominator on every Congress line,
+    the end screen and the dispatch."""
+    have, need = int(have), int(need)
+    if have <= need:
+        return f"{have} of {need} titled"
+    return f"{have} titled, {need} needed"
+
+
+def titled_held_clause(have: int, need: int) -> str:
+    """The gate term's parenthesis: "(43 of 45)" short of the bar, "(50
+    held)" past it — the bar itself leads the term ("45 titled provinces")."""
+    have, need = int(have), int(need)
+    return f"({have} of {need})" if have <= need else f"({have} held)"
+
+
+def titled_summary_line(have: int, need: int) -> str:
+    """The end screen's line (UXR3-F11): "50 titled provinces in the Empire and
+    its satellites — 45 were needed." past the bar; the old "N of M" short of
+    it or on it (a card stamped on the bar)."""
+    have, need = int(have), int(need)
+    if have <= need:
+        return f"{have} of {need} titled provinces in the Empire and its satellites."
+    return (f"{have} titled provinces in the Empire and its satellites — "
+            f"{need} were needed.")
+
+
 def _capital_held(world) -> bool:
     player = _player(world)
     capital = world.get_nation_capital(player) or ""
@@ -495,7 +526,7 @@ def gate_terms(world) -> List[Dict[str, Any]]:
     view = titled(world)
     need, have = view["needed"], view["count"]
     terms.append({"key": "titled", "met": have >= need,
-                  "text": f"{need} titled provinces ({have} of {need})",
+                  "text": f"{need} titled provinces {titled_held_clause(have, need)}",
                   "refusal": (f"The Congress cannot be summoned on {have} "
                               f"titled provinces — {need} are needed "
                               f"({need - have} more to win and settle).")})
@@ -1808,7 +1839,8 @@ def hold_conditions(world) -> List[Dict[str, Any]]:
     swords += [f"we joined {_display(ally)}'s war on {_display(t)}"
                for t, ally in sorted(joined.items())]
     reopened = _reopened_by_war(world, view)
-    titled_text = f"{view['needed']} titled provinces ({view['count']} of {view['needed']})"
+    titled_text = (f"{view['needed']} titled provinces "
+                   f"{titled_held_clause(view['count'], view['needed'])}")
     causes: List[str] = []
     if view["count"] < view["needed"]:
         # The count fell short: name what took it — the provinces lost by
@@ -3205,7 +3237,7 @@ def state_line(world) -> Optional[str]:
         head = (f"THE CONGRESS SITS — turn {day} of {total}" if day >= 1 else
                 f"THE CONGRESS SITS — the powers gather; the sitting opens at "
                 f"this end turn ({total} turns)")
-        return f"{head} · {have} of {need} titled · {_grouped_stances(world, table)}"
+        return f"{head} · {titled_tally(have, need)} · {_grouped_stances(world, table)}"
     if ph == "cooldown":
         from backend.display_names import plural
         left = cooldown_left(world)
@@ -3221,22 +3253,22 @@ def state_line(world) -> Optional[str]:
         return (f"THE CONGRESS OF PARIS — dissolved on turn {c.get('dissolved_turn')}"
                 f"{cause_clause}; "
                 f"it may be summoned again on turn {again} ({plural(left, 'turn')} "
-                f"{'remains' if left == 1 else 'remain'}) · {have} of {need} titled")
+                f"{'remains' if left == 1 else 'remain'}) · {titled_tally(have, need)}")
     held = view["held"]
     if have < need:
         tail = ""
         if held:
             shown = ", ".join(held[:3]) + (" …" if len(held) > 3 else "")
             tail = f" ({len(held)} held, unsettled: {shown})"
-        return f"THE CONGRESS OF PARIS — {have} of {need} titled{tail} · {CABINET_HINT}"
+        return f"THE CONGRESS OF PARIS — {titled_tally(have, need)}{tail} · {CABINET_HINT}"
     blocker = next((t for t in gate_terms(world)
                     if not t["met"] and t["key"] not in ("admin", "dp")), None)
     if blocker is not None:
         # Review #52: the BREACH, never the condition ("· the Emperor free"
         # had read as true while he sat in a cell).
-        return (f"THE CONGRESS OF PARIS — {have} of {need} titled · "
+        return (f"THE CONGRESS OF PARIS — {titled_tally(have, need)} · "
                 f"{blocker.get('breach') or blocker['text']}")
-    line = (f"THE CONGRESS OF PARIS — {have} of {need} titled · the powers may be "
+    line = (f"THE CONGRESS OF PARIS — {titled_tally(have, need)} · the powers may be "
             f"summoned — {CABINET_HINT}")
     # RS-10: the gate line teaches what the summons does to the league.
     warning = league_warning(world)
@@ -3478,6 +3510,10 @@ def summary_block(detail: Dict[str, Any]) -> Dict[str, Any]:
         "courts": [dict(x) for x in (detail.get("courts") or [])],
         "titled": int(detail.get("titled") or 0),
         "hold_titled": int(detail.get("hold_titled") or 0),
+        # UXR3-F11: the end screen prints this line (never "50 of 45").
+        "titled_line": (titled_summary_line(int(detail.get("titled") or 0),
+                                            int(detail.get("hold_titled") or 0))
+                        if int(detail.get("hold_titled") or 0) > 0 else ""),
         "sitting": [dict(x) for x in (detail.get("sitting") or [])],
         "moniteur_line": str(detail.get("moniteur_line") or ""),
         "bought_line": str(detail.get("bought_line") or ""),

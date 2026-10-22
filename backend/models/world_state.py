@@ -4543,16 +4543,23 @@ class WorldState:
         - Never scouted -> returns None
         - Marshal in multiple stale regions -> most recent last_updated_turn wins
         - Marshal destroyed -> last intel entry persists (player's last knowledge)
+
+        The STORE's reader only. Where the PLAYER places a man — in sight
+        now, else here — is `intel_surfaces.last_seen` (RR6-X3), and every
+        player-facing reader asks it. A snapshot entry's turn is its own
+        stamp when the enemy-phase dialog showed him there (`entry_seen_turn`).
         """
+        from backend.models.intel import entry_seen_turn, snapshot_entry
         best_match = None
         best_turn = -1
 
         for region_name, intel in self.intel.items():
-            for km in intel.known_marshals:
+            for km in map(snapshot_entry, intel.known_marshals):
                 if km.get("name") == marshal_name:
-                    if intel.last_updated_turn > best_turn:
-                        best_turn = intel.last_updated_turn
-                        best_match = (region_name, intel.last_updated_turn, intel.visibility)
+                    seen = entry_seen_turn(intel, km)
+                    if seen > best_turn:
+                        best_turn = seen
+                        best_match = (region_name, seen, intel.visibility)
 
         return best_match
 
@@ -4569,8 +4576,16 @@ class WorldState:
 
         Returns:
             - FULL visibility: full enemy data (exact strength, morale, stance)
-            - PARTIAL/STALE: name + strength band only (no exact numbers)
-            - LAST_KNOWN/UNKNOWN: empty list (enemies not confirmed visible)
+            - PARTIAL: name + strength band only (no exact numbers)
+            - STALE/LAST_KNOWN/UNKNOWN: empty list (enemies not confirmed visible)
+
+        RR6-X8 (RR6-X3's sweep, October 21, 2026): STALE is OUT of sight — the
+        one sighting rule's (`intel_surfaces.in_sight`, `get_visible_enemies`).
+        This arm read a STALE province's LIVE occupants, so the attack-quote
+        endpoint priced odds against a corps that had walked in unseen, the
+        province card offered to attack him, and a march into closed soil read
+        him as visible. A stale sighting is the rule's to place
+        (`intel_surfaces.last_seen`), never a target.
         """
         intel = self.get_region_intel(region_name)
 
@@ -4578,7 +4593,7 @@ class WorldState:
             # Full data — return actual marshal objects (same as get_enemies_in_region)
             return self.get_enemies_in_region(region_name, nation)
 
-        if intel.visibility in (PARTIAL, STALE):
+        if intel.visibility == PARTIAL:
             # Return limited data from intel snapshot (band only, no exact numbers)
             enemies = self.get_enemies_in_region(region_name, nation)
             limited = []
@@ -11251,16 +11266,25 @@ class WorldState:
 
         summary = self.get_game_state_summary()
 
-        # Filter map_data: redact enemy marshals and economic data by visibility
-        # First pass: collect enemy marshals visible at FULL/PARTIAL so stale
-        # ghosts are suppressed when we have current intel on them elsewhere.
-        visible_enemy_names = set()
-        for region_name, region_data in summary["map_data"].items():
-            rgn_intel = self.get_region_intel(region_name)
-            if rgn_intel.visibility in (FULL, PARTIAL):
-                for md in region_data["marshals"]:
-                    if md["nation"] != self.player_nation:
-                        visible_enemy_names.add(md["name"])
+        # Filter map_data: redact enemy marshals and economic data by visibility.
+        # (A stale ghost of a man in current sight elsewhere is suppressed by
+        # the sighting rule itself — the first pass that collected those names
+        # retired with RR6-X7.)
+
+        # RR6-X7 (RR6-X3's sweep): a STALE label is OUT of sight — the map
+        # drew the men standing there NOW (a corps that walked in unseen was
+        # drawn, and the desk said "no word of him"). Under STALE the map
+        # draws what the ONE sighting rule places there (`enemy_sightings`,
+        # the order's and the dispatch's), at the band it was seen at.
+        from backend.game_logic.intel_surfaces import enemy_sightings
+        stale_placed: Dict[str, List[Dict[str, Any]]] = {}
+        try:
+            for _s in enemy_sightings(self, self.player_nation):
+                if _s.get("visibility") == STALE:
+                    stale_placed.setdefault(str(_s["location"]), []).append(_s)
+        except Exception as exc:  # every response rides this summary
+            from backend.errors import report
+            report(exc, "world_state.get_filtered_game_state_summary: enemy_sightings")
 
         filtered_map = {}
         for region_name, region_data in summary["map_data"].items():
@@ -11373,10 +11397,11 @@ class WorldState:
                 elif intel.visibility == FULL:
                     # FULL: show enemy with exact data (but no player-only fields like trust)
                     filtered_region["marshals"].append(marshal_data)
-                elif intel.visibility in (PARTIAL, STALE):
-                    # PARTIAL/STALE: enemy goes into fogged_forces (not marshals).
+                elif intel.visibility == PARTIAL:
+                    # PARTIAL: enemy goes into fogged_forces (not marshals).
                     # Godot renders everything in marshals[] as map icons — putting
                     # band-only enemies there would show "0 troops" on the map.
+                    # (STALE: the sighting rule's rows, below — RR6-X7.)
                     band = get_strength_band(marshal_data["strength"])
                     filtered_marshal = {
                         "name": marshal_data["name"],
@@ -11388,21 +11413,17 @@ class WorldState:
                 # LAST_KNOWN / UNKNOWN: enemy marshals hidden from map_data
                 # (their last known position is in the intel store, not live map data)
 
-            # STALE intel injection: if enemies moved away but we have a frozen
-            # snapshot, inject those as fogged_forces so Godot shows stale icons.
-            # Only inject if no live enemies were already added to fogged_forces.
-            # Skip marshals already visible at FULL/PARTIAL elsewhere (no ghost duplicates).
-            if intel.visibility == STALE and not filtered_region["fogged_forces"]:
-                for known in intel.known_marshals:
-                    name = known.get("name", "Unknown")
-                    if (known.get("nation") != self.player_nation
-                            and name not in visible_enemy_names):
-                        filtered_region["fogged_forces"].append({
-                            "name": name,
-                            "nation": known.get("nation", "Unknown"),
-                            "strength_band": known.get("band", "unknown"),
-                            "fog_level": STALE,
-                        })
+            # STALE intel: the frozen sighting, as the rule places it — the
+            # men last seen here and nowhere newer (a man in sight elsewhere,
+            # or seen since, rides there). Session 38's ghost, on the rule.
+            if intel.visibility == STALE:
+                for _s in stale_placed.get(region_name, []):
+                    filtered_region["fogged_forces"].append({
+                        "name": _s["roster_name"],
+                        "nation": _s.get("nation", "Unknown"),
+                        "strength_band": _s.get("strength_display") or "unknown",
+                        "fog_level": STALE,
+                    })
 
             filtered_map[region_name] = filtered_region
 
@@ -11415,7 +11436,7 @@ class WorldState:
             intel = self.get_region_intel(enemy_location)
             if intel.visibility == FULL:
                 filtered_enemies[name] = enemy_data
-            elif intel.visibility in (PARTIAL, STALE):
+            elif intel.visibility == PARTIAL:
                 # Show location but not exact strength
                 marshal_obj = self.marshals.get(name)
                 band = get_strength_band(marshal_obj.strength) if marshal_obj else "unknown"
@@ -11431,6 +11452,24 @@ class WorldState:
                         enemy_data.get("at_war_with_player", False)),
                 }
             # LAST_KNOWN / UNKNOWN: enemy not shown in enemies dict
+
+        # RR6-X7: a STALE row is the sighting rule's — where he was last
+        # seen, at that band, never where he stands now (a stale sighting is
+        # not a position: the client's completers already skip it).
+        for _rows in stale_placed.values():
+            for _s in _rows:
+                _name = _s["roster_name"]
+                if _name in filtered_enemies:
+                    continue
+                _live = summary["enemies"].get(_name) or {}
+                filtered_enemies[_name] = {
+                    "location": _s["location"],
+                    "strength": 0,
+                    "nation": _s.get("nation", ""),
+                    "strength_band": _s.get("strength_display") or "unknown",
+                    "fog_level": STALE,
+                    "at_war_with_player": bool(_live.get("at_war_with_player", False)),
+                }
 
         summary["enemies"] = filtered_enemies
 

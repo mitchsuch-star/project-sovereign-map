@@ -619,13 +619,19 @@ def pursue_known_location(world, marshal, enemy):
     player's pursuit was re-plotted to a province his intel called
     `unknown`, because the reroute read the quarry's true location. Five
     copies of a rule is how the rule dies.
+
+    RR6-X3: "where the player believes he is" is ONE rule, the desk's and the
+    map's — `intel_surfaces.last_seen` (in sight now, else the newest sighting,
+    the dialog's included). The order used to read the store's snapshots alone
+    and answered "No intelligence" one line after the desk placed the man.
     """
     if enemy is None:
         return None
     if marshal.nation != getattr(world, "player_nation", None):
         return enemy.location
-    known = world.get_last_known_location(enemy.name)
-    return known[0] if known else None
+    from backend.game_logic.intel_surfaces import last_seen
+    seen = last_seen(world, marshal.nation, enemy.name)
+    return seen["location"] if seen else None
 
 
 # ── FA slice 5 "The Road Law" (September 4, 2026) ─────────────────────────
@@ -3669,7 +3675,11 @@ class StrategicOrderProcessor:
         # ═══════════════════════════════════════════════════════════
         is_player_marshal = (marshal.nation == world.player_nation)
         if is_player_marshal:
-            last_known = world.get_last_known_location(order.target)
+            # RR6-X3: the one sighting rule — what the order was issued on.
+            from backend.game_logic.intel_surfaces import last_seen
+            _seen = last_seen(world, marshal.nation, order.target)
+            last_known = ((_seen["location"], int(_seen["intel_turn"]), _seen["visibility"])
+                          if _seen else None)
         else:
             # AI is omniscient (spec §9.1)
             last_known = (target.location, world.current_turn, "full") if target and target.strength > 0 else None

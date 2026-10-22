@@ -411,6 +411,10 @@ Backend sends `visibility_status` per region. Godot `map.gd` renders fog:
 - Watchtower icon on regions with watchtower building (deferred to EU4 map)
 - Scout action animated reveal (nice-to-have, deferred to EU4 map)
 
+### 11.3 One sighting rule (RR6-X3, October 21, 2026)
+
+Where the PLAYER places an enemy marshal is one function, `intel_surfaces.last_seen`: in sight now (his own province reads PARTIAL or better — the map's rule, `get_visible_enemies`) he is where he stands; out of sight, the newest snapshot naming him, each entry its own turn. The store learns what the enemy-phase dialog shows (`record_shown_sightings`, the dialog's own fog predicate in `backend/game_logic/enemy_phase_fog.py`). A STALE province is out of sight: the map draws the rule's frozen rows there, never its live occupants, and `get_visible_enemies_in_region` returns nothing for it. The order, its per-turn gate, the objections, the desk, the dispatch, the Ledger, the status report and the map all read the rule (`SYSTEMS_REFERENCE.md` §142).
+
 ---
 
 ## 12. Implementation Plan

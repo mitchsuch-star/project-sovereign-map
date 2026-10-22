@@ -1173,7 +1173,18 @@ def pursuit_ask(ctx, cost):
     first_march = (f"the first march meets {humanize_entity_name(blocker.name)} "
                    f"at {first}{soil}" if blocker is not None else
                    f"the first march takes {marshal.name} to {first}{soil}")
-    question = (f"{quarry} stands at {where}, {marches} off. Pursue him "
+    # RR6-X5 (RR6-X3's sweep): a man out of sight is where he was LAST SEEN —
+    # the ask said "stands at" over a sighting turns old, as the desk never did.
+    from backend.game_logic.intel_surfaces import last_seen
+    _seen = last_seen(world, marshal.nation, enemy.name) or {}
+    if _seen.get("source") == "live":
+        placed = f"{quarry} stands at {where}"
+    else:
+        _ago = int(getattr(world, "current_turn", 0) or 0) - int(_seen.get("intel_turn") or 0)
+        _when = ("this turn" if _ago <= 0
+                 else f"{_ago} turn{'s' if _ago != 1 else ''} ago")
+        placed = f"{quarry} was last seen at {where} {_when}"
+    question = (f"{placed}, {marches} off. Pursue him "
                 f"({cost} AP — a standing order; {first_march}), or cancel?")
     reissue = f"{marshal.name}, attack {enemy.name}"
     return {
@@ -3036,13 +3047,21 @@ class CombatExecutor:
         intel band ("substantial force"), and no intel at all gives
         "strength unknown". Single source (CA8-4) so the bad-odds
         interrupt and the muster preview cannot drift or leak.
+
+        RR6-X10 (RR6-X3's sweep): a man IN SIGHT below FULL carries his own
+        band — the desk's and the map's figure under the one sighting rule —
+        where the province's snapshot predates him (it read "strength unknown"
+        over a corps the map drew and the desk banded).
         """
-        from backend.models.intel import FULL
+        from backend.models.intel import FULL, get_strength_band
         intel = world.intel.get(enemy_marshal.location) if world else None
         if intel is None:
             return "strength unknown"
         if intel.visibility == FULL:
             return f"{int(enemy_marshal.strength):,} men"
+        from backend.game_logic.intel_surfaces import in_sight
+        if in_sight(world, getattr(world, "player_nation", ""), enemy_marshal):
+            return get_strength_band(int(enemy_marshal.strength))
         for km in intel.known_marshals:
             if km.get("name") == enemy_marshal.name and km.get("band"):
                 return km["band"]

@@ -1011,9 +1011,18 @@ class TestT7TheCommittedScript:
         base = json.loads((SCRIPTS / "commanded_full40.json").read_text(encoding="utf-8"))
         assert court["policy"] == base["policy"] and court["seed"] == base["seed"]
         assert set(court["turns"]) == set(base["turns"])
+        # RR6-X3 (Pre-Deploy S14b's head, October 21, 2026): ONE line differs,
+        # by name. The commanded arm's turn-7 `Ney, attack Archduke Charles`
+        # now asks the pursuit the store alone had refused, and Ney's chase
+        # re-times this arm's war past its courted peace; the courting arm
+        # asks his odds instead (`_note_rr6_x3` in the script). The courting
+        # is still the only OTHER difference.
+        renamed = {("7", "Ney, attack Archduke Charles"):
+                   "what are Ney's odds against Archduke Charles"}
         for loop, orders in base["turns"].items():
             extra = [COURTING_ORDER] if int(loop) >= 5 else []
-            assert court["turns"][loop] == extra + orders, loop
+            expected = [renamed.get((loop, o), o) for o in orders]
+            assert court["turns"][loop] == extra + expected, loop
 
     def test_the_digest_carries_the_beat_exactly_once(self, t7_court):
         counts = t7_court["meta"]["dispatch_type_counts"]

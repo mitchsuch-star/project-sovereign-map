@@ -103,7 +103,18 @@ class TestTheVolteFaceFiresOnItsArm:
         (`emergent_designs.AN_ALLYS_WAR_IS_ITS_OWN`). The arm is unchanged:
         Austria's peace on turn 11 leaves Tyrol and Croatia Bavarian, she is
         courted to 42 by turn 26 and takes France's hand on turn 27 — on the
-        historical seed."""
+        historical seed.
+
+        RE-SCRIPTED by RR6-X3 "one sighting rule" (Pre-Deploy S14b's head,
+        October 21, 2026), one line: turn 7's `Ney, attack Archduke Charles`
+        had been refused "No intelligence" while Charles stood in sight at
+        Piedmont; under the rule it asks the pursuit, the driver answers it,
+        and Ney's chase into Italy re-times the war — 0 beats in forty turns.
+        The arm keeps its corps concentrated (its own note), so the line is
+        the question the Emperor asks before declining the chase; the beat
+        fires on turn 30 (measured; the refused order had drawn on the
+        objection's dice, the question does not, so the war is re-timed by a
+        roll — the arm, not the rule)."""
         rows = _drive(tmp_path)
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"

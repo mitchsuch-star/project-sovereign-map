@@ -46,6 +46,11 @@ def _world(blucher_location):
     world.player_nation = "France"
     world.current_turn = 1
     world.actions_remaining = 4
+    # RR6-X3 (October 21, 2026): the legacy boot's intel store describes the
+    # legacy map, not this four-province chain — its Rhineland label put
+    # Blucher IN SIGHT under the one sighting rule. This world has seen
+    # nothing yet.
+    world.intel = {}
     return world
 
 

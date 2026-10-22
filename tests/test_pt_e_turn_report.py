@@ -262,7 +262,10 @@ class TestABloodlessCaptureIsReported:
         assert 'events[0]["captured_from"] = _old_controller' in src
 
     def test_the_filter_reads_that_field(self):
-        src = (REPO / "backend" / "main.py").read_text(encoding="utf-8")
+        # RR6-X3 (October 21, 2026): the fog filter moved verbatim to its own
+        # module, which the end turn reads too.
+        src = (REPO / "backend" / "game_logic"
+               / "enemy_phase_fog.py").read_text(encoding="utf-8")
         assert 'evt.get("captured_from") == player_nation' in src
 
     def test_own_soil_is_partial_by_construction(self):
