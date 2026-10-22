@@ -2,7 +2,7 @@
  "name": "score-docked-lines",
  "seed": "historical",
  "llm": "mock",
- "_note": "SF-M (SCORE_FINISH_SPEC.md §4.2, the DL arm; Sept 29, 2026): the lines the reviews DOCKED, typed on the boot board, one arm the instrument reads for command C4, diplomacy C4/C5, first contact C3/C4, economy C5 and combat legibility C4. Every line names the row it answers to in `dl_lines`; `tools/score_run.py check` reads each command's reply against that row's pass condition. The arm GROWS: a new review's docked line is appended with its row id, never re-authored. Run with --turns 3. Order matters, so no line spoils another's measurement: turn 1 spends its four actions on the 2-AP strategic order (RS-8) and Davout's fortify at Rhineland, so the what-if (RS-12) asks about a FORTIFIED man with Mack adjacent at Swabia; turn 2 carries the support phrasings (RS-6) and the eight Cabinet phrasings (RS-7); turn 3 asks for terms once the war is old enough (PC15-6), tries the two proper names (SF-V4), burns the military actions on three scouts, then asks 'what can I do' (RS-15) at zero military actions and raises the levy with Davout, who has not moved (AAR-6).",
+ "_note": "SF-M (SCORE_FINISH_SPEC.md §4.2, the DL arm; Sept 29, 2026): the lines the reviews DOCKED, typed on the boot board, one arm the instrument reads for command C4, diplomacy C4/C5, first contact C3/C4, economy C5 and combat legibility C4. Every line names the row it answers to in `dl_lines`; `tools/score_run.py check` reads each command's reply against that row's pass condition. The arm GROWS: a new review's docked line is appended with its row id, never re-authored. Run with --turns 3. Order matters, so no line spoils another's measurement. RE-STAGED October 21, 2026 (SF-RR6, SFR-I6): the staging had drifted — Davout's fortify came fourth on turn 1, after the four military actions were spent (fortifying from neutral costs two), so the what-if asked about an UNFORTIFIED man; and Ney's muster carried him off French ground before the levy. Now turn 1 fortifies Davout FIRST (two of the turn's five military actions; a fortified corps answers no muster — MULTI_MARSHAL_SPEC rule 7), asks the what-if (RS-12) about that fortified man with Mack within reach, spends the other three on Ney's 2-AP strategic order (RS-8) and Bernadotte's take (RS-11), then asks 'what can I do' (RS-15) at zero military actions; turn 2 carries the support phrasings (RS-6) with the eight Cabinet phrasings (RS-7); turn 3 asks for terms once the war is old enough (PC15-6), tries the two proper names (SF-V4), spends the military actions on the three scouts and Davout's own (a fortified man scouts from his works — a staging line, not a docked one) and raises the levy with Davout (AAR-6) — still fortified on French ground, the chest able to pay — at zero military actions. `preconditions` names the board each staged line needs; the driver checks it before typing the line and writes SCRIPT PRECONDITION when it fails, so the reader reads that row unmeasured rather than as the game's answer.",
  "dl_lines": {
   "RS-6": [
    "Marshal Soult, bring your corps up in support of Ney.",
@@ -48,17 +48,53 @@
    "attack Alsace"
   ]
  },
+ "preconditions": {
+  "what if Davout attacks Mack?": {
+   "row": "RS-12",
+   "require": [
+    {
+     "fortified": "Davout"
+    },
+    {
+     "within_reach": [
+      "Davout",
+      "Mack"
+     ]
+    }
+   ]
+  },
+  "what can I do": {
+   "row": "RS-15",
+   "require": [
+    {
+     "military_actions": 0
+    }
+   ]
+  },
+  "recruit 10000 infantry with Davout": {
+   "row": "AAR-6",
+   "require": [
+    {
+     "military_actions": 0
+    },
+    {
+     "on_own_ground": "Davout"
+    }
+   ]
+  }
+ },
  "turns": {
   "1": [
-   "Ney, march on Swabia and destroy Mack",
-   "Bernadotte, take Bohemia",
-   "Marshal Soult, bring your corps up in support of Ney.",
    "Davout, fortify",
    "what if Davout attacks Mack?",
+   "Ney, march on Swabia and destroy Mack",
+   "Bernadotte, take Bohemia",
    "where are the Russians?",
-   "why is Europe alarmed?"
+   "why is Europe alarmed?",
+   "what can I do"
   ],
   "2": [
+   "Marshal Soult, bring your corps up in support of Ney.",
    "Soult, march in support of Ney",
    "Lannes, march to the aid of Ney",
    "Murat, come to Ney's support",
@@ -78,7 +114,7 @@
    "Bernadotte, scout Bohemia",
    "Murat, scout Swabia",
    "Lannes, scout Swabia",
-   "what can I do",
+   "Davout, scout Swabia",
    "recruit 10000 infantry with Davout"
   ]
  }

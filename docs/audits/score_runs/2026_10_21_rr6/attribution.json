@@ -1,0 +1,201 @@
+{
+ "CMD-A": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   31,
+   [
+    31,
+    "enemy_phase",
+    3,
+    0
+   ],
+   [
+    31,
+    "enemy_phase",
+    2,
+    0
+   ]
+  ]
+ },
+ "CMD-H": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   3,
+   [
+    3,
+    "enemy_phase",
+    3,
+    2
+   ],
+   [
+    3,
+    "enemy_phase",
+    2,
+    2
+   ]
+  ]
+ },
+ "CMD-M": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   26,
+   [
+    26,
+    "enemy_phase",
+    1,
+    0
+   ],
+   [
+    26,
+    "enemy_phase",
+    0,
+    0
+   ]
+  ]
+ },
+ "DL": {
+  "game: driver (entry -> seam down)": [
+   1,
+   [
+    1,
+    "command",
+    "Ney, march on Swabia and destroy Mack",
+    true
+   ],
+   [
+    1,
+    "command",
+    "Davout, fortify",
+    true
+   ]
+  ],
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": [
+   1,
+   [
+    1,
+    "battle",
+    "{\"enemy_voice\": \"Mack: \\\"This is not a rout. It is a revision of the plan.\\\"\", \"headline\": \"Ney (lost 1847, own corps) vs Mack (lost 24408) \\u2014 Reinforcements from Davout, Lannes, Murat and Napoleon bolstered Ney's position \\u2014 though Bernadotte never arrived, Sire. \\u2014 The corps system brought Murat in. \\u2014 Berthier: the corps marched apart and arrived together.\", \"voice\": \"Ney: \\\"The"
+   ],
+   [
+    1,
+    "battle",
+    "{\"enemy_voice\": \"Mack: \\\"A temporary derangement of the arithmetic. Vienna will understand.\\\"\", \"headline\": \"Ney (lost 3371, own corps) vs Mack (lost 11430) \\u2014 Reinforcements from Lannes and Napoleon bolstered Ney's position \\u2014 though Murat and Bernadotte never arrived, Sire. \\u2014 Berthier: the corps marched apart and arrived together.\", \"voice\": \"Ney: \\\"They stood, Sire. Briefly.\\\"\"}"
+   ]
+  ],
+  "view: EG-X4 (seam down -> shipped)": [
+   3,
+   [
+    3,
+    "battle",
+    "{\"headline\": \"Archduke Charles (lost 2123) vs Deroy (lost 5363) \\u2014 The hills were ours, but Archduke Charles took them. Deroy's position was overrun.\"}"
+   ],
+   [
+    3,
+    "enemy_phase",
+    2,
+    0
+   ]
+  ]
+ },
+ "FLD": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": [
+   7,
+   [
+    7,
+    "command",
+    "Ney, attack Archduke John",
+    true
+   ],
+   [
+    7,
+    "command",
+    "Ney, attack Archduke John",
+    false
+   ]
+  ],
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   6,
+   [
+    6,
+    "enemy_phase",
+    5,
+    1
+   ],
+   [
+    6,
+    "enemy_phase",
+    3,
+    1
+   ]
+  ]
+ },
+ "LAW": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   3,
+   [
+    3,
+    "enemy_phase",
+    3,
+    2
+   ],
+   [
+    3,
+    "enemy_phase",
+    2,
+    2
+   ]
+  ]
+ },
+ "OP": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   4,
+   [
+    4,
+    "enemy_phase",
+    9,
+    0
+   ],
+   [
+    4,
+    "enemy_phase",
+    7,
+    0
+   ]
+  ]
+ },
+ "VOLTE": {
+  "game: driver (entry -> seam down)": null,
+  "game: EG-X4 (seam down -> shipped)": null,
+  "view: driver (entry -> seam down)": null,
+  "view: EG-X4 (seam down -> shipped)": [
+   3,
+   [
+    3,
+    "enemy_phase",
+    3,
+    2
+   ],
+   [
+    3,
+    "enemy_phase",
+    2,
+    2
+   ]
+  ]
+ }
+}

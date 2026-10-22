@@ -1137,6 +1137,293 @@ def fog_sentences(phase):
     return []
 
 
+# SFR-I2 (SF-RR6, October 21, 2026) — THE DIGEST PRINTS WHAT THE DIALOG
+# SHOWS. `enemy_phase_dialog.gd` rebuilds every line from STRUCTURED fields
+# (the actor, the verb, the target, the move's `captured_from`, the conquest,
+# garrison and battle events) and never renders an action's `message` or the
+# phase's `summary[]` (`tools/_name_census.py` UNRENDERED_PATHS). The digest
+# quoted the message, so the depth campaign and the panel read raw roster keys
+# ("ArchdukeJohn assaults the Milan garrison!", "Captured: KingdomOfItaly →
+# Austria") and the enemy's first-person prose as the game (SFR-D12, SFR-D13),
+# and combat legibility C5 counted them (SFR-I7). With this up the enemy-phase
+# line and its 🏴 rows quote the dialog's own lines (the mirror below); the
+# message stays in the jsonl beside them, marked unrendered, and meta.json
+# says `enemy_phase_text: rendered` so a reader can tell the two digests
+# apart. False = the message's salient line, as before.
+THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS = True
+
+# `_format_action`'s `match action_type` arms, verb for verb — a drift pin in
+# `tests/test_sf_rr6_the_instrument.py` holds the two tables together. `{t}`
+# is the humanized target; an arm whose dialog drops an empty target carries
+# its no-target phrase second.
+ENEMY_VERB_PHRASES = {
+    "attack": ("attacks {t}", None),
+    "move": ("moves to {t}", None),
+    "defend": ("defends", None),
+    "fortify": ("fortifies position", None),
+    "unfortify": ("abandons fortified position", None),
+    "drill": ("drills troops", None),
+    "stance_change": ("changes stance to {t}", None),
+    "retreat": ("retreats to {t}", None),
+    "wait": ("holds position", None),
+    "recruit": ("recruits troops", None),
+    "scout": ("scouts {t}", None),
+    "repair": ("repairs {t}", None),
+    "grant_dotation": ("is endowed with {t}", "is endowed with an estate"),
+    "grant_pension": ("is granted a rente upon the treasury", None),
+    "form_square": ("forms square", None),
+    "break_square": ("breaks from square", None),
+    "garrison": ("detaches a garrison at {t}", "detaches a garrison"),
+    "naval_expedition": ("embarks an expedition for {t}", "embarks an expedition"),
+}
+
+
+def _humanized(name):
+    from backend.display_names import humanize_entity_name
+    return humanize_entity_name(str(name or ""))
+
+
+def _court_name(nation):
+    """`Utils.display_nation_name`: the authored name, else the camel split."""
+    from backend.display_names import display_nation, humanize_entity_name
+    nation = str(nation or "")
+    shown = display_nation(nation)
+    return shown if shown != nation else humanize_entity_name(nation)
+
+
+def _choice_suffix(choice, words=(" (plundered)", " (secured)")):
+    return {"plunder": words[0], "secure": words[1]}.get(str(choice or ""), "")
+
+
+def _events_of(action):
+    return [e for e in (action.get("events") or []) if isinstance(e, dict)]
+
+
+def rendered_enemy_line(action):
+    """The dialog's action line for one enemy action, without its "- "."""
+    ai = action.get("ai_action") if isinstance(action.get("ai_action"), dict) else {}
+    actor = _humanized(ai.get("marshal", ""))
+    verb = str(ai.get("action") or "")
+    target = _humanized(ai.get("target", ""))
+    if not verb:
+        # UXR3-F9: a battle handed on as-is names its mover and its foe.
+        battle = next((e for e in _events_of(action) if e.get("type") == "battle"), None)
+        if battle is not None:
+            actor = _humanized((battle.get("attacker") or {}).get("name", ""))
+            target = _humanized((battle.get("defender") or {}).get("name", ""))
+            verb = "attack"
+        else:
+            verb = "acts"
+    subject = actor or (_court_name(action.get("nation")) if action.get("nation") else "")
+    lead = f"{subject} " if subject else ""
+    if verb == "attack" and action.get("bombardment_result") is not None:
+        return f"{lead}bombards {target}"
+    if verb == "forced_march":
+        fm = action.get("forced_march") if isinstance(action.get("forced_march"), dict) else {}
+        route = " → ".join(str(s) for s in (fm.get("stages") or []))
+        if fm.get("from") is not None:
+            route = f"{fm.get('from')} → {route}"
+        line = f"{lead}drives a forced march — {route or target}"
+        losses = int(fm.get("march_losses", 0) or 0)
+        return line + (f" ({losses:,} lost on the march)" if losses > 0 else "")
+    if verb == "build":
+        building = str(ai.get("building_type") or "building").replace("_", " ")
+        return f"{lead}builds {building} at {target}"
+    if verb == "acts":
+        return f"{lead}acts" if lead else "An enemy court acts"
+    phrase, bare = ENEMY_VERB_PHRASES.get(verb, (None, None))
+    if phrase is None:
+        line = lead + verb.replace("_", " ") + (f" {target}" if target else "")
+    elif bare is not None and not target:
+        line = lead + bare
+    else:
+        line = lead + phrase.format(t=target)
+    if verb == "recruit" and isinstance(action.get("doctrine_note"), str) and action["doctrine_note"]:
+        line += f" ({action['doctrine_note']})"
+    if verb == "move":
+        taken = next((e for e in _events_of(action)
+                      if e.get("type") == "move" and str(e.get("captured_from") or "")), None)
+        if taken is not None:
+            line += f" — {target} falls (was {_court_name(taken.get('captured_from'))})"
+            line += _choice_suffix(taken.get("capture_choice"),
+                                   (" and is sacked", " and is secured"))
+    return line
+
+
+def rendered_capture_lines(action):
+    """The dialog's capture lines under one action: the move that takes a
+    province (its own action line), the conquest, the garrison destroyed, the
+    field battle that took the ground. [] = the action took nothing."""
+    out = []
+    for event in _events_of(action):
+        kind = event.get("type")
+        if kind == "move" and str(event.get("captured_from") or ""):
+            out.append(rendered_enemy_line(action))
+        elif kind == "garrison_destroyed":
+            out.append(f"The garrison of {event.get('region', 'the works')} is destroyed.")
+        elif kind == "conquest":
+            region = event.get("region", "territory")
+            gave_way = int(event.get("garrison_gave_way", 0) or 0)
+            if gave_way > 0:
+                out.append(f"The last {gave_way:,} of the garrison of {region} give way.")
+            was = (f" (was {_court_name(event.get('captured_from'))})"
+                   if str(event.get("captured_from") or "") else "")
+            out.append(f"Region captured: {region}{was}{_choice_suffix(event.get('capture_choice'))}")
+        elif kind == "battle" and event.get("region_conquered"):
+            was = (f" (was {_court_name(event.get('captured_from'))})"
+                   if str(event.get("captured_from") or "") else "")
+            out.append(f"{event.get('region_name', 'territory')} CAPTURED!{was}"
+                       f"{_choice_suffix(event.get('capture_choice'))}")
+    return out
+
+
+# SFR-I4 (SF-RR6) — THE DIGEST RECORDS THE UNMET MARSHALS. The dispatch's
+# `situation` carries the "Unmet Marshals" block and its `expectation_rises`
+# (`dispatch_view.gd` renders both); the digest recorded neither, so the
+# earliest notice of an unpaid claim — "Soult expects 160g/turn, holds 80g —
+# patience holds 2 more turns" — was on no archive, and marshal drama C5 could
+# not tell an announced claim from an unannounced one. With this up both ride
+# the dispatch record (structured, plus the line the screen draws) and print
+# under the DISPATCH line. False = no block, as before.
+THE_DIGEST_RECORDS_THE_UNMET_BLOCK = True
+
+
+def unmet_marshal_rows(situation):
+    """{"expectation_rises": [...], "unmet_marshals": [...]} off a dispatch's
+    `situation`, each row with the line `dispatch_view.gd` draws; {} when
+    neither block has a row (or the lever is down)."""
+    if not THE_DIGEST_RECORDS_THE_UNMET_BLOCK or not isinstance(situation, dict):
+        return {}
+    rises, unmet = [], []
+    for row in situation.get("expectation_rises") or []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("marshal", "?"))
+        exp, sat = int(row.get("expectation", 0) or 0), int(row.get("satisfaction", 0) or 0)
+        rises.append({"marshal": name, "expectation": exp, "previous": int(row.get("previous", 0) or 0),
+                      "satisfaction": sat,
+                      "line": (f"{name}'s victories raise his expectation — he now looks for "
+                               f"{exp}g/turn (holds {sat}g).")})
+    for row in situation.get("unmet_marshals") or []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("marshal", "?"))
+        exp, sat = int(row.get("expectation", 0) or 0), int(row.get("satisfaction", 0) or 0)
+        eroding = bool(row.get("eroding"))
+        grace = int(row.get("grace_turns_left", -1) if row.get("grace_turns_left") is not None else -1)
+        pension = int(row.get("pension", 0) or 0)
+        note = (" — loyalty eroding" if eroding
+                else (f" — patience holds {grace} more turn{'s' if grace != 1 else ''}"
+                      if grace >= 0 else ""))
+        unmet.append({"marshal": name, "expectation": exp, "satisfaction": sat,
+                      "eroding": eroding, "grace_turns_left": grace, "pension": pension,
+                      "line": (f"{name} expects {exp}g/turn, holds {sat}g"
+                               + (f" (incl. {pension}g rente)" if pension > 0 else "") + note)})
+    out = {}
+    if rises:
+        out["expectation_rises"] = rises
+    if unmet:
+        out["unmet_marshals"] = unmet
+    return out
+
+
+# EA-2 (SF-RR6) — THE DIGEST MEASURES THE CHEST. `net_residual` is the ledger's
+# Net minus the ledger's own components: zero by construction, and it never
+# reads a treasury — the economy audit's sponsorship arm read 0 on 12 of 12
+# records while France lost 200 a turn outside the books. With this up, every
+# end turn records the chest the driver MEASURED across the POST (Mode A: the
+# world's own `nation_gold`, read before and after) beside the Net the
+# accounts applied (the morning dispatch's `treasury_delta`, `_build_economy`
+# over the applied income phase — the same figure the Dispatch screen prints
+# "by the accounts"). `off_books` = the measured change, less the window's
+# one-shots (a purchase or a battle bill paid inside the command that ended
+# the turn — 0 for a plain `end turn`) and the Butcher's Bill (outside the Net
+# by design), against that applied Net: 0 when the books are whole. False =
+# no record. Measured on the boot board before the build: 14 of 14 end turns
+# read 0.
+THE_DIGEST_MEASURES_THE_CHEST = True
+
+# SFR-I5 (SF-RR6): France's own wars, read off the world before every end
+# turn — so AI aliveness C6 counts the turns France stood at war, never a
+# declaration between two other courts. False = no record.
+THE_DIGEST_RECORDS_FRANCES_WARS = True
+
+
+def _world_of(transport):
+    bm = getattr(transport, "backend_main", None)
+    return getattr(bm, "world", None) if bm is not None else None
+
+
+def player_chest(transport):
+    """The player's chest off the in-process world, or None (no handle)."""
+    try:
+        world = _world_of(transport)
+        if world is None:
+            return None
+        return int((getattr(world, "nation_gold", None) or {}).get(world.player_nation, 0))
+    except Exception:
+        return None
+
+
+def player_wars(transport):
+    """The courts at war with the player, sorted, or None (no handle)."""
+    try:
+        world = _world_of(transport)
+        if world is None:
+            return None
+        return sorted(str(n) for n in world.get_nations_at_war_with(world.player_nation))
+    except Exception:
+        return None
+
+
+# SFR-I6 (SF-RR6) — A SCRIPT NAMES ITS PRECONDITIONS. A docked line measures
+# its row only on the board the script meant: the DL arm's what-if (RS-12)
+# asks about a FORTIFIED Davout with Mack within reach, and its levy (AAR-6)
+# runs at zero military actions on French ground. The staging drifted and two
+# items read ✗ for boards the script never staged. A script's `preconditions`
+# map names, per line, what must hold before it is typed; the driver checks it
+# on the in-process world and, when it fails, writes ⚠ SCRIPT PRECONDITION
+# into the digest and `script_preconditions_failed` into meta.json, so the
+# reader reads the line as unmeasured, never as the game's answer.
+PRECONDITION_CHECKS = ("fortified", "within_reach", "military_actions",
+                       "on_own_ground")
+
+
+def precondition_failures(transport, spec):
+    """[reasons] the script's precondition `spec` fails on the live world;
+    [] when it holds; None when it cannot be read (no in-process world)."""
+    world = _world_of(transport)
+    if world is None or not isinstance(spec, dict):
+        return None
+    failures = []
+    for need in spec.get("require") or []:
+        if not isinstance(need, dict):
+            continue
+        for check, arg in need.items():
+            if check == "fortified":
+                m = world.marshals.get(str(arg))
+                if m is None or not getattr(m, "fortified", False):
+                    failures.append(f"{arg} is not fortified")
+            elif check == "within_reach":
+                a, b = (world.marshals.get(str(x)) for x in arg)
+                region = world.regions.get(getattr(a, "location", "")) if a else None
+                if (a is None or b is None or region is None
+                        or (b.location != a.location
+                            and b.location not in region.adjacent_regions)):
+                    failures.append(f"{arg[1]} is not within {arg[0]}'s reach")
+            elif check == "military_actions":
+                if int(getattr(world, "actions_remaining", 0) or 0) != int(arg):
+                    failures.append(f"{int(getattr(world, 'actions_remaining', 0) or 0)} "
+                                    f"military actions remain, not {int(arg)}")
+            elif check == "on_own_ground":
+                m = world.marshals.get(str(arg))
+                region = world.regions.get(getattr(m, "location", "")) if m else None
+                if region is None or region.controller != world.player_nation:
+                    failures.append(f"{arg} stands at {getattr(m, 'location', '?')}, "
+                                    f"not on {world.player_nation}'s ground")
+    return failures
+
+
 def _seen(digest, name):
     """A dedupe set that exists on any object, stub or real."""
     return digest.__dict__.setdefault(name, set())
@@ -1293,6 +1580,12 @@ def _record_morning_headline(digest, morning) -> None:
                 for r in (coalition.get("league_rows") or []) if isinstance(r, dict)],
             "league_line": str(coalition.get("league_line") or ""),
         }
+    situation = morning.get("situation") if isinstance(morning.get("situation"), dict) else {}
+    unmet = unmet_marshal_rows(situation)
+    if unmet:
+        # SFR-I4: the page carries the block, so a stub that takes `page=`
+        # is unchanged and a page-less morning still records it.
+        page = dict(page or {}) | unmet
     digest.dispatch(text,
                     events=morning.get("diplomatic_events"),
                     turn_events=morning.get("turn_events"),
@@ -1579,6 +1872,15 @@ class Digest:
         self.jsonl_path = out_dir / "digest.jsonl"
         self.meta_path = out_dir / "meta.json"
         self.meta = meta
+        # `update`, never a subscript: the header reads only the five keys
+        # every fixture carries (test_fa_slice15b's AST pin).
+        if THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS:
+            # SFR-I2: the enemy-phase lines quote the dialog, not the message
+            # — a reader tells this digest from an older one by this key.
+            self.meta.update(enemy_phase_text="rendered")
+        if THE_DIGEST_RECORDS_THE_UNMET_BLOCK:
+            # SFR-I4: the dispatch's Unmet Marshals block rides this digest.
+            self.meta.update(unmet_block="recorded")
         self.unknown_blockers = []
         self.recent = []
         self._last_provinces = None
@@ -1973,7 +2275,9 @@ class Digest:
                 # doing `len(rec["actions"])` crashed or read a different
                 # quantity depending on the weather.
                 self.record("enemy_phase", count=0, attacks=0, captures=0,
-                            verbs={}, actions=[], fogged=len(fog))
+                            verbs={}, actions=[], fogged=len(fog),
+                            **({"unrendered": ["message"]}
+                               if THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS else {}))
             return
         # The verb lives at row["ai_action"]["action"] (turn_manager.py:964
         # builds it, and _build_visible_enemy_phase FOG-FILTERS, collapses
@@ -1985,13 +2289,18 @@ class Digest:
         # about how often the AI attacks. Read the real key, keep the old
         # ones as fallbacks.
         attacks = [a for a in actions if "attack" in _verb(a)]
-        # FA-87: `salient_line`, not `first_line` — the engine prepends
-        # tactical annotations (`[Shield] …`, `[Combat] …`, `[!] …`) and a
-        # `'=' * 40` banner to the prose, and those won the slot on every
-        # row that carried one.
-        lines = [salient_line(a.get("message") or a.get("action")
-                              or a.get("action_type"), 120)
-                 for a in attacks[:4]]
+        shown = THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS
+        if shown:
+            # SFR-I2: the dialog's own line for each attack.
+            lines = [rendered_enemy_line(a) for a in attacks[:4]]
+        else:
+            # FA-87: `salient_line`, not `first_line` — the engine prepends
+            # tactical annotations (`[Shield] …`, `[Combat] …`, `[!] …`) and
+            # a `'=' * 40` banner to the prose, and those won the slot on
+            # every row that carried one.
+            lines = [salient_line(a.get("message") or a.get("action")
+                                  or a.get("action_type"), 120)
+                     for a in attacks[:4]]
         summary = f"enemy phase: {len(actions)} actions, {len(attacks)} attacks"
         if fog:
             summary += f" — {fog[0]}"
@@ -2005,18 +2314,30 @@ class Digest:
         # Bavaria, taking Vienna and four more Austrian provinces while
         # France destroyed the field army — never appeared in any digest.
         # Surface conquest explicitly; keep it player-visible text only.
-        needles = ("captur", "has fallen", "falls to", "taken by", "seized")
-        taken = [a for a in actions
-                 if any(w in str(a.get("message") or "").lower()
-                        for w in needles)]
-        for act in taken[:6]:
-            # FA-87: the detector greps the WHOLE message and then printed
-            # its FIRST line, so a real conquest was captioned with the
-            # annotation above it — measured in the archive, `🏴 Austria:
-            # ========================================` and `🏴 Austria:
-            # [Shield] Massena is at his best with his back to the wall!`.
-            self._md(f"  - 🏴 {act.get('nation', '?')}: "
-                     f"{matching_line(act.get('message'), needles, 150)}")
+        if shown:
+            # SFR-I2: a capture is what the dialog renders as one — the move
+            # that takes a province, the conquest, the garrison destroyed,
+            # the field battle that took the ground — read off the events,
+            # captioned with the dialog's own lines.
+            taken = [a for a in actions if rendered_capture_lines(a)]
+            for act in taken[:6]:
+                head = rendered_enemy_line(act)
+                rest = [line for line in rendered_capture_lines(act) if line != head]
+                self._md(f"  - 🏴 {_court_name(act.get('nation')) or '?'}: {head}"
+                         + (f" — {' · '.join(rest)}" if rest else ""))
+        else:
+            needles = ("captur", "has fallen", "falls to", "taken by", "seized")
+            taken = [a for a in actions
+                     if any(w in str(a.get("message") or "").lower()
+                            for w in needles)]
+            for act in taken[:6]:
+                # FA-87: the detector greps the WHOLE message and then printed
+                # its FIRST line, so a real conquest was captioned with the
+                # annotation above it — measured in the archive, `🏴 Austria:
+                # ========================================` and `🏴 Austria:
+                # [Shield] Massena is at his best with his back to the wall!`.
+                self._md(f"  - 🏴 {act.get('nation', '?')}: "
+                         f"{matching_line(act.get('message'), needles, 150)}")
 
         # WO-H2: an enemy-phase attack that resolved combat carries the full
         # battle_report on its own row (the fog filter strips only
@@ -2044,14 +2365,20 @@ class Digest:
         # Measured while building this row: a probe scanning the jsonl for
         # capture prose found ONE of the three the markdown had flagged.
         # This is a machine surface; store the message.
+        #
+        # SFR-I2: beside it, the line the dialog shows (`shown`), and the
+        # record names the field the player never sees (`unrendered`).
+        rendered = {"unrendered": ["message"]} if shown else {}
         self.record("enemy_phase", count=len(actions), attacks=len(attacks),
                     captures=len(taken), verbs=verbs, fogged=len(fog),
                     actions=[{"nation": a.get("nation"),
                               "action": _verb(a),
                               "marshal": (a.get("ai_action") or {}).get("marshal")
                               if isinstance(a.get("ai_action"), dict) else None,
-                              "message": a.get("message")}
-                             for a in actions])
+                              "message": a.get("message"),
+                              **({"shown": rendered_enemy_line(a)} if shown else {})}
+                             for a in actions],
+                    **rendered)
 
     def autonomous_attacks(self, rows):
         """WO-H2: autonomous jealousy attacks ship on the end-turn result's
@@ -2202,6 +2529,57 @@ class Digest:
                         charges=int(event.get("state_charges", 0) or 0),
                         laws=int(event.get("laws", 0) or 0),
                         materiel=int(event.get("materiel", 0) or 0))
+
+    def chest_window(self, response, before, after):
+        """EA-2: the chest measured across one end turn against the Net the
+        accounts applied (see THE_DIGEST_MEASURES_THE_CHEST). `before` and
+        `after` are the driver's own reads around the POST that ended the
+        turn; the turn_end event says where the engine opened its window
+        (`treasury - net`), so a purchase made with the last action point —
+        the command that auto-ends the turn — is the window's one-shot."""
+        if (not THE_DIGEST_MEASURES_THE_CHEST or before is None or after is None
+                or not isinstance(response, dict)):
+            return
+        event = next((e for e in (response.get("events") or [])
+                      if isinstance(e, dict) and e.get("type") == "turn_end"), None)
+        if event is None:
+            return
+        morning = response.get("morning_dispatch")
+        situation = (morning.get("situation") if isinstance(morning, dict) else None) or {}
+        applied = situation.get("treasury_delta")
+        materiel = int(event.get("materiel", 0) or 0)
+        opened = int(event.get("treasury", 0) or 0) - int(event.get("net", 0) or 0)
+        one_shots = opened - int(before)
+        measured = int(after) - int(before)
+        off = (measured - one_shots + materiel - int(applied)) if applied is not None else None
+        self.record("chest_window", turn=int(event.get("old_turn", 0) or 0),
+                    before=int(before), after=int(after), measured=measured,
+                    one_shots=one_shots, materiel=materiel,
+                    applied_net=int(applied) if applied is not None else None,
+                    off_books=off)
+        if off:
+            self._md(f"  - ⚠ OFF THE BOOKS {off:+,}g — the chest moved {measured:+,} across the "
+                     f"end turn; the accounts applied {int(applied):+,} (Butcher's Bill "
+                     f"{materiel:,}, the window's one-shots {one_shots:+,})")
+
+    def wars(self, turn, enemies):
+        """SFR-I5: the courts at war with France as the turn ends (jsonl)."""
+        if THE_DIGEST_RECORDS_FRANCES_WARS and enemies is not None:
+            self.record("wars", turn=int(turn), enemies=list(enemies))
+
+    def precondition(self, text, spec, failures):
+        """SFR-I6: a script line's precondition, read before it is typed."""
+        row = str((spec or {}).get("row", "?"))
+        self.record("precondition", text=text, row=row,
+                    held=(None if failures is None else not failures),
+                    failures=list(failures or []))
+        if failures:
+            self.note(f"⚠ SCRIPT PRECONDITION — `{text}` ({row}): "
+                      f"{'; '.join(failures)} — its reply is NOT evidence for {row}")
+            failed = self.meta.setdefault("script_preconditions_failed", [])
+            if row not in failed:
+                failed.append(row)
+            self.meta["script_precondition_failed"] = True
 
     def observe_end_turn_spend(self, response):
         """⚠ REVIEW-ROUND SYNTHESIS: close the auto-advance hole rather than
@@ -2387,6 +2765,12 @@ class Digest:
                 # readers scan digest.md, and a sub-beat is not a line of
                 # its own there).
                 fields.update(page)
+                # SFR-I4: the Unmet Marshals block and the rises, as the
+                # Dispatch screen draws them, one line a row.
+                for row in page.get("expectation_rises") or []:
+                    self._md(f"  - EXPECTS: {row.get('line', '')}")
+                for row in page.get("unmet_marshals") or []:
+                    self._md(f"  - UNMET: {row.get('line', '')}")
             self.record("dispatch", **fields)
         # FA-37: the DIPLOMATIC EVENTS rail. Defections, transfers,
         # rebellions, eliminations, war declarations and every naval and
@@ -4085,6 +4469,9 @@ def run(args):
     save_at = {int(x) for x in args.save_at.split(",") if x.strip()} \
         if args.save_at else set()
     turn_scripts = {str(k): v for k, v in (script.get("turns") or {}).items()}
+    # SFR-I6: the board each staged line needs, keyed by the line's text.
+    preconditions = {str(k): v for k, v in (script.get("preconditions") or {}).items()
+                     if isinstance(v, dict)}
 
     status = "completed"
     expeditions = ExpeditionTracker()          # FA-85
@@ -4166,8 +4553,14 @@ def run(args):
                 drain(transport, digest, answerer, response, args.strict)
                 answerer.hold_dialogue = False
                 continue
+            if text in preconditions:                    # SFR-I6
+                digest.precondition(text, preconditions[text],
+                                    precondition_failures(transport, preconditions[text]))
+            _chest = player_chest(transport)             # EA-2
             response = transport.post("/command", {"command": text})
+            _after = player_chest(transport)
             digest.command(text, response)
+            digest.chest_window(response, _chest, _after)
             digest.applied_bill(response)                # SF-V7: an auto-advance bills too
             expeditions.observe(text, response)          # FA-85
             # IQ1-2 review round: keep the turn's spend HIGH-WATER MARK as we
@@ -4245,8 +4638,12 @@ def run(args):
         if meter is not None and isinstance(_pre_body, dict):
             meter.before_end_turn(_pre_body.get("actions_remaining"))
 
+        digest.wars(current_turn, player_wars(transport))      # SFR-I5
+        _chest = player_chest(transport)                       # EA-2
         response = transport.post("/command", {"command": "end turn"})
+        _after = player_chest(transport)
         digest.command("end turn", response)
+        digest.chest_window(response, _chest, _after)
         digest.observe_end_turn_spend(response)
         digest.applied_bill(response)                    # SF-V7
         digest.loyalty_tick(response)
@@ -4285,8 +4682,11 @@ def run(args):
         if response.get("success") is False:
             # A blocker refused the end turn; the drain above answered
             # what it could — retry ONCE, then stop rather than spin.
+            _chest = player_chest(transport)             # EA-2
             response = transport.post("/command", {"command": "end turn"})
+            _after = player_chest(transport)
             digest.command("end turn (retry)", response)
+            digest.chest_window(response, _chest, _after)
             digest.applied_bill(response)                # SF-V7
             digest.loyalty_tick(response)
             digest.enemy_phase(_flatten_enemy_phase(response.get("enemy_phase")),

@@ -1159,6 +1159,83 @@ def drama_c5_expectation_before_erosion(arms, ctx):
     )
 
 
+#: SFR-I4: the page's `estate_eroding` class leads only once a man's loyalty
+#: is eroding (`dispatch.py`: `is_eroding` gates the candidate), so every one
+#: of its forms marks EROSION, never the notice — with or without "Marshal"
+#: before the name (SF5-X3's style helper dropped it, and the v1 reader keyed
+#: on it). The base line and its three escalations.
+ESTATE_ERODING_RX = re.compile(
+    r"(?:Marshal )?([A-Z][\w-]+)'s household goes unpaid"
+    r"|(?:Marshal )?([A-Z][\w-]+) has now gone unrewarded \d+ turns"
+    r"|\d+ turns without settlement on (?:Marshal )?([A-Z][\w-]+)"
+    r"|(?:Marshal )?([A-Z][\w-]+)'s claim is \d+ turns in arrears"
+)
+
+
+def drama_c5_expectation_before_erosion_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I4): an unmet expectation is announced BEFORE trust
+    erodes, read on every copy of the claim. The notice: the dispatch's Unmet
+    Marshals block naming him while his patience still holds, or an
+    expectation rise (both recorded by the driver off the morning's
+    `situation`). The erosion: the block's "loyalty eroding" row, or the
+    page's `estate_eroding` line in any of its forms (the md DISPATCH line,
+    the headline and every sub-beat of the jsonl page). An archive that
+    predates the block's record cannot see a notice at all: unmeasured, its
+    erosions listed."""
+    cases = 0
+    bad = []
+    blind = []
+    for n in ("OP", "CMD-H", "CMD-A", "CMD-M"):
+        a = arms.get(n)
+        if not a:
+            continue
+        notice: dict = {}
+        erosion: dict = {}
+
+        def _first(store, who, t):
+            if who and (who not in store or t < store[who]):
+                store[who] = t
+
+        def _prose(t, text):
+            for m in ESTATE_ERODING_RX.finditer(str(text or "")):
+                _first(erosion, next(g for g in m.groups() if g), t)
+
+        turn = 0
+        for r in a.records:
+            if r.get("kind") == "turn":
+                turn = int(r.get("turn") or turn)
+            elif r.get("kind") == "dispatch":
+                for row in r.get("expectation_rises") or []:
+                    _first(notice, str(row.get("marshal") or ""), turn)
+                for row in r.get("unmet_marshals") or []:
+                    _first(erosion if row.get("eroding") else notice,
+                           str(row.get("marshal") or ""), turn)
+                for text in [r.get("headline_text"), r.get("headline")] + list(r.get("sub_beats") or []):
+                    _prose(turn, text)
+        for t, line in _lines(a, "DISPATCH"):
+            _prose(t, line)
+        if str(a.meta.get("unmet_block", "")) != "recorded":
+            blind += [f"{n} {who} t{te}" for who, te in sorted(erosion.items())]
+            continue
+        for who, te in erosion.items():
+            cases += 1
+            tn = notice.get(who)
+            if tn is None or tn >= te:
+                bad.append(f"{n} {who}: erosion t{te}, first notice {tn}")
+    if blind and not cases:
+        return _un("an archive that predates the Unmet Marshals block's record — the notice lives "
+                   f"there; erosions seen (every copy of the page read): {blind[:4]}")
+    if cases == 0:
+        return _un("no marshal's loyalty eroded on the arms")
+    return _res(
+        True,
+        not bad,
+        (f"{cases} eroding claims; not announced before the erosion: {bad[:3]}" if bad
+         else f"{cases} eroding claims, each announced before the erosion")
+        + (f"; on arms without the block's record: {blind[:2]}" if blind else ""),
+    )
+
+
 # ═════════════════════════ VASSALS ═════════════════════════
 def _tag_key(name) -> str:
     return re.sub(r"[^a-z]", "", str(name or "").lower().replace("the ", "", 1))
@@ -1289,6 +1366,59 @@ def vassals_c5_client_capital_contested(arms, ctx):
                         later,
                     ):
                         bad.append(f"{n} t{t} {cap}")
+    if cases == 0:
+        return _un("no client capital fell to an enemy on the CMD arms")
+    return _res(
+        True,
+        not bad,
+        f"{cases} client capitals taken; uncontested within 2 turns: {bad[:3]}"
+        if bad
+        else f"{cases} client capitals taken, each contested within 2 turns",
+    )
+
+
+#: RR6-X2 (SF-RR6, SFR-I2's sibling): a province's fall as the enemy-phase
+#: dialog shows it — the move's "X falls (was …)", the conquest's "Region
+#: captured: X", the field battle's "X CAPTURED!" — on a 🏴 row whose court
+#: names the taker.
+_SHOWN_FALL = r"(?:{cap} falls\b|Region captured: {cap}\b|{cap} CAPTURED!)"
+
+
+def vassals_c5_client_capital_contested_v12(arms, ctx):
+    """Checklist v1.2 (RR6-X2): a client capital taken by an enemy is
+    contested within 2 turns. v1 found the fall only in the enemy-phase
+    `message` prose ("Milan has been captured by Austria"), which the client
+    never renders and a digest that prints the dialog's lines no longer
+    carries — it would read every new arm blind. The fall is read where the
+    player saw it: a 🏴 row in the dialog's words, taken by a court at war
+    with France; the old prose still names the event on an archive that
+    predates the dialog's lines (the event happened and the dialog drew it —
+    only the digest's wording differs)."""
+    cases = 0
+    bad = []
+    caps = {"Milan": "Kingdom of Italy", "Amsterdam": "Holland", "Bern": "Switzerland"}
+    foes = r"(Austria|Russia|Britain|Prussia|Sweden|Naples|Spain)"
+    friends = r"(France|KingdomOfItaly|Kingdom of Italy|Holland|Switzerland)"
+    for n in CMD_ARMS:
+        a = arms.get(n)
+        if not a:
+            continue
+        blocks = a.blocks()
+        for i, (t, text) in enumerate(blocks):
+            for cap in caps:
+                shown = _SHOWN_FALL.format(cap=re.escape(cap))
+                fell = (re.search(rf"🏴 {foes}:[^\n]*{shown}", text)
+                        or re.search(rf"{cap} has been captured by {foes}", text))
+                if not fell:
+                    continue
+                cases += 1
+                later = " ".join(x for _, x in blocks[i + 1 : i + 3])
+                if not re.search(
+                    rf"⚔[^\n]*{cap}|attack[^\n]*{cap}|capture_choice\[capture\]: {cap},"
+                    rf"|{cap} has been captured by {friends}|🏴 {friends}:[^\n]*{shown}",
+                    later,
+                ):
+                    bad.append(f"{n} t{t} {cap}")
     if cases == 0:
         return _un("no client capital fell to an enemy on the CMD arms")
     return _res(

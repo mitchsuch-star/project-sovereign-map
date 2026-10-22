@@ -1095,11 +1095,17 @@ class TestTheCallSitesActuallyUseThem:
     These drive the real seams.
     """
 
-    def test_the_capture_row_is_captioned_by_the_capture_sentence(self):
+    def test_the_capture_row_is_captioned_by_the_capture_sentence(self, monkeypatch):
         """Drives `Digest.enemy_phase`. Reverting its `matching_line` call to
         `first_line` puts the tactical annotation back under the flag —
         `🏴 Austria: [Combat] ArchdukeCharles's DEFENSIVE stance hampers…`,
-        verbatim from the archive."""
+        verbatim from the archive.
+
+        SF-RR6 (SFR-I2, October 21, 2026): the 🏴 row now quotes the enemy-
+        phase dialog's own lines, read off the action's events (pinned in
+        `test_sf_rr6_the_instrument.py`); the message's capture sentence is the
+        lever-down arm, held here so FA-87's caption rule stays honest."""
+        monkeypatch.setattr(pdriver, "THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS", False)
         digest = RecordingDigest()
         for name in ("enemy_phase", "battle", "autonomous_attacks"):
             method = getattr(pdriver.Digest, name, None)

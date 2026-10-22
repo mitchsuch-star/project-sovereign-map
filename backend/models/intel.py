@@ -68,6 +68,29 @@ FRESH_TURNS = 2        # Turns 0-2 after update: stays at current level
 STALE_TURN_START = 3   # Turn 3 after update: degrades to STALE
 LAST_KNOWN_TURN_START = 5  # Turn 5 after update: degrades to LAST_KNOWN
 
+# The FULL views that outlast the eye that took them: a scout's, a battle's.
+PERSISTENT_FULL_SOURCES = ("scout", "battle")
+
+
+def scouted_view_expired(intel: "RegionIntel", turn: int, granted: bool = False) -> bool:
+    """EG-X4 (SF-RR6, October 21, 2026): a FULL view a scout or a battle gave
+    has outlived its freshness (FRESH_TURNS) — unless a live intelligence
+    grant still covers the province (DLF-5).
+
+    The REFRESH path never downgrades, and a province read again at PARTIAL
+    counts as refreshed, so decay skipped it: a scouted province that stayed
+    beside a French corps kept its FULL label and its frozen snapshot for good.
+    Measured on the economy gate's CMD-M arm at turn 20: Bohemia, scouted at
+    turn 17 with Kutuzov in it and empty since, still read FULL with six French
+    corps next door at Franconia — the store's last sighting of Kutuzov stood
+    three turns stale (narration C4 ✗), and the FULL label kept showing the
+    province's live occupants at full detail long after the scout had gone.
+    `calculate_visibility` drops such a view to PARTIAL before its main pass,
+    so this turn's own read refreshes it (or decay ages it)."""
+    return (intel.visibility == FULL and not granted
+            and intel.intel_source in PERSISTENT_FULL_SOURCES
+            and int(turn) - int(intel.last_updated_turn) > FRESH_TURNS)
+
 
 def get_strength_band(strength: int) -> str:
     """

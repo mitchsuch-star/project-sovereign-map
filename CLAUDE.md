@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9): SF-RR1 … RR5 done, SF-RR6 next.
+> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b is next.
 
 **▶ LIVE STATE (October 21, 2026).** The three most recent landed rows:
-- **Score Finish residue 4 (Oct 21) — SF-RR5, the frames at both scales — LANDED** (9 rows + RR5-X1…X9; the 2.0 decision modals; frames at UXR-4): `SYSTEMS_REFERENCE.md` §140. **NEXT = SF-RR6.**
+- **Score Finish residue 5 (Oct 21) — SF-RR6, the instrument reads what the player sees — LANDED** (7 rows + RR6-X1…X3; checklist v1.2): `SYSTEMS_REFERENCE.md` §141. **NEXT = S14b, RR6-X3 at its head.**
+- **Score Finish residue 4 (Oct 21) — SF-RR5, the frames at both scales — LANDED** (§140).
 - **Score Finish residue 3 (Oct 21) — SF-RR4, war, truce and the standing order — LANDED** (§139).
-- **Score Finish residue 2 (Oct 21) — SF-RR3, the page and the copy — LANDED** (§138).
 
 **Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

@@ -11668,3 +11668,62 @@ RR5-X1 the objection ran off both edges at 2.0 (§140.2); X2 the Talleyrand obje
 - **The frames committed** for the user's eye (`docs/audits/IQ10_*_2026_10_21.png`, both scales) and listed in `UX_UI_REVIEW_PLAN.md` §UXR-4; the IQ-10 table's `must_show` lines say what each re-shot surface now shows.
 - **The Godot parse harness** EXIT 0; the full suite green through the hook.
 - **Sized out:** SF-RR6 "the instrument reads what the player sees" heads the next session (`docs/NEXT_SESSION_PROMPT.md`).
+
+## 141. THE INSTRUMENT READS WHAT THE PLAYER SEES (SF-RR6: SFR-I2, I4, I5, I6, I7; EA-2; EG-X4; EG-D1's re-band; Score Finish Step 9, October 21, 2026)
+
+*`BUG_FIXES.md` §Score Finish Step 8 (SFR-I2, I4, I5, I6, I7 FIXED), §The Economy Audit (EA-2 FIXED), §The Economy Gate (EG-X4 FIXED) and `DESIGN_REFINEMENT.md` EG-D1 (BUILT), with the siblings the sweep found (§141.9, `BUG_FIXES.md` §RR6: RR6-X1 and X2 FIXED, RR6-X3 heading S14b). Pins `tests/test_sf_rr6_the_instrument.py` — every row's pin flips with its lever (a driver flag, a reader, the DL script's staging, the store's seam), two of them driving the DL arm through the real driver. The re-reads and their deltas: `docs/audits/score_runs/2026_10_21_rr6/README.md`. The instrument changed (the driver's records, the readers, the DL script, checklist v1.2) and one backend seam (EG-X4's store); `BASELINE_SERIES` byte-identical with that seam up and down (`tools/_sf_rr6_series_arms_final.json`).*
+
+### 141.1 Reproduced first; checklist v1.2
+
+- **Every misread shown on the archived digest that carries it** (and on today's entry tree, `d940b5bc`): combat C5's raw keys all in the enemy-phase `message` — 124 on the baseline, 46 on the final reading, 37 on the gate's, 34 at entry — the ⚔ and MUSTER lines carrying none; drama C5 unmeasured on the final reading and at entry ("Lannes's claim is 8 turns in arrears" carries no "Marshal"); AI C6's 11/39 on the final reading's CMD-M (Prussia's declaration on Hanover the turn France signed); the DL arm's `Davout, fortify` refused for actions and the levy refused on foreign ground (and, at entry, RS-15 asked with military actions in hand — RR6-X1); economy F1's net_residual 0 on every record, by construction; narration C4's Kutuzov on the gate's CMD-M turn 20; AI C1 ✗ at 20 / 19 / 19 laws with 0 lapses.
+- **`docs/SCORE_CHECKLIST_V1_2.json`**: v1.1 word for word plus ten amended items, each naming its `reader` and its row — AI C1 (EG-D1), AI C6 (SFR-I5), combat C4 and economy C5 (SFR-I6), combat C5 (SFR-I7), economy F1 (EA-2), first contact C4 (RR6-X1), marshal drama C5 (SFR-I4), narration C4 (EG-X4, the probe unchanged, re-read through the fixed store) and vassals C5 (RR6-X2). The rule and the done-when are v1's. The frozen readers stay exactly as the readings used them; `score_run.py check` keeps v1 as its default.
+- **The re-read** (`tools/score_reread.py`) writes `checklist_v1_2.json` beside each archive's `checklist.json`; an amended probe that reads the arms' saves (`reread_needs: saves`) keeps the archived mark, said, where the archive kept none (the saves are gitignored).
+
+### 141.2 The enemy phase as the dialog shows it (SFR-I2)
+
+- **`playtest_driver.rendered_enemy_line` / `rendered_capture_lines`** mirror `enemy_phase_dialog.gd`'s `_format_action`: the actor humanized (else the court's name), the verb's phrase (`ENEMY_VERB_PHRASES`, held to the dialog's `match action_type` arms by a drift pin), the move that takes a province ("— Provence falls (was France) and is sacked"), the conquest ("Region captured: Munich (was Bavaria) (secured)"), the garrison destroyed, the field battle ("Swabia CAPTURED!").
+- **The `- enemy phase:` line quotes the dialog's line for each attack; a 🏴 row is what the dialog draws as a capture**, read off the events, never the prose (the old detector missed "Archduke John marches into Milan!" — on CMD-A turn 5 Milan fell with no 🏴 row at all).
+- **The jsonl keeps the message** beside the line shown (`shown`), the record marked `unrendered: ["message"]`; meta.json says `enemy_phase_text: rendered`. Lever `THE_DIGEST_PRINTS_WHAT_THE_DIALOG_SHOWS`. Display only: every arm's game stream byte-identical (`tools/_sf_rr6_arm_attribution.py`).
+
+### 141.3 Combat C5 on the text the player sees (SFR-I7)
+
+`score_run.r_combat_legibility_C5_v12` reads the ⚔ and MUSTER lines, and the enemy phase's head and 🏴 rows only where the digest quotes the dialog; an older digest's enemy-phase message is skipped and its keys printed beside the mark. ✗ → ✓ on the baseline, the final reading, the gate's and the entry re-reads.
+
+### 141.4 The Unmet Marshals block (SFR-I4)
+
+- **The driver records the dispatch's `situation.unmet_marshals` and `expectation_rises`** (`unmet_marshal_rows`) on the dispatch record's page, each row with the line `dispatch_view.gd` draws, printed under the DISPATCH line as `- EXPECTS:` / `- UNMET:`; meta `unmet_block: recorded`. Lever `THE_DIGEST_RECORDS_THE_UNMET_BLOCK`.
+- **`_score_probes.drama_c5_expectation_before_erosion_v12`**: the notice is the block naming a man while his patience holds, or a rise; the erosion is the block's "loyalty eroding" row or any form of the page's `estate_eroding` line (`ESTATE_ERODING_RX` — the class leads only once `is_eroding`, so its base line "X's household goes unpaid" is erosion, never the notice v1 took it for), with or without "Marshal"; "before" is strict. An archive that predates the block reads unmeasured, its erosions listed.
+
+### 141.5 France's wars (SFR-I5)
+
+The driver records the courts at war with France before every end turn (`wars`, `player_wars` — `world.get_nations_at_war_with`; lever `THE_DIGEST_RECORDS_FRANCES_WARS`). `score_run._france_turns_at_war` reads that record; on an older archive it walks the war and peace rows with France-only openings (`FRANCE_WAR_RX`: France declares or is declared upon, the alliance cascade carries her in — the war she joins through a client — or a league forms against her). `r_ai_aliveness_C6_v12` counts the visible attacks over those turns.
+
+### 141.6 The DL arm's preconditions (SFR-I6, RR6-X1)
+
+- **The re-staging**: turn 1 fortifies Davout first (a fortified corps answers no muster — MULTI_MARSHAL_SPEC rule 7) and asks the what-if (RS-12) about him, spends the other actions on Ney's 2-AP order (RS-8) and Bernadotte's take (RS-11), then asks "what can I do" (RS-15) at zero military actions; turn 3 spends its actions (the three scouts and Davout's own) before the levy (AAR-6) on French ground. No docked line was re-authored.
+- **A script's `preconditions`** map names, per line, the board it needs (`fortified`, `within_reach`, `military_actions`, `on_own_ground`); `precondition_failures` checks it on the in-process world before the line is typed, `Digest.precondition` records it and, on a failure, notes ⚠ SCRIPT PRECONDITION and adds the row to meta's `script_preconditions_failed`.
+- **The readers** (`r_combat_legibility_C4_v12`, `r_economy_C5_v12`, `r_first_contact_C4_v12`) read a failed precondition unmeasured; an older archive is read through its staging lines (the fortify refused, the levy's refusal of the ground, a counsel still offering military orders).
+
+### 141.7 The chest across the end turn (EA-2)
+
+`Digest.chest_window` records, for every POST that ends a turn, the chest the driver measured before and after (Mode A: `nation_gold`), the window's one-shots (what moved the chest before the engine opened its window at `treasury - net` — a purchase made with the last action), the Butcher's Bill (`materiel`, outside the Net by design) and the Net the accounts applied (the morning dispatch's `treasury_delta`, `_build_economy` over the applied income phase); `off_books` = measured − one-shots + materiel − applied, 0 when the books are whole (14 of 14 boot end turns before the build). `r_economy_F1_v12` reads every window and v1's re-sum residual. The economy audit's sponsorship with EA-1's lever down reads −200 a turn; on the books, 0. Lever `THE_DIGEST_MEASURES_THE_CHEST`.
+
+### 141.8 The scouted view expires (EG-X4)
+
+- **The trace** (the gate's CMD-M turn-20 save): Kutuzov was scouted at Vienna and seen again at Bohemia on turn 17, then returned to Vienna unseen; Bohemia's entry still read FULL, `scout`, turn 17, with him in it, six French corps next door at Franconia reading it PARTIAL every turn. `RegionIntel.refresh` never downgrades, and a province read again counts as refreshed, so `decay_intel` skipped it: a scout's (or a battle's) FULL view never expired while a French corps stood beside it. The row's tie-break took Vienna, the store's scan Bohemia.
+- **The fix, at the store's seam**: `intel.scouted_view_expired(intel, turn, granted)` — a FULL view from a `scout` or `battle` source past FRESH_TURNS, unless a live intelligence grant covers the province (DLF-5) — and `calculate_visibility`'s pre-pass drops it to PARTIAL, so the main pass's own read replaces the frozen snapshot, or decay ages it. Narration C4 re-reads ✓ on the gate's CMD arms; with the seam down the frozen ✗ returns.
+- **What else it moved**: the same stale label showed enemy actions in the enemy-phase dialog from provinces the player no longer saw at FULL (the filter shows FULL only) — closed (every arm's VIEW stream shows fewer actions); the commanded games byte-identical but FLD's turn 7, where `Ney, attack Archduke John` now reads the store honestly ("No intelligence on Archduke John's position") instead of chasing the stale Tyrol view — RR6-X3. `BASELINE_SERIES` byte-identical with the seam up and down, the lever proven to bite (66 views held down).
+
+### 141.9 The siblings (RR6-X1 … X3)
+
+- **RR6-X1** (SFR-I6's class): first contact C4's RS-15 board — §141.6.
+- **RR6-X2** (SFR-I2's class, found by a census that re-read every digest-only item on four archives with the unrendered enemy-phase text masked — two marks moved, combat C5 and vassals C5): `vassals_c5_client_capital_contested_v12` reads a client capital's fall on the dialog's 🏴 lines, the old prose kept as the event's evidence on an older archive.
+- **RR6-X3** (EG-X4's class, OPEN at S14b's head): the order's `pursue_known_location` reads the store's snapshots, the desk and the map read a man's true province under a PARTIAL label, the dispatch reads AAR-5's sighting rule — three readers of where the player last saw a man; a ruling first.
+
+### 141.10 The re-reads
+
+The baseline, the final reading, the gate's and today's entry arms re-read under v1.2 beside their records (the frozen marks kept; deltas in the memo): combat C5 ✗ → ✓ on all four; the DL items (combat C4, economy C5; first contact C4 at entry) ✗ → unmeasured (boards the script never staged); economy F1 ✓ → unmeasured (blind before the measure); drama C5 ✓ → unmeasured on the baseline (its notice was never recorded); narration C4 and AI C6 ✗ → ✓ on the gate's; AI C1 ✓ / ✗ / ✓ / ✓ under the band. On the slice's own arms every SF-RR6 item measures and reads ✓, but vassals C5 — Milan's fall on CMD-A turn 5, which the old reader could not see, read ✗ as the baseline read it (the scripted France never marches on Milan; a reading, never claimed).
+
+### 141.11 The instruments
+
+`tools/_sf_rr6_series_arms.py` (the series attribution, the reach counted), `tools/_sf_rr6_arm_attribution.py` (each arm's GAME and VIEW streams, entry → seam down → shipped), `tools/_sf_rr6_reread_deltas.py` (the deltas, v1.1's moves told apart). The driver's new records are display and measurement only — the arms' game streams byte-identical across the driver change.

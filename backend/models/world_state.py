@@ -38,7 +38,7 @@ from backend.commands.disobedience import DisobedienceSystem
 from backend.utils.debug import debug_print
 from backend.models.intel import (
     RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, FRESH_TURNS,
-    get_strength_band
+    get_strength_band, scouted_view_expired
 )
 from backend.models.cooldown_manager import CooldownManager, PopupQueue
 from backend.models.dialogue_manager import DialogueManager
@@ -3793,6 +3793,7 @@ class WorldState:
         # The main loop will then re-upgrade to FULL if the marshal is still
         # there, or set PARTIAL from adjacency/watchtower/own-territory.
         # ════════════════════════════════════════════════════════════
+        active_grants = getattr(self, 'intel_grants', {}) or {}
         for region_name, intel in self.intel.items():
             if intel.visibility != FULL:
                 continue
@@ -3800,6 +3801,15 @@ class WorldState:
             # "own_territory" when marshal was present — Step 0 uses own_territory
             # source for own regions with a marshal)
             if intel.intel_source not in ("marshal_present", "own_territory"):
+                # EG-X4 (SF-RR6): a scout's or a battle's FULL view past its
+                # freshness falls to PARTIAL, so the main pass's own read (or
+                # decay) replaces the frozen snapshot it kept for good.
+                if scouted_view_expired(intel, turn,
+                                        granted=active_grants.get(region_name, -1) >= turn):
+                    intel.visibility = PARTIAL
+                    intel.exact_strength = None
+                    intel.morale = None
+                    intel.stance = None
                 continue
             if region_name in friendly_marshal_regions:
                 continue  # Marshal still there — will be re-upgraded in main loop

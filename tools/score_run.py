@@ -3116,6 +3116,267 @@ def _turns_at_war(arm: Arm) -> list[int]:
     return out
 
 
+# ═══════════════ CHECKLIST v1.2 — THE INSTRUMENT READS WHAT THE PLAYER SEES ═══════════════
+# SF-RR6 (Score Finish Step 9, October 21, 2026). Every reader below is an
+# AMENDED item's `reader` in `docs/SCORE_CHECKLIST_V1_2.json`; the frozen
+# readers above stay exactly as the readings used them (§4.4 — a corrected
+# reader never rewrites a past mark; `tools/score_reread.py` reads an archive
+# under v1.2 BESIDE its record).
+def _rendered_enemy_phase(arm: Arm) -> bool:
+    """SFR-I2: the digest's enemy-phase lines quote the dialog's own lines
+    (the driver stamps `meta.enemy_phase_text`); an older digest's quote the
+    action's `message`, which `enemy_phase_dialog.gd` never renders."""
+    return str(arm.meta.get("enemy_phase_text", "")) == "rendered"
+
+
+def _enemy_phase_lines(arm: Arm):
+    """[(turn, line, is_enemy_phase_text)] over the digest's blocks — the
+    `- enemy phase:` line and the 🏴 rows under it are the enemy phase's
+    text; every other line is not."""
+    out = []
+    for turn, text in arm.blocks():
+        in_phase = False
+        for line in text.split("\n"):
+            if line.startswith("- "):
+                in_phase = line.startswith("- enemy phase:")
+            out.append((turn, line, line.startswith("- enemy phase:")
+                        or (in_phase and "🏴" in line)))
+    return out
+
+
+def r_combat_legibility_C5_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I7): no raw marshal keys in the combat text the
+    player SEES — the ⚔ and MUSTER lines everywhere, and the enemy phase's
+    lines (its head and 🏴 rows) where the digest quotes the dialog. An older
+    digest's enemy-phase text is the server `message` the client never
+    renders: skipped, its keys printed beside the mark and never in it."""
+    hits, skipped = {}, {}
+    for n in ("OP", "FLD", "CMD-H", "CMD-A", "CMD-M"):
+        if n not in arms:
+            continue
+        rendered = _rendered_enemy_phase(arms[n])
+        for turn, line, enemy in _enemy_phase_lines(arms[n]):
+            if not ("⚔" in line or "MUSTER" in line or enemy):
+                continue
+            bucket = skipped if (enemy and not rendered and "⚔" not in line) else hits
+            for tok in RAW_KEY_RX.findall(line):
+                if tok not in RAW_KEY_ALLOW:
+                    bucket.setdefault(tok, []).append(f"{n} t{turn}")
+    if not any(n in arms for n in ("OP", "FLD", "CMD-H")):
+        return _unmeasured("no combat arms")
+    total = sum(len(v) for v in hits.values())
+    unread = sum(len(v) for v in skipped.values())
+    return _res(
+        True,
+        total == 0,
+        f"raw keys in the combat text the player sees: {total} "
+        + json.dumps({k: len(v) for k, v in hits.items()})[:200]
+        + (f"; not read — the unrendered enemy-phase message of an older digest: {unread} "
+           + json.dumps({k: len(v) for k, v in skipped.items()})[:160] if unread else ""),
+    )
+
+
+#: EG-D1 (ruled October 13, 2026, under the user's delegation): the floor of
+#: RF-3's measured 16 ± 2 band is kept and its ceiling struck — the four
+#: rival decks hold 20 laws and a fully competent AI enacts 19–20, so
+#: "13–18" failed it from above. The AI's purse is not touched.
+AI_C1_LAW_FLOOR = 13
+
+
+def r_ai_aliveness_C1_v12(arms, ctx):
+    """Checklist v1.2 (EG-D1): the rival courts enact at least 13 of their
+    decks' 20 laws, with 0 lapses (`law_enacted_abroad` rows; a lapse is any
+    law row whose type says so)."""
+    need = [n for n in CMD_ARMS if n in arms]
+    if not need:
+        return _unmeasured("no CMD arms")
+    ev = {
+        n: (
+            _count_dtype(arms[n], "law_enacted_abroad"),
+            sum(
+                1
+                for r in _dispatch_rows(arms[n])
+                if "law" in str(r.get("dtype")) and "laps" in str(r.get("dtype"))
+            ),
+        )
+        for n in need
+    }
+    return _res(
+        True,
+        all(e >= AI_C1_LAW_FLOOR and lapsed == 0 for e, lapsed in ev.values()),
+        f"laws enacted abroad (enacted, lapsed) per seed: {ev} — at least {AI_C1_LAW_FLOOR} of the decks' 20, 0 lapses",
+    )
+
+
+#: SFR-I5: a row opens FRANCE'S war only when France is in it — named as the
+#: court that declares or the court declared upon, the court the alliance
+#: cascade carries in ("France enters the war … via its alliance with
+#: Bavaria" — a war France joins through its client), or the league formed
+#: against her. "Prussia has declared war on Hanover" is not France's war.
+FRANCE_WAR_RX = re.compile(
+    r"declare[sd]? war on France\b|^France (?:has )?declare[sd]? war\b"
+    r"|\bFrance enters the war\b|\bFrance joins (?:the )?war\b|\bagainst France\b",
+    re.I,
+)
+FRANCE_WAR_OPENING = ("diplomatic_war_declared", "diplomatic_coalition_formed",
+                      "coalition_declared", "diplomatic_alliance_cascade",
+                      "defensive_cascade")
+FRANCE_WAR_CLOSING = ("settlement_summary", "diplomatic_coalition_dissolved",
+                      "coalition_dissolved")
+
+
+def _france_turns_at_war(arm: Arm) -> tuple[list[int], str]:
+    """(the turns France stood at war, the source read). The driver's own
+    `wars` record — the courts at war with France as each turn's end began —
+    where the arm has it; else the frozen walk of the war and peace rows with
+    France-only openings (an archive that predates the record)."""
+    if arm.kind("wars"):
+        out, turn = [], 0
+        for r in arm.records:
+            if r.get("kind") == "turn":
+                turn = int(r.get("turn") or turn)
+            elif r.get("kind") == "wars" and r.get("enemies") and turn not in out:
+                out.append(turn)
+        return out, "the driver's war record"
+    at_war, out, seen, turn = True, [], None, 0
+    for r in arm.records:
+        if r.get("kind") == "turn":
+            if seen is not None and at_war:
+                out.append(seen)
+            turn = int(r.get("turn") or turn)
+            seen = turn
+            continue
+        if r.get("kind") not in ("rail", "dispatch_row", "campaign_log"):
+            continue
+        d = r.get("dtype") or ""
+        if d in FRANCE_WAR_OPENING and FRANCE_WAR_RX.search(str(r.get("text") or "")):
+            at_war = True
+        elif d in FRANCE_WAR_CLOSING:
+            at_war = False
+    if seen is not None and at_war and seen not in out:
+        out.append(seen)
+    return out, "France's war and peace rows"
+
+
+def r_ai_aliveness_C6_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I5): visible AI attacks on ≥ 50% of the turns
+    FRANCE stood at war — never a turn opened by a declaration between two
+    other courts."""
+    need = [n for n in CMD_ARMS if n in arms]
+    if not need:
+        return _unmeasured("no CMD arms")
+    ev, ok, sources = {}, True, set()
+    for n in need:
+        war_turns, source = _france_turns_at_war(arms[n])
+        sources.add(source)
+        attacks = _attacks_by_turn(arms[n])
+        visible = sum(1 for t in war_turns if attacks.get(t, 0) > 0)
+        ratio = visible / len(war_turns) if war_turns else 0.0
+        ev[n] = f"{visible}/{len(war_turns)}"
+        ok = ok and ratio >= 0.5
+    return _res(True, ok,
+                f"turns with a visible AI attack over the turns France stood at war ({' / '.join(sorted(sources))}): {ev}")
+
+
+def r_economy_F1_v12(arms, ctx):
+    """Checklist v1.2 (EA-2): no flow off the books — on every end turn the
+    chest's MEASURED change, less the window's one-shots and the Butcher's
+    Bill, equals the Net the accounts applied (the driver's `chest_window`
+    record), and the NET sub-line re-sums to the Net beside it (v1's
+    `net_residual`, zero by construction and kept as the display check)."""
+    windows = [(n, r) for n, a in arms.items() for r in a.kind("chest_window")]
+    if not windows:
+        return _unmeasured(
+            "an archive that predates the chest's measure (EA-2): the driver never "
+            "read a treasury, so an off-books flow could not be seen — v1's "
+            "net_residual is zero by construction")
+    judged = [(n, r) for n, r in windows if r.get("off_books") is not None]
+    if not judged:
+        return _unmeasured(f"{len(windows)} end turns measured, none against an applied Net")
+    off = [(n, r.get("turn"), r.get("off_books")) for n, r in judged
+           if int(r.get("off_books") or 0) != 0]
+    residual = [(n, r.get("net_residual")) for n, a in arms.items() for r in a.kind("economy")
+                if int(r.get("net_residual") or 0) != 0]
+    return _res(
+        True,
+        not off and not residual,
+        f"{len(judged)} end turns: the chest's change, less one-shots and the Butcher's Bill, "
+        f"against the applied Net — off the books {off[:5] if off else 'none'}; "
+        f"NET re-sum residuals {residual[:3] if residual else 'none'}",
+    )
+
+
+def _dl_precondition(arm: Arm, line: str):
+    """SFR-I6: (held, why) of the DL script's precondition for `line` off the
+    driver's own record, or None when the arm recorded none."""
+    for r in arm.kind("precondition"):
+        if str(r.get("text", "")).strip().lower() == line.strip().lower():
+            return r.get("held"), "; ".join(r.get("failures") or [])
+    return None
+
+
+def r_combat_legibility_C4_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I6): DL's what-if for a FORTIFIED marshal refuses
+    as the order would (RS-12) — read only on the board the script staged.
+    The driver's precondition record decides; an archive that predates it is
+    read through the staging line's own reply (`Davout, fortify` refused =
+    the man was never fortified)."""
+    if _need(arms, "DL"):
+        return _unmeasured("DL did not run")
+    a = arms["DL"]
+    line = "what if Davout attacks Mack?"
+    pre = _dl_precondition(a, line)
+    if pre is not None and pre[0] is False:
+        return _unmeasured(f"SCRIPT PRECONDITION (RS-12): {pre[1]}")
+    if pre is None:
+        fortify = _find_cmd(a, "Davout, fortify")
+        if fortify is not None and fortify.get("success") is False:
+            return _unmeasured("SCRIPT PRECONDITION (RS-12, read off the staging line): "
+                               f"`Davout, fortify` → {str(fortify.get('message', ''))[:120]}")
+    return r_combat_legibility_C4(arms, ctx)
+
+
+def r_economy_C5_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I6): DL's levy at 0 military actions executes
+    (AAR-6) — on the board the script staged: zero military actions, the
+    marshal on French ground. An archive that predates the precondition
+    record is read through the levy's own refusal of the ground."""
+    if _need(arms, "DL"):
+        return _unmeasured("DL did not run")
+    a = arms["DL"]
+    lines = _dl_lines(ctx, "AAR-6") or ["recruit 10000 infantry with Davout"]
+    for line in lines:
+        pre = _dl_precondition(a, line)
+        if pre is not None and pre[0] is False:
+            return _unmeasured(f"SCRIPT PRECONDITION (AAR-6): {pre[1]}")
+        r = _find_cmd(a, line)
+        if pre is None and r is not None and re.search(
+                r"do not control|foreign ground", str(r.get("message", ""))):
+            return _unmeasured("SCRIPT PRECONDITION (AAR-6, read off the levy's reply): "
+                               f"{str(r.get('message', ''))[:140]}")
+    return r_economy_C5(arms, ctx)
+
+
+def r_first_contact_C4_v12(arms, ctx):
+    """Checklist v1.2 (SFR-I6's sibling, RR6-X1): DL's 'what can I do' at
+    zero military actions names a purchase (RS-15) — read only where the
+    military actions were spent. An archive that predates the precondition
+    record is read through the counsel's own reply: one that still offers a
+    military order was asked with military actions in hand."""
+    if _need(arms, "DL"):
+        return _unmeasured("DL did not run")
+    pre = _dl_precondition(arms["DL"], "what can I do")
+    if pre is not None and pre[0] is False:
+        return _unmeasured(f"SCRIPT PRECONDITION (RS-15): {pre[1]}")
+    if pre is None:
+        cmds = [c for c in _cmd_blocks(arms["DL"])
+                if c["text"].strip().lower() == "what can i do"]
+        if cmds and not re.search(r"no military actions remain", " ".join(cmds[-1]["sub"]), re.I):
+            return _unmeasured("SCRIPT PRECONDITION (RS-15, read off the counsel's reply): "
+                               "military actions remained — " + " / ".join(cmds[-1]["sub"])[:140])
+    return r_first_contact_C4(arms, ctx)
+
+
 # ═════════════════════════ AGENDAS ═════════════════════════
 def r_agendas_F1(arms, ctx):
     return _suite_green(

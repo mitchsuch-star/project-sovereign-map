@@ -94,6 +94,15 @@ def reread(run_dir: pathlib.Path, checklist: dict, eyes: dict, suffix: str) -> d
                         p = SR.ROOT / SR.SCRIPTS / script
                         ctx[k] = (json.loads(p.read_text(encoding="utf-8"))
                                   if p.exists() else {})
+                if item.get("reread_needs") == "saves" and not any(
+                        (arm.path / "saves").is_dir() for arm in arms.values()):
+                    # SF-RR6: an amended PROBE that reads the arms' saves
+                    # cannot be re-read on an archive that kept none (the
+                    # saves are gitignored); the archived mark stands, said.
+                    kept["text"] = item["text"]
+                    items_out.append({**kept, "reread": "kept — the archive keeps no saves "
+                                      "for this probe to re-read"})
+                    continue
                 fn = _resolve_reader(item["reader"])
                 with contextlib.redirect_stdout(io.StringIO()):
                     res = fn(arms, ctx)

@@ -364,6 +364,12 @@ for a reader of digests:
   overlay's own state.
 * **`⚠ SCRIPT PRECONDITION`** — a script whose every `land`/expedition line
   is refused is stamped so (digest + `meta.script_precondition_failed`);
+  since SF-RR6 (October 21, 2026) so is any line a script's
+  `preconditions` map names whose board fails before it is typed
+  (`fortified`, `within_reach`, `military_actions`, `on_own_ground` —
+  `score_docked_lines.json` stages its what-if, its counsel and its levy so;
+  `meta.script_preconditions_failed` lists the rows, and the score readers
+  read them unmeasured);
   the committed `naval_descent.json` now stages Soult at **Bordelais** (a
   yard outside the Descent's camp set; Normandy was never a yard).
 * **`meta.driver_revision`** — a content hash of the driver that produced
@@ -644,7 +650,17 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   unmarked), battles (`Ney (lost 2,173) vs Mack (lost 7,747) — …`), popups
   + the answers taken, the enemy phase (attack lines, a `verbs:` tally,
   `🏴` lines for any province that changed hands, **and the fog
-  sentence — including on a turn where nothing at all was visible**),
+  sentence — including on a turn where nothing at all was visible**;
+  **since SF-RR6, October 21, 2026, in the enemy-phase dialog's own words**:
+  each line rebuilt from the action's structured fields as
+  `enemy_phase_dialog.gd` draws it, a `🏴` row being what the dialog draws
+  as a capture — the action's server `message`, which the client never
+  renders, stays in the jsonl marked `unrendered`, and meta.json says
+  `enemy_phase_text: rendered`),
+  `- EXPECTS:` / `- UNMET:` under the DISPATCH line (the Dispatch screen's
+  Unmet Marshals block and its expectation rises, SF-RR6), a
+  `⚠ OFF THE BOOKS` row when the chest moved across an end turn by more or
+  less than the accounts applied (SF-RR6, EA-2),
   `ORDER` rows for standing-order progress, `LEDGER` with
   treasury/net/**threat**/**`provinces N (+d)`**, the dispatch headline,
   its `RAIL` notices and `LOG` rows for the AI-vs-AI beats no other
@@ -702,7 +718,11 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   `#N →` lines or by `dispatch_type_counts["client_petition_answered"]`.
 - `digest.jsonl` — the query surface (one record per event; `kind` =
   turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
-  rail/dispatch_row/campaign_log/mission/note).
+  rail/dispatch_row/campaign_log/mission/note — and since SF-RR6
+  `chest_window` (the chest measured across each end turn against the
+  applied Net, `off_books` 0 when the books are whole), `wars` (the courts
+  at war with France as each turn's end begins) and `precondition` (a
+  script line's staged board, held or failed)).
 
   > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action
   > list.** An earlier version of this page said otherwise and it was wrong

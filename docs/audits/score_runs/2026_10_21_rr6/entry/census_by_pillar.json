@@ -1,0 +1,59 @@
+{
+ "pillars": {
+  "economy": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EA-2"
+   ]
+  },
+  "ending": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "UXR3-F11"
+   ]
+  },
+  "narration": {
+   "open": 1,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "EG-X4"
+   ]
+  },
+  "none": {
+   "open": 5,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "SFR-I2",
+    "SFR-I4",
+    "SFR-I5",
+    "SFR-I6",
+    "SFR-I7"
+   ]
+  },
+  "ui_ux": {
+   "open": 9,
+   "p1": [],
+   "p2": 8,
+   "rows": [
+    "PC-F46",
+    "PC-F47",
+    "UXR3-79",
+    "UXR3-80",
+    "UXR3-81",
+    "UXR3-2",
+    "UXR3-24",
+    "UXR3-29",
+    "UXR3-41"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-10-21T21:15",
+ "open_total": 17
+}
