@@ -795,6 +795,90 @@ class DiplomaticExecutor:
         result["new_state"] = game_state
         return result
 
+    def _execute_proclaim_design(self, command: Dict, game_state: Dict) -> Dict:
+        """VP-1 (docs/VP1_DESIGNS_SPEC.md §3): proclaim a road of the Empire —
+        irreversible. The road page's button sends the line; the order QUOTES
+        first, free (the Laws' quote-then-confirm on the clarification
+        channel): the price, the teeth and that it cannot be undone; the
+        option reissues it confirmed. 2 DP here, after `proclaim` succeeds;
+        the administrative action by the executor's generic ADMIN arm, only
+        on success. Refused with `price_refusal`'s sentence at no cost. The
+        player's verb only (no AI code reads or writes the designs)."""
+        from backend.game_logic import imperial_designs as ID
+        world = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+        acting = command.get("_acting_nation")
+        if acting not in (None, "", getattr(world, "player_nation", None)):
+            return {"success": False,
+                    "message": "Only the Emperor proclaims the designs of the Empire."}
+        if not ID.armed(world):
+            return {"success": False, "message": ID.proclaim_refusal(world, "")}
+        words = str(command.get("target") or command.get("raw_input") or "")
+        road_id = ID.resolve_road(world, words)
+        if not road_id:
+            listing = "; ".join(f"{r.get('title')} ({r.get('proclamation')})"
+                                for r in ID.roads(world))
+            return {"success": False, "message": (
+                f"Which road, Sire? The Empire's roads are {listing} — the road "
+                f"page in the Cabinet ({ID.DESIGNS_CONTROL}) proclaims one.")}
+        refusal = ID.price_refusal(world, road_id)
+        if refusal:
+            return {"success": False, "message": refusal}
+        row = ID.road(world, road_id) or {}
+        from backend.commands.reforms_executor import _confirmed
+        if not _confirmed(command):
+            return self._quote_proclamation(world, row, command)
+        result = ID.proclaim(world, road_id)
+        if not result.get("success"):
+            return {"success": False, "message": result.get("message", "")}
+        world.diplomatic_points = int(world.diplomatic_points) - ID.PROCLAIM_DP_COST
+        teeth = ID.teeth_line(world, row.get("teeth_proclaim") or {})
+        designs = " Then ".join(f"{d.get('title')}: {d.get('hint')}"
+                                for d in ID.designs_of(row))
+        result["message"] = (
+            f"{row.get('proclamation')} is proclaimed — {row.get('title')} is the "
+            f"Empire's road, and the others are forsworn. {teeth}. {designs} "
+            f"The road page: {ID.DESIGNS_CONTROL}.")
+        result["events"] = [{"type": "imperial_design", "phase": "proclaimed",
+                             "nation": ID.owner(world), "road": road_id}]
+        result["new_state"] = game_state
+        return result
+
+    def _quote_proclamation(self, world, row: Dict, command: Dict) -> Dict:
+        """The proclamation's confirm: the terms first, free. The option
+        reissues the order confirmed (`reforms_executor._confirmed`)."""
+        from backend.game_logic import imperial_designs as ID
+        from backend.display_names import plural
+        teeth = ID.teeth_line(world, row.get("teeth_proclaim") or {})
+        others = ", ".join(str(r.get("title")) for r in ID.roads(world)
+                           if r.get("id") != row.get("id"))
+        message = (
+            f"{row.get('proclamation')}: {row.get('title')} becomes the Empire's road — "
+            f"{plural(ID.PROCLAIM_DP_COST, 'diplomatic point')} and "
+            f"{plural(ID.PROCLAIM_ADMIN_COST, 'administrative action')}; {teeth}. "
+            f"{others} are forsworn, and this cannot be undone. Proclaim it? (yes / no)")
+        command_line = ID.proclaim_command(row)
+        return {
+            "success": True,
+            "free_action": True,
+            "state": "awaiting_clarification",
+            "type": "clarification",
+            "design_confirm": True,
+            "marshal": "The Cabinet",
+            "original_command": command.get("raw_command", ""),
+            "message": message,
+            "options": [
+                {"label": f"Proclaim {row.get('title')}",
+                 "command": f"{command_line} confirmed",
+                 "aliases": ["yes", "proclaim", "confirm"]},
+                {"label": "Not now", "command": "cancel",
+                 "aliases": ["no", "not now", "stand down"]},
+            ],
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
+
     def _execute_recognition_sweetener(self, command: Dict, game_state: Dict) -> Dict:
         """§2.4's sweetener — gold laid before a great power at the table:
         +10 per 1,000g, capped at +20, on the instrument verbs' transport

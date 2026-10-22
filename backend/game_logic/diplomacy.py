@@ -5505,6 +5505,17 @@ def build_war_context_snapshot(
         ),
     }
 
+    # VP1-X7 (S14b part 2): the manner of this peace and its Revanche, read
+    # off the clause list the ratifier builds (`treaty_clauses_of`, the one
+    # dialect the latch reads) — a peace only (a truce cedes nothing). Both
+    # roads (the player's preview, the incoming letter) carry the snapshot.
+    if str(proposal_type) == "peace":
+        from backend.game_logic import imperial_designs as _designs
+        from backend.game_logic.treaty import treaty_clauses_of
+        snapshot.update(_designs.peace_lines(
+            world, target_nation,
+            treaty_clauses_of(proposal_for_calc, player_nation, target_nation)))
+
     # SR-1b: who follows the lord out of the war (the clients), said beside
     # who fights on (the allies' fallout lines). Both roads — the player's
     # own preview and the incoming offer — read the same sentence.
@@ -14791,6 +14802,10 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     _rec_text, _rec_mission = _recommendation_and_mission(
         world, target_nation, actions, dp, is_vassal, vassals, counsel=_counsel)
     response["recommendation"] = _rec_text
+    # VP-1 (S14b part 2, the record §6.6): Talleyrand's reading of this court
+    # on the Emperor's road ('' off every road, and where none is authored).
+    from backend.game_logic import imperial_designs as _designs
+    response["designs_line"] = _designs.court_line(world, target_nation)
     # DDB-7 (Pre-Deploy S13b): the counsel's recommended action and a
     # running mission's Cancel stand FIRST in the court's list (conquest
     # #22: Improve Relations was below the fold under five rows).

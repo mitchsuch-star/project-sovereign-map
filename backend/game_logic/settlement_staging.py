@@ -2312,6 +2312,10 @@ def build_settlement_preview(
     # seam the AI reads (`emergent_designs.revanche_line_for_terms`).
     from backend.game_logic.emergent_designs import revanche_line_for_terms
     preview["revanche_line"] = revanche_line_for_terms(world, terms)
+    # VP1-X7 (S14b part 2): each covered seal court's manner, off the same
+    # terms the latch reads at the ratification.
+    from backend.game_logic import imperial_designs as _designs
+    preview["manner_lines"] = _designs.table_manner_lines(world, covered, terms)
     contribution = build_contribution_share_rows(
         world, war_id, settlement_terms=terms,
     )
@@ -4168,6 +4172,10 @@ def build_settlement_confirm_dialogue(
         "dialogue_mode": dialogue_mode,
         "status_quo_review": _status_quo_review,
         "held_line_note": _held_note,
+        # VP1-X7 (S14b part 2): the Revanche and the manner, top level (the
+        # nested preview copy is not read by the client).
+        "revanche_line": str(preview.get("revanche_line") or ""),
+        "manner_lines": list(preview.get("manner_lines") or []),
         # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
         # per-covered-court carry gate ride on every settlement_confirm
         # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.

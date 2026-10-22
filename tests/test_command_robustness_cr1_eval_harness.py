@@ -68,6 +68,8 @@ MOCK_REACHABLE_ACTIONS = [
     # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.3–§2.4): the summons and
     # the sweetener — the Congress route above the Talleyrand route.
     "summon_congress", "recognition_sweetener",
+    # VP-1 (S14b part 2): the road page's Proclaim.
+    "proclaim_design",
 ]
 
 

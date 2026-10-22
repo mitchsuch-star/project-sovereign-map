@@ -40,7 +40,11 @@ ADMIN_ACTIONS = {"recruit", "build", "repair", "grant_dotation",
                  "summon_congress",
                  # SR-5r RF-1 (REFORMS_SPEC §2): a law is enacted or
                  # repealed for one admin action (Q2 / R4).
-                 "enact_law", "repeal_law"}
+                 "enact_law", "repeal_law",
+                 # VP-1 (S14b part 2): a road of the Empire is proclaimed for
+                 # one admin action (+ 2 DP). Not in `objection_actions`: a
+                 # decree, not an order (the `purchase_levy` judgement).
+                 "proclaim_design"}
 
 
 def collapse_turn_end_fields(world) -> Dict:
@@ -1276,6 +1280,15 @@ great powers is the Diplomatic Ledger's Congress tab, press D then 7):
                gold, at most +⟨SWEET_CAP⟩ a court. Gold past that is not taken.
   Ask before you act - "can we summon the congress?" names every
   term still unmet, and nothing is spent.
+
+THE EMPEROR'S DESIGNS (what the Empire is FOR - the road page atop
+the Cabinet, F1 -> The Emperor's Designs):
+  Three roads - the Protector of the Rhine, the Crowns of Italy, the
+  Continental System - each a construction, then a seal. One
+  proclamation chooses (1 Admin AP + 2 DP; Europe's alarm and the
+  courts' relations move), and it cannot be undone: the other roads
+  are forsworn. Ask "what are our designs?" - each design is named
+  with what it still asks.
 
 SCREENS & HOTKEYS:
   F1 diplomacy wizard | T strategic ledger | G marshals

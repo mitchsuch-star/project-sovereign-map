@@ -894,6 +894,14 @@ def build_france_mirror_payload(world) -> Optional[dict]:
             f"They think he is coming for "
             f"{formed_display_name(world, target)} — his corps stand "
             f"against their soil.")
+    # VP-1 (S14b part 2, the record §6.2): the road the Emperor proclaimed is
+    # read by every court (a proclamation is public) — appended only once a
+    # road is proclaimed. Display only: no AI code reads the designs.
+    from backend.game_logic import imperial_designs as _designs
+    _road = _designs.road(world, _designs.proclaimed_road(world)) if _designs.armed(world) else None
+    if _road:
+        lines.append(f"They read his road: {_road.get('proclamation')} — "
+                     f"{_road.get('title')}.")
     return {
         "read_as": read_as,
         "hegemon_share": round(float(share), 3) if hegemon == player else 0.0,

@@ -7151,6 +7151,8 @@ def get_diplomatic_preview_endpoint(
                 # order) or, while it sits, the table's clock. None on an
                 # unarmed world (the row is omitted).
                 "congress": _wizard_congress(world),
+                # VP-1 (S14b part 2): the Emperor's Designs row (None unarmed).
+                "designs": _wizard_designs(world),
             }
         except Exception as e:
             _errors.report(e, "main.get_diplomatic_preview_endpoint: the route #2", every=True)
@@ -7393,6 +7395,30 @@ def get_congress():
     from backend.game_logic import congress
     active_world = game_state["world"]
     payload = congress.build_congress_payload(active_world) or {"armed": False}
+    payload["success"] = True
+    _attach_nation_identity_overrides(payload, active_world)
+    return payload
+
+
+def _wizard_designs(world):
+    """VP-1: the Cabinet step-1 row — one line off the designs' one payload."""
+    from backend.game_logic import imperial_designs
+    return imperial_designs.wizard_row(world)
+
+
+@app.get("/imperial_designs")
+def get_imperial_designs():
+    """VP-1 (docs/VP1_DESIGNS_SPEC.md §6): the Cabinet's road page — the three
+    roads, their designs, gates, teeth and the Proclaim buttons, read off
+    `imperial_designs.build_designs_payload` (the one payload every surface
+    reads). `armed: False` on a world whose scenario authors no designs."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    from backend.game_logic import imperial_designs
+    active_world = game_state["world"]
+    payload = imperial_designs.build_designs_payload(active_world)
+    payload = dict(payload) if payload is not None else {"roads": []}
+    payload["armed"] = imperial_designs.armed(active_world)
     payload["success"] = True
     _attach_nation_identity_overrides(payload, active_world)
     return payload

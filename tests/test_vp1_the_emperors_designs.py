@@ -73,14 +73,27 @@ def _peace(world, court, demands, proposer="France"):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheStore:
-    def test_the_shipped_boot_is_unarmed(self):
+    def test_the_shipped_boot_is_armed_with_the_fixture_block(self):
+        """S14b part 2 ships the block (part 1 pinned the boot unarmed until
+        the road page existed). The fixture is the shipped block — a drift
+        pin, comment keys aside."""
+        scen = json.loads(SHIPPED.read_text(encoding="utf-8"))
+        strip = lambda b: {k: v for k, v in b.items() if not k.startswith("_")}  # noqa: E731
+        assert strip(scen["imperial_designs"]) == strip(_block())
         with _quiet():
             shipped = WorldState.from_scenario(str(SHIPPED))
-        assert shipped.imperial_designs == {}
-        assert ID.build_designs_payload(shipped) is None
-        assert ID.proclaim_refusal(shipped, ID.ROAD_RHINE) == "The Empire has no road to proclaim."
-        assert ID.drift_suspended(shipped, "Holland") is False
-        assert ID.order_decay(shipped, "France") == 0
+        assert ID.armed(shipped) and ID.owner(shipped) == "France"
+        assert ID.build_designs_payload(shipped)["road"] == ""
+
+    def test_an_unarmed_world_shows_nothing(self):
+        bare = WorldState()
+        assert bare.imperial_designs == {}
+        assert ID.build_designs_payload(bare) is None
+        assert ID.proclaim_refusal(bare, ID.ROAD_RHINE) == "The Empire has no road to proclaim."
+        assert ID.drift_suspended(bare, "Holland") is False
+        assert ID.order_decay(bare, "France") == 0
+        assert ID.door_line(bare) == "" and ID.goal_clause(bare) == ""
+        assert ID.designs_clock(bare) is None
 
     def test_the_boot_readings(self, w):
         payload = ID.build_designs_payload(w)
@@ -101,12 +114,8 @@ class TestTheStore:
     def test_a_pre_vp1_save_is_armed_by_its_scenario_and_never_overwritten(
             self, w, staged_path, monkeypatch):
         from backend import save_manager as SM
-        name = str(w.scenario_name)
         w.imperial_designs = {}
-        SM._backfill_imperial_designs(w)                 # the shipped file authors no block
-        assert w.imperial_designs == {}
-        monkeypatch.setattr(SM, "_BACKFILL_SCENARIOS", {name: (str(staged_path),)})
-        SM._backfill_imperial_designs(w)
+        SM._backfill_imperial_designs(w)                 # the shipped file authors the block
         assert ID.armed(w) and ID.owner(w) == "France"
         ID.proclaim(w, ID.ROAD_CROWNS)
         SM._backfill_imperial_designs(w)

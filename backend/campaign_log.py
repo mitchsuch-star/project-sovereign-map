@@ -211,6 +211,12 @@ CAMPAIGN_LOG_TYPES = {
     # GE-1's `campaign_ending` (cause "imperial_peace"). 166 -> 167 flipped
     # consciously; no inert type was retired in exchange.
     "congress",
+    # VP-1 "The Emperor's Designs" (S14b part 2): the Emperor's own roads —
+    # one row per phase: `proclaimed` (a road chosen), `fulfilled` (a design
+    # latched), `prologue` (THE SUN OF AUSTERLITZ). imperial_designs.py
+    # writes every one with the owner's `nation`, so the fog filter's player
+    # arm passes it. 178 -> 179 flipped consciously; no inert type retired.
+    "imperial_design",
     # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
     # the countdown when a corps dawdles on soil that is no longer its own.
     # (Internment itself rides PC15-1's `marshal_destroyed` with
@@ -528,6 +534,7 @@ CATEGORY_MAP = {
     # GE-3: the Congress is diplomacy — recognitions, refusals, a London
     # purse, a sweetener at the table, the War of the Congress, the end.
     "congress": "diplomacy",
+    "imperial_design": "diplomacy",
     "evacuation_granted": "diplomacy",
     # The clock is the treaty's, but the decision it demands is an order to a
     # marshal — so it files with the command traffic the player must answer.
@@ -718,6 +725,7 @@ THE_LOG_HAS_AN_IMPORTANCE_TIER = True
 LOG_TIER_LEAD = frozenset({
     "bankruptcy", "campaign_ending", "coalition_declared",
     "coalition_dissolved", "coalition_dissolved_for_france", "congress",
+    "imperial_design",
     "diplomatic_treaty_broken", "diplomatic_treaty_signed",
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
@@ -2446,6 +2454,19 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
     if ctx.event_type == "congress":
         # GE-3: one arm per phase (`_format_congress_event`).
         return _format_congress_event(ctx.event)
+
+    if ctx.event_type == "imperial_design":
+        # VP-1: the Emperor's roads, one line per phase.
+        phase = str(ctx.event.get("phase") or "")
+        title = str(ctx.event.get("title") or "")
+        if phase == "proclaimed":
+            return f"{title.upper()} — the Emperor proclaims the Empire's road; the others are forsworn"
+        if phase == "fulfilled":
+            return f"{title} — a design of the Empire is fulfilled"
+        if phase == "prologue":
+            court = display_nation(str(ctx.event.get("court") or ""))
+            return f"THE SUN OF AUSTERLITZ — {court} has bent; the roads of the Empire wait"
+        return f"The Emperor's designs: {title or phase}"
 
     if ctx.event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).

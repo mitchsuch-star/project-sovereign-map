@@ -206,7 +206,13 @@ class TestTheCassetteAttribution:
     ⚑ Re-derived at S14 part 3 (October 20, 2026): `VALID_ACTIONS` gained the
     bond's verb (`bind_to_war`) — every parse prompt moved by one line (+13
     characters; the Berthier recovery prompt +18), re-stamped keylessly the
-    same way."""
+    same way.
+
+    ⚑ Re-derived at S14b part 2 (October 22, 2026): `VALID_ACTIONS` gained
+    VP-1's verb (`proclaim_design`) and the prompt its one board-independent
+    example — every parse prompt +204 characters, re-stamped keylessly; the
+    Berthier recovery prompt 2,370 → 1,946 (VP1-X18: the recovery vocabulary
+    no longer offers a Cabinet act as a typed order)."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

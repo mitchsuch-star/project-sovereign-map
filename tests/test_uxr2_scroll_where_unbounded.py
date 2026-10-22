@@ -188,7 +188,10 @@ class TestTheScriptArm:
             r, _u = script_census(name, G.code_lines(src), _scene_for(name, scenes))
             resolved += r
         assert len(resolved) >= 9, resolved
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 8
+        # 8 -> 12 flipped consciously: VP-1 (S14b part 2) adds the road page's
+        # four labels (the step-1 row, the empty page, the headline, a road's
+        # block) — every one in the wizard's scrolled list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 12
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

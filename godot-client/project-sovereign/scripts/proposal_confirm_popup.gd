@@ -672,6 +672,10 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(line)
 		bbcode += "\n"
 
+	# VP1-X7 (S14b part 2): the table's Revanche and each covered court's
+	# manner — the latch's own reading of these terms.
+	bbcode += _settlement_designs_lines(data)
+
 	var ally_petitions = data.get("ally_petitions", [])
 	if ally_petitions is Array and ally_petitions.size() > 0:
 		bbcode += "[b]Allied petitions[/b]\n"
@@ -1633,6 +1637,16 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			h_color = "#e66262"
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [h_color, harshness_label.to_upper()]
 
+	# VP1-X7 (S14b part 2): the manner of this peace and its Revanche — the
+	# snapshot's pair, off the clause list the ratifier builds.
+	var manner_line = str(snapshot.get("manner_line", ""))
+	if manner_line != "":
+		bbcode += "[color=#e0c070]" + Utils.humanize_nation_keys_in_text(manner_line.replace("[", "[lb]")) + "[/color]\n"
+	var revanche_line = str(snapshot.get("revanche_line", ""))
+	if revanche_line != "":
+		var rv_color = "#e66262" if revanche_line.begins_with("Revanche stands") else "#80a0d0"
+		bbcode += "[color=" + rv_color + "]" + Utils.humanize_nation_keys_in_text(revanche_line.replace("[", "[lb]")) + "[/color]\n"
+
 	# G4F-17: explain what an armistice IS at decision time — duration,
 	# the relations-vs--60 expiry fork, and where this one is heading.
 	# DDB-26 (Pre-Deploy S13b part 2): above the score — the player learned
@@ -1891,6 +1905,23 @@ func _build_feasibility_content(data: Dictionary) -> String:
 	return bbcode
 
 
+func _settlement_designs_lines(data: Dictionary) -> String:
+	"""VP1-X7 / X17: the Revanche line and the manner lines a table or an
+	AI's settlement letter carries (top level), coloured as the bilateral
+	preview colours them. '' when the payload carries neither."""
+	var out := ""
+	var manner_lines = data.get("manner_lines", [])
+	if manner_lines is Array:
+		for ml in manner_lines:
+			if ml is Dictionary and str(ml.get("line", "")) != "":
+				out += "[color=#e0c070]" + Utils.humanize_nation_keys_in_text(str(ml.get("line", "")).replace("[", "[lb]")) + "[/color]\n"
+	var revanche_line = str(data.get("revanche_line", ""))
+	if revanche_line != "":
+		var rv_color = "#e66262" if revanche_line.begins_with("Revanche stands") else "#80a0d0"
+		out += "[color=" + rv_color + "]" + Utils.humanize_nation_keys_in_text(revanche_line.replace("[", "[lb]")) + "[/color]\n"
+	return out + ("\n" if out != "" else "")
+
+
 func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 	"""SC-5 reversal commit 2 (Slice G1): render an AI-authored
 	settlement offer using accepting-side framing. The backend popup
@@ -1914,6 +1945,9 @@ func _build_incoming_settlement_offer_content(data: Dictionary) -> String:
 		for t in terms:
 			bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t)
 		bbcode += "\n"
+
+	# VP1-X17 (S14b part 2): the letter's Revanche and the manner.
+	bbcode += _settlement_designs_lines(data)
 
 	var covered = data.get("covered_enemy_participants", [])
 	if covered is Array and covered.size() > 0:

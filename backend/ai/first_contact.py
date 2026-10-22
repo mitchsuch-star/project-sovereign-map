@@ -56,7 +56,7 @@ CABINET_DOOR = "For any matter of state, press F1 for the Cabinet."
 # `backend.game_logic.congress`'s own public API, so the answer and the
 # executor's refusal are the same sentence.
 FIRST_CONTACT_HELP_KINDS = frozenset({"greeting", "escape_menu", "undo", "goal",
-                                      "congress", "laws"})
+                                      "congress", "laws", "designs"})
 FIRST_CONTACT_KINDS = FIRST_CONTACT_HELP_KINDS | {"options"}
 
 _ADDRESS_RE = re.compile(
@@ -539,6 +539,26 @@ def _laws_answer(asked: str, world) -> str:
             + relayed)
 
 
+def _designs_goal_clause(world) -> str:
+    """VP-1: the goal answer's head — condition (c), the door, the road
+    (`imperial_designs.goal_clause`); '' when the world authors no designs."""
+    if world is None:
+        return ""
+    from backend.game_logic import imperial_designs
+    return imperial_designs.goal_clause(world)
+
+
+def _designs_answer(world) -> str:
+    """VP-1: "what are our designs" — the roads, each design ✓ / ✗."""
+    from backend.game_logic import imperial_designs
+    if world is None:
+        return (f"The Emperor's designs, Sire, are three roads — the Protector of the "
+                f"Rhine, the Crowns of Italy, the Continental System — and one "
+                f"proclamation that cannot be undone, in the Cabinet "
+                f"({imperial_designs.DESIGNS_CONTROL}). Nothing has been relayed.")
+    return "Berthier unrolls the map. \"" + imperial_designs.designs_answer(world) + "\""
+
+
 def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
     """Berthier's answer for a `FIRST_CONTACT_HELP_KINDS` kind, or None."""
     if str(kind or "") == "laws":
@@ -546,6 +566,9 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
     if str(kind or "") == "congress":
         # GE-3 — the question desk for the Congress; needs no counsel lines.
         return _congress_answer(asked, world)
+    if str(kind or "") == "designs":
+        # VP-1 (S14b part 2): each design ✓ / ✗, off the one payload.
+        return _designs_answer(world)
     kind = str(kind or "")
     counsel = _counsel(world)
     first = f" This morning, '{counsel[0]}' would be carried out at once." if counsel else ""
@@ -570,7 +593,9 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
                 f"pause menu (Esc). Nothing has been relayed.\"")
     if kind == "goal":
         if _endings_armed(world):
-            goal = _judged_goal(world)
+            # VP-1 (S14b part 2, the record §6.6): condition (c) leads, then
+            # the road page and the road — '' on a world with no designs.
+            goal = _designs_goal_clause(world) + _judged_goal(world)
         elif _is_open_ended(world):
             goal = ("This campaign is played open-ended, Sire — there is no "
                     "laurel to be handed out; the war is the game. Take "

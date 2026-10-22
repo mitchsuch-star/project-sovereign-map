@@ -1619,6 +1619,31 @@ def cap_proclamation():
                            for r in (after.get("formables") or after.get("rows") or [])][:8]})
 
 
+def cap_designs():
+    """VP-1 (S14b part 2): the Cabinet's road page, read off GET
+    /imperial_designs on the shipped 1805 boot — before a proclamation (three
+    roads, three Proclaim buttons) and after the Crowns of Italy is proclaimed
+    through the button's own command and the quote's option (one road, two
+    forsworn) — and the nation list's row above it."""
+    world, c = fresh()
+    record("designs_road_page_open", get(c, "/imperial_designs"), source="GET /imperial_designs",
+           staging="fresh 1805 boot — no road proclaimed, every Proclaim button live",
+           facts={"roads": [(r.get("id"), r.get("available")) for r in get(c, "/imperial_designs").get("roads", [])]})
+    record("wizard_nations_designs", get(c, "/diplomatic_preview"), source="GET /diplomatic_preview",
+           staging="fresh 1805 boot — the designs row under the Congress's",
+           facts={"designs": get(c, "/diplomatic_preview").get("designs")})
+    page = get(c, "/imperial_designs")
+    crowns = next(r for r in page["roads"] if r["id"] == "crowns")
+    quote = cmd(c, crowns["command"])
+    confirm = next(o["command"] for o in (quote.get("options") or []) if str(o.get("label", "")).startswith("Proclaim"))
+    cmd(c, confirm)
+    after = get(c, "/imperial_designs")
+    record("designs_road_page_proclaimed", after, source="GET /imperial_designs",
+           staging="the same boot after the Proclaim button's command and the quote's option (the Crowns of Italy)",
+           facts={"road": after.get("road"),
+                  "roads": [(r.get("id"), r.get("proclaimed"), r.get("forsworn")) for r in after.get("roads", [])]})
+
+
 def cap_doctrines():
     """SR-7d DC-3c (DOCTRINES_SPEC §4a): the doctrines' boards — OUR DOCTRINE on
     the Generals screen, every court's doctrine line on the Nations tab (one
@@ -1984,6 +2009,7 @@ CAPTURES = {
     "screen_says": cap_screen_says,
     "frames_s9": cap_frames_s9,
     "proclamation": cap_proclamation,
+    "designs": cap_designs,
     "congress": cap_congress,
     "campaign_end": cap_campaign_end,
     "layout_f3": cap_layout_f3,

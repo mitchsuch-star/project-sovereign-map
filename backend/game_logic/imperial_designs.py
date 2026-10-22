@@ -69,6 +69,25 @@ MODERATE_MIN_CESSIONS = 1
 VOLTE_FACE_WINDOW = 20         # turns from the moderate peace to her alliance
 CS_ORDER_DECAY = 2             # the Continent's order (2.5's reward)
 NAPLES_AUTHORITY = 15          # 2.3's one-shot reward
+PROCLAIM_DP_COST = 2           # §8: the proclamation's price
+PROCLAIM_ADMIN_COST = 1
+
+# The Cabinet row every surface names (the user's rule: diplomacy is never
+# typed — the proclamation's one player road is the road page's button).
+DESIGNS_CONTROL = "F1 → The Emperor's Designs"
+
+# Condition (c) (the record §0) — printed verbatim by the desk's goal answer.
+CONDITION_C = ("A campaign is for deciding what Napoleon's empire will be — "
+               "Protector of the Rhine, master of Italy from Milan to Naples, or "
+               "a Continent shut against Britain — and forcing the decisive peace "
+               "that seals it, while the coalitions you provoke, the satellites' "
+               "bills and the Verdict of History in July 1807 judge the reign; the "
+               "Congress of Paris, where Europe signs or is shut out, crowns the "
+               "greatest.")
+
+# The prologue (the record §3): the first war-ending peace with one of these
+# courts, or their capital taken, while no road is proclaimed.
+PROLOGUE_COURTS = ("Austria", "Russia")
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -358,6 +377,54 @@ def proclaim_refusal(world, road_id: str, nation: Optional[str] = None) -> Optio
     return None
 
 
+def price_refusal(world, road_id: str) -> Optional[str]:
+    """The proclamation's WHOLE refusal, in the order the player meets it —
+    the ONE predicate the road page's button, the counsel and the executor's
+    own pre-gates read (shown = applied). The shared executor refuses an
+    administrative order with no action left before the verb runs, so that
+    comes first; then `proclaim_refusal`; then the diplomatic points."""
+    if not armed(world):
+        return proclaim_refusal(world, road_id)
+    if int(getattr(world, "admin_actions_remaining", 0) or 0) < PROCLAIM_ADMIN_COST:
+        return "No administrative actions remaining this turn."
+    refusal = proclaim_refusal(world, road_id)
+    if refusal:
+        return refusal
+    dp = int(getattr(world, "diplomatic_points", 0) or 0)
+    if dp < PROCLAIM_DP_COST:
+        return (f"The proclamation takes {PROCLAIM_DP_COST} diplomatic points — "
+                f"the Cabinet holds {dp}.")
+    return None
+
+
+def resolve_road(world, words: str) -> str:
+    """The road a typed or clicked line names — its id, its title, its
+    proclamation or a plain word of either ("the Rhine", "Italy", "the
+    Continental System"). "" when none, or more than one, is named."""
+    import re as _re
+    text = _re.sub(r"\s+", " ", str(words or "").lower()).strip()
+    text = _re.sub(r"\bconfirm(?:ed)?\s*$", "", text).strip()
+    text = _re.sub(r"^(?:the\s+)?(?:road\s+of\s+)?", "", text).strip()
+    if not text:
+        return ""
+    hits = []
+    for r in roads(world):
+        names = [str(r.get("id") or ""), str(r.get("title") or ""),
+                 str(r.get("proclamation") or "")]
+        names += [str(a) for a in (r.get("aliases") or [])]
+        forms = set()
+        for n in names:
+            n = n.lower().strip()
+            if not n:
+                continue
+            forms.add(n)
+            if n.startswith("the "):
+                forms.add(n[4:])
+        if text in forms or any(text == f or (len(text) >= 4 and text in f) for f in forms):
+            hits.append(str(r.get("id")))
+    return hits[0] if len(set(hits)) == 1 else ""
+
+
 def proclaim(world, road_id: str) -> Dict[str, Any]:
     """Proclaim a road (irreversible): the state written once and the
     proclamation's teeth applied (the record §2 per road; §8). Returns
@@ -371,6 +438,8 @@ def proclaim(world, road_id: str) -> Dict[str, Any]:
     state["road"] = road_id
     state["proclaimed_turn"] = _turn(world)
     _apply_teeth(world, row.get("teeth_proclaim") or {}, source=str(row.get("alarm_source") or road_id))
+    _log(world, "proclaimed", road=road_id,
+         title=str(row.get("proclamation") or row.get("title") or road_id))
     return {"success": True, "road": road_id,
             "message": f"{row.get('proclamation') or row.get('title')} is proclaimed."}
 
@@ -440,6 +509,71 @@ def manner_for_terms(world, victor: str, court: str,
     return ""
 
 
+def seal_courts(world) -> List[str]:
+    """The courts a road's seal brings to terms (2.2, 2.4) — the ones a
+    peace's manner is read for."""
+    out: List[str] = []
+    for r in roads(world):
+        for d in designs_of(r):
+            if d.get("type") in (TYPE_BROUGHT_TO_TERMS, TYPE_TITLED_AND_TERMS):
+                out += [str(c) for c in (d.get("courts") or []) if str(c) not in out]
+    return out
+
+
+def manner_line(world, court: str, clauses) -> str:
+    """VP1-X7: the manner of THIS peace with a seal's court, read off the
+    clause list the ratifier builds (`treaty_clauses_of` / the table's
+    settlement terms) by the same reading the terms latch applies
+    (`manner_for_terms`, the homeland guard) — shown = applied. '' for a
+    court no seal names, and where no designs are authored."""
+    if not armed(world) or owner(world) != getattr(world, "player_nation", None):
+        return ""
+    if court not in seal_courts(world):
+        return ""
+    from backend.display_names import humanize_entity_name as _h
+    lord = owner(world)
+    who = _h(court)
+    manner = manner_for_terms(world, lord, court, list(clauses or []))
+    if manner and not _guard_homeland_whole(world, lord, court):
+        return (f"The manner of this peace: {MANNER_WORDS[manner]} — but while {who}'s bloc "
+                f"holds French soil, the Emperor's designs record nothing of it.")
+    if manner == MANNER_PARTITION:
+        return f"The manner of this peace: a partition — it brings {who} to terms."
+    if manner == MANNER_SUBJUGATION:
+        return f"The manner of this peace: subjugation — {who} is brought to terms as the Emperor's vassal."
+    if manner == MANNER_MODERATE:
+        return (f"The manner of this peace: the moderate peace — {who} is brought to terms "
+                f"once she allies with the Emperor within {VOLTE_FACE_WINDOW} turns.")
+    return (f"The manner of this peace: none — it brings {who} to no terms the Emperor's "
+            f"designs read (two of her own provinces or her capital, her vassalage, or a "
+            f"compensated cession).")
+
+
+MANNER_WORDS = {MANNER_PARTITION: "a partition", MANNER_SUBJUGATION: "subjugation",
+                MANNER_MODERATE: "the moderate peace"}
+
+
+def peace_lines(world, court: str, clauses) -> Dict[str, str]:
+    """The bilateral surfaces' pair (VP1-X7): the manner and the Revanche,
+    from ONE clause list."""
+    from backend.game_logic.emergent_designs import revanche_line_for_terms
+    clauses = list(clauses or [])
+    manner = (manner_for_terms(world, owner(world), court, clauses)
+              if armed(world) and court in seal_courts(world) else "")
+    return {"manner": manner, "manner_line": manner_line(world, court, clauses),
+            "revanche_line": revanche_line_for_terms(world, clauses)}
+
+
+def table_manner_lines(world, covered, terms) -> List[Dict[str, str]]:
+    """The table's per-court manner lines, for the seal courts it covers."""
+    out = []
+    for court in sorted(str(c) for c in (covered or [])):
+        line = manner_line(world, court, terms)
+        if line:
+            out.append({"court": court, "line": line})
+    return out
+
+
 def _guard_homeland_whole(world, lord: str, court: str) -> bool:
     """No province of the lord's opening homeland stands in the court's bloc."""
     regions = getattr(world, "regions", {}) or {}
@@ -476,6 +610,10 @@ def note_ratification(world, *, terms: Iterable[Dict[str, Any]],
         if manner and _guard_homeland_whole(world, lord, court):
             state["terms"][court] = {"manner": manner, "turn": turn, "broken": False,
                                      "allied_turn": -1}
+    for court in parties:
+        if court in PROLOGUE_COURTS:
+            _maybe_prologue(world, court)
+            break
     from backend.game_logic import naval
     target = naval.trade_dominance_nation(world)
     if target and target in parties and is_fulfilled(world, _construction_of(world, ROAD_SYSTEM)):
@@ -537,6 +675,67 @@ def _seal_of(world, road_id: str) -> str:
 # The tick — holds, latches, lapses, rewards (game_end.process_end_of_turn)
 # ════════════════════════════════════════════════════════════════════════
 
+def _log(world, phase: str, **fields) -> None:
+    """The designs' one chronicle row (`imperial_design`, by phase) — the
+    log, the front page and Le Moniteur read it."""
+    if not hasattr(world, "log_event"):
+        return
+    event = {"type": "imperial_design", "phase": phase, "nation": owner(world)}
+    event.update({k: v for k, v in fields.items() if v is not None})
+    world.log_event(event)
+
+
+def prologue_court(world) -> str:
+    """The court whose capital stands in the owner's bloc (the prologue's
+    second trigger, read at the tick) — "" for none."""
+    lord = owner(world)
+    for court in PROLOGUE_COURTS:
+        capital = world.get_nation_capital(court) or ""
+        region = (getattr(world, "regions", {}) or {}).get(capital)
+        holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+        if holder and holder != court and _top(world, holder) == lord:
+            return court
+    return ""
+
+
+def _maybe_prologue(world, court: str = "") -> None:
+    """THE SUN OF AUSTERLITZ (the record §3, copy only): the first war-ending
+    peace with Austria or Russia (`court`, from the ratification note), or
+    her capital taken (read at the tick), while no road is proclaimed — once
+    (`state.prologue_turn`, across a load). No reward."""
+    state = _state(world)
+    if int(state.get("prologue_turn", -1)) >= 0 or state.get("road"):
+        return
+    if owner(world) != getattr(world, "player_nation", None):
+        return
+    court = court or prologue_court(world)
+    if not court:
+        return
+    state["prologue_turn"] = _turn(world)
+    rec = (state.get("terms") or {}).get(court) or {}
+    _log(world, "prologue", court=court, manner=str(rec.get("manner") or ""))
+
+
+def prologue_counsel(world, court: str, manner: str) -> str:
+    """Talleyrand's road counsel on the prologue: which seal the peace
+    already satisfies, read off the roads (a reading, not a lookup)."""
+    from backend.display_names import humanize_entity_name as _h
+    sealed = []
+    for r in roads(world):
+        for d in designs_of(r):
+            if d.get("role") == ROLE_SEAL and court in [str(c) for c in (d.get("courts") or [])]:
+                sealed.append(str(r.get("title") or r.get("id")))
+    who = _h(court)
+    if manner and sealed:
+        roads_named = " and ".join(sealed)
+        return (f"Talleyrand: \"The peace with {who} brings her to terms ({manner}) — "
+                f"{roads_named} would count it as {'its' if len(sealed) == 1 else 'their'} "
+                f"seal's, Sire, if you proclaim one. The roads wait in the Cabinet "
+                f"({DESIGNS_CONTROL}).\"")
+    return (f"Talleyrand: \"{who} has bent, Sire — now say what the Empire is for. "
+            f"The roads wait in the Cabinet ({DESIGNS_CONTROL}).\"")
+
+
 def _note_alliances(world) -> None:
     """The moderate peace's second half: her alliance with the lord inside
     `VOLTE_FACE_WINDOW` turns of the peace (the volte-face's own chokepoint
@@ -562,6 +761,7 @@ def tick(world, turn_ended: int) -> List[Dict[str, Any]]:
         return []
     state = _state(world)
     _note_alliances(world)
+    _maybe_prologue(world)
     road_id = state.get("road") or ""
     if not road_id:
         return []
@@ -582,6 +782,8 @@ def tick(world, turn_ended: int) -> List[Dict[str, Any]]:
             _pay_one_shot(world, d)
             _apply_teeth(world, d.get("teeth_fulfil") or {},
                          source=str(d.get("alarm_source") or did))
+            _log(world, "fulfilled", road=road_id, design=did,
+                 title=str(d.get("title") or did), role=str(d.get("role") or ""))
     return events
 
 
@@ -762,13 +964,107 @@ def progress_line(world, reading: Dict[str, Any]) -> str:
 # a mid-turn treaty or a new satellite must show on the same turn)
 # ════════════════════════════════════════════════════════════════════════
 
+_ROAD_NUMERALS = {ROAD_RHINE: "I", ROAD_CROWNS: "II", ROAD_SYSTEM: "III"}
+
+
+def proclaim_command(road_row: Dict[str, Any]) -> str:
+    """The line the road page's Proclaim button sends (the executor parses
+    it to `proclaim_design`; the quote answers it first)."""
+    return f"proclaim {str(road_row.get('title') or road_row.get('id') or '')}"
+
+
+def teeth_line(world, teeth: Dict[str, Any]) -> str:
+    """The teeth in words — the alarm and each court's relation, as applied."""
+    from backend.display_names import humanize_entity_name as _h
+    parts = []
+    alarm = int((teeth or {}).get("alarm", 0) or 0)
+    if alarm:
+        parts.append(f"Europe's alarm {alarm:+d}")
+    rel = [f"{_h(court)} {int(delta):+d}".replace("-", "−")
+           for court, delta in sorted(((teeth or {}).get("relations") or {}).items())
+           if int(delta or 0)]
+    if rel:
+        parts.append("relations: " + ", ".join(rel))
+    return "; ".join(parts)
+
+
+def reward_line(d: Dict[str, Any]) -> str:
+    reward = d.get("reward") or {}
+    rtype = reward.get("type")
+    if rtype == "drift_shield":
+        return ("While it holds, the Protector's shield: a member's autonomy drift "
+                "is suspended.")
+    if rtype == "order_decay":
+        amount = int(reward.get("amount", CS_ORDER_DECAY) or CS_ORDER_DECAY)
+        return (f"While it holds, the Continent's order: Europe's alarm cools "
+                f"{amount} more a turn.")
+    if rtype == "authority":
+        amount = int(reward.get("amount", NAPLES_AUTHORITY) or NAPLES_AUTHORITY)
+        return f"Once: +{amount} authority."
+    if d.get("role") == ROLE_SEAL:
+        return "With its construction holding: the decisive peace."
+    return ""
+
+
+def _links(world, d: Dict[str, Any], reading: Dict[str, Any]) -> List[Dict[str, str]]:
+    """The courts each hint names — a deep link to the court's own Cabinet
+    page (the controls live there), never a typed line."""
+    from backend.display_names import humanize_entity_name as _h
+    dtype = reading.get("type")
+    courts: List[str] = []
+    if dtype == TYPE_CLIENTS:
+        courts = [r["court"] for r in (reading.get("rows") or [])
+                  if not r.get("member") and not r.get("gone")]
+    elif dtype in (TYPE_BROUGHT_TO_TERMS, TYPE_TITLED_AND_TERMS, TYPE_TITLED):
+        lord = owner(world)
+        for prov, kind in (reading.get("provinces") or {}).items():
+            region = (getattr(world, "regions", {}) or {}).get(prov)
+            holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+            if not kind and holder and _top(world, holder) != lord and holder not in courts:
+                courts.append(holder)
+        courts += [c for c, t in (reading.get("terms") or {}).items()
+                   if not t.get("met") and c not in courts]
+    elif dtype == TYPE_SHUT_PORTS:
+        # The courts whose ports stand open, the most ports first — a peace's
+        # Continental System clause, a war or a satellite shuts them.
+        from backend.game_logic import naval
+        target = naval.trade_dominance_nation(world)
+        if target:
+            open_rows = sorted(((n, int(ports)) for n, ports, closed
+                                in naval.ports_by_court_against(world, target) if not closed),
+                               key=lambda kv: (-kv[1], kv[0]))
+            courts = [n for n, _ports in open_rows]
+    elif dtype == TYPE_BRITAIN_SIGNS:
+        from backend.game_logic import naval
+        target = naval.trade_dominance_nation(world)
+        courts = [str(target)] if target else []
+    active = set(world.get_active_nations()) if hasattr(world, "get_active_nations") else None
+    out = []
+    for court in courts:
+        if active is not None and court not in active:
+            continue
+        out.append({"court": court, "label": _h(court)})
+    return out[:4]
+
+
+def _hold_line(d: Dict[str, Any], hold: int, need: int, fulfilled: int, lapsed: bool,
+               met: bool) -> str:
+    if fulfilled >= 0:
+        return (f"fulfilled on turn {fulfilled} — lapsed: it no longer holds" if lapsed
+                else f"fulfilled on turn {fulfilled}")
+    if need > 1:
+        return f"held {hold} of {need} end turns" if met or hold else f"to be held {need} end turns"
+    return ""
+
+
 def build_designs_payload(world) -> Optional[Dict[str, Any]]:
-    """The ONE payload every surface reads (the record §6) — ints only, None
-    on an unarmed world."""
+    """The ONE payload every surface reads (the record §6) — ints, strings and
+    bools only, None on an unarmed world."""
     if not armed(world):
         return None
     state = _state(world)
     chosen = state.get("road") or ""
+    chosen_row = road(world, chosen) if chosen else None
     out_roads = []
     for r in roads(world):
         rid = str(r.get("id"))
@@ -776,26 +1072,282 @@ def build_designs_payload(world) -> Optional[Dict[str, Any]]:
         for d in designs_of(r):
             did = str(d.get("id"))
             reading = design_reading(world, d)
+            hold = int(state["hold"].get(did, 0))
+            need = int(_hold_needed(d))
+            fulfilled = int(state["fulfilled"].get(did, -1))
+            lapsed = did in state["fulfilled"] and not reading["met"]
+            status = ("lapsed" if lapsed else "fulfilled" if fulfilled >= 0
+                      else "met" if reading["met"] else "open")
             designs.append({
                 "id": did, "title": str(d.get("title") or did),
                 "role": str(d.get("role") or ""),
+                "role_display": "the construction" if d.get("role") == ROLE_CONSTRUCTION else "the seal",
                 "held": int(reading["held"]), "required": int(reading["required"]),
                 "progress": progress_line(world, reading),
                 "met": bool(reading["met"]),
-                "hold": int(state["hold"].get(did, 0)), "hold_needed": int(_hold_needed(d)),
-                "fulfilled_turn": int(state["fulfilled"].get(did, -1)),
-                "lapsed": did in state["fulfilled"] and not reading["met"],
+                "hold": hold, "hold_needed": need,
+                "hold_line": _hold_line(d, hold, need, fulfilled, lapsed, bool(reading["met"])),
+                "fulfilled_turn": fulfilled,
+                "lapsed": lapsed, "status": status,
+                "hint": str(d.get("hint") or ""),
+                "control": str(d.get("control") or ""),
+                "reward_line": reward_line(d),
+                "links": _links(world, d, reading),
             })
+        proclaimed = rid == chosen
+        forsworn = bool(chosen) and rid != chosen
+        refusal = proclaim_refusal(world, rid) or ""
+        disabled = "" if (proclaimed or forsworn) else (price_refusal(world, rid) or "")
+        gate = r.get("gate") or {}
         out_roads.append({
-            "id": rid, "title": str(r.get("title") or rid),
+            "id": rid, "numeral": _ROAD_NUMERALS.get(rid, ""),
+            "title": str(r.get("title") or rid),
             "proclamation": str(r.get("proclamation") or ""),
             "gate_met": bool(gate_met(world, r)),
-            "proclaimed": rid == chosen,
-            "forsworn": bool(chosen) and rid != chosen,
-            "refusal": proclaim_refusal(world, rid) or "",
+            "gate_reason": str(gate.get("reason") or ""),
+            "teeth_line": teeth_line(world, r.get("teeth_proclaim") or {}),
+            "proclaimed": proclaimed,
+            "forsworn": forsworn,
+            "forsworn_line": (f"Forsworn when the Emperor proclaimed "
+                              f"{str((chosen_row or {}).get('proclamation') or chosen)} "
+                              f"on turn {int(state.get('proclaimed_turn', 0))}."
+                              if forsworn else ""),
+            "refusal": refusal,
+            "available": not (proclaimed or forsworn) and not disabled,
+            "disabled_reason": disabled,
+            "command": proclaim_command(r),
+            "dp_cost": int(PROCLAIM_DP_COST), "admin_cost": int(PROCLAIM_ADMIN_COST),
             "designs": designs,
         })
+    if chosen_row:
+        headline = (f"{str(chosen_row.get('proclamation') or chosen_row.get('title'))} "
+                    f"was proclaimed on turn {int(state.get('proclaimed_turn', 0))}: "
+                    f"{str(chosen_row.get('title'))}.")
+    else:
+        headline = ("No road is proclaimed. Three roads — one proclamation, and it "
+                    "cannot be undone.")
     payload = {"owner": owner(world), "road": chosen,
                "proclaimed_turn": int(state.get("proclaimed_turn", -1)),
+               "headline": headline, "condition_c": CONDITION_C,
+               "control": DESIGNS_CONTROL,
+               "dp_available": int(getattr(world, "diplomatic_points", 0) or 0),
+               "admin_available": int(getattr(world, "admin_actions_remaining", 0) or 0),
                "roads": out_roads}
     return payload
+
+
+def wizard_row(world) -> Optional[Dict[str, Any]]:
+    """The Cabinet's step-1 row: one line, read off the payload."""
+    payload = build_designs_payload(world)
+    if payload is None:
+        return None
+    chosen = next((r for r in payload["roads"] if r["proclaimed"]), None)
+    if chosen is None:
+        line = "no road proclaimed — three roads, one choice that cannot be undone"
+    else:
+        line = f"Road {chosen['numeral']}, {chosen['title']}: " + "; ".join(
+            f"{d['title']} — {d['progress']}" for d in chosen["designs"])
+    return {"line": line, "road": payload["road"], "control": DESIGNS_CONTROL}
+
+
+def designs_clock(world) -> Optional[Dict[str, Any]]:
+    """The dispatch's clock (beside the Congress's): printed once a road is
+    proclaimed — each design's progress and its hold, read off the payload."""
+    payload = build_designs_payload(world)
+    if payload is None or not payload["road"]:
+        return None
+    chosen = next((r for r in payload["roads"] if r["proclaimed"]), None)
+    if chosen is None:
+        return None
+    parts = []
+    severity = "gate"
+    for d in chosen["designs"]:
+        tail = f" ({d['hold_line']})" if d["hold_line"] else ""
+        mark = "✓" if d["status"] == "fulfilled" else "✗" if d["status"] == "lapsed" else "•"
+        parts.append(f"{mark} {d['title']}: {d['progress']}{tail}")
+        if d["status"] == "lapsed":
+            severity = "warning"
+    return {"line": f"Road {chosen['numeral']}, {chosen['title']} — " + " · ".join(parts),
+            "severity": severity, "road": chosen["id"]}
+
+
+def realm_reading(world) -> Dict[str, Any]:
+    """What the dispatch remembers each morning of the proclaimed road (the
+    `headline_lead_memory["designs"]` key — the extra-keys idiom): each
+    design's held count, its hold and its status. {} before a proclamation,
+    so an unproclaimed world writes nothing (and builds no payload)."""
+    if not proclaimed_road(world):
+        return {}
+    payload = build_designs_payload(world)
+    chosen = next((r for r in (payload or {}).get("roads") or [] if r["proclaimed"]), None)
+    if chosen is None:
+        return {}
+    return {d["id"]: {"held": int(d["held"]), "hold": int(d["hold"]), "status": str(d["status"])}
+            for d in chosen["designs"]}
+
+
+def realm_line(world, told: Optional[Dict[str, Any]]) -> str:
+    """The quiet morning's realm line (the record §6.3, `realm_designs`):
+    the proclaimed design whose count moved since the last morning, one that
+    lapsed, or one a single end turn from holding — read off the payload, in
+    the progress line's own nouns. '' when nothing moved (a fulfilment is
+    event news of its own, and the first morning after the proclamation has
+    nothing told to move from)."""
+    if not isinstance(told, dict) or not told:
+        return ""
+    payload = build_designs_payload(world)
+    chosen = next((r for r in (payload or {}).get("roads") or [] if r["proclaimed"]), None)
+    if chosen is None:
+        return ""
+    for d in chosen["designs"]:
+        was = told.get(d["id"])
+        if not isinstance(was, dict) or d["status"] == "fulfilled":
+            continue
+        title = _mid(d["title"])
+        if d["status"] == "lapsed" and was.get("status") != "lapsed":
+            return (f"{title} no longer holds — {d['progress']}; its reward waits "
+                    f"until it holds again")
+        held, was_held = int(d["held"]), int(was.get("held", 0))
+        if held != was_held:
+            moved = "up" if held > was_held else "down"
+            return (f"{title} stands at {d['progress']} — {moved} from {was_held}"
+                    f" (Road {chosen['numeral']}, {chosen['title']})")
+        need, hold = int(d["hold_needed"]), int(d["hold"])
+        if need > 1 and d["met"] and hold == need - 1 and int(was.get("hold", 0)) != hold:
+            return (f"{title} has held {hold} of {need} end turns — one more and it is "
+                    f"fulfilled (Road {chosen['numeral']}, {chosen['title']})")
+    return ""
+
+
+_STATE_WORDS = {"alliance": "an ally, not a satellite", "defensive_alliance": "an ally, not a satellite",
+                "peace": "at peace with us", "war": "at war with us", "armistice": "under a truce with us",
+                "open_borders": "our friend, not a satellite", "non_aggression": "at peace with us"}
+
+
+def _mid(title: str) -> str:
+    """A title mid-sentence: "the Confederation of the Rhine"."""
+    return ("the " + title[4:]) if title.startswith("The ") else title
+
+
+def court_line(world, court: str) -> str:
+    """Talleyrand's reading of a court on the Emperor's road (the record
+    §6.6; ruling K: a reading, not a lookup) — where the court stands on the
+    proclaimed road (or, before a proclamation, which roads name her), read
+    off her live state: her row on a construction, her terms on a seal. ''
+    when the court stands on no road, or no designs are authored."""
+    if not armed(world) or not court or court == owner(world):
+        return ""
+    from backend.display_names import humanize_entity_name as _h
+    chosen = proclaimed_road(world)
+    who = _h(court)
+    rows = []
+    for r in roads(world):
+        rid = str(r.get("id"))
+        if chosen and rid != chosen:
+            continue
+        for d in designs_of(r):
+            courts = [str(c) for c in (d.get("courts") or [])]
+            provinces = [str(p) for p in (d.get("provinces") or [])]
+            holders = {str(getattr((getattr(world, "regions", {}) or {}).get(p), "controller", "") or "")
+                       for p in provinces}
+            if d.get("type") in (TYPE_SHUT_PORTS, TYPE_BRITAIN_SIGNS):
+                from backend.game_logic import naval
+                holders.add(str(naval.trade_dominance_nation(world) or ""))
+            if court not in courts and court not in holders:
+                continue
+            rows.append((r, d))
+    if not rows:
+        return ""
+    if not chosen:
+        named = "; ".join(f"{r.get('title')} ({d.get('title')})" for r, d in rows)
+        return (f"Talleyrand: \"{who} stands on the Emperor's roads, Sire — {named}. "
+                f"Proclaim one in the Cabinet ({DESIGNS_CONTROL}).\"")
+    r, d = rows[0]
+    reading = design_reading(world, d)
+    dtype = reading.get("type")
+    design_t = _mid(str(d.get("title") or ""))
+    if dtype == TYPE_CLIENTS:
+        row = next((x for x in (reading.get("rows") or []) if x.get("court") == court), {})
+        if row.get("member"):
+            state = "she stands under the Emperor's protection"
+        elif row.get("gone"):
+            state = str(row.get("why") or "gone")
+        elif str(row.get("why") or "").startswith("loyalty"):
+            state = f"France's satellite, but at {row.get('why')} — Invest in Vassal raises it"
+        else:
+            state = (f"not yet ours — {_STATE_WORDS.get(str(row.get('why') or ''), 'outside the Empire')}; "
+                     f"Propose Vassal (or Subjugate at war) on her page")
+        return (f"Talleyrand: \"{who} is one of {design_t}'s courts, Sire: {state}. "
+                f"{progress_line(world, reading)[0].upper()}{progress_line(world, reading)[1:]}.\"")
+    if dtype in (TYPE_BROUGHT_TO_TERMS, TYPE_TITLED_AND_TERMS):
+        met, manner = terms_met(world, owner(world), court)
+        if met:
+            return (f"Talleyrand: \"{who} is brought to terms ({manner}), Sire — "
+                    f"{design_t} reads her peace as its own.\"")
+        rec = (_state(world).get("terms") or {}).get(court) or {}
+        if rec.get("manner") == MANNER_MODERATE and not rec.get("broken"):
+            return (f"Talleyrand: \"{who} signed the moderate peace, Sire; her alliance "
+                    f"within {VOLTE_FACE_WINDOW} turns of it brings her to terms.\"")
+        return (f"Talleyrand: \"{who} is a crown the road of {_mid(str(r.get('title') or ''))} "
+                f"must bring to terms, Sire: "
+                f"two of her own provinces or her capital ceded to the Empire (a "
+                f"partition), her vassalage, or a compensated peace and then her "
+                f"alliance.\"")
+    return (f"Talleyrand: \"{who} stands on the road of {_mid(str(r.get('title') or ''))}, "
+            f"Sire — {design_t}: {progress_line(world, reading)}.\"")
+
+
+def door_line(world) -> str:
+    """The first morning's door to the road page (the TODAY block) — '' when
+    unarmed or a road is proclaimed. Names the control, never a typed line."""
+    payload = build_designs_payload(world)
+    if payload is None or payload["road"]:
+        return ""
+    titles = ", ".join(f"{r['numeral']} {r['title']}" for r in payload["roads"])
+    return (f"The Emperor's Designs — {titles}: one proclamation decides what the "
+            f"Empire is for, and it cannot be undone. In the Cabinet: {DESIGNS_CONTROL}.")
+
+
+def goal_clause(world) -> str:
+    """The desk's goal answer's head (the record §6.6): condition (c), the
+    door, then the proclaimed road's two designs — or the three roads and
+    that the choice cannot be undone. '' when unarmed (every answer on the
+    bare flag world and the tutorial stays byte-unchanged)."""
+    payload = build_designs_payload(world)
+    if payload is None:
+        return ""
+    chosen = next((r for r in payload["roads"] if r["proclaimed"]), None)
+    if chosen is None:
+        roads_named = "; ".join(f"{r['numeral']} {r['title']} ({r['proclamation']})"
+                                for r in payload["roads"])
+        road_part = (f"No road is proclaimed yet: {roads_named}. One proclamation, "
+                     f"in the Cabinet ({DESIGNS_CONTROL}), and it cannot be undone.")
+    else:
+        designs = "; ".join(f"{d['title']} — {d['progress']}"
+                            + (f" ({d['hold_line']})" if d["hold_line"] else "")
+                            for d in chosen["designs"])
+        road_part = (f"Road {chosen['numeral']}, {chosen['title']}, is proclaimed: "
+                     f"{designs}. The road page: {DESIGNS_CONTROL}.")
+    decisive = ("Both of a road's designs latched, its construction holding and the "
+                "sealing court at peace: THE DECISIVE PEACE, a waypoint on the road to "
+                "the Congress.")
+    return f"{CONDITION_C} {road_part} {decisive} "
+
+
+def designs_answer(world) -> str:
+    """The `designs` help kind: each design ✓ / ✗, read off the payload."""
+    payload = build_designs_payload(world)
+    if payload is None:
+        return ("There are no designs of the Empire authored in this campaign, Sire. "
+                "Nothing has been relayed.")
+    lines = [payload["headline"]]
+    for r in payload["roads"]:
+        state = ("proclaimed" if r["proclaimed"] else "forsworn" if r["forsworn"]
+                 else "open" if r["available"] else (r["disabled_reason"] or "shut"))
+        lines.append(f"Road {r['numeral']}, {r['title']} ({state}):")
+        for d in r["designs"]:
+            mark = "✓" if d["status"] in ("fulfilled", "met") else "✗"
+            lines.append(f"  {mark} {d['title']} — {d['progress']}"
+                         + (f" ({d['hold_line']})" if d["hold_line"] else ""))
+    lines.append(f"The road page: {DESIGNS_CONTROL}. Nothing has been relayed.")
+    return "\n".join(lines)

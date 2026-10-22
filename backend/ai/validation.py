@@ -128,6 +128,9 @@ VALID_ACTIONS: Set[str] = {
     # SR-5r "The Laws" (REFORMS_SPEC §2) — acts of state, no marshal:
     "enact_law",    # "enact the Staff" — the law's price + 1 admin action
     "repeal_law",   # "repeal the Staff" — 1 admin action, nothing refunded
+    # VP-1 (S14b part 2): a road of the Empire — 2 DP + 1 admin action; its one
+    # player road is the Cabinet's road page (F1 → The Emperor's Designs)
+    "proclaim_design",
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -194,6 +197,8 @@ META_ACTIONS: Set[str] = {
     # SR-5r RF-1 — a law is the Emperor's act of state. No marshal needed.
     "enact_law",
     "repeal_law",
+    # VP-1 — a road of the Empire is the Emperor's act of state.
+    "proclaim_design",
 }
 
 # FA slice 7 (FA-N9): ONE list. parser.py kept a THIRD hand-copied "needs no
@@ -250,6 +255,7 @@ CABINET_ACTIONS = frozenset({
     "propose_common_peace", "propose_white_peace", "request_terms",
     "set_war_purpose", "make_amends", "repudiate_bargain",
     "recognition_sweetener", "bind_to_war", "summon_congress",
+    "proclaim_design",
 })
 
 # Valid stances for stance_change action

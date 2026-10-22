@@ -40,7 +40,7 @@ var _request_id: int = 0  # Monotonic ID to discard stale responses
 var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 
 # State
-var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=formables (NA-6d)
+var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions, 3=formables (NA-6d), 4=the Emperor's designs (VP-1)
 var _selected_nation: String = ""
 var _dp_available: int = 0
 
@@ -183,6 +183,10 @@ func _lay_out_prompt(step: int) -> void:
 		# assessment — expanding it opened a blank band above the list.
 		assessment_panel.size_flags_vertical = Control.SIZE_FILL
 		assessment_panel.custom_minimum_size.y = 56.0
+	elif step == 4:
+		# VP-1: the road page's prompt is a fixed quote too (step 3's rule).
+		assessment_panel.size_flags_vertical = Control.SIZE_FILL
+		assessment_panel.custom_minimum_size.y = 56.0
 	else:
 		assessment_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		assessment_panel.custom_minimum_size.y = 56.0
@@ -225,7 +229,7 @@ func _close_wizard():
 
 func _go_back():
 	"""Return to previous step."""
-	if _current_step == 2 or _current_step == 3:
+	if _current_step == 2 or _current_step == 3 or _current_step == 4:
 		_current_step = 1
 		_selected_nation = ""
 		back_button.visible = false
@@ -285,6 +289,18 @@ func _fetch_formables():
 		_show_error("Failed to fetch the formable nations.")
 
 
+func _fetch_designs():
+	"""Fetch the road page for Step 4 (VP-1, the Emperor's Designs)."""
+	_http.cancel_request()
+	_request_id += 1
+	_pending_request = "designs"
+	_request_in_flight = true
+	var error = _http.request(API_URL + "/imperial_designs")
+	if error != OK:
+		_request_in_flight = false
+		_show_error("Failed to fetch the Emperor's designs.")
+
+
 func _on_http_completed(result, response_code, headers, body):
 	_request_in_flight = false
 	if not visible:
@@ -314,6 +330,11 @@ func _on_http_completed(result, response_code, headers, body):
 		_render_preview(data)
 	elif _pending_request == "formables":
 		_render_formables(data)
+	elif _pending_request == "designs":
+		# The stale-response guard above compares the id to itself; a page
+		# the player has left (Back) is never drawn over the nation list.
+		if _current_step == 4:
+			_render_designs(data)
 
 
 func _show_error(msg: String):
@@ -353,6 +374,9 @@ func _render_nations(data: Dictionary):
 	# tutorial and the bare flag world send null — no row).
 	_last_nations_data = data
 	_add_congress_row(data.get("congress"))
+	# VP-1 (S14b part 2): the Emperor's Designs — the road page's door, right
+	# under the Congress (the backend sends null where no designs are authored).
+	_add_designs_row(data.get("designs"))
 
 	# NA-6d §11.6-8: the Formables button — the assured, always-reachable
 	# browser for the formable world. Top of the list, never hidden.
@@ -605,6 +629,244 @@ func _on_congress_table_pressed():
 
 
 # =============================================================================
+# STEP 4: THE EMPEROR'S DESIGNS (VP-1, docs/VP1_DESIGNS_SPEC.md §6 — the road page)
+# =============================================================================
+
+func _add_designs_row(designs) -> void:
+	if not (designs is Dictionary) or designs.is_empty():
+		return
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.theme_type_variation = &"CaptionRich"
+	var line = designs.get("line")
+	var bbcode := "[color=#" + Utils.COLOR_GOLD + "][b]The Emperor's Designs[/b][/color]"
+	if line is String and line != "":
+		bbcode += " [color=#" + Utils.COLOR_INFO + "]— " + line.replace("[", "[lb]") + "[/color]"
+	lbl.text = bbcode
+	content_list.add_child(lbl)
+	var btn = Button.new()
+	btn.text = "The Emperor's Designs — the roads of the Empire"
+	btn.custom_minimum_size = Vector2(0, 36)
+	btn.theme_type_variation = &"CaptionButton"
+	btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+	btn.pressed.connect(_on_designs_pressed)
+	content_list.add_child(btn)
+
+
+func _on_designs_pressed():
+	_current_step = 4
+	_selected_nation = ""
+	back_button.visible = true
+	title_label.text = "DIPLOMACY — THE EMPEROR'S DESIGNS"
+	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Three roads, Sire — what the Empire will be. One proclamation decides it, and it cannot be undone.\"[/color]"
+	_lay_out_prompt(4)
+	_clear_content_list()
+	_add_loading_label()
+	_fetch_designs()
+
+
+func _bb(text) -> String:
+	"""A backend string, safe inside BBCode."""
+	return (str(text) if text != null else "").replace("[", "[lb]")
+
+
+func _render_designs(data: Dictionary):
+	"""The road page: every road with its gate, its teeth and its two
+	designs (what each asks, the Cabinet row that does it, its reward), the
+	courts each names as links, and the Proclaim button — disabled with the
+	executor's own refusal (the payload's `disabled_reason`). The button
+	sends the payload's own command; the backend quotes the price and that
+	it cannot be undone before anything is spent."""
+	_clear_content_list()
+	scroll_container.scroll_vertical = 0
+	var roads = data.get("roads")
+	if not (data.get("armed") is bool and data.get("armed")) or not (roads is Array) or roads.size() == 0:
+		var empty_lbl = RichTextLabel.new()
+		empty_lbl.bbcode_enabled = true
+		empty_lbl.fit_content = true
+		empty_lbl.scroll_active = false
+		empty_lbl.text = ("[color=#" + Utils.COLOR_INFO
+			+ "]No designs of the Empire are authored in this campaign.[/color]")
+		content_list.add_child(empty_lbl)
+		return
+	var head = RichTextLabel.new()
+	head.bbcode_enabled = true
+	head.fit_content = true
+	head.scroll_active = false
+	head.text = "[color=#" + Utils.COLOR_GOLD + "]" + _bb(data.get("headline")) + "[/color]"
+	content_list.add_child(head)
+	# The decision first: every road's Proclaim button in one strip under the
+	# headline, above the fold at both scales (the details scroll beneath).
+	var strip := HFlowContainer.new()
+	strip.add_theme_constant_override("h_separation", 8)
+	strip.add_theme_constant_override("v_separation", 6)
+	for road in roads:
+		if road is Dictionary:
+			var btn = _proclaim_button(road)
+			if btn != null:
+				strip.add_child(btn)
+	if strip.get_child_count() > 0:
+		content_list.add_child(strip)
+	else:
+		strip.queue_free()
+	# The proclaimed road leads; a forsworn road keeps its name and its line.
+	for road in roads:
+		if road is Dictionary and road.get("proclaimed") is bool and road.get("proclaimed"):
+			_add_road_block(road)
+	for road in roads:
+		if road is Dictionary and not (road.get("proclaimed") is bool and road.get("proclaimed")):
+			_add_road_block(road)
+	call_deferred("_update_more_below")
+
+
+func _add_road_block(road: Dictionary) -> void:
+	var proclaimed: bool = road.get("proclaimed") is bool and road.get("proclaimed")
+	var forsworn: bool = road.get("forsworn") is bool and road.get("forsworn")
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.theme_type_variation = &"CaptionRich"
+	var name_color: String = Utils.COLOR_INFO if forsworn else Utils.COLOR_GOLD
+	var bbcode := "\n[color=#" + name_color + "][b]Road " + _bb(road.get("numeral")) + " — " + _bb(road.get("title")) + "[/b][/color]"
+	bbcode += " [color=#" + Utils.COLOR_INFO + "](" + _bb(road.get("proclamation")) + ")[/color]"
+	if proclaimed:
+		bbcode += "\n    [color=#" + Utils.COLOR_SUCCESS + "]✓ Proclaimed — the Empire's road.[/color]"
+	elif forsworn:
+		bbcode += "\n    [color=#" + Utils.COLOR_INFO + "]" + _bb(road.get("forsworn_line")) + "[/color]"
+	else:
+		var gate_ok: bool = road.get("gate_met") is bool and road.get("gate_met")
+		var gate_mark: String = "✓" if gate_ok else "•"
+		var gate_color: String = Utils.COLOR_SUCCESS if gate_ok else Utils.COLOR_INFO
+		bbcode += "\n    [color=#" + gate_color + "]" + gate_mark + " " + _bb(road.get("gate_reason")) + "[/color]"
+		var teeth = road.get("teeth_line")
+		var cost_text := "Proclaiming takes " + str(int(road.get("dp_cost", 0))) + " diplomatic points and " + str(int(road.get("admin_cost", 0))) + " administrative action"
+		if teeth is String and teeth != "":
+			cost_text += "; " + teeth
+		bbcode += "\n    [color=#" + Utils.COLOR_INFO + "]" + _bb(cost_text) + ".[/color]"
+	var designs = road.get("designs")
+	if not (designs is Array) or forsworn:
+		designs = []
+	for d in designs:
+		if not (d is Dictionary):
+			continue
+		var status: String = str(d.get("status", ""))
+		var mark: String = "✓" if status == "fulfilled" or status == "met" else ("✗" if status == "lapsed" else "•")
+		var d_color: String = Utils.COLOR_SUCCESS if status == "fulfilled" else (Utils.COLOR_ERROR if status == "lapsed" else Utils.COLOR_HEADER)
+		bbcode += "\n    [color=#" + d_color + "]" + mark + " " + _bb(d.get("title")) + "[/color] [color=#" + Utils.COLOR_INFO + "](" + _bb(d.get("role_display")) + ") — " + _bb(d.get("progress"))
+		var hold_line = d.get("hold_line")
+		if hold_line is String and hold_line != "":
+			bbcode += "; " + _bb(hold_line)
+		bbcode += "[/color]"
+		if not forsworn:
+			var hint = d.get("hint")
+			if hint is String and hint != "":
+				bbcode += "\n        [color=#" + Utils.COLOR_INFO + "]" + _bb(hint) + "[/color]"
+			var control = d.get("control")
+			if control is String and control != "":
+				bbcode += "\n        [color=#" + Utils.COLOR_INFO + "]In the Cabinet: " + _bb(control) + "[/color]"
+			var reward = d.get("reward_line")
+			if reward is String and reward != "":
+				bbcode += "\n        [color=#" + Utils.COLOR_GOLD + "]" + _bb(reward) + "[/color]"
+	lbl.text = bbcode
+	content_list.add_child(lbl)
+
+	# The courts each design names — their own Cabinet pages, where the
+	# controls the hints name live (never a typed line).
+	if not forsworn:
+		var links := HFlowContainer.new()
+		links.add_theme_constant_override("h_separation", 6)
+		links.add_theme_constant_override("v_separation", 4)
+		var seen := {}
+		for d in designs:
+			if not (d is Dictionary):
+				continue
+			var dl = d.get("links")
+			if not (dl is Array):
+				continue
+			for link in dl:
+				if not (link is Dictionary):
+					continue
+				var court := str(link.get("court", ""))
+				if court == "" or seen.has(court):
+					continue
+				seen[court] = true
+				var lb = Button.new()
+				lb.text = "↳ " + str(link.get("label", court))
+				lb.custom_minimum_size = Vector2(0, 30)
+				lb.theme_type_variation = &"CaptionButton"
+				lb.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+				lb.tooltip_text = "Open " + str(link.get("label", court)) + "'s page in the Cabinet"
+				lb.pressed.connect(_on_nation_selected.bind(court))
+				links.add_child(lb)
+		if links.get_child_count() > 0:
+			content_list.add_child(links)
+		else:
+			links.queue_free()
+
+	if proclaimed or forsworn:
+		return
+	# The road's refusal, where its button in the strip above is dimmed.
+	var available: bool = road.get("available") is bool and road.get("available")
+	var reason = road.get("disabled_reason")
+	if not available and reason is String and reason != "":
+		var reason_label = Label.new()
+		reason_label.text = "    " + reason
+		reason_label.theme_type_variation = &"Caption"
+		reason_label.add_theme_color_override("font_color", Utils.UI_REASON_GREY)
+		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_list.add_child(reason_label)
+
+
+func _proclaim_button(road: Dictionary):
+	"""A road's Proclaim button — the primary act when available (UXR3-F5
+	gold), disabled with the executor's own refusal (its tooltip; the reason
+	also stands under the road's details). None for a road proclaimed or
+	forsworn."""
+	var proclaimed: bool = road.get("proclaimed") is bool and road.get("proclaimed")
+	var forsworn: bool = road.get("forsworn") is bool and road.get("forsworn")
+	if proclaimed or forsworn:
+		return null
+	var available: bool = road.get("available") is bool and road.get("available")
+	var btn = Button.new()
+	btn.text = "Proclaim Road " + str(road.get("numeral", "")) + " — " + str(road.get("proclamation", ""))
+	btn.custom_minimum_size = Vector2(0, 36)
+	btn.theme_type_variation = &"CaptionButton"
+	btn.disabled = not available
+	if available:
+		btn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+		var primary := StyleBoxFlat.new()
+		primary.bg_color = Color(0.23, 0.18, 0.08, 0.95)
+		primary.border_color = Utils.UI_GOLD
+		primary.set_border_width_all(2)
+		primary.set_corner_radius_all(4)
+		primary.content_margin_left = 10.0
+		primary.content_margin_right = 10.0
+		primary.content_margin_top = 4.0
+		primary.content_margin_bottom = 4.0
+		btn.add_theme_stylebox_override("normal", primary)
+		btn.pressed.connect(_on_proclaim_pressed.bind(str(road.get("command", ""))))
+		btn.tooltip_text = "It cannot be undone — the other roads are forsworn."
+	else:
+		var reason = road.get("disabled_reason")
+		if reason is String and reason != "":
+			btn.tooltip_text = reason
+	return btn
+
+
+func _on_proclaim_pressed(command: String):
+	"""The payload's own command (`imperial_designs.proclaim_command`). The
+	wizard closes first — the confirm (the clarification popup) stands below
+	its layer — and the backend quotes the price before anything is spent."""
+	if command == "":
+		return
+	_close_wizard()
+	command_selected.emit(command)
+
+
+# =============================================================================
 # STEP 3: FORMABLE NATIONS (NA-6d §11.6-8 — the Formables button)
 # =============================================================================
 
@@ -792,6 +1054,11 @@ func _render_preview(data: Dictionary):
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
 	if recommendation:
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+	# VP-1 (S14b part 2): Talleyrand's reading of this court on the Emperor's
+	# road — the road page (F1 → The Emperor's Designs) holds the rest.
+	var designs_line = data.get("designs_line", "")
+	if designs_line is String and designs_line != "":
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(designs_line.replace("[", "[lb]")) + "[/color]\n"
 	# PC-R8 / PC-F12 (S13e part 1): the counsel's ranked roads — each with
 	# its dry-run number, whether it carries and its price — under the line.
 	var roads = data.get("counsel_roads_display", [])

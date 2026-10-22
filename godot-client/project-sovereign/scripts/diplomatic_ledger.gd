@@ -856,6 +856,45 @@ func _render_treaties():
 
 # =============================================================================
 # TAB 3: BALANCE OF EUROPE (VP1-X6: the button's title, every pointer's name)
+
+func _designs_block(designs) -> String:
+	"""VP-1: the Emperor's designs on the Balance of Europe — the road and
+	its two designs, or the three roads before a proclamation. The controls
+	live on the Cabinet's road page (F1)."""
+	if not (designs is Dictionary) or designs.is_empty():
+		return ""
+	var out := "[color=#" + Utils.COLOR_HEADER + "]THE EMPEROR'S DESIGNS[/color]\n"
+	out += "[color=#" + Utils.COLOR_INFO + "]" + str(designs.get("headline", "")).replace("[", "[lb]") + "[/color]\n"
+	var roads = designs.get("roads")
+	if not (roads is Array):
+		return out + "\n"
+	for road in roads:
+		if not (road is Dictionary):
+			continue
+		var proclaimed: bool = road.get("proclaimed") is bool and road.get("proclaimed")
+		var forsworn: bool = road.get("forsworn") is bool and road.get("forsworn")
+		if forsworn:
+			continue
+		var color: String = Utils.COLOR_GOLD if proclaimed else Utils.COLOR_INFO
+		out += "  [color=#" + color + "]Road " + str(road.get("numeral", "")) + " — " + str(road.get("title", "")).replace("[", "[lb]") + "[/color]\n"
+		var ds = road.get("designs")
+		if not (ds is Array):
+			continue
+		for d in ds:
+			if not (d is Dictionary):
+				continue
+			var status: String = str(d.get("status", ""))
+			var mark: String = "✓" if status == "fulfilled" or status == "met" else ("✗" if status == "lapsed" else "•")
+			var line: String = "    " + mark + " " + str(d.get("title", "")) + " — " + str(d.get("progress", ""))
+			var hold = d.get("hold_line")
+			if hold is String and hold != "":
+				line += " (" + hold + ")"
+			out += "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
+	var control = designs.get("control")
+	if control is String and control != "":
+		out += "[color=#" + Utils.COLOR_INFO + "]  The road page: " + control.replace("[", "[lb]") + "[/color]\n"
+	return out + "\n"
+
 # =============================================================================
 
 func _render_balance_of_europe():
@@ -906,6 +945,10 @@ func _render_balance_of_europe():
 			bbcode += "Warning bands: 33% noticed, 50% alarming, 60% crisis.\n\n"
 		_:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]No single court dominates the balance.[/color]\n\n"
+
+	# VP-1 (S14b part 2, the record §6.2): THE EMPEROR'S DESIGNS — the road,
+	# each design's progress, off the one payload (null: no designs authored).
+	bbcode += _designs_block(boe.get("imperial_designs"))
 
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]COALITION THREAT[/color]\n"
 

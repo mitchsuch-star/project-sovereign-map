@@ -244,6 +244,7 @@ ROUTED_ORDER_WORDS = frozenset({
     'port',
     'press',
     'proceed',
+    'proclaim',
     'promote',
     'propose',
     'protect',

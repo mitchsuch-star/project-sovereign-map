@@ -1069,6 +1069,47 @@ SHOTS += [
                      "every row with its gate terms (the step-3 rows the live session drove; "
                      "rendered here from the captured GET /formables, not over HTTP)",
     },
+    # VP-1 (S14b part 2): the road page (`cap_designs`).
+    {
+        "id": "wizard_designs_step4",
+        "surface": "The Cabinet wizard — step 4, the Emperor's Designs (VP-1 road page) — no road proclaimed",
+        "payload": "designs_road_page_open",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 4},
+            {"set_path": "title_label.text", "value": "DIPLOMACY — THE EMPEROR'S DESIGNS"},
+            {"set_path": "assessment_panel.text",
+             "value": "[color=#a0a0a8]\"Three roads, Sire — what the Empire will be. One "
+                      "proclamation decides it, and it cannot be undone.\"[/color]"},
+            {"set_path": "back_button.visible", "value": True},
+            {"call": "_lay_out_prompt", "args": [4]},
+            {"call": "_render_designs", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+        ],
+        "must_show": "the headline, Road I with its gate, its price and teeth, both designs with their hints and Cabinet rows, its court links and the gold Proclaim button — every button above the fold or under the 'more below' cue; nothing clipped at scale 2.0",
+    },
+    {
+        "id": "wizard_designs_step4_proclaimed",
+        "surface": "The Cabinet wizard — step 4, the Emperor's Designs (VP-1 road page) — the Crowns of Italy proclaimed",
+        "payload": "designs_road_page_proclaimed",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 4},
+            {"set_path": "title_label.text", "value": "DIPLOMACY — THE EMPEROR'S DESIGNS"},
+            {"set_path": "assessment_panel.text",
+             "value": "[color=#a0a0a8]\"Three roads, Sire — what the Empire will be. One "
+                      "proclamation decides it, and it cannot be undone.\"[/color]"},
+            {"set_path": "back_button.visible", "value": True},
+            {"call": "_lay_out_prompt", "args": [4]},
+            {"call": "_render_designs", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+        ],
+        "must_show": "Road II marked proclaimed with no Proclaim button; Roads I and III greyed with their 'Forsworn when the Emperor proclaimed' lines and no buttons; nothing clipped at scale 2.0",
+    },
 ]
 
 # ═══ Score Finish Step 7b "The front page of the peace" (October 5, 2026) ═══

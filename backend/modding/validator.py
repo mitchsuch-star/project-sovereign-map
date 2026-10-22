@@ -1108,6 +1108,10 @@ def _validate_imperial_designs(result, data: dict, known_nations: Set[str]) -> N
         elif gate.get("court") and known_nations and gate["court"] not in known_nations:
             result.add_error(f"{path}.gate.court", f"Unknown nation '{gate['court']}'")
         _teeth(f"{path}.teeth_proclaim", road.get("teeth_proclaim"))
+        aliases = road.get("aliases")
+        if aliases is not None and (not isinstance(aliases, list)
+                                    or not all(isinstance(a, str) and a for a in aliases)):
+            result.add_error(f"{path}.aliases", "Must be a list of non-empty strings")
         designs = road.get("designs")
         if not isinstance(designs, list) or len(designs) != 2:
             result.add_error(f"{path}.designs", "Must list exactly two designs (a construction, then a seal)")
@@ -1139,6 +1143,16 @@ def _validate_imperial_designs(result, data: dict, known_nations: Set[str]) -> N
             if "hold" in d:
                 _int_in(f"{dpath}.hold", d["hold"], 1, 12)
             _teeth(f"{dpath}.teeth_fulfil", d.get("teeth_fulfil"))
+            # S14b part 2: the road page prints what each design asks and the
+            # Cabinet row that does it — never a typed order (diplomacy is
+            # never typed), so a control must name the Cabinet.
+            for key in ("hint", "control"):
+                if not isinstance(d.get(key), str) or not d.get(key).strip():
+                    result.add_error(f"{dpath}.{key}", "Must be a non-empty string")
+            control = d.get("control")
+            if isinstance(control, str) and control.strip() and not control.startswith("F1 →"):
+                result.add_error(f"{dpath}.control",
+                                 "Must name its Cabinet row (start 'F1 →'), never a typed order")
 
 
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:

@@ -2854,6 +2854,16 @@ def good_offices_clause(mediator: Any) -> str:
     return f"under {possessive} good offices"
 
 
+def _offer_revanche_line(world, terms) -> str:
+    from backend.game_logic.emergent_designs import revanche_line_for_terms
+    return revanche_line_for_terms(world, list(terms or []))
+
+
+def _offer_manner_lines(world, covered, terms):
+    from backend.game_logic import imperial_designs as _designs
+    return _designs.table_manner_lines(world, covered, list(terms or []))
+
+
 def build_incoming_settlement_offer_popup(
     world: Any, offer: Mapping[str, Any]
 ) -> Dict[str, Any]:
@@ -3119,6 +3129,10 @@ def build_incoming_settlement_offer_popup(
         "substance_clause": offer_substance_clause(world, settlement_terms),
         "settlement_terms": settlement_terms,
         "terms_summary": terms_summary,
+        # VP1-X17 (S14b part 2): the letter's Revanche and each covered seal
+        # court's manner — the table's own reading, before the player opens it.
+        "revanche_line": _offer_revanche_line(world, settlement_terms),
+        "manner_lines": _offer_manner_lines(world, covered, settlement_terms),
         # FA-N16: `amount` is what FRANCE is asked to pay — 0 when the offer
         # pays her — and `amount_offered` is what is put on the table for
         # her. Every consumer reads the direction off these two.

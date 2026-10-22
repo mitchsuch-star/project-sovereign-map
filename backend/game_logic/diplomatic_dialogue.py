@@ -1460,6 +1460,16 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
             snapshot_type,
             terms=terms,
         )
+        # VP1-X14 (S14b part 2): the popup reads the snapshot's OWN term
+        # list — the status-quo rows attached above went to the dialogue's
+        # list alone, so the outgoing preview never printed them.
+        _snap_rows = dialogue["war_context_snapshot"].get("annotated_terms")
+        if isinstance(_snap_rows, list) and _snap_rows:
+            for _row in (dialogue.get("annotated_terms") or []):
+                if (isinstance(_row, dict)
+                        and _row.get("type") in ("status_quo", "status_quo_warning")
+                        and _row not in _snap_rows):
+                    _snap_rows.append(dict(_row))
 
     # Harshness — normalize string clauses to dicts for calculate_treaty_harshness
     harshness_terms = dict(terms)

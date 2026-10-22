@@ -1734,6 +1734,30 @@ def _asks_about_the_laws(command_lower: str) -> bool:
     return bool(_LAW_QUESTION_RE.search(command_lower))
 
 
+# VP-1 (S14b part 2, docs/VP1_DESIGNS_SPEC.md §3): `proclaim <road>` — the line
+# the Cabinet's road page sends (a typed one is redirected at the client's
+# door). The verb must OPEN the line (the Congress's head rule); a question
+# or a hedge FAILS CLOSED — answered with the roads, nothing spent. Sited in
+# the Cabinet stage, above the families that read "the Rhine" as a march or
+# "the Blockade" as a fleet's posture (measured: both had executed).
+_PROCLAIM_VERB_RE = re.compile(r"proclaim\s+\S")
+_PROCLAIM_WORDS_RE = re.compile(r"\bproclaim\s+(.+?)[\s.!]*$", re.IGNORECASE)
+# A question about the Emperor's designs — never another court's ("what are
+# Austria's designs?" stays the courts' answer).
+_DESIGNS_QUESTION_RE = re.compile(
+    r"\b(?:emperor'?s|our|my|imperial|france'?s)\s+designs?\b|\bdesigns? of the empire\b|"
+    r"\broads? of the empire\b|\bproclam(?:ation|ations)\b|\bproclaim(?:s|ed|ing)?\b")
+
+
+def _proclaims_a_road(command_lower: str) -> bool:
+    """"proclaim the Protector of the Rhine" — at the HEAD of the line."""
+    return bool(_PROCLAIM_VERB_RE.match(_law_rest(command_lower)))
+
+
+def _asks_about_the_designs(command_lower: str) -> bool:
+    return bool(_DESIGNS_QUESTION_RE.search(command_lower))
+
+
 # The session exit of September 28, 2026 (its residue): the bare word —
 # "laws", like "economy" and "status" — asks for the laws. The exit's laws
 # arm typed it and got Berthier's shrug ("this order eludes me").
@@ -2975,6 +2999,17 @@ class LLMClient:
         if not _congress_marshal_led and _enacts_a_law(command_lower):
             action = "enact_law"
             return self._parse_law_command(action, command_text)
+        # VP-1 (S14b part 2): the road page's Proclaim — the Laws' guards.
+        _proclaim_order = _proclaims_a_road(command_lower)
+        if not _congress_marshal_led and (
+                (_proclaim_order or _asks_about_the_designs(command_lower))
+                and is_question(original_text, _question_subjects(game_state))):
+            return self._designs_question(original_text)
+        if not _congress_marshal_led and _proclaim_order and _congress_hedged(command_lower):
+            return self._designs_question(original_text)
+        if not _congress_marshal_led and _proclaims_a_road(command_lower):
+            action = "proclaim_design"
+            return self._parse_proclaim_command(action, command_text)
 
         # The session exit of September 28, 2026 (its residue): "how many
         # diplomatic points do I have?" — "diplomatic" holds "diplomat", one
@@ -4650,6 +4685,47 @@ class LLMClient:
             mode="mock",
             key_source=self.key_source,
             raw_command=command_text,
+        )
+
+    def _parse_proclaim_command(self, action: str, command_text: str) -> ParseResult:
+        """VP-1: `proclaim <road>` — the Emperor's act of state, no marshal.
+        The target is the road as named (the executor resolves it; the
+        confirm's marker is read off the raw words)."""
+        words = _PROCLAIM_WORDS_RE.search(command_text)
+        target = words.group(1).strip() if words else None
+        return ParseResult(
+            matched=True,
+            command_type="specific",
+            marshals=[],
+            action=action,
+            target=target,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation=f"The Emperor's designs — proclaim {target or 'a road'}",
+            confidence=0.95 if target else 0.8,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+        )
+
+    def _designs_question(self, original_text: str) -> ParseResult:
+        """VP-1: a question about the Emperor's designs FAILS CLOSED —
+        answered (`first_contact.answer_first_contact("designs", …)`: each
+        design ✓ / ✗ off the one payload) and nothing is proclaimed."""
+        return ParseResult(
+            matched=True,
+            command_type="tactical",
+            marshals=[],
+            action="help",
+            target=None,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation="Question — the Emperor's designs",
+            confidence=0.9,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=original_text,
+            question={"kind": "designs", "asked": original_text},
         )
 
     def _laws_question(self, original_text: str) -> ParseResult:

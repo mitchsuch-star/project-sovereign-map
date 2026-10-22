@@ -11842,3 +11842,41 @@ VP1-X6: the Diplomatic Ledger's third tab reads BALANCE OF EUROPE, as every poin
 ### 144.5 Measured
 
 `BASELINE_SERIES` byte-identical on every arm (none, D, X1, X2, X3, X12, X13, ALL), 19 purses seeded with X13 up and none with it down. The eight commanded arms equal to the S14b head's archive record for record. FC (`sr_exit_first_contact.json`, its goal answer) against a run of the committed tree `902cf755`: one record parts — the summons clause names the Cabinet row (X8).
+
+## 145. THE ROAD ARMED (VP-1 part 2, second landing: `proclaim_design`, the road page, every surface; VP1-X7, X14, X17, X18, X19; Pre-Deploy S14b, October 22, 2026)
+
+*The record `docs/VP1_DESIGNS_SPEC.md` §13.2 (the done-when item by item, §13.3). `BUG_FIXES.md` §VP1 (all 19 rows FIXED). Pins `tests/test_vp1_the_roads_armed.py`. The series `tools/_vp1_series_arms.py`, the arms `tools/_vp1_arm_attribution.py` (`_final.json` each).*
+
+### 145.1 The block ships
+
+The shipped `europe_1805.json` authors the `imperial_designs` block (`MODDING_FORMAT.md`), so the 1805 campaign boots **armed**; `tests/fixtures/vp1_imperial_designs_block.json` is the same block without its comments (pinned equal). Each design carries a `hint` (what it asks, in the Cabinet's nouns) and a `control` (the Cabinet row that does it, "F1 → …"); each road its `aliases`. The validator requires the hint and the control.
+
+### 145.2 The proclamation — `proclaim_design`
+
+A meta and Cabinet act (`validation.CABINET_ACTIONS`): never an objection, never a typed road — the client door claims "proclaim …" and the road page's button is its one control. The button sends `proclaim <title>`; `diplomatic_executor._execute_proclaim_design` resolves the road (`resolve_road`: its id, title, proclamation or an alias; none or several → "Which road, Sire?" naming the three), reads `price_refusal`, then **quotes** — free, on the clarification channel (`awaiting_clarification`, `design_confirm`; options "Proclaim <title>" → `<command> confirmed` and "Not now") — and on the confirm proclaims: 1 administrative action, 2 diplomatic points (`PROCLAIM_ADMIN_COST`, `PROCLAIM_DP_COST`), the teeth (`teeth_line`: "Europe's alarm +8; relations: Austria −10, Prussia −10"), the `imperial_design` log entry (phase `proclaimed`), and a message naming each design's hint and the Cabinet. `price_refusal(world, road)` is the ONE refusal in the order the player meets it — no administrative action left (the shared executor's pre-gate, which fires before the verb), then `proclaim_refusal` (a second road "cannot be undone", the gate, the realm's state), then the points. While a quote stands, the same command resolves as its confirm.
+
+### 145.3 The road page
+
+The Cabinet's step 4 (`diplomacy_wizard.gd`; GET `/imperial_designs` = `build_designs_payload` + `armed`); the nation list carries its row (`designs`, under the Congress's). The headline, then the strip of Proclaim buttons (gold when `available`, greyed with `disabled_reason` — `price_refusal`'s words), then the proclaimed road first. Per road: its numeral, proclamation, gate and `gate_reason`, `teeth_line`, the price; a forsworn road prints its title and `forsworn_line` only. Per design: `role_display`, `progress`, `hold_line`, `status`, `hint`, `control`, `reward_line` and `links` — the courts the hint names (the clients not yet under protection, the courts with terms unmet, the holders of untitled provinces, the courts whose ports stand open, Britain), each a button into that court's own Cabinet page. The button's press closes the wizard and hands its command to the terminal, as every Cabinet act does.
+
+### 145.4 Every surface reads the one payload
+
+- **The Balance of Europe**: the block `imperial_designs` (`diplomatic_ledger._imperial_designs_payload`); the France mirror appends "They read his road: …" once a road is proclaimed (`intent`); five new threat-source labels.
+- **The morning dispatch**: `designs_clock` (None until a road is proclaimed) on both renderers; the first morning's TODAY door (`door_line`, '' once proclaimed); the event classes `design_proclaimed` (86), `design_fulfilled` (82), `design_prologue` (67); the front-page class **`realm_designs`** (30, tie-free): when the courts sent nothing, `realm_line` names the proclaimed design whose count moved since the last morning, one that lapsed, or one a single end turn from holding — the counts remembered as `headline_lead_memory["designs"]` (the extra-keys idiom; `_select_headline`'s rebuild keeps the key), written only once a road is proclaimed.
+- **Le Moniteur**: "a road of the Empire proclaimed" (86), "a design of the Empire fulfilled" (83), "THE SUN OF AUSTERLITZ" (82).
+- **The desk and first contact**: the goal answer leads with `goal_clause` — condition (c) verbatim (`CONDITION_C`), the door, then the proclaimed road's designs or the three roads and that the choice cannot be undone, then the decisive peace beside the Congress; the `designs` help kind answers each design ✓ / ✗ (`designs_answer`); an unarmed world's answers are byte-unchanged.
+- **Talleyrand**: a court's step 2 carries `designs_line` (`court_line` — where she stands on the proclaimed road, or which roads name her; ruling K, a reading); the counsel's surface for the help kind.
+- **The peace surfaces — the manner and the Revanche (VP1-X7, X14, X17)**: `peace_lines(world, court, clauses)` reads the manner of THIS peace with a seal's court (`manner_for_terms`, the homeland guard — the latch's own reading) and the Revanche line off ONE clause list: the bilateral war-context snapshot (a peace, through `treaty_clauses_of` — the ratifier's dialect) carries `manner`, `manner_line`, `revanche_line` to the outgoing preview and the incoming letter (`proposal_confirm_popup.gd`, `incoming_proposal_popup.gd`); the table's preview and its confirm dialogue carry `manner_lines` per covered seal court (`table_manner_lines`) and `revanche_line`; the AI's settlement offer the same pair. The outgoing preview's status-quo rows are appended after the snapshot is built (X14). Gated on an armed world, the owner the player, and a seal court (`seal_courts`).
+
+### 145.5 The prologue — THE SUN OF AUSTERLITZ
+
+`_maybe_prologue(world, court)`: the first war-ending peace with Austria or Russia (`PROLOGUE_COURTS`, from `note_ratification`), or her capital in the owner's bloc (`prologue_court`, read at the tick), while no road is proclaimed — once (`state.prologue_turn`, across a load). No reward: a log entry (phase `prologue`), its dispatch beat (67, under a truce ripened into peace) and Le Moniteur's special, and `prologue_counsel` names the seal that peace already satisfies.
+
+### 145.6 The landing's own finds
+
+- **VP1-X18:** `prompt_builder.recovery_action_vocabulary` leaves out `CABINET_ACTIONS` — Berthier's recovery and the mock's "Valid orders include" never offer a Cabinet act as an order to type (the recovery prompt 2,370 → 1,946 characters).
+- **VP1-X19:** the door (`main.gd` `DIPLO_FAMILY_KEYWORDS`) claims "hold talks with"; the corpus census reads a row that asserts a Cabinet action as an order whatever it also forbids.
+
+### 145.7 Measured
+
+`BASELINE_SERIES` byte-identical on every arm (0, D, X1, X2, X3, X12, X13, ALL), the armed store read 396 times on the ambient series (12 with the store held down) and never moved: the ambient France never proclaims. The commanded arms: six equal the S14b head's archive record for record; CMD-A and CMD-M keep their game and view streams and part at one campaign-log record each — the prologue's one log entry moves the 500-row roll (`MAX_EVENT_LOG_SIZE`), so an IGR-B collapse at log turn 2 / 3 groups one refusal fewer — and equal the archive with the entry held down; FC's goal answer leads with condition (c). The Godot parse harness EXIT 0; the road page's IQ-10 frames at Interface Scale 1.0 and 2.0.

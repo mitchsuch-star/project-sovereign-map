@@ -1,5 +1,5 @@
 {
- "_comment": "VP-1 'The Emperor's Designs' (docs/VP1_DESIGNS_SPEC.md §2, §8) — the authored block S14b part 2 ships in europe_1805.json under the key `imperial_designs`. Part 1 arms it on a STAGED scenario only (tests/test_vp1_the_emperors_designs.py), so no player road reaches the shipped boot before its Cabinet page exists.",
+ "_comment": "VP-1 'The Emperor's Designs' (docs/VP1_DESIGNS_SPEC.md §2, §8) — the authored block europe_1805.json ships under the key `imperial_designs` (S14b part 2); this fixture is pinned equal to it, comment keys aside.",
  "owner": "France",
  "roads": [
   {
@@ -7,28 +7,65 @@
    "title": "The Protector of the Rhine",
    "proclamation": "The Act of Confederation",
    "alarm_source": "act_of_confederation",
-   "gate": {"type": "ally_or_vassal", "court": "Bavaria", "reason": "Bavaria must stand with France"},
-   "teeth_proclaim": {"alarm": 8, "relations": {"Austria": -10, "Prussia": -10}},
+   "gate": {
+    "type": "ally_or_vassal",
+    "court": "Bavaria",
+    "reason": "Bavaria must stand with France"
+   },
+   "teeth_proclaim": {
+    "alarm": 8,
+    "relations": {
+     "Austria": -10,
+     "Prussia": -10
+    }
+   },
    "designs": [
     {
      "id": "rhine.confederation",
      "title": "The Confederation of the Rhine",
      "role": "construction",
      "type": "clients",
-     "courts": ["Bavaria", "Hesse", "Saxony", "Hanover"],
+     "courts": [
+      "Bavaria",
+      "Hesse",
+      "Saxony",
+      "Hanover"
+     ],
      "need": 3,
      "hold": 4,
-     "reward": {"type": "drift_shield"},
+     "reward": {
+      "type": "drift_shield"
+     },
      "alarm_source": "act_of_confederation",
-     "teeth_fulfil": {"alarm": 10, "relations": {"Austria": -30, "Prussia": -30}}
+     "teeth_fulfil": {
+      "alarm": 10,
+      "relations": {
+       "Austria": -30,
+       "Prussia": -30
+      }
+     },
+     "hint": "Three of Bavaria, Hesse, Saxony and Hanover under the Emperor's protection — each France's satellite at loyalty 40 or more, held four end turns.",
+     "control": "F1 → the court → Propose Vassal (at peace) or Subjugate (at war); Invest in Vassal keeps a member's loyalty"
     },
     {
      "id": "rhine.german_crown",
      "title": "A German Crown Brought to Terms",
      "role": "seal",
      "type": "brought_to_terms",
-     "courts": ["Austria", "Prussia"]
+     "courts": [
+      "Austria",
+      "Prussia"
+     ],
+     "hint": "Austria or Prussia brought to terms: two of her own provinces or her capital ceded to the Empire (a partition), her vassalage (subjugation), or a compensated peace and her alliance within twenty turns (the moderate peace).",
+     "control": "F1 → Austria or Prussia → Open Settlement (the war's terms), or Propose Peace"
     }
+   ],
+   "aliases": [
+    "rhine",
+    "the rhine",
+    "confederation",
+    "act of confederation",
+    "road i"
    ]
   },
   {
@@ -36,26 +73,60 @@
    "title": "The Crowns of Italy",
    "proclamation": "The Schönbrunn Proclamation",
    "alarm_source": "schonbrunn",
-   "gate": {"type": "vassal", "court": "KingdomOfItaly", "reason": "the Kingdom of Italy must be France's"},
-   "teeth_proclaim": {"alarm": 8, "relations": {"Naples": -10, "Spain": -10}},
+   "gate": {
+    "type": "vassal",
+    "court": "KingdomOfItaly",
+    "reason": "the Kingdom of Italy must be France's"
+   },
+   "teeth_proclaim": {
+    "alarm": 8,
+    "relations": {
+     "Naples": -10,
+     "Spain": -10
+    }
+   },
    "designs": [
     {
      "id": "crowns.naples",
      "title": "The Throne of Naples",
      "role": "construction",
      "type": "titled",
-     "provinces": ["Naples"],
+     "provinces": [
+      "Naples"
+     ],
      "hold": 1,
-     "reward": {"type": "authority", "amount": 15}
+     "reward": {
+      "type": "authority",
+      "amount": 15
+     },
+     "hint": "Naples titled to the Empire — her court France's satellite at loyalty 40 or more, or Naples held twelve quiet turns.",
+     "control": "F1 → Naples → Send Ultimatum (a casus belli at half the price), then Propose Vassal"
     },
     {
      "id": "crowns.iron_crown",
      "title": "The Iron Crown",
      "role": "seal",
      "type": "titled_and_terms",
-     "provinces": ["Milan", "Piedmont", "Carniola"],
-     "courts": ["Austria"]
+     "provinces": [
+      "Milan",
+      "Piedmont",
+      "Carniola"
+     ],
+     "courts": [
+      "Austria"
+     ],
+     "hint": "Milan, Piedmont and Carniola titled to the Empire, and Austria brought to terms.",
+     "control": "F1 → Austria → Open Settlement — Carniola ceded to the Kingdom of Italy"
     }
+   ],
+   "aliases": [
+    "italy",
+    "crowns",
+    "the crowns",
+    "iron crown",
+    "schonbrunn",
+    "schönbrunn",
+    "road ii"
    ]
   },
   {
@@ -63,8 +134,17 @@
    "title": "The Continental System",
    "proclamation": "The Blockade of the British Isles",
    "alarm_source": "blockade",
-   "gate": {"type": "at_war_with_trade_dominance", "reason": "France must be at war with the mistress of the seas"},
-   "teeth_proclaim": {"alarm": 8, "relations": {"Portugal": -15, "Denmark": -15}},
+   "gate": {
+    "type": "at_war_with_trade_dominance",
+    "reason": "France must be at war with the mistress of the seas"
+   },
+   "teeth_proclaim": {
+    "alarm": 8,
+    "relations": {
+     "Portugal": -15,
+     "Denmark": -15
+    }
+   },
    "designs": [
     {
      "id": "system.blockade",
@@ -72,16 +152,37 @@
      "role": "construction",
      "type": "shut_ports",
      "hold": 6,
-     "reward": {"type": "order_decay", "amount": 2},
+     "reward": {
+      "type": "order_decay",
+      "amount": 2
+     },
      "alarm_source": "blockade",
-     "teeth_fulfil": {"relations": {"Russia": -10, "Sweden": -10, "Denmark": -10}}
+     "teeth_fulfil": {
+      "relations": {
+       "Russia": -10,
+       "Sweden": -10,
+       "Denmark": -10
+      }
+     },
+     "hint": "13 of the Continent's 26 ports shut to Britain, held six end turns — a court at war with her, in the System by a peace's clause, France's satellite, or with her capital held by a power at war with her.",
+     "control": "F1 → the court → a peace's Joins the Continental System clause; the Strategic Ledger's Admiralty counts the ports"
     },
     {
      "id": "system.continent_peace",
      "title": "The Peace of the Continent",
      "role": "seal",
-     "type": "britain_signs"
+     "type": "britain_signs",
+     "hint": "After the Blockade, Britain signs a war-ending peace with France — a great power in the System by France's clause, no lifting clause, France's own provinces whole.",
+     "control": "F1 → Britain → Propose Peace (no lifting clause)"
     }
+   ],
+   "aliases": [
+    "continental system",
+    "the continental system",
+    "the system",
+    "blockade",
+    "perfidious albion",
+    "road iii"
    ]
   }
  ]

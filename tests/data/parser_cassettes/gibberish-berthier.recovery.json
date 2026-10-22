@@ -27,8 +27,8 @@
     "model": "claude-haiku-4-5",
     "max_tokens": 1000,
     "system_sha256": "f20daac6297d1381726fbf67920f2bb5996d164a6157dec232ca95f2abb4ee5c",
-    "prompt_sha256": "149ebe600dfed2a9b0ed2b37cbab2a7368c75f6d3a6753603b485fb91f64b8b2",
-    "prompt_chars": 2370
+    "prompt_sha256": "f1a21868978e727b132d7e10ab5715131fb6df71603e345d23f8e19656082dff",
+    "prompt_chars": 1946
   },
   "recorded": {
     "at": "2026-09-18T18:07:41Z",

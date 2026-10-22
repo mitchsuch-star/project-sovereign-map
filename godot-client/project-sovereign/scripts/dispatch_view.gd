@@ -562,6 +562,9 @@ func _on_dispatch_received(response):
 		bbcode = bbcode.substr(0, congress_at) + congress_block + bbcode.substr(congress_at)
 	else:
 		bbcode += congress_block
+	# VP-1 (S14b part 2): the designs' clock — mirrored from main.gd's
+	# `_add_designs_clock_line`.
+	bbcode += _designs_block(data)
 
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
 	# The turn-1 briefing's own section, mirrored from main.gd.
@@ -588,6 +591,10 @@ func _on_dispatch_received(response):
 		var today_doctrine = today.get("doctrine", "")
 		if today_doctrine is String and today_doctrine != "":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_doctrine + "[/color]\n"
+		# VP-1 (S14b part 2): the road page's door, as main.gd prints it.
+		var today_designs = today.get("designs", "")
+		if today_designs is String and today_designs != "":
+			bbcode += "[color=#" + Utils.COLOR_GOLD + "]  " + today_designs + "[/color]\n"
 		bbcode += "\n"
 
 	# ═══ BERTHIER'S NOTE ═══
@@ -595,6 +602,22 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 
 	content_label.text = Utils.humanize_nation_keys_in_text(bbcode)
+
+func _designs_block(data: Dictionary) -> String:
+	"""THE EMPEROR'S DESIGNS (VP-1) — the designs' clock, mirrored from
+	main.gd's `_add_designs_clock_line` (the same line, the same tint)."""
+	var clock = data.get("designs_clock", null)
+	if not (clock is Dictionary):
+		return ""
+	var line = clock.get("line", "")
+	if not (line is String) or line == "":
+		return ""
+	var tint := Utils.COLOR_GOLD
+	if str(clock.get("severity", "")) == "warning":
+		tint = Utils.COLOR_BATTLE
+	return ("[color=#" + Utils.COLOR_BERTHIER + "]THE EMPEROR'S DESIGNS[/color]\n"
+		+ "[color=#" + tint + "]  " + line + "[/color]\n\n")
+
 
 func _congress_block(data: Dictionary) -> String:
 	"""THE CONGRESS OF PARIS (GE-3, ENDGAME_PLAN §4 — the clock line).

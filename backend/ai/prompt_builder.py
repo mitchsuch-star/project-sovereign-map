@@ -292,6 +292,20 @@ FEW_SHOT_TEMPLATES = [
             "ambiguity": 5,
         },
     },
+    # VP-1 (S14b part 2): a road of the Empire — the line the Cabinet's road
+    # page sends; no marshal, no diplomatic_data; the target is the road as
+    # named. A QUESTION about the roads is answered, never proclaimed.
+    {
+        "input": "proclaim the Protector of the Rhine",
+        "output": {
+            "matched": True,
+            "marshals": [],
+            "action": "proclaim_design",
+            "target": "the Protector of the Rhine",
+            "is_strategic": False,
+            "ambiguity": 5,
+        },
+    },
     # Strategic (multi-turn) — incl. live_phrasing_backlog forms
     {
         "input": "hunt down {enemy}",
@@ -1107,7 +1121,11 @@ def recovery_action_vocabulary(style: str = "typed"):
     the player. Sharing the filter keeps the two from drifting again.
     """
     from backend.display_names import action_display_name
-    actions = (a for a in VALID_ACTIONS if a not in _RECOVERY_HIDDEN_ACTIONS)
+    from backend.ai.validation import CABINET_ACTIONS
+    # VP1-X18 (S14b part 2): a diplomatic act is never offered as a typed
+    # order (the user's rule) — its one road is the Cabinet (F1).
+    actions = (a for a in VALID_ACTIONS
+               if a not in _RECOVERY_HIDDEN_ACTIONS and a not in CABINET_ACTIONS)
     if style == "narrated":
         return sorted(action_display_name(a) for a in actions)
     return sorted(a.replace("_", " ") for a in actions)

@@ -89,6 +89,8 @@ FAMILY_ACTIONS = {
     "bind_to_war",
     # VP1-X8 (S14b part 2): the Congress's summons — the row atop the Cabinet
     "summon_congress",
+    # VP-1 (S14b part 2): a road of the Empire — the road page's Proclaim
+    "proclaim_design",
 }
 
 def test_the_backend_names_the_same_cabinet_verbs():
@@ -141,6 +143,11 @@ def _row_class(row: dict) -> str:
     # after the review round it is what actually happens — see
     # `test_a_negated_diplomatic_order_is_claimed_like_any_other`.
     not_action = str(expected.get("not_action") or "")
+    # VP-1 (S14b part 2): a row that ASSERTS a Cabinet action is an order
+    # whatever it also says must not happen ("proclaim the Blockade …" must
+    # not become a fleet's posture).
+    if action and action in FAMILY_ACTIONS:
+        return "order"
     if not_action:
         # VP1-X8: a negated Cabinet verb ("don't summon the congress" — no
         # action expected) is a negated diplomatic order too; a QUESTION about
@@ -952,6 +959,11 @@ CANDIDATE_SENTENCES = [
     "bought off Prussia", "pay out Bavaria", "guarantee saxony",
     "license prussia against austria",
     "request terms from Austria", "settle with Austria",
+    # VP-1: the proclamation, every form the road page and a player send
+    "proclaim the Protector of the Rhine", "proclaim the Crowns of Italy",
+    "proclaim the Continental System", "Talleyrand, proclaim the Rhine",
+    "proclaim the Blockade of the British Isles confirmed",
+    "should we proclaim the Rhine?",
     # counsel and no-home verbs — must NOT be claimed
     "Talleyrand, assess our situation", "Talleyrand, assess Austria",
     "minister, assess Prussia",

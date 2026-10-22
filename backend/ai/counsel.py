@@ -692,6 +692,8 @@ _SURFACE_FOR_KIND = {
     "laws": ("the Strategic Ledger's Laws tab", "press T, then 8"),
     "marshals": ("the Generals screen", "press G"),
     "diplomacy": ("the Cabinet", "press F1"),
+    # VP-1 (S14b part 2): the Emperor's designs — the Cabinet's road page.
+    "designs": ("the Cabinet's road page, The Emperor's Designs", "press F1"),
     "courts": ("the Diplomatic Ledger", "press D"),
     # SF-LB-3: the next league's table — who would march, the price to keep
     # each court out.

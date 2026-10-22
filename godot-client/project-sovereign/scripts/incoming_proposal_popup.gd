@@ -282,6 +282,16 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			harshness_color = "#e66262"
 		bbcode += "Assessment: [color=%s]%s[/color]\n" % [harshness_color, harshness_label.to_upper()]
 
+	# VP1-X7 (S14b part 2): the manner of this peace and its Revanche — the
+	# snapshot's pair, off the clause list the ratifier builds.
+	var manner_line = str(snapshot.get("manner_line", ""))
+	if manner_line != "":
+		bbcode += "[color=#e0c070]" + Utils.humanize_nation_keys_in_text(manner_line.replace("[", "[lb]")) + "[/color]\n"
+	var revanche_line = str(snapshot.get("revanche_line", ""))
+	if revanche_line != "":
+		var rv_color = "#e66262" if revanche_line.begins_with("Revanche stands") else "#80a0d0"
+		bbcode += "[color=" + rv_color + "]" + Utils.humanize_nation_keys_in_text(revanche_line.replace("[", "[lb]")) + "[/color]\n"
+
 	bbcode += "\n[b]War Summary[/b]\n"
 	# PC-X27 (S13e part 4): the war is named by its stake.
 	var war_title_line = str(snapshot.get("war_title_line", ""))

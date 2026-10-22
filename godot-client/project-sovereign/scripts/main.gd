@@ -2662,6 +2662,12 @@ const DIPLO_FAMILY_KEYWORDS = [
 	"summon the congress",
 	"convene the congress",
 	"call the congress",
+	# VP-1 (S14b part 2): a road of the Empire — the road page's Proclaim is
+	# its one road (`llm_client._PROCLAIM_VERB_RE` heads the line).
+	"proclaim ",
+	# VP1-X19 (S14b part 2, found by the proclamation's census): talks with a
+	# court are a proposal (NPC-10's parse) — the door let them through.
+	"hold talks with",
 	"repudiate bargain",
 	"repudiate the bargain",
 	"break bargain",
@@ -3022,6 +3028,7 @@ func _redirect_diplomatic_command(command: String) -> bool:
 # "F1 → <row>" (checked before the court rows below).
 const DIPLO_CABINET_TOP_ROWS = [
 	["the congress", "The Congress of Paris"],
+	["proclaim", "The Emperor's Designs"],
 ]
 
 const DIPLO_CABINET_CONTROLS = [
@@ -3626,6 +3633,21 @@ func _add_congress_clock_line(clock) -> void:
 		return
 	var severity = clock.get("severity", "gate")
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]THE CONGRESS OF PARIS[/color]")
+	add_output("[color=#" + congress_clock_tint(severity if severity is String else "") + "]  " + line + "[/color]")
+	add_output("")
+
+
+func _add_designs_clock_line(clock) -> void:
+	"""VP-1 (S14b part 2): the designs' clock under its own heading — the
+	proclaimed road's two designs, off the one payload. dispatch_view.gd
+	mirrors this block (`_designs_block`)."""
+	if not (clock is Dictionary):
+		return
+	var line = clock.get("line", "")
+	if not (line is String) or line == "":
+		return
+	var severity = clock.get("severity", "gate")
+	add_output("[color=#" + Utils.COLOR_BERTHIER + "]THE EMPEROR'S DESIGNS[/color]")
 	add_output("[color=#" + congress_clock_tint(severity if severity is String else "") + "]  " + line + "[/color]")
 	add_output("")
 
@@ -5579,6 +5601,7 @@ func _display_morning_dispatch(data: Dictionary):
 	# tab print); its `severity` picks the tint. Absent on a world whose ending
 	# is not authored, and after the Imperial Peace.
 	_add_congress_clock_line(data.get("congress_clock", null))
+	_add_designs_clock_line(data.get("designs_clock", null))
 
 	# â•â•â• TALLEYRAND REPORT â•â•â•
 	# Talleyrand report
@@ -5667,6 +5690,10 @@ func _display_morning_dispatch(data: Dictionary):
 		var today_doctrine = today.get("doctrine", "")
 		if today_doctrine is String and today_doctrine != "":
 			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_doctrine + "[/color]")
+		# VP-1 (S14b part 2): the road page's door — a line, never a typed chip.
+		var today_designs = today.get("designs", "")
+		if today_designs is String and today_designs != "":
+			add_output("[color=#" + Utils.COLOR_GOLD + "]  " + today_designs + "[/color]")
 		add_output("")
 
 	# ═══ BERTHIER'S NOTE ═══

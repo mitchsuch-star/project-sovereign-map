@@ -5,7 +5,10 @@ byte-identical one):
 
     D  = the designs' store (`imperial_designs.tick`, `note_ratification`,
          `drift_suspended`, `order_decay`) — down: inert. Reach: the calls
-         that found an ARMED store (the shipped boot authors none, so 0).
+         that found an ARMED store (part 1: 0, the shipped boot authored
+         none; part 2 ships the block — 396 reads on the ambient series, 12
+         with the seam down — and the ambient France never proclaims, so
+         nothing moves).
     X1 = `emergent_designs.held_cessions_are_punitive` — down: False. Reach:
          the bilateral ratifier's held cessions handed to the punitive record.
     X2 = `game_end.note_armistice_exit` — down: `count_peace`. Reach: the

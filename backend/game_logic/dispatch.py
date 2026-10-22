@@ -76,6 +76,15 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # Beat 1, the summons: an act of state the player chose, above every
     # triumph (a stormed capital is one court; the summons is Europe).
     "congress_summoned": 94,
+    # VP-1 (S14b part 2, the record §6.3): the Emperor's designs — an act of
+    # state the player chose (below the summons, above a mauled corps), a
+    # design latched (a triumph of policy), the prologue (copy only — below
+    # the peace that raised it: the peace is the morning's news, the roads
+    # its counsel; measured, it had led over a truce ripened into peace).
+    # Each weight free in the table.
+    "design_proclaimed": 86,
+    "design_fulfilled": 82,
+    "design_prologue": 67,
     # The dissolution ends the sitting: graver than a refuser's cannon on
     # the same page (the war outlives the Congress; the Congress does not
     # outlive the dissolution). One above `congress_war`, deliberately —
@@ -308,6 +317,9 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # and the price to keep a court out, the titled count when it moved.
     "realm_league": 32,
     "realm_titles": 31,
+    # VP-1 (S14b part 2): the proclaimed design whose count moved, lapsed or
+    # is one end turn from holding (`imperial_designs.realm_line`).
+    "realm_designs": 30,
 }
 
 # One prose template per headline class, in Berthier's register.
@@ -492,6 +504,9 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # (`congress.seat`) — "Vienna answers the Congress with cannon".
     "imperial_peace": "{line}",
     "congress_summoned": "Sire — {line}",
+    "design_proclaimed": "Sire — {line}",
+    "design_fulfilled": "Sire — {line}",
+    "design_prologue": "{line}",
     "congress_dissolved": "Sire — {line}",
     "congress_war": "Sire — {line}",
     "congress_contested": "Sire — {line}",
@@ -541,6 +556,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "courts_envoys": "Sire — {line}",
     "realm_league": "Sire — {line}",
     "realm_titles": "Sire — {line}",
+    "realm_designs": "Sire — {line}",
     # SF5-X3 (Step 7 slice 7): `{marshal}` is the TITLE (`_rank` — "Marshal
     # Ney", "General Teulie"); "Sire — Marshal Teulie has been taken" named a
     # Kingdom of Italy general a Marshal of the Empire.
@@ -729,6 +745,9 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # great power left to sign.
     "imperial_peace": "The order is made, Sire, and no court stands against it. What remains is to reign — and to keep it.",
     "congress_summoned": "The powers have been asked, Sire; every turn now is an answer. Hold what we have, and declare no war.",
+    "design_proclaimed": "The road is chosen, Sire, and every court has read it. The page in the Cabinet says what each design still asks.",
+    "design_fulfilled": "One design holds, Sire — keep it holding. A lapse costs its reward until it is restored.",
+    "design_prologue": "A great power has bent, Sire. Say now what the Empire is for — the roads wait in the Cabinet.",
     "congress_dissolved": "Not a defeat, Sire — a peace postponed. The marshals were promised it, and they will ask what became of it.",
     "congress_war": "The Congress forbids the war we declare, Sire, not the one declared on us — though a court that ceded us provinces reopens them by taking up arms. Beat them to the table, and lose no titled province doing it.",
     "congress_contested": "A contested title is a title still, Sire — while the Congress sits. Sign the peace that court sues for before the sitting ends, and the cession stands; let the sitting end with its war still on, and the count falls.",
@@ -760,6 +779,7 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "courts_envoys": "An envoy waits on an answer, Sire. Silence is an answer too.",
     "realm_league": "Europe arms in plain sight, Sire. The Balance of Europe names the price to keep each court out.",
     "realm_titles": "The Congress counts titles, Sire, not conquests — and a title is a quiet clock kept.",
+    "realm_designs": "The road is walked a court at a time, Sire. The Cabinet's page names what each design still asks.",
     "congress_summonable_term": "Each refuser's price is a road, Sire — pay it, or march it.",
     # NP-4: the Brétigny counsel — the fastest road home is the table.
     "sovereign_captured": "The captor will name his price, and every acceptance formula in Europe now reads the cell. The table, not a rescue column, brings him home fastest.",
@@ -865,6 +885,41 @@ _CONGRESS_NUMBER_WORDS = {0: "None", 1: "One", 2: "Two", 3: "Three",
 def _seats(world, courts) -> List[str]:
     from backend.game_logic import congress as _congress
     return [_congress.seat(world, c) for c in courts if c]
+
+
+def _designs_candidate(world, e: Dict[str, Any], _add) -> None:
+    """VP-1: the headline one `imperial_design` row earns — the proclamation
+    the morning after (it is logged in the player's own turn), a design
+    latched and the prologue on their tick's morning."""
+    from backend.game_logic import imperial_designs as _designs
+    phase = str(e.get("phase") or "")
+    now = int(world.current_turn)
+    turn = int(e.get("turn", -99))
+    if phase == "proclaimed":
+        if turn < now - 1:
+            return
+        row = _designs.road(world, str(e.get("road") or "")) or {}
+        parts = [str(d.get("title")) for d in _designs.designs_of(row)]
+        _add("design_proclaimed", f"design_proclaimed:{e.get('road')}",
+             line=(f"{str(row.get('proclamation') or e.get('title') or '').upper()}: the "
+                   f"Emperor proclaims {row.get('title')} the Empire's road — "
+                   f"{' , then '.join(parts).replace(' , ', ', ')}. The other roads are "
+                   f"forsworn."))
+        return
+    if turn != now:
+        return
+    if phase == "fulfilled":
+        d = _designs.design(world, str(e.get("design") or "")) or {}
+        tail = (" With its construction holding, the decisive peace is in reach."
+                if d.get("role") == _designs.ROLE_SEAL else
+                f" {_designs.reward_line(d)}" if _designs.reward_line(d) else "")
+        _add("design_fulfilled", f"design_fulfilled:{e.get('design')}",
+             line=(f"{str(d.get('title') or e.get('title') or '').upper()} — a design of "
+                   f"the Empire is fulfilled.{tail}"))
+    elif phase == "prologue":
+        _add("design_prologue", f"design_prologue:{turn}",
+             line=(f"THE SUN OF AUSTERLITZ — "
+                   f"{_designs.prologue_counsel(world, str(e.get('court') or ''), str(e.get('manner') or ''))}"))
 
 
 def _congress_candidate(world, e: Dict[str, Any], _add) -> None:
@@ -1828,7 +1883,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "diplomatic_ai_proposal": ("courts_envoys", 50),
 }
 FRONT_PAGE_CLASSES = frozenset({cls for cls, _rank in _COURTS_ROWS.values()}
-                               | {"realm_league", "realm_titles"})
+                               | {"realm_league", "realm_titles", "realm_designs"})
 _LEAGUE_CLASSES = frozenset({"league_fuse", "league_joins", "league_paid",
                              "league_bound", "league_unmarched"})
 # A rail sentence's leading tag ("THE LAWS: ", "Talleyrand reports: ") is the
@@ -2136,6 +2191,18 @@ def _realm_candidates(world, player_nation: str) -> List[Dict[str, Any]]:
                             "identity": "realm_titles", "fields": {"titled": count}})
     except Exception as exc:
         report(exc, "dispatch._realm_candidates: import backend.game_logic")
+    try:
+        from backend.game_logic import imperial_designs as _designs
+        memory = getattr(world, "headline_lead_memory", None) or {}
+        told = memory.get("designs") if isinstance(memory.get("designs"), dict) else None
+        line = _designs.realm_line(world, told)
+        if line:
+            out.append({"class": "realm_designs",
+                        "weight": int(HEADLINE_WEIGHTS["realm_designs"]),
+                        "text": _HEADLINE_TEMPLATES["realm_designs"].format(line=line + "."),
+                        "identity": "realm_designs", "fields": {}})
+    except Exception as exc:
+        report(exc, "dispatch._realm_candidates: imperial_designs.realm_line")
     return out
 
 
@@ -2165,6 +2232,17 @@ def _front_page_candidates(world, player_nation: str, candidates, window,
                                    "names": sorted(_view.get("titled") or [])}  # DDB-53
         except Exception as exc:
             report(exc, "dispatch._front_page_candidates: import backend.game_logic")
+        # VP-1: the proclaimed road's counts, remembered the same way — only
+        # once a road is proclaimed, so an unproclaimed world writes nothing.
+        try:
+            from backend.game_logic import imperial_designs as _designs
+            _reading = _designs.realm_reading(world)
+            if _reading:
+                if not isinstance(getattr(world, "headline_lead_memory", None), dict):
+                    world.headline_lead_memory = {}
+                world.headline_lead_memory["designs"] = _reading
+        except Exception as exc:
+            report(exc, "dispatch._front_page_candidates: imperial_designs.realm_reading")
 
 
 def _family_stakes(world, player_nation: str, candidate: Dict[str, Any],
@@ -3006,6 +3084,9 @@ def _build_headline(world, player_nation: str,
                 _add("europe_congress",
                      proposer=formed_display_name(world, e.get("proposer", "?")),
                      accepter=formed_display_name(world, e.get("accepter", "?")))
+        elif etype == "imperial_design" and e.get("nation") == player_nation:
+            # VP-1 (S14b part 2): the Emperor's designs.
+            _designs_candidate(world, e, _add)
         elif etype == "congress" and e.get("nation") == player_nation:
             # GE-3 beats 1–3 + the dissolution (ENDGAME_PLAN §2.5/§2.6).
             # NOT the `europe_congress` class above: that is beat 6 of AI
@@ -3637,7 +3718,7 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             # `_build_headline`) ride the same field — no new one.
             _new_memory["family"] = _family_memory
             _new_memory["leads_window"] = _window_memory
-            for _key in ("league", "realm"):
+            for _key in ("league", "realm", "designs"):   # VP-1: the road's counts
                 if memory.get(_key) is not None:
                     _new_memory[_key] = memory[_key]
         world.headline_lead_memory = _new_memory
@@ -5050,6 +5131,12 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
         _congress_clock = _congress.clock_payload(world)
         if _congress_clock:
             dispatch["congress_clock"] = _congress_clock
+        # VP-1 (S14b part 2, the record §6.3): the designs' clock beside it —
+        # printed once a road is proclaimed, off the one payload.
+        from backend.game_logic import imperial_designs as _designs
+        _designs_clock = _designs.designs_clock(world)
+        if _designs_clock:
+            dispatch["designs_clock"] = _designs_clock
 
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
     # LV-1: the report writes its trigger cooldowns — a once-per-N-turns
@@ -5183,11 +5270,17 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     # SR-7d DC-3a (DOCTRINES_SPEC §4a discoverability): one line on the
     # first morning naming our doctrine and the screen that shows it.
     from backend.game_logic.doctrines import boot_line
+    # VP-1 (S14b part 2, the record §6.3): the road page's door, so the roads
+    # are discoverable on the first morning — a line naming its Cabinet row,
+    # never an order in `orders` (those are typed chips; a proclamation is a
+    # diplomatic act). '' where no designs are authored.
+    from backend.game_logic import imperial_designs as _designs
     return {"orders": orders,
             "orders_header": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE
                               else TODAY_ORDERS_HEADER_LEGACY),
             "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
-            "doctrine": boot_line(world, player_nation) or ""}
+            "doctrine": boot_line(world, player_nation) or "",
+            "designs": _designs.door_line(world)}
 
 
 # ============================================================================

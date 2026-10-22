@@ -90,8 +90,21 @@ def invest_terms(world, lord: str) -> Dict[str, Any]:
 
 ARMISTICE_DURATION = 5  # Must match diplomacy.py
 
+def _imperial_designs_payload(world):
+    from backend.game_logic import imperial_designs
+    return imperial_designs.build_designs_payload(world)
+
+
 # TH3: Human-readable threat source labels (module-level to avoid re-creation per call)
 _THREAT_SOURCE_LABELS = {
+    # VP-1 (S14b part 2): the designs' own alarm — the proclamations and a
+    # design latched (part 3's acts and the decisive peace named here too, so
+    # no source of the road ever prints its raw key).
+    "act_of_confederation": "The Act of Confederation",
+    "schonbrunn": "The Schönbrunn Proclamation",
+    "blockade": "The Blockade of the British Isles",
+    "acts_of_the_empire": "The Acts of the Empire",
+    "decisive_peace": "The decisive peace",
     "battle_win": "Won a battle",
     "battle_loss": "Lost a battle",
     "capital_capture": "Captured an enemy capital",
@@ -1458,6 +1471,9 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         # SR-G7 / PB-D1 "The Armed Peace": the ONE reading, for the client
         # (holds / share / watch / fuse_turns_left / rise / courts).
         "armed_peace": _armed_peace_payload(world),
+        # VP-1 (S14b part 2, the record §6.2): the Emperor's designs — the one
+        # payload (None where no designs are authored).
+        "imperial_designs": _imperial_designs_payload(world),
         # Derived from the ONLY two conditions `coalition.check_dissolution`
         # actually tests, so the stated rule cannot drift from the code
         # again. The retired `dissolution_war_exhaustion_limit: 80` was a

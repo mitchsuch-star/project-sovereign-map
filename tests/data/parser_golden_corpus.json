@@ -8654,6 +8654,90 @@
       "mock_only": true,
       "source": "SF-RR4 (Score Finish Step 9, tests/test_sf_rr4_war_truce_and_the_standing_order.py)",
       "notes": "RR4-X6: the verb after the truce; the truce_clock arm read 'does … last' only before it."
+    },
+    {
+      "id": "vp1-proclaim-the-protector-of-the-rhine",
+      "utterance": "proclaim the Protector of the Rhine",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "proclaim_design",
+        "target": "the Protector of the Rhine",
+        "marshal": null,
+        "strategic_type": null
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
+      "notes": "The line the road page's Proclaim sends (F1 → The Emperor's Designs); the executor resolves the road and QUOTES first. Before VP-1 it parsed as a HOLD on Rhineland (measured)."
+    },
+    {
+      "id": "vp1-proclaim-the-crowns-of-italy",
+      "utterance": "proclaim the Crowns of Italy",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "proclaim_design",
+        "target": "the Crowns of Italy"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "vp1-proclaim-the-continental-system",
+      "utterance": "proclaim the Continental System",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "proclaim_design",
+        "target": "the Continental System"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12)."
+    },
+    {
+      "id": "vp1-proclaim-the-blockade",
+      "utterance": "proclaim the Blockade of the British Isles",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "proclaim_design",
+        "target": "the Blockade of the British Isles",
+        "not_action": "set_fleet_posture"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
+      "notes": "REGRESSION PIN: before VP-1 it parsed as a fleet's posture (measured)."
+    },
+    {
+      "id": "vp1-talleyrand-proclaim",
+      "utterance": "Talleyrand, proclaim the Continental System",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "proclaim_design",
+        "not_action": "diplomatic_proposal"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
+      "notes": "REGRESSION PIN: the Talleyrand route had swallowed it as a proposal."
+    },
+    {
+      "id": "vp1-should-we-proclaim",
+      "utterance": "should we proclaim the Rhine?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help",
+        "not_action": "proclaim_design"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
+      "notes": "A question FAILS CLOSED — the designs answered, nothing proclaimed."
+    },
+    {
+      "id": "vp1-what-are-our-designs",
+      "utterance": "what are our designs?",
+      "world": "any",
+      "expected": {
+        "success": true,
+        "action": "help"
+      },
+      "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §3, S14b part 2) — new-action corpus coverage (checklist step 12).",
+      "notes": "The `designs` kind — each design ✓ / ✗ off the one payload."
     }
   ]
 }

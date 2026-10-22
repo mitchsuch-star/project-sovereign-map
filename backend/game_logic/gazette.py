@@ -207,7 +207,13 @@ _SPECIAL_WEIGHTS = {
     # a nation proclaimed, below a crown struck. The dissolution just under
     # it (the sitting's end, never a defeat — D8).
     "THE EMPEROR SUMMONS THE POWERS TO PARIS": 88,
+    # VP-1 (S14b part 2): a road of the Empire proclaimed — beside the
+    # summons in gravity (an act of state), below it; a design fulfilled and
+    # the prologue below a nation proclaimed. One proclamation a campaign.
+    "a road of the Empire proclaimed": 86,
     "a nation proclaimed": 85,
+    "a design of the Empire fulfilled": 83,
+    "THE SUN OF AUSTERLITZ": 82,
     "THE CONGRESS OF PARIS DISSOLVES": 84,
     "a crowned head taken": 80,
     "a crowned head struck down": 80,
@@ -365,6 +371,14 @@ def _special_candidates(world, turn_events: List[Dict]):
         # the peace is signed, and the paper of record prints it the morning
         # after. Keyed by the event (the summons' number, the turn of the
         # tick) so WO-44's identity dedupe never prints one twice.
+        if etype == "imperial_design" and str(event.get("nation") or "") == player:
+            _phase = str(event.get("phase") or "")
+            if _phase == "proclaimed":
+                _add("a road of the Empire proclaimed", f"proclaimed:{event.get('road')}")
+            elif _phase == "fulfilled":
+                _add("a design of the Empire fulfilled", f"fulfilled:{event.get('design')}")
+            elif _phase == "prologue":
+                _add("THE SUN OF AUSTERLITZ", f"prologue@{event.get('turn')}")
         if etype == "congress" and str(event.get("nation") or "") == player:
             _phase = str(event.get("phase") or "")
             if _phase == "summoned":
