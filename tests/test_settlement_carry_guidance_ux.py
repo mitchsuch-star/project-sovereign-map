@@ -121,7 +121,8 @@ def test_pair_substitute_labels_name_single_court(multilateral_world):
     ex, dlg = _open_propose(multilateral_world)
     review = _submit_for_review(ex, dlg, multilateral_world)
     by_action = {o.get("action"): o for o in review.get("options") or []}
-    assert by_action["seek_bilateral_peace"]["label"] == "Make peace with Britain only"
+    # S14D-X34 (October 23, 2026): the act's ONE name on every surface.
+    assert by_action["seek_bilateral_peace"]["label"] == "Separate peace with Britain"
     assert by_action["seek_armistice_instead"]["label"] == "Armistice with Britain only"
     # Description spells out that it abandons the joint settlement.
     assert "joint settlement" in by_action["seek_bilateral_peace"]["description"]

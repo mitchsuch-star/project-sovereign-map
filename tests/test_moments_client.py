@@ -52,6 +52,14 @@ class TestThePopupRegister:
         assert '_moment_caption(data, "accept_ai_proposal", "Accept")' in body
         assert '_moment_caption(data, "reject_ai_proposal", "Decline")' in body
 
+    def test_the_sixth_part_precedes_the_record(self):
+        """S14d A5 (S14D-X5): the copy contract's sixth part — the first-open
+        line, before the record, on a campaign's first letter only."""
+        body = _func(_gd("incoming_proposal_popup.gd"), "_build_moment_body")
+        assert body.index('data.get("first_open")') < body.index('data.get("record", "")')
+        spec = (REPO / "docs" / "EVENTS_SPEC.md").read_text(encoding="utf-8")
+        assert "Six parts" in spec and "the first-open line" in spec
+
     def test_backend_copy_is_never_parsed_as_a_tag(self):
         src = _gd("incoming_proposal_popup.gd")
         assert '.replace("[", "[lb]")' in _func(src, "_moment_text")

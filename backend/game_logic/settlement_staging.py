@@ -542,8 +542,11 @@ def _build_pair_substitute_confirm_dialogue(
         ],
         "options": [
             {
+                # S14D-X34: the peace arm carries the act's one name.
                 "label": (
-                    f"Proceed — {arm_label} with {selected_target} alone"
+                    f"Proceed — separate peace with {selected_target}"
+                    if proposal_type != "armistice"
+                    else f"Proceed — {arm_label} with {selected_target} alone"
                 ),
                 "action": "confirm_pair_substitute",
                 "description": _carry_line,
@@ -2568,8 +2571,8 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
                         accepting_side: str = "", proposer_leader: str = "",
                         terms=None) -> str:
     """"London and St Petersburg are unbeaten — a whole-war peace needs
-    their consent (Austria 32/50, Britain 24/50, Russia 24/50). Press Austria
-    alone: the separate peace." — "" when nobody holds out.
+    their consent (Austria 32/50, Britain 24/50, Russia 24/50). A separate
+    peace with Austria: press her alone." — "" when nobody holds out.
 
     PC-F35 / F36 / F37 (S13e part 1, October 16, 2026): "beaten" and
     "unbeaten" are read over EVERY covered court (never the holdouts
@@ -2651,8 +2654,9 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         from backend.game_logic.diplomacy import diplomatic_price_quote
         quote = diplomatic_price_quote(world, "peace", press_courts[0])
         points = f"{quote['cost']} diplomatic {'point' if quote['cost'] == 1 else 'points'}"
-        sentence += (f" Press {_join_names([formed_display_name(world, n) for n in press_courts])} "
-                     f"alone: the separate peace. It costs {points}; you have {quote['have']}.")
+        _pronoun = "her" if len(press_courts) == 1 else "them"
+        sentence += (f" A separate peace with {_join_names([formed_display_name(world, n) for n in press_courts])}: "
+                     f"press {_pronoun} alone. It costs {points}; you have {quote['have']}.")
         return sentence
     if press_courts:
         from backend.game_logic.diplomacy import diplomatic_price_quote, separate_peace_words
@@ -2664,7 +2668,8 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
                                      proposer_leader=proposer_leader, terms=terms)
         shown = formed_display_name(world, first)
         if alone is None:
-            sentence += f" Press {shown} alone: the separate peace."
+            # S14D-X34: the act's one name, "Separate peace with X".
+            sentence += f" A separate peace with {shown}: press her alone."
         elif alone["carries"]:
             sentence += (f" Press {shown} alone: with her alone the table reads "
                          f"{alone['total']} of {alone['threshold']} and carries.")
@@ -3635,7 +3640,9 @@ def build_settlement_confirm_dialogue(
         for action_id, label, voice_key, description in (
             (
                 "seek_bilateral_peace",
-                f"Make peace with {resolved_target} only",
+                # S14D-X34 (October 23, 2026): ONE name for the act on every
+                # surface — the chip's ("Separate peace with X").
+                f"Separate peace with {resolved_target}",
                 "settlement_seek_bilateral_peace_instead_talleyrand",
                 f"Leave the joint settlement and make peace with {resolved_target} "
                 "alone; the other courts stay at war.",

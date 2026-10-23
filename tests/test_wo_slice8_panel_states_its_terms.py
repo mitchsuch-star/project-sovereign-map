@@ -1067,11 +1067,17 @@ class TestInGamePassFixes:
     # ── [V-3] no markup the consumer cannot render ────────────────────
 
     def test_the_interrupt_modal_is_still_a_plain_label(self):
-        """The premise of the next pin. If this scene is ever upgraded to
-        a RichTextLabel, the producer may use BBCode again — and this
-        test is where that decision gets re-read."""
+        """The premise of the next pin. CONSCIOUS FLIP (S14D-X47, October 23,
+        2026): the message is a RichTextLabel now — inside a ScrollContainer,
+        so a long muster never carries the answers off the screen — but with
+        BBCode OFF, so it is exactly as literal as the plain Label was: the
+        producer still emits no markup (the next pin holds unchanged), and the
+        frame record reads the lines a scrolling message shows."""
         tscn = INTERRUPT_TSCN.read_text(encoding="utf-8")
-        assert 'name="MessageLabel" type="Label"' in tscn
+        assert 'name="MessageLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer/MessageScroll"' in tscn
+        block = tscn[tscn.index('name="MessageLabel"'):]
+        block = block[:block.index("\n[node", 10)] if "\n[node" in block[10:] else block
+        assert "bbcode_enabled = false" in block
 
     def test_no_bbcode_reaches_the_interrupt_modal(self, monkeypatch):
         """`interrupt_popup.gd` assigns `.text` on a plain Label, so any

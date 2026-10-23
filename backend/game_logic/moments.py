@@ -738,8 +738,10 @@ def unanswered_sentence(e: Dict[str, Any], decline_plan: Dict[str, Any]) -> str:
 
 def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int) -> Dict[str, Any]:
     """The popup payload, planned afresh at every read (the IGR-2 lesson: no
-    baked figure). The five parts of the copy contract (§2): the dateline,
-    the record, the board, the answers, the unanswered line."""
+    baked figure). The copy contract's parts (§2): the dateline, the record,
+    the board, the answers, the unanswered line — and the sixth, the
+    first-open line (S14d A5), which is NOT built here: `first_open.with_line`
+    attaches it at the response edge, on a copy, on the first letter only."""
     accept = plan(world, e, ANSWER_ACCEPT)
     decline = plan(world, e, ANSWER_DECLINE)
     board = board_lines(world, e)

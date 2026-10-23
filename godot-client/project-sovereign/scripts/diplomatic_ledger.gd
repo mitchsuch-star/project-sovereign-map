@@ -1524,7 +1524,7 @@ func _render_vassals():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]France holds no client states.[/color]\n\n"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]Bind a minor power to the Empire: vassalize a court marked "
 		bbcode += "[color=#" + Utils.COLOR_GOLD + "]★ Vassalizable[/color][color=#" + Utils.COLOR_INFO + "] on the Nations tab "
-		bbcode += "once she is beaten (F1 → the court → Subjugate), demand vassalage at the peace table, or propose it through Diplomacy (F1).[/color]\n"
+		bbcode += "once she is beaten (F1 → the court → Subjugate), demand vassalage at the peace table, or propose it through the Cabinet (F1).[/color]\n"
 		content_area.text = bbcode
 		return
 

@@ -35,11 +35,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > S14b and S14c are COMPLETE; **S14d is in progress** (`docs/TABLE_LESSON_SPEC.md`).
 
 **▶ LIVE STATE (October 23, 2026).** The three most recent landed rows:
-- **S14d part 1, first landing (Oct 23) — the first-open lines — LANDED** (§148). **NEXT = part 1's second landing, then part 2.**
+- **S14d part 1 second landing + part 1b (Oct 23) — the frames, the sweep, the copy and engine rows — LANDED; part 1 COMPLETE** (§148.8). **NEXT = part 2 (the Table), then part 3.**
+- **S14d part 1, first landing (Oct 23) — the first-open lines — LANDED** (§148).
 - **S14d gate (Oct 23) — RULED** (`docs/TABLE_LESSON_SPEC.md`; A1 a reduction named for you).
-- **S14c part 4 (Oct 22) — the sweep, the walk, the close — LANDED; S14c COMPLETE** (§147.12).
 
-**Open with the user:** S14d's A1 (mounts/signs; 1.5 → ~2.5), UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** S14d's A1 (mounts/signs; 1.5 → ~2.5), UXR-4 (their eyes at 5120×1440, S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

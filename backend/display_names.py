@@ -894,6 +894,9 @@ DECISION_REASON_DISPLAY = {
     "distrust_promiser": "remembered betrayals",
     "hegemony_pressure": "hegemony pressure",
     "agenda_pursuit": "national design",
+    # S14D-X37: the stamp follows the feedback's top term (the league; a cold court).
+    "league_loyalty": "the league's bond",
+    "cold_court": "an old hostility",
     "rival_pressure": "hegemony pressure",
     "route_blocked": "route blocked",
     "shared_enemy_survival": "shared-enemy survival",

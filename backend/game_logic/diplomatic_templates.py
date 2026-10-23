@@ -92,6 +92,18 @@ _INCOMING_MOTIVE_LINES = {
         "{nation} does not love our reach — but they would sooner treat with it than test it.",
         "{nation} has counted our battalions and their own, and treats on the arithmetic, not the sentiment.",
     ],
+    # S14D-X37 (October 23, 2026): two reasons the feedback already names —
+    # the league's bond and an old hostility — voiced in each register (the
+    # Voice Bible's hawk / schemer / dove / chancery / loyalist), so a court
+    # refusing for its league is never voiced as fearing France's size.
+    ("hawk", "league_loyalty"): [
+        "{nation} stands with its league and says so; it will not break ranks for a paper from Paris.",
+        "{nation} has sworn to a cause and counts the oath above the terms.",
+    ],
+    ("hawk", "cold_court"): [
+        "{nation} has not forgotten its quarrels with France, and does not care to.",
+        "Between {nation} and France there is too much history and too little trust for warm terms.",
+    ],
     ("hawk", "unknown_baseline"): [
         "{nation} judges the moment favorable and moves plainly.",
         "{nation} wastes no words on sentiment; the offer is the argument.",
@@ -112,6 +124,14 @@ _INCOMING_MOTIVE_LINES = {
         "{nation} finds France's ascent… instructive, and prefers a seat near the fire to a place in it.",
         "{nation} is most attentive to our progress — attentive enough to want papers signed.",
         "{nation} has calculated what proximity to France returns, and finds the dividend… agreeable.",
+    ],
+    ("schemer", "league_loyalty"): [
+        "{nation} finds the league's company… convenient, for the present, and will not leave it for less than it pays.",
+        "{nation} keeps faith with its partners — faith being, this season, the better investment.",
+    ],
+    ("schemer", "cold_court"): [
+        "{nation} nurses an old grievance against France, and prices every paper by it.",
+        "{nation}'s coolness toward us is of long standing; it treats, but at arm's length.",
     ],
     ("schemer", "unknown_baseline"): [
         "{nation} offers no reason, which is itself a reason.",
@@ -134,6 +154,14 @@ _INCOMING_MOTIVE_LINES = {
         "{nation} watches our armies grow and prays a signature will suffice.",
         "{nation} recalls that small courts have ever prospered under great patrons, and asks only to prosper quietly.",
     ],
+    ("dove", "league_loyalty"): [
+        "{nation} dares not leave its league, Sire — the others would never forgive it.",
+        "{nation} begs us to understand that it is bound to its allies, and fears them more than it hopes in us.",
+    ],
+    ("dove", "cold_court"): [
+        "{nation} fears France still, Sire, and old wounds make it slow to trust.",
+        "{nation} asks forgiveness for its wariness; the memory of past dealings weighs on every line.",
+    ],
     ("dove", "unknown_baseline"): [
         "{nation} extends the offer in evident good faith.",
         "{nation} hopes, most respectfully, that we will hear them out.",
@@ -154,6 +182,14 @@ _INCOMING_MOTIVE_LINES = {
         "Their chancery conveys that {nation} would rather have terms with France than reasons to fear her.",
         "The court of {nation} watches our ascent and asks for ink instead of iron.",
         "Their chancery cites the old rule of {nation}'s policy: the powers that treat with the strongest early treat on the best terms.",
+    ],
+    ("chancery", "league_loyalty"): [
+        "Their chancery writes that {nation} is bound to its league and cannot treat apart from it.",
+        "The court of {nation} keeps faith with its partners; it will hear no separate terms.",
+    ],
+    ("chancery", "cold_court"): [
+        "Their chancery conveys that relations between {nation} and France remain cold, and the terms reflect it.",
+        "The court of {nation} recalls its differences with France and treats accordingly.",
     ],
     ("chancery", "unknown_baseline"): [
         "Their chancery conveys the offer without further comment.",
@@ -181,6 +217,14 @@ _INCOMING_MOTIVE_LINES = {
         "{nation}'s sovereign would keep his house at peace with France's greatness, and sends his servant to say as much.",
         "As my master wills, {nation} seeks France's good regard rather than France's displeasure.",
         "His Majesty counts France's friendship among {nation}'s surest holdings, and instructs his servant to secure it while it may be had on good terms.",
+    ],
+    ("loyalist", "league_loyalty"): [
+        "His Majesty has given his word to the league, and {nation}'s servant may not unsay it.",
+        "By the Crown's command, {nation} stands with its allies until they stand down together.",
+    ],
+    ("loyalist", "cold_court"): [
+        "His Majesty remembers his differences with France, and {nation}'s servant carries that memory into the terms.",
+        "The Crown's regard for France is not warm; {nation} treats as duty requires, no more.",
     ],
     ("loyalist", "unknown_baseline"): [
         "His Majesty's servant lays {nation}'s offer before France, exactly as instructed.",
@@ -596,6 +640,7 @@ _INCOMING_ASK_LINES = {
 # Legacy/response decision reasons collapse to the generic motive.
 _MOTIVE_REASONS = {"war_overload", "shared_enemy_survival",
                    "hegemony_pressure", "agenda_pursuit",
+                   "league_loyalty", "cold_court",
                    "unknown_baseline"}
 
 

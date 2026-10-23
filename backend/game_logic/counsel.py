@@ -303,7 +303,6 @@ def _table_road(world, player: str, court: str, *, alone: bool,
     """The settlement table dry run — this court alone, or the table whole —
     through `build_settlement_preview` (the very table Open Settlement
     shows). None when the court sits on no settleable war instance."""
-    from backend.game_logic.diplomacy import diplomatic_price_quote
     from backend.game_logic.settlement_helpers import (
         _find_active_war_instance_for_pair, _make_pair_key,
     )
@@ -363,25 +362,31 @@ def _table_road(world, player: str, court: str, *, alone: bool,
     mine = next((r for r in rows if str(r.get("nation")) == court), None)
     lowest = min((r for r in rows if r.get("total") is not None),
                  key=lambda r: int(r["total"]), default=None)
-    quote = diplomatic_price_quote(world, "peace", court)
+    # S14D-X11 (October 23, 2026): the table road is the Cabinet's
+    # `open_settlement` / `propose_white_peace` — it opens and ratifies for 0
+    # DP (the Austria page's row reads `dp_cost 0`; a ratification spent none).
+    # It was priced as the 3-DP bilateral and shut under 3 DP.
     have = int(getattr(world, "diplomatic_points", 0) or 0)
     totals = {str(r.get("nation")): r.get("total") for r in rows}
     mean = int((body.get("acceptance") or {}).get("total") or 0)
     out.update({
-        "available": have >= int(quote["cost"]),
-        "shut_reason": ("" if have >= int(quote["cost"])
-                        else f"It costs {int(quote['cost'])} DP; you have {have}."),
+        "available": True,
+        "shut_reason": "",
         "carries": carries,
         "score": (int(mine["total"]) if (mine and mine.get("total") is not None)
                   else (int(lowest["total"]) if lowest else None)),
         "threshold": int((mine or lowest or {}).get("threshold") or 50),
         "per_court": totals, "mean": mean, "covered": covered,
-        "price_dp": int(quote["cost"]), "have_dp": have,
+        "price_dp": 0, "have_dp": have,
     })
     out["number"] = (f"{out['score']}" if out["score"] is not None else "")
     holdout = lowest if (lowest and not carries) else None
+    # S14D-X38 (October 23, 2026): the flip's value is the blocker TERM's own
+    # ("(settlement legitimacy) (-10)"), never the court's shortfall to 50.
     out["flip"] = ({"component": str(holdout.get("top_blocker_component") or ""),
-                    "value": int(holdout.get("total") or 0) - int(holdout.get("threshold") or 50),
+                    "value": (int(holdout["top_blocker_value"])
+                              if holdout.get("top_blocker_value") is not None
+                              else int(holdout.get("total") or 0) - int(holdout.get("threshold") or 50)),
                     "label": (f"{_shown(world, str(holdout.get('nation')))}'s consent "
                               f"({str(holdout.get('top_blocker_display') or 'her court').lower()})")}
                    if holdout else None)
@@ -390,7 +395,7 @@ def _table_road(world, player: str, court: str, *, alone: bool,
     if alone:
         from backend.game_logic.diplomacy import separate_peace_words
         words = separate_peace_words(world, player, court, _priced)
-        trade = f"It costs {int(quote['cost'])} DP."
+        trade = "It costs no diplomatic points to open."
         if declared:
             trade = f"{trade} {_declared_words(world, war_id, player, _priced)}"
         if words:

@@ -133,8 +133,11 @@ class TestTheStore:
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestTheLines:
-    def test_seven_screens_and_every_line_under_the_cap(self, world):
-        assert FO.SCREENS == ("cabinet", "designs", "settlement", "separate_peace",
+    def test_the_screens_and_every_line_under_the_cap(self, world):
+        # Eight since part 1's second landing: `formables`, the class sweep's one
+        # new id (TABLE_LESSON_SPEC §0 Q3 — the page named its requirements and
+        # not what forming does).
+        assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
                               "laws", "admiralty_camp", "moment_letter")
         for screen, line in _every_line(world):
             assert line, screen
@@ -345,12 +348,16 @@ class TestTheClient:
     def test_the_table_and_the_chooser_lead_with_the_line(self):
         src = _gd("proposal_confirm_popup.gd")
         assert "signal first_open_seen(screen: String)" in src
+        # CONSCIOUS FLIP (part 1's second landing, October 23, 2026): the first
+        # landing drew the table's line under the heading's two lines; the re-shot
+        # frame measured the head ONE line tall at Interface Scale 2.0 (the EA-E6
+        # fit's SETTLEMENT_LINE_FLOOR), and that line must stay the verdict — the
+        # third head line was never seen. The line opens the FOOTER, whose first
+        # line is seen at both scales (the frames pin it).
         table = _func(src, "_build_settlement_content")
-        assert '_first_open_bbcode(data, "settlement")' in table
-        # under the heading's two lines (the verdict stays seen at scale 2.0 —
-        # the EA-E6 frame), before the table and its rows
-        line_at = table.index('_first_open_bbcode(data, "settlement")')
-        assert table.index("ready for ratification") < line_at < table.index("UX-2 (GT-Slice-3)")
+        assert '_first_open_bbcode(data, "settlement")' not in table
+        footer = _func(src, "_build_settlement_footer")
+        assert footer.index('_first_open_bbcode(data, "settlement")') < footer.index('data.get("talleyrand_text", "")')
         chooser = _func(src, "_build_pair_substitute_confirm_content")
         assert chooser.index('_first_open_bbcode(data, "separate_peace")') < chooser.index("Leave the joint settlement?")
 
@@ -445,3 +452,293 @@ class TestTheEngineHints:
         stage = src[src.index("def _attack_routing_and_muster("):]
         stage = stage[:stage.index("\n    def ", 10)]
         assert "+ what_if_line(ctx.marshal, ctx.enemy_marshal)" in stage
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Part 1's second landing (October 23, 2026): the class sweep's line and the
+# copy rows — S14D-X3, X9, X10, X12, X30, X31, X32, X33, X44, X45, X47, X48
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class TestTheFormablesLine:
+    """The class sweep (§0 Q3): the Formable Nations page named what forming
+    REQUIRES and not what it does — the eighth id, attached on the endpoint's
+    own dict and never on an empty catalogue."""
+
+    def test_the_page_carries_its_line_on_a_fresh_world_and_not_after(self, europe):
+        client, _main, world = europe
+        payload = client.get("/formables").json()
+        assert payload.get("formables"), "the 1805 boot authors formables"
+        assert payload["first_open"]["screen"] == "formables"
+        assert payload["first_open"]["line"].startswith("States not yet on the map, Sire")
+        assert client.post("/first_open", json={"screen": "formables"}).json()["success"] is True
+        world.current_turn += 1
+        assert "first_open" not in client.get("/formables").json()
+
+    def test_the_line_says_what_each_class_becomes(self, world):
+        line = FO.line_for(world, "formables")
+        assert "client" in line and "tribute" in line and "conquest" in line and "free" in line
+
+    def test_an_empty_catalogue_never_latches(self):
+        src = (REPO / "backend" / "main.py").read_text(encoding="utf-8")
+        wrapper = src[src.index("def get_formables("):]
+        wrapper = wrapper[:wrapper.index("\n@app.", 10)]
+        assert 'if payload.get("formables"):' in wrapper
+        assert 'first_open.attach(payload, active_world, "formables")' in wrapper
+
+    def test_the_client_draws_it_at_the_head_after_the_empty_check(self):
+        body = _func(_gd("diplomacy_wizard.gd"), "_render_formables")
+        assert "_add_first_open_line(data)" in body
+        assert (body.index("No formable nations are authored")
+                < body.index("_add_first_open_line(data)")
+                < body.index("_add_formable_row(row)"))
+
+
+class TestTheLawsDoor:
+    """S14D-X3: the dispatch's law line carries a DOOR to the eighth book, on
+    both renderers, through the same ledger opener T then 8 uses."""
+
+    def test_both_renderers_carry_the_chip(self):
+        for name in ("main.gd", "dispatch_view.gd"):
+            src = _gd(name)
+            assert 'Utils.bb_button_chip("ledger:7", "Open the Laws"' in src, name
+
+    def test_the_terminal_and_the_re_read_screen_open_the_book(self):
+        main = _gd("main.gd")
+        handler = _func(main, "_on_output_meta_clicked")
+        assert 'meta_str.begins_with("ledger:")' in handler
+        assert "_on_tutorial_open_ledger(int(meta_str.substr(" in handler
+        assert "dispatch_view.ledger_tab_requested.connect(_on_tutorial_open_ledger)" in main
+        view = _gd("dispatch_view.gd")
+        assert "signal ledger_tab_requested(tab: int)" in view
+        meta = _func(view, "_on_meta_clicked")
+        assert 'm.begins_with("ledger:")' in meta and "ledger_tab_requested.emit(" in meta
+
+
+class TestTheCabinetIsNamed:
+    """S14D-X9: every pointer calls it the Cabinet; the screen said DIPLOMACY."""
+
+    def test_the_wizard_titles_itself_the_cabinet(self):
+        src = _gd("diplomacy_wizard.gd")
+        assert 'title_label.text = "DIPLOMACY' not in src
+        assert src.count('title_label.text = "THE CABINET"') >= 2
+        assert 'title_label.text = "THE CABINET — " + Utils.display_nation_name(nation)' in src
+        assert 'title_label.text = "THE CABINET — THE EMPEROR\'S DESIGNS"' in src
+        assert 'title_label.text = "THE CABINET — FORMABLE NATIONS"' in src
+        scene = (REPO / "godot-client" / "project-sovereign" / "scenes" / "diplomacy_wizard.tscn").read_text(encoding="utf-8")
+        assert 'text = "THE CABINET"' in scene and 'text = "DIPLOMACY"' not in scene
+
+    def test_the_door_and_the_frames_say_so_too(self):
+        main_scene = (REPO / "godot-client" / "project-sovereign" / "scenes" / "main.tscn").read_text(encoding="utf-8")
+        assert 'text = "⚖ The Cabinet"' in main_scene
+        assert "The Cabinet (F1) — treat with ANY nation" in main_scene
+        captures = (REPO / "tools" / "iq10_run_captures.py").read_text(encoding="utf-8")
+        assert '"value": "DIPLOMACY' not in captures and 'f"DIPLOMACY — ' not in captures
+        assert "through the Cabinet (F1)" in _gd("diplomatic_ledger.gd")
+
+
+class TestTheWizardCopy:
+    """S14D-X10, X31, X32, X33, X44 — the wizard's own copy rows."""
+
+    def test_x10_the_header_spells_its_currency(self):
+        ready = _func(_gd("diplomacy_wizard.gd"), "_ready")
+        assert 'dp_label.tooltip_text = "Diplomatic points (DP)' in ready
+
+    def test_x31_the_road_page_s_prompt_reads_the_proclaimed_road(self):
+        src = _gd("diplomacy_wizard.gd")
+        prompt = _func(src, "_designs_prompt")
+        assert "The Empire's road is proclaimed, Sire" in prompt
+        assert "One proclamation decides it" in prompt          # the unproclaimed form stands
+        render = _func(src, "_render_designs")
+        assert "assessment_panel.text = _designs_prompt(proclaimed_title)" in render
+        assert "assessment_panel.text = _designs_prompt()" in _func(src, "_on_designs_pressed")
+
+    def test_x32_the_error_view_restores_the_cabinet_s_title(self):
+        body = _func(_gd("diplomacy_wizard.gd"), "_show_error")
+        assert 'title_label.text = "THE CABINET"' in body
+        assert body.index("_current_step = 1") < body.index('title_label.text = "THE CABINET"')
+
+    def test_x33_the_self_comparing_guard_is_gone(self):
+        src = _gd("diplomacy_wizard.gd")
+        assert "var response_id = _request_id" not in src
+        assert "if response_id != _request_id:" not in src
+
+    def test_x44_the_acts_block_writes_the_escape(self):
+        body = _func(_gd("diplomacy_wizard.gd"), "_add_acts_block")
+        assert '("\n' not in body and '+= "\n' not in body
+        assert '"\\n[color=#" + Utils.COLOR_GOLD' in body
+
+
+class TestTheVassalRowAtPeace:
+    """S14D-X12: the PEACE branch emits the vassal row DISABLED with the
+    emitter's reason, and the typed ask meets the same sentence before any
+    confirm (one constant, two seams)."""
+
+    def test_the_cabinet_s_row_is_present_and_disabled_with_the_reason(self, europe):
+        client, _main, world = europe
+        from backend.game_logic.diplomacy import (
+            VASSAL_MIN_STATES, VASSAL_STATE_REASON, get_available_diplomatic_actions,
+        )
+        assert world.get_diplomatic_state("France", "Prussia") == "PEACE"
+        assert "PEACE" not in VASSAL_MIN_STATES
+        acts = get_available_diplomatic_actions(world, "Prussia")
+        acts = acts.get("actions") if isinstance(acts, dict) else acts
+        row = next(a for a in acts if a.get("action") == "propose_vassal")
+        assert row["available"] is False
+        assert row["disabled_reason"] == VASSAL_STATE_REASON
+        page = client.get("/diplomatic_preview?nation=Prussia").json()
+        wire = next(a for a in page["actions"] if a.get("action") == "propose_vassal")
+        assert wire["available"] is False
+
+    def test_the_typed_ask_meets_the_reason_before_the_confirm(self, europe):
+        client, _main, world = europe
+        from backend.game_logic.diplomacy import VASSAL_STATE_REASON
+        before = int(world.diplomatic_points)
+        r = client.post("/command", json={"command": "propose vassalage to Prussia"}).json()
+        assert r["success"] is False
+        assert VASSAL_STATE_REASON[1:] in r["message"]
+        assert not r.get("diplomatic_dialogue")
+        assert world.dialogue_manager.peek() is None
+        assert int(world.diplomatic_points) == before
+
+    def test_one_sentence_two_seams(self):
+        diplomacy = (REPO / "backend" / "game_logic" / "diplomacy.py").read_text(encoding="utf-8")
+        executor = (REPO / "backend" / "commands" / "diplomatic_executor.py").read_text(encoding="utf-8")
+        assert diplomacy.count("Requires war (a dictated peace) or open borders and above") == 1
+        assert "reason = VASSAL_STATE_REASON" in diplomacy
+        assert "VASSAL_STATE_REASON[0].lower() + VASSAL_STATE_REASON[1:]" in executor
+
+
+class TestTheMusterFoe:
+    def test_x30_the_free_preview_names_the_foe_as_ordered_not_the_cover(self, world, monkeypatch):
+        """S14D-X30: the cover swap put another defender in the ordered foe's
+        place and the resolved road's `what_if_line` named HIM."""
+        from backend.commands import combat_executor as CE
+        from backend.commands.executor import CommandExecutor
+
+        cover = world.get_marshal("Uxbridge")
+        cover.location = "Waterloo"
+        world.opening_attack_guidance_shown = True     # past the first-attack card
+
+        def _swap(self, ctx):
+            ctx.enemy_marshal = ctx.world.get_marshal("Uxbridge")
+            return CE._NEXT_STAGE
+
+        monkeypatch.setattr(CE.CombatExecutor, "_attack_cover_flank_charge", _swap)
+        result = CommandExecutor().execute(
+            {"success": True, "command": {"marshal": "Ney", "action": "attack", "target": "Wellington"}},
+            {"world": world})
+        assert "Ask 'what if Ney attacks Wellington'" in result["message"]
+        assert "attacks Uxbridge" not in result["message"]
+
+    def test_the_ordered_foe_is_recorded_where_the_muster_is_read(self):
+        src = (REPO / "backend" / "commands" / "combat_executor.py").read_text(encoding="utf-8")
+        stage = src[src.index("def _attack_routing_and_muster("):]
+        stage = stage[:stage.index("\n    def ", 10)]
+        assert "ctx.muster_foe = ctx.enemy_marshal" in stage
+        # the resolved road (the muster block riding the battle message)
+        assert "what_if_line(ctx.marshal, ctx.muster_foe or ctx.enemy_marshal)" in src
+        # the gate road's interrupt names the preview at the HEAD of its message,
+        # before the muster's lines (S14D-X47's frame: the last line scrolled out)
+        gate = src[src.index("def _attack_routing_and_muster("):]
+        gate = gate[:gate.index("\n    def ", 10)]
+        assert gate.index("+ what_if_line(ctx.marshal, ctx.enemy_marshal)") < gate.index('+ f"\\n{muster_text}"')
+
+
+class TestTheLapsedCall:
+    """S14D-X45 (the class sweep): a lapsed call to arms is refused at its
+    price and the turn manager stamps it on the lapse row — the dispatch's row
+    dropped it, and both renderers fell to the generic 'offer lapsed'."""
+
+    def test_the_row_carries_the_call_s_own_sentence(self):
+        from backend.game_logic.dispatch import _lapsed_offer_row
+        row = _lapsed_offer_row({"nation": "Prussia", "proposal_type": "call_to_arms",
+                                 "call_to_arms": {"enemy": "Hanover", "penalty": True,
+                                                  "message": "Prussia remembers it (a strike on the alliance's ledger)."}})
+        assert row["is_call_to_arms"] is True and row["penalty"] is True
+        assert row["line"].startswith("Prussia remembers it")
+
+    def test_the_turn_manager_stamps_it_and_the_renderers_print_a_carried_line(self):
+        tm = (REPO / "backend" / "game_logic" / "turn_manager.py").read_text(encoding="utf-8")
+        assert 'for _priced in ("petition", "call_to_arms", "moment")' in tm
+        for name in ("main.gd", "dispatch_view.gd"):
+            assert 'var l_line = str(lapse.get("line", ""))' in _gd(name), name
+
+
+class TestTheTwoUnwiredRoads:
+    """S14D-X48 (found by the letter's re-shot frame): `/pending_envoy` — the
+    rail's 'Read the letter' and the recovery poll — and `/mailbox/activate`
+    returned their payloads without the first-open chokepoint."""
+
+    def test_a_moment_letter_read_from_the_rail_carries_its_sixth_part(self, europe):
+        client, _main, world = europe
+        from backend.game_logic import moments as MO
+        from tests import test_moments_engine as T
+        world.moments = MO.from_block(json.loads(
+            (REPO / "tests" / "fixtures" / "moments_block.json").read_text(encoding="utf-8")))
+        T._rich(world)
+        T._at(world, 8)
+        assert T._tick(world) == ["bavarian_match"]
+        T._make_current(world, T._letter(world, "bavarian_match"))
+        popup = client.get("/pending_envoy").json()["incoming_proposal"]
+        assert popup["is_moment"] is True
+        assert popup["first_open"]["screen"] == "moment_letter"
+        assert popup["first_open"]["line"].startswith("A moment of history, Sire")
+        # the stored letter never gains the key
+        assert "first_open" not in world.dialogue_manager.peek()
+        assert client.post("/first_open", json={"screen": "moment_letter"}).json()["success"] is True
+        world.current_turn += 1
+        assert "first_open" not in client.get("/pending_envoy").json()["incoming_proposal"]
+
+    def test_both_roads_return_through_the_chokepoint(self):
+        src = (REPO / "backend" / "main.py").read_text(encoding="utf-8")
+        for name in ("def get_pending_envoy(", "def activate_mailbox_item("):
+            body = src[src.index(name):]
+            body = body[:body.index("\n@app.", 10)]
+            assert "return _wire_result_dialogues(world, result)" in body, name
+
+
+class TestTheInterruptKeepsItsAnswers:
+    """S14D-X47 (found by the muster frame): the interrupt popup's plain Label
+    grew past the viewport on a long muster and carried both answers off the
+    screen at 1.0 and 2.0 — the message scrolls, the answers stay."""
+
+    def test_the_message_stands_in_a_scroll_and_the_fit_sizes_it(self):
+        scene = (REPO / "godot-client" / "project-sovereign" / "scenes" / "interrupt_popup.tscn").read_text(encoding="utf-8")
+        assert '[node name="MessageScroll" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]' in scene
+        # a RichTextLabel with BBCode OFF — as literal as the plain Label, and the
+        # frame record reads it line by line (a scrolling Label is recorded only
+        # when its whole rect stands inside the window)
+        assert '[node name="MessageLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer/MessageScroll"]' in scene
+        assert "bbcode_enabled = false" in scene
+        src = _gd("interrupt_popup.gd")
+        assert "@onready var message_label = $PanelContainer/VBoxContainer/MessageScroll/MessageLabel" in src
+        fit = _func(src, "_fit_to_content")
+        assert "message_scroll.custom_minimum_size.y = minf(text_h, room)" in fit
+        assert "need < have" in fit                           # SF7-X27: it only ever shrinks
+        assert '$PanelContainer.set_meta("clamp_ceiling_override", MESSAGE_CEILING)' in _func(src, "show_interrupt")
+
+
+class TestTheCounselFlip:
+    """S14D-X38 (part 1b): the counsel printed the court's shortfall to 50 beside
+    a term's name — '(settlement legitimacy) (-49)' for a -10 term. The per-court
+    row now carries `top_blocker_value` and the flip reads it. (Pinned here on
+    the booted world; the counsel's own file holds the road pins.)"""
+
+    def test_the_weight_against_the_table_is_the_term_not_the_shortfall(self, europe):
+        _client, _main, world = europe
+        from backend.game_logic import counsel as CS
+        from backend.game_logic.settlement_staging import build_settlement_preview
+        import contextlib
+        import io
+        with contextlib.redirect_stdout(io.StringIO()):
+            preview = build_settlement_preview(
+                world, war_id="war_1", settlement_terms=[], actor_nation="France",
+                ignore_active_dialogue=True, declared_when_empty=True)
+            out = CS.counsel_for_wizard(world, "Austria")
+        rows = [r for r in (preview["settlement_preview"]["per_court_acceptance"] or []) if isinstance(r, dict)]
+        lowest = min((r for r in rows if r.get("total") is not None), key=lambda r: int(r["total"]))
+        assert lowest.get("top_blocker_value") is not None
+        road = next(r for r in out["roads"] if r["road"] == "table_whole")
+        assert road["flip"]["value"] == int(lowest["top_blocker_value"])
+        assert road["flip"]["value"] != int(lowest["total"]) - int(lowest["threshold"])

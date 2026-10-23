@@ -588,3 +588,17 @@ class TestTheHoldQuestions:
         shrugs = [q["line"] for q in script["hold"]["questions"]
                   if SHRUG in ask(client, world, q["line"])]
         assert len(shrugs) <= 1, shrugs
+
+
+class TestS14DX29TheLawsAnswer:
+    """S14D-X29 (October 23, 2026): the desk's laws answer gave no key, no
+    currency and no lapse where every other surface says 'T, then 8'."""
+
+    def test_the_desk_names_the_key_the_currencies_and_the_lapse(self):
+        from backend.ai.state_desk import _rule_text
+        from backend.game_logic.reforms import ARREARS_WINDOW_TURNS
+        from backend.models.world_state import WorldState as _WS
+        text = _rule_text(_WS(player_nation="France"), "laws", False)
+        assert "T, then 8 (Alt+8 while you type)" in text
+        assert "in gold or in authority" in text and "heaviest upkeep lapses first" in text
+        assert f"within {int(ARREARS_WINDOW_TURNS)} turns at half its price plus the arrears" in text

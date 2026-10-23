@@ -648,14 +648,17 @@ SHOTS: list[dict] = [
         "mode": "call", "method": "show", "args": [],
         "steps": [
             {"set_path": "_current_step", "value": 1},
-            {"set_path": "title_label.text", "value": "DIPLOMACY"},
+            {"set_path": "title_label.text", "value": "THE CABINET"},
             {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
             {"call": "_lay_out_prompt", "args": [1]},
             {"call": "_render_nations", "args": ["$payload"]},
             {"call": "refit", "args": []},
             {"wait": 4},
         ],
-        "must_show": "the prompt directly above the list — no blank gap; every court in its category",
+        "must_show": "the prompt directly above the list — no blank gap; every court in its category; "
+                     "S14d (TABLE_LESSON_SPEC §2 line 1): the Cabinet's first-open line at the HEAD of the "
+                     "list ('Any court may be treated with here, Sire…') and the first row's button above "
+                     "the fold at BOTH scales; the title reads THE CABINET (S14D-X9)",
     },
     *[
         {
@@ -667,7 +670,7 @@ SHOTS: list[dict] = [
             "steps": [
                 {"set_path": "_current_step", "value": 2},
                 {"set_path": "_selected_nation", "value": court},
-                {"set_path": "title_label.text", "value": f"DIPLOMACY — {court}"},
+                {"set_path": "title_label.text", "value": f"THE CABINET — {court}"},
                 {"set_path": "back_button.visible", "value": True},
                 {"call": "_lay_out_prompt", "args": [2]},
                 {"call": "_render_preview", "args": ["$payload"]},
@@ -694,7 +697,11 @@ SHOTS: list[dict] = [
         "mode": "call", "method": "show_dialogue",
         "must_show": "one row per court in the Press/Ease/Drop block — Austria, Britain AND Russia, "
                      "none clipped, at BOTH scales (EA-E6); the four actions in one row; the block "
-                     "sits under the table, not over the 'Allies and Standing' heading",
+                     "sits under the table, not over the 'Allies and Standing' heading; S14d "
+                     "(TABLE_LESSON_SPEC §2 line 3): the table's first-open line under the heading's "
+                     "two lines ('This is the table, Sire…', the PROPOSE form) with the verdict still "
+                     "seen; the PROPOSE heading reads 'This draft will not carry as it stands.' (S14D-X6 "
+                     "— no Ratify on PROPOSE); the first court's first dial above the fold at BOTH scales",
     },
     {
         "id": "campaign_log_glyphs",
@@ -809,7 +816,7 @@ SHOTS: list[dict] = [
             "mode": "call", "method": "show", "args": [],
             "steps": [
                 {"set_path": "_current_step", "value": 1},
-                {"set_path": "title_label.text", "value": "DIPLOMACY"},
+                {"set_path": "title_label.text", "value": "THE CABINET"},
                 {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
                 {"call": "_lay_out_prompt", "args": [1]},
                 {"call": "_render_nations", "args": ["$payload"]},
@@ -964,7 +971,7 @@ SHOTS += [
         "mode": "call", "method": "show", "args": [],
         "steps": [
             {"set_path": "_current_step", "value": 1},
-            {"set_path": "title_label.text", "value": "DIPLOMACY"},
+            {"set_path": "title_label.text", "value": "THE CABINET"},
             {"set_path": "assessment_panel.text", "value": "[color=#a0a0a8]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"},
             {"call": "_lay_out_prompt", "args": [1]},
             {"call": "_render_nations", "args": ["$payload"]},
@@ -1061,7 +1068,7 @@ SHOTS += [
         "mode": "call", "method": "show", "args": [],
         "steps": [
             {"set_path": "_current_step", "value": 3},
-            {"set_path": "title_label.text", "value": "DIPLOMACY — FORMABLE NATIONS"},
+            {"set_path": "title_label.text", "value": "THE CABINET — FORMABLE NATIONS"},
             {"set_path": "assessment_panel.text",
              "value": "[color=#a0a0a8]\"The map of Europe is not finished, Sire. These states "
                       "could yet exist — each names what its existence would require.\"[/color]"},
@@ -1073,7 +1080,9 @@ SHOTS += [
         ],
         "must_show": "the two-line quote directly over the list — no blank band between them; "
                      "every row with its gate terms (the step-3 rows the live session drove; "
-                     "rendered here from the captured GET /formables, not over HTTP)",
+                     "rendered here from the captured GET /formables, not over HTTP); S14d (the class "
+                     "sweep): the page's first-open line at the HEAD ('States not yet on the map, Sire…') "
+                     "and the first row above the fold at BOTH scales",
     },
     # VP-1 (S14b part 2): the road page (`cap_designs`).
     {
@@ -1084,7 +1093,7 @@ SHOTS += [
         "mode": "call", "method": "show", "args": [],
         "steps": [
             {"set_path": "_current_step", "value": 4},
-            {"set_path": "title_label.text", "value": "DIPLOMACY — THE EMPEROR'S DESIGNS"},
+            {"set_path": "title_label.text", "value": "THE CABINET — THE EMPEROR'S DESIGNS"},
             {"set_path": "assessment_panel.text",
              "value": "[color=#a0a0a8]\"Three roads, Sire — what the Empire will be. One "
                       "proclamation decides it, and it cannot be undone.\"[/color]"},
@@ -1094,7 +1103,7 @@ SHOTS += [
             {"call": "refit", "args": []},
             {"wait": 4},
         ],
-        "must_show": "the headline, Road I with its gate, its price and teeth, both designs with their hints and Cabinet rows, its court links and the gold Proclaim button — every button above the fold or under the 'more below' cue; nothing clipped at scale 2.0",
+        "must_show": "the headline, Road I with its gate, its price and teeth, both designs with their hints and Cabinet rows, its court links and the gold Proclaim button — every button above the fold or under the 'more below' cue; nothing clipped at scale 2.0; S14d (TABLE_LESSON_SPEC §2 line 2): the road page's first-open line at the HEAD, above the headline ('Your own aims, Sire…'), the first Proclaim button above the fold at BOTH scales",
     },
     {
         "id": "wizard_designs_step4_proclaimed",
@@ -1104,7 +1113,7 @@ SHOTS += [
         "mode": "call", "method": "show", "args": [],
         "steps": [
             {"set_path": "_current_step", "value": 4},
-            {"set_path": "title_label.text", "value": "DIPLOMACY — THE EMPEROR'S DESIGNS"},
+            {"set_path": "title_label.text", "value": "THE CABINET — THE EMPEROR'S DESIGNS"},
             {"set_path": "assessment_panel.text",
              "value": "[color=#a0a0a8]\"Three roads, Sire — what the Empire will be. One "
                       "proclamation decides it, and it cannot be undone.\"[/color]"},
@@ -1114,7 +1123,7 @@ SHOTS += [
             {"call": "refit", "args": []},
             {"wait": 4},
         ],
-        "must_show": "Road II marked proclaimed with no Proclaim button; Roads I and III greyed with their 'Forsworn when the Emperor proclaimed' lines and no buttons; nothing clipped at scale 2.0",
+        "must_show": "Road II marked proclaimed with no Proclaim button; Roads I and III greyed with their 'Forsworn when the Emperor proclaimed' lines and no buttons; nothing clipped at scale 2.0; S14D-X31: the prompt names the proclaimed road ('The Empire's road is proclaimed, Sire — …'), never 'One proclamation decides it'",
     },
 ]
 
@@ -1380,14 +1389,49 @@ SHOTS += [
              "the 'A MOMENT OF HISTORY' header with the dateline, the title and the Cabinet, the "
              "record, the board line, 'What each answer does' with BOTH quotes, the buttons 'Seal "
              "the match' and 'Let Baden keep her', the 'If unanswered by …' line; no Counter, no "
-             "raw tag, no court, nothing clipped at scale 2.0"),
+             "raw tag, no court, nothing clipped at scale 2.0; S14d A5 (S14D-X5): the letter's "
+             "SIXTH part — the first-open line ('A moment of history, Sire…') before the record — "
+             "and the first answer's button above the fold at BOTH scales"),
             ("decree_of_berlin", "The Decree of Berlin (Talleyrand)",
              "the same parts under Talleyrand's name — the ports-shut board and the Decree's terms "
              "with its administrative action, the buttons 'Sign the Decree' and 'Not yet', the "
-             "unanswered line; nothing clipped at scale 2.0"),
+             "unanswered line; nothing clipped at scale 2.0; S14d A5 (S14D-X5): the first-open "
+             "line before the record and the first answer's button above the fold at BOTH scales"),
         )
     ],
 ]
+
+# ═══ S14d part 1, second landing (docs/TABLE_LESSON_SPEC.md §13.4): the frames
+# with the first-open line at the head — the two surfaces no row had shot.
+# Capture group `first_open` (tools/iq10_capture_payloads.py `cap_first_open`).
+SHOTS += [
+    {
+        "id": "settlement_pair_substitute",
+        "surface": "The separate-peace chooser — Austria alone (settlement_pair_substitute_confirm, the peace arm)",
+        "payload": "settlement_pair_substitute",
+        "scene": "res://scenes/proposal_confirm_popup.tscn",
+        "mode": "call", "method": "show_dialogue",
+        "must_show": "the chooser's first-open line at the HEAD ('A separate peace, Sire, takes this one "
+                     "court…' — TABLE_LESSON_SPEC §2 line 4), then 'Leave the joint settlement?', the act's "
+                     "ONE name 'Separate peace with Austria' (S14D-X34), the carry line; 'Proceed — "
+                     "separate peace with Austria' and 'Stay with the joint settlement' above the fold "
+                     "at BOTH scales",
+    },
+    {
+        "id": "muster_confirm",
+        "surface": "The muster's gate road — the muster_confirm interrupt (S14D-X4)",
+        "payload": "muster_confirm",
+        "scene": "res://scenes/interrupt_popup.tscn",
+        "mode": "call", "method": "show_interrupt",
+        "steps": [{"wait": 6}],
+        "must_show": "<MARSHAL> REPORTS; the stay (Berthier's, or the cautious halt) and the muster's "
+                     "band seen at the head of the message, the free preview's sentence (\"Ask 'what if "
+                     "X attacks Y'…\" — TABLE_LESSON_SPEC §2 line 8) in it (whole at 1.0; the message "
+                     "scrolls at 2.0 — S14D-X47); 'Commit the Attack' and 'Cancel Order' above the fold "
+                     "at BOTH scales, the box no taller than the band below the bar",
+    },
+]
+
 
 def load_manifest(payload_dir: pathlib.Path) -> dict:
     m = json.loads((payload_dir / "manifest.json").read_text(encoding="utf-8"))

@@ -893,7 +893,7 @@ func _render_economy():
 	# The economy page keeps its signed naval lines and points across.
 	var adm_ptr = cached_data.get("admiralty", {})
 	if adm_ptr is Dictionary and adm_ptr.get("active", false):
-		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]→ THE ADMIRALTY has its own book — press 7.[/color]\n"
+		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]→ THE ADMIRALTY has its own book — press 7 (Alt+7 while you type).[/color]\n"
 
 	content_area.text = bbcode
 
@@ -948,25 +948,15 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		var window = int(fleet.get("window_turns", 0))
 		if window > 0:
 			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]THE STRAIT LIES OPEN — " + Utils.plural(int(window), "turn") + (" remains" if int(window) == 1 else " remain") + "[/color]\n"
-		var camp_strength = int(fleet.get("camp_strength", 0))
-		var camp_required = int(adm.get("camp_required", 40000))
 		# DDB-59 (Pre-Deploy S13b part 4): the camp is a state the turn's
 		# end counts — the backend's line says the count and why, no order.
+		# S14D-X26 (October 23, 2026): the two client fallbacks that stood
+		# here were dead — `camp_line` is non-empty whenever camp provinces
+		# exist and `camp_strength` is 0 when none do — and their pin passed
+		# on dead source; the ONE line is the backend's (`naval.py`).
 		var camp_line = str(fleet.get("camp_line", ""))
 		if camp_line != "":
 			bbcode += "  The Camp: " + camp_line + "\n"
-		elif camp_strength >= camp_required:
-			var camp_turns = int(fleet.get("camp_turns", 0))
-			bbcode += "  The Camp: " + _format_number(camp_strength) + " men on the invasion coast"
-			if camp_turns >= 2:
-				bbcode += "  [color=#" + Utils.COLOR_WARNING + "](STAGED — the enemy has seen it)[/color]"
-			bbcode += "\n"
-		elif camp_strength > 0:
-			# NV-12 (recon gap 5): below the threshold the camp row used to
-			# vanish entirely — a player massing 35,000 men saw NOTHING. The
-			# march to a descent is now a visible count.
-			bbcode += "  The Camp: " + _format_number(camp_strength) + " of the " \
-				+ _format_number(camp_required) + " men a descent requires\n"
 	else:
 		bbcode += "  We keep no fleet in commission.\n"
 	# NUI-2 (Sept 24, 2026): the ORDERS come first, under the fleet line.
@@ -1196,8 +1186,11 @@ func _render_laws_tab():
 		var cure_line = str(row.get("cure_line", ""))
 		if cure_line != "" and cure_line != "<null>":
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]• " + cure_line + "[/color]\n"
+		# S14D-X27: a lapsed row prices its restoration (the backend's Arrears
+		# figure, the one the chip's note quotes), an unlapsed one its enactment.
 		bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(row.get("price_words", "")) \
-			+ " to enact · " + Utils.format_number(int(row.get("upkeep", 0))) + " gold a turn[/color]\n"
+			+ (" to restore · " if str(row.get("status", "")) == "lapsed" else " to enact · ") \
+			+ Utils.format_number(int(row.get("upkeep", 0))) + " gold a turn[/color]\n"
 		# A refused row's reason is the chip's own — said once, beside the chip.
 		var status = str(row.get("status", ""))
 		if status != "refused":

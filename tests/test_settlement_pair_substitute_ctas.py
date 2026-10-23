@@ -683,3 +683,34 @@ def test_dialogue_response_routes_seek_armistice_instead_through_executor_dispat
     assert result.get("success") is True
     assert result.get("scope") == "selected_pair"
     assert result.get("proposal_type") == "armistice"
+
+
+# ── S14D-X34 (October 23, 2026): the separate peace has ONE name ──────────
+
+
+def test_s14d_x34_the_separate_peace_has_one_name():
+    """The act had five names — the chip 'Separate peace with X', the rejected
+    popup's 'Make peace with X only', the chooser's 'Treat with X alone' and
+    'Proceed — peace with X alone', the counsel's 'Press X alone: the separate
+    peace'. One now, the chip's, on every surface."""
+    import pathlib
+    world = WorldState()
+    _install_rejected_war(world)
+    dialogue = _stage_rejected_dialogue(world, "Austria")
+    labels = {o.get("action"): o.get("label") for o in (dialogue.get("options") or [])
+              if isinstance(o, dict)}
+    assert labels.get("seek_bilateral_peace") == "Separate peace with Austria"
+    # the chooser's peace arm carries the one name; the armistice arm keeps its own
+    from backend.game_logic.settlement_staging import _build_pair_substitute_confirm_dialogue
+    chooser = _build_pair_substitute_confirm_dialogue(
+        dialogue, action="seek_bilateral_peace", proposal_type="peace",
+        selected_target="Austria", eligibility={"eligible": True})
+    assert chooser["options"][0]["label"] == "Proceed — separate peace with Austria"
+    repo = pathlib.Path(__file__).resolve().parents[1]
+    sources = [p for root in (repo / "backend", repo / "godot-client" / "project-sovereign" / "scripts")
+               for p in root.rglob("*") if p.suffix in (".py", ".gd") and "__pycache__" not in p.parts]
+    retired = ('f"Make peace with {', '"Treat with [b]%s[/b] alone', 'alone: the separate peace."',
+               'startswith("Make peace with")')
+    hits = [(p.name, needle) for p in sources for needle in retired
+            if needle in p.read_text(encoding="utf-8", errors="replace")]
+    assert hits == [], hits

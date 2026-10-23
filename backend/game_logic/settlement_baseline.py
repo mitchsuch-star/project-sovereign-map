@@ -85,6 +85,10 @@ def _enrich_acceptance_display(acceptance: Mapping[str, Any]) -> Dict[str, Any]:
         # the label so the table voice can speak it instead of quoting it.
         enriched["top_blocker_component"] = str(
             top_components[0].get("component") or "")
+        # S14D-X38: the term's own value as a number, for the counsel's flip
+        # ("the weight against it is … (-10)" — the term, never the shortfall).
+        _tv = top_components[0].get("value")
+        enriched["top_blocker_value"] = int(_tv) if isinstance(_tv, (int, float)) else None
     return enriched
 
 
@@ -2229,6 +2233,10 @@ def compute_per_court_acceptance(
             # the table voice speaks it; the table itself keeps the label.
             "top_blocker_component": (
                 enriched.get("top_blocker_component")
+                if below_threshold else None),
+            # S14D-X38: the blocker's own value beside its key, same gating.
+            "top_blocker_value": (
+                enriched.get("top_blocker_value")
                 if below_threshold else None),
             "direction_summary": _court_direction_summary(
                 court, proposer_side_leader, terms,

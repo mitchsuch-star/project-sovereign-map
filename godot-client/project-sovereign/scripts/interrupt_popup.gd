@@ -12,8 +12,25 @@ signal choice_made(marshal_name: String, response_type: String, choice: String)
 
 # UI References
 @onready var title_label = $PanelContainer/VBoxContainer/TitleLabel
-@onready var message_label = $PanelContainer/VBoxContainer/MessageLabel
+# S14D-X47 (October 23, 2026): the message stands in a ScrollContainer — the
+# one unbounded child. A long muster (the `muster_confirm` gate road, nine
+# lines and the free preview) grew the plain Label past the viewport and
+# carried BOTH answers off the screen at 1.0 and 2.0, the message itself
+# unseen at 2.0 — an undismissable modal (the re-shot frame found it).
+# The message is a RichTextLabel with BBCode OFF (as literal as the plain
+# Label it replaces — the producer still emits no markup, WO slice 8 [V-3]):
+# the frame record reads a RichTextLabel line by line, so the lines a
+# scrolling message shows are recorded as seen (a plain Label is recorded
+# only when its WHOLE rect stands inside the window).
+@onready var message_scroll = $PanelContainer/VBoxContainer/MessageScroll
+@onready var message_label = $PanelContainer/VBoxContainer/MessageScroll/MessageLabel
 @onready var button_container = $PanelContainer/VBoxContainer/ButtonContainer
+
+# S14D-X47: the box may grow to the layer-50 screens' height for a long
+# message before the message scrolls; a short question still shrinks to fit.
+const MESSAGE_CEILING := Vector2(600.0, 620.0)
+# The least room the message keeps when the box is at its budget.
+const MESSAGE_MIN_ROOM := 72.0
 
 # Current interrupt data
 var current_marshal: String = ""
@@ -99,6 +116,9 @@ func show_interrupt(interrupt_data: Dictionary):
 		button_container.add_child(btn)
 
 	show()
+	# S14D-X47: a long message may raise the clamp's ceiling (IGR-G1's meta);
+	# the fit below still shrinks a short question to its box.
+	$PanelContainer.set_meta("clamp_ceiling_override", MESSAGE_CEILING)
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
 	# viewport, so a fixed authored rect can carry the action row off-screen
@@ -126,6 +146,15 @@ func _fit_to_content() -> void:
 	if panel == null or not visible:
 		return
 	var have: float = panel.offset_bottom - panel.offset_top
+	# S14D-X47: the message is the one unbounded child. Measure the box
+	# without it, give it the room the clamp's budget leaves, and let it
+	# scroll past that — the answers never leave the screen.
+	if message_scroll != null:
+		message_scroll.custom_minimum_size.y = 0.0
+		var rest: float = panel.get_combined_minimum_size().y
+		var text_h: float = message_label.get_combined_minimum_size().y
+		var room: float = maxf(have - rest, MESSAGE_MIN_ROOM)
+		message_scroll.custom_minimum_size.y = minf(text_h, room)
 	var need: float = panel.get_combined_minimum_size().y
 	if need > 0.0 and need < have:
 		panel.offset_top = -need / 2.0

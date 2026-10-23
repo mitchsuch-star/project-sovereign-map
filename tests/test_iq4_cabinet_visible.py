@@ -1040,7 +1040,8 @@ class TestTheRailHasOneRowPerMission:
         _advance(w)
         w.diplomatic_points = 10
         from backend.game_logic import ai_diplomacy as AID
-        monkeypatch.setattr(AID, "generate_counter_offer", lambda proposal, world: None)
+        # S14D-X39: the envoy passes the purse stamped at send (`payer_gold=`).
+        monkeypatch.setattr(AID, "generate_counter_offer", lambda proposal, world, **_kw: None)
         assert _send_http(client, "propose open borders with Prussia").get("success")
         _advance(w)
         assert w.proposal_in_transit is None

@@ -459,7 +459,8 @@ func _render_war_detail(w: Dictionary):
 	var bbcode = ""
 
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate ends it.[/color]\n\n"
+	# S14D-X35 (October 23, 2026): the door line names the table it opens.
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The ledger of one war — its score, its fronts, and the price of peace. Negotiate opens the table, where every court signs for itself.[/color]\n\n"
 	# PC-R7 (i): the stake named, then who (the header carries the title).
 	var title_line = str(w.get("war_title_line", ""))
 	if title_line != "":
@@ -801,8 +802,9 @@ func _add_target_button(nation: String):
 
 func _add_coalition_settlement_explainer():
 	var lbl = Label.new()
-	lbl.text = "Coalition spans multiple wars; settle each separately."
-	lbl.tooltip_text = "Open an individual war detail to prepare a settlement for that war."
+	# S14D-X35: the label names the whole-war road ("settle each separately" misread).
+	lbl.text = "A coalition is several wars, each with its own table — open one to settle it."
+	lbl.tooltip_text = "Open a war's detail to reach its table."
 	lbl.custom_minimum_size = Vector2(250, 36)
 	lbl.theme_type_variation = &"Caption"
 	lbl.add_theme_color_override("font_color", Utils.UI_TEXT_DIM)

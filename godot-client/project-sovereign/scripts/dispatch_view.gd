@@ -14,6 +14,8 @@ signal open_envoys_requested
 # UXR3-23 (Pre-Deploy S12): a TODAY order chip types its order into the
 # command line; the dispatch closes onto it.
 signal order_typed(command: String)
+# S14D-X3: the law line's door — main.gd opens the ledger on the book named.
+signal ledger_tab_requested(tab: int)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -43,6 +45,11 @@ func _on_meta_clicked(meta) -> void:
 	var m := str(meta)
 	if m.begins_with("type:"):
 		order_typed.emit(m.substr(5))
+		close_view()
+		return
+	# S14D-X3 (October 23, 2026): the law line's chip opens the eighth book.
+	if m.begins_with("ledger:"):
+		ledger_tab_requested.emit(int(m.substr("ledger:".length())))
 		close_view()
 
 var _api_client_ref = null
@@ -151,7 +158,8 @@ func _on_dispatch_received(response):
 	# DDB-R7 (Pre-Deploy S13b part 3): the law the chest could buy at a rich
 	# peace — the same `law_sink` the terminal's dispatch reads.
 	var law_sink := str(situation.get("law_sink", ""))
-	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	# S14D-X3 (October 23, 2026): the line carries a DOOR to the eighth book.
+	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8) [/color]" + Utils.bb_button_chip("ledger:7", "Open the Laws", Utils.COLOR_COMMAND, "233043")
 	# VP-1 (S14b part 3): once the laws are bought, the Act of the Empire the
 	# chest could decree — its row is on the road page (`act_sink`).
 	var act_sink := str(situation.get("act_sink", ""))

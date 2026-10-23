@@ -744,6 +744,11 @@ fix slice. **Nothing deploys over an open UXR-4 no.**
 - **The wizard** — `IQ10_WIZARD_STEP2_AUSTRIA` (Talleyrand's counsel above the fold) and `IQ10_WIZARD_FORMABLES_ENTRY` (the agendas C6 re-shoot).
 - **The top bar and the war room** — `IQ10_TOP_BAR_BOOT`, `IQ10_TOP_BAR_ADMIRALTY` (the compact bar's six gold glyphs; the crimson blockade border), `IQ10_WAR_ROOM_BOOT` (the compact bar in place; the map's zoom chips in gold), `IQ10_RAIL_T20` (the notice rail's glyphs white on their pills).
 - **The Generals** — `IQ10_GENERALS_BOOT` (no dead band under the reading at 2.0; the Emperor's portrait shows).
+
+**What S14d part 1's second landing homed here (October 23, 2026).** The frames with the first-open line at the head and the first answer above the fold at both scales (`docs/TABLE_LESSON_SPEC.md` §14; rules `SYSTEMS_REFERENCE.md` §148.8). Each is `docs/audits/<stem>_2026_10_23.png` and `<stem>_X2_2026_10_23.png`:
+- **The Cabinet and its pages** — `IQ10_WIZARD_STEP1` (the Cabinet's line at the head of the list, titled THE CABINET — S14D-X9), `IQ10_WIZARD_FORMABLES_STEP3` (the class sweep's line over the formables), `IQ10_WIZARD_DESIGNS_STEP4` (the road page's line above the headline, the first Proclaim in view), `IQ10_WIZARD_DESIGNS_STEP4_PROCLAIMED` (the prompt names the proclaimed road — S14D-X31).
+- **The table and the chooser** — `IQ10_SETTLEMENT_THREE_COURTS` (the table's line opens the FOOTER: the head is one line at 2.0 and that line is the verdict, now the PROPOSE heading "This draft will not carry as it stands." — S14D-X6), `IQ10_SETTLEMENT_PAIR_SUBSTITUTE` (the chooser's line at the head, the act's one name "Separate peace with Austria" — S14D-X34).
+- **The letter and the muster's gate** — `IQ10_MOMENT_LETTER_BAVARIAN_MATCH`, `IQ10_MOMENT_LETTER_DECREE_OF_BERLIN` (the sixth part before the record — S14D-X5, reached through the re-wired `/pending_envoy` — S14D-X48), `IQ10_MUSTER_CONFIRM` (the gate road's interrupt with the free preview's sentence; the message scrolls so both answers stay on the screen at 2.0 — S14D-X47).
 - **Two rulings for your eye** (§140.3 / §140.2): the full top bar keeps its words without glyphs, the glyphs being the compact bar's face; and a panel too tall for a short window stands under the bar instead of centred — reversible by one constant each.
 
 ## What this plan does not do

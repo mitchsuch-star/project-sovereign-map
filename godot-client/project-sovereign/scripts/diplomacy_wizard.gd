@@ -79,6 +79,9 @@ func _ready():
 	# UXR3-F5: the drawn cross every screen closes with.
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
 	close_button.tooltip_text = "Close (Esc)"
+	# S14D-X10 (October 23, 2026): the header spells its currency — the
+	# Cabinet's first-open line does too, once; the tooltip stands.
+	dp_label.tooltip_text = "Diplomatic points (DP) — the Cabinet's currency: every act here is priced in them, and they return each turn."
 	cancel_button.pressed.connect(_close_wizard)
 	back_button.pressed.connect(_go_back)
 	background_overlay.gui_input.connect(_on_overlay_input)
@@ -117,7 +120,7 @@ func open():
 		return
 	_current_step = 1
 	_selected_nation = ""
-	title_label.text = "DIPLOMACY"
+	title_label.text = "THE CABINET"
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
 	_lay_out_prompt(1)
 	back_button.visible = false
@@ -144,7 +147,7 @@ func open_for_nation(nation: String):
 	_current_step = 2
 	_selected_nation = nation
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
+	title_label.text = "THE CABINET — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_lay_out_prompt(2)
 	_clear_content_list()
@@ -236,7 +239,7 @@ func _go_back():
 		_current_step = 1
 		_selected_nation = ""
 		back_button.visible = false
-		title_label.text = "DIPLOMACY"
+		title_label.text = "THE CABINET"
 		assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
 		_lay_out_prompt(1)
 		_clear_content_list()
@@ -308,11 +311,9 @@ func _on_http_completed(result, response_code, headers, body):
 	_request_in_flight = false
 	if not visible:
 		return
-	# Capture the request ID at response time to detect stale responses
-	var response_id = _request_id
-	# Discard stale responses (user navigated away before response arrived)
-	if response_id != _request_id:
-		return
+	# S14D-X33 (October 23, 2026): the "stale response" guard that stood here
+	# compared `_request_id` with itself and never fired; `cancel_request()` on
+	# the Back road is what discards a page the player has left.
 	if response_code != 200:
 		_show_error("Connection failed.")
 		return
@@ -334,14 +335,17 @@ func _on_http_completed(result, response_code, headers, body):
 	elif _pending_request == "formables":
 		_render_formables(data)
 	elif _pending_request == "designs":
-		# The stale-response guard above compares the id to itself; a page
-		# the player has left (Back) is never drawn over the nation list.
+		# A page the player has left (Back) is never drawn over the nation
+		# list — this step check is the real guard (S14D-X33).
 		if _current_step == 4:
 			_render_designs(data)
 
 
 func _show_error(msg: String):
 	_current_step = 1  # Reset step so back button works (Fix 7)
+	# S14D-X32 (October 23, 2026): the error view is step 1's — never stranded
+	# under a page's title (THE EMPEROR'S DESIGNS) with no Back.
+	title_label.text = "THE CABINET"
 	back_button.visible = false
 	_clear_content_list()
 	var lbl = RichTextLabel.new()
@@ -467,7 +471,7 @@ func _on_nation_selected(nation: String):
 	_selected_nation = nation
 	_current_step = 2
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — " + Utils.display_nation_name(nation)
+	title_label.text = "THE CABINET — " + Utils.display_nation_name(nation)
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]Loading assessment...[/color]"
 	_lay_out_prompt(2)
 	_clear_content_list()
@@ -664,8 +668,8 @@ func _on_designs_pressed():
 	_current_step = 4
 	_selected_nation = ""
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — THE EMPEROR'S DESIGNS"
-	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"Three roads, Sire — what the Empire will be. One proclamation decides it, and it cannot be undone.\"[/color]"
+	title_label.text = "THE CABINET — THE EMPEROR'S DESIGNS"
+	assessment_panel.text = _designs_prompt()
 	_lay_out_prompt(4)
 	_clear_content_list()
 	_add_loading_label()
@@ -675,6 +679,16 @@ func _on_designs_pressed():
 func _bb(text) -> String:
 	"""A backend string, safe inside BBCode."""
 	return (str(text) if text != null else "").replace("[", "[lb]")
+
+
+func _designs_prompt(proclaimed_title: String = "") -> String:
+	"""The road page's prompt. S14D-X31 (October 23, 2026): once a road is
+	proclaimed the prompt says so — the standing "One proclamation decides it"
+	read wrong over a page whose decision was made."""
+	if proclaimed_title != "":
+		return ("[color=#" + Utils.COLOR_INFO + "]\"The Empire's road is proclaimed, Sire — "
+			+ _bb(proclaimed_title) + ". It cannot be undone, and the other roads are forsworn.\"[/color]")
+	return "[color=#" + Utils.COLOR_INFO + "]\"Three roads, Sire — what the Empire will be. One proclamation decides it, and it cannot be undone.\"[/color]"
 
 
 func _render_designs(data: Dictionary):
@@ -696,6 +710,13 @@ func _render_designs(data: Dictionary):
 			+ "]No designs of the Empire are authored in this campaign.[/color]")
 		content_list.add_child(empty_lbl)
 		return
+	# S14D-X31: the prompt reads the proclaimed road, where there is one.
+	var proclaimed_title := ""
+	for road in roads:
+		if road is Dictionary and road.get("proclaimed") is bool and road.get("proclaimed"):
+			proclaimed_title = str(road.get("title", ""))
+			break
+	assessment_panel.text = _designs_prompt(proclaimed_title)
 	# S14d: the road page's line at the head, above the headline (the Proclaim
 	# strip stays above the fold at scale 2.0 — the frame pins it).
 	_add_first_open_line(data)
@@ -742,8 +763,9 @@ func _add_acts_block(acts: Array) -> void:
 	head.bbcode_enabled = true
 	head.fit_content = true
 	head.scroll_active = false
-	head.text = ("
-[color=#" + Utils.COLOR_GOLD + "][b]THE ACTS OF THE EMPIRE[/b][/color] "
+	# S14D-X44: the escape, as the rest of the file writes it (never a raw
+	# newline inside a literal — it parsed by the LF attribute alone).
+	head.text = ("\n[color=#" + Utils.COLOR_GOLD + "][b]THE ACTS OF THE EMPIRE[/b][/color] "
 		+ "[color=#" + Utils.COLOR_INFO + "]— gold for the road, each decreed once[/color]")
 	content_list.add_child(head)
 	for row in acts:
@@ -766,10 +788,8 @@ func _add_acts_block(acts: Array) -> void:
 		if not forsworn:
 			var says := str(row.get("says", ""))
 			if says != "":
-				bbcode += "
-  " + _bb(says)
-			bbcode += "
-  " + Utils.format_number(int(row.get("price", 0))) + " gold and " + str(int(row.get("admin_cost", 1))) + " administrative action, once"
+				bbcode += "\n  " + _bb(says)
+			bbcode += "\n  " + Utils.format_number(int(row.get("price", 0))) + " gold and " + str(int(row.get("admin_cost", 1))) + " administrative action, once"
 			var effects := str(row.get("effects_line", ""))
 			if effects != "":
 				bbcode += " — " + _bb(effects)
@@ -777,8 +797,7 @@ func _add_acts_block(acts: Array) -> void:
 			if relief > 0:
 				bbcode += "; the Charges of Empire fall by " + Utils.format_number(relief) + "g a turn"
 		if decreed >= 0:
-			bbcode += "
-  [color=#" + Utils.COLOR_SUCCESS + "]✓ Decreed on turn " + str(decreed) + "[/color]"
+			bbcode += "\n  [color=#" + Utils.COLOR_SUCCESS + "]✓ Decreed on turn " + str(decreed) + "[/color]"
 		lbl.text = bbcode
 		content_list.add_child(lbl)
 		if decreed >= 0 or forsworn:
@@ -972,7 +991,7 @@ func _on_formables_pressed():
 	_current_step = 3
 	_selected_nation = ""
 	back_button.visible = true
-	title_label.text = "DIPLOMACY — FORMABLE NATIONS"
+	title_label.text = "THE CABINET — FORMABLE NATIONS"
 	assessment_panel.text = "[color=#" + Utils.COLOR_INFO + "]\"The map of Europe is not finished, Sire. These states could yet exist — each names what its existence would require.\"[/color]"
 	_lay_out_prompt(3)
 	_clear_content_list()
@@ -1001,6 +1020,10 @@ func _render_formables(data: Dictionary):
 			+ "]No formable nations are authored in this campaign.[/color]")
 		content_list.add_child(empty_lbl)
 		return
+	# S14d part 1, second landing (the class sweep, TABLE_LESSON_SPEC §0 Q3): the
+	# page's first-open line at the head of a non-empty catalogue — an empty one
+	# says so above and never latches.
+	_add_first_open_line(data)
 	for row in rows:
 		if row is Dictionary:
 			_add_formable_row(row)

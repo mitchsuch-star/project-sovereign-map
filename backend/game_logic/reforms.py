@@ -825,6 +825,13 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
             refusal = law_refusal(world, nation, law_id)
             lapsed = row.get("lapsed_turn")
             if quote["kind"] == "restore":
+                # S14D-X27 (October 23, 2026): a lapsed row prices itself ONCE —
+                # the Arrears price the chip's note quotes, never the full price
+                # printed beside it ("a quote that disagrees with the result").
+                entry["price"] = int(quote["price"])
+                entry["arrears"] = int(quote["arrears"])
+                entry["price_words"] = _currency_words(int(quote["price"]), currency) + (
+                    f" + {int(quote['arrears']):,} gold in arrears" if int(quote["arrears"]) > 0 else "")
                 entry["status"] = "lapsed"
                 entry["status_line"] = (
                     f"Lapsed on turn {int(lapsed)}. It restores at its Arrears "

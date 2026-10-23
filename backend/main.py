@@ -6741,7 +6741,11 @@ def get_pending_envoy():
                 world, current
             )
 
-    return result
+    # S14D-X48 (October 23, 2026, found by the letter's re-shot frame): this
+    # road — the rail's "Read the letter", the recovery poll — returned the
+    # popup WITHOUT the first-open chokepoint, so a moment letter opened from
+    # the rail never carried its sixth part. The one helper, on a copy.
+    return _wire_result_dialogues(world, result)
 
 
 @app.get("/mailbox")
@@ -6885,7 +6889,8 @@ def activate_mailbox_item(request: MailboxActivateRequest):
         popup = refresh_ally_petition_availability(world, dialogue)
         result["diplomatic_dialogue"] = popup
 
-    return result
+    # S14D-X48: the mailbox's activation road, wired like the poll above.
+    return _wire_result_dialogues(world, result)
 
 
 class MailboxRespondRequest(BaseModel):
@@ -7515,6 +7520,12 @@ def get_formables():
     payload = build_formables_payload(active_world)
     payload["success"] = True
     _attach_nation_identity_overrides(payload, active_world)
+    if payload.get("formables"):
+        # S14d part 1, second landing (the class sweep, TABLE_LESSON_SPEC §0 Q3):
+        # the page's first-open line on the endpoint's own dict — never on an
+        # empty catalogue, which the client says in place and does not latch.
+        from backend.game_logic import first_open
+        first_open.attach(payload, active_world, "formables")
     return payload
 
 

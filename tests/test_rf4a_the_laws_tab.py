@@ -286,6 +286,10 @@ class TestThePayload:
         assert "restores at its Arrears price for 8 more turns" in staff["status_line"]
         assert staff["chip"]["label"] == "Restore"
         assert staff["chip"]["note"].startswith("4,500 gold + 600 gold in arrears now")
+        # S14D-X27 (October 23, 2026): the row prices itself ONCE — the Arrears
+        # figure the note quotes, never the full 9,000 printed beside it.
+        assert staff["price"] == 4500 and staff["arrears"] == 600
+        assert staff["price_words"] == "4,500 gold + 600 gold in arrears"
 
     def test_a_dispersed_law_costs_its_full_price(self, world):
         world.nation_gold["France"] = 60000

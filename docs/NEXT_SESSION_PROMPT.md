@@ -1,37 +1,36 @@
-# NEXT SESSION PROMPT — Pre-Deploy S14d part 1, second landing: the frames and the copy rows; then part 1b
+# NEXT SESSION PROMPT — Pre-Deploy S14d part 2: the Table (the lesson); then part 3
 
-> Overwritten each time a session hands off. Current hand-over: **October 23, 2026, after S14d's gate RULED and
-> part 1's first landing LANDED** (`docs/TABLE_LESSON_SPEC.md` §0–§13; `SYSTEMS_REFERENCE.md` §148; commits through
-> the hook — `git log -5`).
+> Overwritten each time a session hands off. Current hand-over: **October 23, 2026, after S14d part 1's second
+> landing and part 1b LANDED — part 1 COMPLETE** (`docs/TABLE_LESSON_SPEC.md` §13–§14; `SYSTEMS_REFERENCE.md` §148,
+> §148.8; commits through the hook — `git log -5`).
 >
-> **What the last session delivered:** the S14d gate (eight researchers, a synthesis, two adversarial critics with probes
-> on a built Table board — 31 corrections applied or answered, §12), with one user-visible reduction named for the user
-> (A1: "reaches the table on turn 1" reads as MOUNTS in the campaign and SIGNS in the lesson; the row re-sized
-> 1.5 → about 2.5 sessions in four parts); and part 1's first landing: `world.first_opens`, the seven lines in
-> `backend/game_logic/first_open.py`, attached at the response edge on a copy (the GET wrappers for the Cabinet, the
-> road page, the ledger's two books; one envelope chokepoint for every dialogue-borne payload), `POST /first_open`
-> returning a tiny non-draining dict, the client drawing each line at the head of its surface and acknowledging once
-> per screen per world, the LAWS book's R159 subtitle, `what_if_line` on the muster's gate road, the burned guidance
-> latch guarded (S14D-X1). 32 pins in `tests/test_first_open.py`; the series byte-identical; the census 35 open S14D.
+> **What the last session delivered:** the nine IQ-10 frames with the first-open line at the head and the first answer
+> above the fold at 1.0 and 2.0, pinned on the record (`tests/test_sf_rr5_the_frames.py`, the S14D classes), and the
+> three finds the frames made — the table's line moved to the footer (the head is one line at 2.0), `/pending_envoy`
+> and `/mailbox/activate` wired (S14D-X48), the `muster_confirm` interrupt's answers kept on the screen (S14D-X47, a
+> scrolling message); the class sweep (the Formable Nations page lined as the eighth id `formables`; the Congress row,
+> the capture modal, the commission chooser and the call-to-arms letter ruled covered; the lapsed call's price restored,
+> S14D-X45); the fifteen copy rows; and part 1b's engine rows (the counsel's table roads at 0 DP, the flip's value the
+> term's own, the PEACE vassal row, the refusal stamp following the feedback's ranking with two new reasons, the envoy
+> walking the purse stamped at send, and a counter the chest cannot pay refused aloud — S14D-X46). 56 pins in
+> `tests/test_first_open.py`; the series byte-identical; the census 23 open rows (14 S14D homed to parts 2 and 3).
 >
 > **Traps the last session paid for:**
-> - **A builder with a drift pin cannot be attached to** — `laws_payload` and `build_designs_payload` are compared
->   equal to the ledger's / the endpoint's copy by existing pins; attach on the ENDPOINT's own dict (`/ledger`,
->   `/imperial_designs`), never in `ledger.py` or the builder.
-> - **`build_base_response` drains even with `include_popup_passthroughs=False`** (draft notices, the relay's let-go):
->   an acknowledgement endpoint returns a plain dict.
-> - **`_build_result_response` forwards every executor key** — a wire at the `/command` placement sites alone misses
->   the settlement table; the one chokepoint is the tail of `build_base_response` (`_wire_result_dialogues`).
-> - **The settlement popup hides on every dial** (`_on_option_selected`, `_on_settlement_tier2_affordance`) and re-shows
->   on the restage — a client copy cleared on hide loses the line; the backend's turn rule carries it instead.
-> - **The ratchet counts a silent `except Exception: pass` in a new module** and CLAUDE.md sits 34 bytes under its cap
->   after this landing's row (61,966 of 62,000): every new row is paid for by a trim.
-> - **`core.autocrlf` is per file here** (world_state.py, main.py, combat_executor.py, proposal_confirm_popup.gd and
->   the docs are CRLF; ledger.py, strategic.py, the other .gd files and the JSON are LF) — edit through a script that
->   detects and keeps each file's ending (`scratchpad/edit_part1*.py`'s shape).
-> - **The Bash heredoc halves backslashes**; Write-tool scripts only. **`git add` exits 1 on `europe_1805.json`.**
-> - **The series runs the engine in process**: a seam on the wire (a payload key) reads reach 0 there by construction;
->   say so rather than inflate it.
+> - **The Bash heredoc halves backslashes** — an edit script with `\n` in a replacement writes a RAW newline and
+>   reports success; write every script as a file (the Write tool) and run it by path.
+> - **The frame record reads a plain Label only when its WHOLE rect stands inside the window** — a message that scrolls
+>   must be a RichTextLabel (BBCode off is as literal as a Label) or it reads as unseen.
+> - **The settlement popup's head region is ONE line at Interface Scale 2.0** (the EA-E6 fit's floor) and that line is
+>   the verdict; nothing else at the head of the table is seen at 2.0.
+> - **`tools/iq10_capture_payloads.py --only` takes the groups as SEPARATE arguments**, not comma-joined; a capture
+>   into an `--out` dir rewrites its manifest, so re-capture one group into its own dir.
+> - **`_button(frame, prefix)` matches by prefix** — "Proclaim Road I" matches "Proclaim Road III"; name the dash.
+> - **A pytest-xdist run holds the test files open** — an edit during the run can fail with `Errno 22`; wait it out.
+> - **The muster counts the corps likely to arrive** — an outmatched board needs the enemy heavier than the whole
+>   French concentration, not one corps.
+> - **`core.autocrlf` is per file** (the scratchpad's `edit.py` detects and keeps each file's ending; the JSON spec
+>   aborts WHOLE on a missed anchor — nothing is written, re-check every entry). **`git add` exits 1 on
+>   `europe_1805.json`.** The ratchet counts CLAUDE.md LF-normalized (62,000 cap; 34 bytes of headroom).
 >
 > **Nothing waits on the user before S15** (S14d's A1 and the re-size, S14c's A1 and the X2 ruling, UXR-4, the
 > code-signing certificate, AO's three questions, SF-NAV-1-D1 are theirs to overrule). Paste everything below the line
@@ -39,16 +38,16 @@
 
 ---
 
-Pre-Deploy S14d part 1, second landing — the frames and the copy rows — then part 1b, on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -5` for the head).
+Pre-Deploy S14d part 2 — the Table (the lesson) — then part 3, on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -5` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP; `docs/TABLE_LESSON_SPEC.md` §0 Q3 (the class sweep), §2 (the lines and their draw sites), §9 (parts 1, 1b), §13 (the first landing and §13.4 what this landing owes); `SYSTEMS_REFERENCE.md` §148; `BUG_FIXES.md` §S14D (the open rows homed to part 1 and part 1b); `tools/iq10_run_captures.py` (the frames: `settlement_three_courts`, `cap_moments` ~1365–1395, the road page, the Cabinet) and `tests/test_sf_rr5_the_frames.py` (`must_show`); `docs/PLAYTESTING.md` (Mode C).
+Read first: `docs/STATUS.md` ▶ NEXT UP; `docs/TABLE_LESSON_SPEC.md` §4 (the board §4.1, the cards §4.2, the frame §4.4), §5 (the authoring contract, A4), §6 (the instruments of part 2), §9 (parts 2 and 3), §14.6 (the traps); `SYSTEMS_REFERENCE.md` §148; `BUG_FIXES.md` §S14D (the 14 open rows: X13–X17, X19–X22, X40, X41 are part 2's; X18, X42, X43 part 3's); `godot-client/project-sovereign/scripts/tutorial_overlay.gd` (the Danube's `const STEPS`, `on_world_swap`, the predicates) and `tutorial_state.py`; `tests/test_tutorial_unbreakable_2026_09_23.py` (the recorder + harness); `docs/PLAYTESTING.md` (Mode A, Mode C).
 
 Scope:
-1. **The frames (part 1's second landing):** re-shoot the IQ-10 frames of the table, the chooser, the letter, the road page and the Cabinet's step 1 at Interface Scale 1.0 and 2.0 with the first-open line at the head, and add a `muster_confirm` frame; a `must_show` clause per frame for the line AND the surface's first button above the fold — a line that fails it is shortened, never moved below the fold (the record's §10). A5: `EVENTS_SPEC.md` §2/§6 gain the sixth part (S14D-X5).
-2. **The class sweep (Q3):** walk the other action surfaces — the Congress summons row, Formable Nations, the capture modal, the commission chooser, the call-to-arms letter — and for each either file a new S14D row and line it on the store (one more id, one attach site, one draw site, one pin) or rule it covered on the row (the capture modal's priced buttons and card XII; the commission hint latch; the call's whole-sentence reasons).
-3. **The copy rows homed to part 1:** S14D-X3 (a LAWS door chip on the dispatch's law line), X6 (the PROPOSE heading says "ratified"), X9 (the Cabinet titled DIPLOMACY — the pins flipped consciously), X10 (the DP header), X26 (the dead camp fallback and its pin), X27 (a lapsed law's two prices), X28, X29, X30 (`what_if_line`'s post-swap foe), X31, X32, X33, X34 (one name for the separate peace), X35, X44 — each reproduced on a board before it is built, each pinned where its seam lives.
-4. **Part 1b:** S14D-X11, X12, X37, X38, X39 — the diplomacy engine's class found by the gate's probe — reproduced on the booted 1805 world, fixed, pinned in the owning file; the series byte-identical or re-pinned with the row named (X37's stamp may reach memory — count it).
+1. **The registry refactor, FIRST and committed alone:** `LESSONS` keyed by `scenario_name` in the overlay, `on_world_swap` picking by name and `_reset_lesson_state()` clearing every latch (S14D-X20), `UiSettings.get_tutorial_done(lesson := "tutorial")`, `main.gd._on_tutorial_boot_requested(scenario := "tutorial")`, `tutorial_state.SCHOOL_SCENARIOS` with `main.SCENARIO_ALLOWLIST` derived from it, `is_school_world(world)` consumed by `jealousy_dormant`, `dotation`'s carve-out, `petitions_live` and `_autosave` (S14D-X16's doc row corrected), the per-lesson released-step notes (S14D-X19), the unused predicate and the stale counts (X21, X22) — the Danube BYTE-IDENTICAL: every lesson pin green, `_shipped_steps`, T-B1, the mirror drift pin, `test_fa_slice8` with no flips.
+2. **The board** `godot-client/project-sovereign/assets/maps/tutorial_table_1805.json`, tuned by instrument: commit `tools/_table_board_probe.py` (from the gate's sweeps) and author §4.1's table — one France-led war on Austria and Russia with explicit Bavaria → Austria and KingdomOfItaly → Austria entries; Vienna, the Tyrol and Moravia French with `nation_starting_regions` authored; the record's wins on `decisive_battles`/`battle_records`; `campaign_ledgers` with France's losses at 3,000; `war_exhaustion {"Austria": 60}`; `war_start_turns` past the window; Russia small and far east; Bavaria ALLIANCE at relation 65; `proposal_cooldowns` for every court off the lesson; the five engine hints pre-set; `first_opens: {}`; `start_date 1805-12-04`; France's five laws copied from the Danube and pinned equal. The arithmetic pins (`tests/test_tutorial_table_scenario.py`): Austria ≥ 50 with the 3-point margin and ACCEPT, Russia < 50, the chip available, Bavaria's suggested vassalage COUNTER then ACCEPT after one "More generous", no stray letter in the first three mornings, no battle in the first three enemy phases; S14D-X13 (the counter names the struck tribute), X14 (the keys' contract in `MODDING_FORMAT.md` + the validator's shape checks, A4), X15 (the release pin names every school scenario), X17 (TUTORIAL_SCRIPT's typed row → the Cabinet door, A3), X40 (the Danube's three comments), X41 (the cards name offices, never a man's office he did not hold).
+3. **The cards** `scripts/tutorial_table_steps.gd` (§4.2, seven over three turns, Berthier's voice, every step a button or a door chip): the new door kind `open:settlement:war_1:Austria` (`main.gd` → `_on_war_settlement_clicked(war_id, nation)`), the predicates on response fields only; the driven pins (`tests/test_tutorial_table_driven.py`: the committed script `tools/playtest_scripts/tutorial_table_lesson.json` sees all seven cards in order through the real overlay and reaches the hand-off with zero skips; the refused act and the skip release; the mirror never ahead of the turn; `TestTheRearm`); the menu row "The School of War — The Table (a guided peace)"; the lesson's IQ-10 frames and the menu's seventh button re-shot with `must_show` at both scales.
+4. **Then part 3:** the Mode C walk of both lessons and the campaign's eight lines on BEGIN (`SOVEREIGN_PORT=8007`, `tools/dd_b_play.py`; `tutorial_screenshot.gd`'s 8005 refusal, X18); the release build's fourth file; `TUTORIAL_SCRIPT.md` §The Table Lesson, `MODDING_FORMAT.md`, `SAVE_FORMAT_REFERENCE.md`, `DESIGN_REFINEMENT.md` (A2), `ROADMAP.md`, `PRE_DEPLOY_PLAN.md`'s row and total (A1); X42 (verify Verhuell before any edit), X43; the census 0 open S14D.
 
-Done when: every frame shows its line at the head and its first button above the fold at both scales; every action surface is lined or ruled; the part-1 and part-1b rows read FIXED with their pins; `BASELINE_SERIES` byte-identical (or re-pinned, named); the full suite green through the hook; STATUS ▶ NEXT UP names part 2 (the Table) and this file is overwritten for it.
+Done when: the registry lands with the Danube byte-identical; the arithmetic pins hold on the authored board; the committed script plays all seven cards through the real overlay; every school scenario is dormant and autosave-skipped; the series untouched; the full suite green through the hook; STATUS ▶ NEXT UP names part 3 (or S14e once part 3 lands) and this file is overwritten for it.
 
-Rules: reproduce each gap on a board before building; the sibling sweep after every fix (CLAUDE.md Rule 10); a change that reaches the AI or the backend runs the attribution arms with every movement attributed (count the reach); "diplomacy is never typed"; every new line ≤ 220 characters, from the live constants, clean under `_TYPED`, "Sire" in its opening; attach on the endpoint's own dict, never a builder with a drift pin; grep-verify any agent's bulk `.gd` edits and run the Godot parse harness via Start-Process. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Rules: the registry refactor is committed before any Table content; reproduce each row on a board before building; the sibling sweep after every fix (CLAUDE.md Rule 10); "diplomacy is never typed" (every lesson step a button or a door); Berthier keeps the school, the Cabinet's own lines are Talleyrand's; a card never dresses a game step as history; a line's fact the board does not deliver changes the line, never the board; grep-verify any agent's bulk `.gd` edits and run the Godot parse harness via Start-Process (`tools/godot_parse_check.gd`, expect EXIT=0, commit the refreshed report). Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.

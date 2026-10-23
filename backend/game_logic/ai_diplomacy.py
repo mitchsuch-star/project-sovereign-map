@@ -3552,7 +3552,8 @@ def try_deliver_queued_proposal(world) -> Optional[Dict]:
 # ═══════════════════════════════════════════════════════════════
 
 def generate_counter_offer(
-    proposal: Dict, world, *, counter_author: str = "", dry_run: bool = False
+    proposal: Dict, world, *, counter_author: str = "", dry_run: bool = False,
+    payer_gold: Optional[int] = None,
 ) -> Optional[Dict]:
     """Generate a deterministic counter-offer to a proposal.
 
@@ -3743,16 +3744,23 @@ def generate_counter_offer(
         its OWN holdings (M3 semantics) and would ratify as nonsense when
         France is the payer.
         """
+        # S14D-X39 (October 23, 2026): the purse the bridge walks is the
+        # caller's — the envoy passes the purse STAMPED AT SEND
+        # (`payer_gold_at_send`), so the preview's dry run and the resolution
+        # read the same gold whatever the enemy phase's bill or the player's
+        # spending did between them (probed: 300 g at send said "COUNTER
+        # expected", 2 g after the Butcher's Bill answered REJECT).
         improved = _try_add_desired_clauses(
             candidate, author, world,
             accept_threshold=accept_threshold, payer_nation=source_nation,
-            gold_only=player_sent,
+            gold_only=player_sent, payer_gold=payer_gold,
         )
         if improved is not None:
             return improved
         return _gold_bridge_counter(
             candidate, world,
             accept_threshold=accept_threshold, payer_nation=source_nation,
+            payer_gold=payer_gold,
         )
 
     # ── Step 2: Find clause with largest NEGATIVE impact on acceptance ──
@@ -3823,7 +3831,8 @@ def _payer_gold(world, payer_nation: str) -> int:
 
 
 def _gold_bridge_counter(
-    terms: Dict, world, *, accept_threshold: int, payer_nation: str
+    terms: Dict, world, *, accept_threshold: int, payer_nation: str,
+    payer_gold: Optional[int] = None,
 ) -> Optional[Dict]:
     """G4F-13 universal fallback: bridge the acceptance gap with gold.
 
@@ -3836,7 +3845,8 @@ def _gold_bridge_counter(
 
     if not payer_nation:
         return None
-    treasury = _payer_gold(world, payer_nation)
+    # S14D-X39: the purse stamped at send where the caller has one.
+    treasury = int(payer_gold) if payer_gold is not None else _payer_gold(world, payer_nation)
     if treasury < 100:
         return None
     max_amount = min(treasury, 3000)
@@ -3856,6 +3866,7 @@ def _gold_bridge_counter(
 def _try_add_desired_clauses(
     terms: Dict, source_nation: str, world, accept_threshold: int = 50,
     payer_nation: str = "", gold_only: bool = False,
+    payer_gold: Optional[int] = None,
 ) -> Optional[Dict]:
     """Try adding the cheapest desired clause from the nation's desire table.
 
@@ -3897,7 +3908,9 @@ def _try_add_desired_clauses(
             # R113: Validate gold sweetener against the PAYER's treasury
             # (prevent negative gold)
             if dtype == "gold_lump":
-                nation_gold = world.nation_gold.get(payer, 0)
+                # S14D-X39: the purse stamped at send where the caller has one.
+                nation_gold = (int(payer_gold) if payer_gold is not None
+                               else world.nation_gold.get(payer, 0))
                 if nation_gold < sweetener_value:
                     continue  # Can't afford this sweetener
             # R113: Validate gold_per_turn against the PAYER's income

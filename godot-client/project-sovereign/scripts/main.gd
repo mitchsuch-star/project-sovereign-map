@@ -724,6 +724,9 @@ func _ready():
 				# UXR3-23 (S12): a TODAY chip fills the command line, never sends.
 				if dispatch_view.has_signal("order_typed"):
 					dispatch_view.order_typed.connect(_on_tutorial_suggest_command)
+				# S14D-X3: the re-read screen's LAWS door opens the eighth book.
+				if dispatch_view.has_signal("ledger_tab_requested"):
+					dispatch_view.ledger_tab_requested.connect(_on_tutorial_open_ledger)
 			elif config[0] == "generals":
 				# ES-7 second pass (§0.6.8): the card's [Reward…] link
 				if instance.has_signal("reward_requested"):
@@ -3865,6 +3868,11 @@ func _on_output_meta_clicked(meta) -> void:
 		if not _is_modal_dialog_open():
 			_open_diplomacy_wizard()
 		return
+	# S14D-X3 (October 23, 2026): the dispatch's law line carries a door to
+	# the eighth book — the same door T then 8 opens, same modal guard.
+	if meta_str.begins_with("ledger:"):
+		_on_tutorial_open_ledger(int(meta_str.substr("ledger:".length())))
+		return
 	# SR-5r RF-4b: a terminal chip carries its full typed order (the
 	# forecast's "repeal X instead") — the ledger's chip road, same latch.
 	if meta_str.begins_with("do:"):
@@ -5330,7 +5338,9 @@ func _display_morning_dispatch(data: Dictionary):
 	# DDB-R7 (Pre-Deploy S13b part 3): at a rich peace the line names the law
 	# the chest could buy (`law_sink`, absent otherwise).
 	var law_sink := str(situation.get("law_sink", ""))
-	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8)[/color]"
+	# S14D-X3 (October 23, 2026): the line carries a DOOR to the eighth book —
+	# the Admiralty had a chip and LAWS only a pointer (DD-B opened it 0 times).
+	var sink_suffix := "" if law_sink == "" else "[color=#" + Utils.COLOR_INFO + "] — " + law_sink + " (the Laws tab: T, then 8) [/color]" + Utils.bb_button_chip("ledger:7", "Open the Laws", Utils.COLOR_COMMAND, "233043")
 	# VP-1 (S14b part 3): once the laws are bought, the Act of the Empire the
 	# chest could decree — its row is on the road page (`act_sink`).
 	var act_sink := str(situation.get("act_sink", ""))

@@ -12698,7 +12698,13 @@ class WorldState:
                 generate_counter_offer, _format_proposal_summary,
             )
             from backend.display_names import proposal_display_name
-            counter_terms = generate_counter_offer(proposal, self)
+            # S14D-X39 (October 23, 2026): the envoy walks the purse the player
+            # held WHEN THE PROPOSAL WAS SENT (the preview's dry run read that
+            # purse); the enemy phase's materiel bill and any spending since
+            # had made "COUNTER expected" resolve as REJECT. A pre-S14d transit
+            # carries no stamp and reads the live purse, as before.
+            counter_terms = generate_counter_offer(
+                proposal, self, payer_gold=pit.get("payer_gold_at_send"))
             if counter_terms:
                 # AI has viable counter-terms — present to player
                 summary = _format_proposal_summary(counter_terms)

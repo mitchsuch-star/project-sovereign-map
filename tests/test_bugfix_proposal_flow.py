@@ -466,7 +466,10 @@ class TestNoRawDataInCommentary:
         world = _make_world()
         if proposal_type in ("alliance", "non_aggression", "open_borders", "vassalage"):
             diplo_key = world._make_diplo_key("France", target_nation)
-            world.diplomatic_states[diplo_key] = "PEACE"
+            # S14D-X12 (October 23, 2026): vassalage at PEACE is refused BEFORE the
+            # confirm now (the Cabinet's row is disabled there); the commentary
+            # is read on a state the ratifier accepts.
+            world.diplomatic_states[diplo_key] = "OPEN_BORDERS" if proposal_type == "vassalage" else "PEACE"
 
         executor = _make_executor()
         data = _build_diplomatic_data(target_nation, proposal_type)
@@ -490,7 +493,8 @@ class TestNoRawDataInCommentary:
             world = _make_world()
             if ptype in ("alliance", "non_aggression", "open_borders", "vassalage"):
                 diplo_key = world._make_diplo_key("France", target)
-                world.diplomatic_states[diplo_key] = "PEACE"
+                # S14D-X12: vassalage is refused before the confirm at PEACE.
+                world.diplomatic_states[diplo_key] = "OPEN_BORDERS" if ptype == "vassalage" else "PEACE"
             executor = _make_executor()
             data = _build_diplomatic_data(target, ptype)
             result = executor._execute_diplomatic_proposal(data, world)

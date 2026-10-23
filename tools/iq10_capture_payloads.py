@@ -2078,7 +2078,100 @@ def cap_popups_s12():
     fresh()
 
 
+def cap_first_open():
+    """S14d part 1, second landing (docs/TABLE_LESSON_SPEC.md §13.4) — the two
+    surfaces no row had shot, each off the wire with its line: the
+    separate-peace CHOOSER (`settlement_pair_substitute_confirm`, the peace
+    arm) off the whole-war PROPOSE table with Austria ready to sign alone,
+    reached through the chip's own dial on the dialogue road; and the
+    muster's gate road (the `muster_confirm` interrupt, S14D-X4) off an
+    outmatched typed attack, carrying `what_if_line`."""
+    # 1. the chooser: Vienna held, Austria's war score WRITTEN to +80 and her
+    #    war exhaustion to 60 (measured: at +80 alone she reads 38 "near
+    #    acceptable" and no chip; at exhaustion 60 she reads 53 ACCEPT and her
+    #    row carries "Separate peace with Austria"); the typed whole-war draft;
+    #    then the chip's dial through the dialogue endpoint (the client's
+    #    `send_dialogue_response_with_params` road).
+    world, c = fresh()
+    clear_dialogues(world)
+    vienna = world.regions.get("Vienna")
+    if vienna is not None:
+        vienna.controller = PLAYER
+        world.invalidate_active_nations_cache()
+    world.diplomatic_points = max(int(world.diplomatic_points), 5)
+    key = world._make_diplo_key(PLAYER, "Austria")
+    world.war_scores[key] = 80 if key.split("|")[0] == PLAYER else -80
+    world.war_exhaustion["Austria"] = 60
+    drafted = cmd(c, "propose common peace with Austria")
+    table = drafted.get("diplomatic_dialogue") or {}
+    rows = table.get("per_court_acceptance") or []
+    chip = next((a for r in rows if isinstance(r, dict) and r.get("nation") == "Austria"
+                 for a in (r.get("dial_actions") or [])
+                 if isinstance(a, dict) and a.get("action") == "seek_bilateral_peace"), None)
+    if not chip or chip.get("available") is False:
+        raise RuntimeError("Austria's row carries no live separate-peace chip: " + str(chip)[:200])
+    answer = post(c, "/respond_to_diplomatic_dialogue",
+                  {"choice": "seek_bilateral_peace", "action_params": chip,
+                   "dialogue_id": table.get("dialogue_id")})
+    chooser = answer.get("diplomatic_dialogue") or {}
+    if chooser.get("type") != "settlement_pair_substitute_confirm":
+        raise RuntimeError("the chip's dial did not mount the chooser: " + str(answer.get("message"))[:200])
+    record("settlement_pair_substitute", chooser,
+           source="POST /respond_to_diplomatic_dialogue {choice: seek_bilateral_peace, action_params: the chip} → diplomatic_dialogue",
+           staging="fresh 1805 boot; Vienna's controller WRITTEN to France; DP raised to 5; France's war "
+                   "score against Austria WRITTEN to +80 and her war exhaustion to 60 (she reads 53 "
+                   "ACCEPT); the typed whole-war draft, then Austria's own 'Separate peace with "
+                   "Austria' chip through the dialogue road",
+           facts={"type": chooser.get("type"), "proposal_type": chooser.get("proposal_type"),
+                  "options": [o.get("label") for o in (chooser.get("options") or []) if isinstance(o, dict)],
+                  "first_open": (chooser.get("first_open") or {}).get("screen"),
+                  "carry_line": chooser.get("carry_line")})
+
+    # 2. the muster's gate road: the first non-sovereign French marshal with an
+    #    enemy at war in an adjacent province; the enemy WRITTEN to eight times
+    #    the WHOLE French standing strength (the muster counts the corps likely
+    #    to arrive — at six times one corps Ney read "even" with 108,000
+    #    expected), so the player's typed attack pauses on its muster.
+    world, c = fresh()
+    clear_dialogues(world)
+    pair = None
+    for m in world.marshals.values():
+        if m.nation != PLAYER or int(m.strength) <= 0 or getattr(m, "is_sovereign", False):
+            continue
+        region = world.regions.get(m.location)
+        for adj in (getattr(region, "adjacent_regions", None) or []):
+            for e in world.marshals.values():
+                if (e.nation != PLAYER and e.location == adj and int(e.strength) > 0
+                        and world.is_at_war(PLAYER, e.nation)):
+                    pair = (m, e)
+                    break
+            if pair:
+                break
+        if pair:
+            break
+    if pair is None:
+        raise RuntimeError("no French marshal with an enemy at war in an adjacent province on the boot")
+    m, e = pair
+    _french = sum(int(x.strength) for x in world.marshals.values() if x.nation == PLAYER)
+    e.strength = max(int(e.strength), _french * 8)
+    reply = cmd(c, f"{m.name}, attack {e.name}")
+    if reply.get("pending_objection"):
+        reply = post(c, "/respond_to_objection", {"choice": "insist"})
+    interrupt = reply.get("pending_interrupt") or getattr(m, "pending_interrupt", None)
+    if not isinstance(interrupt, dict) or interrupt.get("interrupt_type") != "muster_confirm":
+        raise RuntimeError("the outmatched attack did not pause on its muster: " + str(reply.get("message"))[:200])
+    record("muster_confirm", interrupt,
+           source=f"POST /command '{m.name}, attack {e.name}' → pending_interrupt (muster_confirm)",
+           staging=f"fresh 1805 boot; {e.name} WRITTEN to {int(e.strength):,} men (eight times France's whole "
+                   f"standing strength) in the province adjacent to {m.name}; the typed attack pauses on its muster",
+           facts={"marshal": interrupt.get("marshal"), "target": interrupt.get("target"),
+                  "options": interrupt.get("options"),
+                  "names_the_preview": "Ask 'what if" in str(interrupt.get("message"))})
+    fresh()
+
+
 CAPTURES = {
+    "first_open": cap_first_open,
     "popups_s12": cap_popups_s12,
     "war_room": cap_war_room,
     "side_desk": cap_side_desk,

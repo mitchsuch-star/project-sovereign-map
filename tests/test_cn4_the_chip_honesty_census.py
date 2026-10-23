@@ -777,6 +777,10 @@ WIZARD_NATION = {  # a court on which the action is legal on the staged board
     # PC-R7 (ii) part 3: the bond — France binds her ally Bavaria (at war with
     # Austria at the boot); the outbid opens the table with Austria
     "bind_to_war": "Bavaria", "outbid_bond": "Austria",
+    # S14D-X12 (October 23, 2026): at PEACE the vassal row is disabled and the
+    # typed ask is refused before the confirm — the ally Bavaria (ALLIANCE, in
+    # VASSAL_MIN_STATES, under the power cap) is the court it is legal on.
+    "propose_vassal": "Bavaria",
 }
 PROPOSAL_WORD = {  # the treaty the confirm dialogue must name
     "propose_armistice": "Armistice", "propose_peace": "Peace Treaty",
@@ -1152,6 +1156,11 @@ REVIEWED = {
     ("tutorial_overlay.gd", '"open:" + str(step["open"])'): "asks main.gd to open the real Cabinet on the named court (open_cabinet), or the Strategic Ledger on the named book (open_ledger — RF-4c's LAWS card); sends nothing",
     # dispatch_view.gd — UXR3-23 (Pre-Deploy S12): the TODAY orders, chips now
     ("dispatch_view.gd", '"type:" + str(order)'): "fills the command line with the briefing's own order and closes the dispatch onto it (main.gd's _on_tutorial_suggest_command); never sends",
+    # S14D-X3 (October 23, 2026): the law line's door to the eighth book, on
+    # both dispatch renderers — the same ledger opener T then 8 uses
+    # (main.gd's _on_tutorial_open_ledger); neither sends.
+    ("dispatch_view.gd", '"ledger:7"'): "opens the Strategic Ledger on THE LAWS through main.gd's _on_tutorial_open_ledger (ledger_tab_requested); never sends",
+    ("main.gd", '"ledger:7"'): "the terminal dispatch's twin of the LAWS door — _on_output_meta_clicked → _on_tutorial_open_ledger; never sends",
 }
 
 

@@ -2679,6 +2679,8 @@ def _rule_text(world, key: str, ap: bool) -> str:
     gain = int(getattr(world, "DRILL_MORALE_GAIN", 10) or 10)
     gain_t = int(getattr(world, "DRILL_MORALE_GAIN_TRAINED", 15) or 15)
     pres = int(round(float(getattr(M.Marshal, "SOVEREIGN_PRESENCE_ATTACK", 0.10)) * 100))
+    # S14D-X29: the laws answer quotes the live Arrears window (REFORMS_SPEC §2.3).
+    from backend.game_logic.reforms import ARREARS_WINDOW_TURNS as _arrears_turns
     T = {
         "fortify": (f"Fortify digs the corps in where it stands ({cost('fortify')} action): its defence rises a little each turn "
                     f"it holds, up to the marshal's ceiling, and it takes the defensive stance — attacks from the works "
@@ -2735,7 +2737,12 @@ def _rule_text(world, key: str, ap: bool) -> str:
         "war_score": "The war score sums territory, battles, decisive victories, the capitals, the campaign ledger and the blood each side has paid; it prices the peace.",
         "war_exhaustion": "War weariness climbs each turn at war and with defeats; the wearier a court, the sooner it sues.",
         "attack": "Attack (one action) engages an enemy in reach; the muster names who will march with him and the odds, and a losing side may break and retreat.",
-        "laws": "The laws of state are bought once and paid for every turn; the Staff is the one road to a fifth order of the day. Press the LAWS tab of the ledger.",
+        # S14D-X29 (October 23, 2026): the key, the two currencies and the lapse,
+        # in the book's own words (TABLE_LESSON_SPEC §2 line 5 — one source).
+        "laws": (f"The laws of state are bought once — in gold or in authority — and paid for in gold every turn; "
+                 f"when the chest cannot pay, the heaviest upkeep lapses first, and a lapsed law returns within "
+                 f"{int(_arrears_turns)} turns at half its price plus the arrears. The Staff is the one road to a fifth "
+                 f"order of the day. The LAWS book of the ledger: T, then 8 (Alt+8 while you type)."),
         "congress": "The Congress of Paris is summoned at 45 titled provinces; it sits eight turns while every court is pressed to recognise the Empire.",
         "broken": "A corps is broken when it loses badly: it falls back and cannot take orders until it rallies (two to four turns, faster under a marshal of command 8 or more); a broken corps caught again may be destroyed.",
         "diversion": "The Grand Diversion sends the fleet out to draw the Royal Navy off the Channel: one action, readiness spent, a throw at the odds the Admiralty quotes — won, it opens a window for the Descent; lost, the fleet pays at sea.",

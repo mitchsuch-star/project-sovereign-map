@@ -255,6 +255,8 @@ class TestClientStructuralPins:
             # seventh's, pinned with the other six.
             "The fleet, the blockades, the crossings",
             "The laws of the Empire",
+            # S14D-X28 (October 23, 2026): the Economy pointer carries the Alt rule.
+            "press 7 (Alt+7 while you type)",
         ):
             assert fragment in ledger, fragment
         # CONSCIOUS FLIP, A11 (CA9 row 3), Aug 9 2026. The R159 sentence
@@ -269,6 +271,10 @@ class TestClientStructuralPins:
         assert "Every court of Europe" in _read("scripts/diplomatic_ledger.gd")
         assert "tooltip_text" in _read("scripts/war_status_panel.gd")
         assert "the price of peace" in _read("scripts/war_detail_popup.gd")
+        # S14D-X35 (October 23, 2026): the door line names the table it opens,
+        # and the coalition label the whole-war road.
+        assert "Negotiate opens the table, where every court signs for itself" in _read("scripts/war_detail_popup.gd")
+        assert "each with its own table" in _read("scripts/war_detail_popup.gd")
         assert "One province — who holds it" in _read("scripts/region_panel.gd")
         assert "it lapses" in _read("scripts/mailbox_panel.gd")
         assert "before you spend a single order" in _read("scripts/dispatch_view.gd")

@@ -606,21 +606,31 @@ func _build_settlement_content(data: Dictionary) -> String:
 	# bold lines over the table) opens the footer, under the table and its
 	# Press / Ease / Drop rows (`_build_settlement_footer`).
 	var can_ratify_now = bool(data.get("can_ratify", true))
-	if can_ratify_now:
+	# S14D-X6 (October 23, 2026): PROPOSE has no Ratify — its acts are the
+	# dials and Submit for Review — so its heading names the draft and the
+	# review; REVIEW keeps ratification.
+	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
+	if dialogue_mode == "PROPOSE":
+		if can_ratify_now:
+			bbcode += "[b][color=#e0c070]Settlement of %s — every court consents; submit it for review[/color][/b]\n" % war_label
+		else:
+			bbcode += "[b][color=#e66262]This draft will not carry as it stands.[/color][/b]\n"
+	elif can_ratify_now:
 		bbcode += "[b][color=#e0c070]Settlement of %s — ready for ratification[/color][/b]\n" % war_label
 	else:
 		bbcode += "[b][color=#e66262]This settlement cannot be ratified now.[/color][/b]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
-	# S14d: the table's first-open line under the heading's two lines — in the
-	# head region, after the verdict (which must stay seen at scale 2.0: the
-	# EA-E6 frame) and before the table and its rows.
-	bbcode += _first_open_bbcode(data, "settlement")
+	# S14d: the table's first-open line is NOT here. Measured on the re-shot
+	# frame (part 1's second landing): at Interface Scale 2.0 the EA-E6 fit
+	# leaves this head region ONE line tall (SETTLEMENT_LINE_FLOOR), and that
+	# line must stay the verdict — a third head line was never seen. The line
+	# opens the FOOTER instead (`_build_settlement_footer`), whose first line
+	# is seen at both scales.
 
 	# UX-2 (GT-Slice-3): REVIEW reads as a staged-decision surface, visually
 	# distinct from the PROPOSE authoring surface — the terms are frozen, the
 	# blockers are promoted to the top, and no authoring affordances render
 	# anywhere below (the backend already withholds them server-side).
-	var dialogue_mode = str(data.get("dialogue_mode", "REVIEW"))
 	if dialogue_mode == "REVIEW":
 		bbcode += "[color=#80a0d0][b]STAGED FOR REVIEW[/b] — the terms are frozen. Ratify, revise, or return to shaping.[/color]\n"
 		if not can_ratify_now:
@@ -659,6 +669,12 @@ func _build_settlement_footer(data: Dictionary) -> String:
 	var review = data.get("review_sections", {})
 	var sections = review.get("sections", {}) if review is Dictionary else {}
 	var bbcode = ""
+	# S14d (TABLE_LESSON_SPEC §2 line 3, as re-measured at the second landing):
+	# the table's first-open line opens the footer — the first line under the
+	# table and its rows, seen at both scales, where the head's one visible
+	# line at 2.0 must stay the verdict. The voice line it displaces at 2.0
+	# restates that verdict.
+	bbcode += _first_open_bbcode(data, "settlement")
 	# SC-19's settlement voice (the backend-resolved `talleyrand_text`): the
 	# live-review line or the blocked banner, under the table since UXR3-31.
 	var heading_voice = str(data.get("talleyrand_text", ""))
@@ -1569,7 +1585,8 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	bbcode += _first_open_bbcode(data, "separate_peace")
 	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n\n" % war_label
-	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % Utils.display_nation_name(target)
+	# S14D-X34 (October 23, 2026): the act's ONE name on every surface.
+	bbcode += "Separate peace with [b]%s[/b] — every other court keeps its war.\n" % Utils.display_nation_name(target)
 	# IGR-D: this line used to be a hardcoded, unconditional
 	# "Your drafted terms for X carry into the talks." The backend has
 	# composed the honest sentence since the July-25 R5 fix — naming what

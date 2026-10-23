@@ -505,9 +505,9 @@ class TestDDB24:
         d = r["diplomatic_dialogue"]
         assert d["scope_note"] == ("This white peace settles the whole war — with Austria, Britain "
                                    "and Russia. To settle with Austria alone, choose "
-                                   "'Make peace with Austria only'.")
+                                   "'Separate peace with Austria'.")   # S14D-X34: the one name
         assert d["talleyrand_text"].startswith(d["scope_note"])
-        assert "Make peace with Austria only" in [o["label"] for o in d["options"]]
+        assert "Separate peace with Austria" in [o["label"] for o in d["options"]]
 
 
 class TestDDB25:

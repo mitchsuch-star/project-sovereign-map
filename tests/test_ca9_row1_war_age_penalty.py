@@ -275,8 +275,12 @@ class TestItSaysSoOutLoud:
         """Untracked components can never be named as the sticking point, so
         the rule would be invisible and B would lose its own argument."""
         import inspect
-        src = inspect.getsource(D._generate_feedback)
-        assert '"war_age_penalty"' in src
+        # S14D-X37 (October 23, 2026): the trackable set is module-level now
+        # (`_FEEDBACK_TRACKABLE`), ranked by `_ranked_components` for the
+        # feedback AND the decision reason — one set.
+        assert "war_age_penalty" in D._FEEDBACK_TRACKABLE
+        assert "_FEEDBACK_TRACKABLE" in inspect.getsource(D._ranked_components)
+        assert "_ranked_components(components)" in inspect.getsource(D._generate_feedback)
 
     def test_a_negative_phrase_is_authored(self):
         from backend.display_names import FEEDBACK_STRINGS

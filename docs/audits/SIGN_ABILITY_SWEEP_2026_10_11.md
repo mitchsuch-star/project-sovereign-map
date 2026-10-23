@@ -157,3 +157,7 @@ TOTAL                                   0                   0
   re-seated: the caps zero per arm, `(0, 0)` asserted, the four S6 clauses
   asserted gone from the refused letters, the live quick set matched to its
   re-recorded record.
+
+## Re-recorded quick arms — S14D-X12 (October 23, 2026)
+
+Pre-Deploy S14d part 1b made the Cabinet's PEACE branch emit the `propose_vassal` row DISABLED with the emitter's reason (it was absent, so a typed ask opened a 3-DP confirm that failed only at send). The instrument records a present-but-unavailable chip as `chip:not_shown`, so the quick arms moved and were re-recorded with the row named: **FC `chip:not_shown` 8 → 30 (+22, every one a `propose_vassal` chip at a court at PEACE)**, **SEED-quick 35 → 67 (+32, the same rows across its four turns)**; every other verdict identical, `shown` unchanged (45 / 77), **A = 0 and B = 0 on both** — the promise the instrument guards is untouched. `tests/test_dd1_sign_ability_sweep.py::TestTheInstrumentLive` re-seated on the new records.

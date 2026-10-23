@@ -48,14 +48,30 @@ FRAME_DATE = "2026_10_21"
 
 # The capture groups the rows' boards live in, and the shots read here.
 GROUPS = ["boot", "battles", "layout_f3", "proclamation", "popups_s12",
-          "frames_s9", "petition", "peace", "screen_says", "user_saves", "collapse"]
+          "frames_s9", "petition", "peace", "screen_says", "user_saves", "collapse",
+          # S14d part 1, second landing: the frames with the first-open line at the head.
+          "first_open", "designs", "moments"]
 DECISION_MODALS = [
     "objection_dialog", "capture_choice", "talleyrand_objection",
     "interrupt_last_stand", "petition_command_closed", "petition_popup",
     "petition_popup_no_dp", "incoming_peace_losing", "confirm_peace_losing",
     "settlement_three_courts", "settlement_white_review_ratify",
     "settlement_white_review_holdout", "proclamation_warsaw", "reward_dialog",
+    # S14d part 1, second landing: the two surfaces no row had shot.
+    "settlement_pair_substitute", "muster_confirm",
 ]
+# S14d (docs/TABLE_LESSON_SPEC.md §13.4): the surfaces whose first-open line
+# stands at the head — the line's first words, and the first answer a player
+# must see above the fold (None: the first button inside the content scroll).
+S14D_LINED = {
+    "wizard_step1": ("Any court may be treated with here, Sire", None),
+    "wizard_formables_step3": ("States not yet on the map, Sire", None),
+    "wizard_designs_step4": ("Your own aims, Sire, not the courts'", "Proclaim Road I —"),   # not Road III
+    "settlement_three_courts": ("This is the table, Sire. Every court", "Demand more of Austria"),
+    "settlement_pair_substitute": ("A separate peace, Sire, takes this one", "Proceed — separate peace with Austria"),
+    "moment_letter_bavarian_match": ("A moment of history, Sire", "Seal the match"),
+    "moment_letter_decree_of_berlin": ("A moment of history, Sire", "Sign the Decree"),
+}
 # A shot whose board is a staged save under `saves/` (gitignored) shoots only
 # on a machine that holds it; elsewhere its pins skip — a skip is not a pass.
 STAGED_SAVE_SHOTS = {"reward_dialog"}
@@ -63,6 +79,8 @@ SHOTS = DECISION_MODALS + [
     "wizard_step2_austria", "wizard_step2_prussia", "wizard_formables_entry",
     "generals_boot", "top_bar_boot", "top_bar_admiralty",
     "diorama_dadj", "diorama_aadj",
+    # S14d: the lined surfaces and the proclaimed road page (S14D-X31).
+    *[s for s in S14D_LINED if s not in DECISION_MODALS], "wizard_designs_step4_proclaimed",
 ]
 SCALES = (1.0, 2.0)
 
@@ -473,7 +491,10 @@ class TestEAE6EveryCourtKeepsItsRow:
     @pytest.mark.parametrize("scale", SCALES)
     def test_the_verdict_and_the_table_lead_are_seen(self, record, scale):
         seen = _seen(_frame(record, "settlement_three_courts", scale))
-        assert "This settlement cannot be ratified now." in seen
+        # CONSCIOUS FLIP (S14D-X6, October 23, 2026): PROPOSE has no Ratify — its
+        # heading names the draft; "cannot be ratified now" is REVIEW's.
+        assert "This draft will not carry as it stands." in seen
+        assert "cannot be ratified" not in seen
         assert "Austria" in seen
 
 
@@ -654,4 +675,121 @@ class TestTheFramesAreCommitted:
         section = plan[plan.index("## UXR-4"):plan.index("## What this plan does not do")]
         assert "SF-RR5" in section
         for stem in COMMITTED:
+            assert stem in section, stem
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S14d part 1, second landing (October 23, 2026) — the first-open line at the
+# head and the first answer above the fold, at both scales
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _first_content_button(frame: dict):
+    """The topmost button inside a scroll — the first thing a player can press
+    on a scrolling surface; None where the surface scrolls nothing."""
+    inside_a_scroll = [b for b in frame.get("buttons") or []
+                       if b.get("scroll_rect") and b["rect_raw"][2] > 0 and b["rect_raw"][3] > 0]
+    if not inside_a_scroll:
+        return None
+    return min(inside_a_scroll, key=lambda b: (b["rect_raw"][1], b["rect_raw"][0]))
+
+
+class TestS14DEveryLineStandsAtTheHead:
+    """TABLE_LESSON_SPEC §10: a line at the head of the table, the chooser, the
+    letter, the road page or the Cabinet can push a button below the fold at
+    Interface Scale 2.0 — these pins are part 1's gate. Measured: the table's
+    line could NOT stand in its head (one line tall at 2.0, the verdict's) and
+    opens the footer instead, seen at both scales."""
+
+    @pytest.mark.parametrize("shot", sorted(S14D_LINED))
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_the_line_is_seen(self, record, shot, scale):
+        opening, _first = S14D_LINED[shot]
+        payload = _payload(record, next(r["payload"] for r in _runner().SHOTS if r["id"] == shot))
+        line = str((payload.get("first_open") or {}).get("line") or "")
+        assert line.startswith(opening), (shot, line)
+        assert line[:40] in _seen(_frame(record, shot, scale)), f"{shot} at {scale}: the line is not seen"
+
+    @pytest.mark.parametrize("shot", sorted(S14D_LINED))
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_the_first_answer_stands_above_the_fold(self, record, shot, scale):
+        _opening, first = S14D_LINED[shot]
+        frame = _frame(record, shot, scale)
+        if first is not None:
+            b = _button(frame, first)
+            assert _inside(b["rect_raw"], b.get("scroll_rect") or b["rect_raw"]), (shot, scale, first)
+            if shot in DECISION_MODALS:
+                assert _folded(frame) == [], (shot, scale)
+            return
+        top = _first_content_button(frame)
+        if top is None:
+            assert _folded(frame) == [], (shot, scale)      # nothing scrolls: nothing may fold
+        else:
+            assert _inside(top["rect_raw"], top["scroll_rect"]), (shot, scale, top["text"])
+
+
+class TestS14DTheCopyRowsOnTheFrames:
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_x9_the_cabinet_is_titled_so(self, record, scale):
+        seen = _seen(_frame(record, "wizard_step1", scale))
+        assert "THE CABINET" in seen and "DIPLOMACY" not in seen
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_x31_the_proclaimed_road_page_names_its_road(self, record, scale):
+        seen = _seen(_frame(record, "wizard_designs_step4_proclaimed", scale))
+        assert "The Empire's road is proclaimed, Sire" in seen
+        assert "One proclamation decides it" not in seen
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_x34_the_chooser_carries_the_one_name(self, record, scale):
+        frame = _frame(record, "settlement_pair_substitute", scale)
+        _button(frame, "Proceed — separate peace with Austria")
+        _button(frame, "Stay with the joint settlement")
+        assert "Separate peace with" in _seen(frame)
+
+
+class TestS14DX47TheInterruptKeepsItsAnswers:
+    """Found by the muster frame: the interrupt's plain Label grew past the
+    viewport on a long muster — both answers off the screen at 1.0 and 2.0,
+    the message itself unseen at 2.0. The message scrolls; the answers stay."""
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_both_answers_and_the_message_s_head_are_seen(self, record, scale):
+        frame = _frame(record, "muster_confirm", scale)
+        interrupt = _payload(record, "muster_confirm")
+        assert interrupt["interrupt_type"] == "muster_confirm"
+        _button(frame, "Commit the Attack")
+        _button(frame, "Cancel Order")
+        assert _folded(frame) == [], (scale, _folded(frame))
+        assert str(interrupt["message"])[:30] in _seen(frame), scale
+        assert "Ask 'what if" in str(interrupt["message"])         # S14D-X4: the gate road names the preview
+
+    def test_at_1_the_preview_s_sentence_is_read_whole(self, record):
+        assert "Ask 'what if" in _seen(_frame(record, "muster_confirm", 1.0))
+
+
+FRAME_DATE_S14D = "2026_10_23"
+COMMITTED_S14D = [
+    "IQ10_WIZARD_STEP1", "IQ10_WIZARD_FORMABLES_STEP3", "IQ10_WIZARD_DESIGNS_STEP4",
+    "IQ10_WIZARD_DESIGNS_STEP4_PROCLAIMED", "IQ10_SETTLEMENT_THREE_COURTS",
+    "IQ10_SETTLEMENT_PAIR_SUBSTITUTE", "IQ10_MOMENT_LETTER_BAVARIAN_MATCH",
+    "IQ10_MOMENT_LETTER_DECREE_OF_BERLIN", "IQ10_MUSTER_CONFIRM",
+]
+
+
+class TestS14DTheFramesAreCommitted:
+
+    @pytest.mark.parametrize("stem", COMMITTED_S14D)
+    def test_the_frame_is_committed_at_both_scales(self, stem):
+        for tail in ("", "_X2"):
+            png = AUDITS / f"{stem}{tail}_{FRAME_DATE_S14D}.png"
+            assert png.exists(), f"missing evidence frame: {png.name}"
+            assert png.stat().st_size > 8000, f"{png.name} is too small to be a real frame"
+
+    def test_uxr4_lists_them(self):
+        plan = _read(REPO / "docs" / "UX_UI_REVIEW_PLAN.md")
+        section = plan[plan.index("## UXR-4"):plan.index("## What this plan does not do")]
+        assert "S14d" in section
+        for stem in COMMITTED_S14D:
             assert stem in section, stem

@@ -249,10 +249,10 @@ text = "Execute"
 
 [node name="DiplomacyButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
 layout_mode = 2
-tooltip_text = "Diplomacy (F1) — treat with ANY nation: allies, neutrals, or enemies"
+tooltip_text = "The Cabinet (F1) — treat with ANY nation: allies, neutrals, or enemies"
 theme_override_colors/font_color = Color(0.72, 0.82, 1, 1)
 theme_type_variation = &"CaptionButton"
-text = "⚖ Diplomacy"
+text = "⚖ The Cabinet"
 
 [node name="EndTurnButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
 layout_mode = 2

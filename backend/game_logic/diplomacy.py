@@ -151,6 +151,9 @@ STATE_RELATION_REQUIREMENTS = {
 
 # Vassal: requires WAR (dictated peace) or OPEN_BORDERS+
 VASSAL_MIN_STATES = {"WAR", "OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"}
+# S14D-X12 (October 23, 2026): the ONE sentence for a vassal row refused by
+# state — the Cabinet's disabled row and the typed ask's refusal both read it.
+VASSAL_STATE_REASON = "Requires war (a dictated peace) or open borders and above"
 VASSAL_DP_COST = 3
 
 # War declaration
@@ -9312,32 +9315,48 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     }
 
 
-def _generate_feedback(outcome: str, components: Dict) -> str:
-    """Generate natural-language feedback based on formula components."""
-    # Find largest positive and negative components
-    trackable = {
-        "base_disposition", "war_score_modifier", "relation_modifier",
-        "war_weariness", "war_age_penalty", "stalemate_duration",
-        "coalition_loyalty", "coalition_bond",
-        "deal_balance", "diplomat_skill_bonus",
-        "personality_modifier", "special_desire_bonus",
-        "hegemony_target_mod", "bilateral_betrayal_mod",
-        "grievance_modifier",
-        "settlement_gratitude_mod",
-        "respected_estate_mod",
-        "agenda_mod",
-        "court_favour_mod",
-        "bargain_value_mod", "bargain_conflict_penalty",
-        "harshness_penalty", "harshness_bonus", "reliability_modifier",
-        "military_supremacy", "battlefield_diplomacy", "military_pressure",
-        "ultimatum_bonus",
-    }
+# The acceptance terms the player-facing feedback ranks (`_generate_feedback`)
+# — and, since S14D-X37, the terms the counterparty's decision reason is read
+# from: ONE set, so the rationale and the voice line cannot disagree.
+_FEEDBACK_TRACKABLE = frozenset({
+    "base_disposition", "war_score_modifier", "relation_modifier",
+    "war_weariness", "war_age_penalty", "stalemate_duration",
+    "coalition_loyalty", "coalition_bond",
+    "deal_balance", "diplomat_skill_bonus",
+    "personality_modifier", "special_desire_bonus",
+    "hegemony_target_mod", "bilateral_betrayal_mod",
+    "grievance_modifier",
+    "settlement_gratitude_mod",
+    "respected_estate_mod",
+    "agenda_mod",
+    "court_favour_mod",
+    "bargain_value_mod", "bargain_conflict_penalty",
+    "harshness_penalty", "harshness_bonus", "reliability_modifier",
+    "military_supremacy", "battlefield_diplomacy", "military_pressure",
+    "ultimatum_bonus",
+})
 
+# S14D-X37: the decision reason a top negative term stamps. Terms absent here
+# fall through to the branches below (the posture and war tests), as before.
+_REASON_BY_TOP_TERM = {
+    "coalition_loyalty": "league_loyalty",
+    "coalition_bond": "league_loyalty",
+    "relation_modifier": "cold_court",
+    "hegemony_target_mod": "hegemony_pressure",
+    "war_weariness": "war_overload",
+    "agenda_mod": "agenda_pursuit",
+    "bilateral_betrayal_mod": "distrust_promiser",
+    "reliability_modifier": "distrust_promiser",
+}
+
+
+def _ranked_components(components: Dict):
+    """(largest_positive, largest_negative, second_negative) over the
+    trackable set, each a (key, value) pair — ("", 0) where none."""
     largest_positive = ("", 0)
     largest_negative = ("", 0)
     second_negative = ("", 0)
-
-    for key in trackable:
+    for key in _FEEDBACK_TRACKABLE:
         val = components.get(key, 0)
         if val > largest_positive[1]:
             largest_positive = (key, val)
@@ -9346,6 +9365,13 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
             largest_negative = (key, val)
         elif val < second_negative[1]:
             second_negative = (key, val)
+    return largest_positive, largest_negative, second_negative
+
+
+def _generate_feedback(outcome: str, components: Dict) -> str:
+    """Generate natural-language feedback based on formula components."""
+    # Find largest positive and negative components
+    largest_positive, largest_negative, second_negative = _ranked_components(components)
 
     proposer_name = "Talleyrand"  # Default for player feedback
 
@@ -9573,6 +9599,17 @@ def determine_counterparty_decision_reason(
         return "distrust_promiser"
     if proposal_type in _DEEP_TREATY_TYPES and has_hard_reject_posture(world, proposer, target):
         return "distrust_promiser"
+
+    # S14D-X37 (October 23, 2026): the stamp follows the feedback's own ranking
+    # — the largest negative term over the ONE trackable set — so the
+    # rationale the player reads ("her loyalty to the league") and the reason
+    # the voice line speaks never disagree. Probed on the 1805 boot: every
+    # refusal stamped `hegemony_pressure` on a bare `hegemony_target_mod < 0`
+    # test while the feedback named the league in 15 of 16 cases. Display and
+    # the campaign log only — the stamp reaches no memory (verified).
+    _top_negative = _ranked_components(components)[1][0]
+    if _top_negative in _REASON_BY_TOP_TERM:
+        return _REASON_BY_TOP_TERM[_top_negative]
 
     if int(components.get("hegemony_target_mod", 0) or 0) < 0:
         return "hegemony_pressure"
@@ -13943,7 +13980,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             # and adding a state to the constant lights both seams at once.
             if state not in VASSAL_MIN_STATES:
                 available = False
-                reason = "Requires war (a dictated peace) or open borders and above"
+                reason = VASSAL_STATE_REASON
         if target_state == "VASSAL" and available:
             cap = check_vassalage_power_cap(world, player, target_nation)
             if not cap["allowed"]:
@@ -14237,6 +14274,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
     elif state == "PEACE":
         actions.append(_proposal_action("propose_open_borders", "Propose Open Borders", "OPEN_BORDERS"))
+        # S14D-X12 (October 23, 2026): the vassal row at PEACE, DISABLED with
+        # the emitter's reason (honest availability) — it was absent, so a
+        # typed ask opened a 3-DP confirm that failed only at send.
+        actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
         war_available = True
         war_reason = ""
         arm_cd = armistice_cooldowns.get(diplo_key, 0)

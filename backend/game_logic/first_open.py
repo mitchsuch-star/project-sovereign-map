@@ -6,6 +6,8 @@ one short line, once per campaign, latched in the save:
 
     cabinet          the Cabinet's step 1 and step 2 (`GET /diplomatic_preview`)
     designs          the Emperor's Designs road page (`GET /imperial_designs`)
+    formables        the Formable Nations page (`GET /formables`; the class
+                     sweep of part 1's second landing, §0 Q3)
     settlement       every `settlement_confirm` dialogue (a PROPOSE and a REVIEW form)
     separate_peace   the pair-substitute chooser, peace arm only
     laws             the Strategic Ledger's eighth book
@@ -35,7 +37,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 SCREENS: Tuple[str, ...] = (
-    "cabinet", "designs", "settlement", "separate_peace",
+    "cabinet", "designs", "formables", "settlement", "separate_peace",
     "laws", "admiralty_camp", "moment_letter",
 )
 LINE_CAP = 220
@@ -57,6 +59,18 @@ def _line_designs(world, ctx: Optional[Mapping[str, Any]]) -> str:
             "then a seal; hold both and the peace that seals it can be the "
             f"Decisive Peace. Proclaiming costs {int(PROCLAIM_DP_COST)} DP and "
             f"{int(PROCLAIM_ADMIN_COST)} administrative {admin} and cannot be undone.")
+
+
+def _line_formables(world, ctx: Optional[Mapping[str, Any]]) -> str:
+    # The class sweep (§0 Q3, second landing): the page's standing prompt names
+    # the requirements and not what forming DOES. Class C is carved at the
+    # table and born the carver's client (`formations.create_client`: loyalty,
+    # the satellite's tribute, "marches when the sponsor calls"); Class T
+    # forms by conquest and stands free (a vassal cannot form).
+    return ("States not yet on the map, Sire; each row names what its birth "
+            "requires. One carved at the table is born your client — it pays "
+            "tribute and marches when you call; one that forms by conquest "
+            "rises free.")
 
 
 def _line_settlement(world, ctx: Optional[Mapping[str, Any]]) -> str:
@@ -106,6 +120,7 @@ def _line_moment_letter(world, ctx: Optional[Mapping[str, Any]]) -> str:
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
+    "formables": _line_formables,
     "settlement": _line_settlement,
     "separate_peace": _line_separate_peace,
     "laws": _line_laws,

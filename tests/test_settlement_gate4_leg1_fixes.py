@@ -2799,3 +2799,78 @@ class TestGate4SmokeRosterNationExtraction:
         )
         assert result.matched is True
         assert result.diplomatic_data["target_nation"] == "KingdomOfItaly"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S14D-X39 / X46 (October 23, 2026): the envoy walks the purse at send
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestS14DX39TheEnvoyWalksThePurseAtSend:
+    """Probed on the 1805 boot: at 300 g the preview's dry run said 'COUNTER
+    expected'; the enemy phase's materiel bill left 2 g and the envoy answered
+    REJECT — the resolution read the purse AFTER the turn's bills and the
+    player's spending. The send stamps the purse; the envoy walks the stamp."""
+
+    def _transit(self, **extra):
+        pit = {"target": "Britain", "proposal": _armistice_proposal(), "turn_sent": 1,
+               "dp_cost": 1, "acceptance_snapshot": 38, "diplomatic_state_at_send": "WAR"}
+        pit.update(extra)
+        return pit
+
+    def test_the_stamped_purse_carries_the_counter_the_preview_promised(self):
+        world = _bilateral_war_world(france_gold=0, war_score=23)
+        world.current_turn = 2
+        world.proposal_in_transit = self._transit(payer_gold_at_send=2000)
+        events = world._process_proposal_in_transit()
+        assert "COUNTER_OFFER" in [e.get("outcome") for e in events]
+        active = world.dialogue_manager.peek()
+        assert active and active.get("type") == "counter_offer_response"
+
+    def test_without_a_stamp_the_live_purse_is_read_as_before(self):
+        world = _bilateral_war_world(france_gold=0, war_score=23)
+        world.current_turn = 2
+        world.proposal_in_transit = self._transit()
+        events = world._process_proposal_in_transit()
+        assert "COUNTER_OFFER" not in [e.get("outcome") for e in events]
+
+    def test_the_generator_takes_the_purse_it_is_handed(self):
+        from backend.game_logic.ai_diplomacy import generate_counter_offer
+        world = _bilateral_war_world(france_gold=0, war_score=23)
+        assert generate_counter_offer(_armistice_proposal(), world, dry_run=True) is None
+        assert generate_counter_offer(_armistice_proposal(), world, dry_run=True, payer_gold=2000) is not None
+
+    def test_the_send_stamps_the_purse_on_both_roads(self):
+        import pathlib
+        src = (pathlib.Path(__file__).resolve().parents[1] / "backend" / "commands"
+               / "diplomatic_executor.py").read_text(encoding="utf-8")
+        assert src.count('"payer_gold_at_send": int(') == 2
+        ws = (pathlib.Path(__file__).resolve().parents[1] / "backend" / "models"
+              / "world_state.py").read_text(encoding="utf-8")
+        assert 'payer_gold=pit.get("payer_gold_at_send")' in ws
+
+    def test_x46_a_counter_the_chest_cannot_pay_is_refused_aloud(self):
+        """X39's sibling: the counter's gold the player pays was applied as
+        min(amount, available) at ratification — a purse spent since the
+        letter arrived underpaid it in silence."""
+        from backend.commands.executor import CommandExecutor
+        world = _bilateral_war_world(france_gold=100, war_score=23)
+        world.dialogue_manager.replace({
+            "type": "counter_offer_response", "target_nation": "Britain",
+            "talleyrand_text": "Sire, Britain has returned with modified terms.",
+            "options": [
+                {"label": "Accept counter-offer", "description": "Ratify.", "action": "accept_counter_offer"},
+                {"label": "Reject", "description": "Decline.", "action": "reject_counter_offer"},
+            ],
+            "context": {
+                "source_nation": "Britain",
+                "original_proposal": _armistice_proposal(),
+                "counter_terms": _armistice_proposal(sweeteners=[{"type": "gold_lump", "value": 300}]),
+            },
+            "turn_created": int(world.current_turn), "blocking": True,
+        })
+        result = CommandExecutor().handle_diplomatic_dialogue_response("accept", {"world": world})
+        assert result["success"] is False
+        assert "300 gold" in result["message"] and "100 in the treasury" in result["message"]
+        assert world.dialogue_manager.peek() is not None          # the letter waits
+        assert int(world.nation_gold["France"]) == 100

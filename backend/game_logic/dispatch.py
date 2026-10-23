@@ -5022,6 +5022,19 @@ def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
         line = str(moment.get("line") or "").strip()
         if line:
             row["line"] = line
+    # S14D-X45 (October 23, 2026, the class sweep): a lapsed CALL TO ARMS is
+    # refused at its price (`call_to_arms.refuse_lapsed_letter`) and the turn
+    # manager stamps `call_to_arms` on the lapse row — but this row copied
+    # only the petition's and the moment's, so both renderers (which print a
+    # carried `line` for any letter since S14C-X15) fell to "'s call to arms
+    # offer lapsed unanswered" with the price unsaid.
+    call = offer.get("call_to_arms")
+    if isinstance(call, dict) and call:
+        row["is_call_to_arms"] = True
+        row["penalty"] = bool(call.get("penalty"))
+        line = str(call.get("message") or "").strip()
+        if line:
+            row["line"] = line
     return row
 
 

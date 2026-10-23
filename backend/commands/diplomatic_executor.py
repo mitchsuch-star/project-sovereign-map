@@ -1352,6 +1352,20 @@ class DiplomaticExecutor:
                 }
 
         if proposal_type == "vassalage":
+            # S14D-X12 (October 23, 2026): the typed ask meets the state gate
+            # BEFORE the confirm — the Cabinet's row is disabled with this same
+            # sentence (one source, `VASSAL_STATE_REASON`); it used to open a
+            # 3-DP confirm that failed only at send.
+            from backend.game_logic.diplomacy import VASSAL_MIN_STATES, VASSAL_STATE_REASON
+            if current_diplo_state not in VASSAL_MIN_STATES:
+                return {
+                    "success": False,
+                    "message": (f"Talleyrand will not carry it, Sire: vassalage for "
+                                f"{_court_named(world, target_nation)} "
+                                f"{VASSAL_STATE_REASON[0].lower() + VASSAL_STATE_REASON[1:]}."),
+                    "diplomatic_dialogue": None,
+                    "awaiting_diplomatic_response": False,
+                }
             from backend.game_logic.diplomacy import check_vassalage_power_cap
             cap = check_vassalage_power_cap(world, world.player_nation, target_nation)
             if not cap["allowed"]:
@@ -3925,9 +3939,10 @@ class DiplomaticExecutor:
                                     (_row.get("dial_actions") or [])
                                     if isinstance(a, dict)]
                 for _label in _labels:
+                    # S14D-X34 (October 23, 2026): the act has ONE name on every
+                    # surface — the rejected popup's option now carries the chip's.
                     if (_dn(target_nation) in _label or target_nation in _label) and (
-                            _label.startswith("Make peace with")
-                            or _label.startswith("Separate peace with")):
+                            _label.startswith("Separate peace with")):
                         _road = _label
                         break
                 _how = (f"choose '{_road}'" if _road
@@ -5236,6 +5251,9 @@ class DiplomaticExecutor:
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
                 "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
+                # S14D-X39: the purse the preview's dry run read — the envoy's
+                # gold bridge walks this, not the purse after the turn's bills.
+                "payer_gold_at_send": int((getattr(ctx.world, "nation_gold", {}) or {}).get(get_player_nation(ctx.world), 0) or 0),
             }
 
             # Log event
@@ -6810,6 +6828,9 @@ class DiplomaticExecutor:
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
                 "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
+                # S14D-X39: the purse the preview's dry run read — the envoy's
+                # gold bridge walks this, not the purse after the turn's bills.
+                "payer_gold_at_send": int((getattr(ctx.world, "nation_gold", {}) or {}).get(get_player_nation(ctx.world), 0) or 0),
             }
 
             # Record override if player overrode Talleyrand's objection.
@@ -6936,6 +6957,22 @@ class DiplomaticExecutor:
                 counter_terms["proposer_nation"] = source_nation
             if "target_nation" not in counter_terms:
                 counter_terms["target_nation"] = ctx.world.player_nation
+            # S14D-X46 (October 23, 2026, X39's sibling): a counter's gold the
+            # PLAYER pays is applied as `min(amount, available)` at ratification
+            # — a purse spent since the letter arrived underpaid it in silence.
+            # The chest is read at the click; a shortfall is refused aloud and
+            # the letter waits.
+            if str(counter_terms.get("proposer_nation") or "") == str(ctx.world.player_nation):
+                _owed = sum(int(abs(int(s.get("value", s.get("amount", 0)) or 0)))
+                            for s in (counter_terms.get("sweeteners") or [])
+                            if isinstance(s, dict) and str(s.get("type") or "") == "gold_lump")
+                _have = int((getattr(ctx.world, "nation_gold", {}) or {}).get(ctx.world.player_nation, 0) or 0)
+                if _owed > _have:
+                    return {
+                        "success": False,
+                        "message": (f"The chest cannot pay the {_owed:,} gold the counter asks, Sire — "
+                                    f"{_have:,} in the treasury. The letter waits."),
+                    }
             treaty_event = ctx.world._ratify_treaty(counter_terms)
             ctx.world.dialogue_manager.pop()
             ctx.world.incoming_proposal_popup = None

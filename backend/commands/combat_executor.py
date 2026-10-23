@@ -844,6 +844,9 @@ class AttackContext:
     capture_result: Any = field(init=False)
     bombard_result: Any = field(init=False)
     muster_preview: Any = field(init=False)
+    # S14D-X30: the foe the muster was read against, AS ORDERED — before the
+    # cover swap and the battle; `what_if_line` on the resolved road names him.
+    muster_foe: Any = field(init=False)
     covering_message: Any = field(init=False)
     flanking_info: Any = field(init=False)
     flanking_bonus: Any = field(init=False)
@@ -8003,6 +8006,7 @@ class CombatExecutor:
         # gate too (the free attack was already earned and consumed).
         # ════════════════════════════════════════════════════════════
         ctx.muster_preview = None
+        ctx.muster_foe = None
         # Step 3 (combat C1): a strategic re-issue the player CONFIRMED
         # (the answered contact question, `_muster_confirmed`) still builds
         # its muster — the block rides the battle with the gate off.
@@ -8014,6 +8018,10 @@ class CombatExecutor:
                 and ctx.marshal.nation == ctx.world.player_nation):
             ctx.muster_preview = self._build_muster_preview(
                 ctx.marshal, ctx.enemy_marshal, ctx.world, ctx.game_state)
+            # S14D-X30 (October 23, 2026): the free preview is taught against
+            # the foe the player ORDERED — the cover swap below may put another
+            # defender in his place, and the battle may destroy him.
+            ctx.muster_foe = ctx.enemy_marshal
             gate_armed = (not ctx.command.get("_muster_confirmed")
                           and not ctx.is_counter_punch)
             # CA9 row 2: the blocking confirm is armed by CHARACTER, not by
@@ -8074,10 +8082,15 @@ class CombatExecutor:
                         # match the button's own label exactly.
                         f"'Commit the Attack' to send him in "
                         f"regardless — or Cancel to hold him "
-                        f"back.\n{muster_text}\n"
+                        f"back.\n"
                         # S14D-X4 (October 23, 2026): the gate road names the
                         # free preview too — the resolved road already does.
+                        # At the HEAD of the message, before the muster's
+                        # lines: the muster names every corps, and the re-shot
+                        # frame (S14D-X47) showed its last line scrolled out of
+                        # view at both scales — the one line that teaches.
                         + what_if_line(ctx.marshal, ctx.enemy_marshal)
+                        + f"\n{muster_text}"
                     ),
                     "muster_preview": ctx.muster_preview,
                 }
@@ -10055,7 +10068,7 @@ class CombatExecutor:
         if ctx.muster_preview is not None:
             # DDB-R2 (2): the muster riding a result teaches the free preview.
             battle_message = (self._format_muster_lines(ctx.muster_preview)
-                              + "\n" + what_if_line(ctx.marshal, ctx.enemy_marshal)
+                              + "\n" + what_if_line(ctx.marshal, ctx.muster_foe or ctx.enemy_marshal)
                               + "\n\n" + battle_message)
 
         # W6-2 Dynamic Battle Naming: battle_name was composed once above

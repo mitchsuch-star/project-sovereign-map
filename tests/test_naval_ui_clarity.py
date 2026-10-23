@@ -293,8 +293,13 @@ class TestClientConsumption:
     def test_legend_and_camp_progress_render(self):
         gd = _read_gd("scripts/strategic_ledger.gd")
         assert "crossings_legend" in gd
-        assert "camp_required" in gd
-        assert "a descent requires" in gd
+        # S14D-X26 (October 23, 2026): the client prints the backend's ONE camp
+        # line; the two dead fallbacks (and this pin, which passed on them) are
+        # gone — the line's words live in naval.py.
+        assert 'fleet.get("camp_line"' in gd
+        assert "men a descent requires" not in gd
+        naval_src = (REPO / "backend" / "game_logic" / "naval.py").read_text(encoding="utf-8")
+        assert "a descent requires" in naval_src
 
     def test_disabled_chips_use_the_pill_family(self):
         gd = _read_gd("scripts/strategic_ledger.gd")

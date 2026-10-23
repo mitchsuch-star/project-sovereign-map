@@ -264,8 +264,15 @@ class TestPCR1:
         out = CS.counsel_for_wizard(world, "Austria")
         assert out["best_road"] in ("table_alone", "send_peace"), out["roads_display"]
         best = next(r for r in out["roads"] if r["road"] == out["best_road"])
-        assert best["available"] and best["carries"] and best["price_dp"] == 3
-        assert "3 DP" in out["line"] and BAVARIA_NOTE in out["line"]
+        # CONSCIOUS FLIP (S14D-X11, October 23, 2026): the table road opens and
+        # ratifies for 0 DP (the Austria page's `open_settlement` row reads
+        # dp_cost 0; a ratification spent none) — it was priced as the 3-DP
+        # bilateral and shut under 3 DP. The bilateral road keeps its 3.
+        assert best["available"] and best["carries"]
+        assert best["price_dp"] == (3 if out["best_road"] == "send_peace" else 0)
+        assert (("3 DP" in out["line"]) if out["best_road"] == "send_peace"
+                else ("no diplomatic points" in out["line"]))
+        assert BAVARIA_NOTE in out["line"]
         with _quiet():
             res = world._ratify_treaty({"type": "peace", "proposer_nation": "France",
                                         "target_nation": "Austria", "sweeteners": [],
@@ -3173,8 +3180,10 @@ class TestPCR7:
         road = next(r for r in reading["roads"] if r["road"] == "table_alone")
         assert road["declared_draft"] is True and road["action"] == "open_settlement"
         assert road["priced_terms"] == declared
-        assert road["trade"].startswith("It costs 3 DP. Priced on the articles declared at the war: "
-                                        "Tyrol, an indemnity.")
+        # CONSCIOUS FLIP (S14D-X11): the table road costs no DP to open.
+        assert road["trade"].startswith("It costs no diplomatic points to open. Priced on the articles "
+                                        "declared at the war: Tyrol, an indemnity.")
+        assert road["price_dp"] == 0 and road["available"] is True
         M = _swap_in(monkeypatch, w)
         client = TestClient(M.app)
         w.diplomatic_points = 9

@@ -324,7 +324,7 @@ class TestTheLegitimacySentence:
         sentence = SS.legitimacy_sentence(world, rows, holdouts, 50)
         assert sentence.startswith("Vilna is unbeaten — a whole-war peace needs its consent")
         # RS-22 (SR-6b): ONE court to press, the rest priced apiece.
-        assert "Press Austria alone: the separate peace." in sentence
+        assert "A separate peace with Austria: press her alone." in sentence   # S14D-X34
         assert "The others — Britain — can each be treated with alone, at" in sentence
         _set_france_score(world, "Britain", 0)
 

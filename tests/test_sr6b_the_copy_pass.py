@@ -156,15 +156,16 @@ class TestOneCourtToPress:
 
     def test_one_named_the_others_apiece(self, world):
         line = SG.legitimacy_sentence(world, _rows(), ["Britain"], 50)
-        assert "Press Austria alone: the separate peace." in line, line
+        # S14D-X34 (October 23, 2026): the act's ONE name, "Separate peace with X".
+        assert "A separate peace with Austria: press her alone." in line, line
         assert "The others — Russia — can each be treated with alone, at" in line
         assert "apiece" in line
-        assert "Press Austria and Russia alone" not in line
+        assert "Austria and Russia" not in line
 
     def test_lever_down_joins_them(self, world, monkeypatch):
         monkeypatch.setattr(SG, "THE_HINT_PRESSES_ONE_COURT", False)
         line = SG.legitimacy_sentence(world, _rows(), ["Britain"], 50)
-        assert "Press Austria and Russia alone: the separate peace." in line
+        assert "A separate peace with Austria and Russia: press them alone." in line   # S14D-X34
         assert "apiece" not in line
 
 
