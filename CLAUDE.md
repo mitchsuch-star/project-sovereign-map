@@ -31,15 +31,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > review → the deep dives DD-0 / DD-1 → the Score Finish residue → the deploy);
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
-> user owes — read it first, every session.** The Score Finish residue
-> (`docs/SCORE_FINISH_SPEC.md` §3 Step 9) is COMPLETE; S14b COMPLETE; S14c COMPLETE (`docs/EVENTS_SPEC.md` §17); S14d is next.
+> user owes — read it first, every session.** The Score Finish residue,
+> S14b and S14c are COMPLETE; **S14d is in progress** (`docs/TABLE_LESSON_SPEC.md`).
 
-**▶ LIVE STATE (October 22, 2026).** The three most recent landed rows:
-- **S14c part 4 (Oct 22) — the sweep, the walk, the close — LANDED; S14c COMPLETE** (§147.12). **NEXT = S14d, the table lesson.**
-- **S14c part 3 (Oct 22) — the Crown of the Reich, the matrix — LANDED** (§147.11).
-- **S14c part 2b (Oct 22) — three letters armed — LANDED** (§147.10).
+**▶ LIVE STATE (October 23, 2026).** The three most recent landed rows:
+- **S14d part 1, first landing (Oct 23) — the first-open lines — LANDED** (§148). **NEXT = part 1's second landing, then part 2.**
+- **S14d gate (Oct 23) — RULED** (`docs/TABLE_LESSON_SPEC.md`; A1 a reduction named for you).
+- **S14c part 4 (Oct 22) — the sweep, the walk, the close — LANDED; S14c COMPLETE** (§147.12).
 
-**Open with the user:** UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** S14d's A1 (mounts/signs; 1.5 → ~2.5), UXR-4 (their eyes at 5120×1440, S15), a code-signing certificate before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 
@@ -96,6 +96,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 | `backend/game_logic/jealousy.py` | Jealousy v3.2: glory ladder, grievance triggers/resolution, crown, escalation, the marshal-petition channel (§6/§6b/ESP-1/ESP-2), autonomous attacks, enemy proxy |
 | `backend/game_logic/recruitment.py` | Marshal Recruitment ("The Marshalate"): pool queries, commission gate/effects, AI commission rung, Generals-screen payload |
 | `backend/game_logic/moments.py` | S14c moments: the authored letters of the record — store, predicates, closed ops, `plan`, tick, the court-less letter (`docs/EVENTS_SPEC.md`) |
+| `backend/game_logic/first_open.py` | S14d first-open lines: the store, `line_for`, `with_line`, `mark_seen` (`docs/TABLE_LESSON_SPEC.md`) |
 | `backend/game_logic/naval.py` | DEF-5 "The Wooden Wall": the ONE naval domain module — fleets store/pooling/coverage, crossing gate, blockade + CS 2.0 closure, expedition odds/resolver, fleet action, Descent camp/diversion/window, per-turn tick, AI posture derivation + build rung |
 | `backend/commands/naval_executor.py` | Naval verbs: build_fleet, set_fleet_posture, naval_expedition (quote-then-confirm), naval_diversion (~380 lines) |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |

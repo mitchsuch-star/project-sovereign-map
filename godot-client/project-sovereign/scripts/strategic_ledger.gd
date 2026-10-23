@@ -165,6 +165,22 @@ func open_to_tab(api_client, tab_index: int):
 	_update_tab_highlights()
 
 
+func _first_open_bbcode(data, screen: String) -> String:
+	"""S14d: a book's `first_open` {screen, line} as one INFO line, then the
+	acknowledgement through the api_client (the ledger holds its own ref)."""
+	if not (data is Dictionary):
+		return ""
+	var fo = data.get("first_open")
+	if not (fo is Dictionary) or str(fo.get("screen", "")) != screen:
+		return ""
+	var line := str(fo.get("line", ""))
+	if line == "":
+		return ""
+	if _api_client_ref != null and _api_client_ref.has_method("note_first_open"):
+		_api_client_ref.note_first_open(screen)
+	return "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
+
+
 func close_view():
 	"""Hide the overlay and emit closed signal."""
 	if visible:
@@ -904,6 +920,9 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 	var bbcode = ""
 	var fleet = adm.get("own_fleet")
 	if fleet is Dictionary:
+		# S14d (docs/TABLE_LESSON_SPEC.md §2 line 6): the camp's first-open line at
+		# the top of the fleet block, BEFORE the warning that names staging (S14D-X25).
+		bbcode += _first_open_bbcode(adm, "admiralty_camp")
 		var posture = str(fleet.get("posture", "guard"))
 		var posture_line = "blockade — every enemy port watched" if posture == "blockade" else "guard — home waters covered"
 		# DDB-61 (Pre-Deploy S13b part 4): the backend's ONE phrase, honest
@@ -1140,6 +1159,11 @@ func _render_laws_tab():
 	var laws = cached_data.get("laws", {})
 	var bbcode = "[color=#" + Utils.COLOR_HEADER + "][b]THE LAWS OF STATE[/b][/color]\n"
 	bbcode += _dated_line()
+	# R159 (S14D-X2, October 23, 2026): the eighth book names the mechanic it
+	# displays, as every other book does.
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).[/color]\n"
+	# S14d (docs/TABLE_LESSON_SPEC.md §2 line 5): the book's first-open line.
+	bbcode += _first_open_bbcode(laws, "laws")
 	if not (laws is Dictionary) or laws.is_empty():
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]This campaign has no laws of state.[/color]\n"
 		content_area.text = bbcode

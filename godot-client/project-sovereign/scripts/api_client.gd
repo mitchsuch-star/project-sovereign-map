@@ -13,6 +13,9 @@ var http_request: HTTPRequest
 var _request_in_flight: bool = false
 var pending_callback: Callable
 var _request_queue: Array = []
+# S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open acknowledgements of THIS
+# world — one POST per screen; main.gd clears it on every world swap.
+var _first_open_acked: Dictionary = {}
 # UXR-D4 (Pre-Deploy S12b): the requests this client has SENT, by endpoint —
 # the Side Desk's driven proof counts a pinned ledger's re-reads on it.
 var sent_counts: Dictionary = {}
@@ -282,6 +285,21 @@ func send_strategic_response(marshal_name: String, response_type: String, choice
 
 func dismiss_notification(notification_id: String, callback: Callable):
 	_send_post("/notifications/dismiss", {"id": notification_id}, callback)
+
+
+# S14d (docs/TABLE_LESSON_SPEC.md §3): a surface drew its first-open line —
+# acknowledge it ONCE per screen per world. The callback is a discard: the
+# endpoint returns a tiny dict, never an envelope, so nothing routes through
+# the result path (which would re-enable the command line under a modal).
+func note_first_open(screen: String) -> void:
+	if screen == "" or _first_open_acked.has(screen):
+		return
+	_first_open_acked[screen] = true
+	_send_post("/first_open", {"screen": screen}, func(_response): pass)
+
+
+func reset_first_open_acks() -> void:
+	_first_open_acked.clear()
 
 
 # W6-0 (BUG-CA-7): popups pass the `dialogue_id` they RENDERED so the backend

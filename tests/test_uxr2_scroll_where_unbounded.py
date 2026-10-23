@@ -192,8 +192,10 @@ class TestTheScriptArm:
         # four labels (the step-1 row, the empty page, the headline, a road's
         # block) — every one in the wizard's scrolled list. 12 -> 15 flipped
         # consciously at S14b part 3: the Acts block's three (its heading, an
-        # Act's row, a refusal's reason) — the same scrolled list.
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 15
+        # Act's row, a refusal's reason) — the same scrolled list. 15 -> 16
+        # flipped consciously at S14d part 1 (October 23, 2026): the first-open
+        # line's row (`_add_first_open_line`) — the same scrolled list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 16
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

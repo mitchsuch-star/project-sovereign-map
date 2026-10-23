@@ -693,6 +693,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         "gold_projected_net": _gold_projected_net(world),
     }
     response.update(extra)
+    # S14d (docs/TABLE_LESSON_SPEC.md §3): every dialogue-borne payload leaves
+    # the envelope with its first-open line on a COPY — the one chokepoint for
+    # the executor's forwarded results (`_build_result_response` forwards every
+    # key); the stored dialogue never gains the key.
+    _wire_result_dialogues(world, response)
     if _terminal_record is not None:
         _attach_terminal_ending(response, world, _terminal_record)
     # FA-39: the player's parse provenance, display-only (GR6). Sited HERE
@@ -2059,7 +2064,7 @@ def _apply_command_popup_contract(response: dict, result: dict, world) -> None:
         if result.get("ai_proposal"):
             response["ai_proposal"] = result["ai_proposal"]
             if world.pending_diplomatic_dialogue:
-                response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
+                response["diplomatic_dialogue"] = _wire_dialogue(world, world.pending_diplomatic_dialogue)
         _include_popup_passthroughs(response, world)
         return
 
@@ -2677,7 +2682,7 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 popup["decision_reason_display"] = diplomatic_decision_reason_display(
                     str(popup.get("decision_reason", ""))
                 )
-            response[winner_key] = popup
+            response[winner_key] = _wire_dialogue(world, popup)
         elif winner_key == "proposal_result" and isinstance(winner_value, dict):
             from backend.display_names import diplomatic_decision_reason_display
 
@@ -2686,7 +2691,7 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 popup["decision_reason_display"] = diplomatic_decision_reason_display(
                     str(popup.get("decision_reason", ""))
                 )
-            response[winner_key] = popup
+            response[winner_key] = _wire_dialogue(world, popup)
         elif winner_key == "marshal_petition" and isinstance(winner_value, dict):
             # In-game review July 25, 2026: petitions are built inside the turn
             # pass (before advance_turn refills AP), so their priced arms must
@@ -2727,8 +2732,8 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 # popup_payload and falls back to the full envoy builder
                 # (which resolves the diplomat from world.diplomats).
                 dialogue = world.pending_diplomatic_dialogue
-                response["incoming_proposal"] = (
-                    _build_pending_envoy_popup_from_dialogue(world, dialogue))
+                response["incoming_proposal"] = _wire_dialogue(
+                    world, _build_pending_envoy_popup_from_dialogue(world, dialogue))
             else:
                 response[response_key] = None
 
@@ -5334,7 +5339,7 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
 
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):
-            response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+            response["diplomatic_dialogue"] = _wire_dialogue(world, result["diplomatic_dialogue"])
         elif (result.get("success")
               and world.proposal_result_popup is None
               # IQ-7 (Sept 16, 2026): the first build above already POPPED
@@ -5457,7 +5462,7 @@ def respond_to_diplomatic_objection(request: DiplomaticObjectionResponse):
             events=result.get("events", []),
         )
         if result.get("diplomatic_dialogue"):
-            response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+            response["diplomatic_dialogue"] = _wire_dialogue(world, result["diplomatic_dialogue"])
         if result.get("awaiting_diplomatic_response"):
             response["awaiting_diplomatic_response"] = True
         return response
@@ -6521,6 +6526,15 @@ def get_ledger():
         return {"success": False, "message": "No active game"}
     from backend.game_logic.ledger import build_strategic_ledger
     ledger = build_strategic_ledger(world)
+    # S14d (docs/TABLE_LESSON_SPEC.md §2 lines 5–6): the LAWS book's and the
+    # camp's first-open lines, on this GET's own dict (rebuilt per call, never
+    # stored); the builders keep their drift pins untouched.
+    from backend.game_logic import first_open
+    if isinstance(ledger.get("laws"), dict):
+        first_open.attach(ledger["laws"], world, "laws")
+    _adm = ledger.get("admiralty")
+    if isinstance(_adm, dict) and (_adm.get("own_fleet") or {}).get("camp_provinces"):
+        first_open.attach(_adm, world, "admiralty_camp")
     payload = {"success": True, "ledger": ledger}
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload
@@ -7086,6 +7100,27 @@ def get_diplomatic_preview_endpoint(
     proposer_side: str = "",
     density: str = "medium",
 ):
+    """S14d (docs/TABLE_LESSON_SPEC.md §2 line 1): the Cabinet's first-open line
+    rides the `nations` and `preview` modes (never the settlement mode) on the
+    fresh dict the payload builder returns — a pure read; the client
+    acknowledges it when it draws the row (`POST /first_open`)."""
+    payload = _diplomatic_preview_payload(nation=nation, mode=mode, war_id=war_id,
+                                          proposer_side=proposer_side, density=density)
+    if (isinstance(payload, dict) and payload.get("success")
+            and str(payload.get("mode") or "") != "settlement"
+            and game_state.get("world") is not None):
+        from backend.game_logic import first_open
+        first_open.attach(payload, game_state["world"], "cabinet")
+    return payload
+
+
+def _diplomatic_preview_payload(
+    nation: str = "",
+    mode: str = "",
+    war_id: str = "",
+    proposer_side: str = "",
+    density: str = "medium",
+):
     """Get diplomatic preview for the diplomacy wizard (§3c).
 
     Without ?nation: returns categorized nation list for Step 1.
@@ -7460,6 +7495,11 @@ def get_imperial_designs():
     payload["armed"] = imperial_designs.armed(active_world)
     payload["success"] = True
     _attach_nation_identity_overrides(payload, active_world)
+    if payload["armed"]:
+        # S14d (docs/TABLE_LESSON_SPEC.md §2 line 2): the road page's first-open
+        # line, on the endpoint's own dict (the drift pin reads the builder).
+        from backend.game_logic import first_open
+        first_open.attach(payload, active_world, "designs")
     return payload
 
 
@@ -7481,6 +7521,47 @@ def get_formables():
 # ════════════════════════════════════════════════════════════
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════
+
+def _wire_dialogue(active_world, dialogue):
+    """S14d (docs/TABLE_LESSON_SPEC.md §3): a dialogue-borne payload leaves with
+    its first-open line on a COPY — the stored dialogue never gains the key,
+    so a re-serve after the acknowledgement carries none. Everything that is
+    not a dialogue of a lined screen passes through untouched."""
+    from backend.game_logic import first_open
+    return first_open.with_line(active_world, dialogue)
+
+
+def _wire_result_dialogues(active_world, result: dict) -> dict:
+    """The same, for a GET's result dict (`/pending_envoy`, `/mailbox/activate`)."""
+    if isinstance(result, dict):
+        for key in ("incoming_proposal", "diplomatic_dialogue", "incoming_settlement_offer"):
+            if isinstance(result.get(key), dict):
+                result[key] = _wire_dialogue(active_world, result[key])
+    return result
+
+
+class FirstOpenRequest(BaseModel):
+    screen: str = ""
+
+
+@app.post("/first_open")
+async def first_open_endpoint(request: FirstOpenRequest):
+    """S14d (docs/TABLE_LESSON_SPEC.md §3): the client's acknowledgement that a
+    screen's first-open line was drawn — stamps the first-open store.
+    Returns a TINY dict, never `build_base_response`: the base envelope drains
+    draft notices and the relay's let-go even with popup passthroughs off
+    (the IGR-X7 family), and the first draw of the table is exactly where a
+    draft notice is pending. No autosave is written (the latch persists at
+    the next end turn's autosave or a manual save, like every engine hint)."""
+    active_world = game_state.get("world")
+    screen = str(request.screen or "")
+    if active_world is None:
+        return {"success": False, "screen": screen, "turn": 0}
+    from backend.game_logic import first_open
+    ok = first_open.mark_seen(active_world, screen)
+    return {"success": bool(ok), "screen": screen,
+            "turn": int(getattr(active_world, "current_turn", 0) or 0)}
+
 
 @app.post("/notifications/dismiss")
 async def dismiss_notification(request: Request):

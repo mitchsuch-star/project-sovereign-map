@@ -2351,12 +2351,19 @@ class StrategicOrderProcessor:
             marshal.pending_interrupt = None
             attack_target = pending.get("target", "")
             if choice == "cancel_order":
+                # S14D-X4 (October 23, 2026): the Cancel road names the free
+                # preview, as the resolved road does (`what_if_line`).
+                _foe = world.get_marshal(attack_target) if attack_target else None
+                _preview_line = ""
+                if _foe is not None:
+                    from backend.commands.combat_executor import what_if_line
+                    _preview_line = "\n" + what_if_line(marshal, _foe)
                 return {
                     "success": True,
                     "no_action_cost": True,
                     "message": (
                         f"{marshal.name} stands down, Sire — the attack on "
-                        f"{attack_target} is called off."
+                        f"{attack_target} is called off." + _preview_line
                     ),
                 }
             # attack_anyway — the player has seen the muster and commits.

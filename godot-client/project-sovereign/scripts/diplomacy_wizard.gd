@@ -15,6 +15,9 @@ signal open_envoys_requested
 # GE-3: "View the table" — main.gd opens the Diplomatic Ledger on its
 # CONGRESS tab (top_bar.open_diplomatic_ledger_review("ledger_congress")).
 signal open_congress_requested
+# S14d (docs/TABLE_LESSON_SPEC.md §2 lines 1–2): a first-open line was drawn at
+# the head of a view — main.gd acknowledges it through the api_client queue.
+signal first_open_seen(screen: String)
 
 # GE-3 (ENDGAME_PLAN §2.3): the summons is the typed verb the backend's own
 # payload names (`congress.SUMMON_COMMAND`); main.gd sends it through the
@@ -368,6 +371,8 @@ func _render_nations(data: Dictionary):
 		_add_dialogue_gate_notice(pending_envoy_count)
 		return
 
+	_add_first_open_line(data)
+
 	# GE-3 (ENDGAME_PLAN §2.3): "The Congress of Paris" — the ending's
 	# summons, at the very top, with its honest-availability gate terms. The
 	# backend sends the row only on a world whose ending is authored (the
@@ -691,6 +696,9 @@ func _render_designs(data: Dictionary):
 			+ "]No designs of the Empire are authored in this campaign.[/color]")
 		content_list.add_child(empty_lbl)
 		return
+	# S14d: the road page's line at the head, above the headline (the Proclaim
+	# strip stays above the fold at scale 2.0 — the frame pins it).
+	_add_first_open_line(data)
 	var head = RichTextLabel.new()
 	head.bbcode_enabled = true
 	head.fit_content = true
@@ -1073,6 +1081,12 @@ func _render_preview(data: Dictionary):
 	if dialogue_pending:
 		_add_dialogue_gate_notice(pending_envoy_count)
 		return
+
+	# S14d: the Cabinet's line is drawn on its FIRST view (step 1) only — at
+	# Interface Scale 2.0 a line above this page's assessment pushed its
+	# action chips below the fold (the EA-E5 frame). A court's page opened by
+	# a door meets the line on the next Cabinet open; nothing is lost, since
+	# the acknowledgement fires only on a draw.
 
 	# Build assessment panel
 	var state_display = str(data.get("current_state_display", "?"))
@@ -1628,6 +1642,26 @@ func _update_more_below() -> void:
 		return
 	var bar: VScrollBar = scroll_container.get_v_scroll_bar()
 	_more_below.visible = bar != null and (bar.max_value - bar.page) > bar.value + 1.0
+
+
+func _add_first_open_line(data: Dictionary) -> void:
+	"""S14d: the payload's `first_open` {screen, line} — one INFO row at the HEAD
+	of the view (never the assessment panel: LV-20 pins it to one line), then
+	the acknowledgement. Drawn = visible: the row is the first thing added."""
+	var fo = data.get("first_open")
+	if not (fo is Dictionary):
+		return
+	var line := str(fo.get("line", ""))
+	var screen := str(fo.get("screen", ""))
+	if line == "" or screen == "":
+		return
+	var lbl = RichTextLabel.new()
+	lbl.bbcode_enabled = true
+	lbl.fit_content = true
+	lbl.scroll_active = false
+	lbl.text = "[color=#" + Utils.COLOR_INFO + "]" + _bb(line) + "[/color]"
+	content_list.add_child(lbl)
+	first_open_seen.emit(screen)
 
 
 func _clear_content_list():

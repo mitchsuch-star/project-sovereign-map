@@ -8,6 +8,9 @@ extends CanvasLayer
 # =============================================================================
 
 signal choice_made(choice: String, data: Dictionary)
+# S14d (docs/TABLE_LESSON_SPEC.md §2 line 7): the letter's first-open line was
+# drawn before the record — main.gd acknowledges it.
+signal first_open_seen(screen: String)
 
 # UI References
 @onready var content_label = $PanelContainer/VBoxContainer/ContentLabel
@@ -289,6 +292,12 @@ func _build_moment_body(data: Dictionary) -> String:
 	(derived lines), then what each answer does — the plan's own quotes, the
 	caption in bold. The unanswered line is the footer."""
 	var out := ""
+	# S14d: the sixth part of the copy contract (EVENTS_SPEC §2, A5) — the
+	# first letter's line, before the record, in the R159 register.
+	var fo = data.get("first_open")
+	if fo is Dictionary and str(fo.get("line", "")) != "":
+		out += "[color=#" + Utils.COLOR_INFO + "]" + _moment_text(fo.get("line", "")) + "[/color]\n"
+		first_open_seen.emit(str(fo.get("screen", "moment_letter")))
 	var record := _moment_text(data.get("record", ""))
 	if record != "":
 		out += "[i]" + record + "[/i]\n"

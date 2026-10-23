@@ -250,6 +250,11 @@ class TestClientStructuralPins:
             "What the fog concedes",
             "The levy pools your recruits draw on",
             "Orders that march without you",
+            # S14D-X2 (October 23, 2026): the Admiralty's subtitle was unpinned
+            # and the LAWS book had none — the eighth book's line, and the
+            # seventh's, pinned with the other six.
+            "The fleet, the blockades, the crossings",
+            "The laws of the Empire",
         ):
             assert fragment in ledger, fragment
         # CONSCIOUS FLIP, A11 (CA9 row 3), Aug 9 2026. The R159 sentence

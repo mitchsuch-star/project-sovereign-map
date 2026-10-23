@@ -39,6 +39,8 @@
     "opening_attack_guidance_shown": true,
     "delegation_hint_shown": true,
     "muster_hint_shown": true,
+    "commission_hint_shown": true,
+    "first_opens": {"cabinet": 0, "laws": 0},
 
     "marshals": {
         "Ney": {

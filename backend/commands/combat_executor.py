@@ -6616,8 +6616,18 @@ class CombatExecutor:
         marshal,
         enemy_marshal,
         world: WorldState,
+        command: Optional[dict] = None,
     ) -> bool:
-        """Intercept the common first-hour bad opener once per campaign."""
+        """Intercept the common first-hour bad opener once per campaign.
+
+        S14D-X1 (October 23, 2026): only a DIRECT player order may surface the
+        card — a standing PURSUE run by `process_strategic_orders` on turn 1
+        flipped the latch, reported the order `completed` with no battle and
+        carried no `opening_attack_guidance` key, so the lesson was lost for
+        the campaign."""
+        if command and (command.get("_strategic_execution")
+                        or command.get("_autonomous_execution")):
+            return False
         if world.current_turn != 1:
             return False
         if getattr(world, "opening_attack_guidance_shown", False):
@@ -7938,7 +7948,8 @@ class CombatExecutor:
         # BOMBARDMENT ROUTING (§3): Artillery in different region → bombardment
         # Same-region artillery combat still uses full resolve_battle().
         # ════════════════════════════════════════════════════════════
-        if self._should_surface_opening_attack_guidance(ctx.marshal, ctx.enemy_marshal, ctx.world):
+        if self._should_surface_opening_attack_guidance(ctx.marshal, ctx.enemy_marshal, ctx.world,
+                                                        ctx.command):
             ctx.world.opening_attack_guidance_shown = True
             guidance = self._build_opening_attack_guidance(ctx.world)
             return {
@@ -8063,7 +8074,10 @@ class CombatExecutor:
                         # match the button's own label exactly.
                         f"'Commit the Attack' to send him in "
                         f"regardless — or Cancel to hold him "
-                        f"back.\n{muster_text}"
+                        f"back.\n{muster_text}\n"
+                        # S14D-X4 (October 23, 2026): the gate road names the
+                        # free preview too — the resolved road already does.
+                        + what_if_line(ctx.marshal, ctx.enemy_marshal)
                     ),
                     "muster_preview": ctx.muster_preview,
                 }

@@ -9,6 +9,9 @@ extends CanvasLayer
 # =============================================================================
 
 signal choice_made(action: String, data: Dictionary)
+# S14d (docs/TABLE_LESSON_SPEC.md §2 lines 3–4): a first-open line was drawn at
+# the head of the table or the chooser — main.gd acknowledges it.
+signal first_open_seen(screen: String)
 
 # UI References
 @onready var content_label = $PanelContainer/VBoxContainer/ContentLabel
@@ -608,6 +611,10 @@ func _build_settlement_content(data: Dictionary) -> String:
 	else:
 		bbcode += "[b][color=#e66262]This settlement cannot be ratified now.[/color][/b]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s - %s[/color]\n" % [war_label, scope]
+	# S14d: the table's first-open line under the heading's two lines — in the
+	# head region, after the verdict (which must stay seen at scale 2.0: the
+	# EA-E6 frame) and before the table and its rows.
+	bbcode += _first_open_bbcode(data, "settlement")
 
 	# UX-2 (GT-Slice-3): REVIEW reads as a staged-decision surface, visually
 	# distinct from the PROPOSE authoring surface — the terms are frozen, the
@@ -1535,6 +1542,22 @@ func _emit_settlement_action(action: String, payload: Dictionary):
 	choice_made.emit(action, payload)
 
 
+func _first_open_bbcode(data: Dictionary, screen: String) -> String:
+	"""S14d: the payload's `first_open` for THIS screen, as one INFO line at the
+	head of the body; the backend keeps carrying it through every restage of
+	the turn it was first shown, so no local copy is kept."""
+	var fo = data.get("first_open")
+	if not (fo is Dictionary):
+		return ""
+	if str(fo.get("screen", "")) != screen:
+		return ""
+	var line := str(fo.get("line", ""))
+	if line == "":
+		return ""
+	first_open_seen.emit(screen)
+	return "[color=#" + Utils.COLOR_INFO + "]" + line.replace("[", "[lb]") + "[/color]\n"
+
+
 func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	# G4F-8: the pair-substitute confirm chooser. States the consequence
 	# (other courts fight on; drafted terms for the target carry over)
@@ -1543,6 +1566,7 @@ func _build_pair_substitute_confirm_content(data: Dictionary) -> String:
 	var target = str(data.get("selected_target_nation", "the court"))
 	var war_label = str(data.get("war_label", data.get("war_id", "this war")))
 	var bbcode = ""
+	bbcode += _first_open_bbcode(data, "separate_peace")
 	bbcode += "[b][color=#e0c070]Leave the joint settlement?[/color][/b]\n"
 	bbcode += "[color=#" + Utils.toned_hex("a0a0a8") + "]%s[/color]\n\n" % war_label
 	bbcode += "Treat with [b]%s[/b] alone — every other court keeps its war.\n" % Utils.display_nation_name(target)

@@ -1960,6 +1960,10 @@ class WorldState:
         # PT-J4 "The Bench Speaks": once per campaign, the first time the
         # treasury covers a commission the executor's gate would grant.
         self.commission_hint_shown: bool = False
+        # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open store — the
+        # screens whose line has been shown once, {screen: turn}. Display-only;
+        # read by `backend/game_logic/first_open.py` alone.
+        self.first_opens: Dict[str, int] = {}
 
         # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
@@ -8805,7 +8809,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
-            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments),  # VP-1 / S14c: scenario key = save key
+            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens),  # VP-1 / S14c / S14d: scenario key = save key
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -9397,6 +9401,15 @@ class WorldState:
         # shape for the scenario key and the save; {} = unarmed.
         from backend.game_logic.moments import store_from_data as _moments_store
         world.moments = _moments_store(data)
+        # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open store — ids are
+        # validated by the reader; values coerced to int; a bad value dropped.
+        _first_opens: Dict[str, int] = {}
+        for _fo_key, _fo_turn in (data.get("first_opens") or {}).items():
+            try:
+                _first_opens[str(_fo_key)] = int(_fo_turn)
+            except (TypeError, ValueError):
+                continue
+        world.first_opens = _first_opens
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
         # The scenario key and the save key are one ("statecraft").

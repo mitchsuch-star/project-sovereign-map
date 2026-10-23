@@ -556,10 +556,14 @@ func _ready():
 	incoming_proposal_popup = dialog_manager.register("incoming_proposal", "res://scenes/incoming_proposal_popup.tscn")
 	if incoming_proposal_popup:
 		incoming_proposal_popup.choice_made.connect(_on_incoming_proposal_choice)
+		if incoming_proposal_popup.has_signal("first_open_seen"):
+			incoming_proposal_popup.first_open_seen.connect(_on_first_open_seen)
 
 	proposal_confirm_popup = dialog_manager.register("proposal_confirm", "res://scenes/proposal_confirm_popup.tscn")
 	if proposal_confirm_popup:
 		proposal_confirm_popup.choice_made.connect(_on_proposal_confirm_choice)
+		if proposal_confirm_popup.has_signal("first_open_seen"):
+			proposal_confirm_popup.first_open_seen.connect(_on_first_open_seen)
 
 	talleyrand_objection_popup = dialog_manager.register("talleyrand_objection", "res://scenes/talleyrand_objection_popup.tscn")
 	if talleyrand_objection_popup:
@@ -600,6 +604,8 @@ func _ready():
 		diplomacy_wizard.structured_command_selected.connect(_on_wizard_structured_command_selected)
 	if diplomacy_wizard:
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
+		if diplomacy_wizard.has_signal("first_open_seen"):
+			diplomacy_wizard.first_open_seen.connect(_on_first_open_seen)
 		if diplomacy_wizard.has_signal("open_envoys_requested"):
 			diplomacy_wizard.open_envoys_requested.connect(_on_wizard_open_envoys_requested)
 		# GE-3: the Congress row's "View the table" — the ledger's CONGRESS tab.
@@ -6877,6 +6883,10 @@ func _on_load_save_selected(filename: String):
 
 func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	"""Clear transient local UI state before hydrating a different campaign."""
+	# S14d: the first-open acknowledgements are THIS world's (a new game or a
+	# load in the same client session starts afresh).
+	if api_client and api_client.has_method("reset_first_open_acks"):
+		api_client.reset_first_open_acks()
 	if top_bar:
 		# UXR-D4: a load or a new campaign unpins the Side Desk as well.
 		top_bar.close_everything()
@@ -10178,6 +10188,15 @@ func _on_tutorial_open_ledger(tab: int) -> void:
 		return
 	if top_bar and top_bar.has_method("open_ledger_to_tab"):
 		top_bar.open_ledger_to_tab(tab)
+
+
+func _on_first_open_seen(screen: String) -> void:
+	"""S14d (docs/TABLE_LESSON_SPEC.md §3): a surface drew its first-open line.
+	The wizard and the popups own no api_client, so they say so on a signal and
+	the acknowledgement goes out through the one request queue, once per
+	screen per world (`api_client.note_first_open`)."""
+	if api_client and api_client.has_method("note_first_open"):
+		api_client.note_first_open(screen)
 
 
 func _on_new_game_result(response):

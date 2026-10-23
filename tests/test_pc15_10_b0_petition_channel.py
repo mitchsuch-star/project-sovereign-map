@@ -321,6 +321,7 @@ class TestF7DrainFamily:
         "/mailbox/activate",           # F7-3: return-only (this slice)
         "/diplomatic_preview",
         "/debug/acceptance_preview",
+        "/first_open",                 # S14d: a tiny {success, screen, turn} ack (TABLE_LESSON_SPEC §3)
     }
 
     def test_route_census_every_post_endpoint_is_declared(self):
