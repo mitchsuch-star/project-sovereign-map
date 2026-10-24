@@ -54,6 +54,10 @@ signal open_cabinet(nation: String)
 # SR-5r RF-4c: the laws card's door — asks main.gd to open the Strategic
 # Ledger on the named book (THE LAWS = 7). Sends nothing.
 signal open_ledger(tab: int)
+# S14d part 2 (TABLE_LESSON_SPEC §4.2, card II): the Table lesson's door —
+# main.gd opens the REAL settlement table on the war the card names
+# (`_on_war_settlement_clicked`). The card still sends nothing.
+signal open_settlement(war_id: String, nation: String)
 
 const CHIP_TEXT_HEX := "e8d4a8"
 const CHIP_BG_HEX := "233043"
@@ -374,6 +378,8 @@ const STEPS := [
 # completion latch's key (UiSettings), `notes` the released-step lines in the
 # lesson's own voice (S14D-X19: a war-voiced note read wrong on a diplomacy
 # lesson). `%s` in `refused` takes the engine's one-line reason.
+# S14d part 2: the Table's cards live in their own script (§4.2).
+const TableLesson := preload("res://scripts/tutorial_table_steps.gd")
 const LESSONS := {
 	"tutorial": {
 		"steps": STEPS,
@@ -383,6 +389,17 @@ const LESSONS := {
 			"refused": "The war refused that order — %s The school moves on.",
 			"outran": "The war outran the last page — the school has moved on.",
 			"overdue": "The war has outrun this page — fight it as you find it; end the turn and the school will move on.",
+			"skipped": "You skipped the last page — the school moves on.",
+		},
+	},
+	"tutorial_table": {
+		"steps": TableLesson.STEPS,
+		"title": "THE SCHOOL OF WAR — THE TABLE",
+		"done": "tutorial_table",
+		"notes": {
+			"refused": "The table refused that act — %s The school moves on.",
+			"outran": "The morning outran the last page — the school has moved on.",
+			"overdue": "The morning has outrun this page — treat as you find it; end the turn and the school will move on.",
 			"skipped": "You skipped the last page — the school moves on.",
 		},
 	},
@@ -406,6 +423,10 @@ var _saw_capture := false
 var _saw_law := false
 # FA-42: which arm of card VII is true. "" until a roster is seen.
 var _kienmayer_state := ""
+# S14d part 2: the Table lesson's branch key (`_note_table`) — "" on the
+# board the cards assume; "austria_refused" / "letter_waiting" /
+# "bavaria_countered" select a card's `alt` arm. Reset on arming.
+var _table_state := ""
 # The infantry pool as of the PREVIOUS observed response. Pools regenerate
 # every turn, so recruit detection must be a drop BETWEEN responses, never a
 # comparison against a turn-1 baseline (regen would mask the recruit).
@@ -614,6 +635,7 @@ func _reset_lesson_state() -> void:
 	_saw_capture = false
 	_saw_law = false
 	_kienmayer_state = ""
+	_table_state = ""
 	_last_infantry_pool = -1
 	_pending_pulse = false
 	_last_rendered_turn = -1
@@ -646,6 +668,7 @@ func observe(response) -> void:
 	var gs = response.get("game_state")
 	if typeof(gs) == TYPE_DICTIONARY:
 		_turn = _as_int(gs.get("turn"), _turn)
+	var table_state_before := _table_state
 	_note_observations(response)
 	var step: Dictionary = _effective_step(_step_index)
 	if call(str(step["advance"]), response):
@@ -665,6 +688,10 @@ func observe(response) -> void:
 	# turn moves even though the step did not (a step advance re-rendered
 	# already and stamped _last_rendered_turn itself).
 	if _turn != _last_rendered_turn:
+		_render()
+	elif _table_state != table_state_before:
+		# S14d part 2: a Table card's `alt` arm turns on the response that
+		# selects it (a letter, a refusal, a counter), not on the next turn.
 		_render()
 
 
@@ -687,6 +714,7 @@ func _note_observations(response: Dictionary) -> void:
 			if e is Dictionary and str(e.get("type", "")) == "law_enacted":
 				_saw_law = true
 	_note_kienmayer(response)
+	_note_table(response)
 
 
 func _note_kienmayer(response: Dictionary) -> void:
@@ -726,6 +754,43 @@ func _note_kienmayer(response: Dictionary) -> void:
 		_kienmayer_state = "stands"
 	else:
 		_kienmayer_state = "running"
+
+
+func _note_table(response: Dictionary) -> void:
+	"""S14d part 2 (TABLE_LESSON_SPEC §4.2): which `alt` arm of the Table's
+	cards is true — Austria's refusal or counter (card IV), a letter standing
+	on the rail (card V), Bavaria's counter (card VI). Read from the response
+	fields the client already renders: the dialogue's type and court, and the
+	`diplomatic_proposal_returned` events. Nothing on the Danube."""
+	if _lesson_id != "tutorial_table":
+		return
+	var dialogue = response.get("diplomatic_dialogue")
+	if typeof(dialogue) == TYPE_DICTIONARY:
+		var dtype := str(dialogue.get("type", ""))
+		if dtype in ["incoming_proposal", "incoming_settlement_offer", "incoming_ultimatum"]:
+			_table_state = "letter_waiting"
+		elif dtype == "counter_offer_response":
+			var court := str(dialogue.get("target_nation", dialogue.get("from_nation", "")))
+			_table_state = "bavaria_countered" if court == "Bavaria" else "austria_refused"
+	# The morning's verdict: `proposal_result {target_nation, outcome}` rides
+	# the reply (REJECT / COUNTER_OFFER), beside the `diplomatic_proposal_
+	# returned` event that names the court.
+	var verdicts := []
+	var result = response.get("proposal_result")
+	if typeof(result) == TYPE_DICTIONARY:
+		verdicts.append([str(result.get("target_nation", "")), str(result.get("outcome", ""))])
+	var events = response.get("events")
+	if events is Array:
+		for e in events:
+			if e is Dictionary and str(e.get("type", "")) == "diplomatic_proposal_returned":
+				verdicts.append([str(e.get("target", e.get("nation", e.get("message", "")))), str(e.get("outcome", ""))])
+	for v in verdicts:
+		if v[1] in ["", "ACCEPT", "PENDING"]:
+			continue
+		if v[0].find("Austria") >= 0:
+			_table_state = "austria_refused"
+		elif v[0].find("Bavaria") >= 0:
+			_table_state = "bavaria_countered"
 
 
 func _advance_one() -> void:
@@ -779,6 +844,13 @@ func _effective_step(index: int) -> Dictionary:
 		step = step.duplicate()
 		for key in arm:
 			step[key] = arm[key]
+	elif typeof(alt) == TYPE_DICTIONARY and _table_state != "" and alt.has(_table_state):
+		# S14d part 2: the Table's branch key; the Danube's idiom above
+		# stays byte for byte for its pins.
+		var arm = alt[_table_state]
+		step = step.duplicate()
+		for key in arm:
+			step[key] = arm[key]
 	return step
 
 
@@ -789,9 +861,13 @@ func _refused_our_order(response: Dictionary, step: Dictionary) -> bool:
 	said it sent, never from the payload (the endpoint whitelists its keys
 	and ships no command echo). A response that carries a question — an
 	objection, a capture choice, a Cabinet confirm — is not a refusal."""
-	if _last_sent == "" or str(step.get("suggest", "")) == "":
+	# S14d part 2: a door card names the line its door sends (`refusal_of`) —
+	# the Table's doors are structured commands main.gd notes the same way
+	# the typed line is noted, so a refused door releases the step too.
+	var line := str(step.get("refusal_of", step.get("suggest", "")))
+	if _last_sent == "" or line == "":
 		return false
-	if _norm_line(str(step["suggest"])) != _last_sent:
+	if _norm_line(str(step["suggest"])) != _last_sent and _norm_line(line) != _last_sent:
 		return false
 	if _truthy(response.get("success")):
 		return false
@@ -848,6 +924,12 @@ func _render() -> void:
 	var alt = step.get("alt")
 	if typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):
 		var arm = alt[_kienmayer_state]
+		step = step.duplicate()
+		for key in arm:
+			step[key] = arm[key]
+	elif typeof(alt) == TYPE_DICTIONARY and _table_state != "" and alt.has(_table_state):
+		# S14d part 2: the Table's branch key (see _effective_step).
+		var arm = alt[_table_state]
 		step = step.duplicate()
 		for key in arm:
 			step[key] = arm[key]
@@ -910,6 +992,12 @@ func _on_meta_clicked(meta) -> void:
 	elif meta_str.begins_with("open:ledger:"):
 		AudioManager.play("click")
 		open_ledger.emit(int(meta_str.substr(12)))
+	elif meta_str.begins_with("open:settlement:"):
+		# S14d part 2: "open:settlement:<war_id>:<court>" — the Table's door.
+		AudioManager.play("click")
+		var parts := meta_str.substr(16).split(":", false)
+		if parts.size() >= 2:
+			open_settlement.emit(str(parts[0]), str(parts[1]))
 
 
 func _on_minimize() -> void:
@@ -1093,3 +1181,58 @@ func _pred_law_enacted(_response: Dictionary) -> bool:
 
 func _pred_never(_response: Dictionary) -> bool:
 	return false
+
+
+# ── the Table lesson's predicates (S14d part 2; response fields ONLY) ───────
+
+func _pred_table_mounted(response: Dictionary) -> bool:
+	# Card II: the settlement table is on the screen (the door's reply).
+	var dialogue = response.get("diplomatic_dialogue")
+	return typeof(dialogue) == TYPE_DICTIONARY and str(dialogue.get("type", "")) == "settlement_confirm"
+
+
+func _proposal_sent(response: Dictionary, court: String) -> bool:
+	# The send's reply carries `proposal_result {target_nation, outcome: PENDING}`
+	# — the structured mark of Talleyrand's departure (the `diplomatic_
+	# proposal_sent` event is logged, not shipped on the reply). The board
+	# sends one proposal to each court, so the court names the act.
+	var result = response.get("proposal_result")
+	if typeof(result) != TYPE_DICTIONARY:
+		return false
+	return str(result.get("target_nation", "")) == court \
+		and str(result.get("outcome", "")) == "PENDING"
+
+
+func _treaty_signed(response: Dictionary, court: String, kind: String) -> bool:
+	# The morning's reply carries `events[] {type: diplomatic_treaty_signed,
+	# target, treaty_type, message: "Treaty signed: At War → Peace with
+	# Austria."}` — the court and the kind are read structurally, the
+	# message only as the fallback for an older payload.
+	var events = response.get("events")
+	if not (events is Array):
+		return false
+	for e in events:
+		if not (e is Dictionary) or str(e.get("type", "")) != "diplomatic_treaty_signed":
+			continue
+		if str(e.get("target", "")) != court and str(e.get("message", "")).find(court) < 0:
+			continue
+		if str(e.get("treaty_type", "")).to_lower().begins_with(kind.to_lower()) \
+				or str(e.get("message", "")).to_lower().find(kind.to_lower()) >= 0:
+			return true
+	return false
+
+
+func _pred_austria_peace_sent(response: Dictionary) -> bool:
+	return _proposal_sent(response, "Austria")
+
+
+func _pred_austria_peace_signed(response: Dictionary) -> bool:
+	return _treaty_signed(response, "Austria", "peace")
+
+
+func _pred_bavaria_vassal_sent(response: Dictionary) -> bool:
+	return _proposal_sent(response, "Bavaria")
+
+
+func _pred_bavaria_vassal_signed(response: Dictionary) -> bool:
+	return _treaty_signed(response, "Bavaria", "vassal")

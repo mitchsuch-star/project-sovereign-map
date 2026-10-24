@@ -85,7 +85,7 @@ class TestTheRegistry:
         assert "_bind_lesson(name, lesson)" in swap and "_reset_lesson_state()" in swap
         assert 'name != "tutorial"' not in swap
         reset = _func(src, "_reset_lesson_state")
-        latches = re.findall(r"^var (_saw_\w+|_kienmayer_state|_last_infantry_pool|_pending_pulse|"
+        latches = re.findall(r"^var (_saw_\w+|_kienmayer_state|_table_state|_last_infantry_pool|_pending_pulse|"
                              r"_last_rendered_turn|_last_sent|_released_note|_done|_minimized)\b",
                              src, re.M)
         assert len(latches) >= 9, latches
@@ -110,7 +110,9 @@ class TestTheRegistry:
         """S14D-X21: `_pred_turn_gte_13` was defined and no card used it."""
         src = _read(OVERLAY)
         defined = set(re.findall(r"^func (_pred_\w+)\(", src, re.M))
-        used = set(re.findall(r'"advance":\s*"(_pred_\w+)"', src))
+        # S14d part 2: the Table's cards name the overlay's predicates too.
+        cards = src + _read(SCRIPTS / "tutorial_table_steps.gd")
+        used = set(re.findall(r'"advance":\s*"(_pred_\w+)"', cards))
         assert used <= defined, used - defined
         unused = defined - used
         assert unused == set(), unused

@@ -1271,6 +1271,30 @@ SHOTS += [
                      "in the census",
     },
     {
+        # S14d part 2 (TABLE_LESSON_SPEC §4.2): the Table lesson's first card.
+        "id": "tutorial_table_card",
+        "surface": "The School of War — The Table, card I alone (tutorial_overlay.tscn)",
+        "payload": "new_game_tutorial_table",
+        "scene": "res://scenes/tutorial_overlay.tscn",
+        "mode": "call", "method": "on_world_swap",
+        "settle": 20,
+        "must_show": "THE SCHOOL OF WAR — THE TABLE · 1 of 7 · 'I. The Day After Austerlitz' "
+                     "and its body, the Cabinet door chip 'Open the Cabinet on Bavaria' and the "
+                     "Skip chip — no quill (every step a door or a button)",
+    },
+    {
+        "id": "war_room_tutorial_table",
+        "surface": "The war room — the Table lesson's first morning, tutor card top-right",
+        "payload": "war_room_tutorial_table",
+        "scene": "res://scenes/main.tscn",
+        "mode": "main", "method": "",
+        "steps": _WAR_ROOM_STEPS,
+        "settle": 40,
+        "must_show": "the Table board — Vienna, the Tyrol and Moravia in French colours — the "
+                     "command window, the war HUD reading the one war, THE SCHOOL OF WAR — THE "
+                     "TABLE card top-right reading 'I. The Day After Austerlitz'",
+    },
+    {
         "id": "main_menu",
         "surface": "The main menu (first boot)",
         "payload": "test_boot",

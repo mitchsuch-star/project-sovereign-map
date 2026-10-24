@@ -2,14 +2,14 @@
   {
     "id": "TUT-1 a refused order no longer releases its step",
     "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
-    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n\tif _truthy(response.get(\"success\")):\n\t\treturn false",
-    "new": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n\tif true:\n\t\treturn false",
+    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent and _norm_line(line) != _last_sent:\n\t\treturn false\n\tif _truthy(response.get(\"success\")):\n\t\treturn false",
+    "new": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent and _norm_line(line) != _last_sent:\n\t\treturn false\n\tif true:\n\t\treturn false",
     "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheRefusedOrderReleasesItsStep::test_the_card_moves_on_and_says_why"
   },
   {
     "id": "TUT-2 any refusal releases (the sent line is not compared)",
     "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
-    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent:\n\t\treturn false\n",
+    "old": "\tif _norm_line(str(step[\"suggest\"])) != _last_sent and _norm_line(line) != _last_sent:\n\t\treturn false\n",
     "new": "",
     "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheRefusedOrderReleasesItsStep::test_a_refusal_of_some_other_order_does_not_release"
   },

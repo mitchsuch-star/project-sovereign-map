@@ -231,9 +231,10 @@ ENGINE_CONTENT_FILES = (
     "godot-client/project-sovereign/assets/maps/europe.json",
     "godot-client/project-sovereign/assets/maps/europe_1805.json",
     "godot-client/project-sovereign/assets/maps/tutorial_1805.json",
+    "godot-client/project-sovereign/assets/maps/tutorial_table_1805.json",
 )
 ENGINE_CONTENT_SCOPE = ("backend/**/*.py + the map registry + the 1805 and "
-                        "tutorial scenario JSON, line endings normalised to LF")
+                        "the School scenarios JSON, line endings normalised to LF")
 # `git status` is scoped to what the engine and the harness are made of, so an
 # edited memo does not mark a run dirty.
 ENGINE_DIRTY_PATHS = ("backend", "tools/playtest_driver.py",

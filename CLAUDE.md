@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > S14b and S14c are COMPLETE; **S14d is in progress** (`docs/TABLE_LESSON_SPEC.md`).
 
 **▶ LIVE STATE (October 23, 2026).** The three most recent landed rows:
-- **S14d part 1 second landing + part 1b (Oct 23) — the frames, the sweep, the copy and engine rows — LANDED; part 1 COMPLETE** (§148.8). **NEXT = part 2 (the Table), then part 3.**
-- **S14d part 1, first landing (Oct 23) — the first-open lines — LANDED** (§148).
-- **S14d gate (Oct 23) — RULED** (`docs/TABLE_LESSON_SPEC.md`; A1 a reduction named for you).
+- **S14d part 2 second landing (Oct 24) — the Table lesson: board, cards, door, menu row, driven pins — LANDED; part 2 COMPLETE** (§148.10). **NEXT = part 3.**
+- **S14d part 2 first landing (Oct 23) — the lessons' registry — LANDED** (§148.9).
+- **S14d part 1 + 1b (Oct 23) — the lines, frames, copy and engine rows — LANDED** (§148.8).
 
 **Open with the user:** S14d's A1 (mounts/signs; 1.5 → ~2.5), UXR-4 (their eyes at 5120×1440, S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

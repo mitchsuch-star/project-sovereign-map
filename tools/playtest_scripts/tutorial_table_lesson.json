@@ -1,0 +1,38 @@
+{
+  "name": "tutorial-table-lesson",
+  "seed": "historical",
+  "llm": "mock",
+  "scenario": "tutorial_table",
+  "_note": "S14d part 2 (docs/TABLE_LESSON_SPEC.md §4.2): the Table lesson's three turns — a mission, a separate peace, a vassal. The turn keys are the DRIVER's 1-based loop index and mirror tutorial_table_steps.gd's turn_gates (drift pin in tests/test_tutorial_table_scenario.py). The lesson's acts are BUTTONS on the real screens — the Cabinet's Reassure row, the table's 'Separate peace with Austria' chip, the chooser's Proceed, the terms page's Send as suggested / More generous — never typed: the lines here stand for the rows the driver can reach by text, `doors` names the card door each line stands for, and `clicks` says what tests/test_tutorial_table_driven.py presses on each dialogue a line opens, in order. The driver's own policies answer what they can (missions begin; the chooser is kept joint under policy, so an unattended Mode A run makes no separate peace — the driven test takes the chip road).",
+  "turns": {
+    "1": [
+      "reassure Bavaria",
+      "propose common peace with Austria"
+    ],
+    "2": [
+      "propose vassalage to Bavaria"
+    ],
+    "3": []
+  },
+  "doors": {
+    "reassure Bavaria": "open:cabinet:Bavaria",
+    "propose common peace with Austria": "open:settlement:war_1:Austria",
+    "propose vassalage to Bavaria": "open:cabinet:Bavaria"
+  },
+  "clicks": {
+    "1": [
+      {"on": "settlement_confirm", "chip": "seek_bilateral_peace", "nation": "Austria"},
+      {"on": "settlement_pair_substitute_confirm", "option": "confirm_pair_substitute"},
+      {"on": "proposal_confirm", "option": "execute_proposal"}
+    ],
+    "2": [
+      {"on": "proposal_confirm", "option": "More generous"},
+      {"on": "proposal_confirm", "option": "execute_proposal"}
+    ]
+  },
+  "policy": {
+    "objection": "trust",
+    "diplomacy": "decline",
+    "missions": "begin"
+  }
+}

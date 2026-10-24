@@ -87,6 +87,8 @@ const SETTLEMENT_CRITICAL_SCRIPTS = [
 	# dialog_manager (the IGR-E gap class: covered by neither main.tscn nor
 	# the script list unless named here).
 	"res://scripts/tutorial_overlay.gd",
+	# S14d part 2: the Table lesson's cards (preloaded by the overlay).
+	"res://scripts/tutorial_table_steps.gd",
 	# UXR-1 (October 9, 2026): the first-run sizing card.
 	"res://scripts/scale_card.gd",
 	# HC-G: Le Moniteur — the Gazette archive screen (XR-1: every touched

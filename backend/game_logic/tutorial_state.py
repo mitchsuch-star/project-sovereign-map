@@ -43,13 +43,34 @@ STEPS: List[Tuple[str, int, str]] = [
 
 TUTORIAL_SCENARIO_NAME = "tutorial"
 
+# S14d part 2 (`docs/TABLE_LESSON_SPEC.md` §4.2): the Table — the Peace of
+# Pressburg, seven cards over three turns; mirrors
+# `tutorial_table_steps.gd` `const STEPS` in order (drift-pinned by
+# `tests/test_tutorial_table_scenario.py`).
+TABLE_SCENARIO_NAME = "tutorial_table"
+TABLE_STEPS: List[Tuple[str, int, str]] = [
+    ("austerlitz", 1, "I. The Day After Austerlitz"),
+    ("table", 1, "II. Every Court for Itself"),
+    ("austria_alone", 1, "III. Austria Alone"),
+    ("pressburg", 2, "IV. The Peace of Pressburg"),
+    ("bavaria", 2, "V. The Kingdom of Bavaria"),
+    ("first_stone", 3, "VI. The First Stone"),
+    ("handoff", 3, "VII. The Lesson Ends"),
+]
+
 # S14d part 2 (`docs/TABLE_LESSON_SPEC.md` §4.4): the School's lessons — the
 # ONE tuple `main.SCENARIO_ALLOWLIST` is derived from (the consumers cannot
 # import `main`), with each lesson's scenario file and its step mirror. A
 # second lesson adds its name here and nowhere else.
-SCHOOL_SCENARIOS: Tuple[str, ...] = (TUTORIAL_SCENARIO_NAME,)
-SCENARIO_FILES: Dict[str, str] = {TUTORIAL_SCENARIO_NAME: "tutorial_1805.json"}
-STEPS_BY_SCENARIO: Dict[str, List[Tuple[str, int, str]]] = {TUTORIAL_SCENARIO_NAME: STEPS}
+SCHOOL_SCENARIOS: Tuple[str, ...] = (TUTORIAL_SCENARIO_NAME, TABLE_SCENARIO_NAME)
+SCENARIO_FILES: Dict[str, str] = {
+    TUTORIAL_SCENARIO_NAME: "tutorial_1805.json",
+    TABLE_SCENARIO_NAME: "tutorial_table_1805.json",
+}
+STEPS_BY_SCENARIO: Dict[str, List[Tuple[str, int, str]]] = {
+    TUTORIAL_SCENARIO_NAME: STEPS,
+    TABLE_SCENARIO_NAME: TABLE_STEPS,
+}
 
 
 def is_tutorial_world(world) -> bool:

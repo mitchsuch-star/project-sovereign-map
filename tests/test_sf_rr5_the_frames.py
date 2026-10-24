@@ -50,7 +50,9 @@ FRAME_DATE = "2026_10_21"
 GROUPS = ["boot", "battles", "layout_f3", "proclamation", "popups_s12",
           "frames_s9", "petition", "peace", "screen_says", "user_saves", "collapse",
           # S14d part 1, second landing: the frames with the first-open line at the head.
-          "first_open", "designs", "moments"]
+          "first_open", "designs", "moments",
+          # S14d part 2: the Table lesson's card and its war room (the menu's payload is boot's).
+          "war_room"]
 DECISION_MODALS = [
     "objection_dialog", "capture_choice", "talleyrand_objection",
     "interrupt_last_stand", "petition_command_closed", "petition_popup",
@@ -81,6 +83,9 @@ SHOTS = DECISION_MODALS + [
     "diorama_dadj", "diorama_aadj",
     # S14d: the lined surfaces and the proclaimed road page (S14D-X31).
     *[s for s in S14D_LINED if s not in DECISION_MODALS], "wizard_designs_step4_proclaimed",
+    # S14d part 2 (TABLE_LESSON_SPEC §16): the Table's first card alone, its war room,
+    # and the menu with its second School row.
+    "tutorial_table_card", "war_room_tutorial_table", "main_menu",
 ]
 SCALES = (1.0, 2.0)
 
@@ -776,6 +781,63 @@ COMMITTED_S14D = [
     "IQ10_SETTLEMENT_PAIR_SUBSTITUTE", "IQ10_MOMENT_LETTER_BAVARIAN_MATCH",
     "IQ10_MOMENT_LETTER_DECREE_OF_BERLIN", "IQ10_MUSTER_CONFIRM",
 ]
+
+
+# S14d part 2 (October 24, 2026; TABLE_LESSON_SPEC §16): the Table lesson's
+# frames — card I alone, the war room on the Table board, the menu with its
+# second School row. Chips on the card are BBCode links in its RichTextLabel,
+# so they are read in `seen_text`, not in `buttons`.
+FRAME_DATE_S14D_PART2 = "2026_10_24"
+COMMITTED_S14D_PART2 = ["IQ10_TUTORIAL_TABLE_CARD", "IQ10_WAR_ROOM_TUTORIAL_TABLE", "IQ10_MAIN_MENU"]
+TABLE_CARD_HEAD = ("THE SCHOOL OF WAR — THE TABLE", "1 of 7", "I. The Day After Austerlitz")
+
+
+class TestS14DPart2TheTableCardIsShot:
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_the_card_alone_reads_its_head_its_door_and_its_skip(self, record, scale):
+        frame = _frame(record, "tutorial_table_card", scale)
+        seen = _seen(frame)
+        for text in TABLE_CARD_HEAD:
+            assert text in seen, (text, seen[:400])
+        assert "Open the Cabinet on Bavaria" in seen, seen[:600]
+        assert "Skip this lesson" in seen
+        # every step a door or a button — no quill on the Table's cards
+        assert "✎" not in seen
+        assert _folded(frame) == [], _folded(frame)
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_the_war_room_carries_the_card_on_the_table_board(self, record, scale):
+        frame = _frame(record, "war_room_tutorial_table", scale)
+        seen = _seen(frame)
+        for text in TABLE_CARD_HEAD:
+            assert text in seen, (text, seen[:400])
+        payload = _payload(record, "war_room_tutorial_table")
+        gs = payload["new_game"]["game_state"]
+        assert gs["scenario_name"] == "tutorial_table" and int(gs["turn"]) == 1
+
+    @pytest.mark.parametrize("scale", SCALES)
+    def test_the_menu_offers_both_school_rows(self, record, scale):
+        frame = _frame(record, "main_menu", scale)
+        _button(frame, "The School of War — a guided campaign")
+        _button(frame, "The School of War — The Table (a guided peace)")
+
+
+class TestS14DPart2TheFramesAreCommitted:
+
+    @pytest.mark.parametrize("stem", COMMITTED_S14D_PART2)
+    def test_the_frame_is_committed_at_both_scales(self, stem):
+        for tail in ("", "_X2"):
+            png = AUDITS / f"{stem}{tail}_{FRAME_DATE_S14D_PART2}.png"
+            assert png.exists(), f"missing evidence frame: {png.name}"
+            assert png.stat().st_size > 8000, f"{png.name} is too small to be a real frame"
+
+    def test_uxr4_lists_them(self):
+        plan = _read(REPO / "docs" / "UX_UI_REVIEW_PLAN.md")
+        section = plan[plan.index("## UXR-4"):plan.index("## What this plan does not do")]
+        assert "S14d part 2" in section
+        for stem in COMMITTED_S14D_PART2:
+            assert stem in section, stem
 
 
 class TestS14DTheFramesAreCommitted:

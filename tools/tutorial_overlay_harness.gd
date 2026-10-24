@@ -9,6 +9,8 @@ extends SceneTree
 #   {"responses": [<backend response dict>, ...],
 #    "sent":      {"<index>": "<the line main.gd would note before that response>"},
 #    "clicks":    {"<index>": ["skipstep:", "open:cabinet:Austria", ...]},
+#    "swaps":     {"<index>": true}   (S14d part 2: that response ARMS the card
+#                 again through on_world_swap — a second lesson in the scene),
 #    "out":       <abs path of the result JSON>}
 #
 # The REAL `tutorial_overlay.tscn` is instantiated. `responses[0]` arms the
@@ -32,7 +34,7 @@ var _frames := 0
 var _phase := "boot"
 var _spec: Dictionary = {}
 var _overlay = null
-var _result: Dictionary = {"steps": [], "cabinet_opened": [], "suggested": []}
+var _result: Dictionary = {"steps": [], "cabinet_opened": [], "suggested": [], "settlement_opened": []}
 
 
 func _init():
@@ -74,6 +76,7 @@ func _tick():
 			root.add_child(_overlay)
 			_overlay.suggest_command.connect(func(cmd): _result["suggested"].append(str(cmd)))
 			_overlay.open_cabinet.connect(func(nation): _result["cabinet_opened"].append(str(nation)))
+			_overlay.open_settlement.connect(func(war_id, nation): _result["settlement_opened"].append([str(war_id), str(nation)]))
 			_phase = "drive"
 		"drive":
 			_drive()
@@ -84,6 +87,7 @@ func _drive() -> void:
 	var responses: Array = _spec.get("responses", [])
 	var sent: Dictionary = _spec.get("sent", {})
 	var clicks: Dictionary = _spec.get("clicks", {})
+	var swaps: Dictionary = _spec.get("swaps", {})
 	for i in responses.size():
 		var key := str(i)
 		if clicks.has(key):
@@ -91,7 +95,7 @@ func _drive() -> void:
 				_overlay._on_meta_clicked(str(meta))
 		if sent.has(key):
 			_overlay.note_sent(str(sent[key]))
-		if i == 0:
+		if i == 0 or swaps.has(key):
 			_overlay.on_world_swap(responses[i])
 		else:
 			_overlay.observe(responses[i])
@@ -111,6 +115,12 @@ func _record(i: int) -> void:
 		"turn": int(_overlay._turn),
 		"active": bool(_overlay._active),
 		"done": bool(_overlay._done),
+		# S14d part 2: the bound lesson and the latches a re-arm must clear.
+		"lesson": str(_overlay._lesson_id),
+		"title": str(_overlay._title_label.text),
+		"table_state": str(_overlay._table_state),
+		"kienmayer_state": str(_overlay._kienmayer_state),
+		"saw_objection": bool(_overlay._saw_objection),
 	})
 
 

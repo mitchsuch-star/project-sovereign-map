@@ -78,7 +78,7 @@
                 "trigger": "when_fortifying",
                 "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
             },
-            "biography": "III Corps in its Lorraine camps - the iron marshal, whose books balance and whose sentries never sleep.",
+            "biography": "III Corps, marched from the Channel camps at Bruges and Ostend - the iron marshal, whose books balance and whose sentries never sleep.",
             "relationships": {}
         },
         "Soult": {
@@ -97,7 +97,7 @@
                 "trigger": "when_drilling",
                 "effect": "Drill completes in 1 turn (not 2) and never locks him out of your orders"
             },
-            "biography": "IV Corps, the depot army at Paris - a superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
+            "biography": "IV Corps, marched from the camp at Saint-Omer - a superb tactician who executes the Emperor's plan to the letter, exactly on the appointed hour.",
             "relationships": { "Ney": -1 }
         },
         "Senarmont": {
@@ -157,7 +157,7 @@
                 "trigger": "when_defending",
                 "effect": "+3% flat defense bonus when defending"
             },
-            "biography": "The Habsburgs' best soldier, mustering the reserve on the Hungarian plain - he will come west when he is ready, and not an hour sooner.",
+            "biography": "The Habsburgs' best soldier, holding the Adige with the Army of Italy - he will come north when he is ready, and not an hour sooner.",
             "relationships": { "Schwarzenberg": 1 }
         },
         "Schwarzenberg": {

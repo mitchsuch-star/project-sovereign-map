@@ -7,6 +7,7 @@ Structural half (T-G*, T-B1): added in slice S2 alongside the overlay.
 """
 
 import json
+import re
 import shutil
 from pathlib import Path
 from unittest.mock import patch
@@ -214,7 +215,9 @@ class TestClientStructuralPins:
         menu = _read("scripts/main_menu.gd")
         assert '_add_menu_button("tutorial"' in menu
         assert '_launch("tutorial")' in menu
-        assert '"begin", "return", "tutorial":' in menu
+        # S14d part 2 (October 24, 2026): the enabling arm names both School
+        # rows — flipped consciously from '"begin", "return", "tutorial":'.
+        assert '"begin", "return", "tutorial", "tutorial_table":' in menu
         assert '"tutorial"' in _read("scripts/menu_boot.gd")
 
     def test_g5_api_client_signature(self):
@@ -449,3 +452,49 @@ class TestSuggestCommandsParse:
             assert result.get("success"), (suggest, result.get("error"))
             got = result["command"]["action"]
             assert got == expected_action, (suggest, got, expected_action)
+
+
+class TestTheDiplomacyRowsTeachTheCabinetNotATypedVerb:
+    """⟨SF step=pre-deploy S14d · S14D-X17 · pillar=first_contact⟩ The script's
+    "Diplomacy (SHIPPED)" inventory table is what the tutorial author teaches
+    FROM. Ruling G1 redirects a typed diplomatic verb to the Cabinet, and
+    diplomacy is never typed — every act is a Cabinet row or a card button —
+    so the table may not teach "Type proposals naturally: 'offer Austria
+    peace'", nor claim a wizard line (R159) that the wizard never carried."""
+
+    SCRIPT = REPO / "docs" / "TUTORIAL_SCRIPT.md"
+    HEADING = "### Diplomacy (SHIPPED)"
+    # A quoted example opening on a diplomatic verb: "offer Austria peace",
+    # 'propose an alliance', “negotiate with Russia”.
+    TYPED_EXAMPLE = re.compile(
+        r"""(?:^|[\s(:])["'\u201c\u2018](?:offer|propose|negotiate)\b""",
+        re.IGNORECASE)
+
+    @classmethod
+    def _table(cls) -> list:
+        text = cls.SCRIPT.read_text(encoding="utf-8")
+        assert cls.HEADING in text, "the Diplomacy (SHIPPED) heading moved"
+        section = text.split(cls.HEADING, 1)[1]
+        section = re.split(r"^#{2,3} ", section, maxsplit=1, flags=re.MULTILINE)[0]
+        rows = [ln.strip() for ln in section.splitlines() if ln.strip().startswith("|")]
+        return rows
+
+    def test_the_table_teaches_no_typed_diplomatic_example(self):
+        rows = self._table()
+        assert len(rows) >= 6, rows  # header, rule, and the concept rows
+        body = rows[2:]
+        for row in rows:
+            assert "Type proposals" not in row, row
+            assert "R159 lines name both" not in row, row
+            assert not self.TYPED_EXAMPLE.search(row), row
+        assert all(row.count("|") == 4 for row in rows), "the table lost a column"
+        joined = "\n".join(body)
+        assert "Cabinet" in joined, "the table no longer names the Cabinet door"
+
+    def test_the_detector_is_not_vacuous(self):
+        """Two-directional: the retired row WOULD have tripped the census."""
+        retired = ('| Type proposals naturally | Example: "offer Austria peace" '
+                   "\u2014 or use the wizard's guided terms | Must-know |")
+        assert self.TYPED_EXAMPLE.search(retired)
+        assert self.TYPED_EXAMPLE.search("say 'propose an alliance'")
+        assert not self.TYPED_EXAMPLE.search("the Cabinet's rows, Send as suggested")

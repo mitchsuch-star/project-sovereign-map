@@ -1931,6 +1931,16 @@ def cap_war_room():
     record("new_game_tutorial", tutorial, source="POST /new_game {scenario: tutorial}",
            staging="the School of War's /new_game response — the tutor card's own arm",
            facts={"scenario_name": (tutorial.get("game_state") or {}).get("scenario_name")})
+    # S14d part 2 (TABLE_LESSON_SPEC §4.2): the second lesson — the Table.
+    table = post(c, "/new_game", {"scenario": "tutorial_table"})
+    record("war_room_tutorial_table", {"test": test, "topology": topology, "new_game": table},
+           source="GET /test + GET /map_topology + POST /new_game {scenario: tutorial_table}",
+           staging="the Table lesson's first morning: the second School row from the menu",
+           facts={"scenario_name": (table.get("game_state") or {}).get("scenario_name"),
+                  "turn": (table.get("game_state") or {}).get("turn")})
+    record("new_game_tutorial_table", table, source="POST /new_game {scenario: tutorial_table}",
+           staging="the Table lesson's /new_game response — the tutor card's own arm",
+           facts={"scenario_name": (table.get("game_state") or {}).get("scenario_name")})
     # Leave the backend on the 1805 world for whatever group runs next.
     fresh()
 

@@ -1,0 +1,592 @@
+{
+ "board": "godot-client\\project-sovereign\\assets\\maps\\tutorial_table_1805.json",
+ "board_sha256": "cbbe8ab5198231ca820dc9a3427a7f066154ff53bf5ee0416adfd30b7711f81b",
+ "turn_1": {
+  "dp": 5,
+  "gold": 2500,
+  "wars": [
+   "war_1"
+  ],
+  "held": {
+   "Vienna": "France",
+   "Tyrol": "France",
+   "Moravia": "France",
+   "Carniola": "Austria"
+  },
+  "exhaustion": {
+   "Austria": 60
+  },
+  "scores": {
+   "Austria": {
+    "key": "Austria|France",
+    "stored": 85,
+    "live_france_view": 85,
+    "components": {
+     "total": 85,
+     "territory": 15,
+     "battles": 15,
+     "decisive": 15,
+     "capital": 20,
+     "campaign": 6,
+     "blood": 14,
+     "blockade": 0,
+     "captive": 0,
+     "ticking": 0
+    }
+   },
+   "Russia": {
+    "key": "France|Russia",
+    "stored": 0,
+    "live_france_view": 0,
+    "components": {
+     "total": 0,
+     "territory": 0,
+     "battles": 0,
+     "decisive": 0,
+     "capital": 0,
+     "campaign": 0,
+     "blood": 0,
+     "blockade": 0,
+     "captive": 0,
+     "ticking": 0
+    }
+   }
+  }
+ },
+ "table": {
+  "success": true,
+  "covered": [
+   "Austria",
+   "Russia"
+  ],
+  "staged_terms": [
+   {
+    "type": "peace"
+   },
+   {
+    "type": "territory_cede",
+    "from": "Austria",
+    "to": "France",
+    "region": "Carniola"
+   },
+   {
+    "type": "gold_indemnity",
+    "from": "Austria",
+    "to": "France",
+    "amount": 200
+   }
+  ],
+  "rows": {
+   "Austria": {
+    "total": 56,
+    "threshold": 50,
+    "band": "accept",
+    "direct_score": 85,
+    "top_blocker": null,
+    "components": {
+     "base_side_pressure": 55,
+     "leader_own_losses": -20,
+     "war_exhaustion": 20,
+     "settlement_tier_legitimacy": 15,
+     "term_harshness_penalty": -14,
+     "projected_hegemony_mod": -5,
+     "war_objective_alignment": 5
+    },
+    "chip": [
+     "Separate peace with Austria — alone: 68 (Favorable)"
+    ]
+   },
+   "Russia": {
+    "total": -49,
+    "threshold": 50,
+    "band": "reject",
+    "direct_score": 0,
+    "top_blocker": "Settlement legitimacy",
+    "components": {
+     "settlement_tier_legitimacy": -20,
+     "war_objective_alignment": -15,
+     "term_harshness_penalty": -14,
+     "leader_own_losses": 5,
+     "projected_hegemony_mod": -5
+    },
+    "chip": []
+   }
+  }
+ },
+ "separate_peace": {
+  "chip": {
+   "demands": [
+    {
+     "type": "gold_lump",
+     "value": 200
+    },
+    {
+     "type": "territory_cede",
+     "value": 1,
+     "regions": [
+      "Carniola"
+     ]
+    }
+   ],
+   "sweeteners": [],
+   "score": 68,
+   "outcome": "ACCEPT",
+   "band": "Favorable"
+  },
+  "typed_draft": {
+   "demands": [
+    {
+     "type": "gold_per_turn",
+     "value": 300
+    },
+    {
+     "type": "territory_cede",
+     "value": 1,
+     "regions": [
+      "Bohemia"
+     ]
+    }
+   ],
+   "sweeteners": [],
+   "score": 55,
+   "outcome": "ACCEPT",
+   "components": {
+    "base_disposition": 30,
+    "war_score_modifier": 55,
+    "relation_modifier": -10,
+    "war_weariness": 16,
+    "hegemony_target_mod": -3,
+    "deal_balance": -25,
+    "diplomat_skill_bonus": 2,
+    "personality_modifier": 5,
+    "military_supremacy": 25,
+    "military_pressure": 12,
+    "harshness_penalty": -40,
+    "territory_escalation": -10
+   }
+  }
+ },
+ "bavaria": {
+  "row": {
+   "available": true,
+   "dp_cost": 3,
+   "likelihood": "Uncertain — a counter is likely",
+   "disabled_reason": ""
+  },
+  "suggested": {
+   "estimate": 45,
+   "outcome": "COUNTER_OFFER",
+   "display": "COUNTER expected",
+   "options": [
+    "Send as suggested",
+    "Harsher terms",
+    "More generous",
+    "Adjust terms",
+    "Reconsider"
+   ]
+  },
+  "eased_once": {
+   "estimate": 54,
+   "outcome": "ACCEPT",
+   "display": null
+  }
+ },
+ "script": {
+  "acts": [
+   {
+    "turn": 1,
+    "act": "reassure Bavaria",
+    "success": true,
+    "dp_after": 5,
+    "dialogue": "mission",
+    "options": [
+     "Begin mission",
+     "Not now"
+    ],
+    "message": "Sire, I shall begin efforts to reassure Bavaria. This will cost 1 DP per turn."
+   },
+   {
+    "turn": 1,
+    "act": "Begin mission",
+    "success": true,
+    "dp_after": 5,
+    "dialogue": null,
+    "options": [],
+    "message": "Talleyrand begins efforts to reassure Bavaria. (1 DP/turn)"
+   },
+   {
+    "turn": 1,
+    "act": "open the table",
+    "success": true,
+    "dp_after": 5,
+    "dialogue": "settlement_confirm",
+    "options": [
+     "Harsher terms",
+     "More generous",
+     "Submit for Review",
+     "Back Out"
+    ],
+    "message": "Sire, the settlement of the War for Moravia — the table with Austria + Russia cannot be ratified now: no single dominant pressure. Revise terms or stand down before pressing further. Vilna is unbeaten"
+   },
+   {
+    "turn": 1,
+    "act": "Separate peace with Austria (the chip)",
+    "success": true,
+    "dp_after": 5,
+    "dialogue": "settlement_pair_substitute_confirm",
+    "options": [
+     "Proceed — separate peace with Austria",
+     "Stay with the joint settlement"
+    ],
+    "message": "Sire, this sets aside the joint settlement of the War for Moravia — the table with Austria + Russia to treat with Austria alone — every other court keeps its war. Shall I proceed?"
+   },
+   {
+    "turn": 1,
+    "act": "Proceed — peace with Austria alone",
+    "success": true,
+    "dp_after": 5,
+    "dialogue": "proposal_confirm",
+    "options": [
+     "Send as suggested",
+     "Harsher terms",
+     "More generous",
+     "Adjust terms",
+     "Reconsider"
+    ],
+    "message": "Sire, since the larger settlement of the War for Moravia — the table with Austria + Russia cannot ratify, I shall open a separate bilateral peace with Austria; the other hostile pairs remain at war un"
+   },
+   {
+    "turn": 1,
+    "act": "Send these terms",
+    "success": true,
+    "dp_after": 2,
+    "dialogue": null,
+    "options": [],
+    "message": "Talleyrand departs for the Austrian court with your Peace Treaty proposal. Expect a response by next turn. (3 DP spent)"
+   },
+   {
+    "turn": 2,
+    "act": "propose vassalage to Bavaria",
+    "success": true,
+    "dp_after": 7,
+    "dialogue": "proposal_confirm",
+    "options": [
+     "Send as suggested",
+     "Harsher terms",
+     "More generous",
+     "Adjust terms",
+     "Reconsider"
+    ],
+    "message": "Sire, regarding the Vassalage proposal to Bavaria, I have prepared terms that reflect the current diplomatic climate."
+   },
+   {
+    "turn": 2,
+    "act": "More generous",
+    "success": true,
+    "dp_after": 7,
+    "dialogue": "proposal_confirm",
+    "options": [
+     "Send these terms",
+     "Even more generous",
+     "Less generous",
+     "Reconsider"
+    ],
+    "message": "A magnanimous approach, Sire. More generous terms for Bavaria."
+   },
+   {
+    "turn": 2,
+    "act": "Send these terms (vassalage)",
+    "success": true,
+    "dp_after": 4,
+    "dialogue": null,
+    "options": [],
+    "message": "Talleyrand departs for the Bavarian court with your Vassalage proposal. Expect a response by next turn. (3 DP spent)"
+   }
+  ],
+  "mornings": [
+   {
+    "turn": 2,
+    "dp": 7,
+    "events": [
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Holland loyalty 98 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."
+     },
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Switzerland loyalty 98 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."
+     },
+     {
+      "type": "vassal_contingent",
+      "nation": "France",
+      "message": "The Kingdom of Italy sends 7,500 men under Italian Contingent to the colours at Milan — they await the orders of France. The nearest host is Massena at Tyrol. The Kingdom of Italy pays them; their dead will be its grief."
+     },
+     {
+      "type": "diplomatic_proposal_returned",
+      "outcome": "ACCEPT",
+      "message": "Talleyrand returns from Austria with excellent news: they have accepted our proposal! The decisive factor was our military dominance."
+     },
+     {
+      "type": "diplomatic_treaty_signed",
+      "message": "Treaty signed: At War → Peace with Austria."
+     }
+    ],
+    "letters": [],
+    "battles_fought": 0,
+    "table_ok": "refused: one_to_one_war / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / awaiting=True / msg=",
+    "austria_state": "PEACE",
+    "russia_state": "WAR",
+    "bavaria_state": "ALLIANCE",
+    "austria_row": null,
+    "russia_row": null,
+    "charles": {
+     "location": "Carniola",
+     "strength": 15000
+    },
+    "scores": {
+     "Austria": {
+      "key": "Austria|France",
+      "state": "PEACE"
+     },
+     "Russia": {
+      "key": "France|Russia",
+      "stored": 0,
+      "live_france_view": 0,
+      "components": {
+       "total": 0,
+       "territory": 0,
+       "battles": 0,
+       "decisive": 0,
+       "capital": 0,
+       "campaign": 0,
+       "blood": 0,
+       "blockade": 0,
+       "captive": 0,
+       "ticking": 0
+      }
+     }
+    },
+    "wars": [
+     "war_1"
+    ]
+   },
+   {
+    "turn": 3,
+    "dp": 7,
+    "events": [
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Holland loyalty 96 (-2): satellite drift"
+     },
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "KingdomOfItaly loyalty 98 (-2): satellite drift — Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them."
+     },
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Switzerland loyalty 96 (-2): satellite drift"
+     },
+     {
+      "type": "vassal_contingent",
+      "outcome": "home",
+      "nation": "France",
+      "message": "Italian Contingent's contingent comes home — 7,500 of 7,500 men."
+     },
+     {
+      "type": "diplomatic_proposal_returned",
+      "outcome": "ACCEPT",
+      "message": "Talleyrand returns from Bavaria with excellent news: they have accepted our proposal! The decisive factor was goodwill between our nations."
+     },
+     {
+      "type": "diplomatic_treaty_signed",
+      "message": "Treaty signed: Alliance → Vassal with Bavaria."
+     }
+    ],
+    "letters": [],
+    "battles_fought": 0,
+    "table_ok": "refused: one_to_one_war / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / awaiting=True / msg=",
+    "austria_state": "PEACE",
+    "russia_state": "WAR",
+    "bavaria_state": "VASSAL",
+    "austria_row": null,
+    "russia_row": null,
+    "charles": {
+     "location": "Bohemia",
+     "strength": 15000
+    },
+    "scores": {
+     "Austria": {
+      "key": "Austria|France",
+      "state": "PEACE"
+     },
+     "Russia": {
+      "key": "France|Russia",
+      "stored": 0,
+      "live_france_view": 0,
+      "components": {
+       "total": 0,
+       "territory": 0,
+       "battles": 0,
+       "decisive": 0,
+       "capital": 0,
+       "campaign": 0,
+       "blood": 0,
+       "blockade": 0,
+       "captive": 0,
+       "ticking": 0
+      }
+     }
+    },
+    "wars": [
+     "war_1"
+    ]
+   },
+   {
+    "turn": 4,
+    "dp": 6,
+    "events": [
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Holland loyalty 94 (-2): satellite drift"
+     },
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "KingdomOfItaly loyalty 96 (-2): satellite drift"
+     },
+     {
+      "type": "vassal_loyalty",
+      "nation": "France",
+      "message": "Switzerland loyalty 94 (-2): satellite drift"
+     }
+    ],
+    "letters": [],
+    "battles_fought": 0,
+    "table_ok": "refused: one_to_one_war / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / A one-on-one war is settled on the court's own page: Propose Peace or Propose Armistice. / awaiting=True / msg=",
+    "austria_state": "PEACE",
+    "russia_state": "WAR",
+    "bavaria_state": "VASSAL",
+    "austria_row": null,
+    "russia_row": null,
+    "charles": {
+     "location": "Bohemia",
+     "strength": 15000
+    },
+    "scores": {
+     "Austria": {
+      "key": "Austria|France",
+      "state": "PEACE"
+     },
+     "Russia": {
+      "key": "France|Russia",
+      "stored": 0,
+      "live_france_view": 0,
+      "components": {
+       "total": 0,
+       "territory": 0,
+       "battles": 0,
+       "decisive": 0,
+       "capital": 0,
+       "campaign": 0,
+       "blood": 0,
+       "blockade": 0,
+       "captive": 0,
+       "ticking": 0
+      }
+     }
+    },
+    "wars": [
+     "war_1"
+    ]
+   }
+  ],
+  "mission": {
+   "type": "REASSURE_ALLY",
+   "turns_active": 0
+  },
+  "chip": {
+   "label": "Separate peace with Austria — alone: 68 (Favorable)",
+   "available": null,
+   "disabled_reason_display": null,
+   "bilateral_estimate": {
+    "score": 68,
+    "outcome": "ACCEPT",
+    "band": "Favorable"
+   }
+  },
+  "bilateral_draft": {
+   "type": "proposal_confirm",
+   "estimate": 68,
+   "outcome": "ACCEPT",
+   "display": null,
+   "terms": {
+    "type": "peace",
+    "proposal_type": "peace",
+    "proposer_nation": "France",
+    "target_nation": "Austria",
+    "sweeteners": [],
+    "demands": [
+     {
+      "type": "gold_lump",
+      "value": 200
+     },
+     {
+      "type": "territory_cede",
+      "value": 1,
+      "regions": [
+       "Carniola"
+      ]
+     }
+    ],
+    "clauses": [],
+    "talleyrand_commentary": "Border territory provides strategic depth. A prudent demand.",
+    "carried_from_settlement": true
+   }
+  },
+  "in_transit_after_turn_1": {
+   "acceptance_snapshot": 68,
+   "diplomatic_state_at_send": "WAR",
+   "dp_cost": 3,
+   "payer_gold_at_send": 2500,
+   "proposal": [
+    "clauses",
+    "demands",
+    "proposer_nation",
+    "sweeteners",
+    "target_nation",
+    "type"
+   ],
+   "target": "Austria",
+   "turn_sent": 1
+  },
+  "vassal_draft": {
+   "estimate": 56,
+   "outcome": "ACCEPT",
+   "display": null
+  }
+ },
+ "clauses": {
+  "one_war_instance": true,
+  "vienna_tyrol_moravia_french": true,
+  "stored_score_is_the_live_one": true,
+  "austria_at_threshold_with_margin": true,
+  "russia_below_threshold": true,
+  "chip_on_austria": true,
+  "bilateral_accepts": true,
+  "vassal_counter_then_accept": true,
+  "every_act_succeeded": true,
+  "austria_signs_the_second_morning": true,
+  "russia_still_at_war": true,
+  "bavaria_vassal_the_third_morning": true,
+  "no_stray_letter": true,
+  "no_battle": true,
+  "russia_at_war_every_morning": true,
+  "russia_never_reaches_the_table": true
+ }
+}

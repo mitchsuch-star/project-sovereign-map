@@ -114,9 +114,12 @@ all_hidden = list(set(
 all_datas = uvicorn_datas + fastapi_datas + starlette_datas + anthropic_datas
 
 # Aug 2026 health-check audit (shippable-build P0-1): since the July-2 map
-# cutover the backend HARD-REQUIRES three JSONs at repo-relative paths —
+# cutover the backend HARD-REQUIRES its map JSONs at repo-relative paths —
 # europe.json (the region registry, backend/models/region.py) plus the
-# europe_1805.json default scenario and tutorial_1805.json (backend/main.py).
+# europe_1805.json default scenario and every School of War scenario
+# (tutorial_1805.json, tutorial_table_1805.json — backend/main.py's
+# /new_game allowlist, tutorial_state.SCHOOL_SCENARIOS; S14D-X15: a school
+# scenario missing here passes the suite and 404s /new_game in the build).
 # Under PyInstaller they resolve inside _internal/ from region.py's own
 # __file__ (PB-1: main.py is the ENTRY script, whose __file__ is
 # _internal\main.py, so the maps folder is derived from region.py, an
@@ -125,7 +128,8 @@ _MAPS_SRC = os.path.join(
     PROJECT_ROOT, 'godot-client', 'project-sovereign', 'assets', 'maps')
 _MAPS_DST = os.path.join(
     'godot-client', 'project-sovereign', 'assets', 'maps')
-for _map_file in ('europe.json', 'europe_1805.json', 'tutorial_1805.json'):
+for _map_file in ('europe.json', 'europe_1805.json', 'tutorial_1805.json',
+                 'tutorial_table_1805.json'):
     all_datas.append((os.path.join(_MAPS_SRC, _map_file), _MAPS_DST))
 
 # PB-4: the build stamp, at the _MEIPASS root. Absent in a hand-run

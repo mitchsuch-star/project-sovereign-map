@@ -307,8 +307,8 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| You can treat with every court | F1 wizard + D ledger (R159 lines name both) | Must-know |
-| Type proposals naturally | Example: "offer Austria peace" — or use the wizard's guided terms | Must-know |
+| You can treat with every court | The Cabinet (F1, or the war room's THE CABINET button) — its own first-open line says any court may be treated with and that every act is priced in DP — and the Diplomatic Ledger (D) | Must-know |
+| Propose through the Cabinet's rows | The terms page's own buttons (Send as suggested, Harsher terms, More generous, Adjust terms); a typed diplomatic verb is redirected to the Cabinet (ruling G1) | Must-know |
 | Courts have designs (agendas) | Ledger Design rows + war-room per-belligerent lines | Should-know |
 | War score affects negotiation | War detail popup (R159 line: "its score, its fronts, and the price of peace") | Should-know |
 

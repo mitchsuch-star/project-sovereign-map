@@ -339,6 +339,7 @@ func _build_menu_column() -> void:
 	_menu_column.add_child(_confirm_box)
 
 	_add_menu_button("tutorial", "The School of War — a guided campaign", _on_tutorial_pressed, false)
+	_add_menu_button("tutorial_table", "The School of War — The Table (a guided peace)", _on_tutorial_table_pressed, false)
 	_add_menu_button("continue", "Continue", _on_continue_pressed, false)
 	_add_menu_button("load", "Load a Campaign…", _on_load_pressed, false)
 	_add_menu_button("settings", "Settings", _toggle_settings, false)
@@ -597,6 +598,22 @@ func _on_tutorial_pressed() -> void:
 		_launch("tutorial")
 
 
+func _on_tutorial_table_pressed() -> void:
+	# S14d part 2 (TABLE_LESSON_SPEC §4.4): the School's second lesson — the
+	# same confirm row, the same road (`/new_game {scenario: tutorial_table}`
+	# through main.gd's boot arm), its own done latch (`_launch` clears
+	# `done_tutorial_table`, never the Danube's).
+	if _saves.size() > 0 or MenuBoot.came_from_game:
+		_confirm_action = "tutorial_table"
+		_confirm_label.text = "Enter the School of War — the Table? Your running campaign leaves the table."
+		if _saves.size() > 0:
+			_confirm_label.text += " Its autosave is kept — Continue restores it."
+		_confirm_yes.text = "Confirm — to school"
+		_confirm_box.visible = not _confirm_box.visible
+	else:
+		_launch("tutorial_table")
+
+
 func _on_continue_pressed() -> void:
 	_launch("continue")
 
@@ -706,7 +723,7 @@ func _apply_backend_state() -> void:
 	for id in _buttons:
 		var b: Button = _buttons[id]
 		match id:
-			"begin", "return", "tutorial":
+			"begin", "return", "tutorial", "tutorial_table":
 				b.disabled = not _backend_up
 				b.tooltip_text = "" if _backend_up else WAITING_TIP
 			"continue":

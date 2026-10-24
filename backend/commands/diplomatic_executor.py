@@ -8608,7 +8608,11 @@ class DiplomaticExecutor:
             return self._the_offer_stands(dialogue, world, source_nation)
 
         # Counter succeeded — present the modified terms
-        counter_summary = _format_proposal_summary(counter_terms)
+        # S14D-X13 (October 24, 2026): the summary and the letter name the
+        # terms the court STRUCK from the proposal, not only the ones it kept.
+        from backend.display_names import counter_summary_with_struck
+        counter_summary = counter_summary_with_struck(
+            _format_proposal_summary(counter_terms), terms, counter_terms)
 
         # Dismiss stale proposal notification (counter replaces original)
         from backend.notifications import DIPLOMATIC_PROPOSAL
@@ -8623,6 +8627,7 @@ class DiplomaticExecutor:
             is_counter_offer=True,
             acceptance=acceptance,
             decision_reason=context.get("decision_reason", ""),
+            original=terms,
         )
 
         world.dialogue_manager.replace({
@@ -8647,6 +8652,10 @@ class DiplomaticExecutor:
             ],
             "context": {
                 "proposal": counter_terms,
+                # S14D-X13: the draft this counter answers, so a popup rebuilt
+                # from the dialogue (`/pending_envoy`'s fallback) names the
+                # struck terms as the first showing did.
+                "original_proposal": copy.deepcopy(terms),
                 "source_nation": source_nation,
                 "is_counter": True,
                 "decision_reason": context.get("decision_reason", ""),

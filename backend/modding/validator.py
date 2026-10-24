@@ -1706,6 +1706,342 @@ def _validate_navies(result, data: dict, known_nations: Set[str]) -> None:
                              "dockyards — it cannot build (§3.2)")
 
 
+# S14D-X14: the keys a lesson board authors that `WorldState.from_dict` reads
+# and no block validator owned — the board's memory (war exhaustion, battles,
+# the campaign ledger, the stored scores), its purses and cooldowns, the
+# first-open latches, the opening hints. Every one is OPTIONAL (absent = the
+# loader's default); `_validate_lesson_keys` checks the SHAPE of each that is
+# present. docs/MODDING_FORMAT.md documents the semantics, one row per key.
+LESSON_KEYS = (
+    "war_exhaustion", "war_start_turns", "battle_records", "decisive_battles",
+    "campaign_ledgers", "nation_starting_regions", "diplomatic_points",
+    "max_diplomatic_points", "nation_dp", "ai_proposal_cooldowns",
+    "war_scores", "first_opens", "diplomatic_states",
+    "coordination_tutorial_shown", "opening_attack_guidance_shown",
+    "delegation_hint_shown", "muster_hint_shown", "commission_hint_shown",
+)
+LESSON_HINT_FLAGS = (
+    "coordination_tutorial_shown", "opening_attack_guidance_shown",
+    "delegation_hint_shown", "muster_hint_shown", "commission_hint_shown",
+)
+
+
+def _validate_lesson_keys(result, data: dict, known_nations: Set[str],
+                          known_regions: Set[str]) -> None:
+    """S14D-X14 (docs/TABLE_LESSON_SPEC.md §5, A4): the shapes of the
+    lesson-board keys, WHEN PRESENT (absent is fine — the loader defaults
+    each). An unknown top-level key stays NOT an error (a scenario for a
+    newer build must still boot); these are known keys, and a wrong shape
+    here is a silent dead entry or a crash in `from_dict`'s `int(v)`:
+
+      war_exhaustion / nation_dp   {nation: int}  (exhaustion 0..200)
+      war_start_turns / war_scores {"A|B": int}   (scores -100..100)
+      battle_records               {"A|B": [{turn, winner, ...}]}
+      decisive_battles             {"A|B": [{turn, winner, ...}]}
+      campaign_ledgers             {"A|B": {captures, casualties, blockade_turns}}
+      nation_starting_regions      {nation: [province]}
+      ai_proposal_cooldowns        {"<Nation>|nation": turns >= 0}
+      first_opens                  {screen id: int}   (ids: first_open.SCREENS)
+      diplomatic_points / max_diplomatic_points   int >= 0
+      diplomatic_states            {"A|B": state}
+      the five hint flags          bool
+
+    A pair key is `"A|B"` ALPHABETICALLY SORTED — an unsorted key is
+    unreachable at runtime (`_make_diplo_key` sorts on every read), the
+    nation_relations lesson. Nations are checked against `known_nations`
+    and provinces against `known_regions` only when those are known (empty
+    = skip, the file's stance everywhere)."""
+    if not any(key in data for key in LESSON_KEYS):
+        return
+    known_nations = set(known_nations or ())
+    known_regions = set(known_regions or ())
+
+    def _is_int(value) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    def _int_in(path: str, value, lo=None, hi=None) -> bool:
+        if (not _is_int(value) or (lo is not None and value < lo)
+                or (hi is not None and value > hi)):
+            if lo is not None and hi is not None:
+                want = f"an integer in {lo}..{hi}"
+            elif lo is not None:
+                want = f"an integer >= {lo}"
+            else:
+                want = "an integer"
+            result.add_error(path, f"Must be {want}, got {value!r}")
+            return False
+        return True
+
+    def _block(key: str):
+        if key not in data:
+            return None
+        block = data[key]
+        if not isinstance(block, dict):
+            result.add_error(
+                key, f"Must be an object, got {type(block).__name__}")
+            return None
+        return block
+
+    def _nation(path: str, name) -> bool:
+        if not isinstance(name, str) or not name:
+            result.add_error(path, f"Must name a nation, got {name!r}")
+            return False
+        if known_nations and name not in known_nations:
+            result.add_error(path, f"Unknown nation '{name}'")
+            return False
+        return True
+
+    def _pair(path: str, key):
+        """The two nations of a pair key, or None (error written)."""
+        parts = str(key).split("|")
+        if len(parts) != 2 or not parts[0] or not parts[1]:
+            result.add_error(path, "Pair key must be 'NationA|NationB'")
+            return None
+        if parts[0] == parts[1]:
+            result.add_error(path, "A nation cannot be paired with itself")
+            return None
+        if parts != sorted(parts):
+            result.add_error(
+                path,
+                f"Pair key must be alphabetically sorted "
+                f"('{'|'.join(sorted(parts))}') — an unsorted key is "
+                f"unreachable at runtime")
+            return None
+        if not all(_nation(path, n) for n in parts):
+            return None
+        return parts
+
+    def _province(path: str, name) -> bool:
+        if not isinstance(name, str) or not name:
+            result.add_error(path, f"Must name a province, got {name!r}")
+            return False
+        if known_regions and name not in known_regions:
+            result.add_error(path, f"Unknown province '{name}'")
+            return False
+        return True
+
+    def _side(path: str, name, parts) -> bool:
+        """A nation named inside a pair's record must be one of the pair."""
+        if not isinstance(name, str) or name not in parts:
+            result.add_error(
+                path, f"Must be one of the pair ({' / '.join(parts)}), "
+                      f"got {name!r}")
+            return False
+        return True
+
+    # ── nation-keyed integer blocks ───────────────────────────────────
+    block = _block("war_exhaustion")
+    if block is not None:
+        from backend.game_logic.coalition import WAR_EXHAUSTION_MAX
+        for nation, value in block.items():
+            path = f"war_exhaustion.{nation}"
+            if _nation(path, nation):
+                _int_in(path, value, 0, int(WAR_EXHAUSTION_MAX))
+
+    block = _block("nation_dp")
+    if block is not None:
+        for nation, value in block.items():
+            path = f"nation_dp.{nation}"
+            if _nation(path, nation):
+                _int_in(path, value, 0)
+
+    for key in ("diplomatic_points", "max_diplomatic_points"):
+        if key in data:
+            _int_in(key, data[key], 0)
+
+    # ── pair-keyed integer blocks ─────────────────────────────────────
+    block = _block("war_start_turns")
+    if block is not None:
+        for pair, value in block.items():
+            path = f"war_start_turns.{pair}"
+            if _pair(path, pair) is not None:
+                _int_in(path, value)
+
+    block = _block("war_scores")
+    if block is not None:
+        for pair, value in block.items():
+            path = f"war_scores.{pair}"
+            if _pair(path, pair) is not None:
+                _int_in(path, value, -100, 100)
+
+    # ── the battle records and the decisives ──────────────────────────
+    for key, int_fields in (
+            ("battle_records",
+             ("attacker_casualties", "defender_casualties")),
+            ("decisive_battles", ("total_casualties",))):
+        block = _block(key)
+        if block is None:
+            continue
+        for pair, rows in block.items():
+            path = f"{key}.{pair}"
+            parts = _pair(path, pair)
+            if parts is None:
+                continue
+            if not isinstance(rows, list):
+                result.add_error(
+                    path, f"Must be a list of records, got {type(rows).__name__}")
+                continue
+            for i, row in enumerate(rows):
+                rp = f"{path}[{i}]"
+                if not isinstance(row, dict):
+                    result.add_error(rp, f"Must be an object, got {type(row).__name__}")
+                    continue
+                _int_in(f"{rp}.turn", row.get("turn"))
+                winner = row.get("winner")
+                if not isinstance(winner, str):
+                    result.add_error(
+                        f"{rp}.winner",
+                        f"Must be a string naming the winner, got {winner!r}")
+                elif winner and winner not in parts:
+                    result.add_error(
+                        f"{rp}.winner",
+                        f"Must be one of the pair ({' / '.join(parts)}) — a "
+                        f"win for a third court scores for neither side, "
+                        f"got {winner!r}")
+                for field_name in ("attacker", "defender"):
+                    if field_name in row and not (
+                            isinstance(row[field_name], str)
+                            and row[field_name] in parts):
+                        result.add_error(
+                            f"{rp}.{field_name}",
+                            f"Must be one of the pair ({' / '.join(parts)}), "
+                            f"got {row[field_name]!r}")
+                for field_name in int_fields:
+                    if field_name in row:
+                        _int_in(f"{rp}.{field_name}", row[field_name], 0)
+                if "ratio" in row and (
+                        isinstance(row["ratio"], bool)
+                        or not isinstance(row["ratio"], (int, float))
+                        or row["ratio"] < 0):
+                    result.add_error(
+                        f"{rp}.ratio",
+                        f"Must be a non-negative number, got {row['ratio']!r}")
+                for field_name in ("location", "battle_name"):
+                    if field_name in row and not isinstance(row[field_name], str):
+                        result.add_error(
+                            f"{rp}.{field_name}",
+                            f"Must be a string, got {row[field_name]!r}")
+
+    # ── the campaign ledgers ──────────────────────────────────────────
+    block = _block("campaign_ledgers")
+    if block is not None:
+        for pair, ledger in block.items():
+            path = f"campaign_ledgers.{pair}"
+            parts = _pair(path, pair)
+            if parts is None:
+                continue
+            if not isinstance(ledger, dict):
+                result.add_error(
+                    path, f"Must be an object, got {type(ledger).__name__}")
+                continue
+            for sub in ledger:
+                if sub not in ("captures", "casualties", "blockade_turns"):
+                    result.add_warning(
+                        f"{path}.{sub}",
+                        "Unknown ledger key (read: captures, casualties, "
+                        "blockade_turns) — it will never be read")
+            for sub in ("casualties", "blockade_turns"):
+                if sub not in ledger:
+                    continue
+                rows = ledger[sub]
+                if not isinstance(rows, dict):
+                    result.add_error(
+                        f"{path}.{sub}",
+                        f"Must be an object, got {type(rows).__name__}")
+                    continue
+                for nation, value in rows.items():
+                    if _side(f"{path}.{sub}.{nation}", nation, parts):
+                        _int_in(f"{path}.{sub}.{nation}", value, 0)
+            if "captures" in ledger:
+                captures = ledger["captures"]
+                if not isinstance(captures, dict):
+                    result.add_error(
+                        f"{path}.captures",
+                        f"Must be an object, got {type(captures).__name__}")
+                    continue
+                for nation, provinces in captures.items():
+                    cp = f"{path}.captures.{nation}"
+                    if not _side(cp, nation, parts):
+                        continue
+                    if not isinstance(provinces, list):
+                        result.add_error(
+                            cp, f"Must be a list of provinces, got "
+                                f"{type(provinces).__name__}")
+                        continue
+                    seen_provinces: Set[str] = set()
+                    for j, province in enumerate(provinces):
+                        if not _province(f"{cp}[{j}]", province):
+                            continue
+                        if province in seen_provinces:
+                            result.add_error(
+                                f"{cp}[{j}]",
+                                f"Duplicate capture '{province}' — a province "
+                                f"is credited once per war")
+                        seen_provinces.add(province)
+
+    # ── the homelands ─────────────────────────────────────────────────
+    block = _block("nation_starting_regions")
+    if block is not None:
+        for nation, provinces in block.items():
+            path = f"nation_starting_regions.{nation}"
+            if not _nation(path, nation):
+                continue
+            if not isinstance(provinces, list):
+                result.add_error(
+                    path, f"Must be a list of provinces, got "
+                          f"{type(provinces).__name__}")
+                continue
+            for j, province in enumerate(provinces):
+                _province(f"{path}[{j}]", province)
+
+    # ── the courts' cooldowns ─────────────────────────────────────────
+    block = _block("ai_proposal_cooldowns")
+    if block is not None:
+        for cd_key, value in block.items():
+            path = f"ai_proposal_cooldowns.{cd_key}"
+            if (not isinstance(cd_key, str) or not cd_key.endswith("|nation")
+                    or cd_key == "|nation"):
+                result.add_error(
+                    path,
+                    "Key must be '<Nation>|nation' — a court's nation-level "
+                    "hold on its unsolicited letters (the per-type, courting "
+                    "and AI-to-AI keys are written at runtime, never authored)")
+            else:
+                for court in cd_key[:-len("|nation")].split(">"):
+                    _nation(path, court)
+            _int_in(path, value, 0)
+
+    # ── the first-open latches ────────────────────────────────────────
+    block = _block("first_opens")
+    if block is not None:
+        from backend.game_logic.first_open import SCREENS
+        for screen, value in block.items():
+            path = f"first_opens.{screen}"
+            if screen not in SCREENS:
+                result.add_error(
+                    path, f"Unknown screen id '{screen}' (ids: "
+                          f"{', '.join(SCREENS)})")
+            _int_in(path, value)
+
+    # ── the standing states and the opening hints ─────────────────────
+    block = _block("diplomatic_states")
+    if block is not None:
+        from backend.game_logic.diplomacy import DIPLOMATIC_STATES
+        for pair, state in block.items():
+            path = f"diplomatic_states.{pair}"
+            if _pair(path, pair) is None:
+                continue
+            if state not in DIPLOMATIC_STATES:
+                result.add_error(
+                    path, f"Must be one of {', '.join(DIPLOMATIC_STATES)}, "
+                          f"got {state!r}")
+
+    for flag in LESSON_HINT_FLAGS:
+        if flag in data and not isinstance(data[flag], bool):
+            result.add_error(
+                flag, f"Must be a boolean, got {type(data[flag]).__name__}")
+
+
 def validate_scenario(
     scenario_path_or_data: Any,
     check_adjacency: bool = True
@@ -2415,6 +2751,20 @@ def validate_scenario(
 
     # S14c (docs/EVENTS_SPEC.md §3.1, §5): the authored `moments` block.
     _validate_moments(result, data, statecraft_known)
+
+    # S14D-X14 (docs/TABLE_LESSON_SPEC.md §5, A4): the lesson-board keys
+    # (war memory, purses, cooldowns, first-open latches, opening hints) —
+    # shapes checked when present. A raw registry-injected file carries no
+    # `regions`/marshals, so the roster is the union of the scenario's own
+    # nations and both shipped rosters (the `moments` idiom); the province
+    # set is resolved only when a lesson key is present.
+    if any(key in data for key in LESSON_KEYS):
+        lesson_nations = set(statecraft_known) | VALID_NATIONS
+        if str(data.get("sovereign_map") or "").strip().lower() == "europe":
+            from backend.nation_config import EUROPE_ROSTER
+            lesson_nations |= set(EUROPE_ROSTER)
+        _validate_lesson_keys(result, data, lesson_nations,
+                              _known_region_names(data))
 
     # Validate numeric fields
     for field_name in ["current_turn", "max_turns", "gold", "max_actions_per_turn", "actions_remaining"]:

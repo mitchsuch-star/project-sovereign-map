@@ -367,8 +367,15 @@ def build_pending_envoy_popup_from_terms(
     acceptance_score: Optional[int] = None,
     decision_reason: str = "",
     label_type: str = "",
+    original: Optional[Dict] = None,
 ) -> Dict:
     """Build the popup payload shape incoming_proposal_popup.gd expects.
+
+    S14D-X13 (October 24, 2026): `original` is the draft a counter-offer
+    answers. With it the counter's `clauses` are a diff of that draft - the
+    terms the court STRUCK ("Struck: the tribute - 126 gold a turn ...") and
+    the terms it kept - where without it they are the counter's own terms (a
+    counter that struck its only term read "Diplomatic proposal").
 
     PC-F76 (S13e part 1, October 16, 2026): `label_type` is the envelope's
     stable P-rule label (`proposal["proposal_type"]`, e.g. `harsh_peace`)
@@ -378,6 +385,7 @@ def build_pending_envoy_popup_from_terms(
     from backend.display_names import (
         PERSONALITY_DISPLAY,
         PROPOSAL_TYPE_DISPLAY,
+        counter_offer_clause_lines,
         diplomatic_decision_reason_display,
         proposal_display_name,
     )
@@ -455,8 +463,11 @@ def build_pending_envoy_popup_from_terms(
                if (label_type == "harsh_peace" and terms.get("dictated_label")) else "")),
         "dictated_tier": int(terms.get("dictated_tier", 0) or 0) if label_type == "harsh_peace" else 0,
         "dictated_label": str(terms.get("dictated_label") or "") if label_type == "harsh_peace" else "",
-        "clauses": build_proposal_popup_clauses(
-            terms, include_base=not is_counter_offer
+        "clauses": (
+            counter_offer_clause_lines(original, terms)
+            if (is_counter_offer and isinstance(original, dict))
+            else build_proposal_popup_clauses(
+                terms, include_base=not is_counter_offer)
         ),
         "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
         "acceptance_hint": acceptance_hint,

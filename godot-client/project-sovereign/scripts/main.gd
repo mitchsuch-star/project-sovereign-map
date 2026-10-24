@@ -641,6 +641,7 @@ func _ready():
 		tutorial_overlay.suggest_command.connect(_on_tutorial_suggest_command)
 		tutorial_overlay.open_cabinet.connect(_on_tutorial_open_cabinet)
 		tutorial_overlay.open_ledger.connect(_on_tutorial_open_ledger)
+		tutorial_overlay.open_settlement.connect(_on_tutorial_open_settlement)
 
 	war_detail_popup = dialog_manager.register("war_detail", "res://scenes/war_detail_popup.tscn")
 	if war_detail_popup:
@@ -1101,6 +1102,8 @@ func _consume_menu_boot_action() -> void:
 			_on_pause_new_game_requested()
 		"tutorial":
 			_on_tutorial_boot_requested()
+		"tutorial_table":
+			_on_tutorial_boot_requested("tutorial_table")
 		"continue":
 			add_output("[color=#" + Utils.COLOR_INFO + "]Resuming the campaign from the latest save...[/color]")
 			set_input_enabled(false)
@@ -10199,6 +10202,24 @@ func _on_tutorial_open_ledger(tab: int) -> void:
 		return
 	if top_bar and top_bar.has_method("open_ledger_to_tab"):
 		top_bar.open_ledger_to_tab(tab)
+
+
+func _on_tutorial_open_settlement(war_id: String, nation: String) -> void:
+	"""S14d part 2 (TABLE_LESSON_SPEC §4.2, card II): the Table lesson's door
+	opens the REAL settlement table on the war the card names — the same road
+	the war card's Settlement button takes (`_on_war_settlement_clicked`),
+	same modal guard. The card is told the line the door sends, as the typed
+	path tells it, so a refused door releases its step with the reason
+	(observe-only — the card still sends nothing)."""
+	if nation.is_empty() or war_id.is_empty():
+		return
+	if _is_modal_dialog_open():
+		return
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	if tutorial_overlay:
+		tutorial_overlay.note_sent("propose common peace with " + nation)
+	_on_war_settlement_clicked(war_id, nation)
 
 
 func _on_first_open_seen(screen: String) -> void:

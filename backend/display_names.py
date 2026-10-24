@@ -1778,6 +1778,23 @@ def _format_popup_clause_line(prefix: str, clause_type: str, clause) -> str:
     return f"{prefix}: {label}{term}"
 
 
+def _proposal_term_lines(terms: dict) -> list[str]:
+    """The popup lines of a proposal's own terms - clauses, demands, offers -
+    with no base line and no fallback (the pieces `build_proposal_popup_clauses`
+    and `counter_offer_clause_lines` both stand on)."""
+    lines = []
+    for clause in terms.get("clauses", []):
+        clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
+        lines.append(_format_popup_clause_line("Clause", clause_type, clause))
+
+    for demand in terms.get("demands", []):
+        lines.append(_format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
+
+    for sweetener in terms.get("sweeteners", []):
+        lines.append(_format_popup_clause_line("Offer", sweetener.get("type", "unknown"), sweetener))
+    return lines
+
+
 def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> list[str]:
     """Build incoming proposal popup clause strings from backend-owned labels."""
     clauses = []
@@ -1785,19 +1802,135 @@ def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> l
     if include_base:
         clauses.append(f"Proposal: {proposal_display_name(proposal_type)}")
 
-    for clause in terms.get("clauses", []):
-        clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
-        clauses.append(_format_popup_clause_line("Clause", clause_type, clause))
-
-    for demand in terms.get("demands", []):
-        clauses.append(_format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
-
-    for sweetener in terms.get("sweeteners", []):
-        clauses.append(_format_popup_clause_line("Offer", sweetener.get("type", "unknown"), sweetener))
+    clauses.extend(_proposal_term_lines(terms))
 
     if not clauses:
+        # S14D-X13 (October 24, 2026): a letter that names nothing is not a
+        # letter - when the type is known the line says WHICH proposal; the
+        # generic words are for a terms dict that carries no type at all.
+        if str(proposal_type).strip().lower() not in ("", "unknown"):
+            return [f"Proposal: {proposal_display_name(proposal_type)}"]
         return ["Diplomatic proposal"]
     return clauses
+
+
+# S14D-X13 (Pre-Deploy S14d part 2, October 24, 2026): a counter-offer is a
+# DIFF of the draft the player sent. `generate_counter_offer` only removes a
+# term, adds a term, or both; the letter used to print the counter's own terms
+# and nothing of what was removed - a vassalage that struck its tribute read
+# "Diplomatic proposal" with no terms, the 126 gold a turn the court refused
+# unnamed. The three term lists, in the popup's own order, with the word each
+# prefixes its line with ("Demand: ...", "Offer: ...", "Clause: ...").
+_COUNTER_TERM_FIELDS = (("clauses", "clause"), ("demands", "demand"), ("sweeteners", "offer"))
+
+
+def _canon_term_value(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, dict):
+        return {str(k): _canon_term_value(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_canon_term_value(v) for v in value]
+    return value
+
+
+def _counter_term_key(term) -> str:
+    """Comparable identity of one clause/demand/sweetener: a bare clause
+    string and `{"type": ...}` are the same clause, a type compares without
+    its case, and 126 equals 126.0."""
+    import json
+    if isinstance(term, dict):
+        canon = _canon_term_value(term)
+        canon["type"] = str(canon.get("type") or "").strip().lower()
+    else:
+        canon = {"type": str(term or "").strip().lower()}
+    return json.dumps(canon, sort_keys=True, default=str)
+
+
+def counter_struck_terms(original, counter) -> list[tuple[str, object]]:
+    """The terms of the draft a counter-offer REMOVED, as `(kind, term)` pairs
+    (kind: "clause", "demand" or "offer"), in the popup's own order. A multiset
+    difference by identity - a term the counter kept, in any position, is not
+    struck; a term whose figure changed reads as struck (the old figure) and
+    as a term of the counter (the new one)."""
+    if not isinstance(original, dict) or not isinstance(counter, dict):
+        return []
+    struck = []
+    for field, kind in _COUNTER_TERM_FIELDS:
+        kept: dict[str, int] = {}
+        for term in (counter.get(field) or []):
+            key = _counter_term_key(term)
+            kept[key] = kept.get(key, 0) + 1
+        for term in (original.get(field) or []):
+            key = _counter_term_key(term)
+            if kept.get(key, 0) > 0:
+                kept[key] -= 1
+            else:
+                struck.append((kind, term))
+    return struck
+
+
+def _struck_line(kind: str, term, proposal_type) -> str:
+    term_type = term.get("type", "unknown") if isinstance(term, dict) else term
+    if (kind == "demand" and isinstance(term, dict)
+            and str(proposal_type).strip().lower() == "vassalage"
+            and str(term_type).strip().lower() == "gold_per_turn"):
+        # In a vassalage the gold a turn the draft demands IS the tribute.
+        try:
+            amount = int(term.get("value", term.get("amount")))
+        except (TypeError, ValueError):
+            amount = None
+        if amount is not None:
+            return f"Struck: the tribute - {amount} gold a turn{stream_term_phrase(term)}"
+    return _format_popup_clause_line(f"Struck {kind}", term_type, term)
+
+
+def counter_struck_lines(original, counter) -> list[str]:
+    """One line per term the counter-offer removed ("Struck: the tribute - 126
+    gold a turn for as long as the treaty stands"); empty when it removed none."""
+    proposal_type = ""
+    if isinstance(original, dict):
+        proposal_type = original.get("type") or original.get("proposal_type") or ""
+    return [_struck_line(kind, term, proposal_type)
+            for kind, term in counter_struck_terms(original, counter)]
+
+
+def counter_offer_clause_lines(original, counter) -> list[str]:
+    """The Revised Terms of a counter-offer letter: what the court STRUCK from
+    the draft it was sent, and what it KEPT.
+
+    A counter that struck something leads with the proposal's own name
+    ("Proposal: Vassalage"), then each struck term, then the terms the counter
+    carries (the draft's survivors and anything the court added), in the lines
+    every other letter uses. A counter that struck nothing reads as it always
+    did - its own terms - and a counter with no terms at all still says WHICH
+    proposal it answers."""
+    counter = counter if isinstance(counter, dict) else {}
+    original_dict = original if isinstance(original, dict) else {}
+    struck = counter_struck_lines(original_dict, counter)
+    kept = _proposal_term_lines(counter)
+    proposal_type = (counter.get("type") or counter.get("proposal_type")
+                     or original_dict.get("type") or original_dict.get("proposal_type")
+                     or "unknown")
+    if str(proposal_type).strip().lower() in ("", "unknown"):
+        base = "Diplomatic proposal"          # a typeless draft keeps the generic words
+    else:
+        base = f"Proposal: {proposal_display_name(proposal_type)}"
+    if struck:
+        return [base] + struck + kept
+    return kept or [base]
+
+
+def counter_summary_with_struck(summary: str, original, counter) -> str:
+    """`format_proposal_summary(counter)` plus a "  - Struck: ..." line for each
+    term the counter removed - the dialogue text and the event line that carry
+    the summary name the struck term the letter does."""
+    lines = counter_struck_lines(original, counter)
+    if not lines:
+        return summary
+    return summary + "".join(f"\n  - {line}" for line in lines)
 
 
 # DDB-23 (Pre-Deploy S13b part 2): a stream — gold, actions or men a turn —

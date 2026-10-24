@@ -6572,6 +6572,7 @@ def _build_pending_envoy_popup_from_terms(
     acceptance=None,
     acceptance_score=None,
     decision_reason="",
+    original=None,
 ):
     """Build the popup payload shape incoming_proposal_popup.gd expects."""
     from backend.game_logic.mailbox_payloads import build_pending_envoy_popup_from_terms
@@ -6585,6 +6586,7 @@ def _build_pending_envoy_popup_from_terms(
         acceptance=acceptance,
         acceptance_score=acceptance_score,
         decision_reason=decision_reason,
+        original=original,
     )
 
 
@@ -6669,6 +6671,7 @@ def _build_pending_envoy_popup_from_dialogue(world, dialogue):
         is_counter_offer=dialogue.get("type", "") in ("counter_offer", "counter_offer_response"),
         acceptance_score=context.get("acceptance_score"),
         decision_reason=context.get("decision_reason", ""),
+        original=context.get("original_proposal"),
     ))
 
 

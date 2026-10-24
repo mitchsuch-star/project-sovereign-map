@@ -203,6 +203,7 @@ CLOSE_SITES = {
     "_on_ledger_open_diplomacy_for": ["close_all_screens"],   # a popup (the wizard)
     "_on_ledger_assess_requested": ["close_all_screens"],     # a command
     "_on_tutorial_open_cabinet": ["close_all_screens"],       # a popup (the wizard)
+    "_on_tutorial_open_settlement": ["close_all_screens"],    # a popup (the table — S14d part 2)
 }
 
 

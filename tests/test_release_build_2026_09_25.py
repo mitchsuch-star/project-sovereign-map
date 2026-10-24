@@ -124,8 +124,42 @@ class TestPB1TheFrozenServerFindsItsScenario:
         parts = ", ".join(f"'{p}'" for p in rel.parts)
         assert f"_MAPS_DST = os.path.join(\n    {parts})" in spec_text, (
             f"spec must ship the maps at {rel.as_posix()}")
-        for name in ("europe.json", "europe_1805.json", "tutorial_1805.json"):
-            assert f"'{name}'" in spec_text
+        for name in self._shipped_map_names():
+            assert f"'{name}'" in spec_text, (
+                f"{name} is missing from deploy/ink_iron.spec — the packaged "
+                "build would 404 it")
+
+    @staticmethod
+    def _shipped_map_names():
+        """The registry, the default scenario, and EVERY School of War
+        scenario file — read off `tutorial_state` (the one tuple the
+        `/new_game` allowlist is built from), never a hard-coded list that
+        a fourth scenario slips past (S14D-X15)."""
+        from backend.game_logic.tutorial_state import SCENARIO_FILES, SCHOOL_SCENARIOS
+        names = ["europe.json", "europe_1805.json"]
+        names.extend(SCENARIO_FILES[scenario] for scenario in SCHOOL_SCENARIOS)
+        assert len(names) >= 3 and "tutorial_1805.json" in names, names
+        return names
+
+    def test_the_driver_content_hash_names_every_school_scenario(self):
+        """⟨SF step=pre-deploy S14d · S14D-X15 · pillar=none⟩ The playtest
+        driver attributes a run to an engine by hashing the files it names;
+        a School scenario the list omits can change without the hash moving.
+        Two-directional: every school scenario file is named, and the list
+        names no file that does not exist."""
+        from backend.game_logic.tutorial_state import SCENARIO_FILES, SCHOOL_SCENARIOS
+        saved_path = list(sys.path)
+        try:
+            drv = _load_tool("playtest_driver")
+        finally:
+            sys.path[:] = saved_path
+        named = {Path(rel).name for rel in drv.ENGINE_CONTENT_FILES}
+        for scenario in SCHOOL_SCENARIOS:
+            assert SCENARIO_FILES[scenario] in named, (
+                f"{SCENARIO_FILES[scenario]} is not in ENGINE_CONTENT_FILES")
+        for rel in drv.ENGINE_CONTENT_FILES:
+            assert (REPO / rel).is_file(), rel
+        assert "School" in drv.ENGINE_CONTENT_SCOPE
 
 
 # ═══════════════════════════════════════════════════════════════════════

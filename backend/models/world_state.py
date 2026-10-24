@@ -12707,7 +12707,13 @@ class WorldState:
                 proposal, self, payer_gold=pit.get("payer_gold_at_send"))
             if counter_terms:
                 # AI has viable counter-terms — present to player
-                summary = _format_proposal_summary(counter_terms)
+                # S14D-X13 (October 24, 2026): the summary and the letter name
+                # the terms the court STRUCK from the draft it was sent, not
+                # only the terms it kept (a vassalage that struck its tribute
+                # read "Vassalage between France and Bavaria" and nothing more).
+                from backend.display_names import counter_summary_with_struck
+                summary = counter_summary_with_struck(
+                    _format_proposal_summary(counter_terms), proposal, counter_terms)
                 ptype = proposal_display_name(proposal.get("type", "unknown"))
                 events.append({
                     "type": "diplomatic_proposal_returned",
@@ -12727,6 +12733,7 @@ class WorldState:
                     assessment=feedback,
                     is_counter_offer=True,
                     decision_reason=decision_reason,
+                    original=proposal,
                 )
                 # R12C: push() instead of overwrite — fixes latent bug where counter-offer
                 # could silently overwrite an active blocking dialogue during advance_turn

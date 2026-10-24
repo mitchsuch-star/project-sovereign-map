@@ -358,6 +358,12 @@
       "errors": [],
       "load_ok": true,
       "parse_ok": true,
+      "path": "res://scripts/tutorial_table_steps.gd"
+    },
+    {
+      "errors": [],
+      "load_ok": true,
+      "parse_ok": true,
       "path": "res://scripts/scale_card.gd"
     },
     {
@@ -583,5 +589,5 @@
       "path": "res://../../tools/uxr3_action_probe.gd"
     }
   ],
-  "timestamp": "2026-10-24T03:44:35Z"
+  "timestamp": "2026-10-24T05:14:04Z"
 }

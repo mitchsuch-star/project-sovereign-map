@@ -1,0 +1,732 @@
+{
+  "_comment": "S14d part 2 lesson scenario - The Table (the Peace of Pressburg), December 1805 (docs/TABLE_LESSON_SPEC.md §4). Authored-deterministic like the Danube: no variance bands, no navies, no agendas, no marshal_pool, no moments, no designs, no coalition block, no formables. ONE France-led war on Austria and Russia (Bavaria and the Kingdom of Italy carried in by their own entries), Vienna, the Tyrol and Moravia in French hands, the record's wins on the ledger with France's losses at the record's 9,000 (the table's own-losses term reads the terms and the map, never the ledger; the ledger reaches the table only through the war score, whose blood component nets the dead), Austria exhausted and ready to sign alone, Russia unbeaten at home and not. Bavaria an ally reassured by a mission and made a vassal by the terms Talleyrand suggests, eased once. Every court off the lesson holds its letters until turn 7 (ai_proposal_cooldowns) so the Cabinet is open on the second morning. Its diplomacy is LIVE by design - the verdicts the lesson teaches are the AI's own; jealousy, dotation, petitions and the autosave sleep (tutorial_state.is_school_world). Tuned by tools/_table_board_probe.py.",
+  "scenario_schema_version": 1,
+  "scenario_name": "tutorial_table",
+  "start_date": "1805-12-04",
+  "scenario_description": "The Table - the Peace of Pressburg, December 1805. Ulm and Austerlitz are on the record and Vienna is held; the Tsar's army marches home. Austria will sign alone if she is asked; Bavaria waits for her crown. A short, supervised peace - Berthier keeps the school.",
+  "sovereign_map": "europe",
+  "player_nation": "France",
+  "current_turn": 1,
+  "gold": 2500,
+  "diplomatic_points": 5,
+  "threat_level": 30,
+  "region_overrides": {
+    "Vienna": {
+      "controller": "France"
+    },
+    "Tyrol": {
+      "controller": "France"
+    },
+    "Moravia": {
+      "controller": "France"
+    }
+  },
+  "nation_starting_regions": {
+    "Russia": [
+      "Estonia",
+      "Lithuania",
+      "Livonia",
+      "New Russia",
+      "Podolia",
+      "Samogitia",
+      "Ukraine",
+      "Vilna",
+      "Volhynia",
+      "White Russia"
+    ],
+    "Ottoman": [
+      "Albania",
+      "Algiers",
+      "Anatolia",
+      "Constantinople",
+      "Crete",
+      "Cyprus",
+      "Egypt",
+      "Epirus",
+      "Karaman",
+      "Oran",
+      "Rumelia",
+      "Syria",
+      "Trebizond",
+      "Tripoli"
+    ],
+    "Prussia": [
+      "Berlin",
+      "Brandenburg",
+      "East Prussia",
+      "Pomerania",
+      "Posen",
+      "Silesia"
+    ],
+    "Spain": [
+      "Andalusia",
+      "Aragon",
+      "Asturias",
+      "Balearics",
+      "Cartagena",
+      "Galicia",
+      "Leon",
+      "Madrid",
+      "Morocco"
+    ],
+    "Sweden": [
+      "Finland",
+      "Karelia",
+      "Lapland",
+      "Norrland",
+      "Ostrobothnia",
+      "Scania",
+      "Stockholm",
+      "Stralsund",
+      "Uleaborg"
+    ],
+    "Saxony": [
+      "Dresden"
+    ],
+    "Austria": [
+      "Bohemia",
+      "Carniola",
+      "Croatia",
+      "Hungary",
+      "Moravia",
+      "Tyrol",
+      "Vienna"
+    ],
+    "France": [
+      "Anjou",
+      "Ardennes",
+      "Artois",
+      "Bearn",
+      "Berry",
+      "Bordelais",
+      "Brittany",
+      "Burgundy",
+      "Champagne",
+      "Corsica",
+      "Flanders",
+      "Franche-Comte",
+      "Gascony",
+      "Guyenne",
+      "Ile-de-France",
+      "Languedoc",
+      "Limousin",
+      "Lorraine",
+      "Lyonnais",
+      "Maine",
+      "Nivernais",
+      "Normandy",
+      "Orleanais",
+      "Paris",
+      "Picardy",
+      "Provence",
+      "Rhineland",
+      "Savoy"
+    ],
+    "Bavaria": [
+      "Franconia",
+      "Munich",
+      "Swabia"
+    ],
+    "KingdomOfItaly": [
+      "Milan",
+      "Piedmont"
+    ],
+    "Denmark": [
+      "Copenhagen",
+      "Holstein",
+      "Jutland",
+      "Nordland",
+      "Schleswig",
+      "Trondheim"
+    ],
+    "PapalStates": [
+      "Rome"
+    ],
+    "Portugal": [
+      "Alentejo",
+      "Beira",
+      "Lisbon",
+      "Porto"
+    ],
+    "Britain": [
+      "Cornwall",
+      "East Anglia",
+      "Highlands",
+      "London",
+      "Midlands",
+      "Munster",
+      "Northumbria",
+      "Scotland",
+      "Ulster",
+      "Wales",
+      "Wessex"
+    ],
+    "Hanover": [
+      "Brunswick",
+      "East Frisia",
+      "Hanover",
+      "Oldenburg",
+      "Osnabruck",
+      "Westphalia"
+    ],
+    "Naples": [
+      "Naples"
+    ],
+    "Sardinia": [
+      "Cagliari"
+    ],
+    "Hesse": [
+      "Frankfurt",
+      "Nassau"
+    ],
+    "Holland": [
+      "Amsterdam",
+      "Brabant",
+      "Friesland",
+      "Gelderland"
+    ],
+    "Switzerland": [
+      "Bern"
+    ]
+  },
+  "starting_wars": [
+    {
+      "attacker": "France",
+      "defender": "Austria"
+    },
+    {
+      "attacker": "France",
+      "defender": "Russia"
+    },
+    {
+      "attacker": "Bavaria",
+      "defender": "Austria"
+    },
+    {
+      "attacker": "KingdomOfItaly",
+      "defender": "Austria"
+    }
+  ],
+  "diplomatic_states": {
+    "Bavaria|France": "ALLIANCE",
+    "France|KingdomOfItaly": "VASSAL",
+    "France|Holland": "VASSAL",
+    "France|Switzerland": "VASSAL"
+  },
+  "nation_relations": {
+    "Austria|France": -60,
+    "Austria|Bavaria": -20,
+    "Bavaria|France": 65,
+    "France|Russia": -40,
+    "Britain|France": -20,
+    "France|Prussia": 10
+  },
+  "war_exhaustion": {
+    "Austria": 60
+  },
+  "war_scores": {
+    "Austria|France": -85,
+    "France|Russia": 0
+  },
+  "war_start_turns": {
+    "Austria|France": -7,
+    "France|Russia": -7,
+    "Austria|Bavaria": -7,
+    "Austria|KingdomOfItaly": -7
+  },
+  "battle_records": {
+    "Austria|France": [
+      {
+        "turn": -3,
+        "winner": "France",
+        "attacker": "France",
+        "defender": "Austria",
+        "attacker_casualties": 200,
+        "defender_casualties": 2000,
+        "location": "Bavaria",
+        "battle_name": "Wertingen"
+      },
+      {
+        "turn": -3,
+        "winner": "France",
+        "attacker": "France",
+        "defender": "Austria",
+        "attacker_casualties": 700,
+        "defender_casualties": 2000,
+        "location": "Bavaria",
+        "battle_name": "Guenzburg"
+      },
+      {
+        "turn": -3,
+        "winner": "France",
+        "attacker": "France",
+        "defender": "Austria",
+        "attacker_casualties": 800,
+        "defender_casualties": 6000,
+        "location": "Swabia",
+        "battle_name": "Elchingen"
+      },
+      {
+        "turn": -2,
+        "winner": "France",
+        "attacker": "France",
+        "defender": "Austria",
+        "attacker_casualties": 500,
+        "defender_casualties": 27000,
+        "location": "Swabia",
+        "battle_name": "Ulm"
+      },
+      {
+        "turn": 0,
+        "winner": "France",
+        "attacker": "Austria",
+        "defender": "France",
+        "attacker_casualties": 6000,
+        "defender_casualties": 1300,
+        "location": "Moravia",
+        "battle_name": "Austerlitz"
+      }
+    ]
+  },
+  "decisive_battles": {
+    "Austria|France": [
+      {
+        "turn": -2,
+        "winner": "France",
+        "total_casualties": 27500,
+        "ratio": 54.0,
+        "location": "Swabia"
+      },
+      {
+        "turn": 0,
+        "winner": "France",
+        "total_casualties": 7300,
+        "ratio": 4.6,
+        "location": "Moravia"
+      }
+    ]
+  },
+  "campaign_ledgers": {
+    "Austria|France": {
+      "captures": {
+        "France": [
+          "Vienna",
+          "Tyrol",
+          "Moravia"
+        ]
+      },
+      "casualties": {
+        "Austria": 45000,
+        "France": 9000
+      }
+    }
+  },
+  "ai_proposal_cooldowns": {
+    "Bavaria|nation": 6,
+    "Britain|nation": 6,
+    "Denmark|nation": 6,
+    "Hanover|nation": 6,
+    "Hesse|nation": 6,
+    "Holland|nation": 6,
+    "KingdomOfItaly|nation": 6,
+    "Naples|nation": 6,
+    "Ottoman|nation": 6,
+    "PapalStates|nation": 6,
+    "Portugal|nation": 6,
+    "Prussia|nation": 6,
+    "Russia|nation": 6,
+    "Sardinia|nation": 6,
+    "Saxony|nation": 6,
+    "Spain|nation": 6,
+    "Sweden|nation": 6,
+    "Switzerland|nation": 6
+  },
+  "coordination_tutorial_shown": true,
+  "opening_attack_guidance_shown": true,
+  "delegation_hint_shown": true,
+  "muster_hint_shown": true,
+  "commission_hint_shown": true,
+  "first_opens": {},
+  "marshals": {
+    "Murat": {
+      "name": "Murat",
+      "nation": "France",
+      "location": "Vienna",
+      "strength": 22000,
+      "personality": "aggressive",
+      "skills": {
+        "tactical": 4,
+        "shock": 9,
+        "defense": 2,
+        "logistics": 3,
+        "administration": 2,
+        "command": 5
+      },
+      "tactical_skill": 4,
+      "trust": {
+        "value": 75
+      },
+      "cavalry": true,
+      "movement_range": 2,
+      "ability": {
+        "name": "First Horseman of Europe",
+        "description": "When Murat personally breaks an enemy, his cavalry turns the rout into annihilation",
+        "trigger": "on_pursuit",
+        "effect": "+5,000 pursuit casualties when an enemy he defeats is forced to retreat (cavalry, leading the attack)"
+      },
+      "biography": "The Cavalry Reserve, quartered in Vienna since the 13th of November - the first French horse through the Danube bridges, taken by a bluff.",
+      "relationships": {
+        "Ney": -1,
+        "Davout": -1,
+        "Lannes": -1
+      }
+    },
+    "Lannes": {
+      "name": "Lannes",
+      "nation": "France",
+      "location": "Vienna",
+      "strength": 18000,
+      "personality": "aggressive",
+      "skills": {
+        "tactical": 7,
+        "shock": 8,
+        "defense": 5,
+        "logistics": 4,
+        "administration": 4,
+        "command": 7
+      },
+      "tactical_skill": 7,
+      "trust": {
+        "value": 85
+      },
+      "ability": {
+        "name": "Roland of the Army",
+        "description": "Lannes marches to the sound of the guns - the second wave that (almost) always comes",
+        "trigger": "when_reinforcing",
+        "effect": "+15 reinforcement arrival score"
+      },
+      "biography": "V Corps in Vienna - the grenadiers who walked onto the Tabor bridge talking of an armistice that did not exist.",
+      "relationships": {
+        "Ney": 1,
+        "Murat": -1
+      }
+    },
+    "Davout": {
+      "name": "Davout",
+      "nation": "France",
+      "location": "Moravia",
+      "strength": 26000,
+      "personality": "cautious",
+      "skills": {
+        "tactical": 8,
+        "shock": 6,
+        "defense": 8,
+        "logistics": 7,
+        "administration": 8,
+        "command": 9
+      },
+      "tactical_skill": 8,
+      "trust": {
+        "value": 85
+      },
+      "ability": {
+        "name": "Iron Resolve",
+        "description": "The iron marshal coils behind his earthworks - patient discipline becomes a hammer-blow when III Corps springs",
+        "trigger": "when_fortifying",
+        "effect": "Each fortified turn builds +1 resolve stack (max 3). His next attack consumes all stacks for +8% each (max +24%). Stacks survive unfortify but clear if he moves or is routed."
+      },
+      "biography": "III Corps in Moravia - marched from Vienna through the night to hold the right at Austerlitz.",
+      "relationships": {
+        "Murat": -1
+      }
+    },
+    "Soult": {
+      "name": "Soult",
+      "nation": "France",
+      "location": "Moravia",
+      "strength": 30000,
+      "personality": "literal",
+      "skills": {
+        "tactical": 9,
+        "shock": 6,
+        "defense": 7,
+        "logistics": 6,
+        "administration": 7,
+        "command": 6
+      },
+      "tactical_skill": 9,
+      "trust": {
+        "value": 70
+      },
+      "ability": {
+        "name": "Drillmaster of Boulogne",
+        "description": "Soult drilled the camps of Boulogne to clockwork - his corps sharpens in a single day",
+        "trigger": "when_drilling",
+        "effect": "Drill completes in 1 turn (not 2) and never locks him out of your orders"
+      },
+      "biography": "IV Corps in Moravia - the column that took the Pratzen heights at the hour the fog lifted.",
+      "relationships": {
+        "Ney": -1,
+        "Massena": 1
+      }
+    },
+    "Ney": {
+      "name": "Ney",
+      "nation": "France",
+      "location": "Tyrol",
+      "strength": 24000,
+      "personality": "aggressive",
+      "skills": {
+        "tactical": 5,
+        "shock": 9,
+        "defense": 6,
+        "logistics": 4,
+        "administration": 3,
+        "command": 7
+      },
+      "tactical_skill": 5,
+      "trust": {
+        "value": 75
+      },
+      "movement_range": 1,
+      "ability": {
+        "name": "Bravest of the Brave",
+        "description": "Ney's aggressive leadership inspires devastating attacks",
+        "trigger": "when_attacking",
+        "effect": "+2 Shock skill when attacking (not defending)"
+      },
+      "biography": "VI Corps in the Tyrol - cleared the passes against Archduke John's rearguard in November.",
+      "relationships": {
+        "Soult": -1,
+        "Lannes": 1,
+        "Murat": -1
+      }
+    },
+    "Massena": {
+      "name": "Massena",
+      "nation": "France",
+      "location": "Tyrol",
+      "strength": 42000,
+      "personality": "aggressive",
+      "skills": {
+        "tactical": 8,
+        "shock": 7,
+        "defense": 7,
+        "logistics": 8,
+        "administration": 3,
+        "command": 3
+      },
+      "tactical_skill": 8,
+      "trust": {
+        "value": 60
+      },
+      "ability": {
+        "name": "Child of Victory",
+        "description": "Cornered and outnumbered is where Massena fights best",
+        "trigger": "when_outnumbered",
+        "effect": "+10% defense when defending outnumbered"
+      },
+      "biography": "The Army of Italy, come north over the Alps after Caldiero, facing Archduke Charles's remaining corps across the Carniolan frontier.",
+      "relationships": {
+        "Soult": 1
+      }
+    },
+    "Deroy": {
+      "name": "Deroy",
+      "nation": "Bavaria",
+      "location": "Munich",
+      "strength": 22000,
+      "personality": "literal",
+      "skills": {
+        "tactical": 5,
+        "shock": 4,
+        "defense": 5,
+        "logistics": 5,
+        "administration": 5,
+        "command": 5
+      },
+      "tactical_skill": 5,
+      "trust": {
+        "value": 70
+      },
+      "biography": "The Bavarian corps, home in Munich - the ally whose crown is the Elector's price for this war.",
+      "relationships": {}
+    },
+    "ArchdukeCharles": {
+      "name": "ArchdukeCharles",
+      "nation": "Austria",
+      "location": "Carniola",
+      "strength": 15000,
+      "personality": "cautious",
+      "skills": {
+        "tactical": 8,
+        "shock": 6,
+        "defense": 8,
+        "logistics": 7,
+        "administration": 8,
+        "command": 8
+      },
+      "tactical_skill": 8,
+      "trust": {
+        "value": 55
+      },
+      "ability": {
+        "name": "Habsburg Resolve",
+        "description": "Archduke Charles steadies the line with calm under fire",
+        "trigger": "when_defending",
+        "effect": "+3% flat defense bonus when defending"
+      },
+      "biography": "What remains of the Army of Italy after Caldiero and the retreat - the last Austrian corps in the field, far from a shattered Vienna.",
+      "relationships": {}
+    },
+    "Kutuzov": {
+      "name": "Kutuzov",
+      "nation": "Russia",
+      "location": "Volhynia",
+      "strength": 30000,
+      "personality": "cautious",
+      "skills": {
+        "tactical": 7,
+        "shock": 3,
+        "defense": 7,
+        "logistics": 8,
+        "administration": 4,
+        "command": 7
+      },
+      "tactical_skill": 7,
+      "trust": {
+        "value": 50
+      },
+      "ability": {
+        "name": "The Old Fox",
+        "description": "Kutuzov's fighting retreat is his art - chasing him is a half-harvest trap",
+        "trigger": "when_retreating",
+        "effect": "Pursuit casualties against him halved; retreat-path attrition halved"
+      },
+      "biography": "The Tsar's army, marching home from Austerlitz by the Hungarian road - unbeaten on Russian soil, and the Tsar will not sign.",
+      "relationships": {
+        "Buxhowden": -1
+      }
+    },
+    "Buxhowden": {
+      "name": "Buxhowden",
+      "nation": "Russia",
+      "location": "Lithuania",
+      "strength": 25000,
+      "personality": "literal",
+      "skills": {
+        "tactical": 3,
+        "shock": 5,
+        "defense": 4,
+        "logistics": 3,
+        "administration": 4,
+        "command": 3
+      },
+      "tactical_skill": 3,
+      "trust": {
+        "value": 65
+      },
+      "biography": "The second Russian column, already across the frontier - the war goes on in St Petersburg's name and nowhere near France's columns.",
+      "relationships": {
+        "Kutuzov": -1
+      }
+    }
+  },
+  "_reforms_comment": "S14d part 2: France's five laws, the Danube's verbatim (tests pin them equal) - the LAWS book is the campaign's lesson, not this one's.",
+  "reforms": {
+    "France": [
+      {
+        "id": "grand_quartier_general",
+        "name": "The Grand Quartier Général",
+        "date": "Berthier's Imperial Headquarters, expanded 1805–07",
+        "currency": "gold",
+        "price": 9000,
+        "upkeep": 300,
+        "effects": [
+          {
+            "type": "actions",
+            "value": 1
+          }
+        ],
+        "says": "Berthier's headquarters grown into a true general staff: one more order carried each day."
+      },
+      {
+        "id": "train_des_equipages",
+        "name": "The Train des Équipages",
+        "date": "decree of 26 March 1807",
+        "currency": "gold",
+        "price": 3500,
+        "upkeep": 200,
+        "effects": [
+          {
+            "type": "cures",
+            "flaw": "Living off the land"
+          }
+        ],
+        "says": "A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier Général stands to run it."
+      },
+      {
+        "id": "artillery_reserve",
+        "name": "The Artillery Reserve",
+        "date": "the Guard's reserve batteries, 1806–09",
+        "currency": "gold",
+        "price": 3000,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "recruit_price",
+            "arm": "artillery",
+            "value": 0.85
+          }
+        ],
+        "says": "The Guard's reserve batteries and a standard gun park: artillery levies cost 15% less."
+      },
+      {
+        "id": "anticipated_class",
+        "name": "The Anticipated Class",
+        "date": "the senatus-consultes calling the class early, 1806–07",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "manpower_regen",
+            "pool": "infantry",
+            "value": 25
+          }
+        ],
+        "says": "The Senate calls each year's conscripts before their time: infantry manpower returns 25% faster."
+      },
+      {
+        "id": "berlin_decree",
+        "name": "The Berlin Decree",
+        "date": "21 November 1806",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 150,
+        "effects": [
+          {
+            "type": "cs_closure",
+            "rule": "every_client"
+          }
+        ],
+        "says": "Every client of the Empire shuts its ports to British goods, whatever its autonomy."
+      },
+      {
+        "id": "code_abroad",
+        "name": "The Code Abroad",
+        "date": "the Civil Code imposed in Italy (1806), Westphalia (1807) and Warsaw (1808)",
+        "currency": "authority",
+        "price": 15,
+        "upkeep": 100,
+        "effects": [
+          {
+            "type": "satellite_loyalty",
+            "value": 1
+          }
+        ],
+        "says": "The Civil Code carried into the client states binds them to the Empire: +1 loyalty a turn in every one."
+      }
+    ]
+  }
+}

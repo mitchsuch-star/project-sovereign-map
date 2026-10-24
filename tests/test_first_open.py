@@ -297,7 +297,11 @@ class TestTheAttachSites:
 # ══════════════════════════════════════════════════════════════════════════
 
 class TestTheCensus:
-    ALLOWED = {"backend/game_logic/first_open.py", "backend/models/world_state.py"}
+    # S14D-X14: the validator names the SCENARIO key to check its shape (the
+    # ids against `first_open.SCREENS`, the values ints) - it never reads the
+    # world's store, and no mechanic reads either.
+    ALLOWED = {"backend/game_logic/first_open.py", "backend/models/world_state.py",
+               "backend/modding/validator.py"}
 
     def test_only_the_module_and_the_save_touch_first_opens(self):
         found = set()
