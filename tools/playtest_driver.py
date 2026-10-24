@@ -2233,8 +2233,8 @@ class Digest:
     def school_step(self, step):
         """FA-89: the School's step, from the backend's display-only
         `tutorial_step` key — a SECOND, approximate source by construction
-        (the overlay's advance predicates are fifteen GDScript functions
-        over cross-response latches), so the line says so."""
+        (the overlay's advance predicates are GDScript functions over
+        cross-response latches the backend does not have), so the line says so."""
         if not isinstance(step, dict):
             return
         self._md(f"- SCHOOL step {step.get('step', '?')} ({step.get('title', step.get('id', '?'))})"

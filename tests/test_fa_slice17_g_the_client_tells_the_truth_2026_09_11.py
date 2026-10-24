@@ -135,7 +135,9 @@ class TestFA82TheSchoolCanBeChosenAgain:
         assert writers == ["main_menu.gd"], writers
 
     def test_conclude_still_latches(self):
-        assert "set_tutorial_done(true)" in _read(SCRIPTS / "tutorial_overlay.gd")
+        # CONSCIOUS FLIP (S14d part 2, the registry, October 23, 2026): the
+        # latch is per lesson — `_conclude` names the lesson the card is bound to.
+        assert "set_tutorial_done(true, _lesson_id)" in _read(SCRIPTS / "tutorial_overlay.gd")
 
 
 # ═══════════════════════════════════════════════════════════════════════

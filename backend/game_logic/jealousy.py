@@ -297,8 +297,10 @@ def jealousy_dormant(world) -> bool:
     MC-2b Intendance tier boundary — a recruit price. What the carve-out
     was protecting is `battles_won`, and `battles_won` is measured
     BYTE-IDENTICAL under the glory gate (Ney 6 / Davout 5 / Senarmont 5 /
-    Soult 0 in every arm). See `glory_dormant` below."""
-    return getattr(world, "scenario_name", "") == "tutorial"
+    Soult 0 in every arm). See `glory_dormant` below. S14d part 2: every
+    School lesson, through the one predicate."""
+    from backend.game_logic.tutorial_state import is_school_world
+    return is_school_world(world)
 
 
 # FA-S16-D4: glory sleeps in the School (`glory_dormant` below). Before, glory

@@ -64,7 +64,7 @@ A scenario file is a JSON object with the following structure:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `scenario_name` | string | - | Display name — **since POSITION 7 (Aug 8, 2026) it is SERIALIZED as `WorldState.scenario_name`** (display-only; no mechanic may branch on it). The client's School of War overlay arms on the exact value `"tutorial"`, so a scenario using that id opts into the tutor card; any other value is inert identity. Allowlisted names may be requested over `POST /new_game {"scenario": <name>}` (see `SCENARIO_ALLOWLIST` in `backend/main.py`). |
+| `scenario_name` | string | - | Display name — **since POSITION 7 (Aug 8, 2026) it is SERIALIZED as `WorldState.scenario_name`**. **Corrected October 23, 2026 (S14D-X16):** it is NOT display-only — since TUT-F5 it selects a scenario's CARVE-OUTS: `tutorial_state.is_school_world()` is the ONE predicate by which a School lesson switches a subsystem off wholesale (jealousy and glory, the dotation, the client petitions, the campaign autosave); it is world-scoped and never an input to a formula. The client's School of War overlay arms on the names in `tutorial_state.SCHOOL_SCENARIOS` (`"tutorial"` the Danube, `"tutorial_table"` the Table), so a scenario using one of those ids opts into the tutor card; any other value is inert identity. Allowlisted names may be requested over `POST /new_game {"scenario": <name>}` (see `SCENARIO_ALLOWLIST` in `backend/main.py`). |
 | `scenario_description` | string | - | Description (metadata only) |
 | `scenario_schema_version` | integer | 1 | Scenario schema version. `1` is the current scale-readiness era shape. |
 | `player_nation` | string | "France" | Nation the player controls |

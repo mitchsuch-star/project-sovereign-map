@@ -568,7 +568,7 @@ class TestFA89TheSchoolStepIsApproximateAndOnTheWire:
         # two different rows differ; the real sensitivity is the sweep's 89/a.
         from backend.game_logic import tutorial_state as T
         rows = self._overlay_steps()
-        assert len(rows) == 15 and rows[5][0] == "bombardment"
+        assert len(rows) == len(T.STEPS) and rows[5][0] == "bombardment"   # S14D-X22: the registry's count
         assert T.STEPS[:1] != rows[1:2], "the census can tell two different rows apart"
 
     def test_the_step_is_the_latest_gate_reached_and_says_it_is_approximate(self):

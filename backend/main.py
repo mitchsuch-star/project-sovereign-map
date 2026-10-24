@@ -140,8 +140,12 @@ SCENARIO_NONE_SENTINEL = "none"
 # POSITION 7: named scenarios a client may request over HTTP (/new_game).
 # Names map to repo-root-derived paths (the _DEFAULT_SCENARIO_PATH idiom) —
 # a raw path is NEVER accepted over the wire.
-TUTORIAL_SCENARIO_PATH = MAPS_DIR / "tutorial_1805.json"  # PB-1: see MAPS_DIR
-SCENARIO_ALLOWLIST = {"tutorial": TUTORIAL_SCENARIO_PATH}
+# S14d part 2 (TABLE_LESSON_SPEC §4.4): the allowlist is DERIVED from the
+# School's one tuple — a lesson added there is bootable here and nowhere
+# else; the Danube's path keeps its name (the release pin reads it).
+from backend.game_logic.tutorial_state import SCENARIO_FILES, SCHOOL_SCENARIOS  # noqa: E402
+SCENARIO_ALLOWLIST = {name: MAPS_DIR / SCENARIO_FILES[name] for name in SCHOOL_SCENARIOS}
+TUTORIAL_SCENARIO_PATH = SCENARIO_ALLOWLIST["tutorial"]  # PB-1: see MAPS_DIR
 
 
 def _resolve_scenario_path() -> str:

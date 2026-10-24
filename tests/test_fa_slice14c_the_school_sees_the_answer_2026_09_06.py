@@ -359,9 +359,13 @@ class TestTheBranchIsSafeAtRuntime:
         prisoner."""
         gd = _read("tutorial_overlay.gd")
         body = re.search(r"func on_world_swap.*?(?=\nfunc )", gd, re.S).group(0)
-        assert '_kienmayer_state = ""' in body
+        # CONSCIOUS FLIP (S14d part 2, the registry, October 23, 2026): the
+        # clear moved into `_reset_lesson_state()` with every other latch
+        # (S14D-X20); it still runs BEFORE the seed.
+        reset = re.search(r"func _reset_lesson_state.*?(?=\nfunc )", gd, re.S).group(0)
+        assert '_kienmayer_state = ""' in reset
         assert "_note_kienmayer(response)" in body
-        assert body.index('_kienmayer_state = ""') < body.index("_note_kienmayer(")
+        assert body.index("_reset_lesson_state()") < body.index("_note_kienmayer(")
 
     def test_the_release_predicate_is_untouched(self):
         """⚠ DELIBERATELY NOT BUILT: an early release on `taken`.

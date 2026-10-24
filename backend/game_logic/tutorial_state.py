@@ -1,6 +1,6 @@
 """FA-89 (slice 17, Sept 11 2026): the School of War's step, for the digest.
 
-The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — twenty
+The lesson's progression lives ENTIRELY in `tutorial_overlay.gd` — its
 `advance` predicates over cross-response latches the backend does not have
 (`_saw_objection`, `_saw_capture`, `_last_infantry_pool`, the Kienmayer
 kill). So no unattended run could ever assert that a beat FIRED, and the
@@ -43,19 +43,38 @@ STEPS: List[Tuple[str, int, str]] = [
 
 TUTORIAL_SCENARIO_NAME = "tutorial"
 
+# S14d part 2 (`docs/TABLE_LESSON_SPEC.md` §4.4): the School's lessons — the
+# ONE tuple `main.SCENARIO_ALLOWLIST` is derived from (the consumers cannot
+# import `main`), with each lesson's scenario file and its step mirror. A
+# second lesson adds its name here and nowhere else.
+SCHOOL_SCENARIOS: Tuple[str, ...] = (TUTORIAL_SCENARIO_NAME,)
+SCENARIO_FILES: Dict[str, str] = {TUTORIAL_SCENARIO_NAME: "tutorial_1805.json"}
+STEPS_BY_SCENARIO: Dict[str, List[Tuple[str, int, str]]] = {TUTORIAL_SCENARIO_NAME: STEPS}
+
 
 def is_tutorial_world(world) -> bool:
+    """The Danube Lesson's world alone (its own cards' pins)."""
     return str(getattr(world, "scenario_name", "") or "") == TUTORIAL_SCENARIO_NAME
 
 
+def is_school_world(world) -> bool:
+    """S14d part 2: the ONE predicate by which a School scenario switches a
+    subsystem off wholesale — jealousy and glory, the dotation, the client
+    petitions, the campaign autosave (TUT-F2/TUT-F5's doctrine: an untaught
+    modal does not intrude on a lesson). World-scoped, never an input to a
+    formula (GR5). Every school lesson, the Danube included."""
+    return str(getattr(world, "scenario_name", "") or "") in SCHOOL_SCENARIOS
+
+
 def tutorial_step_for(world) -> Optional[Dict]:
-    """The display-only step payload, or None off the tutorial scenario."""
-    if not is_tutorial_world(world):
+    """The display-only step payload, or None off a School scenario."""
+    steps = STEPS_BY_SCENARIO.get(str(getattr(world, "scenario_name", "") or ""))
+    if not steps:
         return None
     turn = int(getattr(world, "current_turn", 1) or 1)
-    reached = [(i, s) for i, s in enumerate(STEPS, start=1) if s[1] <= turn]
+    reached = [(i, s) for i, s in enumerate(steps, start=1) if s[1] <= turn]
     if not reached:
-        index, (step_id, gate, title) = 1, STEPS[0]
+        index, (step_id, gate, title) = 1, steps[0]
     else:
         index, (step_id, gate, title) = reached[-1]
     return {

@@ -435,12 +435,18 @@ static func set_battle_sfx(enabled: bool) -> void:
 # --- POSITION 7: the School of War completion/skip latch ---
 # Per-machine is ACCEPTED for "don't re-open the tutor": the in-campaign step
 # is DERIVED from game_state.turn, never stored here.
-static func get_tutorial_done() -> bool:
-	return bool(_config().get_value("tutorial", "done", false))
+# S14d part 2: one latch PER LESSON. The Danube keeps its original key
+# ("tutorial", "done") byte-for-byte; every other lesson has its own.
+static func _tutorial_done_key(lesson: String) -> String:
+	return "done" if lesson == "tutorial" else "done_" + lesson
 
 
-static func set_tutorial_done(done: bool) -> void:
-	_config().set_value("tutorial", "done", done)
+static func get_tutorial_done(lesson: String = "tutorial") -> bool:
+	return bool(_config().get_value("tutorial", _tutorial_done_key(lesson), false))
+
+
+static func set_tutorial_done(done: bool, lesson: String = "tutorial") -> void:
+	_config().set_value("tutorial", _tutorial_done_key(lesson), done)
 	_save()
 
 

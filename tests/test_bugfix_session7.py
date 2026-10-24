@@ -302,9 +302,14 @@ class TestPL6ModifyHarsh:
         )
         executor = _make_executor()
 
-        result = executor.handle_diplomatic_dialogue_response(
-            "harsh", {"world": world},
-        )
+        # PL-23's drafting pushback is a 5-15% roll on harsh terms (the
+        # round-2 cession reads > 0.7); pinned off so the cap text, not
+        # Talleyrand's softened draft, is what the dialogue carries (the
+        # roll surfaced under xdist when the schedule moved, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(
+                "harsh", {"world": world},
+            )
         assert result["success"] is True
         # After 1 modification, the returned dialogue should NOT have "Even harsher"
         dialogue = result.get("diplomatic_dialogue", {})
@@ -324,9 +329,14 @@ class TestPL6ModifyHarsh:
         executor = _make_executor()
 
         # First harsh modification
-        result = executor.handle_diplomatic_dialogue_response(
-            "harsh", {"world": world},
-        )
+        # PL-23's drafting pushback is a 5-15% roll on harsh terms (the
+        # round-2 cession reads > 0.7); pinned off so the cap text, not
+        # Talleyrand's softened draft, is what the dialogue carries (the
+        # roll surfaced under xdist when the schedule moved, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(
+                "harsh", {"world": world},
+            )
         assert result["success"] is True
         dialogue = result.get("diplomatic_dialogue", {})
         option_labels = [o["label"] for o in dialogue.get("options", [])]
@@ -343,9 +353,14 @@ class TestPL6ModifyHarsh:
         )
         executor = _make_executor()
 
-        result = executor.handle_diplomatic_dialogue_response(
-            "harsh", {"world": world},
-        )
+        # PL-23's drafting pushback is a 5-15% roll on harsh terms (the
+        # round-2 cession reads > 0.7); pinned off so the cap text, not
+        # Talleyrand's softened draft, is what the dialogue carries (the
+        # roll surfaced under xdist when the schedule moved, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(
+                "harsh", {"world": world},
+            )
         assert result["success"] is True
         dialogue = result.get("diplomatic_dialogue", {})
         option_labels = [o["label"] for o in dialogue.get("options", [])]
@@ -373,9 +388,14 @@ class TestPL6ModifyHarsh:
         )
         executor = _make_executor()
 
-        result = executor.handle_diplomatic_dialogue_response(
-            "harsh", {"world": world},
-        )
+        # PL-23's drafting pushback is a 5-15% roll on harsh terms (the
+        # round-2 cession reads > 0.7); pinned off so the cap text, not
+        # Talleyrand's softened draft, is what the dialogue carries (the
+        # roll surfaced under xdist when the schedule moved, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(
+                "harsh", {"world": world},
+            )
         assert result["success"] is True
         dialogue = result.get("diplomatic_dialogue", {})
         # Check the terms on the "Send these terms" option
@@ -406,9 +426,14 @@ class TestPL6ModifyHarsh:
         )
         executor = _make_executor()
 
-        result = executor.handle_diplomatic_dialogue_response(
-            "harsh", {"world": world},
-        )
+        # PL-23's drafting pushback is a 5-15% roll on harsh terms (the
+        # round-2 cession reads > 0.7); pinned off so the cap text, not
+        # Talleyrand's softened draft, is what the dialogue carries (the
+        # roll surfaced under xdist when the schedule moved, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response(
+                "harsh", {"world": world},
+            )
         dialogue = result.get("diplomatic_dialogue", {})
         send_option = next(
             (o for o in dialogue.get("options", []) if o.get("action") == "execute_proposal"),

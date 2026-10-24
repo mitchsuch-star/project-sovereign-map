@@ -10,6 +10,7 @@ Bug 7: Wizard state field None (missing "state" alias in preview)
 """
 
 import pytest
+from unittest.mock import patch
 
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal
@@ -282,7 +283,11 @@ class TestBug5CommentaryRegeneration:
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}
-        result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
+        # PL-23's drafting pushback is a roll on harsh terms; pinned off so the
+        # regenerated commentary, not Talleyrand's softened draft, is what the
+        # dialogue carries (sibling of test_bugfix_session7's pin, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
 
         assert result.get("success"), f"Harsh modification failed: {result.get('message')}"
         dialogue = world.pending_diplomatic_dialogue
@@ -317,7 +322,11 @@ class TestBug5CommentaryRegeneration:
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}
-        result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
+        # PL-23's drafting pushback is a roll on harsh terms; pinned off so the
+        # regenerated commentary, not Talleyrand's softened draft, is what the
+        # dialogue carries (sibling of test_bugfix_session7's pin, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
 
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
@@ -790,7 +799,11 @@ class TestSmartCommentary:
 
         executor = _make_executor()
         game_state = {"world": world, "debug_mode": True}
-        result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
+        # PL-23's drafting pushback is a roll on harsh terms; pinned off so the
+        # regenerated commentary, not Talleyrand's softened draft, is what the
+        # dialogue carries (sibling of test_bugfix_session7's pin, Oct 24, 2026).
+        with patch("backend.commands.diplomatic_defiance.roll_drafting_pushback", return_value=False):
+            result = executor.handle_diplomatic_dialogue_response("harsh", game_state)
 
         assert result.get("success")
         dialogue = world.pending_diplomatic_dialogue

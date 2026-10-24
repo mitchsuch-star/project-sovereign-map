@@ -322,3 +322,21 @@ Every lined frame records its line and its first answer at both scales (the harn
 
 ### 14.6 Traps paid (for the next part)
 The Bash heredoc halves backslashes — an edit script with `\n` in it writes a raw newline and reports success; write scripts as files. The frame record reads a plain Label only when its WHOLE rect stands inside the window — a scrolling message must be a RichTextLabel. The settlement head is one line at 2.0. `iq10_capture_payloads.py --only` takes the groups as separate arguments. A pytest-xdist run holds the test files open — an edit during the run can fail with `Errno 22`. The muster counts the corps likely to arrive, so an outmatched board needs the enemy heavier than the whole concentration. `_button(frame, prefix)` matches by prefix — "Proclaim Road I" matches Road III.
+
+---
+
+## §15 Part 2, first landing — the lessons' registry, the Danube byte-identical (October 23, 2026)
+
+**✅ LANDED October 23, 2026, committed alone before any Table content** (the user's order). Rules `SYSTEMS_REFERENCE.md` §148.9; rows `BUG_FIXES.md` §S14D (S14D-X16, X19, X20, X21, X22 FIXED); pins `tests/test_tutorial_registry.py`.
+
+### 15.1 Built (§4.4)
+- **The registry** — `const LESSONS` in `tutorial_overlay.gd`, keyed by `scenario_name`: `{steps, title, done, notes}`; the Danube's entry wraps the untouched `const STEPS` (sliced as text by `_shipped_steps`, T-B1, the mirror drift pin and `test_fa_slice8`) with its four released-step notes byte for byte. `on_world_swap` reads `LESSONS.get(name)` and the lesson's own latch (`UiSettings.get_tutorial_done(name)`), binds `_steps` / `_lesson_title` / `_notes` (`_bind_lesson`) and clears every cross-response latch (`_reset_lesson_state`: eleven vars, read off the source by the census — S14D-X20); every runtime read of the table is `_steps`; the title and the notes come from the lesson (S14D-X19); `_conclude` latches the bound lesson; `_pred_turn_gte_13` removed (S14D-X21).
+- **The latch** — `UiSettings.get_tutorial_done(lesson := "tutorial")` / `set_tutorial_done(done, lesson := "tutorial")`, the Danube's config key unchanged; `main_menu.gd` clears the lesson it launches (the Danube's line byte for byte, every other lesson through its name); `main.gd._on_tutorial_boot_requested(scenario := "tutorial")`.
+- **The backend** — `tutorial_state.SCHOOL_SCENARIOS` (the one tuple), `SCENARIO_FILES`, `STEPS_BY_SCENARIO`, `is_school_world()`; `main.SCENARIO_ALLOWLIST` derived from the tuple with `TUTORIAL_SCENARIO_PATH` unchanged (the release pin reads it); the four carve-outs — `jealousy_dormant`, `is_dotation_world`, `petitions_live`, `_autosave` — on the one predicate; `tutorial_step_for` by scenario (None off a School world); `MODDING_FORMAT.md`'s `scenario_name` row corrected (S14D-X16).
+- **The instruments** — `tools/tutorial_overlay_harness.gd` reads `_overlay._steps`; `tools/_sweep_tutorial.json`'s skip anchor re-anchored on the registry's line; the three stale counts read the registry (S14D-X22).
+
+### 15.2 Measured
+The Danube's pins green with no flips — the unbreakable harness (the idle Emperor, the refused order, the chips, the Cabinet lesson, the happy lesson), `_shipped_steps`, the mirror drift pin, position 7, FA slices 8 / 14c / 17f / 17g, the release pin; the parse harness green on the four edited scripts and both menu scenes; `test_tutorial_registry.py` 13 pins. The Table's entry, its steps script, its menu row, its allowlist name and its scenario file are the next landing's.
+
+### 15.3 What the next landing owes
+The board (`tutorial_table_1805.json`, §4.1, tuned by `tools/_table_board_probe.py`), the cards (`tutorial_table_steps.gd`, §4.2, with the `open:settlement:` door kind and the Table's own `notes`), the registry's second entry, `SCHOOL_SCENARIOS += ("tutorial_table",)` with its file and its step mirror, the menu's second row and the boot arm, the release spec's fourth file (S14D-X15), the driver script, the arithmetic and driven pins (§6), the rows S14D-X13, X14, X15, X17, X40, X41, the lesson's frames.

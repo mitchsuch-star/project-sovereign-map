@@ -100,7 +100,8 @@ func _drive() -> void:
 
 func _record(i: int) -> void:
 	var index: int = _overlay._step_index
-	var step: Dictionary = _overlay.STEPS[index] if index < _overlay.STEPS.size() else {}
+	# S14d part 2: the BOUND lesson's steps (the registry), not the Danube's const.
+	var step: Dictionary = _overlay._steps[index] if index < _overlay._steps.size() else {}
 	_result["steps"].append({
 		"i": i,
 		"index": index,

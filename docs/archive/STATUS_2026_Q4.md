@@ -7,6 +7,12 @@
 
 ---
 
+> **▶ ▶ ▶ PRE-DEPLOY S14c PART 3 — THE CROWN OF THE REICH, THE WINDOWS, THE MATRIX — ✅ LANDED October 22, 2026** (record `docs/EVENTS_SPEC.md` §16; rules `SYSTEMS_REFERENCE.md` §147.11; pins `tests/test_moments_reich.py`; A3 in `docs/AI_INTENT_SPEC.md` §3.8.1)
+> - **The Reich:** the deck's fourth letter ships — on Road I, a turn after the Confederation is told, "Demand the abdication" raises each member that is France's vassal by 10, costs Austria 15 and the alarm 3, and Le Moniteur's next issue prints THE EMPIRE IS NO MORE; forsworn on Roads II and III.
+> - **The matrix and the windows:** twelve cells; clauses A–G over the ten sweep seeds; the sweep's signature carries the moments' arrival turns from the run.
+> - **Measured:** `BASELINE_SERIES` byte-identical on all ten arms with the whole deck armed (`tools/_s14c_series_arms_final.json` — the passive France proclaims no road, so the Reich never anchors); the nine commanded arms equal part 2b's tree record for record (no commanded France proclaims Road I); the VP-1 road arms stamp as before (RH turn 13, TH turn 20 on all three seeds, CS never) — the Reich reaches VP1-RH on marengo (turn 17, declined), and Holland's letter waiting behind it is crowded out on its last eligible turn with its receipt (R2 on a real arm); on historical and austerlitz the Reich passes on its premise (Austria stands France's vassal through the window). The census reads 9 open rows (UXR-4); the ratchet unchanged.
+> - **Sized out:** part 4 heads the next session (`docs/NEXT_SESSION_PROMPT.md`).
+
 > **▶ ▶ ▶ PRE-DEPLOY S14c PART 2, SECOND LANDING — THREE LETTERS ARMED — ✅ LANDED October 22, 2026** (record `docs/EVENTS_SPEC.md` §15; rules `SYSTEMS_REFERENCE.md` §147.10; pins `tests/test_moments_armed.py`; the series `tools/_s14c_series_arms_final.json`; the commanded arms `tools/_s14c_arm_attribution_final.json`)
 > - **The suite-reach head first:** the block armed on a scratch tree, the full suite run — only the engine's three unarmed pins reacted (re-seated on a world with no block); nothing that reads the queue, the mailbox, the lapse rows or the Gazette moved.
 > - **Shipped:** the Bavarian Match, the Throne of Holland and the Decree of Berlin in `europe_1805.json`, verbatim the staged deck's; the road matrix's nine cells; Holland's "Crown Louis" through the real endpoint (the closure line equal to the live count); a pre-S14c save loads armed with its closed windows passed.

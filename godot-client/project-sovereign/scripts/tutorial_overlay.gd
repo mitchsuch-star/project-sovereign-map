@@ -17,11 +17,15 @@ extends CanvasLayer
 # owns the LineEdit). It must never become a _post_hud_response_routes entry
 # (the documented end-turn-tail soft-lock, main.gd).
 #
-# ARMING: on_world_swap() reads game_state.scenario_name — exactly "tutorial"
-# arms the card (unless UiSettings.get_tutorial_done()). The current step is
-# DERIVED from game_state.turn (turn_gate), never stored: a mid-lesson reload
-# resumes at the turn's first step. Completion/skip latches per-machine via
-# UiSettings.set_tutorial_done.
+# ARMING: on_world_swap() reads game_state.scenario_name and binds the card
+# to the LESSON of that name in `LESSONS` (S14d part 2, TABLE_LESSON_SPEC
+# §4.4 — the Danube "tutorial", the Table "tutorial_table"), unless that
+# lesson's per-machine latch is set (UiSettings.get_tutorial_done(lesson)).
+# The current step is DERIVED from game_state.turn (turn_gate), never stored:
+# a mid-lesson reload resumes at the turn's first step. Every cross-response
+# latch is cleared on arming (`_reset_lesson_state`, S14D-X20), so a second
+# lesson in the same scene starts clean. Completion/skip latches per-machine
+# via UiSettings.set_tutorial_done(done, lesson).
 #
 # UNBREAKABLE (Sept 23, 2026): every card but the last carries a Skip chip;
 # a refusal of the card's OWN suggested order releases the step at once
@@ -362,6 +366,34 @@ const STEPS := [
 	},
 ]
 
+# ── the lessons' registry (S14d part 2, TABLE_LESSON_SPEC §4.4) ─────────────
+# One School, several lessons: `on_world_swap` binds the card to the lesson
+# whose scenario_name the world carries. The Danube's `STEPS` above is sliced
+# as TEXT by its census pins and stays byte-identical; a second lesson brings
+# its own steps script and its own entry here. `done` is the per-machine
+# completion latch's key (UiSettings), `notes` the released-step lines in the
+# lesson's own voice (S14D-X19: a war-voiced note read wrong on a diplomacy
+# lesson). `%s` in `refused` takes the engine's one-line reason.
+const LESSONS := {
+	"tutorial": {
+		"steps": STEPS,
+		"title": "THE SCHOOL OF WAR",
+		"done": "tutorial",
+		"notes": {
+			"refused": "The war refused that order — %s The school moves on.",
+			"outran": "The war outran the last page — the school has moved on.",
+			"overdue": "The war has outrun this page — fight it as you find it; end the turn and the school will move on.",
+			"skipped": "You skipped the last page — the school moves on.",
+		},
+	},
+}
+
+# The lesson the card is bound to (the Danube until a swap says otherwise).
+var _steps: Array = STEPS
+var _lesson_id := "tutorial"
+var _lesson_title := "THE SCHOOL OF WAR"
+var _notes: Dictionary = LESSONS["tutorial"]["notes"]
+
 var _active := false
 var _done := false
 var _step_index := 0
@@ -540,15 +572,16 @@ func on_world_swap(response) -> void:
 	if typeof(gs) == TYPE_DICTIONARY:
 		name = str(gs.get("scenario_name", ""))
 		_turn = _as_int(gs.get("turn"), _turn)
-	if name != "tutorial" or UiSettings.get_tutorial_done():
+	var lesson = LESSONS.get(name)
+	if typeof(lesson) != TYPE_DICTIONARY or UiSettings.get_tutorial_done(name):
 		_active = false
 		hide()
 		return
+	_bind_lesson(name, lesson)
+	# S14D-X20: EVERY latch is cleared on arming — a second lesson in the same
+	# scene (the Table after the Danube) must not inherit the first's.
+	_reset_lesson_state()
 	_active = true
-	_done = false
-	_saw_objection = false
-	_saw_capture = false
-	_kienmayer_state = ""
 	# FA-42: SEED it from the swap payload. /load carries `game_state.enemies`
 	# and _derive_step_for_turn can resume ON card VII, so without this the
 	# first frame after a mid-lesson reload renders the default arm — the
@@ -556,23 +589,48 @@ func on_world_swap(response) -> void:
 	_note_kienmayer(response)
 	_last_infantry_pool = _pool_from(response)
 	_step_index = _derive_step_for_turn(_turn)
-	_minimized = false
 	_card.visible = true
 	_restore_button.visible = false
 	show()
 	_render()
 
 
+func _bind_lesson(name: String, lesson: Dictionary) -> void:
+	"""S14d part 2: the card reads the lesson's steps, title and notes from
+	the registry — never a scenario literal below this line."""
+	_lesson_id = name
+	_steps = lesson.get("steps", STEPS)
+	_lesson_title = str(lesson.get("title", "THE SCHOOL OF WAR"))
+	_notes = lesson.get("notes", LESSONS["tutorial"]["notes"])
+
+
+func _reset_lesson_state() -> void:
+	"""S14D-X20: every cross-response latch, cleared on arming. `on_world_swap`
+	used to reset three of the eight; the other five carried into a re-arm in
+	the same scene — live once a second lesson can follow the first."""
+	_done = false
+	_minimized = false
+	_saw_objection = false
+	_saw_capture = false
+	_saw_law = false
+	_kienmayer_state = ""
+	_last_infantry_pool = -1
+	_pending_pulse = false
+	_last_rendered_turn = -1
+	_last_sent = ""
+	_released_note = ""
+
+
 func _derive_step_for_turn(turn: int) -> int:
 	"""Resume anchor: the FIRST step of the highest turn_gate <= turn
 	(sub-turn progress resets to the turn's first step — accepted)."""
 	var best_gate := 1
-	for step in STEPS:
+	for step in _steps:
 		var gate := int(step["turn_gate"])
 		if gate <= turn and gate > best_gate:
 			best_gate = gate
-	for i in STEPS.size():
-		if int(STEPS[i]["turn_gate"]) == best_gate:
+	for i in _steps.size():
+		if int(_steps[i]["turn_gate"]) == best_gate:
 			return i
 	return 0
 
@@ -593,8 +651,8 @@ func observe(response) -> void:
 	if call(str(step["advance"]), response):
 		_advance_one()
 	elif _refused_our_order(response, step):
-		_release_step("The war refused that order — " + _refusal_reason(response)
-			+ " The school moves on.")
+		# S14D-X19: the lesson's own voice (the registry's `notes`).
+		_release_step(str(_notes.get("refused", "%s")) % _refusal_reason(response))
 	else:
 		_maybe_catch_up()
 	# One response consumes the note of what was sent.
@@ -671,7 +729,7 @@ func _note_kienmayer(response: Dictionary) -> void:
 
 
 func _advance_one() -> void:
-	if _step_index >= STEPS.size() - 1:
+	if _step_index >= _steps.size() - 1:
 		return
 	_released_note = ""
 	_step_index += 1
@@ -686,10 +744,10 @@ func _maybe_catch_up() -> void:
 	"""Liveness guarantee: a step whose event passed unseen (the player ran
 	ahead of the school) is released once the campaign is a full turn past
 	its gate — the free-play cards from XII gate on turns alone."""
-	while _step_index < STEPS.size() - 1 \
-			and _turn > int(STEPS[_step_index]["turn_gate"]) + 1 \
-			and _turn >= int(STEPS[_step_index + 1]["turn_gate"]):
-		_released_note = "The war outran the last page — the school has moved on."
+	while _step_index < _steps.size() - 1 \
+			and _turn > int(_steps[_step_index]["turn_gate"]) + 1 \
+			and _turn >= int(_steps[_step_index + 1]["turn_gate"]):
+		_released_note = str(_notes.get("outran", ""))
 		_step_index += 1
 		_render()
 
@@ -714,7 +772,7 @@ func _effective_step(index: int) -> Dictionary:
 	Dictionary is READ-ONLY AT RUNTIME — assigning into it raises "Invalid
 	assignment on read-only value" the moment the card draws, and the parse
 	harness CANNOT see it because it never calls _render(). Duplicate first."""
-	var step: Dictionary = STEPS[index]
+	var step: Dictionary = _steps[index]
 	var alt = step.get("alt")
 	if typeof(alt) == TYPE_DICTIONARY and alt.has(_kienmayer_state):
 		var arm = alt[_kienmayer_state]
@@ -758,7 +816,7 @@ static func _refusal_reason(response: Dictionary) -> String:
 func _release_step(note: String) -> void:
 	"""Release the current step with a word on the next card — the refused
 	order, the skip chip. Never past the last card."""
-	if _step_index >= STEPS.size() - 1:
+	if _step_index >= _steps.size() - 1:
 		return
 	_released_note = note
 	_step_index += 1
@@ -779,7 +837,7 @@ func _render() -> void:
 	if not _active:
 		return
 	_last_rendered_turn = _turn
-	var step: Dictionary = STEPS[_step_index]
+	var step: Dictionary = _steps[_step_index]
 	# FA-42: swap in the branch arm when one is authored and true.
 	# ⛔ `STEPS` is a `const`, and in Godot 4 a const Dictionary is
 	# READ-ONLY AT RUNTIME — assigning into it raises "Invalid assignment
@@ -793,8 +851,8 @@ func _render() -> void:
 		step = step.duplicate()
 		for key in arm:
 			step[key] = arm[key]
-	_title_label.text = "THE SCHOOL OF WAR"
-	_step_badge.text = "%d of %d" % [_step_index + 1, STEPS.size()]
+	_title_label.text = _lesson_title
+	_step_badge.text = "%d of %d" % [_step_index + 1, _steps.size()]
 	var lines := PackedStringArray()
 	lines.append("[b][color=#" + Utils.COLOR_GOLD + "]" + str(step["title"]) + "[/color][/b]")
 	lines.append("[color=#d8d4c8]" + str(step["body"]) + "[/color]")
@@ -818,7 +876,7 @@ func _render() -> void:
 		# screen (the Cabinet) on the court the card names.
 		lines.append(Utils.bb_button_chip("open:" + str(step["open"]), str(step.get("open_label", "Open ▸")), CHIP_TEXT_HEX, CHIP_BG_HEX))
 	if overdue:
-		lines.append("[color=#" + Utils.COLOR_INFO + "]The war has outrun this page — fight it as you find it; end the turn and the school will move on.[/color]")
+		lines.append("[color=#" + Utils.COLOR_INFO + "]" + str(_notes.get("overdue", "")) + "[/color]")
 	if _released_note != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + _released_note + "[/color]")
 	if str(step["id"]) == "handoff":
@@ -845,7 +903,7 @@ func _on_meta_clicked(meta) -> void:
 		_conclude()
 	elif meta_str.begins_with("skipstep:"):
 		AudioManager.play("back")
-		_release_step("You skipped the last page — the school moves on.")
+		_release_step(str(_notes.get("skipped", "")))
 	elif meta_str.begins_with("open:cabinet:"):
 		AudioManager.play("click")
 		open_cabinet.emit(meta_str.substr(13))
@@ -877,7 +935,7 @@ func _on_skip_confirmed() -> void:
 
 
 func _conclude() -> void:
-	UiSettings.set_tutorial_done(true)
+	UiSettings.set_tutorial_done(true, _lesson_id)
 	_done = true
 	_active = false
 	hide()
@@ -1022,10 +1080,6 @@ func _pred_turn_gte_11(_response: Dictionary) -> bool:
 
 func _pred_turn_gte_12(_response: Dictionary) -> bool:
 	return _turn >= 12
-
-
-func _pred_turn_gte_13(_response: Dictionary) -> bool:
-	return _turn >= 13
 
 
 func _pred_turn_gte_14(_response: Dictionary) -> bool:

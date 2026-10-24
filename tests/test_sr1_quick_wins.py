@@ -218,4 +218,7 @@ class TestTheSchoolTeachesTheCongress:
         assert "a signed peace titles what you keep of the loser's" in card
         assert "CONGRESS tab" in card and "names each held one's road to title" in card
         assert '"advance": "_pred_turn_gte_12"' in card
-        assert "func _pred_turn_gte_13(" in src
+        # CONSCIOUS FLIP (S14D-X21, October 23, 2026): `_pred_turn_gte_13` was
+        # defined and no card used it (the Congress card advances on gate 12);
+        # the registry census pins every predicate used, every card's defined.
+        assert "func _pred_turn_gte_12(" in src and "func _pred_turn_gte_13(" not in src

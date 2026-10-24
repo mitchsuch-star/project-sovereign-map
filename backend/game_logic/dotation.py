@@ -218,8 +218,10 @@ def dotation_dormant(world) -> bool:
     TUT-F2/TUT-F5. No reward beat is added to the lesson (the syllabus
     is over-full; the school's doctrine for un-taught systems is
     dormancy) — deliberately no player-facing promise, so nothing is
-    deferred (GR9)."""
-    return getattr(world, "scenario_name", "") == "tutorial"
+    deferred (GR9). S14d part 2: every School lesson, through the one
+    predicate."""
+    from backend.game_logic.tutorial_state import is_school_world
+    return is_school_world(world)
 
 
 def is_dotation_world(world) -> bool:

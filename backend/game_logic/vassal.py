@@ -2589,8 +2589,8 @@ def petitions_live(world) -> bool:
     measured). The DATA-keyed branches — a stored remission, a petition
     pending across a save/load — never read this.
     """
-    from backend.game_logic.tutorial_state import is_tutorial_world
-    return not is_tutorial_world(world)
+    from backend.game_logic.tutorial_state import is_school_world
+    return not is_school_world(world)
 
 
 def _dp_available(world, nation: str) -> int:

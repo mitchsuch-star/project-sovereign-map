@@ -23,7 +23,7 @@
   {
     "id": "TUT-4 the skip click does nothing",
     "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
-    "old": "\t\t_release_step(\"You skipped the last page — the school moves on.\")",
+    "old": "\t\t_release_step(str(_notes.get(\"skipped\", \"\")))",
     "new": "\t\tpass",
     "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheChips::test_skip_releases_the_step_with_a_word"
   },
@@ -44,7 +44,7 @@
   {
     "id": "TUT-7 the catch-up floor is gone",
     "file": "godot-client/project-sovereign/scripts/tutorial_overlay.gd",
-    "old": "\twhile _step_index < STEPS.size() - 1 \\\n",
+    "old": "\twhile _step_index < _steps.size() - 1 \\\n",
     "new": "\twhile false \\\n",
     "tests": "tests/test_tutorial_unbreakable_2026_09_23.py::TestTheIdleEmperorStillReachesTheEnd::test_the_card_reaches_the_handoff_by_the_gate_of_the_last_page"
   },

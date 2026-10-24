@@ -10147,17 +10147,18 @@ func _on_pause_new_game_requested():
 	set_input_enabled(false)
 	api_client.new_game(_on_new_game_result)
 
-func _on_tutorial_boot_requested():
-	"""POSITION 7: boot the School of War scenario (replaces the running
+func _on_tutorial_boot_requested(scenario: String = "tutorial"):
+	"""POSITION 7: boot a School of War scenario (replaces the running
 	world and the autosave, exactly like a new campaign — the menu's shared
-	confirm row already guarded it)."""
+	confirm row already guarded it). S14d part 2: the lesson's allowlist
+	name (`tutorial_state.SCHOOL_SCENARIOS`); the Danube by default."""
 	# FA-57: it is not replaced and has not been since TUT-F2 —
 	# `save_manager.autosave` no-ops for `scenario_name == "tutorial"`,
 	# and the backend says so in this same terminal one line later
 	# ("Your campaign autosave is untouched").
 	add_output("[color=#" + Utils.COLOR_INFO + "]Convening the School of War. Your campaign autosave is kept.[/color]")
 	set_input_enabled(false)
-	api_client.new_game(_on_new_game_result, "tutorial")
+	api_client.new_game(_on_new_game_result, scenario)
 
 func _on_tutorial_suggest_command(cmd: String) -> void:
 	"""POSITION 7: the tutor chip FILLS the command line — the player presses

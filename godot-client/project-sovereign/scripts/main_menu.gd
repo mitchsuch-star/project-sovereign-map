@@ -621,6 +621,9 @@ func _launch(action: String) -> void:
 	# silently missed every player who could hit the bug.
 	if action == "tutorial":
 		UiSettings.set_tutorial_done(false)
+	elif action.begins_with("tutorial_"):
+		# S14d part 2: the School's other lessons carry their own latch.
+		UiSettings.set_tutorial_done(false, action)
 	MenuBoot.pending_action = action
 	MenuBoot.came_from_game = false
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_STOP

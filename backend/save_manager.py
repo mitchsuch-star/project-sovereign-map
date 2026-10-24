@@ -846,7 +846,11 @@ def autosave(world: WorldState) -> Dict:
 
 
 def _autosave(world: WorldState) -> Dict:
-    if str(getattr(world, "scenario_name", "")) == "tutorial":
+    # S14d part 2: every School lesson skips the campaign's autosave slot
+    # (the one predicate); the tag `"skipped": "tutorial"` is kept — the
+    # client and /new_game read it as "a lesson".
+    from backend.game_logic.tutorial_state import is_school_world
+    if is_school_world(world):
         notifications.clear_save_failure(world)
         return {
             "success": True,
