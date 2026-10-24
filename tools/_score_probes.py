@@ -1469,7 +1469,12 @@ ACTION_WORDS = {
     "attack": r"MUSTER|attack|pursu|⚔|marches on|falls upon|engag|"
               r"ASSAULT|assaults the|storms the works|Captured:|lays down its arms|falls to France|unopposed",
     "move": r"moves? (to|from)|begins march|march|Route:|road to|bars the way|reaches the approach",
-    "hold": r"hold|defend|DEFENSIVE|stands? fast",
+    # S14e (DD-B's re-measure, October 24, 2026): "Murat, halt" — meant as the
+    # nearest family, hold — answers "Murat halts his march and awaits new
+    # orders.": the march cancelled, as the player wanted, read as a misread.
+    # Checked first: 0 of the 4,350 committed census orders move, every
+    # committed HOLD arm reads the same.
+    "hold": r"hold|defend|DEFENSIVE|stands? fast|halts? (his|her|the) march|awaits new orders",
     "defend": r"hold|defend|DEFENSIVE|stands? fast",
     "scout": r"scout",
     "fortify": r"fortif",
@@ -1510,7 +1515,14 @@ _ACTION_WORDS = ACTION_WORDS  # the HOLD reader's older name
 BOARD_GATE_RX = re.compile(
     r"No administrative actions|Not enough actions|actions remaining|treasury cannot|cannot support this|out of range|"
     r"enemy forces (nearby|present)|is a prisoner|not at war|cannot (drill|fortify|move|attack) (with|while|into)|"
-    r"already (fortified|in|lies|have|met|full)|costs [\d,]+ gold|the treasury holds|is not in force|not currently fortified|"
+    # S14e (DD-B's re-measure, October 24, 2026): the muster's standing line
+    # "Standing modifiers, already in the band:" rides every executed attack
+    # since the muster rework, and `already in` read nine of the conquest
+    # road's fought battles as board refusals. Narrowed, not removed: a true
+    # "already in" refusal still reads. Checked first — 0 of the 4,350 orders
+    # in the committed census records move, every committed HOLD arm reads
+    # the same, no first-measure line moves.
+    r"already (fortified|in(?! the band)|lies|have|met|full)|costs [\d,]+ gold|the treasury holds|is not in force|not currently fortified|"
     r"has not opened her ports|No damaged|No war damage|needs one victory|is a nation, not a province|only conquered land|"
     r"no eligible province|loyalty is already full|we do not court a belligerent|at WAR with|no treaty with|"
     r"not found\. Did you mean|supply lines cannot|blocks the path|destination blocked|runs through enemy country|"

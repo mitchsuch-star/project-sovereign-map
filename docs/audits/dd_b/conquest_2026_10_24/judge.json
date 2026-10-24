@@ -1,0 +1,1232 @@
+{
+ "lines": 123,
+ "classes": {
+  "answered": 52,
+  "as_meant": 57,
+  "shrug": 4,
+  "honest_refusal": 4,
+  "unjudged_other": 5,
+  "board_refusal": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 4,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 5,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers th"
+  },
+  {
+   "n": 8,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Franconia\n  Soult, fortify\n  Soult, drill\n  build supply depot in Lorraine — 300g\n  build fortification in Lorraine — 400g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 9,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (21,725; expect about 68,390 with the corps likely to arrive, up to 70,846 if all march) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL NOT — Davout: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Ney') would likely bring him\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make it in time (abo"
+  },
+  {
+   "n": 10,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (21,725; expect about 68,390 with the corps likely to arrive, up to 70,846 if all march) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL NOT — Davout: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Ney') would likely bring him\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make it in time (about 95%) (The corps system lowers t"
+  },
+  {
+   "n": 17,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "how do I get to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "═══════════════════════════════════════\n           COMMAND REFERENCE\n═══════════════════════════════════════\n\nMILITARY COMMANDS:\n  attack     - Engage enemy forces or capture region\n               \"Ney, attack Mack\" / \"attack\" (nearest)\n               \"what if Ney attacks Mack\" - the MUSTER before you commit:\n               who will march, who will not and why, and the odds band.\n               It costs nothing. An attack at unfavourable odds pauses\n               on its muster - Commit, or Cancel at no cost. A foe out\n               of reach is asked about first: pursue him (a standing\n      "
+  },
+  {
+   "n": 18,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena moves to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Massena stands at Munich, beyond reach of Vienna this turn, Sire — the order would be refused, and nothing spent."
+  },
+  {
+   "n": 19,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "who am I fighting",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "We are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score +36 (winning), declared this turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Redeem Italy; Russia pursues Arbiter of Europe. Each war is on the war banner on the left (click the war); every court's design in the Diplomatic Ledger (press D)."
+  },
+  {
+   "n": 24,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (41,566; expect about 49,512 with the corps likely to arrive, up to 58,452 if all march) vs Archduke John (substantial force), covering Mack's retreat, at Tyrol — the balance of force looks unfavorable.\n  WILL JOIN — Ney: will march to the sound of the guns — may make it from the mountains at Munich in time (about 47%); order 'Ney, support Massena' and it rises to about 100% (The corps system lowers the bar by 10) — and will stand at Tyrol\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte,"
+  },
+  {
+   "n": 25,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Massena, scout Tyrol",
+   "meant": "scout Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena scouts Tyrol: Controlled by Austria. Terrain: Mountains (+25% defense). Enemy forces: Mack (Austria): ~837 troops; Archduke John (Austria): ~20,000 troops"
+  },
+  {
+   "n": 26,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (41,566; expect about 49,512 with the corps likely to arrive, up to 58,452 if all march) vs Archduke John (20,000 men) at Tyrol — the balance of force looks unfavorable.\n  WILL JOIN — Ney: will march to the sound of the guns — may make it from the mountains at Munich in time (about 47%); order 'Ney, support Massena' and it rises to about 100% (The corps system lowers the bar by 10) — and will stand at Tyrol\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely b"
+  },
+  {
+   "n": 27,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, support Massena",
+   "meant": "support Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney moves to support Massena (at Munich). Ney holds your written order: when Massena leads a battle within reach, he will march to the guns. The order lapses of itself once Massena is out of danger — name a duration to hold him to it. Ney: \"He shall have my sabers the moment he needs them — and I shall have a share of the credit.\""
+  },
+  {
+   "n": 32,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Davout attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Davout (23,595; expect about 134,130 with the corps likely to arrive, up to 153,510 if all march) vs Archduke Charles (50,569 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — his support of Massena waits a day — may make it from the mountains at Munich in time (about 47%); order 'Ney, support Davout' and it rises to about 100% (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to "
+  },
+  {
+   "n": 35,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Lannes attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Lannes (16,124; expect about 153,530 with the corps likely to arrive, up to 158,504 if all march) vs Archduke Charles (50,569 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — his support of Massena waits a day — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Franconia"
+  },
+  {
+   "n": 36,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Lannes, attack Archduke Charles",
+   "meant": "attack Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Lannes (16,124; expect about 153,530 with the corps likely to arrive, up to 158,504 if all march) vs Archduke Charles (50,569 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — his support of Massena waits a day — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Murat: will march t"
+  },
+  {
+   "n": 44,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Murat attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Murat (20,070; expect about 122,064 with the corps likely to arrive) vs Archduke Charles (32,928 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him — his support of Massena waits a day — but he and Murat are at odds; expect about half his weight\n  WILL JOIN — Davout: stands on the field and will fight beside him — but he and Murat are at odds; expect about half his weight\n  WILL JOIN — Lannes: stands on the field and will fight beside him — but he and Murat are at odds; expect abo"
+  },
+  {
+   "n": 45,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Massena, attack Archduke Charles",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Massena (38,745; expect about 142,038 with the corps likely to arrive) vs Archduke Charles (32,928 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: is in no condition to fight\n  WILL JOIN — Napoleon: stands on the field and will fight beside him\n  Archduke Charles does not stand alone: at"
+  },
+  {
+   "n": 53,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Davout moves to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Davout stands at Franconia, beyond reach of Vienna this turn, Sire — the order would be refused, and nothing spent. Of ours, Murat stands within reach."
+  },
+  {
+   "n": 54,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Murat attacks Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "We have no intelligence on what holds Vienna, Sire — there is nothing to weigh. Scout it before you strike."
+  },
+  {
+   "n": 55,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Murat, scout Vienna",
+   "meant": "scout Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat scouts Vienna: Controlled by Austria. Terrain: Plains. No field army stands there. Garrison: 25,000 — it must be assaulted — a march halts before it; it breaks below 5,000; a capital's garrison, it regrows 2,000 a turn up to 25,000."
+  },
+  {
+   "n": 56,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Murat attacks Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nASSAULT — Murat storms the works at Vienna alone: 19,764 men, 30,689 in the assault's reckoning (+23% from the corps at his side), against a garrison of 25,000. Ney, Davout, Lannes, Massena and Napoleon do not join an assault on the works; the garrison breaks below 5,000.\nThe works would hold: about 10,741 of the garrison fall and Murat loses about 4,025 — 14,259 remain.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 63,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Massena moves to Bohemia",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Bohemia stands open, Sire — Massena would take it by marching in.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 64,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Massena, move to Bohemia",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Franconia to Bohemia. Bohemia falls to France! (was Austria) (1,132 lost to march)\nCarniola, Hungary lie undefended — an attack takes any of them.\nYour forces have taken Bohemia. Plunder it for 800 gold — buildings burned, the province left hostile — or secure it and keep the country quiet? ('plunder' or 'secure')"
+  },
+  {
+   "n": 71,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "what if Massena attacks Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nASSAULT — Massena storms the works at Vienna alone: 36,623 men, 46,328 in the assault's reckoning (+10% from the corps at his side), against a garrison of 25,000. the garrison breaks below 5,000.\nThe works would hold: about 12,500 of the garrison fall and Massena loses about 4,940 — 12,500 remain.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 72,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Massena, attack Vienna",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "ASSAULT — Massena storms the works at Vienna alone: 36,623 men, 46,328 in the assault's reckoning (+10% from the corps at his side), against a garrison of 25,000. the garrison breaks below 5,000.\nMassena assaults the Vienna garrison! Garrison: 25,000 -> 12,500 (-12,500). Massena loses 4,940 troops. Garrison holds — 12,500 defenders remain. It regains up to 2,000 a turn (to 25,000).\n[Materiel] Guns, horses and stores lost with the fallen: France -247g, Austria -625g. Our treasury stands at 1,195 gold."
+  },
+  {
+   "n": 75,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "what if Murat attacks Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nASSAULT — Murat storms the works at Vienna alone: 18,579 men, 29,378 in the assault's reckoning (+25% from the corps at his side), against a garrison of 12,500. Ney, Davout, Lannes, Massena and Napoleon do not join an assault on the works; the garrison breaks below 5,000.\nThe works would hold: about 6,250 of the garrison fall and Murat loses about 1,976 — 6,250 remain. It regains up to 2,000 a turn (to 25,000).\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 76,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Murat, attack Vienna",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "ASSAULT — Murat storms the works at Vienna alone: 18,579 men, 29,378 in the assault's reckoning (+25% from the corps at his side), against a garrison of 12,500. Ney, Davout, Lannes, Massena and Napoleon do not join an assault on the works; the garrison breaks below 5,000.\nMurat assaults the Vienna garrison! Garrison: 12,500 -> 6,250 (-6,250). Murat loses 1,976 troops. Garrison holds — 6,250 defenders remain. It regains up to 2,000 a turn (to 25,000).\n[Materiel] Guns, horses and stores lost with the fallen: France -98g, Austria -312g. Our treasury stands at 1,179 gold.\n(Murat stands down from h"
+  },
+  {
+   "n": 77,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "what if Lannes attacks Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Lannes stands at Franconia, beyond reach of Vienna this turn, Sire — the order would be refused, and nothing spent. Of ours, Massena and Murat stand within reach."
+  },
+  {
+   "n": 78,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Massena, attack Vienna",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "ASSAULT — Massena storms the works at Vienna alone: 31,683 men, 36,071 in the assault's reckoning (+10% from the corps at his side), against a garrison of 6,250. the garrison breaks below 5,000.\nMassena assaults the Vienna garrison! Garrison collapses (6,250 -> 0). Massena loses 1,372 troops in the assault. Massena marches into Vienna! (909 lost to march)\n[Materiel] Guns, horses and stores lost with the fallen: France -68g, Austria -156g. Our treasury stands at 1,111 gold. Captured: Austria → France\nYour forces have taken Vienna. Plunder it for 1,200 gold — buildings burned, the province left "
+  },
+  {
+   "n": 93,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Massena attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (29,402; expect about 113,469 with the corps likely to arrive, up to 115,769 if all march) vs Archduke John (substantial force) at Bohemia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Bohemia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Bohemia\n  WILL JOIN — Lannes: marches to the "
+  },
+  {
+   "n": 94,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Murat attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Murat (15,620; expect about 92,361 with the corps likely to arrive, up to 94,709 if all march) vs Archduke John (substantial force) at Bohemia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — but he and Murat are at odds; expect about half his weight — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Bohemia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and w"
+  },
+  {
+   "n": 95,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Massena, attack Archduke John",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Massena (29,402; expect about 113,469 with the corps likely to arrive, up to 115,769 if all march) vs Archduke John (substantial force) at Bohemia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Bohemia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Bohemia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of "
+  },
+  {
+   "n": 122,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Murat moves to Hungary",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Hungary stands open, Sire — Murat would take it by marching in.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 123,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Murat, move to Hungary",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Bohemia to Hungary. Hungary falls to France! (was Austria) (153 lost to march)\nMoravia, Croatia lie undefended — an attack takes any of them.\nYour forces have taken Hungary. Plunder it for 600 gold — buildings burned, the province left hostile — or secure it and keep the country quiet? ('plunder' or 'secure')\n(Murat stands down from his intended attack — your orders reached him in time.)"
+  },
+  {
+   "n": 125,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Davout moves to Carniola",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Carniola is held by Archduke John, Sire — a march there is an attack. Were you to give the order, Sire:\nMUSTER — Davout (19,392; expect about 49,177 with the corps likely to arrive, up to 50,745 if all march) vs Mack (screening force), covering Archduke John's retreat, at Carniola — the balance of force looks favorable.\n  WILL NOT — Ney: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make it in time (about 95%) (The corps system lowers the b"
+  },
+  {
+   "n": 126,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Davout, attack Archduke John",
+   "meant": "attack Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Davout (19,392; expect about 49,177 with the corps likely to arrive, up to 50,745 if all march) vs Mack (screening force), covering Archduke John's retreat, at Carniola — the balance of force looks favorable.\n  WILL NOT — Ney: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Carniola\n  WILL NOT — Napoleon: has already marched this turn\n  Standing m"
+  },
+  {
+   "n": 130,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Davout attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Davout (19,136; expect about 49,255 with the corps likely to arrive) vs Archduke John (6,930 men) at Carniola — the balance of force looks favorable.\n  WILL NOT — Ney: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL JOIN — Massena: stands on the field and will fight beside him\n  WILL NOT — Napoleon: has already marched this turn\n  Standing modifiers, already in the band: all told, Davout's own modifiers weigh 10% against the attack; the ground favors the defender"
+  },
+  {
+   "n": 131,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Massena, attack Archduke John",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Massena (27,777; expect about 45,820 with the corps likely to arrive) vs Archduke John (6,930 men) at Carniola — the balance of force looks favorable.\n  WILL NOT — Ney: has already marched this turn\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Napoleon: has already marched this turn\n  Standing modifiers, already in the band: the ground favors the defender (+15%, hills); Archduke John stands +42% on the defense (his stance, his character and his works"
+  },
+  {
+   "n": 138,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Ney attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Ney stands at Bohemia, beyond reach of Kutuzov at Moravia this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet. Of ours, Murat stands within reach."
+  },
+  {
+   "n": 141,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Murat attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Murat (15,206) vs Kutuzov (substantial force) at Moravia — the balance of force looks unfavorable.\n  What Moravia can feed is not known — the province is unscouted.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 15,206 we muster) would cost ~114g.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 144,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Massena moves to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Massena can reach Vienna from Carniola in 2 turns: Carniola -> Bohemia -> Vienna."
+  },
+  {
+   "n": 145,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Napoleon moves to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Napoleon can reach Vienna from Bohemia this very turn — the march arrives on the order: Bohemia -> Vienna."
+  },
+  {
+   "n": 146,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Davout moves to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Davout can reach Vienna from Carniola in 2 turns: Carniola -> Bohemia -> Vienna."
+  },
+  {
+   "n": 147,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Napoleon, move to Vienna",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon moves from Bohemia to Vienna (73 lost to march)"
+  },
+  {
+   "n": 148,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Ney, move to Vienna",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney moves from Bohemia to Vienna (162 lost to march)"
+  },
+  {
+   "n": 149,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Lannes, move to Vienna",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Bohemia to Vienna (127 lost to march)"
+  },
+  {
+   "n": 150,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Soult, march to Vienna",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Vienna. Route: Swabia → Franconia → Bohemia → Vienna. Moves to Swabia. \"Soult, march to Vienna.\" It will be done exactly, Sire. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 156,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if Massena attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (24,886) vs Kutuzov (substantial force) at Moravia — the balance of force looks unfavorable.\n  WILL NOT — Ney: cannot march — the field is on soil we are not at war with\n  WILL NOT — Davout: cannot march — the field is on soil we are not at war with\n  WILL NOT — Lannes: cannot march — the field is on soil we are not at war with\n  WILL NOT — Murat: cannot march — the field is on soil we are not at war with\n  WILL NOT — Napoleon: cannot march — the field is on soil we are not at war with\n  Kutuzov does not stand alone: at least 1 enemy corps wit"
+  },
+  {
+   "n": 159,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if Murat moves to Warsaw",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Kutuzov\n  Davout, march to Vienna\n  build supply depot in Paris — 300g\n  build fortification in Paris — 400g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 160,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if Murat moves to Moscow",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Kutuzov\n  Davout, march to Vienna\n  build supply depot in Paris — 300g\n  build fortification in Paris — 400g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 161,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if Murat moves to Galicia",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Murat can reach Galicia from Hungary in 5 turns: Hungary -> Bohemia -> Franconia -> Swabia -> Lorraine -> Orleanais -> Burgundy -> Limousin -> Gascony -> Bordelais -> Galicia."
+  },
+  {
+   "n": 162,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Kutuzov\n  Davout, march to Vienna\n  Soult, fortify\n  Bernadotte, drill\n  build supply depot in Paris — 300g\n  build fortification in Paris — 400g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 166,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if I recruit infantry in Hungary",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\nWhat you want is in the Strategic Ledger's Forces tab (press T).\n\nWhat I CAN do today:\n  Ney, attack Kutuzov\n  Davout, march to Vienna\n  build supply depot in Paris — 300g\n  build fortification in Paris — 400g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 167,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "recruit infantry in Hungary",
+   "meant": "recruit",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Berthier advises caution. 'Hungary is in Unrest (stability 35/100). The populace will not answer our call until stability exceeds 50.'"
+  },
+  {
+   "n": 169,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Murat, scout Moravia",
+   "meant": "scout Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat scouts Moravia: Controlled by Austria. Terrain: Plains. Enemy forces: Kutuzov (Russia): ~33,260 troops; Buxhowden (Russia): ~22,000 troops\n(Murat stands down from his intended attack — your orders reached him in time.)"
+  },
+  {
+   "n": 173,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Massena, move to Vienna",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Hungary to Vienna (492 lost to march)"
+  },
+  {
+   "n": 174,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Davout, move to Vienna",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Hungary to Vienna (173 lost to march)"
+  },
+  {
+   "n": 185,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Murat moves to Vilna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Murat stands at Hungary, beyond reach of Vilna this turn, Sire — the order would be refused, and nothing spent."
+  },
+  {
+   "n": 193,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena marches to Vilna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Massena stands at Vienna, beyond reach of Vilna this turn, Sire — the order would be refused, and nothing spent."
+  },
+  {
+   "n": 194,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena moves to Warsaw",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Ney, attack Kutuzov\n  Davout, march to Dresden\n  recruit infantry in Vienna — 900g for 10,000 men under Massena\n  build supply depot in Paris — 300g\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 195,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "recruit infantry in Vienna",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (0 regions away) - Cost: 900 gold (unstable region premium) (×3 at war). Morale: 65% -> 57%\nInfantry pool: 91,698 -> 81,698"
+  },
+  {
+   "n": 205,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Soult attacks Paget",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Soult stands at Franconia, beyond reach of Paget at Gascony this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 206,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Soult, pursue Paget",
+   "meant": "pursue Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult pursues Paget (at Gascony). Moves to Swabia. \"Soult, pursue Paget.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 207,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Lannes, move to Bohemia",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Hungary to Bohemia (115 lost to march)"
+  },
+  {
+   "n": 208,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Murat, move to Bohemia",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Hungary to Bohemia (131 lost to march)\n(Murat stands down from his intended attack — your orders reached him in time.)"
+  },
+  {
+   "n": 211,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "what if Soult attacks Paget",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Soult stands at Swabia, beyond reach of Paget at Berry this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 216,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "what if Davout moves to Hanover",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "No — cannot enter Hanover, Sire — it is controlled by Hanover (diplomatic state: PEACE). Secure open borders or declare war to pass."
+  },
+  {
+   "n": 221,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "declare war on Hanover",
+   "meant": "declare_war",
+   "class": "as_meant",
+   "success": null,
+   "reply": "[...earlier messages trimmed...]\n⚠ Crowded — Hungary carries more corps than its roads can bear, two turns running.\n- Murat — Bohemia — 12,978 — Awaiting orders.\n- Lannes — Bohemia — 11,417 — Awaiting orders.\n- Bernadotte — Swabia — 9,721 — Awaiting orders. Trust:40 Morale:24%\n⚠ Morale failing (24) — the men waver. Two turns of drill would steady them (+10 morale; +15 with a training ground).\n- Dumonceau — Amsterdam — 6,500 — Awaiting orders.\n- Napoleon — Hungary — 6,396 — Awaiting orders.\n⚠ Crowded — Hungary carries more corps than its roads can bear, two turns running.\nINTELLIGENCE\nArchduke "
+  },
+  {
+   "n": 227,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Massena, march to Hesse",
+   "meant": "move Massena",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Hesse is a nation, not a province. Name a province, Sire — theirs are Frankfurt, Nassau."
+  },
+  {
+   "n": 228,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Davout, march to Hesse",
+   "meant": "move Davout",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Hesse is a nation, not a province. Name a province, Sire — theirs are Frankfurt, Nassau."
+  },
+  {
+   "n": 229,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Massena, march to Frankfurt",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena begins march to Frankfurt. Route: Bohemia → Franconia → Frankfurt. Moves to Bohemia.\nBohemia feeds 48,000; the 57,758 men standing there would lose ~1,330 a turn to short supply. Massena: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 230,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Davout, march to Frankfurt",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins march to Frankfurt. Route: Bohemia → Franconia → Frankfurt. Moves to Bohemia.\nBohemia feeds 48,000; the 74,739 men standing there would lose ~2,864 a turn to short supply. Davout: \"We move deliberately — arrival is worth little if the army arrives broken.\""
+  },
+  {
+   "n": 244,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "the army, march to Frankfurt",
+   "meant": "move",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 6 corps within 2 provinces of the Emperor, 'march to Frankfurt'. Beyond the Emperor's reach, left to their own orders: Soult, Bernadotte, Dumonceau.\nNey: Ney begins march to Frankfurt.\nDavout: Davout is already carrying out that order.\nLannes: Lannes begins march to Frankfurt.\nMurat: Murat begins march to Frankfurt.\nMassena: Massena is already carrying out that order.\nNapoleon: Napoleon begins march to Frankfurt."
+  },
+  {
+   "n": 245,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Bernadotte, drill",
+   "meant": "drill",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte begins intensive drill exercises at Swabia. Troops will be locked in training next turn, bonus ready turn 11."
+  },
+  {
+   "n": 253,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "what if Massena moves to Frankfurt",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Massena can reach Frankfurt from Franconia this very turn — the march arrives on the order: Franconia -> Frankfurt."
+  },
+  {
+   "n": 290,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Massena moves to Osnabruck",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Massena stands at Frankfurt, beyond reach of Osnabruck this turn, Sire — the order would be refused, and nothing spent. Of ours, Dumonceau and Murat stand within reach."
+  },
+  {
+   "n": 291,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Massena moves to Hanover",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Massena can reach Hanover from Frankfurt in 2 turns: Frankfurt -> Brunswick -> Hanover."
+  },
+  {
+   "n": 292,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "the army, march to Hanover",
+   "meant": "move",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 7 corps within 2 provinces of the Emperor, 'march to Hanover'. Beyond the Emperor's reach, left to their own orders: Soult, Dumonceau.\nNey: Ney begins march to Hanover.\nDavout: Davout begins march to Hanover.\nLannes: Lannes begins march to Hanover.\nMurat: Murat begins march to Hanover.\nBernadotte: Bernadotte begins march to Hanover.\nMassena: Massena begins march to Hanover.\nNapoleon: Napoleon begins march to Hanover."
+  },
+  {
+   "n": 293,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Murat moves to Osnabruck",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Osnabruck stands open, Sire — Murat would take it by marching in.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 294,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Murat, move to Osnabruck",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Hanover to Osnabruck. Osnabruck falls to France! (was Hanover) (115 lost to march)\nYour forces have taken Osnabruck. Plunder it for 200 gold — buildings burned, the province left hostile — or secure it and keep the country quiet? ('plunder' or 'secure') Murat's march to Hanover is set aside."
+  },
+  {
+   "n": 296,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Murat attacks Hanover",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "France is at peace with Prussia, Sire — the order would first put a declaration of war to you.\nWere you to give the order, Sire:\nASSAULT — Murat storms the works at Hanover alone: 11,456 men, 14,228 in the assault's reckoning (+8% from the corps at his side), against a garrison (small force). Davout, Lannes and Massena do not join an assault on the works; the garrison breaks below 5,000.\nOur intelligence gives no count of the garrison — a scout's report would let me reckon the exchange.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 297,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Massena moves to Brunswick",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Massena already stands at Brunswick, Sire."
+  },
+  {
+   "n": 305,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "the army, march to Franconia",
+   "meant": "move",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 8 corps within 2 provinces of the Emperor, 'march to Franconia'. Beyond the Emperor's reach, left to their own orders: Soult.\nNey — no military action left this turn.\nDavout — no military action left this turn.\nLannes — no military action left this turn.\nMurat — no military action left this turn.\nBernadotte — no military action left this turn.\nMassena — no military action left this turn.\nNapoleon — no military action left this turn.\nDumonceau — no military action left this turn."
+  },
+  {
+   "n": 308,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "the army, march to Franconia",
+   "meant": "move",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 8 corps within 2 provinces of the Emperor, 'march to Franconia'. Beyond the Emperor's reach, left to their own orders: Soult.\nNey: Ney begins march to Franconia.\nDavout: Davout begins march to Franconia.\nLannes: Lannes begins march to Franconia.\nMurat: Murat begins march to Franconia.\nBernadotte: Bernadotte begins march to Franconia.\nMassena: Massena begins march to Franconia.\nNapoleon: Napoleon begins march to Franconia.\nDumonceau: Dumonceau begins march to Franconia."
+  },
+  {
+   "n": 310,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Soult, attack Paget\n  Ney, march to Swabia\n  Davout, fortify\n  Lannes, drill\n  recruit infantry in Artois — 600g for 3,000 men under Soult\n  build supply depot in Artois — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 311,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Soult, attack Paget",
+   "meant": "attack Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Soult (27,437) vs Paget (screening force) at Normandy — the balance of force looks favorable.\n  Normandy feeds 22,500 — the whole muster standing there would lose ~90 men a turn to short supply.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 27,437 we muster) would cost ~206g.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\nAsk 'what if Soult attacks Paget' to read the muster before you co"
+  },
+  {
+   "n": 314,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Soult, march to Franconia",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Franconia. Route: Artois → Picardy → Orleanais → Lorraine → Swabia → Franconia. Moves to Artois. \"Soult, march to Franconia.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 317,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "the army, march to Bohemia",
+   "meant": "move",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 8 corps within 2 provinces of the Emperor, 'march to Bohemia'. Beyond the Emperor's reach, left to their own orders: Soult.\nNey: Ney begins march to Bohemia.\nDavout: Davout begins march to Bohemia.\nLannes: Lannes begins march to Bohemia.\nMurat: Murat begins march to Bohemia.\nBernadotte: Bernadotte begins march to Bohemia.\nMassena: Massena begins march to Bohemia.\nNapoleon: Napoleon begins march to Bohemia.\nDumonceau: Dumonceau begins march to Bohemia."
+  },
+  {
+   "n": 332,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, march to Dresden\n  Davout, fortify\n  Soult, drill\n  enact the Train des Équipages — 3,500g, then 200g a turn (cures Living off the land — the court's doctrine flaw — while its Staff stands); the Charges of Empire fall by 311g a turn\n  recruit infantry in Picardy — 200g for 3,000 men under Soult\n  F1 → Hesse → Improve Relations — keeps Hesse out of the next league: Talleyrand brings her to −10 in 1 turn (1 DP)\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 337,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "enact the Train des Équipages",
+   "meant": "other: enact a law",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "The Train des Équipages (decree of 26 March 1807): A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier Général stands to run it. 3,500 gold now, then 200 gold a turn. The treasury holds 8,389 gold. Enact it? (yes / no)"
+  },
+  {
+   "n": 339,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "recruit infantry in Picardy",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult recruits 3,000 infantry for Picardy (0 regions away) (field levy — no depot; capped at 3,000) - Cost: 200 gold. Morale: 90% -> 85%\nInfantry pool: 90,507 -> 87,507"
+  },
+  {
+   "n": 342,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Massena, move to Vienna",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Bohemia to Vienna"
+  },
+  {
+   "n": 348,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Davout, move to Vienna",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Bohemia to Vienna"
+  },
+  {
+   "n": 349,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Lannes, move to Vienna",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Bohemia to Vienna"
+  },
+  {
+   "n": 350,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Ney, move to Hungary",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney moves from Bohemia to Hungary"
+  },
+  {
+   "n": 351,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Murat, move to Hungary",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Bohemia to Hungary"
+  },
+  {
+   "n": 354,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "what if Massena attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (22,442; expect about 66,564 with the corps likely to arrive, up to 68,042 if all march) vs Kutuzov (substantial force) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 99%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Lannes: marches to the sound of "
+  },
+  {
+   "n": 358,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "what if Napoleon attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Napoleon stands at Bohemia, beyond reach of Kutuzov at Moravia this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet. Of ours, Ney, Davout and Lannes stand within reach."
+  },
+  {
+   "n": 359,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "Napoleon, move to Vienna",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon moves from Bohemia to Vienna\nVienna feeds 75,000; the 48,609 men standing there would lose ~1,457 a turn to crowding — too many corps on one province."
+  },
+  {
+   "n": 360,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "Bernadotte, move to Vienna",
+   "meant": "move Bernadotte",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte moves from Bohemia to Vienna\nVienna feeds 75,000; the 57,122 men standing there would lose ~2,282 a turn to crowding — too many corps on one province."
+  },
+  {
+   "n": 361,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (0 regions away) - Cost: 690 gold (×3 at war) (Massena's intendance: +15%). Morale: 57% -> 51%\nInfantry pool: 92,507 -> 82,507"
+  },
+  {
+   "n": 362,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "recruit cavalry in Vienna",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat recruits 5,000 cavalry for Vienna (1 regions away) - Cost: 1035 gold (×3 at war) (Murat's intendance: +15%). Morale: 75% -> 63%\nCavalry pool: 30,000 -> 25,000"
+  },
+  {
+   "n": 366,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "what if Massena attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (31,145; expect about 87,391 with the corps likely to arrive, up to 89,305 if all march) vs Kutuzov (substantial force) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 99%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Lannes: marches to the sound of "
+  },
+  {
+   "n": 367,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Massena, attack Kutuzov",
+   "meant": "attack Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Massena (31,145; expect about 87,391 with the corps likely to arrive, up to 89,305 if all march) vs Kutuzov (substantial force) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 99%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Moravia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army "
+  },
+  {
+   "n": 370,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "what if Napoleon attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Napoleon (5,220; expect about 92,626 with the corps likely to arrive) vs Kutuzov (18,820 men) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: will not lift a finger for the Emperor Napoleon\n  WILL JOIN — Massena: stands on the field and will fight beside him\n  "
+  },
+  {
+   "n": 371,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Napoleon, attack Kutuzov",
+   "meant": "attack Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Napoleon (5,220; expect about 92,626 with the corps likely to arrive) vs Kutuzov (18,820 men) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: will not lift a finger for the Emperor Napoleon\n  WILL JOIN — Massena: stands on the field and will fight beside him\n  Kutuzov does not stand alone: at l"
+  },
+  {
+   "n": 374,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Murat, attack Kutuzov",
+   "meant": "attack Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Murat (13,883; expect about 75,380 with the corps likely to arrive) vs Kutuzov (12,073 men) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Ney: stands on the field and will fight beside him\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: will not lift a finger for Marshal Murat\n  WILL JOIN — Massena: stands on the field and will fight beside him\n  WILL JOIN — Napoleon: stands on the field and will fight beside him\n  Kutuzov does not stand alone: at least 1"
+  },
+  {
+   "n": 377,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Ney, attack Kutuzov",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Cannot attack elsewhere while engaged with enemy forces! Archduke Charles must be dealt with first.\nAttack Archduke Charles in Moravia first"
+  },
+  {
+   "n": 378,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Ney, attack Archduke Charles",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (11,298; expect about 76,537 with the corps likely to arrive) vs Archduke Charles (24,555 men) at Moravia — the balance of force looks favorable.\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Ney') would likely bring him\n  WILL JOIN — Massena: stands on the field and will fight beside him\n  WILL JOIN — Napoleon: st"
+  },
+  {
+   "n": 382,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "what if Bernadotte attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Bernadotte (8,173) vs Mack (substantial force) at Bohemia — the balance of force looks unfavorable.\n  Mack does not stand alone: at least 1 enemy corps within reach of Bohemia would march to him. Their columns gather slowly — The Hofkriegsrat: the bar 10 higher.\n  What Bohemia can feed is not known — the province is unscouted.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 8,173 we muster) would cost ~61g.\n  Every corps in the province shares the field — that is the design. Only"
+  },
+  {
+   "n": 390,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (10,198; expect about 51,710 with the corps likely to arrive, up to 54,648 if all march) vs Mack (23,159 men) at Dresden — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Dresden\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about"
+  },
+  {
+   "n": 392,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "what if Davout attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Davout (9,972; expect about 33,702 with the corps likely to arrive, up to 34,802 if all march) vs Kutuzov (screening force) at Ukraine — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 96%) (The corps system lowers the bar by 10) — and will stand at Ukraine\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Ukraine\n  WILL JOIN — Murat: will march"
+  },
+  {
+   "n": 393,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "Ney, attack Kutuzov",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (10,198; expect about 45,448 with the corps likely to arrive, up to 46,573 if all march) vs Kutuzov (screening force) at Ukraine — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Ukraine\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Ukraine\n  WILL JOIN — Murat: will march to the sound of the guns — li"
+  },
+  {
+   "n": 396,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Buxhowden\n  Davout, march to Moravia\n  Soult, fortify\n  Dumonceau, drill\n  enact the Artillery Reserve — 3,000g, then 150g a turn (artillery levies cost 15% less (×0.85)); the Charges of Empire fall by 241g a turn\n  build supply depot in Paris — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 397,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "recruit infantry in Moravia",
+   "meant": "recruit",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Berthier advises caution. 'Moravia is in Unrest (stability 35/100). The populace will not answer our call until stability exceeds 50.'"
+  },
+  {
+   "n": 398,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (1 regions away) - Cost: 690 gold (×3 at war) (Massena's intendance: +15%). Morale: 14% -> 22%\nInfantry pool: 87,157 -> 77,157 [DANGER] Morale critically low at 22% — troops may break in combat!"
+  },
+  {
+   "n": 424,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "Soult, march to Vienna",
+   "meant": "other: Soult, march to Vienna",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Soult begins march to Vienna. Route: Berlin → Brandenburg → Posen → Silesia → Podolia → Moravia → Vienna. Moves to Berlin. \"Soult, march to Vienna.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 425,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "other: recruit infantry in Vienna",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (0 regions away) - Cost: 690 gold (×3 at war) (Massena's intendance: +15%). Morale: 0% -> 20%\nInfantry pool: 80,283 -> 70,283 [DANGER] Morale critically low at 20% — troops may break in combat!"
+  },
+  {
+   "n": 426,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "other: recruit infantry in Vienna",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (0 regions away) - Cost: 690 gold (×3 at war) (Massena's intendance: +15%). Morale: 20% -> 26%\nInfantry pool: 70,283 -> 60,283 [WARNING] Morale is still low at 26% — consider drilling before battle."
+  },
+  {
+   "n": 427,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "cancel Soult's order",
+   "meant": "other: cancel order",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Soult halts his march and awaits new orders."
+  },
+  {
+   "n": 451,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena recruits 10,000 infantry for Vienna (0 regions away) - Cost: 690 gold (×3 at war) (Massena's intendance: +15%). Morale: 26% -> 29%\nInfantry pool: 57,397 -> 47,397 [WARNING] Morale is still low at 29% — consider drilling before battle."
+  },
+  {
+   "n": 452,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "recruit infantry in Vienna",
+   "meant": "recruit",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "No administrative actions remaining this turn. (Military commands: 5 remaining)"
+  },
+  {
+   "n": 453,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "Massena, fortify",
+   "meant": "fortify",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Massena is recovering from retreat and cannot fortify. Recovery: 1 turn remaining."
+  }
+ ],
+ "unsent": [
+  {
+   "n": 88,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Massena attacks Archduke John",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "interrupt"
+   ]
+  },
+  {
+   "n": 154,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what if Massena attacks Kutuzov",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "battle_diorama"
+   ]
+  },
+  {
+   "n": 186,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena moves to Vilna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 187,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Murat attacks Vilna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 188,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena marches to Vilna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 189,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena moves to Warsaw",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 190,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Massena moves to Berlin",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 343,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Davout, move to Vienna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 344,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Lannes, move to Vienna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 345,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Ney, move to Hungary",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 346,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Murat, move to Hungary",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 356,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "what if Napoleon moves to Vienna",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  }
+ ],
+ "n_unsent": 12
+}

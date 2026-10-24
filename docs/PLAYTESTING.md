@@ -1010,6 +1010,15 @@ only the screen can verify.
   `stop`, `judge`, `export --to docs/audits/...`. The players' brief is
   `docs/audits/dd_b/PLAYER_BRIEF.md`; the rules and traps are
   `SYSTEMS_REFERENCE.md` §115. Never start it while a commit's hook runs.
+- **The measure's close (S14e, October 24, 2026):** after the three roads are
+  exported, the causes record (one cause, every sighting and its frame; the
+  first measure's `docs/audits/dd_b/causes.json` is the shape) is read by
+  `tools/dd_b_metric.py --causes <causes.json> --road <road>=<export dir>…
+  --check --out <metric.json>`: rows per 10 turns per road and across, the
+  P1 count, the done-when (under 5 per 10 turns and 0 P1). The second measure's
+  records are `docs/audits/dd_b/{conquest,diplomacy,sea}_2026_10_24/`,
+  `causes_2026_10_24.json` and `metric_2026_10_24.json`; the write-up
+  `docs/audits/DD_B_RE_MEASURE_2026_10_24.md`.
 
 ---
 

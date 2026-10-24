@@ -1,0 +1,888 @@
+{
+ "causes": [
+  {
+   "id": "S14E-1",
+   "dr_id": "S14E-D1",
+   "key": "march_first_step_auto_attack",
+   "title": "A typed march whose first step meets an enemy fights the battle unasked when the marshal is aggressive",
+   "sev": "P1",
+   "home": "S14f+DR",
+   "slice": 1,
+   "pillar": "command",
+   "verdict": "ruling",
+   "cause": "`_handle_first_step_blocked` (`strategic_executor.py:2837`): on a MOVE_TO's blocked first step an AGGRESSIVE marshal auto-attacks when the raw strength ratio reaches 0.7 (`:2950-3003` — \"Explicitly-TYPED orders keep the legacy raw-ratio behavior\"), the attack run with `_strategic_execution` (no objection, no muster gate, no AP quote) and reported \"Massena: 'Archduke John bars the way!' Engaging!\" over the battle; below 0.7, and for every other personality, the same step raises the `contact_bad_odds` / contact interrupt (attack anyway / go around / hold / cancel) and the dispatch reads \"HALTED at {where} — {enemy} bars the way. Awaiting your word.\" (`dispatch.py:5980`). The sea player typed \"Massena, march to Milan\" — a plain move home — with an armistice proposal to Austria in transit: the road ran through Austrian-held Tyrol, John barred it, Massena attacked, the corps system drew Ney, Davout, Lannes, Murat and Teulie to Tyrol, Europe's alarm rose +8 (threat 89 → 97), 1,691 men were lost on the march and the materiel was paid. Berthier said nothing of the road before the order ran (the reply prints the route only after, `:2179-2183` — the same seam as S14E's march-detour row). CR-5 §6.3c's personality table (`COMMAND_ROBUSTNESS_SPEC.md`) governs DELEGATION-inferred orders; the typed march's first-step contact predates it (FA-N42's road) and no ruling has read it against DDB-D1 / R1 (an attack out of reach asks first, at no cost).",
+   "fix": "The first step of a TYPED march that meets an enemy asks, every personality alike — one modal, the muster shown, nothing spent: the aggressive marshal argues for the attack in his own voice (\"Archduke John bars the way at Tyrol, Sire — I can take him\"), the Emperor decides; `attack anyway` runs today's attack, `go around` re-plots the lawful road. A standing order's later contacts keep today's rule (the dispatch already reports HALTED or engaged). The AI's side and delegation-inferred orders are unchanged.",
+   "prior": "the mirror of DDB-D1 / R1 (an attack that became a pursuit asked first); the same first-step seam as FA-N42 (its battle reaches the client whole) and FA-N60 (its question's body)",
+   "dr": "Should a typed march whose first step meets an enemy ever fight unasked? Today an aggressive marshal attacks at raw odds of 0.7 and better with no muster, no objection and no quote, as the first measure's attack-turned-pursuit once marched unasked (DDB-D1)",
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 6,
+     "severity": "P1",
+     "turn": 4,
+     "action": 72,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0072.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-2",
+   "dr_id": null,
+   "key": "campaign_pay_unpriced",
+   "title": "The muster never prices the campaign pay a corps on allied soil will draw",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "economy",
+   "verdict": "design+legibility",
+   "cause": "`calculate_turn_upkeep` (`world_state.py:7268-7310`; the lever and rate `:438-439`) bills 12g per 1,000 men for each corps standing outside its court's 1805 homeland on allied or neutral soil (EAD-1, `SYSTEMS_REFERENCE.md` §98.1) and folds it into `surcharge` (`:7333`); the Ledger's Economy book is the only surface that explains it before the next turn (`strategic_ledger.gd:779-804`). The muster's cost lines are the supply note (`combat_executor.py:2851-2874`), the materiel note (`:2809`) and the province-fights note (`:2795`); joiner rows say where each corps will stand (`:2609-2611`, DDB-14) and `campaign_pay` appears nowhere in `combat_executor.py` or `question_desk.py`, so the what-if (`question_desk.py:1796`, `:1885`) has the same gap. A favourable attack fires without a pause (`:996`); the only post-hoc sign is the Gold readout's \"(−480 next turn)\" (`main.gd:6060`), and the end-turn gate stays silent because 492 − 480 is not negative (`main.gd:2424`, `:2474`). Seven corps drawn onto Bavarian soil by one order cost −1,776g a turn, unsaid.",
+   "fix": "A `campaign_note` in `_build_muster_preview` beside the materiel note, from the upkeep predicate so shown equals applied: for the lead and the will-join corps standing at the battle province, when its holder is neither France, a WAR enemy nor a vassal — \"Munich is Bavaria's soil — the corps standing there are fed by contract, about −1,572g more a turn.\" The what-if carries the same line.",
+   "prior": "sibling DDB-13 (the muster quotes materiel and supply; the Gold net; the negative-treasury gate) and DDB-14 (where each corps will stand) — the bill that follows from where they stand fell between the two",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 1,
+     "severity": "P2",
+     "turn": 1,
+     "action": 14,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0014.jpg"
+    },
+    {
+     "road": "sea",
+     "row": 1,
+     "severity": "P3",
+     "turn": 1,
+     "action": 10,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0010.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-3",
+   "dr_id": null,
+   "key": "terms_guidance_no_exit",
+   "title": "The concessions wizard's first four steps have no Back, no Close and a dead Escape",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "ui_ux",
+   "verdict": "defect",
+   "cause": "`proposal_confirm_popup.gd`: Esc and the drawn X act only if some option's action is in `_SAFE_EXIT_ACTIONS` (`:119-145`), and the X is hidden otherwise (`:164`). The `terms_guidance` steps offer `territory_yes` / `territory_no_gold` / `territory_no_ap` (`diplomatic_executor.py:6073-6079`), `offer_region` / `skip_region` / `enough_territory` (`:6123-6127`), the gold step (`:7349-7362`) and `offer_ap` / `skip_ap` (`:7377-7385`) — none a safe exit; only the final confirm has Reconsider (`:7448`). Frame 0115: three buttons, no X, no Back; the player could leave only by picking an answer that sounded like paying Austria.",
+   "fix": "Every `terms_guidance` step carries \"Never mind\" with action `reconsider` (so Esc and the X appear), and the later steps a step back.",
+   "prior": "sibling of DDB-41 (an objection offers no plain cancel) and the UXR3-F5 contract (the X stands where the dialogue has one) — the sweep did not reach `terms_guidance`",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 6,
+     "severity": "P2",
+     "turn": 4,
+     "action": 115,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0115.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-4",
+   "dr_id": null,
+   "key": "peace_shelters_third_party_unsaid",
+   "title": "A peace with Austria shelters the Russian armies on Austrian soil, and neither the peace preview nor the what-if says so",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "After the peace, PT-F1's neutral arm refuses the field: `_pursuit_capture_guard` (`combat_executor.py:11724`) feeds the muster's `neutral_soil` (`:2161`; `display_names.py:877`) and the lead's `field_on_peace_soil` (`:933`, applied `:7640`) — DDB-14's rule, by design. The Road Home (`diplomacy.can_enter_territory` `:11608`; `WAR_WITHDRAWAL_SPEC.md` §3-§4) governs the two parties' own armies; a third party's corps on the target's soil has no rule either way. The peace preview's Political Consequences come from `get_separate_peace_fallout_warnings` (`diplomacy.py:5447-5460`), the released contingents (`:5463-5470`) and `get_peace_commitment_conflicts` (`:6057`): none names the enemy corps the peace will shelter (Kutuzov 34k and Buxhowden 22k at Moravia). And `question_desk._answer_what_if` (`question_desk.py:1756-1796`) asks `friendly_fire_refusal`, the armistice block and the peace preface but never `field_on_peace_soil`, so \"what if Massena attacks Kutuzov\" printed a full muster with the lead unflagged while the typed order would be refused. The AI keeps PT-F1 and strikes from such soil (§117.4), so the Russians hit Murat from Moravia.",
+   "fix": "A `sanctuary` warning in the peace preview beside the fallout (`:5447`): for each court still at war with France that has corps on the target's provinces — \"Kutuzov (Russia) stands at Moravia, Austria's soil — after this peace no corps of ours may take the field against him there.\"; `_answer_what_if` asks `field_on_peace_soil` first, as the order does.",
+   "prior": "DDB-14 (the first measure's conquest #15, the same Moravia turn) — the fix completed the sanctuary and disclosed it only in the refusal; it missed the announce half and the what-if half",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 8,
+     "severity": "P2",
+     "turn": 6,
+     "action": 156,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0156.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-5",
+   "dr_id": null,
+   "key": "war_purpose_on_a_rump",
+   "title": "The declaration offers a purpose on a capital a third court already holds, and nothing on the way to war says the target is a rump",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "Prussia took five of Hanover's six provinces over turns 8-11 and the DDB-43 dispatch lines printed each loss (#210, #232, #246-247) — three dispatches, never restated at the declaration. The War Purpose card (`diplomacy.get_available_war_objectives`, `diplomacy.py:4369-4399`) marks conquest and forced alliance `available: True` and promises \"Seize Hanover. +2/turn while held\" though the conquest objective's targets are `[capital]` only (`:10241-10243`) and ticking needs `controller == aggressor` (`:4682-4685`) — with the capital Prussian-held it can never tick. The Cabinet's nation page shows no province count (`diplomacy_wizard.gd:1139-1192`); the articles stage offered only \"Osnabruck — a province of Hanover's\" (`declared_goals.py:155-180`), never \"her last\"; Talleyrand's +28 is flat (`:9969-9974`). The capture of the last province then runs `_eliminate_nation` (R81, `world_state.py:5083-5087`, every pair PEACE `:5287-5296`) with only the rail icon \"Hanover Eliminated!\" (`:5333-5337`) and a next-morning event — nothing in the command window (#294-295), the war panel simply dropping the war. The Intelligence book also prints \"1 regions\" (`strategic_ledger.gd:1260`).",
+   "fix": "The card and the Cabinet page read the target's live holdings (\"Hanover holds 1 province (Osnabruck); the rest are Prussia's\"); conquest / forced alliance / subjugation disabled with a reason when a third court holds the capital; Talleyrand's objection names a rump (\"taking Osnabruck ends Hanover; the +28 alarm buys one province\"); a last province's capture prints \"Hanover has no province left — the war is over, Sire.\"; the plural.",
+   "prior": "new at the declaration surface; adjacent to DDB-43 (the third-party lines), DDB-51 (a purpose against an eliminated court) and DDB-24 (the card's copy)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 10,
+     "severity": "P2",
+     "turn": 11,
+     "action": 296,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0296.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-6",
+   "dr_id": "S14E-D2",
+   "key": "legitimacy_blocker_package_wide",
+   "title": "At the whole table a court's own white peace reads as \"a victory the field has not delivered\" because of another court's clause, and \"More generous\" fills the accord with gold that cannot touch it",
+   "sev": "P2",
+   "home": "S14f+DR",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "`settlement_tier_legitimacy` (`settlement_scoring.py:863-910`) speaks \"the terms claim a victory the field has not delivered\" for a tier MISMATCH (`diplomatic_templates.py:2808-2813`; `settlement_baseline.py:95-107`); `compute_per_court_acceptance` passes the WHOLE package to each court's scorer (`settlement_baseline.py:2171-2185`) and the scorer feeds the package-wide `_legit_terms` into the court's own tier (`settlement_scoring.py:2453-2468`), `_has_non_trivial_terms` exempting only the proposer side's burdens (`:734-758`, DDB-6) — so Portugal's demand (the one clause on the table at #421) made Austria's and Russia's white peace a claim of victory. \"More generous\" seeds 100 gold a court (`settlement_staging.py:1252` on; `SETTLEMENT_DIAL_GOLD_STEP`), stops at `MAX_SETTLEMENT_CLAUSE_COUNT = 8` (`settlement_scoring.py:209`) with \"The accord can bear no further terms, Sire.\" (`:1529`, `:1577`): +16 a court, the blocker untouched, nothing says what would cure it.",
+   "fix": "A `tier_mismatch` blocker names the offending clause and court from `component_debug` (\"the demand on Portugal reads as a claim of victory — remove it or drop Portugal\"); \"More generous\" refuses with a reason when every holdout's top blocker is legitimacy (\"gold cannot buy this\") and never fills the cap with 100-gold clauses. A ruling for the user: should the mismatch read only the clauses that touch the court? (acceptance numbers move — the series arms decide).",
+   "prior": "sibling of DDB-6 (same function, same sentence; the fix covered the proposer's own gold), PC-F26 (the voice split) and DDB-33 (a dial that buys nothing, unannounced)",
+   "dr": "Should the settlement's legitimacy tier read the WHOLE package for every court (today), or only the clauses that touch the court and the courts that stand to lose by them? At the whole table a court's own white peace reads as \"a victory the field has not delivered\" because of a demand on a different court",
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 11,
+     "severity": "P2",
+     "turn": 19,
+     "action": 422,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0422.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-7",
+   "dr_id": null,
+   "key": "end_turn_no_army_exposure",
+   "title": "End Turn never says the corps are spent and a known 55,000-man army stands beside them",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "combat_legibility",
+   "verdict": "design+legibility",
+   "cause": "The client's one end-turn gate (`main.gd:2415-2430`, `:2479-2510`) checks lapsing envoys and petitions, an unanswered last stand and a treasury projected negative (DDB-13) — no army item. Morale and danger print only at turn start (`_derive_danger`, `dispatch.py:4454-4495`: \"Morale failing\" below 40, \"IN PERIL\" for a co-located enemy only, stale by End Turn, no adjacency) or on a receipt (`economy_executor.py:1861-1870`; the muster's \"is in no condition to fight\" at #393); `_check_capital_proximity` (`turn_manager.py:1530-1575`) fires after the enemy phase, capitals only. The turn-18 dispatch (#384) had listed \"Bagration — Podolia — 55,404 [confirmed]\" and Massena 14% / Bernadotte 17%, Podolia adjacent to Moravia and Ukraine: shown at dawn, never re-surfaced at the click. The corps system then fed each beaten corps into the next fight by design (WO slice-8 G3; `combat_executor.py:2795`; reinforcement eligibility has no morale rule `:1980-2068`): seven battles, three marshals captured, the Emperor at 438 men.",
+   "fix": "One backend-computed gate line from `_derive_danger`'s threshold and a fog-legal adjacent-known-enemy scan, on the treasury line's once-per-gate latch: \"3 corps stand below 40% morale beside Bagration (~55,000, Podolia) — end the turn anyway?\"",
+   "prior": "sibling of DDB-13 (the same gate, the army instead of the treasury); DDB-D4's own condition (\"the client's one gate guards every end turn\")",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 13,
+     "severity": "P2",
+     "turn": 19,
+     "action": 399,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0399.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-8",
+   "dr_id": null,
+   "key": "armistice_typed_by_two_scores",
+   "title": "The Cabinet scores Britain's armistice 44 of 50 and the preview of the same proposal 24 — typed by the pair score on one road and the side sum on the other",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "The page's 44 is the counsel's roads line (`counsel.roads_display` `counsel.py:906`; `_bilateral_road` `:218`) typed by `armistice_variant_for` from the PAIR stored score (`diplomacy.py:3974-3990`: France–Britain −2 → `armistice_losing`, base 40, `BASE_DISPOSITION` `:187-189`), as the wizard row is (`:14022`). The preview scores `effective_terms[\"type\"]` (`build_war_context_snapshot`, `:5356`, `:5368`) stamped by `_build_base_terms` (`diplomatic_templates.py:4340`) from `get_side_war_score_for` (`:4214`), the SUM of stored pair scores over the opposing side (`diplomacy.py:3864-3904`) — Austria's truce carried a large positive score, so `armistice_winning`, base 20: the 20-point gap is the two bases. The send follows the page (`diplomatic_executor.py:5128` scores `terms[\"proposal_type\"]` first), so the preview understated the real verdict by 20 and changed the player's plan. Austria matched on turn 2 because every stored score was 0. Beside it, Talleyrand's \"a payment of 975 gold to Britain would carry the table\" (`counsel._lever_sentence` `:~790`, `_gold_to_carry` `:736`) prices the TABLE's lump (`settlement_staging.py:1139-1153`) while the bilateral Adjust-terms flow offers gold per turn only (`diplomatic_executor.py:7330-7352`) — the sentence names neither the control nor the road.",
+   "fix": "`_build_base_terms` stamps `terms[\"type\"]` via `armistice_variant_for`, and the snapshot scores what the send scores; a pin of ONE figure across the wizard row, the roads line, the preview and the send on a multi-party board where the pair sign and the side sign differ; the lever names its road (\"at the table: Open Settlement with Britain alone, then Offer 975 gold\").",
+   "prior": "DDB-26's class (the armistice preview against the court's page), G4F-14 and the Aug 30 \"ONE rule\" fix — `_build_base_terms:4340` a fifth site that fix missed, reading a different score",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 6,
+     "severity": "P2",
+     "turn": 7,
+     "action": 170,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0170.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-9",
+   "dr_id": null,
+   "key": "mission_row_hides_shocks",
+   "title": "Improve Relations reads \"+0 over 2 turns\" beside \"Net +7 a turn\" and nothing names the declaration that ate the gain or the errand that paused the mission",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "Reconciled to the run: the tick wrote +8 and the drift −1 (`_process_mission_effects`, `diplomacy.py:12599`, `:12641`), then Prussia's declaration on Hanover charged the declarer −15 with every court, France included (`declare_war` `:10171-10181`; `declaration_relation_penalties` `:9960-9966`), and two turns of proposals in transit paused the mission (`diplomatic_executor.py:5222-5224`; a paused mission neither charges nor ticks, `diplomacy.py:12413-12424`, MS-10). \"Net +7 a turn\" is the forecast (`mission_status`, `diplomatic_dialogue.py:414-426`); \"(+0 over 2 turns)\" is current minus the start relation (`_cancel_mission_row`, `diplomacy.py:13700-13750`): +16 − 15 + drift. The declaration beat is \"X has declared war on Y\" (`dispatch.py:8165-8180`) with no cost to France; the row never says \"paused\"; and the dispatch's \"Relations now at 10\" (`:12644`) was queued at the tick and sat beside the declaration that had already undone it.",
+   "fix": "The Cabinet's mission row shows earned, shocks and paused turns (\"+16 earned, −15 from Prussia's declaration on Hanover; paused 2 turns on your errand\"); the declaration beat names its cost to France; the mission-progress line computed when the dispatch is built, not when the event is queued.",
+   "prior": "new; nearest S14D-X51 (the same mission-row builder, fixed for the zero-turn case) and the MS-* / IQ-4 mission-legibility rows",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 7,
+     "severity": "P2",
+     "turn": 9,
+     "action": 237,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0237.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-10",
+   "dr_id": "S14E-D3",
+   "key": "shut_out_cost_unpriced",
+   "title": "Ratifying a white peace at the table cost an ally −18 and a grievance that no screen priced, and the Cabinet then printed the raw key \"Grievance Modifier\"",
+   "sev": "P2",
+   "home": "S14f+DR",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "The peace went through the table (#251-252, \"Settlement Ratified, 3 pairs\"); Spain, carried in and named for nothing, was hit by the proposer-side reaction pass (`_evaluate_proposer_side_reactions`, `settlement_reactions.py:672-717`: `RELATION_SHUT_OUT_MAJOR_HIT = −18` `:51` and a durable `settlement_shut_out` flag — F81, §123.3), the −30 being `grievance_modifier` (`diplomacy.py:772-795`, flags never decay `:628-640`). Before the click: the turn-7 \"she takes nothing by it\" is `separate_peace_words` (`:6020-6022`), reused by the table's chip (`settlement_staging.py:2951-2956`) — true on the bilateral road (carried allies take no fallout, §122.2), false at the table; the table's forecast `build_shut_out_allies_preview` (`settlement_presentation.py:1231`) lists `no_standing` allies, the very ones the ratifier skips (`settlement_reactions.py:672-676`), and (likely, not confirmed live) misses the `seat` ones it punishes; the dispatch advisory's `top_blocker` falls back to \"settlement ratified\" (`settlement_presentation.py:696-715`; `diplomatic_templates.py:1655-1659`) — noise. After: the assessment's `_COMPONENT_LABELS` (`diplomacy.py:14928-14951`) has no `grievance_modifier`, so the key prints title-cased (`:14964`), and `FEEDBACK_STRINGS[\"grievance_modifier\"]` (`display_names.py:586-593`) says \"abandoned alliances\" — wrong for a shut-out. A ruling for the user: the same outcome costs nothing bilaterally and −18 plus a grievance at the table.",
+   "fix": "State the cost before ratifying, on the chip and the review (\"Spain is left out: −18 relation and a grievance; Make Amends (400g + 2 DP) clears it\"); align the forecast's predicate with the ratifier's; label `grievance_modifier` by flag type with a shut-out phrase and its Make Amends label; rewrite the advisory for a white peace.",
+   "prior": "PC-F43 / PC-R1 (iv) fixed the war-end wording, not the fallout's price; F81 the sibling (named allies priced, the unnamed pass silent); S14C-X4's class (an unlabelled key prints raw) unswept for `_COMPONENT_LABELS`",
+   "dr": "Should an ally carried into a white peace at the table, named for nothing, pay the shut-out price (−18 relation and a durable grievance, F81's pass) when the same outcome costs nothing on the bilateral road (§122.2)?",
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 8,
+     "severity": "P2",
+     "turn": 11,
+     "action": 285,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0285.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-11",
+   "dr_id": null,
+   "key": "ally_slide_no_lever_named",
+   "title": "An ally slid from +33 to +2 and collapsed to a defensive alliance over five turns while the Cabinet's counsel named no lever and the warning carried none",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "ALLIANCE deliberately omits Improve Relations and offers Reassure Ally (`diplomacy.py:14403-14412`, WO-D2 / G1 contract 8); a grievance adds Make Amends (`cabinet_rows.amends_actions`, `cabinet_rows.py:59-111`; `:14436-14441`) — both present but below the fold (\"▼ more below\" at #285, #370, DDB-7's cue) and read \"Mission already active\" (`:14118`) while Talleyrand's one slot was on a Russian mission. The counsel considers `mission_improve_relations` only (`:15445`), absent in ALLIANCE, so Spain's page printed the dead end \"Relations must improve before proposals will find purchase.\" (`:15465-15467`). The collapse: threshold 40 (`:180`), a gap ≥ 30 for five turns (`check_auto_downgrade`, `:11399-11429`), the warning \"Relations between France and Spain are deteriorating. Alliance may collapse in 2 turns.\" (`:11410`) a plain line with no cause and no lever.",
+   "fix": "The counsel names Reassure Ally or Make Amends (whichever is open) for an ally's slide — \"recall Talleyrand from Russia first\" when the slot is busy; the \"may collapse\" warning carries the lever and the cause.",
+   "prior": "DDB-7 (the cue exists; the counsel-first lever skips an ally's slide)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 9,
+     "severity": "P2",
+     "turn": 17,
+     "action": 370,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0370.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-12",
+   "dr_id": null,
+   "key": "muster_mean_without_spread",
+   "title": "The muster's \"expect about 118,448\" is a mean with no floor or bad-day figure, and a zero-odds corps still reads WILL JOIN",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "combat_legibility",
+   "verdict": "design+legibility",
+   "cause": "\"Expect\" is a probability-weighted mean by design (PT-A2): `_build_muster_preview` (`combat_executor.py:2619-2627`) → `_committed_reinforcement_strength(..., expected_at=…)` (`:1619-1679`) scales each joiner by `_expected_arrival_weight` (`:3293-3322`) — the share of the 17 jitter rolls that beat the bar (`:3273-3291`, `:3172`) with the 5% fumble above score 80 folded in; the resolver rolls the same distribution (`_calculate_reinforcements`, `:3468`, the fumble `:3481-3482`, \"fate intervened\" `:3490`, `:10447-10448`). Sea #4 saw a 1-in-500 conjunction (Massena 99% and Davout 76% both missed, Murat priced NOT) turn 118k into 52,597 and a stalemate on a turn's action. The single mean of a lumpy outcome reads as a forecast with no floor; and `_priced_coordination` (`:2382-2463`) stamps the full coordination bonus as if every WILL JOIN corps were present, 0%-odds Murat's cavalry included, where the resolver stamps it only on the corps that arrive (`:8242-8345`).",
+   "fix": "Print the floor and a bad day from the same per-corps odds (at most 2^6 outcomes, exact): \"expect about 118k; certain 28k; a bad day (1 in 10) 62k\"; price coordination per outcome, or drop 0%-odds corps from `_priced_coordination`'s joiners; label a zero-odds row apart from WILL JOIN.",
+   "prior": "new; the lineage of DDB-19 / DDB-36 (the band's totals) and PT-A2 (the mean fixed, not its spread)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 4,
+     "severity": "P2",
+     "turn": 3,
+     "action": 47,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0047.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-13",
+   "dr_id": null,
+   "key": "march_leaves_camp_unsaid",
+   "title": "A march between two camp provinces steps out of the camp and resets two turns of staging, and no order says so",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "naval",
+   "verdict": "design+legibility",
+   "cause": "The camp is the men standing in `camp_provinces` (Flanders, Artois, Normandy, Brittany — `europe_1805.json:1678`) at the turn-end tick: `camp_strength` (`naval.py:2377`), `_camp_tick` (`:2806-2840`) resetting `camp_turns` under 40,000 (`:2839`), from `process_naval_turn` (`:3261`, `:3290`) in `advance_turn` (`world_state.py:12119`). Flanders borders Picardy, not Artois, so `strategic.march_road` (`strategic.py:862`) routes Flanders → Picardy → Artois → Normandy and the first step is taken at issue: the whole 46,500-man camp stood in non-camp Picardy at the tick and the Admiralty read \"No army is staged: 0 of the 40,000\". No surface says it: the march reply appends only `supply_warning_line` (`strategic_executor.py:2161-2164`; `movement_executor.py:286`); `order_quotes._standing_quote` (`:210`) quotes road, AP and turns; the camp line names the provinces only in its \"No army is staged\" branches (`naval.py:2413`, `:2420`), not the \"Staged:\" branch (`:2425`); the first-open line (`first_open.py:102-111`) says \"no order\" and never that leaving resets it; the map marks no camp.",
+   "fix": "`camp_leave_line(world, marshal, road)` beside `supply_warning_line` on the march reply and in `order_quotes` (\"Picardy lies outside the camp — this takes 46,500 men out of it; the 2-turn count resets at the turn's end.\"); the four provinces named in the \"Staged:\" branch; the camp tinted on the map (a design call).",
+   "prior": "a sibling DDB-59's fix missed (the camp a state, the count said — not that moving men out resets it); DDB-44's `supply_warning_line` the pattern",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 5,
+     "severity": "P2",
+     "turn": 4,
+     "action": 70,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0070.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-14",
+   "dr_id": null,
+   "key": "diversion_failure_unpriced",
+   "title": "The Grand Diversion's card prices the window and the wait but not the fleet a failure loses",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "naval",
+   "verdict": "design+legibility",
+   "cause": "The card (`naval_executor.py:839-852`) states the odds, the two-turn window, \"caught coming home and fights at readiness 65\" (`diversion_failure_readiness`, `naval.py:2617`; the turn-back −10 `:110`) and the 4-turn wait; the chip note (`naval.py:~4056-4075`), the help (`meta_executor.py:1210-1213`) and `diversion_terms_for` (`:2525`) say no more, while the expedition prices its failure (\"A failed run costs ~30%\", `naval_executor.py:527`; `expedition_notes` `naval.py:3953`). The failure arm `resolve_diversion` (`naval.py:2699-2718`) → `resolve_fleet_action` (`:1891-1947`): the loser's fraction `FLEET_ACTION_LOSER_BASE` 0.20 + 0.15·min(r−1, 1) + 0.20 at a ratio ≥ 1.5 (`:164-168`, `loser_frac` `:1913`) on pooled effective strength (`combined_effective` `:482`), `_apply_side_losses` (`:1963`) bleeding every pooled partner — at readiness 65 against Britain's 100 sail and Russia the ratio is about 2: a decisive defeat, about 0.55 of every pooled fleet (49→25, 33→17, 12→6; Britain ~4%). NAVAL_SPEC §5.3.3(a) authored it (\"a lost diversion is a named Trafalgar beat with a gutted fleet\"); the price is computable from shown numbers and never shown, so \"she may try it again in 4 turns\" reads as the penalty.",
+   "fix": "`fleet_action_forecast` (reusing `combined_effective` and the `FLEET_ACTION_*` constants) as a clause of the card, the chip note and `diversion_terms`: \"If she is caught she meets Britain's 116 effective against our 53 — a decisive defeat is the likely result: about half of every pooled fleet (France 49→~25, Spain ~17, Holland ~6) is lost, Britain's ~4.\"",
+   "prior": "sibling of DDB-61 (the price stated before the order — its fix covered the blockade chip and the rot line, not the diversion's failure arm) and the PC15-7 quote-then-confirm idiom; the first sea player stood down at the card",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 10,
+     "severity": "P2",
+     "turn": 12,
+     "action": 183,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0183.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-15",
+   "dr_id": null,
+   "key": "free_ireland_road_hidden",
+   "title": "The Free Ireland road's next step lives on the Formable Nations page alone, and the white peace that closed it said only \"Munster stays ours\"",
+   "sev": "P2",
+   "home": "S14f",
+   "slice": 1,
+   "pillar": "naval",
+   "verdict": "design+legibility",
+   "cause": "`evaluate_create_client_eligibility` (`settlement_validation.py:842`) wants an active war instance with Britain (a truce counts), Ulster and Munster both held by the carver's bloc, and the carve authored at a table; a peace ends the instance (`dependency_target_not_in_war`, `:~884-890`). Ulster is a land march from Munster, so a corps on Munster is never offered an Ulster landing chip (`naval.py:4315`, `:4437`). The road is surfaced on the Formable Nations page (`build_formables_payload`, `formations.py:1368-1515`), the table's \"Erect Ireland\" row when the player shapes a table (`settlement_staging.py:1071-1130`), the first-open `formables` line and the School card — and nowhere at the points of action: not the landing result or the capture choice, not the Munster region panel, not the Admiralty's four landing chips (enemy shores first, then odds, then distance, no ranking of the shore that completes a road — `naval.py:3596`, `:3652`: Wales, Midlands, Northumbria, Cornwall), not the war panel's tooltip (\"France holds Munster of Britain's\"), not Britain's offer card or its review (Review Settlement Offer / Request Revision / Reject). The surfaces point the other way: the war card's `held_line` \"a peace signed now … Munster stays ours\" (`war_status.py:376-403`) and the dispatch's \"35 of 45 titled (1 held, unsettled: Munster)\" (`congress.py:3271`). The road is paused, not destroyed (a new war reopens it; Ulster still to take).",
+   "fix": "One builder `formations.road_notes(world)` over the partly met formable rows, feeding the landing result and the capture reply (\"Ireland needs Ulster too — it lies a march from Munster; carve at a table while the war with Britain runs\"), the Munster and Ulster region panels, the Admiralty's terms and a chip ranking that puts the road-completing shore first, the war card's tooltip, and the offer and ratification review (\"This peace ends the war and closes the Ireland carve — Ulster not yet held\").",
+   "prior": "new (NAVAL_SPEC §5.2 chose the Formables button, NA-6c §11.6 the table row; DDB-33, X26, X27 and 21 fixed Irish mechanics; the first sea player shaped a table and met the row)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 12,
+     "severity": "P2",
+     "turn": 15,
+     "action": 257,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0257.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-16",
+   "dr_id": null,
+   "key": "route_question_dumps_manual",
+   "title": "\"how do I get to Vienna\" dumps the whole manual — a board question misfiled as grammar",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "command",
+   "verdict": "defect",
+   "cause": "The line opens with \"how do I\", so `_SYNTAX_QUESTION_RE` (`llm_client.py:976-982`) files it as grammar and `_chain_question` (`:3238`, `:3261`) returns action `help` with no question (`_routes_to_the_desk` is False for syntax openers, `:985-989`, `:3343-3358`); the desk's `reach` kind accepts only \"can <marshal> reach / get to <place>\" (`question_desk.py:815-821`). DDB-48's block (`meta_executor.py:1368-1379`) then asks `section_for(typed)`, whose table (`help_topics.py:24-60`) holds no get-to / go-to / reach words (only `march(es|ing) to`), so `section_for(\"how do I get to Vienna\")` is None (measured; \"how do I march to Vienna\" → STRATEGIC COMMANDS) and the executor returns the whole `help_text` (`:1388-1391`) — a 10,989 px scroll into the four-line window. The route answer exists: `nearest_lawful_marcher` (`strategic.py:978`) and `_answer_reach_by_the_march` (`question_desk.py:1668`).",
+   "fix": "A marshal-less `route` board kind (\"how do I / the way / the road to <province>\") answered through `nearest_lawful_marcher` + `_answer_reach_by_the_march`; get / go / travel / reach in the `help_topics` table so the fallback is ever one section; a pin for the route kind.",
+   "prior": "DDB-48's class (a \"how do I …?\" line gets its one section), a sibling the fix missed — its sightings were naval and diplomacy nouns and the table never got movement verbs",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 2,
+     "severity": "P3",
+     "turn": 1,
+     "action": 17,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0017.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-17",
+   "dr_id": null,
+   "key": "band_counts_unseen_joiner",
+   "title": "The muster's band weighs an enemy corps the player has not seen, and its header says the modifiers are the whole story",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "combat_legibility",
+   "verdict": "design+legibility",
+   "cause": "`inferred_attack_odds_reading` (`objection_v2.py:1206`) reads unfavorable below a folded ratio of 0.7 (`:998`), the ratio folding `committed_defender` (`:1057-1132`) from `_defender_muster` (`combat_executor.py:2341`, read at `:2676-2686`) — ground truth by design (CA9-F1, the comment at `:2670`), while the printed figures stay fog-legal and \"does not stand alone\" prints only for joiners the player can see (`:2696-2705`). Reproduced on the boot board: \"what if Massena attacks Archduke John\" at Tyrol reads \"Massena (42,000) vs Archduke John (substantial force) … unfavorable\" with Archduke Charles's 54,000 at Carniola, adjacent and unscouted, folded in and unnamed; after a scout showed John at ~20,000 the player read 2.5:1 beside \"unfavorable\". The header \"Standing modifiers, already in the band:\" (`:2277`) tells him the modifiers are the whole story, and an unfavorable verdict carries no number (`odds_band_note` speaks only for \"even\").",
+   "fix": "When `committed_defender > 0` and no joiner is in view, a fog-honest line under the band: \"the band weighs a force of his you have not scouted within reach of Tyrol — scout the provinces round it.\" — naming the gap, never who or how many.",
+   "prior": "sibling of DDB-36 (the posture header against its own band) and DDB-19 (objection and muster disagree) — their fixes covered the raw-versus-folded modifiers, not the hidden defender muster",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 3,
+     "severity": "P3",
+     "turn": 1,
+     "action": 26,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0026.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-18",
+   "dr_id": null,
+   "key": "not_now_locks_cabinet_unsaid",
+   "title": "\"Not Now\" on a court's letter shuts the Cabinet for the turn, and nothing says so at the click",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "\"Not Now\" sets the letter aside with \"Setting aside Prussia's proposal. Click the envoy badge to revisit.\" (`main.gd:7725`); the Cabinet's gate `dialogue_pending = dm.is_hard_stop() or dm.has_current_turn_offers() or …` (`main.py:7196`) counts the set-aside letter (`dialogue_manager.py:655`), so F1 opens only the notice \"An unanswered envoy awaits your reply …\" with an Open Envoys button (`diplomacy_wizard.gd:1705-1716`; `_render_nations` returns early `:373-375`) — the ruling of `DIPLOMATIC_OFFER_LIFETIME_SPEC.md` §19-22, §190 (re-confirmed by S14C-X2). The Not Now button has no tooltip (`incoming_proposal_popup.tscn:82-85`), the echo says \"revisit\" and never that the Cabinet stays shut, and the Cabinet button looks live until clicked. Beside it, the haggle's echo \"Responding to Prussia's proposal: countered\" prints BEFORE the backend answers (`choice_display[\"counter\"]`, `mailbox_payloads.py:437`; `main.gd:7740`) and the dry run then finds no counter — a false echo.",
+   "fix": "Say the lock at the moment of choice (\"Setting aside Prussia's proposal — the Cabinet stays shut until it is answered or the turn ends.\"), the same in Not Now's tooltip and on the locked Cabinet button; the haggle's echo after the answer, or \"asked Talleyrand to haggle\".",
+   "prior": "new (the lock); the false echo is an LV-3 echo (EP F2) DDB-4's fix did not cover",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 4,
+     "severity": "P3",
+     "turn": 2,
+     "action": 57,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0057.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-19",
+   "dr_id": null,
+   "key": "adjust_terms_concessions_when_winning",
+   "title": "\"Adjust terms\" on a peace France is dictating opens the concessions wizard — France's own regions to cede",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "The peace preview's \"Adjust terms\" is `adjust_terms` (`diplomatic_templates.py:897-903`, tooltip \"Build the offer step by step\"), the legacy concession wizard (`diplomatic_executor.py:6023`): it ranks the PLAYER's regions to cede (`rank_cession_candidates`, `diplomatic_templates.py:4506`) and its confirm builds `demands: []` with sweeteners only (`:7381-7445`). It opens the territory branch when `needs_territory = war_score < 0 or relation < -50` (`:6054`); Austria|France boots at −80 (`europe_1805.json`), so a France at +84 still reads \"Shall we discuss concessions, Sire?\" (`:6070-6080`). The dead end was known (`diplomatic_templates.py:925-929`, \"Bug 4B\") and patched by adding Harsher / More generous, not by fixing the button.",
+   "fix": "The wizard's direction from the war score alone (drop the `relation < -50` arm); when France is not the loser the button opens the demands road (`_enter_ultimatum_wizard`, `:7466`, or the table's guided Add demand); where no demands road exists the button is disabled with its reason.",
+   "prior": "new — a sibling of the Bug 4B dead end",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 5,
+     "severity": "P3",
+     "turn": 4,
+     "action": 97,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0097.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-20",
+   "dr_id": null,
+   "key": "haggle_live_when_dead",
+   "title": "\"Let Talleyrand haggle\" is shown live on offers it can never counter, and its result never says the point was kept",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "The click runs `_handle_counter_ai_proposal` (`diplomatic_executor.py:8542`) → `generate_counter_offer(…, dry_run=True)` (`:8596`); None gives `_the_offer_stands` (`:8520`), nothing spent, \"Talleyrand finds no counter X could take — the offer stands.\" (DDB-4's dry run, §116.4). The button is always live (`incoming_proposal_popup.gd:225-231`): DD-1 Slice B stamps `enabled` and `reason` from one verdict for the accept-shaped actions only (`treaty.py:62`, `:728-747`; `incoming_proposal_popup.gd:157-176`), never Counter, though the dry run is cheap and side-effect-free. On a courtesy or a peace on the held line the algorithm has nothing to strike (`ai_diplomacy.py:3680-3740`; the gold bridge needs ≥100g and the court's bar, `:3833`), so the haggle is structurally dead there; three clicks across the road yielded the same line, and the line never says \"no point spent\".",
+   "fix": "Stamp the Counter option's `enabled` / `reason` from the dry run at every read seam (`treaty.stamp_letter` / `refresh_letter_verdict`), greyed with the reason (\"Austria has nothing to trade at this price\"); hide it for an offer class where it cannot succeed (Rule 9); the result line ends \"— no point spent\".",
+   "prior": "DDB-4 (its fix held as written; the control's promise unmet — a sibling-sweep miss)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 7,
+     "severity": "P3",
+     "turn": 5,
+     "action": 139,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0139.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-21",
+   "dr_id": null,
+   "key": "escape_ladder_silent_rung",
+   "title": "Escape's ladder has a silent rung: one press closes nothing visible and the next opens the pause menu",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "ui_ux",
+   "verdict": "design+legibility",
+   "cause": "The replay takes one Esc when settled and two while the cinematic plays (`battle_diorama.gd:1579-1589`, `_skip_to_final` `:1528-1533`); on close the line takes focus (`_on_battle_diorama_dismissed` → `_return_control_to_player`, `main.gd:3841`, `:3915-3931`; the enemy-phase Continue path the same, `:6678`); the focused line's Esc runs DDB-54's `_escape_closes_topmost` (`:1369-1377`, `:1580-1616`), finds nothing and silently `release_focus()`; with the line unfocused `_unhandled_input` (`:1625-1634`) opens the pause menu. The record: #256 the first Esc leaves [Close] [Replay]; #261 the second closes it, the line focused; #262 nothing visible; #263 the pause menu — and #67 → #69 the same with no replay at all (Continue had opened none). Four pause menus by accident (#69, #263, #388, #444). The ladder is the Phase 6.5 rule and DDB-54's pin (`test_ddb_s13b_the_client.py:68-71`); the release rung shows nothing and the replay's one-or-two has only the small \"click anywhere to skip ▸\" hint.",
+   "fix": "Esc on the replay always closes in one press (skip stays on click and Space); the release rung made visible — while the line is unfocused and empty its placeholder (`main.tscn:243`) reads \"Esc: menu · click to type\". DDB-54's pin stands.",
+   "prior": "DDB-54's family (its fix held at #261); a sibling it did not touch",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 9,
+     "severity": "P3",
+     "turn": 3,
+     "action": 69,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0069.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-22",
+   "dr_id": null,
+   "key": "march_detour_unasked",
+   "title": "A typed march commits a six-province detour through two foreign courts and prints the road only afterwards",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "command",
+   "verdict": "design+legibility",
+   "cause": "A typed `march to` is accepted and steps at once; the reply prints the road after (`strategic_executor.py:2179-2183`: \"Route: Berlin → … → Vienna. Moves to Berlin.\"). `strategic.march_road` / `plot_route` (`strategic.py:862`, `:690`) take lawful corridors only, so with Bohemia and Dresden Austrian under the truce Soult's road ran Berlin → Brandenburg → Posen → Silesia → Podolia → Moravia; `issuance_road_refusal` (`:781`) refuses only a closed destination, no corridor or a barred sea leg — a long or foreign-soil detour passes unflagged. Previews exist on other roads (`what if X moves to Y` / `can X reach Y`, `question_desk.py:1668-1704`; the province panel; the map card, `order_quotes.py:210-310`); DDB-R1's ask-first (`combat_executor.py:1115`, §118.2) covers a typed attack on a marshal out of reach only. A mistaken march costs 1 AP, 1 AP to cancel and a step already walked.",
+   "fix": "A typed player `march to` asks at no cost on `pursuit_ask`'s channel when the lawful road is at least twice the direct road or leaves own and allied soil: \"the direct road via Bohemia is closed by the truce; the lawful road is 6 provinces, 3 turns, through Prussia and Poland — march, or cancel?\"",
+   "prior": "new — DDB-D1 / R1's pattern on a sibling verb (Rule 10)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "conquest",
+     "row": 12,
+     "severity": "P3",
+     "turn": 19,
+     "action": 424,
+     "frame": "docs/audits/dd_b/conquest_2026_10_24/frames/0424.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-23",
+   "dr_id": null,
+   "key": "open_borders_unexplained",
+   "title": "An Open Borders letter never says what open borders does",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "The letter's lines come from `build_proposal_popup_clauses` → `_format_popup_clause_line` (`display_names.py:1767-1812`): \"Proposal: Open Borders Agreement\" and \"Clause: Open borders\" (`:445`) — the AI appends `open_borders` to a standalone letter (`ai_diplomacy.py:886-888`), so the clause repeats the head; the voice line is the generic (upgrade, neutral) \"An unexpected overture…\" (`:230-231`); the \"If accepted:\" hint is blank on incoming letters (LV-6, `mailbox_payloads.py:403-414`). The explanation exists on the outgoing road only — `PROPOSAL_TYPE_SUMMARY_DISPLAY[\"open_borders\"]` \"(free military passage)\" (`display_names.py:477-488`) — while the incoming header uses the bare `PROPOSAL_TYPE_DISPLAY` (`:351`). The mechanic (`OPEN_MOVEMENT_STATES`, `diplomacy.py:66`; `can_enter_territory` `:11643`; `TRADE_INCOME[\"OPEN_BORDERS\"]` 100 `:88-93`; the rung to NAP `:111`) is named on no surface.",
+   "fix": "An effect line for the `open_borders` clause from the constants (\"each side's armies may cross the other's provinces; +100g a turn in trade\") and the \"(free military passage)\" summary on the incoming header — one change in `display_names.py` reaches the letter-book's Terms row too.",
+   "prior": "new; siblings DDB-23 (a term without its duration, the same chain), LV-6, S14D-X13",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 1,
+     "severity": "P3",
+     "turn": 2,
+     "action": 29,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0029.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-24",
+   "dr_id": null,
+   "key": "first_typed_attack_unpreviewed",
+   "title": "The first typed attack pulls five corps and the Emperor at once, and nothing before it names the free preview",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "combat_legibility",
+   "verdict": "design+legibility",
+   "cause": "The muster gate arms only on an unfavorable band (`MUSTER_GATE_BAND`, `objection_v2.py:1280`; `player_muster_gate_arms`, `combat_executor.py:996`, `:8037`) — DDB-D2 / R2's ruling (§118.3: favourable attacks fire at once; \"not taken: favourable-but-incomplete arming\"). The dispatch's TODAY list is \"Orders the board will take at once\" (`dispatch.py:5294`); the card promise is for MAP orders (`main.gd:1055`) and that card (`order_quotes.attack_quote` `:508-526`) shows command, AP and objection chance — no muster; the opening-attack guidance needs Ney at Belgium against Wellington (`combat_executor.py:6617-6648`); the free preview is taught after the first fight or in the School's card IX (`tutorial_overlay.gd:241-250`). The player met the what-if line at the foot of the battle's reply and used it from #49 on.",
+   "fix": "Name the free preview where the first typed attack is taught — the opening Commands list (`main.gd:1043-1047`) and the TODAY line: \"ask 'what if Ney attacks Mack' first — it names who marches with him\"; the one-line muster (who joins, the band) on the map attack card, which is already the confirm. Typed orders stay unpaused.",
+   "prior": "DDB-D2 / R2 (held on its terms; the favourable branch it left out); sibling DDB-14",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 2,
+     "severity": "P3",
+     "turn": 2,
+     "action": 42,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0042.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-25",
+   "dr_id": null,
+   "key": "armistice_preview_stale_score",
+   "title": "The armistice preview quotes the stored war score (0) under its own live one (38), hides a consequence behind \"(1 more concern...)\", and calls a captured province \"nothing taken\"",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "`truce_words` (`diplomacy.py:5078`, the read at `:5098`) builds \"the war score reads 0 for France\" from `get_war_score_for`, the STORED score recomputed only at end turn (`recalculate_war_scores`, `:3924`), while the same popup's \"War score: 38\" comes from `build_war_context_snapshot`'s live `calculate_war_score` (`:5318`) — the player had just fought. \"nothing taken yet on either side\" is `war_title._line` (`war_title.py:284`), whose ground counts home provinces only, so retaking Bavaria's Swabia counts as nothing (PC-R7 (i)'s rule, unsaid). And both popups cap the consequences at three with \"(N more concern(s)...)\" and no way to open the rest (`proposal_confirm_popup.gd:1836-1842`; `incoming_proposal_popup.gd:503-509`) though the backend sends every item — a cap the settlement popup was already forbidden (`WAR_SETTLEMENT_ALLY_PARTICIPATION_IMPLEMENTATION_PLAN.md:468`, `:487`).",
+   "fix": "`truce_words` reads `live_war_score_for` (`:3993`); sweep every quoted stored score (`diplomatic_templates.py:3158`, `diplomatic_dialogue.py:1031`, `:1045`, `:2123`, `dispatch.py:7285`, `diplomatic_executor.py:6051`, `:7342`) and pin that no preview sentence quotes a score unlike its own War score line; the popups print every consequence (they scroll); the title line names captures and battles when its ground is empty.",
+   "prior": "the stored read a sibling of DDB-27 and DDB-X14 the sweep missed — `truce_words` (PC-F44, Oct 16) landed after DDB-27's fix and reintroduced it; the overflow new",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 3,
+     "severity": "P3",
+     "turn": 2,
+     "action": 59,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0059.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-26",
+   "dr_id": null,
+   "key": "buy_off_unconfirmed",
+   "title": "\"Buy Off Their Design (1,368g)\" spends more than half the treasury on one click, with no quote first",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "The chip (`diplomacy.py:14719-14723`) sends \"buy off Sweden\" (`diplomacy_wizard.gd:1535-1540`, `:1445-1458`) and `_execute_buy_off_design` (`diplomatic_executor.py:683-760`) charges 1 DP and the gold at once (`:742-748`) with no `_confirmed` branch — Sponsor (`:541`) and Guarantee (`:998`) the same — against the codebase's own pattern: Improve Relations opens Begin mission / Not now, treaties go to a send card, a proclaimed design, the Acts and the Laws quote first (`:826-882`, `:905-918`; `reforms_executor._confirmed`). No ruling exempts the instruments (grepped the intent spec, the rulings, the ledgers). The player's \"clipped button\" is half the instrument's: the record cuts a control's text at 120 characters (`dd_b_client.gd:815`) while the real chip wraps (`diplomacy_wizard.gd:1308-1310`; LV-15's frames).",
+   "fix": "Quote first, free, on the clarification channel as `_quote_proclamation` does (`:845-882`): the price, the DP, the treasury after, \"the want sleeps N turns; reneging returns it heavier\", the next design that wakes; Buy it off / Not now. The same for Sponsor and Guarantee; sweep the other priced chips (`bid_for_allegiance`, `make_amends`, `recognition_sweetener`, `subjugate`).",
+   "prior": "new (DDB-31 only lengthened the chip's text); siblings Sponsor and Guarantee on the same path",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 4,
+     "severity": "P3",
+     "turn": 4,
+     "action": 106,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0106.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-27",
+   "dr_id": null,
+   "key": "envoys_open_not_a_button",
+   "title": "In the Envoys panel \"Open ▸\" is not a button, a great court's letter shows no terms, and nothing says which rows answer in place",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "ui_ux",
+   "verdict": "design+legibility",
+   "cause": "Inline Accept / Decline exists only for the IGR-F letter-book rows (`mailbox_panel.gd:55-58`, `:234-258`): an `incoming_proposal` labelled open_borders / non_aggression / friendly_gift from a minor or secondary court (`envoy_digest.py:32-36`, `:45-82`; \"great-power traffic keeps its own modal\", `:13-24`, pinned). Prussia is major (`nation_config.py:70`), Switzerland's a Client's Petition. Non-digest rows show only \"Incoming proposal: X\" (`dialogue_manager.py:~590-612`, cut at 72 characters) — no terms, no voice; \"Open ▸\" is a Label with `MOUSE_FILTER_IGNORE` (`:208-212`), the control being the whole row (hand cursor `:147`, tooltip `:148`, `_on_row_gui_input :317-326`) — UXR3-63's affordance fix added the word, the cursor and the tooltip; the word is still not the press.",
+   "fix": "\"Open ▸\" a real flat button on the same `item_selected` path; the Terms line on every incoming-proposal row from the same `clauses` payload; one reason line for a non-inline row (\"a great court's letter is answered in full — open to accept, haggle or refuse\"; \"a client's petition is granted or refused in full\"); the subtitle (`:31`) says routine letters from the lesser courts answer in place. The IGR-F boundary stands.",
+   "prior": "UXR3-63 (the word isn't the press); a sibling of the IGR-F boundary",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "diplomacy",
+     "row": 5,
+     "severity": "P3",
+     "turn": 6,
+     "action": 132,
+     "frame": "docs/audits/dd_b/diplomacy_2026_10_24/frames/0132.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-28",
+   "dr_id": null,
+   "key": "letter_gold_direction_unsaid",
+   "title": "A court's letter says \"Offer: Gold payment - 82\" without who pays whom, and the signing never mentions the sum",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "defect",
+   "cause": "Saxony's letter is a `friendly_gift` at relation < 0 rewritten to `open_borders` with the sweetener `{\"type\": \"gold_lump\", \"value\": gift}` (`ai_diplomacy.py:900-916`); `_proposal_term_lines` → `_format_popup_clause_line` (`display_names.py:1767-1776`, `:1794-1795`) prints \"Offer: <label> - <value>\" with no payer, payee or timing (`gold_lump` is \"Gold payment\", `:430`), while France's own drafts say \"France offers N gold (lump sum)\" (`format_terms_for_display`, `:2026`) — the same word, opposite directions. The sum is applied at once and correctly (`treaty_clauses_of`, `treaty.py:266-276`; `_ratify_one_time_clauses`, `world_state.py:13158-13170`), but the confirmation is only \"Treaty signed: Peace → Open Borders with Saxony.\" (`:14186-14192`): a ratified-terms receipt exists for a peace alone (`:14053`) and neither accept handler appends one (`diplomatic_executor.py:8189-8213`, `:7016`). The player could not tell whether he was paid, would be, or had paid.",
+   "fix": "`_proposal_term_lines` reads the proposer and the target (\"Saxony pays you 82 gold at the signing\" / \"You pay Saxony …\"); an applied-clause receipt on every player treaty (\"Saxony paid 82 gold into the treasury.\"); the same rendering swept on `sell_neutrality`, `design_purchase` and the `friendly_gift` mailbox row.",
+   "prior": "new; DDB-23's family (a stream named without its direction, the same chain) and S14D-X13",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 2,
+     "severity": "P3",
+     "turn": 3,
+     "action": 43,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0043.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-29",
+   "dr_id": null,
+   "key": "header_gold_stale_after_letter",
+   "title": "The header's Gold line is not refreshed after a letter answered from the Envoys panel",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "ui_ux",
+   "verdict": "defect",
+   "cause": "`/mailbox/respond` (`main.py:6938`) → `_respond_to_dialogue_sync` (`:5297`) → `build_base_response` carries the new treasury and `gold_projected_net` (`:656`, `:697`), but `_on_mailbox_row_action_result` (`main.gd:8066-8113`) calls only `_update_diplomatic_top_bar` (`:8082`); the Gold label is written by `_sync_response_hud` alone (`:6027-6050`, `_update_gold_display` `:6061`), reached from `_on_command_result` (`:4306`) and the world swap (`:6984`) — the letter-book is the one api_client road that bypasses it (its docstring avoids the modal route table; the HUD sync is not the route table). The Actions / Admin counters, the manpower line, the map and the notification bar go un-synced on the same road, petitions that spend actions or DP included. The header read 244 while the Admiralty read 326.",
+   "fix": "`_sync_response_hud(response)` on the handler's success path before the panel re-fetch; a pin that an Accept answered from the letter-book moves the Gold label and the action counters.",
+   "prior": "new; a sibling of DDB-13 (its `gold_projected_net` reaches the client only through `_sync_response_hud`)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 3,
+     "severity": "P3",
+     "turn": 3,
+     "action": 44,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0044.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-30",
+   "dr_id": null,
+   "key": "dispatch_stale_after_interrupt",
+   "title": "The Morning Dispatch is shown after the first-step interrupt is answered, so it contradicts the answer it was built before",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "narration",
+   "verdict": "defect",
+   "cause": "The dispatch is built inside `_execute_end_turn` (`meta_executor.py:696-701`) after the advance has raised the marshal's interrupt, so his row reads \"HALTED at Tyrol — awaiting your word\" (`dispatch.py:5902-5927`, `:5971-5983`); the client stashes it (`pending_dispatch_data`, `main.gd:4592-4594`) and raises the interrupt first (`_on_strategic_report_dismissed`, `:7337-7358`); `/strategic_response` (`main.py:5760-5857`) runs \"Continue as Ordered\" (Massena to Milan) and returns no new dispatch; only then `_process_next_interrupt` → `_show_pending_dispatch()` (`main.gd:7508-7537`) prints the pre-answer snapshot under the log's \"Massena arrives at Milan\", with \"Starving — supply has failed at Tyrol\" and \"Massena and Teulie stand 31,319 men at Tyrol\" while the map shows him at Milan. `last_morning_dispatch` is frozen at turn start by design (`_readable_dispatch` re-derives only `unmet_marshals`, `main.py:240-262`), so the R re-read says HALTED for the whole turn; the \"after the interrupts\" placement is the Aug 30 review's own fix (the comment `main.gd:7524-7536`).",
+   "fix": "`_show_pending_dispatch()` before `_show_interrupt_popup(first_interrupt)` (`main.gd:7355-7356`) — the briefing says halted, the question follows, the answer follows, in truth order; MARSHAL STATUS re-derived on read as `unmet_marshals` is.",
+   "prior": "the other edge of the Aug 30, 2026 review fix; DDB-53's precedent (a dispatch that contradicts itself)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 7,
+     "severity": "P3",
+     "turn": 6,
+     "action": 90,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0090.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-31",
+   "dr_id": "S14E-D4",
+   "key": "war_named_for_a_beachhead",
+   "title": "One 6,500-man beachhead renames a seven-power war \"War for Munster\", and the Austrian truce row carries the name",
+   "sev": "P3",
+   "home": "S14f+DR",
+   "slice": 2,
+   "pillar": "ui_ux",
+   "verdict": "ruling",
+   "cause": "`war_title` (`war_title.py:174-252`) is a ladder — purpose, design, theirs, ground, league, court — whose ground rung (`:232-238`) names the first enemy home province France's side holds, with no weight floor: after the landing France held Munster and the league's title gave way. The truce row keeps the war's title by ruling (`war_status.py:833` `_title_block(world, \"\", opponent)`; `war_status_panel.gd:410-414`; pinned `tests/test_pc_rulings.py:2640` \"War for Bohemia — Austria, truce 4t\") — the docstring says a `court=` read is that court's ground, the code reads the whole enemy side's (`:190`, `:232`), so Austria's row names Britain's Irish province. The title fills the dispatch's WAR PURPOSE lines and the offer's \"the War for Munster — Britain + Russia\". PC-R7 (i) ruling J (§127.1) landed October 17, after the first measure, which never saw it.",
+   "fix": "A floor on the ground rung — the enemy's capital, two or more provinces, or a set share of the enemy's home provinces — else the league title (a ruling: J set no floor); the `court=` read made the court's own, as the docstring says.",
+   "prior": "new (ruling J post-dates the first measure); the next-step half of what Munster means is the Free Ireland row",
+   "dr": "Should the war title's ground rung name the first enemy home province France holds, whatever its weight (ruling J set no floor), so a 6,500-man beachhead on Munster renames a seven-power war?",
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 8,
+     "severity": "P3",
+     "turn": 6,
+     "action": 94,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0094.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-32",
+   "dr_id": null,
+   "key": "cancel_verb_with_marshal_prefix",
+   "title": "\"Murat, cancel\" is not understood though the game itself prints \"'Ney, cancel' recalls him\"",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "command",
+   "verdict": "defect",
+   "cause": "The mock parser's cancel keywords (`llm_client.py:3603-3618`) hold `\"cancel \"` with a trailing space but `\" halt\"` and `\", halt\"` without, and the exact-match fallback (`:3619`) tests the stripped line against (halt, stop, cancel, abort): \"murat, cancel\" matches nothing and falls to unknown (\"I cannot determine the order. Perhaps 'Murat, attack Moore' …\" — attack and move examples only), while \"murat, halt\" matches `\", halt\"`. The PURSUE-upgrade acceptance prints the very sentence `'Ney, cancel' recalls him.` (`strategic_executor.py:2213`), and `dd0_rewrites.py:749` records \"Ney, cancel\" as unknown to the router.",
+   "fix": "The parser reads `<marshal>, cancel|stop|abort|halt` as bare tails after the address; the CX-3 census extended to every quoted `'X, verb'` in executor messages (`economy_executor.py:755`, `:768`, `:1546`; `movement_executor.py:460`, `:477` quote `'X, recruit'` / `'X, hold'`).",
+   "prior": "IQ10-6 / CX-3's rule (never print a sentence the game cannot read) covers the help body and the completer, not executor messages — a sibling the fix missed",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 9,
+     "severity": "P3",
+     "turn": 8,
+     "action": 126,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0126.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-33",
+   "dr_id": null,
+   "key": "keel_count_dropped_unsaid",
+   "title": "\"lay down two ships\" lays one keel and never says the two was dropped",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "naval",
+   "verdict": "defect",
+   "cause": "`build_fleet` (`llm_client.py:3821-3831`) matches the verb phrase and parses no count; `_execute_build_fleet` (`naval_executor.py:177-226`) lays exactly one, and the reply \"A keel is laid … 1 more keel possible this turn\" (`:211-219`) never says the number was ignored — a second order at #0119.",
+   "fix": "Read a count N, lay min(N, the yard's rate) and say so (\"Two keels laid\" / \"Only 1 laid — the yards allow 1 more this turn\"); failing that, \"one keel per order\" in the reply.",
+   "prior": "new — the class of a number in an order silently dropped",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 9,
+     "severity": "P3",
+     "turn": 8,
+     "action": 126,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0126.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-34",
+   "dr_id": null,
+   "key": "mission_outlives_its_peace",
+   "title": "Improve Relations runs on for four turns after the peace it was sent to win, at a DP a turn, blocking the next mission and naming no court",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "diplomacy",
+   "verdict": "design+legibility",
+   "cause": "`_process_mission_effects` (`diplomacy.py:12565`) ends an IMPROVE_RELATIONS mission at the ±100 ceiling only (`:12602-12634`): no `duration` (`diplomatic_dialogue.py:147`), no treaty-state arm (MS-9's comment `:12582-12597`; the projection \"no end in sight … recall him or change course\", `diplomatic_dialogue.py:377`). Austria went −80 → −60 (the peace, turn 10) → −13 by turn 14 with a LOW dispatch line each turn (`dispatch.py:7536`, `:7919`) carrying no DP bill and no exit, while `truce_words` had framed the mission as a finite cure (\"N turns of Improve Relations (+8 a turn, N DP) would carry this truce into peace\", `diplomacy.py:5196`). \"Mission already active\" (`:14113-14118`) names no court; the typed recall is refused by the never-typed ruling (`main.gd:3084-3085`); the rail's Recall chip (`notification_bar.gd:487-514`) sat under the \"+25\" overflow and the Cabinet's Cancel row below the fold.",
+   "fix": "A mission begun at WAR or ARMISTICE records `started_state` and completes (reason \"peace\": \"Austria and France are at peace — Talleyrand is home\") on the tick the pair reaches PEACE, through `record_mission_end`, with a MEDIUM dispatch line — MS-9's \"a mission whose work is done is DONE\"; the disabled reason names the court (\"Talleyrand is at Austria's court — F1 → Austria → Cancel\"); the dispatch's mission line carries the DP bill. The field goes to SAVE_FORMAT_REFERENCE.",
+   "prior": "new; MS-9 / IQ-4's mission rules (the recall is free); the Britain mission started later repeated the class",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 11,
+     "severity": "P3",
+     "turn": 14,
+     "action": 228,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0228.jpg"
+    }
+   ]
+  },
+  {
+   "id": "S14E-35",
+   "dr_id": null,
+   "key": "quiet_turns_clock_on_removed_marshal",
+   "title": "Europe's quiet-turns clock jumped from 6 to 16 in one turn because the last battle was stamped on a marshal who then stood down",
+   "sev": "P3",
+   "home": "S14f",
+   "slice": 2,
+   "pillar": "living_balance",
+   "verdict": "defect",
+   "cause": "`hegemon_quiet_turns` (`coalition.py:1611-1623`) is the current turn minus the latest `last_battle_turn` among `world.marshals` of the hegemon with strength > 0. At turn 19 the latest stamp was Dumonceau's 13 (Moore's attack at Wales, stamped at `combat_executor.py:9244-9247`, `:9296`): 19 − 13 = 6. Between turns 19 and 20 his contingent came home — `stand_down_marshal` pops him from `world.marshals` (`world_state.py:3672-3689`) — and the next-latest stamp is turn 4: 20 − 4 = 16. `league_forecast` reads the count (`coalition.py:3991`, `:4005-4009`), so the consult / declare turns moved 35/38 → 26/29 in one turn (the dispatch's two lines agree with each other: `fuse_turns_left` = 20 − 16, `dispatch.py:2093-2100`). The hegemon's battle history lives only on the marshals still standing: a stand-down, `destroy_marshal` (`:3614`) or strength 0 (`coalition.py:1621`) erases it — a French defeat that destroys a lone corps brings the courts' re-arm closer. `tests/test_sr_g7_the_armed_peace.py:110-114` pins the clock with a live roster only. (Reconciled from the record; not reproduced in process.)",
+   "fix": "Stamp the last battle on the world — a serialized per-nation `last_battle_turn_by_nation` at the existing stamp sites — and `hegemon_quiet_turns` reads the max of the store and the roster; to_dict / from_dict and SAVE_FORMAT_REFERENCE; a pin that a stand-down and a destroyed lone corps leave the count unchanged.",
+   "prior": "new; SF5-RV6's class (`stand_down_marshal` left stale state behind); not DDB-52 (the alarm holding at 45)",
+   "dr": null,
+   "sightings": [
+    {
+     "road": "sea",
+     "row": 13,
+     "severity": "P3",
+     "turn": 20,
+     "action": 287,
+     "frame": "docs/audits/dd_b/sea_2026_10_24/frames/0287.jpg"
+    }
+   ]
+  }
+ ],
+ "struck": []
+}

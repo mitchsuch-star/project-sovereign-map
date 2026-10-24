@@ -63,6 +63,11 @@ const IDLE_QUIT_S := 2700.0
 const TERMINAL_TAIL := 12
 const MODAL_COVER := 0.95
 const MAX_TEXT := 4000
+# S14e (October 24, 2026): a control's text was cut at 120 characters, so a
+# long chip (the Cabinet's instruments, after DDB-31 lengthened them) read as
+# clipped in the record while the real chip wraps — half of a filed row was
+# the instrument's own. The cap now holds the longest chip whole.
+const MAX_CONTROL_TEXT := 600
 const _SKIP_KEYS := ["message", "success", "game_state", "new_state"]
 
 var _run_dir := ""
@@ -812,7 +817,7 @@ func _controls(above_floor_only: bool) -> Array:
 			if text == "":
 				text = _own_text(ctrl).strip_edges()
 			base["kind"] = "button"
-			base["text"] = text.left(120)
+			base["text"] = text.left(MAX_CONTROL_TEXT)
 			base["disabled"] = b.disabled
 			if b.toggle_mode:
 				base["toggled"] = b.button_pressed
@@ -820,7 +825,7 @@ func _controls(above_floor_only: bool) -> Array:
 		elif ctrl.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND \
 				and ctrl.mouse_filter != Control.MOUSE_FILTER_IGNORE and not (ctrl is RichTextLabel):
 			base["kind"] = "chip"
-			base["text"] = _own_text(ctrl).strip_edges().left(120)
+			base["text"] = _own_text(ctrl).strip_edges().left(MAX_CONTROL_TEXT)
 			base["disabled"] = false
 			out.append(base)
 		elif ctrl is Slider:
@@ -842,7 +847,7 @@ func _controls(above_floor_only: bool) -> Array:
 					continue
 				var link := base.duplicate()
 				link["kind"] = "link"
-				link["text"] = label.left(120)
+				link["text"] = label.left(MAX_CONTROL_TEXT)
 				link["meta_value"] = meta if meta != "" else m.get_string(2)
 				link["disabled"] = false
 				link["tooltip"] = ""

@@ -1,43 +1,42 @@
-# NEXT SESSION PROMPT — Pre-Deploy S14e: DD-B's re-measure (three fresh players in the client)
+# NEXT SESSION PROMPT — Pre-Deploy S14f part 1: the re-measure's rows — the P1, the four rulings, the P2s
 
-> Overwritten each time a session hands off. Current hand-over: **October 24, 2026, after S14d part 3 — the walk
-> and the close — LANDED; S14d COMPLETE** (`docs/TABLE_LESSON_SPEC.md` §13–§17; `SYSTEMS_REFERENCE.md` §148–§148.11;
-> commits through the hook — `git log -5`).
+> Overwritten each time a session hands off. Current hand-over: **October 24, 2026, after S14e — DD-B's re-measure —
+> MEASURED; S14e COMPLETE, the done-when NOT met, S14f sized 2.0** (`docs/audits/DD_B_RE_MEASURE_2026_10_24.md`;
+> `SYSTEMS_REFERENCE.md` §149 and §115.3; commits through the hook — `git log -5`).
 >
-> **What the last session delivered:** S14d part 2's Table lesson (the board tuned by `tools/_table_board_probe.py`,
-> seven cards, the settlement door, 15 driven pins) and part 3 — the Mode C walk on the DD-B instrument (the Table played
-> to its hand-off by the buttons alone; the Danube's twenty cards reached; the campaign's six turn-1 first-open lines each
-> once, then gone on turn 2 — records `docs/audits/dd_b/table_walk_2026_10_24/` and `campaign_lines_2026_10_24/`), the
-> frozen build's smoke booting every School scenario, and the rows S14D-X18, X42 (the Throne of Holland speaks for the
-> deputation under Ver Huell — a new `named` moment voice), X43, X49, X50 and the walk's find X51 (the Cabinet's mission
-> row before its first tick) FIXED. The census reads 0 open S14D rows; 9 UXR-4 rows wait for S15.
+> **What the last session delivered:** three fresh players (the brief verbatim, nothing else) played conquest,
+> diplomacy-first and the sea to Turn 21 in the real client on the DD-B instrument — 1,149 actions, 0 script errors.
+> Their 35 rows were traced to file:line, de-duplicated and read by the one metric tool: **35 causes, 5.8 rows per 10
+> turns (conquest 6.5, diplomacy-first 4.5, the sea 7.0), 1 P1** — the done-when (under 5, 0 P1) missed by one P1 and
+> five causes; the first measure read 11.5 and 3 P1, and none of its 69 causes returned. Every row is filed and homed:
+> `BUG_FIXES.md` §S14E (S14E-1 … 35, OPEN, owner S14f) and `DESIGN_REFINEMENT.md` §S14E (S14E-D1 … D4, the design
+> halves, each with a recommendation). The instrument gained four corrections (§115.3) and `tools/dd_b_metric.py`.
 >
 > **Traps the last session paid for:**
-> - **A running sandbox backend reads the scenario JSON from disk at every `/new_game`** — edit `europe_1805.json`'s
->   content under it and the next BEGIN fails validation (the client prints "New campaign failed: …"); restart the pair.
-> - **The DD-B instrument's keys obey the client's own rules:** a focused command line swallows `key T`; a modal (the
->   battle diorama, the mailbox panel) swallows `key F1` and the top bar's menu icon — close it first (`key Escape`) or
->   click the top bar's own buttons (`click Ledger (T)`; note `Diplomacy (D)` is the Diplomatic Ledger, the Cabinet is
->   `⚖ The Cabinet` / F1). `act click <words>` takes bare words — no inner quotes.
-> - **The Cabinet's first-open line is drawn on the court LIST only** (part 1's rule at Interface Scale 2.0); a door that
->   opens a court's page shows none — by design, recorded.
-> - **A Python heredoc through the Bash tool halves backslashes AND can silently write nothing** — write patch scripts
->   with the Write tool, run them by path, assert every anchor's count.
-> - **The moments validator caps a letter's `record` at 240 characters** and the staged deck fixture
->   (`tests/fixtures/moments_block.json`) must equal the shipped deck entry for entry.
+> - **A line typed while a modal holds the command line is never sent** (`ok: false`, "not taking orders now") — the
+>   judge now skips them; the client's own silence there rides S14E-21.
+> - **The Bash tool's heredoc trap bit twice** (a `\n` in a string became a newline; a patch with `\"` died with
+>   "unexpected EOF"): write every patch script with the Write tool and run it by path, assert every anchor's count.
+> - **Narrow a judge phrase only after** re-classifying the 4,350 census orders AND re-reading every committed HOLD
+>   arm (`command_c3_hold_orders` with both `score_hold_*.json` scripts).
+> - **`dd_b_play.py export` keeps stale frames** after a re-judge drops a row — delete the orphan.
+> - **The settlement's legitimacy tier reads the whole package** for every court (`settlement_baseline.py:2171-2185`,
+>   `settlement_scoring.py:2453-2468`); the bilateral armistice is typed by the pair score on the counsel's road and by
+>   the side sum in the preview (`diplomatic_templates.py:4340`) — the 44-vs-24 row.
 >
-> **Nothing waits on the user before S15** (S14d's A1 as applied — mounts in the campaign, signs in the lesson; the
-> re-size 1.5 → 2.5 — UXR-4, the code-signing certificate, AO's three questions, SF-NAV-1-D1 are theirs to overrule).
+> **For the user before part 1 (not blocking — the session builds the recommendations unless overruled):** the four
+> rulings S14E-D1 … D4 (`DESIGN_REFINEMENT.md` §S14E); a third measure after S14f (recommended, 1.0). Also theirs:
+> S14d's A1 as applied, UXR-4, the code-signing certificate, AO's three questions, SF-NAV-1-D1.
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-Pre-Deploy S14e — DD-B's re-measure — on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -5` for the head).
+Pre-Deploy S14f part 1 — the re-measure's rows: the P1, the four rulings' builds, the fourteen P2s — on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log -5` for the head).
 
-Read first: `docs/STATUS.md` ▶ NEXT UP; `docs/PRE_DEPLOY_PLAN.md` §2 rows S14e and S14f; `SYSTEMS_REFERENCE.md` §115 (the DD-B instrument — the engine side `tools/dd_b_client.gd`, the player's side `tools/dd_b_play.py`, its traps §115.3); `docs/audits/dd_b/PLAYER_BRIEF.md` (the players' brief) and `docs/audits/DD_B_FRESH_EYES_2026_10_14.md` (the first measure's method and its rows); `docs/audits/dd_b/metric.json` and `causes.json` (the first measure's figures); `BUG_FIXES.md` §DD-B (what the first measure filed and S13b fixed); `docs/PLAYTESTING.md` §Mode C.
+Read first: `docs/STATUS.md` ▶ NEXT UP; `docs/PRE_DEPLOY_PLAN.md` §2 row S14f; `docs/audits/DD_B_RE_MEASURE_2026_10_24.md` (the measure — §4 the P1, §5 the shape, §8 where the rows go); `BUG_FIXES.md` §S14E (every row's cause, sightings, decided fix, test name); `DESIGN_REFINEMENT.md` §S14E (S14E-D1 … D4 with recommendations); the records `docs/audits/dd_b/{conquest,diplomacy,sea}_2026_10_24/summaries.md` and the cited frames when a row's screen matters; `SYSTEMS_REFERENCE.md` §149, §115 (the instrument), §116–§118 and §132 (what S13b built — the siblings these rows name), §127.1 (ruling J), §123.3 (F81's pass); CLAUDE.md's Golden Rules (1, 5, 9, 10).
 
-Scope (the row): **three fresh players, the same brief and roads (conquest, diplomacy, sea), 20 turns each IN THE CLIENT on the DD-B instrument**, reading the game Round 0 will meet — the DD-B fixes, the rulings, VP-1, the events, the table lesson and the first-open lines. Each player is a fresh-mind agent given ONLY the brief and the road, acting one action at a time through `dd_b_play.py act` (never a ledger, never the code); the judge classifies every typed line; every confusion is filed with `row` by DD-B's rule (did / expected / saw, the frame cited), then de-duplicated and homed. One engine at a time (never while a hook runs); the sandboxed backend from 8006; export each run to `docs/audits/dd_b/<road>_2026_<date>/`; the metric beside the first measure's (`metric.json`: rows per 10 turns, P1 count, the typed-line misread rate).
+Scope (the row, part 1): **S14E-1 (the P1) with S14E-D1's build as recommended** — the first step of a TYPED march that meets an enemy asks, every personality alike (one modal, the muster shown, nothing spent; the aggressive marshal argues for the attack in his own line; `attack anyway` runs today's attack, `go around` re-plots the lawful road; a standing order's later contacts keep today's rule; the AI's side and delegation-inferred orders unchanged) — **then the other three halves as the user rules them, the recommendations by default** (S14E-D2 the legitimacy tier reads the court's own slice — on the series arms, the moved pins named; S14E-D3 the table's shut-out price kept and stated before the click, the grievance labelled with its Make Amends; S14E-D4 a floor on the war title's ground rung), **then the fourteen P2s S14E-2 … 15** in the ledger's order: the campaign pay priced in the muster and the what-if (2); the concessions wizard's exits (3); the peace preview's sanctuary line and the what-if's `field_on_peace_soil` (4); the war-purpose card and the Cabinet page on a rump, the elimination line (5); the legitimacy blocker's named clause and the dial's refusal (6); the End Turn gate's army line (7); one armistice score across the wizard row, the roads line, the preview and the send (8); the mission row's earned / shocks / paused (9); the shut-out price stated (10); the counsel's lever for an ally's slide (11); the muster's floor and bad day, coordination priced per outcome (12); `camp_leave_line` on the march reply (13); `fleet_action_forecast` on the Diversion's card (14); `formations.road_notes` at every point of action on the Ireland road (15). Each row: reproduce on the shipped board first, fix, pin (`tests/test_s14f_the_remeasure_rows.py::TestS14E<n>`), then the sibling sweep (the other courts, dialogues, popups, roads; the AI's side) — every sibling found filed as `S14E-X<n>` in §S14E and fixed in the part or heading part 2. `BASELINE_SERIES` byte-identical on every arm except where a ruling moves it consciously, the moved pins named. Part 2 (a later session): the twenty P3s S14E-16 … 35 and the closing re-play of every sighting on the DD-B instrument.
 
-Done when: three 20-turn runs are recorded and exported; every row filed, de-duplicated and homed with an owner; the measure reads **under 5 rows per 10 turns and 0 P1** — then STATUS ▶ NEXT UP names S15 and this file is overwritten for it; otherwise every new row is homed to **S14f (the re-measure's rows)**, sized at the close, P1s first, and this file is overwritten for S14f.
+Done when: S14E-1 … 15 and the part's siblings are FIXED with their tests; the four rulings recorded in `DESIGN_REFINEMENT.md` §S14E as built (or as the user ruled); `SYSTEMS_REFERENCE.md` gains §150 (the part's rules); the census reads 20 open S14E (the P3s) and 0 S14E-X; STATUS ▶ NEXT UP names part 2 and this file is overwritten for it.
 
-Rules: the players see only what a player sees; a run is never steered by a reading of the code; the sibling sweep after every fix (CLAUDE.md Rule 10); "diplomacy is never typed"; grep-verify any agent's bulk `.gd` edits and run the Godot parse harness via Start-Process (`tools/godot_parse_check.gd`, expect EXIT=0, commit the refreshed report). Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches.
+Rules: "diplomacy is never typed"; Golden Rule 1 (combat modifiers in `marshal.py` only), 5 (the AI uses the same executor), 9 (no open-ended deferrals), 10 (the sibling sweep); grep-verify any agent's bulk `.gd` edits and run the Godot parse harness via Start-Process (`tools/godot_parse_check.gd`, expect EXIT=0, commit the refreshed report); subagents on sonnet or haiku, never the orchestrator's model. Commit through the hook by explicit path, in the background: `env -u PYTHONDONTWRITEBYTECODE -u PYTHONIOENCODING git commit -F <msg> -- <paths>`; never `--no-verify`, never stash, reset or switch branches; never start a DD-B engine while the hook runs.

@@ -1,0 +1,9 @@
+{
+ "road": "conquest",
+ "brief": "win the war in the field; take Vienna",
+ "port": 8006,
+ "backend_pid": 8072,
+ "engine_pid": 20296,
+ "started": "2026-10-24T11:15:58",
+ "window": "5120x1440"
+}

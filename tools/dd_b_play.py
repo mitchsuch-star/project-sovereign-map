@@ -34,7 +34,8 @@ can: one action at a time on the REAL client (`tools/dd_b_client.gd`) at
         Every typed line and its reply, classified by the ONE judge
         (`tools/_score_probes.py`'s regexes, read through
         `unrehearsed_census.classify_order`): `<run>/judge.json`. A `misread`
-        or an `executed_when_refusal_meant` is a P1 row by itself.
+        or an `executed_when_refusal_meant` is a P1 row by itself. A line the
+        engine never sent (typed under a modal) is listed under `unsent`.
 
 Rails: never two engines (start refuses while any Godot runs); never the
 player's 8005; the engine's UiSettings are in memory only.
@@ -79,7 +80,18 @@ sys.path.insert(0, str(REPO / "tools"))
 # ── plumbing ────────────────────────────────────────────────────────────────
 
 def _read(path: pathlib.Path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    # S14e (October 24, 2026): the engine writes `<name>.tmp` and renames it
+    # into place; on Windows the reader can see the file an instant before
+    # the rename releases it (PermissionError, once in 456 actions of the
+    # conquest road). A short retry, never a swallowed error.
+    last = None
+    for _ in range(25):
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (PermissionError, json.JSONDecodeError) as e:
+            last = e
+            time.sleep(0.1)
+    raise last
 
 
 def _write(path: pathlib.Path, value) -> None:
@@ -509,10 +521,22 @@ def cmd_stop(args) -> int:
 def judge_run(run: pathlib.Path) -> dict:
     import unrehearsed_census as C
     rows = []
+    unsent = []
     for st in sorted((run / "state").glob("[0-9][0-9][0-9][0-9].json")):
         s = _read(st)
         action = str(s.get("action", ""))
         if not action.lower().startswith("type "):
+            continue
+        if s.get("ok") is False:
+            # S14e (October 24, 2026): a line typed while a modal held the
+            # command line never reached the game (`_act_type` refuses before
+            # any key: "the command line is not taking orders now"). It is
+            # nothing for the judge — the conquest road's twelve read as
+            # shrugs and honest refusals — and it is recorded apart.
+            unsent.append({"n": s.get("n"), "turn": s.get("turn", ""), "line": action[5:],
+                           "error": str(s.get("error", ""))[:200],
+                           "popups": [x for x in (s.get("open") or {}).get("popups", [])
+                                      if "(not modal)" not in str(x)]})
             continue
         inbox = run / "inbox" / st.name
         req = _read(inbox) if inbox.is_file() else {}
@@ -533,7 +557,8 @@ def judge_run(run: pathlib.Path) -> dict:
     for r in rows:
         counts[r["class"]] = counts.get(r["class"], 0) + 1
     p1 = [r for r in rows if r["class"] in C.PROXY_CLASSES]
-    return {"lines": len(rows), "classes": counts, "p1": p1, "rows": rows}
+    return {"lines": len(rows), "classes": counts, "p1": p1, "rows": rows,
+            "unsent": unsent, "n_unsent": len(unsent)}
 
 
 def cmd_judge(args) -> int:
@@ -541,7 +566,8 @@ def cmd_judge(args) -> int:
     record = judge_run(run)
     _write(run / "judge.json", record)
     print(json.dumps({"lines": record["lines"], "classes": record["classes"],
-                      "p1": [(r["n"], r["line"], r["class"]) for r in record["p1"]]}, indent=1,
+                      "p1": [(r["n"], r["line"], r["class"]) for r in record["p1"]],
+                      "unsent": [(r["n"], r["line"], r["popups"]) for r in record["unsent"]]}, indent=1,
                      ensure_ascii=False))
     return 0
 

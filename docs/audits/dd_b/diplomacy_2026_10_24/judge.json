@@ -1,0 +1,184 @@
+{
+ "lines": 19,
+ "classes": {
+  "answered": 4,
+  "as_meant": 14,
+  "unjudged_other": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 20,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 21,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, scout Swabia",
+   "meant": "scout Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney scouts Swabia: Controlled by Bavaria. Terrain: Plains. Enemy forces: Mack (Austria): ~52,000 troops"
+  },
+  {
+   "n": 41,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "who am I fighting",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "We are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score +0 (evenly matched), in its 2nd turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Redeem Italy; Russia pursues Arbiter of Europe. Each war is on the war banner on the left (click the war); every court's design in the Diplomatic Ledger (press D)."
+  },
+  {
+   "n": 42,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 108,125 with the corps likely to arrive, up to 114,642 if all march) vs Mack (52,000 men) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the"
+  },
+  {
+   "n": 49,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (21,741; expect about 105,220 with the corps likely to arrive) vs Mack (32,023 men) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him — but he and Ney are at odds; expect about half his weight\n  WILL NOT — Bernadotte: hesitates — the I Corps"
+  },
+  {
+   "n": 50,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (21,741; expect about 105,220 with the corps likely to arrive) vs Mack (32,023 men) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him — but he and Ney are at odds; expect about half his weight\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a writ"
+  },
+  {
+   "n": 65,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Davout, move to Rhineland",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Swabia to Rhineland"
+  },
+  {
+   "n": 66,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Murat, move to Rhineland",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Swabia to Rhineland"
+  },
+  {
+   "n": 95,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Lannes, move to Rhineland",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Swabia to Rhineland\nRhineland feeds 60,000; the 61,808 men standing there would lose ~1,263 a turn to short supply."
+  },
+  {
+   "n": 96,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Napoleon, move to Rhineland",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon moves from Swabia to Rhineland\nRhineland feeds 60,000; the 70,973 men standing there would lose ~2,322 a turn to short supply."
+  },
+  {
+   "n": 118,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Davout, move to Frankfurt",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Rhineland to Frankfurt (353 lost to march)"
+  },
+  {
+   "n": 119,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Murat, move to Frankfurt",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Rhineland to Frankfurt (199 lost to march)"
+  },
+  {
+   "n": 120,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Lannes, move to Lorraine",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Rhineland to Lorraine"
+  },
+  {
+   "n": 121,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Napoleon, move to Lorraine",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon moves from Rhineland to Lorraine\nLorraine feeds 60,000; the 53,760 men standing there would lose ~1,074 a turn to crowding — too many corps on one province."
+  },
+  {
+   "n": 150,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Lannes, move to Rhineland",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes moves from Lorraine to Rhineland"
+  },
+  {
+   "n": 151,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Napoleon, move to Rhineland",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon moves from Lorraine to Rhineland"
+  },
+  {
+   "n": 172,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "what if Soult attacks Paget",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Soult stands at Lorraine, beyond reach of Paget at Gascony this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 173,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Soult, pursue Paget",
+   "meant": "pursue Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult pursues Paget (at Gascony). Moves to Orleanais. \"Soult, pursue Paget.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 260,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "cancel Soult's pursuit",
+   "meant": "other: cancel Soult's pursuit of Paget now that Britain is at peace",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Soult awaits further orders."
+  }
+ ],
+ "unsent": [],
+ "n_unsent": 0
+}

@@ -165,6 +165,57 @@ class TestTheJudge:
         assert [r["class"] for r in rec["rows"]] == ["as_meant"] * 4
         assert rec["p1"] == []
 
+    def test_the_musters_standing_line_is_not_a_board_refusal(self, tmp_path):
+        """S14e (October 24, 2026): "Standing modifiers, already in the band:"
+        rides every executed attack's muster; `already in` read nine fought
+        battles of the conquest road as board refusals. A true "already in"
+        refusal still reads as one."""
+        run = self._run(tmp_path, [
+            ("Ney, attack Mack", "attack Ney",
+             {"success": True, "message": "MUSTER — Ney (21,725) vs Mack at Munich — the balance of force "
+                                          "looks favorable.\n  WILL NOT — Davout: has already marched this turn\n"
+                                          "  Standing modifiers, already in the band: the ground favors the "
+                                          "defender (+25%, mountains).\nNey engages in solid combat. Ney gains "
+                                          "the advantage over Mack. ⚔"}),
+            ("Ney, form square", "other: form square",
+             {"success": False, "message": "Ney is already in square formation."}),
+            ("Ney, fortify", "fortify Ney",
+             {"success": False, "message": "Ney is already in square formation."}),
+        ])
+        classes = [r["class"] for r in P.judge_run(run)["rows"]]
+        assert classes == ["as_meant", "unjudged_other", "board_refusal"]
+
+    def test_a_line_the_engine_never_sent_is_not_judged(self, tmp_path):
+        """S14e (October 24, 2026): a line typed under a modal never reaches
+        the game (`_act_type` refuses: "the command line is not taking orders
+        now"); twelve such lines of the conquest road read as shrugs and
+        honest refusals. They are listed apart, never classified."""
+        run = self._run(tmp_path, [
+            ("what if Massena attacks Kutuzov", "question", {"success": True, "message": "Were you to…"}),
+            ("Davout, move to Vienna", "move Davout", None),
+        ])
+        st = run / "state" / "0002.json"
+        rec = json.loads(st.read_text(encoding="utf-8"))
+        rec.update({"ok": False, "error": "the command line is not taking orders now (it is disabled)",
+                    "open": {"popups": ["incoming_proposal", "war_status_panel (not modal)"]}})
+        rec.pop("reply", None)
+        st.write_text(json.dumps(rec), encoding="utf-8")
+        out = P.judge_run(run)
+        assert out["lines"] == 1 and [r["class"] for r in out["rows"]] == ["answered"]
+        assert out["n_unsent"] == 1
+        assert out["unsent"][0]["n"] == 2 and out["unsent"][0]["popups"] == ["incoming_proposal"]
+        assert out["p1"] == []
+
+    def test_a_halt_meant_as_a_hold_is_the_march_cancelled(self, tmp_path):
+        """S14e (October 24, 2026): the sea road's one judged P1 — "Murat,
+        halt" (meant hold, the nearest family) answered "halts his march and
+        awaits new orders": the march cancelled, as the player wanted."""
+        run = self._run(tmp_path, [
+            ("Murat, halt", "hold Murat",
+             {"success": True, "message": "Murat halts his march and awaits new orders."}),
+        ])
+        assert [r["class"] for r in P.judge_run(run)["rows"]] == ["as_meant"]
+
     def test_a_support_halted_at_the_approach_is_the_support_meant(self, tmp_path):
         """The diplomacy road's one false misread (S13)."""
         run = self._run(tmp_path, [
@@ -345,6 +396,109 @@ class TestThePlayersHands:
 
 AUD = REPO / "docs" / "audits" / "dd_b"
 ROADS = ("conquest", "diplomacy", "sea")
+
+
+class TestTheMetricTool:
+    """S14e (October 24, 2026): the metric is read off the records by ONE
+    tool, `tools/dd_b_metric.py`, which reproduces the first measure's
+    committed `metric.json` byte for byte from its `causes.json` and the
+    three roads' `rows.json` — so the re-measure's figures come from a
+    checked instrument, not a hand."""
+
+    def test_the_first_measure_is_reproduced(self):
+        import dd_b_metric as M
+        causes = json.loads((AUD / "causes.json").read_text(encoding="utf-8"))
+        roads = {road: AUD / road for road in ROADS}
+        assert M.check(causes, roads) == []
+        got = M.metric(causes, roads)
+        want = json.loads((AUD / "metric.json").read_text(encoding="utf-8"))
+        assert got == want
+
+    def test_the_check_names_an_orphan_row_and_a_missing_frame(self, tmp_path):
+        import dd_b_metric as M
+        run = tmp_path / "conquest"
+        run.mkdir()
+        (run / "rows.json").write_text(json.dumps([{"id": 1}, {"id": 2}]), encoding="utf-8")
+        (run / "run.json").write_text(json.dumps({"turn_number": 21}), encoding="utf-8")
+        causes = {"causes": [{"id": "X-1", "sightings": [
+            {"road": "conquest", "row": 1, "severity": "P2", "frame": "no/such/frame.jpg"}]}],
+            "struck": []}
+        problems = M.check(causes, {"conquest": run})
+        assert any("row 2 is neither" in p for p in problems)
+        assert any("not in the repository" in p for p in problems)
+        m = M.metric(causes, {"conquest": run})
+        assert m["per_road"]["conquest"] == {"turns": 20, "rows": 1, "by_severity": {"P1": 0, "P2": 1, "P3": 0},
+                                             "per_10_turns": 0.5, "player_rows_filed": 2,
+                                             "player_rows_struck": 0}
+        assert m["across"]["done_when"] == {"under_5_per_10": True, "zero_p1": True}
+        assert m["done_when_met"] is True
+
+
+class TestTheReMeasureRecords:
+    """S14e (October 24, 2026) — DD-B's re-measure on the DD-B instrument:
+    three fresh players, the same brief and roads, 20 turns each in the
+    client. Its records agree with each other as the first measure's do:
+    every player row a sighting of a filed cause (or struck with its reason),
+    the metric read off the records by the ONE tool, every cause a tagged
+    ledger row whose cited frames are in the repository; and the done-when
+    is read as the tool reads it."""
+
+    DATE = "2026_10_24"
+
+    def _causes(self):
+        return json.loads((AUD / f"causes_{self.DATE}.json").read_text(encoding="utf-8"))
+
+    def _roads(self):
+        return {road: AUD / f"{road}_{self.DATE}" for road in ROADS}
+
+    def test_three_roads_of_twenty_turns_in_the_client(self):
+        for road, d in self._roads().items():
+            run = json.loads((d / "run.json").read_text(encoding="utf-8"))
+            assert run["road"] == road and run["turn_number"] == 21, road
+            assert run["n_script_errors"] == 0, road
+            assert run["port"] != 8005
+            meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+            assert meta["window"] == "5120x1440" and "godot" not in meta
+            for name in ("rows.json", "judge.json", "actions.log", "summaries.md", "player_notes.md"):
+                assert (d / name).is_file(), (road, name)
+
+    def test_every_player_row_is_a_sighting_or_struck(self):
+        import dd_b_metric as M
+        assert M.check(self._causes(), self._roads()) == []
+
+    def test_the_metric_is_the_tools_reading_of_the_records(self):
+        import dd_b_metric as M
+        rec = self._causes()
+        metric = json.loads((AUD / f"metric_{self.DATE}.json").read_text(encoding="utf-8"))
+        assert metric == M.metric(rec, self._roads())
+        across = metric["across"]
+        assert across["turns"] == 60
+        assert across["rows"] == len(rec["causes"])
+        assert across["per_10_turns"] == round(len(rec["causes"]) / 6, 1)
+        assert metric["done_when_met"] == (across["per_10_turns"] < 5 and across["by_severity"]["P1"] == 0)
+
+    def test_the_judge_read_every_sent_line_and_found_no_p1(self):
+        for road, d in self._roads().items():
+            judge = json.loads((d / "judge.json").read_text(encoding="utf-8"))
+            assert judge["p1"] == [], road
+            assert judge["lines"] == len(judge["rows"])
+            assert all(r["class"] != "" for r in judge["rows"])
+            for u in judge.get("unsent", []):
+                assert "not taking orders" in u["error"], (road, u)
+
+    def test_every_cause_is_a_tagged_ledger_row_with_its_frames(self):
+        rec = self._causes()
+        bugs = doc_text("BUG_FIXES.md")
+        design = doc_text("DESIGN_REFINEMENT.md")
+        for c in rec["causes"]:
+            line = next(ln for ln in bugs.splitlines() if ln.startswith(f"| **{c['id']}** |"))
+            assert "⟨SF step=pre-deploy S14e · DD-B re-measure · pillar=" in line, c["id"]
+            assert f"pillar={c['pillar']}⟩" in line, c["id"]
+            if c.get("dr_id"):
+                assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
+            for s in c["sightings"]:
+                assert (REPO / s["frame"]).is_file(), s["frame"]
+                assert s["frame"] in line, (c["id"], s["frame"])
 
 
 class TestTheRecords:
