@@ -166,6 +166,7 @@ class CaptureExecutor:
                 }],
                 "capture_choice": "plunder",
             }
+            self._append_road_note(world, region_name, response)
             self._maybe_mount_estate_choice(world, region, capturer_name,
                                             pending, response)
             return response
@@ -193,6 +194,7 @@ class CaptureExecutor:
                 }],
                 "capture_choice": "secure",
             }
+            self._append_road_note(world, region_name, response)
             self._maybe_mount_estate_choice(world, region, capturer_name,
                                             pending, response)
             return response
@@ -210,6 +212,16 @@ class CaptureExecutor:
                 "pending_capture_choice": True,
                 "capture_data": pending,
             }
+
+    @staticmethod
+    def _append_road_note(world, region_name: str, response: Dict) -> None:
+        """S14E-15: the capture reply names the formable road the province
+        lies on ("Ireland needs Ulster too — …"), read LIVE from the ONE
+        builder at the moment of the answer. No road begun, no sentence."""
+        from backend.game_logic.formations import road_note_for
+        note = road_note_for(world, region_name)
+        if note:
+            response["message"] += f" {note}."
 
     # ── W6-8: the estate stage ────────────────────────────────────────
 

@@ -912,8 +912,10 @@ def muster_expected_totals(marshal, enemy, world):
     _hint_shown = getattr(world, "muster_hint_shown", False)
     try:
         from backend.commands.executor import CommandExecutor
+        # S14E-12: the totals need no spread (floor / bad day are display
+        # only); the objection reads this on every attack order.
         preview = CommandExecutor()._combat._build_muster_preview(
-            marshal, enemy, world, {"world": world})
+            marshal, enemy, world, {"world": world}, with_spread=False)
         world.muster_hint_shown = _hint_shown
         atk = int(((preview or {}).get("attacker") or {}).get("committed_strength") or 0)
         dfn = int(((preview or {}).get("target") or {}).get("committed_strength") or 0)

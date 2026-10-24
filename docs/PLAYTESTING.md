@@ -1018,7 +1018,10 @@ only the screen can verify.
   P1 count, the done-when (under 5 per 10 turns and 0 P1). The second measure's
   records are `docs/audits/dd_b/{conquest,diplomacy,sea}_2026_10_24/`,
   `causes_2026_10_24.json` and `metric_2026_10_24.json`; the write-up
-  `docs/audits/DD_B_RE_MEASURE_2026_10_24.md`.
+  `docs/audits/DD_B_RE_MEASURE_2026_10_24.md`. Its rows landed as S14f: part 1
+  (October 24, 2026, `SYSTEMS_REFERENCE.md` §150) the P1, the four rulings and
+  the fourteen P2s; part 2 the P3s and the closing re-play of every sighting on
+  the instrument (`tools/dd_b_play.py`, the cited frames re-shot).
 
 ---
 

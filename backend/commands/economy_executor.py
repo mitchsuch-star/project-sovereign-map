@@ -15,7 +15,7 @@ from backend.models.world_state import (
     LEVY_SUBSTITUTE_MULT, LEVY_SCARCITY_FLOOR, LEVY_SCARCITY_MULT,
     LEVY_MORALE_BASE, LEVY_MORALE_PREMIUM, LEVY_MAX_BATCH, severe_band_threshold,
 )
-from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import marshal_title, plural  # SF5-X3: the ONE style for a marshal in prose
 from backend.errors import report
 
 
@@ -1664,7 +1664,7 @@ class EconomyExecutor:
         if marshal_specified:
             base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} at {recruit_marshal.location}"
         elif location_specified:
-            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({distance} regions away)"
+            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({plural(distance, 'region')} away)"
         else:
             base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} (nearest to capital)"
 
@@ -1858,10 +1858,12 @@ class EconomyExecutor:
         pool_line = f"\n{recruit_type.title()} pool: {available:,} -> {pool_after:,}"
 
         # --- Morale warning (Session 31) ---
+        # S14E-7: "low" is the dispatch's "failing" — one threshold.
+        from backend.game_logic.dispatch import MORALE_FAILING_BELOW
         morale_warning = ""
         if new_morale < 25:
             morale_warning = f" [DANGER] Morale critically low at {new_morale}% — troops may break in combat!"
-        elif new_morale < 40:
+        elif new_morale < MORALE_FAILING_BELOW:
             # DDB-39 (Pre-Deploy S13b part 2): "dropped" only when it fell —
             # "Morale dropped to 26%" followed "Morale: 21% -> 26%".
             if new_morale < old_morale:

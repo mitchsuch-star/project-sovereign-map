@@ -3070,6 +3070,21 @@ class StrategicOrderProcessor:
         }
 
     def _execute_strategic_turn(self, marshal, world, game_state) -> Optional[Dict]:
+        """Execute one turn of a marshal's strategic order — and say what the
+        step cost the Descent camp (S14E-XJ1, the sweep of S14E-13): a standing
+        march's step out of the camp provinces resets the staging count at the
+        turn's end tick exactly as the order's first step does, and the turn
+        report said only "marches to X"."""
+        origin = marshal.location
+        report = self._strategic_turn_step(marshal, world, game_state)
+        if (isinstance(report, dict) and isinstance(report.get("message"), str)
+                and marshal.location != origin):
+            from backend.commands.movement_executor import camp_leave_note
+            report["message"] += camp_leave_note(
+                world, marshal, [marshal.location], origin)
+        return report
+
+    def _strategic_turn_step(self, marshal, world, game_state) -> Optional[Dict]:
         """Execute one turn of a marshal's strategic order."""
         order = marshal.strategic_order
         if not order:

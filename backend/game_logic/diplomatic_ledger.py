@@ -1707,6 +1707,9 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         _status = mission_status(world) or {}
         active_mission["type_display"] = str(_status.get("type_display", ""))
         active_mission["net_per_turn"] = int(_status.get("net_per_turn", 0) or 0)
+        # S14E-9: the mission's books (earned, shocks with their cause, the
+        # paused turns) — the same line the Cabinet row and the rail print.
+        active_mission["ledger_line"] = str(_status.get("ledger_line", ""))
         active_mission["remaining_note"] = str(_status.get("remaining_note", ""))
         active_mission["remaining_kind"] = str(_status.get("remaining_kind", ""))
 

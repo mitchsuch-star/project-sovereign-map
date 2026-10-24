@@ -471,8 +471,13 @@ def war_purpose_action(world: Any, player: str, target: str) -> Optional[Dict[st
     rec = _record(world, player, target)
     if rec is not None and rec.get("concluded_turn") is None and rec.get("type") != "defense":
         return None
+    # S14E-5: shown == applied — with a third court on the target's capital
+    # the card offers no purpose (`diplomacy.get_available_war_objectives`),
+    # so the row is shut with the card's own reason.
+    from backend.game_logic.diplomacy import no_war_purpose_reason
+    why_not = no_war_purpose_reason(world, player, target)
     return {"action": "set_war_purpose", "display_name": "Set War Purpose", "dp_cost": 0,
-            "available": True, "disabled_reason": "",
+            "available": not why_not, "disabled_reason": why_not,
             "effect_text": f"name what the war is for, and up to {MAX_DECLARED_ARTICLES} articles"}
 
 
@@ -809,8 +814,17 @@ def _candidate_description(world: Any, article: Mapping[str, Any]) -> str:
     alarm = int(article.get("alarm", 0) or 0)
     if kind == KIND_PROVINCE:
         region = str(article.get("region") or "")
-        capital = str(world.get_nation_capital(str(article.get("from") or "")) or "")
+        court = str(article.get("from") or "")
+        capital = str(world.get_nation_capital(court) or "")
         what = f"{target}'s capital" if region == capital else f"a province of {target}'s"
+        # S14E-5: a rump's last province says so — taking it ends the court.
+        from backend.game_logic.diplomacy import court_holdings
+        held = court_holdings(world, court)
+        if held["rump"] and held["held"] == [region]:
+            last = (f"{target}'s last province, and its capital" if region == capital
+                    else f"{target}'s last province")
+            return (f"{last} — taking it ends {target}; +{alarm} alarm now, "
+                    f"half back if the peace drops it.")
         return f"{what} — +{alarm} alarm now; half back if the peace drops it."
     if kind == KIND_INDEMNITY:
         return f"{target} pays for the war — +{alarm} alarm now; half back if the peace drops it."

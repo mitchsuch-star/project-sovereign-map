@@ -1793,6 +1793,15 @@ def _answer_what_if(world, player: str, enemy_name: str,
                 f"{enemy.location}, Sire — there is no battle to weigh.")
     from backend.commands.executor import CommandExecutor
     combat = CommandExecutor()._combat
+    # S14E-4: the order asks `field_on_peace_soil` before it weighs a field
+    # (`_execute_attack`, after the declaration) — a corps standing on soil of
+    # a court we are at peace with is refused at no cost, so the answer is that
+    # refusal and no muster. (A court not at war with us is put a declaration
+    # first: `preface` says so, and the muster follows as it always did.)
+    if not preface:
+        refusal = _peace_soil_refusal_text(combat, world, candidates[0], enemy)
+        if refusal:
+            return refusal
     preview = combat._build_muster_preview(
         candidates[0], enemy, world, {"world": world})
     if not preview:
@@ -1805,6 +1814,20 @@ def _answer_what_if(world, player: str, enemy_name: str,
         return None
     return (preface + "Were you to give the order, Sire:\n" + str(text).strip()
             + "\n\nNothing has been ordered, and nothing spent.")
+
+
+def _peace_soil_refusal_text(combat, world, lead, enemy) -> str:
+    """S14E-4: the order's own refusal of a field on soil we are at peace
+    with (`combat_executor.field_on_peace_soil` — the lead's rule, DDB-14),
+    in the words the order itself prints (`peace_soil_refusal`), for the
+    what-if to say before it weighs a muster. '' when the field is open."""
+    from backend.commands.combat_executor import field_on_peace_soil, peace_soil_refusal
+    block = field_on_peace_soil(combat, lead, enemy.location, world,
+                                enemy_nation=enemy.nation)
+    if block is None:
+        return ""
+    said = str(peace_soil_refusal(lead, enemy, block)["message"])
+    return f"The order would be refused, Sire: {said} Nothing spent."
 
 
 def _the_named_corps(world, player: str, marshal_name: str, foreign: bool,
@@ -1960,6 +1983,14 @@ def _answer_what_if_region(world, player: str, region_name: str,
                     f"{crossing.get('message')} Nothing spent.")
     closing = "\n\nNothing has been ordered, and nothing spent."
     if enemy_there is not None:
+        # S14E-4 (the army what-if's sibling): the province road asks the
+        # lead's rule too — `attack Moravia` against a corps standing there
+        # is the same order, and the same refusal.
+        from backend.commands.executor import CommandExecutor
+        refusal = _peace_soil_refusal_text(CommandExecutor()._combat, world,
+                                           chosen, enemy_there)
+        if refusal:
+            return refusal
         text = _muster_lines(world, chosen, enemy_there)
         if not text:
             return None

@@ -302,6 +302,46 @@ def supply_warning_line(world, marshal) -> str:
             f"~{forecast['loss']:,} a turn to {why}.")
 
 
+def departure_note(marshal, *, quote: bool = False) -> str:
+    """S14E-13's sweep (Pre-Deploy S14f part 1): what a march costs the corps
+    as it STANDS, said before the step — Davout's Iron Resolve stacks (any
+    real location change clears them, MC-1c), a formed square (the move
+    breaks it), a turn-1 drill (the troops disperse). The QUOTE (`quote=True`,
+    the order card's and the panel's) names all three beside the camp line;
+    the REPLY names only the stacks, since the move already prints the
+    square's break and the drill's cancellation. Read BEFORE `move_to`."""
+    from backend.display_names import humanize_entity_name
+    name = humanize_entity_name(marshal.name)
+    parts = []
+    stacks = int(getattr(marshal, "iron_resolve_stacks", 0) or 0)
+    if stacks > 0:
+        per_stack = float(getattr(type(marshal), "IRON_RESOLVE_BONUS_PER_STACK", 0.08))
+        bonus = int(round(stacks * per_stack * 100))
+        word, verb = ("stack", "is") if stacks == 1 else ("stacks", "are")
+        parts.append(f"{name}'s {stacks} Iron Resolve {word} (+{bonus}% on his next "
+                     f"attack) {verb} lost to the march.")
+    if quote:
+        if getattr(marshal, "square_formation", False):
+            parts.append(f"{name}'s square breaks on the march.")
+        if (getattr(marshal, "drilling", False)
+                and not getattr(marshal, "drilling_locked", False)):
+            parts.append(f"{name}'s drill is lost to the march — the troops "
+                         f"disperse before the training completes.")
+    return " ".join(parts)
+
+
+def camp_leave_note(world, marshal, road, origin=None) -> str:
+    """S14E-13 (Pre-Deploy S14f part 1): the Descent camp's cost of a march
+    out of its provinces — "Picardy lies outside the camp — this takes
+    46,500 men out of it; the 2-turn count resets at the turn's end." — on a
+    line of its own beside `supply_warning_line`, '' when the move costs the
+    camp nothing (`naval.camp_leave_line`, read off the camp's own predicate).
+    `road` is the stops made, `origin` where the corps started."""
+    from backend.game_logic.naval import camp_leave_line
+    line = camp_leave_line(world, marshal, road, origin)
+    return f"\n{line}" if line else ""
+
+
 class MovementExecutor:
     """Handles movement and reconnaissance actions: move, scout, retreat."""
 
@@ -952,6 +992,9 @@ class MovementExecutor:
                 }
 
         old_location = marshal.location
+        # S14E-13's sweep: what the step costs the corps as it stands (read
+        # before the move clears it).
+        depart_msg = departure_note(marshal)
         marshal.move_to(target_name)
 
         # Artillery: Mark as having moved this turn (blocks attacking)
@@ -1087,6 +1130,14 @@ class MovementExecutor:
                 # narrates through the enemy phase, not here.
                 if capture_result.get("auto_secured"):
                     capture_note = " The province is secured."
+                    # S14E-15: no question mounts on this road, so the formable
+                    # road the column stands on is said here ("Ireland needs
+                    # Ulster too — …"), from the ONE builder.
+                    if marshal.nation == world.player_nation:
+                        from backend.game_logic.formations import road_note_for
+                        _road = road_note_for(world, target_name)
+                        if _road:
+                            capture_note += f" {_road}."
                     # WO-D11's copy half (SR-6b, Oct 2 2026): a mid-march
                     # capture auto-secures, so no plunder/secure question
                     # mounts and the estate prune strips the holder's title
@@ -1228,10 +1279,14 @@ class MovementExecutor:
         # supply the stack outruns says so, with the forecast loss — the
         # shortage struck at turn start with no word (diplomacy-first #7).
         supply_msg = supply_warning_line(world, marshal)
+        # S14E-13: and the camp it leaves, if it leaves one.
+        camp_msg = camp_leave_note(world, marshal, [target_name], old_location)
+        if depart_msg:
+            camp_msg += f"\n{depart_msg}"
 
         result = {
             "success": True,
-            "message": move_message + supply_msg + capture_hint_msg,
+            "message": move_message + supply_msg + camp_msg + capture_hint_msg,
             "capture_note": capture_note,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,

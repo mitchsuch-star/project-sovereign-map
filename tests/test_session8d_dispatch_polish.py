@@ -341,6 +341,10 @@ class TestDispatchDiplomaticEvents:
     def test_mission_progress_appears_in_dispatch(self):
         world = _make_world()
         world.active_diplomatic_mission = {"target": "Prussia", "type": "court_nation"}
+        # S14E-9 (flipped): the line quotes the relation when the dispatch is
+        # BUILT, so the live relation stands at 25 here (it used to be the
+        # `value` queued at the tick, whatever the relation had become since).
+        _set_relation(world, "France", "Prussia", 25)
         queue_dispatch_event(world, "diplomatic_mission_progress",
                             {"nation": "Prussia", "value": 25}, "player_mission")
         dispatch = build_morning_dispatch(world)

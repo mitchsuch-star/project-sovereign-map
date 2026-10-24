@@ -480,13 +480,19 @@ def _is_pooled_partner(world, principal: str, partner: str, against: str) -> boo
 
 
 def combined_effective(world, nation: str, against: str,
-                       match_posture: Optional[str] = None) -> float:
+                       match_posture: Optional[str] = None,
+                       own_readiness: Optional[int] = None) -> float:
     """Pooled effective strength of `nation`'s side against `against`
     (§3.1). Pool = co-belligerent allies/vassals at ×0.8 each, computed at
     read time from diplomatic state — no pool object. `match_posture`
     restricts partners to the same mode (coverage pooling, §3.1
-    "same mode+target")."""
+    "same mode+target"). `own_readiness` (S14E-14) reads the principal's OWN
+    fleet at another readiness — the failed diversion's, `diversion_failure_
+    readiness` — without touching the record; a pooled partner keeps her
+    own."""
     own = get_fleet(world, nation)
+    if own and own_readiness is not None:
+        own = {**own, "readiness": int(own_readiness)}
     total = effective_strength(own) if own else 0.0
     for partner, rec in iter_fleets(world):
         if not _is_pooled_partner(world, nation, partner, against):
@@ -1888,14 +1894,18 @@ def _pct_roll(world, namespace: str, chance_pct: int) -> bool:
     return seeded_int(_seed(world), namespace, 0, 99) < int(chance_pct)
 
 
-def resolve_fleet_action(world, attacker: str, defender: str,
-                         context: str = "action") -> Dict:
-    """§4.4 — fires in exactly two situations (an intercepted expedition, a
-    caught diversion); never orderable, never ambient. Compares pooled
-    effective strengths; loser 20% + 15%×min(r−1,1), winner 8%/max(r,1),
-    seeded jitter ±10%; ratio ≥ 1.5 → decisive (loser extra −20%, the
-    `trafalgar` beat, loser WE +8). No land-combat code is touched."""
-    atk_eff = combined_effective(world, attacker, defender)
+def _fleet_action_odds(world, attacker: str, defender: str, jitter: float = 0.0,
+                       attacker_readiness: Optional[int] = None) -> Dict:
+    """§4.4's arithmetic, ONE copy (S14E-14): who wins on pooled effective
+    strength, the ratio, whether it is decisive, and each side's loss
+    fraction at `jitter` (the resolver passes the seeded roll; the forecast
+    passes 0.0 — the expected action). `attacker_readiness` reads the
+    attacker's own fleet at another readiness without touching the record
+    (the failed diversion fights at `diversion_failure_readiness`). The
+    resolver and `fleet_action_forecast` both read it, so what the card
+    quotes is what the action takes."""
+    atk_eff = combined_effective(world, attacker, defender,
+                                 own_readiness=attacker_readiness)
     def_eff = combined_effective(world, defender, attacker)
     if atk_eff >= def_eff:
         winner, loser, w_eff, l_eff = attacker, defender, atk_eff, def_eff
@@ -1904,12 +1914,6 @@ def resolve_fleet_action(world, attacker: str, defender: str,
     ratio = (w_eff / l_eff) if l_eff > 0 else 3.0
     decisive = ratio >= FLEET_ACTION_DECISIVE_RATIO
 
-    from backend.game_logic.campaign_variance import seeded_int
-    jitter = seeded_int(
-        _seed(world),
-        f"naval::action::{int(world.current_turn)}::{attacker}::{defender}",
-        -FLEET_ACTION_JITTER_PCT, FLEET_ACTION_JITTER_PCT) / 100.0
-
     loser_frac = (FLEET_ACTION_LOSER_BASE
                   + FLEET_ACTION_LOSER_SCALE * min(ratio - 1.0, 1.0))
     if decisive:
@@ -1917,6 +1921,111 @@ def resolve_fleet_action(world, attacker: str, defender: str,
     winner_frac = FLEET_ACTION_WINNER_BASE / max(ratio, 1.0)
     loser_frac = max(0.05, loser_frac * (1.0 + jitter))
     winner_frac = max(0.01, winner_frac * (1.0 - jitter))
+    return {"winner": winner, "loser": loser, "ratio": ratio,
+            "decisive": bool(decisive), "loser_frac": loser_frac,
+            "winner_frac": winner_frac,
+            "attacker_effective": atk_eff, "defender_effective": def_eff}
+
+
+def fleet_action_forecast(world, attacker: str, defender: str,
+                          attacker_readiness: Optional[int] = None) -> Optional[Dict]:
+    """S14E-14 (Pre-Deploy S14f part 1): what `resolve_fleet_action` would take
+    from each pooled fleet if `attacker` met `defender` now — the EXPECTED
+    action (the seeded ±10% jitter at 0): the effective strengths, the ratio,
+    the verdict and, fleet by fleet, ships before, lost and left. Built from
+    the resolver's own arithmetic (`_fleet_action_odds`, `combined_effective`,
+    the `FLEET_ACTION_*` constants and the loss rounding of
+    `_side_loss_counts`), never a second formula; PURE — nothing is written.
+    `attacker_readiness` reads the attacker's own fleet at another readiness
+    (the failed diversion's). None when either side has no fleet to meet."""
+    if not get_fleet(world, attacker) or not get_fleet(world, defender):
+        return None
+    odds = _fleet_action_odds(world, attacker, defender, 0.0, attacker_readiness)
+    if odds["attacker_effective"] <= 0 and odds["defender_effective"] <= 0:
+        return None
+    fracs = {odds["loser"]: odds["loser_frac"], odds["winner"]: odds["winner_frac"]}
+    sides: Dict[str, Dict] = {}
+    for key, principal, enemy in (("attacker", attacker, defender),
+                                  ("defender", defender, attacker)):
+        counts = _side_loss_counts(world, principal, enemy, fracs[principal])
+        fleets = []
+        for member, lost in counts.items():
+            ships = int((get_fleet(world, member) or {}).get("ships", 0) or 0)
+            fleets.append({"nation": member, "ships": int(ships),
+                           "lost": int(lost), "left": int(ships - lost)})
+        sides[key] = {"nation": principal,
+                      "fraction_pct": int(round(fracs[principal] * 100)),
+                      "fleets": fleets}
+    readiness = (int(attacker_readiness) if attacker_readiness is not None
+                 else int((get_fleet(world, attacker) or {}).get("readiness", 0) or 0))
+    return {
+        "attacker": attacker, "defender": defender,
+        "winner": odds["winner"], "loser": odds["loser"],
+        "decisive": bool(odds["decisive"]), "ratio": round(odds["ratio"], 2),
+        "attacker_effective": int(round(odds["attacker_effective"])),
+        "defender_effective": int(round(odds["defender_effective"])),
+        "attacker_readiness": int(readiness),
+        "attacker_side": sides["attacker"], "defender_side": sides["defender"],
+    }
+
+
+def _share_phrase(fraction_pct: int) -> str:
+    """"about half" near 50%, else "about N%"."""
+    if 45 <= int(fraction_pct) <= 55:
+        return "about half"
+    return f"about {int(fraction_pct)}%"
+
+
+def _fleets_phrase(fleets: List[Dict]) -> str:
+    from backend.display_names import display_nation
+    return ", ".join(
+        f"{display_nation(f['nation'])} {f['ships']}→~{f['left']}" for f in fleets)
+
+
+def fleet_action_clause(forecast: Optional[Dict]) -> str:
+    """The forecast, said once for every surface (the Grand Diversion's card,
+    chip note, ledger term and help; the expedition's intercept arm):
+    "she meets Britain's 116 effective against our 53 — a decisive defeat is
+    the likely result: about half of every pooled fleet (France 49→~25, Spain
+    33→~17, Holland 12→~6) is lost; Britain's side loses ~4%." — the caller
+    prefixes the condition ("If she is caught …", "If she is intercepted …").
+    "" when there is nothing to forecast. Written for OUR side as `attacker`;
+    its tail adapts when she would carry the action instead."""
+    if not forecast:
+        return ""
+    from backend.display_names import display_nation
+    foe = display_nation(forecast["defender"])
+    ours, theirs = forecast["attacker_side"], forecast["defender_side"]
+    head = (f"she meets {foe}'s {forecast['defender_effective']} effective "
+            f"against our {forecast['attacker_effective']}")
+    if forecast["loser"] == forecast["attacker"]:
+        verdict = ("a decisive defeat is the likely result" if forecast["decisive"]
+                   else "she is beaten, if not broken")
+        return (f"{head} — {verdict}: {_share_phrase(ours['fraction_pct'])} of "
+                f"every pooled fleet ({_fleets_phrase(ours['fleets'])}) is "
+                f"lost; {foe}'s side loses ~{theirs['fraction_pct']}%.")
+    return (f"{head} — she carries the action: {foe}'s side loses "
+            f"{_share_phrase(theirs['fraction_pct'])} of every pooled fleet "
+            f"({_fleets_phrase(theirs['fleets'])}); ours ~{ours['fraction_pct']}%.")
+
+
+def resolve_fleet_action(world, attacker: str, defender: str,
+                         context: str = "action") -> Dict:
+    """§4.4 — fires in exactly two situations (an intercepted expedition, a
+    caught diversion); never orderable, never ambient. Compares pooled
+    effective strengths; loser 20% + 15%×min(r−1,1), winner 8%/max(r,1),
+    seeded jitter ±10%; ratio ≥ 1.5 → decisive (loser extra −20%, the
+    `trafalgar` beat, loser WE +8). No land-combat code is touched."""
+    from backend.game_logic.campaign_variance import seeded_int
+    jitter = seeded_int(
+        _seed(world),
+        f"naval::action::{int(world.current_turn)}::{attacker}::{defender}",
+        -FLEET_ACTION_JITTER_PCT, FLEET_ACTION_JITTER_PCT) / 100.0
+
+    odds = _fleet_action_odds(world, attacker, defender, jitter)
+    winner, loser = odds["winner"], odds["loser"]
+    ratio, decisive = odds["ratio"], odds["decisive"]
+    loser_frac, winner_frac = odds["loser_frac"], odds["winner_frac"]
 
     losses = {
         loser: _apply_side_losses(world, loser, winner, loser_frac),
@@ -1960,15 +2069,21 @@ def _action_waters(world, a: str, b: str) -> str:
     return f"{display_nation(a)}–{display_nation(b)}"
 
 
-def _apply_side_losses(world, principal: str, enemy: str, frac: float) -> Dict[str, int]:
-    """Apply a loss fraction to every fleet that pooled on this side (the
-    Combined Fleet bled together at Trafalgar — H6)."""
-    out: Dict[str, int] = {}
-    members = [principal] + [
+def _side_members(world, principal: str, enemy: str) -> List[str]:
+    """Every fleet that pooled on `principal`'s side of an action against
+    `enemy` (the Combined Fleet bled together at Trafalgar — H6)."""
+    return [principal] + [
         partner for partner, _rec in iter_fleets(world)
         if _is_pooled_partner(world, principal, partner, enemy)
     ]
-    for member in members:
+
+
+def _side_loss_counts(world, principal: str, enemy: str, frac: float) -> Dict[str, int]:
+    """The ships each fleet of `principal`'s side loses at `frac` — computed,
+    not applied (S14E-14: the resolver's loss rule and the forecast's are
+    this one function)."""
+    out: Dict[str, int] = {}
+    for member in _side_members(world, principal, enemy):
         rec = get_fleet(world, member)
         if not rec:
             continue
@@ -1986,8 +2101,17 @@ def _apply_side_losses(world, principal: str, enemy: str, frac: float) -> Dict[s
         # lone hull rounds to 1 and still goes down.
         lost = int(round(ships * frac)) if frac > 0 else 0
         lost = min(lost, ships)
-        rec["ships"] = int(ships - lost)
         out[member] = int(lost)
+    return out
+
+
+def _apply_side_losses(world, principal: str, enemy: str, frac: float) -> Dict[str, int]:
+    """Apply a loss fraction to every fleet that pooled on this side."""
+    out = _side_loss_counts(world, principal, enemy, frac)
+    for member, lost in out.items():
+        rec = get_fleet(world, member)
+        ships = int(rec.get("ships", 0) or 0)
+        rec["ships"] = int(ships - lost)
     return out
 
 
@@ -2296,6 +2420,50 @@ def levers_line(levers: List[Dict]) -> str:
         f"{lv['label']} → {lv['odds']}" for lv in levers)
 
 
+def expedition_intercepts(world, nation: str, quote: Dict) -> bool:
+    """`resolve_expedition`'s failure-arm test, named (S14E-XJ2): is the
+    covering watch decisive enough that a failed run is INTERCEPTED at sea —
+    the corps −30% and the fleet brought to action — rather than turned back?
+    ONE predicate for the resolver and the card's price."""
+    coverer = quote.get("coverer")
+    if coverer is None:
+        return False
+    escort = max(combined_effective(world, nation, coverer or ""), 1.0)
+    return bool(quote["coverage"] >= EXPEDITION_INTERCEPT_RATIO * escort)
+
+
+def expedition_intercept_clause(world, nation: str, target_region: str,
+                                troops: int) -> str:
+    """S14E-XJ2 (the sweep of S14E-14): an intercepted expedition fights the
+    SAME fleet action a caught diversion does — `resolve_expedition` hands the
+    fleet and the coverer to `resolve_fleet_action`, at the fleet's CURRENT
+    readiness (the −10 is the turned-back arm's) — and the confirm card priced
+    only the corps' 30%. "If she is intercepted she meets …", from
+    `fleet_action_forecast`; "" when this run cannot be intercepted or she
+    keeps no fleet to be brought to action."""
+    quote = expedition_slip_odds(world, nation, target_region, troops)
+    if not expedition_intercepts(world, nation, quote):
+        return ""
+    fleet = get_fleet(world, nation)
+    if not fleet or int(fleet.get("ships", 0) or 0) <= 0:
+        return ""
+    clause = fleet_action_clause(
+        fleet_action_forecast(world, nation, quote["coverer"]))
+    return f"If she is intercepted {clause}" if clause else ""
+
+
+def fleet_action_rule_phrase() -> str:
+    """The action's loss rule from its constants — "the beaten line loses 20%
+    of every pooled fleet, up to 55% in a decisive defeat at 1.5 to 1 or
+    worse" — for the generic notes and the help (S14E-14)."""
+    low = int(round(FLEET_ACTION_LOSER_BASE * 100))
+    high = int(round((FLEET_ACTION_LOSER_BASE + FLEET_ACTION_LOSER_SCALE
+                      + FLEET_ACTION_DECISIVE_EXTRA) * 100))
+    return (f"the beaten line loses {low}% of every pooled fleet, up to "
+            f"{high}% in a decisive defeat at {FLEET_ACTION_DECISIVE_RATIO:g} "
+            f"to 1 or worse")
+
+
 def resolve_expedition(world, marshal, target_region: str) -> Dict:
     """Resolve a confirmed expedition the same turn (no in-flight limbo).
     Success relocates the corps; failure is turned back (small attrition,
@@ -2327,10 +2495,7 @@ def resolve_expedition(world, marshal, target_region: str) -> Dict:
         return result
 
     # Failure arm: decisive coverage → intercepted at sea; else turned back.
-    escort = max(combined_effective(world, marshal.nation,
-                                    quote["coverer"] or ""), 1.0)
-    decisive_coverage = (quote["coverer"] is not None
-                         and quote["coverage"] >= EXPEDITION_INTERCEPT_RATIO * escort)
+    decisive_coverage = expedition_intercepts(world, marshal.nation, quote)
     fleet = get_fleet(world, marshal.nation)
     if decisive_coverage:
         result["intercepted"] = True
@@ -2422,10 +2587,68 @@ def camp_line(world, nation: str) -> str:
                 f"the camp ({where}) — it stages after {need} turns there at "
                 f"war with {foe}, no order needed.")
     if turns >= need:
+        # S14E-13: the staged line names where the camp is, and that a march
+        # out of it is the one thing that undoes it (the sea #5).
         return (f"Staged: {strength:,} men have stood {turns} turns in the camp "
-                f"at war with {foe} — no order needed.")
+                f"({where}) at war with {foe} — no order needed; marching "
+                f"out of those provinces resets the count.")
     return (f"Staged after {need} turns standing at war with {foe} "
             f"({turns} of {need}) — no order needed.")
+
+
+def camp_leave_line(world, marshal, road, origin: Optional[str] = None) -> str:
+    """S14E-13 (Pre-Deploy S14f part 1): a march that takes the camp's men
+    out of the camp provinces resets the staging count, and no order said so
+    (the sea #5: Flanders → Picardy → Artois → Normandy stood the whole
+    46,500-man camp in non-camp Picardy at the turn's end tick, and the
+    Admiralty read "No army is staged").
+
+    The counterpart of `movement_executor.supply_warning_line`: said on the
+    march's reply, the plain move's reply, the standing march's turn report
+    and the confirm card's quote. READ OFF THE CAMP'S OWN PREDICATE —
+    `camp_strength` (the men in `camp_provinces`), `DESCENT_CAMP_MIN_TROOPS`,
+    `_island_war_enemies` and the live `camp_turns` that `_camp_tick` resets —
+    so shown == applied: the line appears exactly when the move changes what
+    the turn's end tick finds.
+
+    `road` is the stops AHEAD of `origin` (the quote: the whole road from
+    where he stands; a reply: the stop he made), `origin` where he started
+    (default: where he stands now). The stop the tick will find him at is the
+    road's `movement_range`-th stop. "" when the move costs the camp nothing:
+    not a corps of the player's, not starting in a camp province, the stop
+    still in the camp, no war with an island power (the camp is not counting),
+    or the men left behind still stand at 40,000 or the men were never
+    enough."""
+    nation = getattr(marshal, "nation", None)
+    if not nation or nation != getattr(world, "player_nation", None):
+        return ""
+    stops = [str(r) for r in (road or []) if r]
+    rec = get_fleet(world, nation) or {}
+    provinces = list(rec.get("camp_provinces") or [])
+    men = int(getattr(marshal, "strength", 0) or 0)
+    if not provinces or not stops or men <= 0:
+        return ""
+    start = origin if origin is not None else marshal.location
+    if start not in provinces:
+        return ""
+    reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
+    stop = stops[min(reach, len(stops)) - 1]
+    if stop in provinces:
+        return ""
+    if not _island_war_enemies(world, nation):
+        return ""
+    standing = camp_strength(world, nation)
+    # The quote reads him still in the camp; a reply reads him already out.
+    in_camp_now = marshal.location in provinces
+    before = standing if in_camp_now else standing + men
+    after = standing - men if in_camp_now else standing
+    if before < DESCENT_CAMP_MIN_TROOPS or after >= DESCENT_CAMP_MIN_TROOPS:
+        return ""
+    turns = int(rec.get("camp_turns", 0) or 0)
+    head = f"{stop} lies outside the camp — this takes {men:,} men out of it"
+    if turns <= 0:
+        return f"{head}; no turn counts toward staging while they stand there."
+    return f"{head}; the {turns}-turn count resets at the turn's end."
 
 
 def pooled_sail_clause(world, nation: str) -> str:
@@ -2539,6 +2762,12 @@ def diversion_terms_for(world, nation: str) -> List[Dict]:
              "unmet": (diversion_wait_sentence(world, nation)
                        or f"the fleet must wait {DIVERSION_WAIT_TURNS} "
                           f"turns between feints")}
+    # S14E-14: the throw's price in ships, said where its terms are — as a
+    # DETAIL of the third term, never a fourth gate (a fourth term would
+    # disable the chip: `test_no_fourth_gate_row_was_added`).
+    price = diversion_failure_clause(world, nation)
+    if price:
+        ready["detail"] = price
     return [
         {"text": "a fleet in commission", "met": own_ships > 0,
          "unmet": "we keep no fleet in commission"},
@@ -2627,6 +2856,49 @@ def diversion_failure_readiness(rec: Optional[dict]) -> int:
     return int(max(READINESS_MIN, current - EXPEDITION_TURNBACK_READINESS))
 
 
+def diversion_hostile(world, nation: str) -> Optional[str]:
+    """The fleet the Grand Diversion draws off — and meets, if it fails: the
+    first at-war island power, else the strongest at-war fleet (the diversion
+    needs a watcher to draw off). ONE source for `resolve_diversion` and the
+    failure forecast (S14E-14: shown == applied)."""
+    enemies = _island_war_enemies(world, nation)
+    hostile = enemies[0] if enemies else None
+    if hostile is None:
+        at_war = [(n, effective_strength(r)) for n, r in iter_fleets(world)
+                  if world.is_at_war(nation, n)]
+        at_war.sort(key=lambda item: -item[1])
+        hostile = at_war[0][0] if at_war else None
+    return hostile
+
+
+def diversion_failure_forecast(world, nation: str) -> Optional[Dict]:
+    """S14E-14: the action a CAUGHT diversion fights — `fleet_action_forecast`
+    of the fleet at `diversion_failure_readiness` against `diversion_hostile`,
+    the very pair `resolve_diversion`'s failure arm hands to
+    `resolve_fleet_action`. None when she has no fleet to sail or no hostile
+    fleet to be caught by."""
+    rec = get_fleet(world, nation)
+    if not rec or int(rec.get("ships", 0) or 0) <= 0:
+        return None
+    hostile = diversion_hostile(world, nation)
+    if hostile is None:
+        return None
+    return fleet_action_forecast(
+        world, nation, hostile,
+        attacker_readiness=diversion_failure_readiness(rec))
+
+
+def diversion_failure_clause(world, nation: str) -> str:
+    """The Grand Diversion's price in ships, said before the order — the card,
+    the chip note, the Admiralty's ledger term and the help all read this one
+    sentence: "If she is caught she meets Britain's 116 effective against our
+    53 — a decisive defeat is the likely result: about half of every pooled
+    fleet (France 49→~25, Spain 33→~17, Holland 12→~6) is lost; Britain's side
+    loses ~4%." "" when there is nothing to be caught by."""
+    clause = fleet_action_clause(diversion_failure_forecast(world, nation))
+    return f"If she is caught {clause}" if clause else ""
+
+
 def resolve_diversion(world, nation: str) -> Dict:
     """§5.3.3(a) — the Grand Diversion. SR-5c: sailed again
     DIVERSION_WAIT_TURNS after the last throw, at the fleet's readiness less
@@ -2642,15 +2914,7 @@ def resolve_diversion(world, nation: str) -> Dict:
         return {"success": False, "message": (
             f"{sentence[0].upper()}{sentence[1:]}. The squadrons cannot "
             f"repeat the feint while the enemy still watches for it.")}
-    enemies = _island_war_enemies(world, nation)
-    hostile = enemies[0] if enemies else None
-    if hostile is None:
-        # fall back to the strongest at-war fleet (the diversion needs a
-        # watcher to draw off)
-        at_war = [(n, effective_strength(r)) for n, r in iter_fleets(world)
-                  if world.is_at_war(nation, n)]
-        at_war.sort(key=lambda item: -item[1])
-        hostile = at_war[0][0] if at_war else None
+    hostile = diversion_hostile(world, nation)
     if hostile is None:
         return {"success": False, "message": (
             "There is no hostile fleet to draw away — the seas are open already.")}
@@ -3638,6 +3902,14 @@ def expedition_road_chips(world, player: str, yards: List[str],
     if ready_corps:
         ready = {m.name for m in ready_corps}
         rows = []
+        # S14E-15: the shore that takes a begun formable road its next step
+        # (Ulster, with Munster held) ranks before every other landing —
+        # the road's own builder names it, so the Admiralty, the page and
+        # the capture reply cannot disagree about which shore it is.
+        from backend.game_logic.formations import road_notes
+        road_shores = {
+            p: r for r in road_notes(world)["roads"] if r["state"] == "open"
+            for p in r["missing"]}
         for region, corps_list in expedition_landing_options(world, player).items():
             holder = _controller(world, region)
             enemy = bool(holder and holder != player
@@ -3645,14 +3917,20 @@ def expedition_road_chips(world, player: str, yards: List[str],
             for corps in corps_list:
                 if corps.get("marshal") not in ready:
                     continue
-                rows.append((0 if enemy else 1, -int(corps.get("odds", 0)),
+                rows.append((0 if region in road_shores else 1,
+                             0 if enemy else 1, -int(corps.get("odds", 0)),
                              _grid_distance(world, str(corps.get("from", "")), region),
                              region, str(corps.get("marshal", "")), corps))
-        rows.sort(key=lambda r: r[:5])
-        for _enemy, _odds, _dist, region, who, corps in rows[:EXPEDITION_CHIP_LANDINGS]:
+        rows.sort(key=lambda r: r[:6])
+        for (_road, _enemy, _odds, _dist, region, who,
+             corps) in rows[:EXPEDITION_CHIP_LANDINGS]:
             note = (f"{int(corps.get('odds', 0))} in 100 slip past · "
                     f"{int(corps.get('strength', 0)):,} men from "
                     f"{corps.get('from', '')}")
+            if region in road_shores:
+                _r = road_shores[region]
+                note += (f" · the next step on the road to "
+                         f"{_r['display_name']} ({', '.join(_r['held'])} held)")
             # SR-5b (AAR-D7): the land chip names what would move its odds.
             if corps.get("levers"):
                 note += f". {corps['levers']}"
@@ -3960,8 +4238,19 @@ def build_admiralty_report(world) -> Dict:
         (f"a failed run: intercepted ~{int(EXPEDITION_INTERCEPT_LOSS * 100)}% "
          f"of the corps lost, turned back ~{int(EXPEDITION_TURNBACK_LOSS * 100)}% "
          f"— and the fleet's readiness −{EXPEDITION_TURNBACK_READINESS} if she "
-         f"is turned back"),
+         f"is turned back; an intercepted run also brings the fleet to action "
+         f"({fleet_action_rule_phrase()})"),
     ]
+    # S14E-15: the landing's terms name a formable road the bloc has begun —
+    # the Free Ireland player on Munster is told Ulster is a march away, not
+    # a landing, and that the carve is authored at a table while the war
+    # runs. The road's own sentence, from the ONE builder (a corps on the
+    # held province is never offered the land-adjacent shore as a chip).
+    from backend.game_logic.formations import road_notes
+    for _road in road_notes(world)["roads"]:
+        if _road.get("state") == "ready":
+            continue  # whole-held: no shore to point at (the war card says it)
+        report["expedition_notes"].append(_road["text"])
     # Payload-driven client numbers (the client's hardcoded fallbacks were
     # duplicated backend constants — trap 8 of the NV-12 recon).
     report["ship_cost"] = int(SHIP_COST)
@@ -4072,6 +4361,11 @@ def build_admiralty_report(world) -> Dict:
         clause = window_forecast_clause(world, player)
         if clause:
             note += f"; {clause}"
+        # S14E-14: and what a failure costs in ships — the same forecast the
+        # card and the ledger quote (`diversion_failure_clause`).
+        price = diversion_failure_clause(world, player)
+        if price:
+            note += f"; {price[0].lower()}{price[1:]}"
         chips.append({
             "command": "order the diversion",
             "label": "The Grand Diversion",

@@ -116,8 +116,16 @@ func _ready():
 # would send the backend an option its dialogue does not define. If no safe
 # exit option is present, ESC deliberately does nothing rather than desync the
 # dialogue — the buttons ARE the decision contract for a staged settlement.
+#
+# S14E-3 (S14f): the guided wizards' "Never mind" is `reconsider`, so their
+# every step has the Esc and the X; their "Back" (`step_back`) is a STEP, not
+# an exit, and is deliberately NOT here. The four after `close` are the plain
+# "keep what I had" answers of the small confirms (a drafting pushback's
+# Cancel; the settlement draft / scope-replace / pair-substitute chooser's
+# Keep) — each already returns the player to the unchanged draft.
 const _SAFE_EXIT_ACTIONS = ["dismiss", "reconsider", "back_out", "cancel",
-		"not_now", "close"]
+		"not_now", "close", "cancel_pushback", "keep_current_settlement_draft",
+		"keep_current_scope_draft", "keep_joint_settlement"]
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
@@ -694,6 +702,14 @@ func _build_settlement_footer(data: Dictionary) -> String:
 		for line in titled:
 			bbcode += "  [color=#e0c070]*[/color] %s\n" % str(line)
 		bbcode += "\n"
+	# S14E-15: what this peace does to a formable road the bloc has begun
+	# against a covered court ("... closes the Ireland carve — Ulster not yet
+	# held."), the backend road builder's own line.
+	var road_closing = data.get("road_closing_lines", [])
+	if road_closing is Array and road_closing.size() > 0:
+		for line in road_closing:
+			bbcode += "[color=#e0a040]%s[/color]\n" % Utils.humanize_nation_keys_in_text(str(line))
+		bbcode += "\n"
 
 	# VP1-X7 (S14b part 2): the table's Revanche and each covered court's
 	# manner — the latch's own reading of these terms.
@@ -746,6 +762,22 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			if overflow > 0:
 				bbcode += "  [color=#" + Utils.COLOR_INFO + "]+%d more participants in the ledger[/color]\n" % overflow
 			bbcode += "\n"
+
+	# S14E-10 / S14E-D3: the allies this settlement LEAVES OUT, priced before
+	# the click ("Spain is left out: -18 relation and a grievance; Make Amends
+	# (400g + 2 DP) clears it.") - the backend's own plan for the ratifier, so
+	# the list is the allies that will be punished and the figures the ones
+	# that will be applied.
+	var left_out = data.get("shut_out_forecast", [])
+	if left_out is Array and left_out.size() > 0:
+		bbcode += "[b]Left out of the peace[/b]\n"
+		for left_row in left_out:
+			if not left_row is Dictionary:
+				continue
+			var left_line = str(left_row.get("display", ""))
+			if left_line != "":
+				bbcode += "  [color=#e0a040]*[/color] " + Utils.humanize_nation_keys_in_text(left_line.replace("[", "[lb]")) + "\n"
+		bbcode += "\n"
 
 	# G4F-12 (Gate-4 smoke): this footer block is the LEAD COURT's score
 	# (the pre-refront single-leader gate), not a deal aggregate — on the
@@ -1159,6 +1191,11 @@ func _build_settlement_per_court_block(data: Dictionary) -> String:
 		bbcode += "\n"
 		var blocker = _safe_str(row.get("top_blocker_display"))
 		if blocker != "":
+			# S14E-6: a legitimacy MISMATCH names the clause on this court
+			# that overreaches the field ("the demand for Beira on Portugal").
+			var blocker_clause = _safe_str(row.get("top_blocker_clause"))
+			if blocker_clause != "":
+				blocker += " — " + blocker_clause
 			bbcode += "      [color=#e0a040]Blocker: %s[/color]\n" % blocker
 		# Re-front Slice 2 / §11.2: the live band delta after a dial (presentation
 		# only — it never feeds the scored result). Null on first paint (no
@@ -1819,7 +1856,7 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			var txt = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
 			var sev = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
 			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
-			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released"] else 3
+			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released", "sanctuary"] else 3
 			var color = "#e66262" if sev == "SEVERE" else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		for conflict in conflicts:

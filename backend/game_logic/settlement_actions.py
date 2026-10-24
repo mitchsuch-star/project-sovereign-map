@@ -456,6 +456,57 @@ def _dial_territory_escalation_candidates(
     return candidates
 
 
+def gold_cannot_buy_courts(
+    dialogue: Mapping[str, Any],
+    *,
+    scope_courts: Iterable[str],
+    terms: Iterable[Mapping[str, Any]],
+    trial_terms: Iterable[Mapping[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """S14E-6: the holdouts in `scope_courts` whose top blocker is a legitimacy
+    MISMATCH that the dial would leave STANDING — gold cannot buy them. A
+    row qualifies when its blocker is `settlement_tier_legitimacy` /
+    `tier_mismatch`, it names the clause(s) (`top_blocker_terms`, the
+    scorer's `component_debug`), and every such clause in the package is
+    carried through the dry-run redial (`trial_terms`, the dial's own
+    output) unchanged — a territory demand the dial drops, or a gold demand
+    it shrinks, is cured by the click and is not here. {court: its row}."""
+    holdouts = {str(n) for n in ((dialogue.get("overall_acceptance") or {}).get("holdout_courts") or [])}
+    scope = {str(n) for n in scope_courts or []}
+    rows = {str(r.get("nation") or ""): r for r in (dialogue.get("per_court_acceptance") or [])
+            if isinstance(r, Mapping)}
+    package = [dict(t) for t in terms or [] if isinstance(t, Mapping)]
+    after = [dict(t) for t in trial_terms or [] if isinstance(t, Mapping)]
+    out: Dict[str, Dict[str, Any]] = {}
+    for court in sorted(holdouts & scope):
+        row = rows.get(court) or {}
+        if (str(row.get("top_blocker_component") or "") != "settlement_tier_legitimacy"
+                or str(row.get("top_blocker_detail") or "") != "tier_mismatch"):
+            continue
+        offenders = [t for t in (row.get("top_blocker_terms") or []) if isinstance(t, Mapping)]
+        if not offenders:
+            continue
+        keys = {(str(o.get("type") or ""), str(o.get("from") or ""), str(o.get("to") or ""))
+                for o in offenders}
+        mine = [t for t in package
+                if (str(t.get("type") or ""), str(t.get("from") or ""), str(t.get("to") or "")) in keys]
+        if mine and all(t in after for t in mine):
+            out[court] = dict(row)
+    return out
+
+
+def gold_cannot_buy_sentence(unbuyable: Mapping[str, Mapping[str, Any]]) -> str:
+    """S14E-6: the refusal's words — "Gold cannot buy this, Sire — the demand
+    for Beira on Portugal reads as a claim of victory the field has not
+    delivered; remove it, or drop Portugal." — one clause per court."""
+    parts = [
+        f"{row.get('top_blocker_clause')} reads as a claim of victory the field has "
+        f"not delivered; {row.get('top_blocker_cure')}"
+        for _court, row in sorted(unbuyable.items())
+    ]
+    return f"Gold cannot buy this, Sire — {'; and '.join(parts)}."
+
+
 def _handle_settlement_tier2_action(
     world: Any,
     *,
@@ -597,6 +648,47 @@ def _handle_settlement_tier2_action(
             ],
             proposer_leader=str(proposer_leader or ""),
         )
+        # S14E-6 (Pre-Deploy S14f part 1, October 24, 2026): an Ease cannot
+        # buy a legitimacy MISMATCH. Where a holdout's top blocker is a clause
+        # of its own that this very dial would leave standing, the gold the
+        # dial seeds (100 a court, to the clause cap) cannot touch the blocker
+        # — the dry run below is the dial's own function, so what is shown is
+        # what the click would apply.
+        unbuyable: Dict[str, Dict[str, Any]] = {}
+        if direction == "generous":
+            trial_terms = _redial_settlement_terms(
+                terms=terms,
+                scope_courts=scope_courts,
+                direction=direction,
+                proposer_side_leader=proposer_leader,
+                protected_notes=[],
+                seeded_events=[],
+                payer_gold_budgets=payer_gold_budgets,
+                territory_escalations=territory_escalations,
+            )
+            unbuyable = gold_cannot_buy_courts(
+                dialogue, scope_courts=scope_courts, terms=terms, trial_terms=trial_terms)
+            holdouts_in_scope = [
+                c for c in scope_courts
+                if c in {str(n) for n in ((dialogue.get("overall_acceptance") or {}).get("holdout_courts") or [])}
+            ]
+            if holdouts_in_scope and len(unbuyable) == len(holdouts_in_scope):
+                return {
+                    "success": False,
+                    "dialogue_type": "settlement_confirm",
+                    "action": action,
+                    "war_id": war_id,
+                    "error": "settlement_dial_gold_cannot_buy",
+                    "error_display": gold_cannot_buy_sentence(unbuyable),
+                    "gold_cannot_buy": sorted(unbuyable),
+                    "mutated": False,
+                    "suppress_proposal_result_popup": True,
+                }
+            for _court, _row in sorted(unbuyable.items()):
+                protected_notes.append(
+                    f"Gold cannot buy {_court}'s consent, Sire — "
+                    f"{_row.get('top_blocker_clause')} reads as a claim of victory the "
+                    f"field has not delivered; {_row.get('top_blocker_cure')}.")
         new_terms = _redial_settlement_terms(
             terms=terms,
             scope_courts=scope_courts,
@@ -606,6 +698,7 @@ def _handle_settlement_tier2_action(
             seeded_events=seeded_events,
             payer_gold_budgets=payer_gold_budgets,
             territory_escalations=territory_escalations,
+            unbuyable_courts=set(unbuyable),
         )
         verb = "Pressed" if direction == "harsher" else "Eased"
         target_label = "the whole table" if scope == "table" else scope

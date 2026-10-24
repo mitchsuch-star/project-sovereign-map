@@ -1665,13 +1665,17 @@ def ratify_settlement_confirm(
     # read BEFORE the pair transitions close its contribution episode —
     # `cleanup_war_end` -> `resolve_pair_to_resolved` closed it, so the
     # gratitude / shut-out pass read `no_standing` and reached nobody.
-    from backend.game_logic.settlement_reactions import (
-        _classify_proposer_ally_standing as _standing_of,
-    )
-    pre_cleanup_standings = {
-        str(ally): _standing_of(world, war_id, proposer_side, str(ally), settlement_terms)
+    # S14E-10: the SAME reading (standing, material share and points, tier)
+    # the table's forecast (`forecast_proposer_side_reactions`) lists before
+    # the click, read before the pairs close — the share reads 0 after.
+    from backend.game_logic.settlement_reactions import proposer_ally_reading
+    pre_cleanup_readings = {
+        str(ally): proposer_ally_reading(
+            world, war_id=war_id, proposer_side=proposer_side, ally=str(ally),
+            settlement_terms=settlement_terms)
         for ally in pre_cleanup_proposer_members if ally
     }
+    pre_cleanup_standings = {a: r["standing"] for a, r in pre_cleanup_readings.items()}
     # IQ-3 review: the courts signing in this ratification, so a league it
     # dissolves does not report them as still at war (coalition.treaty_in_flight).
     from backend.game_logic.coalition import treaty_in_flight
@@ -1833,6 +1837,7 @@ def ratify_settlement_confirm(
         pre_cleanup_attacker_leader=pre_cleanup_attacker_leader,
         pre_cleanup_defender_leader=pre_cleanup_defender_leader,
         pre_cleanup_standings=pre_cleanup_standings,
+        pre_cleanup_readings=pre_cleanup_readings,
         staged_route_id=staged_route_id,
         acceptance_snapshot=acceptance_snapshot,
         acceptance_at_staging=acceptance_at_staging,

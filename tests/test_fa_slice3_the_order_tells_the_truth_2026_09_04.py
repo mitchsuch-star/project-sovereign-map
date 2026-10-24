@@ -324,6 +324,14 @@ class TestANonNavalRefusalReachesTheArmsThemselves:
         return executor
 
     def test_the_aggressive_first_step_arm(self, channel):
+        """S14E-1 / S14E-D1 (Pre-Deploy S14f part 1, October 24, 2026): the
+        aggressive TYPED arm no longer fights at once — it ASKS like the
+        cautious arm, so a non-naval refusal now reaches the player at the
+        ANSWER (FA-15's answered-attack rule: the refusal ends the order,
+        says why, touches no combat record). This pin used to reach the
+        refusal through the auto-attack; it now reaches it through the
+        ask's `attack`."""
+        from backend.commands.strategic import StrategicOrderProcessor
         channel.fleets = None
         executor = self._refusing(CommandExecutor())
         ney = channel.get_marshal("Ney")
@@ -332,10 +340,16 @@ class TestANonNavalRefusalReachesTheArmsThemselves:
         with _quiet():
             result = executor._strategic._handle_first_step_blocked(
                 ney, [moore], "London", channel, {"world": channel})
-        assert result["success"] is False and result.get("attack_refused") is True
-        assert result.get("order_cleared") is True
-        assert result.get("variable_action_cost") == 0
-        assert "guns are not set up" in result["message"]
+        assert result["requires_input"] is True and result.get("attack_refused") is None
+        assert ney.pending_interrupt["interrupt_type"] == "contact"
+        assert "I can take him" in result["message"]
+        assert ney.strategic_order is not None, "the ask leaves the order standing"
+        with _quiet():
+            answer = StrategicOrderProcessor(executor).handle_response(
+                "Ney", "blocked_path", "attack", channel, {"world": channel})
+        assert answer.get("action_taken") == "attack_refused"
+        assert answer.get("order_cleared") is True
+        assert "guns are not set up" in answer["message"]
         assert ney.strategic_order is None, "no phantom order"
 
     def test_the_co_located_pursue_arm(self, channel):
@@ -599,12 +613,16 @@ class TestABattleReachesTheClientWhole:
             assert key in _COMBAT_PASSTHROUGH_FIELDS
 
     def test_the_first_step_auto_attack_arrives_whole(self, shipped):
-        """`Ney, march to Swabia` with a 3,000-man Mack standing in
-        Bavarian Swabia: the aggressive arm auto-attacks, wins, and the
-        response carries the report, the diorama, the battle event — and
-        any HARD STOP the field stages.
+        """`Ney, march to Swabia then attack Mack` with a 3,000-man Mack
+        standing in Bavarian Swabia: the aggressive arm auto-attacks the man
+        the arrival tail NAMES, wins, and the response carries the report,
+        the diorama, the battle event — and any HARD STOP the field stages.
 
-        DDB-14 (Pre-Deploy S13b part 2): the board moved from Hesse's Nassau/Frankfurt (peace soil, where the player's lead is now refused a field) to Bavarian Swabia (allied soil), so the pin keeps testing its own subject."""
+        DDB-14 (Pre-Deploy S13b part 2): the board moved from Hesse's Nassau/Frankfurt (peace soil, where the player's lead is now refused a field) to Bavarian Swabia (allied soil), so the pin keeps testing its own subject.
+        S14E-1 (Pre-Deploy S14f part 1, October 24, 2026): a bare typed
+        march now ASKS on its blocked first step; the auto-attack route this
+        pin tests survives for the named arrival tail, so the order names
+        Mack."""
         client, world = shipped
         ney = world.get_marshal("Ney")
         mack = world.get_marshal("Mack")
@@ -613,7 +631,7 @@ class TestABattleReachesTheClientWhole:
         mack.location = "Swabia"
         mack.strength = 3000
         world.calculate_visibility()
-        reply = _post(client, "Ney, march to Swabia")
+        reply = _post(client, "Ney, march to Swabia then attack Mack")
         assert reply.get("success") is True, reply.get("message")
         assert "Engaging" in (reply.get("message") or "")
         assert reply.get("battle_report"), "the after-action report"

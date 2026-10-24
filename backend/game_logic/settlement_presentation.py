@@ -632,6 +632,31 @@ def _voice_summary_template_key(event: Mapping[str, Any]) -> str:
     return "settlement_advisory_common_peace_talleyrand"
 
 
+def _event_is_white_peace(event: Mapping[str, Any]) -> bool:
+    """S14E-10: whether a settlement event is a WHITE peace — stamped so
+    (`white_peace`), or its applied clauses are only the peace itself, or it
+    carries no terms at all. A white peace has no clause to be the "largest
+    political cost"; its advisory states what it cost the allies instead."""
+    if event.get("white_peace"):
+        return True
+    clauses = [c for c in (event.get("applied_clauses") or []) if isinstance(c, Mapping)]
+    if clauses:
+        return all(str(c.get("type") or "") in ("", "peace") for c in clauses)
+    return not list(event.get("terms_summary") or [])
+
+
+def _white_peace_price_line(reactions: Sequence[Mapping[str, Any]]) -> str:
+    """The white peace's price line: every ally the peace LEFT OUT, with what
+    it paid, in the one wording (`settlement_reactions.shut_out_words` — the
+    sentence the table stated before the click), or "No ally is left out by
+    it." — never the ratification named as its own blocker."""
+    from backend.game_logic.settlement_reactions import shut_out_words
+    lines = [shut_out_words(None, r) for r in reactions
+             if isinstance(r, Mapping) and r.get("kind") == "ally_shut_out"
+             and r.get("relation_delta") is not None]
+    return " ".join(lines) if lines else "No ally is left out by it."
+
+
 def compose_summary_oneliner(
     event: Mapping[str, Any], *, world: Any | None = None,
 ) -> str:
@@ -652,6 +677,8 @@ def compose_summary_oneliner(
     )
     terms = list(event.get("terms_summary") or [])
     head_term = _humanize_term(terms[0]) if terms else "settlement ratified"
+    if event.get("white_peace") or (not terms and _event_is_white_peace(event)):
+        head_term = "a white peace"
     reactions = list(event.get("participant_reactions") or [])
     named: List[str] = []
     for reaction in reactions:
@@ -689,6 +716,17 @@ def compose_summary_oneliner(
         report(exc, "settlement_presentation.compose_summary_oneliner: import backend.game_logic.diplomatic_templates")
         return fallback
     awe_tags = list(event.get("awe_tags") or [])
+    # S14E-10: a white peace is voiced for what it is - the line states the
+    # price the allies paid (or that none did), not "the largest political
+    # cost remains settlement ratified".
+    if _event_is_white_peace(event):
+        white_voiced = resolve_settlement_voice_line(
+            "settlement_advisory_white_peace_talleyrand",
+            war_label=war_label,
+            price_line=_white_peace_price_line(reactions),
+        )
+        if white_voiced:
+            return white_voiced
     # `standing_summary` keeps the "+N more" overflow signal so the
     # presentation cap on named participants survives the Voice Bible
     # rewrap.
@@ -1229,42 +1267,54 @@ def build_beneficiaries_preview(
 
 
 def build_shut_out_allies_preview(
-    contribution_rows: Sequence[Mapping[str, Any]] | None,
+    forecast_rows: Sequence[Mapping[str, Any]] | None,
     warnings: Sequence[Mapping[str, Any]] | None,
     proposer_side: str = "",
 ) -> List[Dict[str, Any]]:
-    """SC-15: explicit shut-out / ignored coalition members preview.
+    """SC-15 / S14E-10: the allies a settlement leaves out, with what each
+    pays, BEFORE the click.
 
-    A same-side ally is shut out when the contribution ledger marks
-    `standing == "no_standing"` (or equivalent ignored token) while
-    `contribution > 0`, OR a warning of kind `ally_shut_out` already
-    fired during preview. The preview is a player-readable list of
-    nation + standing + contribution summary; downstream presentation
-    uses it to render an `Ignored allies` chip group.
+    The rows are the RATIFIER'S OWN plan (`settlement_reactions.
+    forecast_proposer_side_reactions` -> `proposer_ally_plan`), so this lists
+    exactly the allies `_evaluate_proposer_side_reactions` will punish — an
+    ally with `no_standing` (whom the ratifier skips, spec §14.4) is NOT
+    here, a `seat` ally the ratifier punishes IS — and each row carries the
+    figures it will apply (`relation_delta`, `grievance_flag_added`) and the
+    sentence that states them (`display`: "Spain is left out: -18 relation
+    and a grievance; Make Amends (400g + 2 DP) clears it."). Before S14E-10
+    this read the contribution ledger for `no_standing` + share > 0 — the very
+    allies the ratifier skips — and missed the ones it punished.
+
+    A warning of kind `ally_shut_out` (a reaction already recorded, read by
+    the archived review) is listed too, with its recorded price.
     """
     rows: List[Dict[str, Any]] = []
     seen: set = set()
-    for row in contribution_rows or []:
+    for row in forecast_rows or []:
         if not isinstance(row, Mapping):
             continue
-        nation = str(row.get("nation") or "")
+        nation = str(row.get("nation") or row.get("ally") or "")
         if not nation or nation in seen:
             continue
-        if proposer_side and str(row.get("side") or "") != proposer_side:
+        # Only the ratifier's plan rows (they carry the price): a ledger row
+        # (`standing: no_standing`, a share) is not a verdict and lists nobody.
+        if row.get("relation_delta") is None:
             continue
-        if bool(row.get("is_leader") or False) or bool(row.get("is_beneficiary") or False):
-            continue
-        standing = str(row.get("standing") or "")
-        contribution_share = float(row.get("contribution_share") or row.get("contribution") or 0)
-        if standing in ("no_standing", "ignored", "shut_out") and contribution_share > 0:
-            rows.append({
-                "nation": nation,
-                "standing": standing,
-                "standing_display": _standing_display(standing),
-                "contribution_share": contribution_share,
-                "reason_display": "Shut out after contribution",
-            })
-            seen.add(nation)
+        standing = str(row.get("standing_level") or row.get("standing") or "")
+        display = str(row.get("display") or "")
+        rows.append({
+            "nation": nation,
+            "standing": standing,
+            "standing_display": _standing_display(standing),
+            "contribution_share": float(row.get("material_share_pct") or 0) / 100.0,
+            "reason_display": display or "Left out of the peace",
+            "display": display,
+            "severity": str(row.get("severity") or ""),
+            "relation_delta": int(row.get("relation_delta") or 0),
+            "grievance_flag_added": bool(row.get("grievance_flag_added", False)),
+            "amends": dict(row.get("amends") or {}),
+        })
+        seen.add(nation)
     for warning in warnings or []:
         if not isinstance(warning, Mapping):
             continue
@@ -1282,6 +1332,7 @@ def build_shut_out_allies_preview(
             "standing_display": _standing_display("shut_out"),
             "contribution_share": float(warning.get("contribution_share") or 0),
             "reason_display": str(warning.get("detail") or "Shut out at settlement"),
+            "display": str(warning.get("detail") or ""),
         })
         seen.add(nation)
     return rows
@@ -1309,10 +1360,15 @@ def build_third_party_reaction_preview(
         nation = str(ally.get("nation") or "")
         if not nation:
             continue
+        # S14E-10: the row states the price when the ratifier's plan is
+        # behind it (a minor shut-out costs relation and records no
+        # grievance); a bare row (no plan) keeps the SC-15 wording.
+        grievance = bool(ally.get("grievance_flag_added", True))
         rows.append({
-            "kind": "shut_out_ally_grievance",
+            "kind": "shut_out_ally_grievance" if grievance else "shut_out_ally_relation",
             "nation": nation,
-            "display": f"{nation} will record a shut-out grievance",
+            "display": (str(ally.get("display") or "")
+                        or f"{nation} will record a shut-out grievance"),
         })
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
@@ -1473,8 +1529,16 @@ def build_settlement_review(
     world: Any | None = None,
     leaders_for_label: Mapping[str, str] | None = None,
     table_covered: Sequence[str] | None = None,
+    extra_warning_rows: Sequence[Mapping[str, Any]] = (),
+    shut_out_forecast: Sequence[Mapping[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     """Sectioned settlement review payload per spec §16.2 line 1636.
+
+    ``extra_warning_rows`` (S14E-4): warning rows the CALLER derives from the
+    live board and already shaped as review warnings (the enemy corps the
+    settlement would shelter, `peace_sanctuary.settlement_review_rows`) — only
+    the live preview passes them; an archived settlement's review reads a
+    past peace and never does.
 
     Sections: Terms / Allies / Warnings / Acceptance. Each section is
     independently renderable so the Godot surface can split into tabs,
@@ -1525,7 +1589,9 @@ def build_settlement_review(
                         "severity": "WARNING",
                     })
     enriched_warnings = (
-        estate_warning_rows + [_enrich_warning_row(w) for w in warnings]
+        estate_warning_rows
+        + [_enrich_warning_row(w) for w in extra_warning_rows]
+        + [_enrich_warning_row(w) for w in warnings]
     )
     terms_inline, terms_overflow = _slice_for_density(enriched_terms, density, _DENSITY_TERMS)
     allies_inline, allies_overflow = _slice_for_density(enriched_allies, density, _DENSITY_ALLIES)
@@ -1641,8 +1707,10 @@ def build_settlement_review(
         proposer_side=proposer_side,
         accepting_side=accepting_side,
     )
+    # S14E-10: the allies the ratifier will leave out, from ITS plan (the
+    # caller's `shut_out_forecast`), never re-derived from the ledger here.
     shut_out_allies_preview = build_shut_out_allies_preview(
-        contribution_rows=allies,
+        forecast_rows=shut_out_forecast,
         warnings=warnings,
         proposer_side=proposer_side,
     )
@@ -1773,6 +1841,11 @@ def _reaction_warning_detail(kind: str, reaction: Mapping[str, Any]) -> str:
         return burden_str
     if kind == "ally_shut_out":
         leader = str(reaction.get("leader", "") or "")
+        # S14E-10: a recorded reaction carries its price — say it, with the
+        # cure, in the one wording the forecast used before the click.
+        if nation and reaction.get("relation_delta") is not None:
+            from backend.game_logic.settlement_reactions import shut_out_words
+            return shut_out_words(None, reaction)
         if leader and nation:
             return f"{nation} shut out by {leader}"
         if nation:

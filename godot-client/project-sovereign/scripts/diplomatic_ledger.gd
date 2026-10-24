@@ -1297,6 +1297,12 @@ func _render_talleyrand():
 		else:
 			bbcode += "  Progress: N/A (mission predates tracking)\n"
 
+		# S14E-9: the mission's books — earned, shocks with their cause, the
+		# turns paused (the backend's one line, as the Cabinet row prints it).
+		var ledger_line = str(mission.get("ledger_line", ""))
+		if ledger_line != "" and ledger_line != "<null>":
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]So far: " + ledger_line + "[/color]\n"
+
 		bbcode += "  Status: " + status
 		# TA4: Mission effect text
 		var effect_text = str(mission.get("effect_text", ""))

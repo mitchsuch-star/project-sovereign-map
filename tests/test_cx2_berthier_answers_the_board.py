@@ -146,7 +146,11 @@ class TestTheTwelveQuestions:
         response = ask(text)
         message = response.get("message") or ""
         assert COMMAND_REFERENCE not in message, (text, len(message))
-        assert len(message) < 2000, (text, len(message))
+        # S14E-2 / S14E-12 (S14f part 1) - the cap moved 2000 -> 2400: the
+        # muster block the what-if prints grew by the campaign-pay line and
+        # the header's floor / bad-day clause (the manual this guards
+        # against is several thousand characters longer).
+        assert len(message) < 2400, (text, len(message))
         for needle in needles:
             assert needle.lower() in message.lower(), (text, needle, message[:300])
 

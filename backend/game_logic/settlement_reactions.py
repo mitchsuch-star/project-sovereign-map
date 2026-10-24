@@ -589,6 +589,356 @@ def reward_named_carried_allies(world: Any, *, war_id: str, actor: str,
     return out
 
 
+def carried_ally_readings(world: Any, war_id: str, side: str, allies: Iterable[str],
+                          clauses: Iterable[Mapping[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """S14E-10: the carried allies' full reading (standing, material share and
+    points, tier) BEFORE their pairs close — `carried_ally_standings` is its
+    standing column. The bilateral ratifier snapshots this; the bilateral
+    words (`diplomacy.separate_peace_words`) read it live."""
+    terms = [dict(c) for c in (clauses or []) if isinstance(c, Mapping)]
+    return {str(a): proposer_ally_reading(world, war_id=war_id, proposer_side=side,
+                                          ally=str(a), settlement_terms=terms)
+            for a in (allies or []) if a}
+
+
+def shut_out_carried_allies(world: Any, *, war_id: str, side: str, actor: str,
+                            readings: Mapping[str, Mapping[str, Any]],
+                            applied_clauses: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """S14E-D3's bilateral half (S14f part 1, October 24, 2026): the
+    bilateral separate peace that carries an ally (PC-R1 ii: the leader's
+    peace is common to its side) and names her for NOTHING runs the SAME
+    shut-out reaction the table's ratification runs — the ratifier's own
+    plan (`proposer_ally_plan`), the same -18 and durable `settlement_shut_out`
+    grievance for an ally with standing and material in the war, the same -7
+    for a lesser one, nothing for an ally with no standing (spec §14.4). Before
+    this the same outcome cost nothing on the wizard's road and -18 plus a
+    grievance at the table. Returns the `ally_shut_out` reaction records."""
+    clauses = [dict(c) for c in (applied_clauses or []) if isinstance(c, Mapping)]
+    plans = []
+    for ally, reading in (readings or {}).items():
+        plan = proposer_ally_plan(world, war_id=war_id, proposer_side=side, ally=str(ally),
+                                  settlement_terms=clauses, reading=reading)
+        if plan["kind"] == "shut_out":
+            plans.append(plan)
+    if not plans:
+        return []
+    episode_id = f"carried:{war_id}:{int(getattr(world, 'current_turn', 0) or 0)}"
+    try:
+        from backend.game_logic.diplomacy import _allocate_episode_id
+        episode_id = str(_allocate_episode_id(world) or episode_id)
+    except Exception as exc:
+        report(exc, "settlement_reactions.shut_out_carried_allies: _allocate_episode_id")
+    return [apply_shut_out_plan(world, actor=actor, plan=plan, war_id=war_id,
+                                episode_id=episode_id) for plan in plans]
+
+
+def _display_of(world: Any, nation: str) -> str:
+    """The nation's player-facing name: its CURRENT (formed) name when the
+    world is at hand, else the R7 rendering of the key."""
+    if world is not None:
+        try:
+            from backend.game_logic.formations import formed_display_name
+            return str(formed_display_name(world, nation))
+        except Exception as exc:
+            report(exc, "settlement_reactions._display_of: formed_display_name")
+    from backend.display_names import display_nation
+    return str(display_nation(nation))
+
+
+def proposer_ally_reading(
+    world: Any, *, war_id: str, proposer_side: str, ally: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    standing: Optional[str] = None,
+) -> Dict[str, Any]:
+    """S14E-10: the INPUTS of the proposer-side reaction for ONE ally, read
+    together — its standing, its material share and points, its power tier —
+    and read BEFORE the pairs close (PC-F81's lesson: `cleanup_war_end`
+    closes the contribution episode, after which the standing reads
+    `no_standing` and the share reads 0). The ratifier snapshots this before
+    the transitions; the forecast reads it live — one reading, so the price
+    shown before the click is the price applied after it."""
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    resolved = str(standing) if standing else _classify_proposer_ally_standing(
+        world, war_id, proposer_side, ally, terms)
+    material_share = 0.0
+    material_points = 0
+    try:
+        from backend.game_logic.war_contribution import (
+            compute_standing_inputs,
+            current_episode_material_total,
+        )
+        inputs = compute_standing_inputs(world, war_id, ally, side=proposer_side)
+        material_share = float(inputs.get("material_share", 0.0) or 0.0)
+        material_points = int(current_episode_material_total(world, war_id, ally) or 0)
+    except Exception as exc:
+        report(exc, "settlement_reactions.proposer_ally_reading: import backend.game_logic.war_contribution")
+        material_share = 0.0
+        material_points = 0
+    tier_getter = getattr(world, "get_power_tier", None)
+    power_tier = (tier_getter(ally) if callable(tier_getter) else "secondary") or "secondary"
+    return {
+        "standing": resolved,
+        "material_share": material_share,
+        "material_points": material_points,
+        "power_tier": str(power_tier),
+    }
+
+
+def proposer_ally_plan(
+    world: Any, *, war_id: str, proposer_side: str, ally: str,
+    settlement_terms: Iterable[Mapping[str, Any]],
+    reading: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """S14E-10: THE predicate of the proposer-side reaction (spec §14.1-§14.4)
+    — what a settlement does to ONE proposer-side ally. Pure: it reads, it
+    writes nothing. The ratifier (`_evaluate_proposer_side_reactions`)
+    applies exactly this plan, and the forecast
+    (`forecast_proposer_side_reactions`) lists exactly this plan before the
+    click, so "who is shut out" and "for how much" have one home.
+
+    `kind`:
+      * "none"     — no standing and nothing paid: spec §14.4, no reaction;
+      * "rewarded" — named in the instrument: gratitude (`_reward_named_ally`);
+      * "shut_out" — not named: `severity`, `relation_delta` and
+        `grievance_flag_added` as §14.2 reads them (a major shut-out is -18
+        and the durable `settlement_shut_out` flag; a minor one -7; the
+        zero-material major seat -7 without the flag; made to pay the
+        enemy's compensation with nothing gained -18 and the flag).
+    """
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    rd = dict(reading) if reading else proposer_ally_reading(
+        world, war_id=war_id, proposer_side=proposer_side, ally=ally,
+        settlement_terms=terms)
+    standing = str(rd.get("standing") or "no_standing")
+    power_tier = str(rd.get("power_tier") or "secondary")
+    material_share = float(rd.get("material_share") or 0.0)
+    material_points = int(rd.get("material_points") or 0)
+    # PC-R7 (ii): a province of this ally PAYS the compensation (the
+    # leader's article in the ally's coin — Würzburg at Pressburg).
+    paid_regions = [str(t.get("region") or "") for t in terms
+                    if t.get("type") == "territory_compensate"
+                    and str(t.get("from") or "") == ally and not t.get("design")]
+    plan: Dict[str, Any] = {
+        "ally": ally,
+        "standing_level": standing,
+        "power_tier": power_tier,
+        "material_share": material_share,
+        "material_points": material_points,
+        "paid_regions": list(paid_regions),
+    }
+    if standing == "no_standing" and not paid_regions:
+        # Spec §14.4: minor / no-standing participants only react when
+        # survival, capital, promise, or territory directly named.
+        return dict(plan, kind="none")
+    is_beneficiary, awarded_regions = _is_named_beneficiary(terms, ally)
+    if is_beneficiary:
+        return dict(plan, kind="rewarded", awarded_regions=list(awarded_regions))
+
+    # Ally was NOT rewarded. Decide shut-out severity.
+    # Spec §14.2 — minor shut-out vs major shut-out.
+    # Spec §14.2 line 1469: zero-material `major` with `seat`
+    # standing reduces the relation hit and skips the grievance
+    # flag entirely.
+    zero_material_major = (
+        power_tier == "major"
+        and material_points == 0
+        and standing == "seat"
+    )
+    is_major_shut_out = (
+        standing == "seat" or material_share >= 0.20
+    ) and not zero_material_major
+
+    if paid_regions:
+        # PC-R7 (ii): made to pay the enemy's compensation with nothing
+        # gained by the same peace — the major shut-out, named. (Paid AND
+        # rewarded — the Pressburg exchange — took the beneficiary arm.)
+        relation_hit = RELATION_SHUT_OUT_MAJOR_HIT
+        severity = "paid_for_the_peace"
+        grievance_flag_added = True
+    elif zero_material_major:
+        relation_hit = RELATION_ZERO_MATERIAL_MAJOR_HIT
+        severity = "minor_shut_out_major_zero_material"
+        grievance_flag_added = False
+    elif is_major_shut_out:
+        relation_hit = RELATION_SHUT_OUT_MAJOR_HIT
+        severity = "major_shut_out"
+        grievance_flag_added = True
+    else:
+        relation_hit = RELATION_SHUT_OUT_MINOR_HIT
+        severity = "minor_shut_out"
+        grievance_flag_added = False
+    return dict(plan, kind="shut_out", severity=severity,
+                relation_delta=int(relation_hit),
+                grievance_flag_added=bool(grievance_flag_added))
+
+
+def shut_out_words(world: Any, plan: Mapping[str, Any]) -> str:
+    """S14E-10: the price of being left out, STATED — one sentence from the
+    plan the ratifier applies, so the forecast before the click, the chip,
+    the dispatch and the archived review all say the same thing:
+
+        "Spain is left out: -18 relation and a grievance; Make Amends
+         (400g + 2 DP) clears it."
+
+    A minor shut-out carries no grievance and no cure: "Holland is left out:
+    -7 relation." The Make Amends price is `cabinet_rows`' own (the
+    executor's), never a literal here."""
+    ally = str(plan.get("ally") or plan.get("nation") or "")
+    name = _display_of(world, ally)
+    paid = [str(r) for r in (plan.get("paid_regions") or []) if r]
+    lead = (f"{name} pays {', '.join(paid)} and is left out" if paid
+            else f"{name} is left out")
+    return (f"{lead}: {shut_out_price_words(plan)}"
+            + alliance_clock_clause(world, ally, int(plan.get("relation_delta") or 0)))
+
+
+def alliance_clock_clause(world: Any, ally: str, delta: int) -> str:
+    """S14E-10's sweep: the −18 can take an ALLIANCE under the line it holds
+    on and start the auto-downgrade clock (`check_auto_downgrade`; the
+    warning S14E-11 gave its lever) — a consequence the price must state
+    where the price is stated: " It takes the alliance under the 40 it holds
+    on (40 → 22) — Reassure Ally in the Cabinet before it lapses." '' when
+    the pair is not an alliance, or the hit leaves it on or above the line."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    if not ally or not hasattr(world, "get_diplomatic_state"):
+        return ""
+    if str(world.get_diplomatic_state(player, ally) or "") != "ALLIANCE":
+        return ""
+    from backend.game_logic.diplomacy import STATE_RELATION_THRESHOLDS
+    line = int(STATE_RELATION_THRESHOLDS.get("ALLIANCE", 40))
+    relations = getattr(world, "nation_relations", {}) or {}
+    rel = int(relations.get(world._make_diplo_key(player, ally), 0) or 0)
+    after = rel + int(delta)
+    if rel < line or after >= line:
+        return ""
+    return (f" It takes the alliance under the {line} it holds on ({rel} → {after}) "
+            f"— Reassure Ally in the Cabinet before it lapses.")
+
+
+def shut_out_price_words(plan: Mapping[str, Any]) -> str:
+    """The price half of `shut_out_words`: "-18 relation and a grievance;
+    Make Amends (400g + 2 DP) clears it." (the grievance and its cure only
+    where the plan adds a grievance) — the clause the bilateral road's
+    carried-ally sentence reuses."""
+    delta = int(plan.get("relation_delta") or 0)
+    if plan.get("grievance_flag_added"):
+        from backend.game_logic.cabinet_rows import AMENDS_GRIEVANCE, amends_price_words
+        return (f"{delta:+d} relation and a grievance; Make Amends "
+                f"({amends_price_words(AMENDS_GRIEVANCE)}) clears it.")
+    return f"{delta:+d} relation."
+
+
+def apply_shut_out_plan(
+    world: Any, *, actor: str, plan: Mapping[str, Any], war_id: str, episode_id: str,
+) -> Dict[str, Any]:
+    """Apply the `shut_out` plan `proposer_ally_plan` returned — the relation
+    hit, the durable `settlement_shut_out` grievance flag where the plan adds
+    one, the settlement memory — and return the `ally_shut_out` reaction
+    record. ONE body for both roads: the table's proposer-side pass and the
+    bilateral ratifier's carried allies (`shut_out_carried_allies`)."""
+    from backend.game_logic.diplomacy import _add_grievance_flag
+
+    ally = str(plan["ally"])
+    relation_hit = int(plan["relation_delta"])
+    grievance_flag_added = bool(plan["grievance_flag_added"])
+    if hasattr(world, "modify_nation_relation"):
+        world.modify_nation_relation(actor, ally, relation_hit)
+    if grievance_flag_added:
+        _add_grievance_flag(
+            world,
+            breaker=actor,
+            victim=ally,
+            grievance_type="settlement_shut_out",
+            episode_id=episode_id,
+            source_episode_type="settlement_reaction",
+        )
+    _add_settlement_memory(
+        world,
+        actor=actor,
+        subject=ally,
+        memory_type="settlement_shut_out" if grievance_flag_added
+        else "settlement_context",
+        episode_id=episode_id,
+        payload={
+            "war_id": war_id,
+            "standing_level": plan["standing_level"],
+            "material_share": plan["material_share"],
+            "material_points": plan["material_points"],
+            "severity": plan["severity"],
+            "relation_delta": relation_hit,
+            "power_tier": plan["power_tier"],
+        },
+        expires_in=None,
+    )
+    return {
+        "kind": "ally_shut_out",
+        "ally": ally,
+        "paid_regions": list(plan.get("paid_regions") or []),
+        "standing_level": plan["standing_level"],
+        "severity": plan["severity"],
+        "relation_delta": relation_hit,
+        "grievance_flag_added": grievance_flag_added,
+        "material_share": plan["material_share"],
+        "material_points": plan["material_points"],
+        "power_tier": plan["power_tier"],
+    }
+
+
+def forecast_proposer_side_reactions(
+    world: Any, *, war_id: str, proposer_side: str,
+    settlement_terms: Iterable[Mapping[str, Any]], proposer_leader: str = "",
+) -> List[Dict[str, Any]]:
+    """S14E-10 / S14E-D3: the allies a settlement will leave out, and what
+    each pays — read BEFORE the click from the ratifier's own plan
+    (`proposer_ally_plan` over the same members, the same standing/material
+    reading, the same terms), so the list is EXACTLY the allies
+    `_evaluate_proposer_side_reactions` will punish and the figures are the
+    ones it applies. A pure read (nothing is written). One row per ally:
+    the plan plus `nation`, `display` (`shut_out_words`) and `amends`
+    ({price, action}) — [] when no ally is left out."""
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
+    if not isinstance(instance, Mapping) or proposer_side not in ("attackers", "defenders"):
+        return []
+    terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
+    actor = (str(proposer_leader or "") or _side_leader(instance, proposer_side)
+             or str(getattr(world, "player_nation", "France")))
+    rows: List[Dict[str, Any]] = []
+    for ally in _participants_on_side(instance, proposer_side):
+        if ally == actor:
+            continue
+        plan = proposer_ally_plan(
+            world, war_id=war_id, proposer_side=proposer_side, ally=ally,
+            settlement_terms=terms)
+        if plan["kind"] != "shut_out":
+            continue
+        rows.append(shut_out_row(world, plan))
+    return rows
+
+
+def shut_out_row(world: Any, plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """A forecast row from a `shut_out` plan: the plan, the nation, the words
+    and — where the plan adds a grievance — the cure's price."""
+    row: Dict[str, Any] = dict(plan)
+    # Golden Rule 2: whole numbers to the client (the share as a percent).
+    row["material_share_pct"] = int(round(float(row.pop("material_share", 0.0) or 0.0) * 100))
+    row["material_points"] = int(row.get("material_points") or 0)
+    row["relation_delta"] = int(row.get("relation_delta") or 0)
+    row["nation"] = str(plan.get("ally") or "")
+    row["display"] = shut_out_words(world, plan)
+    if plan.get("grievance_flag_added"):
+        from backend.game_logic.cabinet_rows import (
+            AMENDS_GRIEVANCE, _amends_costs, amends_price_words,
+        )
+        cost = _amends_costs()[AMENDS_GRIEVANCE]
+        row["amends"] = {
+            "action": AMENDS_GRIEVANCE, "gold": int(cost["gold"]), "dp": int(cost["dp"]),
+            "price_display": amends_price_words(AMENDS_GRIEVANCE),
+        }
+    else:
+        row["amends"] = {}
+    return row
+
+
 def _evaluate_proposer_side_reactions(
     world: Any,
     *,
@@ -600,152 +950,51 @@ def _evaluate_proposer_side_reactions(
     episode_id: str,
     pre_cleanup_standings: Optional[Mapping[str, str]] = None,
     pre_cleanup_members: Optional[List[str]] = None,
+    pre_cleanup_readings: Optional[Mapping[str, Mapping[str, Any]]] = None,
+    proposer_leader: str = "",
 ) -> List[Dict[str, Any]]:
-    from backend.game_logic.diplomacy import _add_grievance_flag
-
     reactions: List[Dict[str, Any]] = []
     player_nation = str(getattr(world, "player_nation", "France"))
     # PC-F81: the members and their standing as they stood BEFORE the pair
     # transitions (a carried ally has already left the live instance).
     proposer_members = (list(pre_cleanup_members) if pre_cleanup_members
                         else _participants_on_side(war_instance, proposer_side))
-    proposer_leader = _side_leader(war_instance, proposer_side) or player_nation
+    # S14E-10: the side's leader as it stood BEFORE the cleanup too — once a
+    # whole war ends the live instance's leader field holds whichever member
+    # left last (the Kingdom of Italy), and the reaction was written between
+    # THAT court and the allies instead of France.
+    resolved_leader = (str(proposer_leader or "")
+                       or _side_leader(war_instance, proposer_side) or player_nation)
 
     # France is the actor on settlement memories. If the proposer leader
     # is a non-player nation, settlement memories still attribute to the
     # proposer leader (the actor that ratified the package).
-    actor = proposer_leader
+    actor = resolved_leader
 
     for ally in proposer_members:
         if ally == actor:
             continue
-        standing = (
-            str(pre_cleanup_standings.get(ally))
-            if pre_cleanup_standings and pre_cleanup_standings.get(ally)
-            else _classify_proposer_ally_standing(
-                world, war_id, proposer_side, ally, settlement_terms,
-            )
-        )
-        # PC-R7 (ii): a province of this ally PAYS the compensation (the
-        # leader's article in the ally's coin — Würzburg at Pressburg).
-        paid_regions = [str(t.get("region") or "") for t in settlement_terms or []
-                        if isinstance(t, Mapping) and t.get("type") == "territory_compensate"
-                        and str(t.get("from") or "") == ally and not t.get("design")]
-        if standing == "no_standing" and not paid_regions:
-            # Spec §14.4: minor / no-standing participants only react when
-            # survival, capital, promise, or territory directly named.
+        reading = (pre_cleanup_readings or {}).get(ally)
+        if not reading:
+            reading = proposer_ally_reading(
+                world, war_id=war_id, proposer_side=proposer_side, ally=ally,
+                settlement_terms=settlement_terms,
+                standing=(str(pre_cleanup_standings.get(ally))
+                          if pre_cleanup_standings and pre_cleanup_standings.get(ally)
+                          else None))
+        plan = proposer_ally_plan(
+            world, war_id=war_id, proposer_side=proposer_side, ally=ally,
+            settlement_terms=settlement_terms, reading=reading)
+        if plan["kind"] == "none":
             continue
-        is_beneficiary, awarded_regions = _is_named_beneficiary(
-            settlement_terms, ally,
-        )
-        tier_getter = getattr(world, "get_power_tier", None)
-        power_tier = tier_getter(ally) if callable(tier_getter) else "secondary"
-        power_tier = power_tier or "secondary"
-
-        if is_beneficiary:
+        if plan["kind"] == "rewarded":
             reactions.append(_reward_named_ally(
-                world, actor=actor, ally=ally, standing=standing, war_id=war_id,
-                awarded_regions=awarded_regions, episode_id=episode_id,
-                power_tier=power_tier))
+                world, actor=actor, ally=ally, standing=plan["standing_level"],
+                war_id=war_id, awarded_regions=plan["awarded_regions"],
+                episode_id=episode_id, power_tier=plan["power_tier"]))
             continue
-
-        # Ally was NOT rewarded. Decide shut-out severity.
-        # Spec §14.2 — minor shut-out vs major shut-out.
-        # Material share gates major — read the bundled inputs.
-        material_share = 0.0
-        material_points = 0
-        try:
-            from backend.game_logic.war_contribution import (
-                compute_standing_inputs,
-                current_episode_material_total,
-            )
-            inputs = compute_standing_inputs(
-                world, war_id, ally, side=proposer_side,
-            )
-            material_share = float(inputs.get("material_share", 0.0) or 0.0)
-            material_points = int(
-                current_episode_material_total(world, war_id, ally) or 0
-            )
-        except Exception as exc:
-            report(exc, "settlement_reactions._evaluate_proposer_side_reactions: import backend.game_logic.war_contribution #2")
-            material_share = 0.0
-            material_points = 0
-
-        # Spec §14.2 line 1469: zero-material `major` with `seat`
-        # standing reduces the relation hit and skips the grievance
-        # flag entirely.
-        zero_material_major = (
-            power_tier == "major"
-            and material_points == 0
-            and standing == "seat"
-        )
-
-        is_major_shut_out = (
-            standing == "seat" or material_share >= 0.20
-        ) and not zero_material_major
-
-        if paid_regions:
-            # PC-R7 (ii): made to pay the enemy's compensation with nothing
-            # gained by the same peace — the major shut-out, named. (Paid AND
-            # rewarded — the Pressburg exchange — took the beneficiary arm.)
-            relation_hit = RELATION_SHUT_OUT_MAJOR_HIT
-            severity = "paid_for_the_peace"
-            grievance_flag_added = True
-        elif zero_material_major:
-            relation_hit = RELATION_ZERO_MATERIAL_MAJOR_HIT
-            severity = "minor_shut_out_major_zero_material"
-            grievance_flag_added = False
-        elif is_major_shut_out:
-            relation_hit = RELATION_SHUT_OUT_MAJOR_HIT
-            severity = "major_shut_out"
-            grievance_flag_added = True
-        else:
-            relation_hit = RELATION_SHUT_OUT_MINOR_HIT
-            severity = "minor_shut_out"
-            grievance_flag_added = False
-
-        if hasattr(world, "modify_nation_relation"):
-            world.modify_nation_relation(actor, ally, relation_hit)
-
-        if grievance_flag_added:
-            _add_grievance_flag(
-                world,
-                breaker=actor,
-                victim=ally,
-                grievance_type="settlement_shut_out",
-                episode_id=episode_id,
-                source_episode_type="settlement_reaction",
-            )
-        _add_settlement_memory(
-            world,
-            actor=actor,
-            subject=ally,
-            memory_type="settlement_shut_out" if grievance_flag_added
-            else "settlement_context",
-            episode_id=episode_id,
-            payload={
-                "war_id": war_id,
-                "standing_level": standing,
-                "material_share": material_share,
-                "material_points": material_points,
-                "severity": severity,
-                "relation_delta": relation_hit,
-                "power_tier": power_tier,
-            },
-            expires_in=None,
-        )
-        reactions.append({
-            "kind": "ally_shut_out",
-            "ally": ally,
-            "paid_regions": list(paid_regions),
-            "standing_level": standing,
-            "severity": severity,
-            "relation_delta": relation_hit,
-            "grievance_flag_added": grievance_flag_added,
-            "material_share": material_share,
-            "material_points": material_points,
-            "power_tier": power_tier,
-        })
+        reactions.append(apply_shut_out_plan(
+            world, actor=actor, plan=plan, war_id=war_id, episode_id=episode_id))
     return reactions
 
 
@@ -1323,6 +1572,7 @@ def route_settlement_reactions(
     pre_cleanup_attacker_leader: str = "",
     pre_cleanup_defender_leader: str = "",
     pre_cleanup_standings: Optional[Mapping[str, str]] = None,
+    pre_cleanup_readings: Optional[Mapping[str, Mapping[str, Any]]] = None,
     staged_route_id: str = "",
     route_id: str = "",
     acceptance_snapshot: Optional[Mapping[str, Any]] = None,
@@ -1397,6 +1647,10 @@ def route_settlement_reactions(
         episode_id=episode_id,
         pre_cleanup_standings=pre_cleanup_standings,
         pre_cleanup_members=list(pre_cleanup_proposer_members or []),
+        pre_cleanup_readings=pre_cleanup_readings,
+        proposer_leader=str(
+            (pre_cleanup_attacker_leader if proposer_side == "attackers"
+             else pre_cleanup_defender_leader) or ""),
     )
     enemy_reactions = _evaluate_enemy_side_reactions(
         world,
@@ -1425,8 +1679,12 @@ def route_settlement_reactions(
         list(covered_enemy_participants or []),
         proposer_side_members=proposer_member_set,
     )
+    # S14E-10: the side's leader as it stood BEFORE the cleanup (the live
+    # instance's leader field is whichever member left last once a war ends).
     proposer_leader = (
-        _side_leader(instance, proposer_side)
+        str((pre_cleanup_attacker_leader if proposer_side == "attackers"
+             else pre_cleanup_defender_leader) or "")
+        or _side_leader(instance, proposer_side)
         or str(getattr(world, "player_nation", "France"))
     )
     cross_war_reactions = _scan_cross_war_reactions(

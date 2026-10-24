@@ -386,6 +386,124 @@ def mission_recall_command(world) -> str:
     return f"Talleyrand, cancel mission with {mission.get('target', '')}"
 
 
+# ═══════ S14E-9 "Where The Gain Went" (Pre-Deploy S14f part 1) ═══════
+# The Cabinet's mission row read "+0 over 2 turns" beside "Net +7 a turn" and
+# named neither the declaration that ate the gain nor the errand that paused
+# the mission. The mission RECORD now keeps its own books — what the tick
+# earned, each shock to the pair with its cause, the turns it stood paused —
+# written by the SAME writes that move the relation (shown == applied), and
+# ONE line prints them on every surface that reads the record.
+#   earned          int   the relation the tick's work LANDED (post-clamp)
+#   shocks          list  {turn, delta, kind, by, on}: a write that moved the
+#                         mission's pair that was not the mission's own
+#   paused_errand   int   funded turns skipped while he carried a proposal
+#   paused_starved  int   turns stalled for want of DP
+# All four ride `active_diplomatic_mission`, which serializes whole; a save
+# without them reads as zero (`.get`).
+MISSION_SHOCK_CAP = 12   # the oldest shock falls off — a mission can run for ages
+_MISSION_EARNING_TYPES = frozenset({
+    "IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY", "UNDERMINE_ALLIANCE"})
+
+
+def _ledger_name(nation: str) -> str:
+    from backend.display_names import display_nation, with_definite_article
+    return with_definite_article(display_nation(str(nation or "")))
+
+
+def mission_shock_cause(shock: dict, player: str = "France") -> str:
+    """"Prussia's declaration on Hanover" — the shock's cause in words."""
+    by, on = str(shock.get("by") or ""), str(shock.get("on") or "")
+    kind = str(shock.get("kind") or "")
+    if not by:
+        return "events"
+    who = "our" if by == player else f"{_ledger_name(by)}'s"
+    if kind == "war_declaration":
+        return f"{who} declaration on {_ledger_name(on)}"
+    if kind == "treaty_break":
+        return f"{who} treaty break with {_ledger_name(on)}"
+    if kind == "downgrade":
+        return f"{who} downgrade with {_ledger_name(on)}"
+    return f"{who} {kind.replace('_', ' ')}".strip()
+
+
+def mission_ledger_line(mission, player: str = "France") -> str:
+    """The mission's books in one clause, or "" when there is nothing to
+    reconcile: "+16 earned, -15 from Prussia's declaration on Hanover; paused
+    2 turns on your errand". Read by the Cabinet row, the Strategic Ledger, the
+    Talleyrand tab, the notice rail, the dispatch's progress line, the end
+    beats and the campaign log — none of them composes it.
+
+    It speaks only when something stands between the work and the headline —
+    a shock on the pair, a turn paused. A quiet mission's earnings ARE the
+    headline's number, and saying them twice would put "+8 earned" on every
+    quiet morning."""
+    if not isinstance(mission, dict):
+        return ""
+    if not (mission.get("shocks") or int(mission.get("paused_errand") or 0) > 0
+            or int(mission.get("paused_starved") or 0) > 0):
+        return ""
+    mission_type = str(mission.get("type") or "")
+    turns = int(mission.get("turns_active") or 0)
+    earned = int(mission.get("earned") or 0)
+    parts = []
+    # A mission begun before the books existed carries no `earned` key and
+    # claims nothing; a new one opens it at 0 and `+0 earned` then means 0.
+    if (mission_type in _MISSION_EARNING_TYPES and "earned" in mission
+            and (earned or turns > 0)):
+        parts.append(f"{earned:+d} " + ("from him" if mission_type == "UNDERMINE_ALLIANCE"
+                                        else "earned"))
+    for shock in mission.get("shocks") or []:
+        if isinstance(shock, dict) and int(shock.get("delta") or 0):
+            parts.append(f"{int(shock['delta']):+d} from {mission_shock_cause(shock, player)}")
+    pauses = []
+    errand = int(mission.get("paused_errand") or 0)
+    if errand > 0:
+        pauses.append(f"paused {_plural(errand, 'turn')} on your errand")
+    starved = int(mission.get("paused_starved") or 0)
+    if starved > 0:
+        pauses.append(f"stalled {_plural(starved, 'turn')} for want of DP")
+    return "; ".join(x for x in (", ".join(parts), ", ".join(pauses)) if x)
+
+
+def mission_pair_snapshot(world):
+    """(diplo key, relation now) of the pair the live mission moves — France
+    and the court, or for an undermining the two courts — or None."""
+    if not mission_is_live(world):
+        return None
+    mission = world.active_diplomatic_mission
+    target = str(mission.get("target") or "")
+    if not target:
+        return None
+    ally = str(mission.get("target_ally") or "")
+    if mission.get("type") == "UNDERMINE_ALLIANCE" and ally:
+        pair = (target, ally)
+    else:
+        pair = (getattr(world, "player_nation", "France"), target)
+    key = world._make_diplo_key(*pair)
+    return (key, int(world.nation_relations.get(key, 0) or 0))
+
+
+def note_mission_shock(world, snapshot, kind: str, by: str, on: str) -> None:
+    """Record what a write did to the mission's pair: the relation as it
+    stands now against `snapshot` (taken before the write). The landed delta,
+    never the ordered one. Never raises — a ledger must not stop a war."""
+    if snapshot is None:
+        return
+    try:
+        key, before = snapshot
+        delta = int(world.nation_relations.get(key, 0) or 0) - int(before)
+        if not delta or not mission_is_live(world):
+            return
+        mission = world.active_diplomatic_mission
+        shocks = list(mission.get("shocks") or [])
+        shocks.append({"turn": int(getattr(world, "current_turn", 0) or 0),
+                       "delta": int(delta), "kind": str(kind),
+                       "by": str(by or ""), "on": str(on or "")})
+        mission["shocks"] = shocks[-MISSION_SHOCK_CAP:]
+    except Exception as exc:
+        report(exc, "diplomatic_dialogue.note_mission_shock")
+
+
 def mission_status(world) -> Optional[dict]:
     """Everything a surface may say about the running mission — or None.
 
@@ -452,6 +570,14 @@ def mission_status(world) -> Optional[dict]:
         "turns_active": turns_active,
         "started_turn": int(mission.get("started_turn", 0) or 0),
         "dp_spent": turns_active * dp,
+        # S14E-9: the mission's books — one source, every surface.
+        "earned": int(mission.get("earned") or 0),
+        "shock_total": int(sum(int(x.get("delta") or 0)
+                               for x in (mission.get("shocks") or [])
+                               if isinstance(x, dict))),
+        "paused_errand": int(mission.get("paused_errand") or 0),
+        "paused_starved": int(mission.get("paused_starved") or 0),
+        "ledger_line": mission_ledger_line(mission, player),
         "effect_text": mission_effect_text(world, mission_type),
         # No recall while he carries a proposal: the EC-Q transit gate
         # refuses it, so the Cabinet's [Recall] (hidden on "") and the rail's
@@ -487,6 +613,22 @@ def _mission_row(notes):
 
 def _mission_message(world, beat: str, status: Optional[dict], snap: dict,
                      extra: dict) -> str:
+    """The rail's sentence for a beat, plus (S14E-9) the mission's books: a
+    running row says "So far: ...", an ending row "His tally: ..." — the one
+    `mission_ledger_line`, nothing composed here."""
+    text = _mission_message_body(world, beat, status, snap, extra)
+    ledger, lead = "", ""
+    if beat == "running" and status:
+        ledger, lead = str(status.get("ledger_line") or ""), "So far"
+    elif beat in ("completed", "recalled", "collapsed"):
+        ledger, lead = str((extra or {}).get("ledger") or ""), "His tally"
+    if text and ledger:
+        return f"{text} {lead}: {ledger}."
+    return text
+
+
+def _mission_message_body(world, beat: str, status: Optional[dict], snap: dict,
+                          extra: dict) -> str:
     from backend.display_names import display_nation
     T = display_nation(snap.get("target", "")) if snap.get("target") else "the court"
     A = display_nation(snap.get("target_ally", "")) if snap.get("target_ally") else ""
@@ -639,6 +781,7 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
     player = getattr(world, "player_nation", "France")
     turns = int(mission.get("turns_active", 0) or 0)
     dp_spent = turns * int(MISSION_DP_COSTS.get(mission_type, 1))
+    ledger = mission_ledger_line(mission, player)
     ally = str(mission.get("target_ally", "") or "")
     if mission_type == "UNDERMINE_ALLIANCE" and ally and target:
         # IQ-4 review: the record is of the pair he moved, never France's own
@@ -670,13 +813,15 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
             entry["regions_revealed"] = int(regions_revealed)
         if expiry is not None:
             entry["expiry"] = int(expiry)
+        if ledger:
+            entry["ledger_line"] = ledger     # S14E-9: the log tells the tally
         world.log_event(entry)
     beat = {"recalled": "recalled", "replaced": "recalled", "starved": "collapsed",
             "eliminated": "eliminated"}.get(reason, "completed")
     restate_mission_notice(world, beat=beat, snapshot=mission, extra={
         "reason": reason, "turns": turns, "dp_spent": dp_spent,
         "start": start, "end": int(relation_end),
-        "regions": regions_revealed, "expiry": expiry,
+        "regions": regions_revealed, "expiry": expiry, "ledger": ledger,
     })
 
 
@@ -1124,9 +1269,10 @@ def _enrich_ultimatum_dialogue(dialogue: Dict, target_nation: str, world) -> Dic
         negative_components = {k: v for k, v in components.items() if isinstance(v, (int, float)) and v < 0}
         if negative_components:
             worst = min(negative_components, key=negative_components.get)
-            from backend.display_names import FEEDBACK_STRINGS
-            fb = FEEDBACK_STRINGS.get(worst, {})
-            dialogue["acceptance_hint"] = fb.get("negative", worst.replace("_", " "))
+            from backend.display_names import feedback_phrase
+            dialogue["acceptance_hint"] = feedback_phrase(
+                worst, "negative", str(result.get("grievance_kind") or ""),
+                worst.replace("_", " "))
         else:
             dialogue["acceptance_hint"] = ""
         dialogue["acceptance_components"] = components
@@ -1521,7 +1667,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
             )
 
         # Extract key obstacle from components for player hint
-        from backend.display_names import FEEDBACK_STRINGS
+        from backend.display_names import feedback_phrase
         components = result.get("components", {})
         worst_key, worst_val = "", 0
         for comp_key, comp_val in components.items():
@@ -1529,7 +1675,8 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                 worst_key = comp_key
                 worst_val = comp_val
         if worst_key:
-            hint_phrase = FEEDBACK_STRINGS.get(worst_key, {}).get("negative", "")
+            hint_phrase = feedback_phrase(
+                worst_key, "negative", str(result.get("grievance_kind") or ""))
             if hint_phrase:
                 dialogue["acceptance_hint"] = f"Key obstacle: {hint_phrase}"
             else:
@@ -1692,8 +1839,22 @@ def attach_status_quo_forecast(world, payload: Dict, player_nation: str,
         if rows is not None:
             rows.append({"type": "status_quo_warning", "term_direction": "concession",
                          "display_label": "WARNING: " + warn})
+    # S14E-15's sweep (the bilateral road): a peace with the court being
+    # carved closes a begun or ready formable road — the settlement offer
+    # and the review say so (`road_peace_lines`); the bilateral preview and
+    # a court's own peace letter said nothing. Kept OUT of `lines`, which
+    # keys the held line and the white peace's relabel.
+    from backend.game_logic.formations import road_peace_lines
+    closing = road_peace_lines(world, [other], list(terms.get("clauses", []) or []))
+    for line in closing:
+        if summary_key:
+            payload.setdefault(summary_key, []).append(line)
+        if rows is not None:
+            rows.append({"type": "road_closing", "term_direction": "mutual",
+                         "display_label": line})
     payload["status_quo_forecast"] = {"lines": list(sq["lines"]),
-                                      "warnings": list(sq["warnings"])}
+                                      "warnings": list(sq["warnings"]),
+                                      "road_closing": list(closing)}
     return payload
 
 
@@ -1992,7 +2153,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     # named the second negative — "deep-seated hostility" over the draft's
     # own war-age penalty), and the plain peace is scored beside the draft.
     from backend.game_logic.counsel import _flip_from_components
-    _flip = _flip_from_components(components) or {}
+    _flip = _flip_from_components(components, str(result.get("grievance_kind") or "")) or {}
     largest_obstacle = str(_flip.get("component") or "")
     plain_sentence = ""
     if hypothetical["demands"] or hypothetical["sweeteners"] or hypothetical["clauses"]:
@@ -2043,12 +2204,14 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             f"{_obstacle}{feedback}"
         )
     else:
+        from backend.display_names import feedback_phrase
         obstacle_names = {
             "relation_modifier": "our poor relations",
             "war_score_modifier": "the military situation",
             "hegemony_target_mod": "the pressure of the hegemon's bloc",
             "bilateral_betrayal_mod": "their memory of our broken commitments",
-            "grievance_modifier": "their grievance over abandoned alliances",
+            "grievance_modifier": feedback_phrase(
+                "grievance_modifier", "negative", str(result.get("grievance_kind") or "")),
             "deal_balance": "the balance of terms",
             "personality_modifier": "their diplomat's disposition",
             "base_disposition": "fundamental resistance to this type of agreement",

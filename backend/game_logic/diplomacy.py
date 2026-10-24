@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from backend.display_names import (
     FEEDBACK_STRINGS,
     STATE_DISPLAY as _STATE_DISPLAY_NAMES,
+    feedback_phrase,
     proposal_display_name as _proposal_display_name,
 )
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
@@ -790,6 +791,45 @@ def grievance_modifier(asker: str, target: str, world) -> int:
         return 0
     active = _get_capped_grievance_flag_count(world, asker, target)
     return -30 * active
+
+
+def grievance_kind(world, asker: str, target: str) -> str:
+    """S14E-10: WHAT the grievance behind `grievance_modifier` is — the one
+    `grievance_type` every flag the target holds against the asker shares
+    ("settlement_shut_out", "defensive_call_refused", ...), "mixed" when they
+    differ, "" when the pair holds none or the flags carry no type. The
+    modifier is one acceptance term (-30 a flag); its WORDS are chosen by
+    this kind (`display_names.GRIEVANCE_KIND_DISPLAY`), so a shut-out reads
+    as a shut-out and an abandoned alliance as an abandoned alliance."""
+    if not asker or not target or asker == target:
+        return ""
+    kinds = {str(f.get("grievance_type") or "") for f in _get_grievance_flags(world, asker, target)}
+    if not kinds:
+        return ""
+    if len(kinds) == 1:
+        return next(iter(kinds))
+    return "mixed"
+
+
+def grievance_line(world, asker: str, target: str) -> str:
+    """S14E-10 (the sweep): the Cabinet's relation line printed the figure
+    ("Relation: +22 (cool)") and never the cause. The grievance the court
+    holds, named by its kind, since when, and the cure's price — from the
+    flags themselves and `cabinet_rows`' own Make Amends price: "Spain holds
+    a grievance against us: being left out of the peace (since turn 11). Make
+    Amends (400g + 2 DP) clears one." '' when the pair holds none."""
+    flags = _get_grievance_flags(world, asker, target)
+    if not flags:
+        return ""
+    from backend.display_names import grievance_kind_display
+    from backend.game_logic.cabinet_rows import AMENDS_GRIEVANCE, amends_price_words
+    from backend.game_logic.formations import formed_display_name
+    noun = grievance_kind_display(grievance_kind(world, asker, target))["noun"]
+    since = min(int(f.get("turn", 0) or 0) for f in flags)
+    held = f"{len(flags)} grievances" if len(flags) > 1 else "a grievance"
+    return (f"{formed_display_name(world, target)} holds {held} against us: {noun} "
+            f"(since turn {since}). Make Amends ({amends_price_words(AMENDS_GRIEVANCE)}) "
+            f"clears one.")
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -3984,6 +4024,14 @@ def armistice_variant_for(world, proposer: str, target: str) -> str:
 
     The scoring seam's rule wins because it is the one that RESOLVES the deal:
     only a proposer who is actually behind asks from weakness.
+
+    S14E-8 (October 24, 2026): a FIFTH site, `_build_base_terms`, stamped the
+    draft's `type` from the SIDE sum (`get_side_war_score_for`) — on a
+    coalition board where the pair and the side differ in sign the preview
+    scored the other variant, twenty base points off the send. It calls this
+    now. The variant is the PAIR's, always: the court judges the pair
+    (`calculate_acceptance` reads the pair's stored score), while the drafted
+    gold prices the whole war (CA8-D2).
     """
     return ("armistice_losing"
             if get_war_score_for(world, proposer, target) < 0
@@ -4352,6 +4400,149 @@ def _court_named(world, nation: str, *, start: bool = False) -> str:
     return with_definite_article(formed_display_name(world, nation), capitalize=start)
 
 
+# S14E-5 (S14f part 1, October 24, 2026): a court is a RUMP when it has lost
+# ground and holds no more than this many provinces — the court a declaration
+# can end with one capture.
+RUMP_MAX_PROVINCES = 2
+
+
+def court_holdings(world, nation: str) -> Dict:
+    """S14E-5: a court's LIVE holdings against its 1805 homeland — the one
+    reading the War Purpose card, the Cabinet's nation page, Talleyrand's
+    objection, the articles stage and the elimination line share.
+
+    ``held``: the provinces it holds now (homeland first, in the homeland's
+    order). ``homeland``: its 1805 soil (`nation_starting_regions`).
+    ``lost``: {holder: [homeland provinces that holder has]} for the soil now
+    in other hands. ``capital`` / ``capital_holder``: the capital province and
+    the OTHER court holding it ("" when the court itself does). ``rump``: it
+    has lost ground and holds ``RUMP_MAX_PROVINCES`` or fewer.
+
+    Reads the per-turn cached ``get_nation_regions`` and walks only the
+    homeland (GR8: no region scan)."""
+    regions = getattr(world, "regions", {}) or {}
+    held_now = list(world.get_nation_regions(nation))
+    held_set = set(held_now)
+    homeland = [str(r) for r in ((getattr(world, "nation_starting_regions", {}) or {}).get(nation) or [])
+                if str(r) in regions]
+    home_set = set(homeland)
+    held = [r for r in homeland if r in held_set] + [r for r in held_now if r not in home_set]
+    lost: Dict[str, List[str]] = {}
+    for name in homeland:
+        if name in held_set:
+            continue
+        holder = str(getattr(regions[name], "controller", "") or "")
+        if holder and holder != nation:
+            lost.setdefault(holder, []).append(name)
+    capital = str(world.get_nation_capital(nation) or "")
+    capital_holder = ""
+    if capital in regions:
+        controller = str(getattr(regions[capital], "controller", "") or "")
+        if controller and controller != nation:
+            capital_holder = controller
+    return {
+        "held": held,
+        "homeland": homeland,
+        "lost": lost,
+        "capital": capital,
+        "capital_holder": capital_holder,
+        "rump": 0 < len(held) <= RUMP_MAX_PROVINCES and len(held) < len(homeland),
+    }
+
+
+def _possessive(text: str) -> str:
+    return f"{text}'" if text.endswith("s") else f"{text}'s"
+
+
+def _holder_possessive(world, holder: str) -> str:
+    """"ours" for the player, else the court's possessive ("Prussia's")."""
+    if holder == getattr(world, "player_nation", None):
+        return "ours"
+    return _possessive(_court_named(world, holder))
+
+
+def court_holdings_line(world, nation: str) -> str:
+    """S14E-5: the court's live holdings in a sentence — "Hanover holds 1
+    province (Osnabruck); the rest are Prussia's." — for a rump; for a court
+    that is not one but whose capital another court holds, "Austria's
+    capital, Vienna, is Russia's."; "" for every other court (unchanged)."""
+    from backend.display_names import plural
+    info = court_holdings(world, nation)
+    player = getattr(world, "player_nation", None)
+    if info["rump"]:
+        held = [f"{r} — its capital" if r == info["capital"] else r for r in info["held"]]
+        line = (f"{_court_named(world, nation, start=True)} holds "
+                f"{plural(len(info['held']), 'province')} ({', '.join(held)})")
+        holders = sorted(info["lost"], key=lambda h: (h != player, -len(info["lost"][h]), h))
+        if holders:
+            line += "; the rest are " + " and ".join(_holder_possessive(world, h) for h in holders)
+        return line + "."
+    holder = info["capital_holder"]
+    if holder and holder != player:
+        return (f"{_possessive(_court_named(world, nation, start=True))} capital, "
+                f"{info['capital']}, is {_holder_possessive(world, holder)}.")
+    return ""
+
+
+def rump_objection_clause(world, target: str, alarm: int = 0) -> str:
+    """S14E-5: Talleyrand's rump sentence, appended to his objection to a
+    declaration — "Hanover is a rump, Sire: it holds only Osnabruck. Taking it
+    ends Hanover, and the +28 alarm buys one province." '' for a court that is
+    not a rump. ``alarm`` is what the declaration adds to Europe's alarm (the
+    figure `declare_war` applies)."""
+    info = court_holdings(world, target)
+    if not info["rump"]:
+        return ""
+    held = list(info["held"])
+    named = _court_named(world, target)
+    it = "it" if len(held) == 1 else "both"
+    buys = "one province" if len(held) == 1 else "two provinces"
+    clause = (f"{_court_named(world, target, start=True)} is a rump, Sire: it holds only "
+              f"{' and '.join(held)}. Taking {it} ends {named}")
+    if int(alarm) > 0:
+        clause += f", and the +{int(alarm)} alarm buys {buys}."
+    else:
+        clause += "."
+    return clause
+
+
+def third_court_capital_holder(world, aggressor: str, target: str) -> str:
+    """S14E-5: the court (neither ``aggressor`` nor ``target``) that holds
+    ``target``'s capital — "" when the target or the aggressor does. A
+    conquest-class purpose ticks only while the AGGRESSOR holds the capital
+    (`accumulate_war_objective_ticking`), so with a third court on it the
+    purpose can never score."""
+    capital = str(world.get_nation_capital(target) or "")
+    region = (getattr(world, "regions", {}) or {}).get(capital)
+    if region is None:
+        return ""
+    holder = str(getattr(region, "controller", "") or "")
+    if not holder or holder in (aggressor, target):
+        return ""
+    return holder
+
+
+def _capital_held_reason(world, target: str, holder: str) -> str:
+    return (f"{_court_named(world, holder, start=True)} holds "
+            f"{world.get_nation_capital(target)}, "
+            f"{_possessive(_court_named(world, target))} capital; "
+            f"this purpose scores only while we hold it.")
+
+
+def no_war_purpose_reason(world, aggressor: str, target: str) -> str:
+    """S14E-5: why NO offensive purpose is open against ``target`` — "" while
+    any is. Read by the Cabinet's Declare War chip (shown == applied: the
+    card would offer nothing). The three offensive purposes share ONE gate —
+    a third court on the capital (`third_court_capital_holder`, the player's
+    side only) — so this asks that gate and says the card's own words,
+    without pricing the power cap the card also computes (the Cabinet builds
+    this row for every court)."""
+    if aggressor != getattr(world, "player_nation", None):
+        return ""
+    holder = third_court_capital_holder(world, aggressor, target)
+    return _capital_held_reason(world, target, holder) if holder else ""
+
+
 def war_purpose_prompt(world, target: str) -> str:
     """The War Purpose card's question — "Choose your war purpose against
     the Papal States."
@@ -4359,23 +4550,40 @@ def war_purpose_prompt(world, target: str) -> str:
     SFR-B13 (SF-RR3, October 21, 2026): every site that opens the card
     spliced the raw court tag ("against PapalStates", "against Ottoman"),
     and the card prints the message as sent. The court reads by its
-    current display name, with its article."""
+    current display name, with its article.
+
+    S14E-5: a rump (or a court whose capital another court holds) reads its
+    LIVE holdings after the question — "Hanover holds 1 province
+    (Osnabruck); the rest are Prussia's." Every other court: unchanged."""
     from backend.display_names import with_definite_article
     from backend.game_logic.formations import formed_display_name
-    return (f"Choose your war purpose against "
-            f"{with_definite_article(formed_display_name(world, target))}.")
+    prompt = (f"Choose your war purpose against "
+              f"{with_definite_article(formed_display_name(world, target))}.")
+    holdings = court_holdings_line(world, target)
+    return f"{prompt} {holdings}" if holdings else prompt
 
 
 def get_available_war_objectives(world, aggressor: str, target: str) -> list:
-    """Return available objectives for the War Purpose popup."""
+    """Return available objectives for the War Purpose popup.
+
+    S14E-5: for the PLAYER, a conquest-class purpose is not offered while a
+    third court holds the target's capital — it scores only while the
+    aggressor holds it. The AI's side is unchanged (its objective choice is
+    its own; `declare_war` and the war council read this same function)."""
     target_capital = world.get_nation_capital(target)
     objectives = []
+
+    held_by = ""
+    if aggressor == getattr(world, "player_nation", None):
+        held_by = third_court_capital_holder(world, aggressor, target)
+    capital_reason = _capital_held_reason(world, target, held_by) if held_by else None
 
     objectives.append({
         "type": "conquest",
         "label": "Conquest",
         "description": f"Seize {target_capital or 'the capital'}. +2/turn while held.",
-        "available": True,
+        "available": not held_by,
+        "reason": capital_reason,
         "ticking_rate": 2,
     })
 
@@ -4383,12 +4591,13 @@ def get_available_war_objectives(world, aggressor: str, target: str) -> list:
         "type": "forced_alliance",
         "label": "Forced Alliance",
         "description": f"Force {target} into alliance. +2/turn while {target_capital or 'capital'} held.",
-        "available": True,
+        "available": not held_by,
+        "reason": capital_reason,
         "ticking_rate": 2,
     })
 
     cap = check_vassalage_power_cap(world, aggressor, target)
-    subjugation_available = cap["allowed"]
+    subjugation_available = cap["allowed"] and not held_by
 
     objectives.append({
         "type": "subjugation",
@@ -4396,7 +4605,8 @@ def get_available_war_objectives(world, aggressor: str, target: str) -> list:
         "description": f"Total defeat — vassalize {target}. +3/turn while {target_capital or 'capital'} held.",
         "available": subjugation_available,
         "ticking_rate": 3,
-        "reason": None if subjugation_available else f"{target} is too powerful to subjugate ({cap['pct']}% of {aggressor})",
+        "reason": (None if subjugation_available
+                   else capital_reason or f"{target} is too powerful to subjugate ({cap['pct']}% of {aggressor})"),
         "power_pct": cap["pct"],
     })
 
@@ -5459,6 +5669,16 @@ def build_war_context_snapshot(
                 "severity": "INFO",
                 "display": _line,
             })
+    # S14E-4: the corps this peace (or truce) will shelter — an enemy army on
+    # the court's soil is out of the lead's reach once we are at peace with
+    # it (PT-F1's neutral arm, DDB-14). Said here, beside the fallout, from
+    # the guard's own predicate; fog-honest (visible corps only).
+    try:
+        from backend.game_logic.peace_sanctuary import sanctuary_warnings
+        fallout_warnings.extend(sanctuary_warnings(
+            world, player_nation, target_nation, proposed_state, proposal_for_calc))
+    except Exception as exc:
+        report(exc, "diplomacy.build_war_context_snapshot: peace_sanctuary")
 
     snapshot = {
         "target_nation": target_nation,
@@ -5976,7 +6196,17 @@ def separate_peace_words(world, proposer: str, target: str,
     `allies` (every ally at war with the court), `carried`, `left`, `price`
     ({ally: relation change}), `named` ({ally: [regions]}), `per_ally`
     ({ally: its own sentence}), `leader` (the proposer leads its side),
-    `display` (the long form) and `chip` (the row's)."""
+    `display` (the long form) and `chip` (the row's).
+
+    S14E-D3 (S14f part 1, October 24, 2026): a CARRIED ally the peace names
+    for nothing is not free — the ratifier runs the table's proposer-side
+    reaction on her (`settlement_reactions.shut_out_carried_allies`: the same
+    `proposer_ally_plan`, -18 and a durable grievance for an ally with
+    standing and material in the war, -7 for a lesser one, nothing for an
+    ally with no standing), so the sentence states it from that same plan:
+    "she takes nothing by it and is left out: -18 relation and a grievance;
+    Make Amends (400g + 2 DP) clears it." `shut_out` is `{ally: row}` for
+    those allies (the plan plus `display`)."""
     from backend.game_logic.formations import formed_display_name as _fdn
     from backend.game_logic.settlement_ratify import carried_in_allies, carry_in_instance
     if not proposer or not target:
@@ -6014,11 +6244,29 @@ def separate_peace_words(world, proposer: str, target: str,
     def _join(names: List[str]) -> str:
         return (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
 
+    # S14E-D3: the carried allies the peace names for nothing, priced by the
+    # ratifier's own plan (read live here, before the pairs close).
+    shut: Dict[str, Dict[str, Any]] = {}
+    if found is not None and carried:
+        from backend.game_logic.settlement_reactions import (
+            proposer_ally_plan, shut_out_price_words, shut_out_row, shut_out_words,
+        )
+        for a in carried:
+            plan = proposer_ally_plan(
+                world, war_id=str(found[0]), proposer_side=str(found[2]), ally=a,
+                settlement_terms=dict_terms)
+            if plan["kind"] == "shut_out":
+                shut[a] = shut_out_row(world, plan)
+
     per_ally: Dict[str, str] = {}
     for a in carried:
         regions = named.get(a)
-        tail = (f"she is named for {_join(regions)}." if regions
-                else "she takes nothing by it.")
+        if regions:
+            tail = f"she is named for {_join(regions)}."
+        elif a in shut:
+            tail = f"she takes nothing by it and is left out: {shut_out_price_words(shut[a])}"
+        else:
+            tail = "she takes nothing by it."
         per_ally[a] = f"{_fdn(world, a)}'s war with {court} ends in this instrument; {tail}"
     for a in left:
         per_ally[a] = (f"{_fdn(world, a)} stays at war with {court} after this separate "
@@ -6033,6 +6281,7 @@ def separate_peace_words(world, proposer: str, target: str,
                 else "they take nothing by it.")
         parts.append(f"The wars of {_join([_fdn(world, a) for a in carried])} with {court} "
                      f"end in this instrument; {tail}")
+        parts.extend(shut_out_words(world, shut[a]) for a in carried if a in shut)
     if len(left) == 1:
         parts.append(per_ally[left[0]])
     elif left:
@@ -6043,6 +6292,7 @@ def separate_peace_words(world, proposer: str, target: str,
     return {
         "allies": allies, "carried": carried, "left": left, "price": price,
         "named": named, "per_ally": per_ally, "leader": found is not None,
+        "shut_out": shut,
         "war_id": str(found[0]) if found else "",
         "display": display, "chip": display,
     }
@@ -6165,9 +6415,12 @@ def get_peace_commitment_conflicts(
             _display = str((_words.get("per_ally") or {}).get(nation) or "")
             _severity = "WARNING"
         if _words is not None and nation in (_words.get("carried") or []):
+            # S14E-D3: a carried ally left out by the peace is a priced row
+            # (WARNING), not an INFO note — the ratifier will shut her out.
+            _left_out = (_words.get("shut_out") or {}).get(nation)
             conflicts.append({
                 "conflict_type": "carried_in",
-                "severity": "INFO",
+                "severity": "WARNING" if _left_out else "INFO",
                 "affected_entity": nation,
                 "display": _display,
                 "detail": {
@@ -6175,6 +6428,8 @@ def get_peace_commitment_conflicts(
                     "ally_state_vs_target": "WAR",
                     "war_id": str(_words.get("war_id") or ""),
                     "named_for": list((_words.get("named") or {}).get(nation) or []),
+                    "relation_change": int((_left_out or {}).get("relation_delta") or 0),
+                    "grievance": bool((_left_out or {}).get("grievance_flag_added", False)),
                 },
             })
             continue
@@ -8720,8 +8975,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # 30, so a preview scored on terms["type"] (variant, from
     # _build_base_terms) and a send scored on terms["proposal_type"]
     # (generic) disagreed by ±10 base points — enough to cross both verdict
-    # thresholds. Same losing-rule as _build_base_terms: proposer losing →
-    # armistice_losing.
+    # thresholds. Proposer losing → armistice_losing; `_build_base_terms`
+    # stamps `terms["type"]` through this same `armistice_variant_for`
+    # (S14E-8 — it once read the side sum), so the preview and the send
+    # score ONE type.
     if proposal_type == "armistice" and target:
         proposal_type = armistice_variant_for(world, proposer, target)
 
@@ -9295,13 +9552,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     components["coalition_bond"] = int(coalition_bond)
 
     # ── Feedback (§6f) ──
-    feedback = _generate_feedback(outcome, components)
+    # S14E-10: the grievance term is worded by the KIND of grievance held
+    # (a shut-out is not an abandoned alliance); the kind rides the result.
+    grievance_kind_value = grievance_kind(world, proposer, target)
+    feedback = _generate_feedback(outcome, components, grievance_kind_value)
 
     return {
         "score": int(score),
         "outcome": outcome,
         "components": components,
         "feedback": feedback,
+        "grievance_kind": grievance_kind_value,
         # IQ-4 review: the formula's own sum with the relation term taken out,
         # before the rounding (and before the clamping postures; the additive
         # -20 shared-enemy posture is kept). Every other peacetime term is a
@@ -9313,6 +9574,75 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
                                     + (hard_reject_posture
                                        if hard_reject_posture > -100 else 0)}),
     }
+
+
+# S14E-10 (S14C-X4's class, swept): the Cabinet's acceptance preview names
+# every nonzero acceptance term by this ONE table, never a title-cased raw
+# key ("Grievance Modifier"). `grievance_modifier` and `agenda_mod` are named
+# by what they ARE (`acceptance_term_label`); the state/debug keys below are
+# not terms and never print as factors. A test censuses `components` against
+# the two sets, so a term added without a label fails there, not on a screen.
+_COMPONENT_LABELS = {
+    "base_disposition": "Base willingness",
+    "war_score_modifier": "Our military dominance",
+    "relation_modifier": "Current relations",
+    "war_weariness": "Exhaustion from prolonged conflict",
+    # CA9 row 1: the option-B argument is that the rule teaches itself
+    # through a surface that already names its terms, so this label is
+    # load-bearing, not decoration.
+    "war_age_penalty": "The war is barely begun",
+    "stalemate_duration": "Stalemate weariness",
+    "hegemony_target_mod": "Hegemon bloc pressure",
+    "bilateral_betrayal_mod": "Remembered betrayals",
+    "deal_balance": "Deal terms",
+    "diplomat_skill_bonus": "Diplomatic skill advantage",
+    "personality_modifier": "Diplomat personality",
+    "military_supremacy": "Military supremacy",
+    "battlefield_diplomacy": "Battlefield diplomacy",
+    "military_pressure": "Military pressure",
+    "special_desire_bonus": "Appeals to core interests",
+    "harshness_bonus": "Previous treaty precedent",
+    "harshness_penalty": "The harshness of the demands",
+    "reliability_modifier": "Our diplomatic reputation",
+    # IQ-4 PR-D3: the Court's Favour
+    "court_favour_mod": "Talleyrand's courting",
+    "bargain_value_mod": "A war bargain offered",
+    "bargain_conflict_penalty": "A bargain that conflicts with this court",
+    "settlement_gratitude_mod": "Gratitude for a recent reward",
+    "respected_estate_mod": "A marshal's title respected",
+    "ultimatum_bonus": "Military threat behind the demand",
+    "territory_escalation": "The scale of the territorial demands",
+    "hard_reject_posture": "A court sworn off deep treaties with us",
+    "oathbreaker_posture": "The oathbreaker posture",
+    "anti_renewal_block": "The anti-renewal cooldown",
+    "coalition_loyalty": "Her loyalty to the league",
+    "coalition_bond": "The league's bond",
+}
+# `grievance_modifier` is named by the KIND of grievance held, `agenda_mod`
+# by its sign — see `acceptance_term_label`.
+_COMPONENT_LABELED_BY_STATE = frozenset({"grievance_modifier", "agenda_mod"})
+# Components that are state or debug readings, not terms: the Cabinet never
+# lists them as a reason (a count of flags is not a "positive factor").
+_COMPONENT_METADATA_KEYS = frozenset({
+    "grievance_flag_count_raw", "composite_floor", "composite_floor_applied",
+    "composite_floor_adjustment", "oathbreaker_active",
+    "oathbreaker_turns_remaining", "anti_renewal_active",
+    "anti_renewal_turns_remaining",
+})
+
+
+def acceptance_term_label(key: str, value=0, grievance_kind_value: str = "") -> str:
+    """The Cabinet's name for one acceptance term (S14E-10): the
+    `_COMPONENT_LABELS` table; the agenda term by direction ("Advances their
+    design" / "Entrenches their denial", NA-2 §5.2); the grievance term by
+    the kind of grievance held ("Left out of the peace — Make Amends clears
+    it"). A key nobody labelled still prints humanised, never a raw key."""
+    if key == "agenda_mod":
+        return "Advances their design" if (value or 0) > 0 else "Entrenches their denial"
+    if key == "grievance_modifier":
+        from backend.display_names import grievance_kind_display
+        return str(grievance_kind_display(grievance_kind_value)["label"])
+    return _COMPONENT_LABELS.get(key) or key.replace("_", " ").title()
 
 
 # The acceptance terms the player-facing feedback ranks (`_generate_feedback`)
@@ -9368,8 +9698,10 @@ def _ranked_components(components: Dict):
     return largest_positive, largest_negative, second_negative
 
 
-def _generate_feedback(outcome: str, components: Dict) -> str:
-    """Generate natural-language feedback based on formula components."""
+def _generate_feedback(outcome: str, components: Dict, grievance_kind_value: str = "") -> str:
+    """Generate natural-language feedback based on formula components.
+    `grievance_kind_value` (S14E-10) words `grievance_modifier` by the kind
+    of grievance the pair holds."""
     # Find largest positive and negative components
     largest_positive, largest_negative, second_negative = _ranked_components(components)
 
@@ -9377,15 +9709,15 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
 
     if outcome == "REJECT":
         key = largest_negative[0]
-        phrase = FEEDBACK_STRINGS.get(key, {}).get("negative", "unknown factors")
+        phrase = feedback_phrase(key, "negative", grievance_kind_value, "unknown factors")
         return f"{proposer_name} reports the key obstacle was {phrase}."
     elif outcome == "COUNTER_OFFER":
         key = second_negative[0] if second_negative[0] else largest_negative[0]
-        phrase = FEEDBACK_STRINGS.get(key, {}).get("negative", "unresolved concerns")
+        phrase = feedback_phrase(key, "negative", grievance_kind_value, "unresolved concerns")
         return f"The sticking point appears to be {phrase}."
     else:  # ACCEPT
         key = largest_positive[0]
-        phrase = FEEDBACK_STRINGS.get(key, {}).get("positive", "favorable conditions")
+        phrase = feedback_phrase(key, "positive", grievance_kind_value, "favorable conditions")
         return f"The decisive factor was {phrase}."
 
 
@@ -9966,6 +10298,33 @@ def declaration_relation_penalties(casus_belli: bool = False) -> tuple:
     return int(-30 * factor), int(-15 * factor)
 
 
+def declaration_cost_to_player(world, aggressor: str, target: str,
+                               casus_belli: bool = False) -> int:
+    """S14E-9: what a THIRD POWER's declaration of war costs France.
+
+    `declare_war` charges the declarer its `indirect` penalty with every court
+    that is neither party, France's included — so Prussia's war on Hanover
+    cost the Franco-Prussian relation 15 and the Cabinet's mission row never
+    said so. The figure is `declaration_relation_penalties`' own. 0 when France
+    is a party: the player chose that war (its price was on the War Purpose
+    card) or is its victim, and the war is the news.
+    """
+    player = getattr(world, "player_nation", "France")
+    if not aggressor or player in (aggressor, target):
+        return 0
+    return int(-declaration_relation_penalties(casus_belli)[1])
+
+
+def declaration_cost_clause(cost: int, player: str = "France") -> str:
+    """"relations with every court, France's included, fall 15" — the clause
+    the declaration beat (dispatch AND rail) appends; "" at a cost of 0."""
+    if int(cost or 0) <= 0:
+        return ""
+    from backend.display_names import display_nation
+    return (f"relations with every court, {display_nation(player)}'s "
+            f"included, fall {int(cost)}")
+
+
 def declaration_alarm(casus_belli: bool = False) -> int:
     """The alarm a declaration of war adds to the DECLARER's own slot (§2a,
     S5c) — halved with a casus belli. Single source (IQ-3): `declare_war`
@@ -10169,6 +10528,10 @@ def declare_war(
     penalty_factor = 0.5 if casus_belli else 1.0
     relation_changes = []
     direct_penalty, indirect_penalty = declaration_relation_penalties(casus_belli)
+    # S14E-9: the live mission's pair, read before the penalties land — the
+    # declaration's cost to it is noted from the writes themselves (below).
+    from backend.game_logic.diplomatic_dialogue import mission_pair_snapshot
+    _mission_pair_before = mission_pair_snapshot(world)
     world.modify_nation_relation(aggressor, target, direct_penalty)
     relation_changes.append({"nations": (aggressor, target), "delta": direct_penalty})
 
@@ -10475,6 +10838,11 @@ def declare_war(
         ctx=cascade_ctx,
     )
     _flush_hegemony_signal_defer(world, "declare_war")
+    # S14E-9: what the declaration (and the cascade it set off) did to the
+    # mission's pair, with its cause — the Cabinet row prints it.
+    from backend.game_logic.diplomatic_dialogue import note_mission_shock
+    note_mission_shock(world, _mission_pair_before, "war_declaration",
+                       aggressor, target)
     world.log_event({
         "type": "war_entry_ledger",
         "episode_id": episode_id,
@@ -10498,6 +10866,11 @@ def declare_war(
             f"{_court_named(world, target)}, shattering the "
             f"{breach_preview['treaty_type_display']}."
         )
+    # S14E-9: and what it costs France, when it is a third power's war.
+    _cost = declaration_cost_to_player(world, aggressor, target, casus_belli)
+    if _cost:
+        war_message = (war_message.rstrip(".") + " — "
+                       + declaration_cost_clause(_cost, world.player_nation) + ".")
     world.notifications.add(create_notification(
         WAR_DECLARED,
         NotificationPriority.HIGH,
@@ -10518,6 +10891,9 @@ def declare_war(
                             "end_reason_family": breach_preview["end_reason_family"] if breach_preview else "",
                             "defensive_joiner_count": len(war_preview["defensive_joiners"]),
                             "offensive_joiner_count": len(war_preview["offensive_joiners"]),
+                            # S14E-9: the beat names its cost to France.
+                            "relation_cost": int(_cost),
+                            "player": str(world.player_nation),
                         },
                         "partial_on_nation")
 
@@ -11326,13 +11702,18 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
     active_treaties = getattr(world, 'active_treaties', {})
     active_treaties.pop(diplo_key, None)
 
-    # Relation penalties
+    # Relation penalties (S14E-9: what they do to the mission's pair is noted
+    # from the writes themselves, as the declaration's is)
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_pair_snapshot, note_mission_shock)
+    _mission_pair_before = mission_pair_snapshot(world)
     world.modify_nation_relation(nation_a, nation_b, penalties["relation_target"])
     all_nations = world.get_active_nations()  # DLF-11
     if penalties["relation_all"] != 0:
         for nation in all_nations:
             if nation != nation_a and nation != nation_b:
                 world.modify_nation_relation(nation_a, nation, penalties["relation_all"])
+    note_mission_shock(world, _mission_pair_before, "downgrade", nation_a, nation_b)
 
     # Coalition threat from downgrade (§2a) — AI-4a step 5: the actor's slot.
     threat_amount = penalties.get("threat", 0)
@@ -11402,13 +11783,17 @@ def check_auto_downgrade(world) -> List[Dict]:
             # Warn at turn 3 (2 turns before downgrade)
             if turns_below[diplo_key] == 3:
                 parts = diplo_key.split("|")
+                # S14E-11: for a bond of ours the warning carries its CAUSE
+                # (the slide) and its LEVER (read from the Cabinet's gates);
+                # an AI pair keeps its old words.
+                _warning, _lever = downgrade_warning_message(world, parts, state)
                 events.append({
                     "type": "downgrade_warning",
                     "nations": parts,
                     "state": state,
                     "turns_remaining": 2,
-                    "message": f"Relations between {parts[0]} and {parts[1]} are deteriorating. "
-                               f"{_STATE_DISPLAY_NAMES.get(state, state)} may collapse in 2 turns.",
+                    "message": _warning,
+                    "lever": _lever,
                 })
 
             # Auto-downgrade at turn 5
@@ -12413,10 +12798,13 @@ def _process_mission_dp(world) -> List[Dict]:
             # the player it had "collapsed after prolonged inactivity",
             # with no warning beforehand because the warning is emitted only
             # by the insufficient-DP arm. The clock belongs to starvation.
-            pass
+            # S14E-9: the turn is still COUNTED, in its own book — the
+            # Cabinet row says "paused 2 turns on your errand".
+            mission["paused_errand"] = int(mission.get("paused_errand") or 0) + 1
         else:
             # Still can't afford — increment paused turns
             mission["paused_turns"] = mission.get("paused_turns", 0) + 1
+            mission["paused_starved"] = int(mission.get("paused_starved") or 0) + 1
     elif world.diplomatic_points >= cost:
         world.diplomatic_points -= cost
         mission["turns_active"] = mission.get("turns_active", 0) + 1
@@ -12424,6 +12812,7 @@ def _process_mission_dp(world) -> List[Dict]:
     else:
         mission["paused"] = True
         mission["paused_turns"] = mission.get("paused_turns", 0) + 1
+        mission["paused_starved"] = int(mission.get("paused_starved") or 0) + 1
         events.append({
             "type": "diplomatic_mission_paused",
             "target": mission.get("target", ""),
@@ -12598,6 +12987,8 @@ def _process_mission_effects(world) -> List[Dict]:
         _before = int(world.nation_relations.get(_key, 0) or 0)
         world.modify_nation_relation(player_nation, target, scaled)
         _after = int(world.nation_relations.get(_key, 0) or 0)
+        # S14E-9: the books keep what LANDED (the clamp may cut the order).
+        mission["earned"] = int(mission.get("earned") or 0) + (_after - _before)
         # MS-9b: the write landed on the clamp in the work's direction.
         _reached = ((scaled > 0 and _after >= RELATION_CLAMP)
                     or (scaled < 0 and _after <= -RELATION_CLAMP))
@@ -12716,7 +13107,11 @@ def _process_mission_effects(world) -> List[Dict]:
             pair_change = effects.get("target_pair_relation_change", 0)
             if pair_change:
                 scaled_pair = int(round(pair_change * multiplier))
+                _pair_key = world._make_diplo_key(target, target_ally)
+                _pair_before = int(world.nation_relations.get(_pair_key, 0) or 0)
                 world.modify_nation_relation(target, target_ally, scaled_pair)
+                mission["earned"] = int(mission.get("earned") or 0) + (
+                    int(world.nation_relations.get(_pair_key, 0) or 0) - _pair_before)
                 from backend.game_logic.dispatch import queue_dispatch_event
                 # MS-5: `diplomatic_mission_progress`'s template reads
                 # `{nation}` and `{value}`; this producer sends `ally` and
@@ -12891,6 +13286,10 @@ def break_treaty(
     relation_changes = []
 
     # Target: -30 (or -40 for alliance/defensive_alliance)
+    # S14E-9: the mission's pair, read before the penalties land.
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_pair_snapshot, note_mission_shock)
+    _mission_pair_before = mission_pair_snapshot(world)
     penalty = -40 if treaty_type in ("alliance", "defensive_alliance") else -30
     world.modify_nation_relation(breaker_nation, other, penalty)
     relation_changes.append({"nations": (breaker_nation, other), "delta": penalty})
@@ -12901,6 +13300,7 @@ def break_treaty(
         if nation != breaker_nation and nation != other:
             world.modify_nation_relation(breaker_nation, nation, -10)
             relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
+    note_mission_shock(world, _mission_pair_before, "treaty_break", breaker_nation, other)
 
     # AI-4a step 5 (supersedes deep-audit fix 9's player gate): threat
     # tracks the BREAKER's aggression, whoever breaks — each actor's own slot.
@@ -13628,6 +14028,217 @@ def get_assessment_text(world, target_nation: str) -> str:
     return _ASSESSMENT_FALLBACK.format(nation=target_nation)
 
 
+# ═══════ S14E-11 "The Slide Names Its Lever" (Pre-Deploy S14f part 1) ═══════
+# An ally slid from +33 to +2 and collapsed to a defensive alliance over five
+# turns; the Cabinet's counsel considered `mission_improve_relations` only
+# (absent in ALLIANCE by design — WO-D2/G1 contract 8: Reassure Ally is the
+# maintenance mission for an ally) and the "may collapse" warning was a plain
+# line. The lever is now read from the SAME gates the Cabinet's rows read —
+# `mission_gate` below and `cabinet_rows.amends_actions` — by the counsel and
+# by the warning, so a lever is never named that the click would refuse.
+#   state -> (mission, label, wizard row); everything else -> Improve Relations
+_SLIDE_LEVERS = {
+    "ALLIANCE": ("REASSURE_ALLY", "Reassure Ally", "mission_reassure"),
+}
+_SLIDE_LEVER_DEFAULT = ("IMPROVE_RELATIONS", "Improve Relations", "mission_improve_relations")
+_SLIDE_STATE_WORDS = {
+    "NON_AGGRESSION": "non-aggression pact",
+    "OPEN_BORDERS": "open-borders accord",
+}
+_MISSION_BUSY = "Mission already active"
+_MISSION_TRANSIT = "Talleyrand in transit"
+
+
+def mission_gate(world, mission_type: str, undermine_has_ally=None) -> Tuple[bool, str]:
+    """(available, disabled_reason) — can Talleyrand be sent on `mission_type`?
+
+    The ONE gate: the Cabinet's mission rows, the counsel's lever and the
+    downgrade warning all read it. Transit first (the EC-Q gate fires before
+    every other check), then a live mission (MS-1: a COMPLETED one is a record,
+    not a commitment), then — undermining only — an alliance to part (MS-6:
+    ``undermine_has_ally`` is a callable, asked last and only here), then the
+    DP.
+    """
+    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS, mission_is_live
+    cost = MISSION_DP_COSTS.get(mission_type, 1)
+    if getattr(world, 'talleyrand_state', 'IDLE') == "IN_TRANSIT":
+        return False, _MISSION_TRANSIT
+    if mission_is_live(world):
+        return False, _MISSION_BUSY
+    if (mission_type == "UNDERMINE_ALLIANCE" and undermine_has_ally is not None
+            and not undermine_has_ally()):
+        return False, "No alliance to undermine"
+    if int(getattr(world, 'diplomatic_points', 0)) < cost:
+        return False, "Insufficient DP"
+    return True, ""
+
+
+def slide_lever(world, other: str, state: str = "") -> Dict[str, Any]:
+    """The lever for a bond with `other` that is sliding — what the counsel and
+    the downgrade warning name. Reads the gates the Cabinet's rows read; writes
+    nothing.
+
+    ``kind``: ``open`` (the mission can be sent), ``amends`` (the mission is
+    shut but Make Amends is open), ``here`` (he is already at the court doing
+    the work), ``busy`` (the one slot is on another errand — ``away`` names the
+    court to recall him from), ``transit`` (he carries a proposal), ``dp``.
+    ``clause`` is the imperative the warning splices ("Reassure Ally in the
+    Cabinet"); ``action`` is the wizard row it points at ("" when none is open).
+    """
+    from backend.display_names import display_nation, with_definite_article
+    from backend.game_logic.cabinet_rows import amends_actions
+    from backend.game_logic.diplomatic_dialogue import (
+        MISSION_DP_COSTS, mission_effect_magnitude, mission_is_live)
+    player = getattr(world, "player_nation", "France")
+    state = state or world.get_diplomatic_state(player, other)
+    mission_type, label, row_action = _SLIDE_LEVERS.get(state, _SLIDE_LEVER_DEFAULT)
+
+    def _named(nation: str) -> str:
+        return with_definite_article(display_nation(nation))
+
+    available, reason = mission_gate(world, mission_type)
+    live = world.active_diplomatic_mission if mission_is_live(world) else {}
+    away = str((live or {}).get("target") or "")
+    working_here = (away == other and str(live.get("type") or "") in (
+        "REASSURE_ALLY", "IMPROVE_RELATIONS", "COURT_NATION"))
+    amends = next((r for r in amends_actions(world, player, other) if r.get("available")), None)
+    cost = int(MISSION_DP_COSTS.get(mission_type, 1))
+    out: Dict[str, Any] = {
+        "mission": mission_type, "label": label, "cost": cost,
+        "effect": int(mission_effect_magnitude(world, mission_type, "relation_change")),
+        "away": away, "away_name": _named(away) if away else "",
+        "amends": amends, "amends_name": str((amends or {}).get("display_name") or ""),
+    }
+    if available:
+        out.update(kind="open", action=row_action,
+                   clause=f"{label} in the Cabinet" + (
+                       f" (or {out['amends_name']})" if amends else ""))
+        return out
+    if reason == _MISSION_TRANSIT:
+        shut = f"{label} once Talleyrand is home"
+        kind = "transit"
+    elif working_here:
+        shut = f"keep Talleyrand at {_named(other)}'s court"
+        kind = "here"
+    elif reason == _MISSION_BUSY:
+        shut = f"recall Talleyrand from {out['away_name']} first, then {label}"
+        kind = "busy"
+    else:
+        shut = f"{label} (it needs {cost} DP)"
+        kind = "dp"
+    if amends:
+        out.update(kind="amends", shut_kind=kind, action=str(amends["action"]),
+                   clause=f"{out['amends_name']} in the Cabinet, or {shut}")
+    else:
+        out.update(kind=kind, action="", clause=shut)
+    return out
+
+
+def slide_state_words(state: str) -> str:
+    return _SLIDE_STATE_WORDS.get(state, str(_STATE_DISPLAY_NAMES.get(state, state)).lower())
+
+
+def downgrade_warning_message(world, parts, state: str) -> Tuple[str, str]:
+    """(message, lever row) for `check_auto_downgrade`'s "may collapse" warning.
+
+    A pair that does not include the player keeps its old words (no lever of
+    ours moves it). Ours carries the CAUSE — the slide in points over the turns
+    the history holds (`relation_history`: up to three start-of-turn snapshots),
+    or the standing against the line when there is none — and the LEVER, read
+    from the Cabinet's own gates: "Relations with Spain have slid 31 points in
+    3 turns — Reassure Ally in the Cabinet before the alliance lapses in 2 turns."
+    """
+    old = (f"Relations between {parts[0]} and {parts[1]} are deteriorating. "
+           f"{_STATE_DISPLAY_NAMES.get(state, state)} may collapse in 2 turns.")
+    player = getattr(world, "player_nation", "France")
+    if player not in parts:
+        return old, ""
+    try:
+        from backend.display_names import display_nation, plural, with_definite_article
+        other = parts[1] if parts[0] == player else parts[0]
+        name = with_definite_article(display_nation(other))
+        key = world._make_diplo_key(player, other)
+        relation = int(world.nation_relations.get(key, 0) or 0)
+        history = list((getattr(world, "relation_history", {}) or {}).get(key) or [])
+        drop = (int(history[0]) - relation) if history else 0
+        words = slide_state_words(state)
+        if drop > 0:
+            cause = f"Relations with {name} have slid {drop} points in {plural(len(history), 'turn')}"
+        else:
+            threshold = int(STATE_RELATION_THRESHOLDS.get(state, 0))
+            cause = (f"Relations with {name} stand at {relation}, {threshold - relation} "
+                     f"under the {threshold} the {words} needs")
+        lever = slide_lever(world, other, state)
+        # An open lever splices plain; a multi-part clause ("recall … first,
+        # then Reassure Ally") takes its comma before the deadline.
+        sep = " " if lever["kind"] == "open" else ", "
+        return (f"{cause} — {lever['clause']}{sep}before the {words} lapses in 2 turns.",
+                str(lever.get("action") or ""))
+    except Exception as exc:
+        report(exc, "diplomacy.downgrade_warning_message")
+        return old, ""
+
+
+def _slide_counsel(world, target_nation: str, state: str, lead: str) -> Tuple[str, str]:
+    """The counsel's sentence for a bond whose relation must rise, and the
+    mission it names ("" unless the mission row is open). Talleyrand's voice:
+    the situation read, then the lever — or what stands in its way."""
+    lever = slide_lever(world, target_nation, state)
+    label, kind = lever["label"], lever["kind"]
+    if kind == "open":
+        text = (f"{lead} Talleyrand recommends: {label} — {lever['effect']:+d} a turn "
+                f"on relations, {lever['cost']} DP a turn.")
+        if lever["amends"]:
+            text += f" {lever['amends_name']} is open too."
+        return text, str(lever["mission"])
+    if kind == "amends":
+        text = (f"{lead} Talleyrand recommends: {lever['amends_name']} — "
+                f"{lever['amends'].get('effect_text', '')}.")
+        shut = lever["shut_kind"]
+        if shut == "busy":
+            text += (f" {label} waits on his errand: recall Talleyrand from "
+                     f"{lever['away_name']} first.")
+        elif shut == "transit":
+            text += f" {label} opens when he is home."
+        return text, ""
+    if kind == "here":
+        from backend.game_logic.diplomatic_dialogue import mission_status
+        net = int((mission_status(world) or {}).get("net_per_turn", 0))
+        return (f"{lead} Talleyrand is already at their court, Sire — net "
+                f"{net:+d} a turn."), ""
+    if kind == "busy":
+        return (f"{lead} {label} is shut while Talleyrand is at {lever['away_name']}'s "
+                f"court — recall Talleyrand from {lever['away_name']} first (the "
+                f"Cabinet's Recall is free)."), ""
+    if kind == "transit":
+        return (f"{lead} {label} is shut while Talleyrand carries a proposal abroad "
+                f"— it opens when he is home."), ""
+    return f"{lead} {label} needs {lever['cost']} DP.", ""
+
+
+def _ally_slide_counsel(world, target_nation: str):
+    """The counsel for an ALLY on the slide (S14E-11): the alliance holds at
+    `STATE_RELATION_THRESHOLDS["ALLIANCE"]` and the court is at or under it.
+    None when the court is not an ally or is comfortably above the line — the
+    counsel then reads exactly as it did."""
+    player = getattr(world, "player_nation", "France")
+    if world.get_diplomatic_state(player, target_nation) != "ALLIANCE":
+        return None
+    threshold = int(STATE_RELATION_THRESHOLDS["ALLIANCE"])
+    relation = int(world.nation_relations.get(world._make_diplo_key(player, target_nation), 0) or 0)
+    if relation > threshold:
+        return None
+    from backend.display_names import display_nation, with_definite_article
+    name = with_definite_article(display_nation(target_nation))
+    if relation < threshold:
+        lead = (f"Our alliance with {name} frays, Sire — relations stand at {relation}, "
+                f"short of the {threshold} it holds on.")
+    else:
+        lead = (f"Our alliance with {name} stands on its line, Sire — relations at "
+                f"{relation}, the {threshold} it holds on, and the first slide takes it under.")
+    return _slide_counsel(world, target_nation, "ALLIANCE", lead)
+
+
 # The wizard's chip → the proposal type the ratifier reads (DD-1 Slice B).
 _CHIP_PROPOSAL_TYPES = {
     "ARMISTICE": "armistice_winning",
@@ -13744,6 +14355,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             progress_text = (
                 f"{pair_prefix}{current_desc} "
                 f"({'+' if delta >= 0 else ''}{delta} over {turns} turns)")
+
+        # S14E-9: where the gain went — what the tick earned, each shock with
+        # its cause, the turns he stood away. The mission's own books (one
+        # line, `diplomatic_dialogue.mission_ledger_line`), never a sum here.
+        _books = str(status.get("ledger_line") or "")
+        if _books:
+            progress_text = f"{progress_text} — {_books}"
 
         return {
             "action": "cancel_mission",
@@ -14104,27 +14722,12 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
     def _mission_action(action_key: str, display: str, mission_type: str):
         cost = MISSION_DP_COSTS.get(mission_type, 1)
-        available = True
-        reason = ""
-        if tal_state == "IN_TRANSIT":
-            available = False
-            reason = "Talleyrand in transit"
-        elif mission_is_live(world):
-            # MS-1: `active_mission is not None` locked the desk FOREVER —
-            # a completed mission is never cleared, so the first finished
-            # intelligence run shut every mission row for every court while
-            # the top bar beside it still said Talleyrand was idle.
-            available = False
-            reason = "Mission already active"
-        elif (mission_type == "UNDERMINE_ALLIANCE" and not _has_any_ally(world, target_nation)):
-            # MS-6: the only row in the diplomacy list that did not state
-            # its gate. It rendered enabled at 2 DP against a court with no
-            # alliances at all and dead-ended in a Dismiss-only refusal.
-            available = False
-            reason = "No alliance to undermine"
-        elif dp < cost:
-            available = False
-            reason = "Insufficient DP"
+        # S14E-11: the gate is `mission_gate` — the ONE place the row and the
+        # counsel's lever read whether Talleyrand can be sent (its comments
+        # carry the MS-1 and MS-6 histories this chain used to hold).
+        available, reason = mission_gate(
+            world, mission_type,
+            undermine_has_ally=lambda: _has_any_ally(world, target_nation))
         return {
             "action": action_key,
             "display_name": display,
@@ -14447,6 +15050,17 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     actions.extend(bond_actions(world, player, target_nation, actions))
     # PC-X48: the ladder's higher rungs ride the next rung's row
     _attach_skip_ahead(actions, state, _proposal_action)
+
+    # S14E-5: shown == applied. The War Purpose card offers no purpose while a
+    # third court holds the target's capital (`get_available_war_objectives`),
+    # so the Declare War chip is shut with the card's own reason rather than
+    # opening a card with nothing to choose.
+    for _row in actions:
+        if _row.get("action") == "declare_war" and _row.get("available"):
+            _no_purpose = no_war_purpose_reason(world, player, target_nation)
+            if _no_purpose:
+                _row["available"] = False
+                _row["disabled_reason"] = _no_purpose
 
     # DPF-2: Cancel mission — only if active mission targets THIS nation
     # (single source shared with the vassal branch, WO-D2/G1 contract 8).
@@ -14829,6 +15443,18 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     else:
         response["section"] = "foreign_affairs"
 
+    # S14E-5: the court's LIVE holdings — "Hanover holds 1 province
+    # (Osnabruck); the rest are Prussia's." '' for a court that is not a rump
+    # and whose capital it holds (the page is unchanged for them).
+    _holdings = court_holdings(world, target_nation)
+    response["holdings_line"] = court_holdings_line(world, target_nation)
+    response["holdings"] = {
+        "provinces": int(len(_holdings["held"])),
+        "homeland": int(len(_holdings["homeland"])),
+        "rump": bool(_holdings["rump"]),
+        "capital_holder": str(_holdings["capital_holder"]),
+    }
+
     response["assessment"] = get_assessment_text(world, target_nation)
     actions = get_available_diplomatic_actions(world, target_nation)
     response["actions"] = actions
@@ -14924,44 +15550,17 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
             result = calculate_acceptance(mock_proposal, world)
             components = result.get("components", {})
 
-            # Human-readable labels for components
-            _COMPONENT_LABELS = {
-                "base_disposition": "Base willingness",
-                "war_score_modifier": "Our military dominance",
-                "relation_modifier": "Current relations",
-                "war_weariness": "Exhaustion from prolonged conflict",
-                # CA9 row 1: the option-B argument is that the rule teaches
-                # itself through a surface that already names its terms, so
-                # this label is load-bearing, not decoration.
-                "war_age_penalty": "The war is barely begun",
-                "stalemate_duration": "Stalemate weariness",
-                "hegemony_target_mod": "Hegemon bloc pressure",
-                "bilateral_betrayal_mod": "Remembered betrayals",
-                "deal_balance": "Deal terms",
-                "diplomat_skill_bonus": "Diplomatic skill advantage",
-                "personality_modifier": "Diplomat personality",
-                "military_supremacy": "Military supremacy",
-                "battlefield_diplomacy": "Battlefield diplomacy",
-                "military_pressure": "Military pressure",
-                "special_desire_bonus": "Appeals to core interests",
-                "harshness_bonus": "Previous treaty precedent",
-                "reliability_modifier": "Our diplomatic reputation",
-                # IQ-4 PR-D3: the Court's Favour
-                "court_favour_mod": "Talleyrand's courting",
-            }
-
+            # Human-readable labels: the module-level `_COMPONENT_LABELS` (S14E-10).
             positives = []
             negatives = []
             for key, val in components.items():
-                if not val:
+                if not val or key in _COMPONENT_METADATA_KEYS:
                     continue
                 # NA-2 §5.2: the agenda term labels by direction so the
-                # player reads WHY ("Advances their design: +12").
-                if key == "agenda_mod":
-                    label = ("Advances their design" if val > 0
-                             else "Entrenches their denial")
-                else:
-                    label = _COMPONENT_LABELS.get(key, key.replace("_", " ").title())
+                # player reads WHY ("Advances their design: +12"); S14E-10:
+                # the grievance term by the kind of grievance held.
+                label = acceptance_term_label(
+                    key, val, str(result.get("grievance_kind") or ""))
                 entry = {"key": key, "label": label, "value": int(round(val or 0))}
                 if val > 0:
                     positives.append(entry)
@@ -14979,6 +15578,8 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
             report(exc, "diplomacy.get_diplomatic_preview: armistice_variant_for")
             acceptance_preview = None
     response["acceptance_preview"] = acceptance_preview
+    # S14E-10 (the sweep): why the court is cold, with the cure's price.
+    response["grievance_line"] = grievance_line(world, player, target_nation)
 
     # BPH-B: Attach war context snapshots for peace-class actions
     # (NA-3 rider b: terms come from the shared memo above, so the R17d
@@ -15290,11 +15891,15 @@ def counsel_first(actions: List[Dict], rec_text: str, rec_mission: str,
     if not key:
         named = str(rec_text or "").split("recommends: ", 1)
         if len(named) == 2:
+            # S14E-11: the LONGEST row name the text starts with — "Make
+            # Amends" is a prefix of "Make Amends for the Abandoned
+            # Alliance", and the first row in the list is not the one named.
+            best = ""
             for row in actions:
                 shown = str(row.get("display_name") or "")
-                if shown and named[1].startswith(shown):
+                if shown and named[1].startswith(shown) and len(shown) > len(best):
+                    best = shown
                     key = str(row.get("action") or "")
-                    break
     lead = [r for r in actions if r.get("action") == "cancel_mission"]
     lead += [r for r in actions if key and r.get("action") == key and r not in lead]
     if not lead:
@@ -15402,6 +16007,13 @@ def _base_recommendation_and_mission(world, target_nation: str, actions: List[Di
         return (str(counsel.get("line") or ""),
                 _road_mission.get(str(counsel.get("best_action") or ""), ""))
 
+    # S14E-11: an ALLY on the slide is told the lever (Reassure Ally / Make
+    # Amends) before any proposal is weighed — the alliance itself is what is
+    # at risk, and ALLIANCE offers no Improve Relations to fall back on.
+    _slide = _ally_slide_counsel(world, target_nation)
+    if _slide:
+        return _slide
+
     best_proposal = None
     best_score = -999
     for a in actions:
@@ -15464,4 +16076,26 @@ def _base_recommendation_and_mission(world, target_nation: str, actions: List[Di
             and int(calculate_war_score(_player, target_nation, world)) <= 20):
         return ("Relations must improve before proposals will find purchase. "
                 "A battlefield victory would change their calculus.", "")
-    return ("Relations must improve before proposals will find purchase.", "")
+    return _dead_end_counsel(world, target_nation, actions)
+
+
+_DEAD_END_LEAD = "Relations must improve before proposals will find purchase."
+
+
+def _dead_end_counsel(world, target_nation: str, actions: List[Dict]) -> Tuple[str, str]:
+    """The counsel's last arm — no proposal would find purchase and no
+    relation mission was open to name. S14E-11: it used to print the bare lead
+    and stop, which for an ally (ALLIANCE offers no Improve Relations) and for
+    a court whose mission row was SHUT by the one slot being busy named no
+    lever at all. It names the lever the court's own page offers, or the
+    recall that opens it."""
+    player = getattr(world, "player_nation", "France")
+    state = world.get_diplomatic_state(player, target_nation)
+    if state == "ALLIANCE":
+        return _slide_counsel(world, target_nation, state, _DEAD_END_LEAD)
+    shut = next((a for a in actions if a.get("action") == "mission_improve_relations"
+                 and not a.get("available")
+                 and a.get("disabled_reason") in (_MISSION_BUSY, _MISSION_TRANSIT)), None)
+    if shut is not None:
+        return _slide_counsel(world, target_nation, state, _DEAD_END_LEAD)
+    return (_DEAD_END_LEAD, "")

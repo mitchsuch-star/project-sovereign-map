@@ -267,6 +267,12 @@ func show_group(quotes: Array, ap_left: int) -> void:
 		var contact := str(q.get("contact", ""))
 		if contact != "":
 			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + contact + "[/color]")
+		var camp_row := str(q.get("camp", ""))
+		if camp_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + camp_row + "[/color]")
+		var departs_row := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
+		if departs_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + departs_row + "[/color]")
 	var send: Array = plan["send"]
 	var sum_line := "[b]" + Utils.plural(int(plan["total"]), "action") + " of " + str(ap_left) + " in hand[/b]"
 	if send.is_empty():
@@ -432,6 +438,14 @@ func _terms(q: Dictionary) -> String:
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + contact + "[/color]")
 	if note != "" and note != contact:
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + note + "[/color]")
+	# S14E-13: what the march takes out of the Descent camp (said by the quote).
+	var camp := str(q.get("camp", ""))
+	if camp != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + camp + "[/color]")
+	# S14E-13's sweep: Iron Resolve stacks, a formed square, a turn-1 drill the march would cost.
+	var departs := str(q.get("departs", ""))
+	if departs != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + departs + "[/color]")
 	return "\n".join(lines)
 
 

@@ -406,6 +406,13 @@ var gold = 1200
 var gold_projected_net: int = 0
 var _has_gold_projected_net: bool = false
 var _treasury_warned: bool = false
+# S14E-7 (Pre-Deploy S14f): the end-turn gate's army item — the backend's ONE
+# sentence ("3 corps stand below 40% morale beside Bagration (55,404,
+# Podolia) — end the turn anyway?", `end_turn_army_warning` on every
+# response, "" when none). `_army_warned` is the treasury line's latch: the
+# gate stops once, re-arms when the sentence changes and when a gate passes.
+var end_turn_army_warning: String = ""
+var _army_warned: bool = false
 var infantry_pool = 80000
 var cavalry_pool = 15000
 var artillery_pool = 10000
@@ -2424,6 +2431,10 @@ func _execute_end_turn():
 	if _current_lapsing_count > 0 or not _current_decision_names.is_empty() or (_treasury_goes_negative() and not _treasury_warned):
 		_show_lapse_confirmation()
 		return
+	# S14E-7: spent corps with a known army beside them — said at the click.
+	if _army_warning_stands():
+		_show_lapse_confirmation()
+		return
 
 	_awaiting_end_turn_confirmation = false
 	_set_open_envoys_prompt_visible(false)
@@ -2456,6 +2467,8 @@ func _strip_desk_address(text: String) -> String:
 func _send_end_turn():
 	"""Actually send end turn command to backend."""
 	_clear_order_selection()   # CC-3: the turn's end lets a selected corps go
+	_army_warned = false   # S14E-7: a passed gate re-arms the army's line for the next day
+	_treasury_warned = false   # S14E-X (DDB-13's sweep): and the treasury's — a deficit that stands gates every turn it stands
 	_set_open_envoys_prompt_visible(false)
 	# Add to history
 	_add_to_history("end turn")
@@ -2474,6 +2487,11 @@ func _send_end_turn():
 func _treasury_goes_negative() -> bool:
 	"""DDB-13: the treasury after next turn's projected net is below zero."""
 	return _has_gold_projected_net and gold + gold_projected_net < 0
+
+
+func _army_warning_stands() -> bool:
+	"""S14E-7: the backend's army line is up and has not yet stopped this gate."""
+	return end_turn_army_warning != "" and not _army_warned
 
 
 func _show_lapse_confirmation():
@@ -2518,6 +2536,11 @@ func _show_lapse_confirmation():
 	if _treasury_goes_negative():
 		_treasury_warned = true
 		parts.append("The treasury will stand at %s gold when the turn ends (%s now, %s next turn) — the Ledger's Economy tab shows what drains it." % [_format_number(gold + gold_projected_net), _format_number(gold), _signed_number(gold_projected_net)])
+	# S14E-7: the army's own line — the backend's one sentence, last so its
+	# question closes the card; once per gate, then the turn ends.
+	if end_turn_army_warning != "":
+		_army_warned = true
+		parts.append(end_turn_army_warning)
 	var msg := " ".join(parts)
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_WARNING + "]⚠ %s[/color]" % msg)
@@ -2525,8 +2548,10 @@ func _show_lapse_confirmation():
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
 	elif not _current_decision_names.is_empty():
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
-	else:
+	elif _treasury_goes_negative() and end_turn_army_warning == "":
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to end the turn in deficit.[/color]")
+	else:
+		add_output("[color=#" + Utils.COLOR_GOLD + "]  Press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to end the turn anyway.[/color]")
 	_awaiting_end_turn_confirmation = true
 	_set_open_envoys_prompt_visible(_current_lapsing_count > 0)
 	end_turn_button.grab_focus()
@@ -6034,6 +6059,14 @@ func _sync_response_hud(response: Dictionary):
 		gold_projected_net = _net
 		_has_gold_projected_net = true
 		_update_gold_display()
+	# S14E-7: the army's gate line rides every response ("" / null = none); a
+	# changed sentence is a new gate.
+	if response.has("end_turn_army_warning"):
+		var _army_raw = response.get("end_turn_army_warning")
+		var _army: String = "" if _army_raw == null else str(_army_raw)
+		if _army != end_turn_army_warning:
+			_army_warned = false
+		end_turn_army_warning = _army
 	if response.get("success", false):
 		if response.has("action_summary"):
 			_update_status(response.action_summary)

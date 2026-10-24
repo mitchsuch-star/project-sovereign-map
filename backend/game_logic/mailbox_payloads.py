@@ -326,9 +326,11 @@ def client_petition_assessment(terms: Dict) -> str:
 
 def build_acceptance_hints(acceptance: Dict) -> Tuple[str, str]:
     """Translate acceptance components into Godot-friendly hint strings."""
-    from backend.display_names import FEEDBACK_STRINGS
+    from backend.display_names import feedback_phrase
 
     components = acceptance.get("components", {})
+    # S14E-10: the grievance term is worded by the kind of grievance held.
+    grievance_kind = str(acceptance.get("grievance_kind") or "")
     factors = sorted(
         [{"reason": key, "value": value} for key, value in components.items() if value != 0],
         key=lambda factor: abs(factor.get("value", 0)),
@@ -339,16 +341,16 @@ def build_acceptance_hints(acceptance: Dict) -> Tuple[str, str]:
 
     if positive_factors:
         best_key = positive_factors[0].get("reason", "")
-        acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
-            "positive", "complex diplomatic factors"
+        acceptance_hint = feedback_phrase(
+            best_key, "positive", grievance_kind, "complex diplomatic factors"
         )
     else:
         acceptance_hint = "No strong positives identified"
 
     if negative_factors:
         worst_key = negative_factors[0].get("reason", "")
-        rejection_hint = FEEDBACK_STRINGS.get(worst_key, {}).get(
-            "negative", "complex diplomatic factors"
+        rejection_hint = feedback_phrase(
+            worst_key, "negative", grievance_kind, "complex diplomatic factors"
         )
     else:
         rejection_hint = "No major obstacles identified"
@@ -575,7 +577,8 @@ def attach_peace_preview(world, payload: Dict, nation: str, terms: Dict) -> Dict
             from backend.game_logic.diplomatic_dialogue import attach_status_quo_forecast
             _prior = payload.get("status_quo_forecast") or {}
             _stale = set(_prior.get("lines") or []) | {
-                "WARNING: " + w for w in (_prior.get("warnings") or [])}
+                "WARNING: " + w for w in (_prior.get("warnings") or [])} | set(
+                _prior.get("road_closing") or [])   # S14E-15's sweep: the road line too
             if _stale and isinstance(payload.get("clauses"), list):
                 payload["clauses"] = [c for c in payload["clauses"] if c not in _stale]
             attach_status_quo_forecast(

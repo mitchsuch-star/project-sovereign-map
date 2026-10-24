@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14e are COMPLETE;
-> **S14f (the re-measure's rows) is next**.
+> **S14f part 2 is next**.
 
 **▶ LIVE STATE (October 24, 2026).** The three most recent landed rows:
-- **S14e (Oct 24) — DD-B's re-measure — MEASURED; S14e COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1, the done-when NOT met; 35 rows → S14f, 4 rulings. **NEXT = S14f part 1.**
+- **S14f part 1 (Oct 24) — the re-measure's rows — LANDED** (§150): S14E-1 … 15 and 31 FIXED, D1–D4 built, 68 siblings (49 fixed). **NEXT = S14f part 2.**
+- **S14e (Oct 24) — DD-B's re-measure — COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1, NOT met; 35 rows → S14f.
 - **S14d part 3 (Oct 24) — the walk, the frozen build, the close — LANDED; S14d COMPLETE** (§148.11).
-- **S14d part 2 (Oct 23–24) — the registry and the Table lesson — LANDED** (§148.9–.10).
 
-**Open with the user:** S14E-D1 … D4, a third measure after S14f, S14d's A1 (mounts/signs; 1.5 → 2.5), UXR-4 (S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** S14E-D5 … D11, a third measure after S14f, S14d's A1 (mounts/signs; 1.5 → 2.5), UXR-4 (S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

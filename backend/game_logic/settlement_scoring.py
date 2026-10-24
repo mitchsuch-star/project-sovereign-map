@@ -731,9 +731,59 @@ def cession_shaped_regions(term: Mapping[str, Any]) -> List[str]:
     return [n for n in names if n and not (n in seen or seen.add(n))]
 
 
-def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]],
-                           proposer_side_participants: Iterable[str] = ()) -> bool:
-    """Spec line 1114: white_peace + any non-trivial term exceeds ceiling.
+# S14E-6 / S14E-D2 (Pre-Deploy S14f part 1, October 24, 2026): the clause
+# dialects name their parties under different keys. `from` / `to` carry the
+# payer / ceder / subject and the payee / receiver / lord on every canonical
+# clause; the dependency clauses add the court they bind under their own key
+# (`liberation`: the vassal freed, the lord that loses it, the liberator;
+# `vassal_transfer`: the vassal re-homed).
+_CLAUSE_PARTY_KEYS = ("from_nation", "from", "to_nation", "to", "lord_nation",
+                      "vassal_nation", "liberator", "vassal")
+
+
+def clause_parties(term: Mapping[str, Any]) -> List[str]:
+    """Every nation a settlement clause names as a party, in key order,
+    distinct. A clause that names nobody (the shared `peace`) returns []."""
+    seen: List[str] = []
+    for key in _CLAUSE_PARTY_KEYS:
+        value = term.get(key)
+        if value and isinstance(value, str) and value not in seen:
+            seen.append(value)
+    return seen
+
+
+def court_slice_of_package(package: Iterable[Mapping[str, Any]],
+                           court: Optional[str]) -> List[Dict[str, Any]]:
+    """S14E-D2 (ruling recommended at DESIGN_REFINEMENT S14E-D2; built
+    October 24, 2026) — the COURT'S OWN SLICE of a settlement package: the
+    clauses that bind or pay `court` (it is the payer, ceder or subject, the
+    payee or receiver, or the lord, vassal or liberator the clause names) and
+    the ground that passes to or from it, plus the shared clauses that name
+    nobody (`peace`). A demand on Portugal is Portugal's claim of victory,
+    not Austria's: the legitimacy tier is read over THIS slice, as PC-R4
+    already reads the tier at the court's OWN score.
+
+    ONE slicing helper — the scorer's legitimacy feed, the row's named
+    offender and the dial's refusal all read it. No `court` returns the whole
+    package (a caller with no court in hand scores nothing court-shaped).
+    The series attribution holds it down (`--seam backend.game_logic.
+    settlement_scoring:court_slice_of_package=lambda p, c: list(p)`)."""
+    terms = _iter_terms(package)
+    court = str(court or "")
+    if not court:
+        return terms
+    out: List[Dict[str, Any]] = []
+    for term in terms:
+        parties = clause_parties(term)
+        if not parties or court in parties:
+            out.append(term)
+    return out
+
+
+def non_trivial_terms(terms: Iterable[Mapping[str, Any]],
+                      proposer_side_participants: Iterable[str] = ()) -> List[Dict[str, Any]]:
+    """The terms that make a white peace a claim of victory — spec line 1114,
+    DDB-6's proposer-paid skip — as a LIST (S14E-6: the row names the clause).
 
     DDB-6 (Pre-Deploy S13b, October 14, 2026): a term the PROPOSING side
     pays (its payer / ceder / subject is on that side — G4F-1's burden
@@ -741,21 +791,29 @@ def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]],
     Ease (France's own gold) never charges "the terms claim a victory the
     field has not delivered" (conquest #20: 14/50 fell to 8/50)."""
     proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
+    out: List[Dict[str, Any]] = []
     for t in terms:
         burden_party = str(t.get("from") or t.get("lord_nation") or "")
         if burden_party and burden_party in proposer_set:
             continue
         ttype = t.get("type", "")
         if ttype in _TERRITORY_TERM_TYPES and _term_regions(t):
-            return True
-        if ttype in ("forced_alliance", "liberation", "vassalage",
-                     "subjugation", "vassal_transfer", "create_client",
-                     "continental_system_join", "territory_compensate"):
-            return True
+            out.append(dict(t))
+        elif ttype in ("forced_alliance", "liberation", "vassalage",
+                       "subjugation", "vassal_transfer", "create_client",
+                       "continental_system_join", "territory_compensate"):
+            out.append(dict(t))
         # Any concrete numeric demand counts as non-trivial.
-        if t.get("amount") or t.get("value"):
-            return True
-    return False
+        elif t.get("amount") or t.get("value"):
+            out.append(dict(t))
+    return out
+
+
+def _has_non_trivial_terms(terms: Iterable[Mapping[str, Any]],
+                           proposer_side_participants: Iterable[str] = ()) -> bool:
+    """Spec line 1114: white_peace + any non-trivial term exceeds ceiling
+    (the list is `non_trivial_terms`; DDB-6's proposer-paid skip lives there)."""
+    return bool(non_trivial_terms(terms, proposer_side_participants))
 
 
 def _clamp(value: int, bounds: Tuple[int, int]) -> int:
@@ -888,8 +946,12 @@ def calculate_settlement_tier_legitimacy(
 
     mismatch = 0
     exceeded_ceiling = False
+    # S14E-6: the clauses that OVERREACH the field, named — the white peace's
+    # non-trivial terms; above it, the package's burdens, heaviest first.
+    offending: List[Dict[str, Any]] = []
     if tier == "white_peace":
-        if _has_non_trivial_terms(terms_list, proposer_side_participants):
+        offending = non_trivial_terms(terms_list, proposer_side_participants)
+        if offending:
             mismatch = TIER_LEGITIMACY_MISMATCH
             exceeded_ceiling = True
     else:
@@ -897,6 +959,7 @@ def calculate_settlement_tier_legitimacy(
         if raw_h > ceiling:
             mismatch = TIER_LEGITIMACY_MISMATCH
             exceeded_ceiling = True
+            offending = _burden_terms_heaviest_first(terms_list, proposer_side_participants)
 
     raw_score = base + mismatch
     score = _clamp(raw_score, TIER_LEGITIMACY_CLAMP)
@@ -909,7 +972,27 @@ def calculate_settlement_tier_legitimacy(
         "exceeded_ceiling": exceeded_ceiling,
         "mismatch_penalty": int(mismatch),
         "raw_total_harshness": raw_h,
+        "offending_terms": offending,
     }
+
+
+def _burden_terms_heaviest_first(terms: Iterable[Mapping[str, Any]],
+                                 proposer_side_participants: Iterable[str] = ()) -> List[Dict[str, Any]]:
+    """S14E-6: the terms that BURDEN the accepting side (the harshness
+    function's own direction partition), heaviest by their own harshness
+    weight first (a stable sort: document order breaks ties)."""
+    from backend.game_logic.diplomatic_templates import calculate_raw_treaty_harshness
+    proposer_set = {str(n) for n in (proposer_side_participants or []) if n}
+    burdens: List[Tuple[float, int, Dict[str, Any]]] = []
+    for index, term in enumerate(terms):
+        burden_party = str(term.get("from") or term.get("lord_nation") or "")
+        if burden_party and burden_party in proposer_set:
+            continue
+        weight = float(calculate_raw_treaty_harshness({"clauses": [], "demands": [dict(term)]}) or 0.0)
+        if weight > 0.0:
+            burdens.append((weight, index, dict(term)))
+    burdens.sort(key=lambda row: (-row[0], row[1]))
+    return [row[2] for row in burdens]
 
 
 def _accepting_leader_ceded_regions(
@@ -2455,8 +2538,15 @@ def calculate_common_peace_acceptance(
     # the war is legitimate — the ceiling's surprise reads the package
     # without it (`declared_goals.undeclared_terms`); the harshness penalty
     # and every other component still read the whole package.
+    # S14E-6 / S14E-D2 (October 24, 2026): and it reads the court's OWN SLICE
+    # of the package (`court_slice_of_package`) — the clauses that bind or pay
+    # this court and the ground that passes to or from it — never the whole
+    # table's: a demand on Portugal is Portugal's claim of victory, not
+    # Austria's white peace turned into one. The harshness penalty and every
+    # other component keep reading the whole package (principle 5).
     from backend.game_logic import declared_goals as _dg
-    _legit_terms = _dg.undeclared_terms(world, settlement_terms, proposer_participants)
+    _court_terms = court_slice_of_package(settlement_terms, accepting_leader)
+    _legit_terms = _dg.undeclared_terms(world, _court_terms, proposer_participants)
     _legit_raw = raw_total_harshness
     if _iter_terms(_legit_terms) != _iter_terms(settlement_terms):
         _legit_raw = compute_settlement_package_raw_harshness(
@@ -2467,6 +2557,9 @@ def calculate_common_peace_acceptance(
     )
     tier_debug["declared_articles"] = _dg.declared_in_package(
         world, settlement_terms, proposer_participants)
+    tier_debug["court"] = str(accepting_leader or "")
+    tier_debug["package_clause_count"] = len(_iter_terms(settlement_terms))
+    tier_debug["slice_clause_count"] = len(_court_terms)
     harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
 
     # Step 6: leader_own_losses (RS-D1: a retained great-power capital is a

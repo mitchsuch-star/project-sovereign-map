@@ -1144,6 +1144,11 @@ func _render_preview(data: Dictionary):
 	if war_title != "":
 		bbcode += " [color=#" + state_color + "]— the " + Utils.humanize_nation_keys_in_text(war_title) + "[/color]"
 	bbcode += "   Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + " (" + relation_desc + ")[/color]\n"
+	# S14E-10: why the court is cold - the grievance it holds, by its kind,
+	# with the price of Make Amends (the relation line gave the figure only).
+	var grievance_line = data.get("grievance_line", "")
+	if grievance_line is String and grievance_line != "":
+		bbcode += "[color=#" + Utils.COLOR_ORANGE + "]" + Utils.humanize_nation_keys_in_text(grievance_line.replace("[", "[lb]")) + "[/color]\n"
 
 	# Vassal-specific fields
 	if is_vassal:
@@ -1166,6 +1171,12 @@ func _render_preview(data: Dictionary):
 		bbcode += "Loyalty: [color=#" + loyalty_color + "]" + str(loyalty) + " " + trend_arrow + "[/color]"
 		bbcode += "   Autonomy: " + autonomy
 		bbcode += "   Tribute: " + str(tribute) + "g\n"
+
+	# S14E-5: the court's LIVE holdings — a rump reads "Hanover holds 1
+	# province (Osnabruck); the rest are Prussia's." ('' for every other court).
+	var holdings_line = data.get("holdings_line", "")
+	if holdings_line is String and holdings_line != "":
+		bbcode += "[color=#" + Utils.COLOR_ORANGE + "]" + Utils.humanize_nation_keys_in_text(holdings_line.replace("[", "[lb]")) + "[/color]\n"
 
 	if assessment_text:
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"

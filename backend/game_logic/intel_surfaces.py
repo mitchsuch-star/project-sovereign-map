@@ -140,28 +140,39 @@ def in_sight(world, viewer: str, man) -> bool:
             and VISIBILITY_PRIORITY.get(intel.visibility, 0) >= VISIBILITY_PRIORITY[PARTIAL])
 
 
+def sighting_row(world, viewer: str, man) -> Optional[Dict[str, Any]]:
+    """Rule 1's row for ONE corps: where he stands today and the strength the
+    player's own fog admits — exact at FULL, his own band at PARTIAL (the
+    desk's and the map's figure, never the province's aggregate). None when
+    he is not in sight (`in_sight`). The ONE builder of this row: the
+    dispatch, the Ledger and the end-turn gate's army line (S14E-7) all read
+    it, so the figure the gate quotes is the figure the dispatch printed."""
+    if not in_sight(world, viewer, man):
+        return None
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    vis = world.intel[man.location].visibility
+    return {
+        "name": humanize_entity_name(man.name),
+        "roster_name": man.name,
+        "nation": man.nation,
+        "location": man.location,
+        "strength": int(man.strength),
+        "strength_display": (f"{int(man.strength):,}" if vis == FULL
+                             else get_strength_band(int(man.strength))),
+        "visibility": vis,
+        "intel_turn": turn,
+        "source": "live",
+    }
+
+
 def _in_sight_rows(world, viewer: str) -> Dict[str, Dict[str, Any]]:
     """Rule 1's rows: every foreign corps in sight, where he stands today —
-    exact at FULL, his own band at PARTIAL (the desk's and the map's figure,
-    never the province's aggregate)."""
+    exact at FULL, his own band at PARTIAL (`sighting_row`)."""
     out: Dict[str, Dict[str, Any]] = {}
-    turn = int(getattr(world, "current_turn", 0) or 0)
     for m in (getattr(world, "marshals", {}) or {}).values():
-        if not in_sight(world, viewer, m):
-            continue
-        vis = world.intel[m.location].visibility
-        out[m.name] = {
-            "name": humanize_entity_name(m.name),
-            "roster_name": m.name,
-            "nation": m.nation,
-            "location": m.location,
-            "strength": int(m.strength),
-            "strength_display": (f"{int(m.strength):,}" if vis == FULL
-                                 else get_strength_band(int(m.strength))),
-            "visibility": vis,
-            "intel_turn": turn,
-            "source": "live",
-        }
+        row = sighting_row(world, viewer, m)
+        if row is not None:
+            out[m.name] = row
     return out
 
 

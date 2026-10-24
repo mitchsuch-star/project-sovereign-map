@@ -163,6 +163,31 @@ def _ground(world, holders: List[str], owners: List[str]) -> List[Tuple[int, int
     return sorted(out)
 
 
+def _ground_rung(world, ground) -> List[Tuple[int, int, str, str]]:
+    """S14E-D4 / S14E-31 (Pre-Deploy S14f part 1, October 24, 2026): the
+    ground that may TITLE the war — ruling J set no floor, so one 6,500-man
+    beachhead on Munster renamed a seven-power war "War for Munster". The
+    floor: an owner's ground names the war when the holders have its
+    CAPITAL, TWO OR MORE of its home provinces, or A QUARTER of them (one of
+    a four-province minor's is a quarter; one of Britain's or Hanover's six
+    is not). Below the floor the league or the court titles the war and the
+    line still names what is held (the ground is read always). Returns the
+    rows of `ground` whose owner meets the floor, in `ground`'s own order."""
+    if not ground:
+        return []
+    held_by_owner: Dict[str, List[str]] = {}
+    for _t, _c, name, owner in ground:
+        held_by_owner.setdefault(owner, []).append(name)
+    passing = set()
+    for owner, held in held_by_owner.items():
+        home = _home_of(world, owner)
+        capital = _capital_of(world, owner)
+        if (capital and capital in held) or len(held) >= 2 or not home \
+                or len(held) * 4 >= len(home):
+            passing.add(owner)
+    return [row for row in ground if row[3] in passing]
+
+
 def _names(regions: List[str]) -> str:
     if not regions:
         return ""
@@ -229,16 +254,25 @@ def war_title(world, war_id: str = "", *, chair: Optional[str] = None,
     # names Bohemia, not Vienna); what THEY hold of ours is a wound, named by
     # its gravest (the capital first — a France that lost Paris fights the
     # War for Paris, whatever fell before it).
-    theirs = _ground(world, ours, enemies)
-    mine = sorted(_ground(world, enemies, ours), key=lambda r: (-r[1], r[0], r[2]))
+    # S14E-D4 / S14E-31: a `court=` read is THAT court's ground — what we
+    # hold of hers and what she holds of ours — as the docstring has always
+    # said (the Austrian truce row named Britain's Irish province).
+    ground_enemies = [str(court)] if court else enemies
+    theirs = _ground(world, ours, ground_enemies)
+    mine = sorted(_ground(world, ground_enemies, ours), key=lambda r: (-r[1], r[0], r[2]))
     out["theirs_we_hold"] = [name for _t, _c, name, _o in theirs]
     out["ours_they_hold"] = [name for _t, _c, name, _o in mine]
     if not out["title"]:
-        if theirs:
-            out.update(title=f"War for {theirs[0][2]}", source="ground",
+        # 4. the ground — above the floor (`_ground_rung`): the capital, two
+        # provinces or a quarter of the owner's home; a lone beachhead
+        # leaves the league or the court its title
+        prize = _ground_rung(world, theirs)
+        wound = _ground_rung(world, mine)
+        if prize:
+            out.update(title=f"War for {prize[0][2]}", source="ground",
                        stake=list(out["theirs_we_hold"]))
-        elif mine:
-            out.update(title=f"War for {mine[0][2]}", source="ground",
+        elif wound:
+            out.update(title=f"War for {wound[0][2]}", source="ground",
                        stake=list(out["ours_they_hold"]))
     # 5–6. the league, else the court
     if not out["title"]:

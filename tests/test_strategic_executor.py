@@ -1987,7 +1987,12 @@ class TestFirstStepBlocked:
     """Tests for personality-based first-step blocked path handling."""
 
     def test_first_step_aggressive_auto_attacks_good_odds(self, world, game_state, executor):
-        """Aggressive marshal auto-attacks when blocked at first step with good odds."""
+        """S14E-1 / S14E-D1 (Pre-Deploy S14f part 1, October 24, 2026): an
+        aggressive marshal blocked at the first step of a TYPED march with
+        good odds ASKS — in his own confident line — instead of fighting the
+        battle unordered (the re-measure's one P1: "Massena, march to Milan"
+        became a battle at Tyrol). This pin used to assert the auto-attack
+        ("Engaging"); it now asserts the ask. The deed is the Emperor's."""
         ney = world.get_marshal("Ney")
         assert ney.personality == "aggressive"
         ney.location = "Paris"
@@ -2010,10 +2015,16 @@ class TestFirstStepBlocked:
                 "strategic_type": "MOVE_TO",
             }, game_state)
 
-        # Should auto-attack, not ask
+        # Should ASK, in his own voice — no battle fought unordered
         assert result.get("success") is True
-        assert result.get("requires_input") is not True
-        assert "Engaging" in result.get("message", "") or "bars the way" in result.get("message", "")
+        assert result.get("requires_input") is True
+        assert result.get("first_step_interrupt") is True
+        assert "Engaging" not in result.get("message", "")
+        assert "I can take him" in result.get("message", "")
+        assert ney.pending_interrupt["interrupt_type"] == "contact"
+        assert "attack" in ney.pending_interrupt["options"]
+        assert "go_around" in ney.pending_interrupt["options"]
+        assert wellington.strength == 30000  # nothing spent on the ask
 
     def test_first_step_aggressive_asks_bad_odds(self, world, game_state, executor):
         """Aggressive marshal asks player when blocked with bad odds."""

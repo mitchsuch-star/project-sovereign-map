@@ -103,10 +103,12 @@ def _line_admiralty_camp(world, ctx: Optional[Mapping[str, Any]]) -> str:
     from backend.game_logic.naval import (
         DESCENT_CAMP_MIN_TROOPS, DESCENT_CAMP_STAGED_TURNS, WINDOW_TURNS,
     )
+    # S14E-13's sweep: a march out of the camp resets the count — said here
+    # too, within the cap (Britain's recall was cut; the lifted blockade stays).
     return (f"The camp, Sire: {int(DESCENT_CAMP_MIN_TROOPS):,} men on the Channel "
             f"coast, {int(DESCENT_CAMP_STAGED_TURNS)} turns at war with Britain, "
-            "stage a descent — no order. Britain recalls her fleet and her blockade "
-            "on you lifts; a won Diversion can open the Strait for up to "
+            "stage a descent — no order; a march out resets the count. Her "
+            "blockade on you lifts; a won Diversion can open the Strait for up to "
             f"{int(WINDOW_TURNS)} turns.")
 
 

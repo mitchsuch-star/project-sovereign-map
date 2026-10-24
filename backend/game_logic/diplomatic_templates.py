@@ -1662,6 +1662,14 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
         "{restored_claim} steadies the coalition, while {limited_concession} "
         "buys quiet without dressing necessity as conquest."
     ),
+    # S14E-10 (S14f part 1): a white peace has no term to be the "largest
+    # political cost" - the line states what it DID cost (the allies left
+    # out, priced) or that it cost none; it never names the ratification
+    # itself as a blocker.
+    "settlement_advisory_white_peace_talleyrand": (
+        "Sire, the white peace of {war_label} takes nothing and gives "
+        "nothing. {price_line}"
+    ),
     "settlement_acceptance_castlereagh": (
         "His Majesty's Government accepts the settlement of {war_label}. "
         "London records the terms and reserves its judgment on the consequences."
@@ -2782,8 +2790,16 @@ SPOKEN_BLOCKER_TIER_BASE = (
     "charged as a white peace")
 
 
+# S14E-6 (Pre-Deploy S14f part 1, October 24, 2026): a MISMATCH names the
+# clause that overreaches the field ("the demand for Beira on Portugal reads
+# as a claim of victory the field has not delivered"), never "the terms" —
+# the tier reads the court's OWN slice (S14E-D2), so the clause is the
+# court's own. The rule, not a lever (the ratchet: CODE-1 retires them).
+
+
 def spoken_blocker_phrase(component: str, fallback: str = "",
-                          *, white_peace: bool = False, detail: str = "") -> str:
+                          *, white_peace: bool = False, detail: str = "",
+                          clause: str = "") -> str:
     """The spoken form of a top-blocking acceptance component (CA8-17).
 
     The `{blocker_clause}` slot demands a CLAUSE — the register frames
@@ -2807,6 +2823,11 @@ def spoken_blocker_phrase(component: str, fallback: str = "",
     if (str(component or "") == "settlement_tier_legitimacy"
             and str(detail or "") == "tier_base"):
         return SPOKEN_BLOCKER_TIER_BASE
+    # S14E-6: the MISMATCH names its clause.
+    if (clause
+            and str(component or "") == "settlement_tier_legitimacy"
+            and str(detail or "") == "tier_mismatch"):
+        return f"{clause} reads as a claim of victory the field has not delivered"
     phrase = SPOKEN_BLOCKER_PHRASES.get(str(component or ""))
     if phrase:
         return phrase
@@ -2849,7 +2870,8 @@ def resolve_multi_court_settlement_voice(
         blocker_clause = spoken_blocker_phrase(
             str(row.get("top_blocker_component") or ""), top_blocker,
             white_peace=bool(white_peace),
-            detail=str(row.get("top_blocker_detail") or ""))
+            detail=str(row.get("top_blocker_detail") or ""),
+            clause=str(row.get("top_blocker_clause") or ""))
         if hard_stopped:
             template_key = "settlement_multi_court_court_hard_stop"
         else:
@@ -4336,8 +4358,22 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
         pass  # No special terms needed
 
     elif proposal_type in ("armistice", "armistice_losing", "armistice_winning"):
-        # Armistice is a temporary ceasefire
-        terms["type"] = "armistice_losing" if war_score < 0 else "armistice_winning"
+        # Armistice is a temporary ceasefire.
+        # S14E-8 (S14f part 1, October 24, 2026): the variant is the PAIR's
+        # (`armistice_variant_for`, ONE rule — the wizard row, the counsel's
+        # roads line, the acceptance seam and the send all read it). This
+        # line stamped it from `war_score`, the SIDE sum below — a fifth
+        # reader the Aug 30 "ONE rule" fix missed — so on a coalition board
+        # where the pair and the side differ in sign (France–Britain −2,
+        # France–Austria +60: side +58) the preview scored `armistice_winning`
+        # (base 20) while the roads line and the send scored
+        # `armistice_losing` (base 40): the same truce read 24 on one surface
+        # and 44 on the other. The gold below still prices the WAR (CA8-D2:
+        # Talleyrand prices the war France is actually fighting); only the
+        # TYPE — the court's base willingness — follows the pair the court is
+        # actually judging.
+        from backend.game_logic.diplomacy import armistice_variant_for
+        terms["type"] = armistice_variant_for(world, player_nation, target_nation)
 
         # R150: Sweeten armistice when losing.
         #

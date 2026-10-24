@@ -1365,6 +1365,19 @@ def formation_grudge_source_label(world, source_key: str) -> str:
 
 # ═══════════════ NA-6d — THE FORMABLES BUTTON (§11.6-8 / decision 9) ══════
 
+def _carve_war_running(world, player: str, from_court: str) -> bool:
+    """The "at war with the court" gate term of a carve, said ONCE: a WAR or
+    an ARMISTICE pair (a truce counts — the settlement predicate reads the
+    war instance, and a truce keeps it). The Formables page's gate term and
+    S14E-15's road notes both read this, so the pointer at the point of
+    action can never disagree with the page."""
+    if not from_court:
+        return False
+    pair_state = str((getattr(world, "diplomatic_states", {}) or {})
+                     .get(world._make_diplo_key(player, from_court), ""))
+    return pair_state in ("WAR", "ARMISTICE")
+
+
 def build_formables_payload(world) -> dict:
     """One row per Class C template AND per Class T watcher — the assured,
     always-reachable browser for the formable world (`GET /formables`).
@@ -1476,11 +1489,7 @@ def build_formables_payload(world) -> dict:
                 break
 
         # Honest gate terms, composed from world state the player can act on.
-        pair_state = ""
-        if from_court:
-            pair_state = str((getattr(world, "diplomatic_states", {}) or {})
-                             .get(world._make_diplo_key(player, from_court), ""))
-        at_war = pair_state in ("WAR", "ARMISTICE")
+        at_war = _carve_war_running(world, player, from_court)
         bloc = set(world.get_bloc_members(player)) | {player}
         terms = [{
             "text": f"at war with {court_display or 'the owning court'}",
@@ -1607,3 +1616,222 @@ def build_formables_payload(world) -> dict:
         })
 
     return {"formables": rows, "count": int(len(rows))}
+
+
+# ═══════════ S14E-15 — THE ROAD NOTES (Pre-Deploy S14f part 1) ═══════════
+#
+# The Formable Nations page is the FULL view of a formable's road. The re-
+# measure's sea player held Munster, signed a white peace whose war card said
+# only "Munster stays ours", and never learned that the same peace had closed
+# the Free Ireland carve — the road's next step (Ulster) lived on that page
+# alone. `road_notes` is the page's POINTER at every point of action: one
+# builder over the formables a bloc has begun but not finished, read by the
+# capture and landing replies, the region payload, the Admiralty, the war
+# card and the peace review. No surface composes its own sentence.
+
+def _and_list(items) -> str:
+    """"Ulster", "Ulster and Connacht", "A, B and C"."""
+    names = [str(i) for i in items if i]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _march_clause(world, held: List[str], missing: List[str]) -> str:
+    """Where the missing soil lies, from the registry's own adjacency: "it
+    lies a march from Munster" when a held template province touches it by
+    LAND (a sea link is a crossing, never a march), else "it lies beyond
+    Munster". Derived from the same edges the road law walks."""
+    from backend.game_logic.naval import is_sea_link
+    regions = getattr(world, "regions", {}) or {}
+    bits: List[str] = []
+    for province in missing:
+        adjacent = set(getattr(regions.get(province), "adjacent_regions", [])
+                       or [])
+        near = next((h for h in held
+                     if h in adjacent and not is_sea_link(world, province, h)),
+                    "")
+        subject = "it" if len(missing) == 1 else province
+        if near:
+            bits.append(f"{subject} lies a march from {near}")
+        else:
+            bits.append(f"{subject} lies beyond {_and_list(held)}")
+    return ", ".join(bits)
+
+
+def _unmet_phrase(road: Mapping[str, Any]) -> str:
+    if road.get("state") == "ready":
+        # S14E-15's sweep: the road whole-held and the war running — the
+        # peace closes a carve the table could still erect.
+        return "erect it at the table first"
+    return f"{_and_list(road['missing'])} not yet held"
+
+
+def _closing_tail(road: Mapping[str, Any]) -> str:
+    """The war card's tail after "closes the Ireland carve": ", Ulster not
+    yet held" for a begun road, " — erect it at the table first" for a
+    ready one."""
+    if road.get("state") == "ready":
+        return f" — {_unmet_phrase(road)}"
+    return f", {_unmet_phrase(road)}"
+
+
+def road_notes(world) -> Dict[str, Any]:
+    """S14E-15: the begun-but-unfinished Class C roads of the PLAYER'S bloc,
+    as pointers for the points of action.
+
+    A road is BEGUN when the player's bloc holds some — not all — of a
+    template's provinces (the Free Ireland player on Munster with Ulster
+    still to take). It is `open` while the war with the court being carved
+    runs (`_carve_war_running`, the Formables page's own gate term) and
+    `paused` once the war has ended: the road is not destroyed, a new war
+    reopens it. Nothing else is a road note — a template the bloc holds
+    nothing of has not begun, one it holds whole is `available` and the
+    table's "Erect" row and the Formables page carry it, and a Class T
+    dream is the client's own climb (its progress stays on the page).
+
+    Returns {"roads": [row], "by_province": {province: sentence},
+    "by_court": {court: [open row]}, "completing": [province]} — empty
+    containers when no road is begun, so a surface adds nothing. A row:
+    {tag, display_name, court, court_display, held, missing, war, state,
+    text}. `text` is the one sentence every surface quotes (no full stop):
+    "Ireland needs Ulster too — it lies a march from Munster; carve at a
+    table while the war with Britain runs".
+
+    Rule 8: iterates the authored catalogue (a handful of templates) and
+    each template's own provinces — never `world.regions` — over cached
+    helpers (`get_active_nations`, `get_bloc_members`). Player-only display:
+    an AI carver erects exactly as before and reads none of this."""
+    out: Dict[str, Any] = {"roads": [], "by_province": {}, "by_court": {},
+                           "completing": []}
+    catalogue = getattr(world, "formable_nations", None) or {}
+    player = getattr(world, "player_nation", None)
+    if not catalogue or not player:
+        return out
+    from backend.models.region import get_starting_controllers
+    starting = (getattr(world, "_starting_controllers", None)
+                or get_starting_controllers())
+    regions = getattr(world, "regions", {}) or {}
+    active = set(world.get_active_nations())
+    bloc = set(world.get_bloc_members(player)) | {player}
+    for template_id, template in catalogue.items():
+        if template_id in active:
+            continue                      # it stands: the page says so
+        identity = get_template_identity(template)
+        provinces = template_provinces(template)
+        if identity is None or not provinces:
+            continue
+        from_court = str(starting.get(provinces[0], ""))
+        if (not from_court or from_court == player
+                or any(str(starting.get(p, "")) != from_court
+                       for p in provinces)):
+            continue                      # not carvable by us, ever
+        held = [p for p in provinces
+                if str(getattr(regions.get(p), "controller", "") or "")
+                in bloc]
+        missing = [p for p in provinces if p not in held]
+        if not held:
+            continue                      # not begun
+        war = _carve_war_running(world, player, from_court)
+        court_display = formed_display_name(world, from_court)
+        display = identity["display_name"]
+        if not missing:
+            # S14E-15's sweep (the whole-held road): the carve is AVAILABLE
+            # — the table's "Erect" row and the Formables page carry it —
+            # but a peace with the court closes it unannounced on the war
+            # card, the offer and the review. A `ready` row feeds ONLY
+            # `by_court` (those three surfaces) while the war runs; the
+            # province panels, the Admiralty and the capture reply add
+            # nothing, since there is no next province to point at.
+            if not war:
+                continue
+            row = {
+                "tag": template_id,
+                "display_name": display,
+                "court": from_court,
+                "court_display": court_display,
+                "held": list(held),
+                "missing": [],
+                "war": True,
+                "state": "ready",
+                "text": (f"{display} is ready to erect — {_and_list(held)} "
+                         f"held; carve it at a table while the war with "
+                         f"{court_display} runs, for a peace closes the road"),
+            }
+            out["roads"].append(row)
+            out["by_court"].setdefault(from_court, []).append(row)
+            continue
+        march = _march_clause(world, held, missing)
+        if war:
+            text = (f"{display} needs {_and_list(missing)} too — {march}; "
+                    f"carve at a table while the war with {court_display} "
+                    f"runs")
+        else:
+            text = (f"{display} needs {_and_list(missing)} too — {march}; "
+                    f"the war with {court_display} has ended, and a new war "
+                    f"with {court_display} reopens the road")
+        row = {
+            "tag": template_id,
+            "display_name": display,
+            "court": from_court,
+            "court_display": court_display,
+            "held": list(held),
+            "missing": list(missing),
+            "war": bool(war),
+            "state": "open" if war else "paused",
+            "text": text,
+        }
+        out["roads"].append(row)
+        for province in provinces:
+            out["by_province"].setdefault(province, text)
+        if war:
+            out["by_court"].setdefault(from_court, []).append(row)
+            for province in missing:
+                if province not in out["completing"]:
+                    out["completing"].append(province)
+    return out
+
+
+def road_note_for(world, province: str) -> str:
+    """The road sentence for ONE province ("" when it lies on no begun
+    road) — the capture and landing replies' reader."""
+    return str(road_notes(world)["by_province"].get(province) or "")
+
+
+def road_war_card_clause(world, courts, notes: Optional[Mapping] = None) -> Dict[str, str]:
+    """{court: "and closes the Ireland carve, Ulster not yet held"} for the
+    OPEN roads a peace with each court would close — the war card's held
+    line appends it ("… Munster stays ours by the treaty — and closes the
+    Ireland carve, Ulster not yet held")."""
+    notes = notes if notes is not None else road_notes(world)
+    out: Dict[str, str] = {}
+    for court in courts or []:
+        rows = notes["by_court"].get(str(court)) or []
+        if rows:
+            out[str(court)] = "; ".join(
+                f"and closes the {r['display_name']} carve{_closing_tail(r)}"
+                for r in rows)
+    return out
+
+
+def road_peace_lines(world, courts, terms=()) -> List[str]:
+    """What a settlement that ENDS the war with ``courts`` does to a begun
+    road: "This peace ends the war and closes the Ireland carve — Ulster
+    not yet held." One line per closed road, for the incoming offer's
+    summary and the ratification review. A package that itself erects the
+    template (a `create_client` clause on its tag) closes nothing."""
+    notes = road_notes(world)
+    if not notes["by_court"]:
+        return []
+    erected = {str(t.get("tag") or "") for t in (terms or [])
+               if isinstance(t, Mapping)
+               and str(t.get("type") or "") == "create_client"}
+    lines: List[str] = []
+    for court in courts or []:
+        for road in notes["by_court"].get(str(court)) or []:
+            if road["tag"] in erected:
+                continue
+            lines.append(f"This peace ends the war and closes the "
+                         f"{road['display_name']} carve — "
+                         f"{_unmet_phrase(road)}.")
+    return lines

@@ -3487,10 +3487,13 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
             expiry = int(ctx.event.get("turn")) + 5
         phrase = mission_reason_phrase(
             str(ctx.event.get("reason") or ""), ctx.event.get("regions_revealed"), expiry)
+        # S14E-9: the mission's books ("+16 earned, -15 from Prussia's
+        # declaration on Hanover; paused 2 turns on your errand"), when it kept any.
+        tally = str(ctx.event.get("ledger_line") or "")
         return (f"Talleyrand's mission to "
                 f"{display_nation(ctx.event.get('target') or 'Unknown')} ended: "
                 f"{phrase} ({turns} turn{'' if turns == 1 else 's'}, "
-                f"{dp_spent} DP).")
+                f"{dp_spent} DP)." + (f" Tally: {tally}." if tally else ""))
 
     if ctx.event_type == "diplomatic_proposal_sent":
         target = ctx.event.get("target", "Unknown")

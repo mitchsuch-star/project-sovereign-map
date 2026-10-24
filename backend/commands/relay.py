@@ -426,8 +426,11 @@ def second_name_refused_note(lead: str, second: str, order: str) -> str:
 def muster_counts(result: Dict, name: str) -> bool:
     """CQ-8: the head's muster already counts this marshal as marching."""
     rows = ((result or {}).get("muster_preview") or {}).get("rows") or []
+    # S14E-12's sweep: a corps the muster prices at nothing (`cannot_arrive`)
+    # is not counted as marching — the relayed SUPPORT order is the lever
+    # that would bring him, so the line relays it instead of waving him off.
     return any(isinstance(r, dict) and r.get("marshal") == name and r.get("will_join")
-               for r in rows)
+               and not r.get("cannot_arrive") for r in rows)
 
 
 def second_name_unneeded(world, second: str, tail_action: Optional[str],

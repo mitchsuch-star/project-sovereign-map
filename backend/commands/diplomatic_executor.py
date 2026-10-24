@@ -279,6 +279,35 @@ class DialogueChoiceContext:
     target_nation: Any = field(init=False)
 
 
+# S14E-3 (S14f, October 24, 2026): a guided wizard always has a way out and,
+# from its second step on, a way back. The wizards are the concessions wizard
+# (`terms_guidance`) and the ultimatum demand wizard, whose last step is an
+# `ultimatum_confirm`. Their answers are all FORWARD answers, and the popup's
+# Esc and drawn X act only when some option's action is in the client's
+# `_SAFE_EXIT_ACTIONS` (UXR3-F5) — so the first four steps of the concessions
+# wizard were a corridor with no door. `_finish_wizard_step` (called by the
+# driver on every answer's result) appends the door and the way back to the step
+# the answer served; nothing the wizard has gathered lives outside the
+# dialogue's own context, so closing it spends and stages nothing.
+_WIZARD_DIALOGUE_TYPES = frozenset({"terms_guidance", "ultimatum_demand_wizard", "ultimatum_confirm"})
+_WIZARD_BACK_ACTION = "step_back"      # deliberately NOT a client safe exit: a step, not a way out
+_WIZARD_EXIT_ACTION = "reconsider"     # the client's `_SAFE_EXIT_ACTIONS` member the Esc and the X ride on
+# the answers that begin a wizard afresh (the entry, and "Start over"): no way back
+_WIZARD_RESET_ACTIONS = frozenset({"adjust_terms", "ultimatum_customize", "ultimatum_start_over"})
+# the answers that re-serve the SAME step with a different figure ("Offer more"):
+# Back from the re-served step leaves the step, not the previous figure
+_WIZARD_SAME_STEP_ACTIONS = frozenset({
+    "more_gold", "less_gold",
+    "ultimatum_more_gold", "ultimatum_less_gold",
+    "ultimatum_more_manpower", "ultimatum_less_manpower",
+})
+_WIZARD_EXIT_DESCRIPTIONS = {
+    "terms_guidance": "Set the offer aside. Nothing is sent and nothing is spent.",
+    "ultimatum_demand_wizard": "Set the demands aside. Nothing is delivered and nothing is spent.",
+    "ultimatum_confirm": "Set the demands aside. Nothing is delivered and nothing is spent.",
+}
+
+
 class DiplomaticExecutor:
     """Diplomatic execution: proposals, dialogue, missions, trust reactions, AI proposals.
 
@@ -2901,6 +2930,18 @@ class DiplomaticExecutor:
 
         # WPS-A: War Purpose popup — must choose objective before proceeding
         war_objective = diplomatic_data.get("war_objective")
+        if war_objective:
+            # S14E-5: a purpose the card would not have offered is refused HERE,
+            # at the flow's first step, in the card's own words — not after the
+            # ally review, the treaty warning and the objection (`declare_war`
+            # carries the same gate as the backstop).
+            from backend.game_logic.diplomacy import (
+                OFFENSIVE_OBJECTIVE_TYPES, no_war_purpose_reason,
+            )
+            if war_objective in OFFENSIVE_OBJECTIVE_TYPES:
+                _no_purpose = no_war_purpose_reason(world, player, target_nation)
+                if _no_purpose:
+                    return {"success": False, "message": _no_purpose}
         if not war_objective:
             objectives = get_available_war_objectives(world, player, target_nation)
             options = []
@@ -3129,6 +3170,23 @@ class DiplomaticExecutor:
                 _objection_text = (_congress_warning if not _objects
                                    else f"{_congress_warning} {_objection_text}")
                 _objects = True
+        if _objects and current_state != "WAR":
+            # S14E-5: a declaration on a rump is named for what it is — the
+            # alarm it adds (the figure `declare_war` applies) buys the few
+            # provinces the court has left.
+            from backend.game_logic.declared_goals import articles_alarm as _articles_alarm
+            from backend.game_logic.diplomacy import (
+                declaration_alarm as _decl_alarm, rump_objection_clause,
+            )
+            _before_alarm = int((getattr(world, "threat_by_target", None) or {}).get(player, 0) or 0)
+            _declared_alarm = int(_decl_alarm(bool(world.casus_belli.get(
+                world._make_diplo_key(player, target_nation), False)))
+                + _articles_alarm(world, player, target_nation,
+                                  diplomatic_data.get("declared_terms")))
+            _added_alarm = int(min(100, _before_alarm + _declared_alarm) - _before_alarm)
+            _rump_clause = rump_objection_clause(world, target_nation, _added_alarm)
+            if _rump_clause:
+                _objection_text = f"{_objection_text} {_rump_clause}"
         if _objects:
             # Check if objection already pending (don't double-fire)
             if not world.diplomatic_objection_popup:
@@ -4853,7 +4911,7 @@ class DiplomaticExecutor:
          4. `_choice_generous_and_suggestions` — The proposal softened, the
             options expanded, a suggestion taken, the terms adjusted.
          5. `_choice_terms_wizard` — The terms wizard: provinces offered or
-            skipped, gold, actions.
+            skipped, gold, actions; Back (`step_back`, S14E-3).
          6. `_choice_missions_and_ai_letters` — A mission started or recalled;
             an AI court's proposal or ultimatum accepted, rejected or
             countered; a letter expanded to a proposal.
@@ -4885,7 +4943,9 @@ class DiplomaticExecutor:
         ):
             result = stage(ctx)
             if result is not _NEXT_STAGE:
-                return result
+                # S14E-3: a wizard step this answer served leaves with its
+                # way out and its way back (`_finish_wizard_step`).
+                return self._finish_wizard_step(ctx, result)
         return self._choice_alliance_paradox(ctx)
 
     def _choice_desk_settlement_and_war(self, ctx: DialogueChoiceContext):
@@ -6099,7 +6159,7 @@ class DiplomaticExecutor:
 
     def _choice_terms_wizard(self, ctx: DialogueChoiceContext):
         """Stage 5 of `_process_dialogue_choice`: The terms wizard: provinces
-        offered or skipped, gold, actions."""
+        offered or skipped, gold, actions; Back (`step_back`, S14E-3)."""
         if ctx.action == "territory_yes":
             context = self._copy_guidance_context(ctx.dialogue)
             ranked = context.get("ranked_candidates", [])
@@ -6310,6 +6370,12 @@ class DiplomaticExecutor:
             context = self._copy_guidance_context(ctx.dialogue)
             context["guidance_state"] = "confirm"
             return self._build_confirm_step(context, ctx.world, ctx.dialogue)
+
+        elif ctx.action == "step_back":
+            # S14E-3: the earlier step, as it was served, with the answer
+            # given there undone — the concessions and the ultimatum wizard
+            # alike (`_WIZARD_BACK_ACTION`).
+            return self._wizard_step_back(ctx)
         else:
             return _NEXT_STAGE
 
@@ -6349,6 +6415,12 @@ class DiplomaticExecutor:
                 "paused_turns": 0,
                 "started_turn": int(getattr(ctx.world, 'current_turn', 1)),
                 "initial_relation": int(ctx.world.nation_relations.get(diplo_key, 0) or 0),
+                # S14E-9: the mission's books, opened empty (an older save
+                # without them reads as zero — `.get` at every reader).
+                "earned": 0,
+                "shocks": [],
+                "paused_errand": 0,
+                "paused_starved": 0,
             }
             # DLF-2: Store target_ally for UNDERMINE_ALLIANCE
             if mission_type == "UNDERMINE_ALLIANCE":
@@ -7329,6 +7401,103 @@ class DiplomaticExecutor:
         import copy
         ctx = dialogue.get("context", {})
         return copy.deepcopy(ctx)
+
+    # ── S14E-3: the wizards' way out and way back ───────────────────────
+
+    @staticmethod
+    def _wizard_snapshot(step: dict) -> dict:
+        """A served wizard step as it stood on the desk — text, options and
+        the context it carried — kept so Back can put it there again. It
+        keeps no identity of its own (the restored step is given a fresh
+        one, like any step the wizard serves) and no stack (the stack is the
+        list these snapshots are kept in; nesting them would grow without
+        bound)."""
+        snap = copy.deepcopy(step)
+        snap.pop("dialogue_id", None)
+        snap_context = snap.get("context")
+        if isinstance(snap_context, dict):
+            snap_context.pop("back_stack", None)
+        return snap
+
+    def _finish_wizard_step(self, ctx: DialogueChoiceContext, result):
+        """S14E-3: every wizard step an answer serves leaves the executor with
+        a way OUT ("Never mind", action `reconsider`, the member of the
+        client's `_SAFE_EXIT_ACTIONS` that Esc and the drawn X ride on) and,
+        from the second step on, a way BACK ("Back", action `step_back`).
+
+        The way back is the stack of the steps already served, kept in the
+        served step's own context as `back_stack` (oldest first). An answer
+        pushes the step it was given on; a re-served step with a new figure
+        ("Offer more") does not — Back leaves the step, not the figure; the
+        entry and "Start over" clear the stack. Both options are APPENDED, so
+        no answer's number moves. Nothing here reads or writes the world: the
+        terms the wizard gathers live only in the dialogue's context, which is
+        why `reconsider` (the dialogue popped) leaves nothing staged."""
+        if not isinstance(result, dict) or ctx.action == _WIZARD_BACK_ACTION:
+            return result            # a restored step is finished already
+        step = result.get("diplomatic_dialogue")
+        if not isinstance(step, dict) or step.get("type") not in _WIZARD_DIALOGUE_TYPES:
+            return result
+        answered = ctx.dialogue if isinstance(ctx.dialogue, dict) else {}
+        if step is answered:
+            return result            # nothing new was served
+        context = step.get("context")
+        if not isinstance(context, dict):
+            context = {}
+            step["context"] = context
+        stack: list = []
+        if (ctx.action not in _WIZARD_RESET_ACTIONS
+                and answered.get("type") in _WIZARD_DIALOGUE_TYPES):
+            answered_context = answered.get("context")
+            answered_context = answered_context if isinstance(answered_context, dict) else {}
+            stack = list(answered_context.get("back_stack") or [])
+            if ctx.action not in _WIZARD_SAME_STEP_ACTIONS:
+                stack.append(self._wizard_snapshot(answered))
+        context["back_stack"] = stack
+        options = step.get("options")
+        if isinstance(options, list):
+            offered = {o.get("action") for o in options if isinstance(o, dict)}
+            if stack and _WIZARD_BACK_ACTION not in offered:
+                options.append({
+                    "label": "Back",
+                    "description": "Return to the last step. The answer given there is undone.",
+                    "action": _WIZARD_BACK_ACTION,
+                })
+            if _WIZARD_EXIT_ACTION not in offered:
+                options.append({
+                    "label": "Never mind",
+                    "description": _WIZARD_EXIT_DESCRIPTIONS.get(
+                        step.get("type"), _WIZARD_EXIT_DESCRIPTIONS["terms_guidance"]),
+                    "action": _WIZARD_EXIT_ACTION,
+                })
+        return result
+
+    def _wizard_step_back(self, ctx: DialogueChoiceContext) -> dict:
+        """S14E-3: put the step the last answer was given on back on the desk,
+        exactly as it was served, with the answer undone (the gathered terms
+        are the snapshot's own). Nothing is charged: no wizard step ever
+        charged anything. A Back asked of a step with no earlier one — only a
+        forged answer can ask it — is refused and the step stands."""
+        dialogue = ctx.dialogue if isinstance(ctx.dialogue, dict) else {}
+        context = dialogue.get("context")
+        context = context if isinstance(context, dict) else {}
+        stack = list(context.get("back_stack") or [])
+        if dialogue.get("type") not in _WIZARD_DIALOGUE_TYPES or not stack:
+            return {"success": False,
+                    "message": "There is no earlier step to return to, Sire."}
+        earlier = copy.deepcopy(stack.pop())
+        earlier_context = earlier.get("context")
+        if not isinstance(earlier_context, dict):
+            earlier_context = {}
+            earlier["context"] = earlier_context
+        earlier_context["back_stack"] = stack
+        earlier.pop("dialogue_id", None)
+        ctx.world.dialogue_manager.replace(earlier)
+        return {
+            "success": True,
+            "message": str(earlier.get("talleyrand_text") or earlier.get("prompt") or ""),
+            "diplomatic_dialogue": earlier,
+        }
 
     def _build_gold_step(self, context: dict, world, dialogue: dict,
                          intro: str = "", rebuild: bool = False) -> dict:

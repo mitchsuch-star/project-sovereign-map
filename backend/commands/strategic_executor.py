@@ -354,6 +354,12 @@ class StrategicCommandContext:
     first_step_attack_result: Any = field(init=False)
     remaining: Any = field(init=False)
     contingency_note: Any = field(init=False)   # CC-4 / D8: stage 8 → stage 10
+    # S14E-13: where the corps stood when the first step began (the camp line
+    # names a camp province he LEFT; the reply is built after he has moved).
+    origin_location: Any = field(init=False)
+    # S14E-13's sweep: what the first step costs the corps as it stood
+    # (Iron Resolve stacks), read before the step.
+    departure_msg: Any = field(init=False)
 
 
 class StrategicExecutor:
@@ -1855,6 +1861,9 @@ class StrategicExecutor:
         # ── Execute first step immediately ────────────────────────────
         # Cavalry (movement_range=2) moves UP TO movement_range regions per step
         ctx.first_step_msg = ""
+        ctx.origin_location = ctx.marshal.location  # S14E-13: before the first step
+        from backend.commands.movement_executor import departure_note
+        ctx.departure_msg = departure_note(ctx.marshal)
         ctx.capture_tail = ""  # WO-D11 copy half: the capture rides the march's own line
         ctx.movement_range = getattr(ctx.marshal, 'movement_range', 1)
         print(f"[STRATEGIC INIT] {ctx.marshal.name}: Path = {ctx.path}, movement_range = {ctx.movement_range}")
@@ -2160,8 +2169,16 @@ class StrategicExecutor:
         # DDB-44 (Pre-Deploy S13b part 2): where the march's first step stops,
         # the supply it outruns — as a move says it.
         if ctx.first_step_msg.startswith((" Moves to ", " Cavalry charges through ")):
-            from backend.commands.movement_executor import supply_warning_line
+            from backend.commands.movement_executor import (
+                camp_leave_note, supply_warning_line)
             ctx.first_step_msg += supply_warning_line(ctx.world, ctx.marshal)
+            # S14E-13: and the Descent camp it leaves, if it leaves one — the
+            # stop the march made, from where it began.
+            ctx.first_step_msg += camp_leave_note(
+                ctx.world, ctx.marshal, [ctx.marshal.location],
+                ctx.origin_location)
+            if ctx.departure_msg:
+                ctx.first_step_msg += f"\n{ctx.departure_msg}"
         ctx.remaining = len(ctx.order.path) if ctx.order.path else 0
         route_str = " → ".join([ctx.marshal.location] + (ctx.order.path or []))  # LV-19: one arrow
 
@@ -2840,8 +2857,13 @@ class StrategicExecutor:
         Handle enemy blocking path on first step of strategic command.
 
         Personality-based response:
-        - AGGRESSIVE: Auto-attack if odds >= 0.7, else ask
-        - CAUTIOUS: Always ask
+        - AGGRESSIVE: a TYPED order ASKS, in his own confident line, when
+          the raw odds reach 0.7 (S14E-1 / S14E-D1, October 24, 2026 — the
+          auto-attack survives only for a delegation-inferred order's
+          favourable read, a PURSUE that finds its quarry, a march whose
+          arrival tail names the man met, and the AI's side); below 0.7
+          the bad-odds ask
+        - CAUTIOUS / BALANCED / LOYAL: Always ask (the muster shown)
         - LITERAL: Silently reroute
 
         Returns:
@@ -2972,6 +2994,26 @@ class StrategicExecutor:
             else:
                 favorable = (marshal.strength / max(1, enemy.strength)) >= 0.7
 
+            # S14E-1 / S14E-D1 (Pre-Deploy S14f part 1, October 24, 2026):
+            # a TYPED order's first step that meets an enemy ASKS, every
+            # personality alike — one modal, the muster shown, no battle
+            # fought unordered. "Massena, march to Milan" (a plain move
+            # home) ran through Austrian-held Tyrol and became a battle at
+            # raw odds of 0.7, drawing five corps and +8 alarm (the sea
+            # road's P1). The aggressive marshal's temperament lives in his
+            # LINE and his odds reading ("I can take him, Sire"), never in
+            # acting unordered — DDB-D1's own reasoning (the game must not
+            # spend an order the player did not give). Kept as today: a
+            # delegation-inferred order (CR-5 §6.3c, its own gate above), a
+            # PURSUE that finds its quarry on the first step, a march whose
+            # arrival tail NAMES the man met, and the AI's side (Rule 5 —
+            # same executor, its own input; it never types).
+            if (favorable and not inferred
+                    and self._typed_first_step_asks(marshal, order, enemy, world,
+                                                    blocked_region)):
+                return self._first_step_contact_ask(
+                    marshal, order, enemy, blocked_region, world, confident=True)
+
             if favorable:
                 # Auto-attack — favorable odds
                 result = self._executor.execute(
@@ -3036,7 +3078,8 @@ class StrategicExecutor:
                 # 85,000 men against 52,000.
                 from backend.commands import strategic as _strategic_mod
                 if _strategic_mod.THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
-                    bad_odds_msg += self._executor._combat._bad_odds_muster_note(
+                    # S14E-X2: the solo figure when nobody would answer.
+                    bad_odds_msg += self._executor._combat._contact_muster_note(
                         marshal, enemy, world)
             # FA-N60: the stored ask carries its own line (the synchronous
             # popup and the /load restore read THIS dict).
@@ -3053,44 +3096,115 @@ class StrategicExecutor:
             }
 
         else:  # cautious, balanced, loyal — always ask
-            # FA-15 side finding (slice 3): the per-turn twin omits
-            # `go_around` when the blocked region IS the destination
-            # (rerouting "around" the objective is nonsensical and re-asked
-            # immediately); this first-step copy offered it anyway.
-            from backend.commands.strategic import resolve_order_destination
-            _destination = resolve_order_destination(world, marshal, order)
-            if blocked_region == _destination:
-                contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy holds "
-                               f"{blocked_region} — destination blocked. How shall "
-                               f"I proceed, Sire?'")
-                contact_options = ["attack", "hold_position", "cancel_order"]
-            else:
-                contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy at "
-                               f"{blocked_region}. How shall I proceed, Sire?'")
-                contact_options = ["attack", "go_around", "hold_position",
-                                   "cancel_order"]
-            marshal.pending_interrupt = {
-                # Marshal name for the /strategic_response answer path (see the
-                # co-located builder above). CR-5 audit fix.
-                "marshal": marshal.name,
-                "interrupt_type": "contact",
-                "enemy": enemy.name,
-                "location": blocked_region,
-                "is_first_step": True,
-                "options": contact_options,
-                # FA-N60: the stored ask carries its own line.
-                "message": contact_msg,
-            }
-            return {
-                "success": True,
-                "requires_input": True,
-                "pending_interrupt": marshal.pending_interrupt,
-                "message": contact_msg,
-                "strategic_order": True,
-                "strategic_type": order.command_type,
-                "first_step_interrupt": True,
-                "variable_action_cost": 1,
-            }
+            # S14E-X1 (S14E-1's sweep): this ask named no muster while the
+            # bad-odds ask beside it did — the one builder now carries
+            # Berthier's note on every first-step ask.
+            return self._first_step_contact_ask(
+                marshal, order, enemy, blocked_region, world, confident=False)
+
+    @staticmethod
+    def _typed_first_step_asks(marshal, order, enemy, world,
+                               blocked_region: Optional[str] = None) -> bool:
+        """S14E-1 / S14E-D1: does an aggressive marshal's TYPED order ask on
+        its blocked first step instead of fighting at favourable odds?
+
+        True for the player's own march, hold or support that meets a corps
+        it was not sent against. False — today's rule stands — when the
+        order is the AI's (Rule 5: the same executor, its own input, no one
+        to answer a modal), when a PURSUE finds its quarry on the first step
+        (the pursuit IS the order to bring him to battle; the per-turn
+        processor attacks on arrival by the same rule), or when the march's
+        arrival tail ordered the fight the step meets: the man it NAMES
+        ("march on Swabia and destroy Mack", wherever he stands on the
+        road's first step) or, unnamed ("march to Swabia then attack"), the
+        corps holding the destination itself (CR-7-6: the first of them).
+        """
+        if order is None:
+            return False
+        if str(getattr(marshal, "nation", "") or "") != str(
+                getattr(world, "player_nation", "France") or "France"):
+            return False
+        foe = str(getattr(enemy, "name", "") or "")
+        if order.command_type == "PURSUE" and str(order.target or "") == foe:
+            return False
+        if getattr(order, "attack_on_arrival", False):
+            named = str(getattr(order, "arrival_target", "") or "")
+            if named:
+                if named == foe:
+                    return False
+            elif blocked_region:
+                from backend.commands.strategic import resolve_order_destination
+                if blocked_region == resolve_order_destination(world, marshal, order):
+                    return False
+        return True
+
+    def _first_step_contact_ask(self, marshal, order, enemy, blocked_region,
+                                world, *, confident: bool) -> Dict:
+        """The ONE first-step contact ask (`interrupt_type: contact`) — the
+        marshal's line, then Berthier's muster (the same ladder the bad-odds
+        ask and the attack preview read, so the three cannot drift), the
+        options by the board, 1 action (the order's own, as every arm's).
+
+        `confident` is the aggressive marshal who read the odds in his
+        favour (S14E-1): "Archduke John bars the way at Tyrol, Sire — I can
+        take him." The others keep their ask. FA-15 side finding (slice 3):
+        no `go_around` when the blocked province IS the destination
+        (rerouting "around" the objective is nonsensical and re-asks at
+        once).
+        """
+        from backend.commands import strategic as _strategic_mod
+        from backend.commands.strategic import resolve_order_destination
+        destination = resolve_order_destination(world, marshal, order)
+        at_destination = (blocked_region == destination)
+        shown_enemy = _shown_name(enemy.name)
+        if confident:
+            where = (f"holds {blocked_region}" if at_destination
+                     else f"bars the way at {blocked_region}")
+            contact_msg = (f"{interrupt_speaker(marshal)}: '{shown_enemy} {where}, "
+                           f"Sire — I can take him.'")
+        elif at_destination:
+            contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy holds "
+                           f"{blocked_region} — destination blocked. How shall "
+                           f"I proceed, Sire?'")
+        else:
+            contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy at "
+                           f"{blocked_region}. How shall I proceed, Sire?'")
+        if at_destination:
+            contact_options = ["attack", "hold_position", "cancel_order"]
+        else:
+            contact_options = ["attack", "go_around", "hold_position",
+                               "cancel_order"]
+        # The muster shown: Berthier names who would answer the guns and
+        # the figure they make together (PC-8's note; the bad-odds ask has
+        # carried it since Aug 3, the explicit one since CRT-11).
+        if _strategic_mod.THE_EXPLICIT_INTERRUPT_NAMES_THE_MUSTER:
+            contact_msg += self._executor._combat._contact_muster_note(
+                marshal, enemy, world)
+        marshal.pending_interrupt = {
+            # Marshal name for the /strategic_response answer path (see the
+            # co-located builder above). CR-5 audit fix.
+            "marshal": marshal.name,
+            "interrupt_type": "contact",
+            "enemy": enemy.name,
+            "location": blocked_region,
+            "is_first_step": True,
+            "options": contact_options,
+            # FA-N60: the stored ask carries its own line.
+            "message": contact_msg,
+        }
+        if confident:
+            # The marshal's own reading, for the record and the client.
+            marshal.pending_interrupt["odds_read"] = "favorable"
+        return {
+            "success": True,
+            "requires_input": True,
+            "pending_interrupt": marshal.pending_interrupt,
+            "message": contact_msg,
+            "strategic_order": True,
+            "strategic_type": order.command_type,
+            "first_step_interrupt": True,
+            "variable_action_cost": 1,
+        }
 
     def _execute_cancel(self, command: Dict, game_state: Dict) -> Dict:
         """

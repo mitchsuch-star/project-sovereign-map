@@ -61,6 +61,11 @@ SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
 BOARDS = REPO / "tests" / "fixtures" / "pc_boards"
 
 BAVARIA_NOTE = "Bavaria's war with Austria ends in this instrument; she takes nothing by it."
+# S14E-D3 (S14f part 1, October 24, 2026): a carried ally the peace names for
+# nothing is LEFT OUT as the table leaves her out (the ratifier's own plan;
+# Bavaria on this board has a little standing in the war: the minor -7).
+BAVARIA_LEFT_OUT = ("Bavaria's war with Austria ends in this instrument; she takes nothing by it "
+                    "and is left out: -7 relation.")
 
 
 def _quiet():
@@ -141,9 +146,11 @@ class TestPCR1:
         assert _state(world, "Bavaria", "Austria") == "PEACE"          # the ally, carried in
         assert _state(world, "KingdomOfItaly", "Austria") == "PEACE"   # the client follows
         assert _state(world, "France", "Britain") == "WAR"             # the rest of the war stands
-        assert int(world.nation_relations.get(world._make_diplo_key("France", "Bavaria"), 0)) == rel_before
+        # S14E-D3 flip: was `== rel_before` (a carried ally took no fallout);
+        # now the minor shut-out the table would give her, stated before the click.
+        assert int(world.nation_relations.get(world._make_diplo_key("France", "Bavaria"), 0)) == rel_before - 7
         aftermath = world.peace_ratification_log[-1]["political_aftermath"]
-        assert any(BAVARIA_NOTE in a for a in aftermath), aftermath
+        assert any(BAVARIA_LEFT_OUT in a for a in aftermath), aftermath
         assert "Bavaria|Austria" not in (world.war_instances["war_1"].get("active_diplo_keys") or [])
 
     def test_ii_the_tables_plan_and_the_ratifier_read_one_helper(self):
@@ -272,7 +279,7 @@ class TestPCR1:
         assert best["price_dp"] == (3 if out["best_road"] == "send_peace" else 0)
         assert (("3 DP" in out["line"]) if out["best_road"] == "send_peace"
                 else ("no diplomatic points" in out["line"]))
-        assert BAVARIA_NOTE in out["line"]
+        assert BAVARIA_LEFT_OUT in out["line"]   # S14E-D3 flip: was BAVARIA_NOTE (no price)
         with _quiet():
             res = world._ratify_treaty({"type": "peace", "proposer_nation": "France",
                                         "target_nation": "Austria", "sweeteners": [],
@@ -722,7 +729,7 @@ class TestTheClientRows:
         assert "The table reads their mean: Austria +" in text                                   # F37
         assert "Russia sits at 0 because France has not fought her" in text
         assert "Press Austria alone: with her alone the table reads 50 of 50 and carries." in text   # F35
-        assert BAVARIA_NOTE in text                                                            # F43
+        assert BAVARIA_LEFT_OUT in text            # F43; S14E-D3 flip: was BAVARIA_NOTE (no price)
         assert "would break" not in text
 
     def test_f25_the_baseline_prices_at_the_scorers_rate(self):
@@ -4475,15 +4482,18 @@ class TestPCF81TheSecondRoad:
         assert (f"Bavaria's war with Austria ends in this instrument; she takes Tyrol by it and thanks us "
                 f"({delta:+d} relation).") in aft
 
-    def test_an_unnamed_carried_ally_keeps_pc_r1s_ruling(self, vienna_held):
+    def test_an_unnamed_carried_ally_is_left_out_as_the_table_leaves_her_out(self, vienna_held):
+        """S14E-D3 flip (was `..._keeps_pc_r1s_ruling`: relation == before and
+        BAVARIA_NOTE): an ally carried in and named for nothing is shut out by
+        the ratifier's own plan - here the minor -7 - and the aftermath says so."""
         w = vienna_held
         key = w._make_diplo_key("France", "Bavaria")
         before = w.nation_relations[key]
         with _quiet():
             res = w._ratify_treaty({"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
                                     "sweeteners": [], "demands": [], "clauses": []})
-        assert w.nation_relations[key] == before
-        assert BAVARIA_NOTE in res["peace_ratification_summary"]["political_aftermath"]
+        assert w.nation_relations[key] == before - 7
+        assert BAVARIA_LEFT_OUT in res["peace_ratification_summary"]["political_aftermath"]
 
 
 class TestPCF11:

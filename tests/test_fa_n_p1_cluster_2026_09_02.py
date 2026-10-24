@@ -230,10 +230,16 @@ class TestFAN2SelfNegatingTokensAreExempt:
             dialogue, "sue for peace", ROSTER,
             world_regions=[]) == "sue for peace"
 
-    def test_the_census_of_shipped_labels_is_still_two(self):
+    def test_the_census_of_shipped_labels_is_three(self):
         """A tripwire on content, not a rule. If a third self-negating LABEL
         is authored, this fails and the author reads the exemption's
-        contract — then raises the number and names the label."""
+        contract — then raises the number and names the label.
+
+        S14E-3 (S14f part 1, Oct 24 2026): the third is the guided wizards'
+        "Never mind" (`reconsider`, `_finish_wizard_step`). Its contract was
+        read: `_self_negating_answer_tokens` restores it by computation, and
+        `closed_answer` answers the BARE phrase when the dialogue offers it
+        (`never mind <the matter>` is still another matter's dismissal)."""
         labels = set()
         for path in (REPO_ROOT / "backend").rglob("*.py"):
             tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -248,7 +254,7 @@ class TestFAN2SelfNegatingTokensAreExempt:
         negating = sorted(
             lab for lab in labels
             if negation_marker_spans(lab.lower().strip()))
-        assert negating == ['"The Empire does not beg"',
+        assert negating == ['"The Empire does not beg"', "Never mind",
                             "Proceed Without Allies"], negating
 
     def test_exactly_one_keyword_is_self_negating(self):

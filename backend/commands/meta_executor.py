@@ -178,6 +178,29 @@ _MISSIONS_HELP_ANCHOR = "[Request Terms] to make the enemy name a price.\n"
 _PORTS_HELP_ANCHOR = "    AMBER: that shore is taken by expedition, never by marching.\n\n"
 
 
+# S14E-14 (Pre-Deploy S14f part 1): the help's Grand Diversion entry priced
+# the window and the wait but not the fleet a failure loses. The rule's figures
+# are the action's own constants and the live sentence is the card's
+# (`naval.diversion_failure_clause`), spliced after the entry.
+_DIVERSION_HELP_ANCHOR = "               and she may try it again 4 turns after the last.\n"
+
+
+def _diversion_help_block(world) -> str:
+    """What a caught diversion costs — the rule from the resolver's
+    constants, and (with a board) the card's own sentence for it."""
+    import textwrap
+    from backend.game_logic import naval as N
+    indent = " " * 15
+    body = (f"Caught, she fights the action at her readiness less "
+            f"{int(N.EXPEDITION_TURNBACK_READINESS)}: {N.fleet_action_rule_phrase()}. "
+            f"THE ADMIRALTY's card works it out for the board as it stands.")
+    live = N.diversion_failure_clause(world, world.player_nation) if world is not None else ""
+    if live:
+        body += " " + live
+    return textwrap.fill(body, width=66, initial_indent=indent,
+                         subsequent_indent=indent) + "\n"
+
+
 def _ports_help_block() -> str:
     """The PORTS AND THE CONTINENTAL SYSTEM section (DDB-48)."""
     from backend.game_logic import naval as N
@@ -1364,6 +1387,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         help_text = _congress_help_figures(help_text, _world)
         help_text = help_text.replace(
             _PORTS_HELP_ANCHOR, _PORTS_HELP_ANCHOR + _ports_help_block(), 1)
+        # S14E-14: the Grand Diversion's price in ships.
+        help_text = help_text.replace(
+            _DIVERSION_HELP_ANCHOR,
+            _DIVERSION_HELP_ANCHOR + _diversion_help_block(_world), 1)
 
         # DDB-48: "how do I build ships?" / "help navy" — the ONE section the
         # line names; a line that names none keeps the whole reference.

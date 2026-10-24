@@ -486,7 +486,7 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var warning_text = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
 			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
 			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
-			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released"] else 3
+			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released", "sanctuary"] else 3
 			var color = "#e66262" if severity == "SEVERE" else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
 		for conflict in conflicts:

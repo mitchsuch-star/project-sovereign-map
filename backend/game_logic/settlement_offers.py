@@ -3077,6 +3077,13 @@ def build_incoming_settlement_offer_popup(
     terms_summary.extend(_derive_status_quo_lines(
         world, war, settlement_terms, accepting_side=accepting_side or None,
         covered=_sq_covered))
+    # S14E-15: a peace that ends the war with a court also closes the formable
+    # road the bloc has begun against it — said on the letter, in the road
+    # builder's own words ("This peace ends the war and closes the Ireland
+    # carve — Ulster not yet held."), beside the status quo it fixes.
+    from backend.game_logic.formations import road_peace_lines
+    terms_summary.extend(road_peace_lines(
+        world, _sq_covered or covered, settlement_terms))
 
     # SC-5R-2: action labels must match behavior. `accept_settlement_offer`
     # stages a fresh `settlement_confirm` review (not an immediate

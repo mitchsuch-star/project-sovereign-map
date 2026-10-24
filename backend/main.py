@@ -621,6 +621,17 @@ def _gold_projected_net(world):
         return None
 
 
+def _end_turn_army_warning(world):
+    """S14E-7: the end-turn gate's army line — spent corps with a known army
+    beside them (`dispatch.end_turn_army_warning`), or None."""
+    try:
+        from backend.game_logic.dispatch import end_turn_army_warning
+        return end_turn_army_warning(world, world.player_nation)
+    except Exception as exc:
+        _errors.report(exc, "main._end_turn_army_warning: dispatch.end_turn_army_warning")
+        return None
+
+
 def build_base_response(world, success: bool = True, message: str = "",
                         events: list = None,
                         include_popup_passthroughs: bool = True,
@@ -648,6 +659,14 @@ def build_base_response(world, success: bool = True, message: str = "",
     # the closed campaign (summary finished, no question standing).
     from backend.game_logic import game_end as _ge_close
     _terminal_record = _ge_close.close_campaign(world)
+
+    # S14E-5: a court the player's own capture just left without a province —
+    # "Hanover has no province left — the war is over, Sire." — rides the
+    # reply of the command that did it (read, then cleared: Golden Rule 4).
+    _receipts = list(getattr(world, "_elimination_receipts", None) or [])
+    if _receipts:
+        world._elimination_receipts = []
+        message = "\n".join([m for m in [str(message or "")] if m] + _receipts)
 
     response = {
         "success": success,
@@ -695,6 +714,10 @@ def build_base_response(world, success: bool = True, message: str = "",
         # gate warns when the treasury will go negative — the ledger's own
         # forecast (`ledger.chest_forecast`, the LAWS tab's and the banner's).
         "gold_projected_net": _gold_projected_net(world),
+        # S14E-7: the same gate's army item — the spent corps and the known
+        # army beside them, as ONE sentence (a string, or null), so the
+        # client's one end-turn gate can ask it at the click.
+        "end_turn_army_warning": _end_turn_army_warning(world),
     }
     response.update(extra)
     # S14d (docs/TABLE_LESSON_SPEC.md §3): every dialogue-borne payload leaves

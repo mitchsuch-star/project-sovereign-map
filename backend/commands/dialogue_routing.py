@@ -841,8 +841,18 @@ def closed_answer(dialogue: Optional[dict], raw_lower: str,
     blank_forms = [f for f in (_closed_court_forms(dialogue)
                                + _closed_subject_regions(dialogue, world_regions))
                    if f and f not in label_forms]
-    if not any(a in offered_actions(options)
-               for a in DIALOGUE_ACTION_KEYWORDS.get("never mind", [])):
+    # S14E-3: a dialogue that offers a "Never mind" OPTION of its own (the
+    # guided wizards' way out, action `reconsider`) is answered by the bare
+    # phrase — shown == accepted; `never mind <the matter>` still dismisses
+    # ANOTHER matter and is still blanked (on the gold step "never mind the
+    # gold" means skip it, not close the wizard).
+    _bare_never_mind = (
+        _closed_normalised(text) == "never mind"
+        and any(_closed_normalised(str(o.get("label") or "")) == "never mind"
+                for o in options))
+    if not _bare_never_mind and not any(
+            a in offered_actions(options)
+            for a in DIALOGUE_ACTION_KEYWORDS.get("never mind", [])):
         text = _NEVER_MIND_ANOTHER_MATTER_RE.sub(" ", text)
     norm = _closed_blank(_closed_normalised(text), blank_forms)
     norm = _closed_blank_addressed_courts(

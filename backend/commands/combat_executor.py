@@ -20,7 +20,7 @@ from backend.models.marshal import Marshal
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
 from backend.game_logic.formations import formed_display_name
-from backend.display_names import humanize_entity_name  # LV-2 (row EP F2)
+from backend.display_names import humanize_entity_name, plural  # LV-2 (row EP F2); S14E-5's sweep: the plural
 from backend.display_names import marshal_honorific  # NPC-17 (SR-6 reserve)
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
@@ -672,6 +672,28 @@ THE_GATE_READS_THE_PREVIEWS_CONTEXT = True
 # that answered to the participants and the committed term sums him whole;
 # the expectation had priced him at nothing. Lever down: 0.0, as before.
 AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL = True
+# S14E-2 (S14f part 1): THE MUSTER PRICES THE CAMPAIGN PAY. A corps drawn onto
+# allied or neutral soil is fed by contract (EAD-1, `WorldState.campaign_pay_at`
+# — the ONE predicate the upkeep bill reads); the muster quotes the rise beside
+# its materiel note (`campaign_note`). Display only. False = no note.
+# S14E-12 (S14f part 1): THE MUSTER STATES ITS SPREAD, AND A CORPS THAT CANNOT
+# ARRIVE IS NOT PRESENT. "Expect about N" is a probability-weighted mean (PT-A2)
+# of a lumpy outcome; the header now also prints the floor ("certain") and a
+# bad day (1 in 10), exactly, from the same per-corps arrival odds, each
+# outcome priced under its own coordination. A WILL JOIN corps whose arrival
+# odds are exactly nothing is labelled apart ("CANNOT ARRIVE"), stands nowhere
+# after the battle, eats nothing at the field, is named by nobody as answering
+# the guns, and is NOT stamped present in the coordination the muster prices
+# (`_reachable_joiners`) - where the resolver stamps only the corps that
+# arrive. The player's lead only (the AI's `muster_odds` reads are untouched,
+# GR5's named difference). False = the pre-S14E-12 muster, byte for byte.
+THE_MUSTER_STATES_ITS_SPREAD = True
+A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT = True
+# The exact enumeration is over the joiners' outcome set, 2^N: capped at the
+# six highest-odds uncertain corps (a bad day is then not claimed - see
+# `_muster_spread`).
+MUSTER_SPREAD_MAX_UNCERTAIN = 6
+MUSTER_BAD_DAY_CHANCE = 0.10
 
 
 def _attack_is_unordered(command) -> bool:
@@ -939,6 +961,12 @@ def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=N
     attack on it is a declaration of war, and the war-purpose road owns it
     (`enemy_nation`).
 
+    S14E-4: the peace preview ANNOUNCES this refusal before the peace is
+    signed (`peace_sanctuary`), from `world_state.sheltering_court` — this
+    guard's neutral arm, asked of the board the treaty would leave; the two
+    are drift-pinned on every diplomatic state
+    (`tests/test_s14f_row04.py::TestS14E4`). Change one, change both.
+
     The PLAYER's lead (GR5's named difference, recorded in
     SYSTEMS_REFERENCE §117): the ruling reads "a field on soil France is at
     peace with". The AI's lead keeps PT-F1's rule — an attack on an army
@@ -962,13 +990,14 @@ def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=N
 def peace_soil_refusal(marshal, enemy_marshal, block) -> dict:
     """DDB-14 / DDB-X17: the refusal of a field on peace soil, in ONE set of
     words for the attack and the charge — at no cost, naming the court."""
-    from backend.display_names import display_nation as _dn
+    from backend.display_names import display_nation as _dn, humanize_entity_name as _hn
     owner = _dn(block["owner"])
     return {
         "success": False,
         "peace_soil": block["owner"],
         "message": (
-            f"{marshal.name} cannot march on {enemy_marshal.name}: "
+            # S14E-XB1: the roster key ("ArchdukeCharles") is never printed.
+            f"{_hn(marshal.name)} cannot march on {_hn(enemy_marshal.name)}: "
             f"{enemy_marshal.location} is {owner}'s soil, and we are at peace "
             f"with {owner} — no corps of ours may take the field there."),
     }
@@ -2378,6 +2407,40 @@ class CombatExecutor:
         return joining, self._committed_reinforcement_strength(
             enemy_marshal, joining, world, expected_at=battle_region)
 
+    def _cannot_arrive(self, lead, m, world, battle_region) -> bool:
+        """S14E-12: True for a corps that stands OFF the field and whose
+        arrival roll can never clear its bar - `_expected_arrival_weight` is
+        exactly 0.0, the same number that prices him into the committed term
+        (and states his odds on his row). A corps on the field makes no roll
+        and is never "unable to arrive".
+
+        Read off the arrival PROBABILITY itself, not the muster's weight: a
+        gun priced at 0.0 only because `AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL`
+        is down still rolls the die, and the ceiling has always counted him
+        (SF7-X2's pin: "the ceiling never read the weight")."""
+        if getattr(m, "location", None) == battle_region:
+            return False
+        return self._arrival_probability(
+            self._arrival_deterministic(m, lead, world),
+            self._arrival_threshold(m, lead, battle_region, world)) <= 0.0
+
+    def _reachable_joiners(self, lead, joiners, world, battle_region,
+                           active=None) -> list:
+        """S14E-12: the WILL JOIN corps the resolver can actually find on the
+        field - everyone but the ones that cannot arrive. The resolver
+        stamps coordination on the corps that ARRIVE; the muster used to
+        stamp it on every WILL JOIN corps, a 0%-odds one included
+        (`_priced_coordination`). `active` defaults to the player's lead
+        with the lever up: an AI marshal's reads (`muster_odds` on the
+        jealousy P3.9 rung) keep the shipped arithmetic, byte for byte."""
+        if active is None:
+            active = (A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT
+                      and lead.nation == getattr(world, "player_nation", None))
+        if not active:
+            return list(joiners)
+        return [m for m in joiners
+                if not self._cannot_arrive(lead, m, world, battle_region)]
+
     @contextlib.contextmanager
     def _priced_coordination(self, marshal, joiners, enemy_marshal, enemy_joiners,
                              world, battle_region):
@@ -2389,10 +2452,24 @@ class CombatExecutor:
         assumed present only where the resolver would find him: in the
         attacker's own region when that is the field (adjacent guns never
         relocate and stay out of the adjacent count, as an arrival does).
-        Lever down: a no-op."""
+        Lever down: a no-op.
+
+        S14E-12: a joiner who CANNOT arrive (arrival odds exactly 0) is not
+        assumed present - the resolver stamps only the corps that arrive, so
+        a 0%-odds corps' type, relationships and dedicated support inflated
+        the price of everyone else's modifier. He stays out of the stamp (and
+        so counts where he truly stands, as an adjacent ally if he is next
+        door). The player's lead only; both sides of his muster."""
         if not THE_MUSTER_PRICES_THE_COORDINATION:
             yield
             return
+        _active = (A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT
+                   and marshal.nation == getattr(world, "player_nation", None))
+        if _active:
+            joiners = self._reachable_joiners(
+                marshal, joiners, world, battle_region, active=True)
+            enemy_joiners = self._reachable_joiners(
+                enemy_marshal, enemy_joiners, world, battle_region, active=True)
         fields = tuple(Marshal.COORDINATION_TRANSIENT_FIELDS) + ("sovereign_presence",)
         nations = {marshal.nation, enemy_marshal.nation}
         touched = [m for m in world.marshals.values() if m.nation in nations]
@@ -2461,12 +2538,89 @@ class CombatExecutor:
                     elif hasattr(m, f):
                         delattr(m, f)
 
-    def _build_muster_preview(self, marshal, enemy_marshal, world, game_state):
+    def _muster_supply_quote(self, preview, marshal, enemy_marshal, world,
+                             region, battle_region, nation, standing_bodies) -> None:
+        """The muster's supply quote (`preview["supply"]`, `preview["supply_note"]`)
+        — the province AS IT STANDS, the whole muster standing there; lifted
+        whole out of `_build_muster_preview` at S14f part 1 (CODE-2's ratchet:
+        the builder had grown past 500 lines), behaviour byte-identical."""
+        if region is not None and hasattr(world, "region_econ_visible"):
+            total_bodies = sum(standing_bodies)
+            n_corps = len(standing_bodies)
+            if world.region_econ_visible(battle_region):
+                # Slice-8 review [B-F3]: the quote prices the province AS
+                # IT STANDS — current controller, muster-alone. Two
+                # recorded conservatisms, both in the player's favor and
+                # both covered by the sentence's conditional mood: a
+                # capturing victory flips the controller and RAISES the
+                # fed cap to 1.5× (the quoted cost is then never billed),
+                # and any survivor standing in the province (the engine
+                # pools nation-blind) would raise the real bill above a
+                # muster-alone quote. Exact-parity arms pinned: own soil,
+                # enemy soil uncaptured, stacking-under-cap.
+                # SR-7d RV-5 / §3: the muster's own battle adds war damage
+                # (0.10, or 0.20 when the two leads number 50,000 or more),
+                # and the forecast reads the damage the next pass will read.
+                from backend.game_logic.doctrines import supply_ground as _dc_ground_fn
+                _battle_damage = (0.20 if int(marshal.strength) + int(enemy_marshal.strength)
+                                  >= 50000 else 0.10)
+                _dc_ground = _dc_ground_fn(world, nation, region,
+                                           extra_damage=_battle_damage)
+                fed = int(world.get_effective_supply_cap(
+                    nation, region, extra_war_damage=_battle_damage))
+                # AAR-D4: the free allowance the engine grants this
+                # province (a capital feeds one more corps free); the
+                # muster's own corps are the press the quote prices.
+                _press, _free = world.crowding_press(region, [])
+                rate = world.supply_attrition_rate(
+                    total_bodies, fed, n_corps, free_corps=_free)
+                per_turn = sum(int(s * rate) for s in standing_bodies)
+                preview["supply"] = {
+                    "fed": fed,
+                    "bodies": int(total_bodies),
+                    "corps": int(n_corps),
+                    "attrition_per_turn": int(per_turn),
+                }
+                if per_turn > 0:
+                    preview["supply_note"] = (
+                        f"{battle_region} feeds {fed:,} — the whole muster "
+                        f"standing there would lose ~{per_turn:,} men a "
+                        f"turn to short supply."
+                    )
+                else:
+                    preview["supply_note"] = (
+                        f"{battle_region} feeds {fed:,} — the whole muster "
+                        f"can stand there fed."
+                    )
+                if _dc_ground and _dc_ground["applies"]:
+                    _pct = int(round(_dc_ground["factor"] * 100))
+                    _kind = "poor country" if _dc_ground["poor"] else "stripped country"
+                    preview["supply_note"] += (
+                        f" {_dc_ground['name']}: this {_kind} feeds our army "
+                        f"{_pct}% of what it would otherwise draw.")
+            else:
+                preview["supply"] = {
+                    "fed": -1,
+                    "bodies": int(total_bodies),
+                    "corps": int(n_corps),
+                    "attrition_per_turn": -1,
+                }
+                preview["supply_note"] = (
+                    f"What {battle_region} can feed is not known — the "
+                    f"province is unscouted."
+                )
+
+    def _build_muster_preview(self, marshal, enemy_marshal, world, game_state,
+                              with_spread: bool = True):
         """W6-4 §6.1: who will fight, who won't, and why — before the shot.
 
         Fog-legal target strength (exact only at FULL visibility, else the
         band — R5); odds band via the CR-5 single source (GR1 spirit); one
         row per adjacent/co-located friendly with a display reason.
+
+        `with_spread=False` (S14E-12) skips the floor / bad-day enumeration -
+        up to 2^6 priced outcomes - for the readers that take only the
+        totals (`objection_v2.muster_expected_totals`); nothing else moves.
         """
         from backend.commands.objection_v2 import inferred_attack_odds_band
         from backend.display_names import MUSTER_REASON_DISPLAY
@@ -2498,6 +2652,13 @@ class CombatExecutor:
                 continue
             will_join, code = self._muster_reason(
                 m, marshal, battle_region, nation, world)
+            # S14E-12: a WILL JOIN corps whose arrival odds are exactly
+            # nothing never stands in the battle province - the supply and
+            # materiel quotes bill the bodies that can be there.
+            _cannot = bool(
+                will_join and A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT
+                and nation == getattr(world, "player_nation", None)
+                and self._cannot_arrive(marshal, m, world, battle_region))
             # Slice-8 review [B-F2]: an ADJACENT artillery joiner never
             # stands in the battle province — the resolver keeps guns
             # adjacent as fire support (never relocated), and an
@@ -2506,7 +2667,8 @@ class CombatExecutor:
             # bodies overstated the bill ~9× in the probe. Co-located
             # guns DO stand there and eat.
             if (m.location == battle_region
-                    or (will_join and not getattr(m, "artillery", False))):
+                    or (will_join and not getattr(m, "artillery", False)
+                        and not _cannot)):
                 standing_bodies.append(int(m.strength))
             if will_join:
                 will_join_marshals.append(m)
@@ -2599,12 +2761,19 @@ class CombatExecutor:
                          or AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL)):
                 row.update(self._arrival_odds_row(marshal, m, battle_region,
                                                   world, code))
+            # S14E-12: odds of exactly nothing - the row is labelled apart
+            # from WILL JOIN (`will_join` itself is untouched: it feeds the
+            # band, the relay and the diorama's promise parity).
+            if _cannot and row.get("arrival_odds") == 0:
+                row["cannot_arrive"] = True
             # DDB-14 (Pre-Deploy S13b part 2): a corps that marches to the
             # guns stands in the battle's province afterwards — said here
             # (conquest #7: Bohemia left empty, unannounced). Where the
             # province's works would halt the lead, he returns to his post.
+            # S14E-12: a corps that cannot arrive stands nowhere new.
             if (will_join and m.location != battle_region
-                    and not getattr(m, "artillery", False)):
+                    and not getattr(m, "artillery", False)
+                    and not row.get("cannot_arrive")):
                 if works_halt_line(world, marshal, region):
                     row["stands_after"] = f"— and returns to {m.location} if the works hold"
                 else:
@@ -2648,23 +2817,27 @@ class CombatExecutor:
             # `objection_v2.muster_gate_arms` reads the `odds_band` derived from
             # it, which is the CA9-row-2 attack-confirm gate — so the figure
             # must not move. The ceiling rides beside it.
+            # S14E-12: "if all march" is the most the resolver can reach - a
+            # corps that cannot arrive is not in it.
+            _reachable = self._reachable_joiners(
+                marshal, will_join_marshals, world, battle_region)
             ceiling_attacker = committed_attacker
-            if will_join_marshals:
+            if _reachable:
                 _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
-                          for m in [marshal] + will_join_marshals}
+                          for m in [marshal] + _reachable}
                 try:
                     _aura = 0.0
                     from backend.models.authority import sovereign_aura_strength
-                    for m in [marshal] + will_join_marshals:
+                    for m in [marshal] + _reachable:
                         if getattr(m, "is_sovereign", False):
                             _aura = sovereign_aura_strength(world, m.nation)
                             break
-                    for m in [marshal] + will_join_marshals:
+                    for m in [marshal] + _reachable:
                         m.sovereign_presence = _aura
                     ceiling_attacker = self._committed_reinforcement_strength(
-                        marshal, will_join_marshals, world)
+                        marshal, _reachable, world)
                 finally:
-                    for m in [marshal] + will_join_marshals:
+                    for m in [marshal] + _reachable:
                         if m.name in _saved:
                             m.sovereign_presence = _saved[m.name]
             # CA9-F1: and the same term for the other side. The RATIO reads
@@ -2715,6 +2888,17 @@ class CombatExecutor:
                     f" Their columns gather slowly — {_enemy_flaw[1].get('name')}: "
                     f"the bar {int(_enemy_flaw[1]['value'])} higher.")
 
+        # S14E-12: the mean's spread - the floor and a bad day, exact over the
+        # joiners' outcome set, each outcome under its own coordination. The
+        # player's lead only (the muster is a player surface; the AI reads
+        # none of this).
+        _spread = None
+        if (with_spread and THE_MUSTER_STATES_ITS_SPREAD and will_join_marshals
+                and nation == getattr(world, "player_nation", None)):
+            _spread = self._muster_spread(
+                marshal, will_join_marshals, enemy_marshal, defender_joining,
+                world, battle_region)
+
         preview = {
             "attacker": {"name": marshal.name,
                          "strength": int(marshal.strength),
@@ -2734,6 +2918,12 @@ class CombatExecutor:
         }
         if enemy_marshal is not covered:
             preview["target"]["covering"] = humanize_entity_name(covered.name)
+        if _spread is not None:
+            preview["attacker"]["floor_strength"] = int(
+                marshal.strength + _spread["floor"])
+            if _spread["bad_day"] is not None:
+                preview["attacker"]["bad_day_strength"] = int(
+                    marshal.strength + _spread["bad_day"])
 
         # ══════════════════════════════════════════════════════════════
         # WO slice 8 — "The Panel States Its Terms" (G3 + the price).
@@ -2810,71 +3000,15 @@ class CombatExecutor:
                 f"Materiel: every 1,000 men we lose costs {_per_thousand}g in "
                 f"guns, horses and stores, charged at the battle — a hard day "
                 f"(15% of the {_mustered:,} we muster) would cost ~{_hard_day:,}g.")
-        if region is not None and hasattr(world, "region_econ_visible"):
-            total_bodies = sum(standing_bodies)
-            n_corps = len(standing_bodies)
-            if world.region_econ_visible(battle_region):
-                # Slice-8 review [B-F3]: the quote prices the province AS
-                # IT STANDS — current controller, muster-alone. Two
-                # recorded conservatisms, both in the player's favor and
-                # both covered by the sentence's conditional mood: a
-                # capturing victory flips the controller and RAISES the
-                # fed cap to 1.5× (the quoted cost is then never billed),
-                # and any survivor standing in the province (the engine
-                # pools nation-blind) would raise the real bill above a
-                # muster-alone quote. Exact-parity arms pinned: own soil,
-                # enemy soil uncaptured, stacking-under-cap.
-                # SR-7d RV-5 / §3: the muster's own battle adds war damage
-                # (0.10, or 0.20 when the two leads number 50,000 or more),
-                # and the forecast reads the damage the next pass will read.
-                from backend.game_logic.doctrines import supply_ground as _dc_ground_fn
-                _battle_damage = (0.20 if int(marshal.strength) + int(enemy_marshal.strength)
-                                  >= 50000 else 0.10)
-                _dc_ground = _dc_ground_fn(world, nation, region,
-                                           extra_damage=_battle_damage)
-                fed = int(world.get_effective_supply_cap(
-                    nation, region, extra_war_damage=_battle_damage))
-                # AAR-D4: the free allowance the engine grants this
-                # province (a capital feeds one more corps free); the
-                # muster's own corps are the press the quote prices.
-                _press, _free = world.crowding_press(region, [])
-                rate = world.supply_attrition_rate(
-                    total_bodies, fed, n_corps, free_corps=_free)
-                per_turn = sum(int(s * rate) for s in standing_bodies)
-                preview["supply"] = {
-                    "fed": fed,
-                    "bodies": int(total_bodies),
-                    "corps": int(n_corps),
-                    "attrition_per_turn": int(per_turn),
-                }
-                if per_turn > 0:
-                    preview["supply_note"] = (
-                        f"{battle_region} feeds {fed:,} — the whole muster "
-                        f"standing there would lose ~{per_turn:,} men a "
-                        f"turn to short supply."
-                    )
-                else:
-                    preview["supply_note"] = (
-                        f"{battle_region} feeds {fed:,} — the whole muster "
-                        f"can stand there fed."
-                    )
-                if _dc_ground and _dc_ground["applies"]:
-                    _pct = int(round(_dc_ground["factor"] * 100))
-                    _kind = "poor country" if _dc_ground["poor"] else "stripped country"
-                    preview["supply_note"] += (
-                        f" {_dc_ground['name']}: this {_kind} feeds our army "
-                        f"{_pct}% of what it would otherwise draw.")
-            else:
-                preview["supply"] = {
-                    "fed": -1,
-                    "bodies": int(total_bodies),
-                    "corps": int(n_corps),
-                    "attrition_per_turn": -1,
-                }
-                preview["supply_note"] = (
-                    f"What {battle_region} can feed is not known — the "
-                    f"province is unscouted."
-                )
+        # S14E-2: and the campaign pay the corps standing there will draw on
+        # allied or neutral soil - read off the upkeep bill's own predicate.
+        _campaign = self._campaign_pay_quote(
+            marshal, will_join_marshals, battle_region, world, region)
+        if _campaign:
+            preview["campaign_note"] = _campaign["note"]
+            preview["campaign_pay_more"] = int(_campaign["more"])
+        self._muster_supply_quote(preview, marshal, enemy_marshal, world,
+                                  region, battle_region, nation, standing_bodies)
 
         # NP-2 §5.1 shown=applied: the muster names the Presence when a
         # sovereign stands with the assault (computed live — the transient
@@ -2956,6 +3090,140 @@ class CombatExecutor:
             )
         return preview
 
+    def _campaign_pay_quote(self, marshal, joiners, battle_region, world,
+                            region) -> Optional[Dict]:
+        """S14E-2: what the muster adds to next turn's campaign pay (EAD-1),
+        or None when it adds nothing.
+
+        The corps that will stand at the battle province after the battle -
+        the lead (the victor advances there) and every joiner who marches to
+        the guns and can arrive (adjacent guns fire from where they stand;
+        DDB-14's `stands_after` rule) - are priced at the province, less what
+        each draws where he stands today, through `WorldState.campaign_pay_at`:
+        the SAME predicate `calculate_turn_upkeep` bills by, so the figure
+        shown is the figure applied. A court's own soil, an enemy's (the corps
+        lives off the land) and a vassal's draw nothing and print nothing.
+        The bankruptcy mercy halves the bill and the quote alike. Recorded
+        conservatism: the lead is counted standing there (a victory), and a
+        lost battle's retreat is not.
+        """
+        if region is None or not hasattr(world, "campaign_pay_homeland"):
+            return None
+        nation = marshal.nation
+        homeland = world.campaign_pay_homeland(nation)
+        if homeland is None:
+            return None
+        standing = [marshal]
+        for m in joiners:
+            if getattr(m, "artillery", False) and m.location != battle_region:
+                continue
+            if self._cannot_arrive(marshal, m, world, battle_region):
+                continue
+            standing.append(m)
+        more = 0
+        for m in standing:
+            after = world.campaign_pay_at(nation, battle_region, m.strength,
+                                          homeland)
+            if after is None:
+                continue
+            before = world.campaign_pay_at(nation, m.location, m.strength,
+                                           homeland)
+            more += after["pay"] - (before["pay"] if before else 0)
+        if more <= 0:
+            return None
+        if (getattr(world, "nation_bankruptcy_turns", None) or {}).get(nation, 0) >= 1:
+            more //= 2
+        if more <= 0:
+            return None
+        from backend.display_names import display_nation
+        holder = display_nation(region.controller)
+        owns = f"{holder}'" if holder.endswith("s") else f"{holder}'s"
+        return {
+            "more": int(more),
+            "note": (f"{battle_region} is {owns} soil — the corps standing "
+                     f"there are fed by contract, about −{int(more):,}g "
+                     f"more a turn."),
+        }
+
+    @staticmethod
+    def _outcome_spread(outcomes, chance: float):
+        """S14E-12: (floor, bad_day) of a discrete outcome set.
+
+        `outcomes` is [(probability, value)]; the floor is the least value
+        any outcome of non-zero probability reaches; the bad day is the
+        smallest value v with P(X <= v) >= `chance` - one day in ten fights
+        with no more than that."""
+        live = sorted((float(v), float(p)) for p, v in outcomes if p > 0.0)
+        floor = live[0][0]
+        cumulative = 0.0
+        bad_day = live[-1][0]
+        for value, p in live:
+            cumulative += p
+            if cumulative >= chance - 1e-9:
+                bad_day = value
+                break
+        return floor, bad_day
+
+    def _muster_spread(self, marshal, joiners, enemy_marshal, enemy_joiners,
+                       world, battle_region) -> Optional[Dict]:
+        """S14E-12: the floor and a bad day of the attacker's committed
+        strength, EXACT over the joiners' outcome set.
+
+        The mean the header prints ("expect about N") is a probability-
+        weighted sum of independent arrival rolls (PT-A2); the same per-corps
+        odds (`_expected_arrival_weight`) give the whole distribution:
+
+        * a corps on the field makes no roll - he is in every outcome;
+        * a corps that cannot arrive is in none (`_reachable_joiners`);
+        * every other corps is a Bernoulli trial, and the outcomes are the
+          2^N subsets - capped at `MUSTER_SPREAD_MAX_UNCERTAIN` (the highest
+          odds enumerated; the rest are taken as not arriving, which keeps
+          the FLOOR exact and makes the bad day unclaimable, so it is
+          withheld - nothing is said that is worse than the truth).
+
+        Each outcome is priced under ITS OWN coordination
+        (`_priced_coordination` over the corps that arrive in it), because
+        the resolver stamps the coordination bonus on the arrivals only - a
+        floor priced under the full roster's stamp would promise bonuses
+        from men who never came. Returns {"floor", "bad_day"} in committed
+        strength (the lead's own men excluded; `bad_day` None when withheld)
+        or None when the muster has no spread (nobody uncertain).
+        """
+        certain, uncertain = [], []
+        for m in self._reachable_joiners(marshal, joiners, world, battle_region,
+                                         active=True):
+            p = self._expected_arrival_weight(marshal, m, world, battle_region)
+            if p >= 1.0:
+                certain.append(m)
+            elif p > 0.0:
+                uncertain.append((p, m))
+        if not uncertain:
+            return None
+        uncertain.sort(key=lambda pm: (-pm[0], pm[1].name))
+        enumerated = uncertain[:MUSTER_SPREAD_MAX_UNCERTAIN]
+        withheld = len(uncertain) > len(enumerated)
+        enemy_team = self._reachable_joiners(
+            enemy_marshal, enemy_joiners, world, battle_region, active=True)
+        outcomes = []
+        for mask in range(1 << len(enumerated)):
+            team = list(certain)
+            probability = 1.0
+            for i, (p, m) in enumerate(enumerated):
+                if mask >> i & 1:
+                    team.append(m)
+                    probability *= p
+                else:
+                    probability *= 1.0 - p
+            if probability <= 0.0:
+                continue
+            with self._priced_coordination(marshal, team, enemy_marshal,
+                                           enemy_team, world, battle_region):
+                committed = self._committed_reinforcement_strength(
+                    marshal, team, world)
+            outcomes.append((probability, committed))
+        floor, bad_day = self._outcome_spread(outcomes, MUSTER_BAD_DAY_CHANCE)
+        return {"floor": floor, "bad_day": None if withheld else bad_day}
+
     def _bad_odds_muster_note(self, marshal, enemy, world) -> str:
         """PC-8 (quiet-France played campaign, Aug 3 2026): the staff's
         addendum to a delegation-inferred bad-odds warning.
@@ -3002,7 +3270,12 @@ class CombatExecutor:
             # over a grievance was named in the promise and absent from the
             # arithmetic, on the CR-5 bad-odds modal. Names and figure now
             # come from the same predicate.
-            if joins and self._pair_contribution_scale(marshal, m) > 0.0:
+            # S14E-12 (the sweep of the muster's WILL JOIN): a corps whose
+            # arrival odds are exactly nothing does not "answer the guns".
+            if (joins and self._pair_contribution_scale(marshal, m) > 0.0
+                    and not (A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT
+                             and self._cannot_arrive(marshal, m, world,
+                                                     battle_region))):
                 will_join.append(m)
         if not will_join:
             return ""
@@ -3041,6 +3314,24 @@ class CombatExecutor:
                 f"{humanize_entity_name(marshal.name)} {int(marshal.strength):,}, "
                 f"{joint:,} with the muster committed, against "
                 f"{humanize_entity_name(enemy.name)} ({target_display}){weighed}.")
+
+    def _contact_muster_note(self, marshal, enemy, world) -> str:
+        """S14E-1 / S14E-X2 (Pre-Deploy S14f part 1, October 24, 2026): the
+        muster SHOWN on a first-step contact ask — `_bad_odds_muster_note`
+        when anyone would answer the guns, else Berthier's solo figure, so
+        the ask never stands on the marshal's word alone ("I can take him"
+        with no number beside it). Player-nation only, like its source;
+        the enemy's figure through the one fog-banded helper."""
+        note = self._bad_odds_muster_note(marshal, enemy, world)
+        if note:
+            return note
+        if world is None or marshal.nation != getattr(world, "player_nation", "France"):
+            return ""
+        return (f" Berthier adds: {humanize_entity_name(marshal.name)} "
+                f"{int(marshal.strength):,} against "
+                f"{humanize_entity_name(enemy.name)} "
+                f"({self._fog_banded_strength(enemy, world)}) — no other corps "
+                f"stands within reach.")
 
     @staticmethod
     def _fog_banded_strength(enemy_marshal, world) -> str:
@@ -3102,6 +3393,22 @@ class CombatExecutor:
             ceiling = int(preview['attacker'].get('ceiling_strength', 0))
             if ceiling > committed:
                 attacker_display += f", up to {ceiling:,} if all march"
+            # S14E-12: the mean of a lumpy outcome, with its floor and a bad
+            # day - exact over the same per-corps odds. Appended after the
+            # ceiling clause, so every pinned phrase above is untouched.
+            floor = preview['attacker'].get('floor_strength')
+            if floor is not None and int(floor) < committed:
+                floor = int(floor)
+                attacker_display += f"; certain {floor:,}"
+                bad_day = preview['attacker'].get('bad_day_strength')
+                if bad_day is not None:
+                    bad_day = int(bad_day)
+                    if bad_day <= floor:
+                        attacker_display += (
+                            ", and a bad day (1 in 10) is no better")
+                    elif bad_day < committed:
+                        attacker_display += (
+                            f"; a bad day (1 in 10) {bad_day:,}")
         # LV-2 (row EP F2): the header names the men, not their roster keys
         # ("vs ArchdukeJohn (substantial force)" was the muster's own leak;
         # the same NPC-12 class the scout report and the covering lines had).
@@ -3119,6 +3426,9 @@ class CombatExecutor:
         ]
         for row in preview["rows"]:
             verdict = "WILL JOIN" if row["will_join"] else "WILL NOT"
+            # S14E-12: odds of exactly nothing are not a promise to join.
+            if row["will_join"] and row.get("cannot_arrive"):
+                verdict = "CANNOT ARRIVE"
             line = f"  {verdict} — {row['marshal']}: {row['reason_display']}"
             if row.get("standing_order_hint"):
                 line += f" {row['standing_order_hint']}"
@@ -3153,6 +3463,9 @@ class CombatExecutor:
             lines.append(f"  {preview['supply_note']}")
         if preview.get("materiel_note"):
             lines.append(f"  {preview['materiel_note']}")
+        # S14E-2: and the campaign pay the corps standing there will draw.
+        if preview.get("campaign_note"):
+            lines.append(f"  {preview['campaign_note']}")
         if preview.get("province_fights_note"):
             lines.append(f"  {preview['province_fights_note']}")
         if preview.get("shared_casualty_note"):
@@ -7099,7 +7412,7 @@ class CombatExecutor:
                             "type": "clarification",
                             "strategic_type": "PURSUE",
                             "marshal": ctx.marshal.name,
-                            "message": f"{nearest_enemy.name} is {ctx.distance} regions away, Sire. Shall I pursue?",
+                            "message": f"{nearest_enemy.name} is {plural(ctx.distance, 'region')} away, Sire. Shall I pursue?",
                             "interpreted_target": nearest_enemy.name,
                             "interpretation_reason": "nearest",
                             "alternatives": [e.name for e in enemies if e.name != nearest_enemy.name][:2],
@@ -7929,7 +8242,7 @@ class CombatExecutor:
                 if ctx.distance > 2:
                     return {
                         "success": False,
-                        "message": f"No enemy found at {ctx.target}. Nearest enemy is {ctx.enemy_marshal.name} at {ctx.enemy_marshal.location} ({ctx.distance} regions away).",
+                        "message": f"No enemy found at {ctx.target}. Nearest enemy is {ctx.enemy_marshal.name} at {ctx.enemy_marshal.location} ({plural(ctx.distance, 'region')} away).",
                         "suggestion": f"Try: 'Attack {ctx.enemy_marshal.name}' or move closer first"
                     }
             else:

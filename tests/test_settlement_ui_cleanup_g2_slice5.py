@@ -141,18 +141,27 @@ def test_sc15_beneficiaries_preview_names_recipient_with_reason():
     assert len(by_nation["Saxony"]["reasons"]) >= 1
 
 
-def test_sc15_shut_out_allies_preview_lists_no_standing_with_contribution():
-    """SC-15: shut_out_allies[] lists same-side allies with `no_standing`
-    standing and positive contribution share."""
-    rows = [
+def test_sc15_shut_out_allies_preview_lists_the_ratifiers_plan_not_the_ledger():
+    """SC-15 -> S14E-10 (S14f part 1): shut_out_allies[] lists the allies the
+    RATIFIER will punish - the rows of its own plan (`relation_delta`, from
+    `settlement_reactions.forecast_proposer_side_reactions`) - never the
+    contribution ledger's `no_standing` rows, the very allies the ratifier
+    skips (spec section 14.4). (Was `..._lists_no_standing_with_contribution`:
+    it listed a `no_standing` ally with a share - the old, wrong predicate.)"""
+    ledger_rows = [
         {"nation": "Spain", "standing": "no_standing", "contribution_share": 25},
         {"nation": "Naples", "standing": "leader", "contribution_share": 60},
     ]
-    out = build_shut_out_allies_preview(rows, [])
+    assert build_shut_out_allies_preview(ledger_rows, []) == []   # old: Spain listed
 
-    nations = [r["nation"] for r in out]
-    assert "Spain" in nations
-    assert "Naples" not in nations  # leader is never shut-out
+    plan_rows = [{"nation": "Spain", "standing_level": "seat", "material_share_pct": 25,
+                  "severity": "major_shut_out", "relation_delta": -18,
+                  "grievance_flag_added": True,
+                  "display": "Spain is left out: -18 relation and a grievance; "
+                             "Make Amends (400g + 2 DP) clears it."}]
+    out = build_shut_out_allies_preview(plan_rows, [])
+    assert [r["nation"] for r in out] == ["Spain"]
+    assert out[0]["relation_delta"] == -18 and out[0]["grievance_flag_added"] is True
 
 
 def test_sc15_third_party_reaction_preview_includes_shut_out_grievance():
@@ -663,6 +672,11 @@ def test_sc15_failed_ratification_does_not_emit_settlement_summary_event():
 
 
 def test_sc15_shut_out_preview_excludes_leaders_rewarded_and_enemy_side():
+    """SC-15 -> S14E-10: a contribution-ledger row (leader, rewarded, enemy
+    side, `ignored`) is no verdict and lists nobody; the leader, the rewarded
+    and the enemy side are excluded by the ratifier's plan itself, so the
+    preview lists only the plan's `shut_out` rows. (Old expectation:
+    `["Bavaria"]` from the ledger's `ignored` row.)"""
     rows = [
         {
             "nation": "France",
@@ -694,6 +708,11 @@ def test_sc15_shut_out_preview_excludes_leaders_rewarded_and_enemy_side():
 
     shut_out = build_shut_out_allies_preview(rows, [], proposer_side="attackers")
 
+    assert shut_out == []   # old: ["Bavaria"] - the ledger's `ignored` row
+    plan_rows = [{"nation": "Bavaria", "standing_level": "consult", "material_share_pct": 20,
+                  "relation_delta": -7, "grievance_flag_added": False,
+                  "display": "Bavaria is left out: -7 relation."}]
+    shut_out = build_shut_out_allies_preview(plan_rows, [], proposer_side="attackers")
     assert [row["nation"] for row in shut_out] == ["Bavaria"]
 
 

@@ -83,7 +83,7 @@ THE_BUILD_LINE_FINDS_GROUND_THAT_TAKES_IT = True
 # counsel names the cheapest order that keeps a court out of the next league
 # (`coalition.league_cheapest_keep_out` — the verb's own gates, the
 # forecast's own price). False = no such line.
-THE_COUNSEL_NAMES_THE_KEEP_OUT = True
+# (the rule since the economy audit; its lever retired at S14f part 1, CODE-1)
 # EA-14 "The counsel names the law" (the economy audit, October 5, 2026 —
 # `docs/audits/ECONOMY_AUDIT_2026_10_05.md` §6). Measured on the commanded
 # arm's turn-20 save: France held 32,903 gold with no law in force, and
@@ -203,8 +203,25 @@ def _attack_candidates(world, nation: str, marshals, enemies_here):
                     continue
                 if not _crossing_open(world, nation, marshal, neighbour):
                     continue
+                # S14E-XB5: the lead's rule (`field_on_peace_soil`) — an enemy
+                # corps on the soil of a court we are at peace with is out of
+                # reach; the counsel offers what the executor TAKES.
+                if _on_peace_soil(world, marshal, enemy):
+                    continue
                 adjacent.append((marshal, enemy))
     return co_located + adjacent
+
+
+def _on_peace_soil(world, marshal, enemy) -> bool:
+    """S14E-XB5: the order `<marshal>, attack <enemy>` would be refused as a
+    field on peace soil — the player's lead, a gun excepted (it fires from
+    where it stands), read through the guard's own neutral arm
+    (`world_state.reckless_charge_peace_owner`, drift-pinned to
+    `combat_executor.field_on_peace_soil`)."""
+    from backend.models.world_state import reckless_charge_peace_owner
+    if getattr(marshal, "artillery", False):
+        return False
+    return reckless_charge_peace_owner(world, marshal, enemy) is not None
 
 
 def _visible_enemy_map(world, nation: str) -> Dict[str, List]:
@@ -621,8 +638,6 @@ def league_counsel(world, nation: str) -> List[str]:
     — only at peace with every great power, only for the player (the AI
     courts nobody here, GR9), and only when an order would keep a court out
     before the league is declared."""
-    if not THE_COUNSEL_NAMES_THE_KEEP_OUT:
-        return []
     if world is None or nation != getattr(world, "player_nation", None):
         return []
     try:

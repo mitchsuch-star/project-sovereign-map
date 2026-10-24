@@ -107,6 +107,43 @@ def _tier_blocker_detail(result: Mapping[str, Any], enriched: Mapping[str, Any],
     return "tier_mismatch" if debug.get("exceeded_ceiling") else "tier_base"
 
 
+def _tier_mismatch_view(world: Any, result: Mapping[str, Any], court: str,
+                        *, can_drop: bool) -> Dict[str, Any]:
+    """S14E-6 (Pre-Deploy S14f part 1, October 24, 2026): the clause on THIS
+    court that overreaches the field, named from the scorer's own
+    `component_debug` — after S14E-D2 the tier reads the court's own slice, so
+    the offender is always a clause that binds or pays the court itself.
+    {} when the court's tier is not a mismatch.
+
+    `top_blocker_clause` ("the demand for Beira on Portugal"),
+    `top_blocker_cure` ("remove it, or drop Portugal" — the Drop only where
+    the row offers it), `top_blocker_line` (the whole sentence) and
+    `top_blocker_terms` (the offending clauses, for the dial's refusal)."""
+    from backend.display_names import (
+        claim_clauses_phrase, tier_mismatch_cure,
+    )
+    from backend.game_logic.formations import formed_display_name
+
+    debug = (result.get("component_debug") or {}).get("settlement_tier_legitimacy") or {}
+    offenders = [dict(t) for t in (debug.get("offending_terms") or []) if isinstance(t, Mapping)]
+    if not debug.get("exceeded_ceiling") or not offenders:
+        return {}
+
+    def _name(nation: str) -> str:
+        return formed_display_name(world, nation)
+
+    clause = claim_clauses_phrase(offenders, court, name_of=_name)
+    cure = tier_mismatch_cure(court, plural=len(offenders) > 1, can_drop=can_drop, name_of=_name)
+    return {
+        "top_blocker_clause": clause,
+        "top_blocker_cure": cure,
+        "top_blocker_line": (
+            f"{clause[:1].upper()}{clause[1:]} reads as a claim of victory the "
+            f"field has not delivered — {cure}."),
+        "top_blocker_terms": offenders,
+    }
+
+
 CONCESSION_BASELINE_TREASURY_RESERVE = 500
 
 
@@ -2206,6 +2243,7 @@ def compute_per_court_acceptance(
         )
         below_threshold = total is None or int(total) < int(accept_threshold)
         top_blocker = enriched.get("top_blocker_display") if below_threshold else None
+        tier_detail = _tier_blocker_detail(result, enriched, below_threshold)
         previous_band = previous_bands.get(court)
         delta_display = None
         if previous_band and previous_band != band:
@@ -2259,7 +2297,13 @@ def compute_per_court_acceptance(
             # PC-F26: the tier blocker's detail — the tier's BASE (a white
             # peace at this court's score) or a MISMATCH (the terms exceed
             # the tier's ceiling) — so the voice says which.
-            "top_blocker_detail": _tier_blocker_detail(result, enriched, below_threshold),
+            "top_blocker_detail": tier_detail,
+            # S14E-6: a MISMATCH names the clause on this court that
+            # overreaches the field (and the controls that clear it).
+            **(_tier_mismatch_view(
+                world, result, court,
+                can_drop=bool(not court_passes and court_consulted and len(covered) > 1),
+            ) if tier_detail == "tier_mismatch" else {}),
             # REFRONT-9 (Guided Terms OQ-5 / GT-A4): the full component
             # table for the expanded per-court row — derived from the score
             # pass already in hand, so the focus trigger stays

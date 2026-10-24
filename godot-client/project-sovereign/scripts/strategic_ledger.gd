@@ -1047,6 +1047,11 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 			var met = bool(term.get("met", false))
 			var mark = "[color=#" + Utils.COLOR_SUCCESS + "]+[/color]" if met else "[color=#" + Utils.COLOR_ERROR + "]x[/color]"
 			bbcode += "  " + mark + " " + str(term.get("text", "")) + "\n"
+			# S14E-14: the throw's price in ships (a failed diversion fights a
+			# fleet action) rides the term it belongs to, in the info register.
+			var div_detail = str(term.get("detail", ""))
+			if div_detail != "":
+				bbcode += "      [color=#" + Utils.COLOR_INFO + "]" + div_detail + "[/color]\n"
 	# NV-12 (recon gap 2): the Expedition's gate terms were BUILT at NV-6 and
 	# read by no surface — the Diversion rendered its terms while the
 	# Expedition's were dropped, and the 15,000 cap appeared in no client
@@ -1257,7 +1262,8 @@ func _render_intel():
 			var sregions = int(s.get("regions_controlled", 0))
 			bbcode += "  " + Utils.display_nation_name(sname) + ": " + str(smarshals) + " marshals spotted"
 			bbcode += ", ~" + _format_number(sstrength) + " est. strength"
-			bbcode += ", " + str(sregions) + " regions\n"
+			# S14E-5: the count agrees with its noun ("1 province", never "1 regions").
+			bbcode += ", " + Utils.plural(sregions, "province") + "\n"
 
 	if unknown_count > 0:
 		bbcode += "\n[color=#" + Utils.COLOR_INFO + "]" + Utils.plural(int(unknown_count), "region") + " with no intel.[/color]\n"
@@ -1390,7 +1396,7 @@ func _render_orders():
 			bbcode += " " + target
 
 		if path_left > 0:
-			bbcode += "  (" + str(path_left) + " regions left)"
+			bbcode += "  (" + Utils.plural(path_left, "region") + " left)"
 
 		bbcode += "  │ " + condition
 
@@ -1501,6 +1507,12 @@ func _cabinet_block(cabinet) -> String:
 			if recall != "":
 				bbcode += "   [url=do:" + recall + "][color=#" + Utils.COLOR_ERROR + "][Recall][/color][/url]"
 			bbcode += "\n"
+
+			# S14E-9: the mission's books — what it earned, each shock with
+			# its cause, the turns he stood away (the backend's one line).
+			var ledger_line = _cabinet_str(cabinet, "ledger_line")
+			if ledger_line != "":
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]So far: " + ledger_line + "[/color]\n"
 
 			# COURT only: the favour his courting has earned our proposals.
 			if cabinet.has("favour_cap"):

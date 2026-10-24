@@ -375,17 +375,29 @@ def _held_line(world, france: str, opponents: List[str]) -> str:
     retention pass read before the signature) says what a peace signed now
     would title, from the player's chair: "Bohemia, Tyrol and Vienna stay
     ours by the treaty". One sentence per court, joined; '' when a peace
-    would move nothing."""
+    would move nothing.
+
+    S14E-15: a peace with a court that the player's bloc holds part of a
+    formable road against also closes that road, and the card says so in
+    the road builder's words ("… Munster stays ours by the treaty — and
+    closes the Ireland carve, Ulster not yet held.")."""
+    from backend.game_logic.formations import road_notes, road_war_card_clause
     from backend.game_logic.game_end import status_quo_forecast_lines
     lines: List[str] = []
+    # S14E-15: a peace with a court also closes the formable road the bloc
+    # has begun against it ("… Munster stays ours by the treaty — and closes
+    # the Ireland carve, Ulster not yet held") — from the road builder.
+    closes = road_war_card_clause(world, opponents, road_notes(world))
+    road_only: List[str] = []
     for opponent in opponents:
         if world.get_diplomatic_state(france, opponent) not in ("WAR", "ARMISTICE"):
             continue
+        before = len(lines)
         try:
             words = status_quo_forecast_lines(world, france, opponent, france, ())
         except Exception as exc:
             report(exc, "war_status._held_line: status_quo_forecast_lines")
-            continue
+            words = {}
         for line in list(words.get("warnings") or []) + list(words.get("lines") or []):
             # the ratifier's sentence, read as a FORECAST on the war card:
             # "Status quo: X stay ours by the treaty — titled." names what a
@@ -397,9 +409,18 @@ def _held_line(world, france: str, opponents: List[str]) -> str:
                 text = text[:-len(" — titled.")] + "."
             if text and text not in lines:
                 lines.append(text)
-    if not lines:
-        return ""
-    return "A peace signed now is on the held line: " + " ".join(lines)
+        clause = closes.get(str(opponent), "")
+        if clause:
+            if len(lines) > before:
+                lines[-1] = lines[-1].rstrip(".") + " — " + clause + "."
+            else:
+                road_only.append("A peace signed now " + clause.replace(
+                    "and closes", "closes", 1) + ".")
+    parts: List[str] = []
+    if lines:
+        parts.append("A peace signed now is on the held line: " + " ".join(lines))
+    parts.extend(road_only)
+    return " ".join(parts)
 
 
 def _title_block(world, war_id: str, court: str = "") -> Dict[str, Any]:

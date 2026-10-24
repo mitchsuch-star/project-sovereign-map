@@ -245,6 +245,12 @@ func _render() -> void:
 	var actions_at := bbcode.length()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
+	# S14E-15: a province on a formable's road the bloc has begun carries the
+	# Formable Nations page's pointer ("Ireland needs Ulster too — …"), the
+	# backend road builder's own sentence. Absent key = no road = no line.
+	var road_note := str(data.get("road_note", ""))
+	if road_note != "":
+		bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + Utils.humanize_nation_keys_in_text(road_note) + ".[/color]\n"
 
 	# ── Fog-honest economy block ──
 	if visibility == "unknown" or visibility == "last_known":
@@ -1072,6 +1078,12 @@ func _quote_notes(q: Dictionary) -> String:
 	var note := str(q.get("note", ""))
 	if note != "":
 		notes.append(note)
+	var camp := str(q.get("camp", ""))   # S14E-13: what the march takes out of the Descent camp
+	if camp != "":
+		notes.append(camp)
+	var departs := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
+	if departs != "":
+		notes.append(departs)
 	var replaces := str(q.get("replaces", ""))
 	if replaces != "" and not bool(q.get("already", false)):
 		notes.append("replaces " + replaces)

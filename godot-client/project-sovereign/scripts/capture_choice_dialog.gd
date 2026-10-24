@@ -80,6 +80,11 @@ func show_capture_choice(data: Dictionary):
 
 		# Set description
 		description_label.text = "How shall your forces treat the conquered territory?"
+		# S14E-15: the formable road this capture stands on, said at the
+		# question ("Ireland needs Ulster too — …"); absent key = no line.
+		var road_note := str(data.get("road_note", ""))
+		if road_note != "":
+			description_label.text = road_note + ".\n" + description_label.text
 
 		# Set button text with consequences.
 		# IGR-E: the PLUNDER arm now quotes what it will actually pay. The

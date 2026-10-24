@@ -582,7 +582,11 @@ class TestTheQuestionDesk:
             # now get. Both are short; the manual is not.
             assert ("cannot answer that" in r["message"]
                     or "Nothing has been ordered" in r["message"]), text
-            assert len(r["message"]) < 2000, (text, len(r["message"]))
+            # S14E-2 / S14E-12 (S14f part 1) - the cap moved 2000 -> 2400: the
+            # real MUSTER this answer prints grew by the campaign-pay line and
+            # the header's floor / bad-day clause (the manual it guards
+            # against is 12,717 characters).
+            assert len(r["message"]) < 2400, (text, len(r["message"]))
 
     def test_will_ney_attack_mack_is_a_question(self, board, client):
         """Measured: this sentence FOUGHT A BATTLE — gold −128, four corps

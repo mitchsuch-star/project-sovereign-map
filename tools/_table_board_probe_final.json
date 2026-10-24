@@ -97,15 +97,15 @@
     ]
    },
    "Russia": {
-    "total": -49,
+    "total": -39,
     "threshold": 50,
     "band": "reject",
     "direct_score": 0,
-    "top_blocker": "Settlement legitimacy",
+    "top_blocker": "War objective alignment",
     "components": {
-     "settlement_tier_legitimacy": -20,
      "war_objective_alignment": -15,
      "term_harshness_penalty": -14,
+     "settlement_tier_legitimacy": -10,
      "leader_own_losses": 5,
      "projected_hegemony_mod": -5
     },

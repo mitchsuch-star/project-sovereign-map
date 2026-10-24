@@ -1603,6 +1603,12 @@ def _quote_sentences(world, q: Dict, me) -> str:
     note = str(q.get("note") or "")
     if note:
         tail.append(note if note.endswith(".") else note + ".")
+    camp = str(q.get("camp") or "")   # S14E-13: what the march takes out of the Descent camp
+    if camp:
+        tail.append(camp)
+    departs = str(q.get("departs") or "")   # S14E-13's sweep: what the march costs the corps as it stands
+    if departs:
+        tail.append(departs)
     replaces = str(q.get("replaces") or "")
     if replaces and not q.get("already"):
         tail.append(f"It replaces {replaces}.")
@@ -2752,6 +2758,13 @@ def _rule_text(world, key: str, ap: bool) -> str:
     text = T.get(key)
     if not text:
         return f"I have no rule written for '{key}', Sire — 'help' holds the command reference."
+    if key == "diversion":
+        # S14E-14: "lost, the fleet pays at sea" with the bill — the desk's
+        # answer to "what does the diversion risk" is the card's own sentence.
+        from backend.game_logic.naval import diversion_failure_clause
+        price = diversion_failure_clause(world, player)
+        if price:
+            text = f"{text} {price}"
     if ap and key not in ("ap",):
         return text
     return text

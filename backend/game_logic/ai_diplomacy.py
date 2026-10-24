@@ -4113,12 +4113,16 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                                 rel_hit = penalty.get("relation_target", -10)
                                 world.modify_nation_relation(nation_a, nation_b, rel_hit)
                                 downgraded_this_turn.add(pair_key)
+                                from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY
                                 events.append({
                                     "type": "ai_ai_downgrade",
                                     "nations": [nation_a, nation_b],
                                     "from_state": state,
                                     "to_state": new_state,
-                                    "message": f"{stronger} has downgraded relations with {weaker}: {state} → {new_state}.",
+                                    # S14E-9's sweep: the states by their display names, never the raw keys
+                                    "message": (f"{stronger} has downgraded relations with {weaker}: "
+                                                f"{_STATE_DISPLAY.get(state, state)} → "
+                                                f"{_STATE_DISPLAY.get(new_state, new_state)}."),
                                 })
 
     return events

@@ -55,6 +55,29 @@ def _amends_costs() -> Dict[str, Dict[str, int]]:
     }
 
 
+def amends_price_words(variant: str = AMENDS_GRIEVANCE) -> str:
+    """S14E-10: the price of a Make Amends variant as the executor charges it
+    ("400g + 2 DP" for the grievance variant) — read from `_amends_costs`,
+    never typed again, so every surface that STATES the cure before the
+    click (the table's forecast, the chip, the dispatch) quotes the number
+    the Cabinet's row and the executor spend."""
+    cost = _amends_costs()[variant]
+    return f"{cost['gold']}g + {cost['dp']} DP"
+
+
+def oldest_grievance_type(world: Any, player: str, target: str) -> str:
+    """The `grievance_type` of the flag Make Amends (grievance variant) would
+    clear — the executor's own FIFO choice (`_remove_oldest_grievance_flag`:
+    oldest turn, then episode id); "" when the pair holds none or the flag
+    carries no type."""
+    from backend.game_logic.diplomacy import _get_grievance_flags
+    flags = _get_grievance_flags(world, player, target)
+    if not flags:
+        return ""
+    oldest = min(flags, key=lambda f: (int(f.get("turn", 0) or 0), str(f.get("episode_id", ""))))
+    return str(oldest.get("grievance_type") or "")
+
+
 def amends_actions(world: Any, player: str, target: str) -> List[Dict[str, Any]]:
     """PC-X43: Make Amends on the wronged court's page — a row per variant
     the pair has something to repair with (a strike; an abandoned
@@ -85,9 +108,14 @@ def amends_actions(world: Any, player: str, target: str) -> List[Dict[str, Any]]
     dp = int(getattr(world, "diplomatic_points", 0) or 0)
     gold = int((getattr(world, "nation_gold", {}) or {}).get(player, 0) or 0)
     rows: List[Dict[str, Any]] = []
+    # S14E-10: the grievance row names the flag it would clear (the oldest,
+    # the executor's FIFO) — a shut-out is not an "abandoned alliance".
+    from backend.display_names import grievance_kind_display
+    grievance_label = (grievance_kind_display(oldest_grievance_type(world, player, target))["amends"]
+                       if has[AMENDS_GRIEVANCE] else "")
     for action, label, what in (
             (AMENDS_STANDARD, "Make Amends", "clear one strike"),
-            (AMENDS_GRIEVANCE, "Make Amends for the Abandoned Alliance", "clear one grievance")):
+            (AMENDS_GRIEVANCE, grievance_label, "clear one grievance")):
         if not has[action]:
             continue
         c = costs[action]

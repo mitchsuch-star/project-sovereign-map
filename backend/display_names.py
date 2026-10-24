@@ -750,6 +750,89 @@ FEEDBACK_STRINGS = {
 }
 
 # ============================================================================
+# GRIEVANCE KIND DISPLAY — S14E-10 (Pre-Deploy S14f, October 24, 2026)
+# A durable grievance flag carries a `grievance_type`; `grievance_modifier`
+# (-30 a flag) is ONE acceptance term, so the term's words are chosen by the
+# flag's TYPE — a shut-out reads as a shut-out, an abandoned alliance as an
+# abandoned alliance — and never "abandoned alliances" for every flag
+# (`FEEDBACK_STRINGS["grievance_modifier"]` stays the default for a flag with
+# no type, and for the abandoned-alliance family). Every kind is cleared the
+# one way, Make Amends (grievance variant), so each `label` says so; `amends`
+# is the Cabinet row's name for clearing THAT kind.
+#   negative / positive : the formula's feedback phrase (`feedback_phrase`)
+#   label               : the Cabinet's acceptance-preview row
+#   amends              : the Make Amends row's display name
+#   noun                : the grievance as a noun phrase (the Cabinet's line)
+# ============================================================================
+
+_GRIEVANCE_ABANDONED = {
+    "negative": "their grievance over abandoned alliances",
+    "positive": "no grievance over abandoned alliances",
+    "label": "Abandoned alliance — Make Amends clears it",
+    "amends": "Make Amends for the Abandoned Alliance",
+    "noun": "an abandoned alliance",
+}
+
+GRIEVANCE_KIND_DISPLAY = {
+    "defensive_call_refused": _GRIEVANCE_ABANDONED,
+    "guarantee_abandoned": _GRIEVANCE_ABANDONED,
+    "settlement_shut_out": {
+        "negative": "their grievance at being left out of the peace",
+        "positive": "no grievance at being left out of the peace",
+        "label": "Left out of the peace — Make Amends clears it",
+        "amends": "Make Amends for Being Left Out of the Peace",
+        "noun": "being left out of the peace",
+    },
+    "bargain_reneged": {
+        "negative": "their grievance over the bargain we broke",
+        "positive": "no grievance over a broken bargain",
+        "label": "A broken bargain — Make Amends clears it",
+        "amends": "Make Amends for the Broken Bargain",
+        "noun": "a broken bargain",
+    },
+    "rival_strengthened": {
+        "negative": "their grievance at the rival the peace raised",
+        "positive": "no grievance at a rival raised by the peace",
+        "label": "A rival raised at the peace — Make Amends clears it",
+        "amends": "Make Amends for the Rival Raised at the Peace",
+        "noun": "a rival raised at the peace",
+    },
+    # Flags of several kinds on one pair: the term is their sum.
+    "mixed": {
+        "negative": "their several grievances against us",
+        "positive": "no grievances against us",
+        "label": "Several grievances — Make Amends clears them",
+        "amends": "Make Amends for the Grievance",
+        "noun": "several wrongs",
+    },
+}
+
+
+def grievance_kind_display(kind: str) -> dict:
+    """The words for a grievance kind (`GRIEVANCE_KIND_DISPLAY`). A flag with
+    no type is the abandoned alliance (the term's wording before S14E-10); a
+    type nobody authored a phrase for reads as the mixed case — never a raw
+    key."""
+    raw = str(kind or "").strip()
+    if not raw:
+        return _GRIEVANCE_ABANDONED
+    return GRIEVANCE_KIND_DISPLAY.get(raw) or GRIEVANCE_KIND_DISPLAY["mixed"]
+
+
+def feedback_phrase(key: str, polarity: str, grievance_kind: str = "",
+                    default: str = "") -> str:
+    """The formula's feedback phrase for acceptance term `key` (`polarity` is
+    "negative" or "positive"): `FEEDBACK_STRINGS`, except that
+    `grievance_modifier` reads by the KIND of grievance the pair holds when
+    the caller knows it (`diplomacy.grievance_kind`, stamped on the
+    acceptance result as `grievance_kind`). ONE reader for every surface
+    that voices a term (the feedback line, the dialogues' hints, the
+    counsel's flip, the assessment, the mailbox hints)."""
+    if key == "grievance_modifier" and grievance_kind:
+        return str(grievance_kind_display(grievance_kind).get(polarity) or default)
+    return str((FEEDBACK_STRINGS.get(key) or {}).get(polarity, default) or default)
+
+# ============================================================================
 # AMENDS REFUSAL DISPLAY — Talleyrand-voiced advisory lines per refusal cause
 # Source: RELIABILITY_COMMITMENTS_SPEC §8.6.1 (B-B7 Make Amends standard variant)
 # Refusal codes are stable strings the executor returns; templates expose
@@ -1954,6 +2037,102 @@ def stream_term_phrase(term) -> str:
     if turns > 0:
         return f" for {turns} turn{'s' if turns != 1 else ''}"
     return " for as long as the treaty stands"
+
+
+def _join_named(names: list) -> str:
+    names = [str(n) for n in names if n]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def claim_clause_noun(term, court: str = "", *, name_of=None) -> str:
+    """S14E-6 (Pre-Deploy S14f part 1, October 24, 2026): the noun phrase for
+    ONE settlement clause that overreaches the field — "the demand for Beira
+    on Portugal", "the 300-gold indemnity on Portugal", "the alliance forced
+    upon Austria" — so the legitimacy blocker names the clause and the court,
+    never just "the terms". `court` is the court the clause is read on;
+    `name_of` renders a nation key (default: the R7 table)."""
+    if not isinstance(term, dict):
+        return "the terms"
+    show = name_of or display_nation
+    ttype = str(term.get("type") or "")
+    frm = str(term.get("from") or term.get("from_nation") or term.get("lord_nation") or "")
+    on = show(court or frm) if (court or frm) else ""
+    suffix = f" on {on}" if on else ""
+    try:
+        amount = int(term.get("amount") or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    regions = []
+    for key in ("region", "regions", "provinces"):
+        value = term.get(key)
+        if isinstance(value, str) and value:
+            regions.append(value)
+        elif isinstance(value, (list, tuple)):
+            regions.extend(str(v) for v in value if v)
+    land = _join_named(list(dict.fromkeys(regions)))
+    if ttype in ("territory_cede", "territory", "territory_return"):
+        return f"the demand for {land}{suffix}" if land else f"the cession{suffix}"
+    if ttype in ("gold_indemnity", "gold_lump"):
+        return f"the {amount:,}-gold indemnity{suffix}" if amount > 0 else f"the indemnity{suffix}"
+    if ttype == "gold_per_turn":
+        turns = 0
+        try:
+            turns = int(term.get("turns") or 0)
+        except (TypeError, ValueError):
+            turns = 0
+        if amount > 0 and turns > 0:
+            return f"the {amount:,}-gold-a-turn tribute for {turns} turn{'s' if turns != 1 else ''}{suffix}"
+        return f"the tribute{suffix}"
+    if ttype == "forced_alliance":
+        return f"the alliance forced upon {show(frm or court)}"
+    if ttype == "vassalage":
+        return f"the vassalage of {show(frm or court)}"
+    if ttype == "subjugation":
+        return f"the subjugation of {show(frm or court)}"
+    if ttype == "liberation":
+        freed = str(term.get("vassal_nation") or "")
+        return f"the liberation of {show(freed)}" if freed else "the liberation"
+    if ttype == "vassal_transfer":
+        moved = str(term.get("vassal") or "")
+        return f"the transfer of {show(moved)}{suffix}" if moved else f"the transfer of a vassal{suffix}"
+    if ttype == "create_client":
+        client = str(term.get("client_display_name") or term.get("tag") or "")
+        return f"the erection of {client}{suffix}" if client else f"the new client state{suffix}"
+    if ttype == "continental_system_join":
+        return f"{show(frm or court)}'s entry into the Continental System"
+    if ttype == "territory_compensate":
+        return f"the compensation in {land}{suffix}" if land else f"the compensation{suffix}"
+    return f"the {clause_display_name(ttype).lower()}{suffix}"
+
+
+def claim_clauses_phrase(terms, court: str = "", *, name_of=None) -> str:
+    """The offending clauses of one court, said once: the first two named,
+    the rest counted ("the demand for Beira on Portugal and the 300-gold
+    indemnity on Portugal", "… and 2 more")."""
+    nouns = []
+    for term in terms or []:
+        noun = claim_clause_noun(term, court, name_of=name_of)
+        if noun and noun not in nouns:
+            nouns.append(noun)
+    if not nouns:
+        return "the terms"
+    if len(nouns) <= 2:
+        return " and ".join(nouns)
+    return f"{nouns[0]}, {nouns[1]} and {len(nouns) - 2} more"
+
+
+def tier_mismatch_cure(court: str, *, plural: bool = False, can_drop: bool = True,
+                       name_of=None) -> str:
+    """The way out of a legitimacy mismatch, in controls the table has: the
+    clause's Remove, or — where the court's row offers it (a holdout, with
+    another court left at the table) — its Drop. Never a typed line."""
+    show = name_of or display_nation
+    cure = "remove them" if plural else "remove it"
+    if can_drop and court:
+        return f"{cure}, or drop {show(court)}"
+    return cure
 
 
 def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str) -> list[str]:

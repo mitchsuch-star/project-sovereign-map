@@ -393,7 +393,7 @@ THE_FAMINE_COUNTS_ITS_DEAD = True              # NPC-24: "1,351 men dead", never
 THE_RANK_IS_THE_COURTS_OWN = True              # RS-29 / NP-X7: `marshal_honorific` at the dispatch's rank sites
 # ── Score Finish Step 7, the frames (Oct 4, 2026) ─────────────────────────
 THE_FAMINE_COUNTS_ITS_OWN_TURNS = True        # SF7-X20: the famine headline's escalation states the roster's run
-THE_LIST_JOINS_ONCE = True                    # SF7-X25: "Berry, Burgundy, Corsica and 4 more" — one "and"
+# SF7-X25: "Berry, Burgundy, Corsica and 4 more" — one "and" (the rule; its lever retired at S14f part 1, CODE-1)
 THE_PASSAGE_COUNTS_ITS_SLACK = True          # SF7-X46: "no turn to spare", never "runs out in 0 turns"
 # RS-D2's numbers (display only, in-band tunable): the levy may LEAD once
 # and be stated (lead or sub-beat) three times before it yields to the
@@ -1226,7 +1226,7 @@ def _homeland_occupied_fields(world, player_nation: str, home_regions,
     names = [r for r, _h in occupied]
     shown = names[:3]
     more = len(names) - len(shown)
-    if THE_LIST_JOINS_ONCE and more > 0:
+    if more > 0:
         # SF7-X25: "Berry, Burgundy and Corsica and 4 more" read two "and"s
         # in one list (the t20 board's dispatch frame).
         provinces = ", ".join(shown) + f" and {more} more"
@@ -4451,6 +4451,14 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
             f"march, as does any garrison of {floor:,}; a corps standing there forces a battle.")
 
 
+# S14E-7: the morale below which a corps "fails". ONE constant — the
+# dispatch's danger line (`_derive_danger`), the end-turn gate's army line
+# (`end_turn_army_warning`) and the muster's low-morale warning
+# (`economy_executor._execute_recruit`) all read it, so the three can never
+# disagree about when a corps is spent.
+MORALE_FAILING_BELOW = 40
+
+
 def _derive_danger(marshal, world, player_nation: str,
                    supply_turns: Dict[str, List[int]]) -> str:
     """W6-3 §5.2: one danger string per marshal row ("" when none).
@@ -4473,7 +4481,7 @@ def _derive_danger(marshal, world, player_nation: str,
             return (f"IN PERIL — an enemy force of ~{enemy_total:,} shares "
                     f"the field ({marshal.location}).")
     # 2. Morale failing.
-    if int(marshal.morale) < 40:
+    if int(marshal.morale) < MORALE_FAILING_BELOW:
         # FA-D9 (slice 17, Phase 2): morale never regenerates in peacetime
         # and the line named no verb — a corps sat at 0 for eight turns and
         # broke at first contact. The remedy, priced from the constants the
@@ -4538,6 +4546,72 @@ def _derive_danger(marshal, world, player_nation: str,
             return (f"Starving — supply has failed at {marshal.location} "
                     f"{_COUNT_WORDS.get(run, str(run))} turns running.")
     return ""
+
+
+def end_turn_army_warning(world, nation: str) -> Optional[str]:
+    """S14E-7: the end-turn gate's army line — ONE sentence, or None.
+
+    Spent corps (strength standing, morale below `MORALE_FAILING_BELOW`, the
+    threshold `_derive_danger` reads) with a KNOWN enemy army co-located with
+    or adjacent to them: "3 corps stand below 40% morale beside Bagration
+    (55,404, Podolia) — end the turn anyway?". The dawn dispatch said it once
+    ("Morale failing", the roster's "[confirmed]" row); this says it again at
+    the click, when the board may have changed.
+
+    Fog-legal: the enemy is one the player SEES (`get_visible_enemies`, at war
+    and standing, PARTIAL or better) and his strength is the figure the
+    player's intel shows — exact at FULL, the band's midpoint ("~55,000") at
+    PARTIAL, through `intel_surfaces.sighting_row`, the one row the dispatch
+    and the Ledger print. With several, the largest as shown; the count is the
+    spent corps beside THAT army. No spent corps, or no known army beside
+    them: None (the row is the pairing, not either half).
+
+    Player nation only. Cheap by construction (Rule 8): the player's own
+    roster first — a healthy board returns before an enemy is read — then the
+    spent corps' own neighbour lists; never a scan of the regions."""
+    if nation != getattr(world, "player_nation", None):
+        return None
+    spent = [m for m in world.marshals.values()
+             if m.nation == nation and int(m.strength) > 0
+             and not getattr(m, "captured_by", "")
+             and int(m.morale) < MORALE_FAILING_BELOW]
+    if not spent:
+        return None
+    beside: Dict[str, set] = {}
+    for m in spent:
+        reach = {m.location}
+        region = world.regions.get(m.location)
+        if region is not None:
+            reach.update(region.adjacent_regions)
+        beside[m.name] = reach
+    near = set().union(*beside.values())
+    from backend.game_logic import intel_surfaces as _surf
+    best = None
+    for foe in world.get_visible_enemies(nation):
+        if foe.location not in near:
+            continue
+        row = _surf.sighting_row(world, nation, foe)
+        if row is None:
+            continue
+        if row["visibility"] == FULL:
+            shown = int(row["strength"])
+            figure = str(row["strength_display"])
+        else:
+            shown = int(BAND_MIDPOINTS.get(row["strength_display"], 0))
+            figure = f"~{shown:,}"
+        rank = (-shown, str(row["name"]))
+        if best is None or rank < best[0]:
+            best = (rank, row, figure)
+    if best is None:
+        return None
+    _rank, row, figure = best
+    here = [m for m in spent if row["location"] in beside[m.name]]
+    if len(here) == 1:
+        subject = f"{humanize_entity_name(here[0].name)}'s corps stands"
+    else:
+        subject = f"{len(here)} corps stand"
+    return (f"{subject} below {MORALE_FAILING_BELOW}% morale beside "
+            f"{row['name']} ({figure}, {row['location']}) — end the turn anyway?")
 
 
 _ROUT_CLAUSES = (
@@ -7041,11 +7115,21 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                 crossed_down = previous >= threshold > relation
                 if crossed_up or crossed_down:
                     direction_word = "improved" if crossed_up else "deteriorated"
+                    _tail = ('This opens new diplomatic possibilities.' if crossed_up
+                             else 'Caution may be warranted.')
+                    if crossed_down:
+                        # S14E-11's class: a bond sliding under the line it
+                        # holds on is told its lever (the Cabinet's own gates),
+                        # not "caution".
+                        from backend.game_logic.diplomacy import (
+                            STATE_RELATION_THRESHOLDS, slide_lever, slide_state_words)
+                        if STATE_RELATION_THRESHOLDS.get(state) == threshold:
+                            _tail = (f"That is the line the {slide_state_words(state)} "
+                                     f"holds on — {slide_lever(world, nation, state)['clause']}.")
                     observations.append({
                         "message": (
                             f"Relations with {nation} have {direction_word} "
-                            f"past {threshold} to {int(relation)}. "
-                            f"{'This opens new diplomatic possibilities.' if crossed_up else 'Caution may be warranted.'}"
+                            f"past {threshold} to {int(relation)}. {_tail}"
                         ),
                         "trigger_type": "relation_threshold",
                         "target_nation": nation,
@@ -7298,11 +7382,24 @@ def _build_war_objective_section(world, player_nation: str) -> List[Dict]:
         _declared = _declared_line(world, player_nation, target_nation)
         if _declared:
             line_text += f"  |  Articles {_declared}"
+        # S14E-5's sweep: a conquest-class purpose ticks only while WE hold
+        # the capital (`accumulate_war_objective_ticking`) — a third court
+        # that took it mid-war kills the purpose silently; the morning says so.
+        _dead = ""
+        if obj_type in ("conquest", "forced_alliance", "subjugation"):
+            from backend.game_logic.diplomacy import third_court_capital_holder
+            _holder = third_court_capital_holder(world, player_nation, target_nation)
+            if _holder:
+                _dead = (f"  |  Cannot score: {_holder} holds "
+                         f"{world.get_nation_capital(target_nation)}, "
+                         f"{target_nation}'s capital")
+                line_text += _dead
 
         lines.append({
             "text": line_text,
             "target_nation": target_nation,
             "objective_type": obj_type,
+            "cannot_score": bool(_dead),
         })
 
     return lines
@@ -8174,9 +8271,19 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         total_joiners = defensive_joiners + offensive_joiners
         if total_joiners > 0:
             extra_parts.append(f"with {total_joiners} allied court{'s' if total_joiners != 1 else ''} poised to follow")
+        text = f"{nation} has declared war on {target}"
         if extra_parts:
-            return f"{nation} has declared war on {target}, " + ", ".join(extra_parts) + "."
-        return f"{nation} has declared war on {target}."
+            text += ", " + ", ".join(extra_parts)
+        # S14E-9: and what it costs France. The producer stamps the figure
+        # (`diplomacy.declaration_cost_to_player`) — 0 for a war France
+        # fights or chose; a beat queued before this carries none.
+        from backend.game_logic.diplomacy import declaration_cost_clause
+        cost = declaration_cost_clause(
+            int(template_vars.get("relation_cost", 0) or 0),
+            str(template_vars.get("player") or "France"))
+        if cost:
+            text += f" — {cost}"
+        return text + "."
 
     if event_type == "witness_strike_recorded":
         witness = template_vars.get("witness_nation", "Unknown")
@@ -8271,10 +8378,14 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         # the cut carries no words — it was halved then (never a raw brace).
         template_vars = dict(template_vars, trade_words="halved")
     try:
-        return template.format(**template_vars)
+        text = template.format(**template_vars)
     except (KeyError, IndexError):
         # Graceful fallback if template vars missing
         return template
+    if event_type == "diplomatic_mission_progress" and template_vars.get("ledger"):
+        # S14E-9: the books, when a shock has landed on the pair.
+        text = f"{text.rstrip('.')} ({template_vars['ledger']})."
+    return text
 
 
 # ── PR-2 "The Nation Is Not An Adjective" (playtest re-score, Sept 12 2026) ──
@@ -8432,6 +8543,7 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             result[group["index"]] = _format_witness_grouped_dispatch_event(group)
             continue
 
+        template_vars = _mission_line_vars(world, event_type, template_vars)
         text = _format_dispatch_event_text(event_type, template_vars)
         if not text:
             # FA-N30 arm 1: a producer that composed its own sentence onto
@@ -8475,6 +8587,43 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
     if settlement_indexes:
         result = _enforce_settlement_primary_beat_cap(result, settlement_indexes)
     return result
+
+
+_MISSION_VALUE_EVENTS = frozenset({
+    "diplomatic_mission_progress",
+    "diplomatic_mission_undermine_progress",
+    "diplomatic_mission_blowback",
+})
+
+
+def _mission_line_vars(world, event_type: str, template_vars: dict) -> dict:
+    """S14E-9: a mission line quotes the relation when the dispatch is BUILT.
+
+    The producer queued "Relations now at N" at the mission's tick — before the
+    enemy phase, where a third power's declaration took 15 of it — so the line
+    sat beside the very beat that had undone it. The queued `value` is only
+    the fallback (no live mission at that court); the mission's books ride the
+    line when a shock has landed ("... now at -5 (+16 earned, -15 from ...)").
+    A quiet run reads byte-for-byte as before.
+    """
+    if event_type not in _MISSION_VALUE_EVENTS:
+        return template_vars
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_is_live, mission_ledger_line, mission_pair_snapshot)
+    if not mission_is_live(world):
+        return template_vars
+    mission = world.active_diplomatic_mission
+    if str(mission.get("target") or "") != str(template_vars.get("nation") or ""):
+        return template_vars
+    snapshot = mission_pair_snapshot(world)
+    if snapshot is None:
+        return template_vars
+    out = dict(template_vars)
+    out["value"] = int(snapshot[1])
+    if event_type == "diplomatic_mission_progress" and mission.get("shocks"):
+        out["ledger"] = mission_ledger_line(
+            mission, getattr(world, "player_nation", "France"))
+    return out
 
 
 def _format_cascade_grouped_dispatch_event(world, group: Dict[str, Any]) -> Dict[str, Any]:

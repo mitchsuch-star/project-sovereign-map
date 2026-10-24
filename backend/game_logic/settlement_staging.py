@@ -1259,6 +1259,7 @@ def _redial_settlement_terms(
     seeded_events: Optional[List[Dict[str, str]]] = None,
     payer_gold_budgets: Optional[Mapping[str, int]] = None,
     territory_escalations: Optional[Mapping[str, Mapping[str, Any]]] = None,
+    unbuyable_courts: Optional[Iterable[str]] = None,
 ) -> List[Dict[str, Any]]:
     """Re-front Slice 2 / spec §11.3 + OQ#7 — apply a harsher/generous dial to
     the package slice(s) that touch ``scope_courts``, changing MAGNITUDE (gold
@@ -1328,6 +1329,11 @@ def _redial_settlement_terms(
     courts that do not escalate keep the D3 ceiling note — never wordless.
     """
     scope = {str(n) for n in (scope_courts or []) if n}
+    # S14E-6: courts whose blocker is a legitimacy MISMATCH the dial leaves
+    # standing (`settlement_actions.gold_cannot_buy_courts`) — an Ease buys
+    # nothing there, so no concession grows and no 100-gold seed is authored
+    # (the seeds filled the clause cap while the blocker stood untouched).
+    unbuyable = {str(n) for n in (unbuyable_courts or []) if n}
     leader = str(proposer_side_leader or "")
     term_list = [t for t in (terms or []) if isinstance(t, Mapping)]
     out: List[Dict[str, Any]] = []
@@ -1397,6 +1403,10 @@ def _redial_settlement_terms(
             # no per-visit consumption (it would double-count).
             continue
         is_demand = frm == court  # the court pays/cedes => a demand on it
+        if (direction == "generous" and court in unbuyable and not is_demand
+                and ttype in ("gold_indemnity", "gold_lump", "gold_per_turn")):
+            out.append(clause)  # S14E-6: gold cannot buy this court — it stands
+            continue
         # Slice H D-H1 (approved July 3, 2026): granted ally-petition clauses
         # join the player's protected set — a dial sweep can never silently
         # un-reward an ally; per-row Remove stays the deliberate verb.
@@ -1523,7 +1533,7 @@ def _redial_settlement_terms(
     # would reject for ``max_clause_count_exceeded``) and never breaks
     # silently.
     if leader:
-        for court in sorted(scope - changed - noted - ceiling):
+        for court in sorted(scope - changed - noted - ceiling - unbuyable):
             if len(out) >= MAX_SETTLEMENT_CLAUSE_COUNT:
                 # Hard cap honored — no over-cap seed, but never wordless.
                 notes.append("The accord can bear no further terms, Sire.")
@@ -1867,11 +1877,31 @@ def _settlement_propose_carry_hint(
             "add a territory offer on the court's row to pay in land instead."
         )
     if easeable:
-        return (
+        # S14E-6: a holdout blocked by a legitimacy MISMATCH is told which of
+        # its own clauses overreaches the field and the controls that clear
+        # it — "More generous" alone will not (gold cannot buy it).
+        rows_by_nation = {
+            str(row.get("nation") or ""): row
+            for row in (per_court_acceptance or []) if isinstance(row, Mapping)}
+        mismatch_lines = [
+            str((rows_by_nation.get(n) or {}).get("top_blocker_line") or "")
+            for n in easeable
+            if str((rows_by_nation.get(n) or {}).get("top_blocker_detail") or "") == "tier_mismatch"
+            and (rows_by_nation.get(n) or {}).get("top_blocker_line")]
+        if mismatch_lines and len(mismatch_lines) == len(easeable):
+            return (
+                f"{names} won't accept these terms yet. {' '.join(mismatch_lines)} "
+                "Then 'Submit for Review' to ratify. "
+                "Submitting now only opens a review you cannot ratify."
+            )
+        hint = (
             f"{names} won't accept these terms yet. Use 'More generous' (or ease "
             "a court) until each accepts, then 'Submit for Review' to ratify. "
             "Submitting now only opens a review you cannot ratify."
         )
+        if mismatch_lines:
+            hint = f"{hint} {' '.join(mismatch_lines)}"
+        return hint
     return (
         f"{names} cannot accept any terms in this settlement right now. Drop "
         f"{'them' if len(holdouts) > 1 else 'the court'} from the table, or open "
@@ -2136,6 +2166,18 @@ def _preview_validation(world, terms, *, actor_nation, proposer_side, war_instan
     return {"valid": True}
 
 
+def _sanctuary_review_rows(world: Any, covered: Iterable[str],
+                           terms: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """S14E-4: the review's `sanctuary` rows — a read that must never take the
+    preview down (it speaks, and the review goes on without the row)."""
+    try:
+        from backend.game_logic.peace_sanctuary import settlement_review_rows
+        return settlement_review_rows(world, list(covered), list(terms))
+    except Exception as exc:
+        report(exc, "settlement_staging.build_settlement_preview: peace_sanctuary")
+        return []
+
+
 def build_settlement_preview(
     world: Any,
     *,
@@ -2319,6 +2361,19 @@ def build_settlement_preview(
     # terms the latch reads at the ratification.
     from backend.game_logic import imperial_designs as _designs
     preview["manner_lines"] = _designs.table_manner_lines(world, covered, terms)
+    # S14E-10 / S14E-D3: the allies this settlement will LEAVE OUT, and what
+    # each pays, stated before the click — read from the ratifier's own plan
+    # (`forecast_proposer_side_reactions` -> `proposer_ally_plan`), so the
+    # list is exactly the allies `ratify_settlement_confirm` will punish and
+    # the figures the ones it applies. The player's own table only: an
+    # observer's table (the player not on the proposing side) prices nothing.
+    shut_out_forecast: List[Dict[str, Any]] = []
+    if str(getattr(world, "player_nation", "") or "") in set(instance.get(side) or []):
+        from backend.game_logic.settlement_reactions import forecast_proposer_side_reactions
+        shut_out_forecast = forecast_proposer_side_reactions(
+            world, war_id=war_id, proposer_side=side, settlement_terms=terms,
+            proposer_leader=str(proposer_leader or ""))
+    preview["shut_out_forecast"] = shut_out_forecast
     contribution = build_contribution_share_rows(
         world, war_id, settlement_terms=terms,
     )
@@ -2387,6 +2442,11 @@ def build_settlement_preview(
         # own coverage (the review's copy above is fog-filtered).
         leaders_for_label={side: str(proposer_leader or "")},
         table_covered=list(covered),
+        shut_out_forecast=shut_out_forecast,
+        # S14E-4: the corps this settlement would shelter, said on the review
+        # beside the other concerns (the bilateral preview's `sanctuary` row,
+        # from the same predicate).
+        extra_warning_rows=_sanctuary_review_rows(world, covered, terms),
     )
     # SETTLEMENT_UI_CLEANUP_SPEC v0.28 G2-Slice-W1 Concession Baseline:
     # POST preview is the source of truth for `losing_for_concession_baseline`,
@@ -2959,6 +3019,22 @@ def separate_peace_chip(world, court: str, *, war_id: str, staged_terms,
         chip["carried_in"] = list(words["carried"])
         chip["left_fighting"] = list(words["left"])
         chip["description"] = f"{chip['description']} {words['display']}"
+    # S14E-4: the corps this separate peace would shelter on the court's soil
+    # (a third court still at war with us), from the bilateral preview's own
+    # sanctuary predicate and the court's slice of the table it hands off.
+    try:
+        from backend.game_logic.peace_sanctuary import sanctuary_note
+        _seed = _pair_substitute_seed_terms(
+            [t for t in (staged_terms or []) if isinstance(t, Mapping)],
+            target=court, proposer_leader=actor)
+        note = sanctuary_note(world, actor, court, "PEACE", {
+            "sweeteners": _seed["sweeteners"], "demands": _seed["demands"]})
+    except Exception as exc:
+        report(exc, "settlement_staging.separate_peace_chip: peace_sanctuary")
+        note = ""
+    if note:
+        chip["sanctuary_display"] = note
+        chip["description"] = f"{chip['description']} {note}"
     return chip
 
 
@@ -3363,15 +3439,24 @@ def build_settlement_confirm_dialogue(
     # empty-editor / no-dominant-pressure literals pass through unchanged.
     from backend.game_logic.diplomatic_templates import spoken_blocker_phrase
     _detail = ""
+    _clause = ""
+    _cure = ""
     for _row in (per_court_acceptance or []):
         if isinstance(_row, Mapping) and str(_row.get("top_blocker_component") or "") == top_blocker_component:
             _detail = str(_row.get("top_blocker_detail") or "")
             if _detail:
+                # S14E-6: a MISMATCH names its clause and the controls that
+                # clear it (the row's own words, from the scorer's debug).
+                _clause = str(_row.get("top_blocker_clause") or "")
+                _cure = str(_row.get("top_blocker_cure") or "")
                 break
     top_blocker_spoken = (
         spoken_blocker_phrase(top_blocker_component, top_blocker_display,
-                              white_peace=bool(white_peace), detail=_detail)
+                              white_peace=bool(white_peace), detail=_detail,
+                              clause=_clause)
         if top_blocker_component else top_blocker_display)
+    if _clause and _cure and _detail == "tier_mismatch":
+        top_blocker_spoken = f"{top_blocker_spoken} — {_cure}"
     player_nation = str(getattr(world, "player_nation", "France") or "France")
     all_members = {
         str(n)
@@ -4173,16 +4258,27 @@ def build_settlement_confirm_dialogue(
                   if _status_quo_review and not _has_material_concession_terms(
                       preview.get("settlement_terms") or [])
                   else "")
+    # S14E-15: what this peace does to a formable road the bloc has begun
+    # against a covered court — the road builder's own line, beside (never
+    # inside) the status-quo review, whose emptiness keys the White Peace label.
+    from backend.game_logic.formations import road_peace_lines
+    _road_closing = road_peace_lines(
+        world, covered, preview.get("settlement_terms") or [])
     return {
         "type": "settlement_confirm",
         "dialogue_type": "settlement_confirm",
         "dialogue_mode": dialogue_mode,
         "status_quo_review": _status_quo_review,
         "held_line_note": _held_note,
+        "road_closing_lines": _road_closing,
         # VP1-X7 (S14b part 2): the Revanche and the manner, top level (the
         # nested preview copy is not read by the client).
         "revanche_line": str(preview.get("revanche_line") or ""),
         "manner_lines": list(preview.get("manner_lines") or []),
+        # S14E-10: the allies the table leaves out, priced — the footer's
+        # "Left out of the peace" block (top level: the nested preview copy is
+        # not read by the client).
+        "shut_out_forecast": [dict(r) for r in (preview.get("shut_out_forecast") or [])],
         # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
         # per-covered-court carry gate ride on every settlement_confirm
         # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.

@@ -187,11 +187,13 @@ def _quiet(fn, *args, **kwargs):
         return fn(*args, **kwargs)
 
 
-def _flip_from_components(components: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+def _flip_from_components(components: Mapping[str, Any],
+                          grievance_kind: str = "") -> Optional[Dict[str, Any]]:
     """The largest negative component of a bilateral acceptance — the one
     term that would flip the verdict — labelled in the formula's own
-    feedback words (`display_names.FEEDBACK_STRINGS`)."""
-    from backend.display_names import FEEDBACK_STRINGS
+    feedback words (`display_names.feedback_phrase`; S14E-10: the grievance
+    term by the KIND of grievance held, `acceptance["grievance_kind"]`)."""
+    from backend.display_names import feedback_phrase
     worst_key, worst_val = "", 0
     for key, val in (components or {}).items():
         if not isinstance(val, (int, float)) or isinstance(val, bool):
@@ -204,7 +206,7 @@ def _flip_from_components(components: Mapping[str, Any]) -> Optional[Dict[str, A
             worst_key, worst_val = key, val
     if not worst_key:
         return None
-    label = (FEEDBACK_STRINGS.get(worst_key) or {}).get("negative") or worst_key.replace("_", " ")
+    label = feedback_phrase(worst_key, "negative", grievance_kind) or worst_key.replace("_", " ")
     return {"component": worst_key, "value": int(round(worst_val)), "label": str(label)}
 
 
@@ -248,7 +250,8 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
         "available": available, "shut_reason": shut,
         "carries": score >= ACCEPT_SCORE, "score": score, "threshold": int(ACCEPT_SCORE),
         "number": f"{score}",
-        "flip": _flip_from_components(acceptance.get("components") or {}),
+        "flip": _flip_from_components(acceptance.get("components") or {},
+                                      str(acceptance.get("grievance_kind") or "")),
         "price_dp": int(quote["cost"]), "have_dp": have,
         "outcome": str(acceptance.get("outcome") or ""),
     }
@@ -791,8 +794,24 @@ def _lever_sentence(reading: Mapping[str, Any]) -> str:
     if alone and alone.get("available"):
         gold = alone.get("gold_to_carry")
         if gold:
-            return (f"A payment of {int(gold)} gold to {reading.get('court_display')} "
-                    f"would carry the table with her alone.")
+            # S14E-8 (S14f part 1, October 24, 2026): the sum is the TABLE's
+            # lump (`_gold_to_carry` dry-runs `gold_indemnity` through the
+            # settlement preview); the bilateral Adjust-terms flow offers gold
+            # a turn only. The sentence names its road and its control as the
+            # player reads them: the road is the roads line's own label
+            # ("Open Settlement with Britain alone"), the control is the
+            # table's offer row ("Offer 300 gold to Britain" — its number is
+            # the row's default, so the sentence names the row by its verb and
+            # the sum that carries) and the line's +/- steps
+            # (`SETTLEMENT_DIAL_GOLD_STEP`, the stride the server clamps to).
+            from backend.game_logic.settlement_baseline import SETTLEMENT_DIAL_GOLD_STEP
+            court = reading.get("court_display")
+            road = alone.get("label") or ROAD_LABELS["table_alone"].format(court=court)
+            return (f"A payment of {int(gold)} gold to {court} "
+                    f"would carry the table with her alone. "
+                    f"At the table: {road}, then Offer gold to {court}, "
+                    f"{int(gold)} or more (the + and - on its line move it by "
+                    f"{int(SETTLEMENT_DIAL_GOLD_STEP)}).")
         if alone.get("carries"):
             return f"The table with {reading.get('court_display')} alone carries ({alone['number']})."
     battle = by.get("battle")
@@ -912,9 +931,15 @@ def roads_display(reading: Mapping[str, Any]) -> List[str]:
     for r in reading.get("roads") or []:
         mark = "✓" if (r.get("available") and r.get("carries")) else ("✗" if r.get("available") else "—")
         number = r.get("number") or ""
+        # S14E-8's sweep: the printed figure never reads below 0 — the
+        # snapshot and the confirm estimate clamp to 0..100, so "-8 of 50"
+        # here beside "0" there was two readings of one figure. The
+        # structured road keeps the raw score.
+        if isinstance(number, (int, float)) and not isinstance(number, bool) and number < 0:
+            number = 0
         if r.get("road") == "battle":
             number = f"{r.get('battles', 0)} of {r.get('battle_cap', 0)}"
-        elif number and r.get("threshold"):
+        elif number != "" and r.get("threshold"):
             number = f"{number} of {r['threshold']}"
         price = f" ({int(r['price_dp'])} DP)" if r.get("price_dp") else ""
         line = f"{r.get('label')} — {number} {mark}{price}".replace("—  ", "— ")

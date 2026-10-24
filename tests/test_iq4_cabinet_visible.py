@@ -2031,10 +2031,15 @@ class TestReviewTheCourtAtWar:
         assert status["remaining_note"] == _WAR_NOTE
         row = _row(w)
         assert row["details"]["beat"] == "running"
+        # S14E-9 (flipped): the declaration's -30 on the courted pair is now
+        # in the mission's books, and the running row prints them ("So far").
+        cause = ("our declaration on Prussia" if aggressor == "France"
+                 else "Prussia's declaration on France")
+        assert status["ledger_line"] == f"+56 earned, -30 from {cause}", status["ledger_line"]
         assert row["message"] == (
             f"Relations with Prussia {status['current_relation']}, net "
             f"{status['net_per_turn']:+d} a turn. {_WAR_NOTE[:1].upper()}{_WAR_NOTE[1:]}. "
-            "2 DP a turn.")
+            f"2 DP a turn. So far: {status['ledger_line']}.")
         assert "stands at +10" not in row["message"]
         with _quiet():
             assert L.build_cabinet(w)["remaining_note"] == _WAR_NOTE

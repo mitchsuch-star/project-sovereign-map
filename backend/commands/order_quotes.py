@@ -137,14 +137,21 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         "objection": "none",
         "note": "",
         "contact": "",
+        # S14E-13: what the march takes out of the Descent camp ("" when nothing).
+        "camp": "",
+        # S14E-13's sweep: what the march costs the corps as it stands — Iron
+        # Resolve stacks, a formed square, a turn-1 drill ("" when nothing).
+        "departs": "",
         "already": False,
     }
 
 
-def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> str:
+def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str,
+                  arrival: Optional[dict] = None) -> str:
     """What the march's FIRST step does on meeting a corps we can see —
     `_handle_first_step_blocked`'s arms, in its order (1 action is charged at
-    once on every arm)."""
+    once on every arm). `arrival` is the CR-7 arrival tail when the march
+    carries one (S14E-1: the one case an aggressive man still fights at once)."""
     shown = q["shown"]
     name = humanize_entity_name(foe.name)
     where = (f"{name} holds {region}" if region == dest
@@ -155,8 +162,20 @@ def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> st
     if personality == "literal":
         return f"{where} — {shown} halts at the approach and reports (1 action now)."
     if personality == "aggressive":
-        return (f"{where} — {shown} attacks him at once if the numbers favour him, "
-                f"else asks your orders (1 action now).")
+        # S14E-1 / S14E-D1 (October 24, 2026): a TYPED march's first step
+        # ASKS, every personality alike — the aggressive marshal argues for
+        # the attack in his own line. Only a march whose arrival tail NAMES
+        # the man met still fights him at once at favourable odds
+        # (`_typed_first_step_asks`, the executor's own rule).
+        tail = arrival or {}
+        named = str(tail.get("arrival_target") or "")
+        ordered = bool(tail.get("attack_on_arrival")) and (
+            named == str(foe.name) if named else region == dest)
+        if ordered:
+            return (f"{where} — {shown} attacks him at once if the numbers favour him, "
+                    f"else asks your orders (1 action now).")
+        return (f"{where} — {shown} stops there and asks your orders, pressing for "
+                f"the attack if the numbers favour him (1 action now).")
     return f"{where} — {shown} stops there and asks your orders (1 action now)."
 
 
@@ -217,6 +236,7 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     when the identical order is read."""
     from backend.commands import strategic as road_law
     from backend.commands.state_probe import order_state_refusal
+    from backend.game_logic.naval import camp_leave_line
     state = order_state_refusal(world, marshal, probe_verb)
     if state:
         q["refusal"] = state
@@ -271,15 +291,27 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
             q["contact"] = (f"{humanize_entity_name(contact[0].name)} blocks the road at "
                             f"{contact[1]} — {q['shown']} goes round him by {detour[0]}, "
                             f"to the letter of the order.")
+            q["camp"] = camp_leave_line(world, marshal, detour)   # S14E-13
+            from backend.commands.movement_executor import departure_note
+            q["departs"] = departure_note(marshal, quote=True)
             return q
-        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest)
+        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest,
+                                     arrival=arrival)
         q["ap"] = 1
         return q
     reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
     halt = visible_foe_on_road(world, world.player_nation, road[1:reach])
+    # S14E-13: the stop the turn's end finds him at — a halt before a seen foe
+    # keeps him on the road's earlier stop; a road that leaves the Descent
+    # camp's provinces says what that takes out of the camp.
+    camp_road = road
     if halt is not None:
         q["contact"] = (f"{humanize_entity_name(halt[0].name)} stands at {halt[1]} — "
                         f"the march halts before him this turn.")
+        camp_road = road[:road.index(halt[1])]
+    q["camp"] = camp_leave_line(world, marshal, camp_road)
+    from backend.commands.movement_executor import departure_note
+    q["departs"] = departure_note(marshal, quote=True)
     return q
 
 
@@ -295,6 +327,13 @@ def march_quote(world, marshal, dest: str, *, then_attack: str = "",
     q = _standing_quote(world, marshal, dest, "MOVE_TO", dest, "march", q, memo,
                         arrival={"attack_on_arrival": bool(then_attack),
                                  "arrival_target": then_attack or None})
+    if q["ok"] and then_attack:
+        # S14E-4's sweep: the march's arrival attack on a sheltered corps
+        # would be refused — the "march & attack" chip says so now.
+        sheltered = _peace_soil_refusal_line(world, marshal, world.get_marshal(then_attack))
+        if sheltered:
+            q.update(ok=False, refusal=sheltered)
+            return q
     if q["ok"] and not q["already"]:
         foe = visible_foe_on_road(world, world.player_nation, q["road"])
         if q["contact"]:
@@ -505,6 +544,21 @@ def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, 
     return q
 
 
+def _peace_soil_refusal_line(world, marshal, enemy) -> str:
+    """S14E-4's sweep: the executor's own refusal of a field on peace soil
+    (`world_state.reckless_charge_peace_owner`, drift-pinned to the guard;
+    `combat_executor.peace_soil_refusal`'s one sentence), '' when the
+    attack is lawful or the marshal is a gun (it fires from where it stands)."""
+    if getattr(marshal, "artillery", False) or enemy is None:
+        return ""
+    from backend.models.world_state import reckless_charge_peace_owner
+    owner = reckless_charge_peace_owner(world, marshal, enemy)
+    if owner is None:
+        return ""
+    from backend.commands.combat_executor import peace_soil_refusal
+    return str(peace_soil_refusal(marshal, enemy, {"owner": owner})["message"])
+
+
 def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[str, Any]:
     """An attack on a sighted enemy: `attack <enemy>` when he stands within
     the marshal's reach (the attack's own range rule — distance against
@@ -519,6 +573,14 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     state = order_state_refusal(world, marshal, "attack")
     if state:
         q["refusal"] = state
+        return q
+    # S14E-4's sweep (the province panel's chip): a corps sheltered on peace
+    # soil — the typed order is refused at no cost (PT-F1's neutral arm, the
+    # player's lead, a gun excepted), so the chip dims with the reason
+    # instead of quoting `ok`.
+    sheltered = _peace_soil_refusal_line(world, marshal, enemy)
+    if sheltered:
+        q["refusal"] = sheltered
         return q
     ap = 0 if getattr(marshal, "has_counter_punch", lambda: False)() else int(world.get_action_cost("attack"))
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],

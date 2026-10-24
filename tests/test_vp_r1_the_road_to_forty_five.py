@@ -223,7 +223,12 @@ class TestATheMusterNamesItsOdds:
         assert "will NOT make it from the mountains at Munich" in ney["arrival_note"]
         assert "order 'Ney, support Soult'" in ney["arrival_note"]
         text = M.executor._combat._format_muster_lines(pv)
-        assert "WILL JOIN — Ney:" in text and "will NOT make it" in text
+        # S14E-12 (S14f part 1) - CONSCIOUSLY FLIPPED: a row priced at exactly
+        # nothing no longer wears the WILL JOIN label ("WILL JOIN — Ney:" was
+        # the defect the re-measure named); `will_join` itself stays True
+        # (above) and the note and the lever are unchanged.
+        assert "CANNOT ARRIVE — Ney:" in text and "will NOT make it" in text
+        assert "WILL JOIN — Ney:" not in text
 
     def test_a_corps_under_a_written_order_names_no_lever(self):
         w = _fresh()

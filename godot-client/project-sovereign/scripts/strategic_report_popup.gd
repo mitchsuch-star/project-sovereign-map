@@ -106,7 +106,7 @@ func _format_report(report: Dictionary) -> String:
 	var distance = report.get("distance", -1)
 	if target and command == "PURSUE" and distance >= 0:
 		result += "[color=#" + Utils.COLOR_INFO + "]   Target: " + target
-		result += " (" + str(distance) + " regions away)"
+		result += " (" + Utils.plural(int(distance), "region") + " away)"
 		result += "[/color]\n"
 
 	# Support ally info

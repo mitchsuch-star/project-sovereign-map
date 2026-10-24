@@ -825,7 +825,8 @@ def ai_prefers_plunder(marshal, world, region_name: str) -> bool:
 # Landing record: docs/WEIRD_OUTCOMES_SPEC.md §3 slice 17.
 
 
-def frontier_halt_owner(world, nation: str, region_name: str) -> Optional[str]:
+def frontier_halt_owner(world, nation: str, region_name: str,
+                        assume: Optional[dict] = None) -> Optional[str]:
     """The court whose frontier halts a charge's advance onto
     ``region_name``, or None when the victor may advance.
 
@@ -833,14 +834,46 @@ def frontier_halt_owner(world, nation: str, region_name: str) -> Optional[str]:
     soil, unclaimed soil, an enemy's war soil and an ally's or vassal's
     province all answer None — the last two advance as liberators and are
     refused the TRANSFER further down, which is a different question.
+
+    ``assume`` (S14E-4): the board a treaty WOULD leave, read through this
+    same rule — ``{"states": {court: state}, "controllers": {region:
+    court}}``. The peace preview asks it so that what it announces
+    ("Kutuzov stands at Moravia, Austria's soil — after this peace no corps
+    of ours may take the field against him there") is the answer the guard
+    then gives; no second formula. Absent, the board as it stands.
     """
     region = world.get_region(region_name)
     owner = getattr(region, "controller", None) if region else None
+    if region is not None and assume:
+        owner = (assume.get("controllers") or {}).get(region_name, owner)
     if not owner or owner == nation:
         return None
-    if world.is_at_war(nation, owner):
+    state = (assume.get("states") or {}).get(owner) if assume else None
+    if state is None:
+        if world.is_at_war(nation, owner):
+            return None
+        if not world.can_attack_nation(nation, owner):
+            return None
+        return owner
+    if state == "WAR" or not world.can_attack_nation(nation, owner, state=state):
         return None
-    if not world.can_attack_nation(nation, owner):
+    return owner
+
+
+def sheltering_court(world, nation: str, enemy,
+                     assume: Optional[dict] = None) -> Optional[str]:
+    """S14E-4: the court on whose soil `enemy` stands when `nation`'s lead
+    may not take that field — the neutral arm of the PT-F1 guard
+    (`frontier_halt_owner`), less an army on its OWN court's soil (an attack
+    on it is a declaration of war, not a third party's field). ONE read for
+    the player's reckless charge (`reckless_charge_peace_owner`) and for the
+    peace preview's sanctuary rows (`peace_sanctuary`), which passes
+    `assume`; `combat_executor.field_on_peace_soil` is drift-pinned to the
+    same answer. None when the field is open."""
+    if not enemy.location:
+        return None
+    owner = frontier_halt_owner(world, nation, enemy.location, assume)
+    if owner is None or owner == enemy.nation:
         return None
     return owner
 
@@ -858,10 +891,7 @@ def reckless_charge_peace_owner(world, marshal, enemy) -> Optional[str]:
         return None
     if not enemy.location or enemy.location == marshal.location:
         return None
-    owner = frontier_halt_owner(world, marshal.nation, enemy.location)
-    if owner is None or owner == enemy.nation:
-        return None
-    return owner
+    return sheltering_court(world, marshal.nation, enemy)
 
 
 def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
@@ -1038,13 +1068,22 @@ def build_capture_choice(world, region, capturer_name: str,
     superseded question must be refused and restated, never silently
     applied to the current one.
     """
-    return {
+    pending = {
         "region": region.name,
         "capturer": capturer_name,
         "previous_controller": previous_controller,
         "plunder_gold": plunder_yield(region),
         "dialogue_id": world.dialogue_manager.mint_dialogue_id(),
     }
+    # S14E-15: a capture that begins or advances a formable's road says so at
+    # the question (the capture has flipped the controller already, so the
+    # read is the road AS THE CAPTURE LEAVES IT). Stamped only when a road is
+    # begun — a capture elsewhere carries no key.
+    from backend.game_logic.formations import road_note_for
+    note = road_note_for(world, region.name)
+    if note:
+        pending["road_note"] = note
+    return pending
 
 
 def capture_choice_prompt(pending: dict) -> str:
@@ -1063,11 +1102,14 @@ def capture_choice_prompt(pending: dict) -> str:
     """
     region = pending.get('region', 'the region')
     gold = pending.get("plunder_gold")
+    # S14E-15: the formable road this capture stands on, said before the
+    # question (no key = no road = the sentence is byte-identical).
+    road = f" {pending['road_note']}." if pending.get("road_note") else ""
     if gold is None:
-        return (f"\nYour forces have taken {region}. Plunder it — buildings "
+        return (f"\nYour forces have taken {region}.{road} Plunder it — buildings "
                 f"burned, the province left hostile — or secure it and keep "
                 f"the country quiet? ('plunder' or 'secure')")
-    return (f"\nYour forces have taken {region}. "
+    return (f"\nYour forces have taken {region}.{road} "
             f"Plunder it for {int(gold):,} gold — buildings burned, the province "
             f"left hostile — or secure it and keep the country quiet? "
             f"('plunder' or 'secure')")
@@ -1343,6 +1385,7 @@ class RatifyTreatyContext:
     _clients_followed: Any = field(init=False)
     _carried_in: Any = field(init=False)
     _carried_rewarded: Any = field(init=False)   # PC-F81's second road (S13e part 4)
+    _carried_shut_out: Any = field(init=False)   # S14E-D3: the carried allies named for nothing
     _bilateral_dropped: Any = field(init=False)  # PC-X21: a cession that could not carry, named
     _held_cessions: Any = field(init=False)  # VP1-X1: ceded ground the receiver's house already held
     _articles_settled: Any = field(init=False)   # PC-R7 (ii) part 2: the war's declared articles
@@ -1371,6 +1414,23 @@ def cession_recovers_province(prior_title: dict, starting_owner,
     +8 `treaty_annex` alarm is for an annexation."""
     return bool(to_nation) and (starting_owner == to_nation
                                 or capture_recovers_title(prior_title, to_nation))
+
+
+_PLURAL_COURT_LAST_WORDS = frozenset({"states", "provinces", "sicilies", "cantons"})
+
+
+def elimination_receipt_line(world, nation: str) -> str:
+    """S14E-5: the command-window line for a court the player just took the
+    last province of — "Hanover has no province left — the war is over,
+    Sire." The court reads by its current name and article ("The Papal States
+    have no province left …")."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    named = formed_display_name(world, nation)
+    last_word = (named.split() or [""])[-1].lower()
+    verb = "have" if last_word in _PLURAL_COURT_LAST_WORDS else "has"
+    return (f"{with_definite_article(named, capitalize=True)} {verb} no province left "
+            f"— the war is over, Sire.")
 
 
 def announce_third_party_capture(self, region_name: str, old_controller,
@@ -3178,7 +3238,8 @@ class WorldState:
         """Check ALLIANCE or DEFENSIVE_ALLIANCE between nations."""
         return self.get_diplomatic_state(nation_a, nation_b) in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
 
-    def can_attack_nation(self, attacker_nation: str, target_nation: str) -> bool:
+    def can_attack_nation(self, attacker_nation: str, target_nation: str,
+                          state: Optional[str] = None) -> bool:
         """Whether ``attacker_nation`` may direct an attack at ``target_nation``.
 
         False for the attacker's OWN nation, an ally, or a vassal (either
@@ -3186,10 +3247,15 @@ class WorldState:
         (ordering it would otherwise stage a war declaration against our own
         ally). A NEUTRAL (PEACE) target stays attackable: attacking a neutral
         is the intended auto-war-declaration path, so this never blocks it.
+
+        ``state`` (S14E-4): the pair's state to read instead of the board's —
+        a peace preview asks the SAME rule of the state the treaty would
+        write, so what it announces is what the guard then applies.
         """
         if not target_nation or attacker_nation == target_nation:
             return False
-        state = self.get_diplomatic_state(attacker_nation, target_nation)
+        if state is None:
+            state = self.get_diplomatic_state(attacker_nation, target_nation)
         return state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL")
 
     def can_interact_diplomatically(self, nation_a: str, nation_b: str) -> bool:
@@ -5085,6 +5151,16 @@ class WorldState:
                 and old_controller != self.player_nation):
             if not self.get_nation_regions(old_controller):
                 self._eliminate_nation(old_controller)
+                # S14E-5: the player's own capture of a court's LAST province
+                # ends the war — said in the command window of the command
+                # that did it (the rail icon and the next morning's dispatch
+                # were all the player had). Transient (never serialized);
+                # `main.build_base_response` reads it onto the reply and
+                # clears it (Golden Rule 4).
+                if capturing_nation == self.player_nation:
+                    self._elimination_receipts = list(
+                        getattr(self, "_elimination_receipts", None) or []
+                    ) + [elimination_receipt_line(self, old_controller)]
 
         return True
 
@@ -7234,6 +7310,42 @@ class WorldState:
         region_count = len(self.get_nation_regions(nation))
         return int(FORCE_LIMIT_BASE + FORCE_LIMIT_PER_REGION * region_count)
 
+    def campaign_pay_homeland(self, nation: str) -> Optional[set]:
+        """EAD-1 / S14E-2: the set of provinces where a corps of `nation`
+        draws no campaign pay (its court's 1805 homeland), or None when the
+        court draws none at all — the legacy world, the lever down, or a
+        court at war with nobody. Read once per bill (GR8) and handed to
+        `campaign_pay_at`; the bill and the muster's quote share both."""
+        if not (getattr(self, "sovereign_map", "legacy") == "europe"
+                and CAMPAIGN_PAY_ON_FOREIGN_SOIL
+                and self.get_nations_at_war_with(nation)):
+            return None
+        return set(self.nation_starting_regions.get(nation, []))
+
+    def campaign_pay_at(self, nation: str, location: str, billed: int,
+                        homeland: Optional[set]) -> Optional[Dict]:
+        """EAD-1 / S14E-2: THE predicate — does a corps of `nation` of
+        `billed` men standing at `location` draw campaign pay, and how much.
+
+        Pay is due when the corps stands outside the court's homeland on soil
+        held by a court that is neither the nation itself, a WAR enemy (the
+        corps lives off the land) nor a VASSAL (the satellite feeds it):
+        `(billed // 1000) * CAMPAIGN_PAY_RATE`. Returns
+        `{"region", "holder", "pay"}` or None. `calculate_turn_upkeep` bills
+        through this and `_build_muster_preview` quotes through it, so the
+        figure shown is the figure applied — never a second formula."""
+        if homeland is None or location in homeland:
+            return None
+        region = self.regions.get(location)
+        holder = getattr(region, "controller", None)
+        if (not holder or holder == nation
+                or self.get_diplomatic_state(nation, holder) in ("WAR", "VASSAL")):
+            return None
+        pay = (billed // 1000) * CAMPAIGN_PAY_RATE
+        if pay <= 0:
+            return None
+        return {"region": location, "holder": holder, "pay": int(pay)}
+
     def calculate_turn_upkeep(self, nation: str = None) -> Dict:
         """Calculate total upkeep for a nation's armies.
 
@@ -7267,10 +7379,8 @@ class WorldState:
         own_contingents = set(contingents_paid_by(self, nation))
         # EAD-1 campaign pay: read once per bill (GR8) — at war at all, and
         # the court's 1805 homeland.
-        campaign_on = bool(europe and CAMPAIGN_PAY_ON_FOREIGN_SOIL
-                           and self.get_nations_at_war_with(nation))
-        homeland = (set(self.nation_starting_regions.get(nation, []))
-                    if campaign_on else set())
+        # S14E-2: the predicate is `campaign_pay_at`'s, shared with the muster.
+        homeland = self.campaign_pay_homeland(nation)
         campaign = 0
         campaign_ground = []
         for marshal in self.marshals.values():
@@ -7294,21 +7404,16 @@ class WorldState:
                     "billed_strength": int(billed),
                     "upkeep": cost
                 })
-                if campaign_on and marshal.location not in homeland:
-                    region = self.regions.get(marshal.location)
-                    holder = getattr(region, "controller", None)
-                    if (holder and holder != nation
-                            and self.get_diplomatic_state(nation, holder)
-                            not in ("WAR", "VASSAL")):
-                        pay = (billed // 1000) * CAMPAIGN_PAY_RATE
-                        if pay > 0:
-                            campaign += pay
-                            campaign_ground.append({
-                                "marshal": marshal.name,
-                                "region": marshal.location,
-                                "holder": holder,
-                                "pay": int(pay),
-                            })
+                due = self.campaign_pay_at(nation, marshal.location, billed,
+                                           homeland)
+                if due is not None:
+                    campaign += due["pay"]
+                    campaign_ground.append({
+                        "marshal": marshal.name,
+                        "region": due["region"],
+                        "holder": due["holder"],
+                        "pay": due["pay"],
+                    })
 
         # ES-3 over-limit surcharge (marginal bands on total nation strength)
         force_limit = self.get_force_limit(nation)
@@ -11472,6 +11577,21 @@ class WorldState:
 
             filtered_map[region_name] = filtered_region
 
+        # S14E-15: the Formable Nations page's pointer at the province panel —
+        # a province that lies on a road the player's bloc has begun carries
+        # the road's sentence ("Ireland needs Ulster too — it lies a march
+        # from Munster; …"). Public by construction (a controller is public
+        # and the road is the bloc's own), stamped on the named provinces
+        # only: no road begun, no key on any row.
+        try:
+            from backend.game_logic.formations import road_notes
+            for _prov, _sentence in road_notes(self)["by_province"].items():
+                if _prov in filtered_map:
+                    filtered_map[_prov]["road_note"] = _sentence
+        except Exception as exc:  # every response rides this summary
+            from backend.errors import report
+            report(exc, "world_state.get_filtered_game_state_summary: road_notes")
+
         summary["map_data"] = filtered_map
 
         # Filter enemies dict: only show enemies with PARTIAL+ visibility
@@ -13680,8 +13800,11 @@ class WorldState:
         # makes its separate peace alone, priced. Clients are not here —
         # they follow the lord (SR-1b, below).
         ctx._carried_in: List[Dict] = []
+        ctx._carried_shut_out: List[Dict] = []
         _carry: List[str] = []
         _carry_standings: Dict[str, str] = {}
+        _carry_readings: Dict[str, Dict] = {}
+        _carry_side = ""
         _carry_war_id = ""
         if (ctx.is_player_treaty and ctx.target_state == "PEACE"
                 and ctx.current_state in ("WAR", "ARMISTICE")):
@@ -13694,11 +13817,16 @@ class WorldState:
             _found = carry_in_instance(
                 self, self.player_nation, ctx.player_counterpart or ctx.target_nation) if _carry else None
             if _found:
-                from backend.game_logic.settlement_reactions import carried_ally_standings
+                from backend.game_logic.settlement_reactions import carried_ally_readings
                 _carry_war_id = str(_found[0])
-                _carry_standings = carried_ally_standings(
-                    self, _carry_war_id, str(_found[2]), _carry,
+                _carry_side = str(_found[2])
+                # S14E-D3: the whole reading (standing, material share and
+                # points, tier), not the standing alone — the shut-out arm
+                # below applies the table's own plan to it.
+                _carry_readings = carried_ally_readings(
+                    self, _carry_war_id, _carry_side, _carry,
                     getattr(ctx, "applied_treaty_clauses", None) or [])
+                _carry_standings = {a: r["standing"] for a, r in _carry_readings.items()}
 
         if ctx.current_state in ("WAR", "ARMISTICE") and ctx.target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
@@ -13732,6 +13860,18 @@ class WorldState:
                     self, war_id=_carry_war_id, actor=self.player_nation,
                     standings={a: s for a, s in _carry_standings.items()
                                if any(r.get("ally") == a for r in ctx._carried_in)},
+                    applied_clauses=getattr(ctx, "applied_treaty_clauses", None) or [])
+            # S14E-D3: the bilateral peace that carries an ally and names her
+            # for NOTHING shuts her out as the table does (the same plan:
+            # -18 and a grievance for an ally with standing and material,
+            # -7 for a lesser one, nothing for one with no standing) — the
+            # price the wizard's preview stated before the click.
+            if _carry_readings:
+                from backend.game_logic.settlement_reactions import shut_out_carried_allies
+                ctx._carried_shut_out = shut_out_carried_allies(
+                    self, war_id=_carry_war_id, side=_carry_side, actor=self.player_nation,
+                    readings={a: r for a, r in _carry_readings.items()
+                              if any(row.get("ally") == a for row in ctx._carried_in)},
                     applied_clauses=getattr(ctx, "applied_treaty_clauses", None) or [])
 
         # SR-1b: the client's war is the lord's war — every client pair
@@ -14097,6 +14237,7 @@ class WorldState:
                 # PC-R1 (ii): the allies whose wars this instrument ended —
                 # named on the aftermath in the one wording (§46 B + C).
                 _rewarded = {str(r.get("ally")): r for r in (getattr(ctx, "_carried_rewarded", None) or [])}
+                _left_out = {str(r.get("ally")): r for r in (getattr(ctx, "_carried_shut_out", None) or [])}
                 for _row in (getattr(ctx, "_carried_in", None) or []):
                     from backend.game_logic.formations import formed_display_name as _fdn_c
                     _rw = _rewarded.get(str(_row["ally"]))
@@ -14104,6 +14245,11 @@ class WorldState:
                     _takes = ("she takes nothing by it." if not _rw else
                               f"she takes {', '.join(_rw.get('awarded_regions') or []) or 'her share'} by it "
                               f"and thanks us ({int(_rw.get('relation_delta', 0)):+d} relation).")
+                    # S14E-D3: an ally left out says what it cost.
+                    _out = _left_out.get(str(_row["ally"]))
+                    if _out and not _rw:
+                        from backend.game_logic.settlement_reactions import shut_out_price_words
+                        _takes = f"she takes nothing by it and is left out: {shut_out_price_words(_out)}"
                     applied_penalties.append({"display": (
                         f"{_fdn_c(self, _row['ally'])}'s war with "
                         f"{_fdn_c(self, _row['court'])} ends in this instrument; "

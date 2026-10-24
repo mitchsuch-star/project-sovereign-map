@@ -131,8 +131,11 @@ class TestRateSingleSource:
             "the engine grew its own copy of the rate arithmetic back")
 
     def test_preview_calls_the_rate_and_keeps_no_copy(self):
+        # S14f part 1 (CODE-2's ratchet): the supply quote was lifted whole
+        # into `_muster_supply_quote`; the preview is the two together.
         src = inspect.getsource(
-            combat_executor_module.CombatExecutor._build_muster_preview)
+            combat_executor_module.CombatExecutor._build_muster_preview) + inspect.getsource(
+            combat_executor_module.CombatExecutor._muster_supply_quote)
         assert "supply_attrition_rate(" in src, (
             "the preview no longer asks the engine's own arithmetic")
         assert "0.015" not in src, (
@@ -378,7 +381,8 @@ class TestFogDiscipline:
         src = inspect.getsource(WorldState.get_filtered_game_state_summary)
         assert "region_econ_visible(" in src
         src2 = inspect.getsource(
-            combat_executor_module.CombatExecutor._build_muster_preview)
+            combat_executor_module.CombatExecutor._build_muster_preview) + inspect.getsource(
+            combat_executor_module.CombatExecutor._muster_supply_quote)   # S14f part 1: the lifted quote
         assert "region_econ_visible(" in src2
 
     def test_predicate_own_soil_true_full_true_partial_false(self, world):

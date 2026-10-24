@@ -513,6 +513,11 @@ class NavalExecutor:
             levers = naval.levers_line(naval.expedition_odds_levers(
                 world, marshal.nation, target, troops))
             levers_clause = f" {levers}." if levers else ""
+            # S14E-XJ2: an INTERCEPTED run brings the fleet to action too — the
+            # card priced the corps' 30% and not the ships.
+            intercept = naval.expedition_intercept_clause(
+                world, marshal.nation, target, troops)
+            intercept_clause = f" {intercept}" if intercept else ""
             return {
                 "success": True,
                 "free_action": True,
@@ -530,7 +535,7 @@ class NavalExecutor:
                     f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
                     f"back — and the fleet's readiness "
                     f"−{naval.EXPEDITION_TURNBACK_READINESS} if she is "
-                    f"turned back.{levers_clause} Sail? (yes / no)"),
+                    f"turned back.{intercept_clause}{levers_clause} Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [
                     {"label": f"Sail for {target}", "command": reissue,
@@ -656,6 +661,15 @@ class NavalExecutor:
                     world.pending_capture_choice)
                 result["pending_capture_choice"] = True
                 result["capture_data"] = world.pending_capture_choice
+            # S14E-15: a landing on a formable's road names the road — the
+            # next step ("Ireland needs Ulster too — …"), whether the beach
+            # was taken (the capture question carries the same sentence, so
+            # it is never said twice) or only held.
+            if marshal.nation == world.player_nation:
+                from backend.game_logic.formations import road_note_for
+                _road = road_note_for(world, target)
+                if _road and _road not in result["message"]:
+                    result["message"] += f" {_road}."
         elif outcome["intercepted"]:
             action = outcome.get("fleet_action")
             sea_line = ""
@@ -803,6 +817,12 @@ class NavalExecutor:
                 forecast_clause = naval.window_forecast_clause(world, actor)
                 forecast_line = (f" And mark this, Sire: {forecast_clause}."
                                  if forecast_clause else "")
+                # S14E-14: the card priced the window and the wait but not
+                # the fleet a failure loses. The forecast reads the failure
+                # arm's own readiness and `resolve_fleet_action`'s own
+                # arithmetic (`naval.diversion_failure_clause`).
+                price = naval.diversion_failure_clause(world, actor)
+                price_line = f" {price}" if price else ""
                 # FA-64: the Admiralty chip warned "no army is staged to use
                 # the open water" and the TYPED confirm did not, so the
                 # player who typed the order was the one who never heard it
@@ -845,7 +865,7 @@ class NavalExecutor:
                          f"she is caught coming home and fights at readiness "
                          f"{readiness}. Whatever the outcome, she may try it "
                          f"again {naval.DIVERSION_WAIT_TURNS} turns from now.")
-                        + f"{camp_line}{forecast_line} "
+                        + f"{price_line}{camp_line}{forecast_line} "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",
