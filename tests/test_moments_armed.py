@@ -127,6 +127,39 @@ class TestHollandThroughTheEndpoint:
         assert naval.closed_ports_against(world, "Britain") == row["ports_after"] < row["ports_before"]
 
 
+class TestTheHollandLetterSpeaksForTheDeputation:
+    """⟨SF step=pre-deploy S14d · S14D-X42 · pillar=narration⟩ The record: the
+    Dutch deputation under Admiral Ver Huell asked for Louis; the Grand
+    Pensionary Schimmelpenninck resigned rather than sign — so the letter is
+    voiced by the deputation (`speaker: named`), never by the cast's Dutch
+    diplomat (October 24, 2026)."""
+
+    def test_the_letter_is_voiced_by_ver_huell_not_schimmelpenninck(self, world):
+        entry = MO.entry(world, "throne_of_holland")
+        assert entry["voice"]["speaker"] == MO.VOICE_NAMED
+        voice = MO.voice_of(world, entry)
+        assert "Ver Huell" in voice and "Schimmelpenninck" not in voice, voice
+        assert "Schimmelpenninck resigned" in str(entry.get("record"))
+
+    def test_a_named_voice_needs_its_name(self):
+        import copy
+        import json
+        from pathlib import Path
+        from backend.modding.validator import validate_scenario
+        maps = Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign" / "assets" / "maps"
+        data = json.loads((maps / "europe_1805.json").read_text(encoding="utf-8"))
+        deck = data["moments"]["deck"]
+        holland = next(e for e in deck if e["id"] == "throne_of_holland")
+        assert not [e for e in validate_scenario(copy.deepcopy(data)).errors if ".voice" in str(e)]
+        for bad in ({"speaker": "named"}, {"speaker": "named", "name": ""},
+                    {"speaker": "named", "name": "x" * (MO.NAMED_VOICE_MAX + 1)}):
+            mutated = copy.deepcopy(data)
+            next(e for e in mutated["moments"]["deck"] if e["id"] == "throne_of_holland")["voice"] = bad
+            errors = [str(e) for e in validate_scenario(mutated).errors]
+            assert any(".voice.name" in e for e in errors), (bad, errors[:3])
+        assert holland["voice"]["name"].startswith("Admiral Ver Huell")
+
+
 class TestTheBackfill:
     """§3.5: a pre-S14c 1805 save is armed on load with the shipped block,
     resolved with its own seed; a window closed by the save turn is

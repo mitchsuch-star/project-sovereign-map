@@ -331,6 +331,25 @@ class TestTheAICounterFamily:
         assert "Diplomatic proposal" not in rebuilt["clauses"]
 
 
+class TestThePeaceCounterPrintsItsStruckLines:
+    """⟨SF step=pre-deploy S14d · S14D-X50 · pillar=narration⟩ The client's
+    peace preview draws `annotated_terms` instead of `clauses` whenever they
+    are non-empty, so a peace counter that struck one demand but kept others
+    hid its Struck lines; it prints them beneath the kept terms when the
+    letter is a counter (October 24, 2026)."""
+
+    def test_the_preview_prints_the_struck_lines_of_a_counter(self):
+        gd = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+              / "scripts" / "incoming_proposal_popup.gd").read_text(encoding="utf-8")
+        body = gd[gd.index("func _build_peace_preview_section("):]
+        body = body[:body.index("\nfunc ", 10)]
+        assert "_build_annotated_terms_section(annotated)" in body
+        assert 'data.get("is_counter_offer", false)' in body
+        assert 'str(clause).begins_with("Struck")' in body
+        # the struck lines print INSIDE the annotated arm, after the kept terms
+        assert body.index("_build_annotated_terms_section(annotated)") < body.index('begins_with("Struck")') < body.index("\telse:")
+
+
 class TestTheIncomingLettersNeverReadEmpty:
     """⟨SF step=pre-deploy S14d · S14D-X13 · pillar=vassals⟩
     The rest of the family needs no new naming: an incoming proposal, an

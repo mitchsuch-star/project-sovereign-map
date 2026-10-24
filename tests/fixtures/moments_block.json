@@ -38,8 +38,8 @@
       "grace": 2,
       "when": {"predicate": "vassal_slipping", "court": "Holland", "below_autonomy": 2, "loyalty_at_most": 70},
       "roads": ["any"],
-      "voice": {"speaker": "envoy", "nation": "Holland"},
-      "record": "Historically the Batavian Republic asked for a king and was given Napoleon's brother Louis (5 June 1806); the alternative was annexation, which came in 1810 when Louis would not enforce the System.",
+      "voice": {"speaker": "named", "name": "Admiral Ver Huell, for the deputation of the States General"},
+      "record": "Historically the Dutch deputation under Admiral Ver Huell asked Napoleon for a king and was given his brother Louis (5 June 1806); Grand Pensionary Schimmelpenninck resigned rather than sign. The alternative was annexation, 1810.",
       "accept": {
         "caption": "Crown Louis",
         "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]

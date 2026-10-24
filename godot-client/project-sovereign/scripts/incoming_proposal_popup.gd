@@ -354,6 +354,14 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var annotated = snapshot.get("annotated_terms", data.get("annotated_terms", []))
 	if annotated is Array and not annotated.is_empty():
 		bbcode += _build_annotated_terms_section(annotated)
+		# S14D-X50 (October 24, 2026): a peace COUNTER that strikes one demand
+		# and keeps others carries its "Struck: …" lines in `clauses` (S14D-X13)
+		# while the annotated preview draws the kept terms — print the struck
+		# lines beneath it, so the letter says what the court would not sign.
+		if bool(data.get("is_counter_offer", false)):
+			for clause in clauses:
+				if str(clause).begins_with("Struck"):
+					bbcode += "  - %s\n" % str(clause)
 	else:
 		for clause in clauses:
 			bbcode += "  - %s\n" % str(clause)

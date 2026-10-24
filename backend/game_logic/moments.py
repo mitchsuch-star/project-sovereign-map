@@ -79,7 +79,15 @@ MAILBOX_PRIORITY = 2      # ahead of routine small-court letters (incoming_propo
 VOICE_CABINET = "cabinet"
 VOICE_TALLEYRAND = "talleyrand"
 VOICE_ENVOY = "envoy"
-VOICES = (VOICE_CABINET, VOICE_TALLEYRAND, VOICE_ENVOY)
+# S14D-X42 (October 24, 2026): a letter the record puts in a NAMED mouth that
+# is not a court's diplomat — the Dutch deputation under Admiral Ver Huell
+# asked for Louis; the Grand Pensionary Schimmelpenninck (the cast's Dutch
+# voice) resigned rather than sign, so `envoy` would have voiced the letter
+# by the one man who refused it. The authored `name` is the display
+# (validator: non-empty, at most NAMED_VOICE_MAX).
+VOICE_NAMED = "named"
+NAMED_VOICE_MAX = 80
+VOICES = (VOICE_CABINET, VOICE_TALLEYRAND, VOICE_ENVOY, VOICE_NAMED)
 CABINET = "The Cabinet"
 DISPLAY = "A Moment of History"
 
@@ -726,6 +734,8 @@ def voice_of(world, e: Dict[str, Any]) -> str:
     speaker = str(voice.get("speaker") or VOICE_CABINET)
     if speaker == VOICE_CABINET:
         return CABINET
+    if speaker == VOICE_NAMED:
+        return str(voice.get("name") or "").strip() or CABINET
     from backend.game_logic.diplomatic_templates import resolve_named_diplomat
     return resolve_named_diplomat(speaker, str(voice.get("nation") or ""), world) or CABINET
 

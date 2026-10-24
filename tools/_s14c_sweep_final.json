@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17)",
- "deck_sha": "a8aa291357ef4676a5650f2f3b52472fd432b310c125db92a0125ad1b880a8c3",
+ "deck_sha": "bd56b86f00d54ae7955c1535371cdbbf4b962d6907358cdeb44e5a3bc44ce1b2",
  "pacing": {
   "max_open": 1,
   "min_gap": 3
@@ -1759,5 +1759,6 @@
    "errors": [],
    "status": "game-over"
   }
- }
+ },
+ "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); the deck measured on October 22 and the shipped deck agree mechanically, so the arms stand un-re-measured. The former whole-block hash was a8aa291357ef4676a5650f2f3b52472fd432b310c125db92a0125ad1b880a8c3."
 }

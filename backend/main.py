@@ -2239,6 +2239,35 @@ def _derive_proposal_result_outcome(result: dict) -> str:
     return "REJECT"
 
 
+def _pending_proposal_type_display(result: dict, dialogue_before: dict) -> str:
+    """S14D-X49 (October 24, 2026): the PL-14 safety net minted a dispatch's
+    `proposal_result` as "Diplomatic Action" — the `execute_proposal` handler
+    sets no popup for a send, so the notice read a generic type where the
+    message named a Peace Treaty. The proposal's raw type is on the result,
+    the dialogue's context, or the dialogue's own option terms; the display
+    name is R7's (`proposal_display_name`). The generic label stays only when
+    no road carries a type."""
+    from backend.display_names import proposal_display_name
+    before = dialogue_before if isinstance(dialogue_before, dict) else {}
+    context = before.get("context") if isinstance(before.get("context"), dict) else {}
+    candidates = [
+        result.get("proposal_type"),
+        (result.get("proposal") or {}).get("type") if isinstance(result.get("proposal"), dict) else None,
+        before.get("_proposal_type"),
+        context.get("proposal_type"),
+        before.get("proposal_type"),
+    ]
+    for option in before.get("options") or []:
+        if isinstance(option, dict) and isinstance(option.get("terms"), dict):
+            terms = option["terms"]
+            candidates.append(terms.get("proposal_type") or terms.get("type"))
+    for raw in candidates:
+        raw = str(raw or "").strip()
+        if raw and raw != "Diplomatic Action":
+            return proposal_display_name(raw)
+    return "Diplomatic Action"
+
+
 def _settlement_proposal_result_fields(result: dict) -> dict:
     """SR-2d (SR-2-X3): the proposal-result fields a RATIFIED settlement
     declares for itself, read off the ratifier's own feedback — or ``{}`` for
@@ -5366,7 +5395,8 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
                     "target_nation": result.get(
                         "target_nation", dialogue_before.get("target_nation", "")
                     ),
-                    "proposal_type": "Diplomatic Action",
+                    # S14D-X49: the dispatch names its proposal, not "Diplomatic Action"
+                    "proposal_type": _pending_proposal_type_display(result, dialogue_before),
                     "outcome": _derive_proposal_result_outcome(result),
                     "message": msg,
                     "feedback": "",

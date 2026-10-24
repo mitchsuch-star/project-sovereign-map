@@ -1384,6 +1384,9 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
             result.add_error(f"{path}.voice", f"Must name a speaker of {list(MO.VOICES)}")
         elif voice.get("speaker") == MO.VOICE_ENVOY:
             _court(f"{path}.voice.nation", voice.get("nation"))
+        elif voice.get("speaker") == MO.VOICE_NAMED:
+            # S14D-X42: the authored mouth — a non-empty display name
+            _text(f"{path}.voice.name", voice.get("name"), MO.NAMED_VOICE_MAX)
         for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
             spath = f"{path}.{side}"
             answer = e.get(side)

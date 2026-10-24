@@ -82,7 +82,7 @@ So on the passive board three of four premises are false (Bavaria gone, no Road 
 - **The weakest row, said plainly:** the fork is plan-dependent (a Road I player values a loyal Bavaria). S14e's three players judge it: kept, or its one block entry deleted with its count pin (§11).
 
 ### M2 `throne_of_holland` — The Throne of Holland (letter; R25)
-- **Window:** 5 June 1806; turn `{18, [17,19]}`, grace 2. **Roads:** any. **Voice:** Holland's minister Schimmelpenninck through `resolve_named_diplomat()` (loyalist register).
+- **Window:** 5 June 1806; turn `{18, [17,19]}`, grace 2. **Roads:** any. **Voice:** the Dutch deputation under Admiral Ver Huell — `speaker: named` (**corrected October 24, 2026, S14D-X42:** the gate voiced it by Holland's cast diplomat Schimmelpenninck, who as Grand Pensionary resigned rather than ask for a king; the record line says so).
 - **When:** `vassal_slipping{court: Holland, below_autonomy: 2, loyalty_at_most: 70}` — Holland is the owner's vassal, not yet Autonomous, and its loyalty is at or below 70 **or** its forecast net drift (`vassal.forecast_vassal_loyalty`) is negative.
 - **Record:** the Batavian Republic asked for a king and was given Napoleon's brother Louis (historically 5 June 1806); the alternative was annexation, which came in 1810 when Louis would not enforce the System.
 - **Accept, "Crown Louis":** `vassal.change_vassal_autonomy(Holland → Autonomous)` through one `vassal.autonomy_change_plan` the executor itself now reads (S14C-X10): 1 DP, loyalty +int(10 × the grip multiplier) clamped, tribute 75% → 50%, the drift term −2 → +1 (`AUTONOMY_DRIFT`), and the closure **derived**: `naval.closed_ports_against` before and after on the plan.
@@ -178,7 +178,7 @@ A moment letter has **no court**: no `target_nation`, no `context.source`; `cont
 - **G.** A moment the board contradicts is `passed`, never forced.
 - **Teeth controls:** `_variance_signature` gains `moment_turns`; the same seed twice compares EQUAL; variance forced off compares EQUAL to `historical`.
 
-**The validator (`_validate_moments`).** `turn.value == calendar.turn_for_date(start_date, date)` (validator-side only); each band contains its value; windowed entries are pairwise disjoint and spaced; predicate and op names exist; ids are unique and collide with no law id; `roads` is valid; no op uses a VP-1 source; a decline carries no `gold`, `dp`, `autonomy` or `enact_law` op (the popup cannot grey a priced Reject — `incoming_proposal_popup.gd` greys accept-shaped actions only); the copy limits hold; every `voice` resolves.
+**The validator (`_validate_moments`).** `turn.value == calendar.turn_for_date(start_date, date)` (validator-side only); each band contains its value; windowed entries are pairwise disjoint and spaced; predicate and op names exist; ids are unique and collide with no law id; `roads` is valid; no op uses a VP-1 source; a decline carries no `gold`, `dp`, `autonomy` or `enact_law` op (the popup cannot grey a priced Reject — `incoming_proposal_popup.gd` greys accept-shaped actions only); the copy limits hold; every `voice` resolves (`cabinet`, `talleyrand`, `envoy` with a known court, or — S14D-X42 — `named` with a non-empty display name of at most 80 characters, for a letter the record puts in a mouth that is not a court's diplomat).
 
 ---
 

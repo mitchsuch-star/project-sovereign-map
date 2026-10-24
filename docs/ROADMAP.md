@@ -20,7 +20,7 @@
 | **S14** | **SF-RR7 "the morning of the peace"** (SFR-B3, brought from row 13), then the Score Finish residue SF-RR1 (ii) … RR6 |
 | **S14b** | **VP-1 "The Emperor's Designs"** (brought from row 12): France's own objectives, the decisive-peace triumph short of the Congress; absorbs WO-D4(b) (winning by economic dominance) and SF-ECON-1 (Acts of the Empire). This is "Campaign Objectives" |
 | **S14c** | **Events and historical moments — ✅ COMPLETE October 22, 2026** (`docs/EVENTS_SPEC.md`: four letters of the record — the Bavarian Match, the Throne of Holland, the Crown of the Reich, the Decree of Berlin — each gated on the board that makes its fork real; Trafalgar's news, Tilsit and the situational examples struck beside their covering surfaces, A1) (brought from §8.5 and the August 3 cut list by the user, October 14): the event engine on the mailbox transport, a first authored 1805–07 deck, paced by the one-crisis tempo rule; the **Diplomacy & Flavor Content Menu** is picked at its gate; the "Positive Events" table below is weighed there too |
-| **S14d** | **The table lesson** — the onboarding pass (R159: every core screen names its mechanic) and the School's second lesson, "The Table" |
+| **S14d** | **The table lesson — ✅ COMPLETE October 24, 2026** (`docs/TABLE_LESSON_SPEC.md`: the gate §0–§12; part 1 the first-open lines on eight screens §13–§14; part 2 the lessons' registry and "The Table" — the Peace of Pressburg, seven cards over three turns, the board tuned by instrument — §15–§16; part 3 the walk and the close §17; rules `SYSTEMS_REFERENCE.md` §148) — the onboarding pass (R159: every core screen names its mechanic) and the School's second lesson, "The Table" |
 | **S14e / S14f** | DD-B's re-measure (three fresh players in the client) and, if needed, its rows |
 | **S15** | UXR-4 (the user's eyes at 5120×1440), **code signing** (brought from row 16), the release build and the clean-machine run. The release build waits for 0 open defect rows |
 | S16, S17a–d | After the deploy: CODE-6 (the `main.gd` split) and CODE-5 (the four largest files) — byte-identical refactors |
@@ -936,7 +936,7 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Tutorial System + Content | Build `TutorialManager` (deferred from Phase 6.5) + populate from TUTORIAL_SCRIPT.md. Build against stable Map Renderer scene tree. | Medium | ✅ **BUILT August 8, 2026** — the School of War (row 7); its second lesson "The Table" is Pre-Deploy S14d |
+| Tutorial System + Content | Build `TutorialManager` (deferred from Phase 6.5) + populate from TUTORIAL_SCRIPT.md. Build against stable Map Renderer scene tree. | Medium | ✅ **BUILT August 8, 2026** — the School of War (row 7); its second lesson "The Table" ✅ **BUILT October 24, 2026** (Pre-Deploy S14d part 2, `TABLE_LESSON_SPEC.md` §16) |
 | **LLM Monetization** | BYOK + token tiers + payment | High | Plan of record: mock-default + BYOK, **nothing AI-related sold in EA; token packs never built** (`docs/audits/LLM_MONETIZATION_RESEARCH_2026_08_14.md`) |
 | **LLM Feature Toggles** | Per-feature model/on-off selection in settings | Low | Planned |
 | At-will Autonomy | Grant autonomy anytime (gold-gated, one admin slot) | Low | Planned |

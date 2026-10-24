@@ -13730,7 +13730,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if mission_type_raw == "UNDERMINE_ALLIANCE" and status.get("target_ally_display"):
             pair_prefix = f"{status['target_display']}–{status['target_ally_display']}: "
 
-        if initial_desc != current_desc:
+        if turns <= 0:
+            # S14D-X51 (October 24, 2026, found by the Table walk): the morning
+            # after a mission is begun no funded turn has ticked, and the row
+            # read "Loyal (-1 over 0 turns)" — the court's own drift shown as
+            # the mission's work. Say what is true instead.
+            progress_text = f"{pair_prefix}{current_desc} (begun — its first turn ticks at the next morning)"
+        elif initial_desc != current_desc:
             progress_text = (
                 f"{pair_prefix}{initial_desc} → {current_desc} "
                 f"({'+' if delta >= 0 else ''}{delta}, {turns} turns)")

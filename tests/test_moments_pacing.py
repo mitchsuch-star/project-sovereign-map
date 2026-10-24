@@ -276,6 +276,24 @@ class TestTheMeasuredArms:
             for name, row in record[family].items():
                 yield family, name, row
 
+    def test_the_measured_identity_is_mechanical(self, record):
+        """S14D-X42 (October 24, 2026): a corrected voice or record line must not
+        demand a re-measure of arrivals and answers; an edited window or op must."""
+        import copy
+        from tools._s14c_sweep_record import deck_sha
+        block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
+        reworded = copy.deepcopy(block)
+        reworded["deck"][1]["voice"] = {"speaker": "cabinet"}
+        reworded["deck"][1]["record"] = "another sentence"
+        reworded["deck"][0]["title"] = "Another title"
+        reworded["deck"][0]["accept"]["caption"] = "Another caption"
+        assert deck_sha(reworded) == deck_sha(block)
+        moved = copy.deepcopy(block)
+        moved["deck"][1]["turn"] = {"value": 19, "band": [18, 20]}
+        assert deck_sha(moved) != deck_sha(block)
+        assert record["deck_sha"] == deck_sha(block)
+        assert "mechanical" in str(record.get("deck_sha_note", ""))
+
     def test_it_measured_the_shipped_deck(self, record):
         from tools._s14c_sweep_record import deck_sha
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]

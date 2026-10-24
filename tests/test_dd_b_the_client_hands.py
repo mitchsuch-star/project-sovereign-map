@@ -70,6 +70,15 @@ def _engine():
 # ── the rails and the judge, on the source and a synthetic run ─────────────
 
 class TestTheRails:
+    def test_the_screenshot_scene_refuses_the_players_backend_too(self):
+        """S14D-X18 (October 24, 2026): `tools/tutorial_screenshot.gd` said
+        "Requires the LIVE backend on 8005" and would `/new_game` over the
+        player's world; it now holds the same port rail as the client."""
+        src = (CLIENT.parent / "tutorial_screenshot.gd").read_text(encoding="utf-8")
+        assert 'Utils.backend_url().ends_with(":8005")' in src
+        assert "quit(2)" in src
+        assert "Requires the LIVE backend on 8005" not in src
+
     def test_the_client_refuses_the_players_backend_and_writes_nothing_to_disk(self):
         src = CLIENT.read_text(encoding="utf-8")
         assert 'Utils.backend_url().ends_with(":8005")' in src

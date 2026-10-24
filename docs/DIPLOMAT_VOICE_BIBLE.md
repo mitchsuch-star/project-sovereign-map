@@ -147,7 +147,7 @@ Two rules:
 
 **Committed exemplar — breach accusation (cold politeness at peak):**
 
-> "Vienna has received word of the French disposition on Hanover. Austria notes, with the customary patience of a court accustomed to the shifting weather of French commitments, that the article agreed between us has not been fulfilled. There will be, naturally, no public reply. One simply adjusts. Metternich asks only that France understand what is being adjusted, and in what direction."
+> "Vienna has received word of the French disposition on Salzburg. Austria notes, with the customary patience of a court accustomed to the shifting weather of French commitments, that the article agreed between us has not been fulfilled. There will be, naturally, no public reply. One simply adjusts. Metternich asks only that France understand what is being adjusted, and in what direction."
 
 **Register notes by scene:**
 - *Accepting terms:* calculating acceptance with hidden agenda. "An interesting proposal. Austria finds it... adequate. For now."
@@ -183,7 +183,7 @@ Two rules:
 
 **Committed exemplar — breach lament (the most painful register to write):**
 
-> "Sire, His Majesty asked only that France's word on Hanover be kept. We arranged Saxon affairs around it. We told our people that France had given assurance. It is not our place to accuse France, whose friendship Saxony values above all others. It is only that we had believed, and now we must explain to a small court that we were mistaken. Einsiedel bows, with difficulty."
+> "Sire, His Majesty asked only that France's word on Cottbus be kept. We arranged Saxon affairs around it. We told our people that France had given assurance. It is not our place to accuse France, whose friendship Saxony values above all others. It is only that we had believed, and now we must explain to a small court that we were mistaken. Einsiedel bows, with difficulty."
 
 **Register notes by scene:**
 - *Accepting terms:* relieved, grateful, explicitly humble. "His Majesty is grateful for France's continued attention. Saxony accepts with humble thanks."

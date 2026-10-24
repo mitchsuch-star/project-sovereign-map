@@ -363,6 +363,19 @@ class TestBuildBatBootsTheFrozenServer:
         assert stamp < pyi < txt
         assert "--noconfirm" in cmds[pyi:pyi + 200]
 
+    def test_the_smoke_boots_every_school_scenario_on_the_frozen_server(self):
+        """S14d part 3 (S14D-X15's live proof): the smoke posts `/new_game` for
+        every name in `tutorial_state.SCHOOL_SCENARIOS` and checks the booted
+        world's `scenario_name`, then returns to the campaign."""
+        src = _read(REPO / "tools" / "release_smoke.py")
+        assert "from backend.game_logic.tutorial_state import SCHOOL_SCENARIOS" in src
+        assert 'for lesson in SCHOOL_SCENARIOS:' in src
+        assert '_post(f"{base}/new_game", {"scenario": lesson})' in src
+        assert 'scenario_name != lesson' in src
+        # run by path from the repo root, the smoke puts the repo on sys.path first
+        assert 'sys.path.insert(0, str(REPO))' in src
+        assert src.index('sys.path.insert(0, str(REPO))') < src.index('from backend.game_logic.tutorial_state import SCHOOL_SCENARIOS')
+
     def test_the_frozen_smoke_runs_before_the_zip(self):
         cmds = self._cmds()
         smoke = cmds.index("tools\\release_smoke.py")

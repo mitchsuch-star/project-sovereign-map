@@ -499,3 +499,74 @@ class TestTheCardsNameOffices:
         assert "REASSURE" in text and "MORE GENEROUS" in text
         for date in ("26th of December", "1st of January 1806"):
             assert date in text, date
+
+
+@_pytest.fixture
+def fresh_table():
+    """A fresh Table board per test — for the pins that SEND (a dispatch, a
+    mission): the module's read-only boot above must not be mutated, and a
+    fresh boot rebinds the module's world, so each sender boots its own."""
+    if not _BOARD.is_file():
+        _pytest.skip("the Table board is not on this machine")
+    for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START", "PYTHONIOENCODING"):
+        _os.environ.pop(key, None)
+    _os.environ["LLM_MODE"] = "mock"
+    P = _probe()
+    from fastapi.testclient import TestClient
+    save_dir = _pathlib.Path(_tempfile.mkdtemp(prefix="table_fresh_")) / "saves"
+    with _patch("backend.save_manager.SAVE_DIR", save_dir):
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+        P._quiet(M._reset_world_state, scenario_override=str(_BOARD))
+        M.parser = CommandParser(use_real_llm=False)
+        with TestClient(M.app) as client:
+            yield P, client, M.game_state["world"]
+        P._quiet(M._reset_world_state)
+
+
+class TestTheDispatchNamesItsProposal:
+    """⟨SF step=pre-deploy S14d · S14D-X49 · pillar=narration⟩ A sent proposal's
+    PENDING `proposal_result` read "Diplomatic Action" (the PL-14 safety net's
+    generic label); it now carries the proposal's display name, read off the
+    dialogue it answers (October 24, 2026)."""
+
+    def test_the_separate_peace_dispatch_reads_peace_treaty(self, fresh_table):
+        P, client, _world = fresh_table
+        d1 = P._dialogue(P._post(client, "/command", {"command": P.TABLE_COMMAND}))
+        chip = P._chip(d1, "Austria")
+        assert chip is not None
+        d2 = P._dialogue(P._post(client, "/respond_to_diplomatic_dialogue",
+                                 {"choice": "seek_bilateral_peace", "action_params": dict(chip),
+                                  "dialogue_id": d1.get("dialogue_id")}))
+        d3 = P._dialogue(P._pick(client, d2, action="confirm_pair_substitute"))
+        sent = P._pick(client, d3, action="execute_proposal")
+        result = sent.get("proposal_result") or {}
+        assert result.get("outcome") == "PENDING" and result.get("target_nation") == "Austria", result
+        assert result.get("proposal_type") == "Peace Treaty", result
+        assert "Diplomatic Action" not in str(result)
+
+    def test_the_vassalage_dispatch_reads_vassalage(self, fresh_table):
+        P, client, _world = fresh_table
+        d = P._dialogue(P._post(client, "/command", {"command": "propose vassalage to Bavaria"}))
+        sent = P._pick(client, d, action="execute_proposal")
+        result = sent.get("proposal_result") or {}
+        assert result.get("outcome") == "PENDING" and result.get("target_nation") == "Bavaria", result
+        assert result.get("proposal_type") == "Vassalage", result
+
+
+class TestTheMissionRowBeforeItsFirstTick:
+    """⟨SF step=pre-deploy S14d · S14D-X51 · pillar=narration⟩ Found by the Table
+    walk (October 24, 2026): the morning after Reassure Bavaria was begun, the
+    Cabinet's mission row read "Loyal (-1 over 0 turns)" — no funded turn had
+    ticked, and the court's drift was shown as the mission's work."""
+
+    def test_the_row_says_the_mission_has_not_ticked_yet(self, fresh_table):
+        P, client, world = fresh_table
+        d = P._dialogue(P._post(client, "/command", {"command": "reassure Bavaria"}))
+        assert d.get("type") == "mission", d
+        P._pick(client, d, action="start_mission")
+        row = P._rows(world, "Bavaria").get("cancel_mission") or {}
+        text = _json.dumps(row, ensure_ascii=False)
+        assert row, "the Cabinet shows no Cancel row for the live mission"
+        assert "over 0 turns" not in text and ", 0 turns" not in text, text
+        assert "begun" in text and "first turn ticks" in text, text

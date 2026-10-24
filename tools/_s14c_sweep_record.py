@@ -16,8 +16,12 @@ Each arm keeps the trace's verdict — the ceilings, the floors, shown = applied
 its mornings, and each moment's reach composed from the trace alone (seeded
 paths, not laws): "arrived T8, answered accept", "arrived T18, lapsed T19",
 "passed T11 (premise)", "crowded out T19", or "pending — the last morning T28".
-The record carries the shipped deck's hash: a deck edited after the
-measurement reds `tests/test_moments_pacing.py` until it is measured again.
+The record carries the shipped deck's MECHANICAL hash — ids, kinds, windows,
+grace, predicates, roads, ops and pacing; never the display copy (a title, a
+voice, a record line, a caption), since the trace measures arrivals and
+answers, not words (S14D-X42, October 24, 2026): a deck whose MECHANICS are
+edited after the measurement reds `tests/test_moments_pacing.py` until it is
+measured again; a corrected line does not.
 
     python tools/_s14c_sweep_record.py --sweep DIR --commanded DIR --accept DIR \\
         --road DIR --road-accept DIR [--out tools/_s14c_sweep_final.json]
@@ -34,9 +38,34 @@ SCENARIO = ROOT / "godot-client" / "project-sovereign" / "assets" / "maps" / "eu
 OUT = ROOT / "tools" / "_s14c_sweep_final.json"
 
 
+# The deck's display copy — what the letter SAYS, never when it arrives or what
+# its answers do. Excluded from the measured identity (S14D-X42).
+DISPLAY_KEYS = ("title", "voice", "record")
+ANSWER_DISPLAY_KEYS = ("caption",)
+
+
+def mechanical_block(block: dict) -> dict:
+    """The block with its display copy struck: the measured identity."""
+    out = {k: v for k, v in (block or {}).items() if k != "deck"}
+    deck = []
+    for e in (block or {}).get("deck") or []:
+        if not isinstance(e, dict):
+            deck.append(e)
+            continue
+        m = {k: v for k, v in e.items() if k not in DISPLAY_KEYS}
+        for side in ("accept", "decline"):
+            if isinstance(m.get(side), dict):
+                m[side] = {k: v for k, v in m[side].items() if k not in ANSWER_DISPLAY_KEYS}
+        deck.append(m)
+    out["deck"] = deck
+    return out
+
+
 def deck_sha(block: dict) -> str:
-    """The shipped block's identity (sorted keys; the record and the pin agree)."""
-    return hashlib.sha256(json.dumps(block, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    """The shipped block's MECHANICAL identity (sorted keys, the display copy
+    struck; the record and the pin agree)."""
+    return hashlib.sha256(json.dumps(mechanical_block(block), sort_keys=True,
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 def reach(trace: dict, deck_ids: list) -> dict:

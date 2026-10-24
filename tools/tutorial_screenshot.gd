@@ -2,7 +2,10 @@ extends SceneTree
 # POSITION 7 evidence harness (windowed, NOT --headless), the committed-
 # siblings pattern (main_menu_screenshot.gd / settlement_popup_screenshot.gd):
 #   <godot> --path godot-client/project-sovereign --script ../../tools/tutorial_screenshot.gd
-# Requires the LIVE backend on 8005. Two modes via TUT_SHOT_MODE env:
+# Requires a LIVE backend on the port `Utils.backend_url()` names (SOVEREIGN_PORT
+# on BOTH sides) — and REFUSES the player's 8005 (S14D-X18, October 24, 2026):
+# the tutorial mode would `/new_game` over the player's live world. Run the
+# pair on 8006+ like dd_b_play.py. Two modes via TUT_SHOT_MODE env:
 #   "tutorial"  (default) — capture the menu (School of War button), then a
 #                real main.tscn boot with MenuBoot.pending_action="tutorial":
 #                the connection test consumes it, /new_game {"scenario":
@@ -21,6 +24,11 @@ var _main = null
 var _mode := "tutorial"
 
 func _init():
+	# S14D-X18: the port rail dd_b_client.gd holds — never the player's 8005.
+	if Utils.backend_url().ends_with(":8005"):
+		push_error("refused: SOVEREIGN_PORT points at the player's 8005 — run the pair on 8006+")
+		quit(2)
+		return
 	var env_mode := OS.get_environment("TUT_SHOT_MODE")
 	if env_mode != "":
 		_mode = env_mode

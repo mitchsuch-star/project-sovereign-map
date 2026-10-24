@@ -428,6 +428,62 @@ Cabinet lesson, and the committed lesson script end to end); GR6 absolute
 
 ---
 
+## The Table Lesson (BUILT — Pre-Deploy S14d part 2, October 24, 2026)
+
+**The School's second lesson.** "The School of War — The Table (a guided
+peace)" — Berthier's tutor card on the authored scenario
+`tutorial_table_1805.json` (the Peace of Pressburg, December 1805: ONE
+France-led war on Austria and Russia with Bavaria and the Kingdom of Italy
+carried in; Vienna, the Tyrol and Moravia French; the record's five battles
+and two decisive ones on the ledgers; Austria exhausted and ready to sign
+alone, Russia unbeaten at home; Bavaria an ally at relation 65; every other
+court's letters held six turns). Launched from the main menu's second School
+row (confirm-guarded like the Danube's) via
+`POST /new_game {"scenario": "tutorial_table"}`; the client arms on
+`game_state.scenario_name == "tutorial_table"` through the lessons' registry
+(`tutorial_overlay.gd` `LESSONS`); its own done latch (`done_tutorial_table`).
+Design record `TABLE_LESSON_SPEC.md` §4, §16; rules `SYSTEMS_REFERENCE.md`
+§148.9–§148.10.
+
+**The live script IS `const STEPS` in `tutorial_table_steps.gd`** — this
+section mirrors it. **Every step is a door or a button — nothing is typed**
+("diplomacy is never typed"). The board is tuned by
+`tools/_table_board_probe.py`, which plays the three turns for real through
+the client's endpoints; its record is committed with the board's hash and
+pinned (`tests/test_tutorial_table_scenario.py`); the committed script
+`tools/playtest_scripts/tutorial_table_lesson.json` is played through the
+real overlay by `tests/test_tutorial_table_driven.py`.
+
+| Turn | Card | The door or button | The real system that answers (landed figures) |
+|------|------|--------------------|-----------------------------------------------|
+| 1 | **I. The Day After Austerlitz** | `Open the Cabinet on Bavaria ▸` → the real wizard on Bavaria → **Reassure Ally (1 DP/turn)** → *Begin mission* | Ulm and Austerlitz on the record, Vienna held, the Tsar's army marching home; "an ally is reassured, not courted"; the mission is paid at the tick (DP 5 → 7 on the second morning after the peace's 3). `_pred_mission_started` |
+| 1 | **II. Every Court for Itself** | `Open the table ▸` → the real settlement table on `war_1` (0 DP, 0 AP), opened by the war card's own road | Talleyrand's whole-war draft (Carniola + 200 gold of Austria); Bavaria's claim to the Tyrol beside it (the ally petition); Austria **Will sign (56/50)**, Russia **Holding out (−49/50)** — "her seat is unbeaten"; the table's own line at its foot. `_pred_table_mounted` |
+| 1 | **III. Austria Alone** | the row's chip **Separate peace with Austria — alone: 68 (Favorable)** → the chooser's *Proceed* → the bilateral draft (her slice of the table: 200 gold and Carniola) → *Send as suggested* (3 DP) → *End Turn* | The chip's road (`seek_bilateral_peace` → `confirm_pair_substitute` → `execute_proposal`); `proposal_result {outcome: PENDING}` marks the send. `_pred_austria_peace_sent` |
+| 2 | **IV. The Peace of Pressburg** | *(the morning answers)* | "Treaty signed: At War → Peace with Austria." — Austria PEACE, Russia WAR, Bavaria and Italy carried in; the war card reads Russia alone. `alt` arm `austria_refused` (a refusal or counter on the rail). `_pred_austria_peace_signed` |
+| 2 | **V. The Kingdom of Bavaria** | `Propose vassalage ▸` → the wizard on Bavaria → **Propose Vassal (3 DP)** → the terms page reads **a counter is likely (45)** → *More generous* (54) → *Send these terms* → *End Turn* | Loyalty, autonomy, the power cap (a court of half our power or less), Europe's alarm +5 per treaty vassal; the Elector a king on 1 January 1806, the Confederation in July. `alt` arm `letter_waiting`. `_pred_bavaria_vassal_sent` |
+| 3 | **VI. The First Stone** | *(the morning answers; or the counter's card)* | "Treaty signed: Alliance → Vassal with Bavaria." — the Diplomatic Ledger's Vassals rows; `alt` arm `bavaria_countered` (accept her counter on the card — it names what she struck, S14D-X13). `_pred_bavaria_vassal_signed` |
+| 3 | **VII. The Lesson Ends** | *Conclude the lesson* | Three acts in three turns; every screen's first note waits for the great campaign; main menu BEGIN. `_pred_never` |
+
+**Unbreakable, as the Danube:** a refused door releases its step with the
+Table's own note ("The table refused that act — … The school moves on."; a
+door card names the line its door sends, `refusal_of`), the skip chip on
+every card but the last, the gate+2 catch-up floor (four idle `end turn`s
+reach the hand-off). The three `alt` arms render on the response that
+selects them (`_note_table`). History on the cards is the record's; the
+Reassure mission and the eased terms are game steps and are not dressed as
+history; the cards name offices only as the record holds them (the Elector,
+the Tsar, Austria's envoy — S14D-X41). **The Cabinet's own first-open line
+is drawn on the court LIST (step 1) only** — the lesson's doors open a
+court's page, so the player meets that line on their first Cabinet open in
+the campaign (part 1's rule, kept at Interface Scale 2.0's fold).
+
+**Walked on the real client (Mode C, October 24, 2026):** the DD-B instrument
+on `SOVEREIGN_PORT=8007` — the title's two School rows, the seven cards to
+the hand-off by the buttons alone (record `docs/audits/dd_b/table_walk_2026_10_24/`
+and `TABLE_LESSON_SPEC.md` §17).
+
+---
+
 ## Update Instructions
 
 When adding a feature, add one line to the appropriate section:

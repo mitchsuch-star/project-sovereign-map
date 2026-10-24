@@ -41,6 +41,9 @@ SMOKE_ORDERS = ("status", "Ney, attack Mack")
 LIVE_ORDER = "Davout, see to it that the Austrians regret Swabia"
 
 
+REPO = Path(__file__).resolve().parents[1]
+
+
 def smoke_env(work: Path, port: int, live_key: str | None = None) -> dict:
     """The frozen server's environment: the developer's own stripped, the
     smoke's sandbox set. Pure — tested directly."""
@@ -129,6 +132,27 @@ def run_smoke(dist: Path, port: int, expect_version: str | None,
         if not new_game.get("success"):
             print(f"[ERROR] /new_game refused: {new_game.get('message')}")
             return 1
+        # S14d part 3 (S14D-X15's live proof, October 24, 2026): every School
+        # of War scenario the frozen build ships must boot on the frozen server
+        # — a fourth file missing from the spec 404s `/new_game` only here.
+        # the smoke runs by path from the repo root (build.bat): the repo's own
+        # modules are not on sys.path unless put there
+        if str(REPO) not in sys.path:
+            sys.path.insert(0, str(REPO))
+        from backend.game_logic.tutorial_state import SCHOOL_SCENARIOS
+        for lesson in SCHOOL_SCENARIOS:
+            booted = _post(f"{base}/new_game", {"scenario": lesson})
+            scenario_name = (booted.get("game_state") or {}).get("scenario_name")
+            if not booted.get("success") or scenario_name != lesson:
+                print(f"[ERROR] /new_game {{scenario: {lesson!r}}} refused or booted "
+                      f"{scenario_name!r}: {booted.get('message')}")
+                return 1
+            print(f"[INFO] the School scenario {lesson!r} boots on the frozen server")
+        # back to the campaign for the orders below
+        new_game = _post(f"{base}/new_game", {})
+        if not new_game.get("success"):
+            print(f"[ERROR] /new_game refused after the School boots: {new_game.get('message')}")
+            return 1
         turn0 = int(_get(f"{base}/test").get("turn", 0))
         for order in SMOKE_ORDERS:
             reply = _post(f"{base}/command", {"command": order})
@@ -183,6 +207,12 @@ def run_smoke(dist: Path, port: int, expect_version: str | None,
 
 
 def main(argv: list[str] | None = None) -> int:
+    # the server log tail carries UTF-8 glyphs; a cp1252 console must not
+    # turn a failed smoke into a UnicodeEncodeError
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dist", type=Path, required=True)
     ap.add_argument("--port", type=int, default=8099)

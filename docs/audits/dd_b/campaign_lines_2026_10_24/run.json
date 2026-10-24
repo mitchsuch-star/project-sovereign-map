@@ -1,0 +1,518 @@
+{
+ "road": "diplomacy",
+ "port": 8007,
+ "turn_reached": "Turn 2 — Early October 1805",
+ "turn_number": 2,
+ "actions": [
+  {
+   "n": 0,
+   "action": "boot",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "record": 1942
+   }
+  },
+  {
+   "n": 1,
+   "action": "click Looks right",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 110,
+    "record": 2518,
+    "settle": 967
+   }
+  },
+  {
+   "n": 2,
+   "action": "click Begin the 1805 Campaign",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1760,
+    "settle": 11606
+   }
+  },
+  {
+   "n": 3,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 1640,
+    "settle": 1068
+   }
+  },
+  {
+   "n": 4,
+   "action": "click The Emperor",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1627,
+    "settle": 1083
+   }
+  },
+  {
+   "n": 5,
+   "action": "click Back",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1620,
+    "settle": 966
+   }
+  },
+  {
+   "n": 6,
+   "action": "click Formable Nations",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1624,
+    "settle": 1099
+   }
+  },
+  {
+   "n": 7,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1770,
+    "settle": 934
+   }
+  },
+  {
+   "n": 8,
+   "action": "click War with the Third Coalition",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1911,
+    "settle": 934
+   }
+  },
+  {
+   "n": 9,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1049,
+    "settle": 1284
+   }
+  },
+  {
+   "n": 10,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1773,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 11,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1804,
+    "settle": 934
+   }
+  },
+  {
+   "n": 12,
+   "action": "key T",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1446,
+    "settle": 950
+   }
+  },
+  {
+   "n": 13,
+   "action": "click LAWS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1470,
+    "settle": 967
+   }
+  },
+  {
+   "n": 14,
+   "action": "click ADMIRALTY",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 113,
+    "record": 1445,
+    "settle": 963
+   }
+  },
+  {
+   "n": 15,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1756,
+    "settle": 934
+   }
+  },
+  {
+   "n": 16,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1562,
+    "settle": 1284
+   }
+  },
+  {
+   "n": 17,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 355,
+    "record": 1412,
+    "settle": 889
+   }
+  },
+  {
+   "n": 18,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 1424,
+    "settle": 934
+   }
+  },
+  {
+   "n": 19,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 1527,
+    "settle": 935
+   }
+  },
+  {
+   "n": 20,
+   "action": "key T",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1430,
+    "settle": 934
+   }
+  },
+  {
+   "n": 21,
+   "action": "click LAWS",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"LAWS\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1408,
+    "settle": 923
+   }
+  },
+  {
+   "n": 22,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1766,
+    "settle": 951
+   }
+  },
+  {
+   "n": 23,
+   "action": "click_at 3635 18",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1648,
+    "settle": 925
+   }
+  },
+  {
+   "n": 24,
+   "action": "click Save Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1767,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 25,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1630,
+    "settle": 934
+   }
+  },
+  {
+   "n": 26,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1782,
+    "settle": 934
+   }
+  },
+  {
+   "n": 27,
+   "action": "key T",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1435,
+    "settle": 949
+   }
+  },
+  {
+   "n": 28,
+   "action": "click LAWS",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 97,
+    "record": 1445,
+    "settle": 934
+   }
+  },
+  {
+   "n": 29,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1783,
+    "settle": 933
+   }
+  },
+  {
+   "n": 30,
+   "action": "click_at 3635 18",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1659,
+    "settle": 933
+   }
+  },
+  {
+   "n": 31,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1684,
+    "settle": 983
+   }
+  },
+  {
+   "n": 32,
+   "action": "click quicksave",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1425,
+    "settle": 1202
+   }
+  },
+  {
+   "n": 33,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1414,
+    "settle": 917
+   }
+  },
+  {
+   "n": 34,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1779,
+    "settle": 950
+   }
+  },
+  {
+   "n": 35,
+   "action": "key T",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1846,
+    "settle": 933
+   }
+  },
+  {
+   "n": 36,
+   "action": "click LAWS",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"LAWS\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 8,
+    "record": 1786,
+    "settle": 920
+   }
+  },
+  {
+   "n": 37,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1785,
+    "settle": 924
+   }
+  },
+  {
+   "n": 38,
+   "action": "quit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1730,
+    "settle": 0
+   }
+  }
+ ],
+ "n_actions": 39,
+ "wall_s": 357.0,
+ "engine_exit": 0,
+ "script_errors": [],
+ "n_script_errors": 0
+}

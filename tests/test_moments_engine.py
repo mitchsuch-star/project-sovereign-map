@@ -265,7 +265,12 @@ class TestTheValidator:
                                                                                  court="Austria"),
          "moments.deck[2].when"),
         ("an unknown road", lambda b: b["deck"][3].update(roads=["moon"]), "moments.deck[3].roads"),
-        ("an envoy with no court", lambda b: b["deck"][1]["voice"].pop("nation"), "moments.deck[1].voice.nation"),
+        # S14D-X42 (October 24, 2026): deck[1] (the Throne of Holland) is a `named`
+        # voice now and no shipped entry is an envoy; the envoy without a court is
+        # MADE on deck[0] (the Cabinet's voice turned envoy with no nation), and the named
+        # voice without its name is the sibling case
+        ("an envoy with no court", lambda b: b["deck"][0]["voice"].update(speaker="envoy"), "moments.deck[0].voice.nation"),
+        ("a named voice with no name", lambda b: b["deck"][1]["voice"].pop("name"), "moments.deck[1].voice.name"),
         ("a duplicate id", lambda b: b["deck"][1].update(id="bavarian_match"), "moments.deck[1].id"),
         ("an id that is a law's", lambda b: b["deck"][0].update(id="berlin_decree"), "moments.deck[0].id"),
         ("a window past the Verdict", lambda b: b["deck"][3].update(turn={"value": 43, "band": [43, 43]},

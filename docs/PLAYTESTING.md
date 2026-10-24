@@ -948,6 +948,31 @@ and `prompt_sha256` in `MANIFEST.json`. The responses stay as authored.
 The same rows run from the CLI, keyless: `python -m backend.ai.parser_eval
 --replay` (the `live_only` corpus rows on the cassettes; exit 2 on a miss).
 
+## The School of War's instruments (October 24, 2026)
+
+- **The Danube** (`tutorial_1805.json`): the committed driver scripts
+  `tools/playtest_scripts/tutorial_lesson.json` / `tutorial_lesson_trust.json`
+  (Mode A; the turn keys mirror the cards' gates — drift pin
+  `tests/test_fa_slice8_the_instrument_2026_09_02.py`), and the driven harness
+  `tests/test_tutorial_unbreakable_2026_09_23.py` + `tools/tutorial_overlay_harness.gd`
+  (the real overlay over recorded responses; skips without Godot).
+- **The Table** (`tutorial_table_1805.json`, S14d part 2): the board is TUNED by
+  `tools/_table_board_probe.py` — it reads the lesson's arithmetic the way the
+  client reads it and then plays the three turns for real through the client's
+  endpoints (the mission, the table, the chip, Proceed, Send; the vassalage eased
+  once); its record `tools/_table_board_probe_final.json` carries the board's hash
+  and is pinned by `tests/test_tutorial_table_scenario.py`. Re-run it after any
+  change to the board or to the diplomacy engine's verdicts. The committed script
+  `tools/playtest_scripts/tutorial_table_lesson.json` (its `clicks` are the
+  buttons the lesson presses — the driver's own policies keep the joint
+  settlement, so an unattended Mode A run makes no separate peace) is played
+  through the real overlay by `tests/test_tutorial_table_driven.py`.
+- **Mode C for either lesson:** the DD-B instrument (`tools/dd_b_play.py`, below)
+  on a sandboxed port — the title's School rows, then the cards' own door chips
+  and the screens' buttons by `act click <words>` (a `[url]` chip is pressed by
+  its own meta road). The Table walked on October 24, 2026
+  (`TABLE_LESSON_SPEC.md` §17).
+
 ## Mode C — the full client (the visual pass)
 
 Use for visual sign-offs, popup rendering, map/piece checks — the things

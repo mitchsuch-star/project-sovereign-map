@@ -1,0 +1,713 @@
+{
+ "road": "diplomacy",
+ "port": 8007,
+ "turn_reached": "Turn 1 — Late September 1805",
+ "turn_number": 1,
+ "actions": [
+  {
+   "n": 0,
+   "action": "boot",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "record": 1877
+   }
+  },
+  {
+   "n": 1,
+   "action": "click \"Looks right\"",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"\"Looks right\"\"",
+   "turn": "",
+   "durations_ms": {
+    "act": 2,
+    "record": 2343,
+    "settle": 930
+   }
+  },
+  {
+   "n": 2,
+   "action": "click \"The School of War — The Table\"",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"\"The School of War — The Table\"\"",
+   "turn": "",
+   "durations_ms": {
+    "act": 1,
+    "record": 2445,
+    "settle": 925
+   }
+  },
+  {
+   "n": 3,
+   "action": "click Looks right",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 111,
+    "record": 2433,
+    "settle": 921
+   }
+  },
+  {
+   "n": 4,
+   "action": "click The School of War — The Table",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1750,
+    "settle": 12713
+   }
+  },
+  {
+   "n": 5,
+   "action": "click Open the Cabinet on Bavaria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 36,
+    "record": 1569,
+    "settle": 891
+   }
+  },
+  {
+   "n": 6,
+   "action": "scroll 1828 650 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 161,
+    "record": 1598,
+    "settle": 933
+   }
+  },
+  {
+   "n": 7,
+   "action": "scroll 1825 560 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 194,
+    "record": 1549,
+    "settle": 933
+   }
+  },
+  {
+   "n": 8,
+   "action": "click Reassure Ally",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1562,
+    "settle": 1166
+   }
+  },
+  {
+   "n": 9,
+   "action": "click Begin mission",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1735,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 10,
+   "action": "click Open the table",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 9,
+    "record": 1030,
+    "settle": 1185
+   }
+  },
+  {
+   "n": 11,
+   "action": "click Separate peace with Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1538,
+    "settle": 1101
+   }
+  },
+  {
+   "n": 12,
+   "action": "click Proceed",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 97,
+    "record": 1518,
+    "settle": 1017
+   }
+  },
+  {
+   "n": 13,
+   "action": "click Send as suggested",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Early December 1805",
+   "durations_ms": {
+    "act": 114,
+    "record": 1720,
+    "settle": 1024
+   }
+  },
+  {
+   "n": 14,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1507,
+    "settle": 1115
+   }
+  },
+  {
+   "n": 15,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 158,
+    "record": 1726,
+    "settle": 935
+   }
+  },
+  {
+   "n": 16,
+   "action": "click Propose vassalage",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 8,
+    "record": 1559,
+    "settle": 919
+   }
+  },
+  {
+   "n": 17,
+   "action": "click Propose Vassal",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 115,
+    "record": 1520,
+    "settle": 1063
+   }
+  },
+  {
+   "n": 18,
+   "action": "click More generous",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1514,
+    "settle": 1019
+   }
+  },
+  {
+   "n": 19,
+   "action": "click Send these terms",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Late December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1713,
+    "settle": 1017
+   }
+  },
+  {
+   "n": 20,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Early January 1806",
+   "durations_ms": {
+    "act": 100,
+    "record": 1519,
+    "settle": 1034
+   }
+  },
+  {
+   "n": 21,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Early January 1806",
+   "durations_ms": {
+    "act": 134,
+    "record": 1736,
+    "settle": 942
+   }
+  },
+  {
+   "n": 22,
+   "action": "click Conclude the lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Early January 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1767,
+    "settle": 920
+   }
+  },
+  {
+   "n": 23,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Early January 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1771,
+    "settle": 934
+   }
+  },
+  {
+   "n": 24,
+   "action": "click_at 3635 18",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1641,
+    "settle": 934
+   }
+  },
+  {
+   "n": 25,
+   "action": "click Main Menu",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 315,
+    "record": 1949,
+    "settle": 1079
+   }
+  },
+  {
+   "n": 26,
+   "action": "click The School of War — a guided campaign",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 108,
+    "record": 2367,
+    "settle": 907
+   }
+  },
+  {
+   "n": 27,
+   "action": "click Confirm — to school",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1709,
+    "settle": 9150
+   }
+  },
+  {
+   "n": 28,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1735,
+    "settle": 904
+   }
+  },
+  {
+   "n": 29,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1749,
+    "settle": 920
+   }
+  },
+  {
+   "n": 30,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1716,
+    "settle": 921
+   }
+  },
+  {
+   "n": 31,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1724,
+    "settle": 922
+   }
+  },
+  {
+   "n": 32,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1703,
+    "settle": 920
+   }
+  },
+  {
+   "n": 33,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1706,
+    "settle": 921
+   }
+  },
+  {
+   "n": 34,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1710,
+    "settle": 918
+   }
+  },
+  {
+   "n": 35,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1731,
+    "settle": 920
+   }
+  },
+  {
+   "n": 36,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1738,
+    "settle": 921
+   }
+  },
+  {
+   "n": 37,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1786,
+    "settle": 905
+   }
+  },
+  {
+   "n": 38,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1783,
+    "settle": 922
+   }
+  },
+  {
+   "n": 39,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1721,
+    "settle": 919
+   }
+  },
+  {
+   "n": 40,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1705,
+    "settle": 919
+   }
+  },
+  {
+   "n": 41,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1717,
+    "settle": 919
+   }
+  },
+  {
+   "n": 42,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1708,
+    "settle": 922
+   }
+  },
+  {
+   "n": 43,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1713,
+    "settle": 921
+   }
+  },
+  {
+   "n": 44,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1703,
+    "settle": 919
+   }
+  },
+  {
+   "n": 45,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1714,
+    "settle": 919
+   }
+  },
+  {
+   "n": 46,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1726,
+    "settle": 919
+   }
+  },
+  {
+   "n": 47,
+   "action": "click Conclude the lesson",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1751,
+    "settle": 923
+   }
+  },
+  {
+   "n": 48,
+   "action": "click_at 3635 18",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1658,
+    "settle": 934
+   }
+  },
+  {
+   "n": 49,
+   "action": "click Main Menu",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 279,
+    "record": 1969,
+    "settle": 1074
+   }
+  },
+  {
+   "n": 50,
+   "action": "click Begin the 1805 Campaign",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 111,
+    "record": 2431,
+    "settle": 933
+   }
+  },
+  {
+   "n": 51,
+   "action": "click Confirm — begin anew",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1784,
+    "settle": 9100
+   }
+  },
+  {
+   "n": 52,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1658,
+    "settle": 1100
+   }
+  },
+  {
+   "n": 53,
+   "action": "quit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1593,
+    "settle": 0
+   }
+  }
+ ],
+ "n_actions": 54,
+ "wall_s": 1308.8,
+ "engine_exit": 0,
+ "script_errors": [],
+ "n_script_errors": 0
+}
