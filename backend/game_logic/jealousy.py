@@ -402,6 +402,36 @@ def _stamp_audience(marshal, turn: int) -> None:
     marshal.jealousy_history["__audience__"] = {"turn": int(turn)}
 
 
+INITIATIVE_LAUREL = 1   # S14E-D1 re-ruled (October 25, 2026): the laurel of initiative
+
+
+def arm_initiative_laurel(world, marshal) -> None:
+    """S14E-D1 re-ruled by the user (October 25, 2026 — "making him ask is
+    removing fun friction"): an aggressive marshal who gives battle on the
+    road at favourable odds, unordered, and WINS, takes a laurel of his own
+    beyond the battle's glory. The deed ARMS this transient flag before its
+    attack; `record_battle_glory` — the ONE accrual chokepoint (FA-S16-D4),
+    so the School's gate, the skirmish floor and the sovereign's exemption
+    all hold — reads and clears it, and leaves what it awarded in
+    `world._initiative_laurel_awarded` for the deed's reply to name."""
+    if world is None or marshal is None:
+        return
+    world._initiative_laurel_for = str(getattr(marshal, "name", "") or "")
+    world._initiative_laurel_awarded = 0
+
+
+def take_initiative_laurel_awarded(world) -> int:
+    """The laurel the chokepoint awarded to the armed deed (0 when none);
+    read once, then cleared — and the arm cleared too, so a deed whose
+    battle never reached the ladder (a refusal, a skirmish) leaves nothing."""
+    if world is None:
+        return 0
+    awarded = int(getattr(world, "_initiative_laurel_awarded", 0) or 0)
+    world._initiative_laurel_awarded = 0
+    world._initiative_laurel_for = None
+    return awarded
+
+
 def _append_glory(marshal, turn: int, points: int) -> None:
     # NP-0 (NAPOLEON_SPEC §6.1): a sovereign accrues NO glory, ever — his
     # victories are the Empire's. This is the single accrual chokepoint,
@@ -482,6 +512,10 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
     are lexically inside this function and there are exactly two production
     callers — so the School's gate belongs here and nowhere else.
     """
+    # S14E-D1 re-ruled (October 25, 2026): the armed deed's laurel — read
+    # here, after the gates below, so the School, the skirmish floor and the
+    # sovereign's exemption govern it like every other point.
+    _initiative_for = getattr(world, "_initiative_laurel_for", None)
     if glory_dormant(world):
         return
     # SR-4c (AAR-D3): a skirmish is not a laurel — below the war score's own
@@ -493,6 +527,12 @@ def record_battle_glory(world, attacker, defender, attacker_won: bool,
                                           defender_casualties):
         return
     turn = int(world.current_turn)
+    if (_initiative_for and attacker is not None and attacker_won
+            and str(getattr(attacker, "name", "") or "") == str(_initiative_for)
+            and not getattr(attacker, "is_sovereign", False)):
+        _append_glory(attacker, turn, INITIATIVE_LAUREL)
+        world._initiative_laurel_awarded = INITIATIVE_LAUREL
+        world._initiative_laurel_for = None
     atk_outnumbered = pre_attacker_strength < pre_defender_strength
     def_outnumbered = pre_defender_strength < pre_attacker_strength
 

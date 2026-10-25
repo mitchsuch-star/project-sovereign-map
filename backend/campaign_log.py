@@ -2088,6 +2088,11 @@ def _oneliner_the_field(ctx: OnelinerContext):
         deleg_phrase = ctx.event.get("delegation_phrase")
         if deleg_phrase:
             line += f' — on your word: "{deleg_phrase}"'
+        # S14E-D1 re-ruled (October 25, 2026): the aggressive marshal's own
+        # deed — he gave battle on the road at favourable odds without an
+        # order; the log names it as his, not the march's.
+        if ctx.event.get("initiative"):
+            line += " — on his own judgment, on the road"
         # W6-6: the enemy commander's one-line register rides as a flavor
         # suffix (already humanized + quoted at composition).
         enemy_voice = ctx.event.get("enemy_voice")

@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **S14f part 2 is next**.
 
 **▶ LIVE STATE (October 24, 2026).** The three most recent landed rows:
-- **S14f part 1 (Oct 24) — the re-measure's rows — LANDED** (§150): S14E-1 … 15 and 31 FIXED, D1–D4 built, 68 siblings (49 fixed). **NEXT = S14f part 2.**
-- **S14e (Oct 24) — DD-B's re-measure — COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1, NOT met; 35 rows → S14f.
-- **S14d part 3 (Oct 24) — the walk, the frozen build, the close — LANDED; S14d COMPLETE** (§148.11).
+- **S14f part 1 (Oct 24) — the re-measure's rows — LANDED** (§150): S14E-1 … 15 and 31 FIXED, D2–D4 built, D1 re-ruled Oct 25 (the deed, with teeth), 68 siblings, 49 fixed. **NEXT = S14f part 2.**
+- **S14e (Oct 24) — DD-B's re-measure — COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1; 35 rows → S14f.
+- **S14d part 3 (Oct 24) — the walk and the close — LANDED; S14d COMPLETE** (§148.11).
 
 **Open with the user:** S14E-D5 … D11, a third measure after S14f, S14d's A1 (mounts/signs; 1.5 → 2.5), UXR-4 (S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 

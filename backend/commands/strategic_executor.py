@@ -2857,13 +2857,12 @@ class StrategicExecutor:
         Handle enemy blocking path on first step of strategic command.
 
         Personality-based response:
-        - AGGRESSIVE: a TYPED order ASKS, in his own confident line, when
-          the raw odds reach 0.7 (S14E-1 / S14E-D1, October 24, 2026 — the
-          auto-attack survives only for a delegation-inferred order's
-          favourable read, a PURSUE that finds its quarry, a march whose
-          arrival tail names the man met, and the AI's side); below 0.7
+        - AGGRESSIVE: Auto-attack if odds >= 0.7 — the deed is his: the
+          muster at the battle's head, the deed named in the reply and the
+          log, a laurel and +2 trust on a win, −5 trust on a loss
+          (S14E-D1 as RE-RULED by the user, October 25, 2026); below 0.7
           the bad-odds ask
-        - CAUTIOUS / BALANCED / LOYAL: Always ask (the muster shown)
+        - CAUTIOUS / BALANCED / LOYAL: Always ask (the muster shown, S14E-X1)
         - LITERAL: Silently reroute
 
         Returns:
@@ -2994,37 +2993,34 @@ class StrategicExecutor:
             else:
                 favorable = (marshal.strength / max(1, enemy.strength)) >= 0.7
 
-            # S14E-1 / S14E-D1 (Pre-Deploy S14f part 1, October 24, 2026):
-            # a TYPED order's first step that meets an enemy ASKS, every
-            # personality alike — one modal, the muster shown, no battle
-            # fought unordered. "Massena, march to Milan" (a plain move
-            # home) ran through Austrian-held Tyrol and became a battle at
-            # raw odds of 0.7, drawing five corps and +8 alarm (the sea
-            # road's P1). The aggressive marshal's temperament lives in his
-            # LINE and his odds reading ("I can take him, Sire"), never in
-            # acting unordered — DDB-D1's own reasoning (the game must not
-            # spend an order the player did not give). Kept as today: a
-            # delegation-inferred order (CR-5 §6.3c, its own gate above), a
-            # PURSUE that finds its quarry on the first step, a march whose
-            # arrival tail NAMES the man met, and the AI's side (Rule 5 —
-            # same executor, its own input; it never types).
-            if (favorable and not inferred
-                    and self._typed_first_step_asks(marshal, order, enemy, world,
-                                                    blocked_region)):
-                return self._first_step_contact_ask(
-                    marshal, order, enemy, blocked_region, world, confident=True)
-
+            # S14E-D1 RE-RULED by the user (October 25, 2026 — "making him ask
+            # is removing fun friction"): the deed stays his. Part 1's ask-first
+            # build (S14E-1, the sea road's P1) took the easy half of what the
+            # player filed; the silence was the bug, not the temperament. So an
+            # aggressive marshal fights at favourable odds as before — but the
+            # muster block rides the battle's head (`_muster_confirmed`), the
+            # reply and the campaign log name the deed as HIS, and it has teeth
+            # both ways (`_initiative_deed`: a laurel and +2 trust on a win, −5
+            # trust on a loss, nothing on a stalemate — the V2b defiance
+            # outcomes' own magnitudes). Every other personality keeps the ask.
             if favorable:
-                # Auto-attack — favorable odds
-                result = self._executor.execute(
-                    {"command": {
-                        "marshal": marshal.name,
-                        "action": "attack",
-                        "target": enemy.name,
-                        "_strategic_execution": True
-                    }},
-                    game_state
-                )
+                # Auto-attack — favorable odds: the deed is his.
+                _is_player = (marshal.nation == getattr(world, "player_nation", None))
+                _logged_before = len(getattr(world, "event_log", []) or [])
+                _deed_cmd = {
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": enemy.name,
+                    "_strategic_execution": True,
+                }
+                if _is_player:
+                    # the muster block rides the battle's head, the gate off —
+                    # the answered contact's own idiom; and the laurel of
+                    # initiative is ARMED for the glory chokepoint to award
+                    from backend.game_logic import jealousy as _jealousy
+                    _deed_cmd["_muster_confirmed"] = True
+                    _jealousy.arm_initiative_laurel(world, marshal)
+                result = self._executor.execute({"command": _deed_cmd}, game_state)
                 # Return attack result — order continues or breaks based on combat
                 from backend.commands.strategic import (
                     _carry_combat_fields, attack_was_refused)
@@ -3037,13 +3033,16 @@ class StrategicExecutor:
                     # WHOLE — report, diorama, events, capture prompt and the
                     # war-purpose triad — through the same allowlist the
                     # interrupt route has carried since F1b / CA8-25.
+                    deed = self._initiative_deed(
+                        marshal, enemy, blocked_region, world, result,
+                        combat_msg, _logged_before, player=_is_player)
                     return _carry_combat_fields({
                         "success": True,
-                        "message": f"{interrupt_speaker(marshal)}: '{_shown_name(enemy.name)} bars the way!' "
-                                   f"Engaging!\n\n{combat_msg}",
+                        "message": deed["message"],
                         "strategic_order": True,
                         "strategic_type": order.command_type,
                         "first_step_combat": True,
+                        "first_step_initiative": deed["record"],
                     }, result)
                 return result
 
@@ -3100,69 +3099,84 @@ class StrategicExecutor:
             # bad-odds ask beside it did — the one builder now carries
             # Berthier's note on every first-step ask.
             return self._first_step_contact_ask(
-                marshal, order, enemy, blocked_region, world, confident=False)
+                marshal, order, enemy, blocked_region, world)
 
-    @staticmethod
-    def _typed_first_step_asks(marshal, order, enemy, world,
-                               blocked_region: Optional[str] = None) -> bool:
-        """S14E-1 / S14E-D1: does an aggressive marshal's TYPED order ask on
-        its blocked first step instead of fighting at favourable odds?
-
-        True for the player's own march, hold or support that meets a corps
-        it was not sent against. False — today's rule stands — when the
-        order is the AI's (Rule 5: the same executor, its own input, no one
-        to answer a modal), when a PURSUE finds its quarry on the first step
-        (the pursuit IS the order to bring him to battle; the per-turn
-        processor attacks on arrival by the same rule), or when the march's
-        arrival tail ordered the fight the step meets: the man it NAMES
-        ("march on Swabia and destroy Mack", wherever he stands on the
-        road's first step) or, unnamed ("march to Swabia then attack"), the
-        corps holding the destination itself (CR-7-6: the first of them).
-        """
-        if order is None:
-            return False
-        if str(getattr(marshal, "nation", "") or "") != str(
-                getattr(world, "player_nation", "France") or "France"):
-            return False
-        foe = str(getattr(enemy, "name", "") or "")
-        if order.command_type == "PURSUE" and str(order.target or "") == foe:
-            return False
-        if getattr(order, "attack_on_arrival", False):
-            named = str(getattr(order, "arrival_target", "") or "")
-            if named:
-                if named == foe:
-                    return False
-            elif blocked_region:
-                from backend.commands.strategic import resolve_order_destination
-                if blocked_region == resolve_order_destination(world, marshal, order):
-                    return False
-        return True
+    def _initiative_deed(self, marshal, enemy, blocked_region, world, result,
+                         combat_msg: str, logged_before: int, *, player: bool) -> Dict:
+        """S14E-D1 re-ruled (October 25, 2026): the aggressive marshal's own
+        deed — he gave battle on the road at favourable odds without an
+        order. The reply names it as his ("Massena engages him on the road,
+        on his own judgment."), the campaign log's battle row carries
+        `initiative` (its one-liner: "— on his own judgment, on the road"),
+        and it has teeth, the V2b defiance outcomes' own magnitudes
+        (`defiance.py`: a marshal proved right +2 trust, proved wrong −5):
+        a WIN takes the laurel of initiative (`jealousy.arm_initiative_laurel`
+        → the chokepoint awards it, +1 glory beyond the battle's own) and
+        +2 trust; a LOSS −5
+        trust; a stalemate nothing. The Emperor's authority is untouched —
+        no order of his was disobeyed, a gap was filled. Player only: an AI
+        marshal's deed is the old line and no teeth (Rule 5).
+        Returns {message, record}."""
+        shown_enemy = _shown_name(enemy.name)
+        if not player:
+            return {
+                "message": (f"{interrupt_speaker(marshal)}: '{shown_enemy} bars the way!' "
+                            f"Engaging!\n\n{combat_msg}"),
+                "record": None,
+            }
+        from backend.commands.strategic import fought_battle_victor
+        from backend.display_names import humanize_entity_name
+        name = humanize_entity_name(marshal.name)
+        # the log's battle row is his deed
+        for ev in (getattr(world, "event_log", []) or [])[logged_before:]:
+            if (isinstance(ev, dict) and ev.get("type") == "battle"
+                    and ev.get("attacker") == marshal.name):
+                ev["initiative"] = True
+        victor = fought_battle_victor(result, marshal.name)
+        record = {"marshal": marshal.name, "enemy": enemy.name, "location": blocked_region,
+                  "outcome": "none", "trust_change": 0, "glory": 0}
+        teeth = ""
+        from backend.game_logic import jealousy as _jealousy
+        awarded = int(_jealousy.take_initiative_laurel_awarded(world))
+        if victor == marshal.name:
+            record["glory"] = awarded
+            record["trust_change"] = int(marshal.modify_trust(+2))
+            record["outcome"] = "won"
+            laurel = (f"+{record['glory']} glory, " if record["glory"] else "")
+            teeth = (f"Berthier: the initiative was his and so is the laurel — "
+                     f"{laurel}+2 trust.")
+        elif victor:
+            record["trust_change"] = int(marshal.modify_trust(-5))
+            record["outcome"] = "lost"
+            teeth = ("Berthier: he gave battle on the road without your word and "
+                     "lost it — −5 trust.")
+        elif victor == "":
+            record["outcome"] = "stalemate"
+            teeth = ("Berthier: an inconclusive affair of his own making — nothing "
+                     "gained, nothing charged.")
+        message = (f"{interrupt_speaker(marshal)}: '{shown_enemy} bars the way at "
+                   f"{blocked_region}, Sire — I can take him.' {name} engages him on "
+                   f"the road, on his own judgment.\n\n{combat_msg}")
+        if teeth:
+            message += f"\n\n{teeth}"
+        return {"message": message, "record": record}
 
     def _first_step_contact_ask(self, marshal, order, enemy, blocked_region,
-                                world, *, confident: bool) -> Dict:
-        """The ONE first-step contact ask (`interrupt_type: contact`) — the
-        marshal's line, then Berthier's muster (the same ladder the bad-odds
-        ask and the attack preview read, so the three cannot drift), the
-        options by the board, 1 action (the order's own, as every arm's).
-
-        `confident` is the aggressive marshal who read the odds in his
-        favour (S14E-1): "Archduke John bars the way at Tyrol, Sire — I can
-        take him." The others keep their ask. FA-15 side finding (slice 3):
-        no `go_around` when the blocked province IS the destination
-        (rerouting "around" the objective is nonsensical and re-asks at
-        once).
+                                world) -> Dict:
+        """The ONE first-step contact ask (`interrupt_type: contact`) for the
+        cautious, balanced and loyal arms — the marshal's line, then
+        Berthier's muster (S14E-X1: the same ladder the bad-odds ask and the
+        attack preview read, so the three cannot drift), the options by the
+        board, 1 action (the order's own, as every arm's). FA-15 side finding
+        (slice 3): no `go_around` when the blocked province IS the
+        destination (rerouting "around" the objective is nonsensical and
+        re-asks at once).
         """
         from backend.commands import strategic as _strategic_mod
         from backend.commands.strategic import resolve_order_destination
         destination = resolve_order_destination(world, marshal, order)
         at_destination = (blocked_region == destination)
-        shown_enemy = _shown_name(enemy.name)
-        if confident:
-            where = (f"holds {blocked_region}" if at_destination
-                     else f"bars the way at {blocked_region}")
-            contact_msg = (f"{interrupt_speaker(marshal)}: '{shown_enemy} {where}, "
-                           f"Sire — I can take him.'")
-        elif at_destination:
+        if at_destination:
             contact_msg = (f"{interrupt_speaker(marshal)}: 'Enemy holds "
                            f"{blocked_region} — destination blocked. How shall "
                            f"I proceed, Sire?'")
@@ -3192,9 +3206,6 @@ class StrategicExecutor:
             # FA-N60: the stored ask carries its own line.
             "message": contact_msg,
         }
-        if confident:
-            # The marshal's own reading, for the record and the client.
-            marshal.pending_interrupt["odds_read"] = "favorable"
         return {
             "success": True,
             "requires_input": True,

@@ -670,22 +670,15 @@ class TestFirstStepLethalGate:
         # No assault was launched (the danger the gate prevents).
         assert wellington.strength == before
 
-    def test_explicit_typed_order_asks_in_his_own_voice(self):
-        # The SAME fortified superior force, but the order is not inferred ->
-        # the raw 0.78 ratio reads favorable to Ney. Until S14E-1 / S14E-D1
-        # (Pre-Deploy S14f part 1, October 24, 2026) he auto-attacked here,
-        # gate-free; now a TYPED order's first step ASKS, every personality
-        # alike — his confidence lives in his line ("I can take him"), the
-        # bad-odds gate stays the inferred order's own.
+    def test_explicit_typed_order_stays_gate_free_and_attacks(self):
+        # Regression: the SAME fortified superior force, but the order is not
+        # inferred -> the raw 0.78 ratio is favorable and Ney auto-attacks
+        # (S14E-D1 re-ruled by the user, October 25, 2026: the deed stays his).
         se, ney, wellington, world, game_state = self._setup(inferred=False)
-        before = wellington.strength
         with _suppress_output():
             result = se._handle_first_step_blocked(
                 ney, [wellington], "Belgium", world, game_state)
-        assert result.get("requires_input") is True
-        assert ney.pending_interrupt.get("interrupt_type") == "contact"
-        assert "I can take him" in result.get("message", "")
-        assert wellington.strength == before  # nothing fought unordered
+        assert result.get("requires_input") is not True
 
     def test_inferred_into_weak_force_auto_attacks(self):
         se, ney, wellington, world, game_state = self._setup(

@@ -25,8 +25,9 @@ import pytest
 # ══════════════════════════════════════════════════════════════════════════
 # row01
 # ══════════════════════════════════════════════════════════════════════════
-# S14E-1 (the re-measure's P1) with its ruling S14E-D1 — a TYPED march
-# whose first step meets an enemy ASKS, every personality alike.
+# S14E-1 (the re-measure's P1) with its ruling S14E-D1 — RE-RULED by the user
+# on October 25, 2026: the aggressive deed stays his, with the muster, the log
+# line and teeth; every other personality asks (the record below is part 1's).
 # 
 # Pre-Deploy S14f part 1 (October 24, 2026; `docs/BUG_FIXES.md` §S14E,
 # `docs/DESIGN_REFINEMENT.md` §S14E D1). The sea road's P1 (turn 4, action
@@ -98,106 +99,163 @@ def _r1_march(executor, game_state, marshal: str, target: str, *, strategic_type
 
 
 class TestS14E1:
-    def test_the_typed_march_asks_in_his_own_voice_and_fights_nothing(self, _r1_board):
+    """S14E-D1 as RE-RULED by the user (October 25, 2026 — "making him ask is
+    removing fun friction"): the aggressive marshal's typed march that meets
+    an enemy on its first step at favourable odds FIGHTS, as before part 1 —
+    the deed stays his — but no longer in silence: the muster block rides
+    the battle's head, the reply and the campaign log name the deed as his,
+    and it has teeth (a laurel of initiative and +2 trust on a win, −5 trust
+    on a loss, nothing on a stalemate). Every other personality keeps the ask
+    with Berthier's muster (S14E-X1); the bad-odds ask is untouched."""
+
+    def test_the_typed_march_fights_at_favourable_odds_and_names_the_deed(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
-        assert massena.strength / john.strength >= 0.7  # the old arm's "favorable"
+        assert massena.strength / john.strength >= 0.7
+        trust_before = int(massena.trust)
+        glory_before = len(massena.glory_events)
         result = _r1_march(executor, gs, "Massena", "Milan")
         assert result.get("success") is True
-        assert result.get("requires_input") is True
-        assert result.get("first_step_interrupt") is True
-        assert not result.get("first_step_combat")
+        assert result.get("requires_input") is not True
+        assert result.get("first_step_combat") is True
         msg = result.get("message", "")
-        assert "Engaging" not in msg
         assert "Archduke John bars the way at Tyrol, Sire — I can take him." in msg
-        pending = massena.pending_interrupt
-        assert pending["interrupt_type"] == "contact" and pending["is_first_step"] is True
-        assert pending["options"] == ["attack", "go_around", "hold_position", "cancel_order"]
-        assert pending["odds_read"] == "favorable"
-        # nothing spent but the order's own action: no battle, nobody moved
-        assert john.strength == 20000 and massena.location == "Bohemia"
-        assert massena.strategic_order is not None
-        assert massena.strategic_order.path == ["Tyrol", "Milan"]
-        assert result.get("variable_action_cost") == 1
+        assert "Massena engages him on the road, on his own judgment." in msg
+        # the muster block rides the battle's head (the answered contact's idiom)
+        assert "MUSTER" in msg   # the block rides the battle's head
+        # a battle was fought — somebody bled
+        assert john.strength < 20000 or massena.strength < 42000
+        # the deed's record and its teeth
+        rec = result.get("first_step_initiative") or {}
+        assert rec.get("marshal") == "Massena" and rec.get("enemy") == "ArchdukeJohn"
+        assert rec.get("outcome") in ("won", "lost", "stalemate")
+        if rec["outcome"] == "won":
+            assert "the initiative was his and so is the laurel" in msg
+            assert int(massena.trust) == min(100, trust_before + 2)
+            assert len(massena.glory_events) >= glory_before + 1
+        elif rec["outcome"] == "lost":
+            assert "without your word and lost it — −5 trust" in msg
+            assert int(massena.trust) == max(0, trust_before - 5)
+        else:
+            assert "nothing gained, nothing charged" in msg
+            assert int(massena.trust) == trust_before
 
-    def test_the_muster_is_shown_beside_his_word(self, _r1_board):
+    def test_the_campaign_log_names_the_deed_as_his(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
+        _r1_march(executor, gs, "Massena", "Milan")
+        battles = [e for e in world.event_log if e.get("type") == "battle" and e.get("attacker") == "Massena"]
+        assert battles and battles[-1].get("initiative") is True
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner(battles[-1], world)
+        assert "on his own judgment, on the road" in line
+
+    def test_the_teeth_both_ways(self, _r1_board):
+        """The outcomes drive the teeth: a win takes the laurel and +2 trust,
+        a loss −5 trust, a stalemate nothing — read off the deed helper with
+        a staged battle result, the V2b defiance magnitudes."""
+        world, gs, executor, massena, john = _r1_board
+        se = executor._strategic
+        def run(victor, awarded):
+            massena.trust.set(60)
+            world._initiative_laurel_awarded = awarded   # what the chokepoint left
+            result = {"events": [{"type": "battle", "victor": victor}], "message": "x"}
+            deed = se._initiative_deed(massena, john, "Tyrol", world, result, "x",
+                                       len(world.event_log), player=True)
+            return deed, int(massena.trust), int(deed["record"]["glory"])
+        deed, trust, laurels = run("Massena", 1)
+        assert deed["record"]["outcome"] == "won" and trust == 62 and laurels == 1
+        assert "+1 glory, +2 trust" in deed["message"]
+        deed, trust, laurels = run("ArchdukeJohn", 0)
+        assert deed["record"]["outcome"] == "lost" and trust == 55 and laurels == 0
+        deed, trust, laurels = run("", 0)
+        assert deed["record"]["outcome"] == "stalemate" and trust == 60 and laurels == 0
+        assert getattr(world, "_initiative_laurel_awarded", 0) == 0   # read once, cleared
+        # the AI's deed: the old line, no teeth
+        ai = se._initiative_deed(john, massena, "Bohemia", world,
+                                 {"events": [{"type": "battle", "victor": "ArchdukeJohn"}]},
+                                 "x", len(world.event_log), player=False)
+        assert ai["record"] is None and "Engaging!" in ai["message"]
+
+    def test_the_laurel_goes_through_the_one_chokepoint(self, _r1_board):
+        """FA-S16-D4: every accrual is inside `record_battle_glory`; the deed
+        ARMS the laurel and the chokepoint awards it after its own gates —
+        one point beyond the battle's, none for a skirmish, none for a
+        sovereign, none when the armed man did not win."""
+        world, gs, executor, massena, john = _r1_board
+        from backend.game_logic import jealousy
+        def battle(attacker, armed, won=True, atk_cas=3000, def_cas=9000):
+            if armed:
+                jealousy.arm_initiative_laurel(world, attacker)
+            n = len(attacker.glory_events)
+            jealousy.record_battle_glory(world, attacker, john, attacker_won=won, defender_won=not won,
+                                         attacker_casualties=atk_cas, defender_casualties=def_cas,
+                                         conquered=False, pre_attacker_strength=42000,
+                                         pre_defender_strength=20000)
+            pts = sum(e["points"] for e in attacker.glory_events[n:])
+            return pts, jealousy.take_initiative_laurel_awarded(world)
+        plain, _ = battle(massena, armed=False)
+        armed, awarded = battle(massena, armed=True)
+        assert awarded == 1 and armed == plain + 1
+        # a skirmish is not a laurel: the floor governs the deed's point too
+        _, awarded = battle(massena, armed=True, atk_cas=10, def_cas=20)
+        assert awarded == 0
+        # the armed man lost: no laurel
+        _, awarded = battle(massena, armed=True, won=False, atk_cas=9000, def_cas=3000)
+        assert awarded == 0
+        # a sovereign accrues none
+        napoleon = world.get_marshal("Napoleon")
+        _, awarded = battle(napoleon, armed=True)
+        assert awarded == 0
+
+    def test_the_bad_odds_ask_is_untouched(self, _r1_board):
+        world, gs, executor, massena, john = _r1_board
+        john.strength = 70000   # 42,000 against 70,000: 0.6, below the bar
+        world.calculate_visibility()
         result = _r1_march(executor, gs, "Massena", "Milan")
-        assert "Berthier adds:" in result["message"]
-        assert "against Archduke John" in result["message"]
-        # the stored ask carries the same line (FA-N60: the popup and /load read it)
-        assert massena.pending_interrupt["message"] == result["message"]
+        assert result.get("requires_input") is True
+        assert massena.pending_interrupt["interrupt_type"] == "contact_bad_odds"
+        assert "Odds unfavorable" in result["message"]
+        assert john.strength == 70000
 
-    def test_attack_runs_todays_attack(self, _r1_board):
+    def test_the_cautious_march_still_asks_and_its_answers_hold(self, _r1_board):
+        """The cautious arm asks with Berthier's muster (S14E-X1) and its
+        answers hold — driven at the seam, since the cautious planner routes
+        round a seen corps and never meets him on the open board."""
         world, gs, executor, massena, john = _r1_board
-        _r1_march(executor, gs, "Massena", "Milan")
         from backend.commands.strategic import StrategicOrderProcessor
-        processor = StrategicOrderProcessor(executor)
-        with _r1_quiet():
-            answer = processor.handle_response("Massena", "blocked_path", "attack", world, gs)
-        assert answer.get("success") is True
-        assert "Massena attacks Archduke John" in answer.get("message", "")
-        assert john.strength < 20000 or massena.strength < 42000  # a battle was fought
-        assert massena.pending_interrupt is None
-
-    def test_go_around_replots_the_lawful_road(self, _r1_board):
-        world, gs, executor, massena, john = _r1_board
-        _r1_march(executor, gs, "Massena", "Milan")
-        from backend.commands.strategic import StrategicOrderProcessor
-        processor = StrategicOrderProcessor(executor)
-        with _r1_quiet():
-            answer = processor.handle_response("Massena", "blocked_path", "go_around", world, gs)
-        assert answer.get("success") is True
-        assert john.strength == 20000  # no battle
-        order = massena.strategic_order
-        assert order is not None and "Tyrol" not in (order.path or [])
-        assert order.path and order.path[-1] == "Milan"
-
-    def test_the_predicate_names_what_keeps_todays_rule(self, _r1_board):
-        world, gs, executor, massena, john = _r1_board
-        from backend.commands.strategic_executor import StrategicExecutor
         from backend.models.marshal import StrategicOrder
-        asks = StrategicExecutor._typed_first_step_asks
-        march = StrategicOrder(command_type="MOVE_TO", target="Milan", target_type="region",
-                               started_turn=1, original_command="Massena, march to Milan",
-                               path=["Tyrol", "Milan"])
-        assert asks(massena, march, john, world, "Tyrol") is True
-        # a PURSUE that finds its quarry on the first step: the pursuit IS the order
-        pursue = StrategicOrder(command_type="PURSUE", target="ArchdukeJohn", target_type="marshal",
-                                started_turn=1, original_command="Massena, pursue Archduke John",
-                                path=["Tyrol"])
-        assert asks(massena, pursue, john, world, "Tyrol") is False
-        # a march whose arrival tail NAMES the man met
-        named = StrategicOrder(command_type="MOVE_TO", target="Milan", target_type="region",
-                               started_turn=1, original_command="Massena, march to Milan and destroy John",
-                               path=["Tyrol", "Milan"])
-        named.attack_on_arrival = True
-        named.arrival_target = "ArchdukeJohn"
-        assert asks(massena, named, john, world, "Tyrol") is False
-        # "then attack" with no object: ordered at the DESTINATION only (CR-7-6)
-        unnamed = StrategicOrder(command_type="MOVE_TO", target="Tyrol", target_type="region",
-                                 started_turn=1, original_command="Massena, march to Tyrol then attack",
-                                 path=["Tyrol"])
-        unnamed.attack_on_arrival = True
-        assert asks(massena, unnamed, john, world, "Tyrol") is False
-        on_the_road = StrategicOrder(command_type="MOVE_TO", target="Milan", target_type="region",
-                                     started_turn=1, original_command="Massena, march to Milan then attack",
-                                     path=["Tyrol", "Milan"])
-        on_the_road.attack_on_arrival = True
-        assert asks(massena, on_the_road, john, world, "Tyrol") is True
-        # the AI's side (Rule 5: the same executor, its own input)
-        assert asks(john, march, massena, world, "Bohemia") is False
+        davout = world.get_marshal("Davout")
+        assert davout.personality == "cautious"
+        davout.location = "Bohemia"
+        world.calculate_visibility()
+        davout.strategic_order = StrategicOrder(
+            command_type="MOVE_TO", target="Milan", target_type="region", started_turn=1,
+            original_command="Davout, march to Milan", path=["Tyrol", "Milan"])
+        with _r1_quiet():
+            result = executor._strategic._handle_first_step_blocked(
+                davout, [john], "Tyrol", world, gs)
+        assert result.get("requires_input") is True
+        assert davout.pending_interrupt["interrupt_type"] == "contact"
+        assert davout.pending_interrupt["options"] == ["attack", "go_around", "hold_position", "cancel_order"]
+        assert "Enemy at Tyrol. How shall I proceed, Sire?" in result["message"]
+        assert "Berthier adds:" in result["message"]
+        assert john.strength == 20000 and davout.location == "Bohemia"
+        with _r1_quiet():
+            answer = StrategicOrderProcessor(executor).handle_response(
+                "Davout", "blocked_path", "go_around", world, gs)
+        assert answer.get("success") is True and john.strength == 20000
+        order = davout.strategic_order
+        assert order is not None and "Tyrol" not in (order.path or []) and order.path[-1] == "Milan"
 
-    def test_a_pursuit_that_finds_its_quarry_keeps_todays_rule(self, _r1_board):
+    def test_a_pursuit_that_finds_its_quarry_fights_too(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
         result = _r1_march(executor, gs, "Massena", "ArchdukeJohn", strategic_type="PURSUE",
                            action="attack", raw="Massena, pursue Archduke John")
         assert result.get("requires_input") is not True
-        assert "Engaging" in result.get("message", "") or "attacks" in result.get("message", "")
         assert john.strength < 20000 or massena.location == "Tyrol"
 
     def test_the_inferred_order_keeps_its_own_gate(self, _r1_board, monkeypatch):
-        """CR-5 §6.3c: a delegation-inferred order's favourable read still
-        fights at once — the ruling leaves delegation untouched."""
+        """CR-5 §6.3c: a delegation-inferred order's favourable read fights
+        at once; its bad read routes through the one-modal bad-odds confirm."""
         world, gs, executor, massena, john = _r1_board
         from backend.commands import objection_v2
         from backend.models.marshal import StrategicOrder
@@ -212,14 +270,12 @@ class TestS14E1:
         assert result is not None and result.get("requires_input") is not True
         assert result.get("first_step_combat") is True
 
-    def test_the_ai_side_keeps_todays_rule(self, _r1_board):
-        """An AI marshal's order (set by the Road Home or a contingent, never
-        typed) meets the player's corps on its first step: the aggressive arm
-        fights at favourable odds as before — no modal nobody can answer."""
+    def test_the_ai_side_keeps_todays_rule_without_teeth(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
         from backend.models.marshal import StrategicOrder
         john.personality = "aggressive"
         john.strength = 60000
+        trust_before = int(john.trust)
         john.strategic_order = StrategicOrder(
             command_type="MOVE_TO", target="Vienna", target_type="region", started_turn=1,
             original_command="John to Vienna", path=["Bohemia", "Vienna"])
@@ -228,25 +284,15 @@ class TestS14E1:
                 john, [massena], "Bohemia", world, gs)
         assert result is not None and result.get("requires_input") is not True
         assert john.pending_interrupt is None
+        assert result.get("first_step_initiative") is None
+        assert int(john.trust) == trust_before
 
     def test_the_quote_says_what_the_executor_does(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
         from backend.commands.order_quotes import march_quote
         q = march_quote(world, massena, "Milan")
         assert q["ok"] and "Archduke John blocks the road at Tyrol" in q["contact"]
-        assert "stops there and asks your orders" in q["contact"]
-        assert "pressing for the attack" in q["contact"]
-        assert "attacks him at once" not in q["contact"]
-        named = march_quote(world, massena, "Milan", then_attack="ArchdukeJohn")
-        assert "attacks him at once if the numbers favour him" in named["contact"]
-
-    def test_the_dispatch_reads_the_halt(self, _r1_board):
-        world, gs, executor, massena, john = _r1_board
-        _r1_march(executor, gs, "Massena", "Milan")
-        from backend.game_logic.dispatch import _derive_marshal_status
-        status, line = _derive_marshal_status(massena, world)
-        assert status == "awaiting_decision"
-        assert "HALTED at Tyrol — Archduke John bars the way. Awaiting your word." == line
+        assert "attacks him at once if the numbers favour him, else asks your orders" in q["contact"]
 
 
 class TestS14EX1:
@@ -283,11 +329,15 @@ class TestS14EX1:
 
 
 class TestS14EX2:
-    """Nobody would answer the guns: the ask carries the solo figure."""
+    """Nobody would answer the guns: the ask carries the solo figure (the
+    bad-odds ask, since the favourable aggressive arm fights — D1 re-ruled)."""
 
     def test_the_solo_figure_when_nobody_joins(self, _r1_board):
         world, gs, executor, massena, john = _r1_board
+        john.strength = 70000
+        world.calculate_visibility()
         result = _r1_march(executor, gs, "Massena", "Milan")
+        assert result.get("requires_input") is True
         note = result["message"].split("Berthier adds:")[1]
         assert "Massena 42,000 against Archduke John" in note
         assert "no other corps stands within reach" in note
@@ -298,6 +348,7 @@ class TestS14EX2:
         assert executor._combat._contact_muster_note(massena, john, world).startswith(" Berthier adds:")
         # the AI's marshal gets nothing (the note is copy on the player's modal)
         assert executor._combat._contact_muster_note(john, massena, world) == ""
+
 
 
 # ══════════════════════════════════════════════════════════════════════════

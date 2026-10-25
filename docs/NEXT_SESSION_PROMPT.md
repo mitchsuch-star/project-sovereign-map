@@ -5,7 +5,9 @@
 > through the hook — `git log -5`).
 >
 > **What the last session delivered:** S14E-1 (the P1) with S14E-D1 built as recommended (a typed order's first
-> step ASKS, every personality alike), the fourteen P2s S14E-2 … 15, S14E-31 (D4's floor on the war title IS its
+> step ASKS, every personality alike) — **then RE-RULED by the user on October 25, 2026: the aggressive deed is
+> back at favourable odds, with the muster at the battle's head, the deed named in the reply and the log, a laurel and
+> +2 trust on a win, −5 trust on a loss (§150.1); the other personalities keep the ask** — the fourteen P2s S14E-2 … 15, S14E-31 (D4's floor on the war title IS its
 > fix), D2 (the court's own slice) and D3 (the shut-out price kept and stated on both roads) — each row reproduced
 > on the shipped board, fixed at its cause, pinned in `tests/test_s14f_the_remeasure_rows.py` (397 tests), then
 > swept: 68 siblings S14E-X1 … X68 filed in `BUG_FIXES.md` §S14E, 49 FIXED in the part (every P2 among them), 12

@@ -146,12 +146,11 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
     }
 
 
-def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str,
-                  arrival: Optional[dict] = None) -> str:
+def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> str:
     """What the march's FIRST step does on meeting a corps we can see —
     `_handle_first_step_blocked`'s arms, in its order (1 action is charged at
-    once on every arm). `arrival` is the CR-7 arrival tail when the march
-    carries one (S14E-1: the one case an aggressive man still fights at once)."""
+    once on every arm). S14E-D1 re-ruled (October 25, 2026): the aggressive
+    man fights at once at favourable odds, as his line says."""
     shown = q["shown"]
     name = humanize_entity_name(foe.name)
     where = (f"{name} holds {region}" if region == dest
@@ -162,20 +161,8 @@ def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str,
     if personality == "literal":
         return f"{where} — {shown} halts at the approach and reports (1 action now)."
     if personality == "aggressive":
-        # S14E-1 / S14E-D1 (October 24, 2026): a TYPED march's first step
-        # ASKS, every personality alike — the aggressive marshal argues for
-        # the attack in his own line. Only a march whose arrival tail NAMES
-        # the man met still fights him at once at favourable odds
-        # (`_typed_first_step_asks`, the executor's own rule).
-        tail = arrival or {}
-        named = str(tail.get("arrival_target") or "")
-        ordered = bool(tail.get("attack_on_arrival")) and (
-            named == str(foe.name) if named else region == dest)
-        if ordered:
-            return (f"{where} — {shown} attacks him at once if the numbers favour him, "
-                    f"else asks your orders (1 action now).")
-        return (f"{where} — {shown} stops there and asks your orders, pressing for "
-                f"the attack if the numbers favour him (1 action now).")
+        return (f"{where} — {shown} attacks him at once if the numbers favour him, "
+                f"else asks your orders (1 action now).")
     return f"{where} — {shown} stops there and asks your orders (1 action now)."
 
 
@@ -295,8 +282,7 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
             from backend.commands.movement_executor import departure_note
             q["departs"] = departure_note(marshal, quote=True)
             return q
-        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest,
-                                     arrival=arrival)
+        q["contact"] = _contact_line(q, marshal, contact[0], contact[1], dest)
         q["ap"] = 1
         return q
     reach = max(1, int(getattr(marshal, "movement_range", 1) or 1))
