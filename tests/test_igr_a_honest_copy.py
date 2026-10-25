@@ -267,7 +267,11 @@ class TestA2NoDuplicatedPoliticalContext:
         would trade duplication for truncation."""
         source = _read_gd("proposal_confirm_popup.gd")
         assert "mini(warnings.size(), 2)" not in source
-        assert source.count("mini(warnings.size(), 4)") == 3
+        # S14E-25's sweep (Pre-Deploy S14f part 2) FLIPPED the old
+        # `== 3` count of `mini(warnings.size(), 4)`: the cap is gone at
+        # every site — every warning is printed, the popup scrolls.
+        assert "mini(warnings.size()" not in source
+        assert source.count("for warning in warnings:") >= 4
         # Static pins from test_session8c_popups_notifications.py must survive.
         assert 'data.get("warnings", [])' in source
         assert "Political Context:" in source

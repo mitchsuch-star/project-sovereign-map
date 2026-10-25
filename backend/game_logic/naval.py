@@ -2421,7 +2421,7 @@ def levers_line(levers: List[Dict]) -> str:
 
 
 def expedition_intercepts(world, nation: str, quote: Dict) -> bool:
-    """`resolve_expedition`'s failure-arm test, named (S14E-XJ2): is the
+    """`resolve_expedition`'s failure-arm test, named (S14E-X54): is the
     covering watch decisive enough that a failed run is INTERCEPTED at sea —
     the corps −30% and the fleet brought to action — rather than turned back?
     ONE predicate for the resolver and the card's price."""
@@ -2434,7 +2434,7 @@ def expedition_intercepts(world, nation: str, quote: Dict) -> bool:
 
 def expedition_intercept_clause(world, nation: str, target_region: str,
                                 troops: int) -> str:
-    """S14E-XJ2 (the sweep of S14E-14): an intercepted expedition fights the
+    """S14E-X54 (the sweep of S14E-14): an intercepted expedition fights the
     SAME fleet action a caught diversion does — `resolve_expedition` hands the
     fleet and the coverer to `resolve_fleet_action`, at the fleet's CURRENT
     readiness (the −10 is the turned-back arm's) — and the confirm card priced
@@ -2594,6 +2594,46 @@ def camp_line(world, nation: str) -> str:
                 f"out of those provinces resets the count.")
     return (f"Staged after {need} turns standing at war with {foe} "
             f"({turns} of {need}) — no order needed.")
+
+
+# S14E-D10 (Pre-Deploy S14f part 2, October 25, 2026): the camp on the map.
+# The keys a camp province's region payload carries while the camp counts —
+# `world_state.get_game_state_summary` stamps them, the fog filter copies
+# them, the renderer washes the province by them and the tooltip prints the
+# note. A board where the camp does not count carries none (byte-identical).
+CAMP_MAP_KEYS = ("camp", "camp_men", "camp_turns", "camp_staged", "camp_note")
+
+
+def camp_map_payload(world, nation: str) -> Dict[str, Dict[str, Any]]:
+    """S14E-D10: the Descent camp as the map shows it — ``{province: fields}``
+    for the nation's authored camp provinces WHILE THE CAMP COUNTS, ``{}``
+    otherwise. READ OFF THE CAMP'S OWN PREDICATE (the one `camp_leave_line`
+    and `_camp_tick` read): the nation at war with an island power
+    (`_island_war_enemies`) with at least `DESCENT_CAMP_MIN_TROOPS` standing in
+    `camp_provinces` (`camp_strength`); the live `camp_turns` count and
+    `DESCENT_CAMP_STAGED_TURNS` say how far it has got.
+
+    Fields (every number an int — Godot crashes on floats): ``camp`` True,
+    ``camp_men``, ``camp_turns``, ``camp_staged`` (the tick has counted the
+    descent staged) and ``camp_note`` — the Admiralty's count in the
+    tooltip's words: "Descent camp: 46,500 men, 1 of 2 turns" / "Descent camp:
+    46,500 men, 2 turns — staged". Public to the player (it is his own men on
+    his own soil); the player's nation only — the caller passes it."""
+    rec = get_fleet(world, nation) or {}
+    provinces = list(rec.get("camp_provinces") or [])
+    if not provinces or not _island_war_enemies(world, nation):
+        return {}
+    men = int(camp_strength(world, nation))
+    if men < DESCENT_CAMP_MIN_TROOPS:
+        return {}
+    turns = int(rec.get("camp_turns", 0) or 0)
+    need = int(DESCENT_CAMP_STAGED_TURNS)
+    staged = turns >= need
+    note = (f"Descent camp: {men:,} men, {turns} turns — staged" if staged
+            else f"Descent camp: {men:,} men, {turns} of {need} turns")
+    fields = {"camp": True, "camp_men": men, "camp_turns": turns,
+              "camp_staged": bool(staged), "camp_note": note}
+    return {province: dict(fields) for province in provinces}
 
 
 def camp_leave_line(world, marshal, road, origin: Optional[str] = None) -> str:

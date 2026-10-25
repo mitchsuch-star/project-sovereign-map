@@ -386,10 +386,17 @@ class TestSnapshotIntegration:
         world = _war_world()
         _add_ally_at_war(world, "France", "Austria", "Prussia")
         snapshot = build_war_context_snapshot(world, "France", "Prussia", "peace")
-        assert len(snapshot["fallout_warnings"]) >= 1
-        w = snapshot["fallout_warnings"][0]
-        assert w["ally"] == "Austria"
-        assert "display" in w
+        # S14E-X204 (flipped): an ally left fighting is said ONCE - the paradox
+        # row carries her price, so the snapshot's separate_peace_ally row is
+        # folded into it (the builder `get_separate_peace_fallout_warnings`
+        # still computes it; the ratifier applies the penalties from it).
+        assert not [f for f in snapshot["fallout_warnings"]
+                    if f.get("warning_type") == "separate_peace_ally"]
+        row = next(c for c in snapshot["commitment_conflicts"]
+                   if c["conflict_type"] == "paradox")
+        assert row["affected_entity"] == "Austria"
+        assert row["detail"]["relation_change"] < 0
+        assert f"{row['detail']['relation_change']} relation" in row["display"]
 
     def test_snapshot_populates_commitment_conflicts(self):
         world = _war_world()
@@ -484,8 +491,16 @@ class TestRatificationEdgeCases:
             },
         )
 
-        fallout = popup["war_context_snapshot"]["fallout_warnings"]
-        assert any(w.get("ally") == "Austria" for w in fallout)
+        # S14E-X204 (flipped): the orientation is still France's (Austria is
+        # HER ally, left fighting) - read off the paradox row, which carries the
+        # price the fallout row used to say in other words.
+        snapshot = popup["war_context_snapshot"]
+        assert not [f for f in snapshot["fallout_warnings"]
+                    if f.get("warning_type") == "separate_peace_ally"]
+        row = next(c for c in snapshot["commitment_conflicts"]
+                   if c.get("affected_entity") == "Austria")
+        assert row["conflict_type"] == "paradox" and row["severity"] == "WARNING"
+        assert f"({row['detail']['relation_change']} relation)" in row["display"]
 
 
 class TestGodotWarningPriority:

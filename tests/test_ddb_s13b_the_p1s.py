@@ -334,8 +334,15 @@ class TestDDB2:
         assert not [x for x in conflicts if x["severity"] == "HARD_STOP"]
         assert any(x["affected_entity"] == "Prussia" and x["severity"] == "WARNING" for x in conflicts)
         snapshot = D.build_war_context_snapshot(w, "France", "Hanover", "peace")
-        priced = [f for f in snapshot["fallout_warnings"] if f.get("warning_type") == "separate_peace_ally"]
-        assert priced and priced[0]["ally"] == "Prussia" and priced[0]["predicted_relation_change"] < 0
+        # S14E-X204 (flipped): the price is on the paradox row now - one ally,
+        # one sentence; the fallout row that priced her in other words is folded in.
+        assert not [f for f in snapshot["fallout_warnings"]
+                    if f.get("warning_type") == "separate_peace_ally"]
+        (priced,) = [c for c in snapshot["commitment_conflicts"]
+                     if c.get("affected_entity") == "Prussia"]
+        assert priced["conflict_type"] == "paradox" and priced["detail"]["relation_change"] < 0
+        assert "joined at an ally's call" in priced["display"]
+        assert f"({priced['detail']['relation_change']} relation)" in priced["display"]
         from backend.game_logic.treaty import can_sign
         assert can_sign(w, {"type": "peace", "proposer_nation": "France", "target_nation": "Hanover",
                             "sweeteners": [], "demands": [], "clauses": []}, at_send=True).ok

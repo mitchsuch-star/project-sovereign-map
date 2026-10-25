@@ -275,6 +275,10 @@ def _bonded():
     _sit(w)
     with _quiet():
         assert B.mint_bond(w, payer="Britain", member="Austria", enemy="France")["success"]
+    # S14E-X127: a chest that can pay the 1,000-gold bid keeps the line as
+    # PC-X69 / X33 pinned it (the shipped 800 gold adds "(the treasury holds
+    # 800)" - pinned in tests/test_s14f_p2_w9.py::TestS14EXT1)
+    w.nation_gold["France"] = 5000
     return w
 
 

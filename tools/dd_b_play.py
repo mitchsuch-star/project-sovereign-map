@@ -73,6 +73,13 @@ GENERIC_FAMILIES = ("attack", "move", "hold", "scout", "fortify", "drill", "retr
                     "naval_build", "naval_posture", "naval_land", "end_turn", "question")
 SCRIPT_ERROR_RX = re.compile(r"SCRIPT ERROR|Parse Error|Invalid call|Invalid access|Invalid get|"
                              r"Invalid set|Attempt to call|Nonexistent function", re.I)
+# S14E-X202 (S14f part 2, the closing re-play): the engine's own plain
+# "ERROR: …" lines — "Lambda capture at index 0 was freed", "Cannot clear the
+# font", "N resources still in use at exit" — carry no script name, so
+# SCRIPT_ERROR_RX never counted them (21 in one run, `n_script_errors` 0).
+# They are counted APART (`n_engine_errors`): the measure's metric
+# (`n_script_errors`) is unchanged.
+ENGINE_ERROR_RX = re.compile(r"^\s*ERROR:")
 
 sys.path.insert(0, str(REPO / "tools"))
 
@@ -214,16 +221,20 @@ def run_record(run: pathlib.Path, wall_s: float | None = None, exit_code=None) -
                         "ok": s.get("ok"), "error": s.get("error", ""), "turn": s.get("turn", ""),
                         "durations_ms": s.get("durations_ms", {})})
     errors = []
+    engine_errors = []
     log = run / "engine.log"
     if log.is_file():
         for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
             if SCRIPT_ERROR_RX.search(line):
                 errors.append(line.strip()[:400])
+            elif ENGINE_ERROR_RX.search(line):
+                engine_errors.append(line.strip()[:400])
     meta = _read(run / "meta.json") if (run / "meta.json").is_file() else {}
     return {"road": meta.get("road"), "port": meta.get("port"), "turn_reached": turn,
             "turn_number": _turn_number(turn), "actions": actions, "n_actions": len(actions),
             "wall_s": round(wall_s, 1) if wall_s else None, "engine_exit": exit_code,
-            "script_errors": errors, "n_script_errors": len(errors)}
+            "script_errors": errors, "n_script_errors": len(errors),
+            "engine_errors": engine_errors, "n_engine_errors": len(engine_errors)}
 
 
 def _turn_number(turn: str) -> int | None:

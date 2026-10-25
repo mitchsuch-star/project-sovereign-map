@@ -288,6 +288,26 @@ def has_renege_grievance(world, victim: str, breaker: str) -> bool:
 # Directed sponsorship (incl. the licence and sell-neutrality)
 # ═══════════════════════════════════════════════════════════════════════
 
+def identical_compact(world, *, kind: str, payer: str, recipient: str,
+                      aim: str) -> Optional[Dict]:
+    """The live record `grant_directed_sponsorship` would refuse as a
+    duplicate — one per (kind, payer, recipient, aim) — or None. The ONE
+    reading the mint and the player's quote (S14E-26) share, so a compact
+    that already stands is refused BEFORE it is quoted, never after."""
+    for existing in getattr(world, "directed_sponsorships", []) or []:
+        if (existing.get("kind") == kind
+                and existing.get("payer") == payer
+                and existing.get("recipient") == recipient
+                and existing.get("aim") == aim):
+            return existing
+    return None
+
+
+def identical_compact_refusal(payer: str, recipient: str) -> str:
+    """The sentence of a duplicate compact — the mint's and the quote's."""
+    return f"An identical compact between {payer} and {recipient} already stands."
+
+
 def grant_directed_sponsorship(world, *, payer: str, recipient: str,
                                aim: str, amount_per_turn: int,
                                turns: int = SPONSORSHIP_DEFAULT_TURNS,
@@ -304,14 +324,10 @@ def grant_directed_sponsorship(world, *, payer: str, recipient: str,
     (kind, payer, recipient, aim). N identical bonds are one bond.
     """
     records = getattr(world, "directed_sponsorships", [])
-    for existing in records:
-        if (existing.get("kind") == kind
-                and existing.get("payer") == payer
-                and existing.get("recipient") == recipient
-                and existing.get("aim") == aim):
-            return {"success": False,
-                    "message": (f"An identical compact between {payer} "
-                                f"and {recipient} already stands.")}
+    if identical_compact(world, kind=kind, payer=payer, recipient=recipient,
+                         aim=aim) is not None:
+        return {"success": False,
+                "message": identical_compact_refusal(payer, recipient)}
     record = {
         "id": (f"{kind}:{payer}:{recipient}:"
                f"{int(world.current_turn)}:{_next_seq(records)}"),
@@ -331,8 +347,9 @@ def grant_directed_sponsorship(world, *, payer: str, recipient: str,
     }
     records.append(record)
     world.directed_sponsorships = records
-    world.modify_nation_relation(payer, recipient,
-                                 SPONSORSHIP_RELATION_BONUS)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, payer, recipient, SPONSORSHIP_RELATION_BONUS,
+                           "sponsorship", payer, recipient)
     event = {
         "type": "sponsorship_granted",
         "kind": kind,
@@ -424,6 +441,32 @@ def next_design_after_buyoff(world, payer: str, court: str) -> Optional[Dict]:
         world.invalidate_bloc_members_cache()
 
 
+FREE_OF_OBLIGATIONS = " free of its obligations"
+
+
+def chest_of(world, payer: str) -> tuple:
+    """S14E-X157 — (the treasury, the chest) of a PLAYER purchase.
+
+    The chest is the lever chest (`bond.bid_funds`: the treasury LESS the
+    recurring settlement payments still owed — the very figure the counsel's
+    lever, the bond's price line and the Congress's price levers quote with
+    " (the treasury holds N)"), clamped to what the coffers hold. A purchase
+    is gated, quoted ("would hold N after") and refused against the CHEST, so
+    the words the player read and the pay the verb applies agree; with nothing
+    owed the two figures are equal and every sentence is the one it was. Where
+    the two differ the sentence says so with `FREE_OF_OBLIGATIONS`. The
+    PLAYER's verbs only (the Congress sweetener, "buy off"): the AI's
+    instruments mint through their own producers and read the raw treasury."""
+    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    try:
+        from backend.game_logic import bond as _bond
+        chest = max(0, min(treasury, int(_bond.bid_funds(world, payer))))
+    except Exception as exc:
+        report(exc, "instruments.chest_of: bond.bid_funds")
+        chest = treasury
+    return treasury, chest
+
+
 def buy_off_refusal(world, payer: str, court: str) -> str:
     """SF-LB-3: why `buy off <court>` would be refused today — '' when the
     verb (`DiplomaticExecutor._execute_buy_off_design`) would carry it out.
@@ -444,9 +487,12 @@ def buy_off_refusal(world, payer: str, court: str) -> str:
     if view.survival:
         return "it fights for its existence"
     price = compute_buyoff_price(world, court)
-    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
-    if price is not None and treasury < int(price):
-        return f"the treasury holds {treasury:,} gold"
+    # S14E-X157: the verb is gated against the chest (`chest_of`), the one
+    # its quote and the Congress's levers name
+    treasury, chest = chest_of(world, payer)
+    if price is not None and chest < int(price):
+        return (f"the treasury holds {chest:,} gold"
+                f"{FREE_OF_OBLIGATIONS if chest < treasury else ''}")
     return ""
 
 
@@ -469,7 +515,9 @@ def create_compensation_bargain(world, *, payer: str, recipient: str,
     }
     records.append(record)
     world.compensation_bargains = records
-    world.modify_nation_relation(payer, recipient, BUYOFF_RELATION_BONUS)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, payer, recipient, BUYOFF_RELATION_BONUS,
+                           "compensation", payer, recipient)
     # The suspension reads through the agenda cache — flush it so the
     # design goes quiet the same turn the bargain is struck (§3.1a b).
     world.invalidate_bloc_members_cache()
@@ -513,7 +561,9 @@ def record_peace_compensation(world, *, payer: str, recipient: str,
         records.append(record)
         minted.append(record)
     world.compensation_bargains = records
-    world.modify_nation_relation(payer, recipient, BUYOFF_RELATION_BONUS)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, payer, recipient, BUYOFF_RELATION_BONUS,
+                           "compensation", payer, recipient)
     world.invalidate_bloc_members_cache()
     return minted
 
@@ -531,6 +581,30 @@ def design_suspended(world, nation: str, design_id: str) -> bool:
 # Guarantee — protect a border
 # ═══════════════════════════════════════════════════════════════════════
 
+def already_guarantees(guarantor: str, protected: str) -> str:
+    """The refusal sentence of a pledge that already stands — the mint's and
+    the player's quote's (S14E-26: refused before it is quoted)."""
+    return f"{guarantor} already guarantees {protected}."
+
+
+def guarantee_exposure(world, guarantor: str, protected: str) -> List[str]:
+    """The courts at war with `protected` TODAY that a pledge now would put
+    the guarantor on the clock for: not the guarantor itself, not an enemy the
+    guarantor already fights (honoured), not a war the ward itself declared
+    (attribution, as `process_instruments` reads it). Each of them is
+    abandonment `GUARANTEE_GRACE_TURNS` turns after the pledge unless the
+    guarantor enters the war — the S14E-26 quote names them, and the per-turn
+    pass below brands exactly these (shown == applied, pinned)."""
+    exposed: List[str] = []
+    for attacker in world.get_nations_at_war_with(protected):
+        if attacker == guarantor or world.is_at_war(guarantor, attacker):
+            continue
+        if _pair_aggressor(world, protected, attacker) == protected:
+            continue
+        exposed.append(attacker)
+    return exposed
+
+
 def pledge_guarantee(world, *, guarantor: str, protected: str) -> Dict:
     """Pledge to defend `protected`. Deters coveters (intent reads it);
     stakes the guarantor's credibility (the abandonment grievance)."""
@@ -539,7 +613,7 @@ def pledge_guarantee(world, *, guarantor: str, protected: str) -> Dict:
         if (record.get("guarantor") == guarantor
                 and record.get("protected") == protected):
             return {"success": False,
-                    "message": f"{guarantor} already guarantees {protected}."}
+                    "message": already_guarantees(guarantor, protected)}
     record = {
         "id": (f"guarantee:{guarantor}:{protected}:"
                f"{int(world.current_turn)}"),
@@ -549,8 +623,9 @@ def pledge_guarantee(world, *, guarantor: str, protected: str) -> Dict:
     }
     records.append(record)
     world.diplomatic_guarantees = records
-    world.modify_nation_relation(guarantor, protected,
-                                 GUARANTEE_RELATION_BONUS)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, guarantor, protected, GUARANTEE_RELATION_BONUS,
+                           "guarantee", guarantor, protected)
     # Deterrence reads through the intent cache — flush.
     world.invalidate_bloc_members_cache()
     event = {
@@ -585,7 +660,9 @@ def _renege(world, *, breaker: str, victim: str, grievance_type: str,
             source: str, event: Dict, events: List[Dict]) -> None:
     _mint_grievance(world, breaker=breaker, victim=victim,
                     grievance_type=grievance_type, source=source)
-    world.modify_nation_relation(breaker, victim, RENEGE_RELATION_PENALTY)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, breaker, victim, RENEGE_RELATION_PENALTY,
+                           "renege", breaker, victim)
     world.log_event(event)
     events.append(event)
     _emit_broken_bargain_beat(world, breaker=breaker, victim=victim,
@@ -1167,3 +1244,93 @@ def _emit_broken_bargain_beat(world, *, breaker: str, victim: str,
         f"Their envoy has delivered the reproach.",
         int(world.current_turn),
     ))
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The quotes — the instruments' price list in words (S14E-26)
+# ═══════════════════════════════════════════════════════════════════════
+# The player's unconfirmed order QUOTES first, free, on the clarification
+# channel the proclamation uses (`DiplomaticExecutor._quote_instrument`),
+# after every refusal and before the charge. Every figure is read from the
+# constants and the stores the verbs APPLY — shown == applied (pinned), and
+# nothing here is invented. Backend composes, the renderer prints (R7).
+
+
+def _quote_dp_words() -> str:
+    from backend.display_names import plural
+    return plural(INSTRUMENT_DP_COST, "diplomatic point")
+
+
+def _quote_renege_words() -> str:
+    return f"relations {RENEGE_RELATION_PENALTY} and the strongest casus belli in Europe"
+
+
+def buyoff_quote(world, payer: str, court: str, *, title: str, amount: int) -> str:
+    """'Buy off <court>': the price, the point, the chest after, how long the
+    want sleeps, what reneging returns, the design that wakes next."""
+    from backend.display_names import display_nation
+    name = display_nation(court)
+    # S14E-X157: the chest after is the CHEST's (`chest_of`) - what the verb is
+    # gated against and the Congress's levers quote - not the raw treasury
+    treasury, chest = chest_of(world, payer)
+    owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
+    woken = next_design_after_buyoff(world, payer, court)
+    wake = (f"Buying it wakes {woken['title']} next "
+            f"({int(woken['price']):,}g to buy off in turn)."
+            if woken else "No other design wakes after it.")
+    return (
+        f"Buy off {name}'s design — {title}: {int(amount):,} gold and "
+        f"{_quote_dp_words()}. The treasury holds {chest:,} gold{owed} and would "
+        f"hold {chest - int(amount):,} after. The want sleeps "
+        f"{COMPENSATION_TERM_TURNS} turns; it does not die — marching on {name} "
+        f"inside the term is reneging, and it returns the heavier: their will "
+        f"against us +{WEIGHT_RENEGED_BARGAIN}, {_quote_renege_words()}. "
+        f"{wake} Buy it off? (yes / no)")
+
+
+def sponsorship_quote(world, payer: str, recipient: str, aim: str,
+                      amount: int) -> str:
+    """'Sponsor <court>' / 'License <court>': the per-turn sum, the term, the
+    chest after the first payment, and the bond the compact lays on France."""
+    from backend.display_names import display_nation
+    rname, aname = display_nation(recipient), display_nation(aim)
+    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    bond = (f"The compact binds France: marching on {rname} before it lapses, "
+            f"or guaranteeing {aname}, is reneging — {_quote_renege_words()}.")
+    if int(amount) <= 0:
+        return (
+            f"License {rname}'s design against {aname}: no gold, "
+            f"{_quote_dp_words()}. France blesses it and pledges "
+            f"non-interference for {SPONSORSHIP_DEFAULT_TURNS} turns. {bond} "
+            f"License it? (yes / no)")
+    return (
+        f"Sponsor {rname}'s design against {aname}: {int(amount):,} gold a turn "
+        f"for {SPONSORSHIP_DEFAULT_TURNS} turns "
+        f"({int(amount) * SPONSORSHIP_DEFAULT_TURNS:,} gold in all) and "
+        f"{_quote_dp_words()}. The treasury holds {treasury:,} gold and would "
+        f"hold {treasury - int(amount):,} after the first payment. {bond} "
+        f"Sponsor it? (yes / no)")
+
+
+def guarantee_quote(world, guarantor: str, protected: str) -> str:
+    """'Guarantee <court>': the deterrent, the grace, and the wars the pledge
+    would put the guarantor on the clock for today."""
+    from backend.display_names import display_nation, plural
+    name = display_nation(protected)
+    grace = plural(GUARANTEE_GRACE_TURNS, "turn")
+    exposed = guarantee_exposure(world, guarantor, protected)
+    if exposed:
+        clock = (f"{name} is at war with "
+                 f"{', '.join(display_nation(a) for a in exposed)} today and "
+                 f"France is not — France would have {grace} from the pledge to "
+                 f"enter that war, or the pledge is abandoned")
+    else:
+        clock = (f"{name} has no unanswered enemy today; if one attacks, France "
+                 f"would have {grace} to enter that war, or the pledge is "
+                 f"abandoned")
+    return (
+        f"Guarantee {name}'s borders: {_quote_dp_words()}, no gold. Every court "
+        f"that covets their soil weighs our army in the scale — their "
+        f"willingness falls by {GUARANTEE_WEIGHT_DETERRENT}. The pledge stakes "
+        f"France's word: {clock} ({_quote_renege_words()}). "
+        f"Guarantee them? (yes / no)")

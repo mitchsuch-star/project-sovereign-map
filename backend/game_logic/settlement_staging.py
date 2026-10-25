@@ -2368,12 +2368,23 @@ def build_settlement_preview(
     # the figures the ones it applies. The player's own table only: an
     # observer's table (the player not on the proposing side) prices nothing.
     shut_out_forecast: List[Dict[str, Any]] = []
+    ally_standing_forecast: List[Dict[str, Any]] = []
     if str(getattr(world, "player_nation", "") or "") in set(instance.get(side) or []):
         from backend.game_logic.settlement_reactions import forecast_proposer_side_reactions
-        shut_out_forecast = forecast_proposer_side_reactions(
+        # S14E-D8 / S14E-X51 (S14f part 2): the SAME plan, read with the
+        # table's coverage and widened to the allies the ratifier also acts
+        # on — the named ally's thanks ("rewarded", with its figure) and the
+        # ally whose war the table does not end ("fights_on", no price).
+        # `shut_out_forecast` stays the shut-outs alone.
+        _plans = forecast_proposer_side_reactions(
             world, war_id=war_id, proposer_side=side, settlement_terms=terms,
-            proposer_leader=str(proposer_leader or ""))
+            proposer_leader=str(proposer_leader or ""),
+            covered_enemy_participants=covered,
+            kinds=("shut_out", "rewarded", "fights_on"))
+        shut_out_forecast = [r for r in _plans if r.get("kind") == "shut_out"]
+        ally_standing_forecast = [r for r in _plans if r.get("kind") != "shut_out"]
     preview["shut_out_forecast"] = shut_out_forecast
+    preview["ally_standing_forecast"] = ally_standing_forecast
     contribution = build_contribution_share_rows(
         world, war_id, settlement_terms=terms,
     )
@@ -2443,6 +2454,7 @@ def build_settlement_preview(
         leaders_for_label={side: str(proposer_leader or "")},
         table_covered=list(covered),
         shut_out_forecast=shut_out_forecast,
+        ally_standing_forecast=ally_standing_forecast,
         # S14E-4: the corps this settlement would shelter, said on the review
         # beside the other concerns (the bilateral preview's `sanctuary` row,
         # from the same predicate).
@@ -2696,8 +2708,8 @@ def legitimacy_sentence(world, per_court_acceptance, holdout_courts,
         _shares = []
         for row in rows:
             if str(row.get("nation") or "") in not_consulted:
-                share = row.get("material_share")
-                pct = f"{int(round(float(share) * 100))} %" if share is not None else "none"
+                share = row.get("material_share_pct")      # S14E-X171: a whole percent already
+                pct = f"{int(share)} %" if share is not None else "none"
                 _shares.append(f"{formed_display_name(world, str(row.get('nation')))} {pct}")
         sentence += (f" Under the stake floor {_join_names([formed_display_name(world, n) for n in not_consulted])} "
                      f"{'is' if len(not_consulted) == 1 else 'are'} covered, not consulted "
@@ -4279,6 +4291,10 @@ def build_settlement_confirm_dialogue(
         # "Left out of the peace" block (top level: the nested preview copy is
         # not read by the client).
         "shut_out_forecast": [dict(r) for r in (preview.get("shut_out_forecast") or [])],
+        # S14E-D8 / S14E-X51: and the allies it does NOT punish — the named
+        # ally's thanks and the ally whose war the table does not touch —
+        # the footer's "The allies" block (same top-level rule).
+        "ally_standing_forecast": [dict(r) for r in (preview.get("ally_standing_forecast") or [])],
         # Re-front Slice 1 §11.2/§11.4: the per-court acceptance block and the
         # per-covered-court carry gate ride on every settlement_confirm
         # dialogue (PROPOSE and REVIEW) so the displayed acceptance IS the gate.

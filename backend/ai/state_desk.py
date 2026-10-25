@@ -1609,6 +1609,12 @@ def _quote_sentences(world, q: Dict, me) -> str:
     departs = str(q.get("departs") or "")   # S14E-13's sweep: what the march costs the corps as it stands
     if departs:
         tail.append(departs)
+    detour = str(q.get("detour") or "")   # S14E-22: the detour round a road the diplomacy shuts
+    if detour:
+        tail.append(detour)
+    pay = str(q.get("pay") or "")   # S14E-X67: the campaign pay the destination draws
+    if pay:
+        tail.append(pay)
     replaces = str(q.get("replaces") or "")
     if replaces and not q.get("already"):
         tail.append(f"It replaces {replaces}.")
@@ -3117,7 +3123,11 @@ def _answer_counsel(world) -> str:
         lines = what_can_i_do(world, player, limit=3) or []
     if not lines:
         return "Nothing presses today, Sire — the board offers no order I would urge."
-    return "My counsel, Sire:\n  " + "\n  ".join(lines) + "\nNothing has been ordered."
+    # S14E-X80: an attack among the counsel is taught with its free preview.
+    from backend.game_logic.dispatch import attack_preview_hint
+    hint = attack_preview_hint(lines)
+    return ("My counsel, Sire:\n  " + "\n  ".join(lines)
+            + (f"\n{hint}" if hint else "") + "\nNothing has been ordered.")
 
 
 def _answer_readiness(world) -> str:

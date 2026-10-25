@@ -293,8 +293,10 @@ def _settlement_visible_nations(event: Mapping[str, Any]) -> List[str]:
     for clause in event.get("applied_clauses", []) or []:
         if not isinstance(clause, Mapping):
             continue
+        # S14E-X164: no clause carries `liberator_nation` (only the log events
+        # do) - the liberator is the clause's `liberator`.
         for field in ("from", "to", "beneficiary", "lord_nation",
-                      "vassal_nation", "liberator", "liberator_nation"):
+                      "vassal_nation", "liberator"):
             value = clause.get(field)
             if isinstance(value, str) and value:
                 out.append(value)
@@ -583,8 +585,18 @@ def _enrich_ally_row(ally: Mapping[str, Any]) -> Dict[str, Any]:
     row = dict(ally)
     standing = str(row.get("standing", "") or "")
     row.setdefault("standing_display", _standing_display(standing))
-    share = float(row.get("material_share", 0.0) or 0.0)
-    row.setdefault("standing_phrase", f"{_standing_display(standing)}; {round(share * 100):.0f}% material share")
+    # S14E-X100: the row leaves as whole percents (Golden Rule 2) - a caller's
+    # 0..1 `material_share` / `support_share` is read once and replaced.
+    share = row.pop("material_share", None)
+    support = row.pop("support_share", None)
+    if share is not None:
+        row["material_share_pct"] = int(round(float(share or 0.0) * 100))
+    else:
+        row["material_share_pct"] = int(row.get("material_share_pct", 0) or 0)
+    if support is not None:
+        row["support_share_pct"] = int(round(float(support or 0.0) * 100))
+    pct = row["material_share_pct"]
+    row.setdefault("standing_phrase", f"{_standing_display(standing)}; {pct}% material share")
     return row
 
 
@@ -1300,13 +1312,20 @@ def build_shut_out_allies_preview(
         # (`standing: no_standing`, a share) is not a verdict and lists nobody.
         if row.get("relation_delta") is None:
             continue
+        # S14E-D8 / X51: the ally the table does not reach and the ally it
+        # thanks are the ratifier's plan rows too, but not LEFT OUT — they
+        # have their own block (`build_ally_standing_preview`).
+        if str(row.get("kind") or "shut_out") != "shut_out":
+            continue
         standing = str(row.get("standing_level") or row.get("standing") or "")
         display = str(row.get("display") or "")
         rows.append({
             "nation": nation,
             "standing": standing,
             "standing_display": _standing_display(standing),
-            "contribution_share": float(row.get("material_share_pct") or 0) / 100.0,
+            # S14E-X100 (Golden Rule 2): the plan's own whole percent - the
+            # float it used to be (pct / 100) was read by nothing.
+            "contribution_share_pct": int(row.get("material_share_pct") or 0),
             "reason_display": display or "Left out of the peace",
             "display": display,
             "severity": str(row.get("severity") or ""),
@@ -1330,9 +1349,39 @@ def build_shut_out_allies_preview(
             "nation": nation,
             "standing": "shut_out",
             "standing_display": _standing_display("shut_out"),
-            "contribution_share": float(warning.get("contribution_share") or 0),
+            "contribution_share_pct": int(round(float(warning.get("contribution_share") or 0)
+                                                * (100 if float(warning.get("contribution_share") or 0) <= 1 else 1))),
             "reason_display": str(warning.get("detail") or "Shut out at settlement"),
             "display": str(warning.get("detail") or ""),
+        })
+        seen.add(nation)
+    return rows
+
+
+def build_ally_standing_preview(
+    forecast_rows: Sequence[Mapping[str, Any]] | None,
+) -> List[Dict[str, Any]]:
+    """S14E-D8 / S14E-X51: the allies the ratifier will NOT punish but whose
+    fate the table decides — the named ally's gratitude ("Austria takes
+    Tyrol by it and thanks us (+10 relation).") and the ally whose war the
+    table does not end ("Spain fights on alone against Britain — the table
+    does not touch her war."), stated BEFORE the click from the ratifier's
+    own plan rows (`settlement_reactions.forecast_proposer_side_reactions`,
+    kinds `rewarded` / `fights_on`)."""
+    rows: List[Dict[str, Any]] = []
+    seen: set = set()
+    for row in forecast_rows or []:
+        if not isinstance(row, Mapping):
+            continue
+        kind = str(row.get("kind") or "")
+        nation = str(row.get("nation") or row.get("ally") or "")
+        if kind not in ("rewarded", "fights_on") or not nation or nation in seen:
+            continue
+        rows.append({
+            "nation": nation,
+            "kind": kind,
+            "display": str(row.get("display") or ""),
+            "relation_delta": int(row.get("relation_delta") or 0),
         })
         seen.add(nation)
     return rows
@@ -1531,8 +1580,16 @@ def build_settlement_review(
     table_covered: Sequence[str] | None = None,
     extra_warning_rows: Sequence[Mapping[str, Any]] = (),
     shut_out_forecast: Sequence[Mapping[str, Any]] | None = None,
+    ally_standing_forecast: Sequence[Mapping[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     """Sectioned settlement review payload per spec §16.2 line 1636.
+
+    ``ally_standing_forecast`` (S14E-D8 / S14E-X51): the ratifier's plan rows
+    for the allies it does NOT punish but the player should hear about before
+    the click — the named ally's thanks (``rewarded``: "Austria takes Tyrol
+    by it and thanks us (+10 relation).") and the ally whose war the table
+    does not end (``fights_on``: "Spain fights on alone against Britain —
+    the table does not touch her war."). Read, never re-derived here.
 
     ``extra_warning_rows`` (S14E-4): warning rows the CALLER derives from the
     live board and already shaped as review warnings (the enemy corps the
@@ -1714,6 +1771,7 @@ def build_settlement_review(
         warnings=warnings,
         proposer_side=proposer_side,
     )
+    ally_standing_preview = build_ally_standing_preview(ally_standing_forecast)
     forced_alliance_threat_display = build_forced_alliance_threat_preview_display(
         forced_alliance_threat_preview,
     )
@@ -1770,6 +1828,7 @@ def build_settlement_review(
         "applied_clauses_preview": applied_clauses_preview,
         "beneficiaries_preview": beneficiaries_preview,
         "shut_out_allies_preview": shut_out_allies_preview,
+        "ally_standing_preview": ally_standing_preview,
         "third_party_reaction_preview": third_party_reaction_preview,
         "forced_alliance_threat_preview": forced_alliance_threat_display,
     }
@@ -2298,6 +2357,12 @@ def build_contribution_share_rows(
     overflow = max(0, len(rows) - cap) if cap >= 0 else 0
     if cap >= 0:
         rows = rows[:cap]
+    # S14E-X100 (Golden Rule 2): the rows go to Godot (the war panel's standing
+    # lines, the confirm's review) - whole percents, never the 0..1 floats the
+    # sort above just used.
+    for row in rows:
+        row["material_share_pct"] = int(round(float(row.pop("material_share")) * 100))
+        row["support_share_pct"] = int(round(float(row.pop("support_share")) * 100))
     return {"rows": rows, "overflow_count": overflow}
 
 

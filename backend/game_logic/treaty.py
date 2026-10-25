@@ -725,18 +725,123 @@ def stamp_option(option: Dict[str, Any], verdict: Verdict) -> Dict[str, Any]:
     return option
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# The haggle's verdict — S14E-20 (S14f part 2, October 25, 2026)
+#
+# "Let Talleyrand haggle (1 DP)" was shown live on every letter, and the
+# handler (`_handle_counter_ai_proposal`) found no counter on most of them —
+# the click answered "the offer stands" and never said the point was kept.
+# The dry run is the handler's own first question (`generate_counter_offer(…,
+# dry_run=True)`: side-effect-free, no DP charged, no world state touched), so
+# the letter asks it at every read seam and stamps the Counter option with the
+# answer — `enabled` / `reason`, as the accept-shaped options carry theirs. A
+# letter that asks nothing of France (a courtesy, a peace on the held line)
+# has no term for Talleyrand to strike: when the dry run also finds nothing to
+# add, the control is HIDDEN (Rule 9 — no dead control). The handler stays the
+# arbiter: a stale popup or a typed press still reaches it, and it still
+# spends nothing when it finds no counter.
+# ═══════════════════════════════════════════════════════════════════════════
+
+COUNTER_ACTION = "counter_ai_proposal"
+COUNTER_NO_POINT_REASON = "A haggle costs 1 DP, and none is left."
+
+
+COUNTER_FOUND = "counter"          # a counter the court could take
+COUNTER_AS_OFFERED = "as_offered"  # the court's reading already clears its bar
+COUNTER_NONE = "none"              # nothing Talleyrand can build
+
+
+def counter_outlook(terms: Dict[str, Any], world) -> str:
+    """What the haggle would find, from the dry run (`generate_counter_offer(…,
+    dry_run=True)` — side-effect-free, no DP charged): COUNTER_FOUND, or
+    COUNTER_NONE, or COUNTER_AS_OFFERED when the algorithm hands the proposal
+    back UNCHANGED ("already acceptable, no need to counter") — a press would
+    spend the point to re-present the identical terms, so that is no counter
+    either (S14E-X90). The ONE question the Counter option's stamp and the
+    handler both ask."""
+    from backend.game_logic.ai_diplomacy import generate_counter_offer
+    found = generate_counter_offer(terms, world, dry_run=True)
+    if found is None:
+        return COUNTER_NONE
+    return COUNTER_AS_OFFERED if found == terms else COUNTER_FOUND
+
+
+def counter_is_constructible(terms: Dict[str, Any], world) -> bool:
+    """True when the haggle would find a counter worth the point."""
+    return counter_outlook(terms, world) == COUNTER_FOUND
+
+
+def counter_verdict(world, dialogue: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """The Counter option's `enabled` / `reason` / `hidden` for an incoming
+    letter, read from the live board; None when the letter carries nothing to
+    judge (no terms) or the read itself failed (the option is left as built)."""
+    context = dialogue.get("context") if isinstance(dialogue.get("context"), dict) else {}
+    terms = (context or {}).get("proposal") or {}
+    source = str((context or {}).get("source_nation") or dialogue.get("target_nation") or "")
+    if not source or not isinstance(terms, dict) or not terms:
+        return None
+    try:
+        from backend.game_logic import moments
+        from backend.game_logic.call_to_arms import is_call_to_arms
+        from backend.game_logic.vassal import is_client_petition
+        if (moments.is_moment_letter(dialogue) or is_client_petition(dialogue)
+                or is_call_to_arms(dialogue)):
+            # Answered, never bargained (the handler's own refusals).
+            return {"enabled": False, "hidden": True,
+                    "reason": "That letter is answered, not bargained, Sire."}
+        if int(getattr(world, "diplomatic_points", 0) or 0) < 1:
+            return {"enabled": False, "hidden": False, "reason": COUNTER_NO_POINT_REASON}
+        outlook = counter_outlook(terms, world)
+        if outlook == COUNTER_FOUND:
+            return {"enabled": True, "hidden": False, "reason": ""}
+        court = _court(world, source, capitalize=True)
+        return {"enabled": False,
+                "hidden": not terms.get("demands"),
+                "reason": (f"{court}'s terms already stand — Talleyrand finds nothing to haggle over."
+                           if outlook == COUNTER_AS_OFFERED
+                           else f"{court} has nothing to trade at this price.")}
+    except Exception as exc:  # the letter keeps the option as built
+        from backend.errors import report
+        report(exc, "treaty.counter_verdict: the dry run")
+        return None
+
+
+def stamp_counter_option(option: Dict[str, Any], verdict: Dict[str, Any]) -> Dict[str, Any]:
+    """Write the haggle's verdict into the Counter option under the keys the
+    popup reads (`enabled`, `reason`, `hidden`). No `closed_clause` marker: the
+    handler is still the arbiter of a press, and its dry run spends nothing."""
+    if not isinstance(option, dict) or not isinstance(verdict, dict):
+        return option
+    option["enabled"] = bool(verdict.get("enabled"))
+    option["reason"] = str(verdict.get("reason") or "")
+    if verdict.get("hidden"):
+        option["hidden"] = True
+    else:
+        option.pop("hidden", None)
+    return option
+
+
 def stamp_letter(world, dialogue: Dict[str, Any]) -> Optional[Verdict]:
     """Stamp every accept-shaped option of a letter from one `can_sign` read
-    (one read per distinct action). Returns the verdict of the first
-    accept-shaped option, or None when the letter carries none."""
+    (one read per distinct action), and the Counter option from the haggle's
+    dry run (S14E-20). Returns the verdict of the first accept-shaped option,
+    or None when the letter carries none."""
     if not isinstance(dialogue, dict):
         return None
     first: Optional[Verdict] = None
     verdicts: Dict[str, Verdict] = {}
+    counter: Optional[Dict[str, Any]] = None
+    counter_read = False
     for option in dialogue.get("options") or []:
         if not isinstance(option, dict):
             continue
         action = str(option.get("action") or "")
+        if action == COUNTER_ACTION:
+            if not counter_read:
+                counter, counter_read = counter_verdict(world, dialogue), True
+            if counter is not None:
+                stamp_counter_option(option, counter)
+            continue
         if action not in ACCEPT_ACTIONS:
             continue
         if action not in verdicts:
@@ -766,6 +871,8 @@ def _mirror_options(dialogue: Dict[str, Any], payload: Dict[str, Any]) -> None:
             row["disabled_reason_display"] = str(option.get("disabled_reason_display") or "")
         if option.get(CLOSED_CLAUSE_KEY):
             row[CLOSED_CLAUSE_KEY] = option[CLOSED_CLAUSE_KEY]
+        if option.get("hidden"):
+            row["hidden"] = True   # S14E-20: the haggle has nothing to strike
         stamped[row["action"]] = row
     if not stamped:
         return
@@ -777,10 +884,11 @@ def _mirror_options(dialogue: Dict[str, Any], payload: Dict[str, Any]) -> None:
             source = stamped.get(str(row.get("action") or ""))
             if source is None:
                 continue
-            for key in ("enabled", "reason", "available", "disabled_reason_display", CLOSED_CLAUSE_KEY):
+            for key in ("enabled", "reason", "available", "disabled_reason_display",
+                        CLOSED_CLAUSE_KEY, "hidden"):
                 if key in source:
                     row[key] = source[key]
-                elif key in ("available", "disabled_reason_display", CLOSED_CLAUSE_KEY):
+                elif key in ("available", "disabled_reason_display", CLOSED_CLAUSE_KEY, "hidden"):
                     row.pop(key, None)
         return
     payload["options"] = list(stamped.values())

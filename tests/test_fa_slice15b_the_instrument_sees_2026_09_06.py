@@ -423,7 +423,9 @@ class TestTheRunRecordsWhoParsedItAndOnWhatBoard:
         d = _Recorder()
         pdriver.Digest.command(d, "Ney, attack Mack", {
             "success": True, "message": "ok",
-            "parse_mode": "anthropic", "parse_confidence": 0.62})
+            # S14E-X100 FLIPPED: the wire carries a whole percent (62, Golden
+            # Rule 2); the digest keeps its "0.62" mark (was sent as 0.62).
+            "parse_mode": "anthropic", "parse_confidence": 62})
         assert "[anthropic 0.62]" in d.lines[0]
         assert d.records[0]["parse_mode"] == "anthropic"
 

@@ -216,7 +216,9 @@ class TestCounterOfferPopupDataShape:
         assert "OPEN_BORDERS" not in clauses_text
         assert "territory_cede" not in clauses_text
         assert "Open borders" in clauses_text
-        assert "Territory cession" in clauses_text
+        # S14E-28 (flipped): a province changing hands says who cedes it to
+        # whom ("Prussia cedes Saxony to you"), not the bare clause label.
+        assert "Prussia cedes Saxony to you" in clauses_text
 
     def test_counter_offer_popup_clauses_are_list(self):
         """Clauses must be a list of strings (not a single string)."""

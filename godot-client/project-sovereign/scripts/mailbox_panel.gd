@@ -28,7 +28,10 @@ const ITEM_TYPE_DISPLAY = {
 
 # R159 (POSITION 7): the subtitle names the mechanic — unanswered envoys ARE
 # diplomacy in waiting, and they lapse.
-const DEFAULT_SUBTITLE = "Every envoy still awaiting your answer — diplomacy waiting on your word; ignored, it lapses. Select a row to reopen or activate it."
+# S14E-27 (S14f part 2): the subtitle names which rows answer in place — the
+# letter-book's (routine mail from the lesser courts); every other row opens its
+# letter in full, and says why on its own line.
+const DEFAULT_SUBTITLE = "Every envoy still awaiting your answer — diplomacy waiting on your word; ignored, it lapses. Routine letters from the lesser courts answer in place; every other letter opens in full. Select a row, or press its Open, to reopen or activate it."
 
 var _items: Array = []
 # IGR-F: mailbox_id -> the letter-book row for that item. Only rows in this
@@ -204,12 +207,21 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
 	top_row.add_child(type_label)
 
-	var open_label = Label.new()
-	open_label.text = "Open ▸"
-	open_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	open_label.theme_type_variation = &"Caption"
-	open_label.add_theme_color_override("font_color", Utils.UI_GOLD)
-	top_row.add_child(open_label)
+	# S14E-27 (S14f part 2): the word is the press. UXR3-63 gave the row the
+	# hand and the word "Open ▸" — a Label that ignored the mouse, so the
+	# control was the whole row and the word was only a sign. It is a flat
+	# Button now, on the same `item_selected` path (`_open_row`); the whole
+	# row stays clickable.
+	var open_btn = Button.new()
+	open_btn.text = "Open ▸"
+	open_btn.flat = true
+	open_btn.theme_type_variation = &"CaptionButton"
+	open_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	open_btn.tooltip_text = "Open this letter"
+	open_btn.add_theme_color_override("font_color", Utils.UI_GOLD)
+	open_btn.add_theme_color_override("font_hover_color", Utils.UI_GOLD)
+	open_btn.pressed.connect(_open_row.bind(panel))
+	top_row.add_child(open_btn)
 
 	var turn_label = Label.new()
 	turn_label.text = "Turn %d" % arrival_turn
@@ -245,19 +257,53 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 			vbox.add_child(voice_label)
 		var clauses = digest_row.get("clauses", [])
 		if clauses is Array and clauses.size() > 0:
-			var terms_label = Label.new()
-			var clause_strings: Array[String] = []
-			for clause in clauses:
-				clause_strings.append(str(clause))
-			terms_label.text = "Terms: " + " · ".join(clause_strings)
-			terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			terms_label.theme_type_variation = &"Caption"
-			terms_label.add_theme_color_override("font_color", Utils.UI_MAILBOX_TERMS)
-			vbox.add_child(terms_label)
+			vbox.add_child(_terms_line_label(clauses))
 		vbox.add_child(_build_action_row(mailbox_id))
+	else:
+		# S14E-27: a row that opens its letter in full still shows what the
+		# letter asks (the popup's own `clauses`, as the backend rides them on
+		# the row) and says, on one line, why it is not answered in place.
+		var row_terms = item.get("terms_lines", [])
+		if row_terms is Array and row_terms.size() > 0:
+			vbox.add_child(_terms_line_label(row_terms))
+		var row_reason = str(item.get("reason", "")).strip_edges()
+		if row_reason != "":
+			var reason_label = Label.new()
+			reason_label.text = row_reason
+			reason_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			reason_label.theme_type_variation = &"Caption"
+			reason_label.add_theme_color_override("font_color", Utils.UI_MAILBOX_NOTE)
+			vbox.add_child(reason_label)
 
 	return panel
+
+
+func _terms_line_label(clauses: Array) -> Label:
+	"""One "Terms: …" line from a letter's clause strings — the letter-book's
+	rows and (S14E-27) every other incoming-proposal row draw it the same way."""
+	var terms_label = Label.new()
+	var clause_strings: Array[String] = []
+	for clause in clauses:
+		clause_strings.append(Utils.humanize_nation_keys_in_text(str(clause)))
+	terms_label.text = "Terms: " + " · ".join(clause_strings)
+	terms_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	terms_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	terms_label.theme_type_variation = &"Caption"
+	terms_label.add_theme_color_override("font_color", Utils.UI_MAILBOX_TERMS)
+	return terms_label
+
+
+func _open_row(panel: PanelContainer):
+	"""Open this row's letter — the ONE path the row's own click and its "Open ▸"
+	button share (S14E-27). Hides the panel and hands the row to `item_selected`
+	(main.gd activates it)."""
+	hide()
+	item_selected.emit(
+		int(panel.get_meta("mailbox_id")),
+		bool(panel.get_meta("is_active")),
+		str(panel.get_meta("item_type"))
+	)
 
 
 func _build_action_row(mailbox_id: int) -> HBoxContainer:
@@ -316,12 +362,7 @@ func _set_buttons_enabled_recursive(node: Node, enabled: bool):
 
 func _on_row_gui_input(event: InputEvent, panel: PanelContainer):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		hide()
-		item_selected.emit(
-			int(panel.get_meta("mailbox_id")),
-			bool(panel.get_meta("is_active")),
-			str(panel.get_meta("item_type"))
-		)
+		_open_row(panel)
 
 
 func _clear_rows():

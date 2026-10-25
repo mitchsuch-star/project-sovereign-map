@@ -31,15 +31,15 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > review → the deep dives DD-0 / DD-1 → the Score Finish residue → the deploy);
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
-> user owes — read it first, every session.** S14b–S14e are COMPLETE;
-> **S14f part 2 is next**.
+> user owes — read it first, every session.** S14b–S14f are COMPLETE;
+> **NEXT = the user's rulings D12 … D20, then S15 (the deploy gate)**.
 
-**▶ LIVE STATE (October 24, 2026).** The three most recent landed rows:
-- **S14f part 1 (Oct 24) — the re-measure's rows — LANDED** (§150): S14E-1 … 15 and 31 FIXED, D2–D4 built, D1 re-ruled Oct 25 (the deed, with teeth), 68 siblings, 49 fixed. **NEXT = S14f part 2.**
-- **S14e (Oct 24) — DD-B's re-measure — COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1; 35 rows → S14f.
-- **S14d part 3 (Oct 24) — the walk and the close — LANDED; S14d COMPLETE** (§148.11).
+**▶ LIVE STATE (October 25, 2026).** The three most recent landed rows:
+- **S14f part 2 (Oct 25) — the P3s, the homed siblings, D5–D11, the re-play — LANDED; S14f COMPLETE** (§151): 145 siblings swept, 127 fixed, 18 await D12–D20.
+- **S14f part 1 (Oct 24) — the P1, D1–D4, the P2s — LANDED** (§150); D1 re-ruled Oct 25 (the deed, with teeth).
+- **S14e (Oct 24) — DD-B's re-measure — COMPLETE** (§149): 5.8 rows per 10 turns, 1 P1.
 
-**Open with the user:** S14E-D5 … D11, a third measure after S14f, S14d's A1 (mounts/signs; 1.5 → 2.5), UXR-4 (S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** S14E-D12 … D20, a third measure, S14d's A1 (1.5 → 2.5), UXR-4 (S15), a code-signing cert before S15, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

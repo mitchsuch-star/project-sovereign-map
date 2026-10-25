@@ -663,7 +663,10 @@ def apply_territory_compensate(world, clause: Mapping[str, Any], *,
             # The court whose province was promised at a table it never sat
             # at is SOLD OUT — the settlement reactions' own figure (-15).
             from backend.game_logic.settlement_reactions import RELATION_SOLD_OUT_VS_FRANCE
-            world.modify_nation_relation(holder, payer, RELATION_SOLD_OUT_VS_FRANCE)
+            # S14E-X112: a mission's pair with the holder keeps its books
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, holder, payer, RELATION_SOLD_OUT_VS_FRANCE,
+                                   "settlement_sold_out", payer, holder)
         applied.update({"design": reading["design"], "design_title": reading["design_title"],
                         "suspended_designs": list(ahead)})
     world.log_event({

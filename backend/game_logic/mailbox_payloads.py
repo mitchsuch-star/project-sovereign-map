@@ -12,11 +12,36 @@ from backend.errors import report
 _PEACE_PROPOSAL_TYPES = {"peace", "armistice", "armistice_losing", "armistice_winning"}
 
 
-def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True) -> list[str]:
-    """Build incoming_proposal_popup.gd-compatible clause strings."""
+def _incoming_type_summary(terms: Dict, label_type: str = "", is_counter_offer: bool = False) -> str:
+    """S14E-23: the summary line of an incoming treaty letter's type - "Open
+    Borders Agreement (free military passage)" - from the one table the
+    outgoing road reads (`PROPOSAL_TYPE_SUMMARY_DISPLAY`). "" for a counter
+    ("In response to your ... proposal" reads the bare name), a dictated peace
+    (its title carries the tier), a peace-class letter (its war-context preview
+    is the explanation) and any type the table gives no summary of."""
+    from backend.display_names import (
+        proposal_display_name, proposal_summary_display_name, treaty_state_effect_words)
+
+    proposal_type = str((terms or {}).get("type") or "").strip().lower()
+    if (is_counter_offer or label_type == "harsh_peace" or not proposal_type
+            or proposal_type in _PEACE_PROPOSAL_TYPES or proposal_type.startswith("armistice")):
+        return ""
+    summary = proposal_summary_display_name(proposal_type)
+    if summary == proposal_display_name(proposal_type):
+        return ""
+    # S14E-X95: a pact or an alliance letter also says what its state yields
+    # and what breaking it costs (the open-borders clause line carries its own).
+    effect = treaty_state_effect_words(proposal_type)
+    return f"{summary} - {effect}" if effect else summary
+
+
+def build_proposal_popup_clauses(terms: Dict, *, include_base: bool = True, **reader) -> list[str]:
+    """Build incoming_proposal_popup.gd-compatible clause strings. `reader`
+    (S14E-28) is the letter's chair - `viewer`, `proposer`, `target`,
+    `name_of` - so a gold term says who pays whom."""
     from backend.display_names import build_proposal_popup_clauses as _build
 
-    return _build(terms, include_base=include_base)
+    return _build(terms, include_base=include_base, **reader)
 
 
 def terms_are_a_client_petition(terms: Optional[Dict]) -> bool:
@@ -436,10 +461,22 @@ def build_pending_envoy_popup_from_terms(
     from backend.display_names import with_definite_article
     from backend.game_logic.formations import formed_display_name
     from_nation_display = with_definite_article(formed_display_name(world, nation))
+    # S14E-28: the letter's chair - the reader is the player, the proposer the
+    # court the envoy rides for (the terms' own `proposer_nation` /
+    # `target_nation` win where they are written, as the ratifier reads them).
+    reader = {
+        "viewer": str(getattr(world, "player_nation", "") or ""),
+        "proposer": str(nation or ""),
+        "target": str(getattr(world, "player_nation", "") or ""),
+        "name_of": lambda n, _w=world: formed_display_name(_w, n),
+    }
     choice_display = {
         "accept": "accepted",
         "reject": "declined",
-        "counter": "countered",
+        # S14E-18: the echo prints BEFORE the backend answers — "countered"
+        # was false whenever the dry run found no counter. What was done is
+        # true whatever Talleyrand finds.
+        "counter": "asked Talleyrand to haggle",
         "dismiss": "set aside",
         "grant": "granted",
         "refuse": "refused",
@@ -466,11 +503,15 @@ def build_pending_envoy_popup_from_terms(
         "dictated_tier": int(terms.get("dictated_tier", 0) or 0) if label_type == "harsh_peace" else 0,
         "dictated_label": str(terms.get("dictated_label") or "") if label_type == "harsh_peace" else "",
         "clauses": (
-            counter_offer_clause_lines(original, terms)
+            counter_offer_clause_lines(original, terms, **reader)
             if (is_counter_offer and isinstance(original, dict))
             else build_proposal_popup_clauses(
-                terms, include_base=not is_counter_offer)
+                terms, include_base=not is_counter_offer, **reader)
         ),
+        # S14E-23: what the treaty does, in the backend's own words
+        # ("Open Borders Agreement (free military passage)") - the popup's
+        # "Proposes:" line prints it; the bare name stays `proposal_type_display`.
+        "proposal_type_summary": _incoming_type_summary(terms, label_type, is_counter_offer),
         "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
         "acceptance_hint": acceptance_hint,
         "rejection_hint": rejection_hint,
@@ -565,7 +606,9 @@ def attach_peace_preview(world, payload: Dict, nation: str, terms: Dict) -> Dict
             "clauses": [],
             "demands": list(terms.get("demands") or []),
         })
-        snapshot["harshness"] = round(_our_burden, 2)
+        # S14E-X6: a whole percent on the wire (Golden Rule 2) — the client
+        # prints the label, never this figure.
+        snapshot["harshness"] = int(round(_our_burden * 100))
         snapshot["harshness_label"] = get_harshness_label(_our_burden)
         payload["harshness"] = snapshot["harshness"]
         payload["harshness_label"] = snapshot["harshness_label"]

@@ -488,6 +488,22 @@ class DiplomaticExecutor:
                 gold = int(m.group(1).replace(",", ""))
             except ValueError:
                 gold = int(DEFAULT_ALLEGIANCE_BID)
+        # S14E-X104 (the S14E-26 sweep): the sum is quoted before it is laid —
+        # free, after the gate's own refusal; "Lay it" reissues it confirmed.
+        from backend.commands.reforms_executor import _confirmed
+        from backend.game_logic.ai_diplomacy import (
+            allegiance_bid_quote, allegiance_bid_refusal)
+        if not _confirmed({"raw_input": raw_text,
+                           "confirmed": diplomatic_data.get("confirmed")}):
+            why = allegiance_bid_refusal(world, player, target_nation, gold)
+            if why:
+                return {"success": False, "message": why}
+            return self._quote_instrument(
+                world, {"raw_command": diplomatic_data.get("raw_command", "")},
+                message=allegiance_bid_quote(world, player, target_nation, gold),
+                confirm_label="Lay the gold",
+                confirm_line=f"bid for {target_nation}, {int(gold)} gold",
+                aliases=("yes", "bid", "lay", "confirm"))
         result = place_allegiance_bid(world, player, target_nation, gold)
         if not result.get("success"):
             return {"success": False, "message": result.get("message", "")}
@@ -566,6 +582,37 @@ class DiplomaticExecutor:
         if not match:
             return None
         return int(match.group(1).replace(",", ""))
+
+    def _quote_instrument(self, world, command: Dict, *, message: str,
+                          confirm_label: str, confirm_line: str,
+                          aliases: tuple) -> Dict:
+        """S14E-26: the priced instruments' confirm — the terms first, FREE, on
+        the clarification channel `_quote_proclamation` uses (the Laws' and
+        the Acts' quote-then-confirm). The option reissues the order
+        `confirmed` (`reforms_executor._confirmed`); 'Not now' spends nothing.
+        Called by the three D5 verbs AFTER every refusal and BEFORE the charge:
+        a quote is never offered for an act the click would refuse. The
+        player's road only — the AI's instruments mint through
+        `ai_diplomacy` / `instruments` and never reach these verbs (GR5)."""
+        return {
+            "success": True,
+            "free_action": True,
+            "state": "awaiting_clarification",
+            "type": "clarification",
+            "instrument_confirm": True,
+            "marshal": "The Cabinet",
+            "original_command": command.get("raw_command", ""),
+            "message": message,
+            "options": [
+                {"label": confirm_label,
+                 "command": f"{confirm_line} confirmed",
+                 "aliases": list(aliases)},
+                {"label": "Not now", "command": "cancel",
+                 "aliases": ["no", "not now", "stand down"]},
+            ],
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
 
     def _execute_sponsor_design(self, command: Dict, game_state: Dict) -> Dict:
         """D5-2: directed sponsorship — 'sponsor Prussia against Austria,
@@ -683,6 +730,26 @@ class DiplomaticExecutor:
                                 f"before he signs a standing promise)."),
                 }
 
+        # S14E-26: a compact that already stands is refused BEFORE it is
+        # quoted (the mint's own sentence); then the quote — the sum, the
+        # term, the purse after, the bond — and only the confirmed order mints.
+        from backend.commands.reforms_executor import _confirmed
+        from backend.game_logic.instruments import (
+            identical_compact, identical_compact_refusal, sponsorship_quote)
+        if identical_compact(world, kind="sponsorship", payer=player,
+                             recipient=recipient, aim=aim) is not None:
+            return {"success": False,
+                    "message": identical_compact_refusal(player, recipient)}
+        if not _confirmed(command):
+            licence = amount <= 0
+            return self._quote_instrument(
+                world, command,
+                message=sponsorship_quote(world, player, recipient, aim, amount),
+                confirm_label="Grant the licence" if licence else "Sponsor it",
+                confirm_line=f"sponsor {recipient} against {aim}, {int(amount)} gold",
+                aliases=(("yes", "license", "licence", "confirm") if licence
+                         else ("yes", "sponsor", "confirm")))
+
         result = grant_directed_sponsorship(
             world, payer=player, recipient=recipient, aim=aim,
             amount_per_turn=amount, turns=SPONSORSHIP_DEFAULT_TURNS,
@@ -774,14 +841,38 @@ class DiplomaticExecutor:
             }
         amount = price if offered is None else offered
 
-        treasury = int(world.nation_gold.get(player, 0))
-        if treasury < amount:
+        # S14E-X157: gated against the CHEST (the treasury less the recurring
+        # settlement payments owed - `instruments.chest_of`), the figure the
+        # quote's "would hold N after" and the Congress's levers name; the
+        # charge below still comes out of the coffers.
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+        treasury, chest = chest_of(world, player)
+        if chest < amount:
             return {
                 "success": False,
                 "message": (f"Their price is {amount} gold; the treasury "
-                            f"holds {treasury}. Talleyrand: \"We cannot "
+                            f"holds {chest}"
+                            f"{' gold' + FREE_OF_OBLIGATIONS if chest < treasury else ''}. "
+                            f"Talleyrand: \"We cannot "
                             f"afford their appetite today, Sire.\""),
             }
+
+        # S14E-26: the price is quoted before it is paid — free, after every
+        # refusal above; "Buy it off" reissues the order confirmed.
+        from backend.commands.reforms_executor import _confirmed
+        if not _confirmed(command):
+            from backend.game_logic.instruments import buyoff_quote
+            return self._quote_instrument(
+                world, command,
+                message=buyoff_quote(world, player, target,
+                                     title=str(view.want_title or view.want_id),
+                                     amount=amount),
+                confirm_label="Buy it off",
+                # the quoted figure rides the confirmed line: a price that
+                # moved since the quote is refused ("will not move them"),
+                # never charged at a number the player was not shown.
+                confirm_line=f"buy off {target}, {int(amount)} gold",
+                aliases=("yes", "buy", "buy off", "confirm"))
 
         world.diplomatic_points -= INSTRUMENT_DP_COST
         world.nation_gold[player] = treasury - amount
@@ -1017,6 +1108,19 @@ class DiplomaticExecutor:
             return {"success": False, "message": refusal}
         if amount is None:
             amount = int(command.get("amount") or 0)
+        # S14E-X103 (the S14E-26 sweep): the gold is quoted before it leaves —
+        # free, after the table's own refusal; "Lay it" reissues it confirmed.
+        from backend.commands.reforms_executor import _confirmed
+        if not _confirmed(command):
+            why = congress.sweetener_refusal(world, target, int(amount or 0))
+            if why:
+                return {"success": False, "message": why}
+            return self._quote_instrument(
+                world, command,
+                message=congress.sweetener_quote(world, target, int(amount or 0)),
+                confirm_label="Lay the gold",
+                confirm_line=f"offer {target} {int(amount or 0)} gold for recognition",
+                aliases=("yes", "offer", "lay", "confirm"))
         result = congress.pay_sweetener(world, target, int(amount or 0))
         if not result.get("success"):
             return {"success": False, "message": result.get("message", "")}
@@ -1062,6 +1166,23 @@ class DiplomaticExecutor:
                             f"{_nation_adjective(player)} protection "
                             f"as a vassal."),
             }
+
+        # S14E-26: a pledge that already stands is refused BEFORE it is quoted
+        # (the mint's own sentence); then the quote — the deterrent, the grace
+        # and the wars it would put France on the clock for — and only the
+        # confirmed order pledges.
+        from backend.commands.reforms_executor import _confirmed
+        from backend.game_logic.instruments import (
+            already_guarantees, guarantee_quote, guarantors_of)
+        if player in guarantors_of(world, target):
+            return {"success": False, "message": already_guarantees(player, target)}
+        if not _confirmed(command):
+            return self._quote_instrument(
+                world, command,
+                message=guarantee_quote(world, player, target),
+                confirm_label="Pledge the guarantee",
+                confirm_line=f"guarantee {target}",
+                aliases=("yes", "guarantee", "pledge", "confirm"))
 
         result = pledge_guarantee(world, guarantor=player, protected=target)
         if not result.get("success"):
@@ -1118,6 +1239,19 @@ class DiplomaticExecutor:
             else:
                 return {"success": False,
                         "message": f"France and {target} share no war, Sire — there is nothing to bind her to."}
+        # S14E-X102 (the S14E-26 sweep): the stream is quoted before it is
+        # laid — free, after the gate's own refusal; "Bind" reissues it confirmed.
+        from backend.commands.reforms_executor import _confirmed
+        if not _confirmed(command):
+            why = B.mint_refusal(world, player, target, enemy)
+            if why:
+                return {"success": False, "message": f"Talleyrand: \"{why}\""}
+            return self._quote_instrument(
+                world, command,
+                message=B.quote_line(world, player, target, enemy),
+                confirm_label="Bind them",
+                confirm_line=f"bind {target} to the war against {enemy}",
+                aliases=("yes", "bind", "confirm"))
         result = B.mint_bond(world, payer=player, member=target, enemy=enemy)
         if not result.get("success"):
             return {"success": False, "message": f"Talleyrand: \"{result.get('message', '')}\""}
@@ -1866,6 +2000,47 @@ class DiplomaticExecutor:
         ),
     }
 
+    def _amends_quote(self, diplomatic_data: Dict, world, target_nation: str, *,
+                      grievance: bool):
+        """S14E-X105 (the S14E-26 sweep): the reparations' QUOTE — None when the
+        order is confirmed, else the free clarification (the instruments'
+        envelope): the price as the executor charges it, what it clears, the
+        rewards, the cooldown, the chest after. Every figure is the class
+        constant the success path applies (`_amends_costs` reads the same)."""
+        from backend.commands.reforms_executor import _confirmed
+        from backend.display_names import plural
+        raw = (diplomatic_data.get("raw_text") or diplomatic_data.get("raw_input") or "")
+        if _confirmed({"raw_input": raw, "confirmed": diplomatic_data.get("confirmed")}):
+            return None
+        if grievance:
+            gold, dp = self._MAKE_AMENDS_GRIEVANCE_GOLD_COST, self._MAKE_AMENDS_GRIEVANCE_DP_COST
+            reliability = self._MAKE_AMENDS_GRIEVANCE_RELIABILITY_REWARD
+            relation = self._MAKE_AMENDS_GRIEVANCE_RELATION_REWARD
+            clears = f"{_display_nation(target_nation)}'s oldest grievance against us"
+            line = f"make amends with {target_nation} for the abandoned alliance"
+        else:
+            gold, dp = self._MAKE_AMENDS_GOLD_COST, self._MAKE_AMENDS_DP_COST
+            reliability = self._MAKE_AMENDS_RELIABILITY_REWARD
+            relation = self._MAKE_AMENDS_RELATION_REWARD
+            clears = f"one strike on {_display_nation(target_nation)}'s record against us"
+            line = f"make amends with {target_nation}"
+        # S14E-X186: the chest after is the CHEST's (`instruments.chest_of`), the
+        # figure `amends_gold_refusal` gates on and the Cabinet row reads
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+        treasury, chest = chest_of(world, world.player_nation)
+        owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
+        message = (
+            f"Make amends with {_display_nation(target_nation)}"
+            f"{' for the abandoned alliance' if grievance else ''}: {int(gold):,} gold and "
+            f"{plural(dp, 'diplomatic point')}. It clears {clears}; our reliability "
+            f"+{int(reliability)} and relations +{int(relation)}, and the pair cannot be mended "
+            f"again for {plural(self._MAKE_AMENDS_COOLDOWN_TURNS, 'turn')}. The treasury holds "
+            f"{chest:,} gold{owed} and would hold {chest - int(gold):,} after. Make amends? (yes / no)")
+        return self._quote_instrument(
+            world, {"raw_command": diplomatic_data.get("raw_command", "")},
+            message=message, confirm_label="Make amends", confirm_line=line,
+            aliases=("yes", "make amends", "confirm"))
+
     def _execute_make_amends(self, diplomatic_data: Dict, world) -> Dict:
         """Handle Make Amends command (B-B7 standard §8.6.1 / B-B4 grievance §8.6.1a).
 
@@ -1972,15 +2147,14 @@ class DiplomaticExecutor:
                 ),
             }
         available_gold = int(world.nation_gold.get(player, 0) or 0)
-        if available_gold < self._MAKE_AMENDS_GOLD_COST:
-            return {
-                "success": False,
-                "message": AMENDS_REFUSAL_DISPLAY["insufficient_gold"].format(
-                    nation=target_nation,
-                    required=self._MAKE_AMENDS_GOLD_COST,
-                    available=available_gold,
-                ),
-            }
+        # S14E-X186: gated against the CHEST (`instruments.chest_of`, the
+        # treasury less the recurring settlement payments owed) - the figure
+        # the quote's "would hold N after" and the Cabinet row name.
+        from backend.game_logic.cabinet_rows import amends_gold_refusal
+        short = amends_gold_refusal(world, player, target_nation,
+                                    self._MAKE_AMENDS_GOLD_COST)
+        if short:
+            return {"success": False, "message": short}
 
         # ── Refusal: no active strikes ──
         # Spec §8.6.1 "active strike" = any strike still recorded on the pair
@@ -2000,6 +2174,13 @@ class DiplomaticExecutor:
                     nation=target_nation,
                 ),
             }
+
+        # S14E-X105 (the S14E-26 sweep): the reparations are quoted before the
+        # gold leaves — free, after every refusal above.
+        quote = self._amends_quote(diplomatic_data, world, target_nation,
+                                   grievance=False)
+        if quote is not None:
+            return quote
 
         # ── Success: select strike per §8.6.1 rule ──
         # Oldest matured first (decay clock has run out); else the lowest-
@@ -2052,8 +2233,10 @@ class DiplomaticExecutor:
         )
         reliability[player] = reliability_after
         world.diplomatic_reliability = reliability
-        world.modify_nation_relation(
-            player, target_nation, self._MAKE_AMENDS_RELATION_REWARD,
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, player, target_nation, self._MAKE_AMENDS_RELATION_REWARD,
+            "make_amends", player, target_nation,
         )
 
         # ── Set cooldown ──
@@ -2364,15 +2547,12 @@ class DiplomaticExecutor:
                 ),
             }
         available_gold = int(world.nation_gold.get(player, 0) or 0)
-        if available_gold < self._MAKE_AMENDS_GRIEVANCE_GOLD_COST:
-            return {
-                "success": False,
-                "message": AMENDS_REFUSAL_DISPLAY["insufficient_gold"].format(
-                    nation=target_nation,
-                    required=self._MAKE_AMENDS_GRIEVANCE_GOLD_COST,
-                    available=available_gold,
-                ),
-            }
+        # S14E-X186: the CHEST, as the standard variant (`amends_gold_refusal`)
+        from backend.game_logic.cabinet_rows import amends_gold_refusal
+        short = amends_gold_refusal(world, player, target_nation,
+                                    self._MAKE_AMENDS_GRIEVANCE_GOLD_COST)
+        if short:
+            return {"success": False, "message": short}
 
         # ── Refusal: no active grievance (distinct from "no strikes") ──
         # §8.6.1a explicit: the grievance variant fails when the pair has
@@ -2385,6 +2565,13 @@ class DiplomaticExecutor:
                     nation=target_nation,
                 ),
             }
+
+        # S14E-X105 (the S14E-26 sweep): the reparations are quoted before the
+        # gold leaves — free, after every refusal above.
+        quote = self._amends_quote(diplomatic_data, world, target_nation,
+                                   grievance=True)
+        if quote is not None:
+            return quote
 
         # ── Success: remove oldest grievance flag (FIFO by turn) ──
         removed_flag = _remove_oldest_grievance_flag(
@@ -2426,10 +2613,11 @@ class DiplomaticExecutor:
         )
         reliability[player] = reliability_after
         world.diplomatic_reliability = reliability
-        world.modify_nation_relation(
-            player,
-            target_nation,
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, player, target_nation,
             self._MAKE_AMENDS_GRIEVANCE_RELATION_REWARD,
+            "make_amends", player, target_nation,
         )
 
         # ── Set cooldown (shared field with standard variant) ──
@@ -3826,6 +4014,21 @@ class DiplomaticExecutor:
                 world, war_id=war_id, payer=player, court=target_nation,
                 amount=int(cmd.get("bond_bid") or 0),
                 covered=_counsel_coverage or [target_nation])
+        # S14E-D7 / S14E-X34: "Open Settlement with <court> alone" from the
+        # counsel's lever opens the table with the payment the counsel quoted
+        # staged — the offer row opens at that sum (the way the bid is staged),
+        # on the court alone only (the quote is the alone table's) and funded
+        # or not at all (`cabinet_rows.lever_offer_opening_terms`); a draft the
+        # player holds for the war (a Back Out round trip restored it) keeps
+        # its other lines and takes the payment as its one gold line to the
+        # court. Any other open keeps its default.
+        if (int(cmd.get("gold_offer") or 0) > 0 and not int(cmd.get("bond_bid") or 0)
+                and _counsel_coverage == [str(target_nation)]):
+            from backend.game_logic.cabinet_rows import lever_offer_opening_terms
+            settlement_terms = lever_offer_opening_terms(
+                world, war_id=war_id, payer=player, court=target_nation,
+                amount=int(cmd.get("gold_offer") or 0), covered=_counsel_coverage,
+                base_terms=settlement_terms) or settlement_terms
         result = stage_settlement_confirm(
             world,
             war_id=war_id,
@@ -5591,7 +5794,12 @@ class DiplomaticExecutor:
             accepted = score >= 50
 
             # §3a: Dynamic relation penalty to target (PL-19)
-            ctx.world.modify_nation_relation(player, ctx.target_nation, int(total_penalty))
+            # S14E-X37: the three relation writes of an ultimatum (the penalty,
+            # the bystanders' splash, the rejection) keep the live mission's
+            # books when they move its pair — the writes themselves unchanged.
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked as _booked
+            _booked(ctx.world, player, ctx.target_nation, int(total_penalty),
+                    "ultimatum", player, ctx.target_nation)
 
             # §3b: Splash damage to bystanders (PL-19 §C: severity multiplier)
             _SPLASH_TIERS = {
@@ -5609,7 +5817,8 @@ class DiplomaticExecutor:
                 base_splash = _SPLASH_TIERS.get(nation_state_with_target, 0)
                 if base_splash > 0:
                     scaled_splash = int(math.floor(-base_splash * splash_multiplier))
-                    ctx.world.modify_nation_relation(player, nation, scaled_splash)
+                    _booked(ctx.world, player, nation, scaled_splash,
+                            "ultimatum", player, ctx.target_nation)
                     splash_applied.append((nation, scaled_splash))
 
             # §3c: Dynamic threat on delivery (PL-19 §E)
@@ -5637,7 +5846,8 @@ class DiplomaticExecutor:
             else:
                 # PL-19 §B: Rejection penalty scales with demand severity
                 rejection_penalty = max(-15, min(-5, math.floor(-5 + demand_penalty * 0.3)))
-                ctx.world.modify_nation_relation(player, ctx.target_nation, int(rejection_penalty))
+                _booked(ctx.world, player, ctx.target_nation, int(rejection_penalty),
+                        "ultimatum_rejection", player, ctx.target_nation)
                 ctx.world.casus_belli[diplo_key] = True
                 ctx.world.ultimatum_global_cooldown = 5
                 outcome_msg = (f"{_court_named(ctx.world, ctx.target_nation, start=True)} has rejected our ultimatum! "
@@ -6045,17 +6255,23 @@ class DiplomaticExecutor:
                 return result
             if kind == "bid_for_allegiance":
                 # DDB-34: the advice's bid runs the typed verb's own gate and
-                # price (`_execute_diplomatic_bid`, its default sum).
+                # price (`_execute_diplomatic_bid`, its default sum). S14E-X104:
+                # the option is itself the priced choice ("Bid for their
+                # allegiance (100g, 1 DP)" on the advice card) — chosen, it is
+                # the confirmed order, so the verb's quote is not asked twice.
                 result = self._execute_diplomatic_bid(
                     {"target_nation": suggestion.get("target_nation", ""),
-                     "raw_text": ""}, ctx.world)
+                     "raw_text": "", "confirmed": True}, ctx.world)
                 result.pop("new_state", None)
                 return result
             if kind == "invest_vassal":
                 # R72 parity: the typed invest route is a free action —
                 # 1 DP + 200g in-executor, never AP. No mirror here.
+                # S14E-X107: the advice card's option is itself the priced
+                # choice (like the allegiance bid above) - chosen, it is the
+                # confirmed order, so the verb's quote is not asked twice.
                 result = self._executor._vassal._execute_invest_vassal(
-                    {"target": suggestion.get("target", "")},
+                    {"target": suggestion.get("target", ""), "confirmed": True},
                     {"world": ctx.world})
                 result.pop("new_state", None)
                 return result
@@ -6082,7 +6298,9 @@ class DiplomaticExecutor:
 
         elif ctx.action == "adjust_terms":
             # Entry point for conversational terms guidance
-            from backend.game_logic.diplomatic_templates import rank_cession_candidates
+            from backend.game_logic.diplomatic_templates import (
+                adjust_terms_road, rank_cession_candidates,
+            )
             from backend.game_logic.diplomacy import get_war_score_for
 
             context = dict(ctx.dialogue.get("context", {}))
@@ -6106,12 +6324,16 @@ class DiplomaticExecutor:
             context["candidate_index"] = 0
             context["gold_amount"] = 0
 
-            diplo_key = ctx.world._make_diplo_key(ctx.world.player_nation, ctx.target_nation)
-            relation = ctx.world.nation_relations.get(diplo_key, 0)
             war_score = get_war_score_for(ctx.world, ctx.world.player_nation, ctx.target_nation)
 
-            # Determine if territory is relevant (losing or hostile)
-            needs_territory = war_score < 0 or relation < -50
+            # S14E-19: the direction is the WAR SCORE's alone (the old
+            # `relation < -50` arm asked a France at +84 for its provinces);
+            # a France that is not behind in a war is on the DEMANDS road.
+            road = adjust_terms_road(
+                ctx.world, ctx.world.player_nation, ctx.target_nation, proposal_type)
+            if road["road"] == "demands":
+                return self._adjust_terms_demands_road(ctx, road)
+            needs_territory = road["road"] == "concessions"
 
             if needs_territory:
                 ranked = rank_cession_candidates(ctx.world, ctx.world.player_nation, ctx.target_nation)
@@ -6422,6 +6644,21 @@ class DiplomaticExecutor:
                 "paused_errand": 0,
                 "paused_starved": 0,
             }
+            # S14E-34: a mission begun at war or under a truce was sent to win
+            # the peace; the tick that finds the peace ends it
+            # (`diplomacy._complete_mission_at_peace`). Recorded ONLY for those
+            # two states: every other mission's record is as it was, and an
+            # older save without the key runs as it always did.
+            _began_in = str(ctx.world.get_diplomatic_state(
+                ctx.world.player_nation, mission_target) or "")
+            if _began_in in ("WAR", "ARMISTICE"):
+                mission_dict["started_state"] = _began_in
+            # S14E-X110: a Reassure Ally mission begun in an ALLIANCE was sent
+            # to hold it; the tick that finds the alliance gone ends it
+            # (`diplomacy._complete_reassure_if_alliance_gone`). Begun at any
+            # other state it records nothing and runs as it always did.
+            elif mission_type == "REASSURE_ALLY" and _began_in == "ALLIANCE":
+                mission_dict["started_state"] = _began_in
             # DLF-2: Store target_ally for UNDERMINE_ALLIANCE
             if mission_type == "UNDERMINE_ALLIANCE":
                 target_ally = terms.get("target_ally", "")
@@ -7082,12 +7319,16 @@ class DiplomaticExecutor:
             # ("the Ottoman Empire's counter-proposal"), never its tag.
             from backend.display_names import with_definite_article
             from backend.game_logic.formations import formed_display_name
+            # S14E-28: the receipt of what the signing applied.
+            from backend.display_names import treaty_receipt_text
+            _receipt = treaty_receipt_text(treaty_event)
             result = {
                 "success": True,
                 "message": (
                     f"You have accepted "
                     f"{with_definite_article(formed_display_name(ctx.world, source_nation))}'s "
-                    f"counter-proposal. {treaty_msg}"),
+                    f"counter-proposal. {treaty_msg}"
+                    + (f" {_receipt}" if _receipt else "")),
             }
             if treaty_event and treaty_event.get("peace_ratification_summary"):
                 result["peace_ratification_summary"] = treaty_event[
@@ -7102,7 +7343,9 @@ class DiplomaticExecutor:
             ptype = original.get("type", "unknown")
             # Apply rejection cooldowns and relation penalty
             if source_nation:
-                ctx.world.modify_nation_relation(get_player_nation(ctx.world), source_nation, -5)
+                from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                modify_relation_booked(ctx.world, get_player_nation(ctx.world), source_nation, -5,
+                                       "counter_rejection", get_player_nation(ctx.world), source_nation)
                 ctx.world.player_proposal_cooldowns[source_nation] = 3
                 if ptype:
                     ctx.world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
@@ -7401,6 +7644,36 @@ class DiplomaticExecutor:
         import copy
         ctx = dialogue.get("context", {})
         return copy.deepcopy(ctx)
+
+    # ── S14E-19: "Adjust terms" for a France that is not behind ─────────
+
+    def _adjust_terms_demands_road(self, ctx: DialogueChoiceContext, road: dict) -> dict:
+        """S14E-19 (Pre-Deploy S14f part 2, October 25, 2026): a peace France is
+        dictating is adjusted at the TABLE — the settlement's guided Add
+        demand — over the court alone, as the counsel's own "Open Settlement
+        with Austria alone" opens it. The ultimatum wizard is not the road
+        (an ultimatum is refused in a war). The road is read again here, at
+        the click: a stale or forged "Adjust terms" is refused with the
+        button's own words and the peace preview stands. The preview the table
+        replaces leaves the desk only once the table is open — a refused
+        staging changes nothing."""
+        if not road.get("available"):
+            return {"success": False,
+                    "message": ("'Adjust terms' is not open, Sire — "
+                                f"{road.get('reason') or 'that road is closed'}")}
+        world = ctx.world
+        previous = ctx.dialogue if isinstance(ctx.dialogue, dict) else {}
+        result = self._execute_propose_common_peace(
+            {"target_nation": ctx.target_nation, "war_id": road.get("war_id") or "",
+             "covered_enemy_participants": [ctx.target_nation]},
+            {"world": world})
+        if isinstance(result, dict) and result.get("success"):
+            world.dialogue_manager.remove_matching(
+                lambda d: d is previous or (
+                    previous.get("dialogue_id") is not None
+                    and d.get("type") == previous.get("type")
+                    and d.get("dialogue_id") == previous.get("dialogue_id")))
+        return result
 
     # ── S14E-3: the wizards' way out and way back ───────────────────────
 
@@ -8369,14 +8642,18 @@ class DiplomaticExecutor:
         # LV-3 (row EP F2): "You have accepted Ottoman's proposal." — the
         # tag, which the client's prose repair deliberately skips. The
         # formed display name with its article is the one source (R7).
-        from backend.display_names import with_definite_article
+        from backend.display_names import treaty_receipt_text, with_definite_article
         from backend.game_logic.formations import formed_display_name
+        # S14E-28: the receipt of what the signing applied ("Saxony paid 82
+        # gold into the treasury.") rides the confirmation.
+        _receipt = treaty_receipt_text(treaty_event)
         result = {
             "success": True,
             "message": (
                 f"You have accepted "
                 f"{with_definite_article(formed_display_name(world, source_nation))}'s "
                 f"proposal. {treaty_msg}"
+                + (f" {_receipt}" if _receipt else "")
             ),
         }
         if treaty_event and treaty_event.get("peace_ratification_summary"):
@@ -8694,8 +8971,10 @@ class DiplomaticExecutor:
         from backend.display_names import with_definite_article
         from backend.game_logic.treaty import refresh_letter_verdict
         court = with_definite_article(formed_display_name(world, source_nation))
-        message = (f"Talleyrand finds no counter {court} could take — the "
-                   f"offer stands.")
+        # S14E-20: the line says the point was kept (the click is honest about
+        # its cost, the way the greyed button beside it is about its reason).
+        message = (f"Talleyrand finds no counter {court} could take; the "
+                   f"offer stands — no point spent.")
         popup = refresh_letter_verdict(world, dialogue)
         result = {
             "success": False,
@@ -8762,7 +9041,13 @@ class DiplomaticExecutor:
         # could take (none constructible, or the court cannot pay its own
         # DP for one), the offer stands and nothing is spent (conquest #10,
         # the sea #12: the click spent 1 DP and lost a generous offer).
-        if generate_counter_offer(terms, world, dry_run=True) is None:
+        # S14E-X90 (S14f part 2): the question is the Counter option's own
+        # stamp (`treaty.counter_is_constructible`) — a dry run that hands the
+        # proposal back UNCHANGED (the court's reading already clears its bar)
+        # is no counter either: the press would spend the point to re-present
+        # the identical terms.
+        from backend.game_logic.treaty import counter_is_constructible
+        if not counter_is_constructible(terms, world):
             return self._the_offer_stands(dialogue, world, source_nation)
         world.diplomatic_points -= 1
 

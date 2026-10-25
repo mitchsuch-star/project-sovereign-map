@@ -4458,6 +4458,32 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
 # disagree about when a corps is spent.
 MORALE_FAILING_BELOW = 40
 
+# S14E-X31: the ratio at which a co-located enemy force puts a corps "IN
+# PERIL" - ONE number, read by the dawn dispatch's danger line
+# (`_derive_danger`) and by the end-turn gate's second clause
+# (`end_turn_peril_warning`), so the two can never disagree about when a
+# corps is outmatched on its own ground.
+PERIL_RATIO = 1.5
+
+
+def _known_enemy_force_at(world, player_nation: str, location) -> int:
+    """The enemy force the PLAYER'S OWN intel shows standing at `location`:
+    exact at FULL, the band's midpoint at PARTIAL, 0 where the province is
+    unseen. Fog-legal by construction (never omniscient marshal data - R5);
+    the ONE scan behind `_derive_danger`'s IN PERIL and the gate's clause."""
+    intel = world.intel.get(location)
+    if intel is None or intel.visibility == UNKNOWN:
+        return 0
+    enemy_total = 0
+    for km in intel.known_marshals:
+        if not _intel_marshal_is_enemy(world, player_nation, km):
+            continue
+        if "strength" in km:
+            enemy_total += int(km["strength"])
+        elif "band" in km:
+            enemy_total += BAND_MIDPOINTS.get(km["band"], 0)
+    return enemy_total
+
 
 def _derive_danger(marshal, world, player_nation: str,
                    supply_turns: Dict[str, List[int]]) -> str:
@@ -4466,18 +4492,11 @@ def _derive_danger(marshal, world, player_nation: str,
     Fog-legal: the co-located-enemy check reads the player's own intel of
     the marshal's region (never omniscient marshal data — R5).
     """
-    # 1. Co-located with an enemy force >= 1.5x own strength (fog-legal).
-    intel = world.intel.get(marshal.location)
-    if intel is not None and intel.visibility != UNKNOWN and marshal.strength > 0:
-        enemy_total = 0
-        for km in intel.known_marshals:
-            if not _intel_marshal_is_enemy(world, player_nation, km):
-                continue
-            if "strength" in km:
-                enemy_total += int(km["strength"])
-            elif "band" in km:
-                enemy_total += BAND_MIDPOINTS.get(km["band"], 0)
-        if enemy_total >= 1.5 * marshal.strength:
+    # 1. Co-located with an enemy force >= PERIL_RATIO x own strength
+    #    (fog-legal; S14E-X31: the scan is `_known_enemy_force_at`).
+    if marshal.strength > 0:
+        enemy_total = _known_enemy_force_at(world, player_nation, marshal.location)
+        if enemy_total >= PERIL_RATIO * marshal.strength:
             return (f"IN PERIL — an enemy force of ~{enemy_total:,} shares "
                     f"the field ({marshal.location}).")
     # 2. Morale failing.
@@ -4612,6 +4631,61 @@ def end_turn_army_warning(world, nation: str) -> Optional[str]:
         subject = f"{len(here)} corps stand"
     return (f"{subject} below {MORALE_FAILING_BELOW}% morale beside "
             f"{row['name']} ({figure}, {row['location']}) — end the turn anyway?")
+
+
+def end_turn_peril_warning(world, nation: str) -> Optional[str]:
+    """S14E-X31: the end-turn gate's SECOND clause - ONE sentence, or None.
+
+    The dawn dispatch's "IN PERIL" (a corps sharing its province with an enemy
+    force of `PERIL_RATIO` times its strength or more) said once, at turn
+    start; a full-morale corps beside no spent comrade ended the turn with the
+    gate silent (`end_turn_army_warning` is the morale pairing only). This is
+    the same danger, said again at the click:
+    "Ney's corps (17,000) stands in peril - an enemy force of ~52,000 shares
+    the field (Belgium)." With several corps on one field, the count; with
+    several fields, the heaviest enemy force as the player's intel shows it.
+
+    The scan IS `_derive_danger`'s (`_known_enemy_force_at`, the same ratio):
+    fog-legal - the player's own intel of the province, exact at FULL, the
+    band's midpoint at PARTIAL, nothing where it is unseen. Co-located only,
+    as the dawn line is: an army BESIDE a corps is the morale line's reading
+    (and a ratio against every neighbour would gate the boot board's first
+    turn - Ney, 24,000, beside Mack, ~55,000).
+
+    Player nation only; a pure read. Cheap by construction (Rule 8): the
+    player's own roster and one intel dict lookup each - never a region scan,
+    never an enemy list."""
+    if nation != getattr(world, "player_nation", None):
+        return None
+    fields: Dict[str, Tuple[int, List[Any]]] = {}
+    for m in world.marshals.values():
+        if (m.nation != nation or int(m.strength) <= 0
+                or getattr(m, "captured_by", "")):
+            continue
+        if m.location in fields:
+            foe = fields[m.location][0]
+        else:
+            foe = _known_enemy_force_at(world, nation, m.location)
+            fields[m.location] = (foe, [])
+        if foe >= PERIL_RATIO * int(m.strength):
+            fields[m.location][1].append(m)
+    worst = None
+    for location, (foe, corps) in fields.items():
+        if not corps:
+            continue
+        rank = (-foe, location)
+        if worst is None or rank < worst[0]:
+            worst = (rank, location, foe, corps)
+    if worst is None:
+        return None
+    _rank, location, foe, corps = worst
+    if len(corps) == 1:
+        subject = (f"{humanize_entity_name(corps[0].name)}'s corps "
+                   f"({int(corps[0].strength):,}) stands")
+    else:
+        subject = f"{len(corps)} corps stand"
+    return (f"{subject} in peril — an enemy force of ~{foe:,} shares the "
+            f"field ({location}).")
 
 
 _ROUT_CLAUSES = (
@@ -5370,6 +5444,25 @@ TODAY_ORDERS_HEADER = ("Orders the board will take at once — choose among them
 TODAY_ORDERS_HEADER_LEGACY = "Orders the board will take at once:"
 
 
+_ATTACK_ORDER_LINE = re.compile(r"^(?P<who>.+), attack (?P<foe>.+)$")
+
+
+def attack_preview_hint(orders) -> str:
+    """S14E-24: the free preview, named beside the first attack the TODAY list
+    offers - "Ask 'what if Ney attacks Mack' first - it names who marches with
+    Ney, and costs nothing." The muster gate arms only on an unfavourable band
+    (DDB-D2 / R2: a favourable attack fires at once), so the first typed
+    attack pulled five corps and the Emperor with nothing before it naming
+    the question that shows them. "" when no attack is listed."""
+    for line in orders or []:
+        found = _ATTACK_ORDER_LINE.match(str(line))
+        if found:
+            who, foe = found.group("who"), found.group("foe")
+            return (f"Ask 'what if {who} attacks {foe}' first — it names who "
+                    f"marches with {who}, and costs nothing.")
+    return ""
+
+
 def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     """LV-1 (row EP F1): the boot briefing's "what to do today" section.
 
@@ -5399,12 +5492,18 @@ def _build_first_morning_doors(world, player_nation: str) -> Dict[str, Any]:
     # never an order in `orders` (those are typed chips; a proclamation is a
     # diplomatic act). '' where no designs are authored.
     from backend.game_logic import imperial_designs as _designs
-    return {"orders": orders,
-            "orders_header": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE
-                              else TODAY_ORDERS_HEADER_LEGACY),
-            "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
-            "doctrine": boot_line(world, player_nation) or "",
-            "designs": _designs.door_line(world)}
+    today = {"orders": orders,
+             "orders_header": (TODAY_ORDERS_HEADER if THE_TODAY_LIST_IS_A_CHOICE
+                               else TODAY_ORDERS_HEADER_LEGACY),
+             "doors": THREE_DOORS, "cabinet": CABINET_DOOR,
+             "doctrine": boot_line(world, player_nation) or "",
+             "designs": _designs.door_line(world)}
+    # S14E-24: an attack among the orders is taught with its free preview
+    # (the key rides only then - a board with no attack listed is unchanged).
+    hint = attack_preview_hint(orders)
+    if hint:
+        today["orders_hint"] = hint
+    return today
 
 
 # ============================================================================
@@ -5885,11 +5984,72 @@ def counter_punch_target(marshal, world):
 THE_COUNTER_PUNCH_ROW_HAS_ITS_BUTTON = True
 
 
-def counter_punch_notice(marshal, world) -> dict:
+def counter_punch_muster_stamp(marshal, foe, world) -> int:
+    """S14E-X147: a fingerprint of the board a counter-punch muster priced -
+    where the striker and his foe stand, the foe's strength, and every corps
+    of ours (name, province, strength), since the muster names who would
+    answer the guns. CHEAP (the marshals dict, never the regions - Rule 8):
+    the rail restate compares it to decide whether the stored line still
+    prices the board, instead of rebuilding the muster on every read."""
+    import zlib
+    corps = sorted((str(m.name), str(m.location), int(m.strength))
+                   for m in world.get_player_marshals() if int(m.strength) > 0)
+    key = repr((str(marshal.location), str(foe.name), str(foe.location),
+                int(foe.strength), corps))
+    return int(zlib.crc32(key.encode("utf-8")))
+
+
+def _add_counter_punch_muster(details: dict, marshal, foe_key: str, world) -> None:
+    """S14E-X147: the one-line muster on the row's button, built ONCE, at row
+    creation - the very sentence the map attack card carries
+    (`order_quotes._muster_line`: `CombatExecutor._contact_muster_note`
+    through the cached reader, the enemy figure fog-banded). The button sends
+    `<Marshal>, attack <foe>` at once; the card showed who marches and the
+    band, the row did not. Stored beside a stamp of the board it priced."""
+    foe = world.get_marshal(foe_key)
+    if foe is None:
+        return
+    from backend.commands.order_quotes import _muster_line
+    line = _muster_line(world, marshal, foe)
+    if not line:
+        return
+    details["muster"] = line
+    details["muster_foe"] = str(foe_key)
+    details["muster_stamp"] = counter_punch_muster_stamp(marshal, foe, world)
+    details["action_detail"] = f"{details['action_detail']} {line}"
+
+
+def _carry_counter_punch_muster(stored: dict, fresh: dict, marshal, world) -> None:
+    """S14E-X147: the rail restate's half - NEVER rebuilds the muster (the rail
+    is read on every response). It carries the stored line onto the re-quoted
+    row while the strike is the same order and the board is the one the line
+    priced (the stamp); otherwise the row returns to its plain tooltip - a
+    stale figure beside a button is the one thing worse than none."""
+    line = str(stored.get("muster") or "")
+    if not line or fresh.get("action_command") != stored.get("action_command"):
+        return
+    foe = world.get_marshal(str(stored.get("muster_foe") or ""))
+    if foe is None:
+        return
+    if counter_punch_muster_stamp(marshal, foe, world) != stored.get("muster_stamp"):
+        return
+    fresh["muster"] = line
+    fresh["muster_foe"] = stored.get("muster_foe")
+    fresh["muster_stamp"] = stored.get("muster_stamp")
+    fresh["action_detail"] = f"{fresh['action_detail']} {line}"
+
+
+def counter_punch_notice(marshal, world, with_muster: bool = False) -> dict:
     """The rail row's message and details for ``marshal``'s open strike:
     a button only where the strike can be thrown as it stands (a foe in
     sight and reach; the man not fortified or locked in drill — the
-    executor refuses both, and the note says so instead)."""
+    executor refuses both, and the note says so instead).
+
+    ``with_muster`` (S14E-X147) is asked ONLY by the row's creation seam
+    (`CombatExecutor._process_combat_notifications`): the button's tooltip
+    then carries Berthier's one-line muster, the map attack card's own
+    sentence. The restate on every rail read never asks (it carries the
+    stored line - `_carry_counter_punch_muster`)."""
     who = humanize_entity_name(marshal.name)
     details = {"marshal": marshal.name}
     message = (f"{who} earned a free attack from his defensive victory. "
@@ -5921,6 +6081,8 @@ def counter_punch_notice(marshal, world) -> dict:
                           f"strike costs no action and expires when this "
                           f"turn ends."),
     })
+    if with_muster:
+        _add_counter_punch_muster(details, marshal, key, world)
     return {"message": message, "details": details}
 
 
@@ -5949,6 +6111,8 @@ def restate_counter_punch_notices(world) -> None:
                 collector.dismiss(note.get("id"))
                 continue
             fresh = counter_punch_notice(marshal, world)
+            _carry_counter_punch_muster(note.get("details") or {}, fresh["details"],
+                                        marshal, world)
             restated = dict(note)
             restated["message"] = fresh["message"]
             restated["details"] = fresh["details"]
@@ -8328,6 +8492,11 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         return (f"Blowback from Talleyrand's mission: {nation} discovered our "
                 f"scheming: {delta:+d} to relations{tail}.")
 
+    if event_type == "diplomatic_mission_completed" and template_vars.get("line"):
+        # S14E-34: a mission that ends at the peace says so in the producer's
+        # own words ("Austria and France are at peace — Talleyrand is home.").
+        return str(template_vars["line"])
+
     template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
     if not template:
         # FA-N30: an internal identifier is not a sentence. Return nothing;
@@ -8385,6 +8554,11 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     if event_type == "diplomatic_mission_progress" and template_vars.get("ledger"):
         # S14E-9: the books, when a shock has landed on the pair.
         text = f"{text.rstrip('.')} ({template_vars['ledger']})."
+    if template_vars.get("dp_bill") and event_type in (
+            "diplomatic_mission_progress", "diplomatic_mission_undermine_progress"):
+        # S14E-34: the line carries what the mission costs ("1 DP a turn,
+        # 4 so far"), so a mission running on past its purpose is visible.
+        text = f"{text} {template_vars['dp_bill']}"
     return text
 
 
@@ -8622,7 +8796,13 @@ def _mission_line_vars(world, event_type: str, template_vars: dict) -> dict:
     out["value"] = int(snapshot[1])
     if event_type == "diplomatic_mission_progress" and mission.get("shocks"):
         out["ledger"] = mission_ledger_line(
-            mission, getattr(world, "player_nation", "France"))
+            mission, getattr(world, "player_nation", "France"),
+            current=int(snapshot[1]))
+    # S14E-34: the bill — DP a turn and what it has cost so far.
+    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS
+    dp = int(MISSION_DP_COSTS.get(str(mission.get("type") or ""), 1))
+    spent = dp * int(mission.get("turns_active") or 0)
+    out["dp_bill"] = f"{dp} DP a turn, {spent} so far."
     return out
 
 

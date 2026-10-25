@@ -494,11 +494,15 @@ def _apply_aggrieved_blow(world, nation: str, forms: dict, sponsor: str) -> List
     for power in forms.get("aggrieved") or []:
         if power == nation or power not in active or _is_vassal(world, power):
             continue
-        world.modify_nation_relation(
-            power, nation, FORMATION_AGGRIEVED_RELATION_PENALTY)
+        # S14E-X112: both blows keep a live mission's books ("the formation of X")
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, power, nation, FORMATION_AGGRIEVED_RELATION_PENALTY,
+            "formation_blow", nation, sponsor or power)
         if sponsor and sponsor != power and sponsor != nation:
-            world.modify_nation_relation(
-                power, sponsor, FORMATION_AGGRIEVED_RELATION_PENALTY)
+            modify_relation_booked(
+                world, power, sponsor, FORMATION_AGGRIEVED_RELATION_PENALTY,
+                "formation_blow", nation, sponsor)
         struck.append(power)
     return struck
 
@@ -1667,6 +1671,14 @@ def _unmet_phrase(road: Mapping[str, Any]) -> str:
     return f"{_and_list(road['missing'])} not yet held"
 
 
+def _closing_noun(road: Mapping[str, Any]) -> str:
+    """What a peace closes: "the Ireland carve" (a Class C road) or, for a
+    Class T dream (S14E-D9), "the climb to Italy"."""
+    if road.get("cls") == "T":
+        return f"the climb to {road['display_name']}"
+    return f"the {road['display_name']} carve"
+
+
 def _closing_tail(road: Mapping[str, Any]) -> str:
     """The war card's tail after "closes the Ireland carve": ", Ulster not
     yet held" for a begun road, " — erect it at the table first" for a
@@ -1688,7 +1700,10 @@ def road_notes(world) -> Dict[str, Any]:
     reopens it. Nothing else is a road note — a template the bloc holds
     nothing of has not begun, one it holds whole is `available` and the
     table's "Erect" row and the Formables page carry it, and a Class T
-    dream is the client's own climb (its progress stays on the page).
+    dream is the client's own climb (its progress stays on the page) — bar
+    ONE line: `_add_dream_rows` (S14E-D9) puts a `cls: "T"` row in
+    `by_court` alone when a peace with a court at war would close the
+    climb of a dream the player has a stake in (never a panel pointer).
 
     Returns {"roads": [row], "by_province": {province: sentence},
     "by_court": {court: [open row]}, "completing": [province]} — empty
@@ -1707,7 +1722,7 @@ def road_notes(world) -> Dict[str, Any]:
     catalogue = getattr(world, "formable_nations", None) or {}
     player = getattr(world, "player_nation", None)
     if not catalogue or not player:
-        return out
+        return _add_dream_rows(world, out, player)
     from backend.models.region import get_starting_controllers
     starting = (getattr(world, "_starting_controllers", None)
                 or get_starting_controllers())
@@ -1789,6 +1804,81 @@ def road_notes(world) -> Dict[str, Any]:
             for province in missing:
                 if province not in out["completing"]:
                     out["completing"].append(province)
+    return _add_dream_rows(world, out, player)
+
+
+def _watch_regions(world, nation: str) -> List[str]:
+    """The claimed provinces of a nation's unfired `forms` entry — the same
+    entry `get_formation_watch` reads (the first with a forms block)."""
+    for entry in _deck(world, nation):
+        if get_forms_block(entry) is not None:
+            return [str(r) for r in (entry.get("regions") or [])]
+    return []
+
+
+def _dream_nations(world, player: str) -> List[str]:
+    """S14E-D9: the nations whose Class T dream the player has a stake in —
+    those in his bloc (a satellite or an ally) and those he is the EX-LORD
+    of (a client he carved: its creation record names him the sponsor, and
+    the dream outlives the vassalage)."""
+    nations = set(world.get_bloc_members(player)) - {player}
+    for tag, record in (getattr(world, "nation_formations", None) or {}).items():
+        if isinstance(record, dict) and str(record.get("sponsor") or "") == player:
+            nations.add(str(tag))
+    return sorted(nations)
+
+
+def _add_dream_rows(world, out: Dict[str, Any], player) -> Dict[str, Any]:
+    """S14E-D9 / X62: a Class T dream's ONE line on the war card and the
+    peace review — never on a panel.
+
+    The watched nation (in the player's bloc, or a client the player is the
+    ex-lord of) lacks claimed provinces a court the player is at war with
+    holds (`_carve_war_running`, the page's own war term): a peace with that
+    court closes the climb. Rows are `cls: "T"`, `state: "open"`, and land in
+    `by_court` ONLY — never in `roads` (the Admiralty's chips read it),
+    `by_province` or `completing` (the panels, the landing and capture
+    replies), so no province panel is ever stamped and the dream's progress
+    stays on the Formables page where it was authored. A board where no such
+    court holds such a province returns `out` untouched (byte-identical).
+
+    Rule 8: the player's bloc (cached) and the creation records only, each
+    over its own deck — no region scan."""
+    if not player:
+        return out
+    from backend.game_logic.agendas import _controlled_by_self_or_vassal
+    regions = getattr(world, "regions", {}) or {}
+    for nation in _dream_nations(world, player):
+        watch = get_formation_watch(world, nation)
+        if watch is None:
+            continue
+        held: List[str] = []
+        by_court: Dict[str, List[str]] = {}
+        for province in _watch_regions(world, nation):
+            if _controlled_by_self_or_vassal(world, nation, province):
+                held.append(province)
+                continue
+            holder = str(getattr(regions.get(province), "controller", "") or "")
+            if (holder and holder not in (player, nation)
+                    and _carve_war_running(world, player, holder)):
+                by_court.setdefault(holder, []).append(province)
+        for court in sorted(by_court):
+            court_display = formed_display_name(world, court)
+            row = {
+                "tag": nation,
+                "cls": "T",
+                "display_name": str(watch["forms"]),
+                "court": court,
+                "court_display": court_display,
+                "held": list(held),
+                "missing": list(by_court[court]),
+                "war": True,
+                "state": "open",
+                "text": (f"{watch['forms']} needs {_and_list(by_court[court])} "
+                         f"too — {court_display} holds "
+                         f"{'it' if len(by_court[court]) == 1 else 'them'}"),
+            }
+            out["by_court"].setdefault(court, []).append(row)
     return out
 
 
@@ -1796,6 +1886,21 @@ def road_note_for(world, province: str) -> str:
     """The road sentence for ONE province ("" when it lies on no begun
     road) — the capture and landing replies' reader."""
     return str(road_notes(world)["by_province"].get(province) or "")
+
+
+def road_clause_for(world, province: str, notes: Optional[Mapping] = None) -> str:
+    """S14E-X63: the SHORT road clause for ONE province — "on the road to
+    Ireland" ("" when it lies on no begun road, exactly the provinces
+    `road_notes`' `by_province` carries). The Congress clock appends it to a
+    held, unsettled name: "(1 held, unsettled: Munster — on the road to
+    Ireland)"."""
+    notes = notes if notes is not None else road_notes(world)
+    for road in notes["roads"]:
+        if road.get("state") == "ready":
+            continue                      # no next province to point at
+        if province in road["held"] or province in road["missing"]:
+            return f"on the road to {road['display_name']}"
+    return ""
 
 
 def road_war_card_clause(world, courts, notes: Optional[Mapping] = None) -> Dict[str, str]:
@@ -1809,7 +1914,7 @@ def road_war_card_clause(world, courts, notes: Optional[Mapping] = None) -> Dict
         rows = notes["by_court"].get(str(court)) or []
         if rows:
             out[str(court)] = "; ".join(
-                f"and closes the {r['display_name']} carve{_closing_tail(r)}"
+                f"and closes {_closing_noun(r)}{_closing_tail(r)}"
                 for r in rows)
     return out
 
@@ -1826,12 +1931,26 @@ def road_peace_lines(world, courts, terms=()) -> List[str]:
     erected = {str(t.get("tag") or "") for t in (terms or [])
                if isinstance(t, Mapping)
                and str(t.get("type") or "") == "create_client"}
+    ceded_to: Dict[str, set] = {}
+    for t in terms or []:
+        if isinstance(t, Mapping) and str(t.get("type") or "") == "territory_cede":
+            for region in [t.get("region")] + list(t.get("regions") or []):
+                if region:
+                    ceded_to.setdefault(str(t.get("to") or ""), set()).add(str(region))
     lines: List[str] = []
     for court in courts or []:
         for road in notes["by_court"].get(str(court)) or []:
-            if road["tag"] in erected:
+            if road.get("cls") == "T":
+                # S14E-D9: a package that hands the court's province to the
+                # dream's own nation moves the climb on rather than closing it.
+                road = dict(road)
+                road["missing"] = [p for p in road["missing"]
+                                   if p not in ceded_to.get(road["tag"], ())]
+                if not road["missing"]:
+                    continue
+            elif road["tag"] in erected:
                 continue
-            lines.append(f"This peace ends the war and closes the "
-                         f"{road['display_name']} carve — "
+            lines.append(f"This peace ends the war and closes "
+                         f"{_closing_noun(road)} — "
                          f"{_unmet_phrase(road)}.")
     return lines

@@ -118,6 +118,16 @@ def bid_gold(world: Any, record: Optional[Mapping[str, Any]]) -> int:
     return int(table_price(world, record) * CONCESSION_GOLD_DIVISOR)
 
 
+def bid_funds(world: Any, payer: str) -> int:
+    """S14E-X127 — the chest the bid is quoted against: what `payer` can fund
+    as a lump at the table, the settlement validator's own budget
+    (`cabinet_rows._lever_funds`, the very figure the counsel's lever quotes
+    beside its sum), so the price line, the Outbid row and the lever agree on
+    what France can pay."""
+    from backend.game_logic.cabinet_rows import _lever_funds
+    return int(_lever_funds(world, payer))
+
+
 def _party_gone(world: Any, nation: str) -> bool:
     from backend.game_logic.instruments import _party_gone as gone
     return bool(gone(world, nation))
@@ -469,6 +479,29 @@ def minted_line(world: Any, record: Mapping[str, Any]) -> str:
             f"the table, {strength(record)} in a bilateral peace).")
 
 
+def quote_line(world: Any, payer: str, member: str, enemy: str) -> str:
+    """S14E-26's sibling (S14E-X102): the bond's QUOTE, free, before the mint —
+    the stream, the term, the purse after the first payment, the bargain it
+    lays on `member`, and the two prices `minted_line` will print (read off a
+    probe of the record the mint writes, so shown == applied)."""
+    from backend.game_logic.instruments import INSTRUMENT_DP_COST
+    from backend.display_names import plural
+    amount = bond_amount(world, payer)
+    turns = bond_term_turns()
+    probe = {"amount_per_turn": amount, "turns_remaining": turns}
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    member_name, aim = _shown(world, member), _shown(world, enemy)
+    return (
+        f"Bind {member_name} to the war against {aim}: {amount:,} gold a turn for "
+        f"{turns} turns ({amount * turns:,} gold in all) and "
+        f"{plural(INSTRUMENT_DP_COST, 'diplomatic point')}. The treasury holds "
+        f"{chest:,} gold and would hold {chest - amount:,} after the first payment. "
+        f"{member_name} makes no separate peace with {aim} while {_shown(world, payer)} "
+        f"fights on; a separate peace inside the term is a broken bargain, and "
+        f"{member_name}'s answer to one carries the bond ({table_price(world, probe)} at "
+        f"the table, {strength(probe)} in a bilateral peace). Bind {member_name}? (yes / no)")
+
+
 _LAPSE_WORDS = {
     "honoured": "the league's common peace honours it",
     "payer_at_peace": "{payer} left the war first",
@@ -637,15 +670,29 @@ def price_line(world: Any, court: str, enemy: str, *,
     """The bond's price and France's bid, said where a separate peace with
     `court` is priced — "Britain's bond costs her 40 at the table (12 in a
     bilateral peace); 1,000 gold to her pays it — or Franconia, Bavaria's
-    (+35), most of it." — "" without one."""
+    (+35), most of it." — "" without one.
+
+    S14E-X127: where the chest cannot pay the bid, the sum is not quoted bare —
+    "1,000 gold to her pays it (the treasury holds 800)" — the chest being
+    `bid_funds` (the figure the Outbid row and the counsel's lever read). The
+    bidder is `enemy`, the aim the bond binds the court against (France, at
+    every call). A funded line is unchanged."""
     record = bond_on(world, court, enemy)
     if record is None:
         return ""
     payer = _shown(world, str(record.get("payer")))
     at_table = table_price(world, record)
+    gold = bid_gold(world, record)
+    chest = ""
+    try:
+        funds = bid_funds(world, enemy)
+        if funds < gold:
+            chest = f" (the treasury holds {funds:,})"
+    except Exception as exc:
+        report(exc, "bond.price_line: bid_funds")
     words = (f"{payer}'s bond costs her {at_table} at the table "
              f"({strength(record)} in a bilateral peace); "
-             f"{bid_gold(world, record):,} gold to her pays it")
+             f"{gold:,} gold to her pays it{chest}")
     comp = compensation_bid(world, court, enemy, war_instance)
     if comp:
         what = (f"{comp['region']}, {_shown(world, comp['payer'])}'s" if comp["form"] == "paid"

@@ -977,6 +977,11 @@ class MetaExecutor:
             lines.append("")
             lines.append("What I CAN do today:")
             lines.extend(f"  {order}" for order in orders)
+            # S14E-X80: an attack in the list is taught with its free preview.
+            from backend.game_logic.dispatch import attack_preview_hint
+            hint = attack_preview_hint(orders)
+            if hint:
+                lines.append(hint)
         lines.append("")
         lines.append(CABINET_LINE)
         lines.append("Type 'help' for the full command reference.")

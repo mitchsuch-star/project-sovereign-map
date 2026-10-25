@@ -730,8 +730,14 @@ def _apply_settlement_terms(
                             "DEFENSIVE_ALLIANCE", "common_peace_liberation",
                         )
                         if hasattr(world, "modify_nation_relation"):
-                            world.modify_nation_relation(lib_vassal, lib_from, -20)
-                            world.modify_nation_relation(lib_vassal, lib_liberator, 30)
+                            # S14E-X112: the liberation's two writes keep a live
+                            # mission's books (the freed court's pairs).
+                            from backend.game_logic.diplomatic_dialogue import (
+                                modify_relation_booked)
+                            modify_relation_booked(world, lib_vassal, lib_from, -20,
+                                                   "liberation", lib_liberator, lib_vassal)
+                            modify_relation_booked(world, lib_vassal, lib_liberator, 30,
+                                                   "liberation", lib_liberator, lib_vassal)
                     if lib_from:
                         from backend.game_logic.coalition import reduce_threat
                         reduce_threat(world, 8, "liberation", target=lib_from)
@@ -964,7 +970,10 @@ def _resolve_pair_state_transitions(
                 world, proposer_member, covered_enemy,
                 "ALLIANCE", "common_peace_forced_alliance",
             )
-            world.nation_relations[pair_key] = 0
+            # S14E-X112: the reset to zero moves a mission's pair too; booked
+            from backend.game_logic.diplomatic_dialogue import set_relation_booked
+            set_relation_booked(world, proposer_member, covered_enemy, 0,
+                                "forced_alliance_reset", proposer_member, covered_enemy)
             alliance_origins = getattr(world, "alliance_origins", {}) or {}
             alliance_origins[pair_key] = "forced"
             world.alliance_origins = alliance_origins
@@ -1672,7 +1681,10 @@ def ratify_settlement_confirm(
     pre_cleanup_readings = {
         str(ally): proposer_ally_reading(
             world, war_id=war_id, proposer_side=proposer_side, ally=str(ally),
-            settlement_terms=settlement_terms)
+            settlement_terms=settlement_terms,
+            # S14E-D8: the table's coverage is an input too — does the table
+            # end a war of hers, read before the pairs close.
+            covered=covered)
         for ally in pre_cleanup_proposer_members if ally
     }
     pre_cleanup_standings = {a: r["standing"] for a, r in pre_cleanup_readings.items()}

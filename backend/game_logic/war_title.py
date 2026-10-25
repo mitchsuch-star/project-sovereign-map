@@ -287,12 +287,82 @@ def war_title(world, war_id: str = "", *, chair: Optional[str] = None,
         else:
             out.update(title="War", source="none")
     out["display"] = f"{out['title']} — {roster_display}" if roster_display else out["title"]
-    out["line"] = _line(world, out, chair, enemies, theirs, mine)
+    out["line"] = _line(world, out, chair, ground_enemies, theirs, mine, ours)
     return out
 
 
+def drawn_suffix(battles: int, drawn: int) -> str:
+    """S14E-X206: the one phrase that says how many of a war's battles were
+    drawn - " (a stalemate)" for the lone drawn battle, " (all drawn)", or
+    " (2 drawn)"; "" when none was. Read by the war title's record line
+    (`_record_parts`) and by the truce's "ledger stands" line
+    (`diplomacy.truce_words`), which counted the winners' records only."""
+    if not drawn:
+        return ""
+    return (" (a stalemate)" if battles == 1 else
+            " (all drawn)" if drawn == battles else f" ({drawn} drawn)")
+
+
+def _record_parts(world, ours: List[str], enemies: List[str]) -> List[str]:
+    """S14E-25 (Pre-Deploy S14f part 2, October 25, 2026): what the war has
+    DONE when the ground in play is empty — the line used to say "nothing
+    taken yet on either side" after France retook Bavaria's Swabia, because
+    the ground counts the enemy's homes our side holds and our homes the
+    enemy holds, and a province retaken for an ally is neither. Read off the
+    campaign ledgers (captures, unique per side and province for the whole
+    war) and the battle records of the pairs between our side and theirs:
+    pure dictionary reads, no region scan. [] when nothing has happened."""
+    ledgers = getattr(world, "campaign_ledgers", None) or {}
+    records = getattr(world, "battle_records", None) or {}
+    homes: Dict[str, str] = {}
+    for member in ours:
+        for region_name in _home_of(world, member):
+            homes.setdefault(region_name, member)
+    took: List[str] = []
+    seen: set = set()
+    battles = 0
+    drawn = 0
+    for member in ours:
+        for enemy in enemies:
+            key = world._make_diplo_key(member, enemy)
+            captured = ((ledgers.get(key) or {}).get("captures") or {}).get(member) or []
+            for region_name in captured:
+                if region_name in seen:
+                    continue
+                seen.add(region_name)
+                holder = str(getattr(world.regions.get(region_name), "controller", "") or "")
+                owner = homes.get(region_name, "")
+                if owner and owner != member:
+                    text = (f"{formed_display_name(world, member)} retook {region_name} "
+                            f"for {formed_display_name(world, owner)}")
+                elif owner:
+                    text = f"{formed_display_name(world, member)} retook {region_name}"
+                else:
+                    text = f"{formed_display_name(world, member)} took {region_name}"
+                if holder and holder not in ours:
+                    text += ", since lost"
+                took.append(text)
+            battles += len(records.get(key) or [])
+            # S14E-X201: a DRAWN battle has no winner and so no battle record;
+            # the ledger's `drawn` turns count it as a battle fought.
+            drawn += len((ledgers.get(key) or {}).get("drawn") or [])
+    battles += drawn
+    parts: List[str] = []
+    if took:
+        shown = took[:3]
+        if len(took) > 3:
+            shown.append(f"{len(took) - 3} more")
+        parts.append("; ".join(shown))
+    if battles:
+        said = f"{battles} battle{'' if battles == 1 else 's'} fought{drawn_suffix(battles, drawn)}"
+        parts.append(said)
+        if not took:
+            parts.append("no ground taken yet on either side")
+    return parts
+
+
 def _line(world, out: Dict[str, Any], chair: str, enemies: List[str],
-          theirs, mine) -> str:
+          theirs, mine, ours: Optional[List[str]] = None) -> str:
     chair_d = formed_display_name(world, chair)
     parts: List[str] = []
     if theirs:
@@ -314,6 +384,10 @@ def _line(world, out: Dict[str, Any], chair: str, enemies: List[str],
         parts.insert(0, f"the purpose names {_names(out['stake'])}")
     elif out["source"] == "design":
         parts.insert(0, "the design that declared it")
+    if not parts:
+        # S14E-25: say what IS true — a province retaken for an ally, a
+        # battle fought — before saying nothing has happened
+        parts.extend(_record_parts(world, list(ours or [chair]), list(enemies)))
     if not parts:
         parts.append("nothing taken yet on either side")
     return f"The {out['title']}: " + "; ".join(parts) + "."

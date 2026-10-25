@@ -526,8 +526,11 @@ class Fuzzer:
         if not mine:
             return {"skipped": "no vassal of ours"}
         court = self.rng.choice(mine)
-        res = self.run_cmd({"action": "release_vassal", "target": court, "marshal": None},
-                           f"release {court}")
+        # S14E-X160: the player's release is quoted first; the fuzzer walks the
+        # CONFIRMED order so the release path itself stays exercised.
+        res = self.run_cmd({"action": "release_vassal", "target": court, "marshal": None,
+                            "confirmed": True},
+                           f"release {court} confirmed")
         res["detail"] = court
         return res
 

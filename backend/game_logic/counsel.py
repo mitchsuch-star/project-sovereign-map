@@ -278,6 +278,14 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
         from backend.game_logic.bond import price_line as _bond_price
         out["bond_line"] = _bond_price(world, court, player)
         if out["bond_line"]:
+            # S14E-X114: the sum names its control here too (S14E-X33's twin) -
+            # the Cabinet's "Outbid <payer>'s Bond" row when the pair has the
+            # one war it opens the table on, else the court's own page (the
+            # table's availability is not computed on this road).
+            _wid = _shared_war_id(world, player, court)
+            _path = ((_outbid_path(world, player, court, _wid) if _wid else "")
+                     or f"(F1 → {_shown(world, court)})")
+            out["bond_line"] = f"{out['bond_line'].rstrip('.')} {_path}."
             trade = f"{trade} {out['bond_line']}"
         out["trade"] = trade
         out["separate_peace"] = words
@@ -299,6 +307,45 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
                         f"until it ends; {heading}.{cure}")
         out["truce_words"] = words
     return out
+
+
+def _shared_war_id(world, player: str, court: str) -> str:
+    """S14E-X114: the ONE war instance France and `court` fight in together
+    ("" when there is none or more than one - the Cabinet's Open Settlement
+    row refuses an ambiguous pair the same way)."""
+    try:
+        common = sorted(set(world.get_war_instances_by_participant(player))
+                        & set(world.get_war_instances_by_participant(court)))
+    except Exception as exc:
+        report(exc, "counsel._shared_war_id: get_war_instances_by_participant")
+        return ""
+    return str(common[0]) if len(common) == 1 else ""
+
+
+def _outbid_path(world, player: str, court: str, war_id: str) -> str:
+    """S14E-X33: "(F1 → Austria → Outbid Britain's Bond)" — the control that
+    stages the bid the bond's price line names — or "" when the Cabinet's
+    `outbid_bond` row is not available for this court. The row is built by
+    `cabinet_rows.bond_actions` from the bond's own gate, with the table
+    open (this road is only priced where the preview succeeded); its name is
+    the row's, so shown == the button the player will find.
+
+    S14E-X127: a row shut for want of gold alone (`bid_short_by`, the chest
+    named beside the sum in the same sentence) is still named - the control
+    exists and carries its reason; a row shut for any other cause is not."""
+    from backend.game_logic.cabinet_rows import bond_actions
+    table = {"action": "open_settlement", "available": True, "war_id": str(war_id)}
+    try:
+        rows = bond_actions(world, player, court, [table])
+    except Exception as exc:
+        report(exc, "counsel._outbid_path: bond_actions")
+        return ""
+    row = next((r for r in rows if r.get("action") == "outbid_bond"
+                and (r.get("available") or int(r.get("bid_short_by") or 0) > 0)), None)
+    if row is None:
+        return ""
+    label = str(row.get("display_name") or "").split(" — ", 1)[0]
+    return f"(F1 → {_shown(world, court)} → {label})" if label else ""
 
 
 def _table_road(world, player: str, court: str, *, alone: bool,
@@ -410,6 +457,12 @@ def _table_road(world, player: str, court: str, *, alone: bool,
         _inst = (getattr(world, "war_instances", {}) or {}).get(war_id) or {}
         out["bond_line"] = _bond_price(world, court, player, war_instance=_inst)
         if out["bond_line"]:
+            # S14E-X33: the sum names its control — the Cabinet's "Outbid
+            # <payer>'s Bond" row (`cabinet_rows.bond_actions`), the same F1
+            # path the Congress's lever line gives.
+            _path = _outbid_path(world, player, court, str(war_id))
+            if _path:
+                out["bond_line"] = f"{out['bond_line'].rstrip('.')} {_path}."
             trade = f"{trade} {out['bond_line']}"
         out["trade"] = trade
         out["separate_peace"] = words
@@ -417,6 +470,13 @@ def _table_road(world, player: str, court: str, *, alone: bool,
         # alone, by the scorer's own credit (CONCESSION_GOLD_DIVISOR a point,
         # capped at CONCESSION_GOLD_CAP) — or none.
         out["gold_to_carry"] = _gold_to_carry(world, war_id, player, court, mine, _priced)
+        if out["gold_to_carry"]:
+            # S14E-X126 (S14f part 2): the chest the sum is quoted against —
+            # the very figure the Cabinet's lever row reads
+            # (`cabinet_rows._lever_funds`), so the sentence and the row agree
+            # on what France can fund at the table.
+            from backend.game_logic.cabinet_rows import _lever_funds
+            out["gold_funds"] = int(_lever_funds(world, player))
         # PC-F61 (S13e part 3): what the table CARRIES from a beaten court at
         # its score — the tier's name promises only what the scorer carries.
         out["carry_ladder"] = _carry_ladder(world, war_id, player, court, mine)
@@ -631,7 +691,9 @@ def talleyrand_preference(world, court: str, reading_posture: str,
     elif reading_posture == "losing":
         kind = "firm"
         why = "the court will not stay this generous"
-    return {"kind": kind, "why": why, "harshness": round(harshness, 2)}
+    # S14E-X6's sweep: a whole percent on the wire (Golden Rule 2) — the
+    # Cabinet reads `kind` and `why`, never this figure.
+    return {"kind": kind, "why": why, "harshness": int(round(harshness * 100))}
 
 
 def override_tally(world) -> Dict[str, int]:
@@ -672,13 +734,18 @@ def read_counsel(world, court: str, *, staged_terms=None,
     if state in ("WAR", "ARMISTICE"):
         roads.append(_bilateral_road(world, player, court, "peace", "send_peace",
                                      priced_terms=priced.get("peace")))
-        alone = _table_road(world, player, court, alone=True, staged_terms=staged_terms)
-        whole = _table_road(world, player, court, alone=False, staged_terms=staged_terms)
-        if alone:
-            roads.append(alone)
-        if whole and (not alone or whole.get("covered") != alone.get("covered")):
-            roads.append(whole)
         if state == "WAR":
+            # S14E-X124 (S14f part 2): the settlement table is a WAR's — on a
+            # truce page the Cabinet carries no `open_settlement` row and the
+            # executor refuses it ("We are not at war with Britain, Sire."),
+            # so the roads line, the second sentence and the lever must not
+            # price it. A truce's page prices the send alone.
+            alone = _table_road(world, player, court, alone=True, staged_terms=staged_terms)
+            whole = _table_road(world, player, court, alone=False, staged_terms=staged_terms)
+            if alone:
+                roads.append(alone)
+            if whole and (not alone or whole.get("covered") != alone.get("covered")):
+                roads.append(whole)
             roads.append(_bilateral_road(world, player, court, "armistice", "truce",
                                          priced_terms=priced.get("armistice")))
             roads.append(_battle_road(world, player, court))
@@ -807,11 +874,19 @@ def _lever_sentence(reading: Mapping[str, Any]) -> str:
             from backend.game_logic.settlement_baseline import SETTLEMENT_DIAL_GOLD_STEP
             court = reading.get("court_display")
             road = alone.get("label") or ROAD_LABELS["table_alone"].format(court=court)
+            # S14E-X126 (S14f part 2): a sum the chest cannot fund is not
+            # quoted bare — the Cabinet's lever row stages nothing there
+            # ("the treasury can fund 800"); the sentence names the chest too.
+            # `gold_funds` is `cabinet_rows._lever_funds`, read by
+            # `_table_road`; a road without it reads as funded.
+            funds = alone.get("gold_funds")
+            short = (f"; the treasury holds {int(funds)}"
+                     if funds is not None and int(funds) < int(gold) else "")
             return (f"A payment of {int(gold)} gold to {court} "
                     f"would carry the table with her alone. "
                     f"At the table: {road}, then Offer gold to {court}, "
                     f"{int(gold)} or more (the + and - on its line move it by "
-                    f"{int(SETTLEMENT_DIAL_GOLD_STEP)}).")
+                    f"{int(SETTLEMENT_DIAL_GOLD_STEP)}{short}).")
         if alone.get("carries"):
             return f"The table with {reading.get('court_display')} alone carries ({alone['number']})."
     battle = by.get("battle")

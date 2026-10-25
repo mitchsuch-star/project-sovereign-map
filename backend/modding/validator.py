@@ -1741,7 +1741,7 @@ def _validate_lesson_keys(result, data: dict, known_nations: Set[str],
       war_start_turns / war_scores {"A|B": int}   (scores -100..100)
       battle_records               {"A|B": [{turn, winner, ...}]}
       decisive_battles             {"A|B": [{turn, winner, ...}]}
-      campaign_ledgers             {"A|B": {captures, casualties, blockade_turns}}
+      campaign_ledgers             {"A|B": {captures, casualties, blockade_turns, drawn, drawn_dead}}
       nation_starting_regions      {nation: [province]}
       ai_proposal_cooldowns        {"<Nation>|nation": turns >= 0}
       first_opens                  {screen id: int}   (ids: first_open.SCREENS)
@@ -1938,11 +1938,48 @@ def _validate_lesson_keys(result, data: dict, known_nations: Set[str],
                     path, f"Must be an object, got {type(ledger).__name__}")
                 continue
             for sub in ledger:
-                if sub not in ("captures", "casualties", "blockade_turns"):
+                if sub not in ("captures", "casualties", "blockade_turns", "drawn",
+                               "drawn_dead"):
                     result.add_warning(
                         f"{path}.{sub}",
                         "Unknown ledger key (read: captures, casualties, "
-                        "blockade_turns) — it will never be read")
+                        "blockade_turns, drawn, drawn_dead) — it will never be read")
+            if "drawn" in ledger:
+                # S14E-X201: the turns of the pair's drawn battles
+                drawn_turns = ledger["drawn"]
+                if not isinstance(drawn_turns, list):
+                    result.add_error(
+                        f"{path}.drawn",
+                        f"Must be a list of turns, got {type(drawn_turns).__name__}")
+                else:
+                    for i, turn in enumerate(drawn_turns):
+                        _int_in(f"{path}.drawn[{i}]", turn, 0)
+            if "drawn_dead" in ledger:
+                # S14E-X209: each drawn battle's dead, stamped beside its turn:
+                # [{"turn": int, "dead": {nation of the pair: int}}]
+                dead_rows = ledger["drawn_dead"]
+                if not isinstance(dead_rows, list):
+                    result.add_error(
+                        f"{path}.drawn_dead",
+                        f"Must be a list of rows, got {type(dead_rows).__name__}")
+                else:
+                    for i, row in enumerate(dead_rows):
+                        row_path = f"{path}.drawn_dead[{i}]"
+                        if not isinstance(row, dict):
+                            result.add_error(
+                                row_path,
+                                f"Must be an object {{turn, dead}}, got {type(row).__name__}")
+                            continue
+                        _int_in(f"{row_path}.turn", row.get("turn"), 0)
+                        dead = row.get("dead")
+                        if not isinstance(dead, dict):
+                            result.add_error(
+                                f"{row_path}.dead",
+                                f"Must be an object {{nation: dead}}, got {type(dead).__name__}")
+                            continue
+                        for nation, value in dead.items():
+                            if _side(f"{row_path}.dead.{nation}", nation, parts):
+                                _int_in(f"{row_path}.dead.{nation}", value, 0)
             for sub in ("casualties", "blockade_turns"):
                 if sub not in ledger:
                     continue

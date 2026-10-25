@@ -1063,6 +1063,136 @@ def march_turns(road_len: int, movement_range: int) -> int:
     return 1 + -(-(length - reach) // reach)
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# S14E-22 (Pre-Deploy S14f part 2, October 25, 2026) — A DETOUR IS SAID BEFORE
+# IT IS WALKED.
+#
+# The DD-B conquest run (turn 19, action 424): "Soult, march to Vienna" with
+# Bohemia and Dresden Austrian under the truce was accepted at once and the
+# reply printed "Route: Berlin → Brandenburg → Posen → Silesia → Podolia →
+# Moravia → Vienna" only afterwards — six provinces through two foreign courts
+# for a direct road of two, one action spent and a step already walked.
+# `march_road` plots the lawful corridor (the PF-8 ladder) and refuses only a
+# closed destination, no corridor at all or a barred sea leg; a long or
+# foreign-soil detour passed unflagged. Previews existed on other roads (the
+# desk, the province panel, the map card) but the typed order — the one verb
+# that commits — said nothing.
+#
+# `march_detour_reading` is the ONE reader: the typed order's free ask
+# (`strategic_executor.march_detour_ask`, on the pursuit ask's clarification
+# channel) and the march quote's `detour` rider print its sentence, so what is
+# asked is what the card said. PURE; the player's corps only (Golden Rule 5 —
+# the AI's omniscient routing is a different road and is not read here).
+# ════════════════════════════════════════════════════════════════════════════
+
+# The lawful road must run at least this many times the direct road to ask on
+# length alone (the row: "at least twice the direct road").
+DETOUR_ASKS_AT_TIMES_THE_DIRECT_ROAD = 2
+
+# Soil a corps may cross without it being a foreign court's gift: its own, an
+# ally's, a satellite's, and an enemy's (the war is the reason it is there).
+_OWN_ALLIED_OR_ENEMY_SOIL = ("WAR", "ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL")
+
+
+def march_detour_reading(world, marshal, dest: str, road,
+                         strategic_type: str = "MOVE_TO") -> Optional[Dict]:
+    """S14E-22: the detour a lawful `road` to `dest` makes round a direct road
+    the diplomacy shuts — or None when the march is not a detour worth asking
+    about. `road` is `march_road`'s road (his own province stripped).
+    `strategic_type` names the order whose road it is (S14E-X87): the direct
+    road is plotted by the finder the issuance itself uses — weighted for a
+    march or a hold, breadth-first for a support, a follow or a pursuit
+    (`march_road`'s own choice) — so the same order reads the same way.
+
+    A detour when the DIRECT road (the order's own finder, diplomacy-blind)
+    crosses a province the corps may not enter (the first such province is
+    `via`) and the lawful road is not that road. It asks when the lawful road
+    is at least
+    `DETOUR_ASKS_AT_TIMES_THE_DIRECT_ROAD` times the direct, or when it leaves
+    own and allied soil — crosses (or ends on) soil of a court that is not
+    ours, an ally, a vassal or an enemy at war (an open-borders or
+    non-aggression court). A cautious man's own going-round-the-enemy is not
+    the diplomacy's detour: an OPEN direct road never reads here.
+
+    Returns `{via, closed_by, state, direct, lawful, turns, courts, foreign}`
+    with `courts` the courts of the road's intermediate provinces (not ours,
+    in order) and `foreign` the open-borders courts it crosses."""
+    nation = getattr(marshal, "nation", None)
+    if not nation or nation != getattr(world, "player_nation", None) or not road:
+        return None
+    here = marshal.location
+    finder = (world.find_weighted_path if strategic_type in ("MOVE_TO", "HOLD")
+              else world.find_path)
+    direct = finder(here, dest)
+    if not direct:
+        return None
+    direct = [r for r in direct if r != here]
+    road = list(road)
+    if not direct or direct == road:
+        return None
+    via = next((r for r in direct[:-1]
+                if not world._region_passable_for(r, nation, mover_location=here)), None)
+    if via is None:
+        return None
+    closed_region = world.regions.get(via)
+    closed_by = (getattr(closed_region, "controller", None) or "")
+
+    def _controller(name):
+        region = world.regions.get(name)
+        return getattr(region, "controller", None) or ""
+
+    courts: List[str] = []
+    for name in road[:-1]:
+        holder = _controller(name)
+        if holder and holder != nation and holder not in courts:
+            courts.append(holder)
+    foreign: List[str] = []
+    for name in road:
+        holder = _controller(name)
+        if (holder and holder != nation and holder not in foreign
+                and world.get_diplomatic_state(nation, holder) not in _OWN_ALLIED_OR_ENEMY_SOIL):
+            foreign.append(holder)
+    long_enough = len(road) >= DETOUR_ASKS_AT_TIMES_THE_DIRECT_ROAD * len(direct)
+    if not (long_enough or foreign):
+        return None
+    return {
+        "via": via,
+        "closed_by": closed_by,
+        "state": (world.get_diplomatic_state(nation, closed_by) if closed_by else "PEACE"),
+        "direct": int(len(direct)),
+        "lawful": int(len(road)),
+        "turns": int(march_turns(len(road), getattr(marshal, "movement_range", 1))),
+        "courts": courts,
+        "foreign": foreign,
+    }
+
+
+def march_detour_sentence(dest: str, reading: Dict) -> str:
+    """S14E-22: the detour in the order's own words — "The direct road to
+    Vienna via Dresden is closed by the truce with Austria; the lawful road is
+    6 provinces, 6 turns, through Prussia and Russia." (a road that arrives
+    this very turn says so instead of a clock). The ask appends its question
+    and the march quote carries the sentence as the `detour` rider."""
+    from backend.display_names import display_nation, humanize_entity_name
+    court = display_nation(reading["closed_by"]) if reading["closed_by"] else "a closed court"
+    if reading["state"] == "ARMISTICE":
+        shut = f"closed by the truce with {court}"
+    else:
+        shut = f"closed — {court} keeps its frontier shut"
+    turns = int(reading["turns"])
+    clock = "he arrives this turn" if turns <= 0 else _plural_lv9(turns, "turn")
+    names = [display_nation(c) for c in reading["courts"]]
+    if not names:
+        through = ""
+    elif len(names) == 1:
+        through = f", through {names[0]}"
+    else:
+        through = f", through {', '.join(names[:-1])} and {names[-1]}"
+    return (f"The direct road to {humanize_entity_name(dest)} via "
+            f"{humanize_entity_name(reading['via'])} is {shut}; the lawful road is "
+            f"{_plural_lv9(int(reading['lawful']), 'province')}, {clock}{through}.")
+
+
 def pick_contact_enemy(order, enemies):
     """CR-7-6 — which of the enemies met does an order engage?  The man the
     arrival tail NAMED (`StrategicOrder.arrival_target`) when he stands among
@@ -3071,7 +3201,7 @@ class StrategicOrderProcessor:
 
     def _execute_strategic_turn(self, marshal, world, game_state) -> Optional[Dict]:
         """Execute one turn of a marshal's strategic order — and say what the
-        step cost the Descent camp (S14E-XJ1, the sweep of S14E-13): a standing
+        step cost the Descent camp (S14E-X115, the sweep of S14E-13): a standing
         march's step out of the camp provinces resets the staging count at the
         turn's end tick exactly as the order's first step does, and the turn
         report said only "marches to X"."""
@@ -3079,9 +3209,14 @@ class StrategicOrderProcessor:
         report = self._strategic_turn_step(marshal, world, game_state)
         if (isinstance(report, dict) and isinstance(report.get("message"), str)
                 and marshal.location != origin):
-            from backend.commands.movement_executor import camp_leave_note
+            from backend.commands.movement_executor import (
+                campaign_pay_note, camp_leave_note)
             report["message"] += camp_leave_note(
                 world, marshal, [marshal.location], origin)
+            # S14E-X67: and the campaign pay the new stop draws (said once,
+            # at the step that steps onto allied or neutral soil).
+            report["message"] += campaign_pay_note(
+                world, marshal, marshal.location, origin)
         return report
 
     def _strategic_turn_step(self, marshal, world, game_state) -> Optional[Dict]:

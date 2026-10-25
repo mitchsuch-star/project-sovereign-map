@@ -139,8 +139,10 @@ class TestExecutorDialogueGeneration:
         assert len(dialogue["proposal_terms_summary"]) > 0
 
         assert "harshness" in dialogue
-        assert isinstance(dialogue["harshness"], float)
-        assert 0 <= dialogue["harshness"] <= 1.0
+        # S14E-X6 FLIPPED the float pin: a whole percent on the wire (Golden
+        # Rule 2 — Godot takes no floats; the popup prints `harshness_label`)
+        assert isinstance(dialogue["harshness"], int)
+        assert 0 <= dialogue["harshness"] <= 100
 
         assert "harshness_label" in dialogue
         assert dialogue["harshness_label"] in ("Low", "Moderate", "High", "Very High")

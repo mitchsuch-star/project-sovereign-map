@@ -132,7 +132,9 @@ class TestDDB4:
         out = _post(c, "/respond_to_diplomatic_dialogue",
                     {"choice": "counter_ai_proposal", "dialogue_id": letter["dialogue_id"]})
         assert out["success"] is False
-        assert out["message"] == "Talleyrand finds no counter Austria could take — the offer stands."
+        # S14E-20 (S14f part 2): the line says the point was kept.
+        assert out["message"] == ("Talleyrand finds no counter Austria could take; "
+                                  "the offer stands — no point spent.")
         assert w.diplomatic_points == dp
         assert (w.pending_diplomatic_dialogue or {}).get("dialogue_id") == letter["dialogue_id"]
         assert out.get("incoming_proposal"), "the letter is re-mounted"

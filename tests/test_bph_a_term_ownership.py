@@ -137,7 +137,10 @@ class TestAnnotatePeaceTerms:
         assert t["term_direction"] == "concession"
         assert t["from_nation"] == "France"
         assert t["to_nation"] == "Saxony"
-        assert t["display_label"] == "France guarantees Saxony's sovereignty"
+        # S14E-X167 FLIPPED: the pledge binds no army and mints no guarantee, so
+        # the label says a pledge (was "France guarantees Saxony's sovereignty")
+        assert t["display_label"] == ("France pledges Saxony its protection "
+                                      "(a word only - it binds no army)")
 
     def test_clause_continental_system_lifted(self):
         terms = {"sweeteners": [], "demands": [],

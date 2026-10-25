@@ -825,6 +825,7 @@ class FranceScript:
     def _turn_0(self, world, executor, game_state, turn):
         result = executor._diplomatic._execute_sponsor_design(
             {"action": "sponsor_design", "target": "Prussia",
+             "confirmed": True,  # S14E-26: the player's order quotes first; the arm confirms
              "raw_input": "sponsor Prussia against Hanover, 100 gold"},
             game_state)
         self._record(turn, "sponsor_design Prussia->Hanover 100g", result)
@@ -859,12 +860,14 @@ class FranceScript:
                      f"war_intents[Prussia]={crisis}")
         result = executor._diplomatic._execute_buy_off_design(
             {"action": "buy_off_design", "target": "Prussia",
+             "confirmed": True,  # S14E-26
              "raw_input": "buy off Prussia"}, game_state)
         self._record(turn, "buy_off_design Prussia (live crisis)", result)
 
     def _turn_4(self, world, executor, game_state, turn):
         result = executor._diplomatic._execute_guarantee_nation(
             {"action": "guarantee_nation", "target": "Hanover",
+             "confirmed": True,  # S14E-26
              "raw_input": "guarantee Hanover"}, game_state)
         self._record(turn, "guarantee_nation Hanover", result)
 
@@ -895,6 +898,7 @@ class FranceScript:
         client = get_british_subsidy_recipient(world) or "Austria"
         verb = executor._diplomatic._execute_sponsor_design(
             {"action": "sponsor_design", "target": client,
+             "confirmed": True,  # S14E-26
              "raw_input": f"sponsor {client}, 500 gold"}, game_state)
         self._record(turn, f"outbid verb attempt on {client}", verb)
         seam = grant_directed_sponsorship(

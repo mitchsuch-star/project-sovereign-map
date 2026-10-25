@@ -219,3 +219,91 @@ def build_envoy_digest(world) -> Optional[Dict]:
         ),
         "items": items,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S14E-27 (S14f part 2, October 25, 2026) — what a row of the Envoys panel says
+#
+# The panel gave every row the same card: a one-line summary cut at 72
+# characters and a word "Open ▸". A letter-book row (above) carries its
+# court's voice and terms and answers in place; every OTHER row opens its
+# letter in full and said nothing of why, nor of what it asks. These two
+# readers give the row what the popup will show: the letter's terms (the
+# popup's own `clauses`, never a second rendering) and ONE line saying why
+# the row opens in full. The boundary above is read, not moved: a row is
+# inline exactly when `is_routine_small_court` says so, and an inline row
+# needs no reason.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# The dialogue types whose popup carries terms to show on the row.
+_TERMS_ROW_TYPES = frozenset({
+    "incoming_proposal", "counter_offer", "counter_offer_response",
+    "incoming_ultimatum",
+})
+
+ROW_REASON_GREAT_COURT = ("A great court's letter is answered in full "
+                          "— open to accept, haggle or refuse.")
+ROW_REASON_TREATY = "A treaty is answered in full — open to accept, haggle or refuse."
+ROW_REASON_PETITION = "A client's petition is granted or refused in full — open to decide."
+ROW_REASON_CALL_TO_ARMS = "An ally's call to arms is joined or refused in full — open to answer."
+ROW_REASON_MOMENT = "A moment of history is answered in full — open the letter to choose."
+ROW_REASON_ULTIMATUM = "An ultimatum is yielded to or defied in full — open to answer."
+ROW_REASON_COUNTER = ("A counter-offer is accepted or rejected in full "
+                      "— open to read the revised terms.")
+ROW_REASON_SETTLEMENT = "A settlement offer is answered in full — open to review its terms."
+ROW_REASON_ALLY_PETITION = "An ally's petition is answered in full — open to read it and reply."
+
+
+def mailbox_row_terms(dialogue: Optional[Dict]) -> List[str]:
+    """The terms a mailbox row shows: the popup payload's own `clauses` (the
+    lines `build_proposal_popup_clauses` / the petition builders wrote and
+    the popup prints), as plain strings. [] for a row with no terms to show
+    — a moment letter (its record is the letter), a settlement, an ally's
+    petition."""
+    if not isinstance(dialogue, dict):
+        return []
+    if str(dialogue.get("type") or "") not in _TERMS_ROW_TYPES:
+        return []
+    from backend.game_logic.moments import is_moment_letter
+    if is_moment_letter(dialogue):
+        return []
+    payload = dialogue.get("popup_payload") or {}
+    clauses = payload.get("clauses") if isinstance(payload, dict) else None
+    if not isinstance(clauses, list):
+        return []
+    return [str(c) for c in clauses if str(c).strip()]
+
+
+def mailbox_row_reason(dialogue: Optional[Dict], world) -> str:
+    """One line saying why a mailbox row opens its letter in full; "" for a
+    row that answers in place (a letter-book row), for a row of no known kind
+    and when no world is given (the tier of the sender is the world's)."""
+    if not isinstance(dialogue, dict) or world is None:
+        return ""
+    dtype = str(dialogue.get("type") or "")
+    if dtype == "incoming_settlement_offer":
+        return ROW_REASON_SETTLEMENT
+    if dtype == "ally_settlement_petition":
+        return ROW_REASON_ALLY_PETITION
+    if dtype == "incoming_ultimatum":
+        return ROW_REASON_ULTIMATUM
+    if dtype in ("counter_offer", "counter_offer_response"):
+        return ROW_REASON_COUNTER
+    if dtype != DIGEST_DIALOGUE_TYPE:
+        return ""
+    from backend.game_logic.call_to_arms import is_call_to_arms
+    from backend.game_logic.moments import is_moment_letter
+    from backend.game_logic.vassal import is_client_petition
+    if is_moment_letter(dialogue):
+        return ROW_REASON_MOMENT
+    if is_client_petition(dialogue):
+        return ROW_REASON_PETITION
+    if is_call_to_arms(dialogue):
+        return ROW_REASON_CALL_TO_ARMS
+    if is_routine_small_court(dialogue, world):
+        return ""   # a letter-book row: answered in place, no reason owed
+    from backend.nation_config import _POWER_TIER_DEFAULT
+    context = dialogue.get("context") or {}
+    nation = dialogue.get("target_nation") or context.get("source_nation") or ""
+    tier = (world.get_power_tier(nation) if nation else None) or _POWER_TIER_DEFAULT
+    return ROW_REASON_GREAT_COURT if tier == "major" else ROW_REASON_TREATY

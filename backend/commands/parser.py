@@ -322,9 +322,21 @@ def _split_second_name(command_text: str, game_state=None):
         return None
     alt = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
     one = r"(?:" + HONORIFIC + r")?(?:" + alt + r")"
+    # S14E-X143 / S14E-X174: the comma may be left out when the rest of the
+    # line starts with an order the router knows ("Ney and Davout stop",
+    # "Ney and Davout fortify", "Ney and Davout attack Mack") - the same
+    # address as "Ney and Davout, stop". The verbs are the router's own
+    # (`ROUTED_ORDER_WORDS`, via `clause_guards.order_verb_re`), so a list
+    # followed by a word that is no order is read as before. S14E-X180: a
+    # filler or modal between the list and the verb ("Ney and Davout will
+    # fortify", "... both fortify", "... please fortify") is dropped from the
+    # order, as the single address drops it ("Ney will fortify").
+    from backend.ai.clause_guards import order_verb_re
     m = re.match(
         r"^\s*(?P<list>" + one + r"(?:\s*(?:,|\band\b|&)\s*" + one + r")+)"
-        r"\s*[:,]\s*(?P<rest>[A-Za-z].+)$", command_text, flags=re.IGNORECASE)
+        r"(?:\s*[:,]\s*|\s+(?:(?:please|kindly|now|both|together|will|shall|must|should)\s+)*"
+        r"(?=" + order_verb_re().pattern + r"))"
+        r"(?P<rest>[A-Za-z].+)$", command_text, flags=re.IGNORECASE)
     if m:
         rest = m.group("rest").strip()
         if re.match(r"^" + _COLLECTIVE_ADDRESS_WORDS, rest, flags=re.IGNORECASE):
@@ -2155,7 +2167,13 @@ class CommandParser:
         # above, and for the same reason.
         if llm_result.get("action") in ("recruit_marshal", "recall_marshal"):
             if llm_result.get("marshal") and not llm_result.get("target"):
-                llm_result["target"] = llm_result["marshal"]
+                # S14E-X181: the man the line is ADDRESSED to ("Ney, recruit a
+                # marshal") is no candidate - it answered "No candidate named
+                # 'Ney' awaits a commission."; the executor asks whom instead.
+                _named = str(llm_result["marshal"])
+                if not re.match(r"^\s*(?:" + HONORIFIC + r")?" + re.escape(_named) + r"\b\s*[,:]",
+                                command_text or "", flags=re.IGNORECASE):
+                    llm_result["target"] = _named
             llm_result["marshal"] = None
             return (llm_result, None)
         # Vassal-family actions target a NATION, not a marshal — the executor
@@ -3527,6 +3545,14 @@ class CommandParser:
                     _arm = extract_requested_arm(command_text)
                     if _arm:
                         command_dict["requested_type"] = _arm
+                if llm_result.get("action") == "build_fleet":
+                    # S14E-33: "lay down TWO ships" — the count is read from
+                    # the player's own words (deterministic, GR6), whichever
+                    # parser produced the action; none named = one keel.
+                    from backend.commands.naval_executor import ship_count_in
+                    _keels = ship_count_in(command_text)
+                    if _keels:
+                        command_dict["count"] = _keels
 
                 # CR-5b Flavor Echoing: carry the LLM's delegation flavor line to
                 # the RESPONSE seam. command_dict is hand-built from named .get()s,

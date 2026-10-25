@@ -60,6 +60,15 @@ class VassalExecutor:
         # with _acting_nation; the domain function validates lordship + pays
         # from the actor's own DP/gold pools.
         actor = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
+        # S14E-X107: the PLAYER's own road (an AI lord carries `_acting_nation`).
+        players_own = (actor == getattr(world, 'player_nation', 'France')
+                       and not command.get("_acting_nation"))
+        confirmed = False
+        if players_own:
+            from backend.commands.reforms_executor import _CONFIRMED_RE, _confirmed
+            confirmed = _confirmed(command)
+            # the confirmed line may carry its word on the target ("holland confirmed")
+            target = _CONFIRMED_RE.sub("", target).strip() or target
 
         # GE-V: a court the board has eliminated is answered as gone, not as
         # "not a vassal" (and never, upstream, as a marshal's name).
@@ -68,6 +77,22 @@ class VassalExecutor:
             return {"success": False, "message": gone}
 
         from backend.game_logic.vassal import invest_in_vassal
+        # S14E-X107 (the S14E-26 sweep): the PLAYER's unconfirmed order QUOTES
+        # first - free, after every refusal and before the charge - on the
+        # instruments' clarification envelope (200g + 1 DP were spent on one
+        # click, the effect nowhere on the chip but the ledger's "+10 loyalty").
+        # "Invest" reissues the line `confirmed`; "Not now" spends nothing. An
+        # AI lord (`_acting_nation`) never sees the quote (GR5).
+        if players_own and not confirmed:
+            quote = invest_in_vassal(world, target, actor=actor, quote_only=True)
+            if not quote.get("success"):
+                return quote
+            from backend.game_logic.vassal import invest_quote_words
+            return self._executor._diplomatic._quote_instrument(
+                world, {"raw_command": command.get("raw_command", "")},
+                message=invest_quote_words(world, quote["quote"]),
+                confirm_label="Invest", confirm_line=f"invest in {target}",
+                aliases=("yes", "invest", "confirm"))
         result = invest_in_vassal(world, target, actor=actor)
         if result.get("success"):
             result["new_state"] = game_state
@@ -308,6 +333,16 @@ class VassalExecutor:
         if not target:
             return {"success": False, "message": "Specify which vassal to release."}
 
+        # S14E-X160: the PLAYER's own road (the one-click irreversible act is
+        # quoted first; an order carrying `_acting_nation` never sees it).
+        players_own = not command.get("_acting_nation")
+        confirmed = False
+        if players_own:
+            from backend.commands.reforms_executor import _CONFIRMED_RE, _confirmed
+            confirmed = _confirmed(command)
+            # the confirmed line may carry its word on the target ("holland confirmed")
+            target = _CONFIRMED_RE.sub("", target).strip() or target
+
         vassals = getattr(world, 'vassals', {})
         if target not in vassals:
             return {"success": False,
@@ -317,7 +352,19 @@ class VassalExecutor:
         if world.diplomatic_points < 1:
             return {"success": False, "message": "Insufficient Diplomatic Points. Releasing a vassal costs 1 DP."}
 
-        from backend.game_logic.vassal import release_vassal
+        from backend.game_logic.vassal import release_plan, release_quote_words, release_vassal
+        if players_own and not confirmed:
+            # The release is quoted before it is done - free, after every
+            # refusal and before the charge: the tribute that stops, the
+            # marshals who go home, the call to arms, the alarm, the cooldown
+            # (the figures `release_vassal` applies, one `release_plan`).
+            # "Release" reissues the line `confirmed`; "Not now" spends nothing.
+            return self._executor._diplomatic._quote_instrument(
+                world, {"raw_command": command.get("raw_command", "")},
+                message=release_quote_words(
+                    world, release_plan(world, target), int(world.diplomatic_points)),
+                confirm_label="Release", confirm_line=f"release {target}",
+                aliases=("yes", "release", "confirm"))
         result = release_vassal(world, target)
         if result.get("success"):
             world.diplomatic_points -= 1

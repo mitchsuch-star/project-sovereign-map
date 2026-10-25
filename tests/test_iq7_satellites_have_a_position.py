@@ -1289,7 +1289,7 @@ class TestT13TypedCommandSafety:
         w, client = http
         dlg = _deliver(w, "Switzerland")
         w.vassals["Switzerland"]["loyalty"] = 80
-        r = _cmd(client, "invest in Switzerland")
+        r = _cmd(client, "invest in Switzerland confirmed")   # S14E-X107 FLIPPED: the spend is the confirmed line
         assert w.vassals["Switzerland"]["loyalty"] == 90, r.get("message")
         assert _petitions(w) and _petitions(w)[0] is dlg
         assert not _logged(w)

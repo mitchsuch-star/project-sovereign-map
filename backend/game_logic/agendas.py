@@ -1327,8 +1327,11 @@ def process_agenda_violations(world) -> List[Dict]:
             continue
         fired_pairs.add(pair)
 
-        world.modify_nation_relation(
-            violator, holder, AGENDA_VIOLATION_RELATION_PENALTY)
+        # S14E-X112: the Ansbach trap drags a mission's pair; the books name it
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, violator, holder, AGENDA_VIOLATION_RELATION_PENALTY,
+            "agenda_violation", violator, holder)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "agenda_violation", {
             "violator": _live_nation_name(world, violator),

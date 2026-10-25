@@ -225,6 +225,16 @@ def _display(name: str) -> str:
     return humanize_entity_name(name)
 
 
+def _combat_reader():
+    """S14E-X82's sweep: the combat executor the desk's what-if answers read
+    (`_build_muster_preview`, the peace-soil refusal), built ONCE -- the very
+    cached reader the objection path uses (`objection_v2._muster_totals_reader`)
+    -- where each answer used to build a whole `CommandExecutor` (and print
+    its banner)."""
+    from backend.commands.objection_v2 import _muster_totals_reader
+    return _muster_totals_reader()
+
+
 def _court(world, nation: str, *, start: bool = False) -> str:
     """A court in a sentence — "the Kingdom of Italy", "Austria".
 
@@ -819,6 +829,58 @@ _WIDE_KINDS: List[Tuple[str, "re.Pattern[str]"]] = [
         r"(?P<place>.+?)"
         # RR2-X4 (SF-RR2's sweep): "can Ney reach Vienna from Bohemia?"
         r"(?:\s+from\s+(?:the\s+)?(?P<origin>[A-Za-z][\w'’ -]*?))?" + _TAIL, re.IGNORECASE)),
+    # S14E-16 (S14f part 2): the MARSHAL-LESS route — "how do I get to
+    # Vienna", "what's the road to Vienna", "which way to Vienna". The reach
+    # kind above needs a marshal's name; the line that names none is the
+    # commonest way a new player asks it, and (opening "how do I") it was
+    # filed as grammar and answered with the whole manual.
+    # Its siblings (the sweep): "can I / we get to Vienna", "who can reach
+    # Vienna", "which marshal could get to Vienna", "is Vienna reachable".
+    ("route", re.compile(
+        _LEAD + r"(?:how\s+(?:do|can|could|would|should|might)\s+(?:i|we)\s+"
+        r"(?:get|go|travel|reach|make\s+(?:my|our)\s+way)(?:\s+(?:to|towards?|into))?"
+        r"|(?:can|could)\s+(?:i|we)\s+(?:get|go|travel|reach|make\s+it)"
+        r"(?:\s+(?:to|towards?|into))?"
+        r"|(?:who|which\s+(?:marshal|corps|general|man))\s+(?:can|could|would)\s+"
+        r"(?:get|go|travel|reach|make\s+it)(?:\s+(?:to|towards?|into))?"
+        r"|(?:what|which)(?:" + _APOS + r"s|\s+is)\s+the\s+"
+        r"(?:(?:best|quickest|fastest|shortest|nearest)\s+)?(?:way|road|route)\s+(?:to|towards?)"
+        r"|(?:which|what)\s+(?:way|road|route)\s+(?:to|towards?)"
+        r"|the\s+(?:(?:best|quickest|fastest|shortest)\s+)?(?:way|road|route)\s+(?:to|towards?))\s+"
+        r"(?:the\s+)?(?P<place>.+?)"
+        r"(?:\s+from\s+(?:the\s+)?(?P<origin>[A-Za-z][\w'’ -]*?))?" + _TAIL,
+        re.IGNORECASE)),
+    ("route", re.compile(
+        _LEAD + r"(?:is|are)\s+(?:the\s+)?(?P<place>.+?)\s+"
+        r"(?:reachable|within\s+reach|in\s+reach|attainable)" + _TAIL, re.IGNORECASE)),
+    # The NAMED corps asked the same way: "how can Ney get to Vienna", "how do
+    # I get Ney to Vienna" (the reach kind reads only "can Ney reach …").
+    ("reach", re.compile(
+        _LEAD + r"(?:how\s+(?:can|could|would|does|should)\s+" + _HON
+        + r"(?P<name>[\w'’-]+(?:\s+[\w'’-]+)?)\s+(?:get|go|travel|reach|make\s+it)"
+        r"(?:\s+(?:to|towards?|into))?"
+        r"|how\s+(?:do|can|could|would|should)\s+(?:i|we)\s+get\s+" + _HON
+        + r"(?P<name2>[\w'’-]+(?:\s+[\w'’-]+)?)\s+(?:to|into))\s+(?:the\s+)?"
+        r"(?P<place>.+?)"
+        r"(?:\s+from\s+(?:the\s+)?(?P<origin>[A-Za-z][\w'’ -]*?))?" + _TAIL, re.IGNORECASE)),
+    # S14E-X72 (the second wave): "how do I find Mack" / "take Vienna" / "stop
+    # Ney" -- the verbs the help table cannot own (a "find" would steal "find
+    # peace", a "take" "take a loan", a "stop" "stop the war"), so the desk
+    # claims the line only when the OBJECT resolves: an enemy or friendly
+    # marshal, a province, a marshal of ours (`_classify_how_to`).
+    ("how_find", re.compile(
+        _LEAD + r"how\s+(?:do|can|could|would|should|might)\s+(?:i|we)\s+"
+        r"(?:find|locate|track(?:\s+down)?|hunt(?:\s+down)?|spot)\s+" + _HON
+        + r"(?P<name>.+?)" + _TAIL, re.IGNORECASE)),
+    ("how_take", re.compile(
+        _LEAD + r"how\s+(?:do|can|could|would|should|might)\s+(?:i|we)\s+"
+        r"(?:take|capture|conquer|seize|storm|occupy)\s+(?:the\s+)?"
+        r"(?P<name>.+?)" + _TAIL, re.IGNORECASE)),
+    ("how_stop", re.compile(
+        _LEAD + r"how\s+(?:do|can|could|would|should|might)\s+(?:i|we)\s+"
+        r"(?:stop|halt|cancel|abort|call\s+off|hold\s+back)\s+" + _HON
+        + r"(?P<name>.+?)(?:" + _APOS + r"s\s+(?:march|marching|order|orders|advance"
+        r"|advancing|attack|attacking|corps|army|men))?" + _TAIL, re.IGNORECASE)),
     # SR session-exit residue F2 (Sept 26, 2026): the NAMED what-if. The
     # subject is captured, so "should Davout attack Mack" weighs Davout, and
     # the verb reads its inflections and the province verbs ("what if Ney
@@ -971,6 +1033,31 @@ _WAR_QUESTION_KINDS = frozenset({"wars", "allies", "safe", "truce_clock",
                                  "war_effort", "news"})
 
 
+def _classify_how_to(kind: str, phrase: str, marshals: Iterable[str],
+                     enemies: Iterable[str], regions: Iterable[str]) -> Optional[Dict]:
+    """S14E-X72: "how do I find / take / stop <object>" -- claimed ONLY when
+    the WHOLE object phrase is a name the board knows (the route kind's
+    rule): a marshal for find (ours or the enemy's), a province for take, a
+    marshal of ours for stop. "find peace", "take a loan", "stop the war" and
+    a name no roster holds are not the desk's -- they keep the answers they
+    had (the help table, the advisory)."""
+    if kind == "how_take":
+        found = _resolve(phrase, (), (), regions, kind="who_holds")
+        subject_type = "region"
+    elif kind == "how_find":
+        found = _resolve(phrase, marshals, enemies, (), kind="where")
+        subject_type = found[1] if found else ""
+    else:
+        found = _resolve(phrase, marshals, (), (), kind="where")
+        subject_type = "marshal"
+    if not found or _norm(phrase) not in _forms(found[0]):
+        return None
+    out = {"kind": kind, "subject": found[0], "subject_type": subject_type}
+    if kind == "how_take":
+        out["place"] = found[0]
+    return out
+
+
 def classify_board_question(text: str, marshals: Iterable[str] = (),
                             enemies: Iterable[str] = (),
                             regions: Iterable[str] = (),
@@ -1077,9 +1164,15 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
             if not nation:
                 continue
             return {"kind": kind, "subject": nation, "subject_type": "nation"}
+        if kind in ("how_find", "how_take", "how_stop"):
+            how = _classify_how_to(kind, groups.get("name") or "", marshals,
+                                   enemies, regions)
+            if how is None:
+                continue
+            return how
         if kind == "reach":
-            who = _resolve(groups.get("name") or "", marshals, (), (),
-                           kind="where")
+            who = _resolve(groups.get("name") or groups.get("name2") or "",
+                           marshals, (), (), kind="where")
             where = _resolve(groups.get("place") or "", (), (), regions,
                              kind="who_holds")
             if not who or not where:
@@ -1088,6 +1181,22 @@ def classify_board_question(text: str, marshals: Iterable[str] = (),
                               kind="who_holds") if groups.get("origin") else None
             return {"kind": kind, "subject": who[0], "subject_type": "marshal",
                     "place": where[0], "origin": origin[0] if origin else ""}
+        if kind == "route":
+            # S14E-16: no marshal named — the province is the subject; a
+            # place the board does not know is no route question (the
+            # grammar section answers it).
+            where = _resolve(groups.get("place") or "", (), (), regions,
+                             kind="who_holds")
+            # the WHOLE phrase is the province ("how do I get Ney to Vienna"
+            # names a corps, and must not be read as a road to Vienna)
+            if not where or _norm(groups.get("place") or "") not in _forms(where[0]):
+                continue
+            origin = _resolve(groups.get("origin") or "", (), (), regions,
+                              kind="who_holds") if groups.get("origin") else None
+            return {"kind": kind, "subject": where[0], "subject_type": "region",
+                    "place": where[0], "origin": origin[0] if origin else "",
+                    "origin_said": ("" if origin else
+                                    str(groups.get("origin") or "").strip())}
         if kind == "what_if":
             foe = _resolve(groups.get("name") or "", (), enemies, (),
                            kind="where")
@@ -1695,11 +1804,159 @@ def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
     if foe is not None:
         answer += (f" {_display(foe[0].name)} stands on the road at "
                    f"{foe[1]} — the march will meet him there.")
+    # S14E-22 / S14E-X67 (the sweep): the quote's two riders — the detour
+    # round a road the diplomacy shuts, and the campaign pay the stop draws —
+    # so "can he reach it" says what the march would.
+    from backend.commands.movement_executor import campaign_pay_line
+    detour = _road.march_detour_reading(world, marshal, place, road)
+    if detour is not None:
+        answer += " " + _road.march_detour_sentence(place, detour)
+    pay = campaign_pay_line(world, marshal, place)
+    if pay:
+        answer += " " + pay
     state = _road.march_state_refusal(world, marshal)
     if state:
         answer = (f"Not today, Sire — {state} "
                   + answer.replace("Yes, Sire — ", "Once he can: ", 1))
     return answer
+
+
+def _answer_route(world, player: str, place: str, origin: str = "",
+                  origin_said: str = "") -> Optional[str]:
+    """S14E-16: "how do I get to Vienna?" — the question names no marshal, so
+    the corps with the shortest road the march law allows answers it
+    (`nearest_lawful_marcher`, the same pick the take-verbs make), through
+    the SAME reach answer a named corps would get, and the order that takes
+    the road is quoted. A place no corps can march to is refused in the
+    march's own words; a "from <province>" the question names is honoured
+    (the corps standing there walks it) or said not to be ours."""
+    import backend.commands.strategic as _road
+    if world.get_region(place) is None:
+        return None
+    marshal, road, refusal = _road.nearest_lawful_marcher(world, place)
+    lead = ""
+    if origin_said and not origin:
+        lead = (f"Our maps hold no province called {origin_said}, Sire — "
+                f"reckoned from the nearest corps: ")
+    if origin:
+        walkers = []
+        for m in world.get_player_marshals():
+            if (m.location != origin or m.location == place
+                    or getattr(m, "captured_by", "")
+                    or int(getattr(m, "strength", 0) or 0) <= 0):
+                continue
+            m_road, _refused, _kind = _road.march_road(world, m, place, "MOVE_TO")
+            if m_road is not None:
+                walkers.append((len(m_road), m.name, m))
+        if walkers:
+            marshal = min(walkers, key=lambda w: (w[0], w[1]))[2]
+        else:
+            lead = (f"No corps of ours can set out from {origin}, Sire — "
+                    f"reckoned from the nearest: ")
+    if marshal is None:
+        if any(m.location == place and int(getattr(m, "strength", 0) or 0) > 0
+               for m in world.get_player_marshals()):
+            return f"A corps of ours already stands at {place}, Sire — there is no road to take."
+        said = str((refusal or {}).get("message") or "no corps of ours has a road to it.")
+        said = said[:1].lower() + said[1:]
+        return (f"No — {said}" if "Sire" in said else f"No, Sire — {said}")
+    shown = _display(marshal.name)
+    body = _answer_reach_by_the_march(world, player, marshal, shown, place)
+    return f"{lead}{body} The order is '{shown}, march to {place}'."
+
+
+def _answer_how_take(world, player: str, place: str) -> Optional[str]:
+    """S14E-X72: "how do I take Vienna?" -- the march-and-attack the manual
+    teaches ("then attack", paid once), through the corps with the shortest
+    lawful road (`nearest_lawful_marcher`, the route answer's own pick), and
+    the free preview beside the attack (`attack_preview_hint`, the TODAY
+    list's sentence). Our own soil is said ours; a court we are not at war
+    with is the Cabinet's door, not an order."""
+    import backend.commands.strategic as _road
+    region = world.get_region(place)
+    if region is None:
+        return None
+    holder = region.controller
+    if holder == player:
+        return f"{place} is already ours, Sire."
+    if holder and not world.is_at_war(player, holder):
+        return (f"{place} is held by {_court(world, holder)}, with whom we are not at "
+                f"war, Sire — a province cannot be taken from a court at peace until "
+                f"war is declared (press F1 for the Cabinet).")
+    marshal, _path, refusal = _road.nearest_lawful_marcher(world, place)
+    if marshal is None:
+        said = str((refusal or {}).get("message") or "no corps of ours has a road to it.")
+        said = said[:1].lower() + said[1:]
+        return (f"No — {said}" if "Sire" in said else f"No, Sire — {said}")
+    from backend.game_logic.dispatch import attack_preview_hint
+    shown = _display(marshal.name)
+    return (f"To take {place}, Sire, send a corps against it — {shown} has the "
+            f"shortest road. '{shown}, march to {place} then attack' marches him "
+            f"there and fights on arrival (paid once); '{shown}, attack {place}' "
+            f"does it once he stands within reach of it. "
+            f"{attack_preview_hint([f'{shown}, attack {place}'])}")
+
+
+def _answer_how_find(world, player: str, name: str) -> Optional[str]:
+    """S14E-X72: "how do I find Mack?" -- the where-answer (fog-honest: the
+    desk's `_answer_enemy`, nothing the player could not ask "where is Mack"
+    and be told), and, for an enemy short of FULL sight, the scout that would
+    look: the corps nearest the province the answer names, within its reach."""
+    seen = answer_question(world, {"kind": "where", "subject": name,
+                                   "subject_type": "marshal"})
+    man = world.get_marshal(name)
+    if (seen is None or man is None or man.nation == player
+            or getattr(man, "captured_by", "")):
+        return seen
+    from backend.models.intel import FULL, PARTIAL
+    intel = world.get_region_intel(man.location)
+    if intel.visibility == FULL:
+        return seen                     # confirmed: nothing more a scout could show
+    import backend.commands.strategic as _road
+    from backend.commands.movement_executor import scout_range
+    in_sight = bool(intel.visibility_at_least(PARTIAL))
+    last = _last_report_of(world, name)
+    # the province the answer ALREADY names: where he stands when we see him,
+    # else where he was last reported (nothing is read that "where is" hides)
+    place = man.location if in_sight else (last[0] if last else "")
+    scout = None
+    if place and world.get_region(place) is not None:
+        scout = _road.nearest_lawful_marcher(world, place)[0]
+    if scout is None:
+        scout = next((m for m in world.get_player_marshals()
+                      if int(getattr(m, "strength", 0) or 0) > 0
+                      and not getattr(m, "captured_by", "")
+                      and not getattr(m, "administrative", False)
+                      and not getattr(m, "is_sovereign", False)), None)
+    if scout is None:
+        return seen
+    shown = _display(scout.name)
+    reach = int(scout_range(scout))
+    if place and world.get_distance(scout.location, place) <= reach:
+        order = f"'{shown}, scout {place}'"
+    else:
+        order = f"'{shown}, scout <a province within {reach} of him>'"
+    lead = "To see more of him" if in_sight else "To look for him"
+    return (f"{seen} {lead}, send a corps to scout the ground: {order} "
+            f"shows what stands there.")
+
+
+def _answer_how_stop(world, player: str, name: str) -> Optional[str]:
+    """S14E-X72: "how do I stop Ney?" -- the cancel the game prints
+    ("'Ney, cancel' recalls him", S14E-32), named for the order he is under;
+    a man under none has nothing to recall."""
+    shown = _display(name)
+    marshal = world.get_marshal(name)
+    if marshal is None or marshal.nation != player or getattr(marshal, "captured_by", ""):
+        return f"{shown} leads no corps of ours in the field, Sire — there is nothing to stop."
+    order = getattr(marshal, "strategic_order", None)
+    if order is not None:
+        phrase = _order_phrase(order)
+        return (f"{shown} is {phrase[:1].lower()}{phrase[1:]} '{shown}, cancel' "
+                f"recalls him (1 AP).")
+    return (f"{shown} is under no standing march or hold, Sire, so there is "
+            f"nothing to recall; '{shown}, cancel' recalls a march or a hold "
+            f"once he has one (1 AP).")
 
 
 def _answer_what_if(world, player: str, enemy_name: str,
@@ -1791,8 +2048,7 @@ def _answer_what_if(world, player: str, enemy_name: str,
     if not candidates:
         return (f"{preface}No corps of ours stands within reach of {shown} at "
                 f"{enemy.location}, Sire — there is no battle to weigh.")
-    from backend.commands.executor import CommandExecutor
-    combat = CommandExecutor()._combat
+    combat = _combat_reader()
     # S14E-4: the order asks `field_on_peace_soil` before it weighs a field
     # (`_execute_attack`, after the declaration) — a corps standing on soil of
     # a court we are at peace with is refused at no cost, so the answer is that
@@ -1903,8 +2159,7 @@ def _the_named_corps(world, player: str, marshal_name: str, foreign: bool,
 def _muster_lines(world, attacker, defender) -> Optional[str]:
     """The W6-4 muster the attack itself prints (`_build_muster_preview` +
     `_format_muster_lines`), for the corps and the defender given."""
-    from backend.commands.executor import CommandExecutor
-    combat = CommandExecutor()._combat
+    combat = _combat_reader()
     preview = combat._build_muster_preview(attacker, defender, world,
                                            {"world": world})
     if not preview:
@@ -1986,8 +2241,7 @@ def _answer_what_if_region(world, player: str, region_name: str,
         # S14E-4 (the army what-if's sibling): the province road asks the
         # lead's rule too — `attack Moravia` against a corps standing there
         # is the same order, and the same refusal.
-        from backend.commands.executor import CommandExecutor
-        refusal = _peace_soil_refusal_text(CommandExecutor()._combat, world,
+        refusal = _peace_soil_refusal_text(_combat_reader(), world,
                                            chosen, enemy_there)
         if refusal:
             return refusal
@@ -2792,7 +3046,12 @@ def _answer_options(world, player: str) -> Optional[str]:
     if not lines:
         return (f"Nothing can be ordered this turn, Sire. {CABINET_LINE_FOR_DESK}")
     body = "\n".join(f"  {line}" for line in lines)
+    # S14E-X80: an attack in the list is taught with its free preview, as the
+    # TODAY list does (S14E-24); "" (and no line) when none is listed.
+    from backend.game_logic.dispatch import attack_preview_hint
+    hint = attack_preview_hint(lines)
     return ("These orders would be carried out today, Sire:\n" + body
+            + (f"\n{hint}" if hint else "")
             + f"\n{CABINET_LINE_FOR_DESK}")
 
 
@@ -2890,6 +3149,17 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
                 answer = (f"{_display(subject)} stands at {me.location}, not {origin}, Sire — "
                           f"reckoned from where he stands: " + answer)
             return answer
+        if kind == "route":
+            return _answer_route(world, player,
+                                 str(question.get("place") or subject),
+                                 str(question.get("origin") or ""),
+                                 str(question.get("origin_said") or ""))
+        if kind == "how_take":
+            return _answer_how_take(world, player, str(question.get("place") or subject))
+        if kind == "how_find":
+            return _answer_how_find(world, player, subject)
+        if kind == "how_stop":
+            return _answer_how_stop(world, player, subject)
         if kind == "what_if":
             _named = str(question.get("marshal") or "")
             _foreign = bool(question.get("marshal_foreign"))

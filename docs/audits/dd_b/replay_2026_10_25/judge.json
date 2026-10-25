@@ -1,0 +1,149 @@
+{
+ "lines": 15,
+ "classes": {
+  "answered": 4,
+  "board_refusal": 2,
+  "as_meant": 7,
+  "unjudged_other": 2
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 4,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (24,000; expect about 106,545 with the corps likely to arrive, up to 114,642 if all march; certain 24,000; a bad day (1 in 10) 94,017) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland o"
+  },
+  {
+   "n": 5,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs a force of his you have not scouted within reach of Tyrol — scout the provinces round it.\n  Standing modifiers, already in the band: the ground favors the defender (+25%, mountains).\n  What Tyrol can feed is not known — the province is unscouted.\n  Materiel: every 1,000 men we lose cost"
+  },
+  {
+   "n": 6,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "how do I get to Vienna",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Yes, Sire — Bernadotte can reach Vienna from Franconia in 2 turns: Franconia -> Bohemia -> Vienna. The order is 'Bernadotte, march to Vienna'."
+  },
+  {
+   "n": 7,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Murat, march to Swabia",
+   "meant": "move Murat",
+   "class": "board_refusal",
+   "success": true,
+   "reply": "Murat: 'Mack blocks the path at Swabia. Odds unfavorable. Your orders?' Berthier adds: Ney, Davout, Lannes and Napoleon would answer the guns — Murat 22,000, 80,665 with the muster committed, against Mack (large force) — weighed together, the balance of force looks favorable."
+  },
+  {
+   "n": 9,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Murat, march to Flanders",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat begins march to Flanders. Route: Orleanais → Flanders. Cavalry charges through Lorraine -> Orleanais. Murat: \"We march. Pity whatever slows us.\""
+  },
+  {
+   "n": 10,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Murat, cancel",
+   "meant": "other: cancel his march",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "Murat halts his march and awaits new orders."
+  },
+  {
+   "n": 11,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "lay down two ships",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Only 1 of the 2 laid — the yards allow 1 this turn — the blockade slows the slips. A keel is laid at Bordelais (400g). The fleet stands at 46 sail — readiness 69 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — staging the camp lifts the blockade and readiness recovers +5/turn to 75. 0 more keels possible this turn."
+  },
+  {
+   "n": 57,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 89,821 with the corps likely to arrive, up to 92,811 if all march; certain 24,000; a bad day (1 in 10) 76,464) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in ti"
+  },
+  {
+   "n": 123,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Massena, march to Milan",
+   "meant": "move Massena",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Massena is engaged with Archduke Charles and cannot begin a strategic march. Deal with the engagement first.\nTry: 'Massena, attack Archduke Charles' or 'Massena, retreat'. Ask 'what if Massena attacks Archduke Charles' first — it names who marches with Massena, and costs nothing."
+  },
+  {
+   "n": 136,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Massena, march to Milan",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena: 'Archduke John bars the way at Tyrol, Sire — I can take him.' Massena engages him on the road, on his own judgment.\n\nMUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Massena' and he will march\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  Archduke John does not stand alone: at least 1 enemy corps within reach of Tyrol would march to hi"
+  },
+  {
+   "n": 161,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "what can I do",
+   "meant": "other: a status question",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  Napoleon, drill\n  recruit infantry in Rhineland — 790g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nAsk 'what if Ney attacks Mack' first — it names who marches with Ney, and costs nothing.\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 162,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Soult, march to Normandy",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Normandy. Route: Picardy → Artois → Normandy. Moves to Picardy.\nPicardy feeds 22,500; the 56,500 men standing there would lose ~1,844 a turn to short supply.\nPicardy lies outside the camp — this takes 46,500 men out of it; the 2-turn count resets at the turn's end. \"Soult, march to Normandy.\" It will be done exactly, Sire. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 219,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "Soult, march to Vienna",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The direct road to Vienna via Bohemia is closed by the truce with Austria; the lawful road is 7 provinces, 7 turns, through Prussia and Russia — march, or cancel?"
+  },
+  {
+   "n": 269,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Murat attacks Kutuzov",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Murat (22,000) vs Kutuzov (substantial force) at Moravia — the balance of force looks unfavorable.\n  What Moravia can feed is not known — the province is unscouted.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 22,000 we muster) would cost ~165g.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be held out: fortify him (1 AP) and he stands apart until you move him.\n  (Standing orders decide who marches: 'Soult, support Ney' au"
+  },
+  {
+   "n": 302,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Massena, march to Milan",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena: 'Archduke John bars the way at Tyrol, Sire — I can take him.' Massena engages him on the road, on his own judgment.\n\nMUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Massena' and he will march\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  Archduke John does not stand alone: at least 1 enemy corps within reach of Tyrol would march to hi"
+  }
+ ],
+ "unsent": [],
+ "n_unsent": 0
+}

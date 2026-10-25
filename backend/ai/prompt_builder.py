@@ -678,8 +678,13 @@ Examples:
 - "March to war" → MILITARY move (no nation target)
 
 """
+    # S14E-X193: the keyed prompt's cancel keywords are the KEYLESS parser's
+    # (S14E-X177): "cease" IS a cancel verb; "stand down" is NOT one ("Ney,
+    # stand down" is the neutral stance, a bare "stand down" is no order and is
+    # answered with the hold pointer) - the list used to teach the model
+    # "stand down" -> cancel, which the keyless road refuses.
     _S_CANCEL = """## Cancel Command (Clears Strategic Orders)
-Cancel keywords: "halt", "stop", "cancel", "abort", "stand down", "belay that"
+Cancel keywords: "halt", "stop", "cancel", "abort", "cease", "belay that"
 When detected, set action="cancel". This clears the marshal's current strategic order.
 Example: "Ney, halt" → action: cancel, marshal: Ney
 Example: "Cancel Davout's orders" → action: cancel, marshal: Davout

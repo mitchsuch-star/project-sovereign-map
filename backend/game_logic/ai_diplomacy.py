@@ -4077,7 +4077,11 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                         break
                 if adjacent:
                     old_relation = relation
-                    world.modify_nation_relation(nation_a, nation_b, -3)
+                    # S14E-X112: an Undermine's target pair feels the rivalry
+                    # too; the mission's books name it (the AI's write is the same).
+                    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                    modify_relation_booked(world, nation_a, nation_b, -3,
+                                           "ai_rivalry", nation_a, nation_b)
                     new_relation = world.nation_relations.get(diplo_key, 0)
                     # Only emit event when crossing a threshold (every 10 points)
                     # to reduce spam — the relation change always happens silently
@@ -4111,7 +4115,10 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                                 penalty_key = (state, new_state)
                                 penalty = DOWNGRADE_PENALTIES.get(penalty_key, {})
                                 rel_hit = penalty.get("relation_target", -10)
-                                world.modify_nation_relation(nation_a, nation_b, rel_hit)
+                                # S14E-X112: the stronger court's downgrade, booked
+                                from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                                modify_relation_booked(world, nation_a, nation_b, rel_hit,
+                                                       "downgrade", stronger, weaker)
                                 downgraded_this_turn.add(pair_key)
                                 from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY
                                 events.append({
@@ -4479,8 +4486,18 @@ def allegiance_bid_refusal(world, suitor: str, nation: str, gold: int) -> str:
         return ("Name a sum, Sire — the Cabinet row offers them "
                 "(F1 → the court → Bid for Their Allegiance).")
     chest = int((getattr(world, "nation_gold", {}) or {}).get(suitor, 0) or 0)
+    owed = ""
+    if suitor == getattr(world, "player_nation", "France"):
+        # S14E-X185: the PLAYER's bid is gated against the CHEST its quote
+        # prints (`instruments.chest_of` = the treasury less the recurring
+        # settlement payments still owed - the figure the Congress sweetener,
+        # the buy-off and the lever text already name). An AI suitor (no AI
+        # court bids in v1) reads the raw coffers, as ever (GR5).
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+        treasury, chest = chest_of(world, suitor)
+        owed = f" gold{FREE_OF_OBLIGATIONS}" if chest < treasury else ""
     if chest < gold:
-        return (f"The chest holds {chest} gold, Sire — not the {gold} the bid names.")
+        return (f"The chest holds {chest}{owed or ' gold'}, Sire — not the {gold} the bid names.")
     if suitor == getattr(world, "player_nation", "France"):
         from backend.game_logic.instruments import INSTRUMENT_DP_COST
         if int(getattr(world, "diplomatic_points", 0) or 0) < INSTRUMENT_DP_COST:
@@ -4526,6 +4543,31 @@ def place_allegiance_bid(world, suitor: str, nation: str, gold: int) -> Dict:
                f"standing patronage weigh beside it.")
     return {"success": True, "message": message, "event": event,
             "target_nation": nation, "gold": gold, "total": int(bids[suitor])}
+
+
+def allegiance_bid_quote(world, suitor: str, nation: str, gold: int) -> str:
+    """S14E-X104 (the S14E-26 sweep): the bid's QUOTE, free, before the gold
+    leaves — the sum, that the court keeps it whoever wins, what the standing
+    bid becomes and what it is worth when the flip resolves (the figures
+    `place_allegiance_bid` applies and prints), the point and the chest after.
+    The player's verb only: the AI's patronage is its bid (§12.6)."""
+    from backend.display_names import display_nation as _dn, plural
+    from backend.game_logic.instruments import INSTRUMENT_DP_COST
+    gold = int(gold)
+    record = (getattr(world, "allegiance_auctions", {}) or {}).get(nation) or {}
+    total = int((record.get("bids") or {}).get(suitor, 0) or 0) + gold
+    lean = total // int(AUCTION_SPONSORSHIP_LEAN_DIVISOR)
+    # S14E-X185: the chest after is the CHEST's (`instruments.chest_of`), the
+    # figure `allegiance_bid_refusal` gates on and the price's levers quote
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+    treasury, chest = chest_of(world, suitor)
+    owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
+    return (f"Lay {gold:,} gold before the court of {_dn(nation)}: our bid would stand at "
+            f"{total:,}, worth {lean} of standing when the flip resolves on turn "
+            f"{int(record.get('resolves_turn', 0) or 0)} — relations and standing patronage "
+            f"weigh beside it. It costs {plural(INSTRUMENT_DP_COST, 'diplomatic point')}; the "
+            f"treasury holds {chest:,} gold{owed} and would hold {chest - gold:,} after, and the "
+            f"court keeps the gold whoever wins. Lay it? (yes / no)")
 
 
 def process_province_returns(world) -> List[Dict]:

@@ -904,6 +904,24 @@ class TestTheWizardSaysWhatItSends:
                     bad.append((action_id, text, (response.get("message") or "")[:100]))
         assert bad == [], bad[:5]
 
+    @staticmethod
+    def _echo_key(action_id, payload=None):
+        """The key `main.gd` looks the echo note up by for this wizard row:
+        the payload's `echo_key` (S14E-X125: stamped by the wizard on the two
+        rows that share "propose_common_peace" with another echo), else its
+        `action`."""
+        if action_id == "outbid_bond":
+            return "outbid_bond"
+        if action_id == "open_settlement" and (payload or {}).get("gold_offer"):
+            return "open_settlement_offer"
+        # S14E-X128: the rule "an echo that cannot be typed is display-only"
+        # holds for the row the backend flags (`echo_display_only`: it opens
+        # one court of several; typed, the echo opens the whole table) - the
+        # wizard keys it "open_settlement_alone"
+        if action_id == "open_settlement" and (payload or {}).get("echo_display_only"):
+            return "open_settlement_alone"
+        return action_id
+
     def _structured(self, action_id, nation, payload=None):
         """Drive the wizard's structured road and its echo, typed."""
         src = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
@@ -917,7 +935,9 @@ class TestTheWizardSaysWhatItSends:
         data = {"action": {"open_settlement": "propose_common_peace",
                            "outbid_bond": "propose_common_peace"}.get(action_id, action_id),
                 "target_nation": nation}
-        data.update(payload or {})
+        # S14E-X128: `echo_display_only` is a flag on the Cabinet row the
+        # wizard reads, not a request field - it never rides the wire
+        data.update({k: v for k, v in (payload or {}).items() if k != "echo_display_only"})
         client = _wizard_board()
         structured = C.post(client, {"command": echo, **data})
         after_structured = snapshot(M.world)
@@ -948,18 +968,37 @@ class TestTheWizardSaysWhatItSends:
                  ("grant_region_to_vassal", "Holland", {"region": CEDE_REGION}),
                  ("grant_region_to_vassal", "Holland", None),
                  # PC-R7 (ii) part 3: the bid rides the structured road only
-                 ("outbid_bond", "Austria", {"counsel_coverage": ["Austria"], "bond_bid": 1000})]
+                 ("outbid_bond", "Austria", {"counsel_coverage": ["Austria"], "bond_bid": 1000}),
+                 # S14E-X125: the counsel's lever row (the court alone, the sum
+                 # staged) rides the structured road only, too
+                 ("open_settlement", "Austria", {"counsel_coverage": ["Austria"], "gold_offer": 1000}),
+                 # S14E-X128: the court alone WITHOUT a staged sum (the lever the
+                 # chest cannot fund; a coverage the counsel stamped) - typed,
+                 # the echo opens the whole table, so it is display copy too
+                 ("open_settlement", "Austria", {"counsel_coverage": ["Austria"],
+                                                 "echo_display_only": True})]
         for action_id, nation, payload in cases:
             echo, structured, typed, s_state, t_state = self._structured(
                 action_id, nation, payload)
             same = self._same(structured, typed) and s_state == t_state
-            if action_id in display_only:
+            # S14E-X125: the note is looked up the way main.gd looks it up —
+            # `echo_key` first, else the action the payload names — not by the
+            # wizard's action id (for the Outbid row that was a lookup main.gd
+            # never made: its `data["action"]` is "propose_common_peace").
+            key = self._echo_key(action_id, payload)
+            if key in display_only:
                 assert not same, (action_id, "listed as display copy but its echo "
                                   "does the same thing — take it off the list")
             else:
                 assert same, (action_id, echo, (structured.get("message") or "")[:80],
                               (typed.get("message") or "")[:80])
-        assert display_only == {"propose_white_peace", "outbid_bond"}
+        # S14E-X128: + "open_settlement_alone" (the court alone out of a larger table)
+        assert display_only == {"propose_white_peace", "outbid_bond", "open_settlement_offer",
+                                "open_settlement_alone"}
+        # the wizard stamps exactly the keys the census treats as display copy
+        arm = _func_body(src, "_structured_payload_for_action")
+        stamped = set(re.findall(r'"echo_key"\]?\s*[:=]\s*"(\w+)"', arm))
+        assert stamped == {"outbid_bond", "open_settlement_offer", "open_settlement_alone"}, stamped
 
     def test_the_cede_echo_names_the_province(self, env):
         echo, structured, typed, s_state, _t = self._structured(
@@ -970,7 +1009,11 @@ class TestTheWizardSaysWhatItSends:
     def test_main_keeps_display_copy_off_the_up_arrow(self):
         src = (SCRIPTS / "main.gd").read_text(encoding="utf-8")
         body = _func_body(src, "_on_wizard_structured_command_selected")
-        assert 'diplomacy_wizard.echo_note(str(data.get("action", "")))' in body
+        # S14E-X125: the lookup reads the payload's own `echo_key` before its
+        # action ("propose_common_peace" is shared by three rows, and the
+        # action-keyed lookup never found the Outbid row's note)
+        assert ('diplomacy_wizard.echo_note(str(data.get("echo_key", '
+                'data.get("action", ""))))') in body
         gate = body.index('if echo_note == "":')
         assert body.index("_add_to_history(command)") > gate
 

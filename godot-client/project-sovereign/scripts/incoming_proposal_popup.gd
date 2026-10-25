@@ -113,7 +113,10 @@ func show_proposal(data: Dictionary):
 		bbcode += "[b]DIPLOMATIC ENVOY[/b]\n"
 		var pers_str = " (%s)" % str(diplomat_personality).capitalize() if diplomat_personality else ""
 		bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_display]
-		bbcode += "[b]Proposes:[/b] %s\n" % type_display
+		# S14E-23: the header says what the treaty does ("Open Borders Agreement
+		# (free military passage)") - the backend's summary, when it has one.
+		var type_summary = str(data.get("proposal_type_summary", ""))
+		bbcode += "[b]Proposes:[/b] %s\n" % (type_summary if type_summary != "" else type_display)
 		bbcode += "[b]Terms:[/b]\n"
 		# Restore default gold border
 		panel_style.border_color = _default_border_color
@@ -166,6 +169,36 @@ func show_proposal(data: Dictionary):
 				grant_enabled = bool(opt.get("enabled", grant_enabled))
 				if str(opt.get("reason", "")) != "":
 					grant_reason = str(opt.get("reason", ""))
+	# S14E-20 (S14f part 2): the haggle carries its own verdict the same way —
+	# the backend asks the dry run (`generate_counter_offer(…, dry_run=True)`,
+	# side-effect-free) at every read and stamps the Counter option: `enabled` /
+	# `reason` when Talleyrand can or cannot find a counter, `hidden` when the
+	# letter asks nothing of France (a courtesy, a peace on the held line) and
+	# there is nothing to strike — no dead control. Unstamped, it stays live as
+	# before; the press still reaches the handler, which spends nothing when it
+	# finds none.
+	var counter_enabled := true
+	var counter_reason := ""
+	var counter_hidden := false
+	if opts is Array:
+		for opt in opts:
+			if opt is Dictionary and str(opt.get("action", "")) == "counter_ai_proposal":
+				counter_enabled = bool(opt.get("enabled", true))
+				counter_reason = str(opt.get("reason", ""))
+				counter_hidden = bool(opt.get("hidden", false))
+	var counter_offered: bool = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms and not is_moment and not counter_hidden
+	if counter_offered and not counter_enabled and counter_reason != "":
+		# Above the fold, under the header, like the Accept's own reason line
+		# (IQ10-X2) — quieter: a haggle declined is not a treaty refused.
+		var _c_tail := "" if counter_reason.ends_with(".") or counter_reason.ends_with("!") \
+			or counter_reason.ends_with("?") else "."
+		var _c_line := "[color=#" + Utils.toned_hex("a0a0a8") + "]Haggle unavailable: " + counter_reason + _c_tail + "[/color]"
+		var _c_head_end := bbcode.find("\n")
+		if _c_head_end >= 0:
+			bbcode = bbcode.substr(0, _c_head_end + 1) + _c_line + "\n" \
+				+ bbcode.substr(_c_head_end + 1)
+		else:
+			bbcode = _c_line + "\n" + bbcode
 	if not grant_enabled and grant_reason != "":
 		# IQ-10 (Sept 19, 2026): the backend's reasons are whole sentences and
 		# already end in a full stop, so the template's own added one read
@@ -222,16 +255,28 @@ func show_proposal(data: Dictionary):
 	accept_btn.tooltip_text = grant_reason if not grant_enabled else ""
 	if is_moment and grant_enabled:
 		accept_btn.tooltip_text = _moment_quote(data, "accept_ai_proposal")
-	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms and not is_moment
-	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms or is_moment
+	counter_btn.visible = not is_counter and not is_ultimatum and not is_petition and not is_call_to_arms and not is_moment and not counter_hidden
+	counter_btn.disabled = is_counter or is_ultimatum or is_petition or is_call_to_arms or is_moment or not counter_enabled
 	# DDB-4 (S13b): the button says what it does and what it may cost — it
 	# is no editor; Talleyrand picks the counter, and a dry run spends nothing
 	# when he finds none.
 	counter_btn.text = "Let Talleyrand haggle (1 DP)"
 	counter_btn.tooltip_text = "He sends a counter of his own choosing; if he finds none, nothing is spent and the offer stands"
+	if not counter_enabled and counter_reason != "":
+		# S14E-20: greyed with the reason (the Accept's own tooltip shape).
+		counter_btn.tooltip_text = counter_reason
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = "Not Now"
+	# S14E-18 (S14f part 2): a set-aside letter still stands, and while it does
+	# the Cabinet stays shut — said on the button that does it, in the sentence
+	# the echo and the locked Cabinet use. A moment letter locks nothing; a call
+	# to arms stands to its answer-by turn.
+	if is_moment:
+		dismiss_btn.tooltip_text = "Set this letter aside. The envoy badge reopens it."
+	else:
+		var _lock_by_turn := int(data.get("answer_by_turn", 0)) if is_call_to_arms else 0
+		dismiss_btn.tooltip_text = "Set this letter aside — " + Utils.cabinet_shut_line(_lock_by_turn) + " The envoy badge reopens it."
 	# Button labels adapt to context
 	if is_ultimatum:
 		accept_btn.text = "Yield"
@@ -447,7 +492,10 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var duration = int(snapshot.get("war_duration_turns", 0))
 	var won = int(snapshot.get("battles_won", 0))
 	var lost = int(snapshot.get("battles_lost", 0))
-	bbcode += "Duration: %d turns   Battles: %dW / %dL\n" % [duration, won, lost]
+	# S14E-X201: a drawn battle (a stalemate) is a battle fought — "0W / 0L / 1 drawn"
+	var drawn = int(snapshot.get("battles_drawn", 0))
+	var drawn_text = (" / %d drawn" % drawn) if drawn > 0 else ""
+	bbcode += "Duration: %d turns   Battles: %dW / %dL%s\n" % [duration, won, lost, drawn_text]
 
 	var french_casualties = int(snapshot.get("french_casualties_total", 0))
 	var enemy_casualties = int(snapshot.get("enemy_casualties_total", 0))
@@ -498,15 +546,15 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var conflict_color = "#e66262" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
-		var shown = 0
+		# S14E-25: every consequence is printed — the popup scrolls, and a cap
+		# of three with an overflow line left the rest with no way open.
+		# S14E-X198: each consequence once (the confirm popup's own guard).
+		var printed_texts := {}
 		for item in consequence_items:
-			if shown >= 3:
-				break
+			if printed_texts.has(str(item.get("text", ""))):
+				continue
+			printed_texts[str(item.get("text", ""))] = true
 			bbcode += "  [color=%s]-[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
-			shown += 1
-		var overflow = consequence_items.size() - shown
-		if overflow > 0:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	return bbcode
 

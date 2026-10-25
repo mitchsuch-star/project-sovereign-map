@@ -1579,8 +1579,17 @@ func _on_root_input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
-	if event.is_action_pressed("ui_cancel") \
-			or event.is_action_pressed("ui_accept"):
+	# S14E-21: Esc is "close", always, in ONE press. It used to share an arm
+	# with Enter/Space — skip while the cinematic plays, close once settled —
+	# so a player who pressed Esc to leave needed two presses, and the second
+	# (or, after the close, the command line's silent release and the one
+	# after) opened the pause menu by accident. Space / Enter / a click still
+	# skip first, then close.
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		_on_close_pressed()
+		return
+	if event.is_action_pressed("ui_accept"):
 		get_viewport().set_input_as_handled()
 		if _final:
 			_on_close_pressed()

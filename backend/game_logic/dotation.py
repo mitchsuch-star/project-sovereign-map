@@ -933,8 +933,11 @@ def apply_estate_confiscation(world, region, holder, capturer_nation: str,
     if region.name in getattr(holder, "dotation_regions", []):
         holder.dotation_regions.remove(region.name)
     _drop_respected_entries(world, region.name)
-    world.modify_nation_relation(
-        capturer_nation, holder.nation, CONFISCATION_RELATIONS_PENALTY)
+    # S14E-X112: the penalty drags a mission's pair too; the books name it
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(
+        world, capturer_nation, holder.nation, CONFISCATION_RELATIONS_PENALTY,
+        "estate_confiscation", capturer_nation, holder.nation)
     # Property is sacred: the CAPTURER's own cautious marshals disapprove
     # (one-time, capped at 1 point each).
     disapproving = []

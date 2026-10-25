@@ -103,6 +103,100 @@ def objection_already_answered(command) -> bool:
     return bool((command or {}).get("_objection_answered"))
 
 
+def _detour_ask_verb(strategic_type: str, parsed) -> str:
+    """S14E-X87: the word the detour ask names - the player's own verb for the
+    order's type ("march", "hold", "support", "follow" - the SUPPORT that
+    stands, AO - or "pursue")."""
+    if strategic_type == "SUPPORT":
+        return "follow" if (parsed or {}).get("standing_follow") else "support"
+    return {"HOLD": "hold", "PURSUE": "pursue"}.get(strategic_type, "march")
+
+
+def march_detour_ask(ctx, dest: str):
+    """S14E-22 (Pre-Deploy S14f part 2, October 25, 2026): a typed PLAYER
+    `march to` whose lawful road is a long or foreign-soil detour round a
+    direct road the diplomacy shuts asks FIRST, at no cost, on the pursuit
+    ask's free channel (`clarification_kind: march_detour_ask`; a typed
+    `hold <province>` marches the same road and asks in the same words, with
+    "hold" for "march" - S14E-X83 - and a typed `support`, `follow` or
+    `pursue` walks the breadth-first road and asks in the same words with its
+    own verb - S14E-X87):
+
+        "The direct road to Vienna via Dresden is closed by the truce with
+        Austria; the lawful road is 6 provinces, 6 turns, through Prussia and
+        Russia — march, or cancel?"
+
+    `march` re-issues the player's own words with `_march_confirmed` (the
+    order is issued as it always was — one price, one road); `cancel` spends
+    nothing (CR-2's grammar, `clarification`). The same reading
+    (`strategic.march_detour_reading`) prints on the march quote's `detour`
+    rider. Returns the clarification response, or None.
+
+    Typed player orders only (the command carries the typed line): the AI's
+    side, the Staff's army order, a delegation-inferred order, a strategic
+    execution, an order answered through an objection (the ask came first)
+    and the answered ask itself keep today's road. A standing order's later
+    re-plots never come through here (the per-turn processor reads
+    `march_road` directly)."""
+    cmd = ctx.command if isinstance(ctx.command, dict) else {}
+    parsed = ctx.parsed_command if isinstance(ctx.parsed_command, dict) else {}
+    # A typed `hold <province>` marches first and holds there: the same
+    # weighted road, the same detour (the sweep, S14E-X83). A support, a
+    # follow and a pursuit walk the breadth-first road - the reading plots the
+    # direct road with the order's own finder (S14E-X87).
+    if ctx.strategic_type not in ("MOVE_TO", "HOLD", "SUPPORT", "PURSUE"):
+        return None
+    verb = _detour_ask_verb(ctx.strategic_type, parsed)
+    raw = str(parsed.get("raw_input") or cmd.get("raw_input") or "").strip()
+    if (not raw or parsed.get("delegation_inferred")
+            # The attack-out-of-reach upgrade (`_attack_upgrade`): the pursuit
+            # ask (DDB-R1) was that road's one question - never a second.
+            or parsed.get("_attack_upgrade")
+            or cmd.get("_march_confirmed") or cmd.get("_strategic_execution")
+            or cmd.get("_autonomous_execution") or cmd.get("_jealousy_autonomous")
+            or cmd.get("_army_order") or cmd.get("objection_response")
+            or objection_already_answered(cmd)):
+        return None
+    world, marshal = ctx.world, ctx.marshal
+    if marshal.nation != getattr(world, "player_nation", None):
+        return None
+    from backend.commands.strategic import march_detour_reading, march_detour_sentence
+    reading = march_detour_reading(world, marshal, dest, ctx.path, ctx.strategic_type)
+    if reading is None:
+        return None
+    ap = int(marshal.strategic_order_ap(order_type=ctx.strategic_type))
+    if int(getattr(world, "actions_remaining", 0) or 0) < ap:
+        return None
+    sentence = march_detour_sentence(dest, reading).rstrip(".")
+    return {
+        "success": True,
+        "free_action": True,
+        "state": "awaiting_clarification",
+        "type": "clarification",
+        "clarification_kind": "march_detour_ask",
+        "strategic_type": ctx.strategic_type,
+        # A command-level question is the chief of staff's (the popup titles
+        # from this field: "BERTHIER ASKS:").
+        "marshal": "Berthier",
+        "message": f"{sentence} — {verb}, or cancel?",
+        "original_command": raw,
+        "interpreted_target": dest,
+        "interpretation_reason": "detour",
+        "options": [{
+            "label": f"{verb.capitalize()} ({ap} AP)",
+            "value": "specify",
+            "target": dest,
+            # The answer re-issues the order as typed; the flag keeps the ask
+            # from asking twice.
+            "command": raw,
+            "aliases": [verb, f"{verb} anyway", f"{verb} on", "go", "send him"],
+            "flags": {"_march_confirmed": True},
+        }],
+        "action_summary": world.get_action_summary(),
+        "game_state": world.get_filtered_game_state_summary(),
+    }
+
+
 def strategic_trust_clause(world, options) -> str:
     """SFR-D22: what TRUSTING him does, in the sentence of the strategic
     objection — the tactical route's "(Trust him and he will … instead.)"
@@ -1001,11 +1095,15 @@ class StrategicExecutor:
                 enemy_names = [e.name for e in enemies_here]
                 enemy_display = [humanize_entity_name(n) for n in enemy_names]
                 m_display = humanize_entity_name(ctx.marshal.name)
+                from backend.commands.movement_executor import attack_preview_hint_for
                 return {
                     "success": False,
                     "message": f"{m_display} is engaged with {', '.join(enemy_display)} and cannot begin a strategic march. Deal with the engagement first.",
                     "engaged_with": enemy_names,
-                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}' or '{m_display}, retreat'"
+                    # S14E-X144: the quoted attack is taught with its free preview.
+                    "suggestion": (f"Try: '{m_display}, attack {enemy_display[0]}' or "
+                                   f"'{m_display}, retreat'. "
+                                   + attack_preview_hint_for(m_display, enemy_display[0]))
                 }
 
         # ── Self-targeting validation ────────────────────────────────
@@ -1479,6 +1577,13 @@ class StrategicExecutor:
                             ),
                             "variable_action_cost": 0,
                         }
+                # S14E-22: a typed march whose lawful road is a long or
+                # foreign-soil detour round a shut direct road asks FIRST —
+                # free, before the square breaks (stage 7) or anything is
+                # spent — and prints the road it would walk.
+                _detour_ask = march_detour_ask(ctx, dest)
+                if _detour_ask is not None:
+                    return _detour_ask
         return _NEXT_STAGE
 
     def _strategic_objection(self, ctx: StrategicCommandContext):
@@ -2170,12 +2275,16 @@ class StrategicExecutor:
         # the supply it outruns — as a move says it.
         if ctx.first_step_msg.startswith((" Moves to ", " Cavalry charges through ")):
             from backend.commands.movement_executor import (
-                camp_leave_note, supply_warning_line)
+                campaign_pay_note, camp_leave_note, supply_warning_line)
             ctx.first_step_msg += supply_warning_line(ctx.world, ctx.marshal)
             # S14E-13: and the Descent camp it leaves, if it leaves one — the
             # stop the march made, from where it began.
             ctx.first_step_msg += camp_leave_note(
                 ctx.world, ctx.marshal, [ctx.marshal.location],
+                ctx.origin_location)
+            # S14E-X67: and the campaign pay the stop draws, if it draws any.
+            ctx.first_step_msg += campaign_pay_note(
+                ctx.world, ctx.marshal, ctx.marshal.location,
                 ctx.origin_location)
             if ctx.departure_msg:
                 ctx.first_step_msg += f"\n{ctx.departure_msg}"

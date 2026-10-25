@@ -144,10 +144,10 @@ def driven_mapping(tmp_path_factory):
         "\tvar S = load(\"res://scripts/objection_dialog.gd\")\n"
         "\tvar strategic = S.data_from_response({\"pending_objection\": true, \"marshal\": \"Ney\",\n"
         "\t\t\"trust\": 55, \"objection\": {\"marshal\": \"Ney\", \"tone\": \"firm\", \"message\": \"m\",\n"
-        "\t\t\"trust_gain_modifier\": 0.5, \"insist_ap_cost\": 2,\n"
+        "\t\t\"trust_gain_modifier\": 50, \"insist_ap_cost\": 2,\n"
         "\t\t\"insist_note\": \"he must first go defensive\"}})\n"
         "\tvar tactical = S.data_from_response({\"marshal\": \"Lannes\", \"message\": \"t\",\n"
-        "\t\t\"insist_note\": \"x\", \"insist_ap_cost\": 3, \"trust_gain_modifier\": 0.75})\n"
+        "\t\t\"insist_note\": \"x\", \"insist_ap_cost\": 3, \"trust_gain_modifier\": 75})\n"
         "\tvar f = FileAccess.open(OS.get_environment(\"UXR3_OUT\"), FileAccess.WRITE)\n"
         "\tf.store_string(JSON.stringify({\"strategic\": strategic, \"tactical\": tactical}))\n"
         "\tf.close()\n"
@@ -166,14 +166,16 @@ class TestTheMappingDriven:
         d = driven_mapping["strategic"]
         assert d["is_strategic"] is True and d["marshal"] == "Ney"
         assert d["insist_note"] == "he must first go defensive" and int(d["insist_ap_cost"]) == 2
-        assert float(d["trust_gain_modifier"]) == 0.5
+        # S14E-X161: a whole percent on the wire (the mapping passes it through;
+        # show_objection divides) - the fixture was the old float 0.5.
+        assert float(d["trust_gain_modifier"]) == 50
         assert int(d["trust"]) == 55                        # the response's own trust
 
     def test_a_tactical_objection_reads_the_top_level(self, driven_mapping):
         d = driven_mapping["tactical"]
         assert d["is_strategic"] is False and d["marshal"] == "Lannes"
         assert d["insist_note"] == "x" and int(d["insist_ap_cost"]) == 3
-        assert float(d["trust_gain_modifier"]) == 0.75
+        assert float(d["trust_gain_modifier"]) == 75           # S14E-X161: a whole percent
 
 
 # ═══ UXR3-X2 — the two popups fit their content ══════════════════════════════
@@ -417,7 +419,9 @@ class TestTheInertLookingControls:
     def test_a_mailbox_row_is_a_press(self):
         body = _func(_src("scripts/mailbox_panel.gd"), "_build_item_row")
         assert "panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND" in body
-        assert 'open_label.text = "Open ▸"' in body
+        # S14E-27 (S14f part 2): the word is the press now - a flat Button
+        # (`open_btn`), not the Label that ignored the mouse.
+        assert 'open_btn.text = "Open ▸"' in body
 
 
 # ═══ Part 4 — R4 Consistency, by file (UXR3-7 … 11, 26, 36, 48, 49, 53, 54, 60 … 62, 64 … 66, 72) ═══

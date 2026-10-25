@@ -771,6 +771,11 @@ class TestExecutorDiplomaticWiring:
         world.nation_relations[key] = 60
         world.nation_dp["Prussia"] = 3
         proposal = _make_test_proposal("Prussia", "armistice_losing")
+        # S14E-X90 (S14f part 2): a haggle needs a real counter - the bare
+        # letter was handed back unchanged by the dry run ("no need to
+        # counter"), which spends nothing now. A demand gives Talleyrand a
+        # term to strike.
+        proposal["terms"]["demands"] = [{"type": "gold_lump", "value": 300}]
         deliver_ai_proposal(proposal, world)
         # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
         if world.dialogue_manager._queue and not world.pending_diplomatic_dialogue:

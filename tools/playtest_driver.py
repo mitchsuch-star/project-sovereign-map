@@ -1998,7 +1998,9 @@ class Digest:
             self.counters["live_parses"] = self.counters.get("live_parses", 0) + 1
             mark = f" [{mode}"
             if isinstance(confidence, (int, float)):
-                mark += f" {confidence:.2f}"
+                # S14E-X100: the wire carries a whole percent (62); the mark
+                # keeps its 0.62 form.
+                mark += f" {confidence / 100:.2f}"
             mark += "]"
         self._md(f"- CMD `{text}` → {ok}{mark} "
                  f"{first_line(response.get('message'))}")

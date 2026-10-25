@@ -531,7 +531,12 @@ def build_active_wars(world) -> Dict[str, Any]:
         # Battle history (for detail popup)
         all_records = getattr(world, 'battle_records', {})
         records = all_records.get(diplo_key, [])
-        battles_fought = int(len(records))
+        # S14E-X201's sibling: a DRAWN battle has no winner and so no record,
+        # but it is a battle fought — the ledger's `drawn` turns count it, so
+        # Talleyrand's "N battles across M turns" no longer reads 0 after a
+        # stalemate.
+        battles_fought = int(len(records)) + int(len(
+            ((getattr(world, 'campaign_ledgers', None) or {}).get(diplo_key) or {}).get("drawn") or []))
         # Recent battles (last 5, newest first)
         recent_battles = []
         sorted_records = sorted(
@@ -838,9 +843,12 @@ def build_active_wars(world) -> Dict[str, Any]:
         # for (dictated / peace / war) with the hope terms, and the cure
         # priced. One wording (`diplomacy.truce_words`), read here, on the
         # popup, the wizard row, the counsel and the dispatch.
-        from backend.game_logic.diplomacy import get_war_score_for, truce_words
+        from backend.game_logic.diplomacy import truce_words
         _words = truce_words(world, france, opponent)
-        _kept_score = int(get_war_score_for(world, france, opponent))
+        # S14E-25's sweep: the card's number and its own keeps line quote ONE
+        # score — `truce_words` reads the live pair score now (the war rows
+        # above it always did), so the card reads the figure the line quotes.
+        _kept_score = int(_words["keeps"]["war_score"])
         _war_start = int((getattr(world, "war_start_turns", {}) or {}).get(diplo_key, world.current_turn))
         wars.append({
             "opponent": opponent,

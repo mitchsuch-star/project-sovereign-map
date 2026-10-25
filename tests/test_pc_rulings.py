@@ -219,7 +219,10 @@ class TestPCR1:
         words = D.separate_peace_words(w, "France", "Austria", [
             {"type": "territory_cede", "from": "Austria", "to": "Bavaria", "region": "Tyrol"}])
         assert words["named"] == {"Bavaria": ["Tyrol"]}
-        assert words["display"] == "Bavaria's war with Austria ends in this instrument; she is named for Tyrol."
+        # S14E-X116 FLIPPED: the named ally is thanked, with the ratifier's figure
+        # (was "...; she is named for Tyrol.", no gratitude on the bilateral road).
+        assert words["display"] == ("Bavaria's war with Austria ends in this instrument; "
+                                    "she is named for Tyrol and thanks us (+5 relation).")
 
     def test_iv_f53_the_guided_demand_takes_a_beneficiary(self, monkeypatch):
         """PC-F53: a Carniola → Kingdom of Italy demand authored from the rows."""
@@ -978,20 +981,26 @@ class TestPCR2:
         from backend.game_logic import war_status as WS
         w = vienna_held
         k = self.KEY
+        # S14E-25 FLIPPED the quoted figure from the STORED +54 to the LIVE
+        # score (this board reads +79 on the field, +54 stored — the popup's
+        # own "War score" line is the live one; the sentence read the stale
+        # stored figure beside it).
+        live = D.live_war_score_for(w, "France", "Austria")
+        assert live == 79 and D.get_war_score_for(w, "France", "Austria") == 54
         # the counsel's truce road, read at WAR (the road the wizard offers)
         reading = CS.read_counsel(w, "Austria")
         truce_road = next(r for r in reading["roads"] if r["road"] == "truce")
-        assert "keeps the ledger (+54 stands, the war 5 turns old)" in truce_road["trade"]
+        assert f"keeps the ledger ({live:+d} stands, the war 5 turns old)" in truce_road["trade"]
         assert "the war would resume where it stood" in truce_road["trade"]
         assert "1 turn of Improve Relations (+8 a turn, 1 DP)" in truce_road["trade"]
         _truce(w)
         w.nation_relations[k] = -66                           # thaws to -63: one turn of +8 carries it
         w.armistice_turns[k] = D.ARMISTICE_DURATION - 1
         words = D.truce_words(w, "France", "Austria")
-        assert words["keeps"] == {"war_score": 54, "battles": 11, "decisives": 1,
+        assert words["keeps"] == {"war_score": live, "battles": 11, "decisives": 1,
                                   "war_age": 5, "exhaustion": 113}
         assert words["keeps_line"].startswith(
-            "The ledger stands: the war score reads +54 for France (11 battles, 1 decisive kept); "
+            f"The ledger stands: the war score reads {live:+d} for France (11 battles, 1 decisive kept); "
             "the war is 5 turns old")
         assert words["exit"] == "war" and "the war resumes where it stood" in words["heading_line"]
         assert words["cure"] == {"turns": 1, "gain": 8, "dp": 1, "gap": 3, "in_reach": True}
@@ -1005,7 +1014,9 @@ class TestPCR2:
         with _quiet():
             hud = WS.build_active_wars(w)
         card = next(r for r in hud["wars"] if r.get("status") == "armistice" and r["opponent"] == "Austria")
-        assert card["war_score"] == 54 and card["duration"] == 5 and card["battles_fought"] == 11
+        # S14E-25's sweep FLIPPED `== 54`: the card's number is the figure its
+        # own keeps line quotes (the live pair score), not the stale stored one
+        assert card["war_score"] == live and card["duration"] == 5 and card["battles_fought"] == 11
         assert card["armistice_keeps_line"] == words["keeps_line"]
         assert card["armistice_cure_line"] == words["cure_line"] and card["armistice_exit"] == "war"
         row = next(r for r in _rows(w, "Austria") if r["action"] == "propose_peace")
@@ -3430,8 +3441,15 @@ class TestPCR7:
                                    "payload": {"enemy": "Austria"}}]
         dp = int(w.diplomatic_points)
         with _quiet():
-            res = CommandExecutor()._diplomatic._execute_bind_to_war(
+            # S14E-X102 (flipped): the bond QUOTES first (nothing minted, no DP);
+            # the confirmed order is today's mint.
+            quote = CommandExecutor()._diplomatic._execute_bind_to_war(
                 {"action": "bind_to_war", "target": "Bavaria",
+                 "raw_input": "bind Bavaria to the war against Austria"}, {"world": w})
+            assert quote["state"] == "awaiting_clarification" and not B.live_bonds(w), quote
+            assert int(w.diplomatic_points) == dp
+            res = CommandExecutor()._diplomatic._execute_bind_to_war(
+                {"action": "bind_to_war", "target": "Bavaria", "confirmed": True,
                  "raw_input": "bind Bavaria to the war against Austria"}, {"world": w})
         assert res["success"], res
         assert res["message"].startswith("France binds Bavaria to the war against Austria: no separate "
@@ -3897,7 +3915,7 @@ class TestTheS14Part3Siblings:
         w = vienna_held
         with _quiet():
             CommandExecutor()._diplomatic._execute_bind_to_war(
-                {"action": "bind_to_war", "target": "Bavaria",
+                {"action": "bind_to_war", "target": "Bavaria", "confirmed": True,  # S14E-X102
                  "raw_input": "bind Bavaria to the war against Austria"}, {"world": w})
         granted = next(e for e in w.event_log if e.get("type") == "sponsorship_granted" and e.get("kind") == "bond")
         assert format_event_oneliner(granted) == (
@@ -4052,6 +4070,11 @@ class TestDiplomacyIsNeverTyped:
         assert '"make_amends":\n\t\t\treturn "make amends with " + nation' in wizard
         # the row's echo acts — a strike cleared, priced as the row said
         out = self._send(w, "make amends with Prussia")
+        # S14E-X105 (flipped): the echo QUOTES first (nothing spent); the quote's
+        # own option is the confirmed order.
+        assert out.get("state") == "awaiting_clarification", out.get("message")
+        assert int(w.nation_gold["France"]) == 1000 and int(w.diplomatic_points) == 4
+        out = self._send(w, out["options"][0]["command"])
         assert out.get("success"), out.get("message")
         assert int(w.nation_gold["France"]) == 800 and int(w.diplomatic_points) == 3
         # the shared cooldown now shuts both rows in the executor's own words
@@ -4088,7 +4111,12 @@ class TestDiplomacyIsNeverTyped:
         wizard = (SCRIPTS / "diplomacy_wizard.gd").read_text(encoding="utf-8")
         assert 'return "bid for " + nation + ", " + str(amount) + " gold"' in wizard
         assert 'action.get("choices", [])' in wizard
-        out = self._send(w, "bid for Denmark, 500 gold")
+        # S14E-X104 (flipped): the chosen sum QUOTES first (nothing laid); the
+        # quote's own option is the confirmed order.
+        quote = self._send(w, "bid for Denmark, 500 gold")
+        assert quote.get("state") == "awaiting_clarification" and "Lay 500 gold" in quote["message"], quote
+        assert not w.allegiance_auctions["Denmark"].get("bids")
+        out = self._send(w, quote["options"][0]["command"])
         assert out.get("success"), out.get("message")
         assert w.allegiance_auctions["Denmark"]["bids"] == {"France": 500}
 
@@ -4163,7 +4191,12 @@ class TestDiplomacyIsNeverTyped:
         row = self._row(w, court, "sponsor_design")
         assert row["choices"][0] == {"label": "Licence — a free hand, no gold", "payload": {"amount": 0}}
         before = len(w.directed_sponsorships)
-        out = self._send(w, f"sponsor {court} against {row['aim']}, 0 gold")
+        # S14E-26 (flipped): the row's licence QUOTES first (nothing minted);
+        # the quote's own option is the confirmed order.
+        quote = self._send(w, f"sponsor {court} against {row['aim']}, 0 gold")
+        assert quote.get("state") == "awaiting_clarification" and "License" in quote["message"], quote
+        assert len(w.directed_sponsorships) == before
+        out = self._send(w, quote["options"][0]["command"])
         assert out.get("success"), out.get("message")
         assert len(w.directed_sponsorships) == before + 1
         assert w.directed_sponsorships[-1]["amount_per_turn"] == 0

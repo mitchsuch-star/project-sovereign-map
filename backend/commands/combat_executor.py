@@ -494,7 +494,10 @@ def _named_nation_not_at_province(world, marshal, named_nation: str,
         tail = (f" The nearest {court} force in sight is "
                 f"{humanize_entity_name(foe.name)}, at "
                 f"{humanize_entity_name(foe.location)}.")
-        suggestion = (f"Order '{marshal.name}, attack {humanize_entity_name(foe.name)}'."
+        from backend.commands.movement_executor import attack_preview_hint_for
+        suggestion = (f"Order '{marshal.name}, attack {humanize_entity_name(foe.name)}'. "
+                      # S14E-X144: the quoted attack is taught with its free preview.
+                      + attack_preview_hint_for(marshal.name, humanize_entity_name(foe.name))
                       if world.is_at_war(marshal.nation, named_nation)
                       else f"We are not at war with {display_nation(named_nation)}, Sire.")
     else:
@@ -687,6 +690,13 @@ AN_ARRIVING_GUN_IS_WEIGHED_BY_HIS_ROLL = True
 # (`_reachable_joiners`) - where the resolver stamps only the corps that
 # arrive. The player's lead only (the AI's `muster_odds` reads are untouched,
 # GR5's named difference). False = the pre-S14E-12 muster, byte for byte.
+#
+# S14E-D11 / S14E-X68 (S14f part 2): the SAME outcome set now gives the mean
+# ("expect about N", `committed_strength`, the band and the gate) - the
+# probability-weighted mean of the outcomes, each under its own coordination,
+# where the mean priced every corps under the stamp of them all arriving
+# (`_muster_mean_exact`, the seam; this lever down restores the one-stamp mean
+# too). Player-only; more uncertain corps than the cap below keeps the old mean.
 THE_MUSTER_STATES_ITS_SPREAD = True
 A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT = True
 # The exact enumeration is over the joiners' outcome set, 2^N: capped at the
@@ -996,7 +1006,7 @@ def peace_soil_refusal(marshal, enemy_marshal, block) -> dict:
         "success": False,
         "peace_soil": block["owner"],
         "message": (
-            # S14E-XB1: the roster key ("ArchdukeCharles") is never printed.
+            # S14E-X74: the roster key ("ArchdukeCharles") is never printed.
             f"{_hn(marshal.name)} cannot march on {_hn(enemy_marshal.name)}: "
             f"{enemy_marshal.location} is {owner}'s soil, and we are at peace "
             f"with {owner} — no corps of ours may take the field there."),
@@ -1216,7 +1226,22 @@ def pursuit_ask(ctx, cost):
         _when = ("this turn" if _ago <= 0
                  else f"{_ago} turn{'s' if _ago != 1 else ''} ago")
         placed = f"{quarry} was last seen at {where} {_when}"
-    question = (f"{placed}, {marches} off. Pursue him "
+    # S14E-X131 / S14E-X86: what the road and its first march also cost, said
+    # before the question - the shut direct road this road goes round (the
+    # detour ask's own sentence, `march_detour_reading`) and the campaign pay
+    # the first march's soil draws (the march card's own sentence,
+    # `campaign_pay_line`). Both are '' on an open road over soil that draws
+    # nothing, so the ask is the DDB-R1 sentence byte for byte.
+    from backend.commands.movement_executor import campaign_pay_line
+    from backend.commands.strategic import march_detour_reading, march_detour_sentence
+    riders = ""
+    _detour = march_detour_reading(world, marshal, where, road, "PURSUE")
+    if _detour is not None:
+        riders += " " + march_detour_sentence(where, _detour)
+    _pay = campaign_pay_line(world, marshal, first)
+    if _pay:
+        riders += " " + _pay
+    question = (f"{placed}, {marches} off.{riders} Pursue him "
                 f"({cost} AP — a standing order; {first_march}), or cancel?")
     reissue = f"{marshal.name}, attack {enemy.name}"
     return {
@@ -2343,15 +2368,23 @@ class CombatExecutor:
         # read down too, a 25,000-man John read 'even' here while 20,000 and
         # 30,000 read 'unfavorable', the preview 'unfavorable' on all three).
         # Lever `THE_GATE_READS_THE_PREVIEWS_CONTEXT` down: as before.
+        # S14E-D11 / S14E-X68: and the same EXACT mean the screen prints -
+        # the player's lead only (`_muster_outcome_set` is None for the AI's,
+        # whose reads stay the one-stamp mean, byte for byte).
+        _exact = None
         if THE_GATE_READS_THE_PREVIEWS_CONTEXT:
             _defender_pre, _ = self._defender_muster(enemy_marshal, world)
             _priced = self._priced_coordination(marshal, joining, enemy_marshal,
                                                 _defender_pre, world, battle_region)
+            _exact = self._muster_mean_exact(self._muster_outcome_set(
+                marshal, joining, enemy_marshal, _defender_pre, world,
+                battle_region))
         else:
             _priced = contextlib.nullcontext()
         with _priced:
-            committed = self._committed_reinforcement_strength(
-                marshal, joining, world, expected_at=battle_region)
+            committed = (_exact if _exact is not None
+                         else self._committed_reinforcement_strength(
+                             marshal, joining, world, expected_at=battle_region))
             _joiners, committed_defender = self._defender_muster(enemy_marshal, world)
             game_state = {"world": world}
             band = inferred_attack_odds_band(
@@ -2618,9 +2651,10 @@ class CombatExecutor:
         band — R5); odds band via the CR-5 single source (GR1 spirit); one
         row per adjacent/co-located friendly with a display reason.
 
-        `with_spread=False` (S14E-12) skips the floor / bad-day enumeration -
-        up to 2^6 priced outcomes - for the readers that take only the
-        totals (`objection_v2.muster_expected_totals`); nothing else moves.
+        `with_spread=False` (S14E-12) leaves the floor / bad-day keys off for
+        the readers that take only the totals
+        (`objection_v2.muster_expected_totals`). The outcome set still serves
+        the mean (S14E-D11) - the totals are the screen's own figures.
         """
         from backend.commands.objection_v2 import inferred_attack_odds_band
         from backend.display_names import MUSTER_REASON_DISPLAY
@@ -2785,6 +2819,15 @@ class CombatExecutor:
         # context the resolver will stamp (`_priced_coordination`); the
         # defender's joiners are read first so his context can assume them.
         _defender_joining_pre, _ = self._defender_muster(enemy_marshal, world)
+        # S14E-D11 / S14E-X68: "expect about N" is the EXACT mean over the
+        # joiners' outcome set (each outcome under its own coordination - the
+        # set the floor and the bad day come from), not one stamp for every
+        # corps that can arrive. None -> today's one-stamp mean below (the AI,
+        # nobody uncertain, or more uncertain corps than the cap).
+        _outcome_set = self._muster_outcome_set(
+            marshal, will_join_marshals, enemy_marshal, _defender_joining_pre,
+            world, battle_region)
+        _exact_mean = self._muster_mean_exact(_outcome_set)
         with self._priced_coordination(marshal, will_join_marshals, enemy_marshal,
                                        _defender_joining_pre, world, battle_region):
             # CO-2: the odds band reflects the TOTAL committed force (lead + the
@@ -2793,8 +2836,10 @@ class CombatExecutor:
             # PT-A2: `expected_at` — these men have not marched yet. Each is
             # priced at the probability of the arrival roll the resolver will
             # make for him, not at certainty.
-            committed_attacker = self._committed_reinforcement_strength(
-                marshal, will_join_marshals, world, expected_at=battle_region)
+            committed_attacker = (
+                _exact_mean if _exact_mean is not None
+                else self._committed_reinforcement_strength(
+                    marshal, will_join_marshals, world, expected_at=battle_region))
 
             # FA-61: the CEILING, on the resolver's own basis.
             #
@@ -2859,45 +2904,22 @@ class CombatExecutor:
         # well decide nothing), printed after it on the band line.
         odds_note = odds_band_note(odds_band, _weighed)
 
-        # The hedge row, fog-honest: it names only corps the player can
-        # already SEE, and says "at least", because the band above may be
-        # counting more than that. A subset of the truth is never a leak
-        # and never a lie.
-        visible_names = {
-            m.name for m in world.get_visible_enemies(nation)
-        } if hasattr(world, "get_visible_enemies") else set()
-        seen_joining = [m for m in defender_joining if m.name in visible_names]
-        defender_note = ""
-        if seen_joining:
-            corps = "corps" if len(seen_joining) == 1 else "corps"
-            # RS-26 (SR-6b, Oct 2 2026): "ArchdukeCharles does not stand
-            # alone" — the display name, never the roster key.
-            defender_note = (
-                f"{humanize_entity_name(enemy_marshal.name)} does not stand alone: at least "
-                f"{len(seen_joining)} enemy {corps} within reach of "
-                f"{battle_region} would march to him."
-            )
-
-        # SR-7d DC-3b (DOCTRINES_SPEC §4): the enemy's arrival flaw on his
-        # reinforcement line — "slow to concentrate" / "the Hofkriegsrat".
-        if seen_joining:
-            from backend.game_logic.doctrines import active_clause as _dc_active
-            _enemy_flaw = _dc_active(world, enemy_marshal.nation, "arrival_bar")
-            if _enemy_flaw and int(_enemy_flaw[1].get("value", 0) or 0) > 0:
-                defender_note += (
-                    f" Their columns gather slowly — {_enemy_flaw[1].get('name')}: "
-                    f"the bar {int(_enemy_flaw[1]['value'])} higher.")
+        # The hedge row (fog-honest, lifted whole to
+        # `_defender_reinforcement_notes` at S14f part 2 - the builder's
+        # 500-line ratchet) and S14E-17's line for the force the band weighs
+        # that the player has not scouted.
+        defender_note, unscouted_note = self._defender_reinforcement_notes(
+            enemy_marshal, defender_joining, committed_defender, battle_region,
+            world, nation)
 
         # S14E-12: the mean's spread - the floor and a bad day, exact over the
-        # joiners' outcome set, each outcome under its own coordination. The
-        # player's lead only (the muster is a player surface; the AI reads
-        # none of this).
+        # joiners' outcome set (the one S14E-D11's mean is read from), each
+        # outcome under its own coordination. The player's lead only (the
+        # muster is a player surface; the AI reads none of this - its set is
+        # None).
         _spread = None
-        if (with_spread and THE_MUSTER_STATES_ITS_SPREAD and will_join_marshals
-                and nation == getattr(world, "player_nation", None)):
-            _spread = self._muster_spread(
-                marshal, will_join_marshals, enemy_marshal, defender_joining,
-                world, battle_region)
+        if with_spread:
+            _spread = self._spread_of_outcome_set(_outcome_set)
 
         preview = {
             "attacker": {"name": marshal.name,
@@ -2918,6 +2940,8 @@ class CombatExecutor:
         }
         if enemy_marshal is not covered:
             preview["target"]["covering"] = humanize_entity_name(covered.name)
+        if unscouted_note:
+            preview["target"]["unscouted_note"] = unscouted_note
         if _spread is not None:
             preview["attacker"]["floor_strength"] = int(
                 marshal.strength + _spread["floor"])
@@ -3135,14 +3159,11 @@ class CombatExecutor:
             more //= 2
         if more <= 0:
             return None
-        from backend.display_names import display_nation
-        holder = display_nation(region.controller)
-        owns = f"{holder}'" if holder.endswith("s") else f"{holder}'s"
+        # S14E-X67: the sentence is the march quote's too (one wording).
+        from backend.commands.movement_executor import campaign_pay_sentence
         return {
             "more": int(more),
-            "note": (f"{battle_region} is {owns} soil — the corps standing "
-                     f"there are fed by contract, about −{int(more):,}g "
-                     f"more a turn."),
+            "note": campaign_pay_sentence(battle_region, region.controller, more),
         }
 
     @staticmethod
@@ -3164,10 +3185,11 @@ class CombatExecutor:
                 break
         return floor, bad_day
 
-    def _muster_spread(self, marshal, joiners, enemy_marshal, enemy_joiners,
-                       world, battle_region) -> Optional[Dict]:
-        """S14E-12: the floor and a bad day of the attacker's committed
-        strength, EXACT over the joiners' outcome set.
+    def _muster_outcome_set(self, marshal, joiners, enemy_marshal, enemy_joiners,
+                            world, battle_region) -> Optional[Dict]:
+        """S14E-12 / S14E-D11: the attacker's committed-strength OUTCOME SET,
+        exact - the one enumeration the floor, the bad day and the mean are
+        all read from.
 
         The mean the header prints ("expect about N") is a probability-
         weighted sum of independent arrival rolls (PT-A2); the same per-corps
@@ -3185,10 +3207,17 @@ class CombatExecutor:
         (`_priced_coordination` over the corps that arrive in it), because
         the resolver stamps the coordination bonus on the arrivals only - a
         floor priced under the full roster's stamp would promise bonuses
-        from men who never came. Returns {"floor", "bad_day"} in committed
-        strength (the lead's own men excluded; `bad_day` None when withheld)
-        or None when the muster has no spread (nobody uncertain).
+        from men who never came. Returns {"outcomes": [(probability,
+        committed strength)], "withheld": bool} (the lead's own men
+        excluded; `withheld` when more corps are uncertain than the cap, the
+        rest taken as not arriving - so neither the bad day nor the mean may
+        be read from such a set), or None when there is no set to read: the
+        muster has no spread (nobody uncertain), the lever is down, or the
+        lead is not the player's (the AI's reads keep today's arithmetic).
         """
+        if (not THE_MUSTER_STATES_ITS_SPREAD or not joiners
+                or marshal.nation != getattr(world, "player_nation", None)):
+            return None
         certain, uncertain = [], []
         for m in self._reachable_joiners(marshal, joiners, world, battle_region,
                                          active=True):
@@ -3221,8 +3250,122 @@ class CombatExecutor:
                 committed = self._committed_reinforcement_strength(
                     marshal, team, world)
             outcomes.append((probability, committed))
-        floor, bad_day = self._outcome_spread(outcomes, MUSTER_BAD_DAY_CHANCE)
-        return {"floor": floor, "bad_day": None if withheld else bad_day}
+        return {"outcomes": outcomes, "withheld": withheld}
+
+    def _muster_mean_exact(self, outcome_set) -> Optional[float]:
+        """S14E-D11 / S14E-X68 - THE SEAM. The header's "expect about N" (and
+        `committed_strength`, which the band, the CA9 muster gate and the
+        objection's totals read) on the EXACT per-outcome expectation: the
+        probability-weighted mean over the outcome set, each outcome priced
+        under its own coordination, where the one-stamp mean priced every
+        corps that can arrive under the stamp of them ALL arriving (the 1805
+        boot, Davout on Mack: 109,122 against an exact 107,570).
+
+        None means "keep the one-stamp mean" (`_committed_reinforcement_
+        strength(..., expected_at=)` under the all-present `_priced_
+        coordination`): nobody uncertain (the one stamp IS the exact mean),
+        the AI's lead, and more uncertain corps than `MUSTER_SPREAD_MAX_
+        UNCERTAIN` - the set is then a truncation and its mean would be worse
+        than the truth, so the one-stamp mean stands - and
+        `A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT` down, whose pre-S14E-12
+        muster stamps a corps that cannot arrive. To restore the old mean
+        everywhere, make this return None."""
+        if (outcome_set is None or outcome_set["withheld"]
+                or not A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT):
+            return None
+        return float(sum(p * v for p, v in outcome_set["outcomes"]))
+
+    def _spread_of_outcome_set(self, outcome_set) -> Optional[Dict]:
+        """S14E-12: {"floor", "bad_day"} (committed strength, the lead's own
+        men excluded; `bad_day` None when withheld) read off the outcome set,
+        or None when there is none."""
+        if outcome_set is None:
+            return None
+        floor, bad_day = self._outcome_spread(outcome_set["outcomes"],
+                                              MUSTER_BAD_DAY_CHANCE)
+        return {"floor": floor,
+                "bad_day": None if outcome_set["withheld"] else bad_day}
+
+    def _muster_spread(self, marshal, joiners, enemy_marshal, enemy_joiners,
+                       world, battle_region) -> Optional[Dict]:
+        """S14E-12: the floor and a bad day, exact over the joiners' outcome
+        set (`_muster_outcome_set`)."""
+        return self._spread_of_outcome_set(self._muster_outcome_set(
+            marshal, joiners, enemy_marshal, enemy_joiners, world, battle_region))
+
+    def _defender_reinforcement_notes(self, enemy_marshal, defender_joining,
+                                      committed_defender, battle_region, world,
+                                      nation) -> tuple:
+        """(reinforcement_note, unscouted_note) - the defender's side as the
+        player may be told it. Lifted whole from `_build_muster_preview` at
+        S14f part 2 (its 500-line ratchet).
+
+        The hedge row, fog-honest: it names only corps the player can
+        already SEE, and says "at least", because the band may be counting
+        more than that. A subset of the truth is never a leak and never a
+        lie.
+
+        S14E-17: the band folds the defender's muster as GROUND TRUTH
+        (CA9-F1: a safety gate on the player's own marshal, not intel
+        surfaced), so when it weighs a force (`committed_defender > 0`) and
+        not one of his joiners is in view, the hedge row is silent while the
+        verdict still leans on men the player has not seen - he read
+        'unfavorable' beside a defender he had scouted at 2.5 to 1. The
+        second note names the GAP, never who or how many. Player-only."""
+        visible_names = {
+            m.name for m in world.get_visible_enemies(nation)
+        } if hasattr(world, "get_visible_enemies") else set()
+        seen_joining = [m for m in defender_joining if m.name in visible_names]
+        defender_note = ""
+        if seen_joining:
+            corps = "corps" if len(seen_joining) == 1 else "corps"
+            # RS-26 (SR-6b, Oct 2 2026): "ArchdukeCharles does not stand
+            # alone" — the display name, never the roster key.
+            defender_note = (
+                f"{humanize_entity_name(enemy_marshal.name)} does not stand alone: at least "
+                f"{len(seen_joining)} enemy {corps} within reach of "
+                f"{battle_region} would march to him."
+            )
+            # SR-7d DC-3b (DOCTRINES_SPEC §4): the enemy's arrival flaw on his
+            # reinforcement line — "slow to concentrate" / "the Hofkriegsrat".
+            from backend.game_logic.doctrines import active_clause as _dc_active
+            _enemy_flaw = _dc_active(world, enemy_marshal.nation, "arrival_bar")
+            if _enemy_flaw and int(_enemy_flaw[1].get("value", 0) or 0) > 0:
+                defender_note += (
+                    f" Their columns gather slowly — {_enemy_flaw[1].get('name')}: "
+                    f"the bar {int(_enemy_flaw[1]['value'])} higher.")
+        return defender_note, self._unscouted_force_note(
+            defender_joining, committed_defender, seen_joining, battle_region,
+            world, nation)
+
+    @staticmethod
+    def _unscouted_force_note(defender_joining, committed_defender, seen_joining,
+                              battle_region, world, nation) -> str:
+        """S14E-17: the one line for a band that weighs a force the player has
+        not scouted - '' when the band weighs no joiner, when any joiner of
+        the defender's is in view (the hedge row speaks then), or when the
+        lead is not the player's. `seen_joining=None` reads the player's view
+        here (the callers that did not already)."""
+        if (not defender_joining or committed_defender <= 0
+                or nation != getattr(world, "player_nation", None)):
+            return ""
+        if seen_joining is None:
+            visible = {m.name for m in world.get_visible_enemies(nation)}
+            seen_joining = [m for m in defender_joining if m.name in visible]
+        if seen_joining:
+            return ""
+        return (f"The band weighs a force of his you have not scouted within "
+                f"reach of {battle_region} — scout the provinces round it.")
+
+    def _unscouted_note_for(self, marshal, enemy, world) -> str:
+        """S14E-17's line for a reading made WITHOUT the muster preview (the
+        staff's bad-odds addendum; any surface that speaks `muster_odds`'s
+        band): the defender who would stand in the battle, his muster read
+        off the same ladder, the player's view the same."""
+        foe = answering_defender(world, enemy)
+        joining, committed = self._defender_muster(foe, world)
+        return self._unscouted_force_note(joining, committed, None, foe.location,
+                                          world, marshal.nation)
 
     def _bad_odds_muster_note(self, marshal, enemy, world) -> str:
         """PC-8 (quiet-France played campaign, Aug 3 2026): the staff's
@@ -3310,10 +3453,16 @@ class CombatExecutor:
         band = reading.get("band")
         weighed = (f" — weighed together, the balance of force looks {band}"
                    if band else "")
+        # S14E-X-B1 (the sweep of S14E-17): this word on the band folds the
+        # defender's muster as ground truth too - when he has men the player
+        # has not scouted, the same gap-naming line follows it.
+        unscouted = self._unscouted_note_for(marshal, enemy, world) if band else ""
+        unscouted = f" {unscouted}" if unscouted else ""
         return (f" Berthier adds: {names} would answer the guns — "
                 f"{humanize_entity_name(marshal.name)} {int(marshal.strength):,}, "
                 f"{joint:,} with the muster committed, against "
-                f"{humanize_entity_name(enemy.name)} ({target_display}){weighed}.")
+                f"{humanize_entity_name(enemy.name)} ({target_display}){weighed}."
+                f"{unscouted}")
 
     def _contact_muster_note(self, marshal, enemy, world) -> str:
         """S14E-1 / S14E-X2 (Pre-Deploy S14f part 1, October 24, 2026): the
@@ -3445,6 +3594,10 @@ class CombatExecutor:
             lines.append(line)
         if preview["target"].get("reinforcement_note"):
             lines.append(f"  {preview['target']['reinforcement_note']}")
+        # S14E-17: and where the band weighs a force the player has not
+        # scouted, the line that names the gap (never who or how many).
+        if preview["target"].get("unscouted_note"):
+            lines.append(f"  {preview['target']['unscouted_note']}")
         # NP-V (adversarial review): `presence_note` was written under a
         # comment reading "shown = applied" and pinned by a test that
         # asserted the PRODUCER'S DICT — and no formatter and no `.gd`
@@ -4438,7 +4591,9 @@ class CombatExecutor:
                     # Chunk 9 (Step 7 slice 8): the row's message and its
                     # button come from the ONE reader the dispatch uses.
                     from backend.game_logic.dispatch import counter_punch_notice
-                    _cp = counter_punch_notice(defender, world)
+                    # S14E-X147: the button's tooltip carries the muster, built
+                    # once here (the restate on every rail read only carries it).
+                    _cp = counter_punch_notice(defender, world, with_muster=True)
                     world.notifications.add(create_notification(
                         notification_type=COUNTER_PUNCH_EARNED,
                         priority=NotificationPriority.HIGH,
@@ -4532,6 +4687,16 @@ class CombatExecutor:
         if retreat_messages:
             return "\n" + "\n".join(retreat_messages)
         return ""
+
+    @staticmethod
+    def _stamp_battle_clock(world, attacker_nation, defender_nation) -> None:
+        """S14E-X118: both courts of a battle fought this turn, on the WORLD's
+        own record (`stamp_battle_turn`, the armed peace's clock — S14E-35).
+        Called from `_post_combat_pipeline` step 6.5 and nowhere else for the
+        pair, so every path that records a battle restarts the fuse alike."""
+        battle_turn = int(world.current_turn)
+        world.stamp_battle_turn(attacker_nation, battle_turn)
+        world.stamp_battle_turn(defender_nation, battle_turn)
 
     def _post_combat_pipeline(self, ctx: dict, world: 'WorldState') -> dict:
         """
@@ -4643,6 +4808,16 @@ class CombatExecutor:
             attacker.idle_turns = 0
             attacker.acted_this_turn = True
 
+        # ── 6.5 S14E-X118: the battle-record step for the armed peace's clock ──
+        # Every non-bombardment battle — the main attack, a garrison assault
+        # that falls or holds, a charge, a preparatory barrage that destroys
+        # its man — stamps BOTH courts once, here. Only the main attack path
+        # used to (its W6-1 block), so a France that fought nothing else read
+        # "quiet". Never skipped by a `skip_*` flag: those name steps a caller
+        # already ran, and no caller runs this one.
+        if not is_bombardment:
+            self._stamp_battle_clock(world, attacker.nation, defender_nation)
+
         # ── 7. Record battle for cannon fire detection ──
         if not ctx.get('skip_cannon_fire_record'):
             def_name = defender.name if defender else f"{battle_region}_garrison"
@@ -4692,8 +4867,9 @@ class CombatExecutor:
                 # stalemate is the blood component's own founding case
                 # (DR-1). The ledger accrues directly; battle_records
                 # stays winner-only (its counts and decay must not see
-                # a winnerless row).
-                world.record_campaign_casualties(
+                # a winnerless row). S14E-X201: the drawn battle is also
+                # COUNTED as a battle fought (`record_drawn_battle`).
+                world.record_drawn_battle(
                     attacker.nation, defender_nation,
                     int(atk_casualties), int(def_casualties))
 
@@ -6193,8 +6369,13 @@ class CombatExecutor:
             # dispatch's own_broken/rout classes read this flag.
             "forced": True,
         })
+        # S14E-X153 (XD7's sweep): a breakout onto allied or neutral soil puts the
+        # corps on campaign pay from the next bill - said after the step, '' for
+        # the AI and for home soil.
+        from backend.commands.movement_executor import campaign_pay_note
         return (f"{marshal.name} falls back on {destination}, his corps "
-                f"disordered but in the field.{attrition_note}")
+                f"disordered but in the field.{attrition_note}"
+                f"{campaign_pay_note(world, marshal, destination, old_loc)}")
 
     @classmethod
     def _stamp_capture_on_report(cls, battle_result, attacker, defender,
@@ -6399,7 +6580,12 @@ class CombatExecutor:
             # fires only when a retreat destination exists).
             _toll_prefix = f"[!] {_toll_note} " if _toll_note else ""
             _fate_prefix = f"[!] {_fate_note} " if _fate_note else ""
-            return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns)"
+            # S14E-X89: a rout onto allied or neutral soil puts the corps on
+            # campaign pay from the next bill - said after the step (the
+            # plain move's own line), '' for the AI and for home soil.
+            from backend.commands.movement_executor import campaign_pay_note
+            _pay_note = campaign_pay_note(world, marshal, retreat_to, old_loc)
+            return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns){_pay_note}"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -7495,6 +7681,9 @@ class CombatExecutor:
                         # [4A-1] Movement attrition
                         ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, best_next, ctx.world)
                         attrition_msg = f" ({ctx.attrition_info['total_losses']:,} lost to march)" if ctx.attrition_info["total_losses"] > 0 else ""
+                        # S14E-X150 (XR3a's sweep): the step onto allied soil says the pay it now draws.
+                        from backend.commands.movement_executor import campaign_pay_clause
+                        attrition_msg += campaign_pay_clause(ctx.world, ctx.marshal, best_next, ctx.old_location)
 
                         return {
                             "success": True,
@@ -7737,6 +7926,10 @@ class CombatExecutor:
                         },
                         "is_strategic": True,
                         "strategic_type": "PURSUE",
+                        # S14E-X131: the pursuit ask (DDB-R1, above) was this
+                        # road's one question; the road stage's detour ask
+                        # (`march_detour_ask`) never asks a second.
+                        "_attack_upgrade": True,
                         "attack_on_arrival": True,  # Player said "attack", not "pursue"
                         # Same cost as an explicit strategic command — and the
                         # pre-check above is priced off this very local, so the
@@ -7829,11 +8022,17 @@ class CombatExecutor:
                 # inside this function.
                 enemy_names = [e.name for e in enemies_here]
                 enemy_display = [humanize_entity_name(n) for n in enemy_names]
+                from backend.commands.movement_executor import attack_preview_hint_for
+                # S14E-X178: the hint follows a sentence that ends "first." and
+                # drops its own "first" (one word, once).
+                _lead = f"Attack {humanize_entity_name(enemies_here[0].name)} in {ctx.marshal.location} first. "
                 return {
                     "success": False,
                     "message": f"Cannot attack elsewhere while engaged with enemy forces! {', '.join(enemy_display)} must be dealt with first.",
                     "engaged_with": enemy_names,
-                    "suggestion": f"Attack {humanize_entity_name(enemies_here[0].name)} in {ctx.marshal.location} first"
+                    # S14E-X144: the quoted attack is taught with its free preview.
+                    "suggestion": (_lead + attack_preview_hint_for(
+                        ctx.marshal.name, humanize_entity_name(enemies_here[0].name), after=_lead))
                 }
 
         # Find enemy marshal - either by name or at target location
@@ -8240,10 +8439,15 @@ class CombatExecutor:
             if ctx.nearest:
                 ctx.enemy_marshal, ctx.distance = ctx.nearest
                 if ctx.distance > 2:
+                    from backend.commands.movement_executor import attack_preview_hint_for
+                    # S14E-X178: ends "first." - the hint drops its own "first".
+                    _lead = f"Try: 'Attack {ctx.enemy_marshal.name}' or move closer first. "
                     return {
                         "success": False,
                         "message": f"No enemy found at {ctx.target}. Nearest enemy is {ctx.enemy_marshal.name} at {ctx.enemy_marshal.location} ({plural(ctx.distance, 'region')} away).",
-                        "suggestion": f"Try: 'Attack {ctx.enemy_marshal.name}' or move closer first"
+                        # S14E-X144: the quoted attack is taught with its free preview.
+                        "suggestion": (_lead + attack_preview_hint_for(
+                            ctx.marshal.name, ctx.enemy_marshal.name, after=_lead))
                     }
             else:
                 return {
@@ -8889,11 +9093,19 @@ class CombatExecutor:
                         f"{ctx.battle_region_name} — {ctx.pursuit_block['owner']}'s soil, "
                         f"and we are not at war with {ctx.pursuit_block['owner']}.")
                 else:
+                    # S14E-X133: the pay an advance onto allied soil draws is read off the province left.
+                    from backend.commands.movement_executor import campaign_pay_clause
+                    _advance_from = ctx.marshal.location
                     ctx.marshal.move_to(ctx.battle_region_name)
                     advance_msg = f" {ctx.marshal.name} advances into {ctx.battle_region_name}."
+                    advance_msg += campaign_pay_clause(
+                        ctx.world, ctx.marshal, ctx.battle_region_name, _advance_from)
 
             # Attempt capture
             ctx.conquest_msg = ""
+            # S14E-X149: set on every road - the event-parity block below read it
+            # unset when the ally arm or the works line spoke (an AttributeError).
+            ctx.capture_result = None
             ctx.target_region = ctx.world.get_region(ctx.battle_region_name)
             if (ctx.target_region and ctx.target_region.controller != ctx.marshal.nation
                     and not getattr(ctx.marshal, 'artillery', False)):
@@ -9020,7 +9232,7 @@ class CombatExecutor:
             if ctx.conquest_msg:
                 auto_kill_event["region_conquered"] = True
                 auto_kill_event["region_name"] = ctx.battle_region_name
-                if ctx.capture_result.get("capture_choice"):
+                if ctx.capture_result and ctx.capture_result.get("capture_choice"):
                     auto_kill_event["capture_choice"] = (
                         ctx.capture_result["capture_choice"])
 
@@ -9559,6 +9771,11 @@ class CombatExecutor:
         ctx.marshal.idle_turns = 0
         ctx.enemy_marshal.last_battle_turn = _w6_turn
         ctx.enemy_marshal.idle_turns = 0
+        # S14E-35 / S14E-X118: the courts' own record of the pair's battle (on
+        # the WORLD — a marshal who stands down or falls takes his stamp with
+        # him) is written by `_post_combat_pipeline` step 6.5, the ONE stamp
+        # site for the pair on every path. Only the arrived reinforcers, whom
+        # the pipeline cannot see, are stamped here (below).
         # ── CA9-N1: dedupe against the coordinated tally above ──────────
         # The coordinated branch has ALREADY tallied every element of
         # `atk_participants` / `def_participants`, and an arrived
@@ -9585,6 +9802,7 @@ class CombatExecutor:
         # `last_battle_turn` writes below are NOT duplicated by seam A and
         # stay exactly as they are.
         _already_tallied = set()
+        _reinforcer_courts = set()
         if ctx.is_coordinated_battle:
             _already_tallied = {p.name for p in ctx.atk_participants}
             _already_tallied.update(p.name for p in ctx.def_participants)
@@ -9607,6 +9825,14 @@ class CombatExecutor:
                         _fighter.battles_lost += 1
                 _fighter.idle_turns = 0
                 _fighter.last_battle_turn = _w6_turn
+                _reinforcer_courts.add(_fighter.nation)
+        # S14E-X118: a reinforcer's court fought too; the pair's two courts are
+        # stamped (once) by the pipeline, so only a THIRD court stamps here.
+        # (Rule 1 of `_is_reinforcement_eligible` keeps a reinforcer to his
+        # side's own court today; the set difference means nothing breaks on
+        # that assumption, and no court is ever stamped twice.)
+        for _court in sorted(_reinforcer_courts - {ctx.marshal.nation, ctx.enemy_marshal.nation}):
+            ctx.world.stamp_battle_turn(_court, _w6_turn)
 
         # ════════════════════════════════════════════════════════════
         # W6-2 DYNAMIC BATTLE NAMING: composed ONCE per battle (this
@@ -9930,8 +10156,8 @@ class CombatExecutor:
             # PT-J2 review round [P2-3]: the drawn battle's dead still
             # accrue to the campaign ledger (this copy skips the
             # pipeline's step 8 via skip_diplo_record, so it needs its
-            # own arm, mirrored).
-            ctx.world.record_campaign_casualties(
+            # own arm, mirrored). S14E-X201: and counted as a battle fought.
+            ctx.world.record_drawn_battle(
                 ctx.marshal.nation, ctx.enemy_marshal.nation,
                 int(ctx.battle_result.get("attacker", {}).get("casualties", 0)),
                 int(ctx.battle_result.get("defender", {}).get("casualties", 0)))
@@ -10176,6 +10402,7 @@ class CombatExecutor:
                     print(f"[ATTACK MOVEMENT] NV-9 naval halt: {ctx.marshal.name} stays at {ctx.marshal.location}")
                 else:
                     print(f"[ATTACK MOVEMENT] MOVING {ctx.marshal.name}: {ctx.marshal.location} -> {ctx.target_location}")
+                    _advance_from = ctx.marshal.location  # S14E-X133: the pay is read off the province left
                     ctx.marshal.move_to(ctx.target_location)
                     ctx.advanced_to = ctx.target_location  # DDB-37
                     # Movement attrition on post-battle advance (Phase 6.2.F)
@@ -10198,6 +10425,9 @@ class CombatExecutor:
                             march_note += " — forward supply lines reduce losses"
                         march_note += ")"
                         movement_msg += march_note
+                    # S14E-X133: an advance onto allied soil says the campaign pay now drawn ('' for the AI and home soil).
+                    from backend.commands.movement_executor import campaign_pay_clause
+                    movement_msg += campaign_pay_clause(ctx.world, ctx.marshal, ctx.target_location, _advance_from)
             else:
                 print("[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
@@ -11640,6 +11870,7 @@ class CombatExecutor:
                     f"{charge_battle_region} — {pursuit_block['owner']}'s soil, "
                     f"and we are not at war with {pursuit_block['owner']}.")
             elif marshal.location != charge_battle_region and _charge_cross_ok:
+                _advance_from = marshal.location  # S14E-X133: the pay is read off the province left
                 marshal.move_to(charge_battle_region)
                 charge_attrition = self._executor._calculate_movement_attrition(marshal, charge_battle_region, world)
                 combat_result["attacker_moved"] = True
@@ -11651,6 +11882,8 @@ class CombatExecutor:
                         charge_march_note += " — forward supply lines reduce losses"
                     charge_march_note += ")"
                     movement_msg += charge_march_note
+                from backend.commands.movement_executor import campaign_pay_clause
+                movement_msg += campaign_pay_clause(world, marshal, charge_battle_region, _advance_from)  # S14E-X133
 
         # Check if enemy was destroyed - remove from world
         # PC15-1 sibling seam: _handle_forced_retreat above can CAPTURE
@@ -12403,6 +12636,10 @@ class CombatExecutor:
                 else:
                     message += f"[{_plural(int(remaining_distance) - 1, 'more move')} needed to reach attack range]"
 
+                # S14E-X151 (XR3a's sweep): the step onto allied soil says the pay it now draws.
+                from backend.commands.movement_executor import campaign_pay_note
+                message += campaign_pay_note(world, closest_marshal, next_region, old_location)
+
                 if filtered_out:
                     message = f"[NOTE: {', '.join(filtered_out)}]\n\n" + message
 
@@ -12488,12 +12725,19 @@ class CombatExecutor:
             # no target — answered "Error: No target or world state". It is
             # the ONE shape the addressee guard cannot claim, because the
             # unit's name IS an order verb.
+            # S14E-X175: the example is a LIVE pair from the board (the
+            # counsel's own first attack) when one is lawful today, else the
+            # static one; either is taught with its free preview.
+            from backend.commands.movement_executor import (
+                attack_preview_hint_for, live_attack_example)
+            _who, _foe = live_attack_example(world) or ("Ney", "Mack")
             return {"kind": "error", "error": {
                 "success": False,
                 "message": (
                     "Berthier waits, pen raised. \"Whom shall I send, Sire, "
                     "and against whom? Name the marshal and the foe — "
-                    "'Ney, attack Mack'.\"")}}
+                    f"'{_who}, attack {_foe}'. "
+                    + attack_preview_hint_for(_who, _foe) + "\"")}}
 
         # FIRST: Try to find target as enemy marshal name
         # WO-13: through the SAME seam as the named route. This path

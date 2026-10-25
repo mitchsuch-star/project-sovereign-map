@@ -139,6 +139,12 @@ func _on_dispatch_received(response):
 			for beat in sub_beats:
 				bbcode += "[color=#" + Utils.COLOR_INFO + "]  • " + str(beat) + "[/color]\n"
 		bbcode += "\n"
+	# S14E-X122 (S14f part 2): the re-read keeps the morning's headline and
+	# Berthier's note by design (re-deriving them is not a pure read) while the
+	# marshal rows are read live -- when a corps has marched or changed state
+	# since, the backend flags the copy and the page says which half is which.
+	if bool(data.get("stale_headline", false)):
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.DISPATCH_AS_OF_THE_MORNING + "[/color]\n\n"
 
 	# ═══ SITUATION ═══
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]\n"
@@ -601,6 +607,10 @@ func _on_dispatch_received(response):
 				# UXR3-23 (S12): a chip that types the order (it never sends).
 				bbcode += "    " + Utils.bb_button_chip("type:" + str(order), str(order),
 						Utils.COLOR_COMMAND, "233043") + "\n"
+			# S14E-24: an attack among them is taught with its free preview.
+			var today_hint = str(today.get("orders_hint", ""))
+			if today_hint != "":
+				bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_hint + "[/color]\n"
 		var today_doors = str(today.get("doors", ""))
 		if today_doors != "":
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + today_doors + "[/color]\n"

@@ -377,7 +377,16 @@ def format_commitments_notice(
                 f"with {breaker}"
             )
         suffix = f" {reason}" if reason else ""
-        return f"{breaker} has broken the {treaty} with {injured}{suffix}."
+        # S14E-X38: a third power's break names its cost to France, as the
+        # declaration beat does — "… — relations with every court, France's
+        # included, fall 10." The producer stamps the figure
+        # (`diplomacy.treaty_break_cost_to_player`): 0 when France is a party.
+        from backend.game_logic.diplomacy import declaration_cost_clause
+        cost = declaration_cost_clause(
+            int(values.get("relation_cost", 0) or 0),
+            str(values.get("player") or "France"))
+        tail = f" — {cost}" if cost else ""
+        return f"{breaker} has broken the {treaty} with {injured}{suffix}{tail}."
     elif event_type == "commitment_paradox_resolved":
         values.setdefault("chosen_nation", "Unknown")
         values.setdefault("spurned_nation", "Unknown")

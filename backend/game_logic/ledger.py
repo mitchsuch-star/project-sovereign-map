@@ -138,6 +138,12 @@ def _completed_mission_reason(mission: Dict[str, Any]) -> str:
     recalled or starved mission is ever kept — both paths clear the dict.
     """
     mission_type = str(mission.get("type", "") or "")
+    # S14E-34: a mission that ended at the peace says so on its own record;
+    # S14E-X110: so does a Reassure Ally mission whose alliance lapsed or fell
+    # to war.
+    end_reason = str(mission.get("end_reason") or "")
+    if end_reason in ("peace", "lapsed", "war"):
+        return end_reason
     if mission_type == "GATHER_INTEL":
         return "duration"
     if mission_type == "UNDERMINE_ALLIANCE":

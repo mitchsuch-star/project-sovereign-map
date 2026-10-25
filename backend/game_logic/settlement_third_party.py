@@ -383,8 +383,9 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     if broker and broker == player:
         # The broker's fee: standing with both courts (the §4.2b broker
         # row — ending someone else's war on your terms, for a price).
-        world.modify_nation_relation(player, loser, 10)
-        world.modify_nation_relation(player, winner, 10)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, player, loser, 10, "broker_fee", player, loser)
+        modify_relation_booked(world, player, winner, 10, "broker_fee", player, winner)
     return event
 
 

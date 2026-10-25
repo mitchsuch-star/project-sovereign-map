@@ -2243,9 +2243,17 @@ class TestReviewTheUndermineRecord:
         (row,) = _ended(w)
         assert (row["reason"], row["relation_start"], row["relation_end"]) == (
             "recalled", start, pair)
-        assert _row(w)["message"] == (
-            f"Talleyrand is recalled from Britain. Britain and Russia stand at {pair:+d} "
-            f"(from {start:+d}).")
+        # S14E-X37 / X36 flip this pin: the pair's friction, sponsorship and
+        # subsidy are booked now, so the end beat tells its tally — and the
+        # tally's parts (his work, the booked writes, the court's drift) sum
+        # to the headline the beat prints.
+        head = (f"Talleyrand is recalled from Britain. Britain and Russia stand at {pair:+d} "
+                f"(from {start:+d}).")
+        message = _row(w)["message"]
+        assert message.startswith(head), message
+        tally = message[len(head):]
+        assert tally.startswith(" His tally: ") and "from him" in tally, tally
+        assert sum(int(x) for x in re.findall(r"[+-]\d+", tally)) == pair - start, (tally, pair, start)
 
     def test_an_old_save_without_the_baseline_reads_todays_pair(self):
         w = _europe()

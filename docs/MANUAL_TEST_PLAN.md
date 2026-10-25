@@ -348,9 +348,9 @@ Ney, cancel
 
 ### 7C. Cancel keywords
 
-Test each: "halt", "stop", "cancel", "abort", "stand down", "belay that"
+Test each: "halt", "stop", "cancel", "abort", "cease", "belay that"
 
-**Expected:** All work as cancel command.
+**Expected:** All work as cancel command. ("stand down" is NOT a cancel verb: "Ney, stand down" is the neutral stance and a bare "stand down" answers with Berthier's hold pointer — 'Ney, hold' / 'everyone stop' — S14E-X193.)
 
 ---
 

@@ -17,6 +17,7 @@ from backend.game_logic.settlement_scoring import (
     GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
     TOTAL_ANNEXATION_WAR_SCORE,
+    clause_parties,
 )
 from typing import (
     Any,
@@ -240,10 +241,14 @@ def compute_gold_payer_budgets(
                 * int(entry.get("turns_remaining", 0) or 0)
             )
         current_gold = int(nation_gold.get(payer, 0) or 0)
-        net_income = _estimate_payer_net_income_per_turn(world, payer)
-        capacity = current_gold + max(0, net_income) * max(
-            0, max_turns_by_payer.get(payer, 0)
-        )
+        # S14E-X159: the income estimate scans every province and is only
+        # ever MULTIPLIED by the payer's longest recurring stream - a payer
+        # with no such stream (every `bid_funds` / lever-chest read) needs no
+        # scan. Byte-identical capacity either way.
+        stream_turns = max(0, max_turns_by_payer.get(payer, 0))
+        net_income = (_estimate_payer_net_income_per_turn(world, payer)
+                      if stream_turns else 0)
+        capacity = current_gold + max(0, net_income) * stream_turns
         budgets[payer] = max(0, int(capacity) - existing_obligation)
     return budgets
 
@@ -1072,13 +1077,15 @@ def evaluate_liberation_eligibility(
 
 
 def _clause_touches_court(clause: Any, court: str) -> bool:
-    """True when a material clause names ``court`` on either side."""
+    """True when a material clause names ``court`` as a party.
+
+    S14E-X25 (S14f part 2): ONE predicate with the scorer's slice
+    (`settlement_scoring.clause_parties`) — a `liberation` touches its lord,
+    its vassal and its liberator, a `vassal_transfer` its vassal, not only
+    `from` / `to`."""
     if not isinstance(clause, Mapping) or clause.get("type") == "peace":
         return False
-    return court in (
-        str(clause.get("from") or ""),
-        str(clause.get("to") or ""),
-    )
+    return court in clause_parties(clause)
 
 
 def evaluate_open_settlement_eligibility(

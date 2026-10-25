@@ -1255,8 +1255,10 @@ def emit_call_to_arms_honored_costly(
     reliability_before, reliability_after = _apply_reliability_delta(
         world, honorer, reliability_delta,
     )
-    relation_after = world.modify_nation_relation(
-        honorer, victim, DG4_LOYALTY_BOND_RELATION_DELTA,
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    relation_after = modify_relation_booked(
+        world, honorer, victim, DG4_LOYALTY_BOND_RELATION_DELTA,
+        "call_to_arms_costly", honorer, victim,
     )
     pair_key = world._make_diplo_key(honorer, victim)
     bond = {
@@ -2188,7 +2190,9 @@ def _queue_dg4_witness_events(
     for witness in witnesses:
         witness_nation = witness["nation"]
         if relation_delta:
-            world.modify_nation_relation(witness_nation, actor, relation_delta)
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, witness_nation, actor, relation_delta,
+                                   "witness_strike", witness_nation, actor)
         queue_dispatch_event(
             world,
             "witness_strike_recorded",
@@ -2682,9 +2686,15 @@ def _record_treaty_breach(
         else "foreign_office"
     )
     breach_preview["episode_id"] = episode_id
+    # S14E-X38: a third power's `break_treaty` names its cost to France (the
+    # declaration beat's idiom); every other mode prices itself elsewhere.
+    _break_cost = (treaty_break_cost_to_player(world, breaker_nation, injured_party)
+                   if (trigger_context or {}).get("mode") == "manual_break" else 0)
 
     world.log_event({
         "type": "diplomatic_treaty_broken",
+        "relation_cost": int(_break_cost),
+        "player": str(world.player_nation),
         "breaker": breaker_nation,
         "other": injured_party,
         "injured_party": injured_party,
@@ -2720,6 +2730,8 @@ def _record_treaty_breach(
 
     if not suppress_notification:
         notice_payload = {
+            "relation_cost": int(_break_cost),
+            "player": str(world.player_nation),
             "breaker": breaker_nation,
             "nation": breaker_nation,
             "other": injured_party,
@@ -2754,6 +2766,8 @@ def _record_treaty_breach(
 
     if not suppress_dispatch_event:
         queue_dispatch_event(world, "diplomatic_treaty_broken", {
+            "relation_cost": int(_break_cost),
+            "player": str(world.player_nation),
             "nation": breaker_nation,
             "target": injured_party,
             "victim_nation": injured_party,
@@ -3956,6 +3970,26 @@ def apply_war_score_decay(world, *, recalculate: bool = True) -> None:
             r for r in records
             if world.current_turn - r.get("turn", 0) <= 10
         ]
+
+    # S14E-X201: the drawn battles' turns (the ledger's sparse `drawn` list)
+    # age out in the SAME window, so "N battles fought" in the war's title and
+    # the preview's Battles line count one set of fights. An emptied list is
+    # popped — the ledger keeps its sparse shape. S14E-X209: the dead stamped
+    # beside those turns (`drawn_dead`) leave with them, by the same window.
+    for ledger in (getattr(world, 'campaign_ledgers', None) or {}).values():
+        if ledger.get("drawn"):
+            kept = [t for t in ledger["drawn"] if world.current_turn - int(t) <= 10]
+            if kept:
+                ledger["drawn"] = kept
+            else:
+                ledger.pop("drawn", None)
+        if ledger.get("drawn_dead"):
+            kept_dead = [r for r in ledger["drawn_dead"]
+                         if world.current_turn - int(r.get("turn", 0)) <= 10]
+            if kept_dead:
+                ledger["drawn_dead"] = kept_dead
+            else:
+                ledger.pop("drawn_dead", None)
 
     if recalculate:
         recalculate_war_scores(world)
@@ -5305,19 +5339,32 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
     state = (getattr(world, "diplomatic_states", {}) or {}).get(key, "PEACE")
     other_name = _fdn(world, other)
     us = _fdn(world, player)
-    score = int(get_war_score_for(world, player, other)) if state in ("WAR", "ARMISTICE") else 0
+    # S14E-25 (Pre-Deploy S14f part 2): the figure the sentence QUOTES is the
+    # LIVE pair score — the one the same popup's "War score" line prints
+    # (`build_war_context_snapshot`) and `truce_loser` reads for the exit. The
+    # stored score is recomputed only at end turn (and frozen under a truce);
+    # the sentence read 0 under a live 38 after the player had just fought.
+    score = int(live_war_score_for(world, player, other)) if state in ("WAR", "ARMISTICE") else 0
     records = list((getattr(world, "battle_records", {}) or {}).get(key, []) or [])
     decisives = list((getattr(world, "decisive_battles", {}) or {}).get(key, []) or [])
     war_start = int((getattr(world, "war_start_turns", {}) or {}).get(key, world.current_turn))
     age = int(max(0, int(world.current_turn) - war_start))
+    # S14E-X206: a DRAWN battle has no winner and so no battle record - the
+    # pair's ledger holds its turn (`record_drawn_battle`), and the truce's
+    # "battles kept" counts it beside the won and lost (the same read the war
+    # title's record line and the preview's Battles line make).
+    drawn = len(((getattr(world, "campaign_ledgers", None) or {}).get(key) or {}).get("drawn") or [])
+    fought = len(records) + drawn
+    from backend.game_logic.war_title import drawn_suffix
     keeps = {
-        "war_score": score, "battles": len(records), "decisives": len(decisives),
+        "war_score": score, "battles": fought, "decisives": len(decisives),
         "war_age": age, "exhaustion": int((getattr(world, "war_exhaustion", {}) or {}).get(other, 0) or 0),
     }
     sign = "+" if score > 0 else ""
     keeps_line = (
         f"The ledger stands: the war score reads {sign}{score} for {us}"
-        f" ({len(records)} battle{'' if len(records) == 1 else 's'}, "
+        f" ({fought} battle{'' if fought == 1 else 's'}"
+        f"{', ' + drawn_suffix(fought, drawn).strip(' ()') if drawn else ''}, "
         f"{len(decisives)} decisive{'' if len(decisives) == 1 else 's'} kept); "
         f"the war is {age} turn{'' if age == 1 else 's'} old and stays so; "
         f"exhaustion holds."
@@ -5492,6 +5539,26 @@ def _get_war_score_trend(world, diplo_key: str, player_nation: str, war_score: i
     return "stagnant"
 
 
+def drawn_battle_dead(world, diplo_key: str) -> Dict[str, int]:
+    """S14E-X209 (Pre-Deploy S14f part 2, October 25, 2026): each side's dead in
+    the pair's DRAWN battles still inside the records' window - {nation: dead}.
+
+    A stalemate has no winner, so `battle_records` (winner-only) never held its
+    dead and the peace preview's `french_casualties_total` /
+    `enemy_casualties_total` and the ratification summary
+    (`_capture_pre_cleanup_war_data`) summed a war's won and lost battles
+    alone. `WorldState.record_drawn_battle` stamps the dead beside the drawn
+    turn on the pair's ledger (`drawn_dead`) and `apply_war_score_decay` ages
+    them out with it: this is the one reader both totals add. Display only -
+    the war score reads the ledger's own `casualties`."""
+    ledger = ((getattr(world, "campaign_ledgers", None) or {}).get(diplo_key) or {})
+    dead: Dict[str, int] = {}
+    for row in ledger.get("drawn_dead") or []:
+        for nation, count in ((row or {}).get("dead") or {}).items():
+            dead[str(nation)] = dead.get(str(nation), 0) + int(count or 0)
+    return dead
+
+
 def build_war_context_snapshot(
     world, player_nation: str, target_nation: str, proposal_type: str,
     terms: Dict = None, incoming: bool = False,
@@ -5519,6 +5586,10 @@ def build_war_context_snapshot(
 
     battles_won = 0
     battles_lost = 0
+    # S14E-X201: the drawn battles the pair's ledger remembers (a stalemate has
+    # no winner, so no row in `battle_records`).
+    battles_drawn = len(((getattr(world, 'campaign_ledgers', None) or {})
+                         .get(diplo_key) or {}).get("drawn") or [])
     french_casualties = 0
     enemy_casualties = 0
     for r in records:
@@ -5533,6 +5604,11 @@ def build_war_context_snapshot(
         else:
             french_casualties += int(r.get("defender_casualties", 0))
             enemy_casualties += int(r.get("attacker_casualties", 0))
+    # S14E-X209: a drawn battle's dead are in the totals beside the won and
+    # lost battles' (the winner-only records never held them).
+    _drawn_dead = drawn_battle_dead(world, diplo_key)
+    french_casualties += int(_drawn_dead.get(player_nation, 0))
+    enemy_casualties += int(_drawn_dead.get(target_nation, 0))
 
     decisive_victories = sum(
         1 for d in decisive_records if d.get("winner") == player_nation
@@ -5703,9 +5779,12 @@ def build_war_context_snapshot(
         "war_score_fill": war_score_fill(components),
         "war_score_trend": war_score_trend,
         "war_duration_turns": int(war_duration),
-        "battles_fought": int(battles_won + battles_lost),
+        "battles_fought": int(battles_won + battles_lost + battles_drawn),
         "battles_won": int(battles_won),
         "battles_lost": int(battles_lost),
+        # S14E-X201: the drawn battles (no winner, so no battle record) — the
+        # popups print "Battles: 0W / 0L / 1 drawn" beside the won and lost.
+        "battles_drawn": int(battles_drawn),
         "decisive_victories": int(decisive_victories),
         "decisive_defeats": int(decisive_defeats),
         "french_casualties_total": int(french_casualties),
@@ -5714,7 +5793,10 @@ def build_war_context_snapshot(
         "regions_held_by_enemy": regions_held_by_enemy,
         "france_relation": int(world.nation_relations.get(diplo_key, 0)),
         "acceptance_preview": acceptance_preview,
-        "harshness": round(harshness, 2),
+        # S14E-X6 (Pre-Deploy S14f part 2): a whole percent on the wire —
+        # Golden Rule 2, Godot takes no floats; the client prints
+        # `harshness_label`, never this figure.
+        "harshness": int(round(harshness * 100)),
         "harshness_label": get_harshness_label(harshness),
         "proposal_terms": effective_terms,
         "annotated_terms": annotated,
@@ -5722,11 +5804,24 @@ def build_war_context_snapshot(
         "commitment_conflicts": get_peace_commitment_conflicts(
             world, player_nation, target_nation, effective_terms.get("clauses", []),
             incoming=incoming,
+            # S14E-X208: the allies' price is read from the clauses the
+            # ratifier compiles from this draft (sweeteners + demands), so the
+            # figure quoted is the one the signing applies.
+            priced_clauses=separate_peace_priced_clauses(
+                proposal_for_calc, player_nation, target_nation),
             # DD-1 S8 Step 3 (SFR-D28's announce half): a truce names the
             # allies whose wars it leaves running, with our corps on their soil.
             truce=str(proposal_type).startswith("armistice"),
         ),
     }
+
+    # S14E-X204: an ally left fighting is said ONCE. The paradox row above
+    # prices her ("she fights on alone; it costs -20 relation with her" - the
+    # figure `apply_separate_peace_penalties` writes at the signing), so the
+    # fallout row that priced the same ally in other words ("is still at war
+    # with ... Making separate peace will anger ...") is folded into it.
+    snapshot["fallout_warnings"] = fold_ally_fallout_into_conflicts(
+        snapshot["fallout_warnings"], snapshot["commitment_conflicts"])
 
     # VP1-X7 (S14b part 2): the manner of this peace and its Revanche, read
     # off the clause list the ratifier builds (`treaty_clauses_of`, the one
@@ -5859,6 +5954,34 @@ def build_war_context_snapshot(
     return snapshot
 
 
+def fold_ally_fallout_into_conflicts(
+    fallout: List[Dict], conflicts: List[Dict],
+) -> List[Dict]:
+    """S14E-X204 (Pre-Deploy S14f part 2, October 25, 2026): one ally, one
+    sentence in the peace preview's Political Consequences.
+
+    An ally left fighting was priced twice in different words: the fallout row
+    `separate_peace_ally` ("Prussia is still at war with Britain (war score:
+    0). Making separate peace will anger Prussia (-20 relation).") beside the
+    paradox row ("Prussia stays at war with Britain after this separate peace
+    - she fights on alone; it costs -20 relation with her."). The conflict row
+    is the one that names the figure `apply_separate_peace_penalties` applies
+    at the signing (the burden on the court, FA-N45; the fallout row read the
+    direction-blind treaty harshness), so it stays and the fallout row of an
+    ally it names goes. `get_separate_peace_fallout_warnings` itself is
+    untouched - the ratifier applies the penalties from it. Returns a new list."""
+    said = {
+        str(c.get("affected_entity") or "")
+        for c in (conflicts or [])
+        if isinstance(c, dict) and c.get("conflict_type") in ("paradox", "carried_in")
+    }
+    return [
+        f for f in (fallout or [])
+        if not (isinstance(f, dict) and f.get("warning_type") == "separate_peace_ally"
+                and str(f.get("ally") or "") in said)
+    ]
+
+
 def get_separate_peace_fallout_warnings(
     world, proposer: str, target: str, harshness: float,
 ) -> List[Dict]:
@@ -5955,7 +6078,9 @@ def apply_separate_peace_penalties(
     for w in warnings:
         ally = w["ally"]
         penalty = w["predicted_relation_change"]
-        world.modify_nation_relation(proposer, ally, penalty)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, proposer, ally, penalty,
+                               "separate_peace", proposer, ally)
         applied.append({
             "ally": ally,
             "relation_change": int(penalty),
@@ -5991,6 +6116,13 @@ def _capture_pre_cleanup_war_data(world, proposer: str, target_nation: str) -> D
         else:
             french_casualties += int(r.get("defender_casualties", 0))
             enemy_casualties += int(r.get("attacker_casualties", 0))
+    # S14E-X209: the drawn battles' dead (read before cleanup clears the
+    # ledger), as the preview's totals count them.
+    for _nation, _dead in drawn_battle_dead(world, diplo_key).items():
+        if _nation == player:
+            french_casualties += int(_dead)
+        else:
+            enemy_casualties += int(_dead)
 
     return {
         "war_duration": war_duration,
@@ -6206,7 +6338,11 @@ def separate_peace_words(world, proposer: str, target: str,
     ally with no standing), so the sentence states it from that same plan:
     "she takes nothing by it and is left out: -18 relation and a grievance;
     Make Amends (400g + 2 DP) clears it." `shut_out` is `{ally: row}` for
-    those allies (the plan plus `display`)."""
+    those allies (the plan plus `display`).
+
+    S14E-X116: a carried ally the peace NAMES for a province is thanked, and the
+    sentence says so with the figure the ratifier writes ("she is named for
+    Tyrol and thanks us (+5 relation)."); `thanks` is `{ally: relation}`."""
     from backend.game_logic.formations import formed_display_name as _fdn
     from backend.game_logic.settlement_ratify import carried_in_allies, carry_in_instance
     if not proposer or not target:
@@ -6247,6 +6383,10 @@ def separate_peace_words(world, proposer: str, target: str,
     # S14E-D3: the carried allies the peace names for nothing, priced by the
     # ratifier's own plan (read live here, before the pairs close).
     shut: Dict[str, Dict[str, Any]] = {}
+    # S14E-X116: a carried ally the peace NAMES is thanked - the plan's own
+    # `rewarded` figure (`gratitude_delta`, the number `reward_named_carried_allies`
+    # writes), said before the click as the table's review says it.
+    thanks: Dict[str, int] = {}
     if found is not None and carried:
         from backend.game_logic.settlement_reactions import (
             proposer_ally_plan, shut_out_price_words, shut_out_row, shut_out_words,
@@ -6257,12 +6397,15 @@ def separate_peace_words(world, proposer: str, target: str,
                 settlement_terms=dict_terms)
             if plan["kind"] == "shut_out":
                 shut[a] = shut_out_row(world, plan)
+            elif plan["kind"] == "rewarded" and named.get(a):
+                thanks[a] = int(plan.get("relation_delta") or 0)
 
     per_ally: Dict[str, str] = {}
     for a in carried:
         regions = named.get(a)
         if regions:
-            tail = f"she is named for {_join(regions)}."
+            tail = (f"she is named for {_join(regions)} and thanks us ({thanks[a]:+d} relation)."
+                    if a in thanks else f"she is named for {_join(regions)}.")
         elif a in shut:
             tail = f"she takes nothing by it and is left out: {shut_out_price_words(shut[a])}"
         else:
@@ -6276,7 +6419,9 @@ def separate_peace_words(world, proposer: str, target: str,
     if len(carried) == 1:
         parts.append(per_ally[carried[0]])
     elif carried:
-        each = [f"{_fdn(world, a)} for {_join(named[a])}" for a in carried if named.get(a)]
+        each = [f"{_fdn(world, a)} for {_join(named[a])}"
+                + (f" (thanks us, {thanks[a]:+d} relation)" if a in thanks else "")
+                for a in carried if named.get(a)]
         tail = (f"{_join(each)} named; the rest take nothing by it." if each
                 else "they take nothing by it.")
         parts.append(f"The wars of {_join([_fdn(world, a) for a in carried])} with {court} "
@@ -6292,10 +6437,47 @@ def separate_peace_words(world, proposer: str, target: str,
     return {
         "allies": allies, "carried": carried, "left": left, "price": price,
         "named": named, "per_ally": per_ally, "leader": found is not None,
-        "shut_out": shut,
+        "shut_out": shut, "thanks": thanks,
         "war_id": str(found[0]) if found else "",
         "display": display, "chip": display,
     }
+
+
+def separate_peace_priced_clauses(terms: Optional[Mapping], proposer: str,
+                                  target: str) -> List[Dict[str, Any]]:
+    """S14E-X208 (Pre-Deploy S14f part 2, October 25, 2026): the clause list a
+    draft's separate-peace price is read from - the COMPILED clauses the
+    ratifier applies (`treaty.treaty_clauses_of`: the draft's sweeteners and
+    demands, each stamped from/to), so one source feeds the words
+    (`separate_peace_words`' `price`) and the signing
+    (`WorldState._ratify_treaty` -> `burden_on_nation(ctx.treaty_clauses, court)`
+    -> `apply_separate_peace_penalties`). The preview used to hand the words the
+    draft's RAW `clauses` alone: a hand-written demand-dialect draft (a gold
+    demand in `demands`, nothing in `clauses`) read as a burden of 0 and quoted
+    the doubled -20 while the signing applied the lighter -10. A dict clause
+    written straight into `clauses` (the raw dialect a fixture speaks) is kept
+    in the list as before, after the compiled ones."""
+    from backend.game_logic.treaty import treaty_clauses_of
+    terms = terms or {}
+    compiled = treaty_clauses_of(
+        {
+            "sweeteners": [s for s in (terms.get("sweeteners") or [])
+                           if isinstance(s, Mapping) and s.get("type")],
+            "demands": [d for d in (terms.get("demands") or [])
+                        if isinstance(d, Mapping) and d.get("type")],
+        },
+        proposer, target)
+    return compiled + [dict(c) for c in (terms.get("clauses") or []) if isinstance(c, Mapping)]
+
+
+def _price_words(words: Optional[Dict[str, Any]], ally: str) -> str:
+    """S14E-X204: " (-20 relation)" - the figure the signing applies to an ally
+    left fighting (`separate_peace_words`' `price`), or "" where the one wording
+    names no price for her (a carried ally, or no ally at all)."""
+    price = ((words or {}).get("price") or {})
+    if ally not in price:
+        return ""
+    return f" ({int(price[ally])} relation)"
 
 
 def separate_peace_note(world, proposer: str, target: str) -> str:
@@ -6307,8 +6489,15 @@ def separate_peace_note(world, proposer: str, target: str) -> str:
 def get_peace_commitment_conflicts(
     world, proposer: str, target: str, clauses: List[Dict],
     incoming: bool = False, truce: bool = False,
+    priced_clauses: Optional[List[Dict]] = None,
 ) -> List[Dict]:
     """BPH-C §10.1: Check for commitment conflicts created by a peace proposal.
+
+    `priced_clauses` (S14E-X208): the clause list the ratifier applies the
+    separate-peace price from (`separate_peace_priced_clauses`); the allies'
+    words are priced from it, so the figure quoted is the one the signing
+    writes. Default: `clauses` (a caller with no draft behind it). The bargain
+    check below still reads the draft's own `clauses`.
 
     v0.1 conflict types:
       - paradox: alliance with a nation still at war with the target
@@ -6342,6 +6531,11 @@ def get_peace_commitment_conflicts(
     _runs_on = ({row["ally"]: row for row in allies_whose_war_runs_on(world, proposer, target)}
                 if truce else {})
     _words: Optional[Dict[str, Any]] = None
+    # S14E-X204: the one wording, read for the joined-at-a-call road (which
+    # leaves `_words` unset: a carried ally must not turn into a carried row there)
+    _called: Optional[Dict[str, Any]] = None
+    # S14E-X208: what the allies' words are priced from (the ratifier's clauses)
+    _priced = clauses if priced_clauses is None else priced_clauses
     for nation in all_nations:
         if nation == proposer or nation == target:
             continue
@@ -6376,16 +6570,18 @@ def get_peace_commitment_conflicts(
             # read from the player's chair: `proposer` IS the player, and
             # the carry-in is the player's (the leader's peace is common to
             # its side whoever wrote the letter)
-            _words = separate_peace_words(world, proposer, target, clauses)
+            _words = separate_peace_words(world, proposer, target, _priced)
         if incoming and nation in (_words.get("carried") or []):
             _display = str((_words.get("per_ally") or {}).get(nation) or "")
             _severity = "INFO"
         elif incoming:
             from backend.game_logic.formations import formed_display_name as _fdn
+            # S14E-X204: the row carries the figure the fallout row used to.
             _display = (
                 f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
                 f"after this peace — an ally, not a client: she fights on alone "
-                f"and views the separate peace unfavorably."
+                f"and views the separate peace unfavorably"
+                f"{_price_words(_words, nation)}."
             )
             _severity = "WARNING"
         elif _joined_at_a_call:
@@ -6394,11 +6590,15 @@ def get_peace_commitment_conflicts(
             # separate-peace penalty prices it (`apply_separate_peace_
             # penalties` at the ratification).
             from backend.game_logic.formations import formed_display_name as _fdn
+            # S14E-X204: the row carries the figure the fallout row used to
+            # (the applied price, read from the one wording).
+            if _called is None:
+                _called = separate_peace_words(world, proposer, target, _priced)
             _display = (
                 f"{_fdn(world, nation)} stays at war with {_fdn(world, target)} "
                 f"after this separate peace — France joined at an ally's call, "
                 f"so the peace is hers to make; {_fdn(world, nation)} views it "
-                f"unfavorably."
+                f"unfavorably{_price_words(_called, nation)}."
             )
             _severity = "WARNING"
         else:
@@ -6411,7 +6611,7 @@ def get_peace_commitment_conflicts(
             # TO THE SIDE where the proposer leads it — the ally's pair ends
             # in the same instrument (an INFO row, `carried_in`, below).
             if _words is None:
-                _words = separate_peace_words(world, proposer, target, clauses)
+                _words = separate_peace_words(world, proposer, target, _priced)
             _display = str((_words.get("per_ally") or {}).get(nation) or "")
             _severity = "WARNING"
         if _words is not None and nation in (_words.get("carried") or []):
@@ -6441,7 +6641,7 @@ def get_peace_commitment_conflicts(
             "detail": {
                 "ally": nation,
                 "ally_state_vs_target": "WAR",
-                "relation_change": int(((_words or {}).get("price") or {}).get(nation, 0)),
+                "relation_change": int((((_words or _called) or {}).get("price") or {}).get(nation, 0)),
             },
         })
 
@@ -6462,7 +6662,8 @@ def get_peace_commitment_conflicts(
                     ),
                     "detail": {
                         "hegemon": hegemon,
-                        "bloc_share": round(share, 2),
+                        # S14E-X6: a whole percent on the wire (Golden Rule 2)
+                        "bloc_share": int(round(share * 100)),
                     },
                 })
     except (ImportError, AttributeError):
@@ -7510,7 +7711,9 @@ def _fulfill_bargain(world, bargain: Dict) -> None:
 
     # +6 relation with beneficiary
     relation_delta = BARGAIN_FULFILLMENT_RELATION_DELTA
-    world.modify_nation_relation(promiser, beneficiary, relation_delta)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, promiser, beneficiary, relation_delta,
+                           "bargain_kept", promiser, beneficiary)
 
     bargain["fulfillment_snapshot"] = {
         "claim_region": bargain.get("claim_term", {}).get("claim_region", ""),
@@ -7560,7 +7763,9 @@ def breach_bargain(world, bargain: Dict, end_reason: str, *, episode_id: str = N
         world.diplomatic_reliability = reliability
 
     # Relation penalty: -10
-    world.modify_nation_relation(promiser, beneficiary, BARGAIN_BREACH_RELATION_DELTA)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, promiser, beneficiary, BARGAIN_BREACH_RELATION_DELTA,
+                           "bargain_breach", promiser, beneficiary)
 
     # Betrayal strike: +1 unless same episode already spent 2-strike cap
     _record_bargain_breach_strike(world, promiser, beneficiary, episode_id)
@@ -8220,7 +8425,9 @@ def resolve_join_opportunity(
                 result["error"] = attach_result.get("error")
                 return result
             set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "ally_entry")
-            world.modify_nation_relation(beneficiary, named_enemy, -20)
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, beneficiary, named_enemy, -20,
+                                   "bargain_entry", beneficiary, named_enemy)
             result["war_id"] = attach_result.get("war_id")
 
         result["joined"] = True
@@ -8568,7 +8775,9 @@ def accept_counter_bargain(
 
     if attach_result:
         set_diplomatic_state(world, beneficiary, named_enemy, "WAR", "counter_bargain_ally_entry")
-        world.modify_nation_relation(beneficiary, named_enemy, -20)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, beneficiary, named_enemy, -20,
+                               "bargain_entry", beneficiary, named_enemy)
         joined = True
         war_id_attached = attach_result.get("war_id")
 
@@ -10315,6 +10524,33 @@ def declaration_cost_to_player(world, aggressor: str, target: str,
     return int(-declaration_relation_penalties(casus_belli)[1])
 
 
+# S14E-X38: what `break_treaty` takes off the BREAKER's relation with every
+# court that is neither party to the treaty — one figure, applied and quoted.
+TREATY_BREAK_RELATION_ALL = 10
+# S14E-X95: the rest of `break_treaty`'s price, one source for the break itself
+# and for the letters that say what breaking a pact will cost.
+TREATY_BREAK_DP_COST = 1
+
+
+def treaty_break_partner_penalty(treaty_type: str) -> int:
+    """S14E-X95: what `break_treaty` takes off the BREAKER's relation with the
+    treaty's other signer - 40 for an alliance or a defensive alliance, else 30.
+    Applied by `break_treaty` and quoted on the pact letters from here."""
+    return 40 if str(treaty_type or "").strip().lower() in ("alliance", "defensive_alliance") else 30
+
+
+def treaty_break_cost_to_player(world, breaker: str, other: str) -> int:
+    """S14E-X38: what a THIRD POWER's treaty break costs France — the
+    `TREATY_BREAK_RELATION_ALL` `break_treaty` charges the breaker's relation
+    with every court that is neither party, France's included. 0 when France
+    is a party: the player chose that break (the dialogue priced it) or is
+    its victim, and the break is the news."""
+    player = getattr(world, "player_nation", "France")
+    if not breaker or player in (breaker, other):
+        return 0
+    return int(TREATY_BREAK_RELATION_ALL)
+
+
 def declaration_cost_clause(cost: int, player: str = "France") -> str:
     """"relations with every court, France's included, fall 15" — the clause
     the declaration beat (dispatch AND rail) appends; "" at a cost of 0."""
@@ -11754,7 +11990,11 @@ def _process_forced_alliance_drift(world) -> List[Dict]:
             continue
         parts = diplo_key.split("|")
         if len(parts) == 2:
-            world.modify_nation_relation(parts[0], parts[1], -10)
+            # S14E-X37: the -10 a turn drags a mission's pair too (a Reassure
+            # Ally on the forced ally); the books say so.
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, parts[0], parts[1], -10,
+                                   "forced_alliance_drift", parts[0], parts[1])
     world.alliance_origins = alliance_origins
     return events
 
@@ -11809,9 +12049,12 @@ def check_auto_downgrade(world) -> List[Dict]:
                         # Deep audit fix 5: Clear active treaty on auto-downgrade
                         active_treaties = getattr(world, 'active_treaties', {})
                         active_treaties.pop(diplo_key, None)
-                        # Half penalties
-                        world.modify_nation_relation(
-                            parts[0], parts[1], penalties["relation_target"] // 2)
+                        # Half penalties (S14E-X112: the slide's last step drags
+                        # a Reassure Ally's own pair; the mission's books say so)
+                        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                        modify_relation_booked(
+                            world, parts[0], parts[1], penalties["relation_target"] // 2,
+                            "auto_downgrade", parts[0], parts[1])
                         turns_below[diplo_key] = 0  # Reset counter
 
                         events.append({
@@ -12075,6 +12318,11 @@ def process_diplomacy_turn(world) -> List[Dict]:
     mission_cancel_events = _check_mission_target_eliminated(world)
     events.extend(mission_cancel_events)
 
+    # ── 1c. S14E-34: a mission sent to win a peace is done when it is won ──
+    events.extend(_complete_mission_at_peace(world))
+    # S14E-X110: ... and a Reassure Ally mission is done when its alliance is gone.
+    events.extend(_complete_reassure_if_alliance_gone(world))
+
     # ── 2. Mission DP deduction (Session 3) ──
     mission_events = _process_mission_dp(world)
     events.extend(mission_events)
@@ -12143,6 +12391,9 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 8. Armistice expiration ──
     armistice_events = _process_armistice_expiration(world)
     events.extend(armistice_events)
+    # S14E-34: the truce that just ripened into peace ends the mission that
+    # was sent to ripen it — on THIS tick, not the next.
+    events.extend(_complete_mission_at_peace(world))
 
     # ── 9. Cooldown decrements ──
     _decrement_cooldowns(world)
@@ -12163,6 +12414,9 @@ def process_diplomacy_turn(world) -> List[Dict]:
     downgrade_events = check_auto_downgrade(world)
     events.extend(downgrade_events)
     events.extend(_complete_undermine_if_broken(world))
+    # S14E-X110: the slide that just landed ends the Reassure Ally mission on
+    # THIS tick, not the next.
+    events.extend(_complete_reassure_if_alliance_gone(world))
 
     # ── 13a. War bargain lifecycle (WB-B §8.8/§8.9) ──
     bargain_events = process_bargain_lifecycle(world)
@@ -13078,7 +13332,11 @@ def _process_mission_effects(world) -> List[Dict]:
     if undermine_chance > 0:
         if random.random() < undermine_chance:
             undermine_amount = effects.get("undermine_amount", 0)
-            world.modify_nation_relation(player_nation, target, undermine_amount)
+            # S14E-X37: the blowback is a write the books do not earn — it is
+            # booked as a shock (cause: "the blowback at Prussia's court").
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, player_nation, target, undermine_amount,
+                                   "blowback", player_nation, target)
             from backend.display_names import display_nation as _dn_bl   # IQ-4 R7
             diplo_key_bl = world._make_diplo_key(player_nation, target)
             current_relation_bl = int(world.nation_relations.get(diplo_key_bl, 0) or 0)
@@ -13131,6 +13389,71 @@ def _process_mission_effects(world) -> List[Dict]:
                 events.extend(_complete_undermine_if_broken(world))
 
     return events
+
+
+def _complete_mission_at_peace(world) -> List[Dict]:
+    """S14E-34: end a live Improve Relations mission, begun at war or under a
+    truce, on the tick its pair is at peace — MS-9's "a mission whose work is
+    done is DONE". Read at the head of the tick (before the DP is charged: the
+    tick that finds the peace bills nothing) and again after step 8, where an
+    expiring armistice signs it. The books close through `record_mission_end`
+    (reason "peace") and the morning gets a MEDIUM line naming both courts."""
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_peace_words, mission_won_its_peace, record_mission_end)
+    if not mission_won_its_peace(world):
+        return []
+    mission = world.active_diplomatic_mission
+    target = str(mission.get("target") or "")
+    mission["completed"] = True
+    mission["end_reason"] = "peace"
+    if getattr(world, 'talleyrand_state', '') == "ON_MISSION":
+        world.talleyrand_state = "IDLE"
+    message = mission_peace_words(world, target)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_mission_completed",
+                         {"nation": target, "line": message}, "player_mission")
+    record_mission_end(world, mission, "peace")
+    return [{
+        "type": "diplomatic_mission_completed",
+        "target": target,
+        "mission_type": str(mission.get("type") or ""),
+        "reason": "peace",
+        "message": message,
+    }]
+
+
+def _complete_reassure_if_alliance_gone(world) -> List[Dict]:
+    """S14E-X110 (S14E-34's twin): end a live Reassure Ally mission, begun in
+    an ALLIANCE, on the tick its pair is no longer allied — a slide to a
+    defensive alliance (the five-turn auto-downgrade, S14E-11's sighting) is
+    the alliance LAPSED, a declaration of war the alliance broken by war.
+    Read at the head of the tick (before the DP is charged: the tick that
+    finds the lapse bills nothing) and again after step 13, where the
+    auto-downgrade lands. The books close through `record_mission_end`
+    (reason "lapsed" / "war") and the morning gets a MEDIUM line."""
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_alliance_end, mission_alliance_words, record_mission_end)
+    reason = mission_alliance_end(world)
+    if not reason:
+        return []
+    mission = world.active_diplomatic_mission
+    target = str(mission.get("target") or "")
+    mission["completed"] = True
+    mission["end_reason"] = reason
+    if getattr(world, 'talleyrand_state', '') == "ON_MISSION":
+        world.talleyrand_state = "IDLE"
+    message = mission_alliance_words(world, target, reason)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_mission_completed",
+                         {"nation": target, "line": message}, "player_mission")
+    record_mission_end(world, mission, reason)
+    return [{
+        "type": "diplomatic_mission_completed",
+        "target": target,
+        "mission_type": str(mission.get("type") or ""),
+        "reason": reason,
+        "message": message,
+    }]
 
 
 def _complete_undermine_if_broken(world) -> List[Dict]:
@@ -13254,14 +13577,15 @@ def break_treaty(
     # Cost: 1 DP — use player DP for player, nation_dp for AI
     player_nation = getattr(world, 'player_nation', 'France')
     if breaker_nation == player_nation:
-        if world.diplomatic_points < 1:
-            return {"success": False, "message": "Insufficient DP to break treaty (costs 1 DP)."}
-        world.diplomatic_points -= 1
+        if world.diplomatic_points < TREATY_BREAK_DP_COST:
+            return {"success": False,
+                    "message": f"Insufficient DP to break treaty (costs {TREATY_BREAK_DP_COST} DP)."}
+        world.diplomatic_points -= TREATY_BREAK_DP_COST
     else:
         nation_dp = getattr(world, 'nation_dp', {})
-        if nation_dp.get(breaker_nation, 0) < 1:
+        if nation_dp.get(breaker_nation, 0) < TREATY_BREAK_DP_COST:
             return {"success": False, "message": f"{breaker_nation} has insufficient DP to break treaty."}
-        nation_dp[breaker_nation] = nation_dp.get(breaker_nation, 0) - 1
+        nation_dp[breaker_nation] = nation_dp.get(breaker_nation, 0) - TREATY_BREAK_DP_COST
         world.nation_dp = nation_dp
 
     treaty_type = treaty.get("type", "peace")
@@ -13290,7 +13614,7 @@ def break_treaty(
     from backend.game_logic.diplomatic_dialogue import (
         mission_pair_snapshot, note_mission_shock)
     _mission_pair_before = mission_pair_snapshot(world)
-    penalty = -40 if treaty_type in ("alliance", "defensive_alliance") else -30
+    penalty = -treaty_break_partner_penalty(treaty_type)
     world.modify_nation_relation(breaker_nation, other, penalty)
     relation_changes.append({"nations": (breaker_nation, other), "delta": penalty})
 
@@ -13298,8 +13622,9 @@ def break_treaty(
     all_nations = world.get_active_nations()  # DLF-11
     for nation in all_nations:
         if nation != breaker_nation and nation != other:
-            world.modify_nation_relation(breaker_nation, nation, -10)
-            relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
+            world.modify_nation_relation(breaker_nation, nation, -TREATY_BREAK_RELATION_ALL)
+            relation_changes.append({"nations": (breaker_nation, nation),
+                                     "delta": -TREATY_BREAK_RELATION_ALL})
     note_mission_shock(world, _mission_pair_before, "treaty_break", breaker_nation, other)
 
     # AI-4a step 5 (supersedes deep-audit fix 9's player gate): threat
@@ -14049,6 +14374,50 @@ _MISSION_BUSY = "Mission already active"
 _MISSION_TRANSIT = "Talleyrand in transit"
 
 
+def mission_busy_words(world) -> str:
+    """S14E-34: what the shut mission row says to the player — WHERE the one
+    slot is and how to free it: "Talleyrand is at Austria's court — F1 →
+    Austria → Cancel". The row's machine reason (`disabled_reason`) stays
+    `_MISSION_BUSY`; the counsel's lever (`slide_lever`) and the dead-end
+    reader compare it."""
+    from backend.display_names import display_nation, with_definite_article
+    from backend.game_logic.diplomatic_dialogue import mission_is_live
+    away = str((world.active_diplomatic_mission or {}).get("target") or "") \
+        if mission_is_live(world) else ""
+    if not away:
+        return _MISSION_BUSY
+    return (f"Talleyrand is at {with_definite_article(display_nation(away))}'s court — "
+            f"F1 → {display_nation(away)} → Cancel")
+
+
+def transit_words(world) -> str:
+    """S14E-X111: what the shut rows say while Talleyrand is on the road - WHAT he
+    carries, WHERE, and WHEN he is home: "Talleyrand is in transit with the
+    armistice to Austria - home in 1 turn". The machine reason
+    (`TRANSIT_DISABLED_REASON`) stays the gate's own; the turns are the ones
+    `WorldState._process_proposal_in_transit` waits (it delivers once
+    `turn_sent < current_turn`; a stalled envoy's `turn_sent` is one later)."""
+    from backend.commands.diplomatic_executor import TRANSIT_DISABLED_REASON
+    from backend.display_names import (
+        display_nation, plural, proposal_display_name, with_definite_article)
+    pit = getattr(world, "proposal_in_transit", None)
+    if not isinstance(pit, dict) or not pit.get("target"):
+        return TRANSIT_DISABLED_REASON
+    proposal = pit.get("proposal") or {}
+    kind = str(proposal.get("type") or "")
+    what = proposal_display_name(kind).lower() if kind else "his letter"
+    turns = max(1, int(pit.get("turn_sent", 0) or 0) - int(getattr(world, "current_turn", 0) or 0) + 1)
+    court = with_definite_article(display_nation(str(pit["target"])))
+    return (f"Talleyrand is in transit with the {what} to {court} — "
+            f"home in {plural(turns, 'turn')}")
+
+
+def dp_shortfall_words(need, have) -> str:
+    """S14E-X111: the generic 'Insufficient DP' said with its figures - "Needs 2
+    DP; 1 held" - for the key the client reads first."""
+    return f"Needs {int(need or 0)} DP; {int(have or 0)} held"
+
+
 def mission_gate(world, mission_type: str, undermine_has_ally=None) -> Tuple[bool, str]:
     """(available, disabled_reason) — can Talleyrand be sent on `mission_type`?
 
@@ -14219,24 +14588,36 @@ def _slide_counsel(world, target_nation: str, state: str, lead: str) -> Tuple[st
 def _ally_slide_counsel(world, target_nation: str):
     """The counsel for an ALLY on the slide (S14E-11): the alliance holds at
     `STATE_RELATION_THRESHOLDS["ALLIANCE"]` and the court is at or under it.
-    None when the court is not an ally or is comfortably above the line — the
-    counsel then reads exactly as it did."""
+    S14E-X39: the same for the defensive alliance, the non-aggression pact and
+    the open-borders accord, each on its own line. None when the bond is not
+    one the auto-downgrade holds or the court is comfortably above its line —
+    the counsel then reads exactly as it did."""
     player = getattr(world, "player_nation", "France")
-    if world.get_diplomatic_state(player, target_nation) != "ALLIANCE":
+    state = world.get_diplomatic_state(player, target_nation)
+    # S14E-X39: every bond the auto-downgrade holds to a line — the defensive
+    # alliance, the non-aggression pact, the open-borders accord — is told its
+    # lever too (`STATE_RELATION_THRESHOLDS`, the line `downgrade_warning_message`
+    # reads). Only an ALLIANCE names a mission machine key: the others name
+    # their lever in the sentence and leave `recommended_mission` empty, so
+    # `counsel_first` resolves the row by text and the playtest driver's
+    # advisor arm (which acts on IMPROVE_RELATIONS) is not handed a new order.
+    if state not in STATE_RELATION_THRESHOLDS:
         return None
-    threshold = int(STATE_RELATION_THRESHOLDS["ALLIANCE"])
+    threshold = int(STATE_RELATION_THRESHOLDS[state])
     relation = int(world.nation_relations.get(world._make_diplo_key(player, target_nation), 0) or 0)
     if relation > threshold:
         return None
     from backend.display_names import display_nation, with_definite_article
     name = with_definite_article(display_nation(target_nation))
+    bond = "alliance" if state == "ALLIANCE" else slide_state_words(state)
     if relation < threshold:
-        lead = (f"Our alliance with {name} frays, Sire — relations stand at {relation}, "
+        lead = (f"Our {bond} with {name} frays, Sire — relations stand at {relation}, "
                 f"short of the {threshold} it holds on.")
     else:
-        lead = (f"Our alliance with {name} stands on its line, Sire — relations at "
+        lead = (f"Our {bond} with {name} stands on its line, Sire — relations at "
                 f"{relation}, the {threshold} it holds on, and the first slide takes it under.")
-    return _slide_counsel(world, target_nation, "ALLIANCE", lead)
+    text, mission = _slide_counsel(world, target_nation, state, lead)
+    return text, (mission if state == "ALLIANCE" else "")
 
 
 # The wizard's chip → the proposal type the ratifier reads (DD-1 Slice B).
@@ -14286,15 +14667,26 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         active mission, so the cancel is on screen) rendered enabled and were
         refused on the click. The gate fires before every other executor
         check, so its reason is the one the click would have printed."""
+        # S14E-X111: the points a shut row lacks are said ("Needs 2 DP; 1 held"),
+        # on the key the client reads first; the machine reason is unchanged.
+        for row in rows:
+            if row.get("disabled_reason") == "Insufficient DP" and not row.get("disabled_reason_display"):
+                row["disabled_reason_display"] = dp_shortfall_words(row.get("dp_cost", 1), dp)
+            elif (row.get("disabled_reason") == "Insufficient Gold" and row.get("gold_cost")
+                  and not row.get("disabled_reason_display")):
+                # S14E-X168: the gold a shut row lacks, said with its figures too.
+                row["disabled_reason_display"] = (
+                    f"Needs {int(row['gold_cost']):,} gold; {int(gold):,} held")
         if getattr(world, 'talleyrand_state', 'IDLE') != "IN_TRANSIT":
             return rows
         from backend.commands.diplomatic_executor import (
             TRANSIT_DISABLED_REASON, TRANSIT_GATED_WIZARD_ACTIONS)
+        said = transit_words(world)
         for row in rows:
             if row.get("action") in TRANSIT_GATED_WIZARD_ACTIONS:
                 row["available"] = False
                 row["disabled_reason"] = TRANSIT_DISABLED_REASON
-                row["disabled_reason_display"] = TRANSIT_DISABLED_REASON
+                row["disabled_reason_display"] = said
         return rows
 
     def _has_any_ally(world_, court: str) -> bool:
@@ -14380,6 +14772,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         autonomy = vassal_state.get("autonomy", 1)
 
         # Invest in Vassal
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
         from backend.game_logic.vassal import LOYALTY_MAX
         invest_available = True
         invest_reason = ""
@@ -14396,17 +14789,24 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         elif dp < 1:
             invest_available = False
             invest_reason = "Insufficient DP"
-        elif gold < 200:
+        elif (_invest_chest := chest_of(world, player))[1] < 200:
+            # S14E-X187: the verb's own chest (`instruments.chest_of`), read
+            # only once the earlier gates have passed
             invest_available = False
             invest_reason = "Insufficient Gold"
-        actions.append({
+        invest_row = {
             "action": "invest_vassal",
             "display_name": "Invest in Vassal",
             "dp_cost": 1,
             "gold_cost": 200,
             "available": invest_available,
             "disabled_reason": invest_reason,
-        })
+        }
+        if invest_reason == "Insufficient Gold" and _invest_chest[1] < _invest_chest[0]:
+            # the gold a shut row lacks, said with the chest's own figures
+            invest_row["disabled_reason_display"] = (
+                f"Needs 200 gold; {_invest_chest[1]:,} held{FREE_OF_OBLIGATIONS}")
+        actions.append(invest_row)
 
         # Increase Autonomy
         from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS
@@ -14728,7 +15128,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         available, reason = mission_gate(
             world, mission_type,
             undermine_has_ally=lambda: _has_any_ally(world, target_nation))
-        return {
+        row = {
             "action": action_key,
             "display_name": display,
             "dp_cost": int(cost),
@@ -14736,6 +15136,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "disabled_reason": reason,
             "effect_text": _MISSION_EFFECT_SHORT.get(mission_type, ""),
         }
+        if reason == _MISSION_BUSY:
+            # S14E-34: the client shows `disabled_reason_display` first.
+            row["disabled_reason_display"] = mission_busy_words(world)
+        return row
 
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
@@ -15200,8 +15604,10 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
     honesty. The guarantee is world-agnostic like the D5 record itself.
     """
     from backend.game_logic.instruments import (
+        FREE_OF_OBLIGATIONS,
         GUARANTEE_WEIGHT_DETERRENT,
         INSTRUMENT_DP_COST,
+        chest_of,
         compute_buyoff_price,
         guarantors_of,
     )
@@ -15310,10 +15716,13 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         elif not has_design or price is None:
             buyoff_ok, reason = (
                 False, "They want nothing that gold can put to sleep.")
-        elif treasury < int(price):
+        elif (_chest := chest_of(world, player))[1] < int(price):
+            # S14E-X157: the verb's own chest (`instruments.chest_of`), read
+            # only once the earlier gates have passed
             buyoff_ok, reason = (
                 False, f"Their price is {int(price)}g — the treasury "
-                       f"holds {treasury}g.")
+                       f"holds {_chest[1]}g"
+                       f"{FREE_OF_OBLIGATIONS if _chest[1] < _chest[0] else ''}.")
         else:
             buyoff_ok, reason = True, ""
         price_label = f" ({int(price)}g)" if price is not None else ""
@@ -15497,6 +15906,12 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
                             rec_coverage=list((_counsel or {}).get("best_coverage") or []))
     # PC-F41: every peace row names the courts it addresses.
     actions = name_the_courts_a_peace_row_addresses(world, target_nation, actions)
+    # S14E-D7 / S14E-X34: where the counsel's lever is said ("A payment of 875
+    # gold … Open Settlement with Britain alone, then Offer gold"), the road it
+    # names is a row, opening the table with that payment staged.
+    from backend.game_logic.cabinet_rows import lever_table_actions
+    actions = lever_table_actions(world, player, target_nation, actions,
+                                  list((_counsel or {}).get("roads") or []))
     response["actions"] = actions
     # IQ-4: the machine key the counsel names (display-only, GR6) — the
     # playtest driver's advisor arm reads it; absent when nothing is named.
@@ -15921,7 +16336,9 @@ def name_the_courts_a_peace_row_addresses(world, target_nation: str,
     stamped by the counsel (`counsel_coverage`, K item 6) or is the war's
     whole table. The row's `display_name` says which — "Propose White Peace
     — with Austria alone" / "— the whole table: Austria, Britain and Russia"
-    — and `addresses` carries the courts for the client."""
+    — and `addresses` carries the courts for the client. S14E-X128: an
+    `open_settlement` row narrowed to part of the war's table also carries
+    `echo_display_only` (its typed echo would open the whole table)."""
     from backend.game_logic.formations import formed_display_name as _fdn
     from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
     player = getattr(world, "player_nation", "France")
@@ -15943,6 +16360,15 @@ def name_the_courts_a_peace_row_addresses(world, target_nation: str,
         if not covered:
             continue
         row["addresses"] = list(covered)
+        # S14E-X128: a settlement row the counsel narrowed to part of the war's
+        # table opens that part by the structured road only - its typed echo
+        # ("propose common peace with Britain") opens the WHOLE table. The
+        # flag tells the wizard to stamp a display-only `echo_key` on it
+        # (CN-4: an echo that cannot be typed is display copy); a stamp that
+        # IS the whole table keeps a typeable echo.
+        if (action == "open_settlement" and row.get("counsel_coverage") and whole
+                and sorted(covered) != sorted(whole)):
+            row["echo_display_only"] = True
         names = [_fdn(world, n) for n in covered]
         base = str(row.get("display_name") or "")
         if len(covered) == 1:

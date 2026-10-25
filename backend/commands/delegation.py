@@ -463,9 +463,12 @@ def describe_cautious_delegation(match: DelegationMatch,
     # Reissue hint uses the humanized DISPLAY (never the raw camelCase key) —
     # _resolve_target now resolves the spaced form too, so the suggested typed
     # command parses (R7 — no internal key in player copy).
+    # S14E-X144: the quoted attack is taught with its free preview.
+    from backend.commands.movement_executor import attack_preview_hint_for
     return (f'{match.marshal}, cautious as ever, {deed} — it costs a turn. '
             f'Say "{match.marshal}, attack {match.target_display}" to press the '
-            f'assault instead.')
+            f'assault instead. '
+            + attack_preview_hint_for(match.marshal, match.target_display))
 
 
 def describe_inferred_bad_odds(marshal_name: str, enemy_name: str,

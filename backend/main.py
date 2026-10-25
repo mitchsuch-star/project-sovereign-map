@@ -249,17 +249,59 @@ def _readable_dispatch(target_world: WorldState) -> dict:
     latches `last_expectation_seen`, re-adds notification families and rolls
     `check_sabotage_discovery` — pressing R would re-roll sabotage. A read
     must not mutate, and this one does not: `dict(...)` twice, then a pure
-    builder."""
+    builder.
+
+    S14E-30 (S14f part 2): MARSHAL STATUS is re-derived on read the same way.
+    The briefing is built inside the end turn, AFTER the advance has raised a
+    marshal's first-step interrupt, so his stored row reads "HALTED at Tyrol —
+    awaiting your word"; "Continue as Ordered" then marches him on, and the R
+    re-read went on saying HALTED for the rest of the turn. The section is a
+    pure read of the roster (`_build_marshal_status`: no consuming arm, the
+    same builder the boot briefing runs), replaced in the COPY only.
+
+    S14E-X122 (S14f part 2): the HEADLINE and Berthier's NOTE are the morning's
+    too, and are NOT re-derived: the headline pick is not a pure read of the
+    board (its exact-repeat demotion reads `last_morning_dispatch`, the
+    streak / escalation ladder reads `headline_lead_memory`; on a re-read the
+    stored headline would be its own "yesterday" and demote itself). Instead
+    the COPY carries `stale_headline: True` when a corps' location or status
+    differs from the stored row (`_dispatch_roster_moved`), and both dispatch
+    screens caption the headline and note "as of this morning"."""
     dispatch = getattr(target_world, "last_morning_dispatch", None)
     if not dispatch:
         return {}
+    from backend.game_logic.dispatch import _build_marshal_status
     from backend.game_logic.dotation import build_unmet_marshals
+    from backend.nation_config import get_player_nation
     dispatch = dict(dispatch)
     situation = dict(dispatch.get("situation") or {})
     situation["unmet_marshals"] = build_unmet_marshals(
         target_world, target_world.player_nation)
     dispatch["situation"] = situation
+    try:
+        live_rows = _build_marshal_status(
+            target_world, get_player_nation(target_world))
+        # S14E-X122: the headline and Berthier's note stay the morning's (see
+        # the docstring) - say so when the board they describe has moved.
+        if _dispatch_roster_moved(dispatch.get("marshals"), live_rows):
+            dispatch["stale_headline"] = True
+        dispatch["marshals"] = live_rows
+    except Exception as exc:
+        # A read must never fail a /load or a /new_game over a section it can
+        # still serve from the store: keep the morning's rows, and say so.
+        _errors.report(exc, "main._readable_dispatch: dispatch._build_marshal_status")
     return dispatch
+
+
+def _dispatch_roster_moved(stored_rows, live_rows) -> bool:
+    """S14E-X122: has any corps' WHERE or WHAT changed since the stored
+    briefing was written? The headline's subject is a corps and a place
+    ("Massena and Teulie stand 31,319 men at Tyrol"), so a changed location or
+    status row is the headline gone stale; a casualty or a trust point is not."""
+    def _keyed(rows):
+        return {str((r or {}).get("name") or ""): ((r or {}).get("location"), (r or {}).get("status"))
+                for r in (rows or []) if isinstance(r, dict)}
+    return _keyed(stored_rows) != _keyed(live_rows)
 
 
 def _reset_world_state(
@@ -608,7 +650,25 @@ def _pending_notifications(world) -> list:
         restate_counter_punch_notices(world)
     except Exception as exc:  # pragma: no cover - the rail is display
         _errors.report(exc, "main._pending_notifications: import backend.game_logic.dispatch")
-    return world.notifications.get_pending()
+    return [_notification_for_wire(n) for n in world.notifications.get_pending()]
+
+
+def _notification_for_wire(notification):
+    """S14E-X170 (Golden Rule 2): a notice's `details` is metadata the rail
+    reads by name (`action_command`, `review_target`, `icon` ...) - none a
+    float - but a producer that merges its working data into it (the Balance
+    of Europe beat's `share`, 0.37, beside the `share_pct` it already carries)
+    put a float on the wire. The wire copy drops the floats; the stored notice
+    keeps them (the campaign log and the dispatch read the same data)."""
+    details = notification.get("details") if isinstance(notification, dict) else None
+    if not isinstance(details, dict):
+        return notification
+    clean = _without_floats(details)
+    if clean == details:
+        return notification
+    out = dict(notification)
+    out["details"] = clean
+    return out
 
 
 def _gold_projected_net(world):
@@ -629,6 +689,18 @@ def _end_turn_army_warning(world):
         return end_turn_army_warning(world, world.player_nation)
     except Exception as exc:
         _errors.report(exc, "main._end_turn_army_warning: dispatch.end_turn_army_warning")
+        return None
+
+
+def _end_turn_peril_warning(world):
+    """S14E-X31: the end-turn gate's second clause - a corps sharing its
+    province with an enemy force at `PERIL_RATIO` times its strength or more
+    (`dispatch.end_turn_peril_warning`), or None."""
+    try:
+        from backend.game_logic.dispatch import end_turn_peril_warning
+        return end_turn_peril_warning(world, world.player_nation)
+    except Exception as exc:
+        _errors.report(exc, "main._end_turn_peril_warning: dispatch.end_turn_peril_warning")
         return None
 
 
@@ -687,6 +759,13 @@ def build_base_response(world, success: bool = True, message: str = "",
         ) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+        # S14E-18 (S14f part 2): the Cabinet's letter lock, said once — the
+        # wizard refuses a new act while an offer stands (`dialogue_pending`'s
+        # offers arm), and the Cabinet button says so before it is clicked.
+        "cabinet_locked": bool(world.dialogue_manager.has_current_turn_offers()),
+        # S14E-X92: the turn a standing call to arms keeps it shut to (0 = it
+        # lifts when the turn ends) - the tooltip's sentence names it.
+        "cabinet_locked_until": _cabinet_locked_until(world),
         # Aug 30, 2026 review: the badge counts every letter in the book;
         # the end-turn LAPSE warning must count only the ones that lapse.
         # A persistent settlement offer survives the turn by design, so
@@ -718,6 +797,9 @@ def build_base_response(world, success: bool = True, message: str = "",
         # army beside them, as ONE sentence (a string, or null), so the
         # client's one end-turn gate can ask it at the click.
         "end_turn_army_warning": _end_turn_army_warning(world),
+        # S14E-X31: the same gate's second clause - IN PERIL at the click,
+        # on the same once-per-End-Turn latch (a string, or null).
+        "end_turn_peril_warning": _end_turn_peril_warning(world),
     }
     response.update(extra)
     # S14d (docs/TABLE_LESSON_SPEC.md §3): every dialogue-borne payload leaves
@@ -725,6 +807,12 @@ def build_base_response(world, success: bool = True, message: str = "",
     # the executor's forwarded results (`_build_result_response` forwards every
     # key); the stored dialogue never gains the key.
     _wire_result_dialogues(world, response)
+    # S14E-X161 (Golden Rule 2): the objection payload, float-free, on a copy.
+    _wire_objection(response)
+    # S14E-X172: and the turn's events (the tactical events are cleaned where
+    # they are attached, `_include_command_tactical_events`).
+    if isinstance(response.get("events"), (list, tuple)):
+        response["events"] = _events_for_wire(response["events"])
     if _terminal_record is not None:
         _attach_terminal_ending(response, world, _terminal_record)
     # FA-39: the player's parse provenance, display-only (GR6). Sited HERE
@@ -744,7 +832,12 @@ def build_base_response(world, success: bool = True, message: str = "",
     if _provenance:
         _PARSE_PROVENANCE.set(None)
         response.setdefault("parse_mode", _provenance[0])
-        response.setdefault("parse_confidence", _provenance[1])
+        # S14E-X100 (Golden Rule 2): a whole percent (62), not the parser's
+        # 0..1 float - the digest divides it back for its "0.62" mark.
+        _conf = _provenance[1]
+        response.setdefault("parse_confidence", (
+            int(round(float(_conf) * 100))
+            if isinstance(_conf, (int, float)) and not isinstance(_conf, bool) else None))
     # C1 (the release build): a live parse that FAILED is said once per
     # session, quietly — the offline parser read the order — and its kind
     # feeds the Settings status line ("Key rejected").
@@ -1144,6 +1237,49 @@ def _pending_lapsing_moments(world) -> list:
     except Exception as exc:
         _errors.report(exc, "main._pending_lapsing_moments: lapse_gate_rows")
         return []
+
+
+def _dialogue_pending_name(world) -> str:
+    """S14E-X91: the dialogue that keeps the Cabinet shut, by its player-facing
+    name (`display_names.dialogue_display_name`) - "the terms you are
+    drafting", "a war purpose yet to be declared" - so the wizard's notice can
+    say WHICH matter awaits an answer. "" when the lock is a letter (the
+    offers arm is the envoy count's, which the notice names itself) or when
+    nothing gates the wizard."""
+    try:
+        dm = world.dialogue_manager
+        if not (dm.is_hard_stop() or dm.is_local_planning()):
+            return ""
+        from backend.display_names import dialogue_display_name
+        return dialogue_display_name(str((dm.peek() or {}).get("type") or ""))
+    except Exception as exc:
+        _errors.report(exc, "main._dialogue_pending_name: dialogue_display_name")
+        return ""
+
+
+def _cabinet_locked_until(world) -> int:
+    """S14E-X92: the turn the Cabinet's lock outlives "the turn ends".
+
+    A routine letter lapses when the turn ends; an ally's call to arms stands
+    to its answer-by turn (`call_to_arms.keeps_open`), so on its first turn the
+    sentence "or the turn ends" is a turn early. Returns the latest answer-by
+    turn of a standing call to arms while it is still ahead of the current turn,
+    else 0 (the generic sentence is exact). Rides `cabinet_locked`."""
+    try:
+        dm = world.dialogue_manager
+        if not dm.has_current_turn_offers():
+            return 0
+        from backend.game_logic import call_to_arms as _cta
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        until = 0
+        for item in [dm.peek()] + list(dm.iter_queue()):
+            if (item and item.get("type", "") in dm.CURRENT_TURN_OFFER_TYPES
+                    and _cta.is_call_to_arms(item)):
+                until = max(until, int(_cta.answer_by_turn(_cta.call_terms_of(item))))
+        return int(until) if until > turn else 0
+    except Exception as exc:
+        _errors.report(exc, "main._cabinet_locked_until: call_to_arms.answer_by_turn")
+        return 0
 
 
 def _copy_truthy_result_fields(
@@ -2071,8 +2207,8 @@ def _include_command_tactical_events(response: dict, result: dict, world) -> Non
     """Pass through fog-filtered tactical events for the turn log."""
     tactical_events = result.get("tactical_events")
     if tactical_events:
-        response["tactical_events"] = _filter_tactical_events_by_visibility(
-            tactical_events, world
+        response["tactical_events"] = _events_for_wire(   # S14E-X172: float-free
+            _filter_tactical_events_by_visibility(tactical_events, world)
         )
 
 
@@ -2875,6 +3011,10 @@ class CommandRequest(BaseModel):
     # PC-R7 (ii) part 3: the Cabinet's "Outbid <payer>'s Bond" opens the table
     # with France's bid staged — the gold that pays the bond's table price.
     bond_bid: int | None = None
+    # S14E-D7 / S14E-X34: the Cabinet's "Open Settlement with <court> alone"
+    # (the counsel's lever) opens the table with the payment the counsel quoted
+    # staged — the offer row opens at that sum, not at its default.
+    gold_offer: int | None = None
     # GT-Slice-4: the SC-5R editor's structured Submit-for-Review fields
     # (`settlement_terms` / `selected_target_nation` /
     # `covered_enemy_participants`) are removed with the freeform editor
@@ -2993,15 +3133,30 @@ def test_connection():
         "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
+        "cabinet_locked": bool(world.dialogue_manager.has_current_turn_offers()),   # S14E-18
+        "cabinet_locked_until": _cabinet_locked_until(world),   # S14E-X92
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
         "pending_marshal_decisions": _pending_marshal_decisions(world),
         # PC15-10 B1: the antechamber's badge from the first frame.
         "marshal_audience": _marshal_audience(world),
+        # S14E-X146: the boot header and the End Turn gate from the first
+        # frame, not the first response - the same three builders every POST
+        # envelope carries (`build_base_response`), so the two roads cannot
+        # disagree ("432" here, "432 (-486 next turn)" one click later).
+        "gold_projected_net": _gold_projected_net(world),
+        "end_turn_army_warning": _end_turn_army_warning(world),
+        "end_turn_peril_warning": _end_turn_peril_warning(world),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)
+    # S14E-X154 (XP2's sweep): the formed-nation overrides ride this door too -
+    # `api_client._adopt_formation_overrides` reads them off every 200 body,
+    # and a plain entry to a campaign with a formed nation is the one road
+    # whose first body had none (NA-6 §11.8 stage 3: no surface may show the
+    # dead name).
+    _attach_nation_identity_overrides(response, world)
     return response
 
 
@@ -3750,6 +3905,8 @@ def _command_parse(ctx: CommandContext):
                 ctx.request.counsel_coverage)
         if ctx.request.bond_bid:
             ctx.parsed["command"]["bond_bid"] = int(ctx.request.bond_bid)
+        if ctx.request.gold_offer:
+            ctx.parsed["command"]["gold_offer"] = int(ctx.request.gold_offer)
         # DDB-R1: the answered ask's flags ride the re-parsed order (the
         # pursuit ask's answer is the attack, confirmed).
         for _flag, _value in (getattr(ctx, "_reissue_flags", None) or {}).items():
@@ -4375,13 +4532,33 @@ def _command_ordinary_road(ctx: CommandContext):
                 # DD0-19 (S4 part 4, October 11, 2026): "Send the fleet
                 # to attack Swabia" — the fleet is the Admiralty's and
                 # no corps; a province is attacked by a marshal.
+                # S14E-X175: the corps quoted is a LIVE pair from the board
+                # (the counsel's own first attack), taught with its free
+                # preview; the static example stays when none is lawful today.
+                from backend.commands.movement_executor import (
+                    attack_preview_hint_for as _preview_hint,
+                    live_attack_example as _live_attack)
+                _live = _live_attack(world)
+                _quoted = (f"a foe is attacked by a marshal — '{_live[0]}, attack {_live[1]}'"
+                           if _live else
+                           "a province is attacked by a marshal — 'Ney, attack Swabia'")
                 refusal_msg = (
                     "Berthier sets the dispatch aside. \"The fleet is not a "
                     "corps, Sire — it cannot attack a province, and I have "
                     "relayed nothing. A fleet takes a posture, lands men or "
                     "makes a diversion from THE ADMIRALTY's buttons (press "
-                    "T, then 7); a province is attacked by a marshal — "
-                    "'Ney, attack Swabia'.\"")
+                    f"T, then 7); {_quoted}. "
+                    + _preview_hint(*(_live or ("Ney", "Swabia"))) + "\"")
+            elif ctx.parsed["refusal"] == "stand_down_is_no_order":
+                # S14E-X177: "everyone stand down" / "everyone rest" - words
+                # the game has no order for; the two it does have are named.
+                _word = str(_detail.get("word") or "stand down")
+                _who = str(_detail.get("marshal") or "Ney")
+                refusal_msg = (
+                    f"Berthier sets the dispatch aside. \"'{_word.capitalize()}' "
+                    f"is no order I know, Sire, and I have relayed nothing. "
+                    f"To halt a corps where it stands: '{_who}, hold'; to "
+                    f"recall every standing order: 'everyone stop'.\"")
             elif ctx.parsed["refusal"] == "no_letter_asks_for_men":
                 # DD0-20 (S5, October 11, 2026): "ask Bavaria for more
                 # troops" — a court's men are not asked for by letter.
@@ -5047,7 +5224,8 @@ def get_pending_objection():
         # writes (CA9's missed copy), so it never named a real compromise.
         "choices": tactical_objection_answers(objection),
         "alternative": objection.get("suggested_alternative") or objection.get("alternative"),
-        "original_order": objection.get("original_order")
+        # S14E-X161: the parse echo, without the parser's 0..1 `confidence`.
+        "original_order": _without_floats(objection.get("original_order"))
     }
 
 
@@ -5246,6 +5424,9 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
         from backend.commands import group_orders as _group
         _group.attach(response, _group.resume(
             world, game_state, parser, executor, get_llm_game_state()), world)
+        # S14E-X194 (Golden Rule 2): the resumed column's events join the reply
+        # AFTER `build_base_response` scrubbed it — scrub the merged list too.
+        response["events"] = _events_for_wire(response.get("events"))
 
         # V2b: Defiance passthrough
         if result.get("defiance"):
@@ -5869,6 +6050,9 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         from backend.commands import group_orders as _group
         _group.attach(response, _group.resume(
             world, game_state, parser, executor, get_llm_game_state()), world)
+        # S14E-X194 (Golden Rule 2): the resumed column's events join the reply
+        # AFTER `build_base_response` scrubbed it — scrub the merged list too.
+        response["events"] = _events_for_wire(response.get("events"))
         return response
     except Exception as e:
         _errors.report(e, "main.handle_strategic_response: the route", every=True)
@@ -6495,7 +6679,11 @@ def get_campaign_log():
         if t not in turns:
             turns[t] = []
         turns[t].append({
-            **{k: (int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v)
+            # S14E-X173 (Golden Rule 2): a float at the top is cast, and a
+            # float NESTED in a field (the settlement event's
+            # `participant_reactions[].material_share`) is dropped - the log
+            # screen reads the `display` line, never a nested figure.
+            **{k: (int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else _without_floats(v))
                for k, v in event.items() if k != "battle_report"},
             # NA-6 §11.8 stage 3: the log re-derives names from the stored
             # raw tag via the STATIC display_nation, so a POST-formation
@@ -6827,7 +7015,8 @@ def get_mailbox():
     promote_pending_settlement_offers(world)
     dm = world.dialogue_manager
 
-    items = list(dm.get_mailbox_items())
+    # S14E-27: the world is the reader of a row's reason (the sender's tier).
+    items = list(dm.get_mailbox_items(world))
     return {
         "success": True,
         "items": items,
@@ -7196,14 +7385,14 @@ def _diplomatic_preview_payload(
     if mode == "settlement":
         try:
             from backend.game_logic.settlement_staging import build_settlement_preview
-            return build_settlement_preview(
+            return _settlement_response_for_wire(build_settlement_preview(
                 world,
                 war_id=war_id,
                 proposer_side=proposer_side or None,
                 settlement_terms=[],
                 actor_nation=getattr(world, "player_nation", "France"),
                 density=density,
-            )
+            ))
         except Exception as e:
             _errors.report(e, "main.get_diplomatic_preview_endpoint: the route", every=True)
             return {"success": False, "error": str(e), "mode": "settlement", "war_id": war_id, **_errors.debug_fields(e, "main.get_diplomatic_preview_endpoint: the route", DEBUG_MODE)}
@@ -7277,6 +7466,10 @@ def _diplomatic_preview_payload(
                 "mode": "nations",
                 "dp_available": int(dp),
                 "dialogue_pending": dialogue_pending,
+                # S14E-X91 / S14E-X92: WHICH dialogue gates the wizard, and the
+                # turn a standing call to arms keeps the Cabinet shut to.
+                "dialogue_pending_name": _dialogue_pending_name(world),
+                "cabinet_locked_until": _cabinet_locked_until(world),
                 "pending_envoy_count": int(dm.get_mailbox_count()),
                 "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
                 "pending_lapsing_petitions": _pending_lapsing_petitions(world),
@@ -7317,6 +7510,8 @@ def _diplomatic_preview_payload(
                 or world.dialogue_manager.has_current_turn_offers()
                 or world.dialogue_manager.is_local_planning()
             ),
+            "dialogue_pending_name": _dialogue_pending_name(world),   # S14E-X91
+            "cabinet_locked_until": _cabinet_locked_until(world),   # S14E-X92
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
             "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
             "pending_lapsing_petitions": _pending_lapsing_petitions(world),
@@ -7377,7 +7572,7 @@ def post_diplomatic_preview_endpoint(request: dict):
                 "disabled_reason_display": validation.get("disabled_reason_display"),
                 "mutated": False,
             }
-        return build_settlement_preview(
+        return _settlement_response_for_wire(build_settlement_preview(
             world,
             war_id=war_id_str,
             proposer_side=request.get("proposer_side"),
@@ -7385,7 +7580,7 @@ def post_diplomatic_preview_endpoint(request: dict):
             covered_enemy_participants=request.get("covered_enemy_participants"),
             actor_nation=actor,
             density=str(request.get("density") or "medium"),
-        )
+        ))
     except Exception as e:
         _errors.report(e, "main.post_diplomatic_preview_endpoint: the route", every=True)
         return {
@@ -7593,13 +7788,65 @@ def get_formables():
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════
 
+# S14E-X162 (Golden Rule 2): the scorer's own working — `component_debug` (the
+# ceilings, scales and shares it computed, all 0..1 floats) and the package's
+# `raw_total_harshness` — rides every staged settlement preview in-process
+# (the tests, `tools/_table_board_probe.py` and the Cabinet's blocker sentence
+# read it) but NO .gd reads either key, and Godot crashes on a float. The wire
+# copy leaves without them; the stored dialogue keeps both.
+_SETTLEMENT_WIRE_DROPS = ("component_debug", "raw_total_harshness")
+
+
+def _settlement_preview_for_wire(preview):
+    """A `settlement_preview` body on a COPY with the scorer's debug dropped
+    from its `acceptance` block; the same object when there is nothing to drop
+    (so the stored body is never mutated, and a clean one is not re-copied)."""
+    if not isinstance(preview, dict):
+        return preview
+    acceptance = preview.get("acceptance")
+    if not isinstance(acceptance, dict) or not any(k in acceptance for k in _SETTLEMENT_WIRE_DROPS):
+        return preview
+    out = dict(preview)
+    out["acceptance"] = {k: v for k, v in acceptance.items() if k not in _SETTLEMENT_WIRE_DROPS}
+    return out
+
+
+def _settlement_response_for_wire(payload):
+    """A `build_settlement_preview` result (the `/diplomatic_preview`
+    settlement mode, GET and POST) on a COPY whose `settlement_preview` body
+    has left without the scorer's debug."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("settlement_preview"), dict):
+        return payload
+    clean = _settlement_preview_for_wire(payload["settlement_preview"])
+    if clean is payload["settlement_preview"]:
+        return payload
+    out = dict(payload)
+    out["settlement_preview"] = clean
+    return out
+
+
+def _dialogue_settlement_for_wire(dialogue):
+    """A dialogue carrying a staged `settlement_preview`, on a COPY whose
+    preview has left without the scorer's debug (see `_SETTLEMENT_WIRE_DROPS`)."""
+    if not isinstance(dialogue, dict) or not isinstance(dialogue.get("settlement_preview"), dict):
+        return dialogue
+    clean = _settlement_preview_for_wire(dialogue["settlement_preview"])
+    if clean is dialogue["settlement_preview"]:
+        return dialogue
+    out = dict(dialogue)
+    out["settlement_preview"] = clean
+    return out
+
+
 def _wire_dialogue(active_world, dialogue):
     """S14d (docs/TABLE_LESSON_SPEC.md §3): a dialogue-borne payload leaves with
     its first-open line on a COPY — the stored dialogue never gains the key,
     so a re-serve after the acknowledgement carries none. Everything that is
-    not a dialogue of a lined screen passes through untouched."""
+    not a dialogue of a lined screen passes through untouched. S14E-X162: and a
+    staged settlement table leaves without the scorer's debug floats, also on
+    a copy."""
     from backend.game_logic import first_open
-    return first_open.with_line(active_world, dialogue)
+    return _dialogue_settlement_for_wire(first_open.with_line(active_world, dialogue))
 
 
 def _wire_result_dialogues(active_world, result: dict) -> dict:
@@ -7608,7 +7855,72 @@ def _wire_result_dialogues(active_world, result: dict) -> dict:
         for key in ("incoming_proposal", "diplomatic_dialogue", "incoming_settlement_offer"):
             if isinstance(result.get(key), dict):
                 result[key] = _wire_dialogue(active_world, result[key])
+        # S14E-X162: the staged table also rides the /command response as a
+        # top-level `settlement_preview` (the same body the dialogue carries).
+        if isinstance(result.get("settlement_preview"), dict):
+            result["settlement_preview"] = _settlement_preview_for_wire(result["settlement_preview"])
     return result
+
+
+# S14E-X161 (Golden Rule 2): the objection payload leaves with floats the
+# executor's own mechanic needs and no .gd reads: `severity` (the legacy 0..1
+# scale, `concern_level` carries the same meaning in words), and the parse
+# echoes (`original_order` / `original_command` / `parsed_command`, whose
+# `confidence` is the parser's 0..1). The ONE float the client reads is the
+# anti-pushover damper `trust_gain_modifier` (objection_dialog.gd prints
+# "trust rewards x0.50" under it) — it goes as a whole percent (100 = nothing
+# damped), and the dialog divides. The executor's `objection` dict stays as it
+# is (it is `world.pending_objection`, and the answer handlers read it back).
+_OBJECTION_ECHO_KEYS = ("original_order", "original_command", "parsed_command")
+
+
+def _without_floats(value):
+    """`value` with every float-valued dict entry and list item dropped,
+    recursively — for payloads (the parse echoes) nobody on the wire reads."""
+    if isinstance(value, dict):
+        return {k: _without_floats(v) for k, v in value.items() if not isinstance(v, float)}
+    if isinstance(value, (list, tuple)):
+        return [_without_floats(v) for v in value if not isinstance(v, float)]
+    return value
+
+
+def _events_for_wire(events):
+    """S14E-X172 (Golden Rule 2): the turn's events (`events`,
+    `tactical_events`) are the busiest channel of every End Turn, and an event
+    producer's working figure (the held-by-the-odds glory beat's `ratio`,
+    0.396) put a float on it that no `.gd` reads - the beat's sentence already
+    says the odds in words. The wire copy drops a float-valued field of an
+    event; the stored events (the pending turn events, the log) keep it."""
+    if not isinstance(events, (list, tuple)):
+        return events
+    return [_without_floats(e) if isinstance(e, dict) else e for e in events]
+
+
+def _objection_for_wire(objection):
+    """An objection payload on a COPY, float-free: no legacy `severity`, the
+    damper as a whole percent, the parse echoes without their floats."""
+    if not isinstance(objection, dict):
+        return objection
+    out = dict(objection)
+    if isinstance(out.get("severity"), float):
+        del out["severity"]
+    if isinstance(out.get("trust_gain_modifier"), float):
+        out["trust_gain_modifier"] = int(round(out["trust_gain_modifier"] * 100))
+    for key in _OBJECTION_ECHO_KEYS:
+        if key in out:
+            out[key] = _without_floats(out[key])
+    return out
+
+
+def _wire_objection(response: dict) -> dict:
+    """The objection a response carries (`objection`, and the tactical
+    objection's top-level `severity` mirror) leaves float-free, on a copy."""
+    if isinstance(response, dict):
+        if isinstance(response.get("objection"), dict):
+            response["objection"] = _objection_for_wire(response["objection"])
+        if isinstance(response.get("severity"), float):
+            del response["severity"]
+    return response
 
 
 class FirstOpenRequest(BaseModel):

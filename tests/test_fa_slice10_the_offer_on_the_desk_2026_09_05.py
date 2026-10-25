@@ -942,10 +942,12 @@ class TestTheAssessmentReadsOurBurden:
             "demands": [{"type": "gold_lump", "value": 405}]})
         snapshot = payload["war_context_snapshot"]
         assert snapshot["harshness_label"] != "generous"
+        # S14E-X6 FLIPPED the unit: a whole percent on the wire (Golden Rule 2)
         assert snapshot["harshness"] == pytest.approx(
-            calculate_treaty_harshness(
+            100 * calculate_treaty_harshness(
                 {"clauses": [], "demands": [{"type": "gold_lump", "value": 405}]}),
-            abs=0.01)
+            abs=1)
+        assert isinstance(snapshot["harshness"], int)
         assert payload["harshness_label"] == snapshot["harshness_label"]
 
     def test_a_gift_to_france_is_not_harsh(self, fixture_board):

@@ -1680,14 +1680,21 @@ class EconomyExecutor:
         # player-facing only.
         import re as _re
         _raw_recruit = (command.get("raw_command") or "").lower()
+        # S14E-X141: "recruit TWO infantry" names a COUNT of levies, not an
+        # amount of men -- the small figure before a unit noun is said not to
+        # be read (below), never noted as "your 2" by PF-7.
+        from backend.commands.naval_executor import recruit_count_in
+        _counted = self._typed_count(command, raw_text, recruit_count_in)
         _amt = _re.search(r'(\d[\d,]*)\s*(k|thousand)?', _raw_recruit)
         if _amt:
             _req = int(_amt.group(1).replace(",", ""))
             if _amt.group(2):
                 _req *= 1000
-            if _req > 0 and _req != full_corps_size:
+            if _req > 0 and _req != full_corps_size and _req != _counted:
                 base_message += (f" (recruitment is drafted in fixed corps of "
                                  f"{full_corps_size:,}, Sire — your {_req:,} is noted)")
+        base_message += self._unread_count_clause(
+            command, raw_text, "levy per order", reader=recruit_count_in)
 
         # Soft correction: player asked for wrong type
         soft_correction = ""
@@ -3069,6 +3076,36 @@ class EconomyExecutor:
             "new_state": game_state
         }
 
+    @staticmethod
+    def _typed_count(command: Dict, raw_text: str, reader=None) -> Optional[int]:
+        """S14E-X141: the count the PLAYER's typed line names, read by `reader`
+        (default: the buildings' reader) -- None for the AI's command (it
+        carries `_acting_nation` and no typed text) and when none is named."""
+        if (command or {}).get("_acting_nation"):
+            return None
+        from backend.commands.naval_executor import building_count_in
+        typed = (raw_text or (command or {}).get("raw_command")
+                 or (command or {}).get("raw_input") or "")
+        return (reader or building_count_in)(typed)
+
+    @staticmethod
+    def _unread_count_clause(command: Dict, raw_text: str, what: str,
+                             reader=None) -> str:
+        """S14E-X71 (the class of S14E-33): "build TWO depots in Paris" raises
+        ONE and the reply was silent about the other. The player's own typed
+        line (never the AI's: its command carries `_acting_nation` and no
+        typed text) is read with the ships' count reader, and a count above one
+        is said not to be read -- "; one building at a time per province -- the
+        two is not read". "" when no count above one is named. PURE.
+        S14E-X141: `reader` picks the noun set (the levy's, for "recruit two
+        infantry"); the buildings' is the default."""
+        named = EconomyExecutor._typed_count(command, raw_text, reader)
+        if not named or named < 2:
+            return ""
+        word = str(named) if named > 10 else ["", "one", "two", "three", "four", "five",
+                                              "six", "seven", "eight", "nine", "ten"][named]
+        return f"; one {what} — the {word} is not read"
+
     def _execute_build(self, command: Dict, game_state: Dict,
                        raw_text: str = "") -> Dict:
         """Build a building at a region. Costs admin AP + gold.
@@ -3103,7 +3140,12 @@ class EconomyExecutor:
         # Every region type can have exactly one watchtower.
         # ════════════════════════════════════════════════════════════
         if building_type == "watchtower":
-            return self._execute_build_watchtower(command, game_state, region_name)
+            built = self._execute_build_watchtower(command, game_state, region_name)
+            if built.get("success"):
+                # S14E-X71: "build two watchtowers" raises one.
+                built["message"] += self._unread_count_clause(
+                    command, raw_text, "watchtower to a province")
+            return built
 
         if not building_type or building_type not in BUILDING_TYPES:
             return {
@@ -3157,7 +3199,10 @@ class EconomyExecutor:
 
         return {
             "success": True,
-            "message": f"Construction started: {display_name} in {region_name} ({btype_info['build_time']} turns, {gold_cost} gold)",
+            "message": (f"Construction started: {display_name} in {region_name} ({btype_info['build_time']} turns, {gold_cost} gold)"
+                        # S14E-X71: a count above one in the typed line is not read.
+                        + self._unread_count_clause(
+                            command, raw_text, "building at a time per province")),
             "events": [{
                 "type": "build_started",
                 "region": region_name,
@@ -3331,7 +3376,9 @@ class EconomyExecutor:
                 world.record_gold_spent(repair_acting_nation, REPAIR_COST)
                 return {
                     "success": True,
-                    "message": f"Watchtower repair started in {region_name} (2 turns, {REPAIR_COST} gold)",
+                    "message": (f"Watchtower repair started in {region_name} (2 turns, {REPAIR_COST} gold)"
+                                # S14E-X183: "repair two forts" repairs one.
+                                + self._unread_count_clause(command, raw_text, "repair per order")),
                     "events": [{"type": "repair_building", "region": region_name, "building": "watchtower"}],
                     "new_state": game_state
                 }
@@ -3344,7 +3391,8 @@ class EconomyExecutor:
                     world.record_gold_spent(repair_acting_nation, REPAIR_COST)
                     return {
                         "success": True,
-                        "message": f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)",
+                        "message": (f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)"
+                                    + self._unread_count_clause(command, raw_text, "repair per order")),
                         "events": [{"type": "repair_building", "region": region_name, "building": building_type}],
                         "new_state": game_state
                     }
@@ -3359,7 +3407,8 @@ class EconomyExecutor:
         world.record_gold_spent(repair_acting_nation, REPAIR_COST)
         return {
             "success": True,
-            "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",
+            "message": (f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}"
+                        + self._unread_count_clause(command, raw_text, "repair per order")),
             "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": int(region.war_damage * 100)}],
             "new_state": game_state
         }

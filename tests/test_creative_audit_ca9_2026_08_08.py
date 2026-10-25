@@ -856,8 +856,13 @@ class TestF1SymmetricCommittedDefender:
 
         src = inspect.getsource(ce.CombatExecutor._build_muster_preview)
         assert "self._fog_banded_strength(enemy_marshal, world)" in src
-        # And the hedge line is built from what the player can SEE.
-        assert "get_visible_enemies" in src, (
+        # And the hedge line is built from what the player can SEE. (S14f
+        # part 2, S14E-17: the hedge row was lifted whole out of the builder -
+        # its 500-line ratchet - into `_defender_reinforcement_notes`; the
+        # builder calls it, and the fog rule lives in its home.)
+        assert "_defender_reinforcement_notes" in src
+        assert "get_visible_enemies" in inspect.getsource(
+            ce.CombatExecutor._defender_reinforcement_notes), (
             "the reinforcement hedge must be fog-honest")
 
     def test_the_hedge_never_names_a_corps_the_player_cannot_see(

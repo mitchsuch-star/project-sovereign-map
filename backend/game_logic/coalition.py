@@ -104,8 +104,10 @@ LEAGUE_SPEND_EXEMPT_SOURCES = (
 #   Europe's power (the band the code already names "anti-decay"); no
 #   league is active or brewing against it; some court is left to alarm;
 #   the Congress is not sitting (the player's hegemony only).
-#   Quiet turns: the current turn minus the latest `last_battle_turn` among
-#   the hegemon's marshals — any battle by the hegemon restarts the count.
+#   Quiet turns: the current turn minus the court's last battle
+#   (`last_battle_turn_of`: the world's `last_battle_turn_by_nation` store and
+#   its standing marshals' stamps, S14E-35) — any battle by the hegemon
+#   restarts the count, and no marshal's leaving takes it back.
 #   The watch (45, in-band 40–50): while the predicate holds, decay stops at
 #   45; below 45 decay does not run at all, so hegemony lifts a spent alarm
 #   back up. The fuse (16 quiet turns, in-band 12–20, never shorter than the
@@ -1608,19 +1610,40 @@ def _calculate_threat_decay(world, target: Optional[str] = None) -> int:
 # SR-G7 / PB-D1 — THE ARMED PEACE (one reading, five readers)
 # ════════════════════════════════════════════════════════════════
 
-def hegemon_quiet_turns(world, hegemon: str, ahead: int = 0) -> int:
-    """Turns since the hegemon's last battle — the latest `last_battle_turn`
-    among its standing marshals (both sides of a battle stamp it, so a
-    defence restarts the count too). A roster that never fought counts from
-    the boot. `ahead` reads the count as it will stand that many turns on,
-    with no battle in between (SF7-X45: the tick reads it one turn on)."""
-    turn = int(getattr(world, "current_turn", 0) or 0) + int(ahead)
+def roster_last_battle_turn(world, hegemon: str) -> int:
+    """The latest `last_battle_turn` among the hegemon's standing marshals
+    (strength above 0) — the clock's OLD reading, kept whole: a stand-down,
+    a destroyed corps or a strength of 0 erases the stamp it carried."""
     latest = 0
     for m in world.marshals.values():
         if m.nation != hegemon or getattr(m, "strength", 0) <= 0:
             continue
         latest = max(latest, int(getattr(m, "last_battle_turn", -1) or -1))
-    return max(0, turn - latest)
+    return latest
+
+
+def last_battle_turn_of(world, hegemon: str) -> int:
+    """S14E-35 — THE SEAM of the armed peace's clock: the turn of the court's
+    last battle, the max of the world's own record
+    (`world.last_battle_turn_by_nation`, written at the stamp sites by
+    `stamp_battle_turn`) and the standing roster's stamps. A marshal who
+    stood down or fell no longer takes the court's battle history with him
+    (sea #13: the count jumped 6 -> 16 in one turn). The series arm swaps
+    this one function for `roster_last_battle_turn` — the old behaviour; an
+    old save without the store reads exactly as it did."""
+    stored = int(((getattr(world, "last_battle_turn_by_nation", None) or {})
+                  .get(hegemon, 0)) or 0)
+    return max(stored, roster_last_battle_turn(world, hegemon))
+
+
+def hegemon_quiet_turns(world, hegemon: str, ahead: int = 0) -> int:
+    """Turns since the hegemon's last battle — the court's latest battle
+    (`last_battle_turn_of`; both sides of a battle stamp it, so a defence
+    restarts the count too). A court that never fought counts from the
+    boot. `ahead` reads the count as it will stand that many turns on, with
+    no battle in between (SF7-X45: the tick reads it one turn on)."""
+    turn = int(getattr(world, "current_turn", 0) or 0) + int(ahead)
+    return max(0, turn - last_battle_turn_of(world, hegemon))
 
 
 def armed_peace_reading(world, ahead: int = 0) -> Dict[str, Any]:
@@ -2157,7 +2180,8 @@ def _process_british_subsidy(world) -> List[Dict]:
     record_subsidy_transfer(world, payer, recipient, subsidy, "paymaster")
 
     # +5 relation between payer and recipient
-    world.modify_nation_relation(payer, recipient, 5)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, payer, recipient, 5, "paymaster_subsidy")
 
     from backend.game_logic.war_contribution import (
         accrue_support_event,
@@ -2438,9 +2462,12 @@ def form_coalition(qualifying_nations: List[str], world,
                 world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
 
     # 3. United cause: +10 relation between all coalition members
+    # (S14E-X37: booked on a live mission's pair — an UNDERMINE on two
+    # members is the case — the writes themselves unchanged)
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
     for i, m1 in enumerate(all_members):
         for m2 in all_members[i + 1:]:
-            world.modify_nation_relation(m1, m2, 10)
+            modify_relation_booked(world, m1, m2, 10, "coalition_cause")
 
     # 4. Select leader and determine posture
     leader = select_coalition_leader(all_members, world, target=france)
@@ -2631,8 +2658,9 @@ def join_coalition(world, nation: str) -> Dict:
     result = declare_war(world, nation, target)
     if not result.get("success"):
         return {"success": False, "message": result.get("message", "")}
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
     for member in members:
-        world.modify_nation_relation(nation, member, 10)
+        modify_relation_booked(world, nation, member, 10, "coalition_join", nation, member)
     coalition["members"] = sorted(set(members + [nation]))
     assign_coalition_war_objective(world, nation, target)
     # GE-3 review #26: the enrolment housekeeping `form_coalition` does for
@@ -3084,8 +3112,9 @@ def remove_coalition_member(nation: str, world,
     ))
 
     # §4b: -15 relation with remaining members ("betrayal")
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
     for member in members:
-        world.modify_nation_relation(nation, member, -15)
+        modify_relation_booked(world, nation, member, -15, "coalition_leave", nation, member)
 
     # Log event
     world.log_event({
@@ -3112,7 +3141,7 @@ def remove_coalition_member(nation: str, world,
         # -5 relation between remaining members ("alliance frays")
         for i, m1 in enumerate(members):
             for m2 in members[i + 1:]:
-                world.modify_nation_relation(m1, m2, -5)
+                modify_relation_booked(world, m1, m2, -5, "coalition_leader")
         events.append({
             "type": "coalition_leader_changed",
             "message": f"{new_leader} now leads the coalition.",
@@ -3506,9 +3535,10 @@ def process_coalition_turn(world) -> List[Dict]:
     # ────────── 3b. Coalition member relation friction (R11) ──────────
     if world.active_coalition:
         members = world.active_coalition.get("members", [])
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
         for i, member_a in enumerate(members):
             for member_b in members[i + 1:]:
-                world.modify_nation_relation(member_a, member_b, -2)
+                modify_relation_booked(world, member_a, member_b, -2, "coalition_friction")
 
     # ────────── 4. British subsidy (§4e) ──────────
     subsidy_events = _process_british_subsidy(world)
@@ -4035,6 +4065,10 @@ def _league_signature(world, tgt: str) -> tuple:
                          int(getattr(m, "last_battle_turn", -1) or -1))
                         for m in getattr(world, "marshals", {}).values()
                         if getattr(m, "nation", None) == tgt))
+    # S14E-35: the world's own record of the court's last battle moves the
+    # fuse too (a stamp with no marshal change must not read a stale forecast).
+    army += (("battle", int(((getattr(world, "last_battle_turn_by_nation", None)
+                              or {}).get(tgt, 0)) or 0)),)
     return (int(getattr(world, "current_turn", 0) or 0), tgt,
             int((getattr(world, "threat_by_target", {}) or {}).get(tgt, 0) or 0),
             int(getattr(world, "coalition_cooldown", 0) or 0), rel, states,

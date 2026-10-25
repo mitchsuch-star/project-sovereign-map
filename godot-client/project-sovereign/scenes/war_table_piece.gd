@@ -36,6 +36,13 @@ const VALID_ARMS := ["infantry", "cavalry", "artillery", "ship", "emperor"]
 # Texture cache shared across every piece — the sprites load at most once.
 static var _texture_cache := {}
 
+
+# S14E-X207: the cache holds path-loaded textures past the engine's resource
+# teardown ("resources still in use at exit") - released at the true exit
+# (AudioManager's `_exit_tree`). A piece drawn later would simply reload.
+static func release_static_caches() -> void:
+	_texture_cache.clear()
+
 var arm: String = "infantry"
 var facing: String = "r"
 var _frame_px: float = 84.0

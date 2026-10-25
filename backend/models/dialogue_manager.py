@@ -543,12 +543,17 @@ class DialogueManager:
                     and (keeps_open(item, current_turn)
                          or moments.keeps_open(item, current_turn)))
 
-    def get_mailbox_items(self) -> List[Dict]:
+    def get_mailbox_items(self, world=None) -> List[Dict]:
         """Return ordered list of mailbox items for the inbox panel.
 
         Returns dicts with: mailbox_id, state (ACTIVE/WAITING), source_nation,
         item_type, arrival_turn, summary. Active item first, then by
         mailbox_priority asc, mailbox_order asc.
+
+        S14E-27 (S14f part 2): each row also carries `terms_lines` (the
+        letter's own popup `clauses`) and `reason` (why a row that does not
+        answer in place opens in full — read against the `world` when one is
+        given, since the sender's tier is the world's; "" otherwise).
         """
         items = []
 
@@ -619,6 +624,9 @@ class DialogueManager:
             summary = summary.splitlines()[0]
             if len(summary) > 72:
                 summary = summary[:69].rstrip() + "..."
+            from backend.game_logic.envoy_digest import (
+                mailbox_row_reason, mailbox_row_terms,
+            )
             return {
                 "mailbox_id": d.get("mailbox_id", 0),
                 "state": "ACTIVE" if d is self._current else "WAITING",
@@ -627,6 +635,10 @@ class DialogueManager:
                 "proposal_type": ptype,
                 "arrival_turn": int(turn),
                 "summary_text": summary,
+                # S14E-27: the terms the popup will show, and why this row
+                # opens in full (a letter-book row answers in place: "").
+                "terms_lines": mailbox_row_terms(d),
+                "reason": mailbox_row_reason(d, world),
                 # SR-2d (SR-2-X5): "Britain — Settlement Offer, under Russia's
                 # good offices" — the source stays the belligerent, the
                 # mediation rides the label.

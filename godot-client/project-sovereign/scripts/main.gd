@@ -305,6 +305,10 @@ var _has_active_wars: bool = false
 var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
 var _dismissed_proposal_nation: String = ""  # PL-27: Suppress re-show after "Not Now"
 var _pending_envoy_request_active: bool = false
+# S14E-18: the Cabinet button's authored tooltip (kept to put back) and whether
+# a standing letter has the Cabinet shut (the backend's `cabinet_locked`).
+var _cabinet_tooltip_default: String = ""
+var _cabinet_locked: bool = false
 # IGR-F: the turn number the letter-book was last auto-raised on. -1 = never.
 var _envoy_digest_shown_turn: int = -1
 # The marshal a reward-rail notification asked us to open, held across the
@@ -413,6 +417,12 @@ var _treasury_warned: bool = false
 # gate stops once, re-arms when the sentence changes and when a gate passes.
 var end_turn_army_warning: String = ""
 var _army_warned: bool = false
+# S14E-X31: the gate's SECOND clause on the same latch (`_army_warned`) — a
+# corps sharing its province with an enemy force at 1.5x its strength or more
+# ("Ney's corps (17,000) stands in peril — an enemy force of ~52,000 shares
+# the field (Belgium).", `end_turn_peril_warning` on every response, "" when
+# none). The dawn dispatch's IN PERIL, said again at the click.
+var end_turn_peril_warning: String = ""
 var infantry_pool = 80000
 var cavalry_pool = 15000
 var artillery_pool = 10000
@@ -869,6 +879,14 @@ func _ready():
 	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
 		command_input.gui_input.connect(_on_command_input_gui_input)
 
+	# S14E-21: the line's placeholder follows its focus — released, it says
+	# how to get back ("Esc: menu · click to type"); regained, the default.
+	if not command_input.focus_exited.is_connected(_refresh_command_placeholder):
+		command_input.focus_exited.connect(_refresh_command_placeholder)
+	if not command_input.focus_entered.is_connected(_refresh_command_placeholder):
+		command_input.focus_entered.connect(_refresh_command_placeholder)
+	_refresh_command_placeholder()
+
 	# CX-3: the completion row and its one signal. `text_changed` was
 	# connected nowhere before this — a census of every .gd returned empty —
 	# so the completer costs no existing behaviour.
@@ -949,6 +967,33 @@ func _on_connection_test(response):
 	if response.success:
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]✓ Communications established![/color]")
 		add_output("")
+
+		# S14E-X146: the /test payload carries the projected net and the End
+		# Turn gate's two lines like every response, and they are set HERE,
+		# the way `_sync_response_hud` sets them (same order, same latches),
+		# ahead of the first gold paint below: the boot header read "432"
+		# with no "(-N next turn)" and the gate's lines were empty until the
+		# first response. This handler cannot call the sync itself: the sync
+		# ends in `_update_map_from_game_state`, which would run before the
+		# topology bootstrap below has the adjacency the map needs.
+		if response.get("gold_projected_net") != null:
+			var _net := int(response.get("gold_projected_net"))
+			if _net != gold_projected_net or not _has_gold_projected_net:
+				_treasury_warned = false
+			gold_projected_net = _net
+			_has_gold_projected_net = true
+		if response.has("end_turn_army_warning"):
+			var _army_raw = response.get("end_turn_army_warning")
+			var _army: String = "" if _army_raw == null else str(_army_raw)
+			if _army != end_turn_army_warning:
+				_army_warned = false
+			end_turn_army_warning = _army
+		if response.has("end_turn_peril_warning"):
+			var _peril_raw = response.get("end_turn_peril_warning")
+			var _peril: String = "" if _peril_raw == null else str(_peril_raw)
+			if _peril != end_turn_peril_warning:
+				_army_warned = false
+			end_turn_peril_warning = _peril
 
 		# Update status from server
 		if response.has("action_summary"):
@@ -1050,6 +1095,8 @@ func _print_boot_help() -> void:
 	add_output("")
 	add_output("[color=#" + Utils.COLOR_INFO + "]Commands:[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"Ney, attack Mack\"[/color]")
+	# S14E-24: the free preview, named where the first typed attack is taught.
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"what if Ney attacks Mack\" — free: it names who marches with him before you commit[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"scout Swabia\" or \"move to Flanders\"[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • \"what can I do\" (Berthier names the orders the board takes today) or \"end turn\"[/color]")
 	# SR Chunk 3 reserve (the boot help's own line, AAR-17's first half): the
@@ -1374,6 +1421,16 @@ func _on_command_input_gui_input(event):
 			_history_next()
 			command_input.accept_event()  # Consume event, prevent camera movement
 		elif event.keycode == KEY_ESCAPE:
+			# S14E-X123 (S14f part 2): a line the gate has closed (modal up,
+			# reply pending) keeps focus -- `set_input_enabled(false)` never
+			# releases it -- and this arm used to run the ladder and CONSUME
+			# the event either way, so no modal's own Esc hatch
+			# (enemy_phase_dialog, strategic_report_popup, popup_base,
+			# mailbox_panel) ever saw the key. A disabled line has nothing to
+			# clear or release: it passes Esc on, un-accepted, exactly as an
+			# unfocused line does.
+			if not command_input.editable:
+				return
 			# CX-3: the completion list goes first, so Escape does not throw
 			# focus away from a player who only wanted the list gone.
 			if not _suggestions.is_empty():
@@ -1594,6 +1651,14 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	`include_selection`: the unfocused ladder clears a selected corps between
 	the screen and the region panel; the command line clears it itself, before
 	this ladder (CC-3)."""
+	# S14E-21: the battle tableau is the topmost thing while it is up, and its
+	# own Esc (battle_diorama.gd) closes it in ONE press. This rung gives the
+	# same answer when the command line still holds focus beneath it — a
+	# DISABLED line keeps focus, and its Esc would otherwise be the silent
+	# release rung (one invisible press, then the skip, then the close).
+	if battle_diorama and battle_diorama.visible:
+		battle_diorama._on_close_pressed()
+		return true
 	# Close diplomacy wizard first (Fix 11)
 	if diplomacy_wizard and diplomacy_wizard.visible:
 		diplomacy_wizard._close_wizard()
@@ -2490,8 +2555,11 @@ func _treasury_goes_negative() -> bool:
 
 
 func _army_warning_stands() -> bool:
-	"""S14E-7: the backend's army line is up and has not yet stopped this gate."""
-	return end_turn_army_warning != "" and not _army_warned
+	"""S14E-7: the backend's army line is up and has not yet stopped this gate.
+	S14E-X31: so is its second clause (a corps in peril) — ONE latch for both."""
+	if end_turn_army_warning != "" and not _army_warned:
+		return true
+	return end_turn_peril_warning != "" and not _army_warned
 
 
 func _show_lapse_confirmation():
@@ -2536,6 +2604,11 @@ func _show_lapse_confirmation():
 	if _treasury_goes_negative():
 		_treasury_warned = true
 		parts.append("The treasury will stand at %s gold when the turn ends (%s now, %s next turn) — the Ledger's Economy tab shows what drains it." % [_format_number(gold + gold_projected_net), _format_number(gold), _signed_number(gold_projected_net)])
+	# S14E-X31: a corps in peril — the army line's second clause, on the same
+	# latch; the morale pairing's question (below) still closes the card.
+	if end_turn_peril_warning != "":
+		_army_warned = true
+		parts.append(end_turn_peril_warning)
 	# S14E-7: the army's own line — the backend's one sentence, last so its
 	# question closes the card; once per gate, then the turn ends.
 	if end_turn_army_warning != "":
@@ -2548,7 +2621,7 @@ func _show_lapse_confirmation():
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Click [b]Open Envoys[/b] to review now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to confirm the lapse.[/color]")
 	elif not _current_decision_names.is_empty():
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Answer him now, or press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to let the field decide.[/color]")
-	elif _treasury_goes_negative() and end_turn_army_warning == "":
+	elif _treasury_goes_negative() and end_turn_army_warning == "" and end_turn_peril_warning == "":
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to end the turn in deficit.[/color]")
 	else:
 		add_output("[color=#" + Utils.COLOR_GOLD + "]  Press [b]End Turn[/b] again, [b]Enter[/b], or type [b]end turn[/b] again to end the turn anyway.[/color]")
@@ -5348,6 +5421,12 @@ func _display_morning_dispatch(data: Dictionary):
 			for beat in sub_beats:
 				add_output("[color=#" + Utils.COLOR_INFO + "]  • " + str(beat) + "[/color]")
 		add_output("")
+	# S14E-X122 (S14f part 2): a world swap (/load, /new_game) renders the
+	# stored briefing with the marshal rows read live; the backend flags the
+	# copy when a corps has moved since the morning it describes.
+	if bool(data.get("stale_headline", false)):
+		add_output("[color=#" + Utils.COLOR_INFO + "]" + Utils.DISPATCH_AS_OF_THE_MORNING + "[/color]")
+		add_output("")
 
 	# ═══ SITUATION ═══
 	add_output("[color=#" + Utils.COLOR_BERTHIER + "]SITUATION[/color]")
@@ -5759,6 +5838,10 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_header + "[/color]")
 			for order in today_orders:
 				add_output("[color=#" + Utils.COLOR_COMMAND + "]    • " + str(order) + "[/color]")
+			# S14E-24: an attack among them is taught with its free preview.
+			var today_hint = str(today.get("orders_hint", ""))
+			if today_hint != "":
+				add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_hint + "[/color]")
 		var today_doors = str(today.get("doors", ""))
 		if today_doors != "":
 			add_output("[color=#" + Utils.COLOR_INFO + "]  " + today_doors + "[/color]")
@@ -5988,6 +6071,8 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["coalition_brewing"] = response.get("coalition_brewing", false)
 		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
+		# S14E-18: the Cabinet's letter lock, on the button's tooltip.
+		_set_cabinet_locked(bool(response.get("cabinet_locked", false)), int(response.get("cabinet_locked_until", 0)))
 		# Aug 30, 2026 VISUAL PASS — and this line is the pass earning its
 		# keep. `diplo_data` is hand-copied key by key out of the response,
 		# and the first cut of the lapse-count fix read
@@ -6031,6 +6116,28 @@ func _set_pending_envoy_count(count: int):
 	_current_envoy_count = new_count
 
 
+func _set_cabinet_locked(locked: bool, until: int = 0) -> void:
+	"""S14E-18 (S14f part 2): the Cabinet button says it is shut BEFORE it is
+	clicked. The backend's one flag (`cabinet_locked`, the offers arm of the
+	wizard's `dialogue_pending`) rides every gameplay response; while a letter
+	stands unanswered the button's tooltip carries the rule in the sentence the
+	"Not Now" echo and the wizard's notice use. The authored tooltip comes back
+	when the lock lifts.
+
+	S14E-X92: `until` is the backend's `cabinet_locked_until` -- the answer-by
+	turn of a standing call to arms (0 = the lock lifts when the turn ends), so
+	the sentence is exact on the first turn of a two-turn call."""
+	if diplomacy_button == null:
+		return
+	if _cabinet_tooltip_default == "":
+		_cabinet_tooltip_default = diplomacy_button.tooltip_text
+	_cabinet_locked = locked
+	if locked:
+		diplomacy_button.tooltip_text = "The Cabinet (F1) — a letter stands unanswered: " + Utils.cabinet_shut_line(until)
+	else:
+		diplomacy_button.tooltip_text = _cabinet_tooltip_default
+
+
 func _set_pending_decisions(names) -> void:
 	"""Cache the cornered marshals whose last stand is unanswered, clearing a
 	stale end-turn confirmation when the set changes (the envoy count's twin)."""
@@ -6067,6 +6174,14 @@ func _sync_response_hud(response: Dictionary):
 		if _army != end_turn_army_warning:
 			_army_warned = false
 		end_turn_army_warning = _army
+	# S14E-X31: the gate's second clause rides every response too; a changed
+	# sentence is a new gate (one latch for both clauses).
+	if response.has("end_turn_peril_warning"):
+		var _peril_raw = response.get("end_turn_peril_warning")
+		var _peril: String = "" if _peril_raw == null else str(_peril_raw)
+		if _peril != end_turn_peril_warning:
+			_army_warned = false
+		end_turn_peril_warning = _peril
 	if response.get("success", false):
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
@@ -6294,6 +6409,10 @@ func set_input_enabled(enabled: bool):
 		_fill_pending_remedy()
 		# CC-0: and a draft the player parked to send an offered order.
 		_restore_parked_draft()
+	# S14E-21: the placeholder reads the gate AND the focus — after the grab
+	# above (so an open, focused line says "Type command...") and on the
+	# closing arm (a line the gate shut cannot be clicked into).
+	_refresh_command_placeholder()
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
@@ -6364,30 +6483,24 @@ func _on_objection_response(response):
 	# the order actually resolved (executed, compromised, or refused).
 	_refresh_open_info_screens()
 
+	# S14E-X121 (S14f part 2): the ONE HUD sync, above every branch. The
+	# defiance, disobey, redemption and normal arms each hand-copied part of
+	# it (status / gold / manpower / map, the rail on two of them) and none
+	# applied the projected net or the End Turn gate's two lines, so "(−N next
+	# turn)" and the gate went stale after an objection answer; the
+	# post-objection interrupt arm had no sync at all. The sync ends in the
+	# top bar and the notification bar, so no arm repeats either.
+	_sync_response_hud(response)
+
 	# ════════════════════════════════════════════════════════════
 	# CHECK FOR DEFIANCE (V2b): Marshal defied a direct order
 	# ════════════════════════════════════════════════════════════
 	if response.get("defiance", false):
 		_display_defiance_result(response)
 
-		# Update status and state
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
-
 		# Battle report if defiant action caused combat
 		if response.has("battle_report"):
 			_display_berthier_report(response.battle_report)
-
-		# Notifications
-		if notification_bar and response.has("notifications"):
-			notification_bar.update_notifications(response.notifications)
 
 		# Authority threshold event
 		if response.has("authority_event"):
@@ -6398,7 +6511,6 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return
 
-		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
 		# PC15-10 B4b (F9): a defiant attack can take a province — route the
 		# capture question (or any popup) the response carries, then the tail.
@@ -6415,10 +6527,6 @@ func _on_objection_response(response):
 		add_output("[color=#" + Utils.COLOR_MARSHAL + "]" + str(response.get("message", "The marshal refuses.")) + "[/color]")
 		add_output("")
 
-		# Update status even on disobey
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-
 		# Check for redemption event triggered by disobey
 		if response.has("redemption_event"):
 			if DEBUG_VERBOSE:
@@ -6426,7 +6534,6 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
-		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
 		_return_control_to_player()  # PC15-10 B4b: the one tail
 		return
@@ -6440,15 +6547,6 @@ func _on_objection_response(response):
 
 		# First show the normal result
 		if response.success:
-			if response.has("action_summary"):
-				_update_status(response.action_summary)
-			if response.has("game_state") and response.game_state.has("gold"):
-				gold = int(response.game_state.gold)
-				_update_gold_display()
-			if response.has("game_state") and response.game_state.has("manpower_pools"):
-				_apply_manpower(response.game_state.manpower_pools)
-			if response.has("game_state") and response.game_state.has("map_data"):
-				_update_map_from_game_state(response.game_state)
 			_display_result(response)
 
 		# Then show redemption dialog
@@ -6468,30 +6566,12 @@ func _on_objection_response(response):
 	# it live beneath a capture question the route raises.
 
 	if response.success:
-		# Update status displays
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-
-		# Update map with latest state
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
-
 		# Display result
 		_display_result(response)
 
 		# Authority threshold event (V2b)
 		if response.has("authority_event"):
 			_display_authority_event(response.authority_event)
-
-		# Notifications
-		if notification_bar and response.has("notifications"):
-			notification_bar.update_notifications(response.notifications)
 
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
@@ -6610,21 +6690,14 @@ func _on_redemption_response(response):
 
 	pending_redemption = false
 
+	# S14E-X121 (S14f part 2): the ONE HUD sync -- status, treasury and its
+	# projected net, the End Turn gate's lines, manpower, map, top bar and the
+	# rail -- unconditional, so a refused answer syncs as well. The hand copy
+	# here skipped the projected net and the gate (a rente or a dismissal moves
+	# the treasury, and "(−N next turn)" stayed the old figure).
+	_sync_response_hud(response)
+
 	if response.success:
-		# Update status displays
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-
-		# Update map
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
-
 		# Display result based on choice
 		var choice = response.get("choice", "")
 		add_output("")
@@ -6668,7 +6741,6 @@ func _on_redemption_response(response):
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
 
-	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	_return_control_to_player()
 
@@ -6786,16 +6858,12 @@ func _show_capture_choice_dialog(response):
 	if response.has("message") and not bool(response.get("_result_rendered", false)):
 		add_output("[color=#" + Utils.COLOR_CONQUEST + "]" + str(response.get("message", "")) + "[/color]")
 
-	# Update status/map from the response
-	if response.has("action_summary"):
-		_update_status(response.action_summary)
-	if response.has("game_state") and response.game_state.has("gold"):
-		gold = int(response.game_state.gold)
-		_update_gold_display()
-	if response.has("game_state") and response.game_state.has("manpower_pools"):
-		_apply_manpower(response.game_state.manpower_pools)
-	if response.has("game_state") and response.game_state.has("map_data"):
-		_update_map_from_game_state(response.game_state)
+	# S14E-X145 (S14f part 2): no hand copy of the status / treasury / manpower
+	# / map lines here. Every caller has synced the HUD before raising the
+	# question (`_sync_response_hud` on the command road, the world swap and
+	# the answer handlers; a stashed end-turn response synced on arrival), so
+	# the copy was a stale second pass that skipped the projected net, the
+	# gate's lines, the top bar and the rail.
 
 	add_output("")
 	if capture_data is Dictionary and str(capture_data.get("stage", "capture")) == "estate":
@@ -6857,28 +6925,24 @@ func _on_capture_choice_response(response):
 	# SECOND question, and the command line must stay closed beneath it;
 	# every other arm ends in the one tail, which hands the line back.
 
+	# S14E-X121 (S14f part 2): the ONE HUD sync, above the chain and the
+	# arms -- status, treasury and its projected net, the End Turn gate's
+	# lines, manpower, map, the top bar (a capture choice may change threat
+	# and territory) and the rail. A plunder moves the treasury, and the hand
+	# copy here skipped the projected net and the gate; the chained estate
+	# question below returned before any sync.
+	_sync_response_hud(response)
+
 	# W6-8: the answer may mount a SECOND question (the estate stage), or a
 	# stale/wrong-token answer re-attaches the current one — chain straight
-	# into the same dialog (it prints the message and refreshes state).
+	# into the same dialog (it prints the message; the sync above has
+	# already refreshed state).
 	if _response_has_capture_choice_route(response):
 		_show_capture_choice_dialog(response)
 		return
 
 	if response.success:
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
-
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
-
-		# Update diplomatic displays after capture choice (may change threat/territory)
-		_update_diplomatic_top_bar(response)
 
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
@@ -6998,6 +7062,7 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 	# ordinary savescum pattern.
 	_envoy_digest_shown_turn = -1
 	_set_pending_envoy_count(0)
+	_set_cabinet_locked(false)   # S14E-18: the new world's desk is clear
 	command_history.clear()
 	history_index = -1
 	command_input.text = ""
@@ -7240,21 +7305,14 @@ func _on_glorious_charge_response(response):
 	# command line back, and re-enabling here would leave it live beneath a
 	# capture question the route raises.
 
+	# S14E-X121 (S14f part 2): the ONE HUD sync -- status, treasury and its
+	# projected net, the End Turn gate's lines, manpower, map, top bar and the
+	# rail -- unconditional, ahead of the result and the routes. The hand copy
+	# here (success only) skipped the projected net and the gate, and a
+	# refused charge never refreshed the header.
+	_sync_response_hud(response)
+
 	if response.success:
-		# Update status displays
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-
-		# Update map with latest state
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
-
 		# Display result
 		_display_result(response)
 
@@ -7266,7 +7324,6 @@ func _on_glorious_charge_response(response):
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
-	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	add_output("")
 	# PC15-10 B4b (F9): route what the charge carries (a capture question),
@@ -7386,6 +7443,15 @@ func _on_strategic_report_dismissed():
 		# Show first interrupt if any
 		if not interrupt_queue.is_empty():
 			var first_interrupt = interrupt_queue.pop_front()
+			# S14E-30: the briefing BEFORE the question. The dispatch was built
+			# after the advance raised this very question, so its MARSHAL
+			# STATUS says "HALTED … awaiting your word"; printed after the
+			# answer ("Continue as Ordered" — he marches on) it contradicted
+			# the log above it. Now: the briefing says halted, the question
+			# follows, the answer follows, in truth order. (The pending stash
+			# is consumed, so `_process_next_interrupt`'s call after the
+			# answer is a no-op.)
+			_show_pending_dispatch()
 			_show_interrupt_popup(first_interrupt)
 			return  # Don't re-enable input yet
 
@@ -7491,22 +7557,16 @@ func _on_interrupt_response(response):
 		else:
 			var msg = response.get("message", "Order acknowledged.")
 			add_output("[color=#" + Utils.COLOR_SUCCESS + "]" + msg + "[/color]")
-
-		# Update UI state
-		if response.has("action_summary"):
-			_update_status(response.action_summary)
-		if response.has("game_state") and response.game_state.has("gold"):
-			gold = int(response.game_state.gold)
-			_update_gold_display()
-		if response.has("game_state") and response.game_state.has("manpower_pools"):
-			_apply_manpower(response.game_state.manpower_pools)
-		if response.has("game_state") and response.game_state.has("map_data"):
-			_update_map_from_game_state(response.game_state)
 	else:
 		add_output("[color=#" + Utils.COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
 
-	# Update diplomatic displays after interrupt resolution
-	_update_diplomatic_top_bar(response)
+	# S14E-X121 (S14f part 2): the ONE HUD sync -- status, treasury and its
+	# projected net, the End Turn gate's lines, manpower, map, the top bar
+	# (after interrupt resolution) and the rail -- after the answer's result
+	# (as the old copy was) and for a refused answer too. The hand copy
+	# skipped the projected net and the gate: a muster "Attack Anyway" that
+	# spent the army left "(−N next turn)" and the gate's lines as they were.
+	_sync_response_hud(response)
 
 	# PC15-10 B4b (F9): a redemption from the interrupt's trust penalty is
 	# STASHED by the chokepoint above and raised by the one tail. This arm
@@ -7567,6 +7627,14 @@ func _process_next_interrupt():
 		# stashed and never shown, and the player began the turn with no
 		# briefing. The redemption arm above already knew to call it; the
 		# ordinary exit did not.
+		#
+		# S14E-30 (October 25, 2026): the other edge of that fix. Showing the
+		# dispatch only HERE printed the pre-answer snapshot ("HALTED at
+		# Tyrol — awaiting your word") under the log's "Massena arrives at
+		# Milan". `_on_strategic_report_dismissed` now shows it
+		# BEFORE the first interrupt's question, so on that road this call is
+		# a no-op (the stash is consumed). It stays as the net for any road
+		# that reaches this tail with a dispatch still unshown.
 		_show_pending_dispatch()
 		# FA slice-9 review (R1-10): the shared tail, like the other four —
 		# it raises the diorama and the petition this tail used to raise by
@@ -7755,7 +7823,14 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 			# S14C-X22: a moment letter has no court to name.
 			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside " + str(data.get("title", "the letter")) + ". Click the envoy badge to revisit.[/color]")
 		else:
-			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal. Click the envoy badge to revisit.[/color]" % from_nation)
+			# S14E-18 (S14f part 2): the lock is said AT THE CLICK — a set-aside
+			# letter still stands, and while it does the Cabinet stays shut
+			# (`dialogue_pending`). The court by its printed form, as the
+			# answer's echo below names it; a call to arms stands to its
+			# answer-by turn. A moment letter (above) never locks the wizard.
+			var setting_aside_court = str(data.get("from_nation_display", Utils.display_nation_name(str(from_nation))))
+			var lock_by_turn = int(data.get("answer_by_turn", 0)) if bool(data.get("is_call_to_arms", false)) else 0
+			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — %s Click the envoy badge to revisit.[/color]" % [setting_aside_court, Utils.cabinet_shut_line(lock_by_turn)])
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -8112,7 +8187,14 @@ func _on_mailbox_row_action_result(response: Dictionary):
 		tutorial_overlay.observe(response)
 
 	_pending_envoy_request_active = false
-	_update_diplomatic_top_bar(response)
+	# S14E-29: the HUD syncs like every other road — the Gold label and its
+	# projected net, the Actions / Admin counters, the manpower line, the map,
+	# the notification bar and (inside it) the top bar. This handler called
+	# only the top-bar half, so an Accept that moved the treasury or spent
+	# actions left the header stale (it read 244 while the Admiralty read
+	# 326). The sync is NOT the modal route table the docstring avoids: it
+	# raises nothing, and it runs before the panel re-fetch below.
+	_sync_response_hud(response)
 	var msg = str(response.get("message", "")).strip_edges()
 	if msg != "":
 		var colour = Utils.COLOR_INFO if response.get("success", false) else Utils.COLOR_GOLD
@@ -8546,6 +8628,28 @@ func _is_text_key(event: InputEventKey) -> bool:
 		return false
 	var code: int = event.unicode
 	return (code >= 32 and code != 127) or event.keycode in [KEY_BACKSPACE, KEY_DELETE]
+
+
+const COMMAND_PLACEHOLDER_FOCUSED := "Type command..."
+const COMMAND_PLACEHOLDER_RELEASED := "Esc: menu · click to type"
+
+
+func _refresh_command_placeholder() -> void:
+	"""S14E-21: make Esc's release rung visible. One Esc on the focused line
+	(with nothing open) lets it go, and the next Esc opens the pause menu — a
+	ladder whose middle rung showed nothing (four pause menus by accident in
+	the DD-B record). While the OPEN command line is unfocused and empty its
+	placeholder now says what Esc and a click do; focused, or closed by the
+	input gate (it cannot be typed into), it reads the default. The label only
+	shows on an empty line, so a draft is never covered. Wired to the line's
+	focus_entered / focus_exited in `_ready` and refreshed by
+	`set_input_enabled`, the gate."""
+	if command_input == null:
+		return
+	if command_input.editable and not command_input.has_focus():
+		command_input.placeholder_text = COMMAND_PLACEHOLDER_RELEASED
+	else:
+		command_input.placeholder_text = COMMAND_PLACEHOLDER_FOCUSED
 
 
 func _resume_editing() -> void:
@@ -9901,7 +10005,10 @@ func _on_wizard_structured_command_selected(command: String, data: Dictionary):
 	# Austria" proposed a treaty with terms) and it says where it came from.
 	var echo_note := ""
 	if diplomacy_wizard and diplomacy_wizard.has_method("echo_note"):
-		echo_note = str(diplomacy_wizard.echo_note(str(data.get("action", ""))))
+		# S14E-X125: a payload that shares its action with another echo
+		# ("propose_common_peace") names its own disclosure key.
+		echo_note = str(diplomacy_wizard.echo_note(str(data.get("echo_key", data.get("action", "")))))
+	data.erase("echo_key")   # client-only: read, then dropped before the wire
 	if echo_note == "":
 		_add_to_history(command)
 

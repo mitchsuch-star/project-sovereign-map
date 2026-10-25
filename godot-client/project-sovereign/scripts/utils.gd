@@ -51,7 +51,8 @@ static func standing_lines(war_data: Dictionary) -> Array:
 				continue
 			var nation = str(row.get("nation", "?"))
 			var standing = str(row.get("standing_display", "Standing pending"))
-			var material = float(row.get("material_share", 0.0)) * 100.0
+			# S14E-X100: the backend sends whole percents (Golden Rule 2).
+			var material = float(row.get("material_share_pct", 0))
 			var leader_marker = "*" if row.get("is_leader", false) else " "
 			# FA-S17-18 (Phase 4): say which side each row is on. The block
 			# listed both sides under a title naming only the ENEMIES
@@ -421,6 +422,23 @@ static func plural(n: int, noun: String) -> String:
 	return str(n) + " " + noun + "s"
 
 
+# S14E-X122 (S14f part 2): the caption both dispatch screens print under the
+# headline when the re-read's board has moved since the morning's briefing
+# (`stale_headline`, set by the backend's `_readable_dispatch`).
+const DISPATCH_AS_OF_THE_MORNING := "Headline and Berthier's note: as of this morning's dispatch. The marshal rows below are as they stand now."
+
+
+static func cabinet_shut_line(answer_by_turn: int = 0) -> String:
+	"""S14E-18 (S14f part 2): the Cabinet's lock, in ONE sentence — a letter
+	that stands unanswered keeps the wizard shut (`dialogue_pending`) until it
+	is answered or the turn ends. Said at the click ("Not Now" echo), on Not
+	Now's tooltip, on the locked Cabinet button and in the wizard's notice. A
+	call to arms stands to its answer-by turn, and says so."""
+	if answer_by_turn > 0:
+		return "the Cabinet stays shut until it is answered or turn %d ends." % answer_by_turn
+	return "the Cabinet stays shut until it is answered or the turn ends."
+
+
 static func humanize_nation_keys_in_text(text: String) -> String:
 	var result := text
 	# NA-6: the formation overrides run FIRST and shadow the static map.
@@ -560,6 +578,11 @@ const MAP_TEXT_GREY := Color(0.7, 0.7, 0.7)                 # secondary tooltip 
 const MAP_TOOLTIP_BORDER := Color(0.6, 0.6, 0.7)            # a force tooltip's border
 const MAP_TOOLTIP_FOG_BORDER := Color(0.4, 0.4, 0.5)        # an unknown province's tooltip border
 const MAP_UNKNOWN_TEXT := Color(0.55, 0.55, 0.6)            # "Income: Unknown", "Stability: Unknown"
+# S14E-D10 (Pre-Deploy S14f part 2): the Descent camp's wash on its four provinces
+# while the camp counts, and its tooltip line (the Admiralty's count).
+const MAP_CAMP_WASH := Color(0.95, 0.66, 0.22, 0.30)         # the camp is counting its turns
+const MAP_CAMP_WASH_STAGED := Color(0.96, 0.50, 0.18, 0.44)  # the descent is staged
+const MAP_CAMP_TEXT := Color(0.96, 0.74, 0.40)               # "Descent camp: 46,500 men, 2 turns"
 
 # === UI-3 Icon Wiring Helpers ===
 # The curated icon sets ship as WHITE silhouettes (game-icons: black bg stripped;
@@ -968,6 +991,11 @@ static func window_size_choices(screen_size: Vector2i) -> Array:
 const _PLAIN_BODY_REGULAR := "res://assets/fonts/SourceSans3[wght].ttf"
 const _PLAIN_BODY_ITALIC := "res://assets/fonts/SourceSans3-Italic[wght].ttf"
 static var _garamond_faces: Dictionary = {}
+# S14E-X202: true once the plain face has written the theme's `normal_font` —
+# the only time the July face has anything to clear. The garamond branch
+# cleared it on EVERY call, boot included, and the engine printed "Cannot clear
+# the font 'normal_font' because it does not exist" twice per run.
+static var _plain_wrote_normal_font := false
 
 
 static func apply_body_font() -> void:
@@ -999,16 +1027,28 @@ static func apply_body_font() -> void:
 		bold_italic.variation_opentype = {"wght": 700}
 		theme.default_font = regular
 		theme.set_font("normal_font", "RichTextLabel", regular)
+		_plain_wrote_normal_font = true
 		theme.set_font("bold_font", "RichTextLabel", bold)
 		theme.set_font("italics_font", "RichTextLabel", italic if italic != null else regular)
 		theme.set_font("bold_italics_font", "RichTextLabel", bold_italic)
 	else:
 		theme.default_font = _garamond_faces["default"]
-		if theme.has_font("normal_font", "RichTextLabel"):
+		if _plain_wrote_normal_font and theme.has_font("normal_font", "RichTextLabel"):
 			theme.clear_font("normal_font", "RichTextLabel")
+		_plain_wrote_normal_font = false
 		theme.set_font("bold_font", "RichTextLabel", _garamond_faces["bold"])
 		theme.set_font("italics_font", "RichTextLabel", _garamond_faces["italics"])
 		theme.set_font("bold_italics_font", "RichTextLabel", _garamond_faces["bold_italics"])
+
+
+# S14E-X207: the engine's last plain ERROR line, "2 resources still in use at
+# exit" - the faces captured above are the theme's own path-loaded fonts, and
+# this static dictionary kept them alive past the resource cache's teardown.
+# Called ONCE, at the true exit, by AudioManager's `_exit_tree` (the one node
+# that lives from the first scene to the last) - never on a scene change, which
+# would make the next apply_body_font capture the PLAIN faces as the July ones.
+static func release_static_caches() -> void:
+	_garamond_faces.clear()
 
 
 # UXR-D1 (Pre-Deploy S9b): the theme's authored type sizes, captured once —

@@ -348,7 +348,8 @@ class TestAnEliminatedCourtBindsNoInstrument:
 
     def test_a_living_court_is_still_guaranteed_by_its_printed_name(self, world):
         dp = world.diplomatic_points
-        reply = _say("guarantee Papal States")
+        # S14E-26 (flipped): the order quotes first; the confirmed order pledges.
+        reply = _say("guarantee Papal States confirmed")
         assert reply["success"] is True, reply["message"]
         assert reply["message"].startswith("France guarantees Papal States."), reply["message"]
         assert "PapalStates" not in reply["message"]

@@ -94,6 +94,12 @@ def mission_reason_phrase(reason: str, regions=None, expiry=None) -> str:
         return text
     if reason == "alliance_broken":
         return "their alliance broke"
+    if reason == "peace":
+        return "the peace was signed"
+    if reason == "lapsed":          # S14E-X110: a Reassure Ally mission's alliance slid
+        return "the alliance lapsed"
+    if reason == "war":             # S14E-X110: ... or went to war
+        return "war broke the alliance"
     if reason == "recalled":
         return "recalled"
     if reason == "replaced":

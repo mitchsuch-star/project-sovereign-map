@@ -337,4 +337,5 @@ class TestCounterPunchPromisesOneTurn:
         src = (REPO / "backend" / "commands"
                / "combat_executor.py").read_text(encoding="utf-8")
         assert "Use within 2 turns" not in src
-        assert "counter_punch_notice(defender, world)" in src
+        # S14E-X147: the creation seam now also asks for the muster line.
+        assert "counter_punch_notice(defender, world, with_muster=True)" in src

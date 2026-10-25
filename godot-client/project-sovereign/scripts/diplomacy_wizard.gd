@@ -372,7 +372,8 @@ func _render_nations(data: Dictionary):
 	# in the scene tree. Show an in-wizard message instead.
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		_add_dialogue_gate_notice(pending_envoy_count)
+		# S14E-X91 / S14E-X92: the notice names the dialogue and the turn.
+		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")))
 		return
 
 	_add_first_open_line(data)
@@ -1102,7 +1103,8 @@ func _render_preview(data: Dictionary):
 	# PL-30: Same fix as Step 1 — never close+add_output (null-instance crash).
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		_add_dialogue_gate_notice(pending_envoy_count)
+		# S14E-X91 / S14E-X92: the notice names the dialogue and the turn.
+		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")))
 		return
 
 	# S14d: the Cabinet's line is drawn on its FIRST view (step 1) only — at
@@ -1469,6 +1471,22 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		var coverage = action_payload.get("counsel_coverage", [])
 		if coverage is Array and coverage.size() > 0:
 			data["counsel_coverage"] = coverage
+		# S14E-D7: the counsel's lever ("Open Settlement with Britain alone",
+		# the payment that carries her) opens the table with that sum staged,
+		# the way the bid is - the offer row opens at it, not at its default.
+		var offer_gold = int(float(action_payload.get("gold_offer", 0)))
+		if offer_gold > 0:
+			data["gold_offer"] = offer_gold
+			# S14E-X125: the echo's disclosure key. `action` is the shared
+			# "propose_common_peace" here, so the lookup in ECHO_IS_DISPLAY_ONLY
+			# needs its own: typed, this echo opens the whole table, no sum.
+			data["echo_key"] = "open_settlement_offer"
+		elif bool(action_payload.get("echo_display_only", false)):
+			# S14E-X128: a row that opens one court of several (the lever's
+			# row when the chest cannot fund its sum, a coverage the counsel
+			# stamped) is display copy too: typed, the echo opens the whole
+			# table. The backend flags the row; the key is registered below.
+			data["echo_key"] = "open_settlement_alone"
 		return data
 	if action_id == "propose_white_peace":
 		var war_id = str(action_payload.get("war_id", ""))
@@ -1490,6 +1508,9 @@ func _structured_payload_for_action(action_id: String, action_payload: Dictionar
 		var bid_data = {
 			"action": "propose_common_peace",
 			"target_nation": _selected_nation,
+			# S14E-X125: the echo's disclosure key (`action` is the shared
+			# "propose_common_peace", which ECHO_IS_DISPLAY_ONLY never lists).
+			"echo_key": "outbid_bond",
 		}
 		var bid_war = str(action_payload.get("war_id", ""))
 		if bid_war != "":
@@ -1528,6 +1549,12 @@ const ECHO_IS_DISPLAY_ONLY = {
 	# PC-R7 (ii) part 3: the bid rides the structured road (the court alone,
 	# France's gold staged); typed, the line opens the whole table, no bid.
 	"outbid_bond": "sent from the diplomacy screen — typed, this line would open the whole table without the bid",
+	# S14E-X125: keyed by `echo_key` (the payload's own, main.gd reads it before
+	# the action): the lever row opens the court alone with the sum staged.
+	"open_settlement_offer": "sent from the diplomacy screen — typed, this line would open the whole table without the sum staged",
+	# S14E-X128: the court alone out of a larger table (no sum to stage, or
+	# none the chest can fund); typed, the line opens the whole table.
+	"open_settlement_alone": "sent from the diplomacy screen — typed, this line would open the whole table, not the court alone",
 }
 
 
@@ -1713,15 +1740,25 @@ func _add_loading_label():
 	content_list.add_child(lbl)
 
 
-func _add_dialogue_gate_notice(pending_envoy_count: int):
+func _add_dialogue_gate_notice(pending_envoy_count: int, locked_until: int = 0, dialogue_name: String = ""):
+	"""`locked_until` is the backend's `cabinet_locked_until` (S14E-X92: the
+	answer-by turn of a standing call to arms, 0 = the lock lifts when the turn
+	ends); `dialogue_name` is `dialogue_pending_name` (S14E-X91: the display
+	name of the hard-stop / local-planning dialogue that gates the wizard)."""
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	if pending_envoy_count > 0:
-		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply. Reopen Envoys before starting a new diplomatic action.[/color]"
+		# S14E-18 (S14f part 2): the rule, in the sentence "Not Now" and the
+		# Cabinet button use — the notice named the envoy, never the lock.
+		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply — " + Utils.cabinet_shut_line(locked_until) + " Reopen Envoys to answer it.[/color]"
+	elif dialogue_name != "":
+		# S14E-X91: name the matter. Number-neutral on purpose -- several
+		# display names are plural noun phrases ("the terms you are drafting").
+		lbl.text = "[color=#" + COLOR_ORANGE + "]Resolve the active dialogue first — you have " + dialogue_name + " awaiting your answer.[/color]"
 	else:
-		lbl.text = "[color=#" + COLOR_ORANGE + "]Resolve the active diplomatic dialogue before starting a new action.[/color]"
+		lbl.text = "[color=#" + COLOR_ORANGE + "]Resolve the active dialogue first.[/color]"
 	content_list.add_child(lbl)
 	if pending_envoy_count > 0:
 		_add_open_envoys_button(pending_envoy_count)

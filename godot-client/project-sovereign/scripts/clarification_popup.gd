@@ -65,10 +65,13 @@ func show_clarification(data: Dictionary):
 			var alt_btn = _create_button("No, " + alt, {"target": alt})
 			button_container.add_child(alt_btn)
 
-	# Always add cancel button
-	var cancel_btn = _create_button("Cancel Order", {})
-	cancel_btn.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 1))
-	button_container.add_child(cancel_btn)
+	# Add the popup's own cancel button — unless the backend's options already
+	# carry one (S14E-X200: a quote's "Not now" / "Stand down" IS its cancel;
+	# a third "Cancel Order" beside it named an order nobody had given).
+	if not _options_carry_cancel(options):
+		var cancel_btn = _create_button("Cancel Order", {})
+		cancel_btn.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 1))
+		button_container.add_child(cancel_btn)
 
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
@@ -77,6 +80,17 @@ func show_clarification(data: Dictionary):
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
 	Utils.clamp_centered_panel($PanelContainer)
+
+func _options_carry_cancel(options: Array) -> bool:
+	"""S14E-X200: true when one of the backend's options is itself a cancel — its
+	`command` (the instrument and Law quotes' "Not now", the Admiralty's
+	"Stand down") or its `value` (the pursuit ask's "Cancel") is "cancel"."""
+	for option in options:
+		if not (option is Dictionary):
+			continue
+		if str(option.get("command", "")) == "cancel" or str(option.get("value", "")) == "cancel":
+			return true
+	return false
 
 func _create_button(label: String, option: Dictionary) -> Button:
 	"""Create a styled button for a clarification option."""

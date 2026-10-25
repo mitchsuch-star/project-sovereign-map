@@ -1489,9 +1489,11 @@ def cap_congress():
     world.nation_gold[PLAYER] = max(int(world.nation_gold.get(PLAYER, 0)), 20000)
     world.diplomatic_points = max(int(world.diplomatic_points), 3)
     with _quiet():
+        # S14E-X103 (S14f part 2): the priced verb QUOTES first and charges on
+        # the confirm — the capture lays the sweetener, so it confirms.
         sweet = M.executor._diplomatic._execute_recognition_sweetener(
-            {"action": "recognition_sweetener", "target": "Prussia",
-             "raw_input": "offer prussia 2000 gold for recognition"}, M.game_state)
+            {"action": "recognition_sweetener", "target": "Prussia", "confirmed": True,
+             "raw_input": "offer prussia 2000 gold for recognition confirmed"}, M.game_state)
     stances_before = {k: congress.answer(world, k)["stance"] for k in congress.great_powers(world)}
     record_turn = int((world.congress or {}).get("ends_turn", 0))
     sit_congress(world, max(0, record_turn - int(world.current_turn)))

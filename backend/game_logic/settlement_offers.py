@@ -2405,8 +2405,10 @@ def _handle_decline_ally_petition(
     ally = str(dialogue.get("ally_nation") or "")
     player = str(getattr(world, "player_nation", "France") or "France")
     if ally and hasattr(world, "modify_nation_relation"):
-        world.modify_nation_relation(
-            player, ally, ALLY_PETITION_DECLINE_RELATION_DELTA
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, player, ally, ALLY_PETITION_DECLINE_RELATION_DELTA,
+            "ally_petition_declined", player, ally,
         )
     episode_id = f"petition:{war_id}:{ally}:{int(getattr(world, 'current_turn', 0) or 0)}"
     try:
@@ -3314,8 +3316,10 @@ def handle_incoming_settlement_offer_action(
                 record_diplomatic_refusal,
             )
             record_diplomatic_refusal(world, mediator, actor, "mediation")
-            world.modify_nation_relation(
-                actor, mediator, MEDIATION_REFUSED_RELATIONS)
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(
+                world, actor, mediator, MEDIATION_REFUSED_RELATIONS,
+                "mediation_refused", actor, mediator)
         ally_petitions = queue_ally_settlement_petitions_for_player_action(
             world,
             trigger_action="reject_settlement_offer",
@@ -3816,8 +3820,10 @@ def handle_incoming_settlement_offer_action(
             MEDIATION_CREDIT_RELATIONS,
         )
         mediator = str(dialogue.get("mediator") or "")
-        world.modify_nation_relation(
-            actor, mediator, MEDIATION_CREDIT_RELATIONS)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(
+            world, actor, mediator, MEDIATION_CREDIT_RELATIONS,
+            "mediation_credit", actor, mediator)
         result["mediator"] = mediator
         # SR-2d (SR-2-X5): the REVIEW the letter opens carries the arbiter's
         # provenance — the staged dialogue (the one the client renders and

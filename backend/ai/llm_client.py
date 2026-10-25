@@ -190,6 +190,37 @@ _RECALL_IS_NAVAL_RE = re.compile(
     r"\b(?:fleet|fleets|squadron|squadrons|ships?|navy|admiral)\b",
     re.IGNORECASE)
 
+# S14E-X184 / S14E-X176 / S14E-X179: the PLURAL "marshals", with at most a
+# count or an adjective between it and the verb, is the Marshalate's object -
+# never a levy ("recruit two marshals" raised 3,000 infantry and spent 741
+# gold; "recruit marshals" did the same). "recruit infantry for the marshals"
+# (the marshals are a destination) and "marshals' regiments" (a possessive)
+# are not matched.
+_PLURAL_MARSHALS_ARE_THE_MARSHALATE_RE = re.compile(
+    r"\b(?:recruit|raise|enlist|hire)\b\s+(?:(?:two|three|four|five|six|several|some|more|new|"
+    r"another|additional|extra|fresh|further|other|any|good|able|capable|talented|young|"
+    r"great|available|\d+)\s+){0,2}marshals\b(?!['’])", re.IGNORECASE)
+
+# S14E-X192: "hire Grouchy as a marshal" / "recruit Grouchy as a marshal" -
+# the NAME stands before "as (a) marshal", farther than the 12-character
+# windows of the route (`\brecruit\b.{0,12}\bmarshal`, `\bhire\b.{0,12}...`)
+# and of the `_rm` name read (`\bmarshal\s+<name>`) reach: "hire" parsed
+# Unknown and "recruit / raise / enlist" raised a LEVY. The verb, the name,
+# "as (a/the/our/my) (new) marshal" is the Marshalate's, read by the route
+# AND the name extraction from this ONE pattern. A troop word is no candidate
+# ("recruit infantry as a marshal" stays a levy) and a possessive is no title
+# ("... as a marshal's escort"); the plural is X176's.
+_NAME_AS_A_MARSHAL_RE = re.compile(
+    r"\b(?:recruit|raise|enlist|hire)\s+(?:" + HONORIFIC + r")?"
+    r"(?!(?:infantry|cavalry|artillery|men|troops|soldiers|levies|levy|reinforcements|"
+    r"regiments|battalions|recruits|conscripts|horse|guns|cannon|replacements|guards)\b)"
+    r"([a-z][a-z'-]+)\s+(?:as\s+(?:(?:a|an|the|our|my)\s+)?(?:new\s+)?marshal\b(?!['’])"
+    # S14E-X163: the same man raised "to marshal" / "to the marshalate" / "for
+    # the marshalate" (the line's END, so "to marshal Ney's corps" is no title):
+    # "raise Grouchy to marshal" raised a LEVY.
+    r"|(?:to|for)\s+(?:the\s+)?marshal(?:ate)?\s*[.!]*\s*$)",
+    re.IGNORECASE)
+
 # The STAND-STILL vocabulary, ONE source for the mock chain's wait arm AND
 # the parser's sequential-split gate (`_STAND_FAST_FIRST_CLAUSE_RE`). R1-2:
 # the slice taught "stay here" to the chain and not to the gate, so "Ney,
@@ -969,6 +1000,16 @@ def _question_subjects(game_state: Optional[Dict]) -> list:
 _CABINET_DOOR = "For any matter of state, press F1 for the Cabinet."
 
 
+def _attack_preview_sentence(who: str, foe: str) -> str:
+    """S14E-X144: " Ask 'what if Ney attacks Mack' first - ..." for a shrug
+    that quotes `'<who>, attack <foe>'` as an order to try (the very sentence
+    the TODAY list and the counsel lists carry - `dispatch.attack_preview_hint`,
+    S14E-24 / XC3). The leading space joins it to the quoted order's sentence."""
+    from backend.game_logic.dispatch import attack_preview_hint
+    hint = attack_preview_hint([f"{who}, attack {foe}"])
+    return f" {hint}" if hint else ""
+
+
 # CX-2: "how do I attack?" is a SYNTAX question, and the command reference is
 # the honest answer to it — FA slice 7 decided that and ruling R7 keeps advice
 # and feasibility with CR-8. The router is for questions about the BOARD, not
@@ -980,6 +1021,91 @@ _SYNTAX_QUESTION_RE = re.compile(
     r"|what\s+(?:is|are)\s+the\s+(?:command|commands|order|orders|syntax)"
     r"|how\s+does\s+\w+\s+work)\b",
     re.IGNORECASE)
+
+
+# S14E-32: "<marshal>, cancel" / "stop" / "abort" / "halt" — the verb alone
+# after a one-to-three word address (never "Ney, attack Mack, stop": the
+# address is the WHOLE run before the one comma). The twin of the exact-match
+# arm that reads the bare verb with no address.
+_BARE_CANCEL_TAIL_RE = re.compile(
+    r"^\s*(?:[a-z][\w'’.-]*\s+){0,2}[a-z][\w'’.-]*\s*,\s*"
+    r"(?:cancel|stop|abort|halt|cease)\s*[.!]*\s*$", re.IGNORECASE)    # S14E-X177: + cease
+
+# S14E-X73 (the second wave): the same order with NO comma -- "Murat cancel",
+# "Murat stop" -- which parsed Unknown while "Murat halt" ran (the ` halt`
+# keyword reads it). The verb-first form too: the manual teaches "cancel Ney" /
+# "halt Ney", and "stop Ney" / "abort Ney" were the two it did not read. The
+# marshal carries no comma by construction, so this arm and the one above never
+# overlap; it is the cancel only when the WHOLE other half IS a marshal of ours
+# (`_bare_cancel_without_comma`), so "the army stop", "stop the war" and
+# "Ney attack Mack" are untouched.
+_BARE_CANCEL_NO_COMMA_RE = re.compile(
+    r"^\s*(?:(?P<head>(?:[a-z][\w'’.-]*\s+){0,2}[a-z][\w'’.-]*?)\s+"
+    r"(?:cancel|stop|abort|halt|cease)"
+    r"|(?:cancel|stop|abort|halt|cease)\s+(?P<tail>(?:[a-z][\w'’.-]*\s+){0,2}[a-z][\w'’.-]*?))"
+    r"\s*[.!]*\s*$", re.IGNORECASE)
+
+
+def _bare_cancel_without_comma(command_lower: str, player_marshals) -> bool:
+    """`<marshal> cancel|stop|abort|halt` or `cancel|stop|abort|halt <marshal>`
+    with no comma: the whole other half is a marshal of ours (by any register
+    the roster prints, an honorific allowed) and the line is the one verb.
+    `player_marshals` is the chain's `(pattern, name)` pairs."""
+    found = _BARE_CANCEL_NO_COMMA_RE.match(command_lower or "")
+    if found is None:
+        return False
+    who = (found.group("head") or found.group("tail") or "").strip().lower()
+    who = re.sub(r"^(?:the\s+)?(?:marshal|general|gen\.|mar[eé]chal)\s+", "", who)
+    return any(who == str(pattern).lower() for pattern, _name in (player_marshals or []))
+
+
+def _group_cancel_phrase(command_lower: str) -> bool:
+    """S14E-X143: "everyone stop" / "stop everyone" / "all marshals cancel" -
+    the whole line is the collective address (the army road's own words,
+    `group_orders`) and ONE of cancel / stop / abort / halt, in either order.
+    The comma forms ("everyone, stop") already read through the tail arm and
+    "everyone halt" through the keyword list; these are the rest."""
+    from backend.commands.group_orders import is_collective_cancel
+    return is_collective_cancel(command_lower or "")
+
+
+_STAND_DOWN_OR_REST_RE = re.compile(
+    r"^(?:(?P<head>.+?)[\s,]+)?(?P<word>stand\s+down|stand\s+easy|at\s+ease|relax|take\s+a\s+rest|rest)$"
+    r"|^stand\s+(?P<mid>.+?)\s+down$", re.IGNORECASE)
+
+
+def _stand_down_or_rest(command_lower: str, player_marshals):
+    """S14E-X177 / X182: (the word typed - "stand down", "rest", "stand easy",
+    "at ease", "relax", "take a rest" - and the marshal to quote) when the whole
+    line is one of those words - bare, with the army's own address
+    ("everyone stand down", "stand everyone down", "all marshals rest"), or
+    after one of OUR marshals ("Ney, rest"). None otherwise.
+
+    The game has no order called any of them: "stand down" was removed as a
+    stance word (Fix 9) and the rest never were one, so "everyone stand down"
+    answered "Did you mean 'Davout'? ('down' not found)" and "everyone rest" the
+    unknown-order shrug. "Ney, stand down" is the NEUTRAL stance and is left to
+    its own road; so is "rest your men" (the wait). `player_marshals` is the
+    chain's `(pattern, name)` pairs."""
+    text = re.sub(r"^please\s+", "", (command_lower or "").strip())
+    text = re.sub(r"(?:\s+(?:please|now))?\s*[.!]*$", "", text).strip()
+    found = _STAND_DOWN_OR_REST_RE.match(text)
+    if found is None:
+        return None
+    word = re.sub(r"\s+", " ", (found.group("word") or "stand down").lower())
+    head = (found.group("head") or found.group("mid") or "").strip()
+    quoted = next((str(name) for _pattern, name in (player_marshals or [])), "Ney")
+    if not head:
+        return word, quoted
+    from backend.commands.group_orders import is_collective_address
+    if is_collective_address(head):
+        return word, quoted
+    if word != "stand down":
+        who = re.sub(r"^(?:the\s+)?(?:" + HONORIFIC + r")", "", head.lower())
+        for pattern, name in (player_marshals or []):
+            if who == str(pattern).lower():
+                return word, str(name)
+    return None
 
 
 def _routes_to_the_desk(text: str) -> bool:
@@ -1085,9 +1211,11 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
         orders = f"'{name}, move to {target}'"
         if hostile:
             orders += f" or '{name}, attack {target}'"
+        # S14E-X144: an attack the shrug quotes is taught with its free preview.
+        _hint = _attack_preview_sentence(name, target) if hostile else ""
         return (f"Berthier studies the map. \"Sire, I note the reference to "
                 f"{target}, but which marshal should act? {name} has the "
-                f"shortest road — try {orders}. {THREE_DOORS}\"")
+                f"shortest road — try {orders}.{_hint} {THREE_DOORS}\"")
     why = str(refusal.get("message") or "").strip()
     door = ""
     if refusal.get("blocked_naval"):
@@ -2444,7 +2572,9 @@ class LLMClient:
                     f"in your words as the enemy's, Sire. To withdraw "
                     f"{recognized_marshal} himself, say '{recognized_marshal}, "
                     f"retreat'; to strike at a foe who falls back, "
-                    f"'{recognized_marshal}, attack {first_enemy}'.\"")
+                    f"'{recognized_marshal}, attack {first_enemy}'."
+                    # S14E-X144: the quoted attack is taught with its free preview.
+                    f"{_attack_preview_sentence(recognized_marshal, first_enemy)}\"")
         if recognized_marshal:
             # SF5-X3: the man by his title — a client's general is not a
             # Marshal of the Empire, and the Emperor is not one either.
@@ -2453,7 +2583,9 @@ class LLMClient:
                 (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
                  f"{_who}, but I cannot determine the order. "
                  f"Perhaps: '{recognized_marshal}, attack {first_enemy}' or "
-                 f"'{recognized_marshal}, move to {_home_example(game_state)}'?\""),
+                 f"'{recognized_marshal}, move to {_home_example(game_state)}'?"
+                 # S14E-X144: the quoted attack is taught with its free preview.
+                 f"{_attack_preview_sentence(recognized_marshal, first_enemy)}\""),
                 (f"Berthier frowns at the dispatch. \"I see {_who}'s "
                  f"name, Sire, but the instruction is unclear. Valid orders include: "
                  f"{actions_sample}.\""),
@@ -2469,7 +2601,9 @@ class LLMClient:
                 (f"Berthier studies the map. \"Sire, I note the reference to "
                  f"{recognized_target}, but which marshal should act? "
                  f"Try: '{first_marshal}, attack {recognized_target}' or "
-                 f"'{first_marshal}, move to {recognized_target}'.\""),
+                 f"'{first_marshal}, move to {recognized_target}'."
+                 # S14E-X144: the quoted attack is taught with its free preview.
+                 f"{_attack_preview_sentence(first_marshal, recognized_target)}\""),
                 (f"\"Regarding {recognized_target}, Sire — I need a marshal and an action. "
                  f"For example: '{first_marshal}, move to {recognized_target}'.\" "
                  f"Berthier taps the map pointedly."),
@@ -2495,17 +2629,24 @@ class LLMClient:
             _offer = (_counsel[0] if _counsel
                       else f"{first_marshal}, attack {first_enemy}")
             _second = (_counsel[1] if len(_counsel) > 1 else "end turn")
+            # S14E-X80: an attack the shrug OFFERS (the counsel's own line, never
+            # the cold-parse fallback) is taught with its free preview.
+            from backend.game_logic.dispatch import attack_preview_hint
+            _hint_one = attack_preview_hint(_counsel[:1])
+            _hint_two = attack_preview_hint(_counsel[:2])
+            _hint_one = f"{_hint_one} " if _hint_one else ""
+            _hint_two = f"{_hint_two} " if _hint_two else ""
             templates = [
                 (f"Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret "
                  f"that order. Our marshals ({', '.join(marshal_names[:3]) or first_marshal}) "
                  f"await clear commands — '{_offer}', perhaps? "
-                 f"{THREE_DOORS} {_CABINET_DOOR}\""),
+                 f"{_hint_one}{THREE_DOORS} {_CABINET_DOOR}\""),
                 (f"\"Sire, I must confess this order eludes me,\" Berthier admits. "
                  f"\"Shall I relay an order to {first_marshal}? Valid actions include: "
                  f"{actions_sample}. {THREE_DOORS} {_CABINET_DOOR}\""),
                 (f"Berthier peers at the dispatch with concern. \"I cannot make sense of "
                  f"this, Sire. A clear order might be: '{_offer}' or "
-                 f"'{_second}'. {THREE_DOORS} {_CABINET_DOOR}\""),
+                 f"'{_second}'. {_hint_two}{THREE_DOORS} {_CABINET_DOOR}\""),
             ]
 
         return random.choice(templates)
@@ -3523,6 +3664,16 @@ class LLMClient:
                 original_text, "fleet_is_no_corps", "the fleet is not a corps",
                 detail={"clause": original_text.strip()})
 
+        # S14E-X177: "everyone stand down" answered "Did you mean 'Davout'?
+        # ('down' not found)" and "everyone rest" the unknown-order shrug -
+        # neither is an order the game carries. Berthier says so and points at
+        # the two the game does ('Ney, hold' / 'everyone stop'); 0 AP.
+        _sd = _stand_down_or_rest(command_lower, player_marshals)
+        if _sd is not None:
+            return self._refusal_result(
+                original_text, "stand_down_is_no_order", f"'{_sd[0]}' is no order",
+                detail={"word": _sd[0], "marshal": _sd[1]})
+
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
         # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
@@ -3616,7 +3767,19 @@ class LLMClient:
             "halt ",
         ]):
             action = "cancel"
-        elif command_lower.strip() in ("halt", "stop", "cancel", "abort"):
+        elif command_lower.strip() in ("halt", "stop", "cancel", "abort", "cease"):
+            action = "cancel"       # S14E-X177: + cease
+        # S14E-32: the BARE TAIL after the address — "Murat, cancel". The
+        # list above holds "cancel " with its trailing space and ", halt"
+        # without, so the sentence the game itself prints ("'Ney, cancel'
+        # recalls him") fell to unknown while "Murat, halt" parsed.
+        elif _BARE_CANCEL_TAIL_RE.match(command_lower.strip()):
+            action = "cancel"
+        # S14E-X73: and the same with no comma ("Murat stop").
+        elif _bare_cancel_without_comma(command_lower.strip(), player_marshals):
+            action = "cancel"
+        # S14E-X143: and the collective ("everyone stop", "stop everyone").
+        elif _group_cancel_phrase(command_lower.strip()):
             action = "cancel"
         # PARSE-NEG: "Ney, stop attacking" and "Ney, attack no more" both
         # ordered the attack, because the cancel keywords above only cover
@@ -3826,7 +3989,7 @@ class LLMClient:
         # FA slice 7 (FA-N8 / FA-N24): both verbs anchor to the fleet — see
         # _lays_down_a_keel / _orders_the_diversion.
         elif (_lays_down_a_keel(command_lower)
-              or re.search(r'\b(build|raise|construct|launch|expand)\b.{0,20}\b(ship|ships|fleet|navy|sail)\b', command_lower)
+              or re.search(r'\b(build|raise|construct|launch|expand)\b.{0,20}\b(ship|ships|fleet|navy|sail|keel|keels)\b', command_lower)
               or "build the fleet" in command_lower):
             action = "build_fleet"
         elif (_orders_the_diversion(command_lower)
@@ -3888,6 +4051,20 @@ class LLMClient:
             action = "recall_marshal"
         elif (("commission" in command_lower and not _mentions_pension(command_lower))
               or re.search(r'\brecruit\b.{0,12}\bmarshal\b', command_lower)
+              # S14E-X184: "recruit two marshals" / "recruit new marshals" -
+              # the plural with a count or quantity word is the Marshalate's,
+              # not a levy (it raised 3,000 infantry and spent 741 gold).
+              # S14E-X176: and the bare plural, "recruit marshals", is too.
+              or (_PLURAL_MARSHALS_ARE_THE_MARSHALATE_RE.search(command_lower)
+                  and not _mentions_pension(command_lower))
+              # S14E-X179: "hire a marshal" - the singular of the verb the
+              # plural arm above reads (it parsed Unknown).
+              or (re.search(r"\bhire\b.{0,12}\bmarshal\b(?!['’])", command_lower)
+                  and not _mentions_pension(command_lower))
+              # S14E-X192: "hire / recruit Grouchy as a marshal" - the name
+              # before "as a marshal" is past the 12-character windows.
+              or (_NAME_AS_A_MARSHAL_RE.search(command_lower)
+                  and not _mentions_pension(command_lower))
               or re.search(r'\bappoint\b.*\bmarshal', command_lower)
               # DD-0 S4 (the bench question): "promote Grouchy to marshal".
               or re.search(r'\bpromote\b.*\bmarshal', command_lower)
@@ -4215,13 +4392,22 @@ class LLMClient:
                 _rm = re.search(r'^\s*([a-z][a-z\'-]+)\s+to\s+(?:the\s+)?marshal(?:ate)?\s*[.!]?$', command_lower)
             if not _rm:
                 _rm = re.search(r'\b([a-z][a-z\'-]+)\s+brought\s+(?:up\s+)?(?:from|off)\s+the\s+bench\b', command_lower)
+            # S14E-X192: "hire / recruit Grouchy as a marshal" - the name
+            # BEFORE "as (a) marshal" (the `\bmarshal\s+<name>` read below
+            # finds nothing after the word).
+            if not _rm:
+                _rm = _NAME_AS_A_MARSHAL_RE.search(command_lower)
             if not _rm:
                 _rm = re.search(r'\bmarshal\s+([a-z][a-z\'-]+)', command_lower)
             # DD-0 S4 (SFR-H6): a placeholder is the bench, never a candidate
             # named "Another".
+            # S14E-X184: nor a COUNT - "commission two marshals" asked for a
+            # candidate named "Two".
             if _rm and _rm.group(1) not in (
                     "a", "an", "the", "new", "to", "him", "her", "them",
-                    "another", "someone", "somebody", "anyone", "one", "some"):
+                    "another", "someone", "somebody", "anyone", "one", "some",
+                    "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                    "ten", "both", "several", "couple", "few", "more"):
                 target = _rm.group(1).capitalize()
 
         # CR-0: vassal-family actions target a NATION — resolve it from the

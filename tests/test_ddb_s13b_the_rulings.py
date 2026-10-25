@@ -843,7 +843,12 @@ class TestDDBR1:
     """DDB-D1 — ASK FIRST: a typed attack on a marshal out of reach asks, at
     no cost, naming the pursuit's price and its first march."""
 
-    _ASK = ("Kutuzov stands at Bohemia, three marches off. Pursue him (2 AP — a "
+    # S14E-X86 (flipped, Pre-Deploy S14f part 2): the first march's soil draws
+    # campaign pay (Swabia is Bavaria's, our ally's), and the ask now says so
+    # before its question - the march card's own sentence.
+    _ASK = ("Kutuzov stands at Bohemia, three marches off. Swabia is Bavaria's "
+            "soil — the corps standing there are fed by contract, about −288g "
+            "more a turn. Pursue him (2 AP — a "
             "standing order; the first march takes Ney to Swabia, Bavaria's "
             "soil), or cancel?")
 

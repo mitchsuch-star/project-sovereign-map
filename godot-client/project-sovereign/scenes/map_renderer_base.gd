@@ -336,6 +336,9 @@ var order_group: Array = []
 var arrow_click_check: Callable = Callable()
 var order_layer = null
 var reach_fill_layer: TextureRect = null
+# S14E-D10: the Descent camp's wash — a sibling between the owner fill and the
+# reach tint, lit on the camp provinces while the camp counts.
+var camp_fill_layer: TextureRect = null
 var _order_bands := {}
 var _order_reach_ok := false
 var _order_hover_last := ""
@@ -1058,6 +1061,7 @@ func _create_scene_layers():
 	world_layer.add_child(visual_map_layer)
 
 	_create_owner_fill_layer()
+	_create_camp_fill_layer()
 	_create_reach_fill_layer()
 
 	highlight_map_layer = TextureRect.new()
@@ -1252,6 +1256,64 @@ func _refresh_owner_fill_palette():
 			)
 		owners[i] = owner_color
 	owner_fill_layer.material.set_shader_parameter("owner_colors", owners)
+
+
+func _create_camp_fill_layer():
+	# S14E-D10: the Descent camp's wash — the reach tint's own pattern (one
+	# <=128-entry uniform upload, the owner fill's lookup texture and palette
+	# order, no second copy of the mask), created BEFORE the reach tint so a
+	# selected corps' reach draws over it. Hidden until the camp counts.
+	camp_fill_layer = null
+	if owner_fill_layer == null:
+		return
+	camp_fill_layer = TextureRect.new()
+	camp_fill_layer.name = "CampFillLayer"
+	camp_fill_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	camp_fill_layer.position = owner_fill_layer.position
+	camp_fill_layer.size = owner_fill_layer.size
+	camp_fill_layer.stretch_mode = TextureRect.STRETCH_SCALE
+	camp_fill_layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	camp_fill_layer.z_index = -2
+	camp_fill_layer.texture = owner_fill_layer.texture
+	var shader = Shader.new()
+	shader.code = REACH_FILL_SHADER
+	var camp_material = ShaderMaterial.new()
+	camp_material.shader = shader
+	var lookups := PackedColorArray()
+	lookups.resize(OWNER_FILL_MAX_PROVINCES)
+	for i in range(_owner_fill_province_order.size()):
+		lookups[i] = province_shapes[_owner_fill_province_order[i]]["lookup_color"]
+	camp_material.set_shader_parameter("lookup_colors", lookups)
+	camp_material.set_shader_parameter("province_count", _owner_fill_province_order.size())
+	camp_fill_layer.material = camp_material
+	camp_fill_layer.visible = false
+	world_layer.add_child(camp_fill_layer)
+
+
+func _refresh_camp_fill() -> void:
+	"""S14E-D10: one palette upload per payload — each camp province washed
+	(`camp` in its region data, which the backend stamps ONLY while the camp
+	counts: France at war with an island power, 40,000 men standing in the
+	camp), the staged descent a shade stronger. Nothing counting, nothing
+	shown: the layer hides and costs nothing."""
+	if camp_fill_layer == null:
+		return
+	var washes := PackedColorArray()
+	washes.resize(OWNER_FILL_MAX_PROVINCES)
+	# S14E-X197 (the re-play's P2): a resized PackedColorArray is OPAQUE BLACK
+	# by default, and the shader paints every province its slot's colour — so
+	# every province outside the camp went black. Clear first; the reach layer
+	# never met this because it sets every slot.
+	washes.fill(Color.TRANSPARENT)
+	var any_camp := false
+	for i in range(_owner_fill_province_order.size()):
+		var region_name: String = _owner_fill_province_order[i]
+		var data: Dictionary = region_full_data.get(region_name, {})
+		if bool(data.get("camp", false)):
+			washes[i] = Utils.MAP_CAMP_WASH_STAGED if bool(data.get("camp_staged", false)) else Utils.MAP_CAMP_WASH
+			any_camp = true
+	camp_fill_layer.material.set_shader_parameter("band_colors", washes)
+	camp_fill_layer.visible = any_camp
 
 
 func _create_reach_fill_layer():
@@ -3650,6 +3712,12 @@ func _draw_region_tooltip():
 			g_text += " [Detachment]"
 		_push_tooltip_line(lines, g_text, Color(0.8, 0.6, 0.4))
 
+	# S14E-D10: the Admiralty's count on a Descent camp province — the backend
+	# stamps `camp_note` only while the camp counts (the wash lights with it).
+	var camp_note := str(data.get("camp_note", ""))
+	if camp_note != "":
+		_push_tooltip_line(lines, camp_note, Utils.MAP_CAMP_TEXT)
+
 	var war_damage = int(data.get("war_damage", 0))
 	if war_damage > 0:
 		_push_tooltip_line(lines, "War Damage: %s%%" % war_damage, Color(0.85, 0.4, 0.4))
@@ -3883,6 +3951,7 @@ func update_all_regions(map_data: Dictionary):
 
 	_refresh_all_region_visuals()
 	_refresh_owner_fill_palette()
+	_refresh_camp_fill()   # S14E-D10: the Descent camp's wash, while it counts
 	_refresh_map_labels()
 	_rebuild_dynamic_nodes()
 	_update_war_table_pieces()

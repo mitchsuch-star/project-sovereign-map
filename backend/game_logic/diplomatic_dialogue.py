@@ -188,6 +188,106 @@ def mission_is_live(world) -> bool:
     return not mission.get("completed")
 
 
+# ── S14E-34 "The Peace It Was Sent To Win" (Pre-Deploy S14f part 2) ──
+# An Improve Relations mission begun at WAR or under a truce is sent to carry
+# the pair to peace (`truce_words` frames it as the finite cure). Its work is
+# DONE the tick the pair is at peace — MS-9's rule, "a mission whose work is
+# done is DONE" — yet it ran on, billing a DP a turn, naming no court and
+# shutting the desk for the next mission. The executor records the state the
+# mission began in (`started_state`, only WAR or ARMISTICE; absent otherwise
+# and on an older save, which then runs as it always did); the tick reads it.
+# COURT_NATION is NOT of the class: its work is the Court's Favour, which is
+# paid in treaties AFTER the peace and holds only while he stays (IQ-4);
+# GATHER_INTEL has its own duration; UNDERMINE_ALLIANCE moves another pair;
+# REASSURE_ALLY needs an alliance to begin with.
+_MISSION_PEACE_TYPES = frozenset({"IMPROVE_RELATIONS"})
+_MISSION_WAR_STATES = frozenset({"WAR", "ARMISTICE"})
+# S14E-X113: a peace that makes the court a client (VASSAL) ends the war the
+# mission was sent to end as well - it was not on the list, so the mission ran
+# on past the peace like S14E-34's, billing a DP a turn; its words differ
+# (`mission_peace_words` reads the state).
+_PEACE_STATES = frozenset({"PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
+                           "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"})
+
+
+def mission_won_its_peace(world) -> bool:
+    """Is the live mission one sent to win a peace, with the peace now won?"""
+    if not mission_is_live(world):
+        return False
+    mission = world.active_diplomatic_mission
+    if (str(mission.get("type") or "") not in _MISSION_PEACE_TYPES
+            or str(mission.get("started_state") or "") not in _MISSION_WAR_STATES):
+        return False
+    target = str(mission.get("target") or "")
+    if not target:
+        return False
+    player = getattr(world, "player_nation", "France")
+    return str(world.get_diplomatic_state(player, target)) in _PEACE_STATES
+
+
+def mission_peace_words(world, target: str) -> str:
+    """"Austria and France are at peace — Talleyrand is home." """
+    from backend.display_names import display_nation, with_definite_article
+    player = getattr(world, "player_nation", "France")
+    court = with_definite_article(display_nation(str(target or "")), capitalize=True)
+    if str(world.get_diplomatic_state(player, str(target or ""))) == "VASSAL":
+        # S14E-X113: the peace was a vassalage - "Austria is now a client of
+        # France", not a peace between equals.
+        lord = str(((getattr(world, "vassals", None) or {}).get(str(target or "")) or {}).get("lord") or "")
+        if lord == player:
+            return (f"{court} is now a client of {with_definite_article(display_nation(player))}"
+                    " — Talleyrand is home.")
+        return (f"{court} and {with_definite_article(display_nation(player))} "
+                "are bound by vassalage — Talleyrand is home.")
+    return (f"{court} and {with_definite_article(display_nation(player))} "
+            "are at peace — Talleyrand is home.")
+
+
+# ── S14E-X110 "The Alliance It Was Sent To Keep" (S14E-34's twin) ──
+# A Reassure Ally mission is sent to hold an ALLIANCE together (the wizard
+# offers it nowhere else), yet it ran on — billing a DP a turn and writing +6
+# on the relation — after the pair slid to a defensive alliance (S14E-11's
+# sighting: the five-turn auto-downgrade) or went to war. Its work is moot the
+# tick the pair is no longer allied. The executor records the state it began
+# in (`started_state`, only "ALLIANCE"; absent otherwise and on an older save,
+# which then runs as it always did — a mission begun at a defensive alliance
+# was never sent to hold an ALLIANCE). A VASSAL bond is a closer one, not a
+# lapsed one: the mission stands.
+_MISSION_ALLIANCE_TYPES = frozenset({"REASSURE_ALLY"})
+_ALLIANCE_HELD_STATES = frozenset({"ALLIANCE", "VASSAL"})
+
+
+def mission_alliance_end(world) -> str:
+    """Why the live mission's alliance is gone: "war", "lapsed", or "" while
+    it stands (or when the mission was never sent to hold one)."""
+    if not mission_is_live(world):
+        return ""
+    mission = world.active_diplomatic_mission
+    if (str(mission.get("type") or "") not in _MISSION_ALLIANCE_TYPES
+            or str(mission.get("started_state") or "") != "ALLIANCE"):
+        return ""
+    target = str(mission.get("target") or "")
+    if not target:
+        return ""
+    player = getattr(world, "player_nation", "France")
+    state = str(world.get_diplomatic_state(player, target))
+    if state in _ALLIANCE_HELD_STATES:
+        return ""
+    return "war" if state == "WAR" else "lapsed"
+
+
+def mission_alliance_words(world, target: str, reason: str) -> str:
+    """"The alliance with Spain has lapsed — Talleyrand is home." / "France and
+    Spain are at war — Talleyrand is home." """
+    from backend.display_names import display_nation, with_definite_article
+    court = with_definite_article(display_nation(str(target or "")))
+    if reason == "war":
+        player = getattr(world, "player_nation", "France")
+        return (f"{with_definite_article(display_nation(player), capitalize=True)} "
+                f"and {court} are at war — Talleyrand is home.")
+    return f"The alliance with {court} has lapsed — Talleyrand is home."
+
+
 def mission_effect_magnitude(world, mission_type: str, key: str) -> int:
     """The figure the tick will ACTUALLY apply, skill scaling included.
 
@@ -333,6 +433,13 @@ def project_mission_turns(world, status: dict) -> tuple:
         return ("alliance", -1, f"their alliance breaks after 5 turns at {floor} "
                                 f"or below — now {status['current_relation']}, "
                                 f"{counted} of 5 counted")
+    # S14E-34: a mission sent to win a peace ends WHEN the peace is signed —
+    # the ceiling it would otherwise be projected to is not its end.
+    if (mission_type in _MISSION_PEACE_TYPES
+            and str((world.active_diplomatic_mission or {}).get("started_state") or "")
+            in _MISSION_WAR_STATES):
+        return ("peace", -1, "he comes home when the peace is signed — recall "
+                             "him sooner if you would")
     # The relation missions: step the tick's own arithmetic.
     effect = int(status["effect_per_turn"])
     player = getattr(world, "player_nation", "France")
@@ -410,10 +517,47 @@ def _ledger_name(nation: str) -> str:
     return with_definite_article(display_nation(str(nation or "")))
 
 
+# S14E-X37 (S14f part 2): the writes that move the mission's pair and are not
+# the mission's own. The standing ones have no actor ("the forced alliance's
+# drift"); the rest name who did it to whom (`mission_shock_cause`).
+_STANDING_SHOCK_WORDS = {
+    "forced_alliance_drift": "the forced alliance's drift",
+    "coalition_cause": "the coalition's united cause",
+    "coalition_friction": "the coalition's friction",
+    "coalition_leader": "the coalition's change of leader",
+    "paymaster_subsidy": "the paymaster's subsidy",
+    "call_to_arms_costly": "the call to arms honoured at cost",
+    "witness_strike": "the witnesses' verdict on a breach",
+    "bargain_kept": "a bargain kept",
+    "bargain_breach": "a bargain broken",
+    "bargain_entry": "an ally entering the war on a bargain",
+    "broker_fee": "the broker's fee",
+    "compensation": "a compensation bargain",
+    "ally_petition_declined": "declining the ally's petition",
+    "mediation_refused": "refusing the mediation",
+    "mediation_credit": "the mediator's credit",
+    "settlement_gratitude": "gratitude at the peace",
+    "earlier": "earlier events",
+    # S14E-X112 (S14f part 2, wave 4): the writes the first sweep left unbooked.
+    "auto_downgrade": "the bond's automatic downgrade",
+    "ai_rivalry": "the neighbours' territorial rivalry",
+    "road_teeth": "the Emperor's road",
+    "act_of_empire": "an Act of the Empire",
+    "moment_letter": "the letter's answer",
+    "forced_alliance_reset": "the forced alliance's reset to zero",
+}
+# Per-turn standing writes: consecutive ones fold into ONE entry, so a long
+# mission does not fill its books with twelve lines of the same friction.
+_STANDING_SHOCK_KINDS = frozenset({"forced_alliance_drift", "coalition_friction",
+                                   "paymaster_subsidy", "ai_rivalry"})
+
+
 def mission_shock_cause(shock: dict, player: str = "France") -> str:
     """"Prussia's declaration on Hanover" — the shock's cause in words."""
     by, on = str(shock.get("by") or ""), str(shock.get("on") or "")
     kind = str(shock.get("kind") or "")
+    if kind in _STANDING_SHOCK_WORDS:
+        return _STANDING_SHOCK_WORDS[kind]
     if not by:
         return "events"
     who = "our" if by == player else f"{_ledger_name(by)}'s"
@@ -423,20 +567,64 @@ def mission_shock_cause(shock: dict, player: str = "France") -> str:
         return f"{who} treaty break with {_ledger_name(on)}"
     if kind == "downgrade":
         return f"{who} downgrade with {_ledger_name(on)}"
+    if kind == "ultimatum":
+        return f"{who} ultimatum to {_ledger_name(on)}"
+    if kind == "ultimatum_rejection":
+        return f"{_ledger_name(on)}'s rejection of {who} ultimatum"
+    if kind == "renege":
+        return f"{who} broken bargain"
+    if kind == "make_amends":
+        return f"{who} amends to {_ledger_name(on)}"
+    if kind == "counter_rejection":
+        return f"{who} refusal of {_ledger_name(on)}'s counter-offer"
+    if kind == "coalition_join":
+        return f"{'our' if by == player else _ledger_name(by)} joining the coalition"
+    if kind == "coalition_leave":
+        return f"{who} leaving the coalition"
+    if kind == "settlement_shut_out":
+        return f"{_ledger_name(on)} left out of {who} peace"
+    if kind == "settlement_sold_out":
+        return f"{_ledger_name(on)} sold out at the peace"
+    if kind == "vassal_rebellion":
+        return f"{_ledger_name(on)}'s rebellion against {'us' if by == player else _ledger_name(by)}"
+    if kind == "vassal_defection":
+        return f"{_ledger_name(on)}'s defection"
+    if kind == "vassal_petition":
+        return f"{who} petition"
+    if kind == "blowback":
+        return f"the blowback at {_ledger_name(on)}'s court"
+    # S14E-X112: the sweep's second set (the AI's own pairs among them).
+    if kind == "liberation":
+        return f"{_ledger_name(on)}'s liberation"
+    if kind == "ai_treaty":
+        return f"the new treaty between {_ledger_name(by)} and {_ledger_name(on)}"
+    if kind == "estate_confiscation":
+        return f"{who} confiscation of {_ledger_name(on)}'s estate"
+    if kind == "formation_blow":
+        return f"the formation of {_ledger_name(by)}"
+    if kind == "agenda_violation":
+        return f"{who} troops crossing {_ledger_name(on)}'s guarded ground"
     return f"{who} {kind.replace('_', ' ')}".strip()
 
 
-def mission_ledger_line(mission, player: str = "France") -> str:
+def mission_ledger_line(mission, player: str = "France", current=None) -> str:
     """The mission's books in one clause, or "" when there is nothing to
-    reconcile: "+16 earned, -15 from Prussia's declaration on Hanover; paused
-    2 turns on your errand". Read by the Cabinet row, the Strategic Ledger, the
-    Talleyrand tab, the notice rail, the dispatch's progress line, the end
-    beats and the campaign log — none of them composes it.
+    reconcile: "+16 earned, -15 from Prussia's declaration on Hanover, drift
+    -2; paused 2 turns on your errand". Read by the Cabinet row, the Strategic
+    Ledger, the Talleyrand tab, the notice rail, the dispatch's progress line,
+    the end beats and the campaign log — none of them composes it.
 
     It speaks only when something stands between the work and the headline —
     a shock on the pair, a turn paused. A quiet mission's earnings ARE the
     headline's number, and saying them twice would put "+8 earned" on every
-    quiet morning."""
+    quiet morning.
+
+    ``current`` (S14E-X36) is the pair's relation NOW, from the caller that
+    holds the world: the headline is ``current - baseline``, and what
+    ``earned`` and the shocks do not account for is the court's own drift
+    (the -1 a turn toward the calm band, the truce's thaw) — a derived
+    ``drift`` term, so the parts sum to the headline. A caller without the
+    world omits it and the line reads as it did."""
     if not isinstance(mission, dict):
         return ""
     if not (mission.get("shocks") or int(mission.get("paused_errand") or 0) > 0
@@ -455,6 +643,9 @@ def mission_ledger_line(mission, player: str = "France") -> str:
     for shock in mission.get("shocks") or []:
         if isinstance(shock, dict) and int(shock.get("delta") or 0):
             parts.append(f"{int(shock['delta']):+d} from {mission_shock_cause(shock, player)}")
+    drift = mission_drift(mission, current)
+    if drift:
+        parts.append(f"drift {drift:+d}")
     pauses = []
     errand = int(mission.get("paused_errand") or 0)
     if errand > 0:
@@ -463,6 +654,28 @@ def mission_ledger_line(mission, player: str = "France") -> str:
     if starved > 0:
         pauses.append(f"stalled {_plural(starved, 'turn')} for want of DP")
     return "; ".join(x for x in (", ".join(parts), ", ".join(pauses)) if x)
+
+
+def mission_drift(mission, current) -> int:
+    """S14E-X36: the part of the headline the books do not account for —
+    ``(current - baseline) - earned - the shocks`` — which, once every write
+    that drags the pair is booked (X37), IS the court's own drift. 0 when the
+    caller has no reading, the record predates the books (no ``earned``, no
+    baseline), or the mission is not relation work."""
+    if current is None or not isinstance(mission, dict) or "earned" not in mission:
+        return 0
+    if str(mission.get("type") or "") not in _MISSION_EARNING_TYPES:
+        return 0
+    if (mission.get("type") == "UNDERMINE_ALLIANCE" and mission.get("target_ally")):
+        base = mission.get("initial_pair_relation")
+    else:
+        base = mission.get("initial_relation")
+    if base is None:
+        return 0
+    booked = int(mission.get("earned") or 0) + sum(
+        int(x.get("delta") or 0) for x in (mission.get("shocks") or [])
+        if isinstance(x, dict))
+    return int(current) - int(base) - booked
 
 
 def mission_pair_snapshot(world):
@@ -496,12 +709,64 @@ def note_mission_shock(world, snapshot, kind: str, by: str, on: str) -> None:
             return
         mission = world.active_diplomatic_mission
         shocks = list(mission.get("shocks") or [])
-        shocks.append({"turn": int(getattr(world, "current_turn", 0) or 0),
-                       "delta": int(delta), "kind": str(kind),
-                       "by": str(by or ""), "on": str(on or "")})
-        mission["shocks"] = shocks[-MISSION_SHOCK_CAP:]
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        last = shocks[-1] if shocks else None
+        if (str(kind) in _STANDING_SHOCK_KINDS and isinstance(last, dict)
+                and (last.get("kind"), last.get("by"), last.get("on"))
+                == (str(kind), str(by or ""), str(on or ""))):
+            # a standing write, again: one entry, running total (X37)
+            last = dict(last, delta=int(last.get("delta") or 0) + int(delta), turn=turn)
+            shocks[-1] = last
+        else:
+            shocks.append({"turn": turn, "delta": int(delta), "kind": str(kind),
+                           "by": str(by or ""), "on": str(on or "")})
+        # The cap FOLDS the oldest two into one "earlier events" entry rather
+        # than dropping one: the drift term is the headline less the booked
+        # shocks, so a shock that fell off the list would be read as drift.
+        while len(shocks) > MISSION_SHOCK_CAP:
+            first, second = shocks[0], shocks[1]
+            shocks[:2] = [{"turn": int(second.get("turn") or 0),
+                           "delta": int(first.get("delta") or 0) + int(second.get("delta") or 0),
+                           "kind": "earlier", "by": "", "on": ""}]
+        mission["shocks"] = shocks
     except Exception as exc:
         report(exc, "diplomatic_dialogue.note_mission_shock")
+
+
+def modify_relation_booked(world, a: str, b: str, delta: int, kind: str,
+                           by: str = "", on: str = "") -> int:
+    """`world.modify_nation_relation` with the mission's books kept (S14E-X37).
+
+    The write is EXACTLY the one the caller made before — same pair, same
+    delta, same clamp, same return — and the books note what it did to the
+    live mission's pair (if it touched it) with a ``kind`` and cause words
+    (`mission_shock_cause`). A pair the mission does not move records nothing.
+    For the AI's pairs as for the player's: the mechanic never reads the books
+    (Golden Rule 5)."""
+    try:
+        snapshot = mission_pair_snapshot(world)
+    except Exception as exc:     # a ledger must not stop a war
+        report(exc, "diplomatic_dialogue.modify_relation_booked")
+        snapshot = None
+    landed = world.modify_nation_relation(a, b, delta)
+    note_mission_shock(world, snapshot, kind, by, on)
+    return landed
+
+
+def set_relation_booked(world, a: str, b: str, value: int, kind: str,
+                        by: str = "", on: str = "") -> int:
+    """S14E-X112: the forced alliance's RESET (`nation_relations[pair] = 0`) with
+    the mission's books kept. The write is exactly the old one — the pair's
+    entry set outright, no clamp, no per-turn delta ledger — and the books note
+    what it did to the live mission's pair (if it touched it)."""
+    try:
+        snapshot = mission_pair_snapshot(world)
+    except Exception as exc:     # a ledger must not stop a peace
+        report(exc, "diplomatic_dialogue.set_relation_booked")
+        snapshot = None
+    world.nation_relations[world._make_diplo_key(a, b)] = value
+    note_mission_shock(world, snapshot, kind, by, on)
+    return value
 
 
 def mission_status(world) -> Optional[dict]:
@@ -577,7 +842,8 @@ def mission_status(world) -> Optional[dict]:
                                if isinstance(x, dict))),
         "paused_errand": int(mission.get("paused_errand") or 0),
         "paused_starved": int(mission.get("paused_starved") or 0),
-        "ledger_line": mission_ledger_line(mission, player),
+        "ledger_line": mission_ledger_line(mission, player,
+                                           current=current if pair[1] else None),
         "effect_text": mission_effect_text(world, mission_type),
         # No recall while he carries a proposal: the EC-Q transit gate
         # refuses it, so the Cabinet's [Recall] (hidden on "") and the rail's
@@ -667,6 +933,18 @@ def _mission_message_body(world, beat: str, status: Optional[dict], snap: dict,
         if reason == "alliance_broken":
             return (f"The alliance between {T} and {A} has broken. "
                     "Talleyrand's mission is done.")
+        if reason == "peace":
+            # S14E-34: the work was the peace; it is signed.
+            return (f"{mission_peace_words(world, snap.get('target', ''))} "
+                    f"{_plural(int(extra.get('turns', 0)), 'turn')}, "
+                    f"{int(extra.get('dp_spent', 0))} DP "
+                    f"({int(extra.get('start', 0)):+d} to {int(extra.get('end', 0)):+d}).")
+        if reason in ("lapsed", "war"):
+            # S14E-X110: the alliance the mission was sent to hold is gone.
+            return (f"{mission_alliance_words(world, snap.get('target', ''), reason)} "
+                    f"{_plural(int(extra.get('turns', 0)), 'turn')}, "
+                    f"{int(extra.get('dp_spent', 0))} DP "
+                    f"({int(extra.get('start', 0)):+d} to {int(extra.get('end', 0)):+d}).")
         end = int(extra.get("end", 0))
         return (f"Relations with {T} stand at {end:+d}. Talleyrand's mission is "
                 f"done and he is home — {_plural(int(extra.get('turns', 0)), 'turn')}, "
@@ -685,6 +963,24 @@ def _mission_message_body(world, beat: str, status: Optional[dict], snap: dict,
     if beat == "eliminated":
         return f"Talleyrand's mission to {T} has ended — {T} no longer exists."
     return ""
+
+
+def mission_rail_words(beat: str, target: str) -> str:
+    """S14E-X199: the notice rail's chip for a mission's ENDING beat — "Talleyrand
+    home from Austria — mission done" (completed, whatever ended it: the
+    ceiling, the duration, the peace, the alliance's end), "Talleyrand recalled
+    from Austria", "Talleyrand's mission to Austria collapsed" / "ended". A
+    standing mission's chip stays the client's own "Talleyrand at <court> —
+    <kind>"; "" for every other beat. One source for the sentence: the client
+    prints `details.rail_words` as it finds it."""
+    from backend.display_names import display_nation
+    court = display_nation(target) if target else "the court"
+    return {
+        "completed": f"Talleyrand home from {court} — mission done",
+        "recalled": f"Talleyrand recalled from {court}",
+        "collapsed": f"Talleyrand's mission to {court} collapsed",
+        "eliminated": f"Talleyrand's mission to {court} ended",
+    }.get(beat, "")
 
 
 def restate_mission_notice(world, beat: Optional[str] = None,
@@ -741,6 +1037,12 @@ def restate_mission_notice(world, beat: Optional[str] = None,
              f"{display_nation(target)}")
     details = {"target_nation": target, "mission_type": mission_type, "beat": beat,
                "fresh": bool(beat == "blowback")}
+    if beat in _ENDED_BEATS:
+        # S14E-X199: an ended row is the mission's ending notice, not a standing
+        # mission — the rail's chip reads these words, not the live row's
+        # "Talleyrand at Austria — Improving Relations" (which kept saying he
+        # was at the court for the whole turn after he came home).
+        details["rail_words"] = mission_rail_words(beat, target)
     # No Recall on the transit row: the EC-Q transit gate refuses every
     # mission order while he carries a proposal (and the wizard greys the
     # row, FA-N81). A button on the rail must do what it says, or not be
@@ -769,9 +1071,9 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
     """One call at every place a mission ends: the campaign-log row
     (`diplomatic_mission_ended`) and the rail's ending beat.
 
-    ``reason`` ∈ ceiling, duration, alliance_broken, recalled, starved,
-    eliminated (the last keeps its own `…_cancelled_eliminated` log row and
-    only rings the rail). ``mission`` is the dict, or a snapshot taken before
+    ``reason`` ∈ ceiling, duration, alliance_broken, peace (S14E-34), lapsed
+    and war (S14E-X110), recalled, starved, eliminated (the last keeps its own
+    `…_cancelled_eliminated` log row and only rings the rail). ``mission`` is the dict, or a snapshot taken before
     a path clears it.
     """
     if not mission:
@@ -781,7 +1083,6 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
     player = getattr(world, "player_nation", "France")
     turns = int(mission.get("turns_active", 0) or 0)
     dp_spent = turns * int(MISSION_DP_COSTS.get(mission_type, 1))
-    ledger = mission_ledger_line(mission, player)
     ally = str(mission.get("target_ally", "") or "")
     if mission_type == "UNDERMINE_ALLIANCE" and ally and target:
         # IQ-4 review: the record is of the pair he moved, never France's own
@@ -798,6 +1099,9 @@ def record_mission_end(world, mission: Optional[dict], reason: str,
         if relation_end is None:
             relation_end = (int(world.nation_relations.get(
                 world._make_diplo_key(player, target), 0) or 0) if target else 0)
+    # S14E-X36: the tally reads the relation the mission ended on, so its parts
+    # sum to the headline ("relation_start" to "relation_end").
+    ledger = mission_ledger_line(mission, player, current=int(relation_end) if target else None)
     if reason != "eliminated":
         entry = {
             "type": "diplomatic_mission_ended",
@@ -1180,14 +1484,19 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
                 opt["description"] = "Demand more — risky given our weak position."
             elif opt["action"] == "modify_generous" and player_war_score > 20:
                 opt["description"] = "Offer concessions — unnecessary given our strong position."
+        # S14E-19: "Adjust terms" opens the road the war score picks — and is
+        # disabled, with its reason, where that road does not exist.
+        _stamp_adjust_terms(world, options, player_nation, target_nation, proposal_type)
 
     # Build context snapshot
     context = {}
     if target_nation:
-        from backend.game_logic.diplomacy import get_war_score_for
+        from backend.game_logic.diplomacy import live_war_score_for
         diplo_key = world._make_diplo_key(player_nation, target_nation)
         context = {
-            "war_score": int(get_war_score_for(world, player_nation, target_nation)),
+            # S14E-X99: the war score as it stands NOW (the war panel's and
+            # the preview's own read), never the stored end-turn score.
+            "war_score": int(live_war_score_for(world, player_nation, target_nation)),
             "relation": int(world.nation_relations.get(diplo_key, 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
             "current_state": world.get_diplomatic_state(player_nation, target_nation),
@@ -1440,7 +1749,36 @@ def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
     return out
 
 
-def separate_peace_note_text(world, proposer: str, target: str) -> str:
+def _stamp_adjust_terms(world, options: list, player: str, target: str,
+                        proposal_type) -> None:
+    """S14E-19 (Pre-Deploy S14f part 2, October 25, 2026): the confirm's
+    "Adjust terms" button, stamped from `adjust_terms_road` — the verdict the
+    executor's arm reads at the click. A France that is not behind in a war is
+    on the demands road (the table, over this court alone): the tooltip says
+    so; where that road does not exist the button arrives DISABLED with its
+    reason (`treaty.stamp_option`'s keys — the client's disabled tooltip and
+    the executor's refusal both read them). Mutates the option dicts this
+    call built; the module's templates are never touched."""
+    from backend.game_logic.diplomatic_templates import adjust_terms_road
+    road = adjust_terms_road(world, player, target, str(proposal_type or ""))
+    if road["road"] != "demands":
+        return
+    for opt in options:
+        if not (isinstance(opt, dict) and opt.get("action") == "adjust_terms"):
+            continue
+        if road["available"]:
+            opt["description"] = ("Press our demands at the table — each one written, "
+                                  "priced and kept or struck.")
+            continue
+        reason = str(road["reason"])
+        opt["available"] = False
+        opt["enabled"] = False
+        opt["disabled_reason_display"] = reason
+        opt["unavailable_reason"] = reason
+
+
+def separate_peace_note_text(world, proposer: str, target: str,
+                             clauses: Optional[list] = None) -> str:
     """PC-R1 (iv): Talleyrand's note on the bilateral peace draft — what the
     peace does to the allies at war with the court, in the one wording
     (`diplomacy.separate_peace_words`): "Mark one thing, Sire: Bavaria's war
@@ -1449,10 +1787,81 @@ def separate_peace_note_text(world, proposer: str, target: str) -> str:
     (FA-D17 / DDB-8 / PC-F1), which §46 B + C retired: the Send arm stays
     live and the price, where there is one, is said here."""
     from backend.game_logic.diplomacy import separate_peace_words
-    words = separate_peace_words(world, proposer, target)
+    words = separate_peace_words(world, proposer, target, clauses)
     if not words:
         return ""
     return f"Mark one thing, Sire: {words['display']}"
+
+
+def separate_peace_said_by_the_rows(world, dialogue: Dict, proposer: str, target: str,
+                                    clauses: Optional[list] = None) -> bool:
+    """S14E-X198 (Pre-Deploy S14f part 2, October 25, 2026): True when the
+    draft's snapshot already carries the separate-peace sentence — its
+    `commitment_conflicts` rows (`carried_in` / `paradox`, one per ally at
+    war with the court) read the SAME `separate_peace_words`, so the note
+    that went to the confirm's `warnings` printed it a second time ("* Mark one
+    thing, Sire: Spain's war with Britain ends in this instrument; …" and
+    "* Spain's war with Britain ends in this instrument; …" back to back, the
+    replay's frames 0027, 0168, 0213, 0267). The rows are the ONE line (they
+    carry the severity — a priced shut-out reads red — and the draft's own
+    clauses); the note stays on the dialogue as `separate_peace_note` for the
+    counsel. True only when EVERY ally's row is exactly the words' sentence —
+    a row that says something else (France joined at an ally's call) keeps
+    the note beside it."""
+    snapshot = dialogue.get("war_context_snapshot")
+    rows = snapshot.get("commitment_conflicts") if isinstance(snapshot, dict) else None
+    if not rows:
+        return False
+    from backend.game_logic.diplomacy import separate_peace_words
+    words = separate_peace_words(world, proposer, target, clauses)
+    allies = list((words or {}).get("allies") or [])
+    if not allies:
+        return False
+    per_ally = words.get("per_ally") or {}
+    said = {
+        str(r.get("affected_entity") or ""): str(r.get("display") or "")
+        for r in rows
+        if isinstance(r, dict) and r.get("conflict_type") in ("carried_in", "paradox")
+    }
+    return all(per_ally.get(a) and said.get(a) == per_ally.get(a) for a in allies)
+
+
+#: S14E-X205: the hegemony warning's severities, in the conflict rows' own
+#: vocabulary (the red rows are WARNING; the rest read as INFO).
+_HEGEMONY_ROW_SEVERITY = {"critical": "WARNING", "high": "WARNING"}
+
+
+def fold_hegemony_warning_into_bloc_row(dialogue: Dict, warnings: list) -> list:
+    """S14E-X205 (Pre-Deploy S14f part 2, October 25, 2026): the peace
+    preview's Political Consequences said the cross-bloc friction twice, in two
+    voices, for one pair: the hegemony warning ("Britain's court sees the
+    Berlin Alignment consolidating across Europe and will resist a cross-bloc
+    agreement.", the dialogue's `warnings`) and the snapshot's `bloc_opposition`
+    row ("Britain sits outside your bloc. Peace normalizes relations with a
+    nation resisting your European influence."). Both gates are the same
+    (`_build_hegemony_preview_warning` is written to match the row's).
+
+    The warning is the sentence with the band's strength, the bloc's name and,
+    for the hegemon, the lever; the row is the one that carries the share
+    (`detail.bloc_share`, a whole percent). The row inherits the warning's
+    sentence and its strength (critical / high read as a WARNING row, the red
+    ones) and the warning leaves `warnings`: returns the warnings still to
+    print. A dialogue with no bloc_opposition row (a proposal that is not a
+    peace, a pair inside the bloc) keeps the warning; the incoming letter
+    builds no hegemony warning and keeps the row's own words."""
+    heg = [w for w in (warnings or [])
+           if isinstance(w, dict) and w.get("category") == "hegemony" and w.get("text")]
+    snapshot = dialogue.get("war_context_snapshot")
+    rows = snapshot.get("commitment_conflicts") if isinstance(snapshot, dict) else None
+    if not heg or not rows:
+        return warnings
+    row = next((r for r in rows
+                if isinstance(r, dict) and r.get("conflict_type") == "bloc_opposition"), None)
+    if row is None:
+        return warnings
+    row["display"] = str(heg[0]["text"])
+    row["severity"] = _HEGEMONY_ROW_SEVERITY.get(str(heg[0].get("severity") or ""), "INFO")
+    return [w for w in warnings if not any(w is h for h in heg)]
 
 
 def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
@@ -1624,7 +2033,9 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         for c in terms.get("clauses", [])
     ]
     harshness = calculate_treaty_harshness(harshness_terms)
-    dialogue["harshness"] = round(harshness, 2)
+    # S14E-X6: a whole percent on the wire (Golden Rule 2) — the popup prints
+    # `harshness_label`, never this figure.
+    dialogue["harshness"] = int(round(harshness * 100))
     if harshness < 0.15:
         dialogue["harshness_label"] = "Low"
     elif harshness < 0.35:
@@ -1751,7 +2162,13 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         target_nation=target_nation,
         proposal_type=proposal_type,
     )
-    if warnings:
+    # S14E-X205: the hegemony warning and the snapshot's bloc_opposition row
+    # state the same cross-bloc friction - one line in the consequence list.
+    # (The key stays on the dialogue wherever a warning was built, as before -
+    # a folded one leaves the list, not the field.)
+    _built = bool(warnings)
+    warnings = fold_hegemony_warning_into_bloc_row(dialogue, warnings)
+    if _built:
         dialogue["warnings"] = list(dialogue.get("warnings", [])) + warnings
 
     # Gate-4 1805 smoke (E-2, honesty half): the BPH-C §10.1 alliance-paradox
@@ -1767,12 +2184,23 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     # in by the leader's instrument, or left fighting at a price — as a note
     # (`separate_peace_note`, a medium warning) and the Send arm stays live.
     if proposal_type == "peace":
-        _note = separate_peace_note_text(world, player_nation, target_nation)
+        # S14E-X198: the note reads the draft's own clauses (the snapshot's
+        # rows do), and rides `warnings` only where the snapshot's rows do not
+        # already print the sentence — one line in the Political Consequences.
+        # S14E-X208: ... and the price the rows quote is the ratifier's
+        # (the draft's COMPILED clauses), so the note is priced from the same.
+        from backend.game_logic.diplomacy import separate_peace_priced_clauses
+        _note_clauses = separate_peace_priced_clauses(
+            (dialogue.get("war_context_snapshot") or {}).get("proposal_terms") or {},
+            player_nation, target_nation)
+        _note = separate_peace_note_text(world, player_nation, target_nation, _note_clauses)
         if _note:
             dialogue["separate_peace_note"] = _note
-            dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
-                {"severity": "medium", "text": _note}
-            ]
+            if not separate_peace_said_by_the_rows(
+                    world, dialogue, player_nation, target_nation, _note_clauses):
+                dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
+                    {"severity": "medium", "text": _note}
+                ]
 
     # FA-D7 (slice 17, Phase 2): `propose peace with X` drafted, estimated and
     # charged 3 DP while the coalition's settlement offer covering X sat on
@@ -2097,7 +2525,7 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
 
 def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     """Generate a feasibility assessment dialogue (0 DP cost)."""
-    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost, get_war_score_for
+    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost, live_war_score_for
 
     target_nation = parsed_command.get("target_nation")
     proposal_type = parsed_command.get("proposal_type", "peace")
@@ -2283,7 +2711,8 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "acceptance_outcome_display": str(outcome).replace("_", " ").title(),
         "dp_cost": int(dp_cost),
         "context": {
-            "war_score": int(get_war_score_for(world, player_nation, target_nation)),
+            # S14E-X99: live, like the preview's own war score.
+            "war_score": int(live_war_score_for(world, player_nation, target_nation)),
             "relation": int(world.nation_relations.get(world._make_diplo_key(player_nation, target_nation), 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
             "acceptance_score": int(score),

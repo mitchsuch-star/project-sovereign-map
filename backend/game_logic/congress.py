@@ -1524,6 +1524,27 @@ def _sweetener_points(paid: int, charge: int, per: int, cap: int) -> int:
     return min(cap, (paid + charge) * per // 1000) - min(cap, paid * per // 1000)
 
 
+def _chest_note(world, gold: int, memo: Optional[Dict[str, Any]] = None) -> str:
+    """S14E-X148 — " (the treasury holds N)" where the chest cannot pay the
+    gold a lever quotes, else "". The chest is `bond.bid_funds` (the
+    settlement validator's budget, `cabinet_rows._lever_funds`) — the very
+    figure the bond's price line (S14E-X127) and the counsel's lever (S14E-X126)
+    quote beside their sums, in the same idiom, so the Congress's price, the
+    bond's line and the lever agree on what France can pay. `memo` holds the
+    chest for one `price` call (the budget sums the player's provinces, so the
+    levers of one call read it once)."""
+    memo = memo if memo is not None else {}
+    if "funds" not in memo:
+        try:
+            from backend.game_logic import bond as _bond
+            memo["funds"] = int(_bond.bid_funds(world, _player(world)))
+        except Exception as exc:
+            report(exc, "congress._chest_note: bond.bid_funds")
+            memo["funds"] = None
+    funds = memo["funds"]
+    return f" (the treasury holds {funds:,})" if funds is not None and funds < int(gold) else ""
+
+
 def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     row = row if row is not None else answer(world, court)
     stance = row.get("stance")
@@ -1637,6 +1658,7 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     comps = {c["key"]: c["value"] for c in (row.get("components") or [])}
     player = _player(world)
     at_war = world.is_at_war(court, player)
+    chest: Dict[str, Any] = {}      # S14E-X148: the chest, read once per call
 
     if truce_peace is not None:
         levers.append(truce_peace)
@@ -1651,11 +1673,15 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                 if sitting(world) else 0)
         gold = _sweetener_gold(paid, per, points)
         levers.append({"key": "sweetener", "value": points, "gold": gold,
-                       "text": f"a {gold:,}g sweetener at the table (+{points})",
+                       # S14E-X148: a sum the chest cannot fund names the chest
+                       "text": (f"a {gold:,}g sweetener at the table (+{points})"
+                                f"{_chest_note(world, gold, chest)}"),
                        "command": f"offer {court} {gold} gold for recognition",
-                       # PC-X51: the ledger names the row, never the typed line
+                       # PC-X51: the ledger names the row, never the typed line.
+                       # S14E-X158: and never the bare sum - the price text
+                       # beside it carries the figure AND the chest
                        "control": (f"F1 → {_display(court)} → Offer Gold for "
-                                   f"Recognition ({gold:,}g)")})
+                                   f"Recognition")})
     # 2. The design — buy it off (the chain), where buying can turn it.
     if comps.get("design", 0) < DESIGN_TERM and not at_war:
         chain = _buy_off_chain(world, court)
@@ -1682,7 +1708,9 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
                             if first else " — one order each")
                 else:
                     cost = f" ({first:,}g)" if first else ""
-                text = f"buy off {names}{cost} (+{value})"
+                # S14E-X148: the first order's price is the sum the chest is
+                # set against (a chain buys ONE design per order)
+                text = f"buy off {names}{cost} (+{value}){_chest_note(world, first or 0, chest)}"
                 # DDB-10 (S13b): the buy-off is the Cabinet's row, named as
                 # such — the typed line this lever quoted was refused at the
                 # Cabinet door (diplomacy-first #15 / #27).
@@ -1757,9 +1785,35 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
         if trial and recognition_score(world, court, trial_ov)["score"] >= threshold:
             chosen = trial
     out["bundle"] = [dict(lv) for lv in chosen]
-    bundle = f"needs +{gap}: " + " + ".join(_bundle_text(lv) for lv in chosen)
+    parts = [_bundle_text(lv) for lv in chosen]
+    # S14E-X156: two funded levers whose sum the chest cannot pay say so, once,
+    # after the last of the gold levers.
+    together = _bundle_chest_note(world, chosen, chest)
+    if together:
+        last = max(i for i, lv in enumerate(chosen) if lv.get("key") in _GOLD_LEVERS)
+        parts[last] += together
+    bundle = f"needs +{gap}: " + " + ".join(parts)
     out["text"] = " · or ".join(alternatives + [bundle])
     return out
+
+
+_GOLD_LEVERS = ("sweetener", "design")
+
+
+def _bundle_chest_note(world, chosen: List[Dict[str, Any]], memo: Dict[str, Any]) -> str:
+    """S14E-X156 — " (together N g; the treasury holds M)" where the bundle
+    asks two gold levers (the sweetener and the first buy-off) that the chest
+    can each pay but not together. A lever the chest cannot pay alone already
+    names the chest (`_chest_note`), so the combined note is for the bundle
+    that no single lever's note would reveal."""
+    sums = [int(lv.get("gold") or 0) for lv in chosen if lv.get("key") in _GOLD_LEVERS]
+    sums = [g for g in sums if g > 0]
+    if len(sums) < 2 or any(_chest_note(world, g, memo) for g in sums):
+        return ""
+    total = sum(sums)
+    if not _chest_note(world, total, memo):
+        return ""
+    return f" (together {total:,}g; the treasury holds {int(memo['funds']):,})"
 
 
 # SR-6b RS-25: False = the bare count through a truce.
@@ -3063,9 +3117,18 @@ def sweetener_refusal(world, court: str, amount: int) -> Optional[str]:
     if dp < SWEETENER_DP_COST:
         return (f"The sweetener is carried by an envoy — "
                 f"{SWEETENER_DP_COST} diplomatic point, and {dp} remain.")
-    gold = int((getattr(world, "nation_gold", {}) or {}).get(_player(world), 0) or 0)
+    # S14E-X157: the gold is gated against the CHEST - the lever chest the
+    # price's levers quote ("the treasury holds N", `instruments.chest_of` =
+    # `bond.bid_funds`), the treasury less the recurring settlement payments
+    # owed - so a sweetener the lever text calls short is refused with the
+    # same figure and `pay_sweetener` cannot lay what this gate refuses.
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+    gold, chest = chest_of(world, _player(world))
     charge = sweetener_charge(world, court, amount)
-    if gold < charge:
+    if chest < charge:
+        if chest < gold:
+            return (f"The treasury holds {chest:,} gold{FREE_OF_OBLIGATIONS} — "
+                    f"the sweetener is {charge:,}, {charge - chest:,} short.")
         return f"The treasury holds {gold:,}g — the sweetener asks {charge:,}g."
     return None
 
@@ -3122,6 +3185,32 @@ def sweetener_charge(world, court: str, amount: int) -> int:
     per = max(1, _int(world, "sweetener_per_1000", SWEETENER_PER_1000))
     room_gold = max(0, int(math.ceil(cap * 1000 / per)) - paid)
     return max(0, min(int(amount), room_gold))
+
+
+def sweetener_quote(world, court: str, amount: int) -> str:
+    """S14E-X103 (the S14E-26 sweep): the sweetener's QUOTE, free, before the
+    gold leaves — what the table will count (the charge, clipped to the cap),
+    the points it moves, the diplomatic point, the chest after. Every figure is
+    the one `pay_sweetener` applies (`sweetener_charge`, `_sweetener_points`)."""
+    from backend.display_names import plural
+    charge = sweetener_charge(world, court, amount)
+    c = record(world) or {}
+    paid = int((c.get("sweeteners") or {}).get(court, 0) or 0)
+    cap = _int(world, "sweetener_cap", SWEETENER_CAP)
+    per = max(1, _int(world, "sweetener_per_1000", SWEETENER_PER_1000))
+    moved = _sweetener_points(paid, charge, per, cap)
+    # S14E-X157: the chest after is the CHEST's (`instruments.chest_of`), the
+    # figure the gate refuses against and the price's levers quote
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+    treasury, chest = chest_of(world, _player(world))
+    owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
+    clipped = (f" Only {charge:,}g of the {int(amount):,}g offered counts at this table."
+               if charge < int(amount) else "")
+    return (f"Lay {charge:,} gold before {seat(world, court)}: +{moved} at the table "
+            f"(every {int(math.ceil(1000 / per)):,}g is a point, up to +{cap}) and "
+            f"{plural(SWEETENER_DP_COST, 'diplomatic point')}.{clipped} The treasury holds "
+            f"{chest:,} gold{owed} and would hold {chest - charge:,} after; the gold is kept "
+            f"whatever the court answers. Lay it? (yes / no)")
 
 
 def pay_sweetener(world, court: str, amount: int) -> Dict[str, Any]:
@@ -3230,6 +3319,24 @@ def _short_cause(row: Dict[str, Any]) -> str:
     return ""
 
 
+def held_labels(world, held) -> List[str]:
+    """S14E-X63 / S14E-X119: each held, unsettled province as the clock names it
+    — "Munster — on the road to Ireland" where a begun carve settles it, the
+    bare name everywhere else (every board with no road begun reads as it
+    did). ONE builder: the gate line and the payload's `held_unsettled` (the
+    Territories tab's fallback list) both read it."""
+    held = list(held or [])
+    if not held:
+        return []
+    from backend.game_logic.formations import road_clause_for, road_notes
+    roads = road_notes(world)
+    out = []
+    for name in held:
+        clause = road_clause_for(world, name, roads)
+        out.append(f"{name} — {clause}" if clause else name)
+    return out
+
+
 def state_line(world) -> Optional[str]:
     """The clock in ONE line — the war room, the Territories tab, the
     end-turn banner and the R screen read it (ENDGAME_PLAN §2.5/§4)."""
@@ -3267,7 +3374,12 @@ def state_line(world) -> Optional[str]:
     if have < need:
         tail = ""
         if held:
-            shown = ", ".join(held[:3]) + (" …" if len(held) > 3 else "")
+            # S14E-X63: a held province on a begun carve says so — the clock
+            # that names Munster unsettled now says the Ireland carve settles
+            # it ("Munster — on the road to Ireland"). Nothing is added where
+            # no road is begun (every other board's line is byte-identical).
+            names = held_labels(world, held[:3])
+            shown = ", ".join(names) + (" …" if len(held) > 3 else "")
             tail = f" ({len(held)} held, unsettled: {shown})"
         return f"THE CONGRESS OF PARIS — {titled_tally(have, need)}{tail} · {CABINET_HINT}"
     blocker = next((t for t in gate_terms(world)
@@ -3372,7 +3484,9 @@ def build_congress_payload(world) -> Optional[Dict[str, Any]]:
         "number": int(c.get("number", 0) or 0),
         "titled": int(view["count"]),
         "titled_needed": int(view["needed"]),
-        "held_unsettled": list(view["held"]),
+        # S14E-X119: each name carries the carve that settles it ("Munster — on
+        # the road to Ireland"); the ledger's fallback list prints them as is.
+        "held_unsettled": held_labels(world, view["held"]),
         # SR-1c: the road each held province has to title, and the alarm's.
         "held_roads": [dict(r) for r in _title_roads(world)],
         "alarm_road": alarm_road(world),

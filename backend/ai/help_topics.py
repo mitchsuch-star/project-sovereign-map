@@ -55,10 +55,30 @@ HELP_SECTIONS: Tuple[Tuple[str, str], ...] = (
     ("SCREENS & HOTKEYS",
      r"screens?|hot ?keys?|keys?|ledgers?|log|dispatch|arrows?|terminal|shortcuts?"),
     ("YOUR MARSHALS",
-     r"abilit(?:y|ies)|famed|marshals' skills"),
+     r"abilit(?:y|ies)|famed|marshals' skills"
+     # S14E-16's sweep: "how do I see my marshals" printed the whole manual.
+     r"|(?:see|view|check|open|list|show)\s+(?:my\s+|our\s+|the\s+|all\s+)?(?:marshals|generals)"),
     ("MILITARY COMMANDS",
      r"attack\w*|battles?|fight\w*|recruit\w*|troops|reinforce\w*|defend|retreat"
-     r"|bombard\w*|artillery|garrisons?|laws?|enact|repeal|doctrines?|substitutes?|levy"),
+     r"|bombard\w*|artillery|garrisons?|laws?|enact|repeal|doctrines?|substitutes?|levy"
+     # S14E-16's sweep: the verbs a first-time player asks the manual with.
+     r"|moves?|moving|capture\w*|conquer\w*|seize\w*|beat|defeat\w*|raise"),
+    # S14E-16 (S14f part 2): the MOVEMENT words, LAST so every noun above wins
+    # first ("how do I go to the cabinet" is the Cabinet's, "how do I get
+    # peace" diplomacy's) — "how do I get to Vienna" named no section, so the
+    # fallback was the whole manual. A place the board knows is answered by
+    # the desk's `route` kind; this is the fallback for one it does not.
+    ("STRATEGIC COMMANDS",
+     r"(?:get|go|travel|walk|ride)(?:es|ing)?\s+(?:to|towards?|into)\b(?!\s+war\b)"
+     r"|travel(?:s|ed|led|ing|ling)?|(?:get|go)\s+(?:there|home|back|across)"
+     r"|reach(?:es|ing)?\s+(?!an?\s)|(?:the\s+)?(?:way|road|route)s?\s+(?:to|towards?)"
+     # "how do I get Ney to Vienna" / "march an army to Vienna"
+     r"|(?:get|send|bring|take|march)\s+(?:my\s+|our\s+|the\s+|an?\s+)?[\w'-]+(?:\s+[\w'-]+)?"
+     r"\s+(?:to|towards?|into)\b(?!\s+war\b)"),
+    # The sweep: "how do I end the turn" printed the whole manual; the free
+    # actions line is where the reference names it.
+    ("FREE ACTIONS",
+     r"end (?:the |my |a |this )?turns?|end of (?:the |a )?turn"),
 )
 
 _COMPILED = tuple((heading, re.compile(r"(?:^|\b)(?:" + words + r")\b", re.IGNORECASE))

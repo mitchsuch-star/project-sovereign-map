@@ -393,7 +393,23 @@ def _is_named_beneficiary(
             matched = True
             for region in term.get("regions") or []:
                 regions.append(str(region))
+            # S14E-X115 (S14f part 2): the table's canonical cession carries a
+            # SINGULAR `region` (PC-X32's class) — reading only `regions`
+            # left every table award unnamed ("her share") in the gratitude
+            # record and the words that state it.
+            single = str(term.get("region") or "")
+            if single and single not in regions:
+                regions.append(single)
     return matched, regions
+
+
+def gratitude_delta(standing: str) -> int:
+    """The relation a named proposer-side ally gives back (spec §14.3, the
+    single source: a seat +10, a consult +5). `_reward_named_ally` applies
+    it and the plan's `rewarded` figure (`proposer_ally_plan`) states it
+    before the click, so the +10 shown is the +10 written (S14E-X51)."""
+    return int(RELATION_GRATITUDE_SEAT if standing == "seat"
+               else RELATION_GRATITUDE_CONSULT)
 
 
 def _classify_proposer_ally_standing(
@@ -452,8 +468,10 @@ def _compute_affected_nations(
             value = term.get(field)
             if isinstance(value, str) and value:
                 affected.add(value)
-        # liberation terms also use vassal_nation / lord_nation
-        for field in ("vassal_nation", "lord_nation", "liberator_nation"):
+        # liberation terms also use vassal_nation / lord_nation (the liberator
+        # is the `liberator` key, read above - S14E-X117 dropped the dead
+        # `liberator_nation` read: no clause carries that key, only log events)
+        for field in ("vassal_nation", "lord_nation"):
             value = term.get(field)
             if isinstance(value, str) and value:
                 affected.add(value)
@@ -483,12 +501,12 @@ def _reward_named_ally(world: Any, *, actor: str, ally: str, standing: str,
     material_contribution_points > 0; spec line 1478). ONE body for both
     roads (PC-F81, S13e part 4): the table's proposer-side pass and the
     bilateral ratifier's carried allies (`reward_named_carried_allies`)."""
-    relation_delta = (
-        RELATION_GRATITUDE_SEAT if standing == "seat"
-        else RELATION_GRATITUDE_CONSULT
-    )
+    relation_delta = gratitude_delta(standing)
     if hasattr(world, "modify_nation_relation"):
-        world.modify_nation_relation(actor, ally, relation_delta)
+        # S14E-X37: the reaction's write keeps a live mission's books.
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, actor, ally, relation_delta,
+                               "settlement_gratitude", actor, ally)
     _add_settlement_memory(
         world,
         actor=actor,
@@ -645,10 +663,67 @@ def _display_of(world: Any, nation: str) -> str:
     return str(display_nation(nation))
 
 
+def _ally_open_enemies(world: Any, war_id: str, proposer_side: str, ally: str,
+                       covered: Iterable[str]) -> Tuple[bool, List[str]]:
+    """(resolved, fights_on_against) for ONE proposer-side ally and the
+    courts a table covers — read off the ratifier's OWN pair plan
+    (`settlement_ratify.build_pair_ratification_plan`: every proposer-side
+    member at WAR or ARMISTICE with a covered court settles with it), so the
+    ally "the table resolves" is the ally whose pair the ratifier closes.
+    `fights_on_against` is the ally's other live pairs in the war — the
+    enemies the peace leaves her fighting. A read of the live instance:
+    call it BEFORE the pairs close."""
+    instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
+    if not isinstance(instance, Mapping):
+        return True, []
+    from backend.game_logic.settlement_ratify import build_pair_ratification_plan
+    covered_set = {str(c) for c in (covered or []) if c}
+    plan = build_pair_ratification_plan(
+        world, instance, proposer_side=proposer_side, covered=covered_set,
+        settlement_terms=[])
+    if any(str(e.get("proposer_member") or "") == ally for e in plan):
+        return True, []
+    meta = instance.get("diplo_key_meta") or {}
+    enemies: List[str] = []
+    for pair in list(instance.get("active_diplo_keys") or []):
+        names = str(pair).split("|")
+        if len(names) != 2 or ally not in names:
+            continue
+        if (meta.get(pair) or {}).get("pair_status") not in ("war", "armistice"):
+            continue
+        other = names[1] if names[0] == ally else names[0]
+        if other not in covered_set and other not in enemies:
+            enemies.append(other)
+    return False, sorted(enemies)
+
+
+def table_resolves_ally(world: Any, war_id: str, ally: str,
+                        settlement_terms: Iterable[Mapping[str, Any]],
+                        covered: Iterable[str]) -> bool:
+    """S14E-D8 (ruling recommended at DESIGN_REFINEMENT S14E-D8; built October
+    25, 2026 — S14f part 2) — does the table END a war of this proposer-side
+    ally? True when the ally has a live pair (war or armistice) with a covered
+    court, the pair the ratifier closes. An ally whose war the table does not
+    touch (Spain, at war with Britain, on an Austria-alone table) is NOT
+    resolved: she "fights on alone", priced with no relation hit and no
+    grievance — F81's teeth are for the ally whose war we ended for nothing.
+
+    THE series seam for the D8 build: the attribution holds the ruling down
+    with `--seam backend.game_logic.settlement_reactions:table_resolves_ally=
+    lambda w, wid, a, t, c: True` (every ally reached, as shipped before).
+    `proposer_ally_reading` looks it up late."""
+    side = ((getattr(world, "war_instances", {}) or {}).get(war_id) or {}
+            ).get("side_by_nation", {}).get(ally)
+    if side not in ("attackers", "defenders"):
+        return True
+    return _ally_open_enemies(world, war_id, side, ally, covered)[0]
+
+
 def proposer_ally_reading(
     world: Any, *, war_id: str, proposer_side: str, ally: str,
     settlement_terms: Iterable[Mapping[str, Any]],
     standing: Optional[str] = None,
+    covered: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """S14E-10: the INPUTS of the proposer-side reaction for ONE ally, read
     together — its standing, its material share and points, its power tier —
@@ -656,7 +731,13 @@ def proposer_ally_reading(
     closes the contribution episode, after which the standing reads
     `no_standing` and the share reads 0). The ratifier snapshots this before
     the transitions; the forecast reads it live — one reading, so the price
-    shown before the click is the price applied after it."""
+    shown before the click is the price applied after it.
+
+    S14E-D8: with the table's `covered` courts the reading also says whether
+    the table ENDS a war of this ally (`table_resolves`, through the seam
+    `table_resolves_ally`) and, if not, the enemies she is left fighting
+    (`fights_on_against`); without them the keys are absent and the plan
+    reads the ally as before."""
     terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
     resolved = str(standing) if standing else _classify_proposer_ally_standing(
         world, war_id, proposer_side, ally, terms)
@@ -676,18 +757,32 @@ def proposer_ally_reading(
         material_points = 0
     tier_getter = getattr(world, "get_power_tier", None)
     power_tier = (tier_getter(ally) if callable(tier_getter) else "secondary") or "secondary"
-    return {
+    reading: Dict[str, Any] = {
         "standing": resolved,
         "material_share": material_share,
         "material_points": material_points,
         "power_tier": str(power_tier),
     }
+    covered_list = sorted({str(c) for c in covered if c}) if covered is not None else []
+    if covered_list:
+        # S14E-D8: the table's coverage is an INPUT of the reaction too —
+        # does the table end a war of this ally, read before the pairs
+        # close like the rest. No `covered` (the bilateral road, whose
+        # carried allies are resolved by construction) = no gate; a table
+        # that covers nobody ratifies nothing (`no_resolvable_pairs`).
+        resolves = bool(table_resolves_ally(world, war_id, ally, terms, covered_list))
+        reading["table_resolves"] = resolves
+        reading["fights_on_against"] = ([] if resolves else
+                                        _ally_open_enemies(world, war_id, proposer_side,
+                                                           ally, covered_list)[1])
+    return reading
 
 
 def proposer_ally_plan(
     world: Any, *, war_id: str, proposer_side: str, ally: str,
     settlement_terms: Iterable[Mapping[str, Any]],
     reading: Optional[Mapping[str, Any]] = None,
+    covered: Optional[Iterable[str]] = None,
 ) -> Dict[str, Any]:
     """S14E-10: THE predicate of the proposer-side reaction (spec §14.1-§14.4)
     — what a settlement does to ONE proposer-side ally. Pure: it reads, it
@@ -699,16 +794,25 @@ def proposer_ally_plan(
     `kind`:
       * "none"     — no standing and nothing paid: spec §14.4, no reaction;
       * "rewarded" — named in the instrument: gratitude (`_reward_named_ally`);
+        `relation_delta` is the gratitude it writes (S14E-X51, said first);
+      * "fights_on" — S14E-D8: the table does NOT end a war of hers (her
+        pair is with a court it does not cover; `reading["table_resolves"]`
+        False, read before the pairs close): she fights on alone — NO
+        relation hit, no grievance, `fights_on_against` the enemies she is
+        left with. Not for an ally the instrument names or makes pay;
       * "shut_out" — not named: `severity`, `relation_delta` and
         `grievance_flag_added` as §14.2 reads them (a major shut-out is -18
         and the durable `settlement_shut_out` flag; a minor one -7; the
         zero-material major seat -7 without the flag; made to pay the
         enemy's compensation with nothing gained -18 and the flag).
+
+    `covered` (the table's coverage) is read into the ally's reading when no
+    `reading` is supplied; the ratifier's pre-cleanup reading carries it.
     """
     terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
     rd = dict(reading) if reading else proposer_ally_reading(
         world, war_id=war_id, proposer_side=proposer_side, ally=ally,
-        settlement_terms=terms)
+        settlement_terms=terms, covered=covered)
     standing = str(rd.get("standing") or "no_standing")
     power_tier = str(rd.get("power_tier") or "secondary")
     material_share = float(rd.get("material_share") or 0.0)
@@ -732,7 +836,15 @@ def proposer_ally_plan(
         return dict(plan, kind="none")
     is_beneficiary, awarded_regions = _is_named_beneficiary(terms, ally)
     if is_beneficiary:
-        return dict(plan, kind="rewarded", awarded_regions=list(awarded_regions))
+        return dict(plan, kind="rewarded", awarded_regions=list(awarded_regions),
+                    relation_delta=gratitude_delta(standing))
+
+    # S14E-D8: the ONE gate — an ally whose war the table does not end is not
+    # shut out of a peace that never touched her war (an ally made to pay is
+    # touched by the instrument itself, so she keeps her price).
+    if not paid_regions and not rd.get("table_resolves", True):
+        return dict(plan, kind="fights_on", relation_delta=0, grievance_flag_added=False,
+                    fights_on_against=[str(n) for n in (rd.get("fights_on_against") or [])])
 
     # Ally was NOT rewarded. Decide shut-out severity.
     # Spec §14.2 — minor shut-out vs major shut-out.
@@ -842,7 +954,10 @@ def apply_shut_out_plan(
     relation_hit = int(plan["relation_delta"])
     grievance_flag_added = bool(plan["grievance_flag_added"])
     if hasattr(world, "modify_nation_relation"):
-        world.modify_nation_relation(actor, ally, relation_hit)
+        # S14E-X37: the reaction's write keeps a live mission's books.
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, actor, ally, relation_hit,
+                               "settlement_shut_out", actor, ally)
     if grievance_flag_added:
         _add_grievance_flag(
             world,
@@ -887,6 +1002,8 @@ def apply_shut_out_plan(
 def forecast_proposer_side_reactions(
     world: Any, *, war_id: str, proposer_side: str,
     settlement_terms: Iterable[Mapping[str, Any]], proposer_leader: str = "",
+    covered_enemy_participants: Optional[Iterable[str]] = None,
+    kinds: Tuple[str, ...] = ("shut_out",),
 ) -> List[Dict[str, Any]]:
     """S14E-10 / S14E-D3: the allies a settlement will leave out, and what
     each pays — read BEFORE the click from the ratifier's own plan
@@ -895,24 +1012,78 @@ def forecast_proposer_side_reactions(
     `_evaluate_proposer_side_reactions` will punish and the figures are the
     ones it applies. A pure read (nothing is written). One row per ally:
     the plan plus `nation`, `display` (`shut_out_words`) and `amends`
-    ({price, action}) — [] when no ally is left out."""
+    ({price, action}) — [] when no ally is left out.
+
+    S14E-D8 / S14E-X51 (S14f part 2): `covered_enemy_participants` (the
+    table's coverage) is read into each ally's reading exactly as the
+    ratifier reads it (so an ally whose war the table does not end is
+    "fights on alone", not a shut-out), and `kinds` widens the list beyond
+    the default shut-outs to the plans the ratifier also acts on: "rewarded"
+    (the named ally's gratitude, with its figure) and "fights_on". Every row
+    carries its plan's `kind`."""
     instance = (getattr(world, "war_instances", {}) or {}).get(war_id)
     if not isinstance(instance, Mapping) or proposer_side not in ("attackers", "defenders"):
         return []
     terms = [t for t in (settlement_terms or []) if isinstance(t, Mapping)]
     actor = (str(proposer_leader or "") or _side_leader(instance, proposer_side)
              or str(getattr(world, "player_nation", "France")))
+    covered = (None if covered_enemy_participants is None
+               else sorted({str(c) for c in covered_enemy_participants if c}))
     rows: List[Dict[str, Any]] = []
     for ally in _participants_on_side(instance, proposer_side):
         if ally == actor:
             continue
         plan = proposer_ally_plan(
             world, war_id=war_id, proposer_side=proposer_side, ally=ally,
-            settlement_terms=terms)
-        if plan["kind"] != "shut_out":
+            settlement_terms=terms, covered=covered)
+        if plan["kind"] not in kinds:
             continue
-        rows.append(shut_out_row(world, plan))
+        rows.append(shut_out_row(world, plan) if plan["kind"] == "shut_out"
+                    else ally_standing_row(world, plan))
     return rows
+
+
+def _and_list(names: List[str]) -> str:
+    return (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
+
+
+def rewarded_words(world: Any, plan: Mapping[str, Any]) -> str:
+    """S14E-X51: the named ally's gratitude, STATED before the click from the
+    plan the ratifier writes — "Austria takes Tyrol by it and thanks us
+    (+10 relation)." (the bilateral aftermath's own sentence, in the table's
+    voice; "her share" when the instrument names her but no province)."""
+    name = _display_of(world, str(plan.get("ally") or plan.get("nation") or ""))
+    regions = [str(r) for r in (plan.get("awarded_regions") or []) if r]
+    return (f"{name} takes {_and_list(regions) or 'her share'} by it and thanks us "
+            f"({int(plan.get('relation_delta') or 0):+d} relation).")
+
+
+def fights_on_words(world: Any, plan: Mapping[str, Any]) -> str:
+    """S14E-D8: the ally the table does not reach, STATED before the click —
+    "Spain fights on alone against Britain — the table does not touch her
+    war." No relation hit, no grievance: nothing is asked of her. An ally with
+    no live pair in the war at all has no war to fight on, and the line says
+    so (she "has no war the table touches")."""
+    name = _display_of(world, str(plan.get("ally") or plan.get("nation") or ""))
+    against = [_display_of(world, str(n)) for n in (plan.get("fights_on_against") or []) if n]
+    if not against:
+        return f"{name} has no war the table touches — nothing changes between us."
+    return f"{name} fights on alone against {_and_list(against)} — the table does not touch her war."
+
+
+def ally_standing_row(world: Any, plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """A forecast row from a `rewarded` or `fights_on` plan (the siblings of
+    `shut_out_row`): the plan, the nation and the words — whole numbers to
+    the client (Golden Rule 2), no cure to buy."""
+    row: Dict[str, Any] = dict(plan)
+    row["material_share_pct"] = int(round(float(row.pop("material_share", 0.0) or 0.0) * 100))
+    row["material_points"] = int(row.get("material_points") or 0)
+    row["relation_delta"] = int(row.get("relation_delta") or 0)
+    row["nation"] = str(plan.get("ally") or "")
+    row["display"] = (rewarded_words(world, plan) if plan.get("kind") == "rewarded"
+                      else fights_on_words(world, plan))
+    row["amends"] = {}
+    return row
 
 
 def shut_out_row(world: Any, plan: Mapping[str, Any]) -> Dict[str, Any]:
@@ -985,7 +1156,10 @@ def _evaluate_proposer_side_reactions(
         plan = proposer_ally_plan(
             world, war_id=war_id, proposer_side=proposer_side, ally=ally,
             settlement_terms=settlement_terms, reading=reading)
-        if plan["kind"] == "none":
+        if plan["kind"] in ("none", "fights_on"):
+            # S14E-D8: "fights_on" is the allies the table does not reach — no
+            # relation hit, no grievance, nothing written (the forecast says
+            # so before the click: shown == applied).
             continue
         if plan["kind"] == "rewarded":
             reactions.append(_reward_named_ally(
@@ -1038,12 +1212,16 @@ def _evaluate_enemy_side_reactions(
             -30, -15, severity_score,
         )
         if hasattr(world, "modify_nation_relation"):
-            world.modify_nation_relation(
-                player_nation, participant, delta_vs_proposer,
+            # S14E-X37: the reaction's writes keep a live mission's books.
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(
+                world, player_nation, participant, delta_vs_proposer,
+                "settlement_sold_out", enemy_leader or player_nation, participant,
             )
             if enemy_leader:
-                world.modify_nation_relation(
-                    enemy_leader, participant, delta_vs_leader,
+                modify_relation_booked(
+                    world, enemy_leader, participant, delta_vs_leader,
+                    "settlement_sold_out", enemy_leader, participant,
                 )
         if enemy_leader:
             _add_settlement_memory(

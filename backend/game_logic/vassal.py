@@ -1547,7 +1547,10 @@ def complete_vassal_break(world, vassal_name: str, lord: str) -> None:
         from backend.game_logic.coalition import reduce_threat
         reduce_threat(world, 10, "vassal_rebellion", target=lord)
 
-    world.modify_nation_relation(lord, vassal_name, -50)
+    # S14E-X37: -50 with the freed court drags a live mission's pair; booked.
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, lord, vassal_name, -50,
+                           "vassal_rebellion", lord, vassal_name)
 
 
 def check_vassal_rebellion(world) -> List[dict]:
@@ -1645,12 +1648,19 @@ def check_vassal_rebellion(world) -> List[dict]:
                     root_aggressor=vassal_name,
                     war_entry_entries=[],
                 )
+                # S14E-X112: the cascade's -20s drag a mission's pair too; the
+                # books name the rebellion that set the allies marching.
+                from backend.game_logic.diplomatic_dialogue import (
+                    mission_pair_snapshot, note_mission_shock)
+                _mission_pair_before = mission_pair_snapshot(world)
                 cascade_events = _process_war_cascade(
                     world,
                     vassal_name,
                     lord,
                     ctx=cascade_ctx,
                 )
+                note_mission_shock(world, _mission_pair_before, "vassal_rebellion",
+                                   lord, vassal_name)
                 events.extend(cascade_events)
 
                 # VS-3 reclaim-on-rebellion: granted provinces are the first
@@ -1970,7 +1980,37 @@ def _charge_dp(world, nation: str, amount: int) -> dict:
     return {"ok": True, "available": int(dp)}
 
 
-def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
+def _dp_held(world, nation: str) -> int:
+    """The diplomatic points `nation` holds - `_charge_dp`'s own read, without
+    the charge (S14E-X107's quote)."""
+    if nation == getattr(world, 'player_nation', 'France'):
+        return int(getattr(world, 'diplomatic_points', 0) or 0)
+    return int((getattr(world, 'nation_dp', {}) or {}).get(nation, 0) or 0)
+
+
+def invest_quote_words(world, plan: dict) -> str:
+    """S14E-X107: the investment's QUOTE - the price, the diplomatic point, what
+    it does to her loyalty, the cooldown and the chest after, every figure the
+    charge in `invest_in_vassal` applies (it fills `plan`)."""
+    from backend.display_names import plural
+    court = _court_name(world, plan["court"], article=True)
+    blunted = (" — the Emperor's faltering grip blunts the gesture" if plan["blunted"] else "")
+    # S14E-X187: the chest (`instruments.chest_of`) is the figure the gate
+    # refuses against; where it is below the coffers the sentence says so
+    chest = int(plan['chest'])
+    owed = ""
+    if chest < int(plan.get('treasury', chest)):
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS
+        owed = FREE_OF_OBLIGATIONS
+    return (
+        f"Invest in {court}: {int(plan['gold']):,} gold and {plural(plan['dp'], 'diplomatic point')}. "
+        f"Her loyalty rises +{int(plan['gain'])} ({int(plan['old'])} → {int(plan['new'])}){blunted}, and "
+        f"{court} cannot be invested in again for {plural(plan['cooldown'], 'turn')}. "
+        f"The treasury holds {chest:,} gold{owed} and would hold "
+        f"{chest - int(plan['gold']):,} after. Invest? (yes / no)")
+
+
+def invest_in_vassal(world, vassal_name: str, actor: str = None, *, quote_only: bool = False) -> dict:
     """
     Invest in vassal: 1 DP + 200g → +10 loyalty.
 
@@ -2030,11 +2070,40 @@ def invest_in_vassal(world, vassal_name: str, actor: str = None) -> dict:
 
     # Check gold BEFORE charging DP (no partial spend on a two-resource cost)
     gold = world.nation_gold.get(lord, 0)
-    if gold < INVEST_GOLD_COST:
+    # S14E-X187: the PLAYER's investment is gated and quoted against the CHEST
+    # (`instruments.chest_of`: the treasury less the recurring settlement
+    # payments still owed - the figure the sweetener, the buy-off and the lever
+    # text name). An AI lord (GR5: the same verb) reads its raw coffers.
+    chest, owed_words = int(gold), ""
+    if lord == getattr(world, 'player_nation', 'France'):
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+        _treasury, chest = chest_of(world, lord)
+        if chest < _treasury:
+            owed_words = f" — the treasury holds {chest} gold{FREE_OF_OBLIGATIONS}"
+    if chest < INVEST_GOLD_COST:
         return {
             "success": False,
-            "message": f"Insufficient gold ({gold}/{INVEST_GOLD_COST} required)."
+            "message": f"Insufficient gold ({chest}/{INVEST_GOLD_COST} required){owed_words}."
         }
+
+    if quote_only:
+        # S14E-X107: the player's quote - every refusal above has been run, the
+        # point is checked but NOT charged, and the plan is what the charge
+        # below applies (nothing is written here).
+        held = _dp_held(world, lord)
+        if held < INVEST_DP_COST:
+            return {
+                "success": False,
+                "message": (f"Insufficient diplomatic points "
+                            f"({held}/{INVEST_DP_COST} required)."),
+            }
+        gain = int(INVEST_LOYALTY_GAIN * get_authority_lever_multiplier(world, lord))
+        old = int(state["loyalty"])
+        return {"success": True, "quote": {
+            "court": vassal_name, "gold": INVEST_GOLD_COST, "dp": INVEST_DP_COST,
+            "gain": gain, "old": old, "new": int(min(LOYALTY_MAX, old + gain)),
+            "blunted": gain < INVEST_LOYALTY_GAIN, "cooldown": INVEST_COOLDOWN,
+            "chest": int(chest), "treasury": int(gold)}}
 
     # Charge DP nation-neutrally (player pool vs nation_dp)
     dp_charge = _charge_dp(world, lord, INVEST_DP_COST)
@@ -3703,7 +3772,9 @@ def _honour_fulfilled(world, vassal_name: str, lord: str, petition: dict,
     step = _bond_step(relation_before)
     loyalty = int(row.get("loyalty", 0) or 0)
     if step > 0:
-        world.modify_nation_relation(vassal_name, lord, step)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, vassal_name, lord, step,
+                               "vassal_petition", vassal_name, lord)
     relation_after = _lord_relation(world, vassal_name, lord)
     vd = _court_name(world, vassal_name, article=True)
     message = (f"{region} has already passed to {vd} by our own hand — the "
@@ -3802,7 +3873,9 @@ def grant_petition(world, vassal_name: str, lord: str, petition: dict) -> dict:
         remitted_price = int(tribute_now * REMISSION_COLLECTIONS)
         dp_charged = int(PETITION_DP_COST)
     if step > 0:
-        world.modify_nation_relation(vassal_name, lord, step)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, vassal_name, lord, step,
+                               "vassal_petition", vassal_name, lord)
     relation_after = _lord_relation(world, vassal_name, lord)
     loyalty_after = int(row.get("loyalty", 0) or 0)
     gain = int(loyalty_after - loyalty_before)
@@ -3907,7 +3980,9 @@ def refuse_petition(world, vassal_name: str, lord: str, petition: dict,
         # `lapse_forecast` quoted (`_refusal_loyalty`, read live).
         row["loyalty"] = int(max(LOYALTY_MIN,
                                  loyalty_before - _refusal_loyalty(world, lord)))
-        world.modify_nation_relation(vassal_name, lord, -PETITION_RELATION_STEP)
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, vassal_name, lord, -PETITION_RELATION_STEP,
+                               "vassal_petition", vassal_name, lord)
     loyalty_after = int(row.get("loyalty", 0) or 0)
     relation_after = _lord_relation(world, vassal_name, lord)
     ask = f"for {region}" if subject == "province" and region else "for relief"
@@ -4559,6 +4634,8 @@ def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
 
 # R14: turns a released vassal cannot be re-vassalized (treaty or conquest).
 RELEASE_COOLDOWN_TURNS = 5
+# COALITION_SPEC §2b: the alarm a voluntary release relieves (`reduce_threat`).
+RELEASE_THREAT_RELIEF = 8
 
 
 def _release_tribute_snapshot(world, vassal_name: str, state: dict) -> int:
@@ -4582,6 +4659,96 @@ def _release_tribute_snapshot(world, vassal_name: str, state: dict) -> int:
     except Exception as exc:
         report(exc, "vassal._release_tribute_snapshot: float / state.get")
         return 0
+
+
+def _recalled_commander(world, vassal_name: str) -> str:
+    """S14E-X160: the name of the contingent commander a voluntary release
+    stands down (`contingent.on_release` -> `stand_down` ->
+    `WorldState.stand_down_marshal`), '' when none leaves the board. The same
+    guards: a record, a marshal still on the board, neither captured nor the
+    sovereign. He flies the lord's flag with `original_nation` set to the
+    satellite (`contingent.py`), so the hand-back loop below would count him
+    among the marshals who "return to their own colours" if he stayed."""
+    from backend.game_logic.contingent import contingent_record
+    record = contingent_record(world, vassal_name)
+    if not record:
+        return ""
+    marshal = world.marshals.get(record.get("marshal") or "")
+    if marshal is None or getattr(marshal, "captured_by", "") \
+            or getattr(marshal, "is_sovereign", False):
+        return ""
+    return str(marshal.name)
+
+
+def release_plan(world, vassal_name: str) -> Optional[dict]:
+    """S14E-X160: the ONE plan of a voluntary release - read by the player's
+    quote (`release_quote_words`) before the click and mirrored term for term
+    by `release_vassal`'s own snapshot (the tribute through the same
+    `_release_tribute_snapshot`, the marshals handed back, the Continental
+    System, the alarm relieved by `RELEASE_THREAT_RELIEF`). Pure: nothing is
+    charged or written. None when `vassal_name` is no vassal.
+
+    {"court", "lord", "lost_tribute", "marshals" (sorted names handed back),
+     "contingent" ({"marshal", "men"} or None), "continental" (bool),
+     "threat_before", "threat_after", "cooldown"}."""
+    state = (getattr(world, "vassals", {}) or {}).get(vassal_name)
+    if not isinstance(state, dict):
+        return None
+    lord = state.get("lord")
+    commander = _recalled_commander(world, vassal_name)
+    contingent = None
+    if commander:
+        men = int(getattr(world.marshals.get(commander), "strength", 0) or 0)
+        contingent = {"marshal": commander, "men": men}
+    marshals = sorted(
+        m.name for m in world.marshals.values()
+        if getattr(m, "original_nation", None) == vassal_name and m.name != commander)
+    threat_before = int((getattr(world, "threat_by_target", {}) or {}).get(lord, 0)) if lord else 0
+    # `coalition.reduce_threat`'s own arithmetic: relieved, clamped to 0..100
+    threat_after = (int(min(100, max(0, threat_before - RELEASE_THREAT_RELIEF)))
+                    if lord else threat_before)
+    return {
+        "court": vassal_name, "lord": lord,
+        "lost_tribute": _release_tribute_snapshot(world, vassal_name, state),
+        "marshals": marshals, "contingent": contingent,
+        "continental": vassal_name in (getattr(world, "continental_system_members", None) or []),
+        "threat_before": threat_before, "threat_after": threat_after,
+        "cooldown": RELEASE_COOLDOWN_TURNS,
+    }
+
+
+def release_quote_words(world, plan: dict, dp_held: int) -> str:
+    """S14E-X160: the release's QUOTE - the point, what the crown stops
+    collecting, who goes home, the call to arms, the alarm, the cooldown: the
+    clauses `_build_release_report` prints once it is done, in the future
+    tense, every figure `release_plan` hands the release. `dp_held` is the
+    player's points before the charge."""
+    from backend.display_names import plural
+    court = _court_name(world, plan["court"], article=True)
+    lord = plan.get("lord") or ""
+    lord_name = _court_name(world, lord, article=True) if lord else ""
+    parts = [f"Release {court} from vassalage: {plural(1, 'diplomatic point')} "
+             f"({int(dp_held)} held, {int(dp_held) - 1} after). "
+             f"It stands a free court again."]
+    if int(plan["lost_tribute"]) > 0:
+        parts.append(f"Their tribute of {int(plan['lost_tribute']):,} gold a turn ends.")
+    if plan.get("contingent"):
+        c = plan["contingent"]
+        parts.append(f"Their contingent under {c['marshal']} ({int(c['men']):,} men) is "
+                     f"recalled and leaves our lines.")
+    if plan["marshals"]:
+        parts.append(f"Their marshals return to their own colours: "
+                     f"{', '.join(plan['marshals'])}.")
+    if plan.get("continental"):
+        parts.append("They are no longer bound to the Continental System.")
+    parts.append(f"They will no longer answer {lord_name}'s call to arms."
+                 if lord else "They will no longer answer our call to arms.")
+    if int(plan["threat_after"]) < int(plan["threat_before"]):
+        parts.append(f"Europe's alarm at {lord_name} eases "
+                     f"({int(plan['threat_before'])} → {int(plan['threat_after'])}).")
+    parts.append(f"They cannot be brought back under the yoke for "
+                 f"{plural(plan['cooldown'], 'turn')}. Release? (yes / no)")
+    return " ".join(parts)
 
 
 def _build_release_report(
@@ -4794,7 +4961,7 @@ def release_vassal(
             # Use the RETURN value, not the constant — reduce_threat clamps at
             # 0, so "-8" is a lie whenever the slot is already below 8.
             threat_after = reduce_threat(
-                world, 8, "voluntary_vassal_release", target=lord)
+                world, RELEASE_THREAT_RELIEF, "voluntary_vassal_release", target=lord)
 
     if rebellion:
         # The pair went to WAR, not PEACE, and no threat was relieved — none
@@ -5131,7 +5298,13 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
                 root_aggressor=vassal_name,
                 war_entry_entries=[],
             )
+            # S14E-X112: the cascade's -20s keep a live mission's books
+            from backend.game_logic.diplomatic_dialogue import (
+                mission_pair_snapshot, note_mission_shock)
+            _mission_pair_before = mission_pair_snapshot(world)
             _process_war_cascade(world, vassal_name, lord, ctx=cascade_ctx)
+            note_mission_shock(world, _mission_pair_before, "vassal_defection",
+                               briber, vassal_name)
             # VS-3 reclaim: the gift flips back when the vassal turns hostile
             reclaimed = []
             for granted_name in granted_regions:
@@ -5165,8 +5338,12 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     for other_vassal, other_state in world.vassals.items():
         if other_state["lord"] == lord:
             other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
-    world.modify_nation_relation(lord, vassal_name, -50)
-    world.modify_nation_relation(vassal_name, briber, 30)
+    # S14E-X37: the bribe's two writes keep a live mission's books.
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, lord, vassal_name, -50,
+                           "vassal_defection", briber, vassal_name)
+    modify_relation_booked(world, vassal_name, briber, 30,
+                           "vassal_defection", briber, vassal_name)
     if lord:
         from backend.game_logic.coalition import reduce_threat
         reduce_threat(world, 10, "vassal_defection", target=lord)

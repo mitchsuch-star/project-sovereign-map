@@ -2735,6 +2735,194 @@
       "source": "CR-1 authored (action coverage gate)"
     },
     {
+      "id": "s14e-32-murat-cancel-the-bare-tail",
+      "utterance": "Murat, cancel",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Murat"
+      },
+      "source": "S14E-32 (tests/test_s14f_p2_desk.py::TestS14E32)",
+      "notes": "The sentence the game itself prints ('Ney, cancel' recalls him): the verb alone after the address. Its twins stop / abort / halt read the same."
+    },
+    {
+      "id": "s14e-32-murat-stop-the-bare-tail",
+      "utterance": "Murat, stop",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Murat"
+      },
+      "source": "S14E-32 (tests/test_s14f_p2_desk.py::TestS14E32)"
+    },
+    {
+      "id": "s14e-xa5-murat-stop-without-the-comma",
+      "utterance": "Murat stop",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Murat"
+      },
+      "source": "S14E-X73 (tests/test_s14f_p2_w2.py::TestS14EXA5)",
+      "notes": "The comma optional when the whole line is a marshal of ours and ONE of cancel / stop / abort / halt (llm_client._bare_cancel_without_comma)."
+    },
+    {
+      "id": "s14e-xn6-everyone-stop",
+      "utterance": "everyone stop",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel"
+      },
+      "source": "S14E-X143 (tests/test_s14f_p2_w10.py::TestS14EXN6)",
+      "notes": "The collective recall: the army road's own words (group_orders._COLLECTIVE_WHO) and ONE of cancel / stop / abort / halt (llm_client._group_cancel_phrase); the collective road recalls every standing order."
+    },
+    {
+      "id": "s14e-xn6-stop-everyone",
+      "utterance": "stop everyone",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel"
+      },
+      "source": "S14E-X143 (tests/test_s14f_p2_w10.py::TestS14EXN6)",
+      "notes": "The collective recall with the verb first."
+    },
+    {
+      "id": "s14e-xn6-ney-and-davout-stop",
+      "utterance": "Ney and Davout stop",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Ney"
+      },
+      "source": "S14E-X143 (tests/test_s14f_p2_w10.py::TestS14EXN6)",
+      "notes": "The list address before the bare recall needs no comma (parser._split_second_name): Ney takes the order, Davout's rides the relay, as 'Ney and Davout, stop'."
+    },
+    {
+      "id": "s14e-x174-ney-and-davout-fortify",
+      "utterance": "Ney and Davout fortify",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "fortify",
+        "marshal": "Ney",
+        "dropped_sequel": "Davout, fortify"
+      },
+      "source": "S14E-X174 (tests/test_s14f_p2_w15.py::TestS14EX174)",
+      "notes": "The comma between a list of marshals and ANY routed order may be left out: Ney takes the order, Davout's rides the relay exactly as 'Ney and Davout, fortify' (it used to run Ney's and drop Davout silently)."
+    },
+    {
+      "id": "s14e-x174-ney-and-davout-attack-mack",
+      "utterance": "Ney and Davout attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "attack",
+        "marshal": "Ney",
+        "target": "Mack",
+        "dropped_sequel": "Davout, support Ney"
+      },
+      "source": "S14E-X174 (tests/test_s14f_p2_w15.py::TestS14EX174)",
+      "notes": "As 'Ney and Davout, attack Mack' (FA-50): one battle, the muster seats the second man, his own order rides the relay."
+    },
+    {
+      "id": "s14e-x180-ney-and-davout-will-fortify",
+      "utterance": "Ney and Davout will fortify",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "fortify",
+        "marshal": "Ney",
+        "dropped_sequel": "Davout, fortify"
+      },
+      "source": "S14E-X180 (tests/test_s14f_p2_w15.py::TestS14EX180)",
+      "notes": "A modal or filler between the list and the verb (will / must / please / both) is dropped from the order, as the single address drops it."
+    },
+    {
+      "id": "s14e-x176-recruit-marshals",
+      "utterance": "recruit marshals",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit_marshal"
+      },
+      "source": "S14E-X176 (tests/test_s14f_p2_w15.py::TestS14EX176)",
+      "notes": "The bare plural 'marshals' is the Marshalate's object, never a levy (it raised 3,000 infantry); the executor asks whom."
+    },
+    {
+      "id": "s14e-x179-raise-two-marshals",
+      "utterance": "raise two marshals",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit_marshal"
+      },
+      "source": "S14E-X179 (tests/test_s14f_p2_w15.py::TestS14EX179)",
+      "notes": "raise / enlist / hire + the plural marshals read as the Marshalate's verb like recruit."
+    },
+    {
+      "id": "s14e-x192-hire-grouchy-as-a-marshal",
+      "utterance": "hire Grouchy as a marshal",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit_marshal",
+        "target": "Grouchy"
+      },
+      "source": "S14E-X192 (tests/test_s14f_p2_w16.py::TestS14EX192)",
+      "notes": "The name before 'as a marshal' is past the 12-character windows: hire parsed Unknown; now it commissions the named candidate exactly as 'commission Grouchy' does."
+    },
+    {
+      "id": "s14e-x192-recruit-grouchy-as-a-marshal",
+      "utterance": "recruit Grouchy as a marshal",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit_marshal",
+        "target": "Grouchy"
+      },
+      "source": "S14E-X192 (tests/test_s14f_p2_w16.py::TestS14EX192)",
+      "notes": "The same line with recruit raised a 3,000-man LEVY; a troop word ('recruit infantry as a reserve') is no candidate and reads as before."
+    },
+    {
+      "id": "s14e-x177-everyone-cease",
+      "utterance": "everyone cease",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel"
+      },
+      "source": "S14E-X177 (tests/test_s14f_p2_w15.py::TestS14EX177)",
+      "notes": "cease joins cancel / stop / abort / halt on the collective and the single roads."
+    },
+    {
+      "id": "s14e-x177-ney-cease",
+      "utterance": "Ney, cease",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "cancel",
+        "marshal": "Ney"
+      },
+      "source": "S14E-X177 (tests/test_s14f_p2_w15.py::TestS14EX177)",
+      "notes": "The bare tail after the address, with cease."
+    },
+    {
+      "id": "s14e-x177-everyone-stand-down",
+      "utterance": "everyone stand down",
+      "world": "1805",
+      "expected": {
+        "success": false
+      },
+      "source": "S14E-X177 (tests/test_s14f_p2_w15.py::TestS14EX177)",
+      "notes": "Not an order the game carries: Berthier points at 'Ney, hold' / 'everyone stop' (a refusal, 0 AP) instead of 'Did you mean Davout? (down not found)'."
+    },
+    {
       "id": "murat-glorious-charge",
       "utterance": "Murat, glorious charge!",
       "world": "1805",

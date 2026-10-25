@@ -908,7 +908,7 @@ func _render_balance_of_europe():
 
 	var headline_case = str(boe.get("headline_case", "NO_HEGEMON"))
 	var hegemon = Utils.display_nation_name(str(boe.get("hegemon", "")))
-	var share_pct = int(float(boe.get("hegemon_share", 0.0)) * 100.0)
+	var share_pct = int(boe.get("hegemon_share", 0))  # S14E-X100: a whole percent from the backend
 	var bloc_label = str(boe.get("bloc_label", ""))
 	var descriptive_label = str(boe.get("descriptive_label", ""))
 	var label = bloc_label if bloc_label != "" and bloc_label != "<null>" else descriptive_label

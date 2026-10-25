@@ -152,9 +152,13 @@ class TestR38WarScoreConditional:
         from backend.game_logic.diplomatic_templates import resolve_template_text
         world.diplomatic_states[world._make_diplo_key("France", "Prussia")] = "WAR"
         world.war_scores[world._make_diplo_key("France", "Prussia")] = 42
+        # S14E-25 FLIPPED the quoted figure from the stored 42 to the LIVE
+        # score (the popup's own "War score" line): France holds one Prussian
+        # home province, +5.
+        world.regions[world.nation_starting_regions["Prussia"][0]].controller = "France"
         text = "War score: {war_score}."
         result = resolve_template_text(text, world, "Prussia")
-        assert "42" in result
+        assert "5" in result and "42" not in result
         assert "N/A" not in result
 
     def test_war_score_hidden_in_peace_state(self, world):

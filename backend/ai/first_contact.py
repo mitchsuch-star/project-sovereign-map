@@ -572,6 +572,12 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
     kind = str(kind or "")
     counsel = _counsel(world)
     first = f" This morning, '{counsel[0]}' would be carried out at once." if counsel else ""
+    # S14E-X80: an attack named here is taught with its free preview, as the
+    # TODAY list does (S14E-24) -- the hint reads the lines THIS answer names.
+    from backend.game_logic.dispatch import attack_preview_hint
+    if first:
+        _hint = attack_preview_hint(counsel[:1])
+        first += f" {_hint}" if _hint else ""
     if kind == "greeting":
         return (f"Berthier bows. \"Sire. The army stands ready for your "
                 f"orders.{first} {THREE_DOORS} {CABINET_DOOR} "
@@ -609,5 +615,8 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
         today = ""
         if counsel:
             today = " Today: " + "; ".join(f"'{line}'" for line in counsel[:3]) + "."
+            _hint = attack_preview_hint(counsel[:3])
+            if _hint:
+                today += f" {_hint}"
         return f"Berthier unrolls the map. \"{goal}{today} {THREE_DOORS}\""
     return None

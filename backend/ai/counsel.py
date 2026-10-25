@@ -203,7 +203,7 @@ def _attack_candidates(world, nation: str, marshals, enemies_here):
                     continue
                 if not _crossing_open(world, nation, marshal, neighbour):
                     continue
-                # S14E-XB5: the lead's rule (`field_on_peace_soil`) — an enemy
+                # S14E-X11: the lead's rule (`field_on_peace_soil`) — an enemy
                 # corps on the soil of a court we are at peace with is out of
                 # reach; the counsel offers what the executor TAKES.
                 if _on_peace_soil(world, marshal, enemy):
@@ -213,7 +213,7 @@ def _attack_candidates(world, nation: str, marshals, enemies_here):
 
 
 def _on_peace_soil(world, marshal, enemy) -> bool:
-    """S14E-XB5: the order `<marshal>, attack <enemy>` would be refused as a
+    """S14E-X11: the order `<marshal>, attack <enemy>` would be refused as a
     field on peace soil — the player's lead, a gun excepted (it fires from
     where it stands), read through the guard's own neutral arm
     (`world_state.reckless_charge_peace_owner`, drift-pinned to

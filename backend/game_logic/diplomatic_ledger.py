@@ -1018,6 +1018,12 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
                                    "vassal_transfer", "liberation") and c_from:
                         # PC-X31: the same `amount: 1` unit — the parties, no sum
                         desc = f"{label} ({c_from} -> {c_to})"
+                    elif ctype == "protection_promised":
+                        # S14E-X94: the pledge's effect, said in the book too
+                        # (no sum - `amount` is the clause's unit; once signed
+                        # the pledge is a word only: no ratifier binds an army).
+                        desc = (f"{label} ({c_from} -> {c_to})" if c_from else label)
+                        desc += " - a pledge only; it binds no army"
                     elif amount and c_from:
                         desc = f"{label}: {int(amount)} ({c_from} -> {c_to})"
                     elif amount:
@@ -1061,12 +1067,13 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
             "nation_b": nation_b,
             "treaty_type": treaty_type,
             "clauses": clauses,
-            "harshness": round(
+            # S14E-X100 (Golden Rule 2): a whole percent, not the 0..1 float
+            # (the client reads neither this row's burden nor its number).
+            "harshness": int(round(
                 get_treaty_harshness_for_consumer(
                     treaty, consumer="diplomatic_ledger",
-                ),
-                2,
-            ),
+                ) * 100,
+            )),
             "duration": duration,
             "cancel_cost": 1,
             "gold_per_turn": gold_per_turn_costs if gold_per_turn_costs else None,
@@ -1096,7 +1103,7 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
             "nation_b": other,
             "treaty_type": state.lower(),
             "clauses": [],
-            "harshness": 0.0,
+            "harshness": 0,
             "duration": "permanent",
             "cancel_cost": 1,
             "gold_per_turn": None,
@@ -1473,7 +1480,8 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     result = {
         "headline_case": headline_case,
         "hegemon": hegemon,
-        "hegemon_share": round(float(share), 2),
+        # S14E-X100 (Golden Rule 2): a whole percent; the client prints it as is.
+        "hegemon_share": int(round(float(share) * 100)),
         "hegemon_power": hegemon_power,
         "total_power": total_power,
         "hegemony_band": int(band),

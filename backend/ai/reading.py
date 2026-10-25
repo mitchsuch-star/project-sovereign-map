@@ -123,6 +123,14 @@ _WATCH_PRECAUTION_RX = re.compile(
     re.IGNORECASE | re.DOTALL)
 _BECAUSE_RX = re.compile(r"[\s,;]+(?:because|since|as|for)\s+(?P<why>(?:the|our|my|his|their|they|we|it)\b.+?)\s*[.!]*$",
                          re.IGNORECASE)
+# S14E-X106: the grievance-variant phrases of Make Amends that the reason tail
+# above would swallow ("for the abandoned alliance" / "for the abandoned call").
+_AMENDS_VARIANT_TAIL_RX = re.compile(r"the\s+abandoned\s+(?:alliance|call)\b", re.IGNORECASE)
+# S14E-X192: "recruit Mortier as our marshal" - "as the / our / my (new)
+# marshal", the article and the title and NO verb, is the ROLE the man is
+# raised to, not a reason of ours ("as the men are rested"). Peeled, the line
+# read "recruit Mortier" - a LEVY. S14E-X163: and "for the marshalate".
+_ROLE_AS_MARSHAL_TAIL_RX = re.compile(r"(?:the|our|my)\s+(?:new\s+)?marshal(?:ate)?", re.IGNORECASE)
 # DD0-18 (c) (S4 part 4, October 11, 2026): the PURPOSE tail — "so he can
 # screen the Emperor", "so that the road is covered", ", I want the Swiss road
 # covered", "; the Dutch coast wants watching" — a reason in the future
@@ -485,6 +493,14 @@ def peel_reason_tail(r: Reading, known_names: Iterable[str]) -> None:
     why = m.group("why")
     if (set(re.findall(r"[a-z][a-z'’-]+", why.lower())) & _known_tokens(known_names)
             or ORDER_VERB_RX.search(why)):
+        return
+    # S14E-X106 (the S14E-26 sweep): "make amends with Prussia for the abandoned
+    # alliance" — the grievance variant's OWN phrase (`llm_client`'s
+    # amends_variant keys) is the order's object, not a reason of ours. Peeled,
+    # the Cabinet's 400g + 2 DP chip sent the standard 200g + 1 DP variant.
+    if _AMENDS_VARIANT_TAIL_RX.match(why):
+        return
+    if _ROLE_AS_MARSHAL_TAIL_RX.fullmatch(why.strip()):
         return
     before = r.text()
     if _peel_tail(r, m.group(0)):

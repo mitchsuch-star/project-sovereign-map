@@ -54,13 +54,53 @@ ARMY_AUTHORITY_CARRIES = 70
 ARMY_AUTHORITY_HEARD = 50
 
 # The collective head: the words that mean the army, with the order after them.
-COLLECTIVE_HEAD_RE = re.compile(
-    r"^\s*(?:(?:the|my|our)\s+)?(?:whole\s+|entire\s+)?"
-    r"(?P<who>everyone|everybody|every\s+(?:marshal|corps|general|commander|man)"
+# S14E-X143: the words that mean the army are ONE pattern (the head below, and the
+# collective cancel's two word orders - `is_collective_cancel`, read by the
+# parser's cancel arm - build from it).
+_COLLECTIVE_WHO = (
+    r"everyone|everybody|every\s+(?:marshal|corps|general|commander|man)"
     r"|all(?:\s+of\s+(?:you|them))?(?:\s+(?:my|the|our))?(?:\s+(?:marshals|corps|generals|commanders|men|of\s+you))?"
-    r"|(?:grande\s+)?arm[eé]e|army|marshals|generals)"
+    r"|(?:grande\s+)?arm[eé]e|army|marshals|generals")
+_COLLECTIVE_PREFIX = r"(?:(?:the|my|our)\s+)?(?:whole\s+|entire\s+)?"
+COLLECTIVE_HEAD_RE = re.compile(
+    r"^\s*" + _COLLECTIVE_PREFIX +
+    r"(?P<who>" + _COLLECTIVE_WHO + r")"
     r"\s*[,:]?\s+(?P<rest>[A-Za-z].*)$",
     re.IGNORECASE)
+
+# S14E-X143: "everyone stop" / "stop everyone" / "all marshals cancel" - the
+# whole line is a collective address and ONE of the four recall verbs, in
+# either order. The mock parser reads the line as the cancel
+# (`llm_client`); the collective road below recalls EVERY standing order.
+_CANCEL_VERBS = r"(?:cancel|stop|abort|halt|belay|cease)"      # S14E-X177: + cease
+# ... and the orders may be named: "cancel all orders", "everyone, cancel your marches".
+_ORDERS_TAIL = (r"(?:\s+(?:(?:your|their|all|the|my)\s+)?(?:(?:standing|marching)\s+)?"
+                r"(?:orders?|marches|marching(?:\s+orders)?|movements?))?")
+_COLLECTIVE_CANCEL_RE = re.compile(
+    r"^\s*(?:please\s+)?(?:"
+    + _COLLECTIVE_PREFIX + r"(?:" + _COLLECTIVE_WHO + r")\s*,?\s+" + _CANCEL_VERBS + _ORDERS_TAIL +
+    r"|" + _CANCEL_VERBS + r"\s+" + _COLLECTIVE_PREFIX + r"(?:" + _COLLECTIVE_WHO + r")(?:['’]s)?"
+    + _ORDERS_TAIL +
+    r")(?:\s+(?:please|now))?\s*[.!]*\s*$",
+    re.IGNORECASE)
+
+
+_COLLECTIVE_ADDRESS_ONLY_RE = re.compile(
+    r"^\s*" + _COLLECTIVE_PREFIX + r"(?:" + _COLLECTIVE_WHO + r")\s*[,:]?\s*$", re.IGNORECASE)
+
+
+def is_collective_address(text: str) -> bool:
+    """S14E-X177: the text is NOTHING BUT the words that mean the army
+    ("everyone", "all marshals", "the army") - the head of a collective order
+    with the order cut off. PURE."""
+    return bool(_COLLECTIVE_ADDRESS_ONLY_RE.match(text or ""))
+
+
+def is_collective_cancel(text: str) -> bool:
+    """The whole line is "<the army> <cancel|stop|abort|halt|belay|cease>" or
+    the verb first ("stop everyone"), the orders optionally named ("cancel all
+    orders", "everyone, cancel your marches"). PURE."""
+    return bool(_COLLECTIVE_CANCEL_RE.match(text or ""))
 
 # The verbs a collective fans out on. An attack is ONE battle (the muster
 # seats the rest), a retreat is the general retreat already, and the
@@ -313,6 +353,20 @@ def _would_object(world, marshal, strategic_type: Optional[str], *, parsed_targe
     return False
 
 
+def _column_detour_clause(world, stash: Dict[str, Any], names: List[str]) -> str:
+    """S14E-X134: "3 of 5 corps take a long or foreign road — their cards say
+    which" for the column the Staff's typed order commits, read through the
+    cards' own readers (`order_quotes.column_detours`); '' when no corps detours."""
+    try:
+        from backend.commands import order_quotes as Q
+        count = Q.column_detours(world, names, stash.get("strategic_type"),
+                                 str(stash.get("target") or ""), memo={})
+        return Q.detour_count_clause(count, len(names))
+    except Exception as exc:
+        report(exc, "group_orders._column_detour_clause")
+        return ""
+
+
 def _head_line(world, stash: Dict[str, Any], names: List[str]) -> str:
     rest = stash["rest"]
     n = len(names)
@@ -320,6 +374,12 @@ def _head_line(world, stash: Dict[str, Any], names: List[str]) -> str:
         line = (f"The Grand Quartier Général carries the Emperor's order — {ARMY_ORDER_AP} actions, "
                 f"the whole column: {n} corps within {ARMY_COLUMN_REACH} provinces of the Emperor, "
                 f"'{rest}'.")
+        # S14E-X134: the Staff's order skips the road ask (S14E-22's scope), so the
+        # head says how many of the column take a long or foreign road - the quote's
+        # own count (`order_quotes.detour_count_clause`), '' when none does.
+        detour = _column_detour_clause(world, stash, names)
+        if detour:
+            line += " " + detour + "."
         if stash.get("note"):
             line += " " + stash["note"]
         return line
@@ -329,6 +389,11 @@ def _head_line(world, stash: Dict[str, Any], names: List[str]) -> str:
         if m is not None:
             total += _price(world, m, stash["action"], stash.get("strategic_type"))
     have = int(getattr(world, "actions_remaining", 0) or 0)
+    if stash.get("cancel"):
+        # S14E-X143: the recall's own head - what it recalls and what it costs
+        # (each corps' cancel is the ordinary one: the price is its own).
+        return (f"Every standing order is recalled, corps by corps — {n} corps, "
+                f"{total} action{'s' if total != 1 else ''} for the {have} in hand.")
     line = (f"The order goes to the army, corps by corps — {n} corps, {total} action"
             f"{'s' if total != 1 else ''} for the {have} in hand: '{rest}'.")
     if stash.get("note"):
@@ -384,6 +449,12 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
     command = (parsed or {}).get("command") or {}
     if command.get("marshal") or not parsed.get("success"):
         return None
+    # S14E-X143: a collective address that parsed as the cancel recalls every
+    # standing order (the verb may come first: "stop everyone").
+    if (str(command.get("action") or "") == "cancel" and not parsed.get("is_strategic")
+            and (is_collective_cancel(command_text) or collective_head(command_text) is not None)):
+        return _collective_cancel(world, game_state, parser, executor, llm_game_state,
+                                  command_text)
     head = collective_head(command_text)
     if head is None:
         return None
@@ -427,6 +498,35 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
         army_refusal = _army_gate(world, stash, field, leader)
         if army_refusal:
             stash["note"] = army_refusal
+    return _carry_out(world, game_state, parser, executor, llm_game_state, stash)
+
+
+def _collective_cancel(world, game_state, parser, executor, llm_game_state,
+                       command_text: str) -> Optional[Dict[str, Any]]:
+    """S14E-X143: "everyone stop" recalls EVERY standing order, corps by corps,
+    each as the ordinary `cancel` (one road, its own price, its own trust) -
+    where the parsed cancel carried no name and recalled the FIRST corps with
+    an order, at one action, in a reply that said only his. None when fewer
+    than two corps hold an order: the ordinary road recalls that one (or
+    says there is none) exactly as before."""
+    standing = [m.name for m in world.get_player_marshals()
+                if getattr(m, "strategic_order", None) is not None
+                and int(getattr(m, "strength", 0) or 0) > 0]
+    if len(standing) < 2:
+        return None
+    stash: Dict[str, Any] = {
+        "rest": "cancel", "action": "cancel", "strategic_type": None, "target": "",
+        "members": standing, "turn": int(getattr(world, "current_turn", 0) or 0),
+        "army": False, "band": None, "note": "", "lines": [], "events": [],
+        "raw": command_text, "cancel": True,
+    }
+    return _carry_out(world, game_state, parser, executor, llm_game_state, stash)
+
+
+def _carry_out(world, game_state, parser, executor, llm_game_state,
+               stash: Dict[str, Any]) -> Dict[str, Any]:
+    """Head the order, run it corps by corps, and build the reply - the tail
+    both the fan-out and the collective cancel share."""
     head_line = _head_line(world, stash, stash["members"])
     stash["head"] = head_line
     head_spent = (world.spend_actions("strategic", ARMY_ORDER_AP)["action_cost"]

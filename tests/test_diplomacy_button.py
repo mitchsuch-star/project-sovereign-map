@@ -1046,7 +1046,12 @@ class TestEdgeCases:
         _set_diplo_state(world, "France", "Saxony", "VASSAL")
         executor = _make_executor()
         gs = _make_game_state(world)
-        result = executor._execute_release_vassal({"target": "Saxony"}, gs)
+        # S14E-X160 FLIPPED: the release is a quoted act - the bare order QUOTES
+        # (nothing spent), the confirmed order releases.
+        quote = executor._execute_release_vassal({"target": "Saxony"}, gs)
+        assert quote["success"] is True and quote.get("instrument_confirm")
+        assert world.diplomatic_points == 4 and "Saxony" in world.vassals
+        result = executor._execute_release_vassal({"target": "Saxony", "confirmed": True}, gs)
         assert result["success"] is True
         assert world.diplomatic_points == 3  # 4 - 1
 

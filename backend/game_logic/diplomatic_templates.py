@@ -3175,9 +3175,12 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
         relation = int(world.nation_relations.get(diplo_key, 0))
         state = world.get_diplomatic_state(player_nation, target_nation)
         # R38: Only show war score when nations are at war
-        if state == "WAR":
-            from backend.game_logic.diplomacy import get_war_score_for
-            slots["war_score"] = str(int(get_war_score_for(world, player_nation, target_nation)))
+        if state == "WAR" and "{war_score}" in text:
+            # S14E-25: the slot QUOTES the score, so it reads the live one
+            # (the popup's own "War score" line) — and only when a sentence
+            # names it: `calculate_war_score` is not paid per option text.
+            from backend.game_logic.diplomacy import live_war_score_for
+            slots["war_score"] = str(int(live_war_score_for(world, player_nation, target_nation)))
         else:
             slots["war_score"] = "N/A"
         slots["relation"] = str(relation)
@@ -3831,6 +3834,17 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world,
                             if t != "border_territory_demanded"]
 
     # --- Stage 4: Commentary ---
+    # S14E-D6 / S14E-X32 (Pre-Deploy S14f part 2, October 25, 2026): THE PAIR
+    # FOR THE WORDS, THE SIDE FOR THE GOLD. The commentary describes the
+    # court's disposition — the figure beside it (the estimate, the bucket,
+    # the option descriptions) is judged on the court's PAIR — so its tag is
+    # picked from `get_war_score_for`; `war_score` above (the whole war,
+    # CA8-D2) keeps pricing the draft. On the France–Britain −2 / France–
+    # Austria +60 board the side sum (+58) had Britain's confirm say "They
+    # have little choice but to accept" beside an estimate of REJECT. A
+    # bilateral war reads the same number both ways.
+    from backend.game_logic.diplomacy import get_war_score_for
+    tag_score = get_war_score_for(world, player_nation, target_nation)
     # PC-F11 (S13e part 4, October 17, 2026): the commentary names only
     # demands the draft HOLDS. At +34 and above "I've kept the demands firm
     # but not humiliating" stood on a white peace the easing had stripped
@@ -3840,14 +3854,14 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world,
             and proposal_type in ("peace", "armistice", "armistice_winning", "armistice_losing")):
         context_tags = [t for t in context_tags
                         if t not in ("dominant_terms", "border_territory_demanded")]
-        if not context_tags and war_score > 30:
+        if not context_tags and tag_score > 30:
             # the score alone would pick "dominant_terms" ("I've kept the
             # demands firm") for a draft that asks nothing
             context_tags.append("no_demands_winning")
     if not context_tags:
-        if war_score < -30:
+        if tag_score < -30:
             context_tags.append("desperate_terms")
-        elif war_score > 30:
+        elif tag_score > 30:
             context_tags.append("dominant_terms")
         else:
             from backend.game_logic.diplomatic_dialogue import get_game_bucket
@@ -4539,6 +4553,73 @@ def get_desire_profile_nudge_bias(target_nation: str) -> Dict:
 
 # ═══════ CONVERSATIONAL TERMS GUIDANCE ═══════
 
+def adjust_terms_road(world, player_nation: str, target_nation: str,
+                      proposal_type: str) -> Dict[str, Any]:
+    """S14E-19 (Pre-Deploy S14f part 2, October 25, 2026): which road the
+    confirm's "Adjust terms" button opens — ONE verdict, read by the confirm's
+    option stamp (`diplomatic_dialogue.generate_dialogue`) and by the
+    executor's `adjust_terms` arm, so the button and the click agree.
+
+    The direction comes from the WAR SCORE alone (the old `relation < -50` arm
+    asked a France at +84 for its own provinces because Austria|France boots
+    at −80):
+
+      concessions  at war (or in a truce) and France is behind — the legacy
+                   wizard: provinces, gold, Action Points to cede;
+      sweeteners   no war between the pair — the same wizard's gold / AP
+                   steps, for a treaty asked of a court at peace;
+      demands      at war and France is NOT behind — the table
+                   (`propose_common_peace`, covering the court alone), where
+                   the guided Add demand lives. The ultimatum wizard is not
+                   this road: an ultimatum is refused in a war.
+
+    `available` is False where the demands road does not exist (a one-on-one
+    war has no table; a truce settles nothing; the table opens only for a
+    side's leader) — the button arrives disabled with `reason`.
+    Returns {road, available, reason, war_id}. Pure read; nothing is written
+    (no war instance is backfilled here)."""
+    from backend.game_logic.diplomacy import get_war_score_for
+    out: Dict[str, Any] = {"road": "sweeteners", "available": True, "reason": "", "war_id": ""}
+    state = world.get_diplomatic_state(player_nation, target_nation)
+    if state not in ("WAR", "ARMISTICE"):
+        return out
+    if int(get_war_score_for(world, player_nation, target_nation)) < 0:
+        out["road"] = "concessions"
+        return out
+    out["road"] = "demands"
+    out["available"] = False
+    ptype = str(proposal_type or "")
+    if ptype.startswith("armistice"):
+        out["reason"] = ("A truce settles nothing: no province or gold changes hands "
+                         "until it ends. Demands are pressed in a peace.")
+        return out
+    if ptype != "peace":
+        out["reason"] = "This proposal carries no demands."
+        return out
+    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+    war_id = str(_find_active_war_instance_for_pair(
+        world, world._make_diplo_key(player_nation, target_nation)) or "")
+    if not war_id:
+        out["reason"] = ("Demands are written at the table, and a one-on-one war has "
+                         "none. Harsher terms asks more of them.")
+        return out
+    from backend.game_logic.settlement_validation import evaluate_open_settlement_eligibility
+    eligibility = evaluate_open_settlement_eligibility(
+        world, war_id=war_id, actor_nation=player_nation, ignore_active_dialogue=True)
+    if not eligibility.get("available"):
+        if str(eligibility.get("error") or "") == "one_to_one_war":
+            out["reason"] = ("Demands are written at the table, and a one-on-one war has "
+                             "none. Harsher terms asks more of them.")
+        else:
+            from backend.display_names import settlement_disabled_reason_display
+            out["reason"] = settlement_disabled_reason_display(
+                str(eligibility.get("error") or ""))
+        return out
+    out["available"] = True
+    out["war_id"] = war_id
+    return out
+
+
 def rank_cession_candidates(world, player_nation: str, target_nation: str) -> list:
     """Rank player regions for cession, prioritizing border + empty + cheap.
 
@@ -4978,8 +5059,10 @@ _TERM_DISPLAY_LABELS = {
     "ap_per_turn": "{from_nation} cedes {value} AP per turn to {to_nation}",
     "open_borders": "Mutual open borders between {nation_a} and {nation_b}",
     "military_access": "{from_nation} grants military access to {to_nation}",
-    "protection": "{from_nation} guarantees {to_nation}'s sovereignty",
-    "protection_promised": "{from_nation} guarantees {to_nation}'s sovereignty",
+    # S14E-X167 (the XF2 sweep): the pledge binds no army and mints no guarantee
+    # (`instruments.py`'s Guarantee is its own act) - the label says a pledge.
+    "protection": "{from_nation} pledges {to_nation} its protection (a word only - it binds no army)",
+    "protection_promised": "{from_nation} pledges {to_nation} its protection (a word only - it binds no army)",
     # PC-F83 (S13e part 4): the clause named LIFTED read backwards ("closes
     # ports"); it is the France-to-Britain sweetener — the System lifted,
     # the Continent's ports reopened to British trade.

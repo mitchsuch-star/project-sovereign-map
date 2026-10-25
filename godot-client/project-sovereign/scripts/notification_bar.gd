@@ -498,6 +498,8 @@ func _create_mission_row(notif: Dictionary) -> HBoxContainer:
 	btn.custom_minimum_size = Vector2(0, 28)
 	row.add_child(btn)
 	var details = notif.get("details", {})
+	if details is Dictionary and str(details.get("rail_words", "")) != "":
+		btn.tooltip_text = str(details.get("rail_words", ""))   # S14E-X199: the ending, not the standing title
 	var recall := ""
 	if details is Dictionary:
 		recall = str(details.get("action_command", ""))
@@ -524,6 +526,11 @@ func _mission_words(notif: Dictionary) -> String:
 	"""'Talleyrand at Denmark — Courting': the court from the details, the
 	kind from the backend's own title ('Talleyrand: Courting - Denmark')."""
 	var details = notif.get("details", {})
+	# S14E-X199: a mission that has ENDED says so — "Talleyrand home from
+	# Austria — mission done" — instead of the standing mission's words, which
+	# read as if he were still at the court beside the top bar's "Idle".
+	if details is Dictionary and str(details.get("rail_words", "")) != "":
+		return str(details.get("rail_words", ""))
 	var court := ""
 	if details is Dictionary:
 		court = Utils.display_nation_name(str(details.get("target_nation", "")))

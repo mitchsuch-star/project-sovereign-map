@@ -44,6 +44,13 @@ void fragment() {
 static var _shader: Shader = null
 static var _portrait_paths := {}   # name -> path or "" (probe once)
 
+
+# S14E-X207: the shared Shader is a Resource held by a static - released at the
+# true exit (AudioManager's `_exit_tree`), so the engine's teardown finds nothing
+# of ours still in use. The next _ready() would rebuild it.
+static func release_static_caches() -> void:
+	_shader = null
+
 var marshal_name := ""
 var crowned := false
 # NP-5: the sovereign's own rim mark — the imperial "N" cipher in gold,

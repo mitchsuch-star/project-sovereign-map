@@ -897,6 +897,23 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
     return False
 
 
+# S14E-X82: the combat executor that reads the muster, built ONCE (it printed
+# "Command Executor initialized" on every attack evaluation -- one per quote).
+# Keyed by the `CommandExecutor` class itself, so a test that swaps the class
+# builds its own reader rather than inheriting a stale one; the cache is a
+# dict, never a boolean lever (the `order_quotes._MUSTER_READER` idiom).
+_MUSTER_TOTALS_READER: dict = {}
+
+
+def _muster_totals_reader():
+    """The cached combat executor `muster_expected_totals` reads through."""
+    from backend.commands.executor import CommandExecutor
+    reader = _MUSTER_TOTALS_READER.get(CommandExecutor)
+    if reader is None:
+        reader = _MUSTER_TOTALS_READER[CommandExecutor] = CommandExecutor()._combat
+    return reader
+
+
 def muster_expected_totals(marshal, enemy, world):
     """DDB-19 (Pre-Deploy S13b part 2): the attack as the MUSTER reckons it —
     (our lead plus every corps that will join, arrival-weighted; the enemy
@@ -911,10 +928,9 @@ def muster_expected_totals(marshal, enemy, world):
     # is SHOWN; a read is not a showing, so the latch is put back.
     _hint_shown = getattr(world, "muster_hint_shown", False)
     try:
-        from backend.commands.executor import CommandExecutor
         # S14E-12: the totals need no spread (floor / bad day are display
         # only); the objection reads this on every attack order.
-        preview = CommandExecutor()._combat._build_muster_preview(
+        preview = _muster_totals_reader()._build_muster_preview(
             marshal, enemy, world, {"world": world}, with_spread=False)
         world.muster_hint_shown = _hint_shown
         atk = int(((preview or {}).get("attacker") or {}).get("committed_strength") or 0)

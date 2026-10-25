@@ -141,6 +141,7 @@ def _run_grievance_amends(world: WorldState, *, target: str = "Austria") -> dict
                 "diplomat": "Talleyrand",
                 "target_nation": target,
                 "amends_variant": "grievance",
+                "confirmed": True,  # S14E-X105: the order quotes first; confirmed runs it
             },
         },
     }
@@ -159,6 +160,7 @@ def _run_standard_amends(world: WorldState, *, target: str = "Austria") -> dict:
                 "diplomat": "Talleyrand",
                 "target_nation": target,
                 "amends_variant": "standard",
+                "confirmed": True,  # S14E-X105
             },
         },
     }
@@ -1388,8 +1390,15 @@ class TestEndToEndGrievanceVariant:
         assert parsed_dict["diplomatic_data"]["amends_variant"] == "grievance"
 
         executor = CommandExecutor()
+        # S14E-X105 (flipped): the typed order QUOTES first (nothing spent);
+        # the quote's own option is the confirmed order.
+        quote = executor.execute({"command": parsed_dict}, {"world": world})
+        assert quote["state"] == "awaiting_clarification" and "400 gold and 2 diplomatic points" in quote["message"]
+        assert _get_active_grievance_flag_count(world, "France", "Austria") == 1
+        confirmed = client.parse_command_structured(quote["options"][0]["command"]).to_dict()
+        assert confirmed["diplomatic_data"]["amends_variant"] == "grievance"
         result = executor.execute(
-            {"command": parsed_dict},
+            {"command": confirmed},
             {"world": world},
         )
 

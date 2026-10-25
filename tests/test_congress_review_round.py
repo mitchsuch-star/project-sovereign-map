@@ -613,6 +613,13 @@ class TestTheVerbs:
         _sit(w)
         _set_score(w, "Prussia", 0)
         r = _post(tc, line)
+        # S14E-X103 (flipped): the sweetener QUOTES the figure it read first
+        # (nothing paid); the quote's own option is the confirmed order.
+        assert r.get("success") is True, (line, r.get("message"))
+        assert r.get("state") == "awaiting_clarification", (line, r.get("message"))
+        assert f"Lay {paid:,} gold" in r["message"], (line, r["message"])
+        assert not (w.congress.get("sweeteners") or {}).get("Prussia")
+        r = _post(tc, r["options"][0]["command"])
         assert r.get("success") is True, (line, r.get("message"))
         assert (w.congress.get("sweeteners") or {}).get("Prussia") == paid
 

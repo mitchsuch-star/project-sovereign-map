@@ -270,7 +270,13 @@ class TestTheBid:
         _open(world, "Denmark")
         gold, dp = world.nation_gold["France"], world.diplomatic_points
         danish = int(world.nation_gold.get("Denmark", 0) or 0)
+        # S14E-X104 (flipped): the bid QUOTES first (nothing laid, no DP); the
+        # quote's own option is the confirmed order.
         r = _post(tc, "Talleyrand, bid for Denmark, 200 gold")
+        assert r.get("state") == "awaiting_clarification", r.get("message")
+        assert (world.nation_gold["France"], world.diplomatic_points) == (gold, dp)
+        assert not world.allegiance_auctions["Denmark"].get("bids")
+        r = _post(tc, r["options"][0]["command"])
         assert r.get("success") is True, r.get("message")
         assert world.nation_gold["France"] == gold - 200
         assert world.nation_gold["Denmark"] == danish + 200
@@ -278,6 +284,8 @@ class TestTheBid:
         assert world.diplomatic_points == dp - 1
         assert "200" in r["message"] and "Denmark" in r["message"]
         r = _post(tc, "bid for Denmark")
+        assert r.get("state") == "awaiting_clarification"                       # S14E-X104
+        r = _post(tc, r["options"][0]["command"])
         assert r.get("success") is True
         assert world.allegiance_auctions["Denmark"]["bids"] == {"France": 200 + ai_diplomacy.DEFAULT_ALLEGIANCE_BID}
         (first, second) = _logged(world, "allegiance_bid")

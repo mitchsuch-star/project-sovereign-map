@@ -2666,10 +2666,15 @@ class TestGate4SmokeParadoxSurfacesAtMount:
         note = str(dialogue.get("separate_peace_note") or "")
         assert note.startswith("Mark one thing, Sire: Prussia stays at war with Britain")
         assert "relation with her" in note
+        # S14E-X198 FLIPPED: the note no longer rides `warnings` beside the
+        # snapshot's `paradox` row that says the same sentence (it printed
+        # twice) — the ally is named once, in the row the popup prints.
         warning_texts = " ".join(
-            str(w.get("text") or "") for w in dialogue.get("warnings") or []
+            [str(w.get("text") or "") for w in dialogue.get("warnings") or []]
+            + [str(c.get("display") or "") for c in
+               dialogue["war_context_snapshot"]["commitment_conflicts"]]
         )
-        assert "Prussia" in warning_texts
+        assert warning_texts.count("Prussia stays at war with Britain") == 1
 
     def test_armistice_is_exempt_from_the_paradox_block(self):
         """Slice G1 / D-G1-1 (user-approved): a truce is not a separate

@@ -221,6 +221,44 @@ def harassment_losses(world, marshal, region) -> int:
     return losses
 
 
+def attack_preview_hint_for(who: str, foe: str, after: str = "") -> str:
+    """S14E-X144: the free preview, named beside the attack a REFUSAL quotes
+    ("Try: 'Ney, attack Mack'") - the very sentence the TODAY list and the
+    "what can I do" answers carry (`dispatch.attack_preview_hint`, S14E-24 /
+    XC3), so a quoted attack is never taught bare. The movement, strategic
+    and combat refusals read this one door.
+
+    S14E-X178: `after` is the sentence the hint will follow; when that
+    sentence already ends "... first." the hint drops its own "first" ("Attack
+    Mack in Swabia first. Ask 'what if Ney attacks Mack' first - ..." said it
+    twice)."""
+    from backend.game_logic.dispatch import attack_preview_hint
+    hint = attack_preview_hint([f"{who}, attack {foe}"])
+    if hint and re.search(r"\bfirst\.\s*$", after or "", flags=re.IGNORECASE):
+        hint = hint.replace("' first — ", "' — ", 1)
+    return hint
+
+
+def live_attack_example(world):
+    """S14E-X175: the first attack the counsel itself would offer on THIS
+    board, as (who, foe) - the very line `what can I do` opens with
+    (`ai.counsel.military_counsel`: co-located foes first, a lawful crossing,
+    no suicide mission, an action left to spend). None when no attack is
+    lawful today or there is no world, so a caller keeps its static example."""
+    if world is None:
+        return None
+    try:
+        from backend.ai.counsel import military_counsel
+        for line in military_counsel(world, getattr(world, "player_nation", None), limit=4):
+            found = re.match(r"^(?P<who>.+), attack (?P<foe>.+)$", str(line))
+            if found:
+                return found.group("who"), found.group("foe")
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "movement_executor.live_attack_example: ai.counsel.military_counsel")
+    return None
+
+
 def corps_takes_no_ground(marshal) -> bool:
     """True when the mover may march but may not annex: the recovery window."""
     in_recovery = getattr(marshal, "in_retreat_recovery", None)
@@ -340,6 +378,82 @@ def camp_leave_note(world, marshal, road, origin=None) -> str:
     from backend.game_logic.naval import camp_leave_line
     line = camp_leave_line(world, marshal, road, origin)
     return f"\n{line}" if line else ""
+
+
+def campaign_pay_sentence(region_name: str, holder: str, more: int) -> str:
+    """S14E-2 / S14E-X67: the campaign pay's one sentence — "Swabia is
+    Bavaria's soil — the corps standing there are fed by contract, about
+    −1,200g more a turn." The muster (`_campaign_pay_quote`) and the march's
+    quote and reply (`campaign_pay_line`) print THIS, so the two surfaces
+    cannot word the same fact twice."""
+    from backend.display_names import display_nation
+    name = display_nation(holder)
+    owns = f"{name}'" if name.endswith("s") else f"{name}'s"
+    return (f"{region_name} is {owns} soil — the corps standing there are fed "
+            f"by contract, about −{int(more):,}g more a turn.")
+
+
+def campaign_pay_quote(world, marshal, dest, origin=None):
+    """S14E-X67 (Pre-Deploy S14f part 2): the campaign pay (EAD-1) a corps
+    moved to `dest` will draw, less what it draws where it stands —
+    `{"more": int, "holder": str, "region": str}` or None when the move adds
+    nothing. READ OFF THE BILL'S OWN PREDICATE (`WorldState.campaign_pay_at`,
+    which `calculate_turn_upkeep` bills by and the muster quotes by —
+    S14E-2), so the figure shown is the figure applied: relocating the corps
+    and calling `calculate_turn_upkeep` raises `campaign_pay` by exactly
+    `more`. The bankruptcy mercy halves it as it halves the bill. The player's
+    corps only. `origin` is where it stands today (default: where it stands
+    now; a reply, written after the step, passes the province it left)."""
+    nation = getattr(marshal, "nation", None)
+    if (not nation or nation != getattr(world, "player_nation", None)
+            or int(getattr(marshal, "strength", 0) or 0) <= 0 or not dest):
+        return None
+    homeland = world.campaign_pay_homeland(nation)
+    if homeland is None:
+        return None
+    billed = int(marshal.strength)
+    after = world.campaign_pay_at(nation, dest, billed, homeland)
+    if after is None:
+        return None
+    here = origin if origin is not None else marshal.location
+    before = world.campaign_pay_at(nation, here, billed, homeland)
+    more = int(after["pay"]) - (int(before["pay"]) if before else 0)
+    if (getattr(world, "nation_bankruptcy_turns", None) or {}).get(nation, 0) >= 1:
+        more //= 2
+    if more <= 0:
+        return None
+    return {"more": int(more), "holder": after["holder"], "region": dest}
+
+
+def campaign_pay_line(world, marshal, dest, origin=None) -> str:
+    """S14E-X67: `campaign_pay_quote` as the sentence the march's quote and
+    reply carry (`campaign_pay_sentence`), '' when the move draws no more pay.
+    The counterpart of `supply_warning_line` and `camp_leave_note`: a plain
+    march or move onto allied or neutral soil used to say its supply and
+    nothing of the pay."""
+    due = campaign_pay_quote(world, marshal, dest, origin)
+    if due is None:
+        return ""
+    return campaign_pay_sentence(due["region"], due["holder"], due["more"])
+
+
+def campaign_pay_note(world, marshal, dest, origin=None) -> str:
+    """S14E-X67: `campaign_pay_line` on a line of its own beside
+    `camp_leave_note` ('' when the move draws no more pay)."""
+    line = campaign_pay_line(world, marshal, dest, origin)
+    return f"\n{line}" if line else ""
+
+
+def campaign_pay_clause(world, marshal, dest, origin=None) -> str:
+    """S14E-X133: `campaign_pay_line` as a clause that closes a battle report's
+    paragraph (" Swabia is Bavaria's soil — ... about −288g more a turn."), '' when
+    the advance draws no more pay. The attack's, the auto-kill bombardment's,
+    the glorious charge's and the reckless auto-charge's post-victory ADVANCE
+    onto allied soil print it after the march note. Read AFTER `move_to` and
+    the attrition, from the `origin` the corps left, so the figure is the
+    figure `calculate_turn_upkeep` then bills; '' for the AI (Rule 5)."""
+    line = campaign_pay_line(world, marshal, dest, origin)
+    return f" {line}" if line else ""
 
 
 class MovementExecutor:
@@ -579,7 +693,9 @@ class MovementExecutor:
                     "success": False,
                     "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_display)}.",
                     "enemies_at_destination": enemy_names,
-                    "suggestion": f"Try: '{m_display}, attack {enemy_display[0]}'"
+                    # S14E-X144: the quoted attack is taught with its free preview.
+                    "suggestion": (f"Try: '{m_display}, attack {enemy_display[0]}'. "
+                                   + attack_preview_hint_for(m_display, enemy_display[0]))
                 }
 
         # DIPLOMATIC MOVEMENT RESTRICTION (Phase 8 Session 2)
@@ -626,7 +742,10 @@ class MovementExecutor:
                     "success": False,
                     "message": f"{marshal.name} is engaged with enemy forces and cannot begin a strategic march. Deal with the engagement first.",
                     "engaged_with": [e.name for e in enemies_here],
-                    "suggestion": f"Try: '{marshal.name}, attack {enemies_here[0].name}' or '{marshal.name}, retreat'"
+                    # S14E-X144: the quoted attack is taught with its free preview.
+                    "suggestion": (f"Try: '{marshal.name}, attack {enemies_here[0].name}' or "
+                                   f"'{marshal.name}, retreat'. "
+                                   + attack_preview_hint_for(marshal.name, enemies_here[0].name))
                 }
             # Strategic commands cost 2 AP (1 for literal / the sovereign)
             # NP-V: single source on the marshal (GR1) — the discount used
@@ -1283,10 +1402,12 @@ class MovementExecutor:
         camp_msg = camp_leave_note(world, marshal, [target_name], old_location)
         if depart_msg:
             camp_msg += f"\n{depart_msg}"
+        # S14E-X67: and the campaign pay the stop will draw, if it draws any.
+        pay_msg = campaign_pay_note(world, marshal, target_name, old_location)
 
         result = {
             "success": True,
-            "message": move_message + supply_msg + camp_msg + capture_hint_msg,
+            "message": move_message + supply_msg + camp_msg + pay_msg + capture_hint_msg,
             "capture_note": capture_note,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,
@@ -1867,6 +1988,11 @@ class MovementExecutor:
         # Add final fighting retreat message
         if fighting_retreat_events:
             retreat_message += f"\n{marshal.name} withdraws to {best_region}, bloodied but defiant."
+
+        # S14E-X89: a retreat onto allied or neutral soil puts the corps on
+        # campaign pay from the next bill - said after the step (the same
+        # line the plain move prints), '' for the AI and for home soil.
+        retreat_message += campaign_pay_note(world, marshal, best_region, old_location)
 
         # Build events list
         events = [{

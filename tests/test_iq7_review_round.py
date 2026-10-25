@@ -149,11 +149,13 @@ SWISS = "Switzerland"
 # ordinary, useful order — the dodge cost the player nothing).
 # SR-5r DP-1 (Sept 27, 2026): the pool banks one turn, so the board holds up
 # to 7 points, not 5 — the ordinary spends run on until it is empty.
-DP_SPENDS = ("invest in Holland", "invest in Kingdom of Italy",
+# S14E-X107 FLIPPED: an `invest` order QUOTES first (free); the spend is the
+# CONFIRMED line, so these carry the word - the verbs still burn the DP.
+DP_SPENDS = ("invest in Holland confirmed", "invest in Kingdom of Italy confirmed",
              "grant Holland more autonomy", "grant Kingdom of Italy more autonomy",
-             "invest in Switzerland", "reduce Holland autonomy", "invest in Holland",
-             "invest in Kingdom of Italy", "invest in Switzerland",
-             "grant Switzerland more autonomy", "invest in Holland")
+             "invest in Switzerland confirmed", "reduce Holland autonomy", "invest in Holland confirmed",
+             "invest in Kingdom of Italy confirmed", "invest in Switzerland confirmed",
+             "grant Switzerland more autonomy", "invest in Holland confirmed")
 
 
 def _quiet():
@@ -2223,7 +2225,7 @@ class TestP21APetitionIsAnsweredPlainly:
         """Recorded trade (Builder B2): before, the petition was granted and
         the order dropped; now the order half executes as the order it is."""
         w, client, pet = _petition_current(board)
-        r = _cmd(client, "grant the petition, and invest in holland")
+        r = _cmd(client, "grant the petition, and invest in holland confirmed")   # S14E-X107 FLIPPED: the spend is the confirmed line
         assert not _logged(w) and w.dialogue_manager.peek() is pet
         assert "remission_left" not in w.vassals[SWISS]
         assert r.get("success") is True and str(r.get("message")).startswith("Invested in Holland")
@@ -2564,7 +2566,7 @@ class TestP41TheMootPetitionSaysSoFirst:
         stored = pet["context"]["proposal"]["petition"]["availability"]
         assert stored == {"enabled": True, "reason": ""}             # the LAST read's — the trap
         head = pet["talleyrand_text"].split("\n\n", 1)[0]
-        r = _cmd(client, "release switzerland")
+        r = _cmd(client, "release switzerland confirmed")   # S14E-X160 FLIPPED: the release is a quoted act; the spend is the confirmed line
         assert r.get("success") is True and SWISS not in w.vassals
         assert w.dialogue_manager.peek() is pet                        # typed-command safety
         enabled, reason, clauses, options = self._read(client)
@@ -2592,7 +2594,7 @@ class TestP41TheMootPetitionSaysSoFirst:
         w, client = board
         pet = _petition_of(w)
         assert "availability" not in pet["context"]["proposal"]["petition"]
-        r = _cmd(client, "release switzerland")
+        r = _cmd(client, "release switzerland confirmed")   # S14E-X160 FLIPPED: the release is a quoted act; the spend is the confirmed line
         assert r.get("success") is True
         _activate(client, pet)
         enabled, reason, clauses, options = self._read(client)
@@ -3257,7 +3259,7 @@ class TestR34AMootPetitionQuotesNoPriceItWillNotCharge:
     def test_the_players_own_release_with_the_petition_on_the_desk(self, board):
         w, client, pet = _petition_current(board)
         _every_read_surface(client, pet)                                         # the prior read
-        assert _cmd(client, "release switzerland").get("success") is True
+        assert _cmd(client, "release switzerland confirmed").get("success") is True   # S14E-X160 FLIPPED: the spend is the confirmed line
         ip, prose = _every_read_surface(client, pet)
         assert ip["clauses"] == [RELEASED, MOOT_LAPSE]
         for copy_ in PRICED_REFUSAL_COPY:
@@ -4084,7 +4086,8 @@ class TestR44TwoMoreShapesRepromptInPlace:
 KOI_THE = "the Kingdom of Italy"
 KOI_THE_CAP = "The Kingdom of Italy"
 THE_TYPED_VASSAL_ROAD = (
-    ("invest in kingdom of italy", True, f"Invested in {KOI_THE}: +10 loyalty (70 → 80)."),
+    # S14E-X107 FLIPPED: the spend is the confirmed line (the bare order quotes)
+    ("invest in kingdom of italy confirmed", True, f"Invested in {KOI_THE}: +10 loyalty (70 → 80)."),
     ("invest in kingdom of italy", False, f"Investment in {KOI_THE} on cooldown (3 turns remaining)."),
     ("grant the kingdom of italy more autonomy", True,
      f"{KOI_THE_CAP} autonomy changed: Satellite → Autonomous."),
@@ -4099,7 +4102,7 @@ THE_TYPED_VASSAL_ROAD = (
     ("cede tyrol to the kingdom of italy", True, f"Tyrol is ceded to {KOI_THE}."),
     ("cede tyrol to the kingdom of italy", False, f"A grant to {KOI_THE} is still being settled"),
     ("cede to the kingdom of italy", False, f"No province is eligible to cede to {KOI_THE} —"),
-    ("release kingdom of italy", True,
+    ("release kingdom of italy confirmed", True,   # S14E-X160 FLIPPED: the spend is the confirmed line
      f"{KOI_THE_CAP} is released from vassalage and stands a free court again."),
     ("release kingdom of italy", False, f"{KOI_THE_CAP} is not a vassal."),
     ("invest in kingdom of italy", False, f"{KOI_THE_CAP} is not a vassal."),
@@ -4175,7 +4178,7 @@ class TestR45NoRawTagInAVassalSentence:
         client = _swap(monkeypatch, w)
         _cmd(client, "status")
         _clear_slot(w)
-        r = _cmd(client, "invest in Holland")
+        r = _cmd(client, "invest in Holland confirmed")      # S14E-X107 FLIPPED: the spend is the confirmed line
         assert str(r.get("message")).startswith("Invested in Holland: +10 loyalty (70 → 80).")
         r = _cmd(client, "grant Holland more autonomy")
         assert str(r.get("message")).startswith("Holland autonomy changed: Satellite → Autonomous.")
@@ -4239,10 +4242,10 @@ class TestR45NoRawTagInAVassalSentence:
         client = _swap(monkeypatch, w)
         _cmd(client, "status")
         _clear_slot(w)
-        r = _cmd(client, "invest in the kingdom of italy")
+        r = _cmd(client, "invest in the kingdom of italy confirmed")   # S14E-X107 FLIPPED: the spend is the confirmed line
         assert "Berthier" not in str(r.get("message")), r.get("message")
         assert r.get("success") is True and w.vassals[KOI]["loyalty"] > 70, r.get("message")
         assert "KingdomOfItaly" not in str(r.get("message"))
-        r = _cmd(client, "release the kingdom of italy")
+        r = _cmd(client, "release the kingdom of italy confirmed")   # S14E-X160 FLIPPED: the spend is the confirmed line
         assert "Berthier" not in str(r.get("message")), r.get("message")
         assert r.get("success") is True and KOI not in w.vassals, r.get("message")

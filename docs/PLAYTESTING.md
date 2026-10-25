@@ -1020,8 +1020,13 @@ only the screen can verify.
   `causes_2026_10_24.json` and `metric_2026_10_24.json`; the write-up
   `docs/audits/DD_B_RE_MEASURE_2026_10_24.md`. Its rows landed as S14f: part 1
   (October 24, 2026, `SYSTEMS_REFERENCE.md` §150) the P1, the four rulings and
-  the fourteen P2s; part 2 the P3s and the closing re-play of every sighting on
-  the instrument (`tools/dd_b_play.py`, the cited frames re-shot).
+  the fourteen P2s; part 2 (October 25, 2026, §151) the P3s and the closing
+  re-play of every sighting on the instrument: the sightings' boards are
+  CRAFTED SAVES (`tools/_s14f_replay_scenes.py --out <run>/saves`, run BEFORE
+  `start`; eleven scenes, each round-tripped through `load_game`) that the
+  client loads from "Load a Campaign…", so a turn-19 sighting is reached in
+  one load, not a three-hour road; the record is
+  `docs/audits/dd_b/replay_2026_10_25/` (§151.17).
 
 ---
 

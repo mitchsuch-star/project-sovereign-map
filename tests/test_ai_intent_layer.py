@@ -222,7 +222,7 @@ class TestSurfaces:
         mirror = build_diplomatic_ledger(world1805)["france_mirror"]
         assert mirror is not None
         assert "hegemon" in mirror["read_as"].lower()
-        assert mirror["hegemon_share"] >= 0.33
+        assert mirror["hegemon_share"] >= 33   # S14E-X100 FLIPPED: a whole percent (was >= 0.33)
         # EB-4 re-pin (Econ Balance gate Aug 7 2026): the authored boot
         # threat dropped 85 → 70 for headroom; "fight" now comes from the
         # mirror's coalition-at-war arm (EB-4.4), not the bar alone — the

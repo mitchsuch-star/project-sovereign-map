@@ -319,6 +319,17 @@ static func _inst() -> AudioManager:
 
 # ── instance lifecycle ──────────────────────────────────────────────────────
 
+func _exit_tree() -> void:
+	# S14E-X207: this node is the one that lives from the first scene to the
+	# last (a child of the root, never freed by a scene change), so its exit IS
+	# the game's exit - the window's close, `get_tree().quit()` and the
+	# harness's quit all end here. The statics that hold Resources are let go,
+	# so the engine's "2 resources still in use at exit" has nothing of ours.
+	Utils.release_static_caches()
+	PortraitLocket.release_static_caches()
+	WarTablePiece.release_static_caches()
+
+
 func _ready() -> void:
 	_ensure_buses()
 	_apply_saved_volumes()
@@ -485,17 +496,31 @@ func _fade_out_now(p: AudioStreamPlayer, secs: float) -> void:
 	p.set_meta("_retiring", true)
 	var tw := create_tween()
 	tw.tween_property(p, "volume_db", -50.0, secs)
-	tw.tween_callback(func():
-		if is_instance_valid(p) and p.playing:
-			p.stop()
-			p.finished.emit())
+	tw.tween_callback(_retire_faded.bind(p.get_instance_id()))
+
+# S14E-X202: the fade's end reads the player by INSTANCE ID. The callback was
+# a lambda capturing `p`, and a one-shot that finishes on its own mid-fade
+# frees itself (`finished` -> `queue_free` in `_play_cue`) — the engine then
+# refused the call with "Lambda capture at index 0 was freed" before the body's
+# own `is_instance_valid` could run (18 plain ERROR lines in one replay, one
+# per battle cue shorter than its cap). An id is a number: nothing to be freed.
+func _retire_faded(player_id: int) -> void:
+	var p = instance_from_id(player_id)
+	if is_instance_valid(p) and p.playing:
+		p.stop()
+		p.finished.emit()
 
 
 func _fade_stop(p: AudioStreamPlayer, after_s: float, fade_s: float = 0.8) -> void:
 	var t := get_tree().create_timer(after_s)
-	t.timeout.connect(func():
-		if is_instance_valid(p) and p.playing:
-			_fade_out_now(p, fade_s))
+	t.timeout.connect(_fade_stop_due.bind(p.get_instance_id(), fade_s))
+
+
+func _fade_stop_due(player_id: int, fade_s: float) -> void:
+	"""S14E-X202: the cap's timer, by instance id (see `_retire_faded`)."""
+	var p = instance_from_id(player_id)
+	if is_instance_valid(p) and p.playing:
+		_fade_out_now(p, fade_s)
 
 
 # ── named ambient loops ─────────────────────────────────────────────────────

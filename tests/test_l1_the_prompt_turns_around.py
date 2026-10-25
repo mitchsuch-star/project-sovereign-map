@@ -217,7 +217,12 @@ class TestTheCassetteAttribution:
     ⚑ Re-derived at S14b part 3 (October 22, 2026): `VALID_ACTIONS` gained the
     Acts' verb (`decree_act`) and the prompt its one board-independent example
     — every parse prompt +178 characters, re-stamped keylessly; the recovery
-    prompt unchanged (a Cabinet act is left out of its vocabulary)."""
+    prompt unchanged (a Cabinet act is left out of its vocabulary).
+
+    ⚑ Re-derived at S14f part 2 (October 25, 2026, S14E-X193): the cancel
+    keywords of the keyed prompt dropped "stand down" (no cancel verb - X177)
+    and gained "cease" - every parse prompt -5 characters (16 cassettes, the
+    recovery prompt unchanged), re-stamped keylessly the same way."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

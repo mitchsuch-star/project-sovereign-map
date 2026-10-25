@@ -1764,9 +1764,21 @@ def title_roads(world, leader: str) -> List[Dict[str, Any]]:
     * `signature` — no record (or another house's): no clock runs at all.
 
     `short` is the Moniteur's and the desk's clause; `text` the ledger's
-    sentence. Pure read; ints only (GR2)."""
-    from backend.game_logic.formations import formed_display_name
+    sentence. Pure read; ints only (GR2).
+
+    S14E-X119: a held province that lies on a begun carve (Free Ireland: Munster
+    held, Ulster to take) ends with the SAME clause the Congress clock gives it
+    — "— on the road to Ireland" (`formations.road_clause_for`), in `text` and
+    `short` alike, so the Territories tab, the Moniteur and the desk no longer
+    name Munster without the carve that settles it. The clause is the PLAYER's
+    (the road notes read his bloc); nothing is added where no road is begun, so
+    every other board's roads are byte-identical."""
+    from backend.game_logic.formations import (
+        formed_display_name, road_clause_for, road_notes)
     view = titled_provinces(world, leader)
+    road_ctx = (road_notes(world)
+                if view.get("held") and leader == getattr(world, "player_nation", None)
+                else None)
     title_turns = int(cfg(world, "title_turns", TITLE_TURNS_DEFAULT))
     turn = int(getattr(world, "current_turn", 0) or 0)
     store = getattr(world, "province_title", None)
@@ -1835,6 +1847,11 @@ def title_roads(world, leader: str) -> List[Dict[str, Any]]:
                           f"clock{tail}"),
                     short=f"{region_name} titles on turn {on}",
                 )
+        if road_ctx is not None:
+            clause = road_clause_for(world, region_name, road_ctx)
+            if clause:
+                road["text"] += f" — {clause}"
+                road["short"] += f" — {clause}"
         roads.append(road)
     return roads
 

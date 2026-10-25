@@ -305,6 +305,12 @@ func _render() -> void:
 			var g_strength = int(garrison_info.get("strength", 0))
 			var g_text = "Present (unknown strength)" if g_strength == -1 else Utils.format_number(g_strength)
 			bbcode += "Garrison: " + g_text + "\n"
+		# S14E-D10 (the sweep): the Descent camp's count on the panel the marches
+		# are ordered from, the map tooltip's twin (the backend stamps `camp_note`
+		# only while the camp counts).
+		var camp_count_line := str(data.get("camp_note", ""))
+		if camp_count_line != "":
+			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + camp_count_line + "[/color]\n"
 		# ── Damage (in-game pass, WO slice 8 follow-up) ──
 		# This panel carries the Repair chip and never said WHAT was in
 		# ruins: it listed "Buildings: Market" whether that market was
@@ -834,6 +840,8 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	var m_nation = str(m.get("nation", ""))
 	var m_strength = int(m.get("strength", 0))
 	var row = "  "
+	# S14E-X79: Berthier's muster for each Attack chip below, one line apiece.
+	var muster_lines := []
 	var nation_color = Utils.COLOR_TEXT if m_nation == _PLAYER_NATION else Utils.COLOR_ERROR
 	row += "[color=#" + nation_color + "]" + shown_name + "[/color]"
 	if m_strength > 0:
@@ -907,6 +915,12 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 						var enemy_shown = Utils.humanize_entity_name(enemy)
 						if attack_why == "":
 							row += "  " + Utils.bb_button_chip("do:" + m_name + ", attack " + enemy_shown, "Attack " + enemy_shown, Utils.COLOR_ERROR_CHIP, _CHIP_BG)
+							# S14E-X79: the chip sends at once -- the muster the
+							# map attack card shows (who answers the guns, the
+							# band) stands under it, from the same quote.
+							var chip_muster := _here_attack_muster(m_name, enemy)
+							if chip_muster != "":
+								muster_lines.append("Attack " + enemy_shown + ": " + _muster_tail(chip_muster))
 						else:
 							dimmed.append(["Attack " + enemy_shown, attack_why])
 				if not fortified and fortify_why != "":
@@ -927,7 +941,44 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 			# exactly the one whose Fall back matters.
 			row += _state_order_chips(m_name, tactical, dimmed_all)
 			row += _dimmed_chips(dimmed_all)
+	for muster_line in muster_lines:
+		row += "\n    [color=#" + Utils.COLOR_INFO + "]" + str(muster_line) + "[/color]"
 	return row + "\n"
+
+
+func _here_attack_muster(m_name: String, enemy: String) -> String:
+	"""S14E-X79: Berthier's one-line muster for `<m_name>, attack <enemy>` when
+	both stand in this province -- the quote the backend's `here` list carries
+	(`order_quotes.march_quotes_for_region`), "" until the quotes for THIS
+	province have arrived, or when that attack is refused or has no muster."""
+	if _quotes_region != _region or _quotes.is_empty():
+		return ""
+	var rows = _quotes.get("attack", [])
+	if not (rows is Array):
+		return ""
+	for row in rows:
+		if not (row is Dictionary) or str(row.get("enemy", "")) != enemy:
+			continue
+		var here = row.get("here", [])
+		if not (here is Array):
+			return ""
+		for q in here:
+			if q is Dictionary and str(q.get("marshal", "")) == m_name and bool(q.get("ok", false)):
+				return str(q.get("muster", ""))
+	return ""
+
+
+func _muster_tail(muster: String) -> String:
+	"""S14E-X79: the muster line, short for a chip's tail -- 'Berthier adds: '
+	dropped, and of the line's ' — '-joined clauses (who answers the guns /
+	the figures / the band) the first and the last kept."""
+	var line := muster.strip_edges()
+	if line.begins_with("Berthier adds: "):
+		line = line.substr("Berthier adds: ".length())
+	var parts := line.split(" — ")
+	if parts.size() > 2:
+		return str(parts[0]) + " — " + str(parts[parts.size() - 1])
+	return line
 
 
 func _state_order_chips(m_name: String, tactical: Dictionary, dimmed: Array) -> String:
@@ -995,6 +1046,7 @@ func _march_here_section() -> String:
 		out += "\n[color=#" + Utils.COLOR_HEADER + "]THE ARMY[/color]  [color=#" \
 			+ Utils.COLOR_INFO + "]one order, the Staff's price, every corps within the Emperor's reach[/color]\n"
 		out += _quote_rows([army])
+		out += _army_detour_rows(army)   # S14E-X135: which corps take a long or foreign road
 	var attack = _quotes.get("attack", [])
 	if attack is Array:
 		for row in attack:
@@ -1045,6 +1097,24 @@ func _quote_rows(quotes) -> String:
 	return out
 
 
+func _army_detour_rows(army: Dictionary) -> String:
+	"""S14E-X135: one note-coloured line under the army row for each corps whose
+	road would be asked about (`corps[].detour`, S14E-X88) -- the row's note
+	counts them ("3 of 5 corps take a long or foreign road"), these say which."""
+	var out := ""
+	var corps = army.get("corps", [])
+	if not (corps is Array):
+		return out
+	for c in corps:
+		if not (c is Dictionary):
+			continue
+		var detour := str(c.get("detour", ""))
+		if detour == "":
+			continue
+		out += "    [color=#" + Utils.COLOR_INFO + "]" + str(c.get("shown", "")) + " — " + detour + "[/color]\n"
+	return out
+
+
 func _quote_label(q: Dictionary) -> String:
 	"""`Soult · 2 AP · 3 turns` — the man, the price, the clock."""
 	var label := str(q.get("shown", ""))
@@ -1084,9 +1154,21 @@ func _quote_notes(q: Dictionary) -> String:
 	var departs := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
 	if departs != "":
 		notes.append(departs)
+	var detour := str(q.get("detour", ""))   # S14E-22: the detour round a road the diplomacy shuts
+	if detour != "":
+		notes.append(detour)
+	var pay := str(q.get("pay", ""))   # S14E-X67: the campaign pay the destination draws
+	if pay != "":
+		notes.append(pay)
 	var replaces := str(q.get("replaces", ""))
 	if replaces != "" and not bool(q.get("already", false)):
 		notes.append("replaces " + replaces)
+	# S14E-X79: an attack chip sends at once, so the map attack card's line --
+	# Berthier's muster: who answers the guns, and the band they make -- rides
+	# the row in short (`_muster_tail`).
+	var muster := str(q.get("muster", ""))
+	if muster != "" and str(q.get("kind", "")) == "attack":
+		notes.append("Berthier: " + _muster_tail(muster))
 	if str(q.get("objection", "none")) == "possible":
 		notes.append("he may object")
 	return " · ".join(PackedStringArray(notes))

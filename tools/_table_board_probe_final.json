@@ -97,14 +97,13 @@
     ]
    },
    "Russia": {
-    "total": -39,
+    "total": -25,
     "threshold": 50,
     "band": "reject",
     "direct_score": 0,
     "top_blocker": "War objective alignment",
     "components": {
      "war_objective_alignment": -15,
-     "term_harshness_penalty": -14,
      "settlement_tier_legitimacy": -10,
      "leader_own_losses": 5,
      "projected_hegemony_mod": -5
@@ -404,7 +403,7 @@
      },
      {
       "type": "diplomatic_treaty_signed",
-      "message": "Treaty signed: Alliance → Vassal with Bavaria."
+      "message": "Treaty signed: Alliance → Vassal with Bavaria. You paid Bavaria 500 gold from the treasury."
      }
     ],
     "letters": [],

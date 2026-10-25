@@ -59,6 +59,15 @@ def _set_peace_hostile(world, target="Austria"):
     world.diplomatic_states[diplo_key] = "PEACE"
 
 
+def _set_peace_at(world, target="Austria", relation=-10):
+    """S14E-19 (flipped pins): a court at peace — the sweetener road of the
+    wizard. A war France is NOT behind in opens the demands road now (the
+    table); the gold / AP steps are reached by a treaty asked at peace."""
+    diplo_key = world._make_diplo_key("France", target)
+    world.nation_relations[diplo_key] = relation
+    world.diplomatic_states[diplo_key] = "PEACE"
+
+
 def _respond(executor, game_state, choice):
     """Send a dialogue response and return result."""
     return executor.handle_diplomatic_dialogue_response(choice, game_state)
@@ -182,15 +191,16 @@ class TestAdjustTermsEntry:
         assert "concessions" in dialogue.get("talleyrand_text", "").lower()
 
     def test_skips_to_gold_when_winning(self, world, executor, game_state):
-        """Should skip territory when war_score > 0 (winning)."""
-        _set_war(world, "Austria")
-        # Positive war score
-        _set_war_score(world, "France", "Austria", 20)
-        # Also need relation > -50 to skip territory
-        diplo_key = world._make_diplo_key("France", "Austria")
-        world.nation_relations[diplo_key] = -10
+        """Should skip territory when no war score is against us (at peace).
 
-        _setup_adjust_dialogue(world, "Austria")
+        S14E-19 FLIPPED this pin: a war France is winning used to land on
+        the gold step (France paying the court it was beating); that is the
+        DEMANDS road now (the table — tests/test_s14f_the_remeasure_rows.py
+        TestS14E19). The gold step is the sweetener road of a treaty asked
+        of a court at peace."""
+        _set_peace_at(world, "Austria", -10)
+
+        _setup_adjust_dialogue(world, "Austria", "alliance")
         result = _respond(executor, game_state, "adjust")
         assert result["success"]
         dialogue = result.get("diplomatic_dialogue", {})
@@ -199,13 +209,20 @@ class TestAdjustTermsEntry:
         assert "gold" in text.lower()
 
     def test_shows_territory_when_hostile(self, world, executor, game_state):
-        """Should ask about territory when relation < -50 even at peace."""
+        """The direction is the WAR SCORE's alone: a hostile court at peace
+        (relation < -50) no longer opens the concessions wizard.
+
+        S14E-19 FLIPPED this pin (it asserted 'concessions' on the old
+        `relation < -50` arm — the arm that asked a France at +84 for its own
+        provinces, because every 1805 war boots at -80)."""
         _set_peace_hostile(world, "Austria")
-        _setup_adjust_dialogue(world, "Austria")
+        _setup_adjust_dialogue(world, "Austria", "alliance")
         result = _respond(executor, game_state, "adjust")
         assert result["success"]
         dialogue = result.get("diplomatic_dialogue", {})
-        assert "concessions" in dialogue.get("talleyrand_text", "").lower()
+        text = dialogue.get("talleyrand_text", "").lower()
+        assert "concessions" not in text
+        assert "gold" in text
 
     def test_context_populated_with_candidates(self, world, executor, game_state):
         """Context should contain ranked_candidates."""
@@ -323,12 +340,13 @@ class TestGoldStep:
     """Test the gold amount adjustment step."""
 
     def _enter_gold(self, world, executor, game_state):
-        """Helper: go straight to gold step."""
-        _set_war(world, "Austria")
-        _set_war_score(world, "France", "Austria", 20)
-        diplo_key = world._make_diplo_key("France", "Austria")
-        world.nation_relations[diplo_key] = -10
-        _setup_adjust_dialogue(world, "Austria")
+        """Helper: go straight to gold step (S14E-19: by a treaty asked at peace).
+
+        A cold court (relation -60): the suggested gold is priced at 60, as
+        the old +20 war score's 20 x 3 priced it — the direction no longer
+        reads the relation, the PRICE still does."""
+        _set_peace_at(world, "Austria", -60)
+        _setup_adjust_dialogue(world, "Austria", "alliance")
         return _respond(executor, game_state, "adjust")
 
     def test_suggests_reasonable_amount(self, world, executor, game_state):
@@ -395,12 +413,9 @@ class TestAPStep:
     """Test the Action Point offering step."""
 
     def _enter_ap(self, world, executor, game_state):
-        """Helper: navigate to AP step by skipping territory + gold."""
-        _set_war(world, "Austria")
-        _set_war_score(world, "France", "Austria", 20)
-        diplo_key = world._make_diplo_key("France", "Austria")
-        world.nation_relations[diplo_key] = -10
-        _setup_adjust_dialogue(world, "Austria")
+        """Helper: navigate to AP step by skipping territory + gold (S14E-19: at peace)."""
+        _set_peace_at(world, "Austria", -10)
+        _setup_adjust_dialogue(world, "Austria", "alliance")
         _respond(executor, game_state, "adjust")  # skip to gold
         return _respond(executor, game_state, "4")  # skip gold → AP
 
@@ -443,12 +458,9 @@ class TestConfirmAndSend:
     """Test the final confirmation and sending step."""
 
     def _enter_confirm(self, world, executor, game_state):
-        """Navigate to confirm: skip territory, skip gold, skip AP."""
-        _set_war(world, "Austria")
-        _set_war_score(world, "France", "Austria", 20)
-        diplo_key = world._make_diplo_key("France", "Austria")
-        world.nation_relations[diplo_key] = -10
-        _setup_adjust_dialogue(world, "Austria")
+        """Navigate to confirm: skip territory, skip gold, skip AP (S14E-19: at peace)."""
+        _set_peace_at(world, "Austria", -10)
+        _setup_adjust_dialogue(world, "Austria", "alliance")
         _respond(executor, game_state, "adjust")  # → gold
         _respond(executor, game_state, "4")        # skip gold → AP
         return _respond(executor, game_state, "2")  # skip AP → confirm

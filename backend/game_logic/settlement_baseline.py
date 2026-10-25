@@ -1249,6 +1249,11 @@ def _relax_baseline_demands_for_package_harshness(
     clears ``near_acceptance_floor``, or no demand clause remains for it (a
     genuine holdout at peace). Concessions are never stripped (they only raise
     the accepting court's acceptance, so stripping them would deepen a reject).
+    S14E-D5 (S14f part 2): the harshness PENALTY now reads each court's own
+    slice (`settlement_scoring.harshness_terms_for`), so what a demand on one
+    court presses on another is the whole-table reads that remain (the
+    burden, the alignment, the hegemony projection); this pass scores through
+    the scorer and needs no change.
     Deterministic (sorted courts, territory-before-gold, then highest index);
     only REMOVES clauses, so the package stays valid-by-construction and within
     the clause cap. ``per_court_baseline`` terms are kept in lockstep so the
@@ -2292,7 +2297,11 @@ def compute_per_court_acceptance(
             # floor) — a court under it is covered by the side's peace.
             "court_pressure_score": result.get("court_pressure_score"),
             "consulted": bool(court_consulted),
-            "material_share": floor.get("share"),
+            # S14E-X171 (Golden Rule 2): a whole percent (None = no ledger to
+            # read), not the floor's 0..1 float - Godot crashes on a float.
+            "material_share_pct": (
+                int(round(float(floor.get("share")) * 100))
+                if floor.get("share") is not None else None),
             "stake_display": stake_floor_display(world, court, floor),
             # PC-F26: the tier blocker's detail — the tier's BASE (a white
             # peace at this court's score) or a MISMATCH (the terms exceed

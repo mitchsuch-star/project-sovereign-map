@@ -142,8 +142,35 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         # S14E-13's sweep: what the march costs the corps as it stands — Iron
         # Resolve stacks, a formed square, a turn-1 drill ("" when nothing).
         "departs": "",
+        # S14E-X67: the campaign pay the destination draws ("" when none).
+        "pay": "",
+        # S14E-22: the detour round a shut direct road ("" when none).
+        "detour": "",
+        # S14E-24: an attack's muster in one line - who answers the guns and
+        # the band they make together ("" for every other order).
+        "muster": "",
         "already": False,
     }
+
+
+_MUSTER_READER: Dict[str, Any] = {}
+
+
+def _muster_line(world, marshal, enemy) -> str:
+    """S14E-24: Berthier's one-line muster for an attack - who answers the
+    guns, the force they make and the band - the very sentence the contact
+    ask carries (`CombatExecutor._contact_muster_note`: the muster ladder,
+    the fog-banded enemy figure; "" for any corps but the player's). PURE: it
+    prices the attack, it does not stage it."""
+    try:
+        reader = _MUSTER_READER.get("combat")
+        if reader is None:
+            from backend.commands.executor import CommandExecutor
+            reader = _MUSTER_READER["combat"] = CommandExecutor()._combat
+        return str(reader._contact_muster_note(marshal, enemy, world) or "").strip()
+    except Exception as exc:
+        report(exc, "order_quotes._muster_line: CombatExecutor._contact_muster_note")
+        return ""
 
 
 def _contact_line(q: Dict[str, Any], marshal, foe, region: str, dest: str) -> str:
@@ -257,6 +284,17 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
         replaces=_replaces(marshal),
         objection=_strategic_objection(world, marshal, order_type, target, road),
     )
+    # S14E-X67: the campaign pay the destination draws; S14E-22: the detour
+    # round a shut direct road — both read off the order's own readers
+    # (`campaign_pay_at`, `march_detour_reading`), before the first step's
+    # contact arms so every return below carries them.
+    from backend.commands.movement_executor import campaign_pay_line
+    q["pay"] = campaign_pay_line(world, marshal, dest)
+    # S14E-X87: a support and a follow ask in the same words, over the
+    # breadth-first road the reading plots by the order's type.
+    reading = road_law.march_detour_reading(world, marshal, dest, road, order_type)
+    if reading is not None:
+        q["detour"] = road_law.march_detour_sentence(dest, reading)
     # The first step is taken at once (`_strategic_first_step`): a corps we
     # SEE in the road's FIRST province meets the order now — the personality
     # arm, 1 action; one met deeper within a cavalryman's reach halts the
@@ -320,6 +358,12 @@ def march_quote(world, marshal, dest: str, *, then_attack: str = "",
         if sheltered:
             q.update(ok=False, refusal=sheltered)
             return q
+    if q["ok"] and then_attack and not q["already"]:
+        # S14E-X81: the muster is read where the corps ARRIVES, not here --
+        # a muster read now (the plain attack card's real line) would price a
+        # field the corps has not reached and the allies it has not yet
+        # drawn. The card says when it will be read.
+        q["muster"] = f"On arrival Berthier will read the muster at {dest}."
     if q["ok"] and not q["already"]:
         foe = visible_foe_on_road(world, world.player_nation, q["road"])
         if q["contact"]:
@@ -460,6 +504,50 @@ def follow_quote(world, marshal, ally, *, memo: Optional[dict] = None) -> Dict[s
                            "follow", q, memo, standing_follow=True)
 
 
+def detour_count_clause(detoured: int, total: int) -> str:
+    """S14E-X88 / S14E-X134: how many of `total` corps would be ASKED about
+    their road — the one sentence the army quote's note (`army_quote`) and the
+    typed Staff order's head line (`group_orders._head_line`) both print, so
+    what the card counted is what the order says. '' when none would."""
+    if detoured == 1:
+        return f"1 of {total} corps takes a long or foreign road — his card says which"
+    if detoured:
+        return f"{detoured} of {total} corps take a long or foreign road — their cards say which"
+    return ""
+
+
+def column_detours(world, names: List[str], strategic_type: Optional[str], target: str,
+                   *, memo: Optional[dict] = None) -> int:
+    """S14E-X134: how many of the named corps' roads for a typed army order
+    (`strategic_type` ∈ MOVE_TO / SUPPORT / PURSUE, `target` the province or
+    the marshal it names) carry a `detour` rider - read through the very
+    readers the corps' own cards print (`march_quote` / `support_quote`, and
+    `march_detour_reading` over the pursuit's breadth-first road), so the head
+    line and the cards cannot disagree. PURE; 0 for any road it cannot read."""
+    from backend.commands import strategic as road_law
+    count = 0
+    for name in names:
+        marshal = world.get_marshal(name)
+        if marshal is None or not target:
+            continue
+        if strategic_type == "MOVE_TO":
+            count += 1 if march_quote(world, marshal, target, memo=memo)["detour"] else 0
+        elif strategic_type == "SUPPORT":
+            ally = world.get_marshal(target)
+            # a follow is the same standing SUPPORT over the same road
+            if ally is not None and support_quote(world, marshal, ally, memo=memo)["detour"]:
+                count += 1
+        elif strategic_type == "PURSUE":
+            foe = world.get_marshal(target)
+            if foe is None:
+                continue
+            road, refusal, _kind = _road(world, marshal, foe.location, "PURSUE", memo)
+            if (refusal is None and road
+                    and road_law.march_detour_reading(world, marshal, foe.location, road, "PURSUE")):
+                count += 1
+    return count
+
+
 def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, Any]:
     """AO (`REFORMS_SPEC.md` §5a): `the army, march to <region>` — ONE order
     at the Staff's price for every corps of the Emperor's column, or the
@@ -507,8 +595,9 @@ def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, 
             continue
         if mq["objection"] == "possible":
             doubters.append(mq["shown"])
+        # S14E-X88: each corps row carries the march card's `detour` rider.
         corps.append({"marshal": m.name, "shown": mq["shown"], "turns": int(mq["turns"]),
-                      "objection": mq["objection"]})
+                      "objection": mq["objection"], "detour": mq["detour"]})
         q["turns"] = max(int(q["turns"]), int(mq["turns"]))
     q["corps"], q["beyond"] = corps, beyond
     if not corps:
@@ -517,6 +606,11 @@ def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, 
         return q
     q["ok"] = True
     notes = [f"{len(corps)} corps march: " + ", ".join(c["shown"] for c in corps)]
+    # S14E-X88: how many of them would be ASKED about their road (the same
+    # reading the typed order and each corps' own card print).
+    detoured = sum(1 for c in corps if c["detour"])
+    if detoured:
+        notes.append(detour_count_clause(detoured, len(corps)))   # S14E-X134: one sentence, two surfaces
     if doubters:
         if authority >= G.ARMY_AUTHORITY_CARRIES:
             notes.append("the Staff's order carries " + ", ".join(doubters) + " past their doubts")
@@ -570,7 +664,8 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
         return q
     ap = 0 if getattr(marshal, "has_counter_punch", lambda: False)() else int(world.get_action_cost("attack"))
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],
-             objection=_tactical_objection(world, marshal, "attack", enemy.name))
+             objection=_tactical_objection(world, marshal, "attack", enemy.name),
+             muster=_muster_line(world, marshal, enemy))
     return q
 
 
@@ -619,7 +714,8 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
     """Every click order the province panel offers at `region`, quoted:
     `march` (each corps of ours standing elsewhere), `support` (one row per
     corps of ours standing here) and `attack` (one row per enemy corps we see
-    here, at war with us). One GET when the panel opens — never per response
+    here, at war with us; `quotes` the corps standing away, `here` those
+    already in the province - S14E-X79). One GET when the panel opens — never per response
     (Rule 8) — with the roads memoised within the call."""
     player = world.player_nation
     memo: dict = {}
@@ -647,8 +743,13 @@ def march_quotes_for_region(world, region: str) -> Dict[str, Any]:
             continue
         seen_names.add(name)
         quotes = sorted((attack_quote(world, m, enemy, memo=memo) for m in away), key=_sort_key)
+        # S14E-X79: the corps already standing in this province are quoted too
+        # (the same `attack_quote`, muster and all): the panel's Attack chips in
+        # a marshal's own row send at once and read their muster from here.
+        here_quotes = sorted((attack_quote(world, m, enemy, memo=memo) for m in here),
+                             key=_sort_key)
         attack.append({"enemy": enemy.name, "enemy_shown": humanize_entity_name(enemy.name),
-                       "quotes": quotes})
+                       "quotes": quotes, "here": here_quotes})
     return {
         "success": True,
         "region": region,

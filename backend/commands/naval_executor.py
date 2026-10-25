@@ -58,7 +58,100 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
         f"THE ADMIRALTY (press T, then 7).")}
 
 
-def _green_crew_clause(outcome: Dict) -> str:
+# S14E-33 (S14f part 2): the number in "lay down TWO ships". The verb phrase
+# was matched and the count dropped — one keel was laid and the reply never
+# said the other was ignored. Read from the player's own words (parser-side,
+# deterministic: Golden Rule 6), one keel when none is named.
+_COUNT_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+                "seven": 7, "eight": 8, "nine": 9, "ten": 10, "both": 2,
+                "twin": 2, "pair": 2, "couple": 2, "brace": 2}
+# S14E-X71 (the second wave): the same reader, a second noun set -- "build two
+# depots in Paris" builds ONE and the two was dropped without a word. ONE
+# number grammar (`_COUNT_HEAD`), two nouns; the ships' pattern is byte-for-byte
+# what it was.
+_COUNT_HEAD = (r"\b(?P<n>\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten"
+               r"|(?:a\s+)?(?:pair|couple|brace)(?:\s+of)?|both|twin)\s+"
+               r"(?:(?:more|new|additional|further|fresh|great|big)\s+)*")
+_SHIP_COUNT_RE = re.compile(
+    _COUNT_HEAD + r"(?:ships?|keels?|hulls?|vessels?|frigates?|sail|battleships?)\b",
+    re.IGNORECASE)
+_BUILDING_COUNT_RE = re.compile(
+    _COUNT_HEAD + r"(?:(?:supply|naval)\s+)?(?:depots?|forts?|fortifications?"
+    r"|training\s+grounds?|markets?|stables?|watch\s*towers?|towers?"
+    r"|(?:dock|ship)\s*yards?|yards?|buildings?)\b",
+    re.IGNORECASE)
+_NUMBER_NAMES = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five",
+                 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}
+
+
+def named_count_in(text, pattern) -> Optional[int]:
+    """The count `pattern` (a `_COUNT_HEAD` + noun regex) finds in a typed
+    line, or None. PURE."""
+    match = pattern.search(str(text or ""))
+    if match is None:
+        return None
+    word = re.sub(r"\s+of$", "", re.sub(r"^a\s+", "", match.group("n").lower()))
+    count = int(word.replace(",", "")) if word[:1].isdigit() else _COUNT_WORDS.get(word)
+    return int(count) if count and count > 0 else None
+
+
+def ship_count_in(text) -> Optional[int]:
+    """The count of ships a build line names ("lay down two ships", "build 3
+    keels", "a pair of ships"), or None when it names none — "a ship" and
+    "build ships" are one keel, and a figure that is not the ships' ("for 800
+    gold", "in 2 turns") is not a count. PURE."""
+    return named_count_in(text, _SHIP_COUNT_RE)
+
+
+def building_count_in(text) -> Optional[int]:
+    """S14E-X71: the count of BUILDINGS a build line names ("build two depots
+    in Paris", "build 3 supply depots", "a pair of forts"), or None — the
+    ships' reader's twin, the same number words, a building noun after them.
+    PURE."""
+    return named_count_in(text, _BUILDING_COUNT_RE)
+
+
+# S14E-X141 (the third wave): the third noun set of the one reader -- "recruit
+# TWO infantry for Davout" raises ONE levy and never said the two was dropped.
+# The units a levy is counted in; "men" and "troops" are deliberately absent
+# (a number before them is an AMOUNT -- PF-7 notes it, and a figure of 100 or
+# more is never a count).
+_RECRUIT_COUNT_RE = re.compile(
+    _COUNT_HEAD + r"(?:infantry|cavalry|artillery|levy|levies|regiments?|battalions?"
+    r"|squadrons?|batteries|battery|corps|drafts?|batch(?:es)?)\b",
+    re.IGNORECASE)
+RECRUIT_COUNT_MAX = 10
+
+
+def recruit_count_in(text) -> Optional[int]:
+    """S14E-X141: the count of LEVIES a recruit line names ("recruit two
+    infantry for Davout", "recruit 3 levies", "a pair of cavalry"), or None.
+    A small count with a unit noun only: a figure over `RECRUIT_COUNT_MAX`
+    ("recruit 5000 infantry", "3,000 infantry") is an AMOUNT -- the figure
+    PF-7 notes -- and reads as no count; so does "two thousand infantry".
+    PURE."""
+    count = named_count_in(text, _RECRUIT_COUNT_RE)
+    return count if count is not None and count <= RECRUIT_COUNT_MAX else None
+
+
+def _requested_keels(command: Dict, world, actor: str) -> int:
+    """How many keels the order names: the parser's `count` field, else the
+    line's own words; ONE for anyone but the player (the AI's rung carries
+    no count and rides the same verb unchanged — GR5)."""
+    if actor != getattr(world, "player_nation", None):
+        return 1
+    try:
+        named = int((command or {}).get("count") or 0)
+    except (TypeError, ValueError):
+        named = 0
+    if named <= 0:
+        raw = str((command or {}).get("raw_input") or (command or {}).get("original_command")
+                  or (command or {}).get("raw_command") or "")
+        named = ship_count_in(raw) or 0
+    return max(1, named)
+
+
+def _green_crew_clause(outcome: Dict, keels: int = 1) -> str:
     """FA-45: what the KEEL cost the crews, which is often nothing.
 
     The receipt used to print the post-fold readiness under one fixed
@@ -76,7 +169,8 @@ def _green_crew_clause(outcome: Dict) -> str:
     if drop <= 0:
         return (f" (new crews come aboard green at "
                 f"{naval.NEW_SHIP_READINESS}, but she is green enough "
-                f"already — this keel cost her nothing)")
+                f"already — {'this keel' if keels == 1 else 'these keels'} "
+                f"cost her nothing)")
     return (f" (down {drop} — new crews come aboard green at "
             f"{naval.NEW_SHIP_READINESS}; only sea-time makes a navy)")
 
@@ -175,8 +269,12 @@ class NavalExecutor:
     # ──────────────────────────────────────────────────────────────────
 
     def _execute_build_fleet(self, command: Dict, game_state: Dict) -> Dict:
-        """Lay down one ship of the line (N2: 400g + 1 admin AP; national
-        rate cap 2/turn, 1 under blockade — the §3.5 three brakes)."""
+        """Lay down a ship of the line (N2: 400g + 1 admin AP; national
+        rate cap 2/turn, 1 under blockade — the §3.5 three brakes). S14E-33:
+        the player may NAME a count ("lay down two ships") — min(N, the
+        yards' room this turn, what the treasury holds, the administrative
+        actions that remain), each keel an order's worth of gold and AP, and
+        the reply says how many and why not more."""
         world = game_state.get("world")
         if not world:
             return {"success": False, "message": "No active game."}
@@ -199,32 +297,72 @@ class NavalExecutor:
                 f"A ship of the line costs {naval.SHIP_COST}g — the treasury "
                 f"holds {treasury}g.")}
 
-        world.nation_gold[actor] = int(treasury - naval.SHIP_COST)
-        # IQ1-2 (3): laying down a keel is a player purchase, so it belongs
-        # in the turn's `Spent` line. GR5 — the actor may be an AI court.
-        world.record_gold_spent(actor, int(naval.SHIP_COST))
-        outcome = naval.lay_down_ship(world, actor)
+        # S14E-33: the keels this order lays — the count named, bounded by
+        # the yards' room, the purse and the administrative pool (the parent
+        # spends the first action; the rest are spent below).
+        named = _requested_keels(command, world, actor)
+        built_before = int((naval.get_fleet(world, actor) or {}).get("built_this_turn", 0) or 0)
+        room = max(1, naval.build_rate(world, actor) - built_before)
+        affordable = max(1, int(treasury // naval.SHIP_COST))
+        admin_left = (max(1, int(world.admin_actions_remaining))
+                      if actor == getattr(world, "player_nation", None) else 1)
+        keels = min(named, room, affordable, admin_left)
+        outcome = first_outcome = None
+        for _keel in range(keels):
+            world.nation_gold[actor] = int(world.nation_gold.get(actor, 0) - naval.SHIP_COST)
+            # IQ1-2 (3): laying down a keel is a player purchase, so it belongs
+            # in the turn's `Spent` line. GR5 — the actor may be an AI court.
+            world.record_gold_spent(actor, int(naval.SHIP_COST))
+            outcome = naval.lay_down_ship(world, actor)
+            first_outcome = first_outcome or outcome
+            world.log_event({
+                "type": "fleet_laid_down", "turn": int(world.current_turn),
+                "nation": actor, "ships": int(outcome["ships"]),
+                "readiness": int(outcome["readiness"]),
+            })
+        if keels > 1:
+            # a keel is an order's worth of administration: two keels in one
+            # line cost what two lines cost (the parent spends the first).
+            world.use_admin_action(keels - 1)
         rec = naval.get_fleet(world, actor) or {}
         yards = naval.controlled_dockyards(world, actor)
         rate = naval.build_rate(world, actor)
         laid = int(rec.get("built_this_turn", 0) or 0)
-        world.log_event({
-            "type": "fleet_laid_down", "turn": int(world.current_turn),
-            "nation": actor, "ships": int(outcome["ships"]),
-            "readiness": int(outcome["readiness"]),
-        })
+        crews = dict(outcome, readiness_before=first_outcome.get("readiness_before"))
+        yard = _named_yard_clause(command, world, yards)
+        if keels == 1:
+            laid_line = f"A keel is laid at {yard} ({naval.SHIP_COST}g)."
+        else:
+            laid_line = (f"{_NUMBER_NAMES.get(keels, str(keels))} keels are laid at "
+                         f"{yard} ({naval.SHIP_COST * keels}g, {keels} "
+                         f"administrative actions).")
+        short = ""
+        if keels < named:
+            if keels == room:
+                why = (f"the yards allow {room}{' more' if built_before else ''} "
+                       f"this turn"
+                       + (" — the blockade slows the slips"
+                          if naval.build_rate(world, actor) == naval.SHIP_BUILD_RATE_BLOCKADED
+                          else ""))
+            elif keels == affordable:
+                why = f"the treasury holds {treasury}g"
+            else:
+                why = (f"{admin_left} administrative action"
+                       f"{'s' if admin_left != 1 else ''} "
+                       f"remain{'s' if admin_left == 1 else ''}")
+            short = f"Only {keels} of the {named} laid — {why}. "
         result = {
             "success": True,
             "message": (
-                f"A keel is laid at {_named_yard_clause(command, world, yards)} "
-                f"({naval.SHIP_COST}g). The fleet "
+                f"{short}{laid_line} The fleet "
                 f"stands at {outcome['ships']} sail — readiness "
-                f"{outcome['readiness']}{_green_crew_clause(outcome)}"
+                f"{outcome['readiness']}{_green_crew_clause(crews, keels)}"
                 f"{_blockade_rot_clause(world, actor)}. "
                 f"{rate - laid} more keel{'s' if rate - laid != 1 else ''} "
                 f"possible this turn."),
             "ships": int(outcome["ships"]),
             "readiness": int(outcome["readiness"]),
+            "keels_laid": int(keels),
             "events": [{"type": "fleet_laid_down", "nation": actor}],
         }
         result["new_state"] = game_state
@@ -513,11 +651,16 @@ class NavalExecutor:
             levers = naval.levers_line(naval.expedition_odds_levers(
                 world, marshal.nation, target, troops))
             levers_clause = f" {levers}." if levers else ""
-            # S14E-XJ2: an INTERCEPTED run brings the fleet to action too — the
+            # S14E-X54: an INTERCEPTED run brings the fleet to action too — the
             # card priced the corps' 30% and not the ships.
             intercept = naval.expedition_intercept_clause(
                 world, marshal.nation, target, troops)
             intercept_clause = f" {intercept}" if intercept else ""
+            # S14E-X67: a landing on an ally's or a neutral court's shore draws
+            # campaign pay (EAD-1) the card used to leave unsaid.
+            from backend.commands.movement_executor import campaign_pay_line
+            _pay = campaign_pay_line(world, marshal, target)
+            pay_clause = f" {_pay}" if _pay else ""
             return {
                 "success": True,
                 "free_action": True,
@@ -535,7 +678,7 @@ class NavalExecutor:
                     f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
                     f"back — and the fleet's readiness "
                     f"−{naval.EXPEDITION_TURNBACK_READINESS} if she is "
-                    f"turned back.{intercept_clause}{levers_clause} Sail? (yes / no)"),
+                    f"turned back.{intercept_clause}{levers_clause}{pay_clause} Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [
                     {"label": f"Sail for {target}", "command": reissue,
@@ -549,6 +692,7 @@ class NavalExecutor:
             }
 
         # Confirmed: resolve now (shown = applied — same quote function).
+        embarked_from = marshal.location
         outcome = naval.resolve_expedition(world, marshal, target)
         if SAILING_ENDS_THE_STANDING_ORDER and getattr(
                 marshal, "strategic_order", None) is not None:
@@ -670,6 +814,11 @@ class NavalExecutor:
                 _road = road_note_for(world, target)
                 if _road and _road not in result["message"]:
                     result["message"] += f" {_road}."
+            # S14E-X67: and the campaign pay the beach draws, as the quote said.
+            from backend.commands.movement_executor import campaign_pay_line
+            _landed_pay = campaign_pay_line(world, marshal, target, embarked_from)
+            if _landed_pay:
+                result["message"] += f" {_landed_pay}"
         elif outcome["intercepted"]:
             action = outcome.get("fleet_action")
             sea_line = ""

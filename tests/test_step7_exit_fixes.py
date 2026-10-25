@@ -426,8 +426,16 @@ class TestABackedQuarrelIsASponsorship:
             granted = client.post("/command", json={
                 "command": "back Prussia's quarrel with Hanover"}).json()
         assert refused["success"] is False and "aimed at Hanover" in refused["message"], refused["message"]
+        # S14E-26 (flipped): the verb QUOTES first now — the same sentence is
+        # the CONFIRMED order's answer.
         assert granted["success"] is True, granted["message"]
-        assert "sponsors Prussia's design against Hanover" in granted["message"], granted["message"]
+        assert granted["state"] == "awaiting_clarification", granted["message"]
+        assert "Sponsor Prussia's design against Hanover" in granted["message"], granted["message"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            done = client.post("/command", json={
+                "command": granted["options"][0]["command"]}).json()
+        assert done["success"] is True, done["message"]
+        assert "sponsors Prussia's design against Hanover" in done["message"], done["message"]
 
 
 # ── SF7-X44: the judge reads four of the board's own refusals ──────────

@@ -2024,6 +2024,12 @@ class WorldState:
         # screens whose line has been shown once, {screen: turn}. Display-only;
         # read by `backend/game_logic/first_open.py` alone.
         self.first_opens: Dict[str, int] = {}
+        # S14E-35: the last battle each court fought, {nation: turn} — the
+        # hegemon's armed-peace clock used to read it off the marshals still
+        # standing, so a stand-down or a destroyed lone corps erased it (the
+        # quiet count jumped 6 -> 16 in one turn). Written ONLY through
+        # `stamp_battle_turn`; read by `coalition.last_battle_turn_of`.
+        self.last_battle_turn_by_nation: Dict[str, int] = {}
 
         # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
@@ -3601,6 +3607,18 @@ class WorldState:
         if len(self.event_log) > self.MAX_EVENT_LOG_SIZE:
             self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]
 
+    def stamp_battle_turn(self, nation: str, turn: int) -> None:
+        """S14E-35: the ONE writer of `last_battle_turn_by_nation` — a court
+        fought on `turn` (both sides of a battle stamp it, as the marshals
+        do). Keeps the latest; a blank court or a turn before the boot is
+        ignored."""
+        court = str(nation or "")
+        stamped = int(turn)
+        if not court or stamped < 0:
+            return
+        if stamped > int(self.last_battle_turn_by_nation.get(court, -1)):
+            self.last_battle_turn_by_nation[court] = stamped
+
     def destroy_marshal(self, marshal, cause: str, victor: str = "",
                         log: bool = True, location: str = "") -> bool:
         """PC15-1: the ONE marshal-destruction seam.
@@ -5002,6 +5020,61 @@ class WorldState:
         if int(b_dead) > 0:
             cas[nation_b] = int(cas.get(nation_b, 0)) + int(b_dead)
 
+    @staticmethod
+    def _ledger_copy(v: Dict) -> Dict:
+        """One campaign ledger as plain ints and lists — the shape `to_dict`
+        writes and `from_dict` reads. `blockade_turns` (HC-1), `drawn`
+        (S14E-X201) and `drawn_dead` (S14E-X209) are SPARSE: written only when
+        recorded, so a land war with no stalemate round-trips byte-identically
+        to its pre-slice shape."""
+        return {
+            "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
+            "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
+            **({"blockade_turns": {n: int(t) for n, t in v["blockade_turns"].items()}}
+               if v.get("blockade_turns") else {}),
+            **({"drawn": [int(t) for t in v["drawn"]]} if v.get("drawn") else {}),
+            **({"drawn_dead": [
+                {"turn": int(row["turn"]),
+                 "dead": {n: int(c) for n, c in (row.get("dead") or {}).items()}}
+                for row in v["drawn_dead"]]} if v.get("drawn_dead") else {}),
+        }
+
+    def record_drawn_battle(self, nation_a: str, nation_b: str,
+                            a_dead: int, b_dead: int) -> None:
+        """S14E-X201 (Pre-Deploy S14f part 2): a DRAWN battle (stalemate /
+        mutual destruction) has no winner, so `diplomacy.record_battle` is
+        never called and `battle_records` — winner-only on purpose (its
+        counts and decay must not see a winnerless row) — never holds it; the
+        war title read "nothing taken yet on either side" and the preview
+        "Battles: 0W / 0L" after the Great Battle of Tyrol. The drawn
+        battle's dead accrue as always (`record_campaign_casualties`), and
+        when it is large enough to be spoken of as a battle
+        (`battle_scale.is_a_battle`, the floor the records keep) its TURN is
+        stamped on the pair's ledger — a sparse `drawn` list that
+        `apply_war_score_decay` ages out with the battle records it sits
+        beside, so the drawn count and the won/lost counts share one window.
+        S14E-X209: the same stamp carries the battle's DEAD beside the turn
+        (a sparse `drawn_dead` row, `{"turn", "dead": {nation: int}}`, aged
+        out with the turn it sits beside), so the preview's casualty totals
+        and the ratification summary count a stalemate's dead as they count
+        a won battle's (`diplomacy.drawn_battle_dead` is the one reader).
+        War-gated like every ledger producer. Display only: no score, no AI
+        read (GR6)."""
+        self.record_campaign_casualties(nation_a, nation_b, a_dead, b_dead)
+        if not self.is_at_war(nation_a, nation_b):
+            return
+        from backend.game_logic import battle_scale
+        if not battle_scale.is_a_battle(int(a_dead) + int(b_dead)):
+            return
+        key = self._make_diplo_key(nation_a, nation_b)
+        ledger = self.campaign_ledgers.setdefault(
+            key, {"captures": {}, "casualties": {}})
+        ledger.setdefault("drawn", []).append(int(self.current_turn))
+        ledger.setdefault("drawn_dead", []).append({
+            "turn": int(self.current_turn),
+            "dead": {str(nation_a): int(a_dead), str(nation_b): int(b_dead)},
+        })
+
     def record_blockade_turn(self, denier: str, victim: str) -> None:
         """HC-1: accrue one turn of naval trade denial onto the pair's
         campaign ledger.
@@ -5150,6 +5223,12 @@ class WorldState:
         if (old_controller and old_controller != capturing_nation
                 and old_controller != self.player_nation):
             if not self.get_nation_regions(old_controller):
+                # S14E-X22: was the player at war with the dying court? Read
+                # BEFORE the teardown below sets the pair to PEACE — an
+                # ally's (or a third court's) capture of its last province
+                # ends the player's war just as his own does.
+                _player_war_ended = (self.get_diplomatic_state(
+                    self.player_nation, old_controller) == "WAR")
                 self._eliminate_nation(old_controller)
                 # S14E-5: the player's own capture of a court's LAST province
                 # ends the war — said in the command window of the command
@@ -5157,7 +5236,7 @@ class WorldState:
                 # were all the player had). Transient (never serialized);
                 # `main.build_base_response` reads it onto the reply and
                 # clears it (Golden Rule 4).
-                if capturing_nation == self.player_nation:
+                if capturing_nation == self.player_nation or _player_war_ended:
                     self._elimination_receipts = list(
                         getattr(self, "_elimination_receipts", None) or []
                     ) + [elimination_receipt_line(self, old_controller)]
@@ -8914,7 +8993,7 @@ class WorldState:
             "reforms": copy.deepcopy(self.reforms),
             # SR-7d DC-0: the doctrines (one store, scenario and save).
             "doctrines": copy.deepcopy(self.doctrines),
-            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens),  # VP-1 / S14c / S14d: scenario key = save key
+            "imperial_designs": copy.deepcopy(self.imperial_designs), "moments": copy.deepcopy(self.moments), "first_opens": dict(self.first_opens), "last_battle_turn_by_nation": dict(self.last_battle_turn_by_nation),  # VP-1 / S14c / S14d: scenario key = save key; S14E-35: the last battle each court fought (the armed-peace clock)
             # AI-3r §2.6 (R1): the scenario statecraft override — the
             # scenario key and the save key are one ("statecraft").
             "statecraft": copy.deepcopy(
@@ -9050,15 +9129,9 @@ class WorldState:
             # HC-1 adds the third key, SPARSE — written only when denial
             # was recorded, so a land war's ledger round-trips
             # byte-identically to its pre-slice shape.
-            "campaign_ledgers": {
-                k: {
-                    "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
-                    "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
-                    **({"blockade_turns": {n: int(t) for n, t in v["blockade_turns"].items()}}
-                       if v.get("blockade_turns") else {}),
-                }
-                for k, v in self.campaign_ledgers.items()
-            },
+            # S14E-X201 adds the fourth key (`drawn`, SPARSE) — one copier,
+            # `_ledger_copy`, for both directions.
+            "campaign_ledgers": {k: self._ledger_copy(v) for k, v in self.campaign_ledgers.items()},
             "battle_counts": {k: int(v) for k, v in self.battle_counts.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "evacuation_grants": {k: int(v) for k, v in self.evacuation_grants.items()},
@@ -9515,6 +9588,15 @@ class WorldState:
             except (TypeError, ValueError):
                 continue
         world.first_opens = _first_opens
+        # S14E-35: the last battle each court fought; an old save without the
+        # key reads as today (empty = the marshals' own stamps alone).
+        _last_battles: Dict[str, int] = {}
+        for _lb_court, _lb_turn in (data.get("last_battle_turn_by_nation") or {}).items():
+            try:
+                _last_battles[str(_lb_court)] = int(_lb_turn)
+            except (TypeError, ValueError):
+                continue
+        world.last_battle_turn_by_nation = _last_battles
         # AI-3r §2.6 (R1): the scenario statecraft override (wary_of
         # posture). Absent on pre-AI-3r saves = empty = code table only.
         # The scenario key and the save key are one ("statecraft").
@@ -9818,13 +9900,9 @@ class WorldState:
         # memory yet, which is exactly what it had before the slice.
         # HC-1: the third key is SPARSE — absent on pre-blockade saves
         # and land-war ledgers (the score read treats absent as zero).
+        # S14E-X201: the fourth key, `drawn` (a list of turns), is SPARSE too.
         world.campaign_ledgers = {
-            k: {
-                "captures": {n: list(rs) for n, rs in (v.get("captures") or {}).items()},
-                "casualties": {n: int(c) for n, c in (v.get("casualties") or {}).items()},
-                **({"blockade_turns": {n: int(t) for n, t in v["blockade_turns"].items()}}
-                   if v.get("blockade_turns") else {}),
-            }
+            k: WorldState._ledger_copy(v)
             for k, v in data.get("campaign_ledgers", {}).items()
         }
         world.battle_counts = {k: int(v) for k, v in data.get("battle_counts", {}).items()}
@@ -10951,6 +11029,11 @@ class WorldState:
         # marginal (plains + stables share one capped bonus) — computed
         # once, never per region.
         _stables_marginal = self.stables_cavalry_marginal()
+        # S14E-D10: the Descent camp on the map — read ONCE per summary (GR8),
+        # {} unless the camp counts, so every other board's payload is
+        # byte-identical.
+        from backend.game_logic.naval import camp_map_payload
+        _camp_on_map = camp_map_payload(self, self.player_nation)
         for region_name, region in self.regions.items():
             # Get all alive marshals in this region
             marshals_here = self.get_marshals_in_region(region_name)
@@ -11221,6 +11304,10 @@ class WorldState:
                 map_data[region_name]["build_terms"] = (
                     self._region_build_terms(
                         region, _stables_marginal, _shore_cache))
+            # S14E-D10: the camp's wash and tooltip count (its own provinces
+            # only, only while it counts).
+            if region_name in _camp_on_map:
+                map_data[region_name].update(_camp_on_map[region_name])
 
         return {
             "turn": int(self.current_turn),  # Explicit int cast
@@ -11456,6 +11543,12 @@ class WorldState:
             # branches — the producer composed it with the fog applied (the
             # poor mark is geography; the stripped mark read the econ fog).
             filtered_region["doctrine_supply"] = region_data.get("doctrine_supply")
+            # S14E-D10: the Descent camp's keys (the player's own men on his
+            # own camp provinces; present only while the camp counts).
+            if "camp" in region_data:
+                from backend.game_logic.naval import CAMP_MAP_KEYS
+                for _camp_key in CAMP_MAP_KEYS:
+                    filtered_region[_camp_key] = region_data[_camp_key]
             # Economic data: always for own regions, only at FULL for enemy
             # (WO slice 8: the branch is the shared `region_econ_visible`
             # predicate, so the muster preview's supply quote and this
@@ -12794,14 +12887,21 @@ class WorldState:
                     "outcome": "ACCEPT",
                     "message": f"Talleyrand returns from {target} with excellent news: they have accepted our proposal! {feedback}",
                 })
+                # S14E-28: the receipt of what the signing applied rides the
+                # treaty's confirmation and the acceptance popup alike.
+                from backend.display_names import treaty_receipt_text
+                _receipt = treaty_receipt_text(treaty_event)
                 if treaty_event:
+                    if _receipt:
+                        treaty_event["message"] = f"{treaty_event.get('message', '')} {_receipt}".strip()
                     events.append(treaty_event)
                 # PL-5A: Popup for acceptance
                 proposal_result_popup = {
                     "target_nation": target,
                     "proposal_type": ptype_display,
                     "outcome": "ACCEPT",
-                    "message": f"{target} has accepted our {ptype_display}!",
+                    "message": f"{target} has accepted our {ptype_display}!"
+                               + (f" {_receipt}" if _receipt else ""),
                     "feedback": feedback,
                     "decision_reason": decision_reason,
                 }
@@ -13533,8 +13633,12 @@ class WorldState:
 
                     from backend.game_logic.diplomacy import set_diplomatic_state as _sds
                     _sds(self, lib_liberator, lib_vassal, "DEFENSIVE_ALLIANCE", "liberation")
-                    self.modify_nation_relation(lib_vassal, lib_from, -20)
-                    self.modify_nation_relation(lib_vassal, lib_liberator, 30)
+                    # S14E-X112: the liberation's writes keep a live mission's books
+                    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                    modify_relation_booked(self, lib_vassal, lib_from, -20,
+                                           "liberation", lib_liberator, lib_vassal)
+                    modify_relation_booked(self, lib_vassal, lib_liberator, 30,
+                                           "liberation", lib_liberator, lib_vassal)
 
                     if lib_from:
                         from backend.game_logic.coalition import reduce_threat as _rt
@@ -13906,7 +14010,10 @@ class WorldState:
                 _set_ds(self, fa_imposer, fa_target, "ALLIANCE", "forced_alliance")
                 if fa_key != ctx.diplo_key and fa_state in ("WAR", "ARMISTICE"):
                     _cleanup_war_end(self, fa_key, conclude_objectives=True)
-                self.nation_relations[fa_key] = 0
+                # S14E-X112: the reset to zero moves a mission's pair too; booked
+                from backend.game_logic.diplomatic_dialogue import set_relation_booked
+                set_relation_booked(self, fa_imposer, fa_target, 0,
+                                    "forced_alliance_reset", fa_imposer, fa_target)
                 includes_cs = bool(
                     fa_clause.get("includes_continental_system", True)
                 )
@@ -14338,6 +14445,15 @@ class WorldState:
             }
             if peace_ratification_summary:
                 result["peace_ratification_summary"] = peace_ratification_summary
+            # S14E-28: the receipt - what `_ratify_one_time_clauses` actually
+            # applied (the lump at the amount the purse could meet, the soil
+            # that moved), in the player's own terms. The accept handlers
+            # append it to the confirmation; a peace's summary stands for it.
+            from backend.display_names import treaty_receipt_lines
+            result["receipt_lines"] = treaty_receipt_lines(
+                ctx.treaty_clauses, ctx.applied_treaty_clauses, self.player_nation,
+                name_of=lambda n: formed_display_name(self, n),
+                dropped=getattr(ctx, "_bilateral_dropped", None) or [])
             if ctx.bargain_breach_events:
                 result["bargain_breach_events"] = ctx.bargain_breach_events
             return result
@@ -14354,7 +14470,11 @@ class WorldState:
         # neither chair's truce thaws by signature, both thaw at the one
         # `ARMISTICE_THAW_PER_TURN`).
         if ctx.target_state != "ARMISTICE":
-            self.modify_nation_relation(ctx.proposer, ctx.target_nation, 10)
+            # S14E-X112: an Undermine's target pair can sign between themselves;
+            # the +10 is a write the mission's books must name.
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(self, ctx.proposer, ctx.target_nation, 10,
+                                   "ai_treaty", ctx.proposer, ctx.target_nation)
 
         from backend.display_names import proposal_display_name
         treaty_type_display = proposal_display_name(ctx.proposal_type)
@@ -15678,6 +15798,13 @@ class WorldState:
                 self.record_battle(enemy.location, marshal.name, enemy.name,
                                    combat_result.get("outcome", "unknown"))
 
+                # S14E-X129: the auto-charge is the one combat path outside
+                # `_post_combat_pipeline`, so it mirrors the pipeline's step
+                # 6.5 by hand — both courts fought, the armed peace's fuse
+                # restarts (S14E-35 / S14E-X118).
+                self.stamp_battle_turn(marshal.nation, int(self.current_turn))
+                self.stamp_battle_turn(enemy.nation, int(self.current_turn))
+
                 # Record battle for diplomacy war score
                 from backend.game_logic.diplomacy import record_battle as record_diplo_battle
                 from backend.game_logic.war_contribution import detect_battle_theater
@@ -15716,8 +15843,9 @@ class WorldState:
                 else:
                     # PT-J2 review round [P2-3]: the drawn charge's dead
                     # accrue to the campaign ledger (the auto-charge is
-                    # its own combat copy — mirrored arm).
-                    self.record_campaign_casualties(
+                    # its own combat copy — mirrored arm). S14E-X201: and
+                    # counted as a battle fought.
+                    self.record_drawn_battle(
                         marshal.nation, enemy.nation,
                         int(combat_result.get("attacker", {}).get("casualties", 0)),
                         int(combat_result.get("defender", {}).get("casualties", 0)))
@@ -15765,6 +15893,9 @@ class WorldState:
                         enemy.retreat_recovery = 0
                         enemy.retreated_this_turn = True
                         forced_retreat_msg = f" {_shown_name(enemy.name)}'s broken army flees to {retreat_to}!"
+                        # S14E-X132 (XD7's sweep): a rout onto allied or neutral soil says the pay it draws.
+                        from backend.commands.movement_executor import campaign_pay_line as _ac_pay
+                        forced_retreat_msg += (" " + _ac_pay(self, enemy, retreat_to, old_enemy_loc)).rstrip()
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
@@ -15807,6 +15938,9 @@ class WorldState:
                         marshal.retreated_this_turn = True
                         marshal.clear_combat_transient_state()
                         forced_retreat_msg += f" {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!"
+                        # S14E-X132 (XD7's sweep): ... and the charger's own rout the same.
+                        from backend.commands.movement_executor import campaign_pay_line as _ac_pay
+                        forced_retreat_msg += (" " + _ac_pay(self, marshal, retreat_to, old_atk_loc)).rstrip()
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
@@ -15942,6 +16076,7 @@ class WorldState:
                             f"{auto_charge_battle_region} — {_halt_owner}'s "
                             f"soil, and we are not at war with {_halt_owner}.")
                     elif marshal.location != auto_charge_battle_region:
+                        _advance_from = marshal.location  # S14E-X133: the pay is read off the province left
                         marshal.move_to(auto_charge_battle_region)
                         movement_msg = f" {_shown_name(marshal.name)} advances into {auto_charge_battle_region}."
 
@@ -15957,6 +16092,9 @@ class WorldState:
                             if adv_march_losses > 0:
                                 marshal.strength = max(0, marshal.strength - adv_march_losses)
                                 movement_msg += f" ({adv_march_losses:,} lost to march)"
+                        # S14E-X133: an advance onto allied soil says the pay now drawn ('' for the AI and home soil).
+                        from backend.commands.movement_executor import campaign_pay_clause as _ac_clause
+                        movement_msg += _ac_clause(self, marshal, auto_charge_battle_region, _advance_from)
 
                     # [5C-12] Fog refresh after advance
                     if marshal.nation == self.player_nation:
@@ -16329,6 +16467,9 @@ class WorldState:
                             marshal.strength = max(0, marshal.strength - reck_march_losses)
 
                     remaining_distance = distance - 1
+                    # S14E-X152 (XR3a's sweep): the free ride onto allied soil says the pay it now draws.
+                    from backend.commands.movement_executor import campaign_pay_note as _rk_pay
+                    _rk_pay_note = _rk_pay(self, marshal, next_region, old_location)
 
                     events.append({
                         "type": "reckless_move",
@@ -16340,7 +16481,7 @@ class WorldState:
                         "recklessness": recklessness,
                         "remaining_distance": remaining_distance,
                         "message": f"[Cavalry][!] {_shown_name(marshal.name)} rides out seeking battle! (Recklessness: {recklessness})\n"
-                                  f"Auto-moved: {old_location} → {next_region} (toward {_shown_name(enemy.name)})\n"
+                                  f"Auto-moved: {old_location} → {next_region} (toward {_shown_name(enemy.name)}){_rk_pay_note}\n"
                                   f"[FREE ACTION - {_plural(int(remaining_distance), 'region')} to target]"
                     })
 

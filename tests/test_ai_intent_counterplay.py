@@ -98,7 +98,7 @@ class TestSponsorVerb:
         world.diplomatic_points = 3
         world.nation_gold["France"] = 2000
         result = executor._diplomatic._execute_sponsor_design(
-            {"action": "sponsor_design", "target": "Prussia",
+            {"action": "sponsor_design", "target": "Prussia", "confirmed": True,  # S14E-26: the order quotes first; confirmed runs it
              "raw_input": "sponsor prussia against hanover, 150 gold"}, gs)
         assert result["success"], result["message"]
         record = world.directed_sponsorships[0]
@@ -114,7 +114,7 @@ class TestSponsorVerb:
         executor, gs = _executor(world)
         world.diplomatic_points = 3
         result = executor._diplomatic._execute_sponsor_design(
-            {"action": "sponsor_design", "target": "Prussia",
+            {"action": "sponsor_design", "target": "Prussia", "confirmed": True,  # S14E-26
              "raw_input": "license prussia against hanover"}, gs)
         assert result["success"], result["message"]
         record = world.directed_sponsorships[0]
@@ -126,7 +126,7 @@ class TestSponsorVerb:
         executor, gs = _executor(world)
         world.diplomatic_points = 3
         result = executor._diplomatic._execute_sponsor_design(
-            {"action": "sponsor_design", "target": "Prussia",
+            {"action": "sponsor_design", "target": "Prussia", "confirmed": True,  # S14E-26
              "raw_input": "sponsor prussia, 100 gold"}, gs)
         assert result["success"], result["message"]
         assert world.directed_sponsorships[0]["aim"] == "Hanover"
@@ -179,7 +179,7 @@ class TestBuyOffVerb:
         world.nation_gold["France"] = price + 500
         prussia_gold = int(world.nation_gold.get("Prussia", 0))
         result = executor._diplomatic._execute_buy_off_design(
-            {"action": "buy_off_design", "target": "Prussia",
+            {"action": "buy_off_design", "target": "Prussia", "confirmed": True,  # S14E-26
              "raw_input": "buy off prussia"}, gs)
         assert result["success"], result["message"]
         assert world.nation_gold["France"] == 500
@@ -233,7 +233,7 @@ class TestGuaranteeVerb:
         executor, gs = _executor(world)
         world.diplomatic_points = 3
         result = executor._diplomatic._execute_guarantee_nation(
-            {"action": "guarantee_nation", "target": "Denmark",
+            {"action": "guarantee_nation", "target": "Denmark", "confirmed": True,  # S14E-26
              "raw_input": "guarantee denmark"}, gs)
         assert result["success"], result["message"]
         assert world.diplomatic_guarantees[0]["guarantor"] == "France"
@@ -244,7 +244,7 @@ class TestGuaranteeVerb:
         executor, gs = _executor(world)
         world.diplomatic_points = 3
         executor._diplomatic._execute_guarantee_nation(
-            {"action": "guarantee_nation", "target": "Denmark",
+            {"action": "guarantee_nation", "target": "Denmark", "confirmed": True,  # S14E-26
              "raw_input": "guarantee denmark"}, gs)
         result = executor._diplomatic._execute_guarantee_nation(
             {"action": "guarantee_nation", "target": "Denmark",
@@ -639,7 +639,7 @@ class TestMintGates:
         executor, gs = _executor(world)
         world.diplomatic_points = 5
         first = executor._diplomatic._execute_sponsor_design(
-            {"action": "sponsor_design", "target": "Prussia",
+            {"action": "sponsor_design", "target": "Prussia", "confirmed": True,  # S14E-26
              "raw_input": "license prussia against hanover"}, gs)
         assert first["success"]
         relation_after_first = world.nation_relations.get(

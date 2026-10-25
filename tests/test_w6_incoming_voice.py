@@ -306,8 +306,11 @@ class TestCounterOfferCarriesStableLabel:
                        "target_nation": "France", "sweeteners": [],
                        "demands": [{"type": "gold_lump", "value": 500}],
                        "clauses": []}
+        # S14E-X90 (S14f part 2): the stub must be a REAL counter - one that
+        # strikes the demand; a hand-back of the proposal unchanged is no
+        # counter (the press would spend the point to re-present the letter).
         monkeypatch.setattr(aidip, "generate_counter_offer",
-                            lambda terms, w, **_kw: dict(terms))  # DDB-4: the dry run passes dry_run=True
+                            lambda terms, w, **_kw: {**terms, "demands": []})  # DDB-4: the dry run passes dry_run=True
         dialogue = {
             "type": "incoming_proposal", "target_nation": "Austria",
             "talleyrand_text": "x",

@@ -486,7 +486,10 @@ def _apply_teeth(world, teeth: Dict[str, Any], source: str) -> None:
             report(exc, "imperial_designs._apply_teeth: coalition.add_threat")
     for court, delta in sorted((teeth.get("relations") or {}).items()):
         if court and court != lord and int(delta or 0):
-            world.modify_nation_relation(lord, str(court), int(delta))
+            # S14E-X112: the road's teeth drag a mission's pair; the books name it
+            from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+            modify_relation_booked(world, lord, str(court), int(delta),
+                                   "road_teeth", lord, str(court))
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1298,7 +1301,10 @@ def decree(world, act_id: str) -> Dict[str, Any]:
             courts = [beaten] if e.get("pick") == "beaten" else [str(c) for c in (e.get("courts") or [])]
             for court in courts:
                 if court and court != lord and not _gone(world, court):
-                    world.modify_nation_relation(lord, court, amount)
+                    # S14E-X112: the decree's goodwill keeps a mission's books
+                    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+                    modify_relation_booked(world, lord, court, amount,
+                                           "act_of_empire", lord, court)
         elif kind == "client_loyalty":
             from backend.game_logic.vassal import LOYALTY_MAX
             for court in [str(c) for c in (e.get("courts") or [])]:

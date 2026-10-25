@@ -768,6 +768,15 @@ def court_slice_of_package(package: Iterable[Mapping[str, Any]],
     package (a caller with no court in hand scores nothing court-shaped).
     The series attribution holds it down (`--seam backend.game_logic.
     settlement_scoring:court_slice_of_package=lambda p, c: list(p)`)."""
+    return _slice_for_court(package, court)
+
+
+def _slice_for_court(package: Iterable[Mapping[str, Any]],
+                     court: Optional[str]) -> List[Dict[str, Any]]:
+    """The slicing BODY - one implementation under two independent series
+    seams (`court_slice_of_package`: the legitimacy tier, D2;
+    `harshness_terms_for`: the harshness penalty, D5), so holding one ruling
+    down never carries the other with it."""
     terms = _iter_terms(package)
     court = str(court or "")
     if not court:
@@ -778,6 +787,24 @@ def court_slice_of_package(package: Iterable[Mapping[str, Any]],
         if not parties or court in parties:
             out.append(term)
     return out
+
+
+def harshness_terms_for(package: Iterable[Mapping[str, Any]],
+                        court: Optional[str]) -> List[Dict[str, Any]]:
+    """S14E-D5 (ruling recommended at DESIGN_REFINEMENT S14E-D5; built October
+    25, 2026 — S14f part 2) — the clauses the `term_harshness_penalty` is
+    read over: the COURT'S OWN SLICE of the package (`court_slice_of_package`),
+    as the legitimacy tier reads it (D2). Harshness is "how hard is this on
+    ME" — Austria's -9 for Portugal's cession on the Beira board was
+    Portugal's price, not hers. The burden (`burdened_participant_penalty`)
+    and the alignment (`war_objective_alignment`) deliberately keep reading
+    the WHOLE table (principle 5: Talleyrand reasons across it).
+
+    THE series seam for the D5 build, separate from D2's: the attribution
+    holds the ruling down with `--seam backend.game_logic.settlement_scoring:
+    harshness_terms_for=lambda p, c: list(p)` (the whole package, as shipped
+    before). `calculate_common_peace_acceptance` looks it up late."""
+    return _slice_for_court(package, court)
 
 
 def non_trivial_terms(terms: Iterable[Mapping[str, Any]],
@@ -2451,7 +2478,8 @@ def calculate_common_peace_acceptance(
        stop bubble-up returns early with `score=None`.
     3. `base_side_pressure` — clamped round.
     4. `settlement_tier_legitimacy` — tier from `get_settlement_tier()`.
-    5. `term_harshness_penalty` — raw from `calculate_raw_treaty_harshness`.
+    5. `term_harshness_penalty` — raw from `calculate_raw_treaty_harshness`
+       over the court's own slice (S14E-D5, `harshness_terms_for`).
     6. `leader_own_losses` — sub-components summed BEFORE clamp.
     7. `burdened_participant_penalty` — uses memoized direct_scores.
     8. `projected_hegemony_mod` — from `project_balance_after_settlement()`
@@ -2542,8 +2570,9 @@ def calculate_common_peace_acceptance(
     # of the package (`court_slice_of_package`) — the clauses that bind or pay
     # this court and the ground that passes to or from it — never the whole
     # table's: a demand on Portugal is Portugal's claim of victory, not
-    # Austria's white peace turned into one. The harshness penalty and every
-    # other component keep reading the whole package (principle 5).
+    # Austria's white peace turned into one. The harshness penalty follows
+    # (S14E-D5, below); the burden and the alignment keep reading the whole
+    # table (principle 5).
     from backend.game_logic import declared_goals as _dg
     _court_terms = court_slice_of_package(settlement_terms, accepting_leader)
     _legit_terms = _dg.undeclared_terms(world, _court_terms, proposer_participants)
@@ -2560,7 +2589,20 @@ def calculate_common_peace_acceptance(
     tier_debug["court"] = str(accepting_leader or "")
     tier_debug["package_clause_count"] = len(_iter_terms(settlement_terms))
     tier_debug["slice_clause_count"] = len(_court_terms)
-    harshness_debug = calculate_term_harshness_penalty(raw_total_harshness)
+    # S14E-D5 (October 25, 2026): and the harshness penalty reads the court's
+    # own slice too (`harshness_terms_for`) — what the package EXTRACTS from
+    # THIS court. The whole-package figure (the injected memo, or the one
+    # computed above) stands when the slice is the package; the burden and
+    # the alignment below keep the whole table.
+    _harsh_terms = _iter_terms(harshness_terms_for(settlement_terms, accepting_leader))
+    _harsh_raw = raw_total_harshness
+    if len(_harsh_terms) != len(_iter_terms(settlement_terms)):
+        _harsh_raw = compute_settlement_package_raw_harshness(
+            _harsh_terms, proposer_side_participants=proposer_participants)
+    harshness_debug = calculate_term_harshness_penalty(_harsh_raw)
+    harshness_debug["court"] = str(accepting_leader or "")
+    harshness_debug["package_clause_count"] = len(_iter_terms(settlement_terms))
+    harshness_debug["slice_clause_count"] = len(_harsh_terms)
 
     # Step 6: leader_own_losses (RS-D1: a retained great-power capital is a
     # capital lost — `capital_retained_by_proposer_bloc`).

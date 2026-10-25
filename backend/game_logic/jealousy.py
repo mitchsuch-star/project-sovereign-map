@@ -4872,6 +4872,13 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         # they were. The warning is spent (above); the grievance persists.
         _held = glory_attack_held_by_the_odds(world, executor, marshal, enemy)
         if _held is not None:
+            # S14E-17's sweep (S14E-X75): the odds he quotes fold the
+            # defender's muster as ground truth, like the muster's band -
+            # the same gap-naming line when it weighs a force the player has
+            # not scouted (the player's marshal only; '' otherwise).
+            _gap_fn = getattr(getattr(executor, "_combat", None),
+                              "_unscouted_note_for", None)
+            _gap = _gap_fn(marshal, enemy, world) if _gap_fn else ""
             _pending_events(world).append({
                 "type": "jealousy_autonomous_refused",
                 "nation": marshal.nation,
@@ -4883,7 +4890,7 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                     f"{_odds_words(_held.get('ratio'))} against "
                     f"{humanize_entity_name(enemy.name)}'s position at "
                     f"{_region} — he stands where he was, and his orders "
-                    f"are unchanged."),
+                    f"are unchanged." + (f" {_gap}" if _gap else "")),
                 "held_by_odds": True,
                 "ratio": round(float(_held.get("ratio") or 0.0), 3),
             })

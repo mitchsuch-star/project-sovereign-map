@@ -508,8 +508,13 @@ class TestCautiousClampEndpoint:
             "/command", json={"command": "Davout, deal with Mack"}).json()
         assert data.get("clarification_kind") != "delegation"  # not an ask
         msg = (data.get("message") or "")
+        # S14E-X144 (the third wave): the cautious note's quoted attack now
+        # carries the free preview ("Ask 'what if Davout attacks Mack' first"),
+        # which is a QUESTION, not an assault: it is set aside for this read.
+        import re
+        msg_no_preview = re.sub(r"Ask 'what if [^']*' first[^.]*\.", "", msg)
         # No assault was launched at Mack (the danger the clamp prevents).
-        assert "attacked Mack" not in msg and "attacks Mack" not in msg
+        assert "attacked Mack" not in msg_no_preview and "attacks Mack" not in msg_no_preview
         # When the scout resolves, the character-naming soft note appears.
         if data.get("success"):
             assert "cautious as ever" in msg

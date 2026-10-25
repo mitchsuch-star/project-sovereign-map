@@ -540,11 +540,10 @@ func _build_content(data: Dictionary) -> String:
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
 		# IGR-A2: the backend no longer inlines these lines into the prose
-		# above, so this block is now their ONLY surface — a cap of 2 would
-		# trade duplication for truncation.
-		var shown = mini(warnings.size(), 4)
-		for idx in range(shown):
-			var warning = warnings[idx]
+		# above, so this block is now their ONLY surface. S14E-25's sweep:
+		# every warning is printed (the popup scrolls) — a cap of any size
+		# leaves the rest with no way open.
+		for warning in warnings:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
@@ -554,11 +553,6 @@ func _build_content(data: Dictionary) -> String:
 			elif severity == "medium":
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
-		if warnings.size() > shown:
-			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
-				warnings.size() - shown,
-				"" if (warnings.size() - shown) == 1 else "s",
-			]
 
 	# Talleyrand commentary
 	var ttext = data.get("talleyrand_text", "")
@@ -777,6 +771,22 @@ func _build_settlement_footer(data: Dictionary) -> String:
 			var left_line = str(left_row.get("display", ""))
 			if left_line != "":
 				bbcode += "  [color=#e0a040]*[/color] " + Utils.humanize_nation_keys_in_text(left_line.replace("[", "[lb]")) + "\n"
+		bbcode += "\n"
+
+	# S14E-D8 / S14E-X51 (S14f part 2): and the allies the ratifier does NOT
+	# punish - the ally the instrument names ("Austria takes Tyrol by it and
+	# thanks us (+10 relation).") and the ally whose war the table does not
+	# touch ("Spain fights on alone against Britain - the table does not touch
+	# her war.") - stated before the click, from the same plan the ratifier runs.
+	var ally_lines = data.get("ally_standing_forecast", [])
+	if ally_lines is Array and ally_lines.size() > 0:
+		bbcode += "[b]The allies[/b]\n"
+		for ally_row in ally_lines:
+			if not ally_row is Dictionary:
+				continue
+			var ally_line = str(ally_row.get("display", ""))
+			if ally_line != "":
+				bbcode += "  [color=#80c080]*[/color] " + Utils.humanize_nation_keys_in_text(ally_line.replace("[", "[lb]")) + "\n"
 		bbcode += "\n"
 
 	# G4F-12 (Gate-4 smoke): this footer block is the LEAD COURT's score
@@ -1815,7 +1825,10 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 	var duration = int(snapshot.get("war_duration_turns", 0))
 	var won = int(snapshot.get("battles_won", 0))
 	var lost = int(snapshot.get("battles_lost", 0))
-	bbcode += "Duration: %d turns   Battles: %dW / %dL\n" % [duration, won, lost]
+	# S14E-X201: a drawn battle (a stalemate) is a battle fought — "0W / 0L / 1 drawn"
+	var drawn = int(snapshot.get("battles_drawn", 0))
+	var drawn_text = (" / %d drawn" % drawn) if drawn > 0 else ""
+	bbcode += "Duration: %d turns   Battles: %dW / %dL%s\n" % [duration, won, lost, drawn_text]
 
 	var fc = int(snapshot.get("french_casualties_total", 0))
 	var ec = int(snapshot.get("enemy_casualties_total", 0))
@@ -1868,15 +1881,17 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			var color = "#e66262" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
-		var shown = 0
+		# S14E-25: every consequence is printed — the popup scrolls, and a cap
+		# of three with an overflow line left the rest with no way open.
+		# S14E-X198: each consequence once — two producers reading one sentence
+		# printed it twice back to back; the backend now sends it once, and a
+		# line already printed is not printed again.
+		var printed_texts := {}
 		for item in consequence_items:
-			if shown >= 3:
-				break
+			if printed_texts.has(str(item.get("text", ""))):
+				continue
+			printed_texts[str(item.get("text", ""))] = true
 			bbcode += "  [color=%s]*[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
-			shown += 1
-		var overflow = consequence_items.size() - shown
-		if overflow > 0:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "](%d more concern%s...)[/color]\n" % [overflow, "s" if overflow > 1 else ""]
 
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
@@ -2125,11 +2140,10 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
 		# IGR-A2: the backend no longer inlines these lines into the prose
-		# above, so this block is now their ONLY surface — a cap of 2 would
-		# trade duplication for truncation.
-		var shown = mini(warnings.size(), 4)
-		for idx in range(shown):
-			var warning = warnings[idx]
+		# above, so this block is now their ONLY surface. S14E-25's sweep:
+		# every warning is printed (the popup scrolls) — a cap of any size
+		# leaves the rest with no way open.
+		for warning in warnings:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
@@ -2139,11 +2153,6 @@ func _build_war_confirm_content(data: Dictionary) -> String:
 			elif severity == "medium":
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
-		if warnings.size() > shown:
-			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
-				warnings.size() - shown,
-				"" if (warnings.size() - shown) == 1 else "s",
-			]
 	return bbcode
 
 func _build_conflict_alert_content(data: Dictionary) -> String:
@@ -2156,11 +2165,10 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 	if not warnings.is_empty():
 		bbcode += "\n[b]Political Context:[/b]\n"
 		# IGR-A2: the backend no longer inlines these lines into the prose
-		# above, so this block is now their ONLY surface — a cap of 2 would
-		# trade duplication for truncation.
-		var shown = mini(warnings.size(), 4)
-		for idx in range(shown):
-			var warning = warnings[idx]
+		# above, so this block is now their ONLY surface. S14E-25's sweep:
+		# every warning is printed (the popup scrolls) — a cap of any size
+		# leaves the rest with no way open.
+		for warning in warnings:
 			var severity = str(warning.get("severity", "low"))
 			var color = "#e0c070"
 			if severity == "critical":
@@ -2170,11 +2178,6 @@ func _build_conflict_alert_content(data: Dictionary) -> String:
 			elif severity == "medium":
 				color = "#e0c060"
 			bbcode += "  [color=%s]•[/color] %s\n" % [color, str(warning.get("text", ""))]
-		if warnings.size() > shown:
-			bbcode += "  [color=#" + Utils.toned_hex("a0a0a0") + "]+%d more diplomatic concern%s[/color]\n" % [
-				warnings.size() - shown,
-				"" if (warnings.size() - shown) == 1 else "s",
-			]
 	return bbcode
 
 func _build_annotated_terms_section(annotated: Array) -> String:

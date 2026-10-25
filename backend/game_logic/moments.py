@@ -502,7 +502,10 @@ def _plan_relation(world, lord, op) -> Dict[str, Any]:
 
 def _apply_relation(world, lord, row) -> None:
     if not row.get("skip"):
-        world.modify_nation_relation(lord, str(row["court"]), int(row["delta"]))
+        # S14E-X112: the letter's consequence drags a mission's pair; booked
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, lord, str(row["court"]), int(row["delta"]),
+                               "moment_letter", lord, str(row["court"]))
 
 
 def _alarm_label(world, source: str) -> str:

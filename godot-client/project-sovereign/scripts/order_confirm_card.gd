@@ -273,6 +273,12 @@ func show_group(quotes: Array, ap_left: int) -> void:
 		var departs_row := str(q.get("departs", ""))   # S14E-13's sweep: what the march costs the corps as it stands
 		if departs_row != "":
 			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + departs_row + "[/color]")
+		var detour_row := str(q.get("detour", ""))   # S14E-22: the detour round a road the diplomacy shuts
+		if detour_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + detour_row + "[/color]")
+		var pay_row := str(q.get("pay", ""))   # S14E-X67: the campaign pay the destination draws
+		if pay_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + pay_row + "[/color]")
 	var send: Array = plan["send"]
 	var sum_line := "[b]" + Utils.plural(int(plan["total"]), "action") + " of " + str(ap_left) + " in hand[/b]"
 	if send.is_empty():
@@ -432,6 +438,10 @@ func _terms(q: Dictionary) -> String:
 		lines.append("[color=#" + Utils.COLOR_GOLD + "]Replaces " + replaces + ".[/color]")
 	if str(q.get("objection", "none")) == "possible":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]He may object.[/color]")
+	# S14E-24: an attack's card is the confirm - Berthier's muster is on it.
+	var muster := str(q.get("muster", ""))
+	if muster != "":
+		lines.append("[color=#" + Utils.COLOR_INFO + "]" + muster + "[/color]")
 	var contact := str(q.get("contact", ""))
 	var note := str(q.get("note", ""))
 	if contact != "":
@@ -446,6 +456,14 @@ func _terms(q: Dictionary) -> String:
 	var departs := str(q.get("departs", ""))
 	if departs != "":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + departs + "[/color]")
+	# S14E-22: the detour round a road the diplomacy shuts (the typed order asks the same).
+	var detour := str(q.get("detour", ""))
+	if detour != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + detour + "[/color]")
+	# S14E-X67: the campaign pay the destination draws.
+	var pay := str(q.get("pay", ""))
+	if pay != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + pay + "[/color]")
 	return "\n".join(lines)
 
 

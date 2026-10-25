@@ -1,0 +1,67 @@
+[
+ {
+  "id": 1,
+  "source": "player",
+  "turn": "Turn 6 — Early December 1805",
+  "turn_number": 6,
+  "action": 157,
+  "action_text": "click replay_sea",
+  "frame": "frames/0157_view.jpg",
+  "did": "Loaded replay_sea (turn 6, the Descent camp staged: Soult 46,500 at Flanders two turns) and looked at the map; then alt+m (political), a typed line, a region click (frames 0157-0163)",
+  "expected": "the political map coloured as every other loaded scene (replay_mission frame 0176, replay_firststep frame 0136) with the camp provinces washed",
+  "saw": "every province outside the camp wash is BLACK (France, Germany, Italy, Russia, the seas' coasts all unfilled; only the Flanders-Artois block and Brittany show the salmon wash and a Holland sliver) at every frame while the camp counts; names and pieces draw, the region panel and tooltip read correctly (Artois: 'Descent camp: 46,500 men, 2 turns - staged'); the map is unreadable",
+  "severity": "P2"
+ },
+ {
+  "id": 2,
+  "source": "player",
+  "turn": "Turn 11 — Late February 1806",
+  "turn_number": 11,
+  "action": 213,
+  "action_text": "click Propose Peace",
+  "frame": "frames/0213_view.jpg",
+  "did": "F1 -> Britain -> Propose Peace in the spain scene (turn 11), read Political Consequences before sending",
+  "expected": "the separate-peace sentence once",
+  "saw": "the same sentence twice, back to back: '* Mark one thing, Sire: Spain's war with Britain ends in this instrument; she takes nothing by it and is left out: -18 relation and a grievance; Make Amends (400g + 2 DP) clears it.' and '* Spain's war with Britain ends in this instrument; she takes nothing by it and is left out: ...'. Same doubling on the boot's Austria peace preview (frame 0027: Bavaria's war with Austria ends in this instrument) and the sea scene's Britain preview (frame 0168: Spain's war)",
+  "severity": "P3"
+ },
+ {
+  "id": 3,
+  "source": "player",
+  "turn": "Turn 15 — Late April 1806",
+  "turn_number": 15,
+  "action": 199,
+  "action_text": "click Austria",
+  "frame": "frames/0199_view.jpg",
+  "did": "Played the mission scene past the turn the Improve Relations mission on Austria completed at peace (End Turn, #186), then answered four letters and opened the Cabinet (#187-#199)",
+  "expected": "once the morning says 'Austria and France are at peace - Talleyrand is home.' and the top bar says 'Talleyrand: Idle', the notice rail no longer carries the mission",
+  "saw": "the Imperial Box rail still shows the chip 'Talleyrand at Austria - Improving Relations' (tooltip 'Talleyrand: Improving Relations - Austria') for the whole turn 15, beside the top bar's 'Talleyrand: Idle' (frames 0187-0199, crop crops/0199_2300_0_1357x110.jpg)",
+  "severity": "P3"
+ },
+ {
+  "id": 4,
+  "source": "player",
+  "turn": "Turn 4 — Early November 1805",
+  "turn_number": 4,
+  "action": 111,
+  "action_text": "click Buy Off Their Design",
+  "frame": "frames/0111_view.jpg",
+  "did": "Clicked Buy Off Their Design on Prussia's Cabinet page (turn 4, treasury 1,563)",
+  "expected": "the quote's buttons answer the question asked: 'Buy it off' / 'Not now'",
+  "saw": "a third button 'Cancel Order' on the quote (frame 0111) although no order is pending and nothing has been staged; 'Not now' and 'Cancel Order' do the same thing to the player's eye",
+  "severity": "P3"
+ },
+ {
+  "id": 5,
+  "source": "player",
+  "turn": "Turn 4 — Early November 1805",
+  "turn_number": 4,
+  "action": 307,
+  "action_text": "click Propose Armistice",
+  "frame": "frames/0307_view.jpg",
+  "did": "Loaded replay_firststep (turn 4), typed 'Massena, march to Milan' (the Great Battle of Tyrol, a stalemate, Massena 7,673 / Archduke John 6,020 casualties, #302), then F1 -> Austria -> Propose Armistice (#307)",
+  "expected": "the title line names the record now that a battle was fought (S14E-25's '1 battle fought; no ground taken yet on either side')",
+  "saw": "'The War with the Third Coalition: nothing taken yet on either side.' and 'Battles: 0W / 0L'; the war card's tooltip says the same (frame 0303). A stalemate has no winner, so combat_executor skips diplomacy.record_battle (the diplo_winner gate) and _record_parts never counts it; the fix's wording appears only for won battles (the boot's turn-4 tooltip: 'France retook Swabia for Bavaria; 5 battles fought'). Filed P3 (the instrument has no P4); a sibling of S14E-25, severity by the owner",
+  "severity": "P3"
+ }
+]

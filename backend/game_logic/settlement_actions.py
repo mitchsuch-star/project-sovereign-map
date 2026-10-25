@@ -22,6 +22,7 @@ from backend.game_logic.settlement_scoring import (
     GOLD_PER_TURN_MIN_AMOUNT,
     GOLD_PER_TURN_MIN_TURNS,
     MAX_SETTLEMENT_CLAUSE_COUNT,
+    clause_parties,
 )
 from typing import (
     Any,
@@ -882,20 +883,19 @@ def _handle_settlement_tier2_action(
 # False = the whole-package redraw, as shipped.
 THE_DIAL_SURVIVES_THE_DROP = True
 
-_CLAUSE_COURT_KEYS = ("from", "to", "nation", "court", "vassal", "lord",
-                      "target", "beneficiary", "payer", "recipient", "client",
-                      "subject", "overlord", "counterparty")
-
-
 def clause_names_court(clause: Mapping[str, Any], court: str) -> bool:
     """Does this clause name `court` as a party? (The shared `peace` clause
-    names nobody.)"""
+    names nobody.)
+
+    S14E-X25 (S14f part 2, October 25, 2026): ONE predicate with the scorer's
+    slice (`settlement_scoring.clause_parties`: `from`/`to` plus the
+    dependency clauses' own keys — `liberation`'s `lord_nation` / `vassal_nation`
+    / `liberator`, `vassal_transfer`'s `vassal`). This used to read twelve
+    generic keys that no canonical clause carries and none of the dependency
+    ones, so a cover-drop of the vassal's court left the transfer standing."""
     if not isinstance(clause, Mapping) or not court:
         return False
-    for key in _CLAUSE_COURT_KEYS:
-        if str(clause.get(key) or "") == court:
-            return True
-    return False
+    return court in clause_parties(clause)
 
 
 def _court_change_line(court: str, clauses: list) -> str:

@@ -99,21 +99,33 @@ class TestFix1WarScoreSign:
         assert bucket == "losing_slightly"  # -25 > -30
 
     def test_context_snapshot_war_score_sign(self):
-        """generate_dialogue context snapshot uses correct war score sign."""
+        """generate_dialogue context snapshot uses correct war score sign.
+
+        S14E-X99 FLIPPED this pin from the STORED read (raw 30 on the
+        Austria|France key, France sees -30): the snapshot's `war_score` is the
+        LIVE score from France's chair (`live_war_score_for`, the preview's own),
+        so it can never contradict the popup. Austria now holds a French
+        province, so France is behind by the live 5."""
         from backend.game_logic.diplomatic_dialogue import generate_dialogue
         world = _make_war_world("Austria", "France", war_score=30)
-        # France sees -30
+        world.regions["Lyon"].controller = "Austria"
         parsed = {"action": "propose_peace", "target_nation": "Austria"}
         dialogue = generate_dialogue("greeting", parsed, world)
-        assert dialogue["context"]["war_score"] == -30
+        assert dialogue["context"]["war_score"] == -5
 
     def test_template_slot_war_score_sign(self):
-        """resolve_template_text uses get_war_score_for for {war_score} slot."""
+        """resolve_template_text quotes the LIVE pair score for the {war_score}
+        slot, from France's chair whichever way the key sorts.
+
+        S14E-25 FLIPPED this pin from the STORED read (`get_war_score_for`:
+        raw 15 on the Austria|France key, France sees -15): the slot QUOTES the
+        score, and the popup's own "War score" line is the live one. Austria
+        now holds a French province, so France is behind by the live 5."""
         from backend.game_logic.diplomatic_templates import resolve_template_text
         world = _make_war_world("Austria", "France", war_score=15)
+        world.regions["Lyon"].controller = "Austria"
         result = resolve_template_text("Score: {war_score}", world, target_nation="Austria")
-        # France perspective: Austria|France raw=15 (Austria winning), France sees -15
-        assert result == "Score: -15"
+        assert result == "Score: -5"
 
 
 # ════════════════════════════════════════════════════════════════

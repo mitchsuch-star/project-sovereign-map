@@ -904,7 +904,8 @@ def build_france_mirror_payload(world) -> Optional[dict]:
                      f"{_road.get('title')}.")
     return {
         "read_as": read_as,
-        "hegemon_share": round(float(share), 3) if hegemon == player else 0.0,
+        # S14E-X100 (Golden Rule 2): a whole percent, like the ledger's own.
+        "hegemon_share": int(round(float(share) * 100)) if hegemon == player else 0,
         "perceived_price": price,
         "perceived_price_display": price_display,
         "perceived_weight": int(weight),

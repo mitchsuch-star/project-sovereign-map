@@ -118,7 +118,9 @@ static func data_from_response(response: Dictionary) -> Dictionary:
 		"trust_gain": objection.get("trust_gain", response.get("trust_gain", 3)),
 		"insist_penalty": objection.get("insist_penalty", response.get("insist_penalty", -10)),
 		"compromise_gain": objection.get("compromise_gain", response.get("compromise_gain", 3)),
-		"trust_gain_modifier": objection.get("trust_gain_modifier", response.get("trust_gain_modifier", 1.0)),
+		# S14E-X161 (Golden Rule 2): a WHOLE PERCENT on the wire (100 = nothing
+		# damped, 50 = halved) — Godot crashes on a float; show_objection divides.
+		"trust_gain_modifier": objection.get("trust_gain_modifier", response.get("trust_gain_modifier", 100)),
 		"insist_ap_cost": objection.get("insist_ap_cost", response.get("insist_ap_cost", 0)),
 		"insist_note": objection.get("insist_note", response.get("insist_note", "")),
 		# SFR-D3 (SF-RR4): the trust and compromise arms' prices, the insist
@@ -164,7 +166,9 @@ func show_objection(objection_data: Dictionary):
 	# the figure on the Trust button simply shrank. The cause is the
 	# authority mechanic, so the explanation rides the authority line the
 	# player is already reading. Display-only; 1.0 means nothing is damped.
-	var trust_mod = float(objection_data.get("trust_gain_modifier", 1.0))
+	# S14E-X161: the wire carries the damper as a whole percent (100 = nothing
+	# damped); the line below prints it as the x0.50 multiplier it always was.
+	var trust_mod = float(objection_data.get("trust_gain_modifier", 100)) / 100.0
 	if trust_mod < 1.0:
 		authority_label.text = "Authority: %d — they have taken your measure (trust rewards x%.2f)" % [authority, trust_mod]
 	else:

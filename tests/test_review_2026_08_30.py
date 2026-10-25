@@ -785,6 +785,14 @@ class TestTheCaptureQuestionDoesNotEatTheTurn:
             code = G.body(src, name)
             for shown in re.finditer(r"_show_pending_dispatch\(\)", code):
                 rest = code[shown.end():]
+                # S14E-30 (S14f part 2, flipped consciously): on the road that
+                # raises a marshal's first-step QUESTION the dispatch is shown
+                # BEFORE it (the briefing says halted, the question follows,
+                # the answer follows) and the question holds the input; the
+                # answer's own tail (`_process_next_interrupt`, pinned by this
+                # same loop) returns control.
+                if re.match(r"\s*_show_interrupt_popup\(", rest):
+                    continue
                 tail_at = rest.find("_return_control_to_player()")
                 early = re.search(r"^\s*return\b", rest, re.M)
                 assert tail_at != -1 and (early is None or tail_at < early.start()), (

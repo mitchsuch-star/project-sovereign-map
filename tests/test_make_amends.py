@@ -104,6 +104,7 @@ def _run_make_amends(world: WorldState, *, target: str = "Austria") -> dict:
                 "action": "make_amends",
                 "diplomat": "Talleyrand",
                 "target_nation": target,
+                "confirmed": True,  # S14E-X105: the order quotes first; confirmed runs it
             },
         },
     }

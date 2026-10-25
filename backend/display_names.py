@@ -1861,31 +1861,187 @@ def _format_popup_clause_line(prefix: str, clause_type: str, clause) -> str:
     return f"{prefix}: {label}{term}"
 
 
-def _proposal_term_lines(terms: dict) -> list[str]:
+def _open_borders_effect_words(proposal_type: str = "") -> str:
+    """S14E-23: what an `open_borders` clause DOES, read from the constants that
+    do it - `OPEN_MOVEMENT_STATES` (the movement rule `can_enter_territory`
+    applies) and the trade the state yields (`trade_for_state`, which already
+    knows EA-3's rule). A letter whose own type sits above open borders on the
+    ladder (a pact, an alliance) carries the clause inside a state that sets its
+    own trade, so the figure is left to that treaty's lines."""
+    from backend.game_logic.diplomacy import OPEN_MOVEMENT_STATES, trade_for_state
+    from backend.game_logic.treaty import TREATY_STATE_MAP
+    parts = []
+    if "OPEN_BORDERS" in OPEN_MOVEMENT_STATES:
+        parts.append("each side's armies may cross the other's provinces")
+    state = TREATY_STATE_MAP.get(str(proposal_type or "").strip().lower(), "")
+    above = state in OPEN_MOVEMENT_STATES and state != "OPEN_BORDERS"
+    trade = int(trade_for_state("OPEN_BORDERS"))
+    if trade > 0 and not above:
+        parts.append(f"up to +{trade} gold a turn in trade")
+    return "; ".join(parts)
+
+
+def treaty_state_effect_words(proposal_type: str) -> str:
+    """S14E-X95: what signing a non-aggression pact, a defensive alliance or an
+    alliance DOES and what breaking it costs - the trade the state yields
+    (`trade_for_state`, which already knows EA-3's rule) and the one price
+    `break_treaty` charges (`TREATY_BREAK_DP_COST`, `treaty_break_partner_penalty`,
+    `TREATY_BREAK_RELATION_ALL`), so the letter says what the click writes.
+    An open-borders letter gets the break price alone (S14E-X169): its trade rides
+    its own clause line (`_open_borders_effect_words`). "" for every other type
+    (a peace, a truce)."""
+    kind = str(proposal_type or "").strip().lower()
+    if kind not in ("open_borders", "non_aggression", "defensive_alliance", "alliance"):
+        return ""
+    from backend.game_logic.diplomacy import (
+        TREATY_BREAK_DP_COST, TREATY_BREAK_RELATION_ALL, trade_for_state,
+        treaty_break_partner_penalty)
+    from backend.game_logic.treaty import TREATY_STATE_MAP
+    parts = []
+    trade = 0 if kind == "open_borders" else int(trade_for_state(TREATY_STATE_MAP.get(kind, "")))
+    if trade > 0:
+        parts.append(f"up to +{trade} gold a turn in trade")
+    parts.append(
+        f"breaking it costs {int(TREATY_BREAK_DP_COST)} DP, "
+        f"-{int(treaty_break_partner_penalty(kind))} relation with the other signer and "
+        f"-{int(TREATY_BREAK_RELATION_ALL)} with every other court")
+    return "; ".join(parts)
+
+
+def _protection_effect_words(proposer: str = "", target: str = "", viewer: str = "",
+                             name_of=None) -> str:
+    """S14E-X94: what a `protection_promised` clause DOES, read from the code
+    and never invented. No ratifier writes it - it mints no guarantee and binds
+    no army (`instruments.py`'s Guarantee is its own act, with its own price) -
+    and its one reader is the acceptance formula's special-desire arm
+    (`diplomacy.SPECIAL_BONUSES`): the court that holds the desire (Saxony,
+    +10) weighs it when the clause is in a letter put TO her."""
+    from backend.game_logic.diplomacy import SPECIAL_BONUSES
+    bonus = int((SPECIAL_BONUSES.get(str(target or ""), {}) or {}).get("protection_promised", 0) or 0)
+    if proposer:
+        subject = _term_party(proposer, viewer, name_of, subject=True)
+        lead = (f"{subject} pledge your protection" if subject == "You"
+                else f"{subject} pledges her protection")
+    else:
+        lead = "a pledge of protection"
+    if bonus > 0:
+        court = with_definite_article((name_of or display_nation)(str(target)))
+        return f"{lead}; it weighs +{bonus} with {court}'s court and binds no army"
+    return f"{lead}; a word only: it binds no army and weighs with no court"
+
+
+def clause_effect_words(clause_type: str, proposal_type: str = "", *, proposer: str = "",
+                        target: str = "", viewer: str = "", name_of=None) -> str:
+    """S14E-23: the sentence saying what a clause does, for the clause types
+    whose effect no other surface names ("" for the rest). S14E-X94: the
+    protection pledge, said from the letter's chair when it is known."""
+    kind = str(clause_type or "").strip().lower()
+    if kind == "open_borders":
+        return _open_borders_effect_words(proposal_type)
+    if kind == "protection_promised":
+        return _protection_effect_words(proposer, target, viewer, name_of)
+    return ""
+
+
+def _term_party(nation, viewer: str, name_of, *, subject: bool = False) -> str:
+    """S14E-28: one party of a term, said from the reader's chair - "you" for
+    the viewer, else the court's printed name with its article."""
+    if viewer and str(nation) == str(viewer):
+        return "You" if subject else "you"
+    shown = (name_of or display_nation)(str(nation))
+    return with_definite_article(shown, capitalize=subject)
+
+
+# The terms whose line says who pays whom: a lump paid at the signing, a
+# stream paid a turn, a province changing hands.
+_DIRECTED_TERM_TYPES = frozenset({"gold_lump", "gold_per_turn", "territory_cede", "territory"})
+
+
+def _directed_term_line(kind: str, term, proposer: str, target: str,
+                        viewer: str, name_of) -> str:
+    """S14E-28: "Saxony pays you 82 gold at the signing" / "You pay Saxony 100
+    gold a turn for as long as the treaty stands" / "You cede Hanover to
+    Prussia" - the payer, the payee and the timing of one gold or soil term, or
+    "" when the term is not one of those (the caller keeps its old line).
+
+    A sweetener is what the PROPOSER gives the target; a demand is what the
+    proposer asks of the target (the ratifier's own reading,
+    `treaty.treaty_clauses_of`, including a demand's explicit
+    `from_nation` / `to_nation`)."""
+    if not isinstance(term, dict) or not viewer:
+        return ""
+    ttype = str(term.get("type") or "").strip().lower()
+    if ttype not in _DIRECTED_TERM_TYPES:
+        return ""
+    if kind == "offer":
+        payer, payee = proposer, target
+    else:
+        payer = term.get("from_nation") or target
+        payee = term.get("to_nation") or proposer
+    if not payer or not payee:
+        return ""
+    subject = _term_party(payer, viewer, name_of, subject=True)
+    obj = _term_party(payee, viewer, name_of)
+    if ttype in ("territory_cede", "territory"):
+        regions = [str(r) for r in (term.get("regions") or []) if r]
+        if not regions:
+            return ""
+        verb = "cede" if subject == "You" else "cedes"
+        return f"{subject} {verb} {_join_named(regions)} to {obj}"
+    try:
+        amount = int(term.get("value", term.get("amount", 0)) or 0)
+    except (TypeError, ValueError):
+        amount = 0
+    if amount <= 0:
+        return ""
+    verb = "pay" if subject == "You" else "pays"
+    if ttype == "gold_lump":
+        return f"{subject} {verb} {obj} {amount:,} gold at the signing"
+    return f"{subject} {verb} {obj} {amount:,} gold a turn{stream_term_phrase(term)}"
+
+
+def _proposal_term_lines(terms: dict, *, viewer: str = "", proposer: str = "",
+                         target: str = "", name_of=None) -> list[str]:
     """The popup lines of a proposal's own terms - clauses, demands, offers -
     with no base line and no fallback (the pieces `build_proposal_popup_clauses`
-    and `counter_offer_clause_lines` both stand on)."""
+    and `counter_offer_clause_lines` both stand on).
+
+    S14E-28: with a `viewer` (the reader's nation) a gold or soil term says who
+    pays whom and when - the letter's own `proposer_nation` / `target_nation`
+    when it carries them, else the `proposer` / `target` the caller knows.
+    Without one the lines read as they always did. S14E-23: an `open_borders`
+    clause carries its effect."""
+    proposer = str(terms.get("proposer_nation") or terms.get("proposer") or proposer or "")
+    target = str(terms.get("target_nation") or terms.get("target") or target or "")
+    proposal_type = str(terms.get("type") or terms.get("proposal_type") or "")
     lines = []
     for clause in terms.get("clauses", []):
         clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
-        lines.append(_format_popup_clause_line("Clause", clause_type, clause))
+        line = _format_popup_clause_line("Clause", clause_type, clause)
+        effect = clause_effect_words(clause_type, proposal_type, proposer=proposer,
+                                     target=target, viewer=viewer, name_of=name_of)
+        lines.append(f"{line} - {effect}" if effect else line)
 
     for demand in terms.get("demands", []):
-        lines.append(_format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
+        lines.append(_directed_term_line("demand", demand, proposer, target, viewer, name_of)
+                     or _format_popup_clause_line("Demand", demand.get("type", "unknown"), demand))
 
     for sweetener in terms.get("sweeteners", []):
-        lines.append(_format_popup_clause_line("Offer", sweetener.get("type", "unknown"), sweetener))
+        lines.append(_directed_term_line("offer", sweetener, proposer, target, viewer, name_of)
+                     or _format_popup_clause_line("Offer", sweetener.get("type", "unknown"), sweetener))
     return lines
 
 
-def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True) -> list[str]:
+def build_proposal_popup_clauses(terms: dict, *, include_base: bool = True, viewer: str = "",
+                                 proposer: str = "", target: str = "", name_of=None) -> list[str]:
     """Build incoming proposal popup clause strings from backend-owned labels."""
     clauses = []
     proposal_type = terms.get("type") or terms.get("proposal_type") or "unknown"
     if include_base:
         clauses.append(f"Proposal: {proposal_display_name(proposal_type)}")
 
-    clauses.extend(_proposal_term_lines(terms))
+    clauses.extend(_proposal_term_lines(terms, viewer=viewer, proposer=proposer,
+                                        target=target, name_of=name_of))
 
     if not clauses:
         # S14D-X13 (October 24, 2026): a letter that names nothing is not a
@@ -1980,7 +2136,8 @@ def counter_struck_lines(original, counter) -> list[str]:
             for kind, term in counter_struck_terms(original, counter)]
 
 
-def counter_offer_clause_lines(original, counter) -> list[str]:
+def counter_offer_clause_lines(original, counter, *, viewer: str = "", proposer: str = "",
+                               target: str = "", name_of=None) -> list[str]:
     """The Revised Terms of a counter-offer letter: what the court STRUCK from
     the draft it was sent, and what it KEPT.
 
@@ -1989,11 +2146,13 @@ def counter_offer_clause_lines(original, counter) -> list[str]:
     carries (the draft's survivors and anything the court added), in the lines
     every other letter uses. A counter that struck nothing reads as it always
     did - its own terms - and a counter with no terms at all still says WHICH
-    proposal it answers."""
+    proposal it answers. S14E-28: the kept terms say who pays whom when the
+    caller names the `viewer` (see `_proposal_term_lines`)."""
     counter = counter if isinstance(counter, dict) else {}
     original_dict = original if isinstance(original, dict) else {}
     struck = counter_struck_lines(original_dict, counter)
-    kept = _proposal_term_lines(counter)
+    kept = _proposal_term_lines(counter, viewer=viewer, proposer=proposer,
+                                target=target, name_of=name_of)
     proposal_type = (counter.get("type") or counter.get("proposal_type")
                      or original_dict.get("type") or original_dict.get("proposal_type")
                      or "unknown")
@@ -2044,6 +2203,82 @@ def _join_named(names: list) -> str:
     if len(names) <= 1:
         return "".join(names)
     return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def _clause_gold_by_pair(clauses) -> dict:
+    """{(payer, payee): total gold} of the `gold_lump` clauses in a list."""
+    totals: dict = {}
+    for clause in clauses or []:
+        if not isinstance(clause, dict) or clause.get("type") != "gold_lump":
+            continue
+        try:
+            amount = abs(int(clause.get("amount", 0) or 0))
+        except (TypeError, ValueError):
+            amount = 0
+        pair = (str(clause.get("from") or ""), str(clause.get("to") or ""))
+        totals[pair] = totals.get(pair, 0) + amount
+    return totals
+
+
+def treaty_receipt_lines(promised, applied, viewer: str, *, name_of=None, dropped=()) -> list[str]:
+    """S14E-28: the RECEIPT of a signed treaty - what the ratifier actually
+    applied, in the reader's own terms. `promised` is the treaty's clause list
+    (`treaty.treaty_clauses_of`), `applied` the clauses `_ratify_one_time_clauses`
+    carried out (a gold lump at the amount the payer's purse could meet, a
+    cession at the provinces that moved), `dropped` the cessions it named as not
+    carried. Shown == applied: a lump short of its promise says so.
+
+    "Saxony paid 82 gold into the treasury." / "You paid Prussia 2,400 gold
+    from the treasury." / "Saxony ceded Hanover to you." Only the lines the
+    viewer is a party to; a peace's own summary stands in for these."""
+    lines: list[str] = []
+    paid = _clause_gold_by_pair(applied)
+    for (payer, payee), want in _clause_gold_by_pair(promised).items():
+        if want <= 0 or viewer not in (payer, payee):
+            continue
+        got = paid.get((payer, payee), 0)
+        who = _term_party(payer, viewer, name_of, subject=True)
+        to_who = _term_party(payee, viewer, name_of)
+        if payee == viewer:
+            if got >= want:
+                lines.append(f"{who} paid {got:,} gold into the treasury.")
+            elif got > 0:
+                lines.append(f"{who} could pay only {got:,} of the {want:,} gold promised"
+                             f" - the treasury held no more.")
+            else:
+                lines.append(f"{who} paid none of the {want:,} gold promised"
+                             f" - the treasury was empty.")
+        else:
+            if got >= want:
+                lines.append(f"You paid {to_who} {got:,} gold from the treasury.")
+            elif got > 0:
+                lines.append(f"You could pay only {got:,} of the {want:,} gold owed to {to_who}"
+                             f" - the treasury held no more.")
+            else:
+                lines.append(f"You paid none of the {want:,} gold owed to {to_who}"
+                             f" - the treasury was empty.")
+    for clause in applied or []:
+        if not isinstance(clause, dict) or clause.get("type") != "territory_cede":
+            continue
+        giver, taker = str(clause.get("from") or ""), str(clause.get("to") or "")
+        regions = [str(r) for r in (clause.get("regions") or []) if r]
+        if not regions or viewer not in (giver, taker):
+            continue
+        who = _term_party(giver, viewer, name_of, subject=True)
+        lines.append(f"{who} ceded {_join_named(regions)} to {_term_party(taker, viewer, name_of)}.")
+    for note in dropped or []:
+        if note:
+            lines.append(f"Not carried: {note}.")
+    return lines
+
+
+def treaty_receipt_text(treaty_event) -> str:
+    """S14E-28: a signed treaty's receipt as the run of sentences the accept
+    handlers append to "Treaty signed: ..." - "" for a peace (its ratified-terms
+    summary is the receipt) and for a treaty that applied nothing."""
+    if not isinstance(treaty_event, dict) or treaty_event.get("peace_ratification_summary"):
+        return ""
+    return " ".join(str(line) for line in (treaty_event.get("receipt_lines") or []) if line)
 
 
 def claim_clause_noun(term, court: str = "", *, name_of=None) -> str:
@@ -2140,12 +2375,25 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
     lines = []
     target_label = target_nation or terms.get("target_nation") or "Target nation"
     proposal_key = terms.get("type") or proposal_type
-    lines.append(proposal_summary_display_name(proposal_key, target_label))
+    # S14E-X165 (the XF3 sweep): the player's own pact / alliance draft says what
+    # its state yields and what breaking it costs, as the incoming letter does.
+    _state_effect = treaty_state_effect_words(str(proposal_key))
+    lines.append(proposal_summary_display_name(proposal_key, target_label)
+                 + (f" - {_state_effect}" if _state_effect else ""))
 
     for clause in terms.get("clauses", []):
         clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
         if str(clause_type).strip().lower() == "open_borders":
-            lines.append("Open borders included")
+            # S14E-23: the player's own draft says what the clause does too.
+            _effect = clause_effect_words("open_borders", str(proposal_key))
+            lines.append("Open borders included" + (f" - {_effect}" if _effect else ""))
+            continue
+        if str(clause_type).strip().lower() == "protection_promised":
+            # S14E-X94: the pledge says what it does, in the player's own draft too.
+            _effect = clause_effect_words(
+                "protection_promised", str(proposal_key),
+                proposer=str(terms.get("proposer_nation") or ""), target=str(target_label))
+            lines.append(clause_display_name(clause_type) + (f" - {_effect}" if _effect else ""))
             continue
         detail = _format_clause_detail(clause)
         clause_label = clause_display_name(clause_type)
@@ -2291,10 +2539,15 @@ def format_proposal_summary(terms: dict) -> str:
         clause_type = clause.get("type", "clause") if isinstance(clause, dict) else clause
         detail = _format_clause_detail(clause)
         label = clause_display_name(clause_type)
+        # S14E-23: the dialogue text names what the clause does, as the popup does.
+        effect = clause_effect_words(clause_type, str(proposal_type),
+                                     proposer=("" if str(proposer) == "Unknown" else str(proposer)),
+                                     target=str(target))
+        suffix = f" - {effect}" if effect else ""
         if detail:
-            parts.append(f"  - {label} ({detail})")
+            parts.append(f"  - {label} ({detail}){suffix}")
         else:
-            parts.append(f"  - {label}")
+            parts.append(f"  - {label}{suffix}")
 
     return "\n".join(parts)
 
