@@ -1027,6 +1027,13 @@ only the screen can verify.
   client loads from "Load a Campaign…", so a turn-19 sighting is reached in
   one load, not a three-hour road; the record is
   `docs/audits/dd_b/replay_2026_10_25/` (§151.17).
+- **The third measure (S14g, October 25–26, 2026):** the same instrument and brief on master `a47bc116`
+  (`docs/audits/DD_B_THIRD_MEASURE_2026_10_25.md`; records `docs/audits/dd_b/{conquest,diplomacy,sea}_2026_10_25/`,
+  `causes_2026_10_25.json`, `metric_2026_10_25.json`): 33 causes, 5.5 rows per 10 turns, 0 P1 — the done-when NOT met on
+  the rate; rows `BUG_FIXES.md` §S14G, owner S14h. A player's `--n` can be off by one or two (read the neighbouring
+  states and `actions.log` for the true frame); the judge reads a repeat of a standing order ("already carrying out that
+  order. No change.") as a `board_refusal` (`ALREADY_HELD_RX`); the instrument cannot name a bracketed `[+]` link
+  (S14G-I1) — press it with `click_at`. The S14h part 2 close re-plays the sightings from crafted saves as above.
 
 ---
 

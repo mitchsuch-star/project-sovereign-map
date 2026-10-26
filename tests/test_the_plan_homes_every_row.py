@@ -27,7 +27,7 @@ from tools import defect_census as census  # noqa: E402
 # October 15, 2026; S13e (row PC part 2, the peace research's defects) on October 16.
 # S13f (AO "the army order", from the command-feel review's CF rows) joined on
 # October 17, 2026.
-SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-f]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
+SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-h]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
 
 
 def _open_rows():
@@ -58,7 +58,7 @@ class TestThePlanHomesEveryRow:
         """The user, October 14, 2026: "add events to plan as well … i agree with
         rest … make sure everything reflects future plans"."""
         plan = (REPO / "docs" / "PRE_DEPLOY_PLAN.md").read_text(encoding="utf-8")
-        for row in ("| S14b ", "| S14c ", "| S14d ", "| S14e ", "| S14f "):
+        for row in ("| S14b ", "| S14c ", "| S14d ", "| S14e ", "| S14f ", "| S14g ", "| S14h "):
             assert row in plan, row
         assert "**Code signing**" in plan
         roadmap = (REPO / "docs" / "ROADMAP.md").read_text(encoding="utf-8")

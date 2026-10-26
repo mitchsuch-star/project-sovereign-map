@@ -1587,6 +1587,17 @@ BOARD_GATE_RX = re.compile(
     r"is our own vassal",
     re.I,
 )
+# ALREADY_HELD_RX: DD-B's third measure (October 26, 2026): the sea road's
+# "Davout, march to Lorraine", typed a second time on the turn the first had
+# stood, answers "Davout is already carrying out that order. No change." —
+# `strategic_executor.py:1040`, free, the idempotent no-op — and read as the
+# road's one P1 proxy (a misread) though the board read the line right and said
+# so. A SEPARATE shape, read in `classify_order` only AFTER the action words
+# fail: the same phrase rides a multi-line group order whose other corps
+# "begin march" (the second measure's conquest #244 reads as_meant and must
+# stay so — BOARD_GATE_RX would have moved it). 0 of the 4,350 orders of the
+# committed census records hold the phrase.
+ALREADY_HELD_RX = re.compile(r"is already carrying out that order\. No change", re.I)
 # ASKED_RX: the game asked before acting (a clarification, an objection).
 ASKED_RX = re.compile(
     r"Which marshal|which marshal should act|Name the marshal|Whom did you intend|Did you mean|How shall I proceed|"

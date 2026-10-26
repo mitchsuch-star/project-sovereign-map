@@ -1,0 +1,64 @@
+{
+ "per_road": {
+  "conquest": {
+   "turns": 20,
+   "rows": 12,
+   "by_severity": {
+    "P1": 0,
+    "P2": 5,
+    "P3": 7
+   },
+   "per_10_turns": 6.0,
+   "player_rows_filed": 12,
+   "player_rows_struck": 0
+  },
+  "diplomacy": {
+   "turns": 20,
+   "rows": 15,
+   "by_severity": {
+    "P1": 0,
+    "P2": 4,
+    "P3": 11
+   },
+   "per_10_turns": 7.5,
+   "player_rows_filed": 16,
+   "player_rows_struck": 0
+  },
+  "sea": {
+   "turns": 20,
+   "rows": 9,
+   "by_severity": {
+    "P1": 0,
+    "P2": 4,
+    "P3": 5
+   },
+   "per_10_turns": 4.5,
+   "player_rows_filed": 9,
+   "player_rows_struck": 0
+  }
+ },
+ "across": {
+  "turns": 60,
+  "rows": 33,
+  "by_severity": {
+   "P1": 0,
+   "P2": 12,
+   "P3": 21
+  },
+  "per_10_turns": 5.5,
+  "per_10_turns_by_severity": {
+   "P1": 0.0,
+   "P2": 2.0,
+   "P3": 3.5
+  },
+  "homes": {
+   "S14h": 33,
+   "S14h with a design half": 6
+  },
+  "done_when": {
+   "under_5_per_10": false,
+   "zero_p1": true
+  }
+ },
+ "done_when_met": false
+}

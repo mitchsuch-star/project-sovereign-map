@@ -1,0 +1,1196 @@
+{
+ "lines": 123,
+ "classes": {
+  "answered": 23,
+  "as_meant": 79,
+  "asked": 3,
+  "honest_refusal": 11,
+  "board_refusal": 6,
+  "shrug": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 8,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do about the navy",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "The fleet musters 45 sail at readiness 70, guarding home waters — pinned in port by Britain, under Villeneuve, Sire. Her yards: Bordelais, Brittany, Normandy, Provence. 3 crossings shut to us. She keeps one of two postures, each an order of 1 action on THE ADMIRALTY (press T, then 7): Recall to home waters covers every crossing that touches our own coast; Blockade the enemy closes an at-war court's ports where our sail outmatches hers 1.25 to 1 — her trade halved — and leaves our own coast unguarded."
+  },
+  {
+   "n": 9,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nAsk 'what if Ney attacks Mack' first — it names who marches with Ney, and costs nothing.\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 10,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Soult, march to Flanders",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Flanders. Route: Orleanais → Flanders. Moves to Orleanais. \"Soult, march to Flanders.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 11,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Napoleon, march to Flanders",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon begins march to Flanders. Route: Orleanais → Flanders. Moves to Orleanais. (1 AP — the Emperor commands in his own name.)"
+  },
+  {
+   "n": 12,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, fortify",
+   "meant": "fortify Ney",
+   "class": "asked",
+   "success": true,
+   "reply": "Ney firmly objects: 'I would rather attack than sit idle.' (Insisting costs 2 actions — he must first go defensive.) (Trust him and he will attack Mack at Swabia instead.)"
+  },
+  {
+   "n": 14,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 1 ended. (Warning: 2 actions unused) Turn 2 begins!\n\nIncome: 2590g | Admiralty: -90g | Blockade: -219g | Materiel: -274g | Upkeep: -2654g (incl. 212g over-limit, 774g Grande Armée, 204g campaign pay) | Other: +1295g | Net: +648g | Treasury: 1,448g"
+  },
+  {
+   "n": 23,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "land an expedition in Ireland",
+   "meant": "naval_land",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Choose who embarks, Sire — click a coastal province on the map for its landing chip. A corps of 15,000 or fewer sails; THE ADMIRALTY (press T, then 7) names who can, and where."
+  },
+  {
+   "n": 30,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 2 ended. (Warning: 2 actions unused) Turn 3 begins!\n\nIncome: 2575g | Admiralty: -90g | Blockade: -281g | Materiel: -748g | Upkeep: -2256g (incl. 160g over-limit, 540g Grande Armée, 204g campaign pay) | Other: +1329g | Net: +529g | Treasury: 2,037g"
+  },
+  {
+   "n": 38,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Napoleon, march to Flanders",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon begins march to Flanders. (1 AP — the Emperor commands in his own name.)"
+  },
+  {
+   "n": 39,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (24,000; expect about 82,342 with the corps likely to arrive, up to 88,218 if all march; certain 24,000; a bad day (1 in 10) 70,908) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at "
+  },
+  {
+   "n": 40,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 82,342 with the corps likely to arrive, up to 88,218 if all march; certain 24,000; a bad day (1 in 10) 70,908) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL JOIN — Murat: will m"
+  },
+  {
+   "n": 45,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ 2 corps stand in peril — an enemy force of ~31,928 shares the field (Swabia).\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 46,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 3 ended. (Warning: 2 actions unused) Turn 4 begins!\n\nIncome: 2577g | Requisitions: +37g | Admiralty: -90g | Blockade: -329g | Materiel: -550g | Upkeep: -1656g (incl. 80g over-limit, 180g Grande Armée, 204g campaign pay) | Other: +1374g | Net: +1363g | Treasury: 3,206g"
+  },
+  {
+   "n": 55,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "who am I fighting",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "We are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score +3 (evenly matched), in its 4th turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Redeem Italy; Russia pursues Arbiter of Europe. Each war is on the war banner on the left (click the war); every court's design in the Diplomatic Ledger (press D)."
+  },
+  {
+   "n": 56,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (20,094; expect about 58,211 with the corps likely to arrive, up to 60,242 if all march; certain 20,094) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Munich\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Munich\n  WILL NOT — Mu"
+  },
+  {
+   "n": 57,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (20,094; expect about 58,211 with the corps likely to arrive, up to 60,242 if all march; certain 20,094) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Munich\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Munich\n  WILL NOT — Murat: will not lift a finger for Ma"
+  },
+  {
+   "n": 59,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Bernadotte, retreat to Swabia",
+   "meant": "move Bernadotte",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte retreats from Franconia to Munich. Swabia cannot be reached, Sire — it is Austria-held soil and we are at war; Bernadotte falls back to Munich instead.  (170 lost to march) Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns."
+  },
+  {
+   "n": 60,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Massena, drill",
+   "meant": "drill Massena",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Massena is recovering from retreat and cannot drill. Recovery: 2 turns remaining."
+  },
+  {
+   "n": 67,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Murat, retreat",
+   "meant": "retreat Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat bristles at the retreat order but obeys. \n========================================\n  [!] FIGHTING RETREAT! (+10% bonus) [!]  \n========================================\nMurat's cavalry refuses to flee quietly!\n  -> Cavalry charges ArchdukeCharles! 1,597 casualties inflicted.\n[FIGHTING RETREAT] Total enemy casualties: 1,597 (+10% cavalry bonus)\nMurat retreats from Swabia to Munich.  (135 lost to march) Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns.\nMurat withdraws to Munich, bloodied but defiant.\nMunich is Bavaria's soil — the corps standing there are fed"
+  },
+  {
+   "n": 68,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 4 ended. (Warning: 1 action unused) Turn 5 begins!\n\nIncome: 2468g | Charges of Empire: -80g | Admiralty: -90g | Blockade: -368g | Upkeep: -2032g (incl. 40g over-limit, 912g campaign pay) | Other: +1439g | Net: +1337g | Treasury: 4,293g"
+  },
+  {
+   "n": 76,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Davout attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Davout stands at Munich, beyond reach of Archduke Charles at Rhineland this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 77,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "what if Soult attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Soult stands at Flanders, beyond reach of Archduke Charles at Rhineland this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 78,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "is Paris safe",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Paris is ours, Sire, held by a garrison of 25,000. No enemy corps stands within two marches of it, so far as our intelligence reaches — it looks safe today."
+  },
+  {
+   "n": 79,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Davout, pursue Archduke Charles",
+   "meant": "pursue Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout pursues Archduke Charles (at Rhineland). Moves to Swabia. The province is secured. Davout: \"I will follow — at a distance that leaves him no chance to turn on us.\""
+  },
+  {
+   "n": 80,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Ney, support Davout",
+   "meant": "support Ney",
+   "class": "asked",
+   "success": true,
+   "reply": "Ney firmly objects: 'March to another man's guns, Sire? Give me a battle of my own.' (Trust him and he will attack Archduke John at Tyrol instead.)"
+  },
+  {
+   "n": 83,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Lannes, support Davout",
+   "meant": "support Lannes",
+   "class": "asked",
+   "success": true,
+   "reply": "Lannes respectfully raises concerns: 'March to another man's guns, Sire? Give me a battle of my own.' (Trust him and he will attack Archduke John at Tyrol instead.)"
+  },
+  {
+   "n": 92,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 46 sail — readiness 50 (new crews come aboard green at 40, but she is green enough already — this keel cost her nothing), and Britain's blockade rots her 5 a turn at anchor — the blockade lifts as the enemy squadrons come home to the camp; readiness then recovers +5/turn to 75. 0 more keels possible this turn."
+  },
+  {
+   "n": 93,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 5 ended. (Warning: 2 actions unused) Turn 6 begins!\n\nIncome: 2290g | Charges of Empire: -167g | Admiralty: -92g | Upkeep: -2024g (incl. 52g over-limit, 900g campaign pay) | Other: +1411g | Net: +1418g | Spent: 400g | Treasury: 5,311g"
+  },
+  {
+   "n": 106,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Dumonceau, land in Ireland",
+   "meant": "naval_land",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Name the landing, Sire — click a coastal province on the map for Dumonceau's landing chip; THE ADMIRALTY (press T, then 7) lists the best landings."
+  },
+  {
+   "n": 112,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Ney, march to Swabia",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins march to Swabia. Moves to Swabia.\nSwabia feeds 60,000; the 48,709 men standing there would lose ~756 a turn to crowding — too many corps on one province. Ney: \"Good. An army rots standing still.\""
+  },
+  {
+   "n": 113,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Lannes, march to Swabia",
+   "meant": "move Lannes",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Not enough actions! Need 2, have 0 — Lannes cannot march to Swabia today."
+  },
+  {
+   "n": 114,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 6 ended. Turn 7 begins!\n\nIncome: 2290g | Contributions: -110g | Charges of Empire: -413g | Admiralty: -40g | Upkeep: -1928g (incl. 36g over-limit, 852g campaign pay) | Other: +1139g | Net: +938g | Treasury: 6,249g"
+  },
+  {
+   "n": 119,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 21 sail — readiness 59 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 123,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "lay down a ship of the line at Brittany",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Brittany — one fleet, whichever yard lays her keel (400g). The fleet stands at 22 sail — readiness 58 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn."
+  },
+  {
+   "n": 124,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 7 ended. (Warning: 4 actions unused) Turn 8 begins!\n\nIncome: 2290g | Contributions: -150g | Charges of Empire: -441g | Admiralty: -44g | Upkeep: -1068g (incl. 36g over-limit) | Other: +849g | Net: +1436g | Spent: 800g | Treasury: 6,885g"
+  },
+  {
+   "n": 126,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "what if Murat attacks Paget",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Murat stands at Nivernais, beyond reach of Paget at Berry this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet. Of ours, Dumonceau stands within reach."
+  },
+  {
+   "n": 127,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "what if Dumonceau attacks Paget",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Dumonceau (4,550) vs Paget (screening force) at Berry — the balance of force looks even — a hard fight that may go against us.\n  Standing modifiers, already in the band: all told, Dumonceau's own modifiers weigh 10% against the attack.\n  Berry feeds 60,000 — the whole muster can stand there fed.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 4,550 we muster) would cost ~34g.\n  Every corps in the province shares the field — that is the design. Only a corps still adjacent can be h"
+  },
+  {
+   "n": 128,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Murat, pursue Paget",
+   "meant": "pursue Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat pursues Paget (at Berry). Cavalry charges through Burgundy -> Limousin. Murat: \"He is already beaten — he merely has not been told. I will tell him.\""
+  },
+  {
+   "n": 134,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Soult, pursue Paget",
+   "meant": "pursue Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult pursues Paget (at Berry). Moves to Orleanais.\nOrleanais lies outside the camp — this takes 30,000 men out of it; the 5-turn count resets at the turn's end. \"Soult, pursue Paget.\" It will be done exactly, Sire. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 135,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 23 sail — readiness 62 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 136,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 24 sail — readiness 61 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn."
+  },
+  {
+   "n": 137,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "lay down a ship of the line at Brittany",
+   "meant": "naval_build",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "No administrative actions remaining this turn. (Military commands: 1 remaining)"
+  },
+  {
+   "n": 138,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 8 ended. (Warning: 1 action unused) Turn 9 begins!\n\nIncome: 2290g | Contributions: -110g | Charges of Empire: -535g | Admiralty: -48g | Upkeep: -1020g (incl. 20g over-limit) | Other: +849g | Net: +1426g | Spent: 800g | Treasury: 7,511g"
+  },
+  {
+   "n": 140,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Ney, march to Burgundy",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins march to Burgundy. Moves to Burgundy. Ney: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 141,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Davout, march to Champagne",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins march to Champagne. Route: Burgundy → Champagne. Moves to Burgundy.\nBurgundy feeds 22,500; the 34,185 men standing there would lose ~608 a turn to short supply. Davout: \"The roads will be scouted before each march, Sire.\""
+  },
+  {
+   "n": 142,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 25 sail — readiness 65 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 143,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 26 sail — readiness 64 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn. That was the last order the day could take, Sire — the turn ends when you say so."
+  },
+  {
+   "n": 144,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 9 ended. Turn 10 begins!\n\nIncome: 2272g | Contributions: -101g | Charges of Empire: -631g | Admiralty: -52g | Blockade: -320g | Materiel: -57g | Upkeep: -964g (incl. 4g over-limit) | Other: +849g | Net: +996g | Spent: 800g | Treasury: 7,707g"
+  },
+  {
+   "n": 155,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 27 sail — readiness 58 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 156,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 28 sail — readiness 57 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn."
+  },
+  {
+   "n": 157,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "Soult, march to Flanders",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Flanders. Route: Orleanais → Flanders. Moves to Orleanais. \"Soult, march to Flanders.\" No more and no less. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 158,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 10 ended. (Warning: 3 actions unused) Turn 11 begins!\n\nIncome: 2254g | Charges of Empire: -539g | Admiralty: -56g | Upkeep: -960g | Other: +849g | Net: +1548g | Spent: 800g | Treasury: 8,455g"
+  },
+  {
+   "n": 163,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "commission Oudinot",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Marshal Oudinot accepts his commission and raises a corps of 5,000 at Paris — 3500g. He arrives with a history: Lannes (Friendly)."
+  },
+  {
+   "n": 167,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "lay down a ship of the line at Brittany",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Brittany — one fleet, whichever yard lays her keel (400g). The fleet stands at 29 sail — readiness 61 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 168,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Ney attacks Franche-Comte",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Ney stands at Burgundy, beyond reach of Franche-Comte this turn, Sire — the order would be refused, and nothing spent. Of ours, Bernadotte and Lannes stand within reach."
+  },
+  {
+   "n": 169,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "what if Lannes attacks Franche-Comte",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Franche-Comte stands open, Sire — Lannes would take it by marching in.\n\nNothing has been ordered, and nothing spent."
+  },
+  {
+   "n": 170,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Lannes, attack Franche-Comte",
+   "meant": "attack Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes marches from Nivernais into Franche-Comte unopposed! (96 lost to march) Captured: Austria → France"
+  },
+  {
+   "n": 171,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Davout, attack Lorraine",
+   "meant": "attack Davout",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Davout cannot reach Lorraine from Champagne! Range: 1, Distance: 3\nNo enemies within range. Try 'move to Lorraine' to get closer first"
+  },
+  {
+   "n": 172,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Bernadotte, attack Rhineland",
+   "meant": "attack Bernadotte",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Bernadotte cannot reach Rhineland from Nivernais! Range: 1, Distance: 2\nNo enemies within range. Try 'move to Rhineland' to get closer first"
+  },
+  {
+   "n": 173,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Davout, march to Lorraine",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins march to Lorraine. Route: Burgundy → Orleanais → Lorraine. Moves to Burgundy.\nBurgundy feeds 22,500; the 32,009 men standing there would lose ~522 a turn to short supply. Davout: \"As ordered. I keep my flanks as I go.\""
+  },
+  {
+   "n": 174,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Bernadotte, march to Franche-Comte",
+   "meant": "move Bernadotte",
+   "class": "board_refusal",
+   "success": false,
+   "reply": "Not enough actions! Need 2, have 1 — Bernadotte cannot march to Franche-Comte today."
+  },
+  {
+   "n": 175,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 11 ended. (Warning: 1 action unused) Turn 12 begins!\n\nIncome: 2258g | Charges of Empire: -279g | Admiralty: -58g | Materiel: -180g | Upkeep: -972g (incl. 4g over-limit) | Other: +512g | Net: +1281g | Spent: 3900g | Treasury: 5,836g"
+  },
+  {
+   "n": 181,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "what if Ney attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Ney stands at Burgundy, beyond reach of Archduke Charles at Munich this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet."
+  },
+  {
+   "n": 187,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Davout, march to Lorraine",
+   "meant": "move Davout",
+   "class": "board_refusal",
+   "success": true,
+   "reply": "Davout is already carrying out that order. No change."
+  },
+  {
+   "n": 188,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Ney, march to Lorraine",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins march to Lorraine. Route: Orleanais → Lorraine. Moves to Orleanais. Ney: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 189,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 30 sail — readiness 65 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 190,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 31 sail — readiness 64 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn."
+  },
+  {
+   "n": 191,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 12 ended. (Warning: 2 actions unused) Turn 13 begins!\n\nIncome: 2262g | Charges of Empire: -367g | Admiralty: -62g | Materiel: -293g | Upkeep: -920g | Other: +537g | Net: +1157g | Spent: 800g | Treasury: 6,343g"
+  },
+  {
+   "n": 194,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "status",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "=== BERTHIER'S INTELLIGENCE REPORT ===\n\nYOUR FORCES:\n  Ney (Orleanais): 14,137 troops, morale 90, neutral stance, [MOVE_TO]\n  Davout (Orleanais): 17,350 troops, morale 90, neutral stance, [MOVE_TO]\n  Soult (Flanders): 28,567 troops, morale 100, neutral stance\n  Lannes (Nivernais): 5,992 troops, morale 6, neutral stance, retreating\n  Murat (Limousin): 10,281 troops, morale 60, neutral stance\n  Bernadotte (Nivernais): 13,275 troops, morale 100, neutral stance\n  Massena (Lyonnais): 13,185 troops, morale 0, neutral stance, retreating\n  Napoleon (Flanders): 10,000 troops, morale 85, neutral stance\n"
+  },
+  {
+   "n": 195,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Bernadotte, march to Franche-Comte",
+   "meant": "move Bernadotte",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte begins march to Franche-Comte. Moves to Franche-Comte. Bernadotte: \"As ordered. I keep my flanks as I go.\""
+  },
+  {
+   "n": 196,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Murat, march to Lyonnais",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat begins march to Lyonnais. Moves to Lyonnais. Murat: \"We march. Pity whatever slows us.\""
+  },
+  {
+   "n": 197,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 32 sail — readiness 68 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 198,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 33 sail — readiness 67 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn. That was the last order the day could take, Sire — the turn ends when you say so."
+  },
+  {
+   "n": 199,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Massena's corps stands below 40% morale beside Archduke Charles (27,511, Piedmont) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 201,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Massena, retreat",
+   "meant": "retreat Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena retreats from Lyonnais to Limousin.  Army begins recovery (currently at -55% effectiveness). Will recover over 3 turns."
+  },
+  {
+   "n": 202,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 13 ended. Turn 14 begins!\n\nIncome: 2271g | Contributions: -73g | Charges of Empire: -540g | Admiralty: -66g | Materiel: -289g | Upkeep: -872g | Other: +537g | Net: +968g | Spent: 800g | Treasury: 6,511g"
+  },
+  {
+   "n": 213,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "what if Bernadotte attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Bernadotte stands at Franche-Comte, beyond reach of Archduke Charles at Lyonnais this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet. Of ours, Ney and Massena stand within reach."
+  },
+  {
+   "n": 214,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "what if Ney attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (14,137) vs Archduke Charles (26,056 men) at Lyonnais — the balance of force looks unfavorable.\n  WILL NOT — Massena: is in no condition to fight\n  Standing modifiers, already in the band: Archduke Charles stands +24% on the defense (his stance, his character and his works).\n  Lyonnais feeds 52,500 — the whole muster can stand there fed.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 14,137 we muster) would cost ~106g.\n  Every corps in the province shares the field — that is"
+  },
+  {
+   "n": 215,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "Davout, march to Franche-Comte",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins march to Franche-Comte. Moves to Franche-Comte. Davout: \"The roads will be scouted before each march, Sire.\""
+  },
+  {
+   "n": 216,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "Ney, march to Franche-Comte",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins march to Franche-Comte. Route: Nivernais → Franche-Comte. Moves to Nivernais. Ney: \"Good. An army rots standing still.\""
+  },
+  {
+   "n": 217,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 34 sail — readiness 71 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 218,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 35 sail — readiness 70 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 0 more keels possible this turn. That was the last order the day could take, Sire — the turn ends when you say so."
+  },
+  {
+   "n": 219,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Massena's corps stands below 40% morale beside Archduke Charles (26,056, Lyonnais) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 221,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 14 ended. Turn 15 begins!\n\nIncome: 2229g | Charges of Empire: -620g | Admiralty: -70g | Blockade: -336g | Materiel: -84g | Upkeep: -808g | Other: +762g | Net: +1073g | Spent: 800g | Treasury: 6,784g"
+  },
+  {
+   "n": 233,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "Oudinot, march to Normandy",
+   "meant": "move Oudinot",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Oudinot begins march to Normandy. Moves to Normandy. Oudinot: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 234,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  end turn — no military actions remain today\n  recruit infantry in Flanders — 600g for 3,000 men under Soult\n  build supply depot in Paris — 300g\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 235,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 36 sail — readiness 64 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — staging the camp lifts the blockade and readiness recovers +5/turn to 75. 0 more keels possible this turn."
+  },
+  {
+   "n": 236,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": false,
+   "reply": "The yards are at capacity this season (1 keel per turn — the blockade slows the slips). Time, not gold, builds a navy."
+  },
+  {
+   "n": 237,
+   "turn": "Turn 15 — Late April 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Massena's corps stands below 40% morale beside Archduke Charles (26,056, Lyonnais) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 239,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 15 ended. Turn 16 begins!\n\nIncome: 1974g | Requisitions: +37g | Charges of Empire: -722g | Admiralty: -72g | Blockade: -336g | Materiel: -342g | Upkeep: -744g | Other: +562g | Net: +357g | Spent: 400g | Treasury: 6,741g"
+  },
+  {
+   "n": 244,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "status",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "=== BERTHIER'S INTELLIGENCE REPORT ===\n\nYOUR FORCES:\n  Ney (Franche-Comte): 12,982 troops, morale 85, neutral stance\n  Davout (Franche-Comte): 16,002 troops, morale 90, neutral stance\n  Soult (Flanders): 28,567 troops, morale 100, neutral stance\n  Lannes (Franche-Comte): 5,367 troops, morale 1, neutral stance\n  Bernadotte (Franche-Comte): 11,373 troops, morale 95, neutral stance\n  Massena (Paris): 6,327 troops, morale 0, neutral stance, retreating\n  Napoleon (Flanders): 10,000 troops, morale 85, neutral stance\n  Dumonceau (Ulster): 4,550 troops, morale 100, neutral stance\n  Oudinot (Normandy):"
+  },
+  {
+   "n": 247,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "what if Davout attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Davout stands at Franche-Comte, beyond reach of Archduke Charles at Berry this turn, Sire — the order would set him in pursuit, and there is no battle to weigh yet. Of ours, Massena and Oudinot stand within reach."
+  },
+  {
+   "n": 248,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "land Oudinot in Ulster",
+   "meant": "naval_land",
+   "class": "as_meant",
+   "success": true,
+   "reply": "The expedition is drawn up, Sire: Oudinot with 5,000 men, Normandy to Ulster. The transports slip past unseen 69 times in 100 (Britain watches at 97 effective against our escort). A failed run costs ~30% of the corps if intercepted, ~5% turned back — and the fleet's readiness −10 if she is turned back. If she is intercepted she meets Britain's 112 effective against our 24 — a decisive defeat is the likely result: about half of every pooled fleet (France 36→~16, Holland 5→~2) is lost; Britain's side loses ~2%. What moves the odds: a won diversion first (34 in 100) → 95 · 10 more sail (4,000g) →"
+  },
+  {
+   "n": 252,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "Dumonceau, attack Munster",
+   "meant": "attack Dumonceau",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Munster lies open, but Dumonceau's 4,550 men are a raiding party, not an army — a corps under 5,000 holds no homeland province it walks onto. March him in with 'move to Munster' to stand there, or bring 5,000."
+  },
+  {
+   "n": 253,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "Oudinot, attack Munster",
+   "meant": "attack Oudinot",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Oudinot marches from Ulster into Munster unopposed! (50 lost to march) Captured: Britain → France\nYour forces have taken Munster. Plunder it for 600 gold — buildings burned, the province left hostile — or secure it and keep the country quiet? ('plunder' or 'secure')"
+  },
+  {
+   "n": 255,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "what can I do about Ireland",
+   "meant": "question",
+   "class": "shrug",
+   "success": true,
+   "reply": "Berthier sets down his pen. \"I cannot answer that from the dispatches, Sire.\"\n\nWhat I CAN do today:\n  Massena, attack Archduke Charles\n  Ney, march to Nivernais\n  recruit infantry in Paris — 518g for 10,000 men under Massena\n  build supply depot in Paris — 300g\nAsk 'what if Massena attacks Archduke Charles' first — it names who marches with Massena, and costs nothing.\n\nFor any matter of state, press F1 for the Cabinet.\nType 'help' for the full command reference."
+  },
+  {
+   "n": 281,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 37 sail — readiness 58 (down 1 — new crews come aboard green at 40; only sea-time makes a navy), and Britain's blockade rots her 5 a turn at anchor — the blockade lifts as the enemy squadrons come home to the camp; readiness then recovers +5/turn to 75. 0 more keels possible this turn."
+  },
+  {
+   "n": 282,
+   "turn": "Turn 16 — Early May 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Massena's corps stands below 40% morale beside Archduke Charles (~27,500, Berry) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 283,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 16 ended. (Warning: 1 action unused) Turn 17 begins!\n\nIncome: 1917g | Occupation: -104g | Charges of Empire: -712g | Admiralty: -74g | Materiel: -460g | Upkeep: -704g | Other: +562g | Net: +425g | Spent: 400g | Treasury: 6,766g"
+  },
+  {
+   "n": 289,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "is Paris safe",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Paris is ours, Sire, held by a garrison of 25,000. Threats we can see: Archduke Charles of Austria is at Berry, one march away (substantial force); Paget of Britain is at London, two marches off (small force). It is held, but threatened."
+  },
+  {
+   "n": 290,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Soult, march to Paris",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Paris. Route: Westphalia → Artois → Paris. Moves to Westphalia.\nWestphalia feeds 15,000; the 27,792 men standing there would lose ~355 a turn to short supply.\nWestphalia lies outside the camp — this takes 27,792 men out of it; no turn counts toward staging while they stand there.\nWestphalia is Prussia's soil — the corps standing there are fed by contract, about −324g more a turn. \"Soult, march to Paris.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 291,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Napoleon, march to Paris",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon begins march to Paris. Route: Westphalia → Artois → Paris. Moves to Westphalia.\nWestphalia feeds 15,000; the 37,692 men standing there would lose ~1,231 a turn to short supply.\nWestphalia is Prussia's soil — the corps standing there are fed by contract, about −108g more a turn. (1 AP — the Emperor commands in his own name.)"
+  },
+  {
+   "n": 292,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "Davout, march to Paris",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins march to Paris. Route: Nivernais → Burgundy → Limousin → Paris. Moves to Nivernais. Davout: \"As ordered. I keep my flanks as I go.\""
+  },
+  {
+   "n": 293,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "lay down a ship of the line at Normandy",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Normandy — one fleet, whichever yard lays her keel (400g). The fleet stands at 38 sail — readiness 62 (down 1 — new crews come aboard green at 40; only sea-time makes a navy). 1 more keel possible this turn."
+  },
+  {
+   "n": 294,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Lannes's corps stands below 40% morale beside Bennigsen (~2,500, Swabia) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 295,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 17 ended. Turn 18 begins!\n\nIncome: 1727g | Occupation: -104g | Contributions: -101g | Charges of Empire: -885g | Admiralty: -76g | Blockade: -336g | Materiel: -273g | Upkeep: -988g (incl. 324g campaign pay) | Other: +562g | Net: -474g | Spent: 400g | Treasury: 5,892g"
+  },
+  {
+   "n": 301,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "status",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "=== BERTHIER'S INTELLIGENCE REPORT ===\n\nYOUR FORCES:\n  Ney (Franche-Comte): 12,342 troops, morale 85, neutral stance\n  Davout (Nivernais): 15,522 troops, morale 90, neutral stance, [MOVE_TO]\n  Soult (Westphalia): 27,437 troops, morale 100, neutral stance, [MOVE_TO]\n  Lannes (Franche-Comte): 5,102 troops, morale 1, neutral stance\n  Bernadotte (Franche-Comte): 10,812 troops, morale 95, neutral stance\n  Napoleon (Paris): 8,287 troops, morale 12, neutral stance, retreating\n  Dumonceau (Ulster): 4,550 troops, morale 100, neutral stance\n  Oudinot (Munster): 4,950 troops, morale 100, neutral stance\n\n"
+  },
+  {
+   "n": 302,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "what if Soult attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Soult (27,437) vs Archduke Charles (18,262 men) at Artois — the balance of force looks even — a hard fight that may well decide nothing.\n  WILL NOT — Napoleon: is in no condition to fight\n  The band weighs more than the men: Archduke Charles stands +37% on the defense (his stance, his character and his works).\n  Artois feeds 60,000 — the whole muster can stand there fed.\n  Materiel: every 1,000 men we lose costs 50g in guns, horses and stores, charged at the battle — a hard day (15% of the 27,437 we muster) would cost ~206g.\n  Every corps in the provi"
+  },
+  {
+   "n": 303,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "Ney, march to Paris",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins march to Paris. Route: Nivernais → Burgundy → Limousin → Paris. Moves to Nivernais.\nNivernais feeds 22,500; the 27,864 men standing there would lose ~377 a turn to short supply. Ney: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 304,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "Bernadotte, march to Paris",
+   "meant": "move Bernadotte",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Bernadotte begins march to Paris. Route: Nivernais → Burgundy → Limousin → Paris. Moves to Nivernais.\nNivernais feeds 22,500; the 38,676 men standing there would lose ~1,188 a turn to short supply. Bernadotte: \"As ordered. I keep my flanks as I go.\""
+  },
+  {
+   "n": 305,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 39 sail — readiness 57 (new crews come aboard green at 40, but she is green enough already — this keel cost her nothing), and Britain's blockade rots her 5 a turn at anchor — staging the camp lifts the blockade and readiness recovers +5/turn to 75. 0 more keels possible this turn."
+  },
+  {
+   "n": 306,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Lannes's corps stands below 40% morale beside Kutuzov (~27,500, Swabia) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 307,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 18 ended. Turn 19 begins!\n\nIncome: 1641g | Requisitions: +37g | Occupation: -60g | Charges of Empire: -721g | Admiralty: -78g | Blockade: -336g | Materiel: -187g | Upkeep: -600g | Other: +562g | Net: +258g | Spent: 400g | Treasury: 5,750g"
+  },
+  {
+   "n": 310,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "status",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "=== BERTHIER'S INTELLIGENCE REPORT ===\n\nYOUR FORCES:\n  Ney (Nivernais): 12,214 troops, morale 85, neutral stance, [MOVE_TO]\n  Davout (Burgundy): 15,522 troops, morale 90, neutral stance, [MOVE_TO]\n  Soult (Artois): 26,755 troops, morale 100, neutral stance, [MOVE_TO]\n  Lannes (Franche-Comte): 5,102 troops, morale 1, neutral stance\n  Bernadotte (Nivernais): 10,700 troops, morale 95, neutral stance, [MOVE_TO]\n  Napoleon (Berry): 3,163 troops, morale 0, neutral stance, retreating\n  Dumonceau (Ulster): 4,550 troops, morale 100, neutral stance\n  Oudinot (Munster): 4,950 troops, morale 100, neutral "
+  },
+  {
+   "n": 319,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "Soult, fortify",
+   "meant": "fortify Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Soult fortifies position at Artois. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile. Soult's march to Paris is set aside."
+  },
+  {
+   "n": 320,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 40 sail — readiness 52 (new crews come aboard green at 40, but she is green enough already — this keel cost her nothing). 1 more keel possible this turn."
+  },
+  {
+   "n": 321,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Lannes's corps stands below 40% morale beside Kutuzov (~27,500, Swabia) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 323,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "Lannes, retreat",
+   "meant": "retreat Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes retreats from Franche-Comte to Nivernais.  Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns."
+  },
+  {
+   "n": 324,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Napoleon's corps stands below 40% morale beside Archduke John (~10,000, Gascony) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 326,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 19 ended. (Warning: 2 actions unused) Turn 20 begins!\n\nIncome: 1463g | Occupation: -60g | Charges of Empire: -689g | Admiralty: -80g | Materiel: -235g | Upkeep: -552g | Other: +899g | Net: +746g | Spent: 400g | Treasury: 6,096g"
+  },
+  {
+   "n": 342,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "lay down a ship of the line at Bordelais",
+   "meant": "naval_build",
+   "class": "as_meant",
+   "success": true,
+   "reply": "A keel is laid at Bordelais — one fleet, whichever yard lays her keel (400g). The fleet stands at 41 sail — readiness 57 (new crews come aboard green at 40, but she is green enough already — this keel cost her nothing). 1 more keel possible this turn."
+  },
+  {
+   "n": 343,
+   "turn": "Turn 20 — Early July 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "honest_refusal",
+   "success": null,
+   "reply": "⚠ Lannes's corps stands below 40% morale beside Kutuzov (~27,500, Lorraine) — end the turn anyway?\nPress End Turn again, Enter, or type end turn again to end the turn anyway."
+  },
+  {
+   "n": 345,
+   "turn": "Turn 21 — Late July 1806",
+   "line": "end turn",
+   "meant": "end_turn",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Turn 20 ended. (Warning: 4 actions unused) Turn 21 begins!\n\nIncome: 1326g | Occupation: -60g | Contributions: -36g | Charges of Empire: -819g | Admiralty: -82g | Materiel: -349g | Upkeep: -544g (incl. 48g campaign pay) | Other: +562g | Net: -2g | Spent: 400g | Treasury: 5,694g"
+  }
+ ],
+ "unsent": [
+  {
+   "n": 81,
+   "turn": "Turn 5 — Late November 1805",
+   "line": "Lannes, support Davout",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "objection"
+   ]
+  },
+  {
+   "n": 120,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "lay down a ship of the line at Brittany",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  },
+  {
+   "n": 178,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "what if Ney attacks Archduke Charles",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "marshal_petition"
+   ]
+  },
+  {
+   "n": 205,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "what if Davout attacks Archduke Charles",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "interrupt"
+   ]
+  },
+  {
+   "n": 208,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "what if Davout attacks Archduke Charles",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "interrupt"
+   ]
+  },
+  {
+   "n": 286,
+   "turn": "Turn 17 — Late May 1806",
+   "line": "is Paris safe",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "interrupt"
+   ]
+  },
+  {
+   "n": 298,
+   "turn": "Turn 18 — Early June 1806",
+   "line": "status",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "interrupt"
+   ]
+  },
+  {
+   "n": 311,
+   "turn": "Turn 19 — Late June 1806",
+   "line": "is Paris safe",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "incoming_proposal"
+   ]
+  }
+ ],
+ "n_unsent": 8
+}

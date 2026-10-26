@@ -1,0 +1,255 @@
+{
+ "lines": 27,
+ "classes": {
+  "answered": 6,
+  "as_meant": 21
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 23,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what can I do",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "These orders would be carried out today, Sire:\n  Ney, attack Mack\n  Davout, march to Lorraine\n  Soult, fortify\n  recruit infantry in Rhineland — 741g for 3,000 men under Davout\n  build supply depot in Rhineland — 300g\nAsk 'what if Ney attacks Mack' first — it names who marches with Ney, and costs nothing.\nFor any matter of state, press F1 for the Cabinet."
+  },
+  {
+   "n": 24,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (24,000; expect about 106,545 with the corps likely to arrive, up to 114,642 if all march; certain 24,000; a bad day (1 in 10) 94,017) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland o"
+  },
+  {
+   "n": 30,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 106,545 with the corps likely to arrive, up to 114,642 if all march; certain 24,000; a bad day (1 in 10) 94,017) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in "
+  },
+  {
+   "n": 32,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Ney attacks Mack",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (21,846; expect about 68,511 with the corps likely to arrive, up to 70,967 if all march; certain 21,846) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL NOT — Davout: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Ney') would likely bring him\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make"
+  },
+  {
+   "n": 33,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (21,846; expect about 68,511 with the corps likely to arrive, up to 70,967 if all march; certain 21,846) vs Mack (substantial force) at Munich — the balance of force looks favorable.\n  WILL NOT — Davout: has already marched this turn\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Ney') would likely bring him\n  WILL JOIN — Massena: will march to the sound of the guns — likely to make it in time (about 95%) (The corps"
+  },
+  {
+   "n": 40,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (41,600; expect about 58,713 with the corps likely to arrive) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Tyrol\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs a force of his you have not scouted within reach of Tyrol — scout the pr"
+  },
+  {
+   "n": 45,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Davout attacks Archduke Charles",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Davout (23,985; expect about 135,561 with the corps likely to arrive, up to 160,788 if all march; certain 23,985; a bad day (1 in 10) 107,442) vs Archduke Charles (49,608 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — may make it from the mountains at Munich in time (about 47%); order 'Ney, support Davout' and it rises to about 100% (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — li"
+  },
+  {
+   "n": 54,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Davout, attack Archduke Charles",
+   "meant": "attack Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Davout (23,985; expect about 135,561 with the corps likely to arrive, up to 160,788 if all march; certain 23,985; a bad day (1 in 10) 107,442) vs Archduke Charles (49,608 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — may make it from the mountains at Munich in time (about 47%); order 'Ney, support Davout' and it rises to about 100% (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%"
+  },
+  {
+   "n": 56,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "Lannes, attack Archduke Charles",
+   "meant": "attack Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Lannes (15,813; expect about 162,031 with the corps likely to arrive) vs Archduke Charles (39,860 men) at Franconia — the balance of force looks favorable.\n  WILL JOIN — Ney: will march to the sound of the guns — likely to make it in time (about 100%) (The corps system lowers the bar by 10) — and will stand at Franconia\n  WILL JOIN — Davout: stands on the field and will fight beside him\n  WILL JOIN — Murat: stands on the field and will fight beside him — but he and Lannes are at odds; expect about half his weight\n  WILL JOIN — Bernadotte: stands on the field and will fight beside him\n"
+  },
+  {
+   "n": 62,
+   "turn": "Turn 2 — Early October 1805",
+   "line": "what if Ney attacks Archduke John",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Ney (19,492; expect about 45,772 with the corps likely to arrive, up to 46,912 if all march; certain 19,492) vs Archduke John (substantial force) at Tyrol — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Tyrol\n  WILL NOT — Lannes: has already marched this turn\n  WILL NOT — Murat: has already marched this turn\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('"
+  },
+  {
+   "n": 78,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Massena, move to Munich",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Franconia to Munich (2,118 lost to march)"
+  },
+  {
+   "n": 79,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Davout, move to Swabia",
+   "meant": "move Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout moves from Franconia to Swabia (217 lost to march)"
+  },
+  {
+   "n": 80,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Murat, move to Swabia",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Franconia to Swabia (189 lost to march)\n(Murat stands down from his intended attack — your orders reached him in time.)"
+  },
+  {
+   "n": 81,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Ney, move to Swabia",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney moves from Franconia to Swabia (183 lost to march)\nSwabia feeds 60,000; the 57,015 men standing there would lose ~1,139 a turn to crowding — too many corps on one province."
+  },
+  {
+   "n": 104,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Soult, fortify",
+   "meant": "fortify Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] Soult fortifies position at Lorraine. Defense bonus: +2% (grows +2% per turn, max 12%). Cannot move or attack while fortified. Use 'unfortify' to become mobile."
+  },
+  {
+   "n": 136,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Massena, move to Franconia",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Munich to Franconia (967 lost to march)\nFranconia feeds 60,000; the 62,795 men standing there would lose ~1,925 a turn to short supply."
+  },
+  {
+   "n": 177,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Ney, move to Rhineland",
+   "meant": "move Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins marching to Rhineland (distance: 2). Moved to Lorraine. Route: Lorraine -> Rhineland."
+  },
+  {
+   "n": 178,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "Murat, move to Rhineland",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Franche-Comte to Rhineland"
+  },
+  {
+   "n": 191,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Massena, move to Rhineland",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena begins marching to Rhineland (distance: 2). Moved to Frankfurt. Route: Frankfurt -> Rhineland."
+  },
+  {
+   "n": 192,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Lannes, move to Franche-Comte",
+   "meant": "move Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes begins marching to Franche-Comte (distance: 2). Moved to Munich. Route: Munich -> Franche-Comte."
+  },
+  {
+   "n": 228,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Murat, drill",
+   "meant": "drill Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat begins intensive drill exercises at Rhineland. Troops will be locked in training next turn, bonus ready turn 13."
+  },
+  {
+   "n": 229,
+   "turn": "Turn 11 — Late February 1806",
+   "line": "Massena, drill",
+   "meant": "drill Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena begins intensive drill exercises at Rhineland. Troops will be locked in training next turn, bonus ready turn 13."
+  },
+  {
+   "n": 241,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Ney, drill",
+   "meant": "drill Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Ney begins intensive drill exercises at Rhineland. Troops will be locked in training next turn, bonus ready turn 15."
+  },
+  {
+   "n": 242,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Davout, drill",
+   "meant": "drill Davout",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Davout begins intensive drill exercises at Franche-Comte. Troops will be locked in training next turn, bonus ready turn 15."
+  },
+  {
+   "n": 243,
+   "turn": "Turn 13 — Late March 1806",
+   "line": "Lannes, drill",
+   "meant": "drill Lannes",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Lannes begins intensive drill exercises at Franche-Comte. Troops will be locked in training next turn, bonus ready turn 15."
+  },
+  {
+   "n": 252,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "Murat, move to Franche-Comte",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat moves from Rhineland to Franche-Comte\nFranche-Comte feeds 52,500; the 45,927 men standing there would lose ~917 a turn to crowding — too many corps on one province."
+  },
+  {
+   "n": 253,
+   "turn": "Turn 14 — Early April 1806",
+   "line": "Massena, move to Lorraine",
+   "meant": "move Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves from Rhineland to Lorraine"
+  }
+ ],
+ "unsent": [],
+ "n_unsent": 0
+}

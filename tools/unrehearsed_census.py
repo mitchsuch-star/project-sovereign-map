@@ -106,6 +106,10 @@ def classify_order(intended: dict, reply: dict) -> str:
         return "honest_refusal"
     if re.search(judge.ACTION_WORDS.get(action, action), msg, re.I):
         return "as_meant"
+    # DD-B's third measure (October 26, 2026): a repeat of an order already
+    # standing is the board declining, free, and saying so.
+    if judge.ALREADY_HELD_RX.search(msg) and names_who:
+        return "board_refusal"
     return "misread" if reply.get("success") else "honest_refusal"
 
 

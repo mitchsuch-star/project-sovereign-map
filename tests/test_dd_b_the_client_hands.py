@@ -26,9 +26,11 @@ source and on a synthetic run, engine or not.
 """
 from __future__ import annotations
 
+import collections
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -499,6 +501,130 @@ class TestTheReMeasureRecords:
             for s in c["sightings"]:
                 assert (REPO / s["frame"]).is_file(), s["frame"]
                 assert s["frame"] in line, (c["id"], s["frame"])
+
+
+class TestTheThirdMeasureRecords:
+    """S14g (October 25–26, 2026) — DD-B's third measure on the DD-B instrument:
+    three fresh players, the same brief and roads, 20 turns each in the client,
+    on the build the testers will get (master a47bc116). Its records agree with
+    each other as the second measure's do: every player row a sighting of a filed
+    cause (or struck with its reason), the metric read off the records by the ONE
+    tool, every cause a tagged ledger row whose cited frames are in the
+    repository, every design half a ruled-for row; and the done-when is read as
+    the tool reads it: 33 causes in 60 turns = 5.5 per 10 turns, no P1 — met on
+    the P1 bar, NOT met on the rate."""
+
+    DATE = "2026_10_25"
+    TAG = "⟨SF step=pre-deploy S14g · DD-B third measure · pillar="
+
+    def _causes(self):
+        return json.loads((AUD / f"causes_{self.DATE}.json").read_text(encoding="utf-8"))
+
+    def _roads(self):
+        return {road: AUD / f"{road}_{self.DATE}" for road in ROADS}
+
+    def test_three_roads_of_twenty_turns_in_the_client(self):
+        for road, d in self._roads().items():
+            run = json.loads((d / "run.json").read_text(encoding="utf-8"))
+            assert run["road"] == road and run["turn_number"] == 21, road
+            assert run["n_script_errors"] == 0, road
+            assert run["port"] != 8005
+            meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+            assert meta["window"] == "5120x1440" and "godot" not in meta
+            for name in ("rows.json", "judge.json", "actions.log", "summaries.md", "player_notes.md"):
+                assert (d / name).is_file(), (road, name)
+
+    def test_every_player_row_is_a_sighting_or_struck(self):
+        import dd_b_metric as M
+        assert M.check(self._causes(), self._roads()) == []
+
+    def test_the_metric_is_the_tools_reading_of_the_records(self):
+        import dd_b_metric as M
+        rec = self._causes()
+        metric = json.loads((AUD / f"metric_{self.DATE}.json").read_text(encoding="utf-8"))
+        assert metric == M.metric(rec, self._roads())
+        across = metric["across"]
+        assert across["turns"] == 60
+        assert across["rows"] == len(rec["causes"]) == 33
+        assert across["by_severity"] == {"P1": 0, "P2": 12, "P3": 21}
+        assert across["per_10_turns"] == round(33 / 6, 1) == 5.5
+        assert across["done_when"] == {"under_5_per_10": False, "zero_p1": True}
+        assert metric["done_when_met"] is False
+        assert {r: metric["per_road"][r]["rows"] for r in ROADS} == {"conquest": 12, "diplomacy": 15, "sea": 9}
+        assert {r: metric["per_road"][r]["player_rows_filed"] for r in ROADS} == {"conquest": 12, "diplomacy": 16, "sea": 9}
+
+    def test_the_causes_classes_are_counted(self):
+        rec = self._causes()["causes"]
+        fam = collections.Counter(c["family"] for c in rec)
+        kinds = collections.Counter(c["prior_kind"] for c in rec)
+        assert (fam[1], fam[2], fam[3]) == (13, 11, 9)
+        assert (kinds["partial_return"], kinds["sibling"], kinds["new"]) == (9, 18, 6)
+        # none of the second measure's 35 rows returned as filed; five came back in part
+        back = {pid for c in rec if c["prior_kind"] == "partial_return" for pid in c["prior_ids"]
+                if re.fullmatch(r"S14E-\d+", pid)}
+        assert back >= {"S14E-11", "S14E-13", "S14E-15", "S14E-17", "S14E-18"}
+
+    def test_the_judge_read_every_sent_line_and_found_no_p1(self):
+        for road, d in self._roads().items():
+            judge = json.loads((d / "judge.json").read_text(encoding="utf-8"))
+            assert judge["p1"] == [], road
+            assert judge["lines"] == len(judge["rows"])
+            assert all(r["class"] != "" for r in judge["rows"])
+            for u in judge.get("unsent", []):
+                assert "not taking orders" in u["error"], (road, u)
+
+    def test_a_repeat_of_a_standing_order_is_the_board_declining_not_a_misread(self):
+        """The sea road's one P1 proxy (action 187): "Davout, march to Lorraine" typed a
+        second time answers "Davout is already carrying out that order. No change." —
+        free, `strategic_executor.py:1040`. A SEPARATE shape, read after the action
+        words fail, so the second measure's multi-line group order that carries the
+        phrase beside "begins march" keeps reading `as_meant`."""
+        import unrehearsed_census as U
+        said = "Davout is already carrying out that order. No change."
+        assert U.classify_order({"action": "move", "marshal": "Davout"}, {"message": said, "success": True}) == "board_refusal"
+        group = ("The Grand Quartier Général carries the Emperor's order — 2 actions, the whole column: 6 corps "
+                 "within 2 provinces of the Emperor, 'march to Frankfurt'.\nNey: Ney begins march to Frankfurt.\n"
+                 "Davout: Davout is already carrying out that order.\nLannes: Lannes begins march to Frankfurt.")
+        assert U.classify_order({"action": "move", "marshal": ""}, {"message": group, "success": True}) == "as_meant"
+
+    def test_every_cause_is_a_tagged_ledger_row_with_its_frames(self):
+        rec = self._causes()
+        bugs = doc_text("BUG_FIXES.md")
+        design = doc_text("DESIGN_REFINEMENT.md")
+        for c in rec["causes"]:
+            line = next(ln for ln in bugs.splitlines() if ln.startswith(f"| **{c['id']}** |"))
+            assert self.TAG in line, c["id"]
+            assert f"pillar={c['pillar']}⟩" in line, c["id"]
+            assert "OPEN — owner S14h" in line, c["id"]
+            assert f"tests/test_s14h_the_third_measure_rows.py::Test{c['id'].replace('-', '')}" in line, c["id"]
+            if c.get("dr_id"):
+                assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
+                assert c["dr_id"] in line, c["id"]
+            for s in c["sightings"]:
+                assert (REPO / s["frame"]).is_file(), s["frame"]
+                assert s["frame"] in line, (c["id"], s["frame"])
+        # the instrument row and the done-when's own question
+        assert any(ln.startswith("| **S14G-I1** |") and "OPEN — owner S14h" in ln for ln in bugs.splitlines())
+        assert any(ln.startswith("| **S14G-D7** |") for ln in design.splitlines())
+
+    def test_the_six_design_halves_and_the_done_whens_question_are_filed(self):
+        rec = self._causes()["causes"]
+        ids = sorted(c["dr_id"] for c in rec if c.get("dr_id"))
+        assert ids == ["S14G-D1", "S14G-D2", "S14G-D3", "S14G-D4", "S14G-D5", "S14G-D6"]
+        design = doc_text("DESIGN_REFINEMENT.md")
+        for d in ids + ["S14G-D7"]:
+            row = next(ln for ln in design.splitlines() if ln.startswith(f"| **{d}** |"))
+            assert "**Recommendation:**" in row, d
+            assert "S14h" in row, d
+
+    def test_the_plan_homes_the_rows_and_the_write_up_states_the_verdict(self):
+        plan = doc_text("PRE_DEPLOY_PLAN.md")
+        for row in ("| S14g ", "| S14h "):
+            assert row in plan, row
+        text = (REPO / "docs" / "audits" / f"DD_B_THIRD_MEASURE_{self.DATE}.md").read_text(encoding="utf-8")
+        assert "33 causes" in text and "5.5 rows per 10 turns" in text
+        assert "NOT met on the rate" in text and "met on the P1 bar" in text
+        assert "S14h" in text
 
 
 class TestTheRecords:
