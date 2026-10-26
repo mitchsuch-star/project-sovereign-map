@@ -167,6 +167,12 @@ class TestEveryFailIsFiled:
                 # user's eyes (`SYSTEMS_REFERENCE.md` §152.11, `docs/audits/uxr4_s15/`).
                 assert closing.get(rid) == "OPEN", (rid, "built at S15's head, but it was never re-homed")
                 assert "docs/audits/uxr4_s15/" in ln, rid
+            elif "| ✅ CLOSED October 25, 2026 — the walk at UXR-4" in ln:
+                # S15 (October 25, 2026): a row the closing re-read re-homed to
+                # UXR-4, closed by the walk's mark (delegated to the session) to
+                # its own decided fix — never by a re-read.
+                assert closing.get(rid) == "OPEN", (rid, "closed by the walk, but it was never re-homed")
+                assert "UXR-4" in ln, rid
             else:
                 assert "| OPEN — owner S12" in ln, ln[:80]
                 assert state.get(rid, "OPEN") == "OPEN", (rid, "the re-read reads it FIXED, the row says OPEN")

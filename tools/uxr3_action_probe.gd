@@ -877,7 +877,7 @@ func _snapshot() -> Dictionary:
 			var r := (n as Control).get_global_rect()
 			snap["r:" + p] = [roundf(r.position.x), roundf(r.position.y), roundf(r.size.x), roundf(r.size.y)]
 		if n is RichTextLabel:
-			snap["t:" + p] = (n as RichTextLabel).get_parsed_text()
+			snap["t:" + p] = (n as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 		elif n is Label:
 			snap["t:" + p] = (n as Label).text
 		elif n is LineEdit:
@@ -1092,7 +1092,7 @@ func _enumerate(floor: int) -> Array:
 			var k := 0
 			for m in _url_re.search_all(rtl.text):
 				var meta := m.get_string(1)
-				var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true).strip_edges()
+				var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true).replace("\u00A0", " ").strip_edges()
 				var link := base.duplicate()
 				link["kind"] = "link"
 				link["class"] = "RichTextLabel [url]"
@@ -1130,7 +1130,7 @@ func _own_text(ctrl: Control) -> String:
 		if n is Label:
 			return str((n as Label).text)
 		if n is RichTextLabel:
-			return (n as RichTextLabel).get_parsed_text()
+			return (n as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 	return ""
 
 
@@ -1146,7 +1146,7 @@ func _beside(ctrl: Control) -> String:
 		if sib is Label:
 			t = (sib as Label).text
 		elif sib is RichTextLabel:
-			t = (sib as RichTextLabel).get_parsed_text()
+			t = (sib as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 		if t.strip_edges() != "":
 			parts.append(t.strip_edges().left(100))
 	return " | ".join(parts).left(240)
@@ -1540,7 +1540,7 @@ func _scroll_to(how) -> void:
 		rtl = _node.get_node_or_null(str(how["rtl"])) as RichTextLabel
 	else:
 		for n in _all_nodes(_node):
-			if n is RichTextLabel and n.is_visible_in_tree() and n.get_parsed_text().contains(needle):
+			if n is RichTextLabel and n.is_visible_in_tree() and n.get_parsed_text().replace("\u00A0", " ").contains(needle):
 				rtl = n
 				break
 	if rtl == null:
@@ -1554,7 +1554,7 @@ func _scroll_to(how) -> void:
 	if sc == null:
 		_errors.append("scroll_to: no ScrollContainer above the label")
 		return
-	var parsed := rtl.get_parsed_text()
+	var parsed := rtl.get_parsed_text().replace("\u00A0", " ")
 	var at := parsed.find(needle)
 	if at < 0:
 		_errors.append("scroll_to: text not rendered: " + needle)

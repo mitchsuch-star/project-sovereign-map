@@ -825,7 +825,7 @@ func _scroll_to(how) -> void:
 		rtl = _node.get_node_or_null(str(how["rtl"])) as RichTextLabel
 	else:
 		for n in _all_nodes(_node):
-			if n is RichTextLabel and n.is_visible_in_tree() and n.get_parsed_text().contains(needle):
+			if n is RichTextLabel and n.is_visible_in_tree() and n.get_parsed_text().replace("\u00A0", " ").contains(needle):
 				rtl = n
 				break
 	if rtl == null:
@@ -839,7 +839,7 @@ func _scroll_to(how) -> void:
 	if sc == null:
 		_note_error("scroll_to: no ScrollContainer above the label")
 		return
-	var parsed := rtl.get_parsed_text()
+	var parsed := rtl.get_parsed_text().replace("\u00A0", " ")
 	var at := parsed.find(needle)
 	if at < 0:
 		_note_error("scroll_to: text not rendered: " + needle)
@@ -985,7 +985,7 @@ func _collect_texts() -> Array:
 		var font: Font = null
 		var font_size := 0
 		if n is RichTextLabel:
-			entry = {"class": "RichTextLabel", "text": n.get_parsed_text()}
+			entry = {"class": "RichTextLabel", "text": n.get_parsed_text().replace("\u00A0", " ")}
 			font = n.get_theme_font("normal_font")
 			font_size = n.get_theme_font_size("normal_font_size")
 		elif n is Label:
@@ -1400,11 +1400,11 @@ func _truncated_text() -> Array:
 						"text": b.text.left(60), "reason": "width", "text_w": tw, "box_w": box})
 		elif n is RichTextLabel:
 			var rtl := n as RichTextLabel
-			if rtl.autowrap_mode != TextServer.AUTOWRAP_OFF or rtl.get_parsed_text().strip_edges() == "":
+			if rtl.autowrap_mode != TextServer.AUTOWRAP_OFF or rtl.get_parsed_text().replace("\u00A0", " ").strip_edges() == "":
 				continue
 			if rtl.get_content_width() > int(rtl.size.x) + 1:
 				out.append({"path": str(root.get_path_to(rtl)), "class": "RichTextLabel",
-						"text": rtl.get_parsed_text().left(60), "reason": "rtl_width",
+						"text": rtl.get_parsed_text().replace("\u00A0", " ").left(60), "reason": "rtl_width",
 						"text_w": rtl.get_content_width(), "box_w": rtl.size.x})
 	return out
 
@@ -1419,7 +1419,7 @@ func _cut_lines() -> Array:
 		if not (n is RichTextLabel) or not _shown(n) or _inside_subviewport(n):
 			continue
 		var rtl := n as RichTextLabel
-		if rtl.get_parsed_text().strip_edges() == "":
+		if rtl.get_parsed_text().replace("\u00A0", " ").strip_edges() == "":
 			continue
 		var box: StyleBox = rtl.get_theme_stylebox("normal")
 		var m_top: float = box.get_margin(SIDE_TOP) if box else 0.0
@@ -1507,7 +1507,7 @@ func _rtl_seen(rtl: RichTextLabel, win: Rect2) -> String:
 			lines[i] = true
 	if lines.is_empty():
 		return ""
-	var parsed := rtl.get_parsed_text()
+	var parsed := rtl.get_parsed_text().replace("\u00A0", " ")
 	var seen := ""
 	for ci in range(parsed.length()):
 		if lines.has(rtl.get_character_line(ci)):
@@ -1617,7 +1617,7 @@ func _under_modal(view: Vector2) -> Dictionary:
 		elif c is Label:
 			words = (c as Label).text
 		elif c is RichTextLabel:
-			words = (c as RichTextLabel).get_parsed_text()
+			words = (c as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 		elif c is LineEdit:
 			words = (c as LineEdit).text
 		if words == null or (not (c is BaseButton) and str(words).strip_edges() == ""):

@@ -295,3 +295,85 @@ class TestUXR3_81:
         # the bond's own words, and not the "no bond yet" of the ungranted cards, lead
         assert "a bond worth one honoured petition" in seen
         assert _at(seen, "Bond: +1/turn") < (seen.find("no bond yet") if "no bond yet" in seen else 10 ** 9)
+
+
+class TestUXR3_82:
+    """The walk's ✗ on the boot board (S15, the walk delegated to the session,
+    October 25, 2026): the sovereign card's order — his skill bars ride under
+    his strength, ABOVE his two prose paragraphs, as every marshal's sheet."""
+
+    SRC = _src("marshal_management.gd")
+
+    def test_a_one_skills_block_for_both_card_kinds(self):
+        block = _func(self.SRC, "_skills_block")
+        assert '["tactical", "shock", "defense", "logistics", "administration", "command"]' in block
+        assert "admin_note" in block and "rally_note" in block and "_skill_bar_row(" in block
+        card = _func(self.SRC, "_render_card")
+        assert card.count("_skills_block(m)") == 2
+        # the card no longer loops the skills itself
+        assert 'for skill_name in ["tactical"' not in card
+
+    def test_b_the_sovereigns_bars_ride_above_his_prose(self):
+        card = _func(self.SRC, "_render_card")
+        sov = card[card.index("if is_sovereign:"):card.index("# ═══════ BIOGRAPHY ═══════")]
+        assert _order(sov, "_ability_line(m)", "_strength_line(m)", "_skills_block(m)")
+        # a marshal's sheet keeps its order: the prose, then the strength, then the bars
+        rest = card[card.index("# ═══════ BIOGRAPHY ═══════"):]
+        assert _order(rest, "if not is_sovereign:", "_strength_line(m)", "_skills_block(m)",
+                      "# ═══════ ABILITY (only shown if active/wired) ═══════")
+
+    @pytest.mark.parametrize("res", RESOLUTIONS)
+    @pytest.mark.parametrize("fid,where", [("generals_boot", "Lorraine"), ("generals_np_field", "Bohemia")])
+    def test_c_the_bars_lead_the_first_screenful_above_the_biography(self, res, fid, where):
+        seen = _seen(fid, res)
+        assert _at(seen, "+10% here at " + where) < _at(seen, "Strength:") < _at(seen, "Tactical") \
+            < _at(seen, "Shock")
+        bio = seen.find("Emperor of the French")
+        assert bio < 0 or bio > _at(seen, "Tactical"), "the biography stands above the bars"
+        sovereign_line = seen.find("Sovereign: You, in the field")
+        assert sovereign_line < 0 or sovereign_line > _at(seen, "Tactical")
+
+    @pytest.mark.parametrize("res", RESOLUTIONS)
+    def test_d_the_captive_emperors_sheet_reads_the_same_way(self, res):
+        seen = _seen("generals_np_captive", res)
+        assert _at(seen, "A captive") < _at(seen, "Strength:") < _at(seen, "Tactical")
+        bio = seen.find("Emperor of the French")
+        assert bio < 0 or bio > _at(seen, "Tactical")
+
+
+class TestUXR3_83:
+    """The walk's find on the Tyrol panel (S15): a chip's label never breaks
+    inside the chip — the helpers bind its spaces — and the instruments read
+    the bound space as a space, so every word-matcher and record keeps its
+    plain-space words."""
+
+    HARNESSES = ("tools/dd_b_client.gd", "tools/iq10_surface_screenshot.gd", "tools/uxr3_action_probe.gd")
+
+    def test_a_both_chip_helpers_bind_the_labels_spaces(self):
+        src = _src("utils.gd")
+        for name in ("bb_button_chip", "bb_chip_disabled"):
+            body = _func(src, name)
+            assert 'label.replace(" ", "\\u00A0")' in body, name
+            assert "+ label +" not in body, name
+
+    def test_b_every_instrument_reads_the_bound_space_as_a_space(self):
+        for rel in self.HARNESSES:
+            src = (REPO / rel).read_text(encoding="utf-8")
+            n = src.count(".get_parsed_text()")
+            assert n > 0, rel
+            assert src.count('.get_parsed_text().replace("\\u00A0", " ")') == n, rel
+        census = (REPO / "tests" / "_chip_census.py").read_text(encoding="utf-8")
+        assert "result = _plain_spaces(result)" in census
+        # the chip-by-words road reads a [url] label off the RAW bbcode, not the
+        # parsed text — the walk found `click Skip this lesson` matching nothing
+        for rel in ("tools/dd_b_client.gd", "tools/uxr3_action_probe.gd"):
+            src = (REPO / rel).read_text(encoding="utf-8")
+            reader = 'var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true)'
+            assert src.count(reader) == 1, rel
+            assert reader + '.replace("\\u00A0", " ").strip_edges()' in src, rel
+
+    @pytest.mark.parametrize("res", RESOLUTIONS)
+    def test_c_the_tyrol_frame_records_the_chips_in_plain_words(self, res):
+        seen = _seen("region_doctrine_tyrol", res)
+        assert "Fall back" in seen and "Hold (2 AP)" in seen and "Attack Archduke John" in seen
+        assert " " not in seen

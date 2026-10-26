@@ -103,6 +103,17 @@ def chips(bbcode):
     return out
 
 
+def _plain_spaces(value):
+    """U+00A0 -> a space, through every string of the harness's result."""
+    if isinstance(value, str):
+        return value.replace("\u00a0", " ")
+    if isinstance(value, list):
+        return [_plain_spaces(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _plain_spaces(v) for k, v in value.items()}
+    return value
+
+
 def render(game_state, regions, recruitment, work, overview=None, wizard_cases=None):
     """Run the harness once. Returns {"regions": {region: bbcode}, "bench":
     bbcode, "cards": bbcode (the Generals cards, when `overview` — the
@@ -131,6 +142,10 @@ def render(game_state, regions, recruitment, work, overview=None, wizard_cases=N
                     f"exit={proc.returncode}\nstderr tail:\n{proc.stderr[-2000:]}")
     result = json.loads(out.read_text(encoding="utf-8"))
     assert "error" not in result, result.get("error")
+    # UXR3-83 (S15, October 26, 2026): a chip's label binds its spaces (U+00A0)
+    # so it never breaks inside the pill; the census reads them as spaces, as
+    # the instruments do, so every pin keeps its plain-space words.
+    result = _plain_spaces(result)
     log_text = log.read_text(encoding="utf-8", errors="replace") if log.is_file() else ""
     return {"regions": result["regions"], "bench": result.get("bench", ""),
             "cards": result.get("cards", ""),

@@ -1,0 +1,470 @@
+{
+ "road": "diplomacy",
+ "port": 8007,
+ "turn_reached": "Turn 2 — Early October 1805",
+ "turn_number": 2,
+ "actions": [
+  {
+   "n": 0,
+   "action": "boot",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "record": 1954
+   }
+  },
+  {
+   "n": 1,
+   "action": "click Looks right",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 111,
+    "record": 3339,
+    "settle": 933
+   }
+  },
+  {
+   "n": 2,
+   "action": "click The School of War — a guided campaign",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 101,
+    "record": 1770,
+    "settle": 12388
+   }
+  },
+  {
+   "n": 3,
+   "action": "click Confirm — to school",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Confirm — to school\"",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1778,
+    "settle": 902
+   }
+  },
+  {
+   "n": 4,
+   "action": "type economy",
+   "meant": "other: the treasury's books",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 143,
+    "record": 2199,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 5,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 2200,
+    "settle": 927
+   }
+  },
+  {
+   "n": 6,
+   "action": "click Senarmont, move to Munich",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Senarmont, move to Munich\"",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 2228,
+    "settle": 921
+   }
+  },
+  {
+   "n": 7,
+   "action": "key Enter",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 2272,
+    "settle": 934
+   }
+  },
+  {
+   "n": 8,
+   "action": "type Senarmont, move to Munich",
+   "meant": "move Senarmont",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 192,
+    "record": 1781,
+    "settle": 967
+   }
+  },
+  {
+   "n": 9,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 131,
+    "record": 1574,
+    "settle": 1095
+   }
+  },
+  {
+   "n": 10,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 172,
+    "record": 1770,
+    "settle": 934
+   }
+  },
+  {
+   "n": 11,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1730,
+    "settle": 934
+   }
+  },
+  {
+   "n": 12,
+   "action": "key G",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1386,
+    "settle": 1635
+   }
+  },
+  {
+   "n": 13,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1774,
+    "settle": 934
+   }
+  },
+  {
+   "n": 14,
+   "action": "click_at 3635 18",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1588,
+    "settle": 933
+   }
+  },
+  {
+   "n": 15,
+   "action": "click Settings",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1494,
+    "settle": 933
+   }
+  },
+  {
+   "n": 16,
+   "action": "click Resume (Esc)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 111,
+    "record": 1753,
+    "settle": 933
+   }
+  },
+  {
+   "n": 17,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1757,
+    "settle": 920
+   }
+  },
+  {
+   "n": 18,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1768,
+    "settle": 913
+   }
+  },
+  {
+   "n": 19,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1752,
+    "settle": 911
+   }
+  },
+  {
+   "n": 20,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 4,
+    "record": 1777,
+    "settle": 913
+   }
+  },
+  {
+   "n": 21,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 4,
+    "record": 1767,
+    "settle": 915
+   }
+  },
+  {
+   "n": 22,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1734,
+    "settle": 919
+   }
+  },
+  {
+   "n": 23,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1759,
+    "settle": 922
+   }
+  },
+  {
+   "n": 24,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 4,
+    "record": 1775,
+    "settle": 924
+   }
+  },
+  {
+   "n": 25,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1752,
+    "settle": 906
+   }
+  },
+  {
+   "n": 26,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1733,
+    "settle": 922
+   }
+  },
+  {
+   "n": 27,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1756,
+    "settle": 913
+   }
+  },
+  {
+   "n": 28,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1778,
+    "settle": 909
+   }
+  },
+  {
+   "n": 29,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1720,
+    "settle": 921
+   }
+  },
+  {
+   "n": 30,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1750,
+    "settle": 910
+   }
+  },
+  {
+   "n": 31,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1732,
+    "settle": 917
+   }
+  },
+  {
+   "n": 32,
+   "action": "click Skip this lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Skip this lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 4,
+    "record": 1734,
+    "settle": 923
+   }
+  },
+  {
+   "n": 33,
+   "action": "click Conclude the lesson",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Conclude the lesson\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1772,
+    "settle": 922
+   }
+  },
+  {
+   "n": 34,
+   "action": "quit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1723,
+    "settle": 0
+   }
+  }
+ ],
+ "n_actions": 35,
+ "wall_s": 536.6,
+ "engine_exit": 0,
+ "script_errors": [],
+ "n_script_errors": 0,
+ "engine_errors": [
+  "ERROR: 1 resources still in use at exit (run with --verbose for details)."
+ ],
+ "n_engine_errors": 1
+}

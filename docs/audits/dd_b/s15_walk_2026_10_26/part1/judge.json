@@ -1,0 +1,30 @@
+{
+ "lines": 2,
+ "classes": {
+  "unjudged_other": 1,
+  "as_meant": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 4,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "economy",
+   "meant": "other: the treasury's books",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "═══════════════════════════════════\n  FRANCE TREASURY REPORT\n═══════════════════════════════════\n  Income:  3400g  (28 regions)\n    Berry: 200g\n    Artois: 150g\n    Rhineland: 150g\n    Gascony: 150g\n    Guyenne: 150g\n    Limousin: 150g\n    Anjou: 150g\n    Lorraine: 150g\n    Lyonnais: 100g\n    Bearn: 100g\n    Savoy: 100g\n    Maine: 100g\n    Franche-Comte: 100g\n    Bordelais: 100g\n    Orleanais: 100g\n    Languedoc: 100g\n    Brittany: 100g\n    Nivernais: 50g\n    Burgundy: 50g\n    Champagne: 50g\n    Paris: 300g\n    Normandy: 50g\n    Provence: 200g\n    Ile-de-France: 50g\n    Flanders: 200g\n    Pica"
+  },
+  {
+   "n": 8,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Senarmont, move to Munich",
+   "meant": "move Senarmont",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Senarmont moves from Franche-Comte to Munich (280 lost to march)\nMunich is Bavaria's soil — the corps standing there are fed by contract, about −156g more a turn."
+  }
+ ],
+ "unsent": [],
+ "n_unsent": 0
+}

@@ -1,0 +1,20 @@
+{
+ "lines": 1,
+ "classes": {
+  "as_meant": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 27,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 106,545 with the corps likely to arrive, up to 114,642 if all march; certain 24,000; a bad day (1 in 10) 94,017) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in "
+  }
+ ],
+ "unsent": [],
+ "n_unsent": 0
+}

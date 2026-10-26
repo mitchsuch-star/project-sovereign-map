@@ -800,7 +800,11 @@ static func bb_button_chip(url_meta: String, label: String, text_hex: String, bg
 	var inner := ""
 	if icon_path != "":
 		inner += bb_icon(icon_path, 18, text_hex) + " "
-	inner += "[color=#" + text_hex + "]" + label + "[/color]"
+	# UXR3-83 (S15, October 26, 2026): the label's spaces are bound (U+00A0),
+	# so a wrapped row breaks BETWEEN chips, never through one — "Fall" /
+	# "back" read as two pills. The instruments read the bound space as a
+	# space (their get_parsed_text() readers normalise it).
+	inner += "[color=#" + text_hex + "]" + label.replace(" ", "\u00A0") + "[/color]"
 	return "[bgcolor=#" + bg_hex + "]  [url=" + url_meta + "]" + inner + "[/url]  [/bgcolor]"
 
 
@@ -907,7 +911,8 @@ static func bb_chip_disabled(label: String, icon_path := "") -> String:
 	var inner := ""
 	if icon_path != "":
 		inner += bb_icon(icon_path, 18, "6f7480") + " "
-	inner += "[color=#6f7480]" + label + "[/color]"
+	# UXR3-83: the dimmed pill holds together the same way as the lit one.
+	inner += "[color=#6f7480]" + label.replace(" ", "\u00A0") + "[/color]"
 	return "[bgcolor=#20242c]  " + inner + "  [/bgcolor]"
 
 

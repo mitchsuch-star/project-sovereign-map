@@ -181,6 +181,12 @@ class TestEveryRowIsFixedOrReHomed:
             if "| ✅ FIXED October 25, 2026 — S15 head" in line:
                 assert "docs/audits/uxr4_s15/frames/" in line, r["id"]
                 continue
+            # S15 (October 25, 2026): the walk, delegated to the session by the
+            # user, read a re-homed row ✓ — UXR3-2 closes by that mark to its own
+            # decided fix ("none to the bar's order"), the frame it was read on named.
+            if "| ✅ CLOSED October 25, 2026 — the walk at UXR-4" in line:
+                assert "UXR3_TOP_BAR_BOOT_5120x1440" in line, r["id"]
+                continue
             assert "| OPEN — re-homed to UXR-4 (S15)" in line, r["id"]
             assert "still reads ✗ on:" in line and "docs/audits/uxr3_s12b/frames/" in line, r["id"]
             for pair in r["still"]:

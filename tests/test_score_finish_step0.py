@@ -79,7 +79,9 @@ class TestTheLedgersTellTheTruth:
         open_rows = [r for r in rows.values() if r["state"] in ("OPEN", "partial")]
         view = census.by_pillar(open_rows)
         assert view["untagged"] == [], view["untagged"]
-        assert open_rows, "the census found no open rows at all — the ledgers moved"
+        # S15 (October 26, 2026): 0 OPEN rows is the deploy gate's own target
+        # (`PRE_DEPLOY_PLAN.md` §2) — the guard reads the ledgers themselves.
+        assert rows, "the census read no rows at all — the ledgers moved"
 
     def test_the_stale_rows_are_struck(self, rows):
         for rid in ("PC15-1", "PC15-10", "GEV-5", "EAS-4", "S5-1", "XR-4", "CX5-L5-N1", "L2-3"):

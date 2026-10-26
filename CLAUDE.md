@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **NEXT = S15: the user's eyes at UXR-4, then the deploy (the cert is theirs)**.
+> **S15's walk LANDED Oct 26 (§153); the build waits on S14h, the third measure's rows**.
 
 **▶ LIVE STATE (October 25, 2026).** The three most recent landed rows:
-- **S14f p3 (Oct 25) — D12–D22 BUILT, 40 siblings, S15's head — LANDED** (§152): 1 open defect row, UXR3-2 (the user's mark).
+- **S15 the walk (Oct 26) — delegated; UXR3-2 closed, UXR3-82/83 fixed; the certificate absent; the build HELD** (§153).
+- **S14f p3 (Oct 25) — D12–D22 BUILT, 40 siblings, S15's head — LANDED** (§152).
 - **S14f part 2 (Oct 25) — the P3s, the homed siblings, D5–D11, the re-play — LANDED; S14f COMPLETE** (§151).
-- **S14f part 1 (Oct 24) — the P1, D1–D4, the P2s — LANDED** (§150); D1 re-ruled Oct 25.
 
-**Open with the user:** UXR-4's walk at 5120×1440 (S15), the cert (`INK_IRON_SIGNTOOL_ARGS`), a third measure, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS` — nothing on the machine, §153.3), S14h before the build, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

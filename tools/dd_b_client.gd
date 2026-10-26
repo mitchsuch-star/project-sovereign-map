@@ -633,7 +633,7 @@ func _state() -> Dictionary:
 			continue
 		var t := ""
 		if n is RichTextLabel:
-			t = (n as RichTextLabel).get_parsed_text()
+			t = (n as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 		elif n is Label:
 			t = (n as Label).text
 		elif n is LineEdit:
@@ -842,7 +842,7 @@ func _controls(above_floor_only: bool) -> Array:
 			var rtl := ctrl as RichTextLabel
 			for m in _url_re.search_all(rtl.text):
 				var meta := m.get_string(1)
-				var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true).strip_edges()
+				var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true).replace("\u00A0", " ").strip_edges()
 				if label == "":
 					continue
 				var link := base.duplicate()
@@ -920,7 +920,7 @@ func _own_text(ctrl: Control) -> String:
 		if n is Label and (n as Label).is_visible_in_tree():
 			return str((n as Label).text)
 		if n is RichTextLabel and (n as RichTextLabel).is_visible_in_tree():
-			return (n as RichTextLabel).get_parsed_text()
+			return (n as RichTextLabel).get_parsed_text().replace("\u00A0", " ")
 	return ""
 
 
@@ -1047,7 +1047,7 @@ func _map_screen_rect(n: Control) -> Array:
 func _terminal_text() -> String:
 	var main := _main()
 	var od: RichTextLabel = main.get("output_display") if main != null else null
-	return od.get_parsed_text() if od != null else ""
+	return od.get_parsed_text().replace("\u00A0", " ") if od != null else ""
 
 
 func _tail_lines(text: String, n: int) -> Array:

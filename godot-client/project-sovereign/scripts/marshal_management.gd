@@ -506,6 +506,36 @@ func _render_commission_view():
 	content_area.text = bbcode
 
 
+func _skills_block(m: Dictionary) -> String:
+	"""The character sheet's skill bars and their notes — ONE block for the
+	marshals' cards and the sovereign's (UXR3-82: his rides under his strength,
+	above his prose). Skills — MC-2 character sheet: one bar row per wired
+	skill (█░ bar idiom matches the diplomatic ledger's threat/WE bars).
+	Values, hints, and the Rally/Intendance notes all ship from the backend
+	(shown = applied — Godot renders, never recomputes thresholds). MC-2b
+	(July 11, 2026): administration is wired (The Intendance, recruit
+	pricing). The backend omits the key where the mechanic is not live
+	(legacy rollback world), so absent keys are skipped, never defaulted."""
+	var bbcode := ""
+	var skills = m.get("skills", {})
+	var skill_notes = m.get("skill_notes", {})
+	for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
+		if not skills.has(skill_name):
+			continue
+		var val = int(skills.get(skill_name, 5))
+		var note = str(skill_notes.get(skill_name, ""))
+		bbcode += "  " + _skill_bar_row(skill_name.capitalize(), val, note)
+	var admin_note = str(m.get("admin_note", ""))
+	if admin_note != "":
+		var admin_color = Utils.COLOR_SUCCESS if str(m.get("admin_tier", "")) == "thrifty" else Utils.COLOR_ORANGE
+		bbcode += "  [color=#" + admin_color + "]" + admin_note + "[/color]\n"
+	var rally_note = str(m.get("rally_note", ""))
+	if rally_note != "":
+		var rally_color = Utils.COLOR_SUCCESS if str(m.get("rally_tier", "")) == "fast" else Utils.COLOR_ORANGE
+		bbcode += "  [color=#" + rally_color + "]" + rally_note + "[/color]\n"
+	return bbcode
+
+
 func _render_card(m: Dictionary, index: int) -> String:
 	"""Render a single marshal card."""
 	var bbcode = ""
@@ -547,6 +577,10 @@ func _render_card(m: Dictionary, index: int) -> String:
 			bbcode += "[color=#" + state_color + "]" + Utils.humanize_nation_keys_in_text(state_line) + "[/color]\n"
 		bbcode += _ability_line(m)
 		bbcode += _strength_line(m)
+		# UXR3-82 (S15, October 26, 2026 — the walk's ✗ on the boot board): his
+		# skill bars ride under his strength, ABOVE his two prose paragraphs —
+		# the sheet before the biography, as on every marshal's card.
+		bbcode += _skills_block(m)
 
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))
@@ -566,30 +600,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	# ═══════ COMBAT STATS ═══════
 	if not is_sovereign:
 		bbcode += _strength_line(m)
-
-	# Skills — MC-2 character sheet: one bar row per wired skill (█░ bar idiom
-	# matches the diplomatic ledger's threat/WE bars). Values, hints, and the
-	# Rally/Intendance notes all ship from the backend (shown = applied —
-	# Godot renders, never recomputes thresholds).
-	# MC-2b (July 11, 2026): administration is wired (The Intendance, recruit
-	# pricing). The backend omits the key where the mechanic is not live
-	# (legacy rollback world), so absent keys are skipped, never defaulted.
-	var skills = m.get("skills", {})
-	var skill_notes = m.get("skill_notes", {})
-	for skill_name in ["tactical", "shock", "defense", "logistics", "administration", "command"]:
-		if not skills.has(skill_name):
-			continue
-		var val = int(skills.get(skill_name, 5))
-		var note = str(skill_notes.get(skill_name, ""))
-		bbcode += "  " + _skill_bar_row(skill_name.capitalize(), val, note)
-	var admin_note = str(m.get("admin_note", ""))
-	if admin_note != "":
-		var admin_color = Utils.COLOR_SUCCESS if str(m.get("admin_tier", "")) == "thrifty" else Utils.COLOR_ORANGE
-		bbcode += "  [color=#" + admin_color + "]" + admin_note + "[/color]\n"
-	var rally_note = str(m.get("rally_note", ""))
-	if rally_note != "":
-		var rally_color = Utils.COLOR_SUCCESS if str(m.get("rally_tier", "")) == "fast" else Utils.COLOR_ORANGE
-		bbcode += "  [color=#" + rally_color + "]" + rally_note + "[/color]\n"
+		bbcode += _skills_block(m)
 
 	# ═══════ ABILITY (only shown if active/wired) ═══════
 	if not is_sovereign:

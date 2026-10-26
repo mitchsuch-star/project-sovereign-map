@@ -90,7 +90,9 @@ def _run_harness(script: pathlib.Path, spec: dict, work: pathlib.Path,
     if not out.is_file():
         pytest.fail("the harness wrote no result\n"
                     f"exit={proc.returncode}\nstderr tail:\n{proc.stderr[-2000:]}")
-    result = json.loads(out.read_text(encoding="utf-8"))
+    # UXR3-83 (S15, October 26, 2026): a chip label binds its spaces (U+00A0)
+    # in the bbcode; this door reads them as spaces, as the instruments do.
+    result = json.loads(out.read_text(encoding="utf-8").replace("\u00a0", " "))
     log_text = log.read_text(encoding="utf-8", errors="replace") if log.is_file() else ""
     result["_script_errors"] = log_text.count("SCRIPT ERROR")
     return result
@@ -414,7 +416,8 @@ def driven_panel(boot_payloads, tmp_path_factory):
          "--script", str(REPO / "tools" / "cn3_region_panel_harness.gd")],
         capture_output=True, text=True, timeout=300, env=env, cwd=str(PROJECT))
     assert out.is_file(), "the CN-3 harness wrote no result"
-    rendered = json.loads(out.read_text(encoding="utf-8")).get("regions", {})
+    # UXR3-83 (S15, October 26, 2026): the bound space read as a space at this door too.
+    rendered = json.loads(out.read_text(encoding="utf-8").replace(" ", " ")).get("regions", {})
     rendered["_stations"] = stations
     return rendered
 

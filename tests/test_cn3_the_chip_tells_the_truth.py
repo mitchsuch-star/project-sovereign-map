@@ -168,7 +168,9 @@ def driven(tmp_path_factory):
     if not out.is_file():
         pytest.fail("the harness wrote no result\n"
                     f"exit={proc.returncode}\nstderr tail:\n{proc.stderr[-2000:]}")
-    result = json.loads(out.read_text(encoding="utf-8"))
+    # UXR3-83 (S15, October 26, 2026): a chip label binds its spaces (U+00A0)
+    # in the bbcode; this door reads them as spaces, as the instruments do.
+    result = json.loads(out.read_text(encoding="utf-8").replace("\u00a0", " "))
     log_text = log.read_text(encoding="utf-8", errors="replace") if log.is_file() else ""
     return {"gs": game_state, "rendered": result.get("regions", {}),
             "bench": result.get("bench", ""), "error": result.get("error"),

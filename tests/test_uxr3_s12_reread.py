@@ -44,7 +44,10 @@ LATER_STATES = ("FIXED October 14, 2026 — Pre-Deploy S12 part 2", "OPEN — re
                 # S15's head (October 25, 2026): the re-homed marks' decided
                 # fixes were BUILT and re-shot for the user's eyes; their rows
                 # read FIXED at S15's head (`SYSTEMS_REFERENCE.md` §152.11).
-                "✅ FIXED October 25, 2026 — S15 head")
+                "✅ FIXED October 25, 2026 — S15 head",
+                # S15 (October 25, 2026): the walk's mark closed UXR3-2 to its
+                # own decided fix ("none to the bar's order").
+                "✅ CLOSED October 25, 2026 — the walk at UXR-4")
 
 
 def _load(name: str) -> dict:

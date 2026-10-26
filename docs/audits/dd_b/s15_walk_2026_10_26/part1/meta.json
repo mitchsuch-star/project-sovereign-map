@@ -1,0 +1,10 @@
+{
+ "road": "diplomacy",
+ "brief": "end the war at the table before fighting it out; make the peace or the alliances you need",
+ "port": 8007,
+ "backend_pid": 33108,
+ "engine_pid": 32296,
+ "godot": "C:\\Users\\User\\Downloads\\Godot_v4.4.1-stable_win64.exe\\Godot_v4.4.1-stable_win64.exe",
+ "started": "2026-10-26T00:31:20",
+ "window": "5120x1440"
+}
