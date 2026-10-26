@@ -617,6 +617,20 @@ class TestTheThirdMeasureRecords:
             assert "**Recommendation:**" in row, d
             assert "S14h" in row, d
 
+    def test_the_rulings_are_recorded_as_recommended(self):
+        """October 26, 2026, the user under the standing delegation: "Take S14G-D1 … D7 as
+        recommended"; S14h builds D1, D2, D3, D6 in part 1 and D4, D5 in part 2; D7 is closed."""
+        design = doc_text("DESIGN_REFINEMENT.md")
+        rows = {ln.split("**")[1]: ln for ln in design.splitlines() if ln.startswith("| **S14G-D")}
+        part = {"D1": 1, "D2": 1, "D3": 1, "D6": 1, "D4": 2, "D5": 2}
+        for k, n in part.items():
+            row = rows[f"S14G-{k}"]
+            assert "OPEN — ruled as recommended on October 26, 2026" in row, k
+            assert f"owner S14h part {n} builds it" in row, k
+            assert f"TestS14G{k}" in row, k
+        assert "✅ RULED as recommended on October 26, 2026" in rows["S14G-D7"]
+        assert "no fourth measure runs before the deploy" in rows["S14G-D7"]
+
     def test_the_plan_homes_the_rows_and_the_write_up_states_the_verdict(self):
         plan = doc_text("PRE_DEPLOY_PLAN.md")
         for row in ("| S14g ", "| S14h "):

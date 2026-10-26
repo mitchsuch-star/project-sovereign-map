@@ -296,7 +296,7 @@ dispositions in `tests/test_s14h_the_third_measure_rows.py::TestTheMentions`):
   saves (`tools/_s14f_replay_scenes.py`, as S14f part 2 did). The sibling sweep in
   force (Rule 10) — and this time it carries each fixed sentence to every surface
   where its choice is made (§5).
-- **`DESIGN_REFINEMENT.md` §S14G** — 7 rows, for the user at S14h's head:
+- **`DESIGN_REFINEMENT.md` §S14G** — 7 rows, **ruled as recommended on October 26, 2026** (the user, under the standing delegation: D1, D2, D3, D6 build at S14h part 1, D4, D5 at part 2, D7 closed):
   - S14G-D1 retaking an ally's ground: liberation, handed back at once;
   - S14G-D2 the aggressive marshal's interrupt: keep it, say it at the order;
   - S14G-D3 which letters shut the Cabinet: a great court's and an ultimatum;
