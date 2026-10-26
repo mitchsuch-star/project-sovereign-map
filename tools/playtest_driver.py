@@ -4355,7 +4355,12 @@ def _apply_seams(specs) -> None:
     at its seam, e.g.
     `backend.game_logic.garrison_report:detachment_capitulates=False`.
     Applied after the levers; a malformed spec, or a name that is not a
-    callable, is an error, never a silent no-op."""
+    callable, is an error, never a silent no-op.
+
+    S14f p3 (S14E-D12, October 25, 2026): a seam may be a METHOD —
+    `MODULE:Class.method=EXPR` walks the dotted name from the module
+    (`backend.commands.combat_executor:CombatExecutor._defender_mean_exact=None`);
+    the lambda is set on the class, so `a[0]` is the instance."""
     import importlib
     for spec in specs or []:
         try:
@@ -4364,9 +4369,15 @@ def _apply_seams(specs) -> None:
         except ValueError as exc:
             raise SystemExit(f"--seam expects MODULE:NAME=EXPR, got {spec!r}") from exc
         module = importlib.import_module(module_name)
-        if not callable(getattr(module, attr, None)):
+        owner = module
+        *path, name = attr.split(".")
+        for step in path:
+            owner = getattr(owner, step, None)
+            if owner is None:
+                raise SystemExit(f"--seam: {module_name} has no {'.'.join(path)!r}")
+        if not callable(getattr(owner, name, None)):
             raise SystemExit(f"--seam: {module_name} has no seam {attr!r}")
-        setattr(module, attr, eval("lambda *a, **k: " + expr.strip(), {}))
+        setattr(owner, name, eval("lambda *a, **k: " + expr.strip(), {}))
 
 
 def run(args):

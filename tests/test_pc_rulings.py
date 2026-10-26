@@ -4163,7 +4163,11 @@ class TestDiplomacyIsNeverTyped:
         w.regions[w.get_nation_capital(court)].controller = "France"
         row = self._row(w, court, "subjugate")
         assert row["available"], row["disabled_reason"]
-        out = self._send(w, f"vassalize {court}")
+        # S14E-D15: flipped - the chip's line QUOTES first (free, nothing
+        # applied); the conquest is the reissue with `confirmed`.
+        quote = self._send(w, f"vassalize {court}")
+        assert quote.get("instrument_confirm") and court not in w.vassals
+        out = self._send(w, f"vassalize {court} confirmed")
         assert out.get("success"), out.get("message")
         assert w.vassals[court]["lord"] == "France"
 

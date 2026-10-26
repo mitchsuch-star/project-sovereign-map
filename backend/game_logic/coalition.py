@@ -2346,6 +2346,47 @@ def add_war_exhaustion_from_battle(nation: str, casualties: int, world) -> int:
     return int(new_val)
 
 
+def add_war_exhaustion_from_draw(world, attacker_nation: str, defender_nation: str,
+                                 attacker_dead: int, defender_dead: int) -> Dict[str, int]:
+    """S14E-X245 / S14E-D22 (S14f p3, October 25, 2026): THE SEAM of a DRAWN
+    battle's weariness - each side accrues war exhaustion on its OWN dead.
+
+    The won/lost arms (`_post_combat_pipeline` step 13 and the auto-charge's
+    mirror) are keyed on who won, and only the LOSER pays its dead: a
+    stalemate - the Great Battle of Tyrol, 7,673 French and 6,020 Austrian
+    dead, 8,796 on the day's ledger - left both courts' war exhaustion at 0 / 0
+    while a lost battle of a tenth the blood would have moved one. A drawn
+    battle counts as a battle wherever one is counted (S14E-D20's line); a
+    stalemate has no loser to pay, so it has two: each side bears its own dead
+    through `add_war_exhaustion_from_battle` (ONE formula - `casualties //
+    1000`, capped at +20 a battle, the threshold dispatches included - never a
+    copy).
+
+    The gate mirrors the won arms'. Europe (the running game): both sides pay,
+    France's included (the EC-W2 / AI-4c third-party arms). The legacy board
+    (N1: its combat pins stand): only where France fought, and France only as
+    the ATTACKER - the won arms' own reach there (the France-as-defender arm
+    is Europe-scoped). Returns {nation: new war exhaustion} for the sides that
+    paid. The series arm holds it DOWN with
+    `backend.game_logic.coalition:add_war_exhaustion_from_draw=
+    lambda *a, **k: {}` - today's behaviour (a draw accrues nothing)."""
+    france = getattr(world, "player_nation", None)
+    europe = getattr(world, "sovereign_map", "legacy") == "europe"
+    paid: Dict[str, int] = {}
+    for nation, dead in ((attacker_nation, attacker_dead),
+                         (defender_nation, defender_dead)):
+        if not nation:
+            continue
+        if not europe:
+            if france not in (attacker_nation, defender_nation):
+                continue
+            if nation == france and nation != attacker_nation:
+                continue
+        paid[nation] = add_war_exhaustion_from_battle(
+            nation, int(max(0, int(dead or 0))), world)
+    return paid
+
+
 def add_coalition_shock(defeated_nation: str, world) -> None:
     """Add +5 WE to other coalition members when one is defeated (§6b)."""
     coalition = world.active_coalition

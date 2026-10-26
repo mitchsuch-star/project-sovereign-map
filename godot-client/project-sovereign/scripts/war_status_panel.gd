@@ -429,11 +429,14 @@ func _add_armistice_card(war_data: Dictionary):
 	var cure = str(war_data.get("armistice_cure_line", ""))
 	var projected = str(war_data.get("armistice_projected_outcome", ""))
 	if keeps != "" or heading != "":
-		# PC-X11: one part a line, wrapped — a tooltip never wraps itself
+		# PC-X11: one part a line. PC-F47 (S15 head): the hard wrap at 100
+		# characters is retired — the tooltip wraps itself to the window now
+		# (`Utils.wrap_tooltips`), and a fixed width re-wrapped raggedly in a
+		# narrow one.
 		var tip = "Armistice with %s — %d turns left.\n%s\n%s" % [opponent_display, remaining, keeps, heading]
 		if cure != "":
 			tip += "\n" + cure
-		btn.tooltip_text = Utils.wrap_text(tip.strip_edges(), 100)
+		btn.tooltip_text = tip.strip_edges()
 	elif projected == "peace":
 		btn.tooltip_text = "Armistice with %s — %d turns left, on course for peace." % [opponent_display, remaining]
 	elif projected == "war":

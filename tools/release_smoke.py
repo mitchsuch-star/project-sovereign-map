@@ -93,11 +93,35 @@ def _tail(path: Path, lines: int = 40) -> str:
     return "\n".join(text[-lines:])
 
 
+def signature_verifies(exe: Path, signtool: str | None = None) -> bool:
+    """S15 (the deploy gate): ``signtool verify /pa`` on ``exe`` — the
+    Authenticode chain a tester's SmartScreen will judge. ``signtool`` is the
+    Windows SDK's, found on PATH or named by ``SIGNTOOL`` (build.bat's own
+    variable). False when the tool is missing or the signature does not
+    verify; the caller decides whether that fails the smoke."""
+    tool = signtool or os.environ.get("SIGNTOOL") or "signtool"
+    try:
+        proc = subprocess.run([tool, "verify", "/pa", str(exe)],
+                              capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"[ERROR] signtool could not run ({exc}); set SIGNTOOL to the SDK's signtool.exe")
+        return False
+    if proc.returncode != 0:
+        print(proc.stdout.decode("utf-8", errors="replace")[-800:])
+    return proc.returncode == 0
+
+
 def run_smoke(dist: Path, port: int, expect_version: str | None,
-              live_key: str | None = None, boot_seconds: float = 90.0) -> int:
+              live_key: str | None = None, boot_seconds: float = 90.0,
+              expect_signed: bool = False) -> int:
     exe = dist / SERVER_EXE
     if not exe.exists():
         print(f"[ERROR] {exe} not found - was the PyInstaller step skipped?")
+        return 1
+    # S15: a build configured to sign (build.bat's INK_IRON_SIGNTOOL_ARGS)
+    # must boot a SIGNED server - the file SmartScreen judges is this one.
+    if expect_signed and not signature_verifies(exe):
+        print(f"[ERROR] {exe.name} is not signed (or its signature does not verify)")
         return 1
 
     work = Path(tempfile.mkdtemp(prefix="ink_iron_smoke_"))
@@ -220,13 +244,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--boot-seconds", type=float, default=90.0)
     ap.add_argument("--anthropic-key-from-env", action="store_true",
                     help="also run one live parse with ANTHROPIC_API_KEY from the environment")
+    ap.add_argument("--expect-signed", action="store_true",
+                    help="S15: fail unless the server exe carries a verifying Authenticode "
+                         "signature (build.bat passes it when INK_IRON_SIGNTOOL_ARGS is set)")
     args = ap.parse_args(argv)
     live_key = os.environ.get("ANTHROPIC_API_KEY", "") if args.anthropic_key_from_env else None
     if args.anthropic_key_from_env and not live_key:
         print("[ERROR] --anthropic-key-from-env given but ANTHROPIC_API_KEY is empty")
         return 1
     return run_smoke(args.dist, args.port, args.expect_version, live_key or None,
-                     args.boot_seconds)
+                     args.boot_seconds, expect_signed=args.expect_signed)
 
 
 if __name__ == "__main__":

@@ -790,6 +790,29 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               # archive byte for byte with the rule down).
               "backend.game_logic.intel_surfaces:last_seen=(lambda k: k and {'location': k[0], 'intel_turn': k[1], 'visibility': k[2], 'source': 'snapshot'})(a[0].get_last_known_location(a[2]) if a[2] else None)",
               "backend.game_logic.intel_surfaces:record_shown_sightings=0",
+              # S14f p3 — the nine rulings (October 25, 2026; `SYSTEMS_REFERENCE.md`
+              # §152): every seam the rulings put on the AI's path, held down —
+              # the stored war score's stamps (D14: measured, the page re-times
+              # from turn 11 without it), the drawn battle's exhaustion (D22: the
+              # state-charge note from row 65), the defender's exact term and the
+              # band's ratio (D12), the AI's downgrade through the one executor
+              # (D13), the fleet action's stamp (D16), the AI's buy-off on its
+              # chest (D19), the drawn battle as contact and the drawn dead
+              # (D20), the drawn credit (D21), the new war's stamp (X249), the
+              # answering defender (X216) — each the ruling's own down value.
+              # D12's seams are class methods: the driver walks `Class.method`.
+              "backend.game_logic.diplomacy:recalculate_pair_war_score=None",
+              "backend.game_logic.diplomacy:stamp_new_war_score=None",
+              "backend.game_logic.coalition:add_war_exhaustion_from_draw={}",
+              "backend.game_logic.war_contribution:accrue_drawn_contribution=None",
+              "backend.commands.combat_executor:CombatExecutor._defender_mean_exact=None",
+              "backend.commands.combat_executor:CombatExecutor._muster_ratio_exact=None",
+              "backend.ai.enemy_ai:priced_defender=a[1]",
+              "backend.game_logic.ai_diplomacy:_ai_ai_downgrade=(__import__('backend.game_logic.diplomacy', fromlist=['x']).set_diplomatic_state(a[0], a[1], a[2], a[4], 'ai_ai_downgrade'), __import__('backend.game_logic.diplomatic_dialogue', fromlist=['x']).modify_relation_booked(a[0], a[1], a[2], __import__('backend.game_logic.diplomacy', fromlist=['x']).DOWNGRADE_PENALTIES.get((a[3], a[4]), {}).get('relation_target', -10), 'downgrade', a[1], a[2]), {'success': True, 'new_state': a[4], 'relation_cost': 0})[-1]",
+              "backend.game_logic.naval:_stamp_fleet_action_clock=None",
+              "backend.game_logic.war_council:_ai_buyoff_funds=int((getattr(a[0], 'nation_gold', {}) or {}).get(a[1], 0) or 0)",
+              "backend.game_logic.diplomacy:pair_has_fought=bool((getattr(a[0], 'battle_records', None) or {}).get(a[1]))",
+              "backend.game_logic.diplomacy:ally_dead_in_pair=__import__('backend.game_logic.diplomacy', fromlist=['x']).battle_record_dead(a[0], a[1], a[2])",
               ]
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

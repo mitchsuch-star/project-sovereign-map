@@ -5040,7 +5040,11 @@ class WorldState:
         }
 
     def record_drawn_battle(self, nation_a: str, nation_b: str,
-                            a_dead: int, b_dead: int) -> None:
+                            a_dead: int, b_dead: int, region: str = "",
+                            *, a_marshal: Optional[str] = None,
+                            b_marshal: Optional[str] = None,
+                            a_pre: Optional[int] = None,
+                            b_pre: Optional[int] = None) -> None:
         """S14E-X201 (Pre-Deploy S14f part 2): a DRAWN battle (stalemate /
         mutual destruction) has no winner, so `diplomacy.record_battle` is
         never called and `battle_records` — winner-only on purpose (its
@@ -5059,8 +5063,24 @@ class WorldState:
         and the ratification summary count a stalemate's dead as they count
         a won battle's (`diplomacy.drawn_battle_dead` is the one reader).
         War-gated like every ledger producer. Display only: no score, no AI
-        read (GR6)."""
+        read (GR6).
+        S14E-D21 / S14E-X244: the same stamp now ALSO credits the settlement
+        war-contribution buckets (`war_contribution.accrue_drawn_contribution`
+        - `region` and the principals' marshal names / pre-battle strengths
+        open the one-hop theater, so an ally beside the field is credited).
+        S14E-X248: with `region` the stored scores of the THIRD pairs the
+        province touches are stamped too (`recalculate_battle_war_scores`)."""
         self.record_campaign_casualties(nation_a, nation_b, a_dead, b_dead)
+        # S14E-D14 / S14E-X98 / S14E-X101 (S14f p3): the draw's dead enter the
+        # ledger the war score's blood component reads - the pair's STORED
+        # score follows (a no-op for a pair not at war), whatever the floor.
+        # S14E-X248: with the battle's province, the THIRD pairs it touches
+        # follow too (a besieger of a third court's capital beaten here).
+        if region:
+            self.recalculate_battle_war_scores(region, nation_a, nation_b)
+        else:
+            from backend.game_logic.diplomacy import recalculate_pair_war_score
+            recalculate_pair_war_score(self, nation_a, nation_b)
         if not self.is_at_war(nation_a, nation_b):
             return
         from backend.game_logic import battle_scale
@@ -5074,6 +5094,15 @@ class WorldState:
             "turn": int(self.current_turn),
             "dead": {str(nation_a): int(a_dead), str(nation_b): int(b_dead)},
         })
+        # S14E-X244 / S14E-D21 (S14f p3): and the draw credits the settlement
+        # war-contribution buckets on blood, both sides, as a won battle's
+        # accrual does (`war_contribution.accrue_drawn_contribution`, THE
+        # SEAM; the same 1,000-dead floor as the ledger stamp above).
+        from backend.game_logic.war_contribution import accrue_drawn_contribution
+        accrue_drawn_contribution(
+            self, nation_a, nation_b, int(a_dead), int(b_dead), region or None,
+            marshal_a=a_marshal, marshal_b=b_marshal,
+            pre_strength_a=a_pre, pre_strength_b=b_pre)
 
     def record_blockade_turn(self, denier: str, victim: str) -> None:
         """HC-1: accrue one turn of naval trade denial onto the pair's
@@ -5219,6 +5248,16 @@ class WorldState:
                     self.release_captured_marshal(
                         _prisoner.name, reason="rescued_by_storm")
 
+        # S14E-D14 / S14E-X98 / S14E-X101 / S14E-X222 (S14f p3): the capture
+        # moved the war score of every pair it touches - the pair that fought
+        # (the ledger's conquest, the capital), and the pairs the province's
+        # STARTING owner and capital owner stand in (the territory and capital
+        # components read who holds whose ground). The store follows now, not
+        # at End Turn alone. Before the elimination teardown, which clears a
+        # dead court's pairs itself.
+        self._recalculate_capture_war_scores(
+            region_name, old_controller, capturing_nation)
+
         # R81: Check for elimination after capture
         if (old_controller and old_controller != capturing_nation
                 and old_controller != self.player_nation):
@@ -5242,6 +5281,55 @@ class WorldState:
                     ) + [elimination_receipt_line(self, old_controller)]
 
         return True
+
+    def _recalculate_capture_war_scores(self, region_name: str,
+                                        old_controller, capturing_nation) -> None:
+        """S14E-D14 / S14E-X222 (S14f p3, October 25, 2026): the stored war
+        scores a capture of `region_name` moved - every pair at war among the
+        old controller, the capturer, the province's STARTING owner (the
+        territory component) and the nation whose capital it is (the capital
+        component). Nations only, never a region scan (Golden Rule 8); the
+        seam is `diplomacy.recalculate_pair_war_score`, called per pair."""
+        from backend.game_logic.diplomacy import recalculate_war_scores_among
+        recalculate_war_scores_among(self, self._war_score_nations_at(
+            region_name, old_controller, capturing_nation))
+
+    def _war_score_nations_at(self, region_name: str, *nations) -> Set[str]:
+        """S14E-X248 (S14f p3, October 25, 2026): THE touched set of the war
+        score's province-keyed components - `nations` (the parties of the
+        happening), the province's STARTING owner (the territory component)
+        and every nation whose capital it is (the capital component). One
+        helper for the capture stamp (`_recalculate_capture_war_scores`) and
+        the battle stamp (`recalculate_battle_war_scores`), never a copy.
+        Nations only, never a region scan (Golden Rule 8)."""
+        starting = getattr(self, "_starting_controllers", None) or get_starting_controllers()
+        touched = {*nations, starting.get(region_name)}
+        for nation, capital in (getattr(self, "nation_capitals", None) or {}).items():
+            if capital == region_name:
+                touched.add(nation)
+        touched.discard(None)
+        touched.discard("")
+        return touched
+
+    def recalculate_battle_war_scores(self, region_name: str,
+                                      attacker_nation: str,
+                                      defender_nation: str) -> None:
+        """S14E-X248 (S14f p3, October 25, 2026): the stored war scores a
+        BATTLE at `region_name` moved - the pair that fought AND the pairs
+        its province stands in: the war score's capital component reads who
+        stands in a capital, so a besieger of a third court's capital beaten
+        (and driven off, or destroyed) here shifts THAT pair's siege component,
+        which stayed at the morning's figure until End Turn when only
+        attacker x defender was stamped (D14). The touched set is the
+        province's controller and starting owner, every nation whose capital it
+        is, and the two parties (`_war_score_nations_at`); each pair among them
+        goes through `diplomacy.recalculate_pair_war_score` (the D14 seam -
+        held down, this is held down: a pair not at war is a no-op)."""
+        region = (getattr(self, "regions", None) or {}).get(region_name)
+        controller = getattr(region, "controller", None) if region else None
+        from backend.game_logic.diplomacy import recalculate_war_scores_among
+        recalculate_war_scores_among(self, self._war_score_nations_at(
+            region_name, attacker_nation, defender_nation, controller))
 
     def retire_letters_of_a_dead_court(self, nation: str) -> int:
         """PC-X20: every letter a court that is no more had on the desk — its
@@ -6098,6 +6186,13 @@ class WorldState:
             ),
         })
 
+        # S14E-D14 / S14E-X223 (S14f p3): a prisoner moves two live components
+        # of the pair's war score - the Captive Eagle when he is a sovereign,
+        # and the siege of a capital he stood in (a captive is no besieger,
+        # `_besieges`). The STORED score follows the taking, not End Turn alone.
+        from backend.game_logic.diplomacy import recalculate_pair_war_score
+        recalculate_pair_war_score(self, owner, captor_nation)
+
         if is_sovereign:
             self._apply_sovereign_capture_consequences(marshal, captor_nation)
             return (f"[!] THE EAGLE IN CHAINS — {marshal.name} is TAKEN by "
@@ -6258,6 +6353,11 @@ class WorldState:
                          if k not in ("type", "marshal", "nation", "captor",
                                       "reason", "sovereign")})
         self.log_event(_row)
+        # S14E-D14 / S14E-X223 (S14f p3): the Captive Eagle component vanishes
+        # the turn he comes home - the pair's STORED score follows (a no-op
+        # for a pair no longer at war).
+        from backend.game_logic.diplomacy import recalculate_pair_war_score
+        recalculate_pair_war_score(self, marshal.nation, captor)
         return True
 
     def release_mutual_prisoners(self, nation_a: str, nation_b: str,
@@ -15739,6 +15839,7 @@ class WorldState:
                 pre_battle_atk = marshal.strength
                 pre_battle_def = enemy.strength
                 auto_charge_battle_region = enemy.location
+                _ac_from = marshal.location  # S14E-X250: the province the charger rode from
 
                 # Clear attacker's combat transient state before combat (V2-48/V2-49)
                 marshal.clear_combat_transient_state()
@@ -15840,15 +15941,27 @@ class WorldState:
                         defender_participants=(theater or {}).get("defender_participants"),
                         nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                     )
+                    # S14E-D14 / S14E-X98 / S14E-X101 (S14f p3): the pair's
+                    # STORED score follows the charge's battle (mirrored arm).
+                    # S14E-X248: and the THIRD pairs the charge's province
+                    # stands in (a capital's besieger beaten here).
+                    self.recalculate_battle_war_scores(
+                        auto_charge_battle_region, marshal.nation, enemy.nation)
                 else:
                     # PT-J2 review round [P2-3]: the drawn charge's dead
                     # accrue to the campaign ledger (the auto-charge is
                     # its own combat copy — mirrored arm). S14E-X201: and
-                    # counted as a battle fought.
+                    # counted as a battle fought. S14E-X244 / X248: and the
+                    # settlement buckets credited (with the theater of the
+                    # charge's province), the third pairs stamped.
                     self.record_drawn_battle(
                         marshal.nation, enemy.nation,
                         int(combat_result.get("attacker", {}).get("casualties", 0)),
-                        int(combat_result.get("defender", {}).get("casualties", 0)))
+                        int(combat_result.get("defender", {}).get("casualties", 0)),
+                        auto_charge_battle_region,
+                        a_marshal=getattr(marshal, "name", None),
+                        b_marshal=getattr(enemy, "name", None),
+                        a_pre=int(pre_battle_atk), b_pre=int(pre_battle_def))
 
                 # GE-1: the campaign's own record — the auto-charge is the
                 # one combat path outside `_post_combat_pipeline`, so it
@@ -16100,6 +16213,23 @@ class WorldState:
                     if marshal.nation == self.player_nation:
                         self.calculate_visibility()
 
+                # S14E-X250 (S14f p3, October 25, 2026): the charge's relocations
+                # - a rout (the charged corps flees its capital, or the charger
+                # his), the charger's advance - moved a corps out of or into a
+                # capital AFTER the battle's stamp: the siege component of that
+                # pair stayed at the morning's figure until End Turn (the
+                # executor's retreat and advance stamp since X224 / X225; this
+                # simplified copy had no stamp). The same seam, the same helper.
+                if enemy.location != auto_charge_battle_region:
+                    from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+                    recalculate_war_scores_for_march(
+                        self, enemy, auto_charge_battle_region, enemy.location)
+                if marshal.location != _ac_from:
+                    from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+                    recalculate_war_scores_for_march(
+                        self, marshal, _ac_from, auto_charge_battle_region,
+                        marshal.location)
+
                 # V2-47: Ensure broken state for 0-strength marshals
                 if enemy.strength <= 0:
                     enemy.broken = True
@@ -16214,6 +16344,13 @@ class WorldState:
                                 "captured_from": _charge_from,
                                 "method": "charge",
                             })
+                            # S14E-D14 / S14E-X221 (S14f p3): the one conquest
+                            # outside capture_region stamps the pairs it moved
+                            # here too (mirrored arm) - the ledger conquest,
+                            # the territory and the capital components.
+                            self._recalculate_capture_war_scores(
+                                auto_charge_battle_region, _charge_from,
+                                marshal.nation)
                             conquered = True
                             conquest_msg = f" {auto_charge_battle_region} captured by {marshal.nation}!"
 
@@ -16243,9 +16380,10 @@ class WorldState:
 
                 # ── Coalition: Threat + war exhaustion ──
                 from backend.game_logic.coalition import (
-                    add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+                    add_threat, add_war_exhaustion_from_battle, add_coalition_shock,
+                    add_war_exhaustion_from_draw,
                 )
-                ac_atk_cas = int(combat_result.get("attacker", {}).get("casualties", 0))
+                ac_atk_cas =int(combat_result.get("attacker", {}).get("casualties", 0))
                 ac_def_cas = int(combat_result.get("defender", {}).get("casualties", 0))
                 ac_total_cas = ac_atk_cas + ac_def_cas
                 france = self.player_nation
@@ -16309,6 +16447,14 @@ class WorldState:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
                     if _ac_third_party:
                         add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
+                else:
+                    # S14E-X245 / S14E-D22 (S14f p3), the mirrored arm: a
+                    # DRAWN charge - each side bears its OWN dead through the
+                    # loser's one formula (`coalition.add_war_exhaustion_
+                    # from_draw`, THE SEAM - down: a no-op).
+                    add_war_exhaustion_from_draw(
+                        self, marshal.nation, enemy.nation,
+                        ac_atk_cas, ac_def_cas)
 
                 # EC-W3: The Butcher's Bill — each side pays at once for the
                 # guns, horses and stores lost with its men (one-time flow

@@ -1499,7 +1499,7 @@ def _answer_odds_natural(world, question: Dict) -> Optional[str]:
 
 
 def _defence_lines(world, defenders, attacker, where: str) -> str:
-    from backend.commands.objection_v2 import inferred_attack_odds_reading, odds_band_note
+    from backend.commands.objection_v2 import _muster_totals_reader, odds_band_note
     lead = defenders[0]
     held = sum(int(m.strength) for m in defenders)
     region = world.get_region(where)
@@ -1515,16 +1515,19 @@ def _defence_lines(world, defenders, attacker, where: str) -> str:
             line += f" The ground gives the defender +{int(round(bonus * 100))}% ({region.terrain})."
     if attacker is not None:
         try:
-            band, weighed = inferred_attack_odds_reading(
-                attacker, lead, {"world": world}, committed_defender=float(held - int(lead.strength)),
-                fold_modifiers=True)
+            # S14E-X217 (S14f p3): OUR side of the band through the one summer
+            # (`_defender_muster`'s exact mean, the corps here and the friends a
+            # march away) - it priced the corps in the province at raw strength.
+            # His side is today's reading (his visible lead alone, fog-honest).
+            band, weighed, _term = _muster_totals_reader().defence_reading(
+                attacker, lead, world)
             # read from OUR side: his favorable is our unfavorable
             ours = {"favorable": "against us", "even": "even", "unfavorable": "in our favour"}.get(band, band)
             note = odds_band_note(band, weighed)
             line += f" Were {_display(attacker.name)} to attack, the odds read {ours}"
             line += (f" — {note}." if note else ".")
         except Exception as exc:
-            report(exc, "state_desk._defence_lines: inferred_attack_odds_reading / float")
+            report(exc, "state_desk._defence_lines: combat.defence_reading")
     return line
 
 
@@ -3238,13 +3241,20 @@ def _answer_reward(world, name: str) -> str:
 def _answer_afford(world, thing: str, place: str) -> str:
     from backend.models.region import BUILDING_TYPES
     spec = BUILDING_TYPES.get(thing) if thing else None
-    chest = int(world.nation_gold.get(world.player_nation, 0) or 0)
+    # S14E-X240 / S14E-D19: "can we afford it" is answered on the ONE chest
+    # (`purse_of`: the treasury less the recurring settlement payments still
+    # owed) - the figure `can_build` refuses against - and says so where the
+    # coffers hold more.
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, chest = purse_of(world, world.player_nation)
+    owed = owed_suffix(coffers, chest)
     if not spec:
-        return f"The treasury holds {_money(chest)} gold, Sire — name the thing to be priced."
+        return f"The treasury holds {_money(chest)} gold{owed}, Sire — name the thing to be priced."
     cost = int(spec.get("gold_cost") or 0)
     word = thing.replace("_", " ")
     line = (f"A {word} costs {_money(cost)} gold and {int(spec.get('build_time') or 0)} turns, Sire; "
-            f"the treasury holds {_money(chest)} — {'yes' if chest >= cost else 'no, ' + _money(cost - chest) + ' short'}.")
+            f"the treasury holds {_money(chest)}{(' gold' + owed) if owed else ''} — "
+            f"{'yes' if chest >= cost else 'no, ' + _money(cost - chest) + ' short'}.")
     if place:
         from backend.ai.question_desk import _answer_can_build
         region = world.get_region(place)

@@ -201,11 +201,19 @@ def can_build(world, region, building_type: str, nation: str):
         return _refuse(f"{name} already has a "
                        f"{building_type.replace('_', ' ')}")
     gold_cost = btype_info["gold_cost"]
-    treasury = (world.nation_gold.get(nation, 0)
-                if world is not None else 0)
+    # S14E-X196 / S14E-D19: the PLAYER's works are gated against the ONE chest
+    # (`instruments.purse_of`: the treasury less the recurring settlement
+    # payments still owed); an AI court keeps its raw treasury. The charge
+    # (`_execute_build`) still leaves the coffers.
+    if world is not None:
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, treasury = purse_of(world, nation)
+        owed = owed_suffix(coffers, treasury)
+    else:
+        treasury, owed = 0, ""
     if treasury < gold_cost:
         return _refuse(f"Insufficient gold! Need {gold_cost}, have "
-                       f"{treasury}")
+                       f"{treasury}{' gold' + owed if owed else ''}")
     return True, "", "build"
 
 

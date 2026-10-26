@@ -1,0 +1,1075 @@
+{
+ "slice": "Pre-Deploy S15 head — the decided fixes of UXR3-24, UXR3-80, UXR3-29, UXR3-79, UXR3-81, and UXR3-41's two boards re-staged",
+ "date": "2026-10-25",
+ "client_base_commit": "4ac79a0f",
+ "how": "tools/iq10_run_captures.py --physical (1920x1080 and 5120x1440 only, Interface Scale 'auto'), payloads from tools/iq10_capture_payloads.py; frames cropped to the surface's rects (tools/uxr3_review.crop), JPEG q85; seen_text = the harness's frame record (whole lines inside the window)",
+ "script_errors": 0,
+ "frames": [
+  {
+   "id": "diplo_doctrine_nations",
+   "rows": [
+    "UXR3-29"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_DOCTRINE_NATIONS_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_DOCTRINE_NATIONS_1920x1080.jpg",
+   "must_lead": "each court's Doctrine line in the first screenful; the France blocks below the courts",
+   "staging": "1805 boot; Austria's Corps d'Armée (its Staff and its cure) in force",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ NATION OVERVIEW ═══\nEvery court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.\n\n  Britain [Coalition Member] — WAR  Relation: -90 (Hostile)\n  Doctrine: The Line Holds; flaw: Irreplaceable (uncured — the Militia Transfer would end it once the Horse Guards Reforms stands)\n  Diplomat: Castlereagh (Hawk) — Skill 7\n  Regions: 11   Army: Unknown\n  Treaties: None\n  Design: The Low Countries — They will not suffer France's bloc in Flanders.\n  Intent: prepared to go as far as war — France stands in the way (weight 84)\n  AI Relations: Russia [ALLIANCE] — Loyal (70), Austria [ALLIANCE] — Loyal (60), Spain [WAR] — Hostile (-80), Holland [WAR] — Hostile (-80)\n  War Score: [0]  (Territory 0, Battles 0, Decisive 0, Capital 0, Campaign 0, Blood 0)\n\n  Russia [Coalition Member] — WAR  Relation: -80 (Hostile)\n  Doctrine: Stubborn; flaw: Slow to concentrate (uncured — the Divisional System would end it)\n  Diplomat: Czartoryski (Schemer) — Skill 7\n  Regions: 10   Army: Unknown\n  Treaties: None\n  Design: Arbiter of Europe — They stand against France's dominion over Europe (39% of its weight).\n  Intent: prepared to go as far as war — France stands in the way (weight 89)\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 5/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "diplo_doctrine_nations",
+   "rows": [
+    "UXR3-29"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_DOCTRINE_NATIONS_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_DOCTRINE_NATIONS_5120x1440.jpg",
+   "must_lead": "each court's Doctrine line in the first screenful; the France blocks below the courts",
+   "staging": "1805 boot; Austria's Corps d'Armée (its Staff and its cure) in force",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ NATION OVERVIEW ═══\nEvery court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.\n\n  Britain [Coalition Member] — WAR  Relation: -90 (Hostile)\n  Doctrine: The Line Holds; flaw: Irreplaceable (uncured — the Militia Transfer would end it once the Horse Guards Reforms stands)\n  Diplomat: Castlereagh (Hawk) — Skill 7\n  Regions: 11   Army: Unknown\n  Treaties: None\n  Design: The Low Countries — They will not suffer France's bloc in Flanders.\n  Intent: prepared to go as far as war — France stands in the way (weight 84)\n  AI Relations: Russia [ALLIANCE] — Loyal (70), Austria [ALLIANCE] — Loyal (60), Spain [WAR] — Hostile (-80), Holland [WAR] — Hostile (-80)\n  War Score: [0]  (Territory 0, Battles 0, Decisive 0, Capital 0, Campaign 0, Blood 0)\n\n  Russia [Coalition Member] — WAR  Relation: -80 (Hostile)\n  Doctrine: Stubborn; flaw: Slow to concentrate (uncured — the Divisional System would end it)\n  Diplomat: Czartoryski (Schemer) — Skill 7\n  Regions: 10   Army: Unknown\n  Treaties: None\n  Design: Arbiter of Europe — They stand against France's dominion over Europe (39% of its weight).\n  Intent: prepared to go as far as war — France stands in the way (weight 89)\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 5/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "diplo_laws_rival_nations",
+   "rows": [
+    "UXR3-29"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_LAWS_RIVAL_NATIONS_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_LAWS_RIVAL_NATIONS_1920x1080.jpg",
+   "must_lead": "Britain's Laws line in the first screenful; the France blocks below the courts",
+   "staging": "1805 boot; Britain's Orders in Council and Militia Transfer in force",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ NATION OVERVIEW ═══\nEvery court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.\n\n  Britain [Coalition Member] — WAR  Relation: -90 (Hostile)\n  Laws: the Orders in Council and the Militia Transfer (300 gold a turn)\n  Doctrine: The Line Holds; flaw: Irreplaceable (uncured — the Militia Transfer would end it once the Horse Guards Reforms stands)\n  Diplomat: Castlereagh (Hawk) — Skill 7\n  Regions: 11   Army: Unknown\n  Treaties: None\n  Design: The Low Countries — They will not suffer France's bloc in Flanders.\n  Intent: prepared to go as far as war — France stands in the way (weight 84)\n  AI Relations: Russia [ALLIANCE] — Loyal (70), Austria [ALLIANCE] — Loyal (60), Spain [WAR] — Hostile (-80), Holland [WAR] — Hostile (-80)\n  War Score: [0]  (Territory 0, Battles 0, Decisive 0, Capital 0, Campaign 0, Blood 0)\n\n  Russia [Coalition Member] — WAR  Relation: -80 (Hostile)\n  Doctrine: Stubborn; flaw: Slow to concentrate (uncured — the Divisional System would end it)\n  Diplomat: Czartoryski (Schemer) — Skill 7\n  Regions: 10   Army: Unknown\n  Treaties: None\n  Design: Arbiter of Europe — They stand against France's dominion over Europe (39% of its weight).\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 5/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "diplo_laws_rival_nations",
+   "rows": [
+    "UXR3-29"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_LAWS_RIVAL_NATIONS_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_LAWS_RIVAL_NATIONS_5120x1440.jpg",
+   "must_lead": "Britain's Laws line in the first screenful; the France blocks below the courts",
+   "staging": "1805 boot; Britain's Orders in Council and Militia Transfer in force",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ NATION OVERVIEW ═══\nEvery court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.\n\n  Britain [Coalition Member] — WAR  Relation: -90 (Hostile)\n  Laws: the Orders in Council and the Militia Transfer (300 gold a turn)\n  Doctrine: The Line Holds; flaw: Irreplaceable (uncured — the Militia Transfer would end it once the Horse Guards Reforms stands)\n  Diplomat: Castlereagh (Hawk) — Skill 7\n  Regions: 11   Army: Unknown\n  Treaties: None\n  Design: The Low Countries — They will not suffer France's bloc in Flanders.\n  Intent: prepared to go as far as war — France stands in the way (weight 84)\n  AI Relations: Russia [ALLIANCE] — Loyal (70), Austria [ALLIANCE] — Loyal (60), Spain [WAR] — Hostile (-80), Holland [WAR] — Hostile (-80)\n  War Score: [0]  (Territory 0, Battles 0, Decisive 0, Capital 0, Campaign 0, Blood 0)\n\n  Russia [Coalition Member] — WAR  Relation: -80 (Hostile)\n  Doctrine: Stubborn; flaw: Slow to concentrate (uncured — the Divisional System would end it)\n  Diplomat: Czartoryski (Schemer) — Skill 7\n  Regions: 10   Army: Unknown\n  Treaties: None\n  Design: Arbiter of Europe — They stand against France's dominion over Europe (39% of its weight).\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 5/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "diplo_petition_granted_vassals",
+   "rows": [
+    "UXR3-81"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_PETITION_GRANTED_VASSALS_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_PETITION_GRANTED_VASSALS_1920x1080.jpg",
+   "must_lead": "the court with the granted petition first, its Bond line leading its card",
+   "staging": "tests/test_iq7_satellites_have_a_position.py: `_europe()`, dialogue slot emptied, `_make_eligible(Switzerland, turn=6)` (turn + created_turn written), `_deliver` = the production `deliver_ai_proposal` with the production `petition_terms`; the popup read off the next response's `incoming_proposal`; then the petition GRANTED through POST /respond_to_diplomatic_dialogue {choice: accept}",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ CLIENT STATES ═══\n\n3 client states remit +712g/turn in tribute.\n\n  Switzerland  Satellite  (client state of the Empire)\n  Bond: +1/turn — a bond worth one honoured petition (bond 20)\n     Loyalty 100/100  ↓ -1/turn\n  Tribute: +0g/turn — remitted for 8 more collections (75% of their income when it resumes)   Answers the call to arms\n  Standing: relief running, 8 collections\n  Tribute remitted: 8 collections\n  No garrison — a corps in Bern would add a standing +2/turn\n  Invest — unavailable: Loyalty is already full\n    Loosen Rein    loyalty stays 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 10 of 26 — 1 DP\n    Tighten Rein    loyalty 100 → 85; its autonomy drift -2 → -4 a turn; tribute 75% → 100%; the ports shut against Britain stay 10 of 26 — 1 DP\n    Release    free them honorably — 1 DP\n  Cede Province… — unavailable: No eligible province (conquered land adjoining them)\n\n  Holland  Satellite  (client state of the Empire)\n     Loyalty 100/100  ≈ steady\n  Tribute: +337g/turn (75% of their income)   Answers the call to arms\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 4/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "diplo_petition_granted_vassals",
+   "rows": [
+    "UXR3-81"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_DIPLO_PETITION_GRANTED_VASSALS_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_DIPLO_PETITION_GRANTED_VASSALS_5120x1440.jpg",
+   "must_lead": "the court with the granted petition first, its Bond line leading its card",
+   "staging": "tests/test_iq7_satellites_have_a_position.py: `_europe()`, dialogue slot emptied, `_make_eligible(Switzerland, turn=6)` (turn + created_turn written), `_deliver` = the production `deliver_ai_proposal` with the production `petition_terms`; the popup read off the next response's `incoming_proposal`; then the petition GRANTED through POST /respond_to_diplomatic_dialogue {choice: accept}",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ CLIENT STATES ═══\n\n3 client states remit +712g/turn in tribute.\n\n  Switzerland  Satellite  (client state of the Empire)\n  Bond: +1/turn — a bond worth one honoured petition (bond 20)\n     Loyalty 100/100  ↓ -1/turn\n  Tribute: +0g/turn — remitted for 8 more collections (75% of their income when it resumes)   Answers the call to arms\n  Standing: relief running, 8 collections\n  Tribute remitted: 8 collections\n  No garrison — a corps in Bern would add a standing +2/turn\n  Invest — unavailable: Loyalty is already full\n    Loosen Rein    loyalty stays 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 10 of 26 — 1 DP\n    Tighten Rein    loyalty 100 → 85; its autonomy drift -2 → -4 a turn; tribute 75% → 100%; the ports shut against Britain stay 10 of 26 — 1 DP\n    Release    free them honorably — 1 DP\n  Cede Province… — unavailable: No eligible province (conquered land adjoining them)\n\n  Holland  Satellite  (client state of the Empire)\n     Loyalty 100/100  ≈ steady\n  Tribute: +337g/turn (75% of their income)   Answers the call to arms\n"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/CongressTab",
+     "seen": "CONGRESS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/VassalsTab",
+     "seen": "VASSALS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/BargainsTab",
+     "seen": "WAR BARGAINS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TalleyrandTab",
+     "seen": "TALLEYRAND"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/ThreatTab",
+     "seen": "BALANCE OF EUROPE"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/TreatiesTab",
+     "seen": "TREATIES"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/SubTabRow/NationsTab",
+     "seen": "NATIONS"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/DPDisplay",
+     "seen": "DP: 4/5"
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/CabinetLine",
+     "seen": "Talleyrand: Idle   "
+    },
+    {
+     "path": "DiplomaticLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "DIPLOMATIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "generals_boot",
+   "rows": [
+    "UXR3-80",
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_BOOT_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_BOOT_1920x1080.jpg",
+   "must_lead": "OUR DOCTRINE one line; THE EMPEROR's card leads the first screenful",
+   "staging": "1805 boot",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nIn the field at Lorraine — The Presence goes where he stands.\n  ★ The Presence  +10% here at Lorraine  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 10,000 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_boot",
+   "rows": [
+    "UXR3-80",
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_BOOT_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_BOOT_5120x1440.jpg",
+   "must_lead": "OUR DOCTRINE one line; THE EMPEROR's card leads the first screenful",
+   "staging": "1805 boot",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nIn the field at Lorraine — The Presence goes where he stands.\n  ★ The Presence  +10% here at Lorraine  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 10,000 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_doctrine",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_DOCTRINE_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_DOCTRINE_1920x1080.jpg",
+   "must_lead": "the doctrine board: the toggle pressed, OUR DOCTRINE open above THE EMPEROR",
+   "staging": "1805 boot",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▾ hide the doctrine\n  \"The corps march apart and fight together - and eat what the country gives them.\"\n  Strength — The corps system: a corps within a march comes to the guns more surely — its arrival bar is 10 lower\n  Flaw — Living off the land: outside the homeland, in poor or stripped country (war damage ≥ 25%), the army draws 80% of its supply  (uncured — the Train des Équipages would end it once the Grand Quartier Général stands)\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nIn the field at Lorraine — The Presence goes where he stands.\n  ★ The Presence  +10% here at Lorraine  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 10,000 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated "
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_doctrine",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_DOCTRINE_5120x1440.jpg",
+   "before": null,
+   "must_lead": "the doctrine board: the toggle pressed, OUR DOCTRINE open above THE EMPEROR",
+   "staging": "1805 boot",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▾ hide the doctrine\n  \"The corps march apart and fight together - and eat what the country gives them.\"\n  Strength — The corps system: a corps within a march comes to the guns more surely — its arrival bar is 10 lower\n  Flaw — Living off the land: outside the homeland, in poor or stripped country (war damage ≥ 25%), the army draws 80% of its supply  (uncured — the Train des Équipages would end it once the Grand Quartier Général stands)\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nIn the field at Lorraine — The Presence goes where he stands.\n  ★ The Presence  +10% here at Lorraine  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 10,000 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, on the Rhine with the Guard - 10,000 men carved from Soult's own IV Corps, and Soult's corps is drawn up beside them. He left Paris on the 24th of September and the army is across the river; Mack sits at Ulm one march east. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated "
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_NP_FIELD_1920x1080.jpg",
+   "must_lead": "OUR DOCTRINE one line; THE EMPEROR; the Presence stated as applied where he stands",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +10% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_NP_FIELD_5120x1440.jpg",
+   "must_lead": "OUR DOCTRINE one line; THE EMPEROR; the Presence stated as applied where he stands",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +10% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_t20",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_T20_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_T20_1920x1080.jpg",
+   "must_lead": "OUR DOCTRINE is one title line; THE LAURELS and the first marshal's sheet follow at once",
+   "staging": "tests/fixtures/playtest_saves/fixture_t20_ambient.json copied into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE LAURELS OF THE ARMY  no glory won in the last 8 turns — no marshal envies another\n\n    Commission a Marshal…    7 await the Emperor's call\n\n════════════════════════════════════════\n\n \n[1] Ney  [Infantry]  France\nVI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat.\nAggressive: +15% attack, +5% more in aggressive stance. Fortify capped at 10%. Grows restless if idle too long.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n  Strength: 24,000 / 24,000  Morale: 100%  Range: 1\n     Tactical 5  combat dice (+1 per 3 pts)\n     Shock 9  attack damage (+5%/pt)\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_t20",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_T20_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_T20_5120x1440.jpg",
+   "must_lead": "OUR DOCTRINE is one title line; THE LAURELS and the first marshal's sheet follow at once",
+   "staging": "tests/fixtures/playtest_saves/fixture_t20_ambient.json copied into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE LAURELS OF THE ARMY  no glory won in the last 8 turns — no marshal envies another\n\n    Commission a Marshal…    7 await the Emperor's call\n\n════════════════════════════════════════\n\n \n[1] Ney  [Infantry]  France\nVI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat.\nAggressive: +15% attack, +5% more in aggressive stance. Fortify capped at 10%. Grows restless if idle too long.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n  Strength: 24,000 / 24,000  Morale: 100%  Range: 1\n     Tactical 5  combat dice (+1 per 3 pts)\n     Shock 9  attack damage (+5%/pt)\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "ledger_mission_starved_forces",
+   "rows": [
+    "UXR3-41"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_LEDGER_MISSION_STARVED_FORCES_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_LEDGER_MISSION_STARVED_FORCES_1920x1080.jpg",
+   "must_lead": "the Cabinet block reads PAUSED for want of DP, its cost stated, collapses in N turns",
+   "staging": "1805 boot; `court Denmark` begun; one real end turn with the DP WRITTEN to 0 after the turn's own regeneration and before the mission's tick (UXR3-41 — a write before the turn was refilled first), then 0 again after it, so the mission pauses for want of DP; the capture asserts `paused: true` (UXR3-41: the boards re-staged in tools/iq10_capture_payloads.py — the letter to Prussia, the DP shortfall written after the refill; each capture asserts paused: true)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ FORCES ═══\nEarly October 1805\nThe muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.\n\n═══ THE CABINET ═══\n  Talleyrand → Denmark │ COURTING  +8 a turn, drift +0, net +8\n    Relations 10 (Neutral) · paused: 2 DP needed — collapses in 2 turns without it · 2 DP a turn   [Recall]\n    So far: stalled 1 turn for want of DP\n    Our proposals to Denmark: +0 of +10 for his courting\n\nAuthority: 100 (Strong)\n\nTHE EMPEROR — Napoleon  Infantry\n  Status: Idle  Location: Lorraine\n  Strength: 10,000  Stance: neutral\n  Trust: 100  Morale: 85%  W/L: 0/0\n\nNey  Infantry\n  Status: Idle  Location: Rhineland\n  Strength: 24,000  Stance: neutral\n"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/LawsTab",
+     "seen": "LAWS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab",
+     "seen": "ADMIRALTY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/OrdersTab",
+     "seen": "ORDERS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ManpowerTab",
+     "seen": "MANPOWER"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/IntelTab",
+     "seen": "INTELLIGENCE"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/EconomyTab",
+     "seen": "ECONOMY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/TerritoriesTab",
+     "seen": "TERRITORIES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ForcesTab",
+     "seen": "FORCES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "STRATEGIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "ledger_mission_starved_forces",
+   "rows": [
+    "UXR3-41"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_LEDGER_MISSION_STARVED_FORCES_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_LEDGER_MISSION_STARVED_FORCES_5120x1440.jpg",
+   "must_lead": "the Cabinet block reads PAUSED for want of DP, its cost stated, collapses in N turns",
+   "staging": "1805 boot; `court Denmark` begun; one real end turn with the DP WRITTEN to 0 after the turn's own regeneration and before the mission's tick (UXR3-41 — a write before the turn was refilled first), then 0 again after it, so the mission pauses for want of DP; the capture asserts `paused: true` (UXR3-41: the boards re-staged in tools/iq10_capture_payloads.py — the letter to Prussia, the DP shortfall written after the refill; each capture asserts paused: true)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ FORCES ═══\nEarly October 1805\nThe muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.\n\n═══ THE CABINET ═══\n  Talleyrand → Denmark │ COURTING  +8 a turn, drift +0, net +8\n    Relations 10 (Neutral) · paused: 2 DP needed — collapses in 2 turns without it · 2 DP a turn   [Recall]\n    So far: stalled 1 turn for want of DP\n    Our proposals to Denmark: +0 of +10 for his courting\n\nAuthority: 100 (Strong)\n\nTHE EMPEROR — Napoleon  Infantry\n  Status: Idle  Location: Lorraine\n  Strength: 10,000  Stance: neutral\n  Trust: 100  Morale: 85%  W/L: 0/0\n\nNey  Infantry\n  Status: Idle  Location: Rhineland\n  Strength: 24,000  Stance: neutral\n"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/LawsTab",
+     "seen": "LAWS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab",
+     "seen": "ADMIRALTY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/OrdersTab",
+     "seen": "ORDERS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ManpowerTab",
+     "seen": "MANPOWER"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/IntelTab",
+     "seen": "INTELLIGENCE"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/EconomyTab",
+     "seen": "ECONOMY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/TerritoriesTab",
+     "seen": "TERRITORIES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ForcesTab",
+     "seen": "FORCES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "STRATEGIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "ledger_mission_transit_forces",
+   "rows": [
+    "UXR3-41"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_LEDGER_MISSION_TRANSIT_FORCES_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_LEDGER_MISSION_TRANSIT_FORCES_1920x1080.jpg",
+   "must_lead": "the Cabinet block reads PAUSED in transit (he is carrying your proposal) with NO Recall",
+   "staging": "1805 boot; `court Denmark` begun on the typed road, then an open-borders proposal to Prussia SENT (typed echo + the confirm's Send; UXR3-41 — Sweden's was refused at the relation gate) so Talleyrand is in transit with the mission standing; the capture asserts `paused: true` (UXR3-41: the boards re-staged in tools/iq10_capture_payloads.py — the letter to Prussia, the DP shortfall written after the refill; each capture asserts paused: true)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ FORCES ═══\nLate September 1805\nThe muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.\n\n═══ THE CABINET ═══\n  Talleyrand → Denmark │ COURTING  +8 a turn, drift +0, net +8\n    Relations 10 (Neutral) · paused: he is carrying your proposal — costs nothing, earns nothing until he returns · 2 DP a turn\n    Our proposals to Denmark: +0 of +10 for his courting\n\nAuthority: 100 (Strong)\n\nTHE EMPEROR — Napoleon  Infantry\n  Status: Idle  Location: Lorraine\n  Strength: 10,000  Stance: neutral\n  Trust: 100  Morale: 85%  W/L: 0/0\n\nNey  Infantry\n  Status: Idle  Location: Rhineland\n  Strength: 24,000  Stance: neutral\n  Trust: 75  Morale: 100%  W/L: 0/0\n"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/LawsTab",
+     "seen": "LAWS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab",
+     "seen": "ADMIRALTY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/OrdersTab",
+     "seen": "ORDERS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ManpowerTab",
+     "seen": "MANPOWER"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/IntelTab",
+     "seen": "INTELLIGENCE"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/EconomyTab",
+     "seen": "ECONOMY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/TerritoriesTab",
+     "seen": "TERRITORIES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ForcesTab",
+     "seen": "FORCES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "STRATEGIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "ledger_mission_transit_forces",
+   "rows": [
+    "UXR3-41"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_LEDGER_MISSION_TRANSIT_FORCES_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_LEDGER_MISSION_TRANSIT_FORCES_5120x1440.jpg",
+   "must_lead": "the Cabinet block reads PAUSED in transit (he is carrying your proposal) with NO Recall",
+   "staging": "1805 boot; `court Denmark` begun on the typed road, then an open-borders proposal to Prussia SENT (typed echo + the confirm's Send; UXR3-41 — Sweden's was refused at the relation gate) so Talleyrand is in transit with the mission standing; the capture asserts `paused: true` (UXR3-41: the boards re-staged in tools/iq10_capture_payloads.py — the letter to Prussia, the DP shortfall written after the refill; each capture asserts paused: true)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "═══ FORCES ═══\nLate September 1805\nThe muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.\n\n═══ THE CABINET ═══\n  Talleyrand → Denmark │ COURTING  +8 a turn, drift +0, net +8\n    Relations 10 (Neutral) · paused: he is carrying your proposal — costs nothing, earns nothing until he returns · 2 DP a turn\n    Our proposals to Denmark: +0 of +10 for his courting\n\nAuthority: 100 (Strong)\n\nTHE EMPEROR — Napoleon  Infantry\n  Status: Idle  Location: Lorraine\n  Strength: 10,000  Stance: neutral\n  Trust: 100  Morale: 85%  W/L: 0/0\n\nNey  Infantry\n  Status: Idle  Location: Rhineland\n  Strength: 24,000  Stance: neutral\n  Trust: 75  Morale: 100%  W/L: 0/0\n"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/LawsTab",
+     "seen": "LAWS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/AdmiraltyTab",
+     "seen": "ADMIRALTY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/OrdersTab",
+     "seen": "ORDERS"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ManpowerTab",
+     "seen": "MANPOWER"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/IntelTab",
+     "seen": "INTELLIGENCE"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/EconomyTab",
+     "seen": "ECONOMY"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/TerritoriesTab",
+     "seen": "TERRITORIES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/SubTabRow/ForcesTab",
+     "seen": "FORCES"
+    },
+    {
+     "path": "StrategicLedger/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "STRATEGIC LEDGER"
+    }
+   ]
+  },
+  {
+   "id": "region_doctrine_posen",
+   "rows": [
+    "UXR3-79"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_REGION_DOCTRINE_POSEN_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_REGION_DOCTRINE_POSEN_1920x1080.jpg",
+   "must_lead": "the poor-country note directly under the controller line",
+   "staging": "1805 boot; Tyrol's war damage written to 0.35 with Lannes standing there (FULL); Posen untouched (Prussian, unscouted)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "seen": "  Prussia  City · Plains\nPoor country — a French army here draws 80% (living off the land)\nOne province — who holds it, what it pays, what defends it. Click the map to choose another.\nNo intelligence — scout or advance to learn more.\nIncome: Unknown   Stability: Unknown   Supply: Unknown\n"
+    },
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "Posen"
+    }
+   ]
+  },
+  {
+   "id": "region_doctrine_posen",
+   "rows": [
+    "UXR3-79"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_REGION_DOCTRINE_POSEN_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_REGION_DOCTRINE_POSEN_5120x1440.jpg",
+   "must_lead": "the poor-country note directly under the controller line",
+   "staging": "1805 boot; Tyrol's war damage written to 0.35 with Lannes standing there (FULL); Posen untouched (Prussian, unscouted)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "seen": "  Prussia  City · Plains\nPoor country — a French army here draws 80% (living off the land)\nOne province — who holds it, what it pays, what defends it. Click the map to choose another.\nNo intelligence — scout or advance to learn more.\nIncome: Unknown   Stability: Unknown   Supply: Unknown\n"
+    },
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "Posen"
+    }
+   ]
+  },
+  {
+   "id": "region_doctrine_tyrol",
+   "rows": [
+    "UXR3-79"
+   ],
+   "supplementary": false,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_REGION_DOCTRINE_TYROL_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_REGION_DOCTRINE_TYROL_1920x1080.jpg",
+   "must_lead": "the stripped-by-war note directly under the controller line, above ACTIONS",
+   "staging": "1805 boot; Tyrol's war damage written to 0.35 with Lannes standing there (FULL); Posen untouched (Prussian, unscouted)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "seen": "  Austria  City · Mountains\nStripped by war (35%) — poor country for a French army until it recovers below 25%\nACTIONS\n    Negotiate with Austria  \n\nOne province — who holds it, what it pays, what defends it. Click the map to choose another.\nIncome: 97g   Stability: 100%   Supply: 16,000\nWar damage: 35%  suppressing this province's income\n\nFORCES PRESENT\n  Lannes (18,000 foot)    Scout      Attack Archduke John      Hold (2 AP)      Fall back      Fortify   Archduke John stands here — attack or retreat first    Drill   Archduke John stands here    Garrison (2 AP)   not our soil\n  Archduke John (20,000 foot)\n"
+    },
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "Tyrol"
+    }
+   ]
+  },
+  {
+   "id": "region_doctrine_tyrol",
+   "rows": [
+    "UXR3-79"
+   ],
+   "supplementary": false,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_REGION_DOCTRINE_TYROL_5120x1440.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_REGION_DOCTRINE_TYROL_5120x1440.jpg",
+   "must_lead": "the stripped-by-war note directly under the controller line, above ACTIONS",
+   "staging": "1805 boot; Tyrol's war damage written to 0.35 with Lannes standing there (FULL); Posen untouched (Prussian, unscouted)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/Scroll/ContentArea",
+     "seen": "  Austria  City · Mountains\nStripped by war (35%) — poor country for a French army until it recovers below 25%\nACTIONS\n    Negotiate with Austria  \n\nOne province — who holds it, what it pays, what defends it. Click the map to choose another.\nIncome: 97g   Stability: 100%   Supply: 16,000\nWar damage: 35%  suppressing this province's income\n\nFORCES PRESENT\n  Lannes (18,000 foot)    Scout      Attack Archduke John      Hold (2 AP)      Fall back      Fortify   Archduke John stands here — attack or retreat first    Drill   Archduke John stands here    Garrison (2 AP)   not our soil\n  Archduke John (20,000 foot)\n"
+    },
+    {
+     "path": "RegionPanel/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "Tyrol"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_captive",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_CAPTIVE_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_NP_CAPTIVE_1920x1080.jpg",
+   "must_lead": "OUR DOCTRINE one line; the captive Emperor's card leads",
+   "staging": "saves/np_visual_captive.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nA captive — PRISONER of Austria since T11; he commands nothing until he is freed.\n  Strength: 0 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n     Tactical 10  combat dice (+1 per 3 pts)\n     Shock 7  attack damage (+5%/pt)\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_captive",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_CAPTIVE_5120x1440.jpg",
+   "before": null,
+   "must_lead": "OUR DOCTRINE one line; the captive Emperor's card leads",
+   "staging": "saves/np_visual_captive.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[8] Napoleon  [Infantry]  France\nA captive — PRISONER of Austria since T11; he commands nothing until he is freed.\n  Strength: 0 / 10,000  Morale: 85%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n     Tactical 10  combat dice (+1 per 3 pts)\n     Shock 7  attack damage (+5%/pt)\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field_dim",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_DIM_1920x1080.jpg",
+   "before": null,
+   "must_lead": "check frame: the Presence at +4% (the backend's own 'his star dims' sentence), star dimmed",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load; ability_effect given the backend's own NPC-D1 sentence 'Today it stands at +4%' (a payload edit, for the dim-state check only)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +4% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal. Today it stands at +4% — his star dims.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field_dim",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_DIM_5120x1440.jpg",
+   "before": null,
+   "must_lead": "check frame: the Presence at +4% (the backend's own 'his star dims' sentence), star dimmed",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load; ability_effect given the backend's own NPC-D1 sentence 'Today it stands at +4%' (a payload edit, for the dim-state check only)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +4% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal. Today it stands at +4% — his star dims.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field_out",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_OUT_1920x1080.jpg",
+   "before": null,
+   "must_lead": "check frame: the Presence at +0% ('his star is out'), star at the grey ink",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load; ability_effect given the backend's own NPC-D1 sentence 'Today it stands at +0%' (a payload edit, for the dim-state check only)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +0% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal. Today it stands at +0% — his star is out.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_np_field_out",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_NP_FIELD_OUT_5120x1440.jpg",
+   "before": null,
+   "must_lead": "check frame: the Presence at +0% ('his star is out'), star at the grey ink",
+   "staging": "saves/np_visual_field.json (staged Aug 16, 2026) COPIED into the sandbox and POST /load; ability_effect given the backend's own NPC-D1 sentence 'Today it stands at +0%' (a payload edit, for the dim-state check only)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\n  OUR DOCTRINE — The Corps System  ▸ the doctrine\n\n  THE EMPEROR\n \n[7] Napoleon  [Infantry]  France\nIn the field at Bohemia — The Presence goes where he stands.\n  ★ The Presence  +0% here at Bohemia  Every French corps fighting in the Emperor's province gains +10% attack and defense. Enemy commanders will not attack his army at odds they would accept against any marshal. Today it stands at +0% — his star is out.\n\n  Strength: 7,579 / 10,000  Morale: 70%  Range: 1\nEmperor of the French, at the Tuileries with the Guard - 10,000 men carved from Soult's own IV Corps. The Grande Armee is his instrument; the Empire is his estate; the marshals shine only in his light - or out of it.\nSovereign: You, in the field. He never objects — his orders are your own will, and cost 1 AP, not 2 (with the live parser, a delegated order such as 'deal with Mack' is read back to you by Berthier for its target before he marches). Where he stands, every corps of his nation fights +10% harder on attack and defence, and enemy commanders will not accept odds against him that they would take against any marshal. But victories won under his eye are HIS: marshals beside him earn half the glory, so ambition needs a command of its own. He holds no rank on the ladder, expects no reward, and cannot be replaced.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_prisoner",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_PRISONER_1920x1080.jpg",
+   "before": "docs/audits/uxr3_s12b/frames/UXR3_GENERALS_PRISONER_1920x1080.jpg",
+   "must_lead": "OUR DOCTRINE one line; the Emperor's card leads",
+   "staging": "1805 boot; `world.capture_marshal(Ney, 'KingdomOfItaly')` (the production capture seam, called directly — a camelCase captor on purpose)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\nA PRISONER — Ney: PRISONER of the Kingdom of Italy since T1.\n \n[1] Ney  [Infantry]  France\nVI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat.\nAggressive: +15% attack, +5% more in aggressive stance. Fortify capped at 10%. Grows restless if idle too long.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n  Strength: 0 / 24,000  Morale: 100%  Range: 1\n     Tactical 5  combat dice (+1 per 3 pts)\n     Shock 9  attack damage (+5%/pt)\n     Defense 6  damage resistance (-5%/pt)\n     Logistics 4  answers the guns (+5 muster/pt)\n     Administration 3  recruit pricing (thrifty 8+, wasteful 3-)\n     Command 7  rally & recovery (fast 8+, poor 3-)\n  The Intendance: levies run 15% over cost under his hand.\n  Trust: 75 (Reliable)  Vindication: 0  Record: 0W/0L\n  PRISONER of the Kingdom of Italy since T1.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  },
+  {
+   "id": "generals_prisoner",
+   "rows": [
+    "UXR3-24"
+   ],
+   "supplementary": true,
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "after": "docs/audits/uxr4_s15/frames/UXR4_GENERALS_PRISONER_5120x1440.jpg",
+   "before": null,
+   "must_lead": "OUR DOCTRINE one line; the Emperor's card leads",
+   "staging": "1805 boot; `world.capture_marshal(Ney, 'KingdomOfItaly')` (the production capture seam, called directly — a camelCase captor on purpose)",
+   "errors": [],
+   "seen_text": [
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/ScrollContainer/ContentArea",
+     "seen": "Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.\n\nA PRISONER — Ney: PRISONER of the Kingdom of Italy since T1.\n \n[1] Ney  [Infantry]  France\nVI Corps - crossed the Rhine opposite Durlach on September 26. The bravest of the brave leads infantry now; the Cavalry Reserve rides with Murat.\nAggressive: +15% attack, +5% more in aggressive stance. Fortify capped at 10%. Grows restless if idle too long.\nInfantry: Standard movement range of 1. Reliable in all terrain. No special restrictions.\n\n  Strength: 0 / 24,000  Morale: 100%  Range: 1\n     Tactical 5  combat dice (+1 per 3 pts)\n     Shock 9  attack damage (+5%/pt)\n     Defense 6  damage resistance (-5%/pt)\n     Logistics 4  answers the guns (+5 muster/pt)\n     Administration 3  recruit pricing (thrifty 8+, wasteful 3-)\n     Command 7  rally & recovery (fast 8+, poor 3-)\n  The Intendance: levies run 15% over cost under his hand.\n  Trust: 75 (Reliable)  Vindication: 0  Record: 0W/0L\n  PRISONER of the Kingdom of Italy since T1.\n"
+    },
+    {
+     "path": "MarshalManagement/PanelContainer/VBoxContainer/HeaderRow/TitleLabel",
+     "seen": "GENERALS"
+    }
+   ]
+  }
+ ]
+}

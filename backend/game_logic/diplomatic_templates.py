@@ -4437,7 +4437,12 @@ def _build_base_terms(target_nation: str, proposal_type: str, world, determinist
 def _validate_economic_feasibility(terms, target_nation, world, war_score=0):
     """Cap gold/territory offers and demands to economically feasible levels."""
     player_nation = get_player_nation(world)
-    player_gold = world.nation_gold.get(player_nation, 0)
+    # S14E-X242 / S14E-D19: the lump the advisor suggests is capped on the
+    # player's ONE chest (`purse_of`: the treasury less the recurring
+    # settlement payments still owed), the budget the table's validator
+    # refuses a lump above; nothing owed, the treasury itself.
+    from backend.game_logic.instruments import purse_of
+    player_gold = purse_of(world, player_nation)[1]
     player_income = world.calculate_turn_income(player_nation).get("income", 0)
     target_income = world.calculate_turn_income(target_nation).get("income", 0)
     gold_cap_pct = 0.50 if war_score < -30 else 0.25

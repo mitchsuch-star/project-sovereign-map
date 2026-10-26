@@ -16,6 +16,45 @@ set "GODOT_PROJECT=%cd%\godot-client\project-sovereign"
 :: The Godot editor binary that runs the export. Set GODOT_EXE to override.
 if not defined GODOT_EXE set "GODOT_EXE=%USERPROFILE%\Downloads\Godot_v4.4.1-stable_win64.exe\Godot_v4.4.1-stable_win64.exe"
 
+:: ============================================================
+:: S15 (the deploy gate, October 25, 2026): CODE SIGNING. The user's
+:: certificate is plugged in through the environment, never written here:
+::   INK_IRON_SIGNTOOL_ARGS  the arguments signtool signs with - an OV/EV
+::       certificate in the user's store, e.g.
+::       /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /sha1 THUMBPRINT
+::       or Azure Trusted Signing's form (/dlib ... /dmdf ...).
+::       Unset = an UNSIGNED build: the banner says so and the README's
+::       SmartScreen note stands.
+::   SIGNTOOL                the signtool.exe to run (default: signtool on PATH,
+::       the Windows SDK's).
+:: Both executables are signed - the frozen server right after PyInstaller
+:: and the Godot client right after the export - and each signature is
+:: verified; a configured signing that fails STOPS the build, because a
+:: half-signed zip is worse than an unsigned one.
+:: ============================================================
+set "SIGNED=UNSIGNED"
+if defined INK_IRON_SIGNTOOL_ARGS set "SIGNED=signed"
+if not defined SIGNTOOL set "SIGNTOOL=signtool"
+goto :after_sign_exe
+:sign_exe
+if not defined INK_IRON_SIGNTOOL_ARGS (
+    echo [WARN] UNSIGNED: %~nx1 - set INK_IRON_SIGNTOOL_ARGS to sign the release build.
+    exit /b 0
+)
+echo [INFO] Signing %~nx1 ...
+"%SIGNTOOL%" sign %INK_IRON_SIGNTOOL_ARGS% "%~1"
+if errorlevel 1 (
+    echo [ERROR] Signing %~nx1 failed. Nothing was zipped.
+    exit /b 1
+)
+"%SIGNTOOL%" verify /pa "%~1"
+if errorlevel 1 (
+    echo [ERROR] The signature on %~nx1 does not verify. Nothing was zipped.
+    exit /b 1
+)
+exit /b 0
+:after_sign_exe
+
 :: Check Python
 "%PYTHON%" --version >nul 2>&1
 if errorlevel 1 (
@@ -76,6 +115,14 @@ echo.
 if errorlevel 1 (
     echo.
     echo [ERROR] Build failed. Check errors above.
+    pause
+    exit /b 1
+)
+
+:: S15: the frozen server is signed as soon as it exists (and before the
+:: smoke boots it - a tester's SmartScreen judges this very file).
+call :sign_exe "%DIST%\ink_iron_server.exe"
+if errorlevel 1 (
     pause
     exit /b 1
 )
@@ -149,7 +196,9 @@ if errorlevel 1 echo [WARN] game-icons LICENSE not copied - the CC-BY attributio
 :: ============================================================
 echo.
 echo [INFO] Smoke: booting the frozen server...
-"%PYTHON%" tools\release_smoke.py --dist "%DIST%" --port 8099 --expect-version "%VERSION%"
+set "_SMOKE_SIGNED="
+if defined INK_IRON_SIGNTOOL_ARGS set "_SMOKE_SIGNED=--expect-signed"
+"%PYTHON%" tools\release_smoke.py --dist "%DIST%" --port 8099 --expect-version "%VERSION%" %_SMOKE_SIGNED%
 if errorlevel 1 (
     echo.
     echo [ERROR] The frozen server failed its smoke. Nothing was zipped.
@@ -185,6 +234,13 @@ if not exist "%DIST%\InkAndIron.pck" (
     exit /b 1
 )
 
+:: S15: the client is signed as soon as it is exported.
+call :sign_exe "%DIST%\InkAndIron.exe"
+if errorlevel 1 (
+    pause
+    exit /b 1
+)
+
 :: The .pck must carry every JSON the boot reads (the row's done-when).
 echo [INFO] Verifying the exported pack...
 "%PYTHON%" tools\list_pck.py "%DIST%\InkAndIron.pck" --quiet --require res://assets/maps/europe.json res://assets/maps/europe_1805.json res://assets/maps/tutorial_1805.json res://scenes/main_menu.tscn res://scenes/main.tscn
@@ -213,7 +269,7 @@ if errorlevel 1 (
 
 echo.
 echo ============================================================
-echo   BUILD COMPLETE - %VERSION%
+echo   BUILD COMPLETE - %VERSION% (%SIGNED%)
 echo ============================================================
 echo.
 echo Bundle: %DIST%\

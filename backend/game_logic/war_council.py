@@ -507,6 +507,29 @@ def _emit_crisis_passed(world, coveter: str, record: Dict, cause: str,
 THE_BEAT_READS_THE_MORNINGS_CHEST = True
 
 
+def _beat_chest(world, player: str, treasury: int) -> tuple:
+    """S14E-X189 / S14E-D19 - (the figure the beat prices "you can afford it"
+    against, the `FREE_OF_OBLIGATIONS` clause or ''). `treasury` is the beat's
+    own read (the morning's forecast `chest_forecast(...)["projected"]` with
+    SFR-D23's lever up, the raw live chest with it down). ONE chest: the buy-off
+    verb refuses against the treasury LESS the recurring settlement payments
+    still owed (the player's chest, `bond.bid_funds`), so the beat prints the lesser of the
+    morning's forecast and that chest - the forecast less the owed sum
+    (`settlement_validation.recurring_obligations_owed`, the one reader).
+    Read on the forecast, not the council's live chest: the council sits
+    mid-advance, before the income phase, when the live chest is one the
+    player never holds (SFR-D23's -167). Nothing owed, or the lever down: the
+    figure unchanged, no clause."""
+    if not THE_BEAT_READS_THE_MORNINGS_CHEST:
+        return int(treasury), ""
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS
+    from backend.game_logic.settlement_validation import recurring_obligations_owed
+    owed = int(recurring_obligations_owed(world, player))
+    if owed <= 0:
+        return int(treasury), ""
+    return min(int(treasury), max(0, int(treasury) - owed)), FREE_OF_OBLIGATIONS
+
+
 def _emit_crisis_brewing(world, coveter: str, record: Dict,
                          events: List[Dict]) -> None:
     """Beat 2 — The Brewing Crisis: the fore-warning, with the instruments
@@ -533,12 +556,17 @@ def _emit_crisis_brewing(world, coveter: str, record: Dict,
         # opening already reads).
         from backend.game_logic.ledger import chest_forecast
         treasury = int(chest_forecast(world, player)["projected"])
+    # S14E-X189 / S14E-D19: ONE chest - the lesser of the morning's forecast
+    # and the chest the verb will be gated against (the treasury less the
+    # recurring settlement payments still owed); nothing owed, `treasury`
+    # untouched.
+    treasury, owed = _beat_chest(world, player, treasury)
     dp = int(getattr(world, "diplomatic_points", 0) or 0)
     price = compute_buyoff_price(world, coveter)
     instruments = []
     if price is not None:
         afford = "you can afford it" if treasury >= price else \
-            f"the treasury holds {treasury:,}"
+            f"the treasury holds {treasury:,}{' gold' + owed if owed else ''}"
         instruments.append(f"compensate ({price:,}g — {afford})")
     instruments.append(
         f"guarantee {target_display} (1 DP — {dp} in hand)"
@@ -867,6 +895,25 @@ def _honour_guarantees(world, coveter: str, target: str, war_id: str,
             events.append(event)
 
 
+def _ai_buyoff_funds(world, target: str) -> int:
+    """S14E-X190 / S14E-D19 - THE SEAM: the gold an AI holder may spend on
+    buying a coveter off. ONE chest: the court's treasury LESS the recurring
+    settlement payments it still owes (`bond.bid_funds` - the very budget the
+    player's buy-off verb is gated against), clamped to [0, the coffers], so a
+    court that owes 300 a turn does not "have" the 1,000 in its vaults. With
+    nothing owed it is the raw treasury, byte for byte. DOWN (the series arm
+    patches this to `int(nation_gold.get(target, 0))`) restores the old read
+    of the raw coffers. Pure."""
+    gold = int((getattr(world, "nation_gold", {}) or {}).get(target, 0) or 0)
+    try:
+        from backend.game_logic import bond as _bond
+        return max(0, min(gold, int(_bond.bid_funds(world, target))))
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "war_council._ai_buyoff_funds: bond.bid_funds")
+        return gold
+
+
 def _run_ai_instrument_producers(world, coveter: str, record: Dict,
                                  events: List[Dict]) -> None:
     """The Stage C deferral this stage owns (§15 → AI-3): AI courts
@@ -889,7 +936,9 @@ def _run_ai_instrument_producers(world, coveter: str, record: Dict,
         if statecraft.get("coercion") == "folds":
             price = compute_buyoff_price(world, coveter)
             gold = getattr(world, "nation_gold", {}) or {}
-            if price is not None and int(gold.get(target, 0)) >= price:
+            # S14E-X190 / S14E-D19: the holder buys off with its CHEST, not
+            # its coffers (`_ai_buyoff_funds`, the series arms' seam)
+            if price is not None and _ai_buyoff_funds(world, target) >= price:
                 gold[target] = int(gold.get(target, 0)) - int(price)
                 gold[coveter] = int(gold.get(coveter, 0)) + int(price)
                 # Review fix [r2 LOW]: the SAME granted shape the player

@@ -393,6 +393,84 @@ static func wrap_text(text: String, width: int = 96) -> String:
 	return "\n".join(out)
 
 
+# PC-F47 (S15 head, October 25, 2026): hover text wraps to the window. Godot's
+# default hover popup (a `TooltipPanel` holding one `TooltipLabel`) never
+# wraps — the counsel's 452-character refusal under "Generous peace" ran off a
+# 1920 window at "...the alliance with Bavar" — and drew on a translucent
+# panel (ui/main_theme.tres now styles it opaque). The engine offers no setting
+# for either, and a custom tooltip (`_make_custom_tooltip`) needs a script on
+# every control that carries one (seventy-odd `tooltip_text` sites, most of
+# them `Button.new()`), so ONE hook serves them all: `wrap_tooltips` watches
+# the tree for the engine's popup (`node_added`) and gives its label a
+# measured, word-wrapped width. The width is a fraction of the logical viewport, between
+# a floor and a ceiling — a tooltip never asks for more than the window has.
+const TOOLTIP_WRAP_FRACTION := 0.4
+const TOOLTIP_WRAP_MIN := 240.0
+const TOOLTIP_WRAP_MAX := 720.0
+
+
+static func tooltip_wrap_width(view_width: float) -> float:
+	"""The widest a hover line may run (logical px) in a viewport this wide."""
+	return minf(clampf(view_width * TOOLTIP_WRAP_FRACTION, TOOLTIP_WRAP_MIN, TOOLTIP_WRAP_MAX),
+			maxf(view_width - 24.0, 120.0))
+
+
+static func wrap_tooltips(tree: SceneTree) -> void:
+	"""Install the tooltip wrap, once per run (the root window keeps the mark):
+	main_menu.gd and main.gd call it from `_ready`, and the IQ-10 harness
+	mirrors the call. Safe to call again."""
+	if tree == null or tree.root == null or tree.root.has_meta("tooltip_wrap"):
+		return
+	tree.root.set_meta("tooltip_wrap", true)
+	tree.node_added.connect(_wrap_tooltip_popup)
+
+
+static func _wrap_tooltip_popup(node: Node) -> void:
+	"""The tree's `node_added` handler (the audio hook and the High-contrast
+	re-tone take the same seam). The engine parents its hover popup to the
+	hovered control — a `PopupPanel` whose theme variation is "TooltipPanel",
+	holding one Label (measured in 4.4.1; its class name reads PopupPanel) —
+	so it is told by that variation; anything else, or a popup whose label
+	the engine one day stops using, is left exactly as it arrives."""
+	if not (node is PopupPanel) or (node as PopupPanel).theme_type_variation != &"TooltipPanel":
+		return
+	var view: Vector2 = node.get_tree().root.get_visible_rect().size
+	for child in node.get_children():
+		if child is Label:
+			fit_tooltip_label(child as Label, view)
+
+
+static func fit_tooltip_label(label: Label, view: Vector2) -> void:
+	"""Word-wrap a hover label at `tooltip_wrap_width` and give it the wrapped
+	block's own size as its minimum, so the popup is sized once, right — not
+	one wrapped-per-word line tall until the next layout pass. A tip that
+	already fits keeps its single natural line. A tip that wrapped TALLER than
+	the window (the war card's 25 lines at Interface Scale 2.0, an 800 x 450
+	logical window, where a 320-px column would stand a thousand px high)
+	widens by a third at a time, to the window's own width, before it
+	overflows."""
+	var wrap := tooltip_wrap_width(view.x)
+	var widest := maxf(view.x - 24.0, wrap)
+	var font: Font = label.get_theme_font("font")
+	var font_px: int = label.get_theme_font_size("font_size")
+	if font == null or label.text == "":
+		return
+	var line_h: float = maxf(font.get_height(font_px), 1.0)
+	var spacing: float = float(label.get_theme_constant("line_spacing"))
+	var block: Vector2 = font.get_multiline_string_size(
+			label.text, HORIZONTAL_ALIGNMENT_LEFT, wrap, font_px)
+	if block.x <= 0.0:
+		return
+	var rows: int = maxi(int(round(block.y / line_h)), 1)
+	while rows * (line_h + spacing) > view.y - 32.0 and wrap < widest - 1.0:
+		wrap = minf(wrap * 1.33, widest)
+		block = font.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, wrap, font_px)
+		rows = maxi(int(round(block.y / line_h)), 1)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(ceilf(block.x) + 1.0,
+			ceilf(rows * line_h + (rows - 1) * spacing))
+
+
 static func turn_events_beside_lapses(data: Dictionary) -> Array:
 	"""S14C-X27: the dispatch's TURN EVENTS without a sentence LAPSED ENVOYS
 	prints — IQ-7 R8(b) threads a lapsed petition's priced receipt into both

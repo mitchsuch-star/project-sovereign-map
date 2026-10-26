@@ -193,10 +193,13 @@ class ReformsExecutor:
         verb = "Restore" if quote["kind"] == "restore" else "Enact"
         date = str(row.get("date") or "")
         says = str(row.get("says") or "")
-        chest = int(getattr(world, "gold", 0) or 0)
+        # S14E-X239 / S14E-D19: the treasury the confirm names is the CHEST
+        # (`purse_of`) - the figure `law_refusal` gated the enactment against
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, chest = purse_of(world, actor)
         message = (f"{spoken}{f' ({date})' if date else ''}: {says} "
                    f"{reforms.terms_line(world, actor, row)}. The treasury holds "
-                   f"{chest:,} gold. {verb} it? (yes / no)")
+                   f"{chest:,} gold{owed_suffix(coffers, chest)}. {verb} it? (yes / no)")
         return {
             "success": True,
             "free_action": True,

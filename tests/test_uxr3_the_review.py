@@ -161,6 +161,12 @@ class TestEveryFailIsFiled:
                 assert closing.get(rid) == "FIXED", (rid, "flipped without the closing re-read")
             elif "| OPEN — re-homed to UXR-4 (S15)" in ln:
                 assert closing.get(rid) == "OPEN", (rid, "re-homed, but the closing re-read reads it FIXED")
+            elif "| ✅ FIXED October 25, 2026 — S15 head" in ln:
+                # S15's head (October 25, 2026): a row the closing re-read
+                # re-homed to UXR-4, its decided fix BUILT and re-shot for the
+                # user's eyes (`SYSTEMS_REFERENCE.md` §152.11, `docs/audits/uxr4_s15/`).
+                assert closing.get(rid) == "OPEN", (rid, "built at S15's head, but it was never re-homed")
+                assert "docs/audits/uxr4_s15/" in ln, rid
             else:
                 assert "| OPEN — owner S12" in ln, ln[:80]
                 assert state.get(rid, "OPEN") == "OPEN", (rid, "the re-read reads it FIXED, the row says OPEN")

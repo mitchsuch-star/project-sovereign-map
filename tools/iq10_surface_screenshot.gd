@@ -318,6 +318,16 @@ func _boot():
 		return
 	root.mode = Window.MODE_WINDOWED
 	root.gui_disable_input = true
+	# PC-F47 (S15 head): the game installs the hover-text wrap at its first
+	# scene (main_menu.gd / main.gd); a scene shot alone has neither, so the
+	# harness makes the same call — through a Variant, for the BEFORE records
+	# of older checkouts whose Utils has no such function.
+	var utils_script: Script = Utils
+	for method in utils_script.get_script_method_list():
+		if str(method.get("name", "")) == "wrap_tooltips":
+			var utils_wrap: Variant = Utils
+			utils_wrap.call("wrap_tooltips", self)
+			break
 	if not root.window_input.is_connected(_on_stray_input):
 		root.window_input.connect(_on_stray_input)
 	var pos = _spec.get("window_position", [5200, 20])
@@ -605,6 +615,8 @@ func _run_steps():
 		_set_path(target, str(step["set_path"]), _resolve_value(step.get("value"), null, null))
 	elif step.has("press"):
 		_press(target, step["press"])
+	elif step.has("hover"):
+		_hover(target, step["hover"])
 	elif step.has("read"):
 		# Record properties off the target (dotted paths walk nested objects)
 		# into the shot's `reads` — the diagnostic a frame cannot show (the
@@ -736,6 +748,72 @@ func _press(scope: Node, how) -> void:
 	_note_error("press found no button: " + JSON.stringify(how))
 
 
+func _hover(scope: Node, how) -> void:
+	# PC-F47 (S15 head, October 25, 2026): a REAL hover — the engine's own
+	# tooltip machinery, not a stand-in. The root's GUI input is switched on
+	# for the shot (it is off for every other: `gui_disable_input` keeps the
+	# player's keys out), the viewport is told the pointer entered, and one
+	# mouse motion is pushed to the control's centre; the popup appears after
+	# the engine's own delay, so the step is followed by `then_wait` and the
+	# shot's `settle_ms` (1.6 s of REAL time, frames are not time). `how` picks
+	# the control by its `text` or by a `tooltip` fragment — the first visible
+	# one that carries a tooltip.
+	if not (how is Dictionary):
+		return
+	var want_text := str(how.get("text", ""))
+	var want_tip := str(how.get("tooltip", ""))
+	var search_root: Node = root if bool(how.get("anywhere", false)) else scope
+	var found: Control = null
+	for n in _all_nodes(search_root):
+		if not (n is Control) or n == _backdrop or not _shown(n):
+			continue
+		var c := n as Control
+		if str(c.tooltip_text) == "":
+			continue
+		if want_text != "" and ("text" in c) and str(c.text).strip_edges().contains(want_text):
+			found = c
+			break
+		if want_tip != "" and str(c.tooltip_text).contains(want_tip):
+			found = c
+			break
+	if found == null:
+		_note_error("hover found no control with a tooltip: " + JSON.stringify(how))
+		return
+	var at := found.get_global_rect().get_center()
+	root.gui_disable_input = false
+	root.notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
+	var ev := InputEventMouseMotion.new()
+	ev.position = at
+	ev.global_position = at
+	root.push_input(ev, true)
+	_current["hovered"] = {"path": str(root.get_path_to(found)), "at": [at.x, at.y],
+			"tooltip_chars": str(found.tooltip_text).length()}
+
+
+func _tooltip_record() -> Dictionary:
+	# The engine's hover popup as the frame shows it: its rect in logical px,
+	# its words, how many lines they stand on, and whether the label wraps.
+	# The engine parents its popup to the HOVERED control (measured, 4.4.1): a
+	# PopupPanel whose theme variation is "TooltipPanel".
+	for n in _all_nodes(root):
+		if n is PopupPanel and (n as PopupPanel).theme_type_variation == &"TooltipPanel" \
+				and (n as Window).visible:
+			var w := n as Window
+			var rec := {"rect": [w.position.x, w.position.y, w.size.x, w.size.y]}
+			for c in w.get_children():
+				if c is Label:
+					var lb := c as Label
+					rec["text"] = lb.text
+					rec["lines"] = lb.get_line_count()
+					rec["autowrap"] = int(lb.autowrap_mode)
+					rec["label_rect"] = [lb.position.x, lb.position.y, lb.size.x, lb.size.y]
+			var panel_box: StyleBox = w.get_theme_stylebox("panel")
+			if panel_box is StyleBoxFlat:
+				rec["bg_alpha"] = (panel_box as StyleBoxFlat).bg_color.a
+			return rec
+	return {}
+
+
 func _scroll_to(how) -> void:
 	# Bring the paragraph holding `text` to the top of its ScrollContainer.
 	if not (how is Dictionary):
@@ -793,6 +871,8 @@ func _capture(suffix: String) -> void:
 		return
 	var view: Vector2 = root.get_visible_rect().size
 	frame["logical_viewport"] = [view.x, view.y]
+	# PC-F47: the hover popup, when a `hover` step raised one.
+	frame["tooltip"] = _tooltip_record()
 	frame["texts"] = _collect_texts()
 	frame["buttons_offscreen"] = _buttons_offscreen(view)
 	frame["clipped_text"] = _clipped_text()
@@ -1669,6 +1749,8 @@ func _adopt_overrides(payload) -> void:
 
 
 func _teardown():
+	# PC-F47: a `hover` step switched the root's GUI input on; it goes back off.
+	root.gui_disable_input = true
 	_current["ok"] = (_current["errors"] as Array).is_empty() \
 			and not (_current["frames"] as Array).is_empty()
 	_results.append(_current)

@@ -3115,6 +3115,23 @@ def set_diplomatic_state(world, nation_a: str, nation_b: str,
         from backend.game_logic.withdrawal import revoke_evacuation_grant
         revoke_evacuation_grant(world, nation_a, nation_b)
 
+    # S14E-X249 (S14f p3, October 25, 2026): a war entered by ANY road has its
+    # pair's stored score from the first moment. The store was written at End
+    # Turn alone (and, since D14, at the sites that move it), so a freshly
+    # declared war - a declaration, an ally's entry, a cascade, a vassal's
+    # join or rebellion - read 0 until the next End Turn even where the live
+    # figure was not 0 (a province already held from an earlier war: the
+    # territory component). The setter is the one chokepoint every WAR entry
+    # passes, so every road inherits it (the sweep's class; `declare_war` and
+    # the cascade, `ally_entry`, `vassal_auto_join`, the vassal rebellions all
+    # route here) - through `stamp_new_war_score` (THE SEAM). A truce's
+    # COLLAPSE (ARMISTICE -> WAR) is a war RESUMED, not entered: the PC-R2
+    # ruling D keeps its ledger, its age and its stored score standing (End
+    # Turn recomputes it, as ever), and the settlement's own ARMISTICE -> WAR
+    # -> VASSAL hop is the treaty's bookkeeping - neither stamps here.
+    if new_state == "WAR" and old_state not in ("WAR", "ARMISTICE"):
+        stamp_new_war_score(world, nation_a, nation_b)
+
     debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
                 f"{' (' + reason + ')' if reason else ''}")
 
@@ -3995,16 +4012,102 @@ def apply_war_score_decay(world, *, recalculate: bool = True) -> None:
         recalculate_war_scores(world)
 
 
+def _store_pair_war_score(world, diplo_key: str) -> bool:
+    """S14E-D14 (S14f p3, October 25, 2026): the ONE writer of a pair's
+    stored war score — `calculate_war_score` from the alphabetically-first
+    nation's chair, stored under the pair's diplo key as an int. End Turn's
+    `recalculate_war_scores` (every WAR pair) and the stamp sites'
+    `recalculate_pair_war_score` (the pair a battle or a capture touched)
+    both write through here, so a score is stored exactly one way."""
+    parts = diplo_key.split("|")
+    if len(parts) != 2:
+        return False
+    score = calculate_war_score(parts[0], parts[1], world)
+    war_scores = getattr(world, 'war_scores', None)
+    if not isinstance(war_scores, dict):
+        war_scores = {}
+    war_scores[diplo_key] = int(score)
+    world.war_scores = war_scores
+    return True
+
+
 def recalculate_war_scores(world) -> None:
     """Recalculate war scores for all active wars."""
-    war_scores = getattr(world, 'war_scores', {})
+    world.war_scores = getattr(world, 'war_scores', {})
     for diplo_key, state in world.diplomatic_states.items():
         if state == "WAR":
-            parts = diplo_key.split("|")
-            if len(parts) == 2:
-                score = calculate_war_score(parts[0], parts[1], world)
-                war_scores[diplo_key] = int(score)
-    world.war_scores = war_scores
+            _store_pair_war_score(world, diplo_key)
+
+
+def recalculate_pair_war_score(world, nation_a: str, nation_b: str) -> None:
+    """S14E-D14 / S14E-X98 / S14E-X101 (S14f p3, October 25, 2026): THE SEAM —
+    recompute the STORED war score of ONE pair at war, as End Turn does for
+    every pair, at the sites that move it (a battle recorded, a capture, a
+    drawn battle's dead, a sovereign taken). Before this the store was
+    recomputed only at End Turn: a preview opened after a victory estimated
+    on the morning's score beside a live "War score:" line that said more,
+    and `vassal.subjugation_refusal` gated and quoted the morning's figure
+    (S14E-25's class, rooted). The stored/live gap now closes at the stamp:
+    `live_war_score_for` and `get_war_score_for` agree after every site.
+
+    A pair not at war is a no-op (the store holds WAR pairs only). Never
+    raises: a stamp inside a battle must not cost the battle. The series
+    arms hold it DOWN with `--seam
+    backend.game_logic.diplomacy:recalculate_pair_war_score=lambda *a, **k: None`
+    (today's behaviour: the store moves at End Turn alone; End Turn writes
+    through `_store_pair_war_score`, so the hold leaves it untouched)."""
+    if not nation_a or not nation_b or nation_a == nation_b:
+        return
+    try:
+        diplo_key = world._make_diplo_key(nation_a, nation_b)
+        if (getattr(world, "diplomatic_states", {}) or {}).get(diplo_key) != "WAR":
+            return
+        _store_pair_war_score(world, diplo_key)
+    except Exception as exc:
+        report(exc, "diplomacy.recalculate_pair_war_score: _store_pair_war_score")
+
+
+def stamp_new_war_score(world, nation_a: str, nation_b: str) -> None:
+    """S14E-X249 (S14f p3, October 25, 2026): THE SEAM of a war ENTERED - the
+    pair's stored score from the first moment, through the D14 seam
+    (`recalculate_pair_war_score`, so holding THAT down holds this down too).
+    Called by `set_diplomatic_state` on a WAR entry from any state but a
+    truce (a collapse resumes a war: PC-R2 ruling D keeps its stored score).
+    The series arm holds it DOWN with
+    `backend.game_logic.diplomacy:stamp_new_war_score=None` - today's
+    behaviour: a new war's pair reads 0 and is absent from `war_scores` until
+    End Turn."""
+    recalculate_pair_war_score(world, nation_a, nation_b)
+
+
+def recalculate_war_scores_among(world, nations) -> None:
+    """S14E-D14 / S14E-X222: `recalculate_pair_war_score` for every pair among
+    `nations` — a capture moves the pair that fought (ledger capture, capital),
+    and ALSO the pairs its province's STARTING owner and capital owner stand in
+    (the territory and capital components read who holds whose ground). Through
+    the seam, so holding it down holds this down."""
+    names = sorted({str(n) for n in (nations or ()) if n})
+    for index, nation_a in enumerate(names):
+        for nation_b in names[index + 1:]:
+            recalculate_pair_war_score(world, nation_a, nation_b)
+
+
+def recalculate_war_scores_for_march(world, marshal, *locations) -> None:
+    """S14E-X224 / S14E-X225 (S14f p3, October 25, 2026): a corps that steps
+    INTO or OUT OF a capital moves the capital component of its war score
+    (`_besieges`: +/-10 for a corps standing in the enemy's capital) with no
+    battle and no capture to stamp. Called after a march, a retreat or a
+    post-combat advance with the provinces the corps left and reached; a
+    province that is nobody's capital costs one pass over the capitals map
+    (nations, never regions - Golden Rule 8). Through the seam, so holding
+    `recalculate_pair_war_score` down holds this down."""
+    nation = getattr(marshal, "nation", None)
+    places = {loc for loc in locations if loc}
+    if not nation or not places:
+        return
+    for owner, capital in (getattr(world, "nation_capitals", None) or {}).items():
+        if capital in places and owner != nation:
+            recalculate_pair_war_score(world, nation, owner)
 
 
 def pair_cooldown_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
@@ -4075,8 +4178,14 @@ def armistice_variant_for(world, proposer: str, target: str) -> str:
 def live_war_score_for(world, nation: str, opponent: str) -> int:
     """DDB-27 (Pre-Deploy S13b part 2): the war score from `nation`'s chair
     as it stands NOW — `calculate_war_score`, the war panel's own read. The
-    stored score (`get_war_score_for`) is recomputed only at end turn; a
-    surface that QUOTES the score to the player reads this one."""
+    stored score (`get_war_score_for`) is recomputed at end turn AND, since
+    S14E-D14 (S14f p3, October 25, 2026), at the sites that move it — a battle
+    recorded, a capture, a drawn battle's dead, a sovereign taken
+    (`recalculate_pair_war_score`) — so the two AGREE after every stamp. This
+    stays the live computation, correct by construction: a mover with no stamp
+    (a march that opens a siege, a fixture that writes a board) would make a
+    pure store-read lie mid-turn. A surface that QUOTES the score reads this
+    one; a surface that gates reads either."""
     try:
         return int(calculate_war_score(nation, opponent, world))
     except Exception as exc:
@@ -5549,14 +5658,62 @@ def drawn_battle_dead(world, diplo_key: str) -> Dict[str, int]:
     (`_capture_pre_cleanup_war_data`) summed a war's won and lost battles
     alone. `WorldState.record_drawn_battle` stamps the dead beside the drawn
     turn on the pair's ledger (`drawn_dead`) and `apply_war_score_decay` ages
-    them out with it: this is the one reader both totals add. Display only -
-    the war score reads the ledger's own `casualties`."""
+    them out with it: this is the one reader both totals add. The war score
+    reads the ledger's own `casualties`, never this. S14E-D20 / X213: the
+    shut-out price's SEVERE tier counts an ally's drawn dead through it too
+    (`ally_dead_in_pair`)."""
     ledger = ((getattr(world, "campaign_ledgers", None) or {}).get(diplo_key) or {})
     dead: Dict[str, int] = {}
     for row in ledger.get("drawn_dead") or []:
         for nation, count in ((row or {}).get("dead") or {}).items():
             dead[str(nation)] = dead.get(str(nation), 0) + int(count or 0)
     return dead
+
+
+def pair_has_fought(world, diplo_key: str) -> bool:
+    """S14E-D20 / S14E-X210 (Pre-Deploy S14f part 3, October 25, 2026): THE
+    SEAM of "has this pair come to blows" - a battle of the pair in the
+    records (winner-only, a battle of >= 1,000 dead) OR a DRAWN battle on the
+    pair's campaign ledger (`drawn`, X201 - a stalemate has no winner so
+    `battle_records` never held it). The AI's P2 stalemate gate reads it: a
+    court that fought France to a standstill has fought, and sues on the
+    normal patience window rather than the long no-contact escape
+    (`ai_diplomacy.P2_NO_CONTACT_ESCAPE_TURNS`). Both lists age out in the same
+    10-turn window (`apply_war_score_decay`). Tolerant of an absent ledger.
+    The series arm holds it down with
+    `lambda world, key: bool((world.battle_records or {}).get(key))` - the
+    records alone, today's behaviour."""
+    if (getattr(world, "battle_records", None) or {}).get(diplo_key):
+        return True
+    ledger = ((getattr(world, "campaign_ledgers", None) or {}).get(diplo_key) or {})
+    return bool(ledger.get("drawn"))
+
+
+def battle_record_dead(world, pair_key: str, nation: str) -> int:
+    """S14E-D20 / S14E-X213: `nation`'s own dead in the pair's RECORDED
+    (won / lost) battles - the attacker's casualties where she attacked, the
+    defender's where she defended. The records alone; `ally_dead_in_pair` adds
+    the drawn battles' dead."""
+    total = 0
+    for r in (getattr(world, 'battle_records', {}) or {}).get(pair_key, []) or []:
+        if r.get("attacker") == nation:
+            total += int(r.get("attacker_casualties", 0) or 0)
+        elif r.get("defender") == nation:
+            total += int(r.get("defender_casualties", 0) or 0)
+    return total
+
+
+def ally_dead_in_pair(world, pair_key: str, nation: str) -> int:
+    """S14E-D20 / S14E-X213 (Pre-Deploy S14f part 3, October 25, 2026): THE
+    SEAM of an ally's blood in her own war - her dead in the pair's recorded
+    battles (`battle_record_dead`) PLUS her dead in the pair's drawn ones
+    (`drawn_battle_dead`). `get_separate_peace_fallout_warnings` reads it for
+    `ally_casualties`, which feeds the -15 SEVERE tier (more than 5,000 dead
+    over 5 or more turns): a drawn-only war used to under-count and the
+    shut-out PRICE read MAJOR. The series arm holds it down with
+    `lambda world, key, nation: battle_record_dead(world, key, nation)`."""
+    return (battle_record_dead(world, pair_key, nation)
+            + int(drawn_battle_dead(world, pair_key).get(nation, 0) or 0))
 
 
 def build_war_context_snapshot(
@@ -6015,13 +6172,12 @@ def get_separate_peace_fallout_warnings(
         ally_relation = int(world.nation_relations.get(ally_key, 0))
         war_start = world.war_start_turns.get(target_key, world.current_turn)
         ally_war_turns = int(max(0, world.current_turn - war_start))
-        records = getattr(world, 'battle_records', {}).get(target_key, [])
-        ally_casualties = 0
-        for r in records:
-            if r.get("attacker") == nation:
-                ally_casualties += int(r.get("attacker_casualties", 0))
-            elif r.get("defender") == nation:
-                ally_casualties += int(r.get("defender_casualties", 0))
+        # S14E-D20 / S14E-X213: the ally's dead in her own war - the recorded
+        # battles' AND the drawn ones' (`ally_dead_in_pair`, the seam). The
+        # SEVERE tier below (> 5,000 dead over 5+ turns) and the -15 it prices
+        # read this; the records are winner-only, so a drawn-only war used to
+        # under-count and the shut-out price read MAJOR.
+        ally_casualties = ally_dead_in_pair(world, target_key, nation)
 
         penalty = _compute_separate_peace_penalty(
             ally_war_score, ally_war_turns, ally_casualties, harshness,
@@ -6372,9 +6528,17 @@ def separate_peace_words(world, proposer: str, target: str,
     named: Dict[str, List[str]] = {}
     for t in dict_terms:
         if str(t.get("type") or "") == "territory_cede" and str(t.get("to") or "") in carried:
+            # S14E-X252 (S14f p3): the reader knew only the retired raw-dict
+            # shape's singular `region`; the COMPILED clause the ratifier
+            # applies (`treaty.treaty_clauses_of`, the list X211 made the one
+            # source) carries `regions` — a cession to an ally in the demands
+            # dialect read "she takes nothing by it".
+            regions = [str(r) for r in (t.get("regions") or []) if r]
             region = str(t.get("region") or "")
-            if region:
-                named.setdefault(str(t.get("to")), []).append(region)
+            if region and region not in regions:
+                regions.append(region)
+            for r in regions:
+                named.setdefault(str(t.get("to")), []).append(r)
     court = _fdn(world, target)
 
     def _join(names: List[str]) -> str:
@@ -6454,12 +6618,18 @@ def separate_peace_priced_clauses(terms: Optional[Mapping], proposer: str,
     -> `apply_separate_peace_penalties`). The preview used to hand the words the
     draft's RAW `clauses` alone: a hand-written demand-dialect draft (a gold
     demand in `demands`, nothing in `clauses`) read as a burden of 0 and quoted
-    the doubled -20 while the signing applied the lighter -10. A dict clause
-    written straight into `clauses` (the raw dialect a fixture speaks) is kept
-    in the list as before, after the compiled ones."""
+    the doubled -20 while the signing applied the lighter -10.
+    S14E-X211 (S14f part 3): the list is the compiled clauses and NOTHING
+    else. A dict clause written straight into the draft's `clauses` used to
+    be appended "as the raw dialect a fixture speaks", but the ratifier never
+    applies one (`treaty.treaty_clauses_of` builds from the sweeteners and
+    demands alone; `clauses` carries string keys like "open_borders") - the
+    words priced a burden the signing never applied (a `gold_lump` in
+    `clauses` quoted -10 and the signing wrote -20). The words now price
+    exactly what the ratifier applies."""
     from backend.game_logic.treaty import treaty_clauses_of
     terms = terms or {}
-    compiled = treaty_clauses_of(
+    return treaty_clauses_of(
         {
             "sweeteners": [s for s in (terms.get("sweeteners") or [])
                            if isinstance(s, Mapping) and s.get("type")],
@@ -6467,7 +6637,6 @@ def separate_peace_priced_clauses(terms: Optional[Mapping], proposer: str,
                         if isinstance(d, Mapping) and d.get("type")],
         },
         proposer, target)
-    return compiled + [dict(c) for c in (terms.get("clauses") or []) if isinstance(c, Mapping)]
 
 
 def _price_words(words: Optional[Dict[str, Any]], ally: str) -> str:
@@ -10551,6 +10720,20 @@ def treaty_break_cost_to_player(world, breaker: str, other: str) -> int:
     return int(TREATY_BREAK_RELATION_ALL)
 
 
+def downgrade_cost_to_player(world, actor: str, other: str, relation_all: int) -> int:
+    """S14E-X120 / S14E-D13: what a THIRD POWER's downgrade of a treaty costs
+    France — the `relation_all` `execute_downgrade` takes off the actor's
+    relation with every court that is neither party (the table's own figure,
+    `DOWNGRADE_PENALTIES`), France's included. 0 on the two lower steps (the
+    table carries no `relation_all` there) and 0 when France is a party: the
+    downgrade is her own act or her own injury, and the pair's hit is the
+    news. The same shape as `treaty_break_cost_to_player`."""
+    player = getattr(world, "player_nation", "France")
+    if not actor or player in (actor, other) or int(relation_all or 0) >= 0:
+        return 0
+    return int(-int(relation_all))
+
+
 def declaration_cost_clause(cost: int, player: str = "France") -> str:
     """"relations with every court, France's included, fall 15" — the clause
     the declaration beat (dispatch AND rail) appends; "" at a cost of 0."""
@@ -11906,11 +12089,25 @@ def _process_war_cascade(
 # DOWNGRADE TRANSITIONS (§5b.1)
 # ═══════════════════════════════════════════════════════
 
-def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
+def execute_downgrade(world, nation_a: str, nation_b: str,
+                      reason: str = "diplomatic_downgrade") -> Dict:
     """Execute a one-step downgrade between two nations.
 
+    `nation_a` is the ACTOR (the court that walks away): its relation with
+    `nation_b` takes `relation_target`, its relation with every OTHER court
+    takes `relation_all` and its alarm slot takes `threat`
+    (`DOWNGRADE_PENALTIES`). The ONE executor of the class: the player's verb,
+    the paradox arm AND — since S14E-D13 / S14E-X120 (S14f p3, October 25,
+    2026) — the AI's opportunistic downgrade (`ai_diplomacy._ai_ai_downgrade`,
+    which passes `reason="ai_ai_downgrade"` so the state write stays
+    distinguishable). The AI pays no DP: no caller of this function deducts
+    it, the player's verb does.
+
     Returns:
-        {"success": bool, "message": str, "new_state": str, "dp_cost": int}
+        {"success": bool, "message": str, "new_state": str, "dp_cost": int,
+         "relation_cost": int}  - `relation_cost` is what the downgrade takes
+        off France's relation with the actor (`downgrade_cost_to_player`; 0
+        when France is a party, so the clause names only a third power's).
     """
     diplo_key = world._make_diplo_key(nation_a, nation_b)
     current_state = world.diplomatic_states.get(diplo_key, "PEACE")
@@ -11929,7 +12126,7 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
         return {"success": False, "message": f"No downgrade path from {current_state} to {new_state}."}
 
     # Apply (R2: centralized setter; treaty removal handled separately for non-WAR downgrades)
-    set_diplomatic_state(world, nation_a, nation_b, new_state, "diplomatic_downgrade")
+    set_diplomatic_state(world, nation_a, nation_b, new_state, reason)
     bargain_breach_events = detect_bargain_breach_on_treaty_change(
         world, nation_a, nation_b, new_state,
     )
@@ -11957,12 +12154,19 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
         from backend.game_logic.coalition import add_threat
         add_threat(world, threat_amount, "diplomatic_downgrade", target=nation_a)
 
+    # S14E-X120 / S14E-D13: a third power's downgrade names its cost to France
+    # (X38's clause, `declaration_cost_clause`); the logged event carries the
+    # figure the campaign log's line reads.
+    _cost = downgrade_cost_to_player(world, nation_a, nation_b,
+                                     penalties["relation_all"])
     world.log_event({
         "type": "diplomatic_downgrade",
         "from_state": current_state,
         "to_state": new_state,
         "nation_a": nation_a,
         "nation_b": nation_b,
+        "relation_cost": int(_cost),
+        "player": str(getattr(world, "player_nation", "France")),
     })
 
     return {
@@ -11971,6 +12175,7 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
         "new_state": new_state,
         "dp_cost": penalties["dp_cost"],
         "bargain_breach_events": bargain_breach_events,
+        "relation_cost": int(_cost),
     }
 
 
@@ -15615,8 +15820,12 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
 
     actions: List[Dict] = []
     dp_available = int(getattr(world, "diplomatic_points", 0) or 0)
-    treasury = int((getattr(world, "nation_gold", {}) or {})
-                   .get(player, 0) or 0)
+    # S14E-X188 / S14E-D19: the sponsor's four-turns cover reads the CHEST
+    # (`chest_of`: the treasury less the recurring settlement payments still
+    # owed) - the very figure the verb and its quote are gated against - so
+    # `treasury` below is the chest; `coffers` is the raw gold, kept for the
+    # clause that says the two differ.
+    coffers, treasury = chest_of(world, player)
     at_war = world.is_at_war(player, target_nation)
     has_decks = bool(getattr(world, "agendas", {}) or {})
 
@@ -15672,7 +15881,8 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         elif treasury < amount * SPONSOR_SUSTAIN_MULT:
             sponsor_ok, reason = (
                 False, f"The treasury cannot sustain the subsidy "
-                       f"(needs {amount * SPONSOR_SUSTAIN_MULT}g in hand).")
+                       f"(needs {amount * SPONSOR_SUSTAIN_MULT}g in hand"
+                       f"{FREE_OF_OBLIGATIONS if treasury < coffers else ''}).")
         else:
             sponsor_ok, reason = True, ""
         from backend.display_names import display_nation as _dn

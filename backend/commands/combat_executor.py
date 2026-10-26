@@ -2340,8 +2340,6 @@ class CombatExecutor:
         function, so a gate that reads it cannot disagree with the screen.
         Returns {"band", "ratio", "committed_attacker", "committed_defender",
         "joining"}; drift against the preview is pinned."""
-        from backend.commands.objection_v2 import (
-            inferred_attack_effective_ratio, inferred_attack_odds_band)
         # SFR-D6: the man who will stand in the battle, as the preview reads.
         enemy_marshal = answering_defender(world, enemy_marshal)
         battle_region = enemy_marshal.location
@@ -2371,39 +2369,32 @@ class CombatExecutor:
         # S14E-D11 / S14E-X68: and the same EXACT mean the screen prints -
         # the player's lead only (`_muster_outcome_set` is None for the AI's,
         # whose reads stay the one-stamp mean, byte for byte).
-        _exact = None
-        if THE_GATE_READS_THE_PREVIEWS_CONTEXT:
-            _defender_pre, _ = self._defender_muster(enemy_marshal, world)
-            _priced = self._priced_coordination(marshal, joining, enemy_marshal,
-                                                _defender_pre, world, battle_region)
-            _exact = self._muster_mean_exact(self._muster_outcome_set(
-                marshal, joining, enemy_marshal, _defender_pre, world,
-                battle_region))
-        else:
-            _priced = contextlib.nullcontext()
-        with _priced:
-            committed = (_exact if _exact is not None
-                         else self._committed_reinforcement_strength(
-                             marshal, joining, world, expected_at=battle_region))
-            _joiners, committed_defender = self._defender_muster(enemy_marshal, world)
-            game_state = {"world": world}
-            band = inferred_attack_odds_band(
-                marshal, enemy_marshal, game_state,
-                committed_attacker=committed, committed_defender=committed_defender,
-                fold_modifiers=True)
-            ratio = inferred_attack_effective_ratio(
-                marshal, enemy_marshal, game_state,
-                committed_attacker=committed, committed_defender=committed_defender,
-                fold_modifiers=True)
-        return {"band": band, "ratio": float(ratio),
-                "committed_attacker": float(committed),
-                "committed_defender": float(committed_defender),
+        # S14E-D12 / S14E-X76 / S14E-X77 (S14f p3): and the DEFENDER's term
+        # on the same exact footing, the band read from the exact ratio -
+        # all of it in `_muster_band`, the one pricing the screen reads too.
+        terms = self._muster_band(
+            marshal, enemy_marshal, world, {"world": world}, joining,
+            battle_region, priced=THE_GATE_READS_THE_PREVIEWS_CONTEXT)
+        return {"band": terms["band"], "ratio": float(terms["ratio"]),
+                "committed_attacker": float(terms["committed_attacker"]),
+                "committed_defender": float(terms["committed_defender"]),
                 "joining": [m.name for m in joining]}
 
-    def _defender_muster(self, enemy_marshal, world):
+    def _defender_muster(self, enemy_marshal, world, marchers_only: bool = False,
+                         term: bool = True):
         """CA9-F1: the DEFENDER's muster, read off the same ladder as ours.
 
         Returns ``(joining_marshals, committed_strength)``.
+
+        S14E-D12 / S14E-X76 (S14f p3): the committed term is the EXACT
+        per-outcome expectation (`_defender_outcome_set` /
+        `_defender_mean_exact`, the defender's twin of the attacker's
+        D11 mean) wherever the set exists - each arrival outcome priced under
+        its own coordination - else the one-stamp mean below, byte for byte.
+        `marchers_only` leaves the corps already ON the field out of the
+        term (the AI's price: they are in the field sum the caller adds);
+        `term=False` returns the roster alone, for the readers that need
+        only who would answer (no enumeration).
 
         CO-2 landed only the attacker's half of the committed term, so the
         preview committed OUR muster and modelled THEIRS as a single man —
@@ -2434,11 +2425,21 @@ class CombatExecutor:
                 joining.append(m)
         if not joining:
             return [], 0.0
+        if not term:
+            return joining, 0.0
+        # S14E-D12 / S14E-X76: the exact mean where the outcome set exists.
+        exact = self._defender_mean_exact(self._defender_outcome_set(
+            enemy_marshal, joining, world, battle_region,
+            marchers_only=marchers_only))
+        if exact is not None:
+            return joining, exact
+        counted = ([m for m in joining if m.location != battle_region]
+                   if marchers_only else joining)
         # PT-A2: the defender's muster is a forecast too — same weight, same
         # reason. Leaving this side unweighted would re-open exactly the
         # asymmetry CA9-F1 landed to close.
         return joining, self._committed_reinforcement_strength(
-            enemy_marshal, joining, world, expected_at=battle_region)
+            enemy_marshal, counted, world, expected_at=battle_region)
 
     def _cannot_arrive(self, lead, m, world, battle_region) -> bool:
         """S14E-12: True for a corps that stands OFF the field and whose
@@ -2492,7 +2493,13 @@ class CombatExecutor:
         a 0%-odds corps' type, relationships and dedicated support inflated
         the price of everyone else's modifier. He stays out of the stamp (and
         so counts where he truly stands, as an adjacent ally if he is next
-        door). The player's lead only; both sides of his muster."""
+        door). The player's lead only; both sides of his muster.
+
+        S14E-D12 (S14f p3): `enemy_marshal=None` stamps the LEAD's side
+        alone - a nation's coordination reads only its own nation's corps, so
+        one side's stamp cannot depend on the other's team, and the exact
+        per-outcome pricing (`_defender_outcome_set`) stamps the side it
+        prices without inventing an opponent."""
         if not THE_MUSTER_PRICES_THE_COORDINATION:
             yield
             return
@@ -2501,10 +2508,14 @@ class CombatExecutor:
         if _active:
             joiners = self._reachable_joiners(
                 marshal, joiners, world, battle_region, active=True)
-            enemy_joiners = self._reachable_joiners(
-                enemy_marshal, enemy_joiners, world, battle_region, active=True)
+            if enemy_marshal is not None:
+                enemy_joiners = self._reachable_joiners(
+                    enemy_marshal, enemy_joiners, world, battle_region,
+                    active=True)
         fields = tuple(Marshal.COORDINATION_TRANSIENT_FIELDS) + ("sovereign_presence",)
-        nations = {marshal.nation, enemy_marshal.nation}
+        nations = {marshal.nation}
+        if enemy_marshal is not None:
+            nations.add(enemy_marshal.nation)
         touched = [m for m in world.marshals.values() if m.nation in nations]
         saved = {m.name: {f: (hasattr(m, f), getattr(m, f, None)) for f in fields}
                  for m in touched}
@@ -2557,11 +2568,12 @@ class CombatExecutor:
                 marshal, world, exclude_from_adjacent=atk_away,
                 assume_present=atk_present, assume_absent=atk_gone,
                 field=battle_region)
-            def_present, def_away, def_gone = _assumed(enemy_marshal, enemy_joiners)
-            self._calculate_coordination_context(
-                enemy_marshal, world, exclude_from_adjacent=def_away,
-                assume_present=def_present, assume_absent=def_gone,
-                field=battle_region)
+            if enemy_marshal is not None:
+                def_present, def_away, def_gone = _assumed(enemy_marshal, enemy_joiners)
+                self._calculate_coordination_context(
+                    enemy_marshal, world, exclude_from_adjacent=def_away,
+                    assume_present=def_present, assume_absent=def_gone,
+                    field=battle_region)
             yield
         finally:
             for m in touched:
@@ -2814,92 +2826,27 @@ class CombatExecutor:
                     row["stands_after"] = f"— and will stand at {battle_region}"
             rows.append(row)
 
-        # SF-CL-1 fix 1: the expected figure, the ceiling, the defender's
-        # committed term and the odds band are read under the coordination
-        # context the resolver will stamp (`_priced_coordination`); the
-        # defender's joiners are read first so his context can assume them.
-        _defender_joining_pre, _ = self._defender_muster(enemy_marshal, world)
-        # S14E-D11 / S14E-X68: "expect about N" is the EXACT mean over the
-        # joiners' outcome set (each outcome under its own coordination - the
-        # set the floor and the bad day come from), not one stamp for every
-        # corps that can arrive. None -> today's one-stamp mean below (the AI,
-        # nobody uncertain, or more uncertain corps than the cap).
-        _outcome_set = self._muster_outcome_set(
-            marshal, will_join_marshals, enemy_marshal, _defender_joining_pre,
-            world, battle_region)
-        _exact_mean = self._muster_mean_exact(_outcome_set)
-        with self._priced_coordination(marshal, will_join_marshals, enemy_marshal,
-                                       _defender_joining_pre, world, battle_region):
-            # CO-2: the odds band reflects the TOTAL committed force (lead + the
-            # personality/relationship-scaled contribution of every marshal that
-            # WILL JOIN) so the preview matches what CO-1 resolves.
-            # PT-A2: `expected_at` — these men have not marched yet. Each is
-            # priced at the probability of the arrival roll the resolver will
-            # make for him, not at certainty.
-            committed_attacker = (
-                _exact_mean if _exact_mean is not None
-                else self._committed_reinforcement_strength(
-                    marshal, will_join_marshals, world, expected_at=battle_region))
-
-            # FA-61: the CEILING, on the resolver's own basis.
-            #
-            # `committed_attacker` is arrival-WEIGHTED — a probability-weighted
-            # mean, not a bound — and the label above it read "if all march".
-            # Measured on the shipped board: the panel printed "78,676 if all
-            # march" and the resolver reached 84,266 with one of the four
-            # candidates ABSENT.
-            #
-            # Two causes, and the row names only the first. The second is the
-            # sovereign aura: `sovereign_presence` is stamped on every
-            # participant at RESOLVE time only, so at preview time every joiner
-            # is under-priced by the Emperor's +10% — in the same panel that
-            # already prints "every corps on this field fights +10% harder, if
-            # he marches". The row's own prescribed fix (`expected_at=None`
-            # alone) prints 90,172 against a reachable 96,789, which is the same
-            # defect one layer up.
-            #
-            # ⚠ A NEW KEY. `committed_strength` is NOT display-only —
-            # `objection_v2.muster_gate_arms` reads the `odds_band` derived from
-            # it, which is the CA9-row-2 attack-confirm gate — so the figure
-            # must not move. The ceiling rides beside it.
-            # S14E-12: "if all march" is the most the resolver can reach - a
-            # corps that cannot arrive is not in it.
-            _reachable = self._reachable_joiners(
-                marshal, will_join_marshals, world, battle_region)
-            ceiling_attacker = committed_attacker
-            if _reachable:
-                _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
-                          for m in [marshal] + _reachable}
-                try:
-                    _aura = 0.0
-                    from backend.models.authority import sovereign_aura_strength
-                    for m in [marshal] + _reachable:
-                        if getattr(m, "is_sovereign", False):
-                            _aura = sovereign_aura_strength(world, m.nation)
-                            break
-                    for m in [marshal] + _reachable:
-                        m.sovereign_presence = _aura
-                    ceiling_attacker = self._committed_reinforcement_strength(
-                        marshal, _reachable, world)
-                finally:
-                    for m in [marshal] + _reachable:
-                        if m.name in _saved:
-                            m.sovereign_presence = _saved[m.name]
-            # CA9-F1: and the same term for the other side. The RATIO reads
-            # ground truth, exactly as the fort/terrain terms already do and for
-            # the reason given in `inferred_attack_favorable`'s docstring — this
-            # is a safety gate on the player's own marshal, not enemy intel
-            # surfaced to the player, and under-protecting in fog is the wrong
-            # failure direction. The PRINTED figures stay fog-legal below.
-            defender_joining, committed_defender = self._defender_muster(
-                enemy_marshal, world)
-            from backend.commands.objection_v2 import (
-                inferred_attack_odds_reading, odds_band_note)
-            odds_band, _weighed = inferred_attack_odds_reading(
-                marshal, enemy_marshal, game_state,
-                committed_attacker=committed_attacker,
-                committed_defender=committed_defender,
-                fold_modifiers=True)
+        # SF-CL-1 fix 1 / S14E-D11 / S14E-D12 / S14E-X77: the expected figure,
+        # the defender's committed term and the odds band are the exact
+        # per-outcome readings of `_muster_band` - the ONE pricing the CA9 gate
+        # (`muster_odds`) reads too - under the coordination the resolver will
+        # stamp; the ceiling ("if all march") rides beside them.
+        # CO-2 / PT-A2 / CA9-F1: both terms are the TOTAL committed force,
+        # arrival-weighted. The RATIO reads ground truth for the defender's
+        # muster, as the fort/terrain terms do (a safety gate on the player's
+        # own marshal, not enemy intel surfaced - the PRINTED figures stay
+        # fog-legal below).
+        from backend.commands.objection_v2 import odds_band_note
+        terms = self._muster_band(marshal, enemy_marshal, world, game_state,
+                                  will_join_marshals, battle_region)
+        committed_attacker = terms["committed_attacker"]
+        committed_defender = terms["committed_defender"]
+        defender_joining = terms["defender_joining"]
+        odds_band, _weighed = terms["band"], terms["weighed"]
+        _outcome_set = terms["attacker_set"]
+        ceiling_attacker = self._muster_ceiling(
+            marshal, will_join_marshals, enemy_marshal, defender_joining,
+            world, battle_region, committed_attacker)
         # AAR32-D1: what the word promises ("even" — a hard fight that may
         # well decide nothing), printed after it on the band line.
         odds_note = odds_band_note(odds_band, _weighed)
@@ -2915,10 +2862,10 @@ class CombatExecutor:
         # S14E-12: the mean's spread - the floor and a bad day, exact over the
         # joiners' outcome set (the one S14E-D11's mean is read from), each
         # outcome under its own coordination. The player's lead only (the
-        # muster is a player surface; the AI reads none of this - its set is
-        # None).
+        # muster is a player surface; S14E-X215: an AI lead's set exists now,
+        # for its mean, but its floor and bad day are never printed).
         _spread = None
-        if with_spread:
+        if with_spread and nation == getattr(world, "player_nation", None):
             _spread = self._spread_of_outcome_set(_outcome_set)
 
         preview = {
@@ -3212,28 +3159,66 @@ class CombatExecutor:
         excluded; `withheld` when more corps are uncertain than the cap, the
         rest taken as not arriving - so neither the bad day nor the mean may
         be read from such a set), or None when there is no set to read: the
-        muster has no spread (nobody uncertain), the lever is down, or the
-        lead is not the player's (the AI's reads keep today's arithmetic).
+        muster has no spread (nobody uncertain) or the lever is down.
+
+        S14E-X215 (S14f p3): NO nation gate. D11 gave the set to the player's
+        lead only, which left an AI lead's own attacker mean and ratio on the
+        one-stamp arithmetic while its defender side was exact (D12) - the
+        cautious kit's gate (`glory_attack_odds` -> `muster_odds`) read two
+        arithmetics. The seam `_muster_mean_exact` is the one switch: its
+        down value restores the one-stamp mean for every lead. The floor and
+        the bad day stay a player surface (`_build_muster_preview`).
         """
-        if (not THE_MUSTER_STATES_ITS_SPREAD or not joiners
-                or marshal.nation != getattr(world, "player_nation", None)):
+        if not THE_MUSTER_STATES_ITS_SPREAD or not joiners:
             return None
-        certain, uncertain = [], []
-        for m in self._reachable_joiners(marshal, joiners, world, battle_region,
-                                         active=True):
-            p = self._expected_arrival_weight(marshal, m, world, battle_region)
-            if p >= 1.0:
-                certain.append(m)
-            elif p > 0.0:
-                uncertain.append((p, m))
+        certain, uncertain = self._arrival_roster(marshal, joiners, world,
+                                                  battle_region)
         if not uncertain:
             return None
-        uncertain.sort(key=lambda pm: (-pm[0], pm[1].name))
         enumerated = uncertain[:MUSTER_SPREAD_MAX_UNCERTAIN]
         withheld = len(uncertain) > len(enumerated)
         enemy_team = self._reachable_joiners(
             enemy_marshal, enemy_joiners, world, battle_region, active=True)
-        outcomes = []
+        outcomes, lead_mods = [], []
+        for team, probability in self._arrival_subsets(certain, enumerated):
+            with self._priced_coordination(marshal, team, enemy_marshal,
+                                           enemy_team, world, battle_region):
+                committed = self._committed_reinforcement_strength(
+                    marshal, team, world)
+                # S14E-X77: and the lead's own attack modifier under THIS
+                # outcome's stamp (the ratio's other nonlinear term).
+                from backend.commands.objection_v2 import lead_modifiers
+                lead_mod = lead_modifiers(marshal, enemy_marshal)[0]
+            outcomes.append((probability, committed))
+            lead_mods.append(lead_mod)
+        return {"outcomes": outcomes, "withheld": withheld,
+                "lead_mods": lead_mods}
+
+    def _arrival_roster(self, lead, joiners, world, battle_region) -> tuple:
+        """S14E-12 / S14E-D12: ([certain corps], [(odds, corps)] uncertain,
+        highest odds first) - the corps the resolver can find on the field,
+        split by the arrival roll each makes. A corps on the field makes no
+        roll (certain); one that cannot arrive is in neither list
+        (`_reachable_joiners`); the rest are Bernoulli trials at
+        `_expected_arrival_weight`. The ONE split the attacker's
+        (`_muster_outcome_set`) and the defender's (`_defender_outcome_set`)
+        outcome sets enumerate."""
+        certain, uncertain = [], []
+        for m in self._reachable_joiners(lead, joiners, world, battle_region,
+                                         active=True):
+            p = self._expected_arrival_weight(lead, m, world, battle_region)
+            if p >= 1.0:
+                certain.append(m)
+            elif p > 0.0:
+                uncertain.append((p, m))
+        uncertain.sort(key=lambda pm: (-pm[0], pm[1].name))
+        return certain, uncertain
+
+    @staticmethod
+    def _arrival_subsets(certain, enumerated):
+        """S14E-12 / S14E-D12: the 2^N arrival outcomes of `enumerated`
+        ([(odds, corps)]) on top of the `certain` corps, as (team,
+        probability) - a zero-probability subset is not an outcome."""
         for mask in range(1 << len(enumerated)):
             team = list(certain)
             probability = 1.0
@@ -3243,14 +3228,8 @@ class CombatExecutor:
                     probability *= p
                 else:
                     probability *= 1.0 - p
-            if probability <= 0.0:
-                continue
-            with self._priced_coordination(marshal, team, enemy_marshal,
-                                           enemy_team, world, battle_region):
-                committed = self._committed_reinforcement_strength(
-                    marshal, team, world)
-            outcomes.append((probability, committed))
-        return {"outcomes": outcomes, "withheld": withheld}
+            if probability > 0.0:
+                yield team, probability
 
     def _muster_mean_exact(self, outcome_set) -> Optional[float]:
         """S14E-D11 / S14E-X68 - THE SEAM. The header's "expect about N" (and
@@ -3274,6 +3253,315 @@ class CombatExecutor:
                 or not A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT):
             return None
         return float(sum(p * v for p, v in outcome_set["outcomes"]))
+
+    def _defender_outcome_set(self, enemy_marshal, enemy_joiners, world,
+                              battle_region, marchers_only: bool = False,
+                              attacker=None) -> Optional[Dict]:
+        """S14E-D12 / S14E-X76 (S14f p3): the DEFENDER's committed-strength
+        OUTCOME SET, exact - the twin of `_muster_outcome_set` by the same
+        rules: a corps on the field is in every outcome, one that cannot
+        arrive in none (`_reachable_joiners(active=True)`), every other a
+        Bernoulli trial on `_expected_arrival_weight`, the 2^N subsets capped
+        at `MUSTER_SPREAD_MAX_UNCERTAIN` (beyond it the set is `withheld` and
+        EMPTY: a truncation is never read, so none is built), and each
+        outcome priced under ITS OWN coordination - the resolver stamps the
+        defender's bonus on the corps that stand with him, not on every
+        corps that could.
+
+        NO nation gate: the player's preview AND the AI's price
+        (`enemy_ai._muster_price`) read the defender through it, which is the
+        ruling's point. One difference from the attacker's set: with nobody
+        uncertain this still returns the one outcome (the certain team under
+        its own stamp), because the AI prices with no ambient stamp at all
+        and "the one stamp IS the exact mean" holds only where the caller
+        stands inside the all-present context. None when there is nothing to
+        price: no joiner can arrive, or `THE_MUSTER_STATES_ITS_SPREAD` is
+        down.
+
+        The stamp is the defender's side alone (`_priced_coordination` with
+        no opponent): a nation's coordination reads only its own corps, so
+        the attacker's team cannot move it - pinned. `marchers_only` counts
+        the committed term of the corps OFF the field only while the stamp
+        still includes everyone (the AI adds the corps already standing there
+        to its field sum). With `attacker` given, each outcome also carries
+        the defender's own defense modifier under that stamp
+        (`lead_mods`), the other nonlinear term of the ratio (S14E-X77).
+        Returns {"outcomes": [(probability, committed)], "withheld": bool,
+        "lead_mods": [...]}."""
+        if not THE_MUSTER_STATES_ITS_SPREAD or not enemy_joiners:
+            return None
+        certain, uncertain = self._arrival_roster(
+            enemy_marshal, enemy_joiners, world, battle_region)
+        if not certain and not uncertain:
+            return None
+        enumerated = uncertain[:MUSTER_SPREAD_MAX_UNCERTAIN]
+        withheld = len(uncertain) > len(enumerated)
+        if withheld:
+            # a truncation is never read (the seam answers None): no 2^N
+            # stamps spent on it - the AI prices this on every rung.
+            return {"outcomes": [], "withheld": True, "lead_mods": []}
+        outcomes, lead_mods = [], []
+        for team, probability in self._arrival_subsets(certain, enumerated):
+            with self._priced_coordination(enemy_marshal, team, None, None,
+                                           world, battle_region):
+                counted = ([m for m in team if m.location != battle_region]
+                           if marchers_only else team)
+                committed = self._committed_reinforcement_strength(
+                    enemy_marshal, counted, world)
+                if attacker is not None:
+                    from backend.commands.objection_v2 import lead_modifiers
+                    lead_mods.append(lead_modifiers(attacker, enemy_marshal)[1])
+            outcomes.append((probability, committed))
+        return {"outcomes": outcomes, "withheld": withheld,
+                "lead_mods": lead_mods}
+
+    def _defender_mean_exact(self, outcome_set) -> Optional[float]:
+        """S14E-D12 / S14E-X76 - THE SEAM (the defender's twin of
+        `_muster_mean_exact`, the attacker's D11 seam). The defender's
+        committed term on the EXACT per-outcome expectation: the
+        probability-weighted mean over his outcome set, each outcome priced
+        under its own coordination, where the one-stamp mean priced every
+        corps that can arrive under the stamp of them ALL arriving (or, on
+        the AI's side, under no stamp at all).
+
+        None means "keep the one-stamp mean" (`_committed_reinforcement_
+        strength(..., expected_at=)`): no set (nothing can arrive), more
+        uncertain corps than `MUSTER_SPREAD_MAX_UNCERTAIN` - the set is then
+        a truncation and its mean would be worse than the truth - and
+        `A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT` down. The series arm
+        swaps this for a function returning None: the defender's term, the
+        band it feeds, and `enemy_ai._muster_price` are then the pre-D12
+        arithmetic, byte for byte."""
+        if (outcome_set is None or outcome_set["withheld"]
+                or not A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT):
+            return None
+        return float(sum(p * v for p, v in outcome_set["outcomes"]))
+
+    def _muster_ratio_exact(self, marshal, enemy_marshal, game_state,
+                            committed_attacker, committed_defender,
+                            attacker_set, defender_set) -> Optional[float]:
+        """S14E-X77 / S14E-D12 - THE SECOND SEAM. The band's RATIO on the exact
+        expectation of each side. The ratio is nonlinear in the two leads'
+        standing modifiers - each carries the coordination bonus of the corps
+        that stand with it, and which corps stand with it is a die - so the
+        band, which read the lead's modifier under the stamp of ALL the corps
+        arriving, now reads the quotient of the two sides' EXPECTED
+        effective strengths: E[(lead + committed) x attack modifier] over the
+        attacker's arrival outcomes against E[(lead + committed) x ground x
+        defense modifier] over the defender's, each outcome priced under its
+        own stamp (the printed "expect about N" figures, with the modifiers
+        they carry).
+
+        A ratio of EXPECTATIONS, deliberately not an expectation of the
+        ratio. The mean of the pairs' ratios is dominated by the rare outcome
+        in which the defender's reinforcement does not come (Jensen: a
+        quotient is convex in its denominator) - measured on the S14E-X74
+        board, a 3.8% absence lifts the mean of ratios from 0.696 to 0.763
+        and flips the band "unfavorable" to "even" with the ordinary fight
+        unchanged, the optimistic drift CA9-F1 closed. The ratio of
+        expectations (0.6960) moves only the term the row names (0.6956).
+
+        The formula is `attack_effective_sides` itself - the single odds
+        formula divided at its quotient - read once per outcome with the
+        lead's modifier PRE-READ under that outcome's stamp
+        (`lead_modifiers`); the band's lines are `odds_reading_of_ratio`'s.
+        Arrival rolls are independent and a nation's stamp reads only its own
+        corps, so the attacker's half depends on the attacker's outcome alone
+        and the defender's half on the defender's alone (pinned against a
+        joint stamp). A side without a usable exact set - the caller passes
+        None for it when `_muster_mean_exact` / `_defender_mean_exact`
+        returned None (the AI's lead, a truncated set, a seam swapped out) -
+        is one outcome at the caller's own term and the live all-present
+        stamp: today's reading.
+
+        None = "keep today's single ratio" (neither side has an exact set, or
+        the series arm swapped this seam out). Called inside the all-present
+        `_priced_coordination` the term it degenerates to was read under."""
+        from backend.commands.objection_v2 import (
+            attack_effective_sides, lead_modifiers)
+        a_ok = (attacker_set is not None
+                and len(attacker_set.get("lead_mods") or ())
+                == len(attacker_set["outcomes"]))
+        d_ok = (defender_set is not None
+                and len(defender_set.get("lead_mods") or ())
+                == len(defender_set["outcomes"]))
+        if not (a_ok or d_ok):
+            return None
+        live_attack, live_defense = lead_modifiers(marshal, enemy_marshal)
+        attackers = ([(p, c, m) for (p, c), m in zip(
+            attacker_set["outcomes"], attacker_set["lead_mods"])]
+            if a_ok else [(1.0, committed_attacker, live_attack)])
+        defenders = ([(p, c, m) for (p, c), m in zip(
+            defender_set["outcomes"], defender_set["lead_mods"])]
+            if d_ok else [(1.0, committed_defender, live_defense)])
+        attacking = sum(p * attack_effective_sides(
+            marshal, enemy_marshal, game_state, committed_attacker=c,
+            fold_modifiers=True, attack_mod=m, defense_mod=1.0)[0]
+            for p, c, m in attackers)
+        defending = sum(p * attack_effective_sides(
+            marshal, enemy_marshal, game_state, committed_defender=c,
+            fold_modifiers=True, attack_mod=1.0, defense_mod=m)[1]
+            for p, c, m in defenders)
+        return attacking / defending
+
+    def _muster_band(self, marshal, enemy_marshal, world, game_state, joining,
+                     battle_region, priced: bool = True) -> Dict:
+        """S14E-D12 / S14E-X76 / S14E-X77 (S14f p3): THE band's terms - what
+        `muster_odds` (the gate) and `_build_muster_preview` (the screen)
+        both read, so they cannot disagree (the pin the gate's docstring
+        names). `joining` is the attacker's WILL JOIN list.
+
+        Both committed terms are the exact per-outcome means where the
+        outcome sets exist (the attacker's D11 mean, the defender's D12 mean)
+        and the band is read from the EXACT ratio (`_muster_ratio_exact`, a
+        mean of ratios), all under the all-present coordination the one-stamp
+        readings stand in. `priced=False` is the gate's pre-SF-CL-1 reading
+        (`THE_GATE_READS_THE_PREVIEWS_CONTEXT` down): no stamp, no exact term.
+
+        Returns {"committed_attacker", "committed_defender",
+        "defender_joining", "ratio", "band", "weighed", "attacker_set"}."""
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio, odds_reading_of_ratio)
+        defender_joining, _ = self._defender_muster(
+            enemy_marshal, world, term=False)
+        attacker_set = defender_set = None
+        a_exact = d_exact = None
+        if priced:
+            # S14E-D11 / S14E-X68: the attacker's exact mean (the player's
+            # lead only); S14E-D12: the defender's (no nation gate).
+            attacker_set = self._muster_outcome_set(
+                marshal, joining, enemy_marshal, defender_joining, world,
+                battle_region)
+            defender_set = self._defender_outcome_set(
+                enemy_marshal, defender_joining, world, battle_region,
+                attacker=marshal)
+            a_exact = self._muster_mean_exact(attacker_set)
+            d_exact = self._defender_mean_exact(defender_set)
+            context = self._priced_coordination(
+                marshal, joining, enemy_marshal, defender_joining, world,
+                battle_region)
+        else:
+            context = contextlib.nullcontext()
+        with context:
+            committed = (a_exact if a_exact is not None
+                         else self._committed_reinforcement_strength(
+                             marshal, joining, world, expected_at=battle_region))
+            committed_defender = (
+                d_exact if d_exact is not None
+                else self._committed_reinforcement_strength(
+                    enemy_marshal, defender_joining, world,
+                    expected_at=battle_region) if defender_joining else 0.0)
+            # a side whose mean seam answered None (the AI's lead, a truncated
+            # set, a seam swapped out) is one outcome in the ratio too.
+            ratio = (self._muster_ratio_exact(
+                marshal, enemy_marshal, game_state, committed,
+                committed_defender,
+                attacker_set if a_exact is not None else None,
+                defender_set if d_exact is not None else None)
+                if priced else None)
+            if ratio is None:
+                ratio = inferred_attack_effective_ratio(
+                    marshal, enemy_marshal, game_state,
+                    committed_attacker=committed,
+                    committed_defender=committed_defender,
+                    fold_modifiers=True)
+        band, weighed = odds_reading_of_ratio(marshal, enemy_marshal, ratio, True)
+        return {"committed_attacker": committed,
+                "committed_defender": committed_defender,
+                "defender_joining": defender_joining, "ratio": ratio,
+                "band": band, "weighed": weighed, "attacker_set": attacker_set}
+
+    def defence_reading(self, attacker, lead, world) -> tuple:
+        """S14E-X217 / S14E-D12 (S14f p3): the DEFENCE desk's band - "were
+        `attacker` to attack `lead`, the odds read ..." - with the player's own
+        defender term priced through the one summer. It had priced the corps
+        standing in the province at their raw strength (every man at full
+        weight, where the resolver commits `COMMITTED_ALPHA` of him under his
+        coordination and arrival odds), and none of the friends a march away.
+
+        The defender's side is `_defender_muster`'s exact mean (the lead's
+        corps and the friends who would march, each arrival outcome under its
+        own stamp - the lead's defense modifier read per outcome, as the band
+        reads it); it reads only the lead's own nation, so there is no fog
+        question on this side. The ATTACKER's side is today's reading, whole:
+        his visible lead alone, his muster not read (that would leak what the
+        player has not scouted), his modifier at the ambient stamp.
+        Returns (band, weighed_ratio, committed_defender)."""
+        from backend.commands.objection_v2 import (
+            inferred_attack_effective_ratio, odds_reading_of_ratio)
+        battle_region = lead.location
+        game_state = {"world": world}
+        joining, _ = self._defender_muster(lead, world, term=False)
+        d_set = self._defender_outcome_set(lead, joining, world, battle_region,
+                                           attacker=attacker)
+        d_exact = self._defender_mean_exact(d_set)
+        committed = (d_exact if d_exact is not None
+                     else self._committed_reinforcement_strength(
+                         lead, joining, world, expected_at=battle_region)
+                     if joining else 0.0)
+        ratio = self._muster_ratio_exact(
+            attacker, lead, game_state, 0.0, committed, None,
+            d_set if d_exact is not None else None)
+        if ratio is None:
+            ratio = inferred_attack_effective_ratio(
+                attacker, lead, game_state, committed_defender=committed,
+                fold_modifiers=True)
+        band, weighed = odds_reading_of_ratio(attacker, lead, ratio, True)
+        return band, weighed, committed
+
+    def _muster_ceiling(self, marshal, will_join_marshals, enemy_marshal,
+                        defender_joining, world, battle_region,
+                        committed_attacker) -> float:
+        """FA-61: the CEILING, on the resolver's own basis - lifted whole out
+        of `_build_muster_preview` at S14f p3 (its 500-line ratchet), read
+        under the all-present coordination as it was.
+
+        `committed_attacker` is arrival-WEIGHTED - a probability-weighted
+        mean, not a bound - and the label above it read "if all march".
+        Measured on the shipped board: the panel printed "78,676 if all
+        march" and the resolver reached 84,266 with one of the four
+        candidates ABSENT.
+
+        Two causes, and the row names only the first. The second is the
+        sovereign aura: `sovereign_presence` is stamped on every participant
+        at RESOLVE time only, so at preview time every joiner is under-priced
+        by the Emperor's +10% - in the same panel that already prints "every
+        corps on this field fights +10% harder, if he marches". The row's own
+        prescribed fix (`expected_at=None` alone) prints 90,172 against a
+        reachable 96,789, which is the same defect one layer up.
+
+        A NEW KEY. `committed_strength` is NOT display-only -
+        `objection_v2.muster_gate_arms` reads the `odds_band` derived from it,
+        which is the CA9-row-2 attack-confirm gate - so the figure must not
+        move. The ceiling rides beside it. S14E-12: "if all march" is the
+        most the resolver can reach - a corps that cannot arrive is not in
+        it."""
+        _reachable = self._reachable_joiners(
+            marshal, will_join_marshals, world, battle_region)
+        ceiling_attacker = committed_attacker
+        if not _reachable:
+            return ceiling_attacker
+        with self._priced_coordination(marshal, will_join_marshals,
+                                       enemy_marshal, defender_joining, world,
+                                       battle_region):
+            _saved = {m.name: getattr(m, "sovereign_presence", 0.0)
+                      for m in [marshal] + _reachable}
+            try:
+                _aura = 0.0
+                from backend.models.authority import sovereign_aura_strength
+                for m in [marshal] + _reachable:
+                    if getattr(m, "is_sovereign", False):
+                        _aura = sovereign_aura_strength(world, m.nation)
+                        break
+                for m in [marshal] + _reachable:
+                    m.sovereign_presence = _aura
+                ceiling_attacker = self._committed_reinforcement_strength(
+                    marshal, _reachable, world)
+            finally:
+                for m in [marshal] + _reachable:
+                    if m.name in _saved:
+                        m.sovereign_presence = _saved[m.name]
+        return ceiling_attacker
 
     def _spread_of_outcome_set(self, outcome_set) -> Optional[Dict]:
         """S14E-12: {"floor", "bad_day"} (committed strength, the lead's own
@@ -4859,6 +5147,15 @@ class CombatExecutor:
                     defender_participants=(theater or {}).get("defender_participants"),
                     nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                 )
+                # S14E-D14 / S14E-X98 / S14E-X101 (S14f p3): the pair's STORED
+                # score follows its battle - the dead (a sub-floor skirmish
+                # moves the blood) and the record - not End Turn alone.
+                # S14E-X248: and the THIRD pairs the battle's province stands
+                # in (the war score's capital component reads who stands in a
+                # capital: a besieger of a third court's capital beaten here
+                # moved THAT pair, stale until End Turn).
+                world.recalculate_battle_war_scores(
+                    battle_region, attacker.nation, defender_nation)
             else:
                 # PT-J2 review round [P2-3]: a DRAWN battle
                 # (mutual_destruction / stalemate) never reaches
@@ -4869,9 +5166,17 @@ class CombatExecutor:
                 # stays winner-only (its counts and decay must not see
                 # a winnerless row). S14E-X201: the drawn battle is also
                 # COUNTED as a battle fought (`record_drawn_battle`).
+                # S14E-X244 / S14E-D21: and credits the settlement buckets
+                # on blood (the theater of the battle's province, the
+                # principals' pre-battle strengths); S14E-X248: the third
+                # pairs the province stands in are stamped.
                 world.record_drawn_battle(
                     attacker.nation, defender_nation,
-                    int(atk_casualties), int(def_casualties))
+                    int(atk_casualties), int(def_casualties),
+                    battle_region,
+                    a_marshal=getattr(attacker, "name", None),
+                    b_marshal=getattr(defender, "name", None),
+                    a_pre=int(pre_atk), b_pre=int(pre_def))
 
         # ── 8.5 GE-1: the campaign's own record (display only, GR6) ──
         # One battle, once, for the player's side — every combat path passes
@@ -5147,7 +5452,8 @@ class CombatExecutor:
         # ── 13. Coalition: threat + war exhaustion ──
         if not is_bombardment:
             from backend.game_logic.coalition import (
-                add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+                add_threat, add_war_exhaustion_from_battle, add_coalition_shock,
+                add_war_exhaustion_from_draw,
             )
             france = world.player_nation
             total_cas = int(atk_casualties) + int(def_casualties)
@@ -5232,6 +5538,18 @@ class CombatExecutor:
                 if _third_party_battle:
                     add_war_exhaustion_from_battle(
                         attacker.nation, int(atk_casualties), world)
+
+            elif not attacker_won:
+                # S14E-X245 / S14E-D22 (S14f p3): a DRAWN battle (stalemate /
+                # mutual destruction) has no loser to pay its dead and left
+                # both courts' war exhaustion where it stood; each side now
+                # bears its OWN dead through the loser's one formula
+                # (`coalition.add_war_exhaustion_from_draw`, THE SEAM - down:
+                # a no-op). Reached by every combat path's pipeline, the
+                # main attack's included.
+                add_war_exhaustion_from_draw(
+                    world, attacker.nation, defender_nation,
+                    int(atk_casualties), int(def_casualties))
 
             # CA8-19(iii): there used to be a fourth arm here —
             #   elif not attacker_won and not defender_won and is_garrison:
@@ -6551,6 +6869,11 @@ class CombatExecutor:
                 marshal.strategic_order = None
                 clear_order_bound_interrupt(marshal)  # NPC-2
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
+            # S14E-X251 (S14f p3, October 25, 2026): a rout out of (or into) a
+            # capital moves the pair's siege component AFTER the battle's
+            # stamp (step 8 reads the corps still standing in the capital).
+            from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+            recalculate_war_scores_for_march(world, marshal, old_loc, retreat_to)
             # Movement attrition on forced retreat (Phase 6.2.F) — halved rate
             forced_retreat_attrition = self._executor._calculate_movement_attrition(marshal, retreat_to, world, is_retreat=True)
             marshal.retreating = True
@@ -6613,6 +6936,9 @@ class CombatExecutor:
             # 1. They flee to capital (not adjacent region) - no ally cover possible
             # 2. They're in BROKEN state with 3-10% strength - not a normal retreat
             marshal.move_to(spawn_loc)  # Use move_to() for proper state clearing
+            # S14E-X251: ... and a shattered army fleeing to its spawn the same.
+            from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+            recalculate_war_scores_for_march(world, marshal, old_loc, spawn_loc)
             marshal.strength = survivors
             marshal.morale = 20  # Shattered morale
             marshal.broken = True
@@ -10152,15 +10478,29 @@ class CombatExecutor:
                 nation_theater_strength=(theater or {}).get("nation_theater_strength"),
                 battle_name=ctx.battle_name,
             )
+            # S14E-D14 / S14E-X98 / S14E-X101 (S14f p3): the pair's STORED
+            # score follows its battle (the main attack's copy of step 8).
+            # S14E-X248: and the THIRD pairs the battle's province stands in.
+            ctx.world.recalculate_battle_war_scores(
+                ctx.target_location, ctx.marshal.nation,
+                ctx.enemy_marshal.nation)
         else:
             # PT-J2 review round [P2-3]: the drawn battle's dead still
             # accrue to the campaign ledger (this copy skips the
             # pipeline's step 8 via skip_diplo_record, so it needs its
             # own arm, mirrored). S14E-X201: and counted as a battle fought.
+            # S14E-X244 / S14E-D21: and the settlement buckets credited on
+            # blood (the battle's theater, the principals' pre-battle
+            # strengths); S14E-X248: the third pairs stamped.
             ctx.world.record_drawn_battle(
                 ctx.marshal.nation, ctx.enemy_marshal.nation,
                 int(ctx.battle_result.get("attacker", {}).get("casualties", 0)),
-                int(ctx.battle_result.get("defender", {}).get("casualties", 0)))
+                int(ctx.battle_result.get("defender", {}).get("casualties", 0)),
+                ctx.target_location,
+                a_marshal=getattr(ctx.marshal, "name", None),
+                b_marshal=getattr(ctx.enemy_marshal, "name", None),
+                a_pre=int(ctx.pre_battle_attacker_strength),
+                b_pre=int(ctx.pre_battle_defender_strength))
 
         # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
         ctx.marshal.last_combat_turn = int(ctx.world.current_turn)  # CR-7-4 item 5
@@ -10404,6 +10744,14 @@ class CombatExecutor:
                     print(f"[ATTACK MOVEMENT] MOVING {ctx.marshal.name}: {ctx.marshal.location} -> {ctx.target_location}")
                     _advance_from = ctx.marshal.location  # S14E-X133: the pay is read off the province left
                     ctx.marshal.move_to(ctx.target_location)
+                    # S14E-X225 (S14f p3): an advance into a capital (or out of
+                    # one) moves the pair's STORED score - the siege component.
+                    # The main attack records its battle (and stamps) BEFORE
+                    # this advance; the charge's and the auto-kill's advances
+                    # come before their pipeline's step 8, which stamps after.
+                    from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+                    recalculate_war_scores_for_march(
+                        ctx.world, ctx.marshal, _advance_from, ctx.target_location)
                     ctx.advanced_to = ctx.target_location  # DDB-37
                     # Movement attrition on post-battle advance (Phase 6.2.F)
                     ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, ctx.target_location, ctx.world)

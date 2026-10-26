@@ -455,11 +455,19 @@ def _and_join(items: List[str]) -> str:
 
 def _plan_gold(world, lord, op) -> Dict[str, Any]:
     amount = int(op.get("amount", 0) or 0)
-    chest = int((getattr(world, "nation_gold", {}) or {}).get(lord, 0) or 0)
-    return {"op": "gold", "amount": amount, "before": chest, "after": chest - amount,
+    # S14E-X196 / S14E-D19: the gold a letter asks is gated against the ONE
+    # chest (`instruments.chest_of` - the treasury less the recurring
+    # settlement payments still owed); nothing owed, every sentence is the one
+    # it was. The letter is the owner's (the player's) alone.
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+    treasury, chest = chest_of(world, lord)
+    held = f"{chest:,} gold{FREE_OF_OBLIGATIONS}" if chest < treasury else f"{chest:,}"
+    # `before`/`after` stay the COFFERS' (what `_apply_gold` leaves); the gate
+    # and the words read the chest
+    return {"op": "gold", "amount": amount, "before": treasury, "after": treasury - amount,
             "refusal": ("" if chest >= amount else
-                        f"{amount:,} gold is asked; the treasury holds {chest:,}."),
-            "line": f"{amount:,} gold (the treasury holds {chest:,})"}
+                        f"{amount:,} gold is asked; the treasury holds {held}."),
+            "line": f"{amount:,} gold (the treasury holds {held})"}
 
 
 def _apply_gold(world, lord, row) -> None:

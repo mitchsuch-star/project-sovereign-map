@@ -553,13 +553,17 @@ class TestTheQuestionDesk:
         """"how do I attack?" is a question about the game's GRAMMAR, and the
         reference is the honest answer to it. Unchanged by CX-2; since DDB-48
         (Pre-Deploy S13b part 4) the answer is the ONE section the question
-        names — a question naming none keeps the whole reference."""
+        names — a question naming none gets the section index (S14E-D17;
+        it kept the whole reference until then)."""
         for text in ("how do I attack?", "how do I attack Mack?",
                      "how does recruiting work?"):
             r = post(client, text)
             assert r["message"].startswith("MILITARY COMMANDS"), text
             assert not r.get("battle_report"), text
-        assert COMMAND_REFERENCE in post(client, "how do I sing?")["message"]
+        # S14E-D17 / S14E-X142: flipped - the nameless question gets the
+        # SECTION INDEX; the whole reference is one bare `help` away.
+        sung = post(client, "how do I sing?")["message"]
+        assert COMMAND_REFERENCE not in sung and "help navy" in sung
 
     def test_feasibility_now_gets_the_router_not_the_manual(self, board, client):
         """⚠ CONSCIOUS PIN FLIP (CX-2), on ruling R7's OWN re-open condition:

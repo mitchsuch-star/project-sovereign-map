@@ -716,15 +716,21 @@ class DiplomaticExecutor:
         if amount is None:
             amount = 0 if is_licence_verb else DEFAULT_SPONSOR_AMOUNT
         if amount > 0:
-            treasury = int(world.nation_gold.get(player, 0))
+            # S14E-X188 / S14E-D19: the cover is the CHEST's (`chest_of` - the
+            # treasury less the recurring settlement payments still owed), the
+            # figure the quote below and the chip are gated against; with
+            # nothing owed it is the raw treasury, word for word.
+            from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+            treasury, chest = chest_of(world, player)
             # Review fix (the paper-bid hole): the AI branch requires a
             # sustainable purse (×4); the player's promise is held to
             # the same bar — a bid the treasury cannot carry is refused,
             # not weighed at face value.
-            if treasury < amount * SPONSOR_SUSTAIN_MULT:
+            if chest < amount * SPONSOR_SUSTAIN_MULT:
                 return {
                     "success": False,
-                    "message": (f"The treasury holds {treasury} gold — "
+                    "message": (f"The treasury holds {chest} gold"
+                                f"{FREE_OF_OBLIGATIONS if chest < treasury else ''} — "
                                 f"it cannot SUSTAIN {amount} per turn "
                                 f"(Talleyrand demands four turns' cover "
                                 f"before he signs a standing promise)."),
@@ -1055,14 +1061,18 @@ class DiplomaticExecutor:
         effects = "; ".join(ID.act_effect_lines(world, row))
         date = str(row.get("date") or "")
         says = str(row.get("says") or "")
-        chest = int(getattr(world, "gold", 0) or 0)
+        # S14E-X196 / S14E-D19: the treasury the quote names is the CHEST
+        # (`chest_of`), the figure `act_refusal` gates the decree against
+        from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+        treasury, chest = chest_of(world, ID.owner(world))
+        owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
         relief = (int(world.charges_relief(ID.owner(world), price))
                   if price > 0 and hasattr(world, "charges_relief") else 0)
         relief_note = (f"; the Charges of Empire fall by {relief:,}g a turn" if relief > 0 else "")
         message = (f"{row.get('title')}{f' ({date})' if date else ''}: {says} It costs "
                    f"{price:,} gold and {ID.ACT_ADMIN_COST} administrative action, once"
                    f"{f' — {effects}' if effects else ''}. The treasury holds {chest:,} gold"
-                   f"{relief_note}. Decree it? (yes / no)")
+                   f"{owed}{relief_note}. Decree it? (yes / no)")
         command_line = ID.decree_command(row)
         return {
             "success": True,

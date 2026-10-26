@@ -1309,7 +1309,10 @@ func _add_action_button(action: Dictionary):
 	# (what it keeps, where it heads, the cure priced) in its tooltip.
 	var truce_display = str(action.get("truce_display", ""))
 	if truce_display != "" and truce_display != "null":
-		btn.tooltip_text = Utils.wrap_text(truce_display, 100)  # PC-X11
+		# PC-F47 (S15 head): PC-X11's hard wrap at 100 characters is retired —
+		# the tooltip wraps itself to the window now (`Utils.wrap_tooltips`),
+		# and a fixed width re-wrapped raggedly in a narrow one.
+		btn.tooltip_text = truce_display
 	btn.custom_minimum_size = Vector2(0, 40)
 	btn.theme_type_variation = &"CaptionButton"
 	btn.disabled = not available

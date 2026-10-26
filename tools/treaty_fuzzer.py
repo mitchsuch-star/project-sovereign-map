@@ -508,8 +508,12 @@ class Fuzzer:
         if not candidates:
             return {"skipped": "nobody to vassalize"}
         court = self.rng.choice(candidates)
-        res = self.run_cmd({"action": "make_vassal", "target": court, "marshal": None},
-                           f"make {court} a vassal")
+        # S14E-D15: the player's conquest of a beaten court is quoted first;
+        # the fuzzer walks the CONFIRMED order so the conquest itself (and the
+        # peace arm, where `confirmed` is moot) stays exercised.
+        res = self.run_cmd({"action": "make_vassal", "target": court, "marshal": None,
+                            "confirmed": True},
+                           f"make {court} a vassal confirmed")
         res["detail"] = court
         if res.get("success") is not False:
             options = self.current_options()

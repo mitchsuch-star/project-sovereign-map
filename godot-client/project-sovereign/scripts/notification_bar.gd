@@ -383,14 +383,21 @@ func set_suspended(suspended: bool):
 	_refresh_visibility()
 
 
-func update_notifications(notifications: Array):
+func update_notifications(notifications: Array, silent: bool = false):
 	# Music & Sound Core: ring the desk bell once per NEW notification id —
 	# refreshes re-deliver the whole list every response, so dedupe by id.
+	# S14E-D18 / S14E-X155 (S14f p3): a `silent` fill — the boot payload's
+	# rail (`/test`) and a world swap's (a load, a new campaign) — marks every
+	# id seen WITHOUT the bell: the rows standing when a campaign opens are not
+	# news, and ringing once per row at the door was why the rail was left
+	# empty until the first response. A row that arrives on a later (default,
+	# non-silent) call still rings, exactly as before.
 	for notif in notifications:
 		var nid := str(notif.get("id", ""))
 		if nid != "" and not _audio_seen_ids.has(nid):
 			_audio_seen_ids[nid] = true
-			AudioManager.play("notification")
+			if not silent:
+				AudioManager.play("notification")
 	current_notifications = notifications.duplicate()
 
 	for child in icon_container.get_children():

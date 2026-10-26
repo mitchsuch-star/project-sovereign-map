@@ -3424,10 +3424,15 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         return f"{source}'s ultimatum was overtaken by war — the demand is void"
 
     if ctx.event_type == "auto_downgrade":
-        nation_a = ctx.event.get("nation_a", "Unknown")
-        nation_b = ctx.event.get("nation_b", "Unknown")
-        from_state = (ctx.event.get("from_state") or "treaty").replace("_", " ")
-        to_state = (ctx.event.get("to_state") or "peace").replace("_", " ")
+        # S14E-X218: the sibling of the downgrade line - the states and courts
+        # by their display names, never the raw keys ("ALLIANCE", "PapalStates").
+        from backend.display_names import STATE_DISPLAY as _state_display
+        nation_a = display_nation(ctx.event.get("nation_a") or "Unknown")
+        nation_b = display_nation(ctx.event.get("nation_b") or "Unknown")
+        from_raw = ctx.event.get("from_state") or "treaty"
+        to_raw = ctx.event.get("to_state") or "peace"
+        from_state = _state_display.get(from_raw, str(from_raw).replace("_", " "))
+        to_state = _state_display.get(to_raw, str(to_raw).replace("_", " "))
         return f"Relations auto-downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
 
     if ctx.event_type == "coalition_brewing_started":
@@ -3466,11 +3471,24 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         return message
 
     if ctx.event_type == "diplomatic_downgrade":
-        nation_a = ctx.event.get("nation_a", "Unknown")
-        nation_b = ctx.event.get("nation_b", "Unknown")
-        from_state = (ctx.event.get("from_state") or "treaty").replace("_", " ")
-        to_state = (ctx.event.get("to_state") or "peace").replace("_", " ")
-        return f"Relations downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
+        # S14E-X120 / S14E-D13: an AI court's downgrade now reaches this log
+        # (`execute_downgrade` is its executor); the states by their display
+        # names and the courts by theirs (S14E-X218 - the raw keys read
+        # "ALLIANCE → DEFENSIVE ALLIANCE"), and X38's clause when a third
+        # power's downgrade takes something off France.
+        from backend.display_names import STATE_DISPLAY as _state_display
+        from backend.game_logic.diplomacy import declaration_cost_clause
+        nation_a = display_nation(ctx.event.get("nation_a") or "Unknown")
+        nation_b = display_nation(ctx.event.get("nation_b") or "Unknown")
+        from_raw = ctx.event.get("from_state") or "treaty"
+        to_raw = ctx.event.get("to_state") or "peace"
+        from_state = _state_display.get(from_raw, str(from_raw).replace("_", " "))
+        to_state = _state_display.get(to_raw, str(to_raw).replace("_", " "))
+        clause = declaration_cost_clause(
+            int(ctx.event.get("relation_cost") or 0),
+            str(ctx.event.get("player") or "France"))
+        tail = f" — {clause}" if clause else ""
+        return f"Relations downgraded: {nation_a}–{nation_b} ({from_state} → {to_state}){tail}"
 
     if ctx.event_type == "diplomatic_mission_cancelled_eliminated":
         target = ctx.event.get("target", "Unknown")

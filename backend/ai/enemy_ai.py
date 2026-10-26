@@ -274,6 +274,22 @@ DRILL_EXPOSED_PHASES = 2
 STUB_STRENGTH_FLOOR = 1000
 
 
+def priced_defender(world, target):
+    """S14E-X216 / S14E-D12 (S14f p3) - THE SEAM of the AI's muster price: the
+    man the price reads the friends OF. The player's muster prices the man who
+    will stand in the battle (`answering_defender`, SFR-D6: a target that
+    retreated this turn is covered by the strongest healthy man of his nation
+    still in his province, and the battle is fought against HIM); the AI's
+    `_muster_price` priced the named target, so a friend who would march for
+    the target and refuses the man who covers him (a hostile pair, a
+    grievance) was priced into a field that would never be mustered. Golden
+    Rule 5: the same man. Down value: `lambda world, target: target` - the
+    named target, byte for byte (called through the module, so a test or an
+    arm swaps `enemy_ai.priced_defender`)."""
+    from backend.commands.combat_executor import answering_defender
+    return answering_defender(world, target)
+
+
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
     if AI_DEBUG:
@@ -3295,8 +3311,18 @@ class EnemyAI:
         combat = getattr(self.executor, "_combat", None)
         if combat is None or target is None:
             return 0
+        # S14E-X216: the man who will stand, as the player's muster reads him.
+        target = priced_defender(world, target)
         try:
-            joining, _ = combat._defender_muster(target, world)
+            # S14E-D12 / S14E-X76 (S14f p3): the corps already standing in
+            # the target's province are in the field sum the caller prices,
+            # so the term counts the MARCHERS only (`marchers_only`) - on the
+            # exact per-outcome mean where the defender's outcome set exists
+            # (`_defender_mean_exact`: each arrival outcome under its own
+            # coordination, which the one-stamp price below never carried on
+            # the AI's side), else the one-stamp mean, byte for byte.
+            joining, committed = combat._defender_muster(
+                target, world, marchers_only=True)
         except Exception as exc:
             report(exc, "enemy_ai.EnemyAI._muster_price: combat._defender_muster")
             return 0
@@ -3315,8 +3341,7 @@ class EnemyAI:
         # surfaced ... under-protecting in fog is the wrong failure
         # direction"), and GR5 gives the AI the same gate. Printed figures
         # elsewhere stay fog-legal; this is a decision, not a display.
-        return int(combat._committed_reinforcement_strength(
-            target, joining, world, expected_at=target.location))
+        return int(committed)
 
     @staticmethod
     def _defending_strength_in_region(defenders) -> int:

@@ -467,6 +467,28 @@ def chest_of(world, payer: str) -> tuple:
     return treasury, chest
 
 
+def purse_of(world, nation: str) -> tuple:
+    """S14E-D19 (S14f p3, October 25, 2026) - (the treasury, the purse) of a
+    purchase by `nation`, for the seams a court WITHOUT a seat at the
+    player's table also walks (a ship, a commission, a levy, a law): the
+    PLAYER's purse is the chest (`chest_of` - the treasury less the recurring
+    settlement payments still owed, the ONE figure every lump gold verb
+    quotes and refuses against); every other court's purse is its raw
+    treasury, twice, so the enemy AI's own gates and figures never move
+    (GR5 - the AI buys through its own producers). With nothing owed the
+    player's two figures are equal and every sentence is the one it was."""
+    if nation == getattr(world, "player_nation", None):
+        return chest_of(world, nation)
+    treasury = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
+    return treasury, treasury
+
+
+def owed_suffix(treasury: int, chest: int) -> str:
+    """S14E-D19 - `FREE_OF_OBLIGATIONS` where the chest is below the treasury,
+    else '' - the one clause every gate that names the chest appends."""
+    return FREE_OF_OBLIGATIONS if int(chest) < int(treasury) else ""
+
+
 def buy_off_refusal(world, payer: str, court: str) -> str:
     """SF-LB-3: why `buy off <court>` would be refused today — '' when the
     verb (`DiplomaticExecutor._execute_buy_off_design`) would carry it out.
@@ -1294,7 +1316,11 @@ def sponsorship_quote(world, payer: str, recipient: str, aim: str,
     chest after the first payment, and the bond the compact lays on France."""
     from backend.display_names import display_nation
     rname, aname = display_nation(recipient), display_nation(aim)
-    treasury = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    # S14E-X188 / S14E-D19: the purse after the first payment is the CHEST's
+    # (`chest_of`) - the very figure the sponsor verb's four-turns cover test
+    # and the chip are gated against; with nothing owed the two are equal
+    treasury, chest = chest_of(world, payer)
+    owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
     bond = (f"The compact binds France: marching on {rname} before it lapses, "
             f"or guaranteeing {aname}, is reneging — {_quote_renege_words()}.")
     if int(amount) <= 0:
@@ -1307,8 +1333,8 @@ def sponsorship_quote(world, payer: str, recipient: str, aim: str,
         f"Sponsor {rname}'s design against {aname}: {int(amount):,} gold a turn "
         f"for {SPONSORSHIP_DEFAULT_TURNS} turns "
         f"({int(amount) * SPONSORSHIP_DEFAULT_TURNS:,} gold in all) and "
-        f"{_quote_dp_words()}. The treasury holds {treasury:,} gold and would "
-        f"hold {treasury - int(amount):,} after the first payment. {bond} "
+        f"{_quote_dp_words()}. The treasury holds {chest:,} gold{owed} and would "
+        f"hold {chest - int(amount):,} after the first payment. {bond} "
         f"Sponsor it? (yes / no)")
 
 

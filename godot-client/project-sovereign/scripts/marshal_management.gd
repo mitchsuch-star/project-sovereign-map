@@ -77,6 +77,13 @@ var cached_glory_window: int = 8
 # Commission view toggle — true renders the candidate bench instead of the
 # marshal cards ([url=commission_open] / [url=commission_back]).
 var _commission_view := false
+# UXR3-24 / UXR3-80 (Pre-Deploy S15 head, October 25, 2026): OUR DOCTRINE
+# folds to its one title line behind "▸ the doctrine", so the Emperor's card
+# and the roster's sheets lead the first screenful. The player's own
+# toggle persists for the session (a plain var, like the wizard's
+# `_congress_terms_open`); close_view() leaves it alone. The one board whose
+# subject IS the doctrine (`generals_doctrine`) opens it by a harness step.
+var _doctrine_open := false
 # Stored at open() so the screen can refresh in place after a reward
 # command lands (strategic_ledger.gd precedent).
 var _api_client_ref = null
@@ -190,6 +197,12 @@ func _on_meta_clicked(meta):
 	elif meta_str == "commission_back":
 		_commission_view = false
 		_render_current_view()
+	elif meta_str == "doctrine:toggle":
+		# UXR3-24 / UXR3-80: the fold; the reader's place in the scroll stays.
+		_doctrine_open = not _doctrine_open
+		var held_scroll: int = scroll_container.scroll_vertical
+		_render_current_view()
+		Utils.restore_scroll(scroll_container, held_scroll)
 	elif meta_str.begins_with("commission:"):
 		var candidate = meta_str.substr(11)
 		if candidate != "":
@@ -326,7 +339,8 @@ func _render_all_cards():
 
 
 func _render_doctrine() -> String:
-	"""OUR DOCTRINE — above the Emperor and the roster since UXR3-24."""
+	"""OUR DOCTRINE — above the Emperor and the roster since UXR3-24; folded
+	to its one title line behind "▸ the doctrine" since S15's head."""
 	var bbcode = ""
 	# SR-7d DC-3a (DOCTRINES_SPEC §4a): OUR DOCTRINE — name, says, strength
 	# and flaw with their applied numbers, the cure's status. Backend-composed
@@ -335,7 +349,14 @@ func _render_doctrine() -> String:
 		var d_strength = cached_doctrine.get("strength", {})
 		var d_flaw = cached_doctrine.get("flaw", {})
 		bbcode += _icon(_ICON_PHOSPHOR + "medal-military.svg", 20, Utils.COLOR_GOLD)
-		bbcode += " [color=#" + Utils.COLOR_GOLD + "]OUR DOCTRINE — " + str(cached_doctrine.get("name", "")) + "[/color]\n"
+		bbcode += " [color=#" + Utils.COLOR_GOLD + "]OUR DOCTRINE — " + str(cached_doctrine.get("name", "")) + "[/color]"
+		# UXR3-24 / UXR3-80 (S15 head, October 25, 2026): the title line is all
+		# the block is until the player opens it — the Emperor's card (or the
+		# first marshal's sheet, where no Emperor serves) leads the screenful.
+		bbcode += "  [url=doctrine:toggle][color=#" + Utils.COLOR_GOLD + "]" \
+			+ ("▾ hide the doctrine" if _doctrine_open else "▸ the doctrine") + "[/color][/url]\n"
+		if not _doctrine_open:
+			return bbcode + "\n"
 		var d_says = str(cached_doctrine.get("says", ""))
 		if d_says != "":
 			bbcode += "  [color=#" + Utils.COLOR_INFO + "]\"" + d_says + "\"[/color]\n"
@@ -890,7 +911,47 @@ func _ability_line(m: Dictionary) -> String:
 	var ab_effect = str(m.get("ability_effect", ""))
 	if not m.get("ability_active", false) or ab_name == "":
 		return ""
+	# UXR3-24 / UXR3-80 (S15 head, October 25, 2026): the Emperor's Presence
+	# states the figure AS APPLIED where he stands — "+10% here at Bohemia" —
+	# and its star dims with it (the backend's own "his star dims", drawn).
+	if bool(m.get("sovereign", false)):
+		var presence := _presence_applied_line(m, ab_name, ab_effect)
+		if presence != "":
+			return presence
 	var line: String = "  [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
+	if ab_effect != "":
+		line += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
+	return line + "\n\n"
+
+
+func _presence_applied_line(m: Dictionary, ab_name: String, ab_effect: String) -> String:
+	"""UXR3-24 / UXR3-80: The Presence as APPLIED where the Emperor stands.
+	The backend's `ability_effect` carries the authored figure ("+10% attack
+	and defense") and, when the aura has decayed with the Empire's grip,
+	"Today it stands at +N% — his star dims" (marshal_overview
+	`_build_ability`, NPC-D1). This reads those two figures — never
+	recomputes them — and draws the line as "★ The Presence  +10% here at
+	Bohemia": the star is gold at the full figure and dims toward the grey
+	ink as the applied figure falls, out at +0%. "" when the effect carries
+	no figure (the caller keeps the plain line)."""
+	var re_any := RegEx.new()
+	re_any.compile("\\+(\\d+)%")
+	var first := re_any.search(ab_effect)
+	if first == null:
+		return ""
+	var full_pct := int(first.get_string(1))
+	var applied_pct := full_pct
+	var re_now := RegEx.new()
+	re_now.compile("Today it stands at \\+(\\d+)%")
+	var now := re_now.search(ab_effect)
+	if now != null:
+		applied_pct = int(now.get_string(1))
+	var held_at := str(m.get("location", ""))
+	var here := " here at " + held_at if held_at != "" else " here"
+	var lit := 1.0 if full_pct <= 0 else clampf(float(applied_pct) / float(full_pct), 0.0, 1.0)
+	var star_hex: String = Color.html("#" + Utils.COLOR_GOLD).lerp(Color.html("#" + Utils.COLOR_INFO), 1.0 - lit).to_html(false)
+	var line := "  [color=#" + star_hex + "]★[/color] [color=#" + Utils.COLOR_GOLD + "]" + ab_name + "[/color]"
+	line += "  [color=#" + star_hex + "]+" + str(applied_pct) + "%" + here + "[/color]"
 	if ab_effect != "":
 		line += "  [color=#" + Utils.COLOR_INFO + "]" + ab_effect + "[/color]"
 	return line + "\n\n"

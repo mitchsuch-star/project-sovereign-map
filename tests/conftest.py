@@ -131,6 +131,7 @@ ENGINE_GROUP_MODULES = frozenset({
     "test_uxr2_grips_driven",
     "test_uxr2b_hud_band",
     "test_uxr3_s12_fixes",
+    "test_uxr4_s15_pc_layout",             # PC-F46/F47: the harness headless on pc_layout
     "test_uxr_d4_the_side_desk",           # + a sandboxed backend from 8006
     # a fixed loopback port of their own
     "test_ge3_the_client",                 # SOVEREIGN_PORT 8997

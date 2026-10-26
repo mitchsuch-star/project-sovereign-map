@@ -189,6 +189,26 @@ def _check_gold_payment_budget_conflict(
     return None
 
 
+def recurring_obligations_owed(world: Any, payer: str) -> int:
+    """S14E-X189 / S14E-D19 - the gold `payer` still owes to ratified
+    recurring settlement streams: `amount_per_turn x turns_remaining`, summed
+    over every entry the payer pays. The ONE reader of the owed sum: the
+    payer's lump budget below (`compute_gold_payer_budgets`, so `bond.bid_funds`
+    and the chest every player gold verb is gated against) and the crisis
+    beat's morning chest (`war_council._beat_chest`) both read it. Pure."""
+    owed = 0
+    for entry in getattr(world, "recurring_settlement_payments", None) or []:
+        if not isinstance(entry, Mapping):
+            continue
+        if str(entry.get("from") or "") != str(payer or ""):
+            continue
+        owed += int(
+            int(entry.get("amount_per_turn", 0) or 0)
+            * int(entry.get("turns_remaining", 0) or 0)
+        )
+    return int(owed)
+
+
 def compute_gold_payer_budgets(
     world: Any,
     terms: Iterable[Mapping[str, Any]],
@@ -227,19 +247,10 @@ def compute_gold_payer_budgets(
                     max_turns_by_payer.get(payer, 0), turns
                 )
     nation_gold = getattr(world, "nation_gold", None) or {}
-    existing = getattr(world, "recurring_settlement_payments", None) or []
     budgets: Dict[str, int] = {}
     for payer in payers:
-        existing_obligation = 0
-        for entry in existing:
-            if not isinstance(entry, Mapping):
-                continue
-            if str(entry.get("from") or "") != payer:
-                continue
-            existing_obligation += int(
-                int(entry.get("amount_per_turn", 0) or 0)
-                * int(entry.get("turns_remaining", 0) or 0)
-            )
+        # S14E-X189 / S14E-D19: the owed sum has ONE reader
+        existing_obligation = recurring_obligations_owed(world, payer)
         current_gold = int(nation_gold.get(payer, 0) or 0)
         # S14E-X159: the income estimate scans every province and is only
         # ever MULTIPLIED by the payer's longest recurring stream - a payer

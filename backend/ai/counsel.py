@@ -439,7 +439,10 @@ def _law_terms(world, nation: str) -> Optional[str]:
         return None
     rows = [r for r in R.deck(world, nation) if isinstance(r, dict)]
     staff = next((r for r in rows if R.is_staff(r) and not R.is_in_force(r)), None)
-    chest = int(getattr(world, "gold", 0) or 0)
+    # S14E-X241 / S14E-D19: the counsel's "saving for the Staff" bar reads the
+    # ONE chest (`purse_of`), the figure the verb is gated against
+    from backend.game_logic.instruments import purse_of
+    chest = int(purse_of(world, nation)[1])
     saving = (staff is not None and R.AI_SAVES_FOR_THE_STAFF_FROM > 0
               and chest >= int(staff.get("price", 0) or 0) * R.AI_SAVES_FOR_THE_STAFF_FROM)
     for row in rows:

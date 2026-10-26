@@ -1617,7 +1617,12 @@ class TestTheAiIsNotFrozenInstead:
         # 3's figure returns (`tools/_sf_rr4_wo_attribution.py`, measured: 13
         # shipped, 8 with the bench down, 0 with the veto down, 2 with every
         # seam down).
-        assert cooldowns["gated"] == 13, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto)
+        # S14f p3 (October 25, 2026): 13 -> 9 — S14E-D12 (the defender's term
+        # re-seated and stamped; the AI's price on a defended French corps
+        # rises 20–36 %) re-times the gated board; `tools/_s14f_p3_series_arms_
+        # final.json`: D12 alone moves the ambient series, every other ruling's
+        # seam is byte-identical with D12's held down.
+        assert cooldowns["gated"] == 9, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 -> 9 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto)
 
 
 _COOLDOWN_PROBE = r'''

@@ -1048,7 +1048,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # buys FIVE turns; the contract holds. With every gate lever down in
         # the child it reads 12 / 18 verbatim
         # (`tools/_econ_gate_wo_attribution.py`, measured).
-        assert capped == 18, capped
+        # Re-measured by S14f p3 (October 25, 2026; S14E-D12 — the DEFENDER's
+        # committed term re-seated and STAMPED, so the AI's muster price on a
+        # defended French corps rises 20–36 % and Europe's corps take another
+        # road; `tools/_s14f_p3_series_arms_final.json`: D12 alone moves the
+        # ambient board, every other ruling byte-identical): capped 14 — the
+        # satellite's rebellion comes four turns sooner on the new trajectory
+        # (France ends turn 40 with 2 provinces, not 15); the contract — the
+        # cap DELAYS, it does not save — stands on the re-pinned series.
+        assert capped == 14, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

@@ -291,11 +291,16 @@ class NavalExecutor:
         refusal = naval.check_build_fleet(world, actor)
         if refusal:
             return {"success": False, "message": refusal}
-        treasury = int(world.nation_gold.get(actor, 0))
+        # S14E-X196 / S14E-D19: the PLAYER's keels are gated against the ONE
+        # chest (`instruments.purse_of`: the treasury less the recurring
+        # settlement payments still owed) - the figure the Admiralty's chip
+        # (`naval.build_ships_refusal`) names; an AI court keeps its raw treasury.
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, treasury = purse_of(world, actor)
         if treasury < naval.SHIP_COST:
             return {"success": False, "message": (
                 f"A ship of the line costs {naval.SHIP_COST}g — the treasury "
-                f"holds {treasury}g.")}
+                f"holds {treasury}g{owed_suffix(coffers, treasury)}.")}
 
         # S14E-33: the keels this order lays — the count named, bounded by
         # the yards' room, the purse and the administrative pool (the parent
@@ -345,7 +350,7 @@ class NavalExecutor:
                           if naval.build_rate(world, actor) == naval.SHIP_BUILD_RATE_BLOCKADED
                           else ""))
             elif keels == affordable:
-                why = f"the treasury holds {treasury}g"
+                why = f"the treasury holds {treasury}g{owed_suffix(coffers, treasury)}"
             else:
                 why = (f"{admin_left} administrative action"
                        f"{'s' if admin_left != 1 else ''} "

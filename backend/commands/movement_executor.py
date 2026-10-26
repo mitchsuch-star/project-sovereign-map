@@ -1115,6 +1115,10 @@ class MovementExecutor:
         # before the move clears it).
         depart_msg = departure_note(marshal)
         marshal.move_to(target_name)
+        # S14E-X224 (S14f p3): a march into or out of a capital moves the
+        # pair's STORED score (the siege component) - stamped here.
+        from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+        recalculate_war_scores_for_march(world, marshal, old_location, target_name)
 
         # Artillery: Mark as having moved this turn (blocks attacking)
         if getattr(marshal, 'artillery', False):
@@ -1949,6 +1953,10 @@ class MovementExecutor:
 
         # Execute retreat
         marshal.move_to(best_region)
+        # S14E-X224 (S14f p3): leaving (or reaching) a capital moves the
+        # pair's STORED score (the siege component) - stamped here.
+        from backend.game_logic.diplomacy import recalculate_war_scores_for_march
+        recalculate_war_scores_for_march(world, marshal, old_location, best_region)
 
         # Movement attrition on retreat (Phase 6.2.F) — halved rate
         retreat_attrition = self._calculate_movement_attrition(marshal, best_region, world, is_retreat=True)

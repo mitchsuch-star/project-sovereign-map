@@ -507,7 +507,7 @@ def create_vassal_treaty(
     # vassalization feeds the AI's OWN slot, never the anti-player pool.
     if lord:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, 5, "treaty_vassalization", target=lord)
+        add_threat(world, TREATY_VASSAL_THREAT, "treaty_vassalization", target=lord)
 
     # R48: Reconcile diplomatic conflicts (+ DD1-8: the client's wars follow the lord's)
     _reconcile_vassal_diplomacy(world, lord, vassal, skip_pairs=skip_pairs)
@@ -576,6 +576,227 @@ def subjugation_refusal(world, lord: str, vassal: str) -> str:
         return ""
 
 
+# S14E-D15 / S14E-X108 / S14E-X195 (S14f p3, October 25, 2026): SUBJUGATION
+# quotes first, as every priced instrument does (S14E-26). The Cabinet's
+# Subjugate chip and the typed `vassalize` were one click on an irreversible
+# act - a Puppet vassal at loyalty 20, Europe's alarm up 25, the war ended,
+# the court's marshals under the lord's flag - with no price on the chip
+# (0 DP, 0 gold: the price pattern did not apply). The figures below are the
+# conquest's own, read by `create_vassal_conquest` and by `subjugation_plan`
+# alike, so the quote's numbers are the ones the conquest applies.
+CONQUEST_BASE_LOYALTY = 20
+CONQUEST_GARRISON_STEP = 5000       # men of garrison per point of extra loyalty
+CONQUEST_THREAT = 25                # the lord's slot of Europe's alarm
+TREATY_VASSAL_THREAT = 5            # the same slot, for a vassalage by treaty (§2a)
+
+
+def conquest_loyalty(garrison_size: int = 0) -> int:
+    """The loyalty a conquered court starts at: 20 + one per 5,000 men of
+    garrison, capped at 100 (the typed road passes no garrison: 20)."""
+    return int(min(LOYALTY_MAX,
+                   CONQUEST_BASE_LOYALTY + (int(garrison_size or 0) // CONQUEST_GARRISON_STEP)))
+
+
+def conquest_refusal(world, lord: str, vassal: str, *, by_treaty: bool = False) -> str:
+    """S14E-D15: the reason `create_vassal_conquest` refuses `lord` -> `vassal`
+    today, in its own words and its own order (already a vassal, a release
+    cooldown, not at WAR, the power cap, then GE-V's beaten-court gate unless
+    the court signed it), or "" when the conquest would go through. Pure; the
+    quote asks it so no quote is offered for a click that would refuse."""
+    vd = _court_name(world, vassal, article=True)
+    vd_cap = _court_name(world, vassal, article=True, capitalize=True)
+    ld = _court_name(world, lord, article=True)
+    if vassal in world.vassals:
+        return (f"{vd_cap} is already a vassal of "
+                f"{_court_name(world, world.vassals[vassal]['lord'], article=True)}.")
+
+    # Check release cooldown (blocks re-vassalization exploit)
+    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
+    if cooldowns.get(vassal, 0) > 0:
+        return f"Cannot vassalize {vd}: recently released ({cooldowns[vassal]} turns remaining)."
+
+    # Require WAR state for conquest vassalization
+    current_state = world.get_diplomatic_state(lord, vassal)
+    if current_state != "WAR":
+        return f"Cannot conquer {vd}: must be at WAR (current: {current_state})."
+
+    # WPS-B: Power cap gate
+    from backend.game_logic.diplomacy import check_vassalage_power_cap
+    cap = check_vassalage_power_cap(world, lord, vassal)
+    if not cap["allowed"]:
+        return (f"{vd_cap} submits, but {ld} cannot impose vassalage on so large "
+                f"a nation. Demand terms at the peace table instead.")
+
+    # GE-V: the unilateral road needs the court BEATEN (see
+    # `subjugation_refusal`); a signed clause arrives with `by_treaty`.
+    if not by_treaty:
+        return subjugation_refusal(world, lord, vassal)
+    return ""
+
+
+def _disrupted_after_conquest(world, vassal: str, ends: set) -> set:
+    """The provinces of `vassal` a hostile army would still stand on once the
+    wars against the nations in `ends` are over: `get_disrupted_regions`' own
+    test (strength, not captured, the controller at war with the army's
+    nation) over the vassal's soil, with the ending wars read as ended."""
+    if getattr(world, "sovereign_map", "legacy") != "europe":
+        return set()
+    from backend.models.world_state import DISRUPTION_MIN_STRENGTH
+    out = set()
+    for marshal in world.marshals.values():
+        if marshal.strength < DISRUPTION_MIN_STRENGTH or getattr(marshal, "captured_by", ""):
+            continue
+        if marshal.nation in ends:
+            continue
+        region = world.regions.get(marshal.location)
+        if region is None or region.controller != vassal:
+            continue
+        if world.is_at_war(vassal, marshal.nation):
+            out.add(region.name)
+    return out
+
+
+def subjugation_plan(world, lord: str, vassal: str, *, garrison_size: int = 0) -> dict:
+    """S14E-D15 / S14E-X108 / S14E-X195: the ONE plan of a conquest-vassalage -
+    what `create_vassal_conquest` and the executor's assimilation will apply,
+    read by the player's quote before the click (`subjugation_quote`) and by
+    the Cabinet chip. Pure: nothing is charged or written.
+
+    {"court", "lord", "refusal" ("" when the conquest would go through),
+     "loyalty", "autonomy" (0, Puppet), "autonomy_name", "tribute_pct",
+     "tribute" (gold a turn at the next collection), "threat_before",
+     "threat_after", "followers" (the lord's clients whose war or truce with
+     the court ends with it), "entry" ([{"court", "kind": "war"|"alliance",
+     "to"}] - the court's own wars the lord is not fighting, and its alliances
+     with the lord's enemies), "closes" ([{"pair", "from", "to"}] every pair
+     the conquest moves), "marshals" (the court's, who take the lord's
+     service), "dp_cost", "gold_cost", "release_dp", "release_cooldown"}."""
+    from backend.game_logic.diplomacy import _CLIENT_FOLLOWS_FROM, _clients_of
+    refusal = conquest_refusal(world, lord, vassal)
+    threat_before = int((getattr(world, "threat_by_target", {}) or {}).get(lord, 0) or 0)
+    threat_after = int(min(100, max(0, threat_before + CONQUEST_THREAT)))
+
+    # `follow_the_lord(lord, vassal, "PEACE")` after the setter: every client
+    # of the lord - the court's own clients pass to him with it - whose pair
+    # with the court stands in WAR or ARMISTICE.
+    clients = sorted((set(_clients_of(world, lord)) | set(_clients_of(world, vassal)))
+                     - {lord, vassal})
+    followers = [c for c in clients
+                 if world.get_diplomatic_state(c, vassal) in _CLIENT_FOLLOWS_FROM]
+
+    entry = []
+    for other in sorted(world.get_active_nations()):
+        if other in (lord, vassal) or other in followers:
+            continue
+        decision = _vassalage_entry_decision(world, lord, vassal, other)
+        if decision is not None:
+            entry.append({"court": other, "kind": decision[0], "to": decision[1]})
+
+    closes = [{"pair": [lord, vassal], "from": world.get_diplomatic_state(lord, vassal),
+               "to": "VASSAL"}]
+    closes += [{"pair": [c, vassal], "from": world.get_diplomatic_state(c, vassal),
+                "to": "PEACE"} for c in followers]
+    closes += [{"pair": [vassal, row["court"]],
+                "from": world.get_diplomatic_state(vassal, row["court"]),
+                "to": row["to"]} for row in entry]
+
+    ends = ({lord, vassal} | set(clients)
+            | {row["court"] for row in entry if row["kind"] == "war"})
+    income = _vassal_tributable_income(
+        world, vassal, disrupted=_disrupted_after_conquest(world, vassal, ends))
+    return {
+        "court": vassal, "lord": lord, "refusal": refusal,
+        "loyalty": conquest_loyalty(garrison_size),
+        "autonomy": AUTONOMY_PUPPET, "autonomy_name": AUTONOMY_NAMES[AUTONOMY_PUPPET],
+        "tribute_pct": int(round(TRIBUTE_RATES[AUTONOMY_PUPPET] * 100)),
+        "tribute": int(income * TRIBUTE_RATES[AUTONOMY_PUPPET]),
+        "threat_before": threat_before, "threat_after": threat_after,
+        "followers": followers, "entry": entry, "closes": closes,
+        "marshals": [m.name for m in world.marshals.values()
+                     if getattr(m, "nation", "") == vassal],
+        "dp_cost": 0, "gold_cost": 0,
+        "release_dp": RELEASE_DP_COST, "release_cooldown": RELEASE_COOLDOWN_TURNS,
+    }
+
+
+def _named_list(world, courts) -> str:
+    """"Bavaria", "Britain and Russia", "A, B and C" - the courts by display
+    name, articles composed."""
+    names = [_court_name(world, c, article=True) for c in courts]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def subjugation_quote(world, lord: str, vassal: str, plan: Optional[dict] = None) -> str:
+    """S14E-D15 / S14E-X108: the conquest's QUOTE - the loyalty, the alarm,
+    the tribute, the war's end and the pairs that go with it, the marshals,
+    the way back: every figure `subjugation_plan` hands the conquest, in the
+    future tense, before it is done. Free; nothing is charged or written."""
+    from backend.display_names import humanize_entity_name, nation_adjective, plural
+    plan = plan or subjugation_plan(world, lord, vassal)
+    court = _court_name(world, vassal, article=True)
+    lord_name = _court_name(world, lord, article=True)
+    parts = [f"Subjugate {court}: it becomes {lord_name}'s {plan['autonomy_name']} vassal "
+             f"at loyalty {int(plan['loyalty'])}, for no point and no gold."]
+    added = int(plan["threat_after"]) - int(plan["threat_before"])
+    if added > 0:
+        parts.append(f"Europe's alarm at {lord_name} rises by {added} "
+                     f"({int(plan['threat_before'])} → {int(plan['threat_after'])}).")
+    else:
+        parts.append(f"Europe's alarm at {lord_name} already stands at "
+                     f"{int(plan['threat_before'])}.")
+    if int(plan["tribute"]) > 0:
+        parts.append(f"Their tribute is {int(plan['tribute_pct'])}% of their income — "
+                     f"{int(plan['tribute']):,} gold a turn.")
+    else:
+        parts.append("No province of theirs yields tribute yet.")
+    ended = f"The war with {court} ends."
+    if plan["followers"]:
+        ended += (f" {lord_name}'s clients follow out of it: "
+                  f"{_named_list(world, plan['followers'])}.")
+    parts.append(ended)
+    truce = [r["court"] for r in plan["entry"] if r["kind"] == "war" and r["to"] == "ARMISTICE"]
+    peace = [r["court"] for r in plan["entry"] if r["kind"] == "war" and r["to"] != "ARMISTICE"]
+    if truce or peace:
+        clauses = []
+        if truce:
+            clauses.append(f"their war with {_named_list(world, truce)} becomes a truce")
+        if peace:
+            clauses.append(f"their war with {_named_list(world, peace)} ends in peace")
+        parts.append(f"As {lord_name}'s client they fight only {lord_name}'s wars: "
+                     + ", ".join(clauses) + ".")
+    broken = [r["court"] for r in plan["entry"] if r["kind"] == "alliance"]
+    if broken:
+        one = len(broken) == 1
+        parts.append(f"Their {'alliance' if one else 'alliances'} with "
+                     f"{_named_list(world, broken)} {'is' if one else 'are'} broken — "
+                     f"{'it is' if one else 'they are'} at war with {lord_name}.")
+    if plan["marshals"]:
+        parts.append(f"Their marshals take {nation_adjective(lord)} service: "
+                     f"{', '.join(humanize_entity_name(n) for n in plan['marshals'])}.")
+    parts.append(f"It is undone only by release — {plural(plan['release_dp'], 'diplomatic point')}, "
+                 f"and the court cannot be brought under the yoke again for "
+                 f"{plural(plan['release_cooldown'], 'turn')}. Subjugate {court}? (yes / no)")
+    return " ".join(parts)
+
+
+def subjugation_effect_line(world, lord: str, vassal: str, plan: Optional[dict] = None) -> str:
+    """S14E-D15: the Cabinet chip's one line - the plan in brief, so the click
+    that opens the quote is no surprise: "Puppet at loyalty 20, +25 alarm, the
+    war ends, 3 marshals join us - quoted first"."""
+    plan = plan or subjugation_plan(world, lord, vassal)
+    added = int(plan["threat_after"]) - int(plan["threat_before"])
+    bits = [f"{plan['autonomy_name']} at loyalty {int(plan['loyalty'])}",
+            f"+{added} alarm" if added > 0 else "alarm already at its height",
+            "the war ends"]
+    if plan["marshals"]:
+        n = len(plan["marshals"])
+        bits.append("1 marshal takes our service" if n == 1
+                    else f"{n} marshals take our service")
+    return ", ".join(bits) + " — quoted first"
+
+
 def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0,
                            *, by_treaty: bool = False, skip_pairs=None) -> dict:
     """
@@ -595,50 +816,16 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     # IQ-7 review pass 4 (R4-5, R7, September 18, 2026): every sentence
     # RETURNED to the typed road names the courts by display name, with
     # their articles — never the raw tag.
-    vd = _court_name(world, vassal, article=True)
     vd_cap = _court_name(world, vassal, article=True, capitalize=True)
     ld = _court_name(world, lord, article=True)
-    if vassal in world.vassals:
-        return {
-            "success": False,
-            "message": (f"{vd_cap} is already a vassal of "
-                        f"{_court_name(world, world.vassals[vassal]['lord'], article=True)}.")
-        }
+    # S14E-D15: the gate chain is `conquest_refusal` - the ONE reading the
+    # player's quote (`subjugation_plan`) also asks, so the quote is never
+    # offered for a conquest the click would refuse (shown == applied).
+    gate = conquest_refusal(world, lord, vassal, by_treaty=by_treaty)
+    if gate:
+        return {"success": False, "message": gate}
 
-    # Check release cooldown (blocks re-vassalization exploit)
-    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
-    if cooldowns.get(vassal, 0) > 0:
-        return {
-            "success": False,
-            "message": f"Cannot vassalize {vd}: recently released ({cooldowns[vassal]} turns remaining)."
-        }
-
-    # Require WAR state for conquest vassalization
-    current_state = world.get_diplomatic_state(lord, vassal)
-    if current_state != "WAR":
-        return {
-            "success": False,
-            "message": f"Cannot conquer {vd}: must be at WAR (current: {current_state})."
-        }
-
-    # WPS-B: Power cap gate
-    from backend.game_logic.diplomacy import check_vassalage_power_cap
-    cap = check_vassalage_power_cap(world, lord, vassal)
-    if not cap["allowed"]:
-        return {
-            "success": False,
-            "message": (f"{vd_cap} submits, but {ld} cannot impose vassalage on so large "
-                        f"a nation. Demand terms at the peace table instead."),
-        }
-
-    # GE-V: the unilateral road needs the court BEATEN (see
-    # `subjugation_refusal`); a signed clause arrives with `by_treaty`.
-    if not by_treaty:
-        refusal = subjugation_refusal(world, lord, vassal)
-        if refusal:
-            return {"success": False, "message": refusal}
-
-    loyalty = min(LOYALTY_MAX, 20 + (garrison_size // 5000))
+    loyalty = conquest_loyalty(garrison_size)
 
     world.vassals[vassal] = {
         "lord": lord,
@@ -674,7 +861,7 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     # the conquering lord's own slot, whoever wears the crown.
     if lord:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, 25, "conquest_vassalization", target=lord)
+        add_threat(world, CONQUEST_THREAT, "conquest_vassalization", target=lord)
 
     # R48: Reconcile diplomatic conflicts (+ DD1-8: the client's wars follow the lord's)
     _reconcile_vassal_diplomacy(world, lord, vassal, skip_pairs=skip_pairs)
@@ -725,35 +912,58 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
       the settlement's own plan rows, which it resolves under its reason.
     """
     from backend.game_logic.diplomacy import cleanup_war_end, set_diplomatic_state
-    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
     skip = set(skip_pairs or ())
-    instances = getattr(world, "war_instances", {}) or {}
     all_nations = world.get_active_nations()  # DLF-11
 
     for other in all_nations:
         if other == lord or other == vassal:
             continue
 
-        lord_state = world.get_diplomatic_state(lord, other)
-        vassal_state = world.get_diplomatic_state(vassal, other)
+        # S14E-D15: the per-court decision is `_vassalage_entry_decision` -
+        # the ONE reading the conquest's quote (`subjugation_plan`) also asks.
+        decision = _vassalage_entry_decision(world, lord, vassal, other, skip=skip)
+        if decision is None:
+            continue
+        kind, followed = decision
         key = world._make_diplo_key(vassal, other)
-
-        if vassal_state == "WAR" and lord_state != "WAR" and key not in skip:
-            war_id = _find_active_war_instance_for_pair(world, key)
-            instance = instances.get(war_id) if war_id else None
-            if client_leads_its_own_war(vassal, other, instance):
-                continue  # the client's own war — it leads it
-            followed = ("ARMISTICE"
-                        if lord_state in ("ARMISTICE", "DEFENSIVE_ALLIANCE", "ALLIANCE")
-                        else "PEACE")
+        if kind == "war":
             set_diplomatic_state(world, vassal, other, followed, "vassalage_entry")
             if followed == "ARMISTICE":
                 world.armistice_cooldowns[key] = 5
             cleanup_war_end(world, key, conclude_objectives=(followed != "ARMISTICE"))
-
-        # Vassal allied with lord's enemy → break to PEACE
-        if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
+        else:
+            # Vassal allied with lord's enemy → break to PEACE
             set_diplomatic_state(world, vassal, other, "PEACE", "vassal_reconcile")
+
+
+def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
+                              skip=()):
+    """S14E-D15: what vassalage does to the pair (`vassal`, `other`) - the
+    body of `_reconcile_vassal_diplomacy`'s per-court test, read-only, so the
+    conquest's quote and the conquest itself ask the same question.
+
+    ("war", "PEACE" | "ARMISTICE") - the client's war with `other` ends where
+    the lord is not at war with `other` (a truce where the lord stands in one
+    or is `other`'s ally), unless the client LEADS the instance (its own war);
+    ("alliance", "PEACE") - the client's alliance with a court the lord is at
+    war with is broken; None - nothing moves."""
+    from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
+    lord_state = world.get_diplomatic_state(lord, other)
+    vassal_state = world.get_diplomatic_state(vassal, other)
+    key = world._make_diplo_key(vassal, other)
+    if vassal_state == "WAR" and lord_state != "WAR" and key not in skip:
+        instances = getattr(world, "war_instances", {}) or {}
+        war_id = _find_active_war_instance_for_pair(world, key)
+        instance = instances.get(war_id) if war_id else None
+        if client_leads_its_own_war(vassal, other, instance):
+            return None  # the client's own war — it leads it
+        followed = ("ARMISTICE"
+                    if lord_state in ("ARMISTICE", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+                    else "PEACE")
+        return ("war", followed)
+    if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
+        return ("alliance", "PEACE")
+    return None
 
 
 # ═══════════════════════════════════════════════════════
@@ -2840,12 +3050,16 @@ def _number_word(n: int) -> str:
 
 # ─── R5: the province's price, in the ledger's own terms ──────────────────
 
-def _vassal_tributable_income(world, vassal_name: str) -> int:
+def _vassal_tributable_income(world, vassal_name: str, disrupted=None) -> int:
     """The effective income the tribute rate is applied to: the vassal's
     provinces, skipping any a hostile army stands on (EC-W1). Factored out
     of `vassal_tribute_owed` so R5's with/without arithmetic reads the same
-    sum the collection does — byte-identical for the collection itself."""
-    disrupted = world.get_disrupted_regions()
+    sum the collection does — byte-identical for the collection itself.
+    `disrupted` (S14E-D15) names the provinces to skip instead of the board's
+    own `get_disrupted_regions()`: the conquest's quote asks the sum as it
+    will stand once the war with the lord is over."""
+    if disrupted is None:
+        disrupted = world.get_disrupted_regions()
     regions = getattr(world, "regions", {}) or {}
     total = 0
     for region_name in world.get_nation_regions(vassal_name):
@@ -4634,6 +4848,9 @@ def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
 
 # R14: turns a released vassal cannot be re-vassalized (treaty or conquest).
 RELEASE_COOLDOWN_TURNS = 5
+# S14E-D15: the diplomatic points a voluntary release costs
+# (`_execute_release_vassal` charges them); the conquest's quote names it.
+RELEASE_DP_COST = 1
 # COALITION_SPEC §2b: the alarm a voluntary release relieves (`reduce_threat`).
 RELEASE_THREAT_RELIEF = 8
 
@@ -4723,7 +4940,7 @@ def release_quote_words(world, plan: dict, dp_held: int) -> str:
     clauses `_build_release_report` prints once it is done, in the future
     tense, every figure `release_plan` hands the release. `dp_held` is the
     player's points before the charge."""
-    from backend.display_names import plural
+    from backend.display_names import humanize_entity_name, plural
     court = _court_name(world, plan["court"], article=True)
     lord = plan.get("lord") or ""
     lord_name = _court_name(world, lord, article=True) if lord else ""
@@ -4734,11 +4951,14 @@ def release_quote_words(world, plan: dict, dp_held: int) -> str:
         parts.append(f"Their tribute of {int(plan['lost_tribute']):,} gold a turn ends.")
     if plan.get("contingent"):
         c = plan["contingent"]
-        parts.append(f"Their contingent under {c['marshal']} ({int(c['men']):,} men) is "
-                     f"recalled and leaves our lines.")
+        # S14E-X227: the names the player knows ("Archduke Charles"), never
+        # the roster key ("ArchdukeCharles") - the conquest's quote prints
+        # the same names when these men come over.
+        parts.append(f"Their contingent under {humanize_entity_name(c['marshal'])} "
+                     f"({int(c['men']):,} men) is recalled and leaves our lines.")
     if plan["marshals"]:
         parts.append(f"Their marshals return to their own colours: "
-                     f"{', '.join(plan['marshals'])}.")
+                     f"{', '.join(humanize_entity_name(n) for n in plan['marshals'])}.")
     if plan.get("continental"):
         parts.append("They are no longer bound to the Continental System.")
     parts.append(f"They will no longer answer {lord_name}'s call to arms."
@@ -4782,9 +5002,11 @@ def _build_release_report(
     if lost_tribute > 0:
         parts.append(f"Their tribute of {lost_tribute} gold a turn ends.")
     if released_marshals:
+        # S14E-X227: display names, as the quote prints them.
+        from backend.display_names import humanize_entity_name
         parts.append(
             f"Their marshals return to their own colours: "
-            f"{', '.join(released_marshals)}."
+            f"{', '.join(humanize_entity_name(n) for n in released_marshals)}."
         )
     if was_continental_member:
         parts.append("They are no longer bound to the Continental System.")

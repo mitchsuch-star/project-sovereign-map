@@ -1072,43 +1072,36 @@ def inferred_attack_favorable(marshal, enemy, game_state=None) -> bool:
             >= INFERRED_ATTACK_FAVORABLE_RATIO)
 
 
-def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
-                                    committed_attacker: float = 0.0,
-                                    committed_defender: float = 0.0,
-                                    fold_modifiers: bool = False) -> float:
-    """The fortification/terrain-aware attacker/effective-defender ratio —
-    the SINGLE odds formula (see inferred_attack_favorable's docstring).
-    W6-4 extracts it so the muster preview's odds band reads the same
-    number the CR-5 gate does (no second formula, GR1 spirit).
+def lead_modifiers(marshal, enemy) -> tuple:
+    """(attack_mod, defense_mod) - the leads' standing modifiers exactly as
+    the SR-4a fold reads them: the attacker's `get_attack_modifier` against
+    the solo raw ratio and the defender's `get_defense_modifier` against the
+    solo outnumbered test, `consume=False` (a pure read), under whatever
+    coordination stamp is live on the two men. The ONE place those two reads
+    are spelled; `attack_effective_sides` reads them here and the muster's
+    exact ratio (S14E-X77) reads them once per outcome, so the arguments
+    cannot drift apart."""
+    defender = max(1, getattr(enemy, "strength", 0) or 0)
+    lead_attacker = max(1, getattr(marshal, "strength", 0) or 0)
+    return (float(marshal.get_attack_modifier(lead_attacker / defender, consume=False)),
+            float(enemy.get_defense_modifier(defender < lead_attacker, consume=False)))
 
-    CO-2 (Combat Overhaul Phase 1): `committed_attacker` adds the muster's
-    committed reinforcement strength so the odds band reflects the TOTAL
-    force that will fight, not the lead alone — matching what CO-1 resolves.
-    Defaults to 0.0 → the CR-5 gate's lead-only read is unchanged.
 
-    CA9-F1: `committed_defender` is the same term for the other side. CO-2
-    landed only the attacker's half, so the preview committed OUR muster
-    and modelled THEIRS as one man — and every error the asymmetry
-    produced pointed at "favorable". Measured live: preview 43,778 v
-    32,131; the battle 26,219 v 36,931. `resolve_battle` has taken both
-    terms since CO-1 and says so in a comment at the call site
-    ("Symmetric for a reinforced defender (GR5)",
-    `combat_executor.py:4610`); this closes the preview's half.
-
-    It is added INSIDE the terrain/fortification multiplier, because
-    that is where the resolver ends up putting it: `_calculate_effective_
-    strength` adds `committed` to the defender's effective strength, and
-    `resolve_battle` THEN multiplies the whole figure by
-    `(1 + terrain + fortification)`. My first cut read only the first of
-    those two lines and placed the term outside — the review round
-    measured the cost at `committed_defender x bonus` effective
-    defenders, enough to flip a real board from `even` to `favorable`
-    and skip the confirm modal (40,000 v a fortified 8,000 in mountains
-    with 24,000 committed: 0.83 -> 1.11).
-
-    Both committed terms default to 0.0, so the four
-    `inferred_attack_favorable` call sites (which pass neither) stay
-    byte-identical."""
+def attack_effective_sides(marshal, enemy, game_state=None,
+                           committed_attacker: float = 0.0,
+                           committed_defender: float = 0.0,
+                           fold_modifiers: bool = False,
+                           attack_mod: Optional[float] = None,
+                           defense_mod: Optional[float] = None) -> tuple:
+    """(attacking, defending) - the two effective strengths whose quotient IS
+    `inferred_attack_effective_ratio` (the single odds formula, whose
+    docstring carries every term's history; this is its body, split at the
+    division). The attacker's side depends only on `committed_attacker` and
+    `attack_mod`; the defender's on `committed_defender`, `defense_mod` and
+    the ground. S14E-X77 / S14E-D12 (S14f p3): the muster's exact ratio is
+    the quotient of the two sides' EXPECTATIONS over their arrival outcomes
+    (`CombatExecutor._muster_ratio_exact`), so it reads each half from here -
+    one formula, divided or not."""
     attacker = max(0, getattr(marshal, "strength", 0) or 0)
     attacker += max(0.0, committed_attacker)
     defender = max(1, getattr(enemy, "strength", 0) or 0)
@@ -1142,13 +1135,66 @@ def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
         # SR-4a: the leads' standing modifiers, as the resolver applies them
         # to the whole side (the solo raw ratio and the solo outnumbered
         # test, as `combat.py` passes them). consume=False: a pure read.
-        lead_attacker = max(1, getattr(marshal, "strength", 0) or 0)
-        attack_mod = float(marshal.get_attack_modifier(
-            lead_attacker / defender, consume=False))
-        defense_mod = float(enemy.get_defense_modifier(
-            defender < lead_attacker, consume=False))
-        return (attacker * attack_mod) / (effective_defender * max(0.01, defense_mod))
-    return attacker / effective_defender
+        if attack_mod is None or defense_mod is None:
+            _live_attack, _live_defense = lead_modifiers(marshal, enemy)
+            attack_mod = _live_attack if attack_mod is None else attack_mod
+            defense_mod = _live_defense if defense_mod is None else defense_mod
+        return (attacker * attack_mod), (effective_defender * max(0.01, defense_mod))
+    return attacker, effective_defender
+
+
+def inferred_attack_effective_ratio(marshal, enemy, game_state=None,
+                                    committed_attacker: float = 0.0,
+                                    committed_defender: float = 0.0,
+                                    fold_modifiers: bool = False,
+                                    attack_mod: Optional[float] = None,
+                                    defense_mod: Optional[float] = None) -> float:
+    """The fortification/terrain-aware attacker/effective-defender ratio —
+    the SINGLE odds formula (see inferred_attack_favorable's docstring).
+    W6-4 extracts it so the muster preview's odds band reads the same
+    number the CR-5 gate does (no second formula, GR1 spirit).
+
+    CO-2 (Combat Overhaul Phase 1): `committed_attacker` adds the muster's
+    committed reinforcement strength so the odds band reflects the TOTAL
+    force that will fight, not the lead alone — matching what CO-1 resolves.
+    Defaults to 0.0 → the CR-5 gate's lead-only read is unchanged.
+
+    CA9-F1: `committed_defender` is the same term for the other side. CO-2
+    landed only the attacker's half, so the preview committed OUR muster
+    and modelled THEIRS as one man — and every error the asymmetry
+    produced pointed at "favorable". Measured live: preview 43,778 v
+    32,131; the battle 26,219 v 36,931. `resolve_battle` has taken both
+    terms since CO-1 and says so in a comment at the call site
+    ("Symmetric for a reinforced defender (GR5)",
+    `combat_executor.py:4610`); this closes the preview's half.
+
+    It is added INSIDE the terrain/fortification multiplier, because
+    that is where the resolver ends up putting it: `_calculate_effective_
+    strength` adds `committed` to the defender's effective strength, and
+    `resolve_battle` THEN multiplies the whole figure by
+    `(1 + terrain + fortification)`. My first cut read only the first of
+    those two lines and placed the term outside — the review round
+    measured the cost at `committed_defender x bonus` effective
+    defenders, enough to flip a real board from `even` to `favorable`
+    and skip the confirm modal (40,000 v a fortified 8,000 in mountains
+    with 24,000 committed: 0.83 -> 1.11).
+
+    Both committed terms default to 0.0, so the four
+    `inferred_attack_favorable` call sites (which pass neither) stay
+    byte-identical.
+
+    S14E-X77 / S14E-D12 (S14f p3): `attack_mod` / `defense_mod` are the leads'
+    standing modifiers PRE-READ (`lead_modifiers`) under one outcome's
+    coordination stamp - the muster's exact ratio is the quotient of the two
+    sides' expectations over their arrival outcomes, each outcome priced
+    under its own stamp, and it reads the formula's two halves
+    (`attack_effective_sides`), never a copy. None (the default) reads them
+    live, as before - byte-identical for every other caller."""
+    attacking, defending = attack_effective_sides(
+        marshal, enemy, game_state, committed_attacker=committed_attacker,
+        committed_defender=committed_defender, fold_modifiers=fold_modifiers,
+        attack_mod=attack_mod, defense_mod=defense_mod)
+    return attacking / defending
 
 
 # ═══════ AAR32-D1 RULED (September 26, 2026, by the user's direction) ═══════
@@ -1228,9 +1274,20 @@ def inferred_attack_odds_reading(marshal, enemy, game_state=None,
     """(band, weighed_ratio) — the band and the ratio its favorable line
     reads. Without the fold the weighed ratio is the folded ratio itself
     and the line is 1.0."""
-    ratio = inferred_attack_effective_ratio(
+    return odds_reading_of_ratio(marshal, enemy, inferred_attack_effective_ratio(
         marshal, enemy, game_state, committed_attacker=committed_attacker,
-        committed_defender=committed_defender, fold_modifiers=fold_modifiers)
+        committed_defender=committed_defender, fold_modifiers=fold_modifiers),
+        fold_modifiers)
+
+
+def odds_reading_of_ratio(marshal, enemy, ratio: float,
+                          fold_modifiers: bool = False):
+    """(band, weighed_ratio) of a RATIO already in hand - the one place the
+    band's lines live (the unfavorable floor, the favorable line that weighs
+    the generals). S14E-X77: the muster's band is read from an EXACT ratio
+    (the quotient of the two sides' expectations over their outcome sets),
+    so the thresholds are applied here to whatever ratio the caller
+    computed, never a second table."""
     if ratio < INFERRED_ATTACK_FAVORABLE_RATIO:
         return "unfavorable", float(ratio)
     if (fold_modifiers

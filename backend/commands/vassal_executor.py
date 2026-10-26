@@ -194,6 +194,16 @@ class VassalExecutor:
         # Slice 0 (GR5): the lord is the acting nation, not hardcoded-player.
         player = command.get("_acting_nation") or getattr(world, 'player_nation', 'France')
 
+        # S14E-D15 / S14E-X195: the PLAYER's own road (an AI lord carries
+        # `_acting_nation`) quotes the conquest before it is done - see the
+        # WAR arm below. The confirmed line may carry its word on the target.
+        players_own = not command.get("_acting_nation")
+        confirmed = False
+        if players_own:
+            from backend.commands.reforms_executor import _CONFIRMED_RE, _confirmed
+            confirmed = _confirmed(command)
+            target = _CONFIRMED_RE.sub("", target).strip() or target
+
         from backend.game_logic.vassal import (
             create_vassal_treaty, create_vassal_conquest,
             assimilate_vassal_marshals, AUTONOMY_PUPPET, AUTONOMY_SATELLITE
@@ -214,6 +224,26 @@ class VassalExecutor:
                 refusal = subjugation_refusal(world, player, target)
                 if refusal:
                     return {"success": False, "message": refusal}
+                # S14E-D15 / S14E-X108 / S14E-X195 (S14f p3, October 25,
+                # 2026): subjugation is one click on an irreversible act (a
+                # Puppet at loyalty 20, +25 alarm, the war ended, the marshals
+                # under the lord's flag) with no price on the chip, so the
+                # PLAYER's unconfirmed order QUOTES first - free, after every
+                # refusal and before the deed - on the instruments' envelope
+                # (`_quote_instrument`). "Subjugate" reissues the line
+                # `confirmed`; "Not now" spends nothing. The figures are
+                # `subjugation_plan`'s, the ones `create_vassal_conquest`
+                # applies. An AI lord (`_acting_nation`) never sees it (GR5).
+                if players_own and not confirmed:
+                    from backend.game_logic.vassal import subjugation_plan, subjugation_quote
+                    plan = subjugation_plan(world, player, target)
+                    if plan["refusal"]:
+                        return {"success": False, "message": plan["refusal"]}
+                    return self._executor._diplomatic._quote_instrument(
+                        world, {"raw_command": command.get("raw_command", "")},
+                        message=subjugation_quote(world, player, target, plan),
+                        confirm_label="Subjugate", confirm_line=f"vassalize {target}",
+                        aliases=("yes", "subjugate", "vassalize", "do it", "confirm"))
             else:
                 return self._executor._diplomatic._execute_diplomatic_proposal(
                     {"target_nation": target, "proposal_type": "vassalage",
@@ -231,8 +261,12 @@ class VassalExecutor:
             if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
                 assimilated = assimilate_vassal_marshals(world, target)
                 if assimilated:
+                    # S14E-X226: the names the quote printed ("Archduke
+                    # Charles"), never the roster key ("ArchdukeCharles").
+                    from backend.display_names import humanize_entity_name
                     result["message"] += (
-                        f" Marshals assimilated: {', '.join(assimilated)}."
+                        f" Marshals assimilated: "
+                        f"{', '.join(humanize_entity_name(n) for n in assimilated)}."
                     )
             result["new_state"] = game_state
 

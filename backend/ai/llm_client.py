@@ -3406,7 +3406,9 @@ class LLMClient:
             # to `status` carrying the classified question; the executor's
             # desk answers fog-honestly. Everything else — feasibility,
             # advice, "how do I…" — keeps the COMMAND REFERENCE, which stays
-            # CR-8's advisory desk to replace on its own gate.
+            # CR-8's advisory desk to replace on its own gate. (S14E-D17: a
+            # "how do I…" that names no section now gets the SECTION INDEX,
+            # `help_topics.section_index`, from the help executor.)
             from .question_desk import (classify_board_question,
                                          classify_compound_question,
                                          classify_question)
@@ -3724,8 +3726,12 @@ class LLMClient:
                 raw_command=original_text,
                 question={"kind": "end_turn_asked", "subject": "", "subject_type": "board"},
             )
-        from .help_topics import help_request_section
+        from .help_topics import asks_for_the_whole_reference, help_request_section
         if _desk_text in ("help", "help me", "i need help", "commands", "what can i do") or _desk_text == "?":
+            action = "help"
+        # S14E-X233: "list commands" / "the manual" / "command list" — the whole
+        # reference asked for in other nouns (each was "I cannot interpret").
+        elif asks_for_the_whole_reference(_desk_text):
             action = "help"
         # DDB-48: "help navy" / "help with the fleet" — one section of the
         # reference (a topic word after `help`; "help Davout" stays an order).

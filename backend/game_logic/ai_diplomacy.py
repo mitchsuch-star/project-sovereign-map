@@ -68,7 +68,8 @@ AI_ULTIMATUM_COOLDOWN_TURNS = 15     # per-nation re-issue cooldown (set at ISSU
 # fire purely on turns-since-war-start with NO combat requirement, so an entire
 # coalition would sue for peace by turn ~5-7 having never fought a battle. The
 # stalemate exit now requires the pair to have actually FOUGHT (>=1 war-score
-# battle recorded in world.battle_records for the pair). A genuinely contactless
+# battle recorded in world.battle_records for the pair, or — S14E-D20 — a
+# DRAWN battle on the pair's campaign ledger: `diplomacy.pair_has_fought`). A genuinely contactless
 # war (declared, never engaged) still gets an eventual exit — but only after a
 # much longer patience window, so it never pre-empts real combat. Balance number
 # (escalates to the gate): 15 turns before a never-fought war may sue.
@@ -2501,9 +2502,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # fought must wait the much longer no-contact escape so a coalition can't sue
     # for peace by turn ~5-7 without a shot fired. `battle_records[diplo_key]` is
     # non-empty iff a >=1000-casualty battle (the war-score contact threshold)
-    # occurred on the pair — so uninvolved coalition members correctly hold.
+    # was WON on the pair, and the ledger's `drawn` holds the winnerless ones
+    # (S14E-D20) — so uninvolved coalition members correctly hold.
     if proposal is None and is_at_war and war_score <= 10:
-        has_fought = bool(getattr(world, 'battle_records', {}).get(diplo_key))
+        # S14E-D20 / S14E-X210: a DRAWN battle is contact too - the court's
+        # officers came home from it (`battle_records` is winner-only, the
+        # pair's ledger holds the stalemate). ONE seam, read at call time so
+        # the series arm can hold it down to the records alone.
+        from backend.game_logic import diplomacy as _dip
+        has_fought = _dip.pair_has_fought(world, diplo_key)
         p2_threshold = (
             effective_stalemate_turns
             if has_fought
@@ -4015,6 +4022,39 @@ def check_alliance_conflict(
 # AI-AI DIPLOMACY (§9c) — Session 8D
 # ═══════════════════════════════════════════════════════════════
 
+def _ai_ai_downgrade(world, stronger: str, weaker: str, state: str,
+                     new_state: str) -> Dict:
+    """S14E-D13 / S14E-X120 (S14f p3, October 25, 2026): the AI court's
+    opportunistic downgrade of a treaty, through the ONE `execute_downgrade`
+    the player's verb walks - so the AI pays what the player pays: the pair's
+    `relation_target` (booked, ("downgrade", stronger, weaker)), the table's
+    `relation_all` with every other court (France's included: -5 on the two
+    treaty steps), the actor's alarm slot (`threat`), the treaty's removal,
+    the bargain-breach check and the logged `diplomatic_downgrade` event. No
+    DP is deducted: the AI has never paid it.
+
+    THE SEAM (Golden Rule 5 - the series arms measure the parity): this
+    function is the one site the AI's downgrade reaches the executor. Its
+    "down" value restores the pre-D13 body, which did exactly three things
+    and nothing else:
+
+        set_diplomatic_state(world, stronger, weaker, new_state, "ai_ai_downgrade")
+        rel_hit = DOWNGRADE_PENALTIES.get((state, new_state), {}).get("relation_target", -10)
+        modify_relation_booked(world, stronger, weaker, rel_hit, "downgrade", stronger, weaker)
+        return {"success": True, "new_state": new_state, "relation_cost": 0}
+
+    (the state write with the reason "ai_ai_downgrade", the pair's relation
+    through `modify_relation_booked` - the actor `stronger`, the object
+    `weaker`; no relation_all, no threat, the treaty left standing, no breach
+    check, no log event).
+
+    Returns `execute_downgrade`'s dict: `success`, `new_state`,
+    `relation_cost` (what France's relations take, 0 when the figure is the
+    pair's alone)."""
+    from backend.game_logic.diplomacy import execute_downgrade
+    return execute_downgrade(world, stronger, weaker, reason="ai_ai_downgrade")
+
+
 def _process_ai_ai_rivalry(world) -> List[Dict]:
     """R15: AI-AI diplomacy degradation.
 
@@ -4088,10 +4128,14 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                     old_bracket = old_relation // 10
                     new_bracket = new_relation // 10
                     if old_bracket != new_bracket:
+                        from backend.display_names import display_nation as _display_nation
                         events.append({
                             "type": "ai_ai_rivalry",
                             "nations": [nation_a, nation_b],
-                            "message": f"Territorial rivalry between {nation_a} and {nation_b} grows.",
+                            # S14E-X219: the courts by their names ("Kingdom of
+                            # Italy", "Papal States"), never their tags.
+                            "message": (f"Territorial rivalry between {_display_nation(nation_a)} "
+                                        f"and {_display_nation(nation_b)} grows."),
                         })
 
             # Trigger 2: Opportunistic Downgrade — skip if fighting common enemy
@@ -4104,32 +4148,39 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                     stronger_troops = max(troops_a, troops_b)
                     weaker_troops = min(troops_a, troops_b)
                     if weaker_troops > 0 and stronger_troops > 2 * weaker_troops:
-                        from backend.game_logic.diplomacy import _DOWNGRADE_ORDER, DOWNGRADE_PENALTIES
+                        from backend.game_logic.diplomacy import _DOWNGRADE_ORDER
                         if state in _DOWNGRADE_ORDER:
                             idx = _DOWNGRADE_ORDER.index(state)
                             if idx < len(_DOWNGRADE_ORDER) - 1:
                                 new_state = _DOWNGRADE_ORDER[idx + 1]
-                                from backend.game_logic.diplomacy import set_diplomatic_state
-                                set_diplomatic_state(world, nation_a, nation_b, new_state, "ai_ai_downgrade")
-                                # Apply relation penalty from DOWNGRADE_PENALTIES
-                                penalty_key = (state, new_state)
-                                penalty = DOWNGRADE_PENALTIES.get(penalty_key, {})
-                                rel_hit = penalty.get("relation_target", -10)
-                                # S14E-X112: the stronger court's downgrade, booked
-                                from backend.game_logic.diplomatic_dialogue import modify_relation_booked
-                                modify_relation_booked(world, nation_a, nation_b, rel_hit,
-                                                       "downgrade", stronger, weaker)
+                                # S14E-X120 / S14E-D13: the stronger court's downgrade
+                                # through the ONE executor (the pair's relation booked
+                                # there as ("downgrade", stronger, weaker)) - the seam
+                                # `_ai_ai_downgrade` carries the old pair-only body.
+                                result = _ai_ai_downgrade(world, stronger, weaker, state, new_state)
+                                if not result.get("success"):
+                                    continue
                                 downgraded_this_turn.add(pair_key)
                                 from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY
+                                from backend.display_names import display_nation as _dn
+                                # S14E-X120: X38's clause on the line when the downgrade
+                                # takes something off France - "... - relations with
+                                # every court, France's included, fall 5." (the two
+                                # lower steps cost France nothing: no clause).
+                                from backend.game_logic.diplomacy import declaration_cost_clause
+                                _clause = declaration_cost_clause(
+                                    int(result.get("relation_cost", 0) or 0), player)
                                 events.append({
                                     "type": "ai_ai_downgrade",
                                     "nations": [nation_a, nation_b],
                                     "from_state": state,
                                     "to_state": new_state,
+                                    "relation_cost": int(result.get("relation_cost", 0) or 0),
                                     # S14E-9's sweep: the states by their display names, never the raw keys
-                                    "message": (f"{stronger} has downgraded relations with {weaker}: "
+                                    "message": (f"{_dn(stronger)} has downgraded relations with {_dn(weaker)}: "
                                                 f"{_STATE_DISPLAY.get(state, state)} → "
-                                                f"{_STATE_DISPLAY.get(new_state, new_state)}."),
+                                                f"{_STATE_DISPLAY.get(new_state, new_state)}"
+                                                f"{' — ' + _clause if _clause else ''}."),
                                 })
 
     return events

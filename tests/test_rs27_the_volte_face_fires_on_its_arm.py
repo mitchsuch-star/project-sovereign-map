@@ -179,5 +179,13 @@ class TestTheVolteFaceFiresOnItsArm:
             "--seam", 'backend.game_logic.naval:posture_blockade_answered=False',
             "--seam", 'backend.game_logic.settlement_third_party:silent_band_white_peace=False',
             "--seam", 'backend.game_logic.settlement_helpers:newcomer_joins_the_war=True',
+            # S14E-D22 (S14f p3, October 25, 2026), flipped consciously: a DRAWN
+            # battle now accrues war exhaustion on each side's own dead
+            # (`coalition.add_war_exhaustion_from_draw`). It re-times this arm's
+            # war (the beat fires at turn 20 twice with it up); the attribution
+            # this pin keeps is Step 3's, so the seam rides down with the rest.
+            # Measured by bisect: this seam alone down -> 0 beats; D21 / X248 /
+            # X249 alone down -> unchanged (2 beats).
+            "--seam", 'backend.game_logic.coalition:add_war_exhaustion_from_draw={}',
         )
         assert not _volte_turns(rows)

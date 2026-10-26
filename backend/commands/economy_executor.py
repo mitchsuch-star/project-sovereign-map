@@ -452,17 +452,22 @@ def _msg_pool_short(world, nation: str, arm: str, available: int,
             f"turn{plural}.'")
 
 
-def _msg_treasury(cost: int, have: int, who: str = "", arm: str = "") -> str:
+def _msg_treasury(cost: int, have: int, who: str = "", arm: str = "",
+                  owed: str = "") -> str:
     """SF-CMD-1 W9 / CRT-9 (Oct 3, 2026): the refusal names the man and the
     order it refused — "Murat's cavalry levy: … Need 1,504 gold, have 800."
     A board refusal that names neither reads as the parser's (the HOLD
-    rule), and the player cannot tell which order was priced."""
+    rule), and the player cannot tell which order was priced.
+    `owed` (S14E-X196 / S14E-D19): `instruments.FREE_OF_OBLIGATIONS` where
+    `have` is the player's CHEST, below the coffers - "have 400 gold free of
+    its obligations"; '' (every AI court, and nothing owed) is the old text."""
     head = ""
     if who:
         from backend.display_names import humanize_entity_name
         head = f"{humanize_entity_name(who)}'s {arm + ' ' if arm else ''}levy: "
+    held = f"{int(have):,} gold{owed}" if owed else f"{int(have):,}"
     return (f"{head}Berthier shakes his head. 'The treasury cannot support this, "
-            f"Sire. Need {int(cost):,} gold, have {int(have):,}.'")
+            f"Sire. Need {int(cost):,} gold, have {held}.'")
 
 
 def _msg_subs_wrong_arm(marshal) -> str:
@@ -493,14 +498,18 @@ def _msg_subs_no_room(standing: int, ceiling: int, room: int,
 
 
 def _msg_subs_treasury(per_batch: int, gold_cost: int, batches: int,
-                       treasury: int) -> str:
+                       treasury: int, owed: str = "") -> str:
+    """`treasury` is the purse the order was gated against - the player's
+    CHEST (S14E-X196 / S14E-D19); `owed` = `FREE_OF_OBLIGATIONS` where the
+    coffers hold more, '' otherwise (every AI court, nothing owed)."""
     afford = treasury // per_batch if per_batch else 0
     tail = (f" We could stand {afford:,} batch"
             f"{'es' if afford != 1 else ''} at that price."
             if afford else "")
+    held = f"{treasury:,} gold{owed}" if owed else f"{treasury:,}"
     return (f"Berthier shakes his head. 'Substitutes are {per_batch:,} "
             f"gold the battalion, Sire — {gold_cost:,} for "
-            f"{batches}. The treasury holds {treasury:,}.{tail}'")
+            f"{batches}. The treasury holds {held}.{tail}'")
 
 
 def substitute_quote(world, region_name: str,
@@ -578,11 +587,14 @@ def substitute_quote(world, region_name: str,
         region, world, base_cost=base, nation=nation, marshal=marshal,
         foreign_soil=(region.controller != nation), draft=False))
     quote["price"] = per_batch
-    treasury = int(world.nation_gold.get(nation, 0))
+    # S14E-X196 / S14E-D19: the player's purse is the ONE chest (`purse_of`)
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, treasury = purse_of(world, nation)
     if treasury < per_batch:
+        owed = owed_suffix(coffers, treasury)
         return refuse("treasury", _msg_subs_treasury(
-            per_batch, per_batch, 1, treasury),
-            f"{per_batch:,}g — the treasury holds {treasury:,}g")
+            per_batch, per_batch, 1, treasury, owed=owed),
+            f"{per_batch:,}g — the treasury holds {treasury:,}g{owed}")
     terms = f"{marshal.name} · {per_batch_men:,} men · {per_batch:,}g"
     if in_the_field:
         terms += " · field levy"
@@ -634,9 +646,14 @@ def recruit_remedy(world, nation: Optional[str] = None) -> str:
         if m.nation == nation and m.strength >= 1000
         and not getattr(m, "captured_by", "")))
     from backend.game_logic.reforms import laws_signature
+    # S14E-X196 / S14E-D19: the remedy names the CHEST (`purse_of`), so the
+    # memo keys on it too - a settlement payment ratified mid-turn moves the
+    # chest while the coffers hold the same gold
+    from backend.game_logic.instruments import purse_of
+    coffers, chest = purse_of(world, nation)
     key = (nation, int(getattr(world, "current_turn", 0) or 0),
-           int(world.nation_gold.get(nation, 0)), roster,
-           laws_signature(world, nation))
+           int(coffers), roster,
+           laws_signature(world, nation)) + ((int(chest),) if chest != coffers else ())
     cached = getattr(world, "_recruit_remedy_cache", None)
     if cached and cached[0] == key:
         return cached[1]
@@ -653,16 +670,17 @@ def recruit_remedy(world, nation: Optional[str] = None) -> str:
                                str(q["arm"]), str(q["recipient"])))
         elif q.get("kind") == "treasury":
             priced.append((int(q["price"]), int(q["amount"]), str(q["arm"]),
-                           str(q["recipient"]), int(q.get("have") or 0)))
+                           str(q["recipient"]), int(q.get("have") or 0),
+                           str(q.get("owed") or "")))
     if affordable:
         price, amount, arm, name = min(affordable)
         noun = _ARM_NOUN.get(arm, arm)
         text = (f"March a corps within range, or raise them where one stands: "
                 f"\"{name}, recruit {arm}\" — {amount:,} {noun} for {price:,} gold.")
     elif priced:
-        price, amount, arm, name, have = min(priced)
+        price, amount, arm, name, have, owed = min(priced)
         noun = _ARM_NOUN.get(arm, arm)
-        text = (f"March a corps within range. The treasury holds {have:,} gold; "
+        text = (f"March a corps within range. The treasury holds {have:,} gold{owed}; "
                 f"the cheapest levy, {amount:,} {noun} with {name} "
                 f"(\"{name}, recruit {arm}\"), costs {price:,}.")
     else:
@@ -839,7 +857,7 @@ def _recruit_quote_display(quote: Dict, arm: Optional[str]):
                  f"{int(quote.get('amount') or 0):,} needed")
     elif kind == "treasury":
         short = (f"{int(quote.get('price') or 0):,}g — the treasury holds "
-                 f"{int(quote.get('have') or 0):,}g")
+                 f"{int(quote.get('have') or 0):,}g{quote.get('owed') or ''}")
     return short, ""
 
 
@@ -909,11 +927,17 @@ def _recruit_quote_core(world, region_name: str, arm: Optional[str],
     # SR-5r RF-2 (T8): the terms that made the price ride the quote, so a
     # chip can name a law beside the figure it moved.
     quote["price_terms"] = list(price_terms)
-    have = int(world.nation_gold.get(marshal.nation, 0))
+    # S14E-X196 / S14E-D19: the player's levy is gated against the ONE chest
+    # (`purse_of`: the treasury less the recurring settlement payments still
+    # owed); an AI court's is its raw treasury, so its figure never moves.
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, have = purse_of(world, marshal.nation)
     if have < price:
+        owed = owed_suffix(coffers, have)
         quote.update(kind="treasury",
-                     reason=_msg_treasury(price, have, who=marshal.name, arm=levy_arm),
-                     have=have)
+                     reason=_msg_treasury(price, have, who=marshal.name,
+                                          arm=levy_arm, owed=owed),
+                     have=have, owed=owed)
         return quote
     quote.update(ok=True, kind="ok")
     return quote
@@ -1754,12 +1778,18 @@ class EconomyExecutor:
             marshal=recruit_marshal, arm=recruit_type)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
-        if nation_treasury < gold_cost:
+        # S14E-X196 / S14E-D19: gated against the player's ONE chest
+        # (`purse_of`) - the figure the quote and the chip name; an AI court
+        # keeps its raw treasury. The CHARGE below still leaves the coffers.
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, purse = purse_of(world, acting_nation)
+        if purse < gold_cost:
             return {
                 "success": False,
-                "message": _msg_treasury(gold_cost, nation_treasury,
+                "message": _msg_treasury(gold_cost, purse,
                                          who=getattr(recruit_marshal, "name", ""),
-                                         arm=recruit_type),
+                                         arm=recruit_type,
+                                         owed=owed_suffix(coffers, purse)),
             }
 
         # SR-5r RF-2 (REFORMS_SPEC §4 `recruit_morale`): a law's term sits on
@@ -2199,9 +2229,14 @@ class EconomyExecutor:
         gold_cost = int(per_batch * batches)
 
         treasury = int(world.nation_gold.get(acting_nation, 0))
-        if treasury < gold_cost:
+        # S14E-X196 / S14E-D19: gated against the player's ONE chest
+        # (`purse_of`); the CHARGE below still leaves the coffers (`treasury`)
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        _coffers, purse = purse_of(world, acting_nation)
+        if purse < gold_cost:
             return {"success": False, "message": _msg_subs_treasury(
-                per_batch, gold_cost, batches, treasury)}
+                per_batch, gold_cost, batches, purse,
+                owed=owed_suffix(_coffers, purse))}
 
         pool_before = int((world.manpower_pools.get(acting_nation) or {})
                           .get("infantry", 0))
@@ -2671,11 +2706,17 @@ class EconomyExecutor:
         # existing title is 1 AP only.
         fee = compute_investiture_fee(marshal)
         treasury = world.nation_gold.get(acting_nation, 0)
-        if treasury < fee:
+        # S14E-X238 / S14E-D19: a lump gold verb - the player's investiture is
+        # gated against the ONE chest (`purse_of`); the fee below still leaves
+        # the coffers, and an AI court keeps its raw treasury.
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, purse = purse_of(world, acting_nation)
+        if purse < fee:
             return {
                 "success": False,
                 "message": f"The treasury cannot fund the investiture, Sire. "
-                           f"Need {fee} gold, have {treasury}."
+                           f"Need {fee} gold, have {purse}"
+                           f"{' gold' + owed_suffix(coffers, purse) if purse < coffers else ''}."
             }
         if fee > 0:
             world.nation_gold[acting_nation] = int(treasury - fee)
@@ -3255,8 +3296,14 @@ class EconomyExecutor:
 
         # Gold check
         build_treasury = world.nation_gold.get(build_acting_nation, 0)
-        if build_treasury < self.WATCHTOWER_GOLD_COST:
-            return {"success": False, "message": f"Insufficient gold! Need {self.WATCHTOWER_GOLD_COST}, have {build_treasury}"}
+        # S14E-X196 / S14E-D19: the player's watchtower is gated against the
+        # ONE chest (`purse_of`); the charge below still leaves the coffers
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, purse = purse_of(world, build_acting_nation)
+        if purse < self.WATCHTOWER_GOLD_COST:
+            return {"success": False, "message": (
+                f"Insufficient gold! Need {self.WATCHTOWER_GOLD_COST}, have {purse}"
+                f"{' gold' + owed_suffix(coffers, purse) if purse < coffers else ''}")}
 
         # Start construction
         region.watchtower = "under_construction"
@@ -3330,8 +3377,14 @@ class EconomyExecutor:
             return {"success": False, "message": f"Cannot repair in {region_name} — not controlled by {repair_acting_nation}"}
 
         repair_treasury = world.nation_gold.get(repair_acting_nation, 0)
-        if repair_treasury < REPAIR_COST:
-            return {"success": False, "message": f"Insufficient gold! Need {REPAIR_COST}, have {repair_treasury}"}
+        # S14E-X196 / S14E-D19: the player's repair is gated against the ONE
+        # chest (`purse_of`); the charge below still leaves the coffers
+        from backend.game_logic.instruments import owed_suffix, purse_of
+        coffers, purse = purse_of(world, repair_acting_nation)
+        if purse < REPAIR_COST:
+            return {"success": False, "message": (
+                f"Insufficient gold! Need {REPAIR_COST}, have {purse}"
+                f"{' gold' + owed_suffix(coffers, purse) if purse < coffers else ''}")}
 
         # Check if repairing a building or war damage
         building_type = command.get("building_type") or self._extract_building_type(command)

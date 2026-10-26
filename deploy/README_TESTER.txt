@@ -23,8 +23,9 @@ SETUP:
   1. Unzip this folder anywhere (Desktop is fine)
   2. Double-click launch.bat
 
-  Windows may show a blue "Windows protected your PC" screen the
-  first time — this build is not code-signed. Click "More info",
+  If this build is unsigned, Windows may show a blue "Windows
+  protected your PC" screen the first time (a signed release
+  raises none). Click "More info",
   then "Run anyway". (If you downloaded the zip in a browser,
   right-click it -> Properties -> Unblock BEFORE extracting, and
   the prompt appears only once.)

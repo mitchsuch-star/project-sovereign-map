@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=14 format=3 uid="uid://bspy1xuv7pgbh"]
+[gd_resource type="Theme" load_steps=15 format=3 uid="uid://bspy1xuv7pgbh"]
 
 [ext_resource type="FontFile" uid="uid://cxiqku0m3u7af" path="res://assets/fonts/Cinzel[wght].ttf" id="1_6tukj"]
 [ext_resource type="FontFile" uid="uid://dnyhh3gjkf5ox" path="res://assets/fonts/EBGaramond[wght].ttf" id="2_3xb56"]
@@ -112,6 +112,27 @@ texture = ExtResource("3_leather")
 region_rect = Rect2(300, 150, 680, 680)
 modulate_color = Color(0.24, 0.27, 0.46, 0.96)
 
+; PC-F47 (S15 head, October 25, 2026): the hover panel. Godot's default
+; TooltipPanel is translucent over the map (the war card's peace table read
+; with "Papal States" and "Sardinia" showing through it at 1080p); this one is
+; OPAQUE — the popup panel's own fill (`incoming_proposal_popup.tscn`) under
+; the house gold hairline. Its words wrap through `Utils.wrap_tooltips`.
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tooltip"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.102, 0.102, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.878, 0.753, 0.322, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [resource]
 default_font = ExtResource("2_3xb56")
 default_font_size = 16
@@ -191,3 +212,6 @@ TitleScreenLead/base_type = &"Label"
 TitleScreenLead/font_sizes/font_size = 24
 TitleScreenOverline/base_type = &"Label"
 TitleScreenOverline/font_sizes/font_size = 19
+TooltipLabel/colors/font_color = Color(0.94, 0.92, 0.85, 1)
+TooltipLabel/font_sizes/font_size = 16
+TooltipPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")

@@ -65,12 +65,17 @@ const WAR_BAR_TAG_INSET := 14.0
 # band under the top bar, then fitted by `Utils.clamp_anchored_panel` (the
 # centre clamp skips an edge-anchored panel, so this was a bare fixed rect
 # whose header went under the top bar on a short logical viewport).
-const WIDTH_FRACTION := 0.20
-const HEIGHT_FRACTION := 0.55
+# PC-F46 (S15 head, October 25, 2026): 0.20 / 0.55 / 600 / 720 left the war's
+# ledger a 352-px text column in a 594-px box at 1920 x 1080, with the peace
+# table (its tier, the table's number, the court-by-court line, the lag note)
+# below the fold; the popup takes 0.24 of the width (to 640) and 0.72 of the
+# height (to 880), and `_render_war_detail` leads with the table.
+const WIDTH_FRACTION := 0.24
+const HEIGHT_FRACTION := 0.72
 const FIT_MIN_WIDTH := 330.0
-const FIT_MAX_WIDTH := 600.0
+const FIT_MAX_WIDTH := 640.0
 const FIT_MIN_HEIGHT := 440.0
-const FIT_MAX_HEIGHT := 720.0
+const FIT_MAX_HEIGHT := 880.0
 const DOCK_GAP := 40.0
 const AUTHORED_RIGHT := 240.0  # the .tscn's offset_right: beside the authored 192-px HUD
 var dock_beside: Control = null
@@ -470,6 +475,43 @@ func _render_war_detail(w: Dictionary):
 			bbcode += "With: " + Utils.humanize_nation_keys_in_text(roster) + "\n"
 		bbcode += "\n"
 
+	# PC-F46 (S15 head, October 25, 2026): THE PEACE TABLE LEADS. The screen
+	# says "the price of peace. Negotiate opens the table", and the table —
+	# the tier, what a peace signed now keeps, the table's number, each court
+	# against 50, the lag note — stood BELOW the score's eight-row breakdown:
+	# at 1920 x 1080 it began past the fold, and the three Negotiate buttons
+	# under the scroll opened a table the player had not read. The breakdown
+	# (the arithmetic of the figure the header bar already shows) follows it.
+	var tier_display = str(w.get("settlement_tier_display", ""))
+	if tier_display:
+		# IQ-2 (Sept 14, 2026): the tier rendered in gold — a prize — on a war
+		# France was losing to one province. When the backend says the table
+		# is the enemy's, it says whose, in this popup's loss colour.
+		if str(w.get("settlement_tier_side", "")) == "theirs":
+			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
+		else:
+			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
+	# PC-F33 (S13e part 4): a white peace confirms every holding — say so
+	# beside the tier.
+	var held_line = str(w.get("held_line", ""))
+	if held_line != "":
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(held_line) + "[/color]\n"
+	# PC-F3 (Oct 15, 2026): the tier above is the peace table's, not the
+	# score bar's — say the table's number, each court against 50, and
+	# (mid-turn) that this turn's fighting counts from next turn.
+	var peace_table = w.get("peace_table", null)
+	if peace_table is Dictionary:
+		for ln in peace_table.get("lines", []):
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(ln) + "[/color]\n"
+
+	# PF-2 (D4/UX-1): make the Back Out "Settlement draft kept" promise
+	# visible where the player reopens — the badge appears iff a same-turn
+	# scoped draft would actually restore.
+	if bool(w.get("settlement_draft_kept", false)):
+		bbcode += "[color=" + COLOR_GOLD + "]▸ Draft kept — Open Settlement resumes your terms.[/color]\n"
+	if tier_display or peace_table is Dictionary or bool(w.get("settlement_draft_kept", false)):
+		bbcode += "\n"
+
 	# Breakdown
 	if breakdown != null and breakdown is Dictionary:
 		bbcode += "[color=" + COLOR_HEADER + "]Score Breakdown[/color]"
@@ -516,34 +558,6 @@ func _render_war_detail(w: Dictionary):
 			if _captive != 0:
 				bbcode += "  Captive:    " + _signed(_captive) + "\n"
 			bbcode += "  Ticking:    " + _signed(int(breakdown.get("ticking", 0))) + "\n\n"
-
-	var tier_display = str(w.get("settlement_tier_display", ""))
-	if tier_display:
-		# IQ-2 (Sept 14, 2026): the tier rendered in gold — a prize — on a war
-		# France was losing to one province. When the backend says the table
-		# is the enemy's, it says whose, in this popup's loss colour.
-		if str(w.get("settlement_tier_side", "")) == "theirs":
-			bbcode += "Settlement Tier (theirs to impose): [color=" + COLOR_RED + "]" + tier_display + "[/color]\n"
-		else:
-			bbcode += "Settlement Tier: [color=" + COLOR_GOLD + "]" + tier_display + "[/color]\n"
-	# PC-F33 (S13e part 4): a white peace confirms every holding — say so
-	# beside the tier.
-	var held_line = str(w.get("held_line", ""))
-	if held_line != "":
-		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(held_line) + "[/color]\n"
-	# PC-F3 (Oct 15, 2026): the tier above is the peace table's, not the
-	# score bar's — say the table's number, each court against 50, and
-	# (mid-turn) that this turn's fighting counts from next turn.
-	var peace_table = w.get("peace_table", null)
-	if peace_table is Dictionary:
-		for ln in peace_table.get("lines", []):
-			bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(ln) + "[/color]\n"
-
-	# PF-2 (D4/UX-1): make the Back Out "Settlement draft kept" promise
-	# visible where the player reopens — the badge appears iff a same-turn
-	# scoped draft would actually restore.
-	if bool(w.get("settlement_draft_kept", false)):
-		bbcode += "[color=" + COLOR_GOLD + "]▸ Draft kept — Open Settlement resumes your terms.[/color]\n"
 
 	var objective = w.get("objective", null)
 	if objective != null and objective is Dictionary:

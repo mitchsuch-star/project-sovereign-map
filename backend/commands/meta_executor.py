@@ -1398,16 +1398,31 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             _DIVERSION_HELP_ANCHOR + _diversion_help_block(_world), 1)
 
         # DDB-48: "how do I build ships?" / "help navy" — the ONE section the
-        # line names; a line that names none keeps the whole reference.
-        from backend.ai.help_topics import (help_request_section,
-                                            reference_section, section_for)
+        # line names. S14E-D17 / S14E-X142 (S14f p3): a "how do I …" line that
+        # names NONE is answered with the SECTION INDEX (`section_index`: one
+        # `help <topic>` line per section, ~700 characters), not the 22,573-
+        # character manual -- the manual stays one bare `help` away. A
+        # `help <topic>` the reference has no section on gets the index too
+        # (S14E-X231), its head line saying so; "how does <noun> work" is the
+        # same arm (S14E-X232); "what are the commands" / "list commands"
+        # asks for the list itself and a bare `help` is the manual, both
+        # unchanged (S14E-X233 routes the list's other nouns to this method).
+        from backend.ai.help_topics import (asks_for_the_whole_reference,
+                                            help_request_section,
+                                            help_topic_asked,
+                                            reference_section, section_for,
+                                            section_index)
         _typed = str((command or {}).get("raw_command")
                      or (command or {}).get("_raw_input") or "")
         _heading = help_request_section(_typed)
+        _nameless_question = False
         if _heading is None and _typed:
             from backend.ai.llm_client import _SYNTAX_QUESTION_RE
             if _SYNTAX_QUESTION_RE.match(_typed.strip()):
                 _heading = section_for(_typed)
+                _nameless_question = (
+                    _heading is None
+                    and not asks_for_the_whole_reference(_typed))
         _section = reference_section(help_text, _heading) if _heading else None
         if _section:
             return {"success": True, "free_action": True,
@@ -1415,6 +1430,16 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
                                 "section on it, Sire - type 'help' for the "
                                 "whole of it."),
                     "help_section": _heading,
+                    "events": [{"type": "help", "command": "help"}]}
+        _unknown_topic = (help_topic_asked(_typed)
+                          if _heading is None and _typed else None)
+        if _nameless_question or _unknown_topic or _heading:
+            # (`_heading` with no `_section`: a topic the table names whose
+            # section this build's reference does not print -- the index,
+            # never the manual, for a line that asked for one thing.)
+            return {"success": True, "free_action": True,
+                    "message": section_index(help_text, _unknown_topic),
+                    "help_section": "index",
                     "events": [{"type": "help", "command": "help"}]}
 
         return {

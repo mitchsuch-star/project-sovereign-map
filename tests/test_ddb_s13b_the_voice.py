@@ -335,7 +335,12 @@ class TestDDB48:
         assert _say(client, "help navy").startswith("THE ADMIRALTY")
         assert _say(client, "help with the ports").startswith("PORTS AND THE CONTINENTAL SYSTEM")
         assert "COMMAND REFERENCE" in _say(client, "help")
-        assert "COMMAND REFERENCE" in _say(client, "how do I sing?"), "no section named"
+        # S14E-D17 / S14E-X142: flipped - a line that names no section is
+        # answered with the SECTION INDEX (the manual stays one bare `help`
+        # away), no longer with the whole 22,573-character reference.
+        index = _say(client, "how do I sing?")
+        assert "COMMAND REFERENCE" not in index and index.startswith("Which part, Sire?")
+        assert "help navy" in index and len(index) < 1500
 
     def test_help_before_a_name_is_still_an_order(self, client):
         """P8-2: "help Davout" asks for a supporter, never the manual."""

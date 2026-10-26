@@ -295,9 +295,12 @@ def restoration_price(world, nation: str, row: Dict) -> Dict:
 
 
 def _court_gold(world, nation: str) -> int:
-    if nation == getattr(world, "player_nation", None):
-        return int(getattr(world, "gold", 0) or 0)
-    return int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
+    """The gold a court can lay on a law: an AI court's raw treasury; the
+    PLAYER's CHEST (S14E-X196 / S14E-D19, `instruments.purse_of` - the
+    treasury less the recurring settlement payments still owed), the one
+    figure every lump gold verb is gated against. Nothing owed: the treasury."""
+    from backend.game_logic.instruments import purse_of
+    return int(purse_of(world, nation)[1])
 
 
 def _court_authority(world, nation: str) -> int:
@@ -326,7 +329,11 @@ def law_refusal(world, nation: str, law_id: str,
     if is_in_force(row):
         return f"{head} is already in force (since turn {int(row['enacted_turn'])})."
     quote = restoration_price(world, nation, row)
-    gold = _court_gold(world, nation)
+    # S14E-X196 / S14E-D19: the PLAYER's gold is the chest (`_court_gold`);
+    # the sentence says so where the coffers hold more than the chest.
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, purse_of
+    treasury, gold = purse_of(world, nation)
+    held = f"{gold:,} gold{FREE_OF_OBLIGATIONS}" if gold < treasury else f"{gold:,}"
     if quote["currency"] == "authority":
         authority = _court_authority(world, nation)
         if authority < quote["price"]:
@@ -334,11 +341,11 @@ def law_refusal(world, nation: str, law_id: str,
                     f"{authority}.")
         if gold < quote["arrears"]:
             return (f"Restoring {name} costs {quote['arrears']:,} gold in "
-                    f"arrears; the treasury holds {gold:,}.")
+                    f"arrears; the treasury holds {held}.")
     else:
         need = quote["price"] + quote["arrears"]
         if gold < need:
-            return f"{head} costs {need:,} gold; the treasury holds {gold:,}."
+            return f"{head} costs {need:,} gold; the treasury holds {held}."
     if admin_actions is None:
         admin_actions = int(getattr(world, "admin_actions_remaining", 0) or 0)
     if int(admin_actions) < ADMIN_ACTIONS_PER_ACT:

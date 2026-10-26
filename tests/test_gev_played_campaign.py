@@ -91,7 +91,11 @@ class TestACourtIsSubjugatedOnlyWhenBeaten:
         world.regions["Vienna"].controller = "France"
         world.invalidate_active_nations_cache()
         assert V.subjugation_refusal(world, "France", "Austria") == ""
-        response = _post(board, "vassalize Austria")
+        # S14E-D15: flipped - the typed order QUOTES first; the reissue with
+        # `confirmed` is the conquest.
+        quote = _post(board, "vassalize Austria")
+        assert quote.get("instrument_confirm") and "Austria" not in world.vassals
+        response = _post(board, "vassalize Austria confirmed")
         assert response.get("success") is True, response.get("message")
         assert world.vassals["Austria"]["path"] == "conquest"
 
@@ -107,7 +111,12 @@ class TestACourtIsSubjugatedOnlyWhenBeaten:
         # "Austria|France" at -40 = Austria beaten to the sue line.
         world.war_scores[world._make_diplo_key("France", "Austria")] = -40
         assert V.subjugation_refusal(world, "France", "Austria") == ""
-        assert _post(board, "vassalize Austria").get("success") is True
+        # S14E-D15: flipped - a quote is also success; the conquest is the
+        # reissue with `confirmed`.
+        assert _post(board, "vassalize Austria").get("instrument_confirm") is True
+        assert "Austria" not in world.vassals
+        assert _post(board, "vassalize Austria confirmed").get("success") is True
+        assert world.vassals["Austria"]["path"] == "conquest"
 
     def test_a_war_score_short_of_the_line_does_not(self, board):
         world = M.world

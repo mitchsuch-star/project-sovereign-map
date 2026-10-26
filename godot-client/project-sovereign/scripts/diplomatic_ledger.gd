@@ -399,15 +399,21 @@ func _render_nations():
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]Every court of Europe — its temper toward France, and the instruments to move it. Press F1 to treat; D closes this ledger.[/color]\n\n"
 
+	# UXR3-29 (Pre-Deploy S15 head, October 25, 2026): the Nations book LEADS
+	# WITH THE COURTS' CARDS — each great power's Laws and Doctrine lines sit in
+	# the first screenful. The two France-centred blocks below (the mirror and
+	# the exposure) are built here and appended UNDER the last card (and under
+	# the empty notice when no court is in contact).
+	var france_blocks := ""
 	# AI-1b (the mirror): Europe's derived reading of FRANCE — the player's
-	# own row, first. Omitted when null (legacy/bare worlds).
+	# own row. Omitted when null (legacy/bare worlds).
 	var mirror = cached_data.get("france_mirror")
 	if mirror != null and mirror is Dictionary:
-		bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]How Europe Reads France[/b][/color]\n"
+		france_blocks += "[color=#" + Utils.COLOR_GOLD + "][b]How Europe Reads France[/b][/color]\n"
 		var mirror_lines = mirror.get("lines", [])
 		for ml in mirror_lines:
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + str(ml) + "[/color]\n"
-		bbcode += "\n"
+			france_blocks += "  [color=#" + Utils.COLOR_INFO + "]" + str(ml) + "[/color]\n"
+		france_blocks += "\n"
 
 	# AI-3r (§2.5-3): France's own exposure — the same reserve/free
 	# derivation the war council applies to every court, shown to the
@@ -417,12 +423,14 @@ func _render_nations():
 	if exposure != null and exposure is Dictionary:
 		var exposure_line = str(exposure.get("line", ""))
 		if exposure_line != "":
-			bbcode += "[color=#" + Utils.COLOR_GOLD + "][b]The Emperor's Own Exposure[/b][/color]\n"
-			bbcode += "  [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_line) + "[/color]\n"
-			bbcode += "\n"
+			france_blocks += "[color=#" + Utils.COLOR_GOLD + "][b]The Emperor's Own Exposure[/b][/color]\n"
+			france_blocks += "  [color=#" + Utils.COLOR_INFO + "]" + Utils.humanize_nation_keys_in_text(exposure_line) + "[/color]\n"
+			france_blocks += "\n"
 
 	if nations.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No nations in diplomatic contact.[/color]\n"
+		if france_blocks != "":
+			bbcode += "\n" + france_blocks
 		content_area.text = bbcode
 		return
 
@@ -638,6 +646,9 @@ func _render_nations():
 
 		bbcode += "\n"
 
+	# UXR3-29 (S15 head): France's own two blocks close the book, under the
+	# courts' cards.
+	bbcode += france_blocks
 	content_area.text = bbcode
 
 
@@ -1541,10 +1552,29 @@ func _render_vassals():
 		bbcode += "[color=#" + COLOR_AMBER + "]Envoys await your reply — vassal instruments are suspended until the matter is answered.[/color]\n"
 	bbcode += "\n"
 
+	# UXR3-81 (Pre-Deploy S15 head, October 25, 2026): a court whose petition
+	# was GRANTED is listed first (the book's own order otherwise, kept), and
+	# its Bond line leads its card — the grant's result is what the first
+	# screenful shows, not two cards reading "no bond yet".
+	var granted_rows: Array = []
+	var other_rows: Array = []
 	for v in rows:
+		if v is Dictionary and _vassal_petition_granted(v):
+			granted_rows.append(v)
+		else:
+			other_rows.append(v)
+	for v in granted_rows + other_rows:
 		bbcode += _format_vassal_card(v, bool(vassal_data.get("actions_blocked", false)))
 
 	content_area.text = bbcode
+
+
+func _vassal_petition_granted(v: Dictionary) -> bool:
+	"""UXR3-81: a granted petition leaves two marks on the client's row — the
+	bond it earned (`relation_modifier`, +1/turn per honoured petition: the
+	`petition_standing_keys` term) and the tribute it remitted
+	(`remission_left`). Either one is "a court with a granted petition"."""
+	return int(v.get("relation_modifier", 0)) > 0 or int(v.get("remission_left", 0)) > 0
 
 
 func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
@@ -1574,6 +1604,13 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 	if created_turn > 0 and path != "scenario":
 		bbcode += ", Turn " + str(created_turn)
 	bbcode += ")[/color]\n"
+
+	# UXR3-81 (S15 head): a court with a granted petition leads with its BOND
+	# — the line the grant earned — straight under its header.
+	var bond_led: bool = _vassal_petition_granted(v) and v.has("bond") and _vassal_bond_text(v) != ""
+	if bond_led:
+		var bond_ink: String = Utils.COLOR_SUCCESS if int(v.get("relation_modifier", 0)) > 0 else Utils.COLOR_INFO
+		bbcode += "  Bond: [color=#" + bond_ink + "]" + _vassal_bond_text(v) + "[/color]\n"
 
 	# ── Loyalty bar + trend forecast ──
 	var loyalty_color = Utils.COLOR_SUCCESS
@@ -1666,7 +1703,7 @@ func _format_vassal_card(v: Dictionary, actions_blocked: bool) -> String:
 			else:
 				bbcode += "  [color=#" + Utils.COLOR_INFO + "]· next petition in " + str(next_in) + " turn" + ("s" if next_in != 1 else "") + "[/color]"
 		bbcode += "\n"
-	if v.has("bond"):
+	if v.has("bond") and not bond_led:
 		var bond_text = _vassal_bond_text(v)
 		if bond_text != "":
 			bbcode += "  Bond: [color=#" + Utils.COLOR_INFO + "]" + bond_text + "[/color]\n"

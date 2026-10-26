@@ -307,10 +307,17 @@ def subjugate_actions(world: Any, player: str, target: str) -> List[Dict[str, An
         why = f"Recently released — {_plural(cooldown, 'turn')} before she can be made a vassal again."
     if not why:
         why = subjugation_refusal(world, player, target) or ""
+    # S14E-D15 / S14E-X108: the chip says what the click opens - the plan in
+    # brief (`vassal.subjugation_effect_line`, the figures the quote prints
+    # and the conquest applies); the click itself QUOTES before it does.
+    from backend.display_names import display_nation as _dn
+    from backend.game_logic.vassal import subjugation_effect_line
+    effect = (f"make her {_dn(player)}'s vassal by conquest — she must be beaten first"
+              if why else subjugation_effect_line(world, player, target))
     return [{
         "action": "subjugate", "display_name": "Subjugate",
         "dp_cost": 0, "available": not why, "disabled_reason": why, "disabled_reason_display": why,
-        "effect_text": "make her France's vassal by conquest — she must be beaten first",
+        "effect_text": effect,
     }]
 
 

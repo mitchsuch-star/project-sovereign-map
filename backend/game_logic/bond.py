@@ -354,9 +354,15 @@ def mint_refusal(world: Any, payer: str, member: str, enemy: str) -> str:
     if _envoy_at_the_enemy(world, member, enemy):
         return f"{_dn(member)}'s envoy is already at {_dn(enemy)}'s court."
     amount = bond_amount(world, payer)
-    chest = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    # S14E-X188 / S14E-D19: the four turns' cover is the PLAYER's CHEST
+    # (`instruments.purse_of`: the treasury less the recurring settlement
+    # payments still owed), the figure the quote names; the AI paymaster that
+    # reads this same gate keeps its raw treasury, so its figure never moves.
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    treasury, chest = purse_of(world, payer)
     if chest < amount * SPONSOR_SUSTAIN_MULT:
-        return (f"The treasury holds {chest:,} gold — it cannot sustain {amount} a turn "
+        return (f"The treasury holds {chest:,} gold{owed_suffix(treasury, chest)} — "
+                f"it cannot sustain {amount} a turn "
                 f"(four turns' cover, {amount * SPONSOR_SUSTAIN_MULT:,}).")
     return ""
 
@@ -489,13 +495,17 @@ def quote_line(world: Any, payer: str, member: str, enemy: str) -> str:
     amount = bond_amount(world, payer)
     turns = bond_term_turns()
     probe = {"amount_per_turn": amount, "turns_remaining": turns}
-    chest = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+    # S14E-X188 / S14E-D19: the purse after the first payment is the CHEST's
+    # (`instruments.purse_of`), the very figure `mint_refusal` gates against
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    treasury, chest = purse_of(world, payer)
     member_name, aim = _shown(world, member), _shown(world, enemy)
     return (
         f"Bind {member_name} to the war against {aim}: {amount:,} gold a turn for "
         f"{turns} turns ({amount * turns:,} gold in all) and "
         f"{plural(INSTRUMENT_DP_COST, 'diplomatic point')}. The treasury holds "
-        f"{chest:,} gold and would hold {chest - amount:,} after the first payment. "
+        f"{chest:,} gold{owed_suffix(treasury, chest)} and would hold "
+        f"{chest - amount:,} after the first payment. "
         f"{member_name} makes no separate peace with {aim} while {_shown(world, payer)} "
         f"fights on; a separate peace inside the term is a broken bargain, and "
         f"{member_name}'s answer to one carries the bond ({table_price(world, probe)} at "

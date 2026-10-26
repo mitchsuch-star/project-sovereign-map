@@ -19,6 +19,14 @@ signal first_open_seen(screen: String)
 @onready var reject_btn = $PanelContainer/VBoxContainer/ButtonContainer/RejectButton
 @onready var dismiss_btn = $PanelContainer/VBoxContainer/ButtonContainer/DismissButton
 
+# PC-F46 (S15 head): the letter's box as a fraction of the logical viewport —
+# the authored 680 x 440 is the floor (`incoming_proposal_popup.tscn`).
+const LETTER_HEIGHT_FRACTION := 0.8
+const LETTER_WIDTH_FRACTION := 0.45
+const LETTER_MIN_WIDTH := 680.0
+const LETTER_MIN_HEIGHT := 440.0
+const LETTER_MAX_WIDTH := 860.0
+
 var current_data: Dictionary = {}
 var _default_border_color: Color
 @onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
@@ -305,7 +313,37 @@ func show_proposal(data: Dictionary):
 	# viewport, so a fixed authored rect can carry the action row off-screen
 	# and leave a modal undismissable. The helper is a no-op wherever the
 	# panel already fits, and returns early for non-centre-anchored panels.
+	# PC-F46: the ceiling it fits UNDER grows with the window first.
+	_raise_letter_ceiling()
 	Utils.clamp_centered_panel($PanelContainer)
+
+
+func _raise_letter_ceiling() -> void:
+	"""PC-F46 (S15 head, October 25, 2026): the letter's box GROWS with the
+	window. The authored 680 x 440 stood unchanged at 1920 x 1080 and at
+	5120 x 1440 (3657 x 1028 logical at 140 %), where a third of the screen
+	was the letter and 640 px of its 966 sat under a scroll — the truce's
+	cost below the fold, under Accept. The clamp's ceiling (the IGR-G1 meta
+	every other surface raises the same way) is now a fraction of the logical
+	viewport — its height `LETTER_HEIGHT_FRACTION`, its width
+	`LETTER_WIDTH_FRACTION` to a reading measure of `LETTER_MAX_WIDTH`; the
+	authored rect stays the floor, so a small window (Interface Scale 2.0:
+	800 x 450) is fitted exactly as before. The clamp still keeps the panel
+	under the bar and inside the window, and the answers stand under the
+	scroll, never in it."""
+	var view := get_viewport().get_visible_rect().size
+	$PanelContainer.set_meta("clamp_ceiling_override", Vector2(
+			clampf(view.x * LETTER_WIDTH_FRACTION, LETTER_MIN_WIDTH, LETTER_MAX_WIDTH),
+			maxf(view.y * LETTER_HEIGHT_FRACTION, LETTER_MIN_HEIGHT)))
+
+
+func refit() -> void:
+	"""The live-refit road's hook (`Utils.refit_surface`, run by
+	`main._on_root_resized` on a window resize or an Interface Scale change):
+	an open letter follows the window, not only the window it opened in."""
+	_raise_letter_ceiling()
+	Utils.clamp_centered_panel($PanelContainer)
+
 
 func _moment_text(value) -> String:
 	"""S14c: backend copy into BBCode — a `[` escaped (never parsed as a tag)."""
@@ -432,6 +470,58 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		var rv_color = "#e66262" if revanche_line.begins_with("Revanche stands") else "#80a0d0"
 		bbcode += "[color=" + rv_color + "]" + Utils.humanize_nation_keys_in_text(revanche_line.replace("[", "[lb]")) + "[/color]\n"
 
+	# PC-F46 (S15 head, October 25, 2026): THE CONSEQUENCES LEAD. What the
+	# letter costs and how it ends — the truce's keeps, its expiry rule (the
+	# -60 line), the projection at expiry (-65), the cure; then the political
+	# consequences — stood 640 px down, under Accept, behind the whole War
+	# Summary (the reader had to scroll past the war to learn what accepting
+	# does). They stand above the summary now; the box grows besides
+	# (`_raise_letter_ceiling`).
+	# G4F-17: incoming armistice offers explain the truce mechanics too.
+	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
+	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
+		bbcode += "\n[b]Armistice Terms[/b]\n"
+		for line in armistice_mechanics.get("display_lines", []):
+			var line_color = "#a0a0d0"
+			if str(line).begins_with("Relations stand"):
+				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
+			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
+
+	var fallout = data.get("fallout_warnings", snapshot.get("fallout_warnings", []))
+	var conflicts = data.get("commitment_conflicts", snapshot.get("commitment_conflicts", []))
+	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])
+	if (tier_warnings is Array and not tier_warnings.is_empty()) or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
+		bbcode += "\n[b]Political Consequences[/b]\n"
+		var consequence_items = []
+		for warning in tier_warnings:
+			var warning_text = warning.get("display", warning.get("text", str(warning))) if warning is Dictionary else str(warning)
+			consequence_items.append({"priority": 1, "color": "#e0c070", "text": warning_text})
+		for warning in fallout:
+			var warning_text = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
+			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
+			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
+			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released", "sanctuary"] else 3
+			var color = "#e66262" if severity == "SEVERE" else "#e0c070"
+			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
+		for conflict in conflicts:
+			var conflict_text = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
+			var conflict_severity = str(conflict.get("severity", "INFO")).to_upper() if conflict is Dictionary else "INFO"
+			var conflict_priority = 0 if conflict_severity == "HARD_STOP" else 4
+			if conflict_severity == "WARNING":
+				conflict_priority = 1
+			var conflict_color = "#e66262" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
+			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
+		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
+		# S14E-25: every consequence is printed — the popup scrolls, and a cap
+		# of three with an overflow line left the rest with no way open.
+		# S14E-X198: each consequence once (the confirm popup's own guard).
+		var printed_texts := {}
+		for item in consequence_items:
+			if printed_texts.has(str(item.get("text", ""))):
+				continue
+			printed_texts[str(item.get("text", ""))] = true
+			bbcode += "  [color=%s]-[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
+
 	bbcode += "\n[b]War Summary[/b]\n"
 	# PC-X27 (S13e part 4): the war is named by its stake.
 	var war_title_line = str(snapshot.get("war_title_line", ""))
@@ -510,51 +600,6 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		bbcode += "[color=#e66262]They hold: %s[/color]\n" % ", ".join(held_by_them)
 	if snapshot.has("armistice_remaining_turns"):
 		bbcode += "Armistice remaining: %d turns\n" % int(snapshot.get("armistice_remaining_turns", 0))
-
-	# G4F-17: incoming armistice offers explain the truce mechanics too.
-	var armistice_mechanics = snapshot.get("armistice_mechanics", {})
-	if armistice_mechanics is Dictionary and not armistice_mechanics.is_empty():
-		bbcode += "\n[b]Armistice Terms[/b]\n"
-		for line in armistice_mechanics.get("display_lines", []):
-			var line_color = "#a0a0d0"
-			if str(line).begins_with("Relations stand"):
-				line_color = "#80c080" if str(armistice_mechanics.get("projected_outcome", "")) == "peace" else "#e09040"
-			bbcode += "  [color=%s]%s[/color]\n" % [line_color, str(line)]
-
-	var fallout = data.get("fallout_warnings", snapshot.get("fallout_warnings", []))
-	var conflicts = data.get("commitment_conflicts", snapshot.get("commitment_conflicts", []))
-	var tier_warnings = snapshot.get("tier_mismatch_warnings", [])
-	if (tier_warnings is Array and not tier_warnings.is_empty()) or (fallout is Array and not fallout.is_empty()) or (conflicts is Array and not conflicts.is_empty()):
-		bbcode += "\n[b]Political Consequences[/b]\n"
-		var consequence_items = []
-		for warning in tier_warnings:
-			var warning_text = warning.get("display", warning.get("text", str(warning))) if warning is Dictionary else str(warning)
-			consequence_items.append({"priority": 1, "color": "#e0c070", "text": warning_text})
-		for warning in fallout:
-			var warning_text = warning.get("display", str(warning)) if warning is Dictionary else str(warning)
-			var severity = str(warning.get("severity", "INFO")).to_upper() if warning is Dictionary else "INFO"
-			var warning_type = str(warning.get("warning_type", "")) if warning is Dictionary else ""
-			var priority = 2 if warning_type in ["separate_peace_ally", "contingent_released", "sanctuary"] else 3
-			var color = "#e66262" if severity == "SEVERE" else "#e0c070"
-			consequence_items.append({"priority": priority, "color": color, "text": warning_text})
-		for conflict in conflicts:
-			var conflict_text = conflict.get("display", str(conflict)) if conflict is Dictionary else str(conflict)
-			var conflict_severity = str(conflict.get("severity", "INFO")).to_upper() if conflict is Dictionary else "INFO"
-			var conflict_priority = 0 if conflict_severity == "HARD_STOP" else 4
-			if conflict_severity == "WARNING":
-				conflict_priority = 1
-			var conflict_color = "#e66262" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
-			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
-		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))
-		# S14E-25: every consequence is printed — the popup scrolls, and a cap
-		# of three with an overflow line left the rest with no way open.
-		# S14E-X198: each consequence once (the confirm popup's own guard).
-		var printed_texts := {}
-		for item in consequence_items:
-			if printed_texts.has(str(item.get("text", ""))):
-				continue
-			printed_texts[str(item.get("text", ""))] = true
-			bbcode += "  [color=%s]-[/color] %s\n" % [str(item.get("color", "#e0c070")), str(item.get("text", ""))]
 
 	return bbcode
 

@@ -4628,7 +4628,12 @@ class TestS14E12:
         w = austrian()
         with contextlib.redirect_stdout(io.StringIO()):
             down = ex.muster_odds(w.marshals["Karl"], w.marshals["Foe"], w)
-        assert up == down
+        # S14E-X215 (S14f p3): FLIPPED - the AI lead's attacker mean is exact
+        # now (D11's player-only gate lifted), so the lever that says "a corps
+        # that cannot arrive is not present" moves its reading as it moves the
+        # player's: the exact mean (Zeta, who cannot arrive, is in no outcome)
+        # is below the pre-S14E-12 muster that stamps him.
+        assert up["committed_attacker"] < down["committed_attacker"]
 
     def test_the_objections_totals_skip_the_spread_and_do_not_move(self):
         """`muster_expected_totals` (DDB-19) takes only the totals: it asks
@@ -7466,7 +7471,9 @@ class TestS14E16:
         text = str(_r16_say(_r16_client, "how do I build ships?").get("message") or "")
         assert text.startswith("THE ADMIRALTY")
         text = str(_r16_say(_r16_client, "how do I sing?").get("message") or "")
-        assert "COMMAND REFERENCE" in text, "no section named: the manual stays"
+        # S14E-D17: flipped - no section named: the SECTION INDEX answers, the
+        # manual stays one bare `help` away.
+        assert "COMMAND REFERENCE" not in text and text.startswith("Which part, Sire?"), text[:80]
 
     def test_a_place_nobody_can_march_to_is_refused_in_the_marches_own_words(
             self, _r16_client, _r16_world):
@@ -7923,7 +7930,8 @@ class TestS14EX69:
         text = str(_r16_say(_r16_client, "how do I build ships?").get("message") or "")
         assert text.startswith("THE ADMIRALTY")
         text = str(_r16_say(_r16_client, "how do I sing?").get("message") or "")
-        assert "COMMAND REFERENCE" in text
+        # S14E-D17: flipped - the SECTION INDEX, not the manual.
+        assert "COMMAND REFERENCE" not in text and text.startswith("Which part, Sire?")
 
 
 class TestS14EX70:
@@ -11376,9 +11384,10 @@ class TestS14ED11Applied:
 
 
 class TestS14ED11TheAIsReads:
-    """Golden Rule 5: the re-seat is the player's lead's. The AI's `muster_odds`
-    (the jealousy P3.9 rung) and every `_defender_muster` read keep the
-    shipped arithmetic, byte for byte."""
+    """Golden Rule 5: the re-seat was the player's lead's. (S14E-X215, S14f p3:
+    the nation gate is lifted - the AI's `muster_odds`, the jealousy P3.9
+    rung, reads the exact mean through the same seam; the two AI pins below
+    were flipped, and the seam's down value is still the one-stamp mean.)"""
 
     def _austrian(self):
         from tests.conftest import MarshalFactory, WorldFactory
@@ -11404,14 +11413,22 @@ class TestS14ED11TheAIsReads:
         return w
 
     def test_an_ais_outcome_set_is_none(self):
+        # S14E-X215 (S14f p3): FLIPPED - D11's player-only nation gate is
+        # lifted; an AI lead has an outcome set (the seam below is still the
+        # one switch). The nothing-to-read cases stay None.
         ex = _rd11_combat()
         w = self._austrian()
         lead, foe = w.marshals["Karl"], w.marshals["Foe"]
         joiners = [w.marshals[n] for n in ("Jodl", "Kurt", "Zeta")]
-        assert ex._muster_outcome_set(lead, joiners, foe, [], w, "Belgium") is None
+        assert ex._muster_outcome_set(lead, joiners, foe, [], w, "Belgium") is not None
+        assert ex._muster_outcome_set(lead, [], foe, [], w, "Belgium") is None
         assert ex._muster_mean_exact(None) is None
 
     def test_an_ais_muster_odds_do_not_move_with_the_seam(self, monkeypatch):
+        # S14E-X215 (S14f p3): FLIPPED - the AI's lead reads D11's seam like
+        # the player's: the exact mean is smaller than the one-stamp mean it
+        # replaces, and the seam swapped for None restores that one-stamp
+        # mean for the AI too.
         ex = _rd11_combat()
         w = self._austrian()
         with _rd11_quiet():
@@ -11421,12 +11438,15 @@ class TestS14ED11TheAIsReads:
         w = self._austrian()
         with _rd11_quiet():
             down = ex.muster_odds(w.marshals["Karl"], w.marshals["Foe"], w)
-        assert up == down
+        assert up["committed_attacker"] < down["committed_attacker"]
+        assert up["ratio"] < down["ratio"]
 
     def test_the_defenders_muster_is_untouched(self, monkeypatch):
         """The defender's term (`_defender_muster`, also read by the AI's
-        `_muster_price`) is still the one-stamp mean; the ruling re-seats the
-        attacker's header."""
+        `_muster_price`) does not move with the ATTACKER's seam. (S14E-D12,
+        S14f p3: flipped in its words - the defender's term is now itself
+        re-seated, on its OWN seam `_defender_mean_exact`; this pin keeps
+        the two seams independent.)"""
         ex = _rd11_combat()
         w = _rd11_board()
         before = ex._defender_muster(w.marshals["Foe"], w)
@@ -16867,14 +16887,18 @@ class TestS14EX157:
     # ── the AI's instruments are untouched (Golden Rule 5) ───────────────
 
     def test_only_the_players_verbs_read_the_lever_chest(self):
-        """The AI's buy-off (`war_council._run_ai_instrument_producers`), its
-        sponsorships and its allegiance bids do not read the lever chest."""
-        for rel in (("game_logic", "war_council.py"), ("game_logic", "ai_diplomacy.py"),
-                    ("ai", "enemy_ai.py")):
+        """The AI's sponsorships and its allegiance bids do not read the lever
+        chest. S14E-D19 / S14E-X190 (S14f p3): FLIPPED for the AI's buy-off -
+        `war_council._run_ai_instrument_producers` now buys off on
+        `_ai_buyoff_funds(world, target)` (`bond.bid_funds`: the holder's
+        treasury less the recurring payments it owes), the one named seam; the
+        raw `int(gold.get(target, 0)) >= price` read is gone."""
+        for rel in (("game_logic", "ai_diplomacy.py"), ("ai", "enemy_ai.py")):
             src = _w13_src(*rel)
             assert "bid_funds" not in src and "spendable_chest" not in src, rel
         src = _w13_src("game_logic", "war_council.py")
-        assert "int(gold.get(target, 0)) >= price" in src
+        assert "int(gold.get(target, 0)) >= price" not in src
+        assert "_ai_buyoff_funds(world, target) >= price" in src
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -19533,10 +19557,11 @@ class TestS14EX72:
     def test_take_a_loan_is_not_the_takers(self, _w2_client, _w2_world):
         from backend.ai.question_desk import classify_board_question
         assert classify_board_question("how do I take a loan", **_w2_names(_w2_world)) is None
-        # its answer is what it was (the whole reference -- reported, not claimed)
+        # S14E-D17 / S14E-X142: flipped - its answer was the whole reference
+        # (reported, not claimed); it is the SECTION INDEX now.
         text = str(_w2_say(_w2_client, "how do I take a loan").get("message") or "")
-        assert _W2_MANUAL in text
-        assert "march to" not in text.split(_W2_MANUAL)[0]
+        assert _W2_MANUAL not in text and text.startswith("Which part, Sire?")
+        assert "march to" not in text
 
     def test_stop_the_war_keeps_its_answer(self, _w2_client, _w2_world):
         from backend.ai.question_desk import classify_board_question
@@ -21041,7 +21066,11 @@ class TestS14EX112:
             "auto_downgrade": {"diplomacy.py"},
             "liberation": {"settlement_ratify.py", "world_state.py"},
             "ai_rivalry": {"ai_diplomacy.py"},
-            "downgrade": {"ai_diplomacy.py", "diplomacy.py"},
+            # S14E-D13 / S14E-X120: flipped - the AI's opportunistic downgrade is
+            # booked INSIDE `execute_downgrade`'s bracket now (the seam
+            # `ai_diplomacy._ai_ai_downgrade` calls it), so the kind's one
+            # literal home is diplomacy.py; ai_diplomacy.py writes no relation.
+            "downgrade": {"diplomacy.py"},
             "settlement_sold_out": {"compensation.py", "settlement_reactions.py"},
             "estate_confiscation": {"dotation.py"},
             "formation_blow": {"formations.py"},
@@ -24703,7 +24732,10 @@ class TestS14EX38:
     The AI-to-AI downgrade (`ai_ai_downgrade`) writes ONLY the pair's
     `relation_target` — it never reaches `execute_downgrade`'s `relation_all`
     (that verb is the player's alone) — so it costs France nothing and the
-    row's downgrade half has no cost to name (pinned below)."""
+    row's downgrade half has no cost to name (pinned below). S14E-D13 /
+    S14E-X120 (S14f p3) then routed the AI downgrade through
+    `execute_downgrade`: that last pin is flipped, the clause now names the
+    cost the downgrade takes."""
 
     def test_the_rail_beat_names_the_cost_the_break_applied(self, _rx38_world):
         w = _rx38_world
@@ -24776,14 +24808,19 @@ class TestS14EX38:
         assert text.endswith(" — " + declaration_cost_clause(10, "France") + ".")
         assert not any(w in text for w in ("!", "crush", "strike"))     # the Voice Bible's never-says
 
-    def test_an_ai_downgrade_costs_france_nothing_and_says_so_by_saying_nothing(self, _rx38_world):
-        """Shown == applied: `ai_ai_downgrade` writes the pair's relation only,
-        so its line names no cost to France (and none is taken)."""
+    def test_an_ai_downgrade_names_its_cost_to_france_because_it_takes_it(self, _rx38_world):
+        """S14E-D13 / S14E-X120: FLIPPED. The pin said an AI downgrade "costs
+        France nothing and says so by saying nothing" because `ai_ai_downgrade`
+        wrote the pair's relation only. It now walks `execute_downgrade` (the
+        seam `_ai_ai_downgrade`), which takes `relation_all` off the actor's
+        relation with every court - France's included - so the line names that
+        cost (X38's clause) and the figure is the one applied. The lower two
+        steps cost France nothing and name nothing (`TestS14EX120`)."""
         src = (_RK_ROOT / "backend/game_logic/ai_diplomacy.py").read_text(encoding="utf-8")
-        start = src.index('"ai_ai_downgrade")')
-        block = src[start:start + 1800]
-        assert "relation_all" not in block and "France" not in block
-        assert 'rel_hit = penalty.get("relation_target", -10)' in block
+        start = src.index("result = _ai_ai_downgrade(")
+        block = src[start:start + 2400]
+        assert "declaration_cost_clause" in block
+        assert 'rel_hit = penalty.get("relation_target", -10)' not in block
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -26097,9 +26134,13 @@ class TestS14EX198:
         "named for Tyrol". One reading now, from the draft's own clauses."""
         from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
         w = _w19_world
-        terms = {"type": "peace", "proposal_type": "peace", "sweeteners": [], "demands": [],
-                 "clauses": [{"type": "territory_cede", "from": "Austria", "to": "Bavaria",
-                              "region": "Tyrol"}]}
+        # S14E-X211 (S14f p3): the words price the COMPILED clauses alone — a
+        # dict written into `clauses` is never applied by the ratifier and is
+        # no longer read; the cession rides the demands dialect (to Bavaria).
+        terms = {"type": "peace", "proposal_type": "peace", "sweeteners": [],
+                 "demands": [{"type": "territory_cede", "regions": ["Tyrol"],
+                              "from_nation": "Austria", "to_nation": "Bavaria"}],
+                 "clauses": []}
         with _w19_quiet():
             dialogue = _enrich_proposal_summary(
                 {"options": [{"label": "Send", "action": "execute_proposal", "terms": terms}]},
@@ -27027,9 +27068,11 @@ class TestS14EX204:
         a province from Britain halves the doubled -20 to -10, in the row."""
         from backend.game_logic.diplomacy import build_war_context_snapshot
         w = _w20_left_ally_fixture()
-        terms = {"type": "peace", "proposal_type": "peace", "sweeteners": [], "demands": [],
-                 "clauses": [{"type": "gold_lump", "from": "Britain", "to": "France",
-                              "amount": 900}]}
+        # S14E-X211: flipped - the draft's gold is a `demands` entry (what the
+        # ratifier compiles and applies), no longer a dict clause written into
+        # `clauses` (the ratifier never applies one; the words stopped pricing it).
+        terms = {"type": "peace", "proposal_type": "peace", "sweeteners": [],
+                 "demands": [{"type": "gold_lump", "value": 900}], "clauses": []}
         with _w20_quiet():
             snap = build_war_context_snapshot(w, "France", "Britain", "peace", terms=terms)
         row = next(c for c in snap["commitment_conflicts"] if c["conflict_type"] == "paradox")
@@ -27984,3 +28027,7062 @@ class TestS14EX209:
         for rel in ("docs/SAVE_FORMAT_REFERENCE.md", "docs/MODDING_FORMAT.md"):
             text = (_W21_ROOT / rel).read_text(encoding="utf-8")
             assert "drawn_dead" in text and "S14E-X209" in text, rel
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d12 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d12.py)
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14f part 3 - S14E-D12 and its defect halves S14E-X76, S14E-X77
+# (October 25, 2026): the DEFENDER's committed term in the muster's band
+# re-seated on the exact per-outcome expectation, and the band's ratio read on
+# the exact expectation of each side.
+#
+# Rows: S14E-D12 (the ruling; `TestS14ED12`), S14E-X76 (the defender's term and
+# the AI's muster price; `TestS14EX76`), S14E-X77 (the lead's modifier inside
+# the band; `TestS14EX77`), and the sweep's siblings S14E-X214 (FIXED, the gate
+# and the screen kept two copies of the band's pricing; `TestS14EX214`),
+# S14E-X215 / X216 / X217 (OPEN, ruling-tied; `xfail(strict)` targets that
+# turn red the day the row lands).
+#
+# The reproduction (the shipped 1805 board, before the fix; `repro` by hand):
+# the AI (Austria) priced Soult at Lorraine - Ney and Davout at Rhineland, Lannes
+# and Murat at Franche-Comte on the march - at 75,737 men, every friend read with
+# NO coordination stamp at all (the AI prices outside any context), against 102,681
+# once each arrival outcome is priced under its own coordination, the way the
+# resolver stamps the corps that stand with the defender (Davout 9,618 -> 11,506,
+# Ney 7,694 -> 9,205, Murat 9,618 -> 12,643). On the player's side the defender's
+# term was one stamp for every corps that can arrive: a crafted board (Austria's
+# Charles at Nassau, John at Munich behind Mack at Swabia) read 86,072 against an
+# exact 86,018. And the band's ratio read the lead's own `get_attack_modifier`
+# under the stamp of ALL the corps arriving.
+#
+# The fix: `CombatExecutor._defender_outcome_set` (the defender's 2^N outcome set,
+# no nation gate), `_defender_mean_exact` (THE SEAM: the probability-weighted mean;
+# None keeps the one-stamp mean), `_muster_ratio_exact` (THE SECOND SEAM: the
+# ratio of the two sides' exact expectations; None keeps the single ratio),
+# `_muster_band` (the one pricing the gate and the screen both read) and
+# `enemy_ai._muster_price` reading the first. The ratio is deliberately a ratio of
+# EXPECTATIONS, not an expectation of ratios (see `TestS14EX77`).
+#
+# Helpers carry the prefix `_d12_` so this file merges into
+# `tests/test_s14f_the_remeasure_rows.py` as one section.
+
+_D12_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+
+
+def _d12_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _d12_combat():
+    from backend.commands.executor import CommandExecutor
+    with _d12_quiet():
+        return CommandExecutor()._combat
+
+
+def _d12_ai():
+    from backend.ai.enemy_ai import EnemyAI
+    from backend.commands.executor import CommandExecutor
+    with _d12_quiet():
+        return EnemyAI(CommandExecutor())
+
+
+@pytest.fixture(scope="module")
+def _d12_boot():
+    from backend.models.world_state import WorldState
+    with _d12_quiet():
+        return WorldState.from_scenario(str(_D12_SCENARIO))
+
+
+def _d12_fresh(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+# - the small board: Alpha (France, cautious) on Foe (Austria) at Belgium; Foe's
+#   friends a march away, each an uncertain arrival of a different type (the
+#   coordination stamp differs by outcome); Alpha's own friends on the French side
+#   ---------------------------------------------------------------------------
+
+def _d12_board(extra=0, co_located=False, drop=(), french_friends=True):
+    from tests.conftest import MarshalFactory, WorldFactory
+    lead = MarshalFactory.infantry(name="Alpha", location="Belgium", strength=20000,
+                                   personality="cautious")
+    ms = [lead]
+    if french_friends:
+        ms += [MarshalFactory.infantry(name="Bravo", location="Rhineland", strength=18000,
+                                       personality="aggressive"),
+               MarshalFactory.cavalry(name="Charlie", location="Netherlands", strength=9000,
+                                      personality="aggressive")]
+    foe = MarshalFactory.enemy(name="Foe", location="Belgium", nation="Austria",
+                               strength=40000, personality="cautious")
+    gamma = MarshalFactory.enemy(name="Gamma", location="Paris", nation="Austria",
+                                 strength=18000, personality="aggressive")
+    hotel = MarshalFactory.enemy(name="Hotel", location="Normandy", nation="Austria",
+                                 strength=15000, personality="aggressive")
+    delta = MarshalFactory.enemy(name="Delta", location="Waterloo", nation="Austria",
+                                 strength=9000, personality="aggressive")
+    delta.cavalry = True
+    ms += [foe, gamma, hotel, delta]
+    if co_located:
+        ms.append(MarshalFactory.enemy(name="Echo", location="Belgium", nation="Austria",
+                                       strength=6000, personality="aggressive"))
+    for i in range(extra):
+        ms.append(MarshalFactory.enemy(
+            name=f"Extra{i}", location=("Rhineland", "Normandy", "Paris", "Waterloo")[i % 4],
+            nation="Austria", strength=5000 + 500 * i, personality="aggressive"))
+    w = WorldFactory.with_marshals(ms)
+    key = "|".join(sorted(["France", "Austria"]))
+    w.diplomatic_states[key] = "WAR"
+    w.war_start_turns[key] = w.current_turn
+    for name, logistics in (("Gamma", 5), ("Hotel", 3), ("Delta", 3)):
+        w.marshals[name].skills["logistics"] = logistics
+    for i in range(extra):
+        w.marshals[f"Extra{i}"].skills["logistics"] = 3
+    if french_friends:
+        w.marshals["Bravo"].skills["logistics"] = 5
+        w.marshals["Charlie"].skills["logistics"] = 3
+    w.get_region("Normandy").terrain = "plains"
+    w.get_region("Waterloo").terrain = "plains"
+    for name in drop:
+        del w.marshals[name]
+    w.calculate_visibility()
+    return w
+
+
+_D12_DEFENDERS = ("Gamma", "Hotel", "Delta")
+_D12_ATTACKERS = ("Bravo", "Charlie")
+_D12_NO_FRIENDS = dict(drop=_D12_DEFENDERS, french_friends=False)
+
+
+def _d12_applied(arrivals, marchers_only=False, **board) -> float:
+    """What the RESOLVER masses for the defender when exactly `arrivals` stand
+    with him: relocate them to the field, stamp his coordination the way
+    `_attack_reinforce_and_coordinate` does (excluding the arrived names, read on
+    the field), sum the committed term - the independent measure."""
+    ex = _d12_combat()
+    w = _d12_board(**board)
+    foe = w.marshals["Foe"]
+    team = [w.marshals[n] for n in arrivals]
+    standing = {m.name for m in team if m.location == "Belgium"}
+    for m in team:
+        m.location = "Belgium"
+    ex._calculate_coordination_context(
+        foe, w, exclude_from_adjacent=set(arrivals), field="Belgium")
+    counted = [m for m in team if m.name not in standing] if marchers_only else team
+    return float(ex._committed_reinforcement_strength(foe, counted, w))
+
+
+def _d12_subsets(odds: dict, certain=()):
+    """(arrivals, probability) over every subset of the uncertain corps."""
+    names = list(odds)
+    for mask in range(1 << len(names)):
+        arrivals, p = list(certain), 1.0
+        for i, n in enumerate(names):
+            if mask >> i & 1:
+                arrivals.append(n)
+                p *= odds[n]
+            else:
+                p *= 1.0 - odds[n]
+        if p > 0.0:
+            yield tuple(arrivals), p
+
+
+def _d12_applied_mean(uncertain, certain=(), marchers_only=False, **board) -> float:
+    """The exact expectation of the resolver's defender term: every subset of
+    the uncertain corps at its probability, each valued by `_d12_applied`."""
+    ex = _d12_combat()
+    w = _d12_board(**board)
+    foe = w.marshals["Foe"]
+    odds = {n: ex._expected_arrival_weight(foe, w.marshals[n], w, "Belgium") for n in uncertain}
+    return sum(p * _d12_applied(arrivals, marchers_only=marchers_only, **board)
+               for arrivals, p in _d12_subsets(odds, certain))
+
+
+def _d12_muster(w, lead="Alpha", foe="Foe", ex=None) -> dict:
+    ex = ex or _d12_combat()
+    with _d12_quiet():
+        return ex._build_muster_preview(w.get_marshal(lead), w.get_marshal(foe), w, {"world": w})
+
+
+def _d12_odds(w, lead="Alpha", foe="Foe", ex=None) -> dict:
+    ex = ex or _d12_combat()
+    with _d12_quiet():
+        return ex.muster_odds(w.get_marshal(lead), w.get_marshal(foe), w)
+
+
+def _d12_seams_down(monkeypatch, which=("mean", "ratio")) -> None:
+    """The orchestrator's arm: the pre-D12 arithmetic, by swapping the seams."""
+    from backend.commands.combat_executor import CombatExecutor
+    if "mean" in which:
+        monkeypatch.setattr(CombatExecutor, "_defender_mean_exact",
+                            lambda self, outcome_set: None)
+    if "ratio" in which:
+        monkeypatch.setattr(CombatExecutor, "_muster_ratio_exact",
+                            lambda self, *a, **k: None)
+
+
+def _d12_state(w) -> dict:
+    fields = ("total_coordination_attack_bonus", "total_coordination_defense_bonus",
+              "sovereign_presence", "_display_coordination_atk", "_display_adjacent_atk")
+    return {n: (m.location,) + tuple(getattr(m, f, None) for f in fields)
+            for n, m in w.marshals.items()}
+
+
+class TestS14ED12:
+    """The ruling: the DEFENDER's committed term on the exact per-outcome
+    expectation, each arrival outcome under its own coordination - the one
+    arithmetic for both sides of the band, as D11 re-seated the attacker's."""
+
+    def test_the_defenders_term_is_the_resolvers_own_expectation(self):
+        ex = _d12_combat()
+        w = _d12_board(**dict(french_friends=False))
+        with _d12_quiet():
+            joining, term = ex._defender_muster(w.marshals["Foe"], w)
+        assert sorted(m.name for m in joining) == sorted(_D12_DEFENDERS)
+        mean = _d12_applied_mean(_D12_DEFENDERS, french_friends=False)
+        assert term == pytest.approx(mean, rel=1e-9)
+
+    def test_the_screen_the_gate_and_the_totals_print_one_figure(self):
+        from backend.commands.objection_v2 import muster_expected_totals
+        ex = _d12_combat()
+        w = _d12_board()
+        pv = _d12_muster(w, ex=ex)
+        odds = _d12_odds(w, ex=ex)
+        foe = w.marshals["Foe"]
+        mean = _d12_applied_mean(_D12_DEFENDERS)
+        assert odds["committed_defender"] == pytest.approx(mean, rel=1e-9)
+        assert pv["target"]["committed_strength"] == int(foe.strength + odds["committed_defender"])
+        assert pv["odds_band"] == odds["band"]
+        with _d12_quiet():
+            totals = muster_expected_totals(w.marshals["Alpha"], foe, w)
+        assert totals == (pv["attacker"]["committed_strength"],
+                          pv["target"]["committed_strength"])
+
+    def test_it_sits_below_the_one_stamp_term_it_replaces(self, monkeypatch):
+        """One stamp for every corps that can arrive priced the bonus of them
+        ALL standing together; the exact term is smaller, never larger."""
+        ex = _d12_combat()
+        w = _d12_board()
+        new = _d12_odds(w, ex=ex)["committed_defender"]
+        _d12_seams_down(monkeypatch)
+        old = _d12_odds(w, ex=ex)["committed_defender"]
+        assert new < old
+        assert 0.002 < (old - new) / old < 0.06     # about 1.9% on this board
+
+    def test_the_seams_down_are_the_old_arithmetic_byte_for_byte(self, monkeypatch):
+        """`_defender_mean_exact` and `_muster_ratio_exact` swapped for None: the
+        defender's term is the one-stamp mean (read under the all-present stamp
+        on the player's screen), the ratio the single ratio - recomputed here
+        from the formula, not from the code under test."""
+        from backend.commands.objection_v2 import inferred_attack_effective_ratio
+        ex = _d12_combat()
+        w = _d12_board()
+        _d12_seams_down(monkeypatch)
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        odds = _d12_odds(w, ex=ex)
+        with _d12_quiet():
+            joining = [w.marshals[n] for n in odds["joining"]]
+            defenders, _ = ex._defender_muster(foe, w, term=False)
+            with ex._priced_coordination(lead, joining, foe, defenders, w, "Belgium"):
+                one_stamp = ex._committed_reinforcement_strength(
+                    foe, defenders, w, expected_at="Belgium")
+                ratio = inferred_attack_effective_ratio(
+                    lead, foe, {"world": w},
+                    committed_attacker=odds["committed_attacker"],
+                    committed_defender=one_stamp, fold_modifiers=True)
+        assert odds["committed_defender"] == one_stamp
+        assert odds["ratio"] == ratio
+
+    def test_six_uncertain_corps_are_still_exact(self):
+        """Exactly the cap: the whole outcome set is enumerated (64 outcomes)."""
+        ex = _d12_combat()
+        w = _d12_board(extra=3, french_friends=False)
+        with _d12_quiet():
+            _, term = ex._defender_muster(w.marshals["Foe"], w)
+        names = _D12_DEFENDERS + ("Extra0", "Extra1", "Extra2")
+        assert term == pytest.approx(
+            _d12_applied_mean(names, extra=3, french_friends=False), rel=1e-9)
+
+    def test_beyond_the_cap_the_one_stamp_mean_stands(self, monkeypatch):
+        """Seven uncertain corps: the set is a truncation (the rest taken as not
+        arriving), so the mean must not be read from it - `withheld`, the seam
+        answers None and the term is the one-stamp mean."""
+        ex = _d12_combat()
+        w = _d12_board(extra=4, french_friends=False)
+        foe = w.marshals["Foe"]
+        with _d12_quiet():
+            joining, term = ex._defender_muster(foe, w)
+            outcome_set = ex._defender_outcome_set(foe, joining, w, "Belgium")
+            one_stamp = ex._committed_reinforcement_strength(
+                foe, joining, w, expected_at="Belgium")
+        assert outcome_set["withheld"] is True
+        assert ex._defender_mean_exact(outcome_set) is None
+        assert term == one_stamp
+
+    def test_a_corps_on_the_field_alone_is_one_outcome_under_its_stamp(self):
+        """Nobody uncertain: the set is the one outcome (the certain team under
+        ITS stamp) - the AI prices with no ambient stamp, so the one-stamp
+        shortcut does not hold outside the player's all-present context."""
+        ex = _d12_combat()
+        board = dict(co_located=True, drop=_D12_DEFENDERS, french_friends=False)
+        w = _d12_board(**board)
+        foe = w.marshals["Foe"]
+        with _d12_quiet():
+            joining, term = ex._defender_muster(foe, w)
+            outcome_set = ex._defender_outcome_set(foe, joining, w, "Belgium")
+        assert [m.name for m in joining] == ["Echo"]
+        assert len(outcome_set["outcomes"]) == 1 and outcome_set["outcomes"][0][0] == 1.0
+        assert term == pytest.approx(_d12_applied(("Echo",), **board), rel=1e-9)
+
+    def test_no_corps_able_to_arrive_means_no_set(self):
+        ex = _d12_combat()
+        w = _d12_board(**_D12_NO_FRIENDS)
+        foe = w.marshals["Foe"]
+        assert ex._defender_outcome_set(foe, [], w, "Belgium") is None
+        assert ex._defender_mean_exact(None) is None
+        with _d12_quiet():
+            assert ex._defender_muster(foe, w) == ([], 0.0)
+
+    def test_a_corps_that_cannot_arrive_is_in_no_outcome(self, monkeypatch):
+        ex = _d12_combat()
+        w = _d12_board(french_friends=False)
+        monkeypatch.setattr(ex, "_cannot_arrive",
+                            lambda lead, m, world, battle_region: m.name == "Delta")
+        with _d12_quiet():
+            _, term = ex._defender_muster(w.marshals["Foe"], w)
+        # priced as the resolver would find it: Delta never arrives, so he is
+        # in no outcome's team - and he stands where he truly stands, an
+        # adjacent ally at Waterloo (+2% on the corps who do arrive)
+        board = dict(french_friends=False)
+        assert term == pytest.approx(_d12_applied_mean(("Gamma", "Hotel"), **board), rel=1e-9)
+
+    def test_the_levers_down_keep_the_one_stamp_mean(self, monkeypatch):
+        import backend.commands.combat_executor as CE
+        ex = _d12_combat()
+        w = _d12_board(french_friends=False)
+        foe = w.marshals["Foe"]
+        with _d12_quiet():
+            joining, _ = ex._defender_muster(foe, w, term=False)
+            full = ex._defender_outcome_set(foe, joining, w, "Belgium")
+        assert ex._defender_mean_exact(full) is not None
+        monkeypatch.setattr(CE, "A_CORPS_THAT_CANNOT_ARRIVE_IS_NOT_PRESENT", False)
+        assert ex._defender_mean_exact(full) is None            # the pre-S14E-12 muster
+        monkeypatch.setattr(CE, "THE_MUSTER_STATES_ITS_SPREAD", False)
+        assert ex._defender_outcome_set(foe, joining, w, "Belgium") is None
+
+    def test_the_state_is_restored(self):
+        """The enumeration prices hypotheticals and leaves nobody stamped or moved."""
+        ex = _d12_combat()
+        w = _d12_board()
+        before = _d12_state(w)
+        _d12_muster(w, ex=ex)
+        _d12_odds(w, ex=ex)
+        with _d12_quiet():
+            ex._defender_muster(w.marshals["Foe"], w, marchers_only=True)
+            _d12_ai()._muster_price(w.marshals["Foe"], "France", w)
+        assert _d12_state(w) == before
+
+    def test_the_players_marshal_as_defender_is_priced_by_the_same_set(self):
+        """No nation gate: the player's marshal as the DEFENDER (an Austrian lead
+        attacking him) is priced by the same set - the mirror board."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        ex = _d12_combat()
+        karl = MarshalFactory.enemy(name="Karl", location="Belgium", nation="Austria",
+                                    strength=40000, personality="cautious")
+        foe = MarshalFactory.infantry(name="Foe", location="Belgium", strength=20000)
+        friends = [MarshalFactory.infantry(name="Gamma", location="Paris", strength=18000,
+                                           personality="aggressive"),
+                   MarshalFactory.infantry(name="Hotel", location="Normandy", strength=15000,
+                                           personality="aggressive")]
+        w = WorldFactory.with_marshals([karl, foe] + friends)
+        key = "|".join(sorted(["France", "Austria"]))
+        w.diplomatic_states[key] = "WAR"
+        w.war_start_turns[key] = w.current_turn
+        w.marshals["Gamma"].skills["logistics"] = 5
+        w.marshals["Hotel"].skills["logistics"] = 3
+        w.calculate_visibility()
+        with _d12_quiet():
+            joining, term = ex._defender_muster(foe, w)
+            odds = ex.muster_odds(karl, foe, w)
+        assert sorted(m.name for m in joining) == ["Gamma", "Hotel"]
+        assert odds["committed_defender"] == term
+        odds_by = {m.name: ex._expected_arrival_weight(foe, m, w, "Belgium") for m in joining}
+        expect = 0.0
+        for arrivals, p in _d12_subsets(odds_by):
+            team = [w.marshals[n] for n in arrivals]
+            with ex._priced_coordination(foe, team, None, None, w, "Belgium"):
+                expect += p * ex._committed_reinforcement_strength(foe, team, w)
+        assert term == pytest.approx(expect, rel=1e-9)
+
+
+class TestS14EX76:
+    """The defect half: `_defender_muster` priced every defender joiner under
+    ONE coordination stamp (the player's screen: the stamp of them all
+    standing together; the AI's `_muster_price`: no stamp at all) - the
+    resolver stamps the corps that STAND with the defender. Reproduced on the
+    shipped 1805 board: Austria pricing Soult at Lorraine read 75,737; the exact
+    figure is 102,681."""
+
+    def _soult(self, boot):
+        w = _d12_fresh(boot)
+        w.calculate_visibility()
+        return w, w.get_marshal("Soult")
+
+    def test_the_sighting_on_the_shipped_board(self, _d12_boot, monkeypatch):
+        ai = _d12_ai()
+        w, soult = self._soult(_d12_boot)
+        with _d12_quiet():
+            new = ai._muster_price(soult, "Austria", w)
+        _d12_seams_down(monkeypatch, which=("mean",))
+        with _d12_quiet():
+            old = ai._muster_price(soult, "Austria", w)
+        assert (old, new) == (75737, 102681)
+
+    def test_the_price_is_the_resolvers_expectation_of_the_corps_that_march(self, _d12_boot):
+        """Independent measure on the shipped board: every subset of the uncertain
+        marchers, relocated to Lorraine and stamped as the resolver stamps the
+        defender, summed over the marchers (the corps on the field are in the
+        caller's field sum)."""
+        ex = _d12_combat()
+        w, soult = self._soult(_d12_boot)
+        with _d12_quiet():
+            joining, _ = ex._defender_muster(soult, w, term=False)
+            price = _d12_ai()._muster_price(soult, "Austria", w)
+        standing = {m.name for m in joining if m.location == soult.location}
+        odds = {m.name: ex._expected_arrival_weight(soult, m, w, soult.location) for m in joining
+                if m.name not in standing}
+        certain = [n for n, p in odds.items() if p >= 1.0] + sorted(standing)
+        uncertain = {n: p for n, p in odds.items() if 0.0 < p < 1.0}
+        expect = 0.0
+        for arrivals, p in _d12_subsets(uncertain, certain):
+            w2 = _d12_fresh(_d12_boot)
+            w2.calculate_visibility()
+            lead = w2.get_marshal("Soult")
+            team = [w2.get_marshal(n) for n in arrivals]
+            for m in team:
+                m.location = lead.location
+            with _d12_quiet():
+                ex._calculate_coordination_context(
+                    lead, w2, exclude_from_adjacent=set(arrivals) - standing,
+                    field=lead.location)
+                marchers = [m for m in team if m.name not in standing]
+                expect += p * ex._committed_reinforcement_strength(lead, marchers, w2)
+        assert price == int(expect)
+
+    def test_the_ais_price_reads_the_defender_seam(self, _d12_boot, monkeypatch):
+        """The series arm swaps `_defender_mean_exact`; the price must reach it."""
+        from backend.commands.combat_executor import CombatExecutor
+        ai = _d12_ai()
+        w, soult = self._soult(_d12_boot)
+        calls = []
+        real = CombatExecutor._defender_mean_exact
+
+        def counted(self, outcome_set):
+            calls.append(outcome_set)
+            return real(self, outcome_set)
+
+        monkeypatch.setattr(CombatExecutor, "_defender_mean_exact", counted)
+        with _d12_quiet():
+            ai._muster_price(soult, "Austria", w)
+        assert calls and calls[0] is not None
+
+    def test_a_corps_already_on_the_field_is_not_priced_twice(self):
+        """Marchers only: Echo stands at Belgium (in the caller's field sum) yet
+        still coordinates the men who march to him."""
+        ai = _d12_ai()
+        board = dict(co_located=True, french_friends=False)
+        w = _d12_board(**board)
+        with _d12_quiet():
+            price = ai._muster_price(w.marshals["Foe"], "France", w)
+        marchers = _d12_applied_mean(_D12_DEFENDERS, certain=("Echo",), marchers_only=True, **board)
+        everyone = _d12_applied_mean(_D12_DEFENDERS, certain=("Echo",), **board)
+        assert price == int(marchers) < int(everyone)
+
+    def test_only_a_corps_on_the_field_prices_nothing(self):
+        ai = _d12_ai()
+        w = _d12_board(co_located=True, drop=_D12_DEFENDERS, french_friends=False)
+        with _d12_quiet():
+            assert ai._muster_price(w.marshals["Foe"], "France", w) == 0
+
+    def test_the_price_is_a_whole_number_of_men(self, _d12_boot):
+        ai = _d12_ai()
+        w, soult = self._soult(_d12_boot)
+        with _d12_quiet():
+            assert isinstance(ai._muster_price(soult, "Austria", w), int)
+
+    def test_beyond_the_cap_the_old_price_stands(self, monkeypatch):
+        """More uncertain corps than the cap: the set is a truncation, the seam
+        says None and the price is today's one-stamp mean (the arm's down value)."""
+        ai = _d12_ai()
+        w = _d12_board(extra=4, french_friends=False)
+        with _d12_quiet():
+            up = ai._muster_price(w.marshals["Foe"], "France", w)
+        _d12_seams_down(monkeypatch, which=("mean",))
+        with _d12_quiet():
+            down = ai._muster_price(w.marshals["Foe"], "France", w)
+        assert up == down
+
+
+def _d12_joint(w, lead_name, foe_name, attackers, defenders):
+    """The band's ratio by joint stamping, independent of the code under test:
+    for every pair of arrival outcomes stamp BOTH teams together and read the
+    single odds formula's two halves live (no pre-read modifiers). Returns
+    (ratio of expectations, mean of ratios)."""
+    from backend.commands.objection_v2 import attack_effective_sides
+    ex = _d12_combat()
+    lead, foe = w.marshals[lead_name], w.marshals[foe_name]
+    a_odds = {n: ex._expected_arrival_weight(lead, w.marshals[n], w, foe.location)
+              for n in attackers}
+    d_odds = {n: ex._expected_arrival_weight(foe, w.marshals[n], w, foe.location)
+              for n in defenders}
+    n_sum = d_sum = mor = 0.0
+    with _d12_quiet():
+        for a_arr, p_a in _d12_subsets(a_odds):
+            for d_arr, p_d in _d12_subsets(d_odds):
+                a_team = [w.marshals[n] for n in a_arr]
+                d_team = [w.marshals[n] for n in d_arr]
+                with ex._priced_coordination(lead, a_team, foe, d_team, w, foe.location):
+                    c_a = ex._committed_reinforcement_strength(lead, a_team, w)
+                    c_d = ex._committed_reinforcement_strength(foe, d_team, w)
+                    n, d = attack_effective_sides(
+                        lead, foe, {"world": w}, committed_attacker=c_a,
+                        committed_defender=c_d, fold_modifiers=True)
+                n_sum += p_a * p_d * n
+                d_sum += p_a * p_d * d
+                mor += p_a * p_d * n / d
+    return n_sum / d_sum, mor
+
+
+class TestS14EX77:
+    """The defect half: inside the band the lead's own `get_attack_modifier`
+    (and the defender's `get_defense_modifier`) was read under the coordination
+    stamp of ALL the corps arriving. The ratio is nonlinear in them, so the band
+    now reads the quotient of the two sides' EXPECTED effective strengths over
+    their arrival outcomes (`CombatExecutor._muster_ratio_exact`).
+
+    A ratio of EXPECTATIONS, deliberately not an expectation of ratios: the mean
+    of the pairs' ratios is dominated by the rare outcome in which the defender's
+    reinforcement does not come (a quotient is convex in its denominator).
+    Measured on the S14E-X74 board (Massena + Ney at Milan on John at Tyrol,
+    Charles at Carniola arriving at 96.2%): ratio at the means 0.6956, ratio of
+    expectations 0.6960, MEAN OF RATIOS 0.7635 - a 3.8% tail flips the band
+    "unfavorable" to "even" with the ordinary fight unchanged."""
+
+    def _joint(self, w, lead_name="Alpha", foe_name="Foe", attackers=_D12_ATTACKERS,
+               defenders=_D12_DEFENDERS):
+        return _d12_joint(w, lead_name, foe_name, attackers, defenders)
+
+    def test_the_band_reads_the_ratio_of_the_two_expectations(self):
+        w = _d12_board()
+        roe, mor = self._joint(w)
+        odds = _d12_odds(w)
+        assert odds["ratio"] == pytest.approx(roe, rel=1e-9)
+        assert abs(odds["ratio"] - mor) > 1e-4         # and it is not the mean of ratios
+
+    def test_it_moves_the_ratio_the_one_stamp_read_and_in_the_attackers_disfavour(
+            self, monkeypatch):
+        """The lead's modifier under the stamp of all arriving was the high end of
+        its range: the exact ratio of this board is lower than the single ratio
+        by the stamp the attacker's own absent corps would have carried."""
+        ex = _d12_combat()
+        w = _d12_board()
+        new = _d12_odds(w, ex=ex)["ratio"]
+        _d12_seams_down(monkeypatch, which=("ratio",))
+        old = _d12_odds(w, ex=ex)["ratio"]
+        assert new != old and abs(new - old) / old < 0.05
+
+    def test_the_seam_down_is_the_single_ratio(self, monkeypatch):
+        from backend.commands.objection_v2 import inferred_attack_effective_ratio
+        ex = _d12_combat()
+        w = _d12_board()
+        _d12_seams_down(monkeypatch, which=("ratio",))
+        odds = _d12_odds(w, ex=ex)
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        with _d12_quiet():
+            joining = [w.marshals[n] for n in odds["joining"]]
+            defenders, _ = ex._defender_muster(foe, w, term=False)
+            with ex._priced_coordination(lead, joining, foe, defenders, w, "Belgium"):
+                single = inferred_attack_effective_ratio(
+                    lead, foe, {"world": w}, committed_attacker=odds["committed_attacker"],
+                    committed_defender=odds["committed_defender"], fold_modifiers=True)
+        assert odds["ratio"] == single
+
+    def test_a_board_without_a_spread_is_byte_identical(self, monkeypatch):
+        """No uncertain corps on either side: no set to read, the seam answers
+        None and the ratio is the single formula - nothing moved."""
+        from backend.commands.objection_v2 import inferred_attack_effective_ratio
+        ex = _d12_combat()
+        w = _d12_board(**_D12_NO_FRIENDS)
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        odds = _d12_odds(w, ex=ex)
+        assert odds["committed_attacker"] == 0.0 and odds["committed_defender"] == 0.0
+        assert odds["ratio"] == inferred_attack_effective_ratio(
+            lead, foe, {"world": w}, fold_modifiers=True)
+        assert ex._muster_ratio_exact(lead, foe, {"world": w}, 0.0, 0.0, None, None) is None
+
+    def test_the_screen_and_the_gate_agree_on_every_board(self):
+        """Drift census: the band the preview prints is the band `muster_odds`
+        (the CA9 gate) returns, board by board."""
+        ex = _d12_combat()
+        for board in (dict(), dict(co_located=True), dict(extra=3), dict(extra=4),
+                      dict(french_friends=False), _D12_NO_FRIENDS,
+                      dict(drop=("Delta",)), dict(drop=("Bravo",))):
+            w = _d12_board(**board)
+            pv = _d12_muster(w, ex=ex)
+            odds = _d12_odds(w, ex=ex)
+            assert pv["odds_band"] == odds["band"], board
+            lead = w.marshals["Alpha"]
+            assert pv["attacker"]["committed_strength"] == int(lead.strength + odds["committed_attacker"]), board
+            assert pv["target"]["committed_strength"] == int(
+                w.marshals["Foe"].strength + odds["committed_defender"]), board
+
+    def test_the_sighting_a_four_percent_tail_does_not_flip_the_band(self, _d12_boot):
+        """Massena (+ Ney) on John at Tyrol, Charles at Carniola arriving at
+        96.2%: the band stays 'unfavorable' (0.696 against the 0.7 line) - the
+        mean of ratios would have read 0.7635 and 'even'."""
+        w = _d12_fresh(_d12_boot)
+        w.get_marshal("Ney").location = "Milan"
+        w.calculate_visibility()
+        odds = _d12_odds(w, lead="Massena", foe="ArchdukeJohn")
+        assert odds["band"] == "unfavorable"
+        assert 0.6955 < odds["ratio"] < 0.6965
+
+    def test_a_side_without_a_set_is_one_outcome(self):
+        """A lead with no joiners has no attacker set (nothing to enumerate): the
+        ratio is the defender's exact expectation over the lead's own live term."""
+        from tests.conftest import MarshalFactory, WorldFactory
+        from backend.commands.objection_v2 import attack_effective_sides
+        ex = _d12_combat()
+        karl = MarshalFactory.enemy(name="Karl", location="Belgium", nation="Austria",
+                                    strength=40000, personality="cautious")
+        foe = MarshalFactory.infantry(name="Foe", location="Belgium", strength=20000)
+        gamma = MarshalFactory.infantry(name="Gamma", location="Paris", strength=18000,
+                                        personality="aggressive")
+        hotel = MarshalFactory.infantry(name="Hotel", location="Normandy", strength=15000,
+                                        personality="aggressive")
+        w = WorldFactory.with_marshals([karl, foe, gamma, hotel])
+        key = "|".join(sorted(["France", "Austria"]))
+        w.diplomatic_states[key] = "WAR"
+        w.war_start_turns[key] = w.current_turn
+        w.marshals["Gamma"].skills["logistics"] = 5
+        w.marshals["Hotel"].skills["logistics"] = 3
+        w.calculate_visibility()
+        odds = _d12_odds(w, lead="Karl", foe="Foe", ex=ex)
+        # by hand: his own term and live modifier, over the defender's two halves
+        d_odds = {n: ex._expected_arrival_weight(w.marshals["Foe"], w.marshals[n], w, "Belgium")
+                  for n in ("Gamma", "Hotel")}
+        gs = {"world": w}
+        defending = 0.0
+        with _d12_quiet():
+            for arrivals, p in _d12_subsets(d_odds):
+                team = [w.marshals[n] for n in arrivals]
+                with ex._priced_coordination(w.marshals["Foe"], team, None, None, w, "Belgium"):
+                    cd = ex._committed_reinforcement_strength(w.marshals["Foe"], team, w)
+                    defending += p * attack_effective_sides(
+                        w.marshals["Karl"], w.marshals["Foe"], gs, committed_defender=cd,
+                        fold_modifiers=True)[1]
+            with ex._priced_coordination(karl, [], w.marshals["Foe"], [], w, "Belgium"):
+                attacking = attack_effective_sides(
+                    karl, w.marshals["Foe"], gs, committed_attacker=odds["committed_attacker"],
+                    fold_modifiers=True)[0]
+        assert odds["ratio"] == pytest.approx(attacking / defending, rel=1e-6)
+
+    def test_the_outcome_sets_carry_the_leads_modifier_per_outcome(self):
+        """The attacker's modifier climbs with the corps that arrive."""
+        ex = _d12_combat()
+        w = _d12_board()
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        with _d12_quiet():
+            joining = [w.marshals[n] for n in _D12_ATTACKERS]
+            defenders, _ = ex._defender_muster(foe, w, term=False)
+            a_set = ex._muster_outcome_set(lead, joining, foe, defenders, w, "Belgium")
+            d_set = ex._defender_outcome_set(foe, defenders, w, "Belgium", attacker=lead)
+        assert len(a_set["lead_mods"]) == len(a_set["outcomes"]) == 4
+        assert len(d_set["lead_mods"]) == len(d_set["outcomes"]) == 8
+        by_committed = sorted(zip((c for _, c in a_set["outcomes"]), a_set["lead_mods"]))
+        assert by_committed[0][1] < by_committed[-1][1]
+        # a set built without the attacker carries no defender modifiers
+        with _d12_quiet():
+            bare = ex._defender_outcome_set(foe, defenders, w, "Belgium")
+        assert bare["lead_mods"] == []
+
+    def test_the_formulas_halves_and_the_bands_lines_are_the_originals(self):
+        """`attack_effective_sides` is the single odds formula divided at its
+        quotient; `odds_reading_of_ratio` the band's lines applied to a ratio."""
+        from backend.commands import objection_v2 as OV
+        w = _d12_board()
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        gs = {"world": w}
+        for fold in (False, True):
+            for ca, cd in ((0.0, 0.0), (12345.0, 0.0), (0.0, 8000.0), (30000.0, 25000.0)):
+                n, d = OV.attack_effective_sides(lead, foe, gs, committed_attacker=ca,
+                                                 committed_defender=cd, fold_modifiers=fold)
+                ratio = OV.inferred_attack_effective_ratio(
+                    lead, foe, gs, committed_attacker=ca, committed_defender=cd,
+                    fold_modifiers=fold)
+                assert n / d == ratio
+                assert OV.odds_reading_of_ratio(lead, foe, ratio, fold) == \
+                    OV.inferred_attack_odds_reading(lead, foe, gs, committed_attacker=ca,
+                                                    committed_defender=cd, fold_modifiers=fold)
+        atk, dfn = OV.lead_modifiers(lead, foe)
+        assert (atk, dfn) == (float(lead.get_attack_modifier(
+            lead.strength / foe.strength, consume=False)),
+            float(foe.get_defense_modifier(foe.strength < lead.strength, consume=False)))
+        # pre-read modifiers are honoured
+        base = OV.inferred_attack_effective_ratio(lead, foe, gs, fold_modifiers=True)
+        assert OV.inferred_attack_effective_ratio(
+            lead, foe, gs, fold_modifiers=True, attack_mod=atk * 2.0, defense_mod=dfn) \
+            == pytest.approx(base * 2.0)
+
+
+class TestS14EX214:
+    """Sweep sibling (class: two readers of one figure). The CA9 gate
+    (`muster_odds`) and the screen (`_build_muster_preview`) each carried a
+    private copy of the band's pricing - the attacker's mean, the defender's
+    term, the band - kept in step by a drift pin, which is how D11's gate and
+    screen parted once already. One `_muster_band` now prices them both; the
+    attacker's and the defender's outcome sets share one split
+    (`_arrival_roster`) and one enumeration (`_arrival_subsets`); the ceiling
+    was lifted out of the builder (`_muster_ceiling`, its 500-line ratchet)."""
+
+    def test_the_gate_and_the_screen_call_the_one_pricing(self):
+        import inspect
+        from backend.commands.combat_executor import CombatExecutor as CE
+        assert "self._muster_band(" in inspect.getsource(CE.muster_odds)
+        assert "self._muster_band(" in inspect.getsource(CE._build_muster_preview)
+        assert "self._muster_ceiling(" in inspect.getsource(CE._build_muster_preview)
+        for fn in (CE._muster_outcome_set, CE._defender_outcome_set):
+            src = inspect.getsource(fn)
+            assert "self._arrival_roster(" in src and "self._arrival_subsets(" in src
+
+    def test_the_builder_stays_under_the_ratchet(self):
+        import ast
+        import inspect
+        from backend.commands import combat_executor as mod
+        tree = ast.parse(inspect.getsource(mod))
+        lengths = {n.name: n.end_lineno - n.lineno + 1 for n in ast.walk(tree)
+                   if isinstance(n, ast.FunctionDef)}
+        assert lengths["_build_muster_preview"] <= 470
+
+    def test_the_pricing_returns_what_the_gate_and_the_screen_print(self):
+        ex = _d12_combat()
+        w = _d12_board()
+        lead, foe = w.marshals["Alpha"], w.marshals["Foe"]
+        with _d12_quiet():
+            joining = [w.marshals[n] for n in ex.muster_odds(lead, foe, w)["joining"]]
+            terms = ex._muster_band(lead, foe, w, {"world": w}, joining, "Belgium")
+        odds = _d12_odds(w, ex=ex)
+        pv = _d12_muster(w, ex=ex)
+        assert terms["band"] == odds["band"] == pv["odds_band"]
+        assert terms["ratio"] == odds["ratio"]
+        assert terms["committed_defender"] == odds["committed_defender"]
+        assert pv["attacker"]["ceiling_strength"] >= pv["attacker"]["committed_strength"]
+
+    def test_the_gate_lever_down_reads_no_stamp_and_no_exact_term(self, monkeypatch):
+        """`THE_GATE_READS_THE_PREVIEWS_CONTEXT` down is the pre-SF-CL-1 gate: no
+        priced stamp, no exact term, the single ratio - as it was."""
+        import backend.commands.combat_executor as CE
+        ex = _d12_combat()
+        w = _d12_board()
+        monkeypatch.setattr(CE, "THE_GATE_READS_THE_PREVIEWS_CONTEXT", False)
+        odds = _d12_odds(w, ex=ex)
+        foe = w.marshals["Foe"]
+        with _d12_quiet():
+            joining, _ = ex._defender_muster(foe, w, term=False)
+            ambient = ex._committed_reinforcement_strength(
+                foe, joining, w, expected_at="Belgium")
+        assert odds["committed_defender"] == ambient
+
+    def test_the_shared_split_orders_the_uncertain_by_odds(self):
+        ex = _d12_combat()
+        w = _d12_board()
+        foe = w.marshals["Foe"]
+        with _d12_quiet():
+            joining, _ = ex._defender_muster(foe, w, term=False)
+            certain, uncertain = ex._arrival_roster(foe, joining, w, "Belgium")
+        assert certain == []
+        odds = [p for p, _ in uncertain]
+        assert odds == sorted(odds, reverse=True) and len(uncertain) == 3
+        subsets = list(ex._arrival_subsets(certain, uncertain))
+        assert len(subsets) == 8 and sum(p for _, p in subsets) == pytest.approx(1.0)
+
+
+def _d12_mirror(attackers=True, defenders=True):
+    """An AI lead on the player's marshal: Karl (Austria, cautious, 20,000) on
+    Foe (France, 30,000) at Belgium. Karl's friends a march away - Jodl at Paris,
+    Kurt at Normandy, Zeta (cavalry) at Waterloo - and Foe's - Gamma at Rhineland
+    and Hotel at the Netherlands - each an uncertain arrival."""
+    from tests.conftest import MarshalFactory, WorldFactory
+    karl = MarshalFactory.enemy(name="Karl", location="Belgium", nation="Austria",
+                                strength=20000, personality="cautious")
+    foe = MarshalFactory.infantry(name="Foe", location="Belgium", strength=30000)
+    ms = [karl, foe]
+    if attackers:
+        zeta = MarshalFactory.enemy(name="Zeta", location="Waterloo", nation="Austria",
+                                    strength=9000, personality="aggressive")
+        zeta.cavalry = True
+        ms += [MarshalFactory.enemy(name="Jodl", location="Paris", nation="Austria",
+                                    strength=18000, personality="aggressive"),
+               MarshalFactory.enemy(name="Kurt", location="Normandy", nation="Austria",
+                                    strength=15000, personality="aggressive"), zeta]
+    if defenders:
+        ms += [MarshalFactory.infantry(name="Gamma", location="Rhineland", strength=18000,
+                                       personality="aggressive"),
+               MarshalFactory.infantry(name="Hotel", location="Netherlands", strength=12000,
+                                       personality="aggressive")]
+    w = WorldFactory.with_marshals(ms)
+    key = "|".join(sorted(["France", "Austria"]))
+    w.diplomatic_states[key] = "WAR"
+    w.war_start_turns[key] = w.current_turn
+    for name, logistics in (("Jodl", 5), ("Kurt", 3), ("Zeta", 3), ("Gamma", 5), ("Hotel", 3)):
+        if name in w.marshals:
+            w.marshals[name].skills["logistics"] = logistics
+    w.get_region("Normandy").terrain = "plains"
+    w.get_region("Waterloo").terrain = "plains"
+    w.calculate_visibility()
+    return w
+
+
+class TestS14EX215:
+    """The sweep sibling of D12 (class: one arithmetic for both sides of the
+    band). D11 gave the exact attacker mean to the PLAYER's lead only (a
+    nation gate in `_muster_outcome_set`), which left an AI lead's own attacker
+    mean and ratio on the one-stamp arithmetic while its defender side was exact
+    (D12) - the AI's `muster_odds`, the cautious kit's gate (`glory_attack_odds`),
+    read two arithmetics. Fixed: no nation gate; `_muster_mean_exact` is still the
+    one switch (its down value restores the one-stamp mean for every lead); the
+    floor and the bad day stay a player surface."""
+
+    def _applied_mean(self) -> float:
+        """The resolver's own expectation of Karl's committed term: every subset
+        of his uncertain friends, relocated to the field and stamped as
+        `_attack_reinforce_and_coordinate` stamps the attacker."""
+        ex = _d12_combat()
+        w = _d12_mirror()
+        karl = w.marshals["Karl"]
+        odds = {n: ex._expected_arrival_weight(karl, w.marshals[n], w, "Belgium")
+                for n in ("Jodl", "Kurt", "Zeta")}
+        mean = 0.0
+        for arrivals, p in _d12_subsets(odds):
+            w2 = _d12_mirror()
+            lead = w2.marshals["Karl"]
+            team = [w2.marshals[n] for n in arrivals]
+            for m in team:
+                m.location = "Belgium"
+            ex._calculate_coordination_context(
+                lead, w2, exclude_from_adjacent=set(arrivals), field="Belgium")
+            mean += p * ex._committed_reinforcement_strength(lead, team, w2)
+        return mean
+
+    def test_an_ais_attacker_has_an_outcome_set(self):
+        ex = _d12_combat()
+        w = _d12_mirror()
+        karl, foe = w.marshals["Karl"], w.marshals["Foe"]
+        joiners = [w.marshals[n] for n in ("Jodl", "Kurt", "Zeta")]
+        with _d12_quiet():
+            outcome_set = ex._muster_outcome_set(karl, joiners, foe, [], w, "Belgium")
+        assert outcome_set is not None and len(outcome_set["outcomes"]) == 8
+        assert len(outcome_set["lead_mods"]) == 8
+        assert ex._muster_mean_exact(outcome_set) == pytest.approx(
+            self._applied_mean(), rel=1e-9)
+
+    def test_the_ais_muster_odds_read_the_resolvers_expectation(self):
+        w = _d12_mirror()
+        odds = _d12_odds(w, lead="Karl", foe="Foe")
+        assert odds["committed_attacker"] == pytest.approx(self._applied_mean(), rel=1e-9)
+
+    def test_the_seam_down_restores_the_one_stamp_mean_for_the_ai_too(self, monkeypatch):
+        from backend.commands.combat_executor import CombatExecutor
+        ex = _d12_combat()
+        w = _d12_mirror()
+        up = _d12_odds(w, lead="Karl", foe="Foe", ex=ex)
+        monkeypatch.setattr(CombatExecutor, "_muster_mean_exact",
+                            lambda self, outcome_set: None)
+        down = _d12_odds(w, lead="Karl", foe="Foe", ex=ex)
+        karl, foe = w.marshals["Karl"], w.marshals["Foe"]
+        with _d12_quiet():
+            joining = [w.marshals[n] for n in down["joining"]]
+            defenders, _ = ex._defender_muster(foe, w, term=False)
+            with ex._priced_coordination(karl, joining, foe, defenders, w, "Belgium"):
+                one_stamp = ex._committed_reinforcement_strength(
+                    karl, joining, w, expected_at="Belgium")
+        assert down["committed_attacker"] == one_stamp
+        assert up["committed_attacker"] < down["committed_attacker"]
+        assert up["committed_defender"] == down["committed_defender"]   # his side untouched
+
+    def test_the_ais_ratio_is_the_ratio_of_expectations_on_both_sides(self):
+        w = _d12_mirror()
+        roe, mor = _d12_joint(w, "Karl", "Foe", ("Jodl", "Kurt", "Zeta"), ("Gamma", "Hotel"))
+        odds = _d12_odds(w, lead="Karl", foe="Foe")
+        assert odds["ratio"] == pytest.approx(roe, rel=1e-9)
+        assert abs(odds["ratio"] - mor) > 1e-4
+
+    def test_the_ais_floor_and_bad_day_are_never_printed(self):
+        """The set exists for the mean; the spread stays a player surface."""
+        ex = _d12_combat()
+        w = _d12_mirror()
+        ai_pv = _d12_muster(w, lead="Karl", foe="Foe", ex=ex)
+        assert "floor_strength" not in ai_pv["attacker"]
+        assert "bad_day_strength" not in ai_pv["attacker"]
+        # control: the player's own lead on the mirror board prints both
+        w2 = _d12_board()
+        pv = _d12_muster(w2, ex=ex)
+        assert "floor_strength" in pv["attacker"] and "bad_day_strength" in pv["attacker"]
+
+    def test_nothing_to_enumerate_stays_none(self, monkeypatch):
+        import backend.commands.combat_executor as CE
+        ex = _d12_combat()
+        w = _d12_mirror(attackers=False)
+        karl, foe = w.marshals["Karl"], w.marshals["Foe"]
+        assert ex._muster_outcome_set(karl, [], foe, [], w, "Belgium") is None
+        w = _d12_mirror()
+        joiners = [w.marshals[n] for n in ("Jodl", "Kurt", "Zeta")]
+        monkeypatch.setattr(CE, "THE_MUSTER_STATES_ITS_SPREAD", False)
+        assert ex._muster_outcome_set(w.marshals["Karl"], joiners, w.marshals["Foe"],
+                                      [], w, "Belgium") is None
+
+    def test_the_ai_gate_reads_the_exact_band(self):
+        """The cautious kit's gate (`glory_attack_odds`) is `muster_odds`: the band
+        it returns is read from the exact mean AND the exact ratio."""
+        from backend.game_logic.jealousy import glory_attack_odds
+        ex = _d12_combat()
+        w = _d12_mirror()
+
+        class _Exec:
+            _combat = ex
+
+        with _d12_quiet():
+            gate = glory_attack_odds(w, _Exec(), w.marshals["Karl"], w.marshals["Foe"])
+        assert gate == _d12_odds(w, lead="Karl", foe="Foe", ex=ex)
+
+
+class TestS14EX216:
+    """The sweep sibling of D12 (class: the AI's side of the defender's muster).
+    `enemy_ai._muster_price` priced the friends of the NAMED target, where the
+    player's muster prices the man who will stand (`answering_defender`, SFR-D6:
+    a target that retreated this turn is covered by the strongest healthy man of
+    his nation still in his province, and the battle is fought against HIM). A
+    friend who would march for the target and refuses the man who covers him was
+    priced into a field that would never be mustered. Fixed behind ONE
+    module-level seam, `enemy_ai.priced_defender(world, target)` (down: the named
+    target). Reproduced: Foe retreated, Echo (healthy, co-located) covers, Gamma
+    at Paris at -2 with Echo - the price read Gamma's 18,191."""
+
+    def _covered(self, hostile=True):
+        w = _d12_board(co_located=True, french_friends=False)
+        foe, gamma = w.marshals["Foe"], w.marshals["Gamma"]
+        foe.retreated_this_turn = True            # Echo (healthy, co-located) covers him
+        if hostile:
+            gamma.set_relationship("Echo", -2)    # Gamma refuses to march for Echo
+        gamma.set_relationship("Foe", 0)
+        for name in ("Hotel", "Delta"):
+            del w.marshals[name]
+        return w
+
+    def test_the_ai_prices_the_man_who_will_stand(self):
+        ai = _d12_ai()
+        w = self._covered()
+        with _d12_quiet():
+            assert ai._muster_price(w.marshals["Foe"], "France", w) == 0
+
+    def test_the_seam_down_prices_the_named_target(self, monkeypatch):
+        from backend.ai import enemy_ai
+        ai = _d12_ai()
+        w = self._covered()
+        monkeypatch.setattr(enemy_ai, "priced_defender", lambda world, target: target)
+        with _d12_quiet():
+            down = ai._muster_price(w.marshals["Foe"], "France", w)
+        # ... Gamma, who refuses the man who would stand, priced into the field
+        gamma = w.marshals["Gamma"]
+        assert down > 0
+        assert gamma.get_relationship("Echo") == -2
+        assert ai._muster_price(w.marshals["Echo"], "France", w) == 0
+
+    def test_a_friend_who_will_march_for_the_covering_man_is_priced(self):
+        """Gamma at peace with Echo: the covered target's price is Echo's own."""
+        ai = _d12_ai()
+        w = self._covered(hostile=False)
+        with _d12_quiet():
+            covered = ai._muster_price(w.marshals["Foe"], "France", w)
+            echo = ai._muster_price(w.marshals["Echo"], "France", w)
+        assert covered == echo > 0
+
+    def test_the_seam_names_the_man_who_stands(self):
+        from backend.ai import enemy_ai
+        w = self._covered()
+        assert enemy_ai.priced_defender(w, w.marshals["Foe"]).name == "Echo"
+        # nobody covers an exposed target, and a target that did not retreat
+        w.marshals["Echo"].retreated_this_turn = True
+        assert enemy_ai.priced_defender(w, w.marshals["Foe"]).name == "Foe"
+        w.marshals["Foe"].retreated_this_turn = False
+        assert enemy_ai.priced_defender(w, w.marshals["Foe"]).name == "Foe"
+
+    def test_the_price_reads_the_seam_through_the_module(self, monkeypatch):
+        """An arm swaps `enemy_ai.priced_defender`; the price must call it by
+        the module name, every time."""
+        from backend.ai import enemy_ai
+        ai = _d12_ai()
+        w = self._covered()
+        seen = []
+        real = enemy_ai.priced_defender
+        monkeypatch.setattr(enemy_ai, "priced_defender",
+                            lambda world, target: seen.append(target.name) or real(world, target))
+        with _d12_quiet():
+            ai._muster_price(w.marshals["Foe"], "France", w)
+        assert seen == ["Foe"]
+
+    def test_an_uncovered_board_prices_as_it_did(self, monkeypatch):
+        """The seam is inert where nobody is covered: the price is unchanged."""
+        from backend.ai import enemy_ai
+        ai = _d12_ai()
+        w = _d12_board(co_located=True, french_friends=False)
+        with _d12_quiet():
+            up = ai._muster_price(w.marshals["Foe"], "France", w)
+        monkeypatch.setattr(enemy_ai, "priced_defender", lambda world, target: target)
+        with _d12_quiet():
+            down = ai._muster_price(w.marshals["Foe"], "France", w)
+        assert up == down > 0
+
+
+class TestS14EX217:
+    """The sweep sibling of D12 (class: a private copy of the defender's summer).
+    The player's DEFENCE desk (`state_desk._defence_lines`, "Were Mack to attack,
+    the odds read ...") priced the player's own defender term as the raw sum of
+    the corps standing in the province - every man at full weight (the resolver
+    commits `COMMITTED_ALPHA` 0.6 of him, under his coordination and his arrival
+    odds) and none of the friends a march away. Reproduced on the shipped board:
+    Soult at Lorraine with Napoleon, Mack at Swabia - the desk read a defender
+    term of 10,000 and "the odds read even"; Ney, Davout, Lannes and Murat
+    march to Lorraine, and the exact term is 113,819: "the odds read in our
+    favour". Fixed: OUR side of the band is `_defender_muster`'s exact mean
+    (`CombatExecutor.defence_reading`; it reads only the lead's own nation, so
+    there is no fog question on that side); the ATTACKER's side is today's
+    reading, whole (his visible lead alone, his muster not read, his modifier at
+    the ambient stamp)."""
+
+    def _world(self, boot, mutate=None):
+        w = _d12_fresh(boot)
+        w.get_marshal("Mack").strength = 52000
+        if mutate:
+            mutate(w)
+        w.calculate_visibility()
+        return w
+
+    @staticmethod
+    def _old_reading(w, attacker, lead):
+        """The pre-fix arithmetic, recomputed by hand from the single formula: the
+        corps in the province at raw strength."""
+        from backend.commands.objection_v2 import inferred_attack_odds_reading
+        held = sum(int(m.strength) for m in w.marshals.values()
+                   if m.nation == lead.nation and m.location == lead.location)
+        return inferred_attack_odds_reading(
+            attacker, lead, {"world": w},
+            committed_defender=float(held - int(lead.strength)), fold_modifiers=True)
+
+    def test_the_shipped_board_before_and_after(self, _d12_boot):
+        from backend.ai import state_desk
+        w = self._world(_d12_boot)
+        soult, mack = w.get_marshal("Soult"), w.get_marshal("Mack")
+        old_band, old_weighed = self._old_reading(w, mack, soult)
+        assert old_band == "even" and old_weighed == pytest.approx(0.8928, abs=1e-3)
+        with _d12_quiet():
+            sentence = state_desk._answer_what_if_defence(w, "Mack", "Soult")
+            band, weighed, term = _d12_combat().defence_reading(mack, soult, w)
+        assert "At Lorraine we hold 40,000 men: Soult 30,000 and Napoleon 10,000." in sentence
+        assert sentence.endswith("Were Mack to attack, the odds read in our favour.")
+        assert (band, round(term)) == ("unfavorable", 113819)
+        assert weighed == pytest.approx(0.2739, abs=1e-3)
+
+    def test_the_defender_term_is_the_one_summers(self, _d12_boot):
+        ex = _d12_combat()
+        w = self._world(_d12_boot)
+        soult, mack = w.get_marshal("Soult"), w.get_marshal("Mack")
+        with _d12_quiet():
+            _, _, term = ex.defence_reading(mack, soult, w)
+            joining, summer = ex._defender_muster(soult, w)
+        assert term == summer
+        assert sorted(m.name for m in joining) == [
+            "Davout", "Lannes", "Murat", "Napoleon", "Ney"]
+
+    def test_the_attackers_side_is_todays_reading(self, _d12_boot):
+        """His muster is not read: John a march from Mack changes nothing."""
+        ex = _d12_combat()
+        w = self._world(_d12_boot)
+        soult, mack = w.get_marshal("Soult"), w.get_marshal("Mack")
+        with _d12_quiet():
+            before = ex.defence_reading(mack, soult, w)
+
+        def john_beside_mack(world):
+            world.get_marshal("ArchdukeJohn").location = "Munich"
+
+        w2 = self._world(_d12_boot, john_beside_mack)
+        with _d12_quiet():
+            after = ex.defence_reading(w2.get_marshal("Mack"), w2.get_marshal("Soult"), w2)
+        assert before == after
+
+    def test_a_board_where_the_figure_does_not_change_reads_as_it_did(self, _d12_boot):
+        """Massena alone at Milan, John at Tyrol: no co-located corps and no
+        friend a march away, so the term is nothing before and after - the
+        reading, and the sentence, are the old ones."""
+        from backend.ai import state_desk
+        w = self._world(_d12_boot)
+        massena, john = w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+        old = self._old_reading(w, john, massena)
+        with _d12_quiet():
+            band, weighed, term = _d12_combat().defence_reading(john, massena, w)
+            sentence = state_desk._answer_what_if_defence(w, "ArchdukeJohn", "Massena")
+        assert term == 0.0
+        assert (band, weighed) == old
+        ours = {"favorable": "against us", "even": "even",
+                "unfavorable": "in our favour"}[old[0]]
+        assert f"the odds read {ours}" in sentence
+
+    def test_the_hold_desk_reads_the_same_summer(self, _d12_boot):
+        from backend.ai import state_desk
+        w = self._world(_d12_boot)
+        with _d12_quiet():
+            text = state_desk._answer_hold_region(w, "Lorraine", "Soult")
+        assert "the odds read in our favour" in text
+
+    def test_no_attacker_no_reading(self, _d12_boot):
+        from backend.ai import state_desk
+        w = self._world(_d12_boot)
+        defenders = [w.get_marshal("Soult"), w.get_marshal("Napoleon")]
+        with _d12_quiet():
+            line = state_desk._defence_lines(w, defenders, None, "Lorraine")
+        assert "odds read" not in line and line.startswith("At Lorraine we hold")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d13 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d13.py)
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14f part 3 (October 25, 2026) - S14E-D13 with its defect S14E-X120.
+#
+# S14E-D13 (the ruling, built as recommended under the user's standing
+# delegation): an AI court's DOWNGRADE of a treaty costs it with every court,
+# as the player's does - parity through the ONE `execute_downgrade`, the cost
+# named by X38's clause. S14E-X120 (the defect half): `ai_ai_downgrade` wrote
+# the pair's relation alone, so nothing reached France, no alarm rose, the old
+# treaty record stood and no breach was checked. The siblings of the sweep:
+# S14E-X218 (the campaign log's downgrade lines printed the raw state and court
+# keys) and S14E-X219 (the AI rivalry line printed the raw court tags).
+#
+# Reproduced on the shipped 1805 board (Prussia 78,000 against Sweden 12,000,
+# their Alliance at relation 20, `_process_ai_ai_rivalry` driven directly):
+# BEFORE - France's relation with Prussia unchanged, the alarm slot unchanged,
+# the Alliance record still standing, no logged downgrade; AFTER - France's
+# relation with Prussia -5 (also on the Defensive Alliance step; 0 on the two
+# lower steps), Prussia's alarm +5 (+3, +0 on the lower steps), the treaty record
+# gone, a `diplomatic_downgrade` event logged with the figure, and the turn
+# line "... Alliance -> Defensive Alliance - relations with every court,
+# France's included, fall 5."
+#
+# The series arm restores the old body through the seam
+# `ai_diplomacy._ai_ai_downgrade` (`_d13_old_body` below is that body).
+
+_D13_ROOT = Path(__file__).resolve().parents[1]
+_D13_SCENARIO = (_D13_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+_D13_CLAUSE = "relations with every court, France's included, fall 5"
+
+
+def _d13_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _d13_boot():
+    from backend.models.world_state import WorldState
+    with _d13_quiet():
+        return WorldState.from_scenario(str(_D13_SCENARIO))
+
+
+def _d13_copy(boot):
+    from backend.models.world_state import WorldState
+    with _d13_quiet():
+        return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _d13_world(_d13_boot):
+    return _d13_copy(_d13_boot)
+
+
+def _d13_key(w, a, b):
+    return w._make_diplo_key(a, b)
+
+
+def _d13_rel(w, a, b):
+    return int(w.nation_relations.get(_d13_key(w, a, b), 0) or 0)
+
+
+def _d13_stage(w, state, a="Prussia", b="Sweden", relation=20):
+    """Two AI courts under a treaty, the stronger twice the weaker's strength
+    (Prussia 78,000 against Sweden 12,000 on the shipped board), relation < 30,
+    neither at war with France - the pair Trigger 2 fires on."""
+    key = _d13_key(w, a, b)
+    w.diplomatic_states[key] = state
+    w.nation_relations[key] = int(relation)
+    w.active_treaties = {key: {"type": state.lower(), "nations": [a, b]}}
+    w.invalidate_bloc_members_cache()
+    return key
+
+
+def _d13_run(w):
+    from backend.game_logic import ai_diplomacy as AD
+    with _d13_quiet():
+        return AD._process_ai_ai_rivalry(w)
+
+
+def _d13_downgrades(events):
+    return [e for e in events if e.get("type") == "ai_ai_downgrade"]
+
+
+def _d13_old_body(world, stronger, weaker, state, new_state):
+    """The pre-D13 body of the seam `_ai_ai_downgrade` - the series arm's
+    "down" value: the state write, the pair's booked relation, nothing else."""
+    from backend.game_logic.diplomacy import DOWNGRADE_PENALTIES, set_diplomatic_state
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    set_diplomatic_state(world, stronger, weaker, new_state, "ai_ai_downgrade")
+    rel_hit = DOWNGRADE_PENALTIES.get((state, new_state), {}).get("relation_target", -10)
+    modify_relation_booked(world, stronger, weaker, rel_hit, "downgrade", stronger, weaker)
+    return {"success": True, "new_state": new_state, "relation_cost": 0}
+
+
+def _d13_stage_mission(w, mission_type, target, ally=None):
+    """The dict the executor's `start_mission` arm writes, books open."""
+    mission = {
+        "type": mission_type, "target": target, "turns_active": 0, "paused": False,
+        "paused_turns": 0, "started_turn": int(w.current_turn),
+        "initial_relation": _d13_rel(w, w.player_nation, target),
+        "earned": 0, "shocks": [], "paused_errand": 0, "paused_starved": 0,
+    }
+    if ally:
+        mission["target_ally"] = ally
+        mission["initial_pair_relation"] = _d13_rel(w, target, ally)
+    w.active_diplomatic_mission = mission
+    w.talleyrand_state = "ON_MISSION"
+    return mission
+
+
+class TestS14ED13:
+    """The ruling: PARITY - the AI court's downgrade costs what the player's
+    costs (`DOWNGRADE_PENALTIES`: -5 with every court on the two treaty
+    steps), through the one executor, the cost named by X38's clause."""
+
+    def test_the_boot_pair_is_the_one_trigger_two_fires_on(self, _d13_world):
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        troops = {n: sum(m.strength for m in w.marshals.values() if m.nation == n)
+                  for n in ("Prussia", "Sweden")}
+        assert troops["Prussia"] > 2 * troops["Sweden"] > 0
+        assert "France" not in w.enemy_nations
+        events = _d13_downgrades(_d13_run(w))
+        assert [e["nations"] for e in events] == [["Prussia", "Sweden"]]
+
+    @pytest.mark.parametrize("state,new_state,cost", [
+        ("ALLIANCE", "DEFENSIVE_ALLIANCE", 5),
+        ("DEFENSIVE_ALLIANCE", "NON_AGGRESSION", 5),
+    ])
+    def test_france_pays_five_on_the_two_treaty_steps(self, _d13_world, state, new_state, cost):
+        w = _d13_world
+        _d13_stage(w, state)
+        before = _d13_rel(w, "France", "Prussia")
+        with _d13_quiet():
+            elsewhere = {n: _d13_rel(w, "France", n) for n in w.get_active_nations() if n != "France"}
+        _d13_run(w)
+        assert w.get_diplomatic_state("Prussia", "Sweden") == new_state
+        assert _d13_rel(w, "France", "Prussia") == before - cost
+        # only the ACTOR's relations fall: France's other courts are untouched
+        for n, rel in elsewhere.items():
+            if n != "Prussia":
+                assert _d13_rel(w, "France", n) == rel, n
+
+    @pytest.mark.parametrize("state,new_state", [
+        ("NON_AGGRESSION", "OPEN_BORDERS"),
+        ("OPEN_BORDERS", "PEACE"),
+    ])
+    def test_the_two_lower_steps_cost_france_nothing_and_name_nothing(self, _d13_world, state, new_state):
+        w = _d13_world
+        _d13_stage(w, state)
+        before = _d13_rel(w, "France", "Prussia")
+        (event,) = _d13_downgrades(_d13_run(w))
+        assert w.get_diplomatic_state("Prussia", "Sweden") == new_state
+        assert _d13_rel(w, "France", "Prussia") == before
+        assert event["relation_cost"] == 0
+        assert "France" not in event["message"] and "relations with every court" not in event["message"]
+
+    def test_the_figure_is_the_executors_own_table(self, _d13_world):
+        """Shown == applied: the clause's number is `relation_all` of the
+        step, the number the relation actually fell by."""
+        from backend.game_logic.diplomacy import DOWNGRADE_PENALTIES
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        before = _d13_rel(w, "France", "Prussia")
+        (event,) = _d13_downgrades(_d13_run(w))
+        table = DOWNGRADE_PENALTIES[("ALLIANCE", "DEFENSIVE_ALLIANCE")]["relation_all"]
+        assert table == -5
+        assert event["relation_cost"] == -table
+        assert before - _d13_rel(w, "France", "Prussia") == event["relation_cost"]
+        assert f"fall {event['relation_cost']}" in event["message"]
+
+    def test_the_line_names_the_cost_in_x38s_clause(self, _d13_world):
+        from backend.game_logic.diplomacy import declaration_cost_clause
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        (event,) = _d13_downgrades(_d13_run(w))
+        assert event["message"] == (
+            "Prussia has downgraded relations with Sweden: Alliance → "
+            f"Defensive Alliance — {_D13_CLAUSE}.")
+        assert declaration_cost_clause(5, "France") == _D13_CLAUSE      # X38's builder, not a second phrasing
+        assert not any(t in event["message"] for t in ("!", "crush", "plummet"))
+
+    def test_the_line_rides_the_turn_events_past_the_fog_filter(self, _d13_world):
+        """The clause is only worth writing if the player's turn reads it."""
+        from backend.commands.meta_executor import _filter_tactical_events_by_fog
+        from backend.game_logic.ai_diplomacy import process_ai_ai_diplomatic_phase
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        with _d13_quiet():
+            events = process_ai_ai_diplomatic_phase(w)
+        shown = _d13_downgrades(_filter_tactical_events_by_fog(events, w))
+        assert len(shown) == 1 and _D13_CLAUSE in shown[0]["message"]
+
+    def test_the_campaign_log_reads_the_same_clause(self, _d13_world):
+        from backend.campaign_log import format_event_oneliner
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        _d13_run(w)
+        logged = [e for e in w.event_log if e.get("type") == "diplomatic_downgrade"][-1]
+        assert logged["relation_cost"] == 5 and logged["player"] == "France"
+        line = format_event_oneliner(logged, "France", w)
+        assert line == ("Relations downgraded: Prussia–Sweden "
+                        f"(Alliance → Defensive Alliance) — {_D13_CLAUSE}")
+
+    def test_the_pair_hit_is_still_booked_for_a_standing_mission(self, _d13_world):
+        """The booking census (S14E-X112) still holds: the pair's relation and now
+        the actor's hit on the mission's own pair are noted as the stronger
+        court's downgrade - and the books never move the board."""
+        from backend.game_logic.diplomacy import DOWNGRADE_PENALTIES
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        bare = _d13_copy(w)
+        _d13_stage_mission(w, "REASSURE_ALLY", "Prussia")
+        _d13_run(w)
+        _d13_run(bare)
+        assert w.nation_relations == bare.nation_relations, "the books moved the board"
+        shocks = list(w.active_diplomatic_mission["shocks"])
+        assert [(s["kind"], s["by"], s["on"]) for s in shocks] == [("downgrade", "Prussia", "Sweden")]
+        # the mission stands on France-Prussia: the relation_all hit is what it books
+        assert shocks[0]["delta"] == DOWNGRADE_PENALTIES[("ALLIANCE", "DEFENSIVE_ALLIANCE")]["relation_all"]
+        from backend.game_logic.diplomatic_dialogue import mission_shock_cause
+        assert mission_shock_cause(shocks[0]) == "Prussia's downgrade with Sweden"
+
+    def test_the_series_arm_restores_the_old_figure_through_the_seam(self, _d13_world, monkeypatch):
+        """THE SEAM: `_ai_ai_downgrade` patched to the pre-D13 body gives the
+        old figures - nothing reaches France, no alarm, the treaty record stands."""
+        from backend.game_logic import ai_diplomacy as AD
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        base = _d13_copy(w)
+        monkeypatch.setattr(AD, "_ai_ai_downgrade", _d13_old_body)
+        old_before = _d13_rel(w, "France", "Prussia")
+        thr_before = dict(w.threat_by_target)
+        (event,) = _d13_downgrades(_d13_run(w))
+        assert w.get_diplomatic_state("Prussia", "Sweden") == "DEFENSIVE_ALLIANCE"
+        assert _d13_rel(w, "France", "Prussia") == old_before         # the old figure: France untouched
+        assert dict(w.threat_by_target) == thr_before                 # no alarm
+        assert _d13_key(w, "Prussia", "Sweden") in w.active_treaties  # the stale record stood
+        assert event["relation_cost"] == 0 and "France" not in event["message"]
+        assert not [e for e in w.event_log if e.get("type") == "diplomatic_downgrade"]
+        # and the live seam is the executor's: the same staging, the new figures
+        monkeypatch.undo()
+        _d13_run(base)
+        assert _d13_rel(base, "France", "Prussia") == old_before - 5
+
+    def test_the_ai_pays_no_diplomatic_points(self, _d13_world):
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        dp_before = (int(w.diplomatic_points), dict(w.nation_dp))
+        _d13_run(w)
+        assert (int(w.diplomatic_points), dict(w.nation_dp)) == dp_before
+
+    def test_the_players_own_downgrade_is_unchanged(self, _d13_world, monkeypatch):
+        """France the actor: the same table (-5 with every other court), no
+        clause for herself, the reason the setter always got."""
+        from backend.game_logic import diplomacy as D
+        w = _d13_world
+        reasons = []
+        real = D.set_diplomatic_state
+
+        def spy(world, a, b, new_state, reason=""):
+            reasons.append(reason)
+            return real(world, a, b, new_state, reason)
+
+        monkeypatch.setattr(D, "set_diplomatic_state", spy)
+        assert w.get_diplomatic_state("France", "Spain") == "ALLIANCE"
+        prussia_before = _d13_rel(w, "France", "Prussia")
+        spain_before = _d13_rel(w, "France", "Spain")
+        with _d13_quiet():
+            result = D.execute_downgrade(w, "France", "Spain")
+        assert result["success"] and result["new_state"] == "DEFENSIVE_ALLIANCE"
+        assert result["relation_cost"] == 0 and result["dp_cost"] == 1
+        assert reasons == ["diplomatic_downgrade"]
+        assert _d13_rel(w, "France", "Prussia") == prussia_before - 5
+        assert _d13_rel(w, "France", "Spain") == spain_before - 15
+        logged = [e for e in w.event_log if e.get("type") == "diplomatic_downgrade"][-1]
+        assert logged["relation_cost"] == 0
+
+    def test_the_ai_state_write_stays_distinguishable(self, _d13_world, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d13_world
+        reasons = []
+        real = D.set_diplomatic_state
+
+        def spy(world, a, b, new_state, reason=""):
+            reasons.append(reason)
+            return real(world, a, b, new_state, reason)
+
+        monkeypatch.setattr(D, "set_diplomatic_state", spy)
+        _d13_stage(w, "ALLIANCE")
+        _d13_run(w)
+        assert reasons == ["ai_ai_downgrade"]
+
+    def test_the_third_power_cost_helper(self, _d13_world):
+        from backend.game_logic.diplomacy import downgrade_cost_to_player
+        w = _d13_world
+        assert downgrade_cost_to_player(w, "Prussia", "Sweden", -5) == 5
+        assert downgrade_cost_to_player(w, "Prussia", "Sweden", 0) == 0     # the lower steps
+        assert downgrade_cost_to_player(w, "France", "Spain", -5) == 0      # her own act
+        assert downgrade_cost_to_player(w, "Spain", "France", -5) == 0      # her own injury
+        assert downgrade_cost_to_player(w, "", "Sweden", -5) == 0
+
+
+class TestS14EX120:
+    """The defect: the AI-to-AI downgrade wrote the pair's relation alone.
+    Reproduced on the shipped board (Prussia/Sweden, Alliance, relation 20):
+    France's relation with Prussia unchanged, the alarm slot unchanged, the
+    Alliance record still standing, no `diplomatic_downgrade` logged. It now
+    walks `execute_downgrade`, whole."""
+
+    def test_the_alarm_slot_of_the_actor_rises_by_the_tables_threat(self, _d13_world):
+        from backend.game_logic.diplomacy import DOWNGRADE_PENALTIES
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        assert w.threat_by_target.get("Prussia", 0) == 0
+        _d13_run(w)
+        assert w.threat_by_target["Prussia"] == DOWNGRADE_PENALTIES[("ALLIANCE", "DEFENSIVE_ALLIANCE")]["threat"] == 5
+        assert [r for r in w.threat_sources_this_turn
+                if r["source"] == "diplomatic_downgrade" and r["target"] == "Prussia"]
+
+    def test_the_old_treaty_record_is_removed(self, _d13_world):
+        w = _d13_world
+        key = _d13_stage(w, "ALLIANCE")
+        assert key in w.active_treaties
+        _d13_run(w)
+        assert key not in w.active_treaties
+
+    def test_the_breach_check_runs_for_the_actor_and_the_object(self, _d13_world, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d13_world
+        calls = []
+        real = D.detect_bargain_breach_on_treaty_change
+
+        def spy(world, breaker, other, new_state, **kw):
+            calls.append((breaker, other, new_state))
+            return real(world, breaker, other, new_state, **kw)
+
+        monkeypatch.setattr(D, "detect_bargain_breach_on_treaty_change", spy)
+        _d13_stage(w, "ALLIANCE")
+        _d13_run(w)
+        assert calls == [("Prussia", "Sweden", "DEFENSIVE_ALLIANCE")]
+
+    def test_the_logged_event_is_the_executors(self, _d13_world):
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        _d13_run(w)
+        (logged,) = [e for e in w.event_log if e.get("type") == "diplomatic_downgrade"]
+        assert (logged["nation_a"], logged["nation_b"]) == ("Prussia", "Sweden")
+        assert (logged["from_state"], logged["to_state"]) == ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+
+    def test_the_ai_walks_the_same_road_as_the_player(self, _d13_boot):
+        """Parity, exactly: the seam and the executor leave identical boards."""
+        from backend.game_logic import ai_diplomacy as AD
+        from backend.game_logic import diplomacy as D
+        a, b = _d13_copy(_d13_boot), _d13_copy(_d13_boot)
+        for w in (a, b):
+            _d13_stage(w, "ALLIANCE")
+        with _d13_quiet():
+            ai = AD._ai_ai_downgrade(a, "Prussia", "Sweden", "ALLIANCE", "DEFENSIVE_ALLIANCE")
+            player = D.execute_downgrade(b, "Prussia", "Sweden")
+        assert ai["success"] and ai["new_state"] == player["new_state"] == "DEFENSIVE_ALLIANCE"
+        assert a.nation_relations == b.nation_relations
+        assert a.diplomatic_states == b.diplomatic_states
+        assert a.active_treaties == b.active_treaties
+        assert dict(a.threat_by_target) == dict(b.threat_by_target)
+        assert ai["relation_cost"] == 5
+
+    def test_a_downgrade_with_no_road_does_not_report_a_beat(self, _d13_world, monkeypatch):
+        """If the executor refuses (nothing to give), the line is not written."""
+        from backend.game_logic import ai_diplomacy as AD
+        w = _d13_world
+        _d13_stage(w, "ALLIANCE")
+        monkeypatch.setattr(AD, "_ai_ai_downgrade",
+                            lambda *a, **k: {"success": False, "message": "no road"})
+        assert _d13_downgrades(_d13_run(w)) == []
+        assert w.get_diplomatic_state("Prussia", "Sweden") == "ALLIANCE"
+
+    def test_the_ais_other_road_out_of_a_treaty_already_charges_every_court(self, _d13_world):
+        """The sweep's finding: the war council's break (`break_treaty`) is the
+        player's own function, so it already pays `TREATY_BREAK_RELATION_ALL`
+        with every court whoever breaks - no sibling there."""
+        from backend.game_logic import diplomacy as D
+        w = _d13_world
+        key = _d13_stage(w, "ALLIANCE")
+        w.nation_dp = {"Prussia": 5, "Sweden": 5}
+        before = _d13_rel(w, "France", "Prussia")
+        with _d13_quiet():
+            D.break_treaty(key, "Prussia", w)
+        assert _d13_rel(w, "France", "Prussia") == before - D.TREATY_BREAK_RELATION_ALL
+
+
+class TestS14EX218:
+    """Sibling of the sweep: the campaign log's downgrade lines printed the
+    raw keys - "Relations downgraded: PapalStates–KingdomOfItaly (ALLIANCE
+    → DEFENSIVE ALLIANCE)". With an AI court's downgrade now logged it is a
+    line the player reads every few turns; the states and the courts go through
+    the display chokepoints."""
+
+    def test_the_downgrade_line_reads_display_names(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner({
+            "type": "diplomatic_downgrade", "nation_a": "PapalStates",
+            "nation_b": "KingdomOfItaly", "from_state": "ALLIANCE",
+            "to_state": "DEFENSIVE_ALLIANCE", "turn": 3}, "France")
+        assert line == ("Relations downgraded: Papal States–Kingdom of Italy "
+                        "(Alliance → Defensive Alliance)")
+
+    def test_the_auto_downgrade_line_reads_display_names(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner({
+            "type": "auto_downgrade", "nation_a": "KingdomOfItaly",
+            "nation_b": "Ottoman", "from_state": "NON_AGGRESSION",
+            "to_state": "OPEN_BORDERS", "turn": 3}, "France")
+        assert line == ("Relations auto-downgraded: Kingdom of Italy–Ottoman Empire "
+                        "(Non-Aggression → Open Borders)")
+
+    def test_a_pre_fix_event_without_the_figure_renders_without_a_clause(self):
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner({
+            "type": "diplomatic_downgrade", "nation_a": "France", "nation_b": "Spain",
+            "from_state": "ALLIANCE", "to_state": "DEFENSIVE_ALLIANCE"}, "France")
+        assert line == "Relations downgraded: France–Spain (Alliance → Defensive Alliance)"
+        assert "every court" not in line
+
+
+class TestS14EX219:
+    """Sibling of the sweep: the AI rivalry line beside the downgrade
+    ("Territorial rivalry between {nation_a} and {nation_b} grows.") printed
+    the court tags raw - "KingdomOfItaly", "PapalStates"."""
+
+    def test_the_rivalry_line_reads_display_names(self):
+        src = (_D13_ROOT / "backend" / "game_logic" / "ai_diplomacy.py").read_text(encoding="utf-8")
+        start = src.index('"type": "ai_ai_rivalry"')
+        block = src[start:start + 600]
+        assert "_display_nation(nation_a)" in block and "_display_nation(nation_b)" in block
+        assert "between {nation_a}" not in block
+
+    def test_the_rivalry_line_is_driven_on_the_board(self, _d13_world):
+        """Every court pair on a bracket edge (relation 10: the rivalry's -3
+        crosses it); Austria's neighbour the Kingdom of Italy is one of the
+        adjacent pairs on the shipped board."""
+        w = _d13_world
+        for k in list(w.nation_relations):
+            a, b = k.split("|")
+            if a in w.enemy_nations and b in w.enemy_nations:
+                w.nation_relations[k] = 10
+        lines = [e["message"] for e in _d13_run(w) if e.get("type") == "ai_ai_rivalry"]
+        assert "Territorial rivalry between Austria and Kingdom of Italy grows." in lines, lines
+        for line in lines:
+            assert line.startswith("Territorial rivalry between ") and line.endswith(" grows.")
+            assert "PapalStates" not in line and "KingdomOfItaly" not in line
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d14 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d14.py)
+# ══════════════════════════════════════════════════════════════════════════
+# S14f part 3 (October 25, 2026) - S14E-D14 with S14E-X98 and S14E-X101, and
+# the siblings S14E-X221 ... X225.
+#
+# The ruling (`docs/DESIGN_REFINEMENT.md` S14E-D14, built as recommended under
+# the user's standing delegation): the STORED pair war score is recomputed at
+# the sites that move it - a battle recorded, a capture, a drawn battle's dead -
+# as End Turn recomputes every pair, so the acceptance estimate, the direction
+# and bucket words, `subjugation_refusal`'s gate and its quoted figure read ONE
+# figure with the live "War score:" line mid-turn. The seam is
+# `diplomacy.recalculate_pair_war_score(world, a, b)`; the ONE writer is
+# `diplomacy._store_pair_war_score`; the series arms hold the seam down with
+# `lambda *a, **k: None` (today's behaviour: the store moves at End Turn alone).
+#
+# Reproduced on the shipped 1805 board (France at war with Austria, the store
+# at the boot's 0): Ney (24,000) strikes Mack (6,000) at Swabia - the stored
+# score stayed at the morning's 0 while the live score read +5; Vienna taken -
+# the store 0, the live +27, and the armistice's acceptance estimate 11 against
+# the 39 that End Turn would have given. After the build the store equals the
+# live computation at every stamp site.
+#
+# Siblings (the sweep, Rule 10):
+#   X221 the auto-charge's bare-assignment conquest (the one capture outside
+#        `capture_region`) stamps the pairs it moved
+#   X222 a capture moves THIRD pairs (the province's starting owner and capital
+#        owner stand in territory and capital components) - not only the pair
+#        that fought
+#   X223 a prisoner moves the war score (the Captive Eagle, a besieger removed)
+#        - `capture_marshal` / `release_captured_marshal` stamp the pair
+#   X224 a march (or retreat) into or out of a capital moves the siege
+#        component - `_execute_move` and the retreat stamp the pair
+#   X225 the main attack's ADVANCE into a capital comes after its battle record
+#        - the advance stamps the pair (the charge's and the auto-kill's
+#        advances precede their pipeline's step 8, which stamps after)
+
+import random
+import re
+from pathlib import Path
+
+import pytest
+
+_D14_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_D14_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _d14_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _d14_boot():
+    from backend.models.world_state import WorldState
+    with _d14_quiet():
+        return WorldState.from_scenario(str(_D14_SCENARIO))
+
+
+def _d14_world(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _d14_w(_d14_boot):
+    return _d14_world(_d14_boot)
+
+
+@pytest.fixture
+def _d14_down(monkeypatch):
+    """The series arms' hold: the seam is a no-op, the store moves at End Turn
+    alone - today's behaviour. Every caller reads the module attribute at call
+    time, so this one patch holds the battle, capture, prisoner and march
+    stamps (and `recalculate_war_scores_among`) all down."""
+    from backend.game_logic import diplomacy as D
+    monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: None)
+
+
+def _d14_pair(w, a="France", b="Austria"):
+    """(stored, live) from `a`'s chair."""
+    from backend.game_logic import diplomacy as D
+    return D.get_war_score_for(w, a, b), D.live_war_score_for(w, a, b)
+
+
+def _d14_attack(w, marshal: str, target: str, seed: int = 7) -> dict:
+    from backend.commands.executor import CommandExecutor
+    w.actions_remaining = 4
+    random.seed(seed)
+    with _d14_quiet():
+        return CommandExecutor().execute({
+            "success": True,
+            "command": {"type": "specific", "marshal": marshal,
+                        "action": "attack", "target": target},
+        }, {"world": w})
+
+
+def _d14_command(w, marshal: str, action: str, target=None, seed: int = 7) -> dict:
+    from backend.commands.executor import CommandExecutor
+    w.actions_remaining = 4
+    random.seed(seed)        # an objection is a roll: seed 7 obeys the retreat
+    with _d14_quiet():
+        return CommandExecutor().execute({
+            "success": True,
+            "command": {"type": "specific", "marshal": marshal,
+                        "action": action, "target": target},
+        }, {"world": w})
+
+
+# ── the stamp sites, each a function of a fresh shipped board ──────────────
+
+def _d14_ulm(w, mack_strength: int = 6000):
+    """The Ulm board: Mack on Bavarian Swabia, Ney (24,000) at Rhineland."""
+    mack = w.get_marshal("Mack")
+    mack.strength = mack_strength
+    assert mack.location == "Swabia" and w.get_region("Swabia").controller == "Bavaria"
+    assert w.get_marshal("Ney").location == "Rhineland"
+
+
+def _d14_site_attack(w):
+    _d14_ulm(w)
+    result = _d14_attack(w, "Ney", "Mack")
+    assert result.get("success"), result.get("message")
+
+
+def _d14_pipeline_ctx(w, **over):
+    ney, mack = w.get_marshal("Ney"), w.get_marshal("Mack")
+    ctx = {
+        "attacker": ney, "defender": mack, "defender_nation": "Austria",
+        "battle_region": "Swabia", "outcome": "attacker_victory",
+        "attacker_won": True, "defender_won": False,
+        "attacker_casualties": 3000, "defender_casualties": 8000,
+        "pre_battle_attacker_strength": 24000, "pre_battle_defender_strength": 52000,
+        "battle_result": None, "conquered": False,
+        "skip_log_battle_event": True, "skip_idle_reset": True,
+        "skip_cannon_fire_record": True, "skip_war_damage": True,
+        "skip_intel_update": True, "skip_coordination_clear": True,
+        "skip_relationships": True, "skip_last_combat_result": True,
+        "skip_exhaustion": True,
+    }
+    ctx.update(over)
+    return ctx
+
+
+def _d14_site_pipeline_win(w):
+    from backend.commands.executor import CommandExecutor
+    with _d14_quiet():
+        CommandExecutor()._post_combat_pipeline(_d14_pipeline_ctx(w), w)
+
+
+def _d14_site_pipeline_draw(w):
+    from backend.commands.executor import CommandExecutor
+    ctx = _d14_pipeline_ctx(w, outcome="stalemate", attacker_won=False,
+                            defender_won=False, attacker_casualties=3000,
+                            defender_casualties=8000)
+    with _d14_quiet():
+        CommandExecutor()._post_combat_pipeline(ctx, w)
+
+
+def _d14_site_drawn(w):
+    w.record_drawn_battle("France", "Austria", 30000, 5000)
+
+
+def _d14_site_capture(w):
+    with _d14_quiet():
+        w.capture_region("Bohemia", "France")
+
+
+def _d14_site_capital(w):
+    with _d14_quiet():
+        w.capture_region("Vienna", "France")
+
+
+def _d14_site_sovereign(w):
+    with _d14_quiet():
+        w.capture_marshal(w.get_marshal("Napoleon"), "Austria", "test")
+
+
+def _d14_site_march(w):
+    w.get_marshal("Ney").location = "Moravia"
+    w.calculate_visibility()
+    result = _d14_command(w, "Ney", "move", "Vienna")
+    assert result.get("success"), result.get("message")
+    assert w.get_marshal("Ney").location == "Vienna"
+
+
+def _d14_autocharge_board(w):
+    """An Austrian reckless cavalryman at Swabia charges Ney (40 men, alone)
+    at Rhineland, an unfortified French province: the one conquest outside
+    `capture_region` (tests/test_iq2_collapse_integration.py's idiom)."""
+    mack = w.get_marshal("Mack")
+    mack.cavalry = True
+    mack.personality = "aggressive"
+    mack.recklessness = 5
+    mack.strength = 60000
+    for m in w.marshals.values():
+        if m.nation == "France" and m.name != "Ney":
+            m.location = "Lorraine"
+    ney = w.get_marshal("Ney")
+    ney.location = "Rhineland"
+    ney.strength = 40
+    w.calculate_visibility()
+
+
+def _d14_site_autocharge(w):
+    _d14_autocharge_board(w)
+    random.seed(7)
+    with _d14_quiet():
+        w._process_reckless_cavalry_turn_start()
+    assert w.get_region("Rhineland").controller == "Austria"
+
+
+_D14_SITES = {
+    "attack": _d14_site_attack,
+    "pipeline_win": _d14_site_pipeline_win,
+    "pipeline_draw": _d14_site_pipeline_draw,
+    "drawn_battle": _d14_site_drawn,
+    "capture": _d14_site_capture,
+    "capital": _d14_site_capital,
+    "sovereign_taken": _d14_site_sovereign,
+    "march_into_capital": _d14_site_march,
+    "auto_charge_conquest": _d14_site_autocharge,
+}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-D14
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14ED14:
+    def test_the_boot_is_the_reproduction_board(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        assert w.player_nation == "France"
+        assert w.diplomatic_states[w._make_diplo_key("France", "Austria")] == "WAR"
+        assert _d14_pair(w) == (0, 0)
+        assert D.get_war_score_for(w, "Austria", "France") == 0
+
+    def test_before_the_morning_s_store_beside_a_live_score_that_moved(self, _d14_w, _d14_down):
+        """The old figure: Ney strikes Mack, the pair's score moves to +5 live
+        and the STORE stays at the morning's 0 (the seam held down)."""
+        w = _d14_w
+        _d14_site_attack(w)
+        stored, live = _d14_pair(w)
+        assert (stored, live) == (0, live) and live != 0, (stored, live)
+
+    def test_after_the_store_follows_the_battle(self, _d14_w):
+        w = _d14_w
+        _d14_site_attack(w)
+        stored, live = _d14_pair(w)
+        assert live != 0
+        assert stored == live, (stored, live)
+
+    @pytest.mark.parametrize("site", sorted(_D14_SITES))
+    def test_every_stamp_site_leaves_the_store_equal_to_the_live_score(self, _d14_w, site):
+        w = _d14_w
+        _D14_SITES[site](w)
+        stored, live = _d14_pair(w)
+        assert live != 0, f"{site}: the guard - the site moved the figure"
+        assert stored == live, f"{site}: stored {stored} live {live}"
+
+    @pytest.mark.parametrize("site", sorted(_D14_SITES))
+    def test_with_the_seam_down_every_site_leaves_the_store_at_the_morning(
+            self, _d14_w, _d14_down, site):
+        w = _d14_w
+        _D14_SITES[site](w)
+        stored, live = _d14_pair(w)
+        assert stored == 0 and live != 0, f"{site}: stored {stored} live {live}"
+
+    def test_the_other_chair_reads_the_same_store(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capital(w)
+        assert D.get_war_score_for(w, "Austria", "France") == -D.get_war_score_for(
+            w, "France", "Austria")
+        assert D.get_war_score_for(w, "Austria", "France") == D.live_war_score_for(
+            w, "Austria", "France")
+
+    def test_the_stored_figure_is_a_plain_int(self, _d14_w):
+        """Golden Rule 2: nothing a float ever reaches the wire from the store."""
+        w = _d14_w
+        _d14_site_capital(w)
+        key = w._make_diplo_key("France", "Austria")
+        assert type(w.war_scores[key]) is int
+
+    def test_end_turn_s_recompute_is_untouched_by_the_hold(self, _d14_w, _d14_down):
+        """`recalculate_war_scores` writes through the private writer, not the
+        seam: holding the seam down restores TODAY's behaviour, End Turn
+        included."""
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capital(w)
+        assert _d14_pair(w)[0] == 0
+        D.recalculate_war_scores(w)
+        stored, live = _d14_pair(w)
+        assert stored == live != 0
+
+    def test_end_turn_and_the_seam_store_one_figure(self, _d14_w):
+        """ONE writer: the seam's stamp and End Turn's loop agree to the point."""
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capture(w)
+        key = w._make_diplo_key("France", "Austria")
+        stamped = w.war_scores[key]
+        D.recalculate_war_scores(w)
+        assert w.war_scores[key] == stamped
+
+    def test_only_the_one_writer_assigns_the_store(self):
+        """Census: `war_scores[...] =` is written in `diplomacy._store_pair_war_score`
+        and in the scenario boot's two seed sites - nowhere else in backend/."""
+        hits = []
+        for path in sorted((_D14_ROOT / "backend").rglob("*.py")):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for match in re.finditer(r"\bwar_scores\[[^\]\n]+\]\s*=(?!=)", text):
+                hits.append(path.name)
+        assert sorted(hits) == ["diplomacy.py", "world_state.py", "world_state.py"], hits
+
+    # ── the seam's own contract ──────────────────────────────────────────
+
+    def test_a_pair_not_at_war_is_never_stored(self, _d14_w):
+        """A capture from an ally's hands writes no pair: the store holds WAR
+        pairs only."""
+        w = _d14_w
+        assert w.get_region("Swabia").controller == "Bavaria"
+        with _d14_quiet():
+            w.capture_region("Swabia", "France")
+        assert w._make_diplo_key("France", "Bavaria") not in w.war_scores
+
+    @pytest.mark.parametrize("a,b", [("France", "France"), ("", "Austria"),
+                                     (None, "Austria"), ("France", "Prussia"),
+                                     ("France", "Nowhere")])
+    def test_the_seam_ignores_what_is_not_a_war(self, _d14_w, a, b):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        before = dict(w.war_scores)
+        D.recalculate_pair_war_score(w, a, b)
+        assert w.war_scores == before
+
+    def test_the_seam_never_raises(self, _d14_w, monkeypatch):
+        """A stamp inside a battle must not cost the battle."""
+        from backend.game_logic import diplomacy as D
+
+        def boom(*a, **k):
+            raise RuntimeError("the calculation fell over")
+        monkeypatch.setattr(D, "calculate_war_score", boom)
+        D.recalculate_pair_war_score(_d14_w, "France", "Austria")
+        assert _d14_w.war_scores == {}
+
+    def test_among_recomputes_every_pair_at_war_in_the_set(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        with _d14_quiet():
+            w.regions["Bohemia"].controller = "France"
+        seen = []
+        real = D.recalculate_pair_war_score
+        D.recalculate_pair_war_score = lambda world, a, b: (seen.append((a, b)), real(world, a, b))
+        try:
+            D.recalculate_war_scores_among(w, {"France", "Austria", "Bavaria", None})
+        finally:
+            D.recalculate_pair_war_score = real
+        assert seen == [("Austria", "Bavaria"), ("Austria", "France"), ("Bavaria", "France")]
+        assert _d14_pair(w)[0] == _d14_pair(w)[1] == 5
+
+    def test_the_live_read_stays_the_live_computation_and_says_the_stamp(self):
+        """The ruling's letter ("`live_war_score_for` becomes a reading of the
+        store") is NOT taken: the live read stays correct by construction (a
+        march that opens a siege, a fixture that writes a board). Its docstring
+        names the stamp; the pins above hold the two equal at every site."""
+        from backend.game_logic import diplomacy as D
+        doc = D.live_war_score_for.__doc__
+        assert "S14E-D14" in doc and "recalculate_pair_war_score" in doc
+
+    def test_a_board_a_fixture_writes_still_reads_live(self, _d14_w):
+        """A mover with no stamp (a hand-set controller) leaves the store at
+        the morning's figure and the live read correct."""
+        w = _d14_w
+        w.regions["Bohemia"].controller = "France"
+        assert _d14_pair(w) == (0, 5)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X98 - subjugation_refusal quotes and gates on the recomputed store
+# ══════════════════════════════════════════════════════════════════════════
+
+_D14_AUSTRIA_PROVINCES = ("Bohemia", "Carniola", "Moravia", "Hungary", "Croatia", "Tyrol")
+
+
+def _d14_take(w, provinces):
+    with _d14_quiet():
+        for province in provinces:
+            w.capture_region(province, "France")
+
+
+class TestS14EX98:
+    """`vassal.subjugation_refusal` read `get_war_score_for` - the STORE - for
+    its gate AND the "(its war score +N; it submits at -40)" it quotes; the
+    wizard row's disabled reason printed the morning's figure beside the war
+    panel's live one. Reproduced: three Austrian provinces taken, the live
+    score -21 from Austria's chair, the reason still "+0". The store is
+    recomputed at the capture now and the reason reads it."""
+
+    def test_the_quote_is_the_live_figure_after_the_captures(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.vassal import subjugation_refusal
+        w = _d14_w
+        assert "war score +0" in subjugation_refusal(w, "France", "Austria")
+        _d14_take(w, _D14_AUSTRIA_PROVINCES[:3])
+        live = D.live_war_score_for(w, "Austria", "France")
+        assert live < 0
+        reason = subjugation_refusal(w, "France", "Austria")
+        assert f"its war score {live:+d}; it submits at -40" in reason, reason
+
+    def test_before_the_reason_quoted_the_morning(self, _d14_w, _d14_down):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.vassal import subjugation_refusal
+        w = _d14_w
+        _d14_take(w, _D14_AUSTRIA_PROVINCES[:3])
+        assert D.live_war_score_for(w, "Austria", "France") < 0
+        assert "its war score +0;" in subjugation_refusal(w, "France", "Austria")
+
+    def test_the_gate_opens_when_the_war_decided_it_not_at_end_turn(self, _d14_w):
+        """Six of Austria's seven home provinces taken (the capital stands):
+        the live score is -40 and the court is BEATEN now - the ruling's
+        mechanic move (reading live would have moved the gate too)."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.vassal import subjugation_refusal
+        w = _d14_w
+        _d14_take(w, _D14_AUSTRIA_PROVINCES)
+        assert D.live_war_score_for(w, "Austria", "France") <= -40
+        assert D.get_war_score_for(w, "Austria", "France") <= -40
+        assert subjugation_refusal(w, "France", "Austria") == ""
+
+    def test_before_the_gate_stayed_shut_until_the_next_turn(self, _d14_w, _d14_down):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.vassal import subjugation_refusal
+        w = _d14_w
+        _d14_take(w, _D14_AUSTRIA_PROVINCES)
+        assert D.live_war_score_for(w, "Austria", "France") <= -40
+        assert subjugation_refusal(w, "France", "Austria") != ""
+        D.recalculate_war_scores(w)                    # End Turn
+        assert subjugation_refusal(w, "France", "Austria") == ""
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X101 - the estimate and the words read the figure the live line reads
+# ══════════════════════════════════════════════════════════════════════════
+
+def _d14_armistice(proposer="France", target="Austria"):
+    return {"type": "armistice", "proposer_nation": proposer, "target_nation": target,
+            "sweeteners": [], "demands": [], "clauses": []}
+
+
+class TestS14EX101:
+    """The acceptance estimate (`calculate_acceptance`), the direction word
+    (`armistice_variant_for`), the bucket word (`get_game_bucket`) and the
+    option descriptions read the STORED pair score beside the live "War
+    score:" line. Reproduced: Vienna taken - stored 0, live +27; France's
+    armistice scored 11 where End Turn's recompute gives 39; the bucket read
+    "stalemate", Austria's armistice "winning", the generous option "Sweeten
+    the offer". `acceptance_reads_the_field` (PC-F71) patched only a battle of
+    the pair this turn - a capture moved nothing it read."""
+
+    def test_the_estimate_equals_the_estimate_after_a_fresh_recompute(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capital(w)
+        mid_turn = D.calculate_acceptance(_d14_armistice(), w)
+        D.recalculate_war_scores(w)
+        end_turn = D.calculate_acceptance(_d14_armistice(), w)
+        assert mid_turn["score"] == end_turn["score"]
+        assert mid_turn["components"]["war_score_modifier"] == end_turn["components"][
+            "war_score_modifier"] != 0
+
+    def test_before_the_estimate_read_the_morning(self, _d14_w, _d14_down):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capital(w)
+        mid_turn = D.calculate_acceptance(_d14_armistice(), w)
+        assert mid_turn["components"]["war_score_modifier"] == 0
+        D.recalculate_war_scores(w)
+        assert D.calculate_acceptance(_d14_armistice(), w)["score"] > mid_turn["score"]
+
+    def test_the_estimate_reads_the_figure_the_live_line_reads(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capital(w)
+        live = D.live_war_score_for(w, "France", "Austria")
+        got = D.calculate_acceptance(_d14_armistice(), w)["components"]["war_score_modifier"]
+        assert got == round(live * D.bilateral_war_score_weight(), 1)
+
+    def test_the_direction_word_follows_the_proposer_s_chair(self, _d14_w, _d14_down):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capture(w)
+        assert D.armistice_variant_for(w, "Austria", "France") == "armistice_winning"   # the morning
+        D.recalculate_war_scores(w)
+        assert D.armistice_variant_for(w, "Austria", "France") == "armistice_losing"
+
+    def test_the_direction_word_is_live_at_the_stamp(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_capture(w)
+        assert D.live_war_score_for(w, "Austria", "France") < 0
+        assert D.armistice_variant_for(w, "Austria", "France") == "armistice_losing"
+        assert D.armistice_variant_for(w, "France", "Austria") == "armistice_winning"
+
+    def test_the_bucket_word_reads_the_live_figure(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        w = _d14_w
+        assert get_game_bucket("Austria", w) == "stalemate"
+        _d14_site_capital(w)
+        live = D.live_war_score_for(w, "France", "Austria")
+        assert 0 < live <= 30
+        assert get_game_bucket("Austria", w) == "winning_slightly"
+
+    def test_before_the_bucket_word_stayed_stalemate(self, _d14_w, _d14_down):
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        w = _d14_w
+        _d14_site_capital(w)
+        assert get_game_bucket("Austria", w) == "stalemate"
+
+    def test_the_option_descriptions_and_the_snapshot_read_one_figure(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_dialogue import generate_dialogue
+        w = _d14_w
+        _d14_site_capital(w)
+        with _d14_quiet():
+            dialogue = generate_dialogue(
+                "proposal_confirm",
+                {"target_nation": "Austria", "proposal_type": "peace"}, w)
+        generous = [o for o in dialogue["options"] if o["action"] == "modify_generous"]
+        assert generous and "unnecessary given our strong position" in generous[0]["description"]
+        assert dialogue["war_context_snapshot"]["war_score"] == D.get_war_score_for(
+            w, "France", "Austria") == D.live_war_score_for(w, "France", "Austria")
+
+    def test_before_the_generous_option_called_a_won_war_a_weak_position(self, _d14_w, _d14_down):
+        from backend.game_logic.diplomatic_dialogue import generate_dialogue
+        w = _d14_w
+        _d14_site_capital(w)
+        with _d14_quiet():
+            dialogue = generate_dialogue(
+                "proposal_confirm",
+                {"target_nation": "Austria", "proposal_type": "peace"}, w)
+        generous = [o for o in dialogue["options"] if o["action"] == "modify_generous"]
+        assert "Sweeten the offer" in generous[0]["description"]
+
+    def test_every_player_facing_store_reader_agrees_with_the_live_line(self, _d14_w):
+        """The census, by behaviour: after a stamp the readers that QUOTE or
+        WORD a score from the store - the wizard row's reason, the estimate's
+        modifier, the bucket, the direction word - read the live line's figure."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        from backend.game_logic.vassal import subjugation_refusal
+        w = _d14_w
+        _d14_take(w, _D14_AUSTRIA_PROVINCES[:3])
+        live_f = D.live_war_score_for(w, "France", "Austria")
+        live_a = D.live_war_score_for(w, "Austria", "France")
+        assert live_f == -live_a > 0
+        assert D.get_war_score_for(w, "France", "Austria") == live_f
+        assert f"its war score {live_a:+d}" in subjugation_refusal(w, "France", "Austria")
+        modifier = D.calculate_acceptance(_d14_armistice(), w)["components"]["war_score_modifier"]
+        assert modifier == round(live_f * D.bilateral_war_score_weight(), 1)
+        assert 0 < live_f <= 30
+        assert get_game_bucket("Austria", w) == "winning_slightly"
+        assert D.armistice_variant_for(w, "Austria", "France") == "armistice_losing"
+        # the desk's "are we at war with X" quotes the store: the same figure
+        from backend.ai.question_desk import _answer_at_war
+        assert f"The war score stands at {live_f:+d}." in _answer_at_war(
+            w, "France", "Austria")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X221 - the auto-charge's conquest (the one capture outside capture_region)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX221:
+    """The reckless auto-charge's bare `controller =` assignment bypasses
+    `capture_region` (PT-F1's mirror) and wrote the ledger and the title by
+    hand - and stamped nothing: the pair's territory (-5) and conquest (-2)
+    components moved after the charge's own battle stamp. Reproduced: Mack
+    (reckless cavalry, 60,000) takes Rhineland from Ney (40 men) - live -7
+    from France's chair, the stamp at the battle read the pre-capture board."""
+
+    def test_the_conquest_stamps_the_pair(self, _d14_w):
+        w = _d14_w
+        _d14_site_autocharge(w)
+        stored, live = _d14_pair(w)
+        assert live == -7 and stored == live
+
+    def test_before_the_battle_stamp_alone_left_the_conquest_unread(self, _d14_w, monkeypatch):
+        from backend.models.world_state import WorldState
+        monkeypatch.setattr(WorldState, "_recalculate_capture_war_scores",
+                            lambda self, *a, **k: None)
+        w = _d14_w
+        _d14_site_autocharge(w)
+        stored, live = _d14_pair(w)
+        assert live == -7 and stored != live
+
+    def test_the_helper_is_the_one_the_executors_capture_uses(self, _d14_w):
+        """`capture_region` and the auto-charge call the same method."""
+        src = (_D14_ROOT / "backend" / "models" / "world_state.py").read_text(
+            encoding="utf-8")
+        assert src.count("self._recalculate_capture_war_scores(") == 2
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X222 - a capture moves third pairs
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX222:
+    """A capture moves the war score of every pair its province stands in,
+    not only the pair that fought: the territory component reads who holds
+    whose STARTING ground and the capital component whose capital. Reproduced:
+    Austria holds Bavarian Swabia (Austria|Bavaria at war, +5 territory);
+    France retakes it - the Austria|Bavaria score drops 5 and the pair-only
+    stamp (old controller x capturer) left it at the morning's figure."""
+
+    @staticmethod
+    def _austria_holds_swabia(w):
+        from backend.game_logic import diplomacy as D
+        w.regions["Swabia"].controller = "Austria"
+        D.recalculate_war_scores(w)
+        return D.get_war_score_for(w, "Austria", "Bavaria")
+
+    def test_the_third_pair_follows_the_capture(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        before = self._austria_holds_swabia(w)
+        with _d14_quiet():
+            w.capture_region("Swabia", "France")
+        stored, live = _d14_pair(w, "Austria", "Bavaria")
+        assert stored == live == before - 5, (before, stored, live)
+        assert D.get_war_score_for(w, "France", "Austria") == D.live_war_score_for(
+            w, "France", "Austria")
+
+    def test_before_only_the_pair_that_fought_moved(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        from backend.models.world_state import WorldState
+
+        def pair_only(self, region_name, old_controller, capturing_nation):
+            D.recalculate_pair_war_score(self, old_controller, capturing_nation)
+        monkeypatch.setattr(WorldState, "_recalculate_capture_war_scores", pair_only)
+        w = _d14_w
+        before = self._austria_holds_swabia(w)
+        with _d14_quiet():
+            w.capture_region("Swabia", "France")
+        stored, live = _d14_pair(w, "Austria", "Bavaria")
+        assert stored == before and live == before - 5
+
+    def test_the_touched_nations_are_owner_starter_capturer_and_capital(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        seen = []
+        monkeypatch.setattr(D, "recalculate_war_scores_among",
+                            lambda world, nations: seen.append(set(nations)))
+        w._recalculate_capture_war_scores("Vienna", "Austria", "France")
+        assert seen[-1] == {"Austria", "France"}
+        w._recalculate_capture_war_scores("Swabia", "Austria", "France")
+        assert seen[-1] == {"Austria", "France", "Bavaria"}
+        w.nation_capitals["Russia"] = "Vienna"
+        w._recalculate_capture_war_scores("Vienna", "Austria", "France")
+        assert seen[-1] == {"Austria", "France", "Russia"}
+        w._recalculate_capture_war_scores("Vienna", None, "France")
+        assert seen[-1] == {"Austria", "France", "Russia"}
+
+    def test_a_capture_of_a_capital_moves_the_capital_owner_s_other_wars(self, _d14_w):
+        """Bavaria's capital, held by Austria, retaken by France: the capital
+        component (+/-20) of Austria|Bavaria drops with it."""
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        capital = w.get_nation_capital("Bavaria")
+        w.regions[capital].controller = "Austria"
+        D.recalculate_war_scores(w)
+        before = D.get_war_score_for(w, "Austria", "Bavaria")
+        assert D.calculate_war_score("Austria", "Bavaria", w, return_components=True)["capital"] == 20
+        with _d14_quiet():
+            w.capture_region(capital, "France")
+        stored, live = _d14_pair(w, "Austria", "Bavaria")
+        assert stored == live and stored < before
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X223 - a prisoner moves the war score
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX223:
+    """`capture_marshal` and `release_captured_marshal` moved two LIVE
+    components - the Captive Eagle (a sovereign in the enemy's keeping,
+    +/-15) and the siege a prisoner no longer lays (`_besieges`) - and stamped
+    nothing; NP-4's own docstring said "derived LIVE ... nothing is written
+    here". Reproduced: Napoleon taken by Austria - live -15 from France's
+    chair, the store 0 until End Turn."""
+
+    def test_the_taking_stamps_the_pair(self, _d14_w):
+        w = _d14_w
+        _d14_site_sovereign(w)
+        stored, live = _d14_pair(w)
+        assert live == -15 and stored == live
+
+    def test_the_release_stamps_the_pair_home_again(self, _d14_w):
+        w = _d14_w
+        _d14_site_sovereign(w)
+        with _d14_quiet():
+            assert w.release_captured_marshal("Napoleon", reason="ransom")
+        assert _d14_pair(w) == (0, 0)
+
+    def test_before_the_release_left_the_eagle_in_chains_in_the_store(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_sovereign(w)
+        monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: None)
+        with _d14_quiet():
+            assert w.release_captured_marshal("Napoleon", reason="ransom")
+        stored, live = _d14_pair(w)
+        assert (stored, live) == (-15, 0)
+
+    def test_a_marshal_taken_in_a_capital_lifts_the_siege_component(self, _d14_w):
+        """The besieger is a prisoner: the siege (+10) goes with him."""
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        _d14_site_march(w)
+        assert D.calculate_war_score("France", "Austria", w, return_components=True)["capital"] == 10
+        assert _d14_pair(w) == (10, 10)
+        with _d14_quiet():
+            w.capture_marshal(w.get_marshal("Ney"), "Austria", "test")
+        stored, live = _d14_pair(w)
+        assert live == 0 and stored == live
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X224 - a march into or out of a capital
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX224:
+    """A corps standing in the enemy's capital is a siege (`_besieges`, +/-10)
+    - live from the turn it arrives, with no battle and no capture to stamp.
+    Reproduced: "Ney, move to Vienna" from Moravia - the war panel reads +10,
+    the store 0, so the armistice preview estimated on the morning. The move
+    and the retreat stamp the pair."""
+
+    def test_the_march_in_stamps_the_pair(self, _d14_w):
+        w = _d14_w
+        _d14_site_march(w)
+        assert _d14_pair(w) == (10, 10)
+
+    def test_before_the_march_left_the_store_behind(self, _d14_w, _d14_down):
+        w = _d14_w
+        _d14_site_march(w)
+        assert _d14_pair(w) == (0, 10)
+
+    def _ney_in_vienna_hard_pressed(self, w):
+        _d14_site_march(w)
+        w.get_marshal("Ney").strength = 8000
+        charles = w.get_marshal("ArchdukeCharles")
+        charles.location = "Hungary"
+        charles.strength = 54000
+        w.calculate_visibility()
+
+    def test_the_retreat_out_stamps_the_pair(self, _d14_w):
+        w = _d14_w
+        self._ney_in_vienna_hard_pressed(w)
+        result = _d14_command(w, "Ney", "retreat")
+        assert result.get("success"), result.get("message")
+        assert w.get_marshal("Ney").location != "Vienna"
+        assert _d14_pair(w) == (0, 0)
+
+    def test_before_the_retreat_left_the_siege_in_the_store(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        self._ney_in_vienna_hard_pressed(w)
+        monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: None)
+        result = _d14_command(w, "Ney", "retreat")
+        assert result.get("success"), result.get("message")
+        assert _d14_pair(w) == (10, 0)
+
+    def test_a_march_to_a_province_that_is_nobody_s_capital_stamps_nothing(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        calls = []
+        monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: calls.append(a))
+        w = _d14_w
+        D.recalculate_war_scores_for_march(w, w.get_marshal("Ney"), "Rhineland", "Lorraine")
+        assert calls == []
+
+    def test_the_corps_own_capital_stamps_nothing(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        calls = []
+        monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: calls.append(a))
+        w = _d14_w
+        D.recalculate_war_scores_for_march(
+            w, w.get_marshal("Ney"), "Rhineland", w.get_nation_capital("France"))
+        assert calls == []
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X225 - the main attack's advance comes after its battle record
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX225:
+    """`_attack_relationships_and_report` records the battle (and stamps)
+    BEFORE `_attack_advance_and_capture` moves the victor, so a victor who
+    advances into a capital he does not capture stands in a siege the stamp
+    never saw. Reproduced on the Ulm board with Swabia made Austria's capital
+    and no other French corps near: live +14, the store +4. The charge's and
+    the auto-kill's advances precede their pipeline's step 8, which stamps
+    after - pinned here so a reordering cannot open the same gap."""
+
+    @staticmethod
+    def _board(w, variant: str):
+        w.nation_capitals["Austria"] = "Swabia"
+        for m in w.marshals.values():
+            if m.nation == "France" and m.name not in ("Ney", "Davout", "Murat"):
+                m.location = "Normandy"
+        w.get_marshal("Davout").location = "Rhineland" if variant == "kill" else "Normandy"
+        w.get_marshal("Murat").location = "Rhineland" if variant == "charge" else "Normandy"
+        w.get_marshal("Mack").strength = {"attack": 6000, "kill": 40, "charge": 3000}[variant]
+        w.calculate_visibility()
+
+    def _run(self, w, variant: str):
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import StrategicOrder
+        self._board(w, variant)
+        w.actions_remaining = 4
+        random.seed(7)
+        with _d14_quiet():
+            if variant == "attack":
+                result = _d14_attack(w, "Ney", "Mack")
+                mover = "Ney"
+            elif variant == "kill":
+                gunner = w.get_marshal("Davout")
+                gunner.artillery = True
+                gunner.strategic_order = StrategicOrder(
+                    command_type="SUPPORT", target="Ney", target_type="marshal",
+                    started_turn=int(w.current_turn), original_command="support Ney",
+                    issued_turn=int(w.current_turn))
+                result = _d14_attack(w, "Ney", "Mack")
+                mover = "Ney"
+            else:
+                result = CommandExecutor()._combat._execute_glorious_charge(
+                    w.get_marshal("Murat"), "Mack", w, {"world": w})
+                mover = "Murat"
+        assert result.get("success"), result.get("message")
+        assert w.get_marshal(mover).location == "Swabia", result.get("message")
+
+    def test_the_attack_advance_stamps_the_pair(self, _d14_w):
+        from backend.game_logic import diplomacy as D
+        w = _d14_w
+        self._run(w, "attack")
+        assert D.calculate_war_score("France", "Austria", w, return_components=True)["capital"] == 10
+        stored, live = _d14_pair(w)
+        assert stored == live
+
+    def test_before_the_advance_s_siege_was_not_in_the_store(self, _d14_w, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "recalculate_war_scores_for_march", lambda *a, **k: None)
+        w = _d14_w
+        self._run(w, "attack")
+        stored, live = _d14_pair(w)
+        assert live - stored == 10, (stored, live)
+
+    @pytest.mark.parametrize("variant", ["kill", "charge"])
+    def test_the_auto_kill_and_the_charge_stamp_after_their_advance(self, _d14_w, monkeypatch, variant):
+        """No march stamp of their own: the pipeline's step 8 comes after the
+        advance. (If a reordering moves it before, this fails.)"""
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "recalculate_war_scores_for_march", lambda *a, **k: None)
+        w = _d14_w
+        self._run(w, variant)
+        assert D.calculate_war_score("France", "Austria", w, return_components=True)["capital"] == 10
+        stored, live = _d14_pair(w)
+        assert stored == live
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d15 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d15.py)
+# ══════════════════════════════════════════════════════════════════════════
+# S14f part 3 (October 25, 2026) - SUBJUGATION quotes first (S14E-D15).
+#
+# The pins of the ruling `docs/DESIGN_REFINEMENT.md` S14E-D15 with its two defect
+# halves `docs/BUG_FIXES.md` S14E-X108 (the Cabinet's Subjugate chip / the typed
+# `vassalize` conquered a beaten court on one click - a Puppet at loyalty 20,
+# Europe's alarm up 25, the war ended, the marshals under the lord's flag - with
+# no price on the chip, because it costs 0 DP and 0 gold) and S14E-X195 (the
+# `make_vassal` verb is the same one-click act), and the sweep's siblings:
+#
+#   S14E-X226  the conquest's report printed the assimilated marshals by roster
+#              key ("ArchdukeCharles"), not by name ("Archduke Charles")
+#   S14E-X227  the release's quote and report printed the marshals who go home
+#              (and the recalled contingent's commander) by roster key
+#   S14E-X228  the Cabinet chip named France and "her" for every lord and court
+#              and carried no terms; it now says the plan in brief
+#   S14E-X229  the settlement receipt's `threat_delta_for_lord` was a second
+#              literal (25 / 5) beside `add_threat`'s own - one source now
+#
+# The fix: `vassal.subjugation_plan` is the ONE pure plan of a conquest (the
+# loyalty, the alarm, the tribute, the pairs the war's end closes, the marshals);
+# `create_vassal_conquest` applies the figures it reads (`conquest_refusal`,
+# `conquest_loyalty`, `CONQUEST_THREAT`, `_vassalage_entry_decision`);
+# `subjugation_quote` is the words; the PLAYER's unconfirmed order quotes through
+# `DiplomaticExecutor._quote_instrument` (free, after every refusal, before the
+# deed); "Subjugate" reissues the line `confirmed`, "Not now" spends nothing. The
+# AI's road (`_acting_nation`) and the settlement's clause never see the quote.
+# The seam "down" is the existing lever `VassalExecutor.THE_VASSAL_VERB_IS_GATED`
+# (False restores the free subjugation byte-for-byte).
+#
+# Helpers are prefixed `_d15_`; one class per row.
+
+_D15_ROOT = Path(__file__).resolve().parents[1]
+_D15_SCENARIO = (_D15_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+
+
+def _d15_quiet(fn, *args, **kwargs):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*args, **kwargs)
+
+
+@pytest.fixture(scope="module")
+def _d15_boot():
+    from backend.models.world_state import WorldState
+    with contextlib.redirect_stdout(io.StringIO()):
+        return WorldState.from_scenario(str(_D15_SCENARIO))
+
+
+def _d15_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _d15_beaten(boot, court: str = "Austria", dp: int = 5):
+    """The shipped 1805 board with `court` at war with France and BEATEN (its
+    capital in French hands - GEV-1's first proof; a one-province court by
+    the war score, its second). Austria is at war at the boot; any other court
+    is put at war through the pair's state."""
+    w = _d15_copy(boot)
+    w.diplomatic_points = dp
+    key = w._make_diplo_key("France", court)
+    if w.get_diplomatic_state("France", court) != "WAR":
+        w.diplomatic_states[key] = "WAR"
+    if len(w.get_nation_regions(court)) > 1:
+        w.regions[w.get_nation_capital(court)].controller = "France"
+    else:
+        # a one-province court would be ELIMINATED by the fall of its capital:
+        # it is beaten by the war score instead (GEV-1's second proof, -40 -
+        # the stored score is the alphabetically-first court's view)
+        w.war_scores[key] = -40 if key.split("|")[0] == court else 40
+    w.invalidate_active_nations_cache()
+    return w
+
+
+@contextlib.contextmanager
+def _d15_client(w):
+    """The player's road: /command on a swapped world (three globals, restored)."""
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = w
+    M.world = w
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+
+
+def _d15_say(client, text: str) -> dict:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return client.post("/command", json={"command": text}).json()
+
+
+def _d15_is_quote(reply: dict) -> bool:
+    return (reply.get("state") == "awaiting_clarification"
+            and bool(reply.get("instrument_confirm")))
+
+
+def _d15_exec(w, command: dict) -> dict:
+    from backend.commands.executor import CommandExecutor
+    with contextlib.redirect_stdout(io.StringIO()):
+        return CommandExecutor().execute({"command": command}, {"world": w})
+
+
+def _d15_book(w) -> str:
+    """Everything a quote must leave alone."""
+    return json.dumps({
+        "vassals": w.vassals,
+        "states": w.diplomatic_states,
+        "threat": w.threat_by_target,
+        "dp": int(w.diplomatic_points),
+        "gold": dict(w.nation_gold),
+        "marshals": {m.name: [m.nation, getattr(m, "original_nation", None)]
+                     for m in w.marshals.values()},
+        "release": getattr(w, "vassal_release_cooldowns", {}),
+        "scores": getattr(w, "war_scores", {}),
+        "cooldowns": getattr(w, "armistice_cooldowns", {}),
+    }, sort_keys=True, default=str)
+
+
+def _d15_state(w) -> str:
+    return json.dumps(w.to_dict(), sort_keys=True, default=str)
+
+
+def _d15_cap_shut(monkeypatch):
+    """The power cap (WPS-B) shut: a court too large for the lord to vassalize
+    (the boot's Britain, at 73% of France, drops under the line the moment
+    London falls, so the gate is staged on `check_vassalage_power_cap`)."""
+    monkeypatch.setattr(
+        "backend.game_logic.diplomacy.check_vassalage_power_cap",
+        lambda world, lord, vassal: {"allowed": False, "pct": 99,
+                                     "reason": "too powerful to vassalize"})
+
+
+def _d15_floats(value, path="plan"):
+    """Every float in a nested structure (Golden Rule 2: none reach the wire)."""
+    if isinstance(value, float):
+        yield path
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            yield from _d15_floats(v, f"{path}.{k}")
+    elif isinstance(value, (list, tuple)):
+        for i, v in enumerate(value):
+            yield from _d15_floats(v, f"{path}[{i}]")
+
+
+class TestS14ED15:
+    """The ruling: subjugation quotes first, as every priced instrument does
+    (S14E-26) - the loyalty, the alarm, the tribute, the war's end, the
+    marshals; Subjugate / Not now; shown == applied. Reproduced (before the
+    fix, on the shipped 1805 board with Vienna held by France): `vassalize
+    Austria` made Austria a Puppet vassal at loyalty 20 AT ONCE - threat
+    70 -> 95, the pair VASSAL, Bavaria's war a truce, the Kingdom of Italy's
+    war peace, the Britain and Russia alliances broken, three marshals under
+    the French flag - on one click, with no quote."""
+
+    def test_the_bare_order_quotes_and_changes_nothing(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        before = _d15_book(w)
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+        assert _d15_is_quote(quote), quote.get("message")
+        assert quote["success"] is True and quote["free_action"] is True
+        assert "Austria" not in w.vassals and _d15_book(w) == before
+        assert [o["label"] for o in quote["options"]] == ["Subjugate", "Not now"]
+        assert quote["options"][0]["command"] == "vassalize Austria confirmed"
+        assert quote["options"][1]["command"] == "cancel"
+        assert "yes" in quote["options"][0]["aliases"] and "no" in quote["options"][1]["aliases"]
+
+    def test_the_old_figure_with_the_lever_down(self, _d15_boot, monkeypatch):
+        """The seam down (`THE_VASSAL_VERB_IS_GATED = False`, the CRT-8 lever
+        whose gate this quote lives inside) restores the free subjugation
+        byte-for-byte: the same bare order is a vassal at once."""
+        from backend.commands.vassal_executor import VassalExecutor
+        monkeypatch.setattr(VassalExecutor, "THE_VASSAL_VERB_IS_GATED", False)
+        w = _d15_beaten(_d15_boot)
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                            "raw_command": "vassalize Austria"})
+        assert out["success"] is True and not out.get("instrument_confirm")
+        assert w.vassals["Austria"]["loyalty"] == 20 and w.vassals["Austria"]["autonomy"] == 0
+        assert w.threat_by_target["France"] == 95
+
+    def test_the_quote_reads_the_plan_in_words(self, _d15_boot):
+        from backend.game_logic.vassal import subjugation_plan
+        w = _d15_beaten(_d15_boot)
+        plan = subjugation_plan(w, "France", "Austria")
+        with _d15_client(w) as client:
+            text = _d15_say(client, "vassalize Austria")["message"]
+        assert text.startswith(
+            "Subjugate Austria: it becomes France's Puppet vassal at loyalty 20, "
+            "for no point and no gold.")
+        assert "Europe's alarm at France rises by 25 (70 → 95)." in text
+        assert f"Their tribute is 100% of their income — {plan['tribute']:,} gold a turn." in text
+        assert ("The war with Austria ends. France's clients follow out of it: "
+                "the Kingdom of Italy.") in text
+        assert ("As France's client they fight only France's wars: their war with "
+                "Bavaria becomes a truce.") in text
+        assert ("Their alliances with Britain and Russia are broken — they are at "
+                "war with France.") in text
+        assert "Their marshals take French service: Mack, Archduke Charles, Archduke John." in text
+        assert ("It is undone only by release — 1 diplomatic point, and the court "
+                "cannot be brought under the yoke again for 5 turns. "
+                "Subjugate Austria? (yes / no)") in text
+        assert "ArchdukeCharles" not in text and "KingdomOfItaly" not in text
+
+    def test_the_confirm_applies_exactly_the_plan(self, _d15_boot):
+        """Shown == applied on the shipped board: the loyalty, the autonomy,
+        the alarm, the tribute at the next collection, every pair the war's
+        end moves, the marshals - each the figure the plan handed."""
+        from backend.game_logic.vassal import subjugation_plan, vassal_tribute_owed
+        w = _d15_beaten(_d15_boot)
+        plan = subjugation_plan(w, "France", "Austria")
+        names = list(plan["marshals"])
+        assert names == ["Mack", "ArchdukeCharles", "ArchdukeJohn"]
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+            done = _d15_say(client, quote["options"][0]["command"])
+        assert done["success"] is True, done["message"]
+        row = w.vassals["Austria"]
+        assert (row["lord"], row["path"]) == ("France", "conquest")
+        assert row["loyalty"] == plan["loyalty"] == 20
+        assert row["autonomy"] == plan["autonomy"] == 0
+        assert int(round(row["tribute_rate"] * 100)) == plan["tribute_pct"] == 100
+        assert w.threat_by_target["France"] == plan["threat_after"] == 95
+        assert vassal_tribute_owed(w, "Austria") == plan["tribute"] == 950
+        for entry in plan["closes"]:
+            a, b = entry["pair"]
+            assert w.get_diplomatic_state(a, b) == entry["to"], entry
+        assert [e["to"] for e in plan["closes"]] == [
+            "VASSAL", "PEACE", "ARMISTICE", "PEACE", "PEACE"]
+        for name in names:
+            assert w.marshals[name].nation == "France"
+            assert w.marshals[name].original_nation == "Austria"
+        assert done["message"].startswith(
+            "Austria has been subjugated as a Puppet vassal of France (loyalty: 20).")
+
+    def test_not_now_spends_nothing(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+            before = _d15_book(w)
+            _d15_say(client, quote["options"][1]["command"])
+        assert _d15_book(w) == before and "Austria" not in w.vassals
+
+    def test_the_quote_costs_neither_a_point_nor_gold_nor_an_action(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+            done = _d15_say(client, quote["options"][0]["command"])
+        assert quote["action_summary"]["actions_remaining"] == 4
+        assert int(w.diplomatic_points) == 5 and done["success"] is True
+        assert done["action_summary"]["actions_remaining"] == 4
+
+    def test_every_refusal_comes_before_the_quote(self, _d15_boot, monkeypatch):
+        """A quote is never offered for a click that would refuse: the beaten
+        gate (GE-V), the power cap, the release cooldown, a court already a
+        vassal, a court at peace (the Cabinet's priced proposal)."""
+        # the unbeaten court (the boot): GE-V's words, no options
+        w = _d15_copy(_d15_boot)
+        with _d15_client(w) as client:
+            unbeaten = _d15_say(client, "vassalize Austria")
+        assert unbeaten["success"] is False and not unbeaten.get("options")
+        assert "still stands" in unbeaten["message"] and "peace table" in unbeaten["message"]
+        # a beaten court too large to vassalize: the power cap's words
+        with monkeypatch.context() as m:
+            _d15_cap_shut(m)
+            w = _d15_beaten(_d15_boot)
+            with _d15_client(w) as client:
+                big = _d15_say(client, "vassalize Austria")
+        assert big["success"] is False and not big.get("options")
+        assert "cannot impose vassalage on so large a nation" in big["message"]
+        # a beaten court released five turns ago
+        w = _d15_beaten(_d15_boot)
+        w.vassal_release_cooldowns["Austria"] = 3
+        with _d15_client(w) as client:
+            cool = _d15_say(client, "vassalize Austria")
+        assert cool["success"] is False and not cool.get("options")
+        assert cool["message"] == (
+            "Cannot vassalize Austria: recently released (3 turns remaining).")
+        # a court already a vassal
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            held = _d15_say(client, "vassalize Holland")
+        assert not _d15_is_quote(held)
+        # a court at peace: the priced proposal, never the conquest's quote
+        w = _d15_copy(_d15_boot)
+        w.diplomatic_points = 5
+        with _d15_client(w) as client:
+            peace = _d15_say(client, "vassalize Sweden")
+        assert not (peace.get("instrument_confirm") and "Subjugate" in str(peace.get("message")))
+        assert "Sweden" not in w.vassals
+
+    def test_the_ai_never_reaches_the_quote(self, _d15_boot):
+        """GR5: an AI lord's order carries `_acting_nation` and conquers at
+        once as before (its own rung priced the act)."""
+        from backend.commands.executor import CommandExecutor
+        w = _d15_copy(_d15_boot)
+        key = w._make_diplo_key("Prussia", "Saxony")
+        w.diplomatic_states[key] = "WAR"
+        w.war_scores[key] = 40            # the court beaten (Saxony at -40)
+        out = _d15_quiet(CommandExecutor()._vassal._execute_make_vassal,
+                         {"action": "make_vassal", "target": "Saxony",
+                          "_acting_nation": "Prussia", "raw_command": "vassalize Saxony"},
+                         {"world": w})
+        assert out["success"] is True and not out.get("instrument_confirm"), out
+        assert w.vassals["Saxony"]["lord"] == "Prussia"
+
+    def test_the_quote_is_pure(self, _d15_boot):
+        from backend.game_logic.vassal import subjugation_plan, subjugation_quote
+        w = _d15_beaten(_d15_boot)
+        before = _d15_state(w)
+        plan = subjugation_plan(w, "France", "Austria")
+        subjugation_quote(w, "France", "Austria", plan)
+        subjugation_quote(w, "France", "Austria")
+        assert _d15_state(w) == before
+        assert plan["refusal"] == "" and plan["dp_cost"] == 0 and plan["gold_cost"] == 0
+
+    def test_no_float_on_the_wire(self, _d15_boot):
+        from backend.game_logic.vassal import subjugation_plan
+        w = _d15_beaten(_d15_boot)
+        plan = subjugation_plan(w, "France", "Austria")
+        assert list(_d15_floats(plan)) == []
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+        assert list(_d15_floats(quote["options"], "options")) == []
+
+    def test_the_chip_says_the_plan_in_brief_and_the_click_quotes(self, _d15_boot):
+        """The Cabinet's Subjugate chip (`cabinet_rows.subjugate_actions`):
+        its effect text is the plan in brief; the wizard's echo for it is the
+        typed line, which lands on the quote."""
+        from backend.game_logic.cabinet_rows import subjugate_actions
+        from backend.game_logic.diplomacy import get_available_diplomatic_actions
+        w = _d15_beaten(_d15_boot)
+        (row,) = subjugate_actions(w, "France", "Austria")
+        assert row["available"] is True and row["dp_cost"] == 0
+        assert row["effect_text"] == ("Puppet at loyalty 20, +25 alarm, the war ends, "
+                                      "3 marshals take our service — quoted first")
+        listed = [a for a in _d15_quiet(get_available_diplomatic_actions, w, "Austria")
+                  if a["action"] == "subjugate"]
+        assert listed and listed[0]["effect_text"] == row["effect_text"]
+        wizard = (_D15_ROOT / "godot-client" / "project-sovereign" / "scripts"
+                  / "diplomacy_wizard.gd").read_text(encoding="utf-8")
+        assert re.search(r'"subjugate":\s*\n\s*return "vassalize " \+ nation', wizard)
+        with _d15_client(w) as client:
+            assert _d15_is_quote(_d15_say(client, "vassalize Austria"))
+
+    def test_the_shut_chip_keeps_its_words(self, _d15_boot):
+        from backend.game_logic.cabinet_rows import subjugate_actions
+        w = _d15_copy(_d15_boot)
+        (row,) = subjugate_actions(w, "France", "Austria")
+        assert row["available"] is False and "still stands" in row["disabled_reason"]
+        assert row["effect_text"] == ("make her France's vassal by conquest — she must "
+                                      "be beaten first")
+
+    def test_the_source_has_one_quote_call_in_the_war_arm(self):
+        src = (_D15_ROOT / "backend" / "commands" / "vassal_executor.py").read_text(encoding="utf-8")
+        body = src[src.index("def _execute_make_vassal("):src.index("def _execute_grant_region_to_vassal(")]
+        assert body.count("_quote_instrument(") == 1
+        assert body.index("subjugation_refusal(world, player, target)") < body.index("_quote_instrument(")
+        assert "players_own and not confirmed" in body
+
+    def test_no_ai_module_calls_the_quote(self):
+        """GR5: the quote lives in the player's verb; no AI module reaches
+        `subjugation_quote` / `subjugation_plan`."""
+        for rel in ("ai/enemy_ai.py", "game_logic/ai_diplomacy.py", "game_logic/intent.py",
+                    "game_logic/turn_manager.py", "game_logic/settlement_ratify.py"):
+            text = (_D15_ROOT / "backend" / rel).read_text(encoding="utf-8")
+            assert "subjugation_quote" not in text and "subjugation_plan" not in text, rel
+
+
+class TestS14EX108:
+    """The defect half of D15, the Cabinet's chip: "Subjugate" is 0 DP and
+    0 gold, so the price pattern never applied, yet the click is irreversible.
+    Reproduced on the shipped board (see `TestS14ED15`'s docstring): the chip's
+    echo `vassalize Austria` through `POST /command` made the vassal in one
+    response. Now the same request is the quote, and the vassal is made by
+    the reissue only."""
+
+    def test_the_chips_echo_is_the_quote_then_the_deed(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            first = _d15_say(client, "vassalize Austria")
+            assert _d15_is_quote(first) and "Austria" not in w.vassals
+            second = _d15_say(client, "vassalize Austria confirmed")
+        assert second["success"] is True and "Austria" in w.vassals
+        assert not second.get("instrument_confirm")
+
+    def test_yes_and_no_answer_the_quote(self, _d15_boot):
+        """The quote's aliases ride the clarification handler: "yes" is the
+        deed (the quote's first option), "no" withdraws the order and spends
+        nothing."""
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            assert _d15_is_quote(_d15_say(client, "vassalize Austria"))
+            done = _d15_say(client, "yes")
+        assert done["success"] is True and "Austria" in w.vassals
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            assert _d15_is_quote(_d15_say(client, "vassalize Austria"))
+            before = _d15_book(w)
+            _d15_say(client, "no")
+        assert "Austria" not in w.vassals and _d15_book(w) == before
+
+    def test_the_subjugate_and_vassalize_words_both_quote(self, _d15_boot):
+        for line in ("subjugate Austria", "vassalize Austria", "make Austria a vassal"):
+            w = _d15_beaten(_d15_boot)
+            with _d15_client(w) as client:
+                reply = _d15_say(client, line)
+            assert _d15_is_quote(reply), (line, reply.get("message"))
+            assert "Austria" not in w.vassals, line
+
+    def test_a_confirmed_line_is_the_deed_whatever_its_words(self, _d15_boot):
+        for line in ("vassalize Austria confirmed", "subjugate Austria confirmed",
+                     "make Austria a vassal confirmed"):
+            w = _d15_beaten(_d15_boot)
+            with _d15_client(w) as client:
+                reply = _d15_say(client, line)
+            assert reply["success"] is True and "Austria" in w.vassals, (line, reply)
+
+    def test_the_unaddressed_name_still_spends_nothing(self, _d15_boot):
+        """CX-R1: "Zorglub vassalize Austria" is refused before the verb runs
+        (the quote is not a way round the addressee rule)."""
+        w = _d15_beaten(_d15_boot)
+        before = _d15_book(w)
+        with _d15_client(w) as client:
+            reply = _d15_say(client, "Zorglub vassalize Austria")
+        assert not _d15_is_quote(reply) and "Austria" not in w.vassals
+        assert _d15_book(w) == before
+
+
+class TestS14EX195:
+    """`make_vassal` (`vassal_executor._execute_make_vassal`) is the same
+    one-click act as the chip. Reproduced on the shipped board: the command
+    dict `{"action": "make_vassal", "target": "Austria"}` returned a vassal at
+    once. Now it quotes from `vassal.subjugation_plan`; the `confirmed` flag
+    (`reforms_executor._confirmed`, as every instrument reads it), a trailing
+    " confirmed" on the line or on the target is the deed."""
+
+    def test_the_command_dict_quotes(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        before = _d15_book(w)
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                            "raw_command": "make Austria a vassal"})
+        assert out["state"] == "awaiting_clarification" and out["instrument_confirm"] is True
+        assert out["options"][0]["command"] == "vassalize Austria confirmed"
+        assert out["original_command"] == "make Austria a vassal"
+        assert _d15_book(w) == before
+
+    def test_the_confirmed_flag_is_the_deed(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                            "raw_command": "make Austria a vassal", "confirmed": True})
+        assert out["success"] is True and w.vassals["Austria"]["path"] == "conquest"
+
+    def test_a_confirmed_word_on_the_target_or_the_line_is_the_deed(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria confirmed",
+                            "raw_command": "vassalize Austria confirmed"})
+        assert out["success"] is True and "Austria" in w.vassals
+        w = _d15_beaten(_d15_boot)
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                            "raw_command": "vassalize Austria confirmed"})
+        assert out["success"] is True and "Austria" in w.vassals
+
+    def test_the_plan_is_pure_and_the_refusal_rides_it(self, _d15_boot, monkeypatch):
+        from backend.game_logic.vassal import subjugation_plan
+        w = _d15_beaten(_d15_boot)
+        before = _d15_state(w)
+        plan = subjugation_plan(w, "France", "Austria")
+        assert _d15_state(w) == before
+        assert plan["refusal"] == ""
+        # the plan carries the full gate chain, in create_vassal_conquest's order
+        w.vassals["Austria"] = {"lord": "Prussia", "loyalty": 50, "autonomy": 1}
+        assert subjugation_plan(w, "France", "Austria")["refusal"] == (
+            "Austria is already a vassal of Prussia.")
+        w = _d15_beaten(_d15_boot)
+        w.vassal_release_cooldowns["Austria"] = 2
+        assert "recently released (2 turns remaining)" in subjugation_plan(
+            w, "France", "Austria")["refusal"]
+        with monkeypatch.context() as m:
+            _d15_cap_shut(m)
+            w = _d15_beaten(_d15_boot)
+            assert "cannot impose vassalage on so large a nation" in subjugation_plan(
+                w, "France", "Austria")["refusal"]
+        w = _d15_copy(_d15_boot)
+        assert "still stands" in subjugation_plan(w, "France", "Austria")["refusal"]
+        w = _d15_copy(_d15_boot)
+        assert "must be at WAR" in subjugation_plan(w, "France", "Sweden")["refusal"]
+
+    def test_the_gate_chain_is_the_creators(self, _d15_boot, monkeypatch):
+        """`create_vassal_conquest` and the plan ask ONE `conquest_refusal`:
+        for every board above the creator's message IS the plan's refusal."""
+        from backend.game_logic.vassal import create_vassal_conquest, subjugation_plan
+        boards = []
+        w = _d15_copy(_d15_boot); boards.append((w, "Austria"))              # unbeaten
+        w = _d15_beaten(_d15_boot); w.vassal_release_cooldowns["Austria"] = 4; boards.append((w, "Austria"))
+        w = _d15_copy(_d15_boot); boards.append((w, "Holland"))              # already a vassal
+        w = _d15_copy(_d15_boot); boards.append((w, "Sweden"))               # at peace
+        for board, court in boards:
+            plan = subjugation_plan(board, "France", court)
+            made = _d15_quiet(create_vassal_conquest, board, "France", court)
+            assert made["success"] is False
+            assert made["message"] == plan["refusal"], court
+        _d15_cap_shut(monkeypatch)                                           # the power cap
+        w = _d15_beaten(_d15_boot)
+        plan = subjugation_plan(w, "France", "Austria")
+        made = _d15_quiet(create_vassal_conquest, w, "France", "Austria")
+        assert made["success"] is False and made["message"] == plan["refusal"]
+        assert "so large a nation" in plan["refusal"]
+
+    def test_shown_is_applied_on_every_small_court(self, _d15_boot):
+        """The plan against the deed for each court a French conquest may
+        take: loyalty, autonomy, the alarm, the tribute at the next
+        collection, every closed pair's new state, the marshals."""
+        from backend.game_logic.vassal import subjugation_plan, vassal_tribute_owed
+        for court in ("Austria", "Saxony", "Hesse", "Naples", "Sweden", "Denmark",
+                      "Portugal", "Hanover", "PapalStates", "Sardinia", "Prussia"):
+            w = _d15_beaten(_d15_boot, court)
+            plan = subjugation_plan(w, "France", court)
+            assert plan["refusal"] == "", (court, plan["refusal"])
+            marshals_before = [m.name for m in w.marshals.values() if m.nation == court]
+            assert plan["marshals"] == marshals_before
+            out = _d15_exec(w, {"action": "make_vassal", "target": court,
+                                "raw_command": f"vassalize {court} confirmed"})
+            assert out["success"] is True, (court, out["message"])
+            row = w.vassals[court]
+            assert row["loyalty"] == plan["loyalty"] and row["autonomy"] == plan["autonomy"], court
+            assert w.threat_by_target["France"] == plan["threat_after"], court
+            assert vassal_tribute_owed(w, court) == plan["tribute"], court
+            for entry in plan["closes"]:
+                a, b = entry["pair"]
+                assert w.get_diplomatic_state(a, b) == entry["to"], (court, entry)
+            assert [m.name for m in w.marshals.values()
+                    if getattr(m, "original_nation", None) == court] == marshals_before, court
+
+    def test_the_tribute_reads_the_soil_the_war_no_longer_darkens(self, _d15_boot):
+        """A French army on the court's province disrupts it NOW (France is at
+        war with the court) and does not once the war ends; a Russian army on
+        another still does, Russia staying at war with her. The plan reads the
+        soil as it will stand: the figure the next collection pays."""
+        from backend.game_logic.vassal import _vassal_tributable_income, subjugation_plan, vassal_tribute_owed
+        w = _d15_beaten(_d15_boot)
+        w.diplomatic_states[w._make_diplo_key("Austria", "Russia")] = "WAR"
+        w.marshals["Davout"].location = "Bohemia"            # French, on Austrian soil
+        w.marshals["Kutuzov"].location = "Moravia"           # Russian, on Austrian soil
+        w.calculate_visibility()
+        naive = _vassal_tributable_income(w, "Austria")
+        plan = subjugation_plan(w, "France", "Austria")
+        assert naive == 950 - 200 - 150                       # both provinces dark now
+        assert plan["tribute"] == 950 - 150                   # only Moravia stays dark
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                            "raw_command": "vassalize Austria confirmed"})
+        assert out["success"] is True
+        assert vassal_tribute_owed(w, "Austria") == plan["tribute"] == 800
+
+    def test_the_court_with_clients_of_its_own_and_a_client_at_war(self, _d15_boot):
+        """The pairs the war's end closes: a French client at war with the
+        court follows the lord out of it; the court's own client passes to
+        the lord with its war or truce against a French client."""
+        from backend.game_logic.vassal import subjugation_plan
+        w = _d15_beaten(_d15_boot, "Prussia")
+        w.diplomatic_states[w._make_diplo_key("Holland", "Prussia")] = "ARMISTICE"
+        w.diplomatic_states[w._make_diplo_key("Switzerland", "Prussia")] = "WAR"
+        plan = subjugation_plan(w, "France", "Prussia")
+        assert plan["followers"] == ["Holland", "Switzerland"]
+        out = _d15_exec(w, {"action": "make_vassal", "target": "Prussia",
+                            "raw_command": "vassalize Prussia confirmed"})
+        assert out["success"] is True
+        for entry in plan["closes"]:
+            a, b = entry["pair"]
+            assert w.get_diplomatic_state(a, b) == entry["to"], entry
+        assert w.get_diplomatic_state("Holland", "Prussia") == "PEACE"
+        assert w.get_diplomatic_state("Switzerland", "Prussia") == "PEACE"
+
+    def test_the_entry_decision_is_the_reconcilers(self):
+        """`_reconcile_vassal_diplomacy` asks `_vassalage_entry_decision` for
+        every court, as the plan does (the source pin; the behaviour is
+        pinned by the shown == applied tests above)."""
+        src = (_D15_ROOT / "backend" / "game_logic" / "vassal.py").read_text(encoding="utf-8")
+        body = src[src.index("def _reconcile_vassal_diplomacy("):src.index("def _vassalage_entry_decision(")]
+        assert "_vassalage_entry_decision(" in body
+        plan_body = src[src.index("def subjugation_plan("):src.index("def _named_list(")]
+        assert "_vassalage_entry_decision(" in plan_body
+
+
+class TestS14EX226:
+    """Reproduced (before the fix): the conquest's report ended "Marshals
+    assimilated: Mack, ArchdukeCharles, ArchdukeJohn." - the roster keys, in a
+    sentence the player reads (Rule: player-facing text uses display names).
+    The quote prints "Archduke Charles"; the report now prints the same."""
+
+    def test_the_report_names_the_men_as_the_quote_does(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "vassalize Austria")
+            done = _d15_say(client, quote["options"][0]["command"])
+        assert done["message"].endswith(
+            "Marshals assimilated: Mack, Archduke Charles, Archduke John.")
+        assert "ArchdukeCharles" not in done["message"]
+        assert "Mack, Archduke Charles, Archduke John" in quote["message"]
+
+
+class TestS14EX227:
+    """The same class on the way back: `release_quote_words` and
+    `_build_release_report` printed the marshals who return to their own
+    colours (and the recalled contingent's commander) by roster key.
+    Reproduced: subjugate Austria, then `release Austria` - "Their marshals
+    return to their own colours: ArchdukeCharles, ArchdukeJohn, Mack." in the
+    quote and in the report."""
+
+    def test_the_release_quote_and_report_use_display_names(self, _d15_boot):
+        w = _d15_beaten(_d15_boot)
+        _d15_exec(w, {"action": "make_vassal", "target": "Austria",
+                      "raw_command": "vassalize Austria confirmed"})
+        assert "Austria" in w.vassals
+        with _d15_client(w) as client:
+            quote = _d15_say(client, "release Austria")
+            assert _d15_is_quote(quote), quote.get("message")
+            assert ("Their marshals return to their own colours: "
+                    "Archduke Charles, Archduke John, Mack.") in quote["message"]
+            done = _d15_say(client, quote["options"][0]["command"])
+        assert done["success"] is True
+        assert ("Their marshals return to their own colours: "
+                "Archduke Charles, Archduke John, Mack.") in done["message"]
+        assert "ArchdukeCharles" not in quote["message"] + done["message"]
+
+    def test_the_recalled_commander_is_named_as_a_man(self, _d15_boot):
+        from backend.game_logic.vassal import release_plan, release_quote_words
+        w = _d15_copy(_d15_boot)
+        plan = release_plan(w, "Holland")
+        plan["contingent"] = {"marshal": "ArchdukeCharles", "men": 5000}
+        text = release_quote_words(w, plan, 4)
+        assert ("Their contingent under Archduke Charles (5,000 men) is recalled "
+                "and leaves our lines.") in text
+        assert "ArchdukeCharles" not in text
+
+
+class TestS14EX228:
+    """The Cabinet's Subjugate chip named "France's" and "her" for every lord
+    and court and carried no terms. The shut chip keeps its words (the lord's
+    name from the player's display name); the open chip says the plan in
+    brief (see `TestS14ED15.test_the_chip_says_the_plan_in_brief…`)."""
+
+    def test_the_open_chip_reads_the_plan(self, _d15_boot):
+        from backend.game_logic.cabinet_rows import subjugate_actions
+        from backend.game_logic.vassal import subjugation_effect_line, subjugation_plan
+        w = _d15_beaten(_d15_boot, "Hesse")
+        plan = subjugation_plan(w, "France", "Hesse")
+        (row,) = subjugate_actions(w, "France", "Hesse")
+        assert row["effect_text"] == subjugation_effect_line(w, "France", "Hesse", plan)
+        assert row["effect_text"].startswith("Puppet at loyalty 20, +25 alarm, the war ends")
+        assert row["effect_text"].endswith("— quoted first")
+
+    def test_the_chip_counts_its_marshals_in_good_grammar(self, _d15_boot):
+        from backend.game_logic.vassal import subjugation_effect_line
+        one = _d15_beaten(_d15_boot, "Naples")                 # Damas alone
+        assert subjugation_effect_line(one, "France", "Naples") == (
+            "Puppet at loyalty 20, +25 alarm, the war ends, "
+            "1 marshal takes our service — quoted first")
+        none = _d15_beaten(_d15_boot, "Hesse")                 # no corps
+        assert subjugation_effect_line(none, "France", "Hesse") == (
+            "Puppet at loyalty 20, +25 alarm, the war ends — quoted first")
+        two = _d15_beaten(_d15_boot, "Prussia")
+        assert "2 marshals take our service" in subjugation_effect_line(two, "France", "Prussia")
+
+    def test_an_alarm_already_at_its_height_is_said_not_promised(self, _d15_boot):
+        from backend.game_logic.vassal import subjugation_effect_line, subjugation_quote
+        w = _d15_beaten(_d15_boot, "Hesse")
+        w.threat_by_target["France"] = 100
+        assert "alarm already at its height" in subjugation_effect_line(w, "France", "Hesse")
+        assert "Europe's alarm at France already stands at 100." in subjugation_quote(
+            w, "France", "Hesse")
+        with _d15_client(w) as client:
+            done = _d15_say(client, "vassalize Hesse confirmed")
+        assert done["success"] is True and w.threat_by_target["France"] == 100
+
+
+class TestS14EX229:
+    """The settlement receipt's `threat_delta_for_lord` was a literal (25 /
+    5) beside `add_threat`'s own. One source: `vassal.CONQUEST_THREAT` and
+    `TREATY_VASSAL_THREAT`, which the creators and the receipt both read."""
+
+    def test_the_creators_and_the_receipt_read_the_constants(self):
+        from backend.game_logic import vassal as V
+        assert (V.CONQUEST_THREAT, V.TREATY_VASSAL_THREAT) == (25, 5)
+        vsrc = (_D15_ROOT / "backend" / "game_logic" / "vassal.py").read_text(encoding="utf-8")
+        assert 'add_threat(world, CONQUEST_THREAT, "conquest_vassalization"' in vsrc
+        assert 'add_threat(world, TREATY_VASSAL_THREAT, "treaty_vassalization"' in vsrc
+        rsrc = (_D15_ROOT / "backend" / "game_logic" / "settlement_ratify.py").read_text(encoding="utf-8")
+        assert "25 if term.get" not in rsrc and "CONQUEST_THREAT" in rsrc
+
+    def test_the_alarm_each_creator_adds_is_its_constant(self, _d15_boot):
+        from backend.game_logic import vassal as V
+        w = _d15_beaten(_d15_boot, "Hesse")
+        w.threat_by_target["France"] = 10
+        assert _d15_quiet(V.create_vassal_conquest, w, "France", "Hesse")["success"]
+        assert w.threat_by_target["France"] == 10 + V.CONQUEST_THREAT
+        w = _d15_copy(_d15_boot)
+        w.threat_by_target["France"] = 10
+        w.diplomatic_states[w._make_diplo_key("France", "Saxony")] = "OPEN_BORDERS"
+        assert _d15_quiet(V.create_vassal_treaty, w, "France", "Saxony")["success"]
+        assert w.threat_by_target["France"] == 10 + V.TREATY_VASSAL_THREAT
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d17 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d17.py)
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14f part 3 -- S14E-D17 (the section index) and S14E-X142, with
+# the sweep's siblings S14E-X230 ... X233 (October 25, 2026).
+#
+# S14E-D17 (`docs/DESIGN_REFINEMENT.md`): DDB-48 ruled "a line that names no
+# help section keeps the whole reference". S14E-16 and its sweep (X69, X70, X72)
+# gave movement, capture, scouting and cancelling their one section or answer,
+# yet of 51 probed "how do I <verb> <object>" lines about 30 still dumped the
+# 22,573-character manual into the four-line window. The ruling, as
+# recommended: such a line answers with the SECTION INDEX -- one
+# `help <topic>` line per section of the reference (~650 characters), the
+# manual one bare `help` away.
+#
+# S14E-X142 (`docs/BUG_FIXES.md`): the defect half -- hold / protect / guard
+# Paris, besiege / assault / raid Vienna, intercept / block / kill Mack,
+# order / command / pay / promote / feed Ney, "take a loan", "stop the turn".
+# Reproduced on the shipped 1805 board through the real endpoint before the
+# fix: each of the 16 answered success True with "COMMAND REFERENCE" at its head
+# and 22,573 characters.
+#
+# The sweep (CLAUDE.md rule 10):
+#   S14E-X230  `help <the heading's own noun>` -- designs / emperor / marshals /
+#              generals / military / tactical / strategic / free / combat /
+#              system -- answered "this order eludes me": the table had no word
+#              for THE EMPEROR'S DESIGNS at all and no exact topic for the rest.
+#   S14E-X231  a `help <topic>` the reference has no section on, reaching the
+#              help executor (the LLM road, a direct call), printed the whole
+#              manual: the index now, its head line naming the unknown topic.
+#   S14E-X232  "how does <noun> work" with a noun no section names (trust,
+#              morale, supply, fog, combat) -- the syntax regex's third arm --
+#              dumped the manual; the same index.
+#   S14E-X233  the reference asked for in other nouns ("list commands", "show
+#              commands", "command list", "the manual", "reference",
+#              "instructions", "which commands exist") answered "I cannot
+#              interpret" while the bare "commands" printed it.
+
+_d17_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_d17_MANUAL = "COMMAND REFERENCE"
+_d17_OLD_MANUAL_CHARS = 22573      # the old figure: what each nameless line printed
+# The manual carries live figures (the Congress's, the missions', the
+# Admiralty's — spliced at call time), so its length drifts by a few
+# characters between boards and slices (22,572 at the p3 merge, 22,573 on the
+# row agent's run); a pin that the manual IS the answer reads it within this
+# band, never to the character.
+_d17_MANUAL_BAND = 50
+
+
+def _d17_is_the_manual(text: str) -> bool:
+    return _d17_MANUAL in text and abs(len(text) - _d17_OLD_MANUAL_CHARS) <= _d17_MANUAL_BAND
+
+
+def _d17_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _d17_boot():
+    from backend.models.world_state import WorldState
+    with _d17_quiet():
+        return WorldState.from_scenario(str(_d17_SCENARIO))
+
+
+@pytest.fixture
+def _d17_world(_d17_boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(_d17_boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _d17_client(_d17_world, monkeypatch):
+    """The real endpoint on the shipped 1805 board (the keyless parser)."""
+    from fastapi.testclient import TestClient
+    from backend.commands.parser import CommandParser
+    import backend.main as main_module
+    monkeypatch.setattr(main_module, "world", _d17_world)
+    monkeypatch.setattr(main_module, "game_state", {"world": _d17_world})
+    monkeypatch.setattr(main_module, "parser", CommandParser(use_real_llm=False))
+    return TestClient(main_module.app)
+
+
+def _d17_say(client, text: str) -> str:
+    with _d17_quiet():
+        reply = client.post("/command", json={"command": text}).json()
+    assert reply.get("success") is True, (text, reply.get("message"))
+    return str(reply.get("message") or "")
+
+
+def _d17_help(world, raw: str, **state) -> dict:
+    """`_execute_help` itself -- the result dict the endpoint trims."""
+    from backend.commands.meta_executor import MetaExecutor
+    with _d17_quiet():
+        return MetaExecutor(None)._execute_help({"raw_command": raw}, {"world": world, **state})
+
+
+def _d17_reference(world, **state) -> str:
+    return _d17_help(world, "help", **state)["message"]
+
+
+def _d17_index_lines(text: str):
+    """(topic, title) of every `  help <topic> - <title>` line of an index."""
+    out = []
+    for line in text.splitlines():
+        if line.startswith("  help ") and " — " in line:
+            topic, _, title = line[len("  help "):].partition(" — ")
+            out.append((topic, title))
+    return out
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-D17 -- the ruling: the section index
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14ED17:
+    """S14E-D17 -- a nameless "how do I ..." line gets the SECTION INDEX."""
+
+    def test_the_sighting_is_the_index_not_the_manual(self, _d17_client, _d17_world):
+        manual = _d17_reference(_d17_world)
+        assert _d17_is_the_manual(manual), len(manual)
+        text = _d17_say(_d17_client, "how do I hold Paris")
+        assert _d17_MANUAL not in text
+        assert text.startswith("Which part, Sire? The reference has these sections"), text[:80]
+        assert text.endswith("— or 'help' alone for the whole reference."), text[-60:]
+        assert len(text) < len(manual) / 20, (len(text), len(manual))
+
+    def test_the_index_is_short(self, _d17_world):
+        index = _d17_help(_d17_world, "how do I sing")["message"]
+        assert len(index) <= 1200, len(index)
+        assert len(index.splitlines()) <= 20, len(index.splitlines())
+
+    def test_one_line_per_section_of_the_reference_in_its_order(self, _d17_world):
+        from backend.ai.help_topics import reference_sections, section_title
+        manual = _d17_reference(_d17_world)
+        headings = list(reference_sections(manual))
+        assert len(headings) == 16, headings
+        lines = _d17_index_lines(_d17_help(_d17_world, "how do I sing")["message"])
+        assert len(lines) == len(headings)
+        # the reference's own order, each title the section's heading in title case
+        for (topic, title), heading in zip(lines, headings):
+            assert title.lower().replace("'", "") in heading.lower().replace("'", ""), (title, heading)
+        assert [t for _, t in lines][0] == "Military Commands"
+        assert section_title("PORTS AND THE CONTINENTAL SYSTEM") == "Ports and the Continental System"
+        assert section_title("THE EMPEROR'S DESIGNS") == "The Emperor's Designs"
+        assert section_title("SCREENS & HOTKEYS") == "Screens & Hotkeys"
+
+    def test_every_index_line_resolves_to_its_own_section_when_typed(self, _d17_world):
+        """The index and the resolver read ONE table: each `help <topic>` the
+        index prints resolves to the very section it is printed for."""
+        from backend.ai.help_topics import help_request_section, reference_sections
+        manual = _d17_reference(_d17_world)
+        headings = list(reference_sections(manual))
+        lines = _d17_index_lines(_d17_help(_d17_world, "how do I sing")["message"])
+        assert len(lines) == 16
+        for (topic, _title), heading in zip(lines, headings):
+            resolved = help_request_section(f"help {topic}")
+            assert resolved is not None and heading.startswith(resolved), (topic, resolved, heading)
+
+    def test_every_index_line_prints_its_section_through_the_endpoint(self, _d17_client, _d17_world):
+        from backend.ai.help_topics import reference_sections
+        headings = list(reference_sections(_d17_reference(_d17_world)))
+        lines = _d17_index_lines(_d17_say(_d17_client, "how do I sing"))
+        for (topic, _title), heading in zip(lines, headings):
+            text = _d17_say(_d17_client, f"help {topic}")
+            assert text.startswith(heading), (topic, text[:70])
+            assert _d17_MANUAL not in text and not text.startswith("Which part"), topic
+
+    def test_the_table_cannot_drift(self):
+        """No topic word names two headings; every row but the movement
+        continuation names a topic; the first topic of a row resolves to it."""
+        from backend.ai.help_topics import HELP_SECTIONS, help_request_section
+        seen = {}
+        for heading, _words, topics in HELP_SECTIONS:
+            for topic in topics:
+                assert topic not in seen or seen[topic] == heading, (topic, seen.get(topic), heading)
+                seen[topic] = heading
+        named = [h for h, _w, t in HELP_SECTIONS if t]
+        assert len(named) == len(set(named)) == 16, named
+        for heading, _words, topics in HELP_SECTIONS:
+            for topic in topics:
+                assert help_request_section(f"help {topic}") == heading, (topic, heading)
+
+    def test_a_debug_build_adds_a_section_the_index_leaves_out(self, _d17_world):
+        """The debug block is in the debug build's reference; the index (and
+        the bare `help`) are unchanged by it -- the whole reference still
+        holds it."""
+        plain = _d17_help(_d17_world, "how do I sing")["message"]
+        debug = _d17_help(_d17_world, "how do I sing", debug_mode=True)["message"]
+        assert debug == plain
+        assert "DEBUG COMMANDS" in _d17_reference(_d17_world, debug_mode=True)
+        assert "DEBUG COMMANDS" not in _d17_reference(_d17_world)
+
+    def test_the_result_mirrors_the_section_answers_shape(self, _d17_world):
+        index = _d17_help(_d17_world, "how do I hold Paris")
+        section = _d17_help(_d17_world, "how do I build ships")
+        assert index["success"] is True and index["free_action"] is True
+        assert index["help_section"] == "index"
+        assert index["events"] == section["events"] == [{"type": "help", "command": "help"}]
+        assert set(index) == set(section)            # the same keys, no new_state
+        assert section["help_section"] == "THE ADMIRALTY"
+
+    def test_the_manual_stays_one_help_away(self, _d17_client, _d17_world):
+        for line in ("help", "commands", "what are the commands", "what is the syntax"):
+            text = _d17_say(_d17_client, line)
+            assert _d17_is_the_manual(text), line
+        assert _d17_MANUAL in _d17_reference(_d17_world)
+        assert "help" in _d17_say(_d17_client, "how do I sing").lower()
+
+    def test_a_named_section_keeps_its_section(self, _d17_client):
+        for line, heading in (
+                ("how do I build ships?", "THE ADMIRALTY"),
+                ("help navy", "THE ADMIRALTY"),
+                ("how do I fortify?", "TACTICAL COMMANDS"),
+                ("how do I attack?", "MILITARY COMMANDS"),
+                ("how do I end the turn", "FREE ACTIONS"),
+                ("how can I close Britain's ports?", "PORTS AND THE CONTINENTAL SYSTEM"),
+                ("how do I attack with several marshals?", "STRATEGIC COMMANDS"),
+                ("help with the ports", "PORTS AND THE CONTINENTAL SYSTEM")):
+            text = _d17_say(_d17_client, line)
+            assert text.startswith(heading), (line, text[:70])
+
+    def test_help_before_a_name_is_still_an_order(self, _d17_client):
+        """P8-2 holds: "help Davout" asks for a supporter, never the index."""
+        text = _d17_say(_d17_client, "help Davout")
+        assert _d17_MANUAL not in text and not text.startswith("Which part")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X142 -- the defect: ~30 of 51 "how do I <verb> <object>" lines
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX142:
+    """S14E-X142 -- the 51 probed lines through the real endpoint: every one
+    answers in a few lines or its ONE section, none with the manual; the
+    nameless ones with the index (<= 1,500 characters)."""
+
+    # the sighting: X142's own sixteen
+    NAMELESS = (
+        "how do I hold Paris", "how do I protect Paris", "how do I guard Paris",
+        "how do I besiege Vienna", "how do I assault Vienna", "how do I raid Vienna",
+        "how do I intercept Mack", "how do I block Mack", "how do I kill Mack",
+        "how do I order Ney", "how do I command Ney", "how do I pay Ney",
+        "how do I promote Ney", "how do I feed Ney",
+        "how do I take a loan", "how do I stop the turn",
+        # ... and the dozen of the sweep's own
+        "how do I sing", "how do I do anything", "how do I give orders",
+        "how do I talk to Ney", "so how do I hold Paris",
+        "well, how should I protect Paris", "how would I besiege Vienna",
+        "how can I kill Mack", "how does one assault Vienna", "how do I use this",
+        "how do I zoom", "how do I bribe Mack", "how do I load",
+        "how do I take a prisoner", "how do I surrender", "how do I hire a spy",
+    )
+    # what S14E-16 / X69 / X70 / X72 and DDB-48 already answer: kept as they were
+    SECTIONED = (
+        ("how do I move", "MILITARY COMMANDS"),
+        ("how do I move Ney", "MILITARY COMMANDS"),
+        ("how do I march Ney to Vienna", "STRATEGIC COMMANDS"),
+        ("how do I scout", "TACTICAL COMMANDS"),
+        ("how do I cancel", "STRATEGIC COMMANDS"),
+        ("how do I build ships", "THE ADMIRALTY"),
+        ("how do I fortify", "TACTICAL COMMANDS"),
+        ("how do I end the turn", "FREE ACTIONS"),
+        ("how do I recruit", "MILITARY COMMANDS"),
+        ("how do I attack Mack", "MILITARY COMMANDS"),
+        ("how do I raise taxes", "ECONOMY"),
+        ("how do I reward Ney", "ECONOMY"),
+    )
+    DESK = (
+        "how do I capture Vienna", "how do I take Vienna", "how do I find Mack",
+        "how do I stop Ney", "how do I get to Vienna", "how do I play", "how do I win",
+        "how do I save", "how do I undo",
+    )
+
+    def test_the_probe_set_is_fifty_one_lines_or_more(self):
+        assert len(self.NAMELESS) + len(self.SECTIONED) + len(self.DESK) >= 51
+
+    @pytest.mark.parametrize("line", NAMELESS)
+    def test_a_nameless_line_is_one_short_index_never_the_manual(self, line, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert _d17_MANUAL not in text, line
+        assert text.startswith("Which part, Sire?"), (line, text[:80])
+        assert len(text) <= 1500, (line, len(text))
+        assert len(_d17_index_lines(text)) == 16
+
+    @pytest.mark.parametrize("line,heading", SECTIONED)
+    def test_a_named_line_still_gets_its_one_section(self, line, heading, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert text.startswith(heading), (line, text[:80])
+        assert _d17_MANUAL not in text and len(text) < 4500, (line, len(text))
+
+    @pytest.mark.parametrize("line", DESK)
+    def test_a_desk_answered_line_is_never_the_manual(self, line, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert _d17_MANUAL not in text and len(text) < 3000, (line, len(text))
+        assert not text.startswith("Which part"), line
+
+    def test_no_probed_line_dumps_the_manual(self, _d17_client):
+        """The headline figure: of every line probed, the longest answer is
+        a section of at most ~3,700 characters -- never the 22,573."""
+        lengths = {}
+        for line in list(self.NAMELESS) + [l for l, _h in self.SECTIONED] + list(self.DESK):
+            lengths[line] = len(_d17_say(_d17_client, line))
+        assert max(lengths.values()) < 4500, max(lengths.items(), key=lambda kv: kv[1])
+        assert sum(1 for n in lengths.values() if n >= _d17_OLD_MANUAL_CHARS) == 0
+
+    def test_the_executor_road_after_the_parser_agrees(self, _d17_world):
+        """`CommandParser.parse` -> `CommandExecutor.execute`, the road the
+        endpoint walks, on the shipped board."""
+        from backend.ai.parser_eval import build_llm_game_state
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.parser import CommandParser
+        parser = CommandParser(use_real_llm=False)
+        with _d17_quiet():
+            parsed = parser.parse("how do I guard Paris", build_llm_game_state(_d17_world),
+                                  world=_d17_world)
+            result = CommandExecutor().execute(parsed, {"world": _d17_world})
+        assert result["success"] is True and result.get("help_section") == "index"
+        assert _d17_MANUAL not in result["message"] and len(result["message"]) <= 1500
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X230 -- `help <the heading's own noun>`
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX230:
+    """S14E-X230 -- "help designs", "help marshals", "help military", "help
+    tactical", "help strategic", "help free" answered "this order eludes me" /
+    "I cannot interpret": the table held no word for THE EMPEROR'S DESIGNS at
+    all and the bare section nouns were not topics.
+
+    Reproduced (the real endpoint, the shipped board): 433-445 character
+    shrugs; now the section. The exact topic words do not read in a QUESTION
+    (a bare "marshals" or "free" there belongs to the verb's section).
+    """
+
+    ROWS = (
+        ("help designs", "THE EMPEROR'S DESIGNS"),
+        ("help emperor", "THE EMPEROR'S DESIGNS"),
+        ("help empire", "THE EMPEROR'S DESIGNS"),
+        ("help the designs", "THE EMPEROR'S DESIGNS"),
+        ("help marshals", "YOUR MARSHALS"),
+        ("help generals", "YOUR MARSHALS"),
+        ("help military", "MILITARY COMMANDS"),
+        ("help combat", "MILITARY COMMANDS"),
+        ("help tactical", "TACTICAL COMMANDS"),
+        ("help strategic", "STRATEGIC COMMANDS"),
+        ("help standing orders", "STRATEGIC COMMANDS"),
+        ("help free", "FREE ACTIONS"),
+        ("help system", "PORTS AND THE CONTINENTAL SYSTEM"),
+        ("help stance", "STANCE COMMANDS"),
+        ("help chain", "TWO ORDERS IN ONE LINE"),
+        ("help recovery", "RETREAT RECOVERY"),
+        ("help glory", "GLORY AND GRIEVANCE"),
+        ("help congress", "THE CONGRESS OF PARIS"),
+        ("help with designs", "THE EMPEROR'S DESIGNS"),
+    )
+
+    @pytest.mark.parametrize("line,heading", ROWS)
+    def test_the_topic_names_its_section(self, line, heading):
+        from backend.ai.help_topics import help_request_section
+        assert help_request_section(line) == heading, line
+
+    @pytest.mark.parametrize("line,heading", ROWS)
+    def test_the_endpoint_prints_that_section(self, line, heading, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert text.startswith(heading), (line, text[:80])
+        assert "eludes me" not in text and "cannot interpret" not in text
+
+    def test_the_designs_section_has_a_word_in_a_question_too(self):
+        from backend.ai.help_topics import section_for
+        assert section_for("how do I fulfil a design") == "THE EMPEROR'S DESIGNS"
+
+    def test_the_exact_topics_do_not_steal_the_questions_nouns(self):
+        """"marshals" / "free" / "military" are topics for `help`, not
+        keywords of a question: the verbs' own sections still win."""
+        from backend.ai.help_topics import section_for
+        assert section_for("how do I recruit marshals") == "MILITARY COMMANDS"
+        assert section_for("how do I attack with several marshals") == "STRATEGIC COMMANDS"
+        assert section_for("how do I do it for free") is None
+        assert section_for("how do I use the military") is None
+        assert section_for("how do I get gold free") == "ECONOMY"
+
+    def test_help_before_a_name_is_still_no_topic(self):
+        from backend.ai.help_topics import help_request_section
+        assert help_request_section("help Davout") is None
+        assert help_request_section("help me") is None
+        assert help_request_section("help Marshal Ney") is None
+        assert help_request_section("help loans") is None
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X231 -- a `help <topic>` the reference has no section on
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX231:
+    """S14E-X231 -- the help executor, reached with `help loans` (the LLM
+    road returns action help with the typed line; a direct call), printed the
+    whole manual. It prints the index now, its head line naming the topic the
+    reference has no section on. A bare `help`, `help me`, `help with` keep
+    the manual."""
+
+    @pytest.mark.parametrize("line,topic", (
+        ("help loans", "loans"), ("help foo", "foo"), ("help the weather", "weather"),
+        ("help with the loan", "loan"), ("help me with the mutiny", "mutiny"),
+    ))
+    def test_an_unknown_topic_gets_the_index_naming_it(self, line, topic, _d17_world):
+        from backend.ai.help_topics import help_request_section, help_topic_asked
+        assert help_request_section(line) is None, line
+        assert help_topic_asked(line) == topic, line
+        result = _d17_help(_d17_world, line)
+        text = result["message"]
+        assert text.startswith(f"The reference has no section on '{topic}', Sire."), text[:90]
+        assert _d17_MANUAL not in text and result["help_section"] == "index"
+        assert len(_d17_index_lines(text)) == 16 and len(text) < 1500
+
+    @pytest.mark.parametrize("line", ("help", "help me", "help with", "help please", "Help"))
+    def test_a_bare_help_keeps_the_manual(self, line, _d17_world):
+        result = _d17_help(_d17_world, line)
+        assert _d17_MANUAL in result["message"], line
+        assert result.get("help_section") is None
+
+    def test_a_resolved_topic_keeps_its_section(self, _d17_world):
+        result = _d17_help(_d17_world, "help navy")
+        assert result["help_section"] == "THE ADMIRALTY"
+        assert result["message"].startswith("THE ADMIRALTY")
+
+    def test_help_topic_asked_reads_only_the_topic_forms(self):
+        from backend.ai.help_topics import help_topic_asked
+        assert help_topic_asked("help loans") == "loans"
+        assert help_topic_asked("help navy") == "navy"
+        assert help_topic_asked("help") is None
+        assert help_topic_asked("help me") is None
+        assert help_topic_asked("how do I sing") is None
+        assert help_topic_asked("") is None
+
+    def test_a_world_less_state_still_answers_the_index(self):
+        from backend.commands.meta_executor import MetaExecutor
+        with _d17_quiet():
+            result = MetaExecutor(None)._execute_help({"raw_command": "how do I sing"}, {})
+        assert result["message"].startswith("Which part, Sire?")
+        assert len(_d17_index_lines(result["message"])) == 16
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X232 -- "how does <noun> work" with a noun no section names
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX232:
+    """S14E-X232 -- the syntax regex's third arm ("how does X work") dumped
+    the manual for a noun the table does not know: "how does trust work",
+    "how does morale work", "how does supply work", "how does combat work",
+    "how does fog work" -- 22,573 characters each (reproduced through the real
+    endpoint). The same index answers them; the nouns the table knows keep
+    their section ("how does gold work" -> ECONOMY, "how does recruiting
+    work" -> MILITARY COMMANDS, "how does diplomacy work" -> DIPLOMACY)."""
+
+    @pytest.mark.parametrize("line", (
+        "how does trust work", "how does morale work", "how does supply work",
+        "how does combat work", "how does fog work", "so how does trust work",
+        "well, how does morale work?", "ok how does supply work",
+    ))
+    def test_a_nameless_how_does_x_work_is_the_index(self, line, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert text.startswith("Which part, Sire?"), (line, text[:80])
+        assert _d17_MANUAL not in text and len(text) <= 1500
+
+    @pytest.mark.parametrize("line,heading", (
+        ("how does gold work", "ECONOMY"),
+        ("how does recruiting work", "MILITARY COMMANDS"),
+        ("how does diplomacy work", "DIPLOMACY"),
+    ))
+    def test_a_named_noun_keeps_its_section(self, line, heading, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert text.startswith(heading), (line, text[:80])
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X233 -- the reference asked for in other nouns
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX233:
+    """S14E-X233 -- "list commands", "show commands", "show me the commands",
+    "command list", "the manual", "manual", "reference", "instructions",
+    "which commands exist" answered "I cannot interpret" / "this order eludes
+    me" (reproduced through the real endpoint) while the bare "commands"
+    printed the reference: DDB-48's purpose -- the player never loses the
+    reference -- failed at the door. They are the bare help now (the whole
+    list asked for, the whole reference given)."""
+
+    LINES = (
+        "list commands", "show commands", "show me the commands", "command list",
+        "the command list", "the manual", "manual", "reference", "the reference",
+        "instructions", "which commands exist", "list of commands", "the list of commands",
+        "display commands", "give me the commands", "command reference",
+    )
+
+    @pytest.mark.parametrize("line", LINES)
+    def test_the_reference_asked_in_other_nouns_is_the_reference(self, line, _d17_client):
+        text = _d17_say(_d17_client, line)
+        assert _d17_is_the_manual(text), (line, text[:80])
+
+    @pytest.mark.parametrize("line", LINES)
+    def test_the_matcher_reads_the_whole_line_only(self, line):
+        from backend.ai.help_topics import asks_for_the_whole_reference
+        assert asks_for_the_whole_reference(line) is True
+        assert asks_for_the_whole_reference(line + " for Ney") is False
+
+    def test_the_neighbours_are_not_the_manual(self, _d17_client):
+        """"list orders" may mean the standing orders; "reference Ney" and
+        "Ney, show commands" name a marshal: none of them is the bare help."""
+        for line in ("list orders", "reference Ney", "Ney, show commands"):
+            with _d17_quiet():
+                reply = _d17_client.post("/command", json={"command": line}).json()
+            assert _d17_MANUAL not in str(reply.get("message") or ""), line
+
+    def test_what_are_the_commands_asks_the_list_so_it_gets_the_list(self, _d17_world):
+        """The syntax regex's "what are the commands / orders / syntax" is a
+        request for the list itself: the index would be the worse answer."""
+        for line in ("what are the commands", "what is the syntax", "what are the orders",
+                     "so what are the commands?"):
+            assert _d17_MANUAL in _d17_help(_d17_world, line)["message"], line
+        # ... but the same opener with a thing asked about is a question about it
+        assert _d17_help(_d17_world, "what are the commands for sieges")["message"].startswith(
+            "Which part, Sire?")
+        assert _d17_help(_d17_world, "what are the commands for the navy")["message"].startswith(
+            "THE ADMIRALTY")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d18 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d18.py)
+# ══════════════════════════════════════════════════════════════════════════
+# S14f part 3 -- the notice rail filled at boot, SILENTLY (October 25, 2026).
+#
+# The rows of this file (`docs/BUG_FIXES.md` §S14E, `docs/DESIGN_REFINEMENT.md`
+# §S14E):
+#
+# * S14E-D18 (the ruling) -- "Should the notice rail be filled at boot (`/test`)
+#   as it is after every response?" Ruled as recommended: FILL IT, SILENTLY --
+#   `/test` carries `notifications`, and the bar's first fill after a boot or a
+#   load marks the ids seen without the desk bell (one flag on the call); a row
+#   that arrives afterwards chimes as today.
+# * S14E-X155 (the defect half) -- `/test` carried no `notifications`, so a plain
+#   entry into a campaign or a Return to the War Room showed an EMPTY rail until
+#   the first response. Reproduced on the shipped 1805 board with two standing
+#   rows staged through `world.notifications`: `GET /notifications` listed both,
+#   `GET /test` had no `notifications` key at all.
+# * S14E-X234 (the sweep, Golden Rule 10) -- the SAME class on the load road:
+#   `/load` and `/new_game` build through `build_base_response`, so their
+#   envelope ships the whole rail, and `_apply_world_swap_response` fed it to
+#   `notification_bar.update_notifications` unmarked -- the desk bell rang once
+#   per standing row of the arriving world (every id is new to a fresh bar).
+#   Fix: one SILENT fill ahead of the world swap's sync.
+#
+# The client is pinned on its source (no Godot run): the bar's `silent`
+# parameter marks every id seen WITHOUT the chime, the `/test` handler and the
+# world swap's handler pass `true`, and every other caller keeps the default so
+# a row that arrives on a later response still rings.
+#
+# Sibling of the sweep left for a design call (UNFIXED, no class of its own):
+# S14E-X235 -- the envelope's modal carriers (the popup-queue passthroughs and the
+# `envoy_digest` letter-book) are not on `/test`; the census in
+# `TestS14EX155` pins that boundary.
+
+_D18_ROOT = Path(__file__).resolve().parent.parent
+_D18_SCRIPTS = _D18_ROOT / "godot-client" / "project-sovereign" / "scripts"
+_D18_SCENARIO = (_D18_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+
+# S14E-X235: the keys the envelope carries that the boot payload leaves to the
+# first response, by design call (modals drained by a response, not HUD fields).
+_D18_MODAL_CARRIERS = {
+    "incoming_proposal", "incoming_settlement_offer", "marshal_petition",
+    "nation_proclamation", "commitment_paradox_popup", "diplomatic_sabotage",
+    "vassal_rebellion_imminent", "diplomatic_objection", "proposal_result",
+    "envoy_digest", "events",
+}
+
+
+def _d18_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _d18_src(name: str = "main.gd") -> str:
+    return (_D18_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _d18_func(src: str, name: str) -> str:
+    """A GDScript function's body: from its header to the next top-level one."""
+    start = src.index(f"func {name}(")
+    ends = [e for e in (src.find("\nfunc ", start + 1), src.find("\nstatic func ", start + 1))
+            if e != -1]
+    return src[start:min(ends) if ends else len(src)]
+
+
+def _d18_has_float(value) -> bool:
+    """True when a float hides anywhere in a JSON-shaped value (Golden Rule 2)."""
+    if isinstance(value, float):
+        return True
+    if isinstance(value, dict):
+        return any(_d18_has_float(v) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_d18_has_float(v) for v in value)
+    return False
+
+
+@pytest.fixture(scope="module")
+def _d18_boot():
+    from backend.models.world_state import WorldState
+    with _d18_quiet():
+        return WorldState.from_scenario(str(_D18_SCENARIO))
+
+
+@pytest.fixture
+def _d18_world(_d18_boot):
+    """The shipped 1805 board, a private copy per test."""
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(_d18_boot.to_dict(), default=str)))
+
+
+@contextlib.contextmanager
+def _d18_served(world):
+    """Swap the three module globals together and restore them."""
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = world
+    M.world = world
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        with _d18_quiet():
+            yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+
+
+def _d18_stage(world, *, with_float: bool = False) -> list:
+    """Two standing rows through the collector -- a HIGH treaty notice (its
+    `details` optionally carrying the float a producer once merged in) and a
+    NORMAL one. Returns the staged ids."""
+    from backend.notifications import NotificationPriority, create_notification
+    turn = int(world.current_turn)
+    details = {"nation": "Austria"}
+    if with_float:
+        details["share"] = 0.37     # a producer's working data (S14E-X170's shape)
+    first = create_notification("treaty_breach", NotificationPriority.HIGH,
+                                "A treaty is broken", "Austria has broken it.", turn, details)
+    second = create_notification("alert", NotificationPriority.NORMAL,
+                                 "A quiet matter", "Nothing to do.", turn)
+    world.notifications.add(first)
+    world.notifications.add(second)
+    return [first["id"], second["id"]]
+
+
+def _d18_base(world) -> dict:
+    import backend.main as M
+    with _d18_quiet():
+        return M.build_base_response(world, success=True, message="x")
+
+
+def _d18_calls(src: str, needle: str) -> list:
+    """Every `needle(...)` call line in a source, stripped."""
+    return [line.strip() for line in src.splitlines() if needle in line
+            and not line.strip().startswith("#") and "func " not in line]
+
+
+# ======================================================================
+# S14E-D18 -- the rail at boot, silently
+# ======================================================================
+
+class TestS14ED18:
+    """FILL IT, SILENTLY. The backend half: `/test` carries the rail from the
+    ONE reader every response ships. The client half: the first fill marks the
+    ids seen without the bell, every later fill rings for a new id as before."""
+
+    # ── the backend: the boot payload carries the rail ────────────────────
+    def test_the_boot_payload_carries_the_standing_rows(self, _d18_world):
+        ids = _d18_stage(_d18_world)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert "notifications" in hello
+        assert sorted(n["id"] for n in hello["notifications"]) == sorted(ids)
+
+    def test_it_is_the_notifications_endpoints_own_list(self, _d18_world):
+        """Shown == the rail a poll would ship: same rows, same order, same
+        wire copy (priority first)."""
+        _d18_stage(_d18_world)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+            polled = client.get("/notifications").json()
+        assert hello["notifications"] == polled["notifications"]
+        assert [n["priority"] for n in hello["notifications"]] == [1, 0], \
+            "HIGH before NORMAL, as the one reader sorts them"
+
+    def test_it_is_the_envelopes_own_rail(self, _d18_world):
+        """The first response of the session ships the same rows: the client's
+        seen-set therefore stays aligned across the boot and the first POST."""
+        _d18_stage(_d18_world)
+        base = _d18_base(_d18_world)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert hello["notifications"] == base["notifications"]
+
+    def test_an_empty_rail_ships_an_empty_list_not_a_missing_key(self, _d18_world):
+        """The Aug 23, 2026 lesson (`build_base_response`'s note): an omitted
+        key reads to the client as "no change", not "nothing left"."""
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert hello["notifications"] == []
+
+    def test_the_payload_reads_the_one_reader_by_name(self, _d18_world, monkeypatch):
+        """Not a copy of the logic: the module's `_pending_notifications`."""
+        import backend.main as M
+        sentinel = [{"id": "sentinel-row", "type": "alert", "priority": 0, "title": "S",
+                     "message": "m", "turn_created": 1, "details": {}}]
+        monkeypatch.setattr(M, "_pending_notifications", lambda world: sentinel)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert hello["notifications"] == sentinel
+
+    def test_a_dismissed_row_leaves_the_boot_payload(self, _d18_world):
+        ids = _d18_stage(_d18_world)
+        assert _d18_world.notifications.dismiss(ids[0])
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert [n["id"] for n in hello["notifications"]] == [ids[1]]
+
+    def test_no_float_rides_the_boot_rail(self, _d18_world):
+        """Golden Rule 2: the wire copy (`_notification_for_wire`) drops the
+        float a producer merged into `details`; the stored row keeps it."""
+        ids = _d18_stage(_d18_world, with_float=True)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert not _d18_has_float(hello["notifications"])
+        assert not _d18_has_float(hello), "no float anywhere on the boot payload"
+        first = next(n for n in hello["notifications"] if n["id"] == ids[0])
+        assert first["details"] == {"nation": "Austria"}
+        stored = next(n for n in _d18_world.notifications.get_pending() if n["id"] == ids[0])
+        assert stored["details"]["share"] == 0.37, "the stored row keeps its working data"
+
+    def test_the_counter_punch_row_is_restated_on_the_boot_read(self, _d18_world):
+        """The one reader re-derives the counter-punch row on every read
+        (Chunk 9): the boot read is a read, so a stale button is not shipped.
+        A row whose marshal holds no strike is retired by the read."""
+        from backend.notifications import (COUNTER_PUNCH_EARNED, NotificationPriority,
+                                           create_notification)
+        stale = create_notification(COUNTER_PUNCH_EARNED, NotificationPriority.HIGH,
+                                    "A strike earned", "Ney may strike.",
+                                    int(_d18_world.current_turn), {"marshal": "Ney"})
+        _d18_world.notifications.add(stale)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        assert stale["id"] not in [n["id"] for n in hello["notifications"]]
+
+    # ── the client: the silent first fill, by source ──────────────────────
+    def test_the_bar_takes_a_silent_flag_defaulting_to_the_bell(self):
+        src = _d18_src("notification_bar.gd")
+        assert re.search(
+            r"^func update_notifications\(notifications: Array, silent: bool = false\)",
+            src, re.M), "one flag on the call, off by default"
+
+    def test_a_silent_fill_marks_the_ids_seen_without_the_bell(self):
+        body = _d18_func(_d18_src("notification_bar.gd"), "update_notifications")
+        assert re.search(
+            r"_audio_seen_ids\[nid\] = true\n\t\t\tif not silent:\n\t\t\t\t"
+            r"AudioManager\.play\(\"notification\"\)", body), \
+            "the id is marked seen UNCONDITIONALLY, then the bell is guarded by `silent`"
+
+    def test_the_only_desk_bell_in_the_bar_is_the_guarded_one(self):
+        src = _d18_src("notification_bar.gd")
+        assert src.count('AudioManager.play("notification")') == 1
+
+    def test_the_bar_names_its_row(self):
+        body = _d18_func(_d18_src("notification_bar.gd"), "update_notifications")
+        assert "S14E-D18" in body and "S14E-X155" in body
+
+    def test_the_boot_handler_fills_the_rail_silently(self):
+        body = _d18_func(_d18_src(), "_on_connection_test")
+        assert re.search(
+            r'if notification_bar and response\.has\("notifications"\)[^\n]*:\n\t\t\t'
+            r"notification_bar\.update_notifications\(response\.notifications, true\)", body)
+        assert "S14E-D18" in body and "S14E-X155" in body
+
+    def test_the_boot_fill_sits_with_the_other_hud_fields(self):
+        """After the top bar and the war panel have their fields, ahead of the
+        topology request and the early `return`-free tail."""
+        body = _d18_func(_d18_src(), "_on_connection_test")
+        fill = body.index("notification_bar.update_notifications(response.notifications, true)")
+        assert body.index("_update_diplomatic_top_bar(response)") < fill
+        assert body.index("_process_active_wars(response)") < fill
+        assert fill < body.index("api_client.get_map_topology(")
+
+    def test_every_other_fill_keeps_the_bell(self):
+        """A row that arrives afterwards chimes as today: the sync (every
+        response road) passes no flag, and the only `true` fills are the two
+        opening roads."""
+        src = _d18_src()
+        sync = _d18_func(src, "_sync_response_hud")
+        assert "notification_bar.update_notifications(response.notifications)" in sync
+        silent = _d18_calls(src, "update_notifications(response.notifications, true)")
+        assert len(silent) == 2, silent       # the /test handler and the world swap
+        for line in _d18_calls(src, "update_notifications("):
+            assert line.endswith(", true)") or line.endswith("update_notifications(response.notifications)") \
+                or line.endswith("update_notifications([])"), line
+
+    def test_the_bars_own_refills_pass_no_flag(self):
+        """Dismissing a row re-draws the rail from the list it holds; every id
+        in it is already seen, so the default is silent in effect."""
+        src = _d18_src("notification_bar.gd")
+        assert "update_notifications(current_notifications)" in src
+        assert ", true)" not in "\n".join(_d18_calls(src, "update_notifications("))
+
+
+# ======================================================================
+# S14E-X155 -- the defect half
+# ======================================================================
+
+class TestS14EX155:
+    """Reproduced (shipped 1805 board, two rows staged through
+    `world.notifications`): `GET /notifications` listed both rows;
+    `GET /test` -- the payload `main.gd::_on_connection_test` paints a plain
+    entry or a Return to the War Room from -- carried no `notifications` key,
+    so the rail stayed hidden (`_refresh_visibility`: no rows, no rail) until
+    the first response of the session.
+
+    Fix (S14E-D18): `/test` carries `notifications` from
+    `_pending_notifications`; the client's first fill is silent."""
+
+    def test_the_rail_the_poll_lists_is_on_the_boot_payload(self, _d18_world):
+        ids = _d18_stage(_d18_world)
+        with _d18_served(_d18_world) as client:
+            polled = [n["id"] for n in client.get("/notifications").json()["notifications"]]
+            hello = client.get("/test").json()
+        assert sorted(polled) == sorted(ids)
+        assert sorted(n["id"] for n in hello.get("notifications", [])) == sorted(ids), \
+            "the boot payload carried none of the standing rows (the old figure: key absent)"
+
+    def test_the_first_response_redelivers_the_same_ids(self, _d18_world):
+        """A `status` order after the boot ships the same ids: nothing the
+        bar rang for at boot is new on the first POST, and (the silent fill
+        having marked them seen) nothing rings twice."""
+        _d18_stage(_d18_world)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+            status = client.post("/command", json={"command": "status"}).json()
+        assert [n["id"] for n in status["notifications"]] == \
+            [n["id"] for n in hello["notifications"]]
+
+    def test_a_row_that_arrives_afterwards_is_new_to_the_seen_set(self, _d18_world):
+        """The bell's contract end to end, on the wire: the boot rail's ids
+        are the seen-set; a row staged AFTER the boot is the only id on the
+        next response that is not in it."""
+        boot_ids = set(_d18_stage(_d18_world))
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+            seen = {n["id"] for n in hello["notifications"]}
+            assert seen == boot_ids
+            from backend.notifications import NotificationPriority, create_notification
+            late = create_notification(          # arrives after the boot (a new
+                "alert", NotificationPriority.NORMAL,    # headline: a repeat of
+                "A letter at the gate", "A courier waits.",   # a standing row
+                int(_d18_world.current_turn))                 # collapses into it)
+            _d18_world.notifications.add(late)
+            status = client.post("/command", json={"command": "status"}).json()
+        fresh = {n["id"] for n in status["notifications"]} - seen
+        assert fresh == {late["id"]}
+
+    def test_the_empty_rail_stays_hidden_by_the_bars_own_rule(self):
+        """An empty list from `/test` leaves the rail hidden (nothing standing
+        to show), exactly as before: `_refresh_visibility` reads the rows."""
+        body = _d18_func(_d18_src("notification_bar.gd"), "_refresh_visibility")
+        assert "current_notifications.is_empty()" in body
+
+    def test_the_sweeps_census_the_envelope_keys_the_boot_payload_leaves_out(self, _d18_world):
+        """Rule 10's census of the class: every key `build_base_response`
+        carries that `/test` does not is a MODAL carrier (drained by the
+        response that ships it, raised at the next control return) -- never a
+        read-only HUD field. The HUD fields (the top bar, the gate's lines, the
+        badges, the Cabinet lock, the war panel, the formed-nation overrides,
+        and now the rail) are all on the boot payload. S14E-X235 (UNFIXED -- a
+        design call): whether a plain entry should open those modals on its
+        first frame is the entry's flow, not a missing paint."""
+        base = _d18_base(_d18_world)
+        with _d18_served(_d18_world) as client:
+            hello = client.get("/test").json()
+        missing = set(base) - set(hello)
+        assert missing <= _D18_MODAL_CARRIERS, sorted(missing - _D18_MODAL_CARRIERS)
+
+
+# ======================================================================
+# S14E-X234 -- the sweep: the world swap rang the bell per standing row
+# ======================================================================
+
+class TestS14EX234:
+    """Sibling found sweeping X155's class (Golden Rule 10). A LOAD (menu
+    Continue, the pause menu's Load) and a NEW CAMPAIGN (Begin, the School of
+    War) both enter `_apply_world_swap_response`, whose `_sync_response_hud`
+    fills the rail from the envelope's `notifications` -- and `/load` and
+    `/new_game` build through `build_base_response`, so the envelope carries
+    the whole standing rail of the arriving world. A fresh client's seen-set
+    is empty, so `update_notifications` rang the desk bell once per row.
+
+    Fix: `_apply_world_swap_response` makes one SILENT fill (`..., true`)
+    between the frontend reset and the sync; the sync then draws the rail as
+    always and finds every id seen."""
+
+    def test_the_swap_envelope_carries_the_standing_rail(self, _d18_world):
+        """The cause, on the wire: the envelope `/load` and `/new_game` ship
+        holds every standing row (the swap builds with the popup passthroughs
+        off and the draft notices kept; the rail rides regardless)."""
+        ids = _d18_stage(_d18_world)
+        import backend.main as M
+        with _d18_quiet():
+            swap = M.build_base_response(_d18_world, message="Loaded",
+                                         include_popup_passthroughs=False,
+                                         drain_draft_notices=False)
+        assert sorted(n["id"] for n in swap["notifications"]) == sorted(ids)
+
+    def test_the_swap_handler_fills_silently_before_the_sync(self):
+        body = _d18_func(_d18_src(), "_apply_world_swap_response")
+        reset = body.index("_reset_frontend_state_for_world_swap(true)")
+        fill = body.index("notification_bar.update_notifications(response.notifications, true)")
+        sync = body.index("_sync_response_hud(response)")
+        assert reset < fill < sync, "reset, then the silent fill, then the sync"
+        assert re.search(
+            r'if notification_bar and response\.has\("notifications"\)[^\n]*:\n\t\t'
+            r"notification_bar\.update_notifications\(response\.notifications, true\)", body)
+        assert "S14E-D18" in body and "S14E-X155" in body
+
+    def test_the_sync_itself_is_unchanged_and_still_rings(self):
+        """The sync serves every other response road and keeps the default."""
+        sync = _d18_func(_d18_src(), "_sync_response_hud")
+        assert "notification_bar.update_notifications(response.notifications)" in sync
+        assert "update_notifications(response.notifications, true)" not in sync
+
+    def test_both_swap_roads_enter_the_one_handler(self):
+        """Load and a new campaign (Begin, and the School of War through
+        `api_client.new_game(..., scenario)`) share `_apply_world_swap_response`
+        (the one hydration path), so the one fill covers every road."""
+        src = _d18_src()
+        assert '_apply_world_swap_response(response, "Game loaded successfully.")' in \
+            _d18_func(src, "_on_load_result")
+        assert '_apply_world_swap_response(response, "New campaign ready.")' in \
+            _d18_func(src, "_on_new_game_result")
+        assert src.count("_apply_world_swap_response(response, ") == 2
+        assert src.count("_reset_frontend_state_for_world_swap(") == 2    # def + the one call
+        assert "api_client.new_game(_on_new_game_result, scenario)" in src
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d19 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d19.py)
+# ══════════════════════════════════════════════════════════════════════════
+# S14f part 3 - ruling S14E-D19 "ONE CHEST, EVERYWHERE" (October 25, 2026).
+#
+# Rows: the ruling S14E-D19 and its defect halves S14E-X188 (the sponsor's and
+# the bond's four-turns cover test, the quote's "after the first payment"),
+# S14E-X189 (the crisis beat's "you can afford it"), S14E-X190 (the AI's
+# buy-off on its raw coffers) and S14E-X196 (every other player gold gate), with
+# the sweep's siblings S14E-X237 (the Admiralty's marshalate road names the raw
+# coffers), S14E-X238 (the investiture fee), S14E-X239 (the law's enactment
+# confirm), S14E-X240 (the desk's "can we afford it"), S14E-X241 (the counsel's
+# "saving for the Staff" bar) and S14E-X242 (the advisor's suggested lump cap).
+#
+# Reproduced on the shipped 1805 board: France holding 1,000 gold with 800 of it
+# owed to a recurring settlement payment (100 a turn for 8 turns) has a CHEST
+# (`bond.bid_funds`, `instruments.chest_of`) of 200 - yet every gate listed above
+# read the raw 1,000 and passed, quoting "the treasury holds 1,000" while the
+# buy-off verb, the Congress sweetener and the lever already refused on 200.
+# "Down" (the old read) is reproduced by monkeypatching `instruments.chest_of`
+# to the raw coffers, the one function every player gate now reads through.
+#
+# Merged at the landing into `tests/test_s14f_the_remeasure_rows.py`; every
+# module-level name is prefixed `_d19_`.
+
+_D19_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_D19_FREE = " free of its obligations"
+
+
+def _d19_quiet(fn, *args, **kwargs):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*args, **kwargs)
+
+
+@pytest.fixture(scope="module")
+def _d19_boot():
+    from backend.models.world_state import WorldState
+    return _d19_quiet(WorldState.from_scenario, str(_D19_SCENARIO))
+
+
+def _d19_owe(w, total: int, payer: str = "France", per_turn: int = 100) -> int:
+    """A ratified recurring settlement payment `payer` still owes (`total` in
+    all): the chest (`bond.bid_funds`) is the treasury less this."""
+    assert total % per_turn == 0
+    w.recurring_settlement_payments.append({
+        "payment_id": f"recurring_gold:{payer}:Austria:0:{len(w.recurring_settlement_payments)}",
+        "from": payer, "to": "Austria",
+        "amount_per_turn": int(per_turn), "turns_remaining": int(total // per_turn),
+        "total_turns": int(total // per_turn), "war_id": "", "war_label": "the settlement",
+        "ratified_turn": 0,
+    })
+    return int(total)
+
+
+def _d19_world(boot, raw: int = 1000, owed: int = 0, dp: int = 5):
+    """The shipped board; France holds `raw` gold and `dp` DP, `owed` of the
+    gold promised to a recurring settlement payment."""
+    from backend.models.world_state import WorldState
+    w = _d19_quiet(WorldState.from_dict, json.loads(json.dumps(boot.to_dict(), default=str)))
+    w.nation_gold["France"] = int(raw)
+    w.diplomatic_points = int(dp)
+    w.admin_actions_remaining = 3
+    if owed:
+        _d19_owe(w, owed)
+    return w
+
+
+def _d19_run(w, command: dict):
+    """The player's road: one order through the shared executor."""
+    from backend.commands.executor import CommandExecutor
+    return _d19_quiet(CommandExecutor().execute, {"command": command}, {"world": w})
+
+
+@pytest.fixture
+def _d19_down(monkeypatch):
+    """The old read: every player gate on the RAW coffers (the seam all of
+    them read through, `instruments.chest_of`, put down)."""
+    from backend.game_logic import instruments
+
+    def raw(world, payer):
+        t = int((getattr(world, "nation_gold", {}) or {}).get(payer, 0) or 0)
+        return t, t
+    monkeypatch.setattr(instruments, "chest_of", raw)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-D19 - the ruling: ONE chest governs every lump gold verb
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14ED19:
+    """The treasury less the recurring settlement payments owed is the one
+    figure every player lump gold verb quotes and refuses against. A
+    treasury that owes 800 does not have 1,000 to spend."""
+
+    def test_the_helpers_agree_with_the_lever_chest(self, _d19_boot):
+        from backend.game_logic import bond as B
+        from backend.game_logic.instruments import chest_of, owed_suffix, purse_of
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        assert B.bid_funds(w, "France") == 200
+        assert chest_of(w, "France") == (1000, 200)
+        assert purse_of(w, "France") == (1000, 200)
+        assert owed_suffix(1000, 200) == _D19_FREE
+        assert owed_suffix(1000, 1000) == ""
+
+    def test_the_ai_court_keeps_its_raw_treasury(self, _d19_boot):
+        """GR5 / Rule 5: an AI court's purse is its raw coffers, owing or
+        not - its figures (the P1.75 commission rung, the Britain paymaster's
+        cover test, the AI keels) never move."""
+        from backend.game_logic.instruments import purse_of
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Austria"] = 5000
+        _d19_owe(w, 3000, payer="Austria")
+        assert purse_of(w, "Austria") == (5000, 5000)
+
+    def test_the_ai_paymaster_cover_test_stays_raw(self, _d19_boot):
+        from backend.game_logic import bond as B
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Britain"] = 700
+        _d19_owe(w, 600, payer="Britain")
+        # Britain's cover (4 x her subsidy) is read on her coffers (700), not 100
+        assert B.mint_refusal(w, "Britain", "Austria", "France") == (
+            "The treasury holds 700 gold — it cannot sustain 200 a turn "
+            "(four turns' cover, 800).")
+        # 5,000 raw owing 4,500 (a chest of 500) still binds: the AI's cover is raw
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Britain"] = 5000
+        _d19_owe(w, 4500, payer="Britain")
+        assert B.mint_refusal(w, "Britain", "Austria", "France") == ""
+
+    def test_one_chest_names_the_same_figure_at_every_site(self, _d19_boot):
+        """1,000 raw, 800 owed: the chest is 200 and EVERY site that refuses
+        or quotes says 200 gold free of its obligations."""
+        from backend.game_logic import imperial_designs as ID
+        from backend.game_logic import moments as MO
+        from backend.game_logic import naval as N
+        from backend.game_logic import recruitment as RC
+        from backend.game_logic import reforms as R
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        ID._state(w)["road"] = "rhine"
+        said = []
+        said.append(ID.act_refusal(w, "temple_of_glory"))
+        said.append(MO._plan_gold(w, "France", {"op": "gold", "amount": 900})["refusal"])
+        said.append(R.law_refusal(w, "France", "grand_quartier_general", admin_actions=3))
+        cand = RC.get_marshal_pool(w, "France")[0]
+        said.append(RC.check_commission(w, "France", cand))
+        said.append(N.build_ships_refusal(w, "France"))
+        for line in said:
+            assert f"200 gold{_D19_FREE}" in line or f"200g{_D19_FREE}" in line, line
+
+    def test_nothing_owed_every_sentence_is_the_one_it_was(self, _d19_boot):
+        """Byte-identical with nothing owed: the literal strings the shipped
+        board printed before the ruling."""
+        from backend.game_logic import imperial_designs as ID
+        from backend.game_logic import moments as MO
+        from backend.game_logic import naval as N
+        from backend.game_logic import recruitment as RC
+        from backend.game_logic import reforms as R
+        w = _d19_world(_d19_boot, raw=1000)
+        ID._state(w)["road"] = "rhine"
+        assert ID.act_refusal(w, "temple_of_glory") == (
+            "The Temple of Glory costs 8,000 gold; the treasury holds 1,000.")
+        plan = MO._plan_gold(w, "France", {"op": "gold", "amount": 900})
+        assert plan["refusal"] == "" and plan["line"] == "900 gold (the treasury holds 1,000)"
+        assert plan["before"] == 1000 and plan["after"] == 100
+        assert R.law_refusal(w, "France", "grand_quartier_general", admin_actions=3) == (
+            "The Grand Quartier Général costs 9,000 gold; the treasury holds 1,000.")
+        cand = RC.get_marshal_pool(w, "France")[0]
+        assert RC.check_commission(w, "France", cand) == (
+            "Commissioning Mortier costs 4,000g — the treasury holds 1,000g.")
+        w2 = _d19_world(_d19_boot, raw=300)
+        assert N.build_ships_refusal(w2, "France") == (
+            "a ship of the line costs 400g — the treasury holds 300g")
+
+    def test_nothing_owed_the_gates_equal_the_old_read(self, _d19_boot, monkeypatch):
+        """The same call with the seam down (the raw read) is the same string
+        with nothing owed, at every site - the reads differ only when gold is
+        promised away."""
+        from backend.game_logic import imperial_designs as ID
+        from backend.game_logic import instruments
+        from backend.game_logic import moments as MO
+        from backend.game_logic import naval as N
+        from backend.game_logic import recruitment as RC
+        from backend.game_logic import reforms as R
+
+        def sites(w):
+            ID._state(w)["road"] = "rhine"
+            cand = RC.get_marshal_pool(w, "France")[0]
+            return (
+                ID.act_refusal(w, "temple_of_glory"),
+                MO._plan_gold(w, "France", {"op": "gold", "amount": 900}),
+                R.law_refusal(w, "France", "grand_quartier_general", admin_actions=3),
+                RC.check_commission(w, "France", cand),
+                N.build_ships_refusal(w, "France"),
+                instruments.sponsorship_quote(w, "France", "Prussia", "Hanover", 200),
+            )
+        for raw in (300, 1000, 10000):
+            up = sites(_d19_world(_d19_boot, raw=raw))
+            with monkeypatch.context() as m:
+                m.setattr(instruments, "chest_of",
+                          lambda world, payer: (int(world.nation_gold.get(payer, 0)),) * 2)
+                down = sites(_d19_world(_d19_boot, raw=raw))
+            assert up == down, raw
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X188 - the sponsor's and the bond's cover test on the chest
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX188:
+    """Reproduced (before the fix): France holding 1,000 with 800 owed - the
+    sponsor verb quoted "The treasury holds 1,000 gold and would hold 800
+    after the first payment" and the chip opened (the four turns' cover, 800,
+    read the raw 1,000), though the chest holds 200."""
+
+    _VERB = {"action": "sponsor_design", "target": "Prussia",
+             "raw_input": "sponsor Prussia against Hanover",
+             "raw_command": "sponsor Prussia against Hanover"}
+
+    def test_the_quote_reads_the_chest(self, _d19_boot):
+        from backend.game_logic.instruments import sponsorship_quote
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        text = sponsorship_quote(w, "France", "Prussia", "Hanover", 200)
+        assert (f"The treasury holds 7,000 gold{_D19_FREE} and would hold 6,800 after "
+                "the first payment.") in text, text
+
+    def test_the_quote_after_the_first_payment_is_the_chest_after(self, _d19_boot):
+        """Shown == applied: the chest after the first payment leaves."""
+        from backend.game_logic import bond as B
+        from backend.game_logic.instruments import sponsorship_quote
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        text = sponsorship_quote(w, "France", "Prussia", "Hanover", 200)
+        w.nation_gold["France"] -= 200
+        assert B.bid_funds(w, "France") == 6800
+        assert "would hold 6,800 after" in text
+
+    def test_the_sustain_bar_reads_the_chest(self, _d19_boot, monkeypatch):
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        refused = _d19_run(w, dict(self._VERB))
+        assert refused["success"] is False
+        assert refused["message"] == (
+            f"The treasury holds 200 gold{_D19_FREE} — it cannot SUSTAIN 200 per turn "
+            "(Talleyrand demands four turns' cover before he signs a standing promise).")
+        assert w.diplomatic_points == 5   # nothing charged
+        # the old read (down): the same order passed to the quote at 1,000
+        from backend.game_logic import instruments
+        with monkeypatch.context() as m:
+            m.setattr(instruments, "chest_of",
+                      lambda world, payer: (int(world.nation_gold[payer]),) * 2)
+            old = _d19_run(_d19_world(_d19_boot, raw=1000, owed=800), dict(self._VERB))
+        assert old["success"] is True
+        assert "The treasury holds 1,000 gold and would hold 800 after" in old["message"]
+
+    def test_a_funded_chest_still_quotes_and_the_boundary_is_the_chest(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=1600, owed=800)       # chest 800 = 4 x 200
+        quote = _d19_run(w, dict(self._VERB))
+        assert quote["success"] is True and quote.get("instrument_confirm")
+        assert f"holds 800 gold{_D19_FREE} and would hold 600 after" in quote["message"]
+        w = _d19_world(_d19_boot, raw=1599, owed=800)       # chest 799
+        assert _d19_run(w, dict(self._VERB))["success"] is False
+
+    def test_the_chip_reads_the_chest(self, _d19_boot):
+        from backend.game_logic.diplomacy import _instrument_actions
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        chip = next(a for a in _d19_quiet(_instrument_actions, w, "France", "Prussia")
+                    if a["action"] == "sponsor_design")
+        assert chip["available"] is False
+        assert chip["disabled_reason"] == (
+            f"The treasury cannot sustain the subsidy (needs 800g in hand{_D19_FREE}).")
+        assert [c["label"] for c in chip["choices"]] == ["Licence — a free hand, no gold"]
+        # the choices open where the CHEST carries them: 10,000 - 3,000 = 7,000
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        chip = next(a for a in _d19_quiet(_instrument_actions, w, "France", "Prussia")
+                    if a["action"] == "sponsor_design")
+        assert chip["available"] is True
+        assert [c["label"] for c in chip["choices"]][1:] == ["200g a turn", "400g a turn"]
+
+    def test_the_chip_and_the_verb_agree(self, _d19_boot):
+        from backend.game_logic.diplomacy import _instrument_actions
+        for raw, owed in ((1000, 800), (1599, 800), (1600, 800), (10000, 3000)):
+            w = _d19_world(_d19_boot, raw=raw, owed=owed)
+            chip = next(a for a in _d19_quiet(_instrument_actions, w, "France", "Prussia")
+                        if a["action"] == "sponsor_design")
+            verb = _d19_run(_d19_world(_d19_boot, raw=raw, owed=owed), dict(self._VERB))
+            assert chip["available"] is verb["success"], (raw, owed)
+
+    def test_the_bond_cover_test_and_quote_read_the_chest(self, _d19_boot):
+        from backend.game_logic import bond as B
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        assert B.mint_refusal(w, "France", "Spain", "Britain") == (
+            f"The treasury holds 200 gold{_D19_FREE} — it cannot sustain 200 a turn "
+            "(four turns' cover, 800).")
+        text = B.quote_line(w, "France", "Spain", "Britain")
+        assert (f"The treasury holds 200 gold{_D19_FREE} and would hold 0 after "
+                "the first payment.") in text, text
+
+    def test_the_bond_funded_chest_mints(self, _d19_boot):
+        from backend.game_logic import bond as B
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        assert B.mint_refusal(w, "France", "Spain", "Britain") == ""
+        text = B.quote_line(w, "France", "Spain", "Britain")
+        assert f"The treasury holds 7,000 gold{_D19_FREE} and would hold 6,600 after" in text
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        from backend.game_logic import bond as B
+        from backend.game_logic.instruments import sponsorship_quote
+        w = _d19_world(_d19_boot, raw=450)
+        assert B.mint_refusal(w, "France", "Spain", "Britain") == (
+            "The treasury holds 450 gold — it cannot sustain 200 a turn "
+            "(four turns' cover, 800).")
+        assert "The treasury holds 450 gold and would hold 250 after the first payment." in (
+            sponsorship_quote(w, "France", "Prussia", "Hanover", 200))
+        assert "The treasury holds 450 gold and would hold 250 after the first payment." in (
+            B.quote_line(w, "France", "Spain", "Britain"))
+        refused = _d19_run(w, dict(self._VERB))
+        assert refused["message"] == (
+            "The treasury holds 450 gold — it cannot SUSTAIN 200 per turn "
+            "(Talleyrand demands four turns' cover before he signs a standing promise).")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X189 - the crisis beat prices "you can afford it" on the morning's chest
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX189:
+    """Reproduced (before the fix): the brewing-crisis beat priced "compensate
+    (1,128g - you can afford it)" against the morning's FORECAST while the
+    buy-off verb refused on the chest less obligations - a beat that promised
+    what the click refused."""
+
+    def _beat(self, w):
+        from backend.game_logic import war_council as WC
+        events: list = []
+        _d19_quiet(WC._emit_crisis_brewing, w, "Prussia",
+                   {"target": "Hanover", "design_id": "d19", "want_title": "the Hanoverian prize"},
+                   events)
+        return events[0]["message"]
+
+    def _projected(self, w):
+        from backend.game_logic.ledger import chest_forecast
+        return int(chest_forecast(w, "France")["projected"])
+
+    def test_the_beat_prints_the_lesser_of_the_forecast_and_the_chest(self, _d19_boot):
+        from backend.game_logic.instruments import compute_buyoff_price
+        w = _d19_world(_d19_boot, raw=800, owed=600)
+        price = compute_buyoff_price(w, "Prussia")
+        projected = self._projected(w)
+        assert projected >= price > projected - 600     # the straddle the ruling is about
+        text = self._beat(w)
+        assert (f"compensate ({price:,}g — the treasury holds "
+                f"{projected - 600:,} gold{_D19_FREE})") in text, text
+
+    def test_the_old_read_said_you_can_afford_it(self, _d19_boot, monkeypatch):
+        """Down (the pre-ruling beat): the same board promised the buy-off."""
+        from backend.game_logic import war_council as WC
+        w = _d19_world(_d19_boot, raw=800, owed=600)
+        monkeypatch.setattr(WC, "_beat_chest", lambda world, player, treasury: (int(treasury), ""))
+        assert "you can afford it" in self._beat(w)
+
+    def test_the_beat_and_the_verb_agree_on_the_morning(self, _d19_boot):
+        """Shown == applied: land the forecast income in the coffers (the
+        morning) and the buy-off verb's chest is the figure the beat printed
+        (the beat is conservative by the stream's own payment, never above)."""
+        from backend.game_logic.instruments import chest_of
+        w = _d19_world(_d19_boot, raw=800, owed=600)
+        printed = self._projected(w) - 600
+        w.nation_gold["France"] = self._projected(w)
+        assert chest_of(w, "France")[1] == printed
+
+    def test_a_funded_chest_still_says_you_can_afford_it(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=3000, owed=600)
+        assert "you can afford it" in self._beat(w)
+
+    def test_nothing_owed_the_beat_is_the_forecast(self, _d19_boot):
+        from backend.game_logic.instruments import compute_buyoff_price
+        w = _d19_world(_d19_boot, raw=300)
+        price = compute_buyoff_price(w, "Prussia")
+        projected = self._projected(w)
+        assert projected < price + 10_000
+        text = self._beat(w)
+        if projected >= price:
+            assert "you can afford it" in text
+        else:
+            assert f"the treasury holds {projected:,})" in text
+        assert "obligations" not in text
+
+    def test_a_chest_below_nothing_prints_zero_not_a_debt(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=300, owed=9000)
+        assert f"the treasury holds 0 gold{_D19_FREE})" in self._beat(w)
+
+    def test_the_lever_down_is_the_raw_live_chest(self, _d19_boot, monkeypatch):
+        """THE_BEAT_READS_THE_MORNINGS_CHEST down: the raw live treasury, as
+        before, with no obligations clause."""
+        from backend.game_logic import war_council as WC
+        monkeypatch.setattr(WC, "THE_BEAT_READS_THE_MORNINGS_CHEST", False)
+        w = _d19_world(_d19_boot, raw=300, owed=600)
+        text = self._beat(w)
+        assert "the treasury holds 300)" in text and "obligations" not in text
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X190 - the AI buys off with its chest (THE SEAM: _ai_buyoff_funds)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX190:
+    """Reproduced (before the fix): a folding holder owing 900 of its 2,000
+    gold bought Prussia's design off for 1,128 (the raw coffers carried it);
+    its own chest held 1,100. The seam is `war_council._ai_buyoff_funds`."""
+
+    def _produce(self, w, gold: int, owed: int):
+        from backend.game_logic import war_council as WC
+        w.nation_gold["Russia"] = gold
+        if owed:
+            _d19_owe(w, owed, payer="Russia")
+        orig = w.get_statecraft
+        w.get_statecraft = lambda n: ({**orig(n), "coercion": "folds"} if n == "Russia" else orig(n))
+        record = {"target": "Russia", "design_id": "d19"}
+        events: list = []
+        _d19_quiet(WC._run_ai_instrument_producers, w, "Prussia", record, events)
+        return [e["type"] for e in events], record
+
+    def test_the_seam_is_the_chest_clamped_to_the_coffers(self, _d19_boot):
+        from backend.game_logic import war_council as WC
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Russia"] = 2000
+        assert WC._ai_buyoff_funds(w, "Russia") == 2000
+        _d19_owe(w, 900, payer="Russia")
+        assert WC._ai_buyoff_funds(w, "Russia") == 1100
+        w.nation_gold["Russia"] = 500                    # owing more than it holds
+        assert WC._ai_buyoff_funds(w, "Russia") == 0
+        w.nation_gold["Russia"] = -50                    # in debt: never above the coffers
+        assert WC._ai_buyoff_funds(w, "Russia") == 0
+
+    def test_a_holder_that_owes_cannot_buy_off_with_the_owed_gold(self, _d19_boot):
+        events, record = self._produce(_d19_world(_d19_boot), gold=2000, owed=900)
+        assert "design_bought_off" not in events
+        assert record["buyoff_attempted"] is True
+
+    def test_the_old_read_bought_off(self, _d19_boot, monkeypatch):
+        """Down (the series arm's patch): the raw coffers - the buy-off lands."""
+        from backend.game_logic import war_council as WC
+        monkeypatch.setattr(WC, "_ai_buyoff_funds",
+                            lambda world, target: int(world.nation_gold.get(target, 0)))
+        w = _d19_world(_d19_boot)
+        events, _ = self._produce(w, gold=2000, owed=900)
+        assert events == ["design_bought_off"]
+        assert int(w.nation_gold["Russia"]) == 2000 - 1128
+
+    def test_nothing_owed_the_holder_buys_off_as_before(self, _d19_boot):
+        w = _d19_world(_d19_boot)
+        events, _ = self._produce(w, gold=2000, owed=0)
+        assert events == ["design_bought_off"]
+        assert int(w.nation_gold["Russia"]) == 2000 - 1128
+
+    def test_a_funded_chest_buys_off(self, _d19_boot):
+        w = _d19_world(_d19_boot)
+        events, _ = self._produce(w, gold=3000, owed=900)       # chest 2,100 >= 1,128
+        assert events == ["design_bought_off"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X196 - every other player gold gate on the chest
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX196:
+    """Reproduced (before the fix): an Act, a letter's gold, a law, a
+    commission, a ship, a levy, a substitute, a works and an investiture each
+    read the RAW treasury - France holding 10,000 with 3,000 owed was told
+    "the Temple of Glory ... None" (decree it) though the chest held 7,000
+    against 8,000."""
+
+    def test_an_act_of_empire(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.game_logic import imperial_designs as ID
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        ID._state(w)["road"] = "rhine"
+        assert ID.act_refusal(w, "temple_of_glory") is None        # the old read
+        monkeypatch.undo()
+        assert ID.act_refusal(w, "temple_of_glory") == (
+            f"The Temple of Glory costs 8,000 gold; the treasury holds 7,000 gold{_D19_FREE}.")
+
+    def test_an_act_quote_names_the_chest_and_the_row_agrees(self, _d19_boot):
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+        from backend.game_logic import imperial_designs as ID
+        w = _d19_world(_d19_boot, raw=10000, owed=1000)         # chest 9,000: decrees
+        ID._state(w)["road"] = "rhine"
+        assert ID.act_refusal(w, "temple_of_glory") is None
+        quote = _d19_quiet(DiplomaticExecutor(None)._quote_act, w,
+                           ID.act(w, "temple_of_glory"), {"raw_command": "x"})
+        assert f"The treasury holds 9,000 gold{_D19_FREE}" in quote["message"], quote["message"]
+        row = next(r for r in ID.act_rows(w) if r["id"] == "temple_of_glory")
+        assert row["available"] is True
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        ID._state(w)["road"] = "rhine"
+        row = next(r for r in ID.act_rows(w) if r["id"] == "temple_of_glory")
+        assert row["available"] is False and row["disabled_reason"] == ID.act_refusal(w, "temple_of_glory")
+
+    def test_the_decree_verb_is_refused_on_the_chest(self, _d19_boot):
+        from backend.game_logic import imperial_designs as ID
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        ID._state(w)["road"] = "rhine"
+        reply = _d19_run(w, {"action": "decree_act", "target": "temple_of_glory",
+                             "raw_input": "decree the Temple of Glory"})
+        assert reply["success"] is False
+        assert reply["message"].endswith(f"the treasury holds 7,000 gold{_D19_FREE}.")
+        assert int(w.nation_gold["France"]) == 10000
+
+    def test_a_moments_gold_is_gated_on_the_chest(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.game_logic import moments as MO
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        op = {"op": "gold", "amount": 900}
+        assert MO._plan_gold(w, "France", op)["refusal"] == ""        # the old read
+        monkeypatch.undo()
+        plan = MO._plan_gold(w, "France", op)
+        assert plan["refusal"] == f"900 gold is asked; the treasury holds 200 gold{_D19_FREE}."
+        assert plan["line"] == f"900 gold (the treasury holds 200 gold{_D19_FREE})"
+        # `before`/`after` stay the coffers' - what _apply_gold leaves
+        assert (plan["before"], plan["after"]) == (1000, 100)
+
+    def test_a_law(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.game_logic import reforms as R
+        w = _d19_world(_d19_boot, raw=10000, owed=3000)
+        assert R.law_refusal(w, "France", "grand_quartier_general", admin_actions=3) == ""
+        monkeypatch.undo()
+        assert R.law_refusal(w, "France", "grand_quartier_general", admin_actions=3) == (
+            f"The Grand Quartier Général costs 9,000 gold; the treasury holds "
+            f"7,000 gold{_D19_FREE}.")
+        reply = _d19_run(w, {"action": "enact_law", "target": "the Grand Quartier General",
+                             "raw_input": "enact the Grand Quartier General"})
+        assert reply["success"] is False and f"7,000 gold{_D19_FREE}" in reply["message"]
+
+    def test_an_ai_courts_law_gate_is_its_raw_treasury(self, _d19_boot):
+        from backend.game_logic import reforms as R
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Austria"] = 20000
+        _d19_owe(w, 15000, payer="Austria")
+        deck = R.deck(w, "Austria")
+        law = next(r for r in deck if str(r.get("currency") or "gold") == "gold"
+                   and not R.is_in_force(r))
+        # the AI's refusal never names obligations (a raw read of 20,000)
+        assert "obligations" not in (R.law_refusal(w, "Austria", str(law["id"]), admin_actions=3) or "")
+        assert R._court_gold(w, "Austria") == 20000
+
+    def test_a_commission(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.game_logic import recruitment as RC
+        w = _d19_world(_d19_boot, raw=10000, owed=7000)
+        cand = RC.get_marshal_pool(w, "France")[0]
+        assert RC.check_commission(w, "France", cand) is None        # the old read
+        monkeypatch.undo()
+        assert RC.check_commission(w, "France", cand) == (
+            f"Commissioning Mortier costs 4,000g — the treasury holds 3,000g{_D19_FREE}.")
+        reply = _d19_run(w, {"action": "recruit_marshal", "target": "Mortier",
+                             "raw_input": "commission Mortier"})
+        assert reply["success"] is False and "3,000g" in reply["message"]
+
+    def test_the_ai_commission_rung_keeps_its_raw_treasury(self, _d19_boot):
+        from backend.game_logic import recruitment as RC
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Austria"] = 20000
+        _d19_owe(w, 18000, payer="Austria")
+        pool = RC.get_marshal_pool(w, "Austria")
+        assert pool
+        why = RC.check_commission(w, "Austria", pool[0])
+        assert "obligations" not in (why or "")
+        assert not why or "20,000g" in why or "manpower" in why or "pool" in why or "soil" in why
+
+    def test_a_ship(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.game_logic import naval as N
+        w = _d19_world(_d19_boot, raw=450, owed=200)
+        assert N.build_ships_refusal(w, "France") == ""               # the old read
+        monkeypatch.undo()
+        want = f"a ship of the line costs 400g — the treasury holds 250g{_D19_FREE}"
+        assert N.build_ships_refusal(w, "France") == want
+        # the verb refuses the same chest; nothing is laid
+        w = _d19_world(_d19_boot, raw=450, owed=200)
+        ships = int(N.get_fleet(w, "France")["ships"])
+        reply = _d19_run(w, {"action": "build_fleet", "raw_input": "lay down a ship of the line"})
+        assert reply["success"] is False
+        assert reply["message"] == f"A{want[1:]}."
+        assert int(N.get_fleet(w, "France")["ships"]) == ships and int(w.nation_gold["France"]) == 450
+
+    def test_a_ship_count_is_bounded_by_the_chest(self, _d19_boot):
+        """"lay down three ships" with 1,000 raw and 200 owed: the chest buys 2."""
+        from backend.game_logic import naval as N
+        w = _d19_world(_d19_boot, raw=1000, owed=200)                 # chest 800 = 2 keels
+        reply = _d19_run(w, {"action": "build_fleet", "raw_input": "lay down three ships"})
+        assert reply["success"] is True, reply
+        assert int(reply["keels_laid"]) <= 2
+        assert int(N.get_fleet(w, "France")["built_this_turn"]) <= 2
+
+    def test_a_levy(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.commands import economy_executor as EE
+        w = _d19_world(_d19_boot, raw=1500, owed=900)
+        old = _d19_quiet(EE.recruit_quote, w, "Rhineland", "infantry")
+        assert old["ok"] is True                                       # the old read
+        monkeypatch.undo()
+        quote = _d19_quiet(EE.recruit_quote, w, "Rhineland", "infantry")
+        assert quote["ok"] is False and quote["kind"] == "treasury" and quote["have"] == 600
+        assert f"have 600 gold{_D19_FREE}." in quote["reason"]
+        assert quote["short"].endswith(f"the treasury holds 600g{_D19_FREE}")
+        assert f"The treasury holds 600 gold{_D19_FREE}; the cheapest levy" in (
+            _d19_quiet(EE.recruit_remedy, w))
+
+    def test_the_levy_verb_is_refused_on_the_chest(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=1500, owed=900)
+        reply = _d19_run(w, {"action": "recruit", "marshal": "Ney", "target": "Rhineland",
+                             "raw_input": "Ney, recruit infantry"})
+        assert reply["success"] is False
+        assert f"have 600 gold{_D19_FREE}.'" in reply["message"]
+        assert int(w.nation_gold["France"]) == 1500
+
+    def test_the_remedy_memo_follows_the_chest(self, _d19_boot):
+        """A payment ratified mid-turn moves the chest while the coffers hold
+        the same gold: the memo must not serve the old remedy."""
+        from backend.commands import economy_executor as EE
+        w = _d19_world(_d19_boot, raw=1500)
+        before = _d19_quiet(EE.recruit_remedy, w)
+        _d19_owe(w, 900)
+        after = _d19_quiet(EE.recruit_remedy, w)
+        assert before != after and f"600 gold{_D19_FREE}" in after
+
+    def test_the_substitute_market(self, _d19_boot):
+        from backend.commands import economy_executor as EE
+        w = _d19_world(_d19_boot, raw=10000, owed=7000)
+        quote = _d19_quiet(EE.substitute_quote, w, "Rhineland")
+        assert quote["ok"] is False and quote["kind"] == "treasury"
+        assert f"The treasury holds 3,000 gold{_D19_FREE}." in quote["reason"]
+        assert quote["short"] == f"4,012g — the treasury holds 3,000g{_D19_FREE}"
+        reply = _d19_run(w, {"action": "purchase_levy", "marshal": "Ney", "target": "Ney",
+                             "raw_command": "buy substitutes for Ney",
+                             "raw_input": "buy substitutes for Ney"})
+        assert reply["success"] is False
+        assert f"The treasury holds 3,000 gold{_D19_FREE}." in reply["message"]
+
+    def test_the_works(self, _d19_boot, _d19_down, monkeypatch):
+        from backend.models.region import can_build
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        capital = w.regions[w.get_nation_capital("France")]
+        assert can_build(w, capital, "supply_depot", "France")[0] is True   # the old read
+        monkeypatch.undo()
+        ok, reason, _ = can_build(w, capital, "supply_depot", "France")
+        assert ok is False and reason == f"Insufficient gold! Need 300, have 200 gold{_D19_FREE}"
+        reply = _d19_run(w, {"action": "build", "target": capital.name,
+                             "building_type": "supply_depot",
+                             "raw_input": f"build supply depot at {capital.name}"})
+        assert reply["success"] is False and reply["message"] == reason
+
+    def test_a_watchtower_and_a_repair(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        capital = w.get_nation_capital("France")
+        tower = _d19_run(w, {"action": "build", "target": capital, "building_type": "watchtower",
+                             "raw_input": f"build watchtower at {capital}"})
+        assert tower["success"] is False
+        assert tower["message"] == f"Insufficient gold! Need 250, have 200 gold{_D19_FREE}"
+        w = _d19_world(_d19_boot, raw=200, owed=100)                   # chest 100 < 150
+        repair = _d19_run(w, {"action": "repair", "target": capital,
+                              "raw_input": f"repair {capital}"})
+        assert repair["success"] is False
+        assert repair["message"] == f"Insufficient gold! Need 150, have 100 gold{_D19_FREE}"
+
+    def test_the_ai_court_builds_on_its_raw_treasury(self, _d19_boot):
+        from backend.models.region import can_build
+        w = _d19_world(_d19_boot)
+        w.nation_gold["Austria"] = 1000
+        _d19_owe(w, 900, payer="Austria")
+        capital = w.regions[w.get_nation_capital("Austria")]
+        ok, reason, _ = can_build(w, capital, "supply_depot", "Austria")
+        assert "obligations" not in reason
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        from backend.commands import economy_executor as EE
+        from backend.models.region import can_build
+        w = _d19_world(_d19_boot, raw=450)
+        assert _d19_quiet(EE.recruit_quote, w, "Rhineland", "infantry")["reason"].endswith(
+            "Need 741 gold, have 450.'")
+        assert _d19_quiet(EE.substitute_quote, w, "Rhineland")["reason"].endswith(
+            "The treasury holds 450.'")
+        capital = w.regions[w.get_nation_capital("France")]
+        w = _d19_world(_d19_boot, raw=250)
+        assert can_build(w, capital, "supply_depot", "France")[1] == "Insufficient gold! Need 300, have 250"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X237 … X242 - the sweep's siblings
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14EX237:
+    """The Admiralty's marshalate road: "(we hold 4,000g)" named the raw
+    coffers beside a commission the chest refuses."""
+
+    def test_the_road_names_the_chest(self, _d19_boot):
+        from backend.game_logic import naval as N
+        w = _d19_world(_d19_boot, raw=3600, owed=1000)         # chest 2,600: Oudinot asks 3,500
+        text = N.marshalate_road(w, "France")
+        assert f"(we hold 2,600g{_D19_FREE})" in text, text
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        from backend.game_logic import naval as N
+        w = _d19_world(_d19_boot, raw=3000)                    # nobody affordable: the clause speaks
+        text = N.marshalate_road(w, "France")
+        assert "(we hold 3,000g)" in text and "obligations" not in text
+
+
+class TestS14EX238:
+    """The investiture fee (an estate for a marshal) is a lump gold verb: it
+    read the raw coffers."""
+
+    def _estate(self, boot, raw, owed):
+        w = _d19_world(boot, raw=raw, owed=owed)
+        w.regions["Tyrol"].controller = "France"
+        w.invalidate_active_nations_cache()
+        return w
+
+    _CMD = {"action": "grant_dotation", "marshal": "Ney", "target": "Tyrol",
+            "raw_input": "endow Ney with Tyrol"}
+
+    def test_the_fee_is_gated_on_the_chest(self, _d19_boot):
+        w = self._estate(_d19_boot, raw=1000, owed=900)         # chest 100 < 200
+        reply = _d19_run(w, dict(self._CMD))
+        assert reply["success"] is False
+        assert reply["message"] == ("The treasury cannot fund the investiture, Sire. "
+                                    f"Need 200 gold, have 100 gold{_D19_FREE}.")
+        assert int(w.nation_gold["France"]) == 1000
+
+    def test_a_funded_chest_pays_the_fee_from_the_coffers(self, _d19_boot):
+        w = self._estate(_d19_boot, raw=1000, owed=700)         # chest 300 >= 200
+        reply = _d19_run(w, dict(self._CMD))
+        assert reply["success"] is True, reply
+        assert int(w.nation_gold["France"]) == 800
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        w = self._estate(_d19_boot, raw=150, owed=0)
+        reply = _d19_run(w, dict(self._CMD))
+        assert reply["message"] == ("The treasury cannot fund the investiture, Sire. "
+                                    "Need 200 gold, have 150.")
+
+
+class TestS14EX239:
+    """The law's enactment confirm: "The treasury holds 7,000 gold." named the
+    player's raw gold beside a price the chest gated."""
+
+    def test_the_confirm_names_the_chest(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=10000, owed=500)          # chest 9,500: carries 9,000
+        reply = _d19_run(w, {"action": "enact_law", "target": "the Grand Quartier General",
+                             "raw_input": "enact the Grand Quartier General"})
+        assert reply.get("law_confirm"), reply
+        assert f"The treasury holds 9,500 gold{_D19_FREE}. Enact it?" in reply["message"]
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        w = _d19_world(_d19_boot, raw=10000)
+        reply = _d19_run(w, {"action": "enact_law", "target": "the Grand Quartier General",
+                             "raw_input": "enact the Grand Quartier General"})
+        assert "The treasury holds 10,000 gold. Enact it?" in reply["message"]
+
+
+class TestS14EX240:
+    """The desk's "can we afford a depot?": "the treasury holds 1,000 - yes"
+    over a chest of 200."""
+
+    def test_the_answer_reads_the_chest(self, _d19_boot):
+        from backend.ai.state_desk import _answer_afford
+        w = _d19_world(_d19_boot, raw=1000, owed=800)
+        text = _answer_afford(w, "supply_depot", "")
+        assert f"the treasury holds 200 gold{_D19_FREE} — no, 100 short." in text, text
+
+    def test_nothing_owed_is_byte_identical(self, _d19_boot):
+        from backend.ai.state_desk import _answer_afford
+        w = _d19_world(_d19_boot, raw=1000)
+        text = _answer_afford(w, "supply_depot", "")
+        assert "the treasury holds 1,000 — yes." in text and "obligations" not in text
+        assert _answer_afford(w, "", "").startswith("The treasury holds 1,000 gold, Sire")
+
+
+class TestS14EX241:
+    """The counsel's "saving for the Staff" bar read the raw gold (and, with
+    the law gate and the purse test already on the chest, the counsel named
+    the Staff to a court whose chest could not enact it)."""
+
+    def test_the_bar_reads_the_players_purse(self, _d19_boot, monkeypatch):
+        from backend.ai import counsel
+        from backend.game_logic import instruments
+        w = _d19_world(_d19_boot, raw=40000, owed=100)
+        seen = []
+        real = instruments.purse_of
+
+        def spy(world, nation):
+            seen.append(nation)
+            return real(world, nation)
+        monkeypatch.setattr(instruments, "purse_of", spy)
+        _d19_quiet(counsel._law_terms, w, "France")
+        assert seen and set(seen) == {"France"}
+
+    def test_the_counsel_names_the_staff_only_to_a_chest_that_carries_it(self, _d19_boot, monkeypatch):
+        from backend.ai import counsel
+        from backend.game_logic import instruments
+        rich = _d19_quiet(counsel._law_terms, _d19_world(_d19_boot, raw=30000), "France")
+        assert rich and rich.startswith("enact the Staff — 9,000g")
+        # 12,000 raw owing 6,000: a chest of 6,000 does not carry 9,000
+        w = _d19_world(_d19_boot, raw=12000, owed=6000)
+        assert _d19_quiet(counsel._law_terms, w, "France") is None
+        with monkeypatch.context() as m:                    # the old read: raw 12,000
+            m.setattr(instruments, "chest_of",
+                      lambda world, payer: (int(world.nation_gold[payer]),) * 2)
+            old = _d19_quiet(counsel._law_terms, _d19_world(_d19_boot, raw=12000, owed=6000),
+                             "France")
+        assert old and old.startswith("enact the Staff — 9,000g")
+
+
+class TestS14EX242:
+    """The advisor's suggested gold lump was capped on a share of the raw
+    coffers - a sweetener the table's validator then refused."""
+
+    def test_the_cap_is_a_share_of_the_chest(self, _d19_boot):
+        from backend.game_logic.diplomatic_templates import _validate_economic_feasibility
+        for raw, owed, want in ((4000, 0, 1000), (4000, 3000, 250)):
+            w = _d19_world(_d19_boot, raw=raw, owed=owed)
+            terms = {"sweeteners": [{"type": "gold_lump", "value": 5000}], "demands": []}
+            _validate_economic_feasibility(terms, "Austria", w, war_score=0)
+            assert terms["sweeteners"][0]["value"] == want, (raw, owed)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d20 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d20.py)
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14f part 3 (October 25, 2026) - the rulings S14E-D20 and S14E-D16
+# and the rows they carry.
+#
+#     S14E-D20  a DRAWN battle counts as contact for the AI's peace gate and as
+#               the ally's blood in the shut-out price's SEVERE tier
+#     S14E-X210 the AI's P2 stalemate gate read `battle_records` (winner-only)
+#               alone                                       -> `diplomacy.pair_has_fought`
+#     S14E-X213 `get_separate_peace_fallout_warnings`' `ally_casualties` counted
+#               the winner-only records alone              -> `diplomacy.ally_dead_in_pair`
+#     S14E-D16  a FLEET ACTION restarts Europe's armed-peace fuse
+#     S14E-X130 `naval.resolve_fleet_action` stamped nothing
+#                                                          -> `naval._stamp_fleet_action_clock`
+#     S14E-X211 the raw-dict arm of `separate_peace_priced_clauses` priced a
+#               clause the ratifier never applies
+#     S14E-X212 the common-peace summary's casualties missed a drawn battle's dead
+#     S14E-X243 the pooled courts of a fleet action fought too (sibling of X130)
+#     S14E-X246 the dict-dialect `clauses` readers are inert: no road writes one
+#               (sibling of X211, closed by a census pin)
+#
+# The siblings S14E-X244 (a drawn battle earns no war-contribution credit) and
+# S14E-X245 (a drawn battle accrues no war exhaustion) are RULING-grade and filed
+# unfixed: they move settlement shares and the AI's weariness clock.
+#
+# Merged into `tests/test_s14f_the_remeasure_rows.py` at the landing: helpers are
+# prefixed `_d20_`, one class per row.
+
+_D20_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_D20_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _d20_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _d20_boot():
+    from backend.models.world_state import WorldState
+    with _d20_quiet():
+        return WorldState.from_scenario(str(_D20_SCENARIO))
+
+
+@pytest.fixture
+def _d20_world(_d20_boot):
+    """The shipped 1805 board (a copy), France with a chest and DP to spend."""
+    from backend.models.world_state import WorldState
+    w = WorldState.from_dict(json.loads(json.dumps(_d20_boot.to_dict(), default=str)))
+    w.nation_gold["France"] = 2500
+    w.diplomatic_points = 5
+    return w
+
+
+def _d20_state(w, a, b, state):
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    with _d20_quiet():
+        set_diplomatic_state(w, a, b, state, "test")
+    w.invalidate_active_nations_cache()
+
+
+# ── the seams held DOWN (today's behaviour before the rulings) ─────────────
+
+def _d20_contact_records_alone(world, key):
+    """`pair_has_fought` down: the winner-only records alone (the old read)."""
+    return bool((getattr(world, "battle_records", None) or {}).get(key))
+
+
+def _d20_dead_records_alone(world, key, nation):
+    """`ally_dead_in_pair` down: the recorded battles' dead alone (the old read)."""
+    from backend.game_logic.diplomacy import battle_record_dead
+    return battle_record_dead(world, key, nation)
+
+
+# ── P2 (the AI's stalemate gate) ────────────────────────────────────────────
+
+def _d20_p2_threshold(w):
+    """Austria's normal patience window (the has-fought threshold)."""
+    from backend.game_logic import ai_diplomacy as A
+    mods = A._get_personality_modifiers("Austria", w)
+    return max(2, 5 + mods["patience_bonus"] - int(w.war_exhaustion.get("Austria", 0)) // 30)
+
+
+def _d20_won_battle(w, turn=12):
+    key = w._make_diplo_key("France", "Austria")
+    w.battle_records[key] = [{
+        "turn": int(turn), "winner": "France", "attacker": "France",
+        "defender": "Austria", "attacker_casualties": 900,
+        "defender_casualties": 4000, "location": "Swabia", "battle_name": ""}]
+
+
+def _d20_p2(w, counter, *, drawn=None, won=False):
+    """Drive the REAL proposal generator for Austria on a stalemate score. The
+    league gate (PC-F20) holds a coalition member back, so the Third Coalition
+    is dissolved; `counter` is the pair's stalemate clock BEFORE this turn's
+    bump (the generator adds one). `drawn` = (nation_a, nation_b, a_dead,
+    b_dead) for `record_drawn_battle`; `won` records a won battle."""
+    from backend.game_logic import ai_diplomacy as A
+    key = w._make_diplo_key("France", "Austria")
+    w.current_turn = 12
+    w.war_start_turns[key] = 0
+    w.war_scores[key] = 0
+    w.active_coalition = None
+    w.coalition_brewing = None
+    w.nation_relations[key] = 20
+    w.ai_stalemate_counters = {key: int(counter)}
+    if drawn:
+        w.record_drawn_battle(*drawn)
+    if won:
+        _d20_won_battle(w)
+    with _d20_quiet():
+        return A.process_diplomatic_phase("Austria", w)
+
+
+_D20_TYROL = ("France", "Austria", 7673, 6020)      # the Great Battle of Tyrol (X201's sighting)
+
+
+class TestS14ED20:
+    """RULING S14E-D20 (built as recommended under the standing delegation): a
+    DRAWN battle counts as a battle wherever one is counted - the AI's peace
+    gate (`has_fought`) and the shut-out price's SEVERE tier.
+
+    `battle_records` is winner-only on purpose (its counts and decay must not
+    see a winnerless row); since X201 the pair's campaign ledger carries the
+    drawn battles (`drawn`, with the dead in `drawn_dead`, X209) and the
+    player's surfaces count them. The AI's gate did not, so a court that had
+    fought France to a standstill read its war as unfought and waited the long
+    no-contact escape (15 turns) instead of its patience window (Austria 7).
+
+    The fix is two seams in `diplomacy.py`: `pair_has_fought(world, key)` (the
+    records OR the ledger's `drawn`) read by the P2 stalemate gate, and
+    `ally_dead_in_pair(world, key, nation)` (the records' dead plus
+    `drawn_battle_dead`) read by the fallout warnings. Both hold DOWN to the
+    records alone (the series arms)."""
+
+    def test_a_contact_is_the_records_or_the_drawn_ledger(self, _d20_world):
+        from backend.game_logic.diplomacy import pair_has_fought
+        w = _d20_world
+        key = w._make_diplo_key("France", "Austria")
+        assert pair_has_fought(w, key) is False, "the boot has fought no battle"
+        w.record_drawn_battle(*_D20_TYROL)
+        assert pair_has_fought(w, key) is True, "a drawn battle on the ledger is contact"
+        assert not w.battle_records.get(key), "battle_records stays winner-only"
+        w.campaign_ledgers[key].pop("drawn")
+        assert pair_has_fought(w, key) is False
+        _d20_won_battle(w)
+        assert pair_has_fought(w, key) is True, "a recorded battle is contact, as before"
+
+    def test_b_the_seam_is_tolerant_of_an_absent_or_odd_ledger(self, _d20_world):
+        from backend.game_logic.diplomacy import pair_has_fought
+        w = _d20_world
+        assert pair_has_fought(w, "Nowhere|Nobody") is False
+        w.campaign_ledgers["Austria|France"] = {"drawn": None}
+        assert pair_has_fought(w, "Austria|France") is False
+        w.campaign_ledgers["Austria|France"] = {"drawn": []}
+        assert pair_has_fought(w, "Austria|France") is False
+        del w.campaign_ledgers
+        assert pair_has_fought(w, "Austria|France") is False, "a world with no ledgers at all"
+
+    def test_c_another_pair_s_draw_is_not_this_pair_s_contact(self, _d20_world):
+        from backend.game_logic.diplomacy import pair_has_fought
+        w = _d20_world
+        w.record_drawn_battle("France", "Britain", 5000, 4000)
+        assert pair_has_fought(w, w._make_diplo_key("France", "Britain")) is True
+        assert pair_has_fought(w, w._make_diplo_key("France", "Austria")) is False
+
+    def test_d_a_skirmish_below_the_battle_floor_is_not_contact(self, _d20_world):
+        """The ledger stamps `drawn` only for a real battle (>= 1,000 dead) - the
+        same floor the records keep."""
+        from backend.game_logic.diplomacy import pair_has_fought
+        w = _d20_world
+        w.record_drawn_battle("France", "Austria", 300, 200)
+        assert not pair_has_fought(w, w._make_diplo_key("France", "Austria"))
+
+    def test_e_the_drawn_contact_ages_out_with_the_records(self, _d20_world):
+        """Both lists leave in the same ten-turn window (`apply_war_score_decay`)."""
+        from backend.game_logic.diplomacy import apply_war_score_decay, pair_has_fought
+        w = _d20_world
+        key = w._make_diplo_key("France", "Austria")
+        w.record_drawn_battle(*_D20_TYROL)
+        w.current_turn = int(w.current_turn) + 10
+        with _d20_quiet():
+            apply_war_score_decay(w, recalculate=False)
+        assert pair_has_fought(w, key) is True, "still inside the window at ten turns"
+        w.current_turn = int(w.current_turn) + 1
+        with _d20_quiet():
+            apply_war_score_decay(w, recalculate=False)
+        assert pair_has_fought(w, key) is False
+
+    def test_f_the_seam_reads_and_writes_nothing(self, _d20_world):
+        from backend.game_logic.diplomacy import ally_dead_in_pair, pair_has_fought
+        w = _d20_world
+        w.record_drawn_battle(*_D20_TYROL)
+        key = w._make_diplo_key("France", "Austria")
+        before = json.dumps(w.to_dict(), default=str, sort_keys=True)
+        pair_has_fought(w, key)
+        ally_dead_in_pair(w, key, "Austria")
+        assert json.dumps(w.to_dict(), default=str, sort_keys=True) == before
+
+    def test_g_the_contact_survives_a_save(self, _d20_world):
+        from backend.game_logic.diplomacy import pair_has_fought
+        from backend.models.world_state import WorldState
+        w = _d20_world
+        w.record_drawn_battle(*_D20_TYROL)
+        again = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert pair_has_fought(again, again._make_diplo_key("France", "Austria")) is True
+
+    def test_h_the_callers_read_the_named_seams(self):
+        """The class: the P2 gate reads `pair_has_fought` (at call time, off the
+        module, so the arm can patch it) and the fallout warnings read
+        `ally_dead_in_pair`; neither re-reads `battle_records` itself."""
+        ai = (_D20_ROOT / "backend/game_logic/ai_diplomacy.py").read_text(encoding="utf-8")
+        assert "has_fought = _dip.pair_has_fought(world, diplo_key)" in ai
+        assert "bool(getattr(world, 'battle_records', {}).get(diplo_key))" not in ai
+        dip = (_D20_ROOT / "backend/game_logic/diplomacy.py").read_text(encoding="utf-8")
+        assert "ally_casualties = ally_dead_in_pair(world, target_key, nation)" in dip
+
+    def test_i_ally_dead_adds_the_recorded_and_the_drawn(self, _d20_world):
+        from backend.game_logic.diplomacy import ally_dead_in_pair, battle_record_dead
+        w = _d20_world
+        key = w._make_diplo_key("France", "Austria")
+        assert ally_dead_in_pair(w, key, "Austria") == 0
+        _d20_won_battle(w)                                  # France 900 / Austria 4,000
+        assert ally_dead_in_pair(w, key, "Austria") == 4000
+        assert ally_dead_in_pair(w, key, "France") == 900
+        w.record_drawn_battle(*_D20_TYROL)                  # France 7,673 / Austria 6,020
+        assert ally_dead_in_pair(w, key, "Austria") == 4000 + 6020
+        assert ally_dead_in_pair(w, key, "France") == 900 + 7673
+        assert battle_record_dead(w, key, "Austria") == 4000, "the records alone (the seam's down value)"
+        assert ally_dead_in_pair(w, key, "Prussia") == 0, "a court in neither battle"
+
+    def test_j_the_series_arms_hold_both_seams_down(self, _d20_world, monkeypatch):
+        """The measurable-seam contract: each seam is a module function the arm
+        replaces; down, the gate and the tier read the records alone."""
+        from backend.game_logic import diplomacy as D
+        w = _d20_world
+        key = w._make_diplo_key("France", "Austria")
+        w.record_drawn_battle(*_D20_TYROL)
+        monkeypatch.setattr(D, "pair_has_fought", _d20_contact_records_alone)
+        monkeypatch.setattr(D, "ally_dead_in_pair", _d20_dead_records_alone)
+        assert D.pair_has_fought(w, key) is False
+        assert D.ally_dead_in_pair(w, key, "Austria") == 0
+
+
+class TestS14EX210:
+    """`ai_diplomacy.process_diplomatic_phase`'s P2 stalemate rung computed
+    `has_fought` from `battle_records` alone, so a pair whose only battle was
+    DRAWN waited the long no-contact escape (`P2_NO_CONTACT_ESCAPE_TURNS`, 15)
+    instead of the court's normal patience window.
+
+    Reproduced on the shipped board (France at war with Austria; the Third
+    Coalition dissolved so the league gate does not hold her; war score 0; the
+    Great Battle of Tyrol drawn, 7,673 / 6,020 dead): Austria's window is 7
+    turns - with the seam held down she sent nothing at 7, nothing at 14 and her
+    armistice only at 15; with the ruling built she sends it at 7."""
+
+    def test_a_a_drawn_battle_opens_the_normal_window(self, _d20_world):
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        out = _d20_p2(w, thr - 1, drawn=_D20_TYROL)         # the bump makes the clock == thr
+        assert out is not None and out["proposal_type"] == "armistice" and out["priority"] == 2
+
+    def test_b_before_the_ruling_the_same_board_waited_fifteen(self, _d20_world, monkeypatch):
+        from backend.game_logic import ai_diplomacy as A
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "pair_has_fought", _d20_contact_records_alone)
+        thr = _d20_p2_threshold(_d20_world)
+        assert thr < A.P2_NO_CONTACT_ESCAPE_TURNS == 15
+        assert _d20_p2(_d20_world, thr - 1, drawn=_D20_TYROL) is None, "seam down: the court holds at the window"
+        assert _d20_p2(_d20_world, 13, drawn=_D20_TYROL) is None, "... and at 14"
+        out = _d20_p2(_d20_world, 14, drawn=_D20_TYROL)
+        assert out is not None and out["proposal_type"] == "armistice", "... until the long escape at 15"
+
+    def test_c_a_short_clock_still_holds(self, _d20_world):
+        """The window is the patience, not the battle: one turn short of it, no letter."""
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        assert _d20_p2(w, thr - 2, drawn=_D20_TYROL) is None
+
+    def test_d_no_battle_at_all_keeps_the_long_escape(self, _d20_world):
+        """The AUD-b control: a war that never saw contact still waits 15."""
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        assert _d20_p2(w, thr - 1) is None
+        assert _d20_p2(w, 13) is None
+        out = _d20_p2(w, 14)
+        assert out is not None and out["proposal_type"] == "armistice"
+
+    def test_e_a_won_battle_is_contact_before_and_after(self, _d20_world, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        out = _d20_p2(w, thr - 1, won=True)
+        assert out is not None and out["proposal_type"] == "armistice"
+        monkeypatch.setattr(D, "pair_has_fought", _d20_contact_records_alone)
+        out = _d20_p2(_d20_world, thr - 1, won=True)
+        assert out is not None and out["proposal_type"] == "armistice", "the down value keeps today's read"
+
+    def test_f_another_pair_s_draw_does_not_open_this_window(self, _d20_world):
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        assert _d20_p2(w, thr - 1, drawn=("France", "Britain", 5000, 4000)) is None
+
+    def test_g_a_skirmish_below_the_floor_does_not_open_it(self, _d20_world):
+        w = _d20_world
+        thr = _d20_p2_threshold(w)
+        assert _d20_p2(w, thr - 1, drawn=("France", "Austria", 300, 200)) is None
+
+    def test_h_the_battle_records_stay_winner_only(self, _d20_world):
+        """The gate reads the ledger; it writes nothing into the records."""
+        w = _d20_world
+        key = w._make_diplo_key("France", "Austria")
+        _d20_p2(w, 6, drawn=_D20_TYROL)
+        assert not w.battle_records.get(key)
+
+    def test_i_the_drive_through_the_real_attack_pipeline(self, _d20_world, monkeypatch):
+        """X201's sighting end to end: Massena attacks Archduke John with the
+        resolver forced to a stalemate; the ledger holds the draw, the records
+        nothing, and Austria's gate opens at her window."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import combat as C
+        real = C.CombatResolver.resolve_battle
+
+        def stalemate(self, *args, **kwargs):
+            result = real(self, *args, **kwargs)
+            result["outcome"] = "stalemate"
+            return result
+
+        monkeypatch.setattr(C.CombatResolver, "resolve_battle", stalemate)
+        w = _d20_world
+        w.marshals["ArchdukeJohn"].location = "Milan"
+        w.marshals["ArchdukeJohn"].strength = 20000
+        with _d20_quiet():
+            out = CommandExecutor().execute(
+                {"success": True, "command": {"marshal": "Massena", "action": "attack",
+                                              "target": "ArchdukeJohn"}},
+                {"world": w})
+        assert out.get("success"), out.get("message")
+        key = w._make_diplo_key("France", "Austria")
+        assert w.campaign_ledgers[key]["drawn"] == [int(w.current_turn)]
+        assert not w.battle_records.get(key)
+        thr = _d20_p2_threshold(w)
+        w.current_turn = 12
+        w.war_start_turns[key] = 0
+        w.war_scores[key] = 0
+        w.active_coalition = None
+        w.coalition_brewing = None
+        w.nation_relations[key] = 20
+        w.ai_stalemate_counters = {key: thr - 1}
+        from backend.game_logic import ai_diplomacy as A
+        with _d20_quiet():
+            proposal = A.process_diplomatic_phase("Austria", w)
+        assert proposal is not None and proposal["proposal_type"] == "armistice"
+
+
+# ── the shut-out price's SEVERE tier ────────────────────────────────────────
+
+def _d20_ally_board(w, *, dead=(5400, 3200), age=10):
+    """Prussia allied to France and at war with Austria on her own account (a
+    peace France makes with Austria LEAVES her fighting), the war `age` turns
+    old, with a drawn battle `dead` = (Prussia's dead, Austria's dead). The
+    shipped boot's Bavaria is CARRIED into France's peace and pays no fallout,
+    so Prussia is the ally the tier prices."""
+    _d20_state(w, "France", "Prussia", "ALLIANCE")
+    _d20_state(w, "Prussia", "Austria", "WAR")
+    w.current_turn = 12
+    key = w._make_diplo_key("Prussia", "Austria")
+    w.war_start_turns[key] = 12 - int(age)
+    if dead:
+        w.record_drawn_battle("Prussia", "Austria", *dead)
+    return key
+
+
+def _d20_prussia_row(w, harshness=0.5):
+    from backend.game_logic.diplomacy import get_separate_peace_fallout_warnings
+    rows = get_separate_peace_fallout_warnings(w, "France", "Austria", harshness)
+    (row,) = [r for r in rows if r["ally"] == "Prussia"]
+    return row
+
+
+def _d20_default_peace(w):
+    """The confirm popup's default peace dialogue with Austria and the terms its
+    Send button carries."""
+    from backend.game_logic.diplomatic_dialogue import generate_dialogue
+    with _d20_quiet():
+        dialogue = generate_dialogue(
+            "proposal_confirm", {"target_nation": "Austria", "proposal_type": "peace"}, w)
+    option = next(o for o in dialogue["options"] if o.get("action") == "execute_proposal")
+    return dialogue, option["terms"]
+
+
+def _d20_sign(w, terms, start=60):
+    """Sign France's peace with Austria through the REAL ratifier; return the
+    relation change it wrote on Prussia."""
+    key = w._make_diplo_key("France", "Prussia")
+    w.nation_relations[key] = start
+    w.nation_gold["Austria"] = 5000
+    with _d20_quiet():
+        result = w._ratify_treaty({
+            "type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+            "sweeteners": terms.get("sweeteners", []), "demands": terms.get("demands", []),
+            "clauses": terms.get("clauses", [])})
+    assert isinstance(result, dict) and result.get("type") == "diplomatic_treaty_signed", result
+    return w.nation_relations[key] - start
+
+
+class TestS14EX213:
+    """`get_separate_peace_fallout_warnings`' `ally_casualties` summed the
+    winner-only `battle_records`, and it feeds the SEVERE tier (more than 5,000
+    dead over 5 or more turns: severity SEVERE, the -15 base penalty) - so an
+    ally whose war with the court had only DRAWN battles under-counted and the
+    shut-out PRICE moved.
+
+    Reproduced on the shipped board (Prussia allied to France, at war with
+    Austria for 10 turns, a drawn battle of 5,400 Prussian dead): the row read
+    MAJOR at -10 (harshness 0.5); with the ruling built it reads SEVERE at -15,
+    and the confirm popup's default peace quotes -30 (the doubled figure) where
+    it quoted -20 - the signing writes the same."""
+
+    def test_a_the_drawn_dead_lift_the_tier(self, _d20_world):
+        w = _d20_world
+        _d20_ally_board(w)
+        row = _d20_prussia_row(w)
+        assert (row["severity"], row["predicted_relation_change"]) == ("SEVERE", -15)
+
+    def test_b_before_the_ruling_the_same_war_read_major(self, _d20_world, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        w = _d20_world
+        _d20_ally_board(w)
+        monkeypatch.setattr(D, "ally_dead_in_pair", _d20_dead_records_alone)
+        row = _d20_prussia_row(w)
+        assert (row["severity"], row["predicted_relation_change"]) == ("MAJOR", -10)
+
+    def test_c_the_thresholds_are_the_tier_s_own(self, _d20_world):
+        """More than 5,000 dead (not 5,000), over 5 or more turns (not 4)."""
+        for dead, age, severity in (((4000, 3000), 10, "MAJOR"), ((5000, 3000), 10, "MAJOR"),
+                                    ((5001, 3000), 10, "SEVERE"), ((5400, 3200), 5, "SEVERE"),
+                                    ((5400, 3200), 4, "MAJOR")):
+            from backend.models.world_state import WorldState
+            w = WorldState.from_dict(json.loads(json.dumps(_d20_world.to_dict(), default=str)))
+            _d20_ally_board(w, dead=dead, age=age)
+            assert _d20_prussia_row(w)["severity"] == severity, (dead, age)
+
+    def test_d_a_recorded_and_a_drawn_battle_add(self, _d20_world):
+        w = _d20_world
+        key = _d20_ally_board(w, dead=(2500, 2000))
+        assert _d20_prussia_row(w)["severity"] == "MAJOR", "2,500 alone"
+        w.battle_records[key] = [{
+            "turn": 11, "winner": "Austria", "attacker": "Prussia", "defender": "Austria",
+            "attacker_casualties": 3000, "defender_casualties": 1000,
+            "location": "Bohemia", "battle_name": ""}]
+        assert _d20_prussia_row(w)["severity"] == "SEVERE", "3,000 recorded + 2,500 drawn"
+
+    def test_e_only_the_allies_own_dead_count(self, _d20_world):
+        """Austria's 5,400 dead in the draw are the court's, not the ally's."""
+        w = _d20_world
+        _d20_ally_board(w, dead=None)
+        w.record_drawn_battle("Austria", "Prussia", 5400, 3200)    # Austria 5,400 / Prussia 3,200
+        assert _d20_prussia_row(w)["severity"] == "MAJOR"
+
+    def test_f_shown_is_applied_the_preview_and_the_signing_move_together(self, _d20_world, monkeypatch):
+        """The confirm popup's Political Consequences row quotes the figure the
+        real ratifier writes: -30 after (the doubled SEVERE base), -20 before."""
+        from backend.game_logic import diplomacy as D
+        from backend.models.world_state import WorldState
+
+        def quoted_and_applied(world):
+            _d20_ally_board(world)
+            dialogue, terms = _d20_default_peace(world)
+            (row,) = [c for c in dialogue["war_context_snapshot"]["commitment_conflicts"]
+                      if c["affected_entity"] == "Prussia"]
+            return row["detail"]["relation_change"], _d20_sign(world, terms)
+
+        snapshot = json.loads(json.dumps(_d20_world.to_dict(), default=str))
+        assert quoted_and_applied(_d20_world) == (-30, -30)
+        monkeypatch.setattr(D, "ally_dead_in_pair", _d20_dead_records_alone)
+        assert quoted_and_applied(WorldState.from_dict(snapshot)) == (-20, -20)
+
+    def test_g_the_applied_penalty_is_the_severe_base(self, _d20_world):
+        from backend.game_logic.diplomacy import apply_separate_peace_penalties
+        w = _d20_world
+        _d20_ally_board(w)
+        key = w._make_diplo_key("France", "Prussia")
+        w.nation_relations[key] = 60
+        with _d20_quiet():
+            applied = apply_separate_peace_penalties(w, "France", "Austria", 0.5)
+        (row,) = [a for a in applied if a["ally"] == "Prussia"]
+        assert (row["severity"], row["relation_change"]) == ("SEVERE", -15)
+        assert w.nation_relations[key] == 45
+
+    def test_h_a_winning_ally_stays_minor(self, _d20_world):
+        """The tier order is unchanged: a score above +20 is MINOR whatever the dead."""
+        w = _d20_world
+        key = _d20_ally_board(w)
+        parts = key.split("|")
+        w.war_scores[key] = 60 if parts[0] == "Prussia" else -60
+        assert _d20_prussia_row(w)["severity"] == "MINOR"
+
+    def test_i_numbers_on_the_wire_are_ints(self, _d20_world):
+        w = _d20_world
+        _d20_ally_board(w)
+        row = _d20_prussia_row(w)
+        assert isinstance(row["predicted_relation_change"], int)
+        assert isinstance(row["ally_war_score_vs_target"], int)
+
+
+# ── D16 / X130 — a fleet action restarts Europe's fuse ─────────────────────
+
+def _d20_sea_board(w, turn=12):
+    w.current_turn = turn
+    return w
+
+
+class TestS14ED16:
+    """RULING S14E-D16 (built as recommended under the standing delegation): a
+    FLEET ACTION restarts Europe's armed-peace fuse. Every field battle stamps
+    the world's last-battle store (S14E-35, X118, X129); `resolve_fleet_action`
+    - the Trafalgar resolver - stamped nothing, because the naval layer keeps
+    no battle record by design (`NAVAL_SPEC.md` §4.4). A fleet action is a
+    battle the courts read in the Gazette.
+
+    The fix is one seam, `naval._stamp_fleet_action_clock(world, attacker,
+    defender)`, called at the resolver's START (so the intercepted expedition
+    and the caught diversion restart the fuse alike); it writes through the
+    world's one writer, `stamp_battle_turn`. Held DOWN it is a no-op."""
+
+    def test_a_the_action_restarts_the_hegemon_s_quiet_count(self, _d20_world):
+        from backend.game_logic import coalition, naval
+        w = _d20_sea_board(_d20_world)
+        assert coalition.last_battle_turn_of(w, "France") == 0
+        assert coalition.hegemon_quiet_turns(w, "France") == 12, "twelve quiet turns since the boot"
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain", context="diversion")
+        assert coalition.last_battle_turn_of(w, "France") == 12
+        assert coalition.last_battle_turn_of(w, "Britain") == 12
+        assert coalition.hegemon_quiet_turns(w, "France") == 0
+
+    def test_b_held_down_the_action_stamps_nothing(self, _d20_world, monkeypatch):
+        from backend.game_logic import coalition, naval
+        monkeypatch.setattr(naval, "_stamp_fleet_action_clock", lambda world, attacker, defender: None)
+        w = _d20_sea_board(_d20_world)
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain", context="diversion")
+        assert w.last_battle_turn_by_nation == {}
+        assert coalition.hegemon_quiet_turns(w, "France") == 12
+
+    def test_c_the_resolver_stamps_once_at_its_start(self, _d20_world, monkeypatch):
+        """Before the losses are applied, exactly once per action."""
+        from backend.game_logic import naval
+        w = _d20_sea_board(_d20_world)
+        calls = []
+        real = naval._stamp_fleet_action_clock
+
+        def spy(world, attacker, defender):
+            calls.append((attacker, defender, int(world.fleets["France"]["ships"])))
+            return real(world, attacker, defender)
+
+        monkeypatch.setattr(naval, "_stamp_fleet_action_clock", spy)
+        ships0 = int(w.fleets["France"]["ships"])
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain")
+        assert calls == [("France", "Britain", ships0)]
+        assert int(w.fleets["France"]["ships"]) < ships0, "the losses came after the stamp"
+
+    def test_d_the_armed_peace_forecast_cache_moves(self, _d20_world):
+        """`_league_signature` keys on the store, so a stamp with no marshal
+        change cannot read a stale forecast."""
+        from backend.game_logic import coalition, naval
+        w = _d20_sea_board(_d20_world)
+        before = coalition._league_signature(w, "France")
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain")
+        assert coalition._league_signature(w, "France") != before
+
+    def test_e_the_store_round_trips_a_save(self, _d20_world):
+        from backend.game_logic import naval
+        from backend.models.world_state import WorldState
+        w = _d20_sea_board(_d20_world)
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain")
+        again = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert again.last_battle_turn_by_nation["France"] == 12
+        assert all(isinstance(t, int) for t in again.last_battle_turn_by_nation.values())
+
+    def test_f_a_later_stamp_is_kept_an_earlier_one_does_not_lower_it(self, _d20_world):
+        from backend.game_logic import naval
+        w = _d20_sea_board(_d20_world)
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain")
+        w.stamp_battle_turn("France", 5)
+        assert w.last_battle_turn_by_nation["France"] == 12
+
+    def test_g_the_resolver_names_the_seam_first(self):
+        src = (_D20_ROOT / "backend/game_logic/naval.py").read_text(encoding="utf-8")
+        body = src[src.index("def resolve_fleet_action("):]
+        body = body[: body.index("\ndef _action_waters(")]
+        assert "_stamp_fleet_action_clock(world, attacker, defender)" in body
+        assert body.index("_stamp_fleet_action_clock(world, attacker, defender)") < body.index("_fleet_action_odds(")
+
+
+class TestS14EX130:
+    """A fleet action never restarted Europe's armed-peace fuse (see S14E-D16).
+    Reproduced on the shipped board at turn 12 through BOTH real callers: the
+    intercepted expedition (`resolve_expedition`'s failure arm - Soult from
+    Brittany to Munster against the Royal Navy's watch) and the caught
+    diversion (`resolve_diversion`'s failure arm): the store stayed empty and
+    France's quiet count read 12 after a Trafalgar. The action is the battle;
+    a successful feint (no shot fired) is not."""
+
+    def _board(self, w):
+        w.current_turn = 12
+        soult = w.get_marshal("Soult")
+        soult.location = "Brittany"
+        soult.strength = 12000
+        w._build_marshal_index()
+        return soult
+
+    def test_a_the_intercepted_expedition_stamps(self, _d20_world, monkeypatch):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        soult = self._board(w)
+        monkeypatch.setattr(naval, "_pct_roll", lambda *a, **k: False)     # the run does not slip
+        with _d20_quiet():
+            result = naval.resolve_expedition(w, soult, "Munster")
+        assert result["intercepted"] is True and "fleet_action" in result
+        assert coalition.hegemon_quiet_turns(w, "France") == 0
+        assert w.last_battle_turn_by_nation["Britain"] == 12
+
+    def test_b_before_the_fix_the_same_interception_left_the_fuse_running(self, _d20_world, monkeypatch):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        soult = self._board(w)
+        monkeypatch.setattr(naval, "_stamp_fleet_action_clock", lambda world, attacker, defender: None)
+        monkeypatch.setattr(naval, "_pct_roll", lambda *a, **k: False)
+        with _d20_quiet():
+            result = naval.resolve_expedition(w, soult, "Munster")
+        assert result["intercepted"] is True
+        assert w.last_battle_turn_by_nation == {}
+        assert coalition.hegemon_quiet_turns(w, "France") == 12
+
+    def test_c_the_caught_diversion_stamps(self, _d20_world, monkeypatch):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        w.current_turn = 12
+        monkeypatch.setattr(naval, "_pct_roll", lambda *a, **k: False)     # the feint is caught
+        with _d20_quiet():
+            result = naval.resolve_diversion(w, "France")
+        assert result["window"] is False and "fleet_action" in result
+        assert coalition.hegemon_quiet_turns(w, "France") == 0
+
+    def test_d_a_successful_feint_fires_no_shot_and_stamps_nothing(self, _d20_world, monkeypatch):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        w.current_turn = 12
+        monkeypatch.setattr(naval, "_pct_roll", lambda *a, **k: True)
+        with _d20_quiet():
+            result = naval.resolve_diversion(w, "France")
+        assert result["window"] is True
+        assert w.last_battle_turn_by_nation == {}
+        assert coalition.hegemon_quiet_turns(w, "France") == 12
+
+    def test_e_an_ai_fleet_action_restarts_the_ai_s_clock_too(self, _d20_world):
+        """Golden Rule 5: the same resolver, the same stamp, on the AI's side."""
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        w.current_turn = 12
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "Britain", "Denmark")
+        assert coalition.last_battle_turn_of(w, "Britain") == 12
+        assert coalition.last_battle_turn_of(w, "Denmark") == 12
+        assert coalition.last_battle_turn_of(w, "France") == 0, "a court outside the action"
+
+
+class TestS14EX243:
+    """Sibling of X130 (the sweep of the fleet action's stamp): the courts whose
+    squadrons POOLED on either side bled with the line - the Combined Fleet at
+    Trafalgar lost Spain's and Holland's sail beside France's - and the land
+    battle stamps a reinforcer's court (X118), but the first cut of the stamp
+    named the two principals only, so a pooled court (and a hegemon fighting as
+    a pooled partner) kept its fuse running through a battle it lost ships in.
+
+    On the shipped board France's side at the action is France, Spain, Holland;
+    Britain's is Britain, Russia. Every one is stamped; a court with a fleet
+    that pooled on neither side (Denmark, Sweden, the Ottomans, Portugal,
+    Naples) is not."""
+
+    def test_a_the_pooled_courts_are_stamped(self, _d20_world):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        w.current_turn = 12
+        assert naval._side_members(w, "France", "Britain") == ["France", "Spain", "Holland"]
+        assert naval._side_members(w, "Britain", "France") == ["Britain", "Russia"]
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain", context="diversion")
+        for court in ("France", "Spain", "Holland", "Britain", "Russia"):
+            assert coalition.last_battle_turn_of(w, court) == 12, court
+
+    def test_b_a_court_that_pooled_on_neither_side_is_not(self, _d20_world):
+        from backend.game_logic import coalition, naval
+        w = _d20_world
+        w.current_turn = 12
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain", context="diversion")
+        for court in ("Denmark", "Sweden", "Ottoman", "Portugal", "Naples", "Prussia", "Austria"):
+            assert coalition.last_battle_turn_of(w, court) == 0, court
+
+    def test_c_every_court_that_bled_was_stamped(self, _d20_world):
+        """The invariant: no fleet loses a ship in an action without its court's clock."""
+        from backend.game_logic import naval
+        w = _d20_world
+        w.current_turn = 12
+        with _d20_quiet():
+            result = naval.resolve_fleet_action(w, "France", "Britain", context="diversion")
+        bled = {member for side in result["losses"].values() for member, lost in side.items() if lost > 0}
+        assert bled, "the action cost somebody ships"
+        assert bled <= set(w.last_battle_turn_by_nation)
+
+    def test_d_the_seam_down_stamps_none_of_them(self, _d20_world, monkeypatch):
+        from backend.game_logic import naval
+        monkeypatch.setattr(naval, "_stamp_fleet_action_clock", lambda world, attacker, defender: None)
+        w = _d20_world
+        w.current_turn = 12
+        with _d20_quiet():
+            naval.resolve_fleet_action(w, "France", "Britain")
+        assert w.last_battle_turn_by_nation == {}
+
+
+# ── X211 / X246 — the words price what the ratifier applies ────────────────
+
+def _d20_left_ally_fixture():
+    """France at war with Britain, Prussia allied to France and at war with
+    Britain on her own account (France does not lead her war): LEFT FIGHTING."""
+    from backend.models.world_state import WorldState
+    w = WorldState()
+    _d20_state(w, "France", "Britain", "WAR")
+    _d20_state(w, "France", "Prussia", "ALLIANCE")
+    _d20_state(w, "Prussia", "Britain", "WAR")
+    return w
+
+
+def _d20_draft(demands=(), sweeteners=(), clauses=()):
+    return {"type": "peace", "proposal_type": "peace",
+            "sweeteners": [dict(s) for s in sweeteners],
+            "demands": [dict(d) for d in demands],
+            "clauses": list(clauses)}
+
+
+def _d20_snapshot(w, terms):
+    from backend.game_logic.diplomacy import build_war_context_snapshot
+    with _d20_quiet():
+        return build_war_context_snapshot(w, "France", "Britain", "peace", terms=terms)
+
+
+def _d20_quoted(snapshot):
+    (row,) = [c for c in snapshot["commitment_conflicts"]
+              if c["conflict_type"] == "paradox" and c["affected_entity"] == "Prussia"]
+    return row["detail"]["relation_change"]
+
+
+def _d20_ratify_drop(w, proposal, start=60):
+    """Sign the proposal through the REAL ratifier; return (the relation change
+    it wrote on Prussia, the gold France and Britain hold after)."""
+    key = w._make_diplo_key("France", "Prussia")
+    w.nation_relations[key] = start
+    w.nation_gold["Britain"] = 5000
+    w.nation_gold["France"] = 5000
+    with _d20_quiet():
+        result = w._ratify_treaty(proposal)
+    assert isinstance(result, dict) and result.get("type") == "diplomatic_treaty_signed", result
+    return (w.nation_relations[key] - start,
+            (int(w.nation_gold["France"]), int(w.nation_gold["Britain"])))
+
+
+def _d20_old_priced_clauses(terms, proposer, target):
+    """`separate_peace_priced_clauses` as it stood before X211: the compiled
+    clauses PLUS the draft's raw dict `clauses`."""
+    from backend.game_logic.treaty import treaty_clauses_of
+    terms = terms or {}
+    compiled = treaty_clauses_of(
+        {"sweeteners": [s for s in (terms.get("sweeteners") or []) if isinstance(s, dict) and s.get("type")],
+         "demands": [d for d in (terms.get("demands") or []) if isinstance(d, dict) and d.get("type")]},
+        proposer, target)
+    return compiled + [dict(c) for c in (terms.get("clauses") or []) if isinstance(c, dict)]
+
+
+_D20_DICT_GOLD = {"type": "gold_lump", "from": "Britain", "to": "France", "amount": 900}
+
+
+class TestS14EX211:
+    """A proposal's dict-dialect `clauses` were priced by the preview but never
+    applied by the ratifier (`treaty.treaty_clauses_of` builds from the
+    sweeteners and demands alone; `clauses` carries string keys like
+    "open_borders"): `separate_peace_priced_clauses` appended the raw dict
+    clauses after the compiled ones, so a `gold_lump` written into `clauses`
+    quoted -10 and the signing applied -20.
+
+    Reproduced on the fixture world (France at war with Britain, Prussia allied
+    and at war with her) with the old function held in place: the row read -10,
+    the real `_ratify_treaty` wrote Prussia 60 -> 40 and moved no gold. The fix
+    drops the raw-dict arm: the words price exactly what the ratifier applies.
+    No generated draft carries a dict clause (X246 pins that)."""
+
+    def test_a_a_dict_clause_is_not_priced_now(self):
+        w = _d20_left_ally_fixture()
+        terms = _d20_draft(clauses=[_D20_DICT_GOLD])
+        assert _d20_quoted(_d20_snapshot(w, terms)) == -20, "the doubled default: nothing is demanded"
+
+    def test_b_before_the_fix_the_words_quoted_ten_and_the_signing_wrote_twenty(self, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "separate_peace_priced_clauses", _d20_old_priced_clauses)
+        w = _d20_left_ally_fixture()
+        terms = _d20_draft(clauses=[_D20_DICT_GOLD])
+        assert _d20_quoted(_d20_snapshot(w, terms)) == -10, "the old words priced the dict gold"
+        applied, _gold = _d20_ratify_drop(w, {
+            "type": "peace", "proposer_nation": "France", "target_nation": "Britain",
+            "sweeteners": [], "demands": [], "clauses": [dict(_D20_DICT_GOLD)]})
+        assert applied == -20, "... and the signing applied none of it"
+
+    def test_c_shown_is_applied_for_a_dict_clause(self):
+        w = _d20_left_ally_fixture()
+        quoted = _d20_quoted(_d20_snapshot(w, _d20_draft(clauses=[_D20_DICT_GOLD])))
+        applied, gold = _d20_ratify_drop(w, {
+            "type": "peace", "proposer_nation": "France", "target_nation": "Britain",
+            "sweeteners": [], "demands": [], "clauses": [dict(_D20_DICT_GOLD)]})
+        assert applied == quoted == -20
+        assert gold == (5000, 5000), "the ratifier moved no gold for a dict clause"
+
+    def test_d_the_same_gold_as_a_demand_is_priced_and_applied(self):
+        """The decided fix's other half: the draft that MEANS the gold writes it
+        in `demands` - the ratifier compiles it, the words price it, the signing
+        applies it (-10, and the 900 moves)."""
+        w = _d20_left_ally_fixture()
+        demand = {"type": "gold_lump", "value": 900}
+        quoted = _d20_quoted(_d20_snapshot(w, _d20_draft(demands=[demand])))
+        applied, gold = _d20_ratify_drop(w, {
+            "type": "peace", "proposer_nation": "France", "target_nation": "Britain",
+            "sweeteners": [], "demands": [dict(demand)], "clauses": []})
+        assert applied == quoted == -10
+        assert gold == (5900, 4100), "Britain paid the 900"
+
+    def test_e_the_priced_list_is_the_compiled_clauses_and_nothing_else(self):
+        from backend.game_logic.diplomacy import separate_peace_priced_clauses
+        from backend.game_logic.treaty import treaty_clauses_of
+        draft = _d20_draft(clauses=[_D20_DICT_GOLD, "open_borders"])
+        assert separate_peace_priced_clauses(draft, "France", "Britain") == []
+        full = _d20_draft(demands=[{"type": "gold_lump", "value": 900}],
+                          sweeteners=[{"type": "gold_lump", "value": 50}],
+                          clauses=[_D20_DICT_GOLD])
+        assert separate_peace_priced_clauses(full, "France", "Britain") == treaty_clauses_of(
+            {"sweeteners": full["sweeteners"], "demands": full["demands"]}, "France", "Britain")
+
+    def test_f_a_malformed_draft_still_prices_without_raising(self):
+        from backend.game_logic.diplomacy import separate_peace_priced_clauses
+        for terms in (None, {}, {"clauses": None}, {"clauses": [None, 3, "x", {"type": "gold_lump"}]},
+                      {"sweeteners": None, "demands": ["gold", {"value": 3}]}):
+            assert isinstance(separate_peace_priced_clauses(terms, "France", "Britain"), list)
+
+    def test_g_the_ratifier_reads_the_sweeteners_and_demands_alone(self):
+        """The premise, pinned: `treaty_clauses_of` ignores a proposal's `clauses`."""
+        from backend.game_logic.treaty import treaty_clauses_of
+        assert treaty_clauses_of({"clauses": [dict(_D20_DICT_GOLD)], "sweeteners": [], "demands": []},
+                                 "France", "Britain") == []
+
+
+class TestS14EX246:
+    """Sibling of X211 (the sweep of the dict-dialect `clauses`): the other
+    readers that still tolerate a dict clause - `calculate_acceptance`'s
+    special-desire and harshness reads, the preview's and the dialogue's
+    `calculate_treaty_harshness`, `get_tier_mismatch_warnings`, the carried-region
+    scan - read a shape NO road writes: the typed parser, the Godot Send
+    button, the AI's proposal builder and the Talleyrand suggestion pipeline
+    emit string clause keys ("open_borders") and put every gold, province and
+    marshal in `sweeteners` / `demands`. They price nothing the ratifier would
+    not (there is no such clause to apply), so they are INERT and are left
+    alone; what keeps them inert is this census: 456 drafts on the shipped
+    board (every active court x every proposal type, both generators), zero
+    dict clauses. A future writer of a dict clause trips it."""
+
+    _TYPES = ("peace", "armistice", "alliance", "defensive_alliance", "non_aggression",
+              "open_borders", "vassalage", "harsh_peace", "armistice_losing",
+              "armistice_winning", "armistice_stalemate", "trade_agreement")
+
+    def test_a_no_generated_draft_carries_a_dict_clause(self, _d20_world):
+        from backend.game_logic import ai_diplomacy as A
+        from backend.game_logic import diplomatic_templates as T
+        w = _d20_world
+        checked = 0
+        offenders = []
+        for nation in sorted(w.get_active_nations()):
+            if nation == w.player_nation:
+                continue
+            for ptype in self._TYPES:
+                for generate in (lambda: T.generate_suggested_terms(nation, ptype, w),
+                                 lambda: A._build_proposal_terms(nation, ptype, 5, w)):
+                    try:
+                        with _d20_quiet():
+                            terms = generate()
+                    except Exception:
+                        continue            # a type the court cannot draft (not this census's concern)
+                    checked += 1
+                    offenders += [(nation, ptype, c) for c in (terms or {}).get("clauses") or []
+                                  if not isinstance(c, str)]
+        assert checked > 300, checked
+        assert offenders == []
+
+    def test_b_the_player_roads_never_write_a_clause(self):
+        """The two player roads, by source census: the typed parser's draft
+        carries an EMPTY `clauses` list (the mock parser's two literals), and
+        the Godot client only READS `clauses` (it shows a letter's clauses; it
+        builds none). A new writer of a clause from either road trips this."""
+        llm = (_D20_ROOT / "backend/ai/llm_client.py").read_text(encoding="utf-8")
+        assert llm.count('"clauses": [],') >= 2
+        scripts = (_D20_ROOT / "godot-client" / "project-sovereign" / "scripts").glob("*.gd")
+        writers = []
+        for script in scripts:
+            for number, line in enumerate(script.read_text(encoding="utf-8").splitlines(), 1):
+                if '"clauses"' in line and '.get("clauses"' not in line:
+                    writers.append((script.name, number, line.strip()))
+        assert writers == []
+
+
+# ── X212 — the common-peace summary's casualties ────────────────────────────
+
+def _d20_two_v_two(world):
+    """France+Saxony vs Austria+Prussia as one common-peace war (the C2 fixture)."""
+    from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
+    war = make_synthetic_war_instance(
+        "war_1", attackers=["France", "Saxony"], defenders=["Austria", "Prussia"],
+        attacker_leader="France", defender_leader="Austria",
+        created_turn=1, created_sequence=1)
+    world.war_instances["war_1"] = war
+    for pair in war["active_diplo_keys"]:
+        first = pair.split("|")[0]
+        world.diplomatic_states[pair] = "WAR"
+        world.war_start_turns[pair] = world.current_turn
+        world.war_scores[pair] = -(100 if first not in ("France", "Saxony") else -100)
+        world.battle_records[pair] = []
+    world.war_exhaustion["Austria"] = 500
+    world.war_exhaustion["Prussia"] = 500
+    world.war_objectives = getattr(world, "war_objectives", {})
+    world.war_objectives["war_1"] = [{
+        "type": "conquest", "declaring_nation": "France",
+        "target_nation": "Austria", "side": "attackers"}]
+    world.invalidate_war_instance_indexes()
+    return war
+
+
+def _d20_common_peace(world, covered=("Austria",)):
+    """Stage and ratify the common peace covering `covered`; return the result."""
+    from backend.game_logic.settlement_preview import (
+        ratify_settlement_confirm, stage_settlement_confirm)
+    staged = stage_settlement_confirm(
+        world, war_id="war_1", settlement_terms=[{"type": "peace"}],
+        covered_enemy_participants=list(covered))
+    assert staged["success"] is True
+    return ratify_settlement_confirm(world, world.pending_diplomatic_dialogue)
+
+
+class TestS14EX212:
+    """The common-peace summary's `french_casualties` / `enemy_casualties` (and
+    the per-pair `proposer_casualties` / `covered_enemy_casualties`) -
+    `settlement_ratify._capture_pair_pre_cleanup_war_data` - summed
+    `battle_records` alone, so a DRAWN battle's dead were missing there while
+    the bilateral preview and the bilateral ratification summary counted them
+    (X209).
+
+    Reproduced on the C2 fixture (France+Saxony vs Austria+Prussia): a won
+    battle (France 1,000 / Austria 2,500) and the Great Battle of Tyrol drawn
+    (France 7,673 / Austria 6,020) on the France-Austria pair: the summary read
+    1,000 / 2,500. The fix adds `diplomacy.drawn_battle_dead` by
+    `proposer_member` and `covered_enemy`; display only."""
+
+    def _world(self):
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        _d20_two_v_two(world)
+        return world
+
+    def test_a_the_summary_counts_the_drawn_dead(self):
+        world = self._world()
+        world.battle_records["Austria|France"] = [{
+            "attacker": "France", "defender": "Austria",
+            "attacker_casualties": 1000, "defender_casualties": 2500}]
+        world.record_drawn_battle("France", "Austria", 7673, 6020)
+        world.current_turn = 5
+        world.war_start_turns["Austria|France"] = 1
+        result = _d20_common_peace(world)
+        assert result["success"] is True
+        snap = result["pre_cleanup_snapshots"]["Austria|France"]
+        assert (snap["french_casualties"], snap["enemy_casualties"]) == (1000 + 7673, 2500 + 6020)
+        assert (snap["proposer_casualties"], snap["covered_enemy_casualties"]) == (1000 + 7673, 2500 + 6020)
+
+    def test_b_a_drawn_only_war_was_zero_before(self, monkeypatch):
+        """The reproduction: the Tyrol draw is in the ledger and NOT in the
+        records; with the drawn reader silenced (the summary as it stood) the
+        figure is 0 / 0, with it 7,673 / 6,020."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.settlement_ratify import _capture_pair_pre_cleanup_war_data
+        world = self._world()
+        world.record_drawn_battle("France", "Austria", 7673, 6020)
+        key = world._make_diplo_key("France", "Austria")
+        assert not world.battle_records.get(key), "the records alone held nothing"
+        data = _capture_pair_pre_cleanup_war_data(world, "France", "Austria")
+        assert (data["french_casualties"], data["enemy_casualties"]) == (7673, 6020)
+        monkeypatch.setattr(D, "drawn_battle_dead", lambda w, k: {})
+        data = _capture_pair_pre_cleanup_war_data(world, "France", "Austria")
+        assert (data["french_casualties"], data["enemy_casualties"]) == (0, 0)
+
+    def test_c_a_non_france_proposer_pair_is_its_own_perspective(self):
+        world = self._world()
+        world.record_drawn_battle("Austria", "Saxony", 900, 800)       # Austria 900 / Saxony 800
+        world.current_turn = 6
+        world.war_start_turns["Austria|Saxony"] = 2
+        result = _d20_common_peace(world)
+        snap = result["pre_cleanup_snapshots"]["Austria|Saxony"]
+        assert snap["proposer_member"] == "Saxony" and snap["covered_enemy"] == "Austria"
+        assert (snap["proposer_casualties"], snap["covered_enemy_casualties"]) == (800, 900)
+        assert snap["french_casualties"] == 0
+        assert snap["enemy_casualties"] == 900
+
+    def test_d_the_summary_matches_the_bilateral_preview_s_totals(self, _d20_world):
+        """One reader feeds both: the common-peace snapshot, the bilateral
+        summary and the preview all quote the same figures for the same war."""
+        from backend.game_logic.diplomacy import _capture_pre_cleanup_war_data, build_war_context_snapshot
+        from backend.game_logic.settlement_ratify import _capture_pair_pre_cleanup_war_data
+        w = _d20_world
+        _d20_won_battle(w)
+        w.record_drawn_battle(*_D20_TYROL)
+        with _d20_quiet():
+            preview = build_war_context_snapshot(w, "France", "Austria", "peace")
+        bilateral = _capture_pre_cleanup_war_data(w, "France", "Austria")
+        common = _capture_pair_pre_cleanup_war_data(w, "France", "Austria")
+        assert (preview["french_casualties_total"], preview["enemy_casualties_total"]) == (
+            bilateral["french_casualties"], bilateral["enemy_casualties"]) == (
+            common["french_casualties"], common["enemy_casualties"]) == (900 + 7673, 4000 + 6020)
+
+    def test_e_a_court_in_neither_battle_gets_nothing(self):
+        from backend.game_logic.settlement_ratify import _capture_pair_pre_cleanup_war_data
+        world = self._world()
+        world.record_drawn_battle("France", "Austria", 7673, 6020)
+        data = _capture_pair_pre_cleanup_war_data(world, "Saxony", "Prussia")
+        assert (data["proposer_casualties"], data["covered_enemy_casualties"]) == (0, 0)
+
+    def test_f_the_numbers_are_ints(self):
+        from backend.game_logic.settlement_ratify import _capture_pair_pre_cleanup_war_data
+        world = self._world()
+        world.record_drawn_battle("France", "Austria", 7673, 6020)
+        data = _capture_pair_pre_cleanup_war_data(world, "France", "Austria")
+        for field in ("proposer_casualties", "covered_enemy_casualties",
+                      "french_casualties", "enemy_casualties", "war_duration", "war_score"):
+            assert isinstance(data[field], int), field
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# d21 (S14f p3, October 25, 2026 — merged from test_s14f_p3_d21.py)
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14f part 3 (October 25, 2026) - the rulings S14E-D21 and S14E-D22
+# and the rows they carry, with the two war-score stamp siblings of D14.
+#
+#     S14E-D21  a DRAWN battle credits the settlement war-contribution buckets
+#               on blood, both sides
+#     S14E-X244 `accrue_battle_contribution` was reached only from the
+#               winner-only `diplomacy.record_battle`, so a 13,000-dead stalemate
+#               credited no court's battle bucket   -> `war_contribution.
+#               accrue_drawn_contribution` (THE SEAM), called from
+#               `WorldState.record_drawn_battle`
+#     S14E-D22  a DRAWN battle accrues war exhaustion on each side's OWN dead
+#     S14E-X245 the `add_war_exhaustion_from_battle` arms were keyed on who won;
+#               the Tyrol stalemate (8,796 dead) left war exhaustion 0 / 0
+#                                                   -> `coalition.
+#               add_war_exhaustion_from_draw` (THE SEAM), called where the won /
+#               lost arms are (`_post_combat_pipeline` step 13, the auto-charge)
+#     S14E-X248 a battle also moves THIRD pairs' siege components (the capital
+#               component reads who stands in a capital): step 8 stamped
+#               attacker x defender alone -> `WorldState.recalculate_battle_war_
+#               scores` over the province's touched set (`_war_score_nations_at`,
+#               shared with the capture stamp)
+#     S14E-X249 a newly entered war's pair had no stored entry (read 0) until End
+#               Turn                -> `diplomacy.set_diplomatic_state` stamps a
+#               WAR entry through the D14 seam
+#     S14E-X250 (sibling of X248 / X224 / X225) the reckless auto-charge's own
+#               rout and retreat relocations stamped nothing
+#     S14E-X251 (sibling of X250) `CombatExecutor._apply_forced_retreat_or_break`
+#               - every combat path's rout - relocated a corps with no stamp
+#
+# Merged into `tests/test_s14f_the_remeasure_rows.py` at the landing: helpers are
+# prefixed `_d21_`, one class per row.
+
+import random
+
+import pytest
+
+_D21_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_D21_ROOT = Path(__file__).resolve().parents[1]
+_D21_TYROL = ("France", "Austria", 7673, 6020)      # the Great Battle of Tyrol (X201's sighting)
+
+
+def _d21_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _d21_boot():
+    from backend.models.world_state import WorldState
+    with _d21_quiet():
+        return WorldState.from_scenario(str(_D21_SCENARIO))
+
+
+@pytest.fixture
+def _d21_world(_d21_boot):
+    """The shipped 1805 board (a copy)."""
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(_d21_boot.to_dict(), default=str)))
+
+
+# ── the seams held DOWN (today's behaviour before the rulings) ─────────────
+
+@pytest.fixture
+def _d21_contribution_down(monkeypatch):
+    """`accrue_drawn_contribution` down: a draw credits no bucket."""
+    from backend.game_logic import war_contribution as WC
+    monkeypatch.setattr(WC, "accrue_drawn_contribution", lambda *a, **k: None)
+
+
+@pytest.fixture
+def _d21_exhaustion_down(monkeypatch):
+    """`add_war_exhaustion_from_draw` down: a draw accrues nothing."""
+    from backend.game_logic import coalition as CO
+    monkeypatch.setattr(CO, "add_war_exhaustion_from_draw", lambda *a, **k: {})
+
+
+@pytest.fixture
+def _d21_stamps_down(monkeypatch):
+    """The D14 seam down: the store moves at End Turn alone (X248 / X249 / X250
+    ride it)."""
+    from backend.game_logic import diplomacy as D
+    monkeypatch.setattr(D, "recalculate_pair_war_score", lambda *a, **k: None)
+
+
+@pytest.fixture
+def _d21_new_war_down(monkeypatch):
+    """`stamp_new_war_score` down (X249): a new war's pair reads 0 until End Turn."""
+    from backend.game_logic import diplomacy as D
+    monkeypatch.setattr(D, "stamp_new_war_score", lambda *a, **k: None)
+
+
+@pytest.fixture
+def _d21_pair_only_stamp(monkeypatch):
+    """X248 'before': the battle stamp as D14 left it - attacker x defender
+    alone, whatever the province."""
+    from backend.game_logic import diplomacy as D
+    from backend.models.world_state import WorldState
+    monkeypatch.setattr(
+        WorldState, "recalculate_battle_war_scores",
+        lambda self, region, a, b: D.recalculate_pair_war_score(self, a, b))
+
+
+# ── the boards ───────────────────────────────────────────────────────────────
+
+def _d21_war_id(w):
+    return next(iter(w.war_instances))
+
+
+def _d21_buckets(w):
+    """{nation: battle-bucket points} for the boot's Third Coalition war."""
+    from backend.game_logic import war_contribution as WC
+    wid = _d21_war_id(w)
+    out = {}
+    for nation in sorted(w.war_instances[wid]["active_participants"]):
+        ep = WC.current_episode(w, wid, nation)
+        out[nation] = int(ep["battle"]) if ep else 0
+    return out
+
+
+def _d21_pipeline_ctx(w, attacker, defender, defender_nation, region, **over):
+    ctx = {
+        "attacker": w.get_marshal(attacker), "defender": w.get_marshal(defender),
+        "defender_nation": defender_nation, "battle_region": region,
+        "outcome": "stalemate", "attacker_won": False, "defender_won": False,
+        "attacker_casualties": 7673, "defender_casualties": 6020,
+        "pre_battle_attacker_strength": 42000, "pre_battle_defender_strength": 30000,
+        "battle_result": None, "conquered": False,
+        "skip_log_battle_event": True, "skip_idle_reset": True,
+        "skip_cannon_fire_record": True, "skip_war_damage": True,
+        "skip_intel_update": True, "skip_coordination_clear": True,
+        "skip_relationships": True, "skip_last_combat_result": True,
+        "skip_exhaustion": True,
+    }
+    ctx.update(over)
+    return ctx
+
+
+def _d21_pipeline(w, ctx):
+    from backend.commands.executor import CommandExecutor
+    with _d21_quiet():
+        return CommandExecutor()._post_combat_pipeline(ctx, w)
+
+
+def _d21_tyrol(w, **over):
+    """The Great Battle of Tyrol through the real pipeline: Massena (42,000)
+    and Archduke John drew, 7,673 / 6,020 dead."""
+    return _d21_pipeline(w, _d21_pipeline_ctx(
+        w, "Massena", "ArchdukeJohn", "Austria", "Tyrol", **over))
+
+
+def _d21_force_stalemate(monkeypatch):
+    """Every battle the resolver fights ends a stalemate (X201's idiom): the
+    outcome AND the victor, so each combat copy's own reading sees a draw."""
+    from backend.game_logic import combat as C
+    real = C.CombatResolver.resolve_battle
+
+    def stalemate(self, *args, **kwargs):
+        result = real(self, *args, **kwargs)
+        result["outcome"] = "stalemate"
+        result["victor"] = None
+        return result
+
+    monkeypatch.setattr(C.CombatResolver, "resolve_battle", stalemate)
+
+
+def _d21_real_attack(w, marshal="Massena", target="ArchdukeJohn"):
+    from backend.commands.executor import CommandExecutor
+    w.actions_remaining = 4
+    random.seed(7)
+    with _d21_quiet():
+        return CommandExecutor().execute(
+            {"success": True, "command": {"marshal": marshal, "action": "attack",
+                                          "target": target}},
+            {"world": w})
+
+
+def _d21_milan_board(w):
+    """X201's board: Archduke John (20,000) marched to Milan, beside Massena."""
+    w.marshals["ArchdukeJohn"].location = "Milan"
+    w.marshals["ArchdukeJohn"].strength = 20000
+
+
+def _d21_charge_board(w, *, mack_strength=60000):
+    """An Austrian reckless cavalryman (Mack, at Swabia) charges Ney at
+    Rhineland - the one conquest outside `capture_region` (D14's idiom) with the
+    corps big enough that a draw is a battle."""
+    mack = w.get_marshal("Mack")
+    mack.cavalry = True
+    mack.personality = "aggressive"
+    mack.recklessness = 5
+    mack.strength = mack_strength
+    for m in w.marshals.values():
+        if m.nation == "France" and m.name != "Ney":
+            m.location = "Lorraine"
+    w.get_marshal("Ney").location = "Rhineland"
+    w.calculate_visibility()
+
+
+def _d21_charge(w):
+    random.seed(7)
+    with _d21_quiet():
+        return w._process_reckless_cavalry_turn_start()
+
+
+def _d21_we(w):
+    return {n: int(v) for n, v in w.war_exhaustion.items() if v}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-D21 / S14E-X244 - the contribution buckets
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14ED21:
+    """RULING S14E-D21 (built as recommended under the user's standing
+    delegation): a DRAWN battle credits the settlement war-contribution buckets
+    on blood, both sides - "a drawn battle counts as a battle wherever one is
+    counted" (D20's line).
+
+    Reproduced on the shipped board (Massena at Milan, Archduke John, Tyrol;
+    7,673 / 6,020 dead through the real pipeline): every battle bucket of the
+    Third Coalition war read 0 after the stalemate, so the allies who held the
+    field beside France (Bavaria's Deroy at Franconia) and the court she fought
+    were credited nothing and the table was seated by a war the ledger had not
+    counted. Built: `war_contribution.accrue_drawn_contribution` (THE SEAM -
+    down: a no-op), the SAME accrual a won battle takes with the winner left
+    blank (`accrue_battle_contribution`, one formula): each side's raw is its
+    blood alone and the side's 40 battle points split by the theater's
+    strengths. Called from `WorldState.record_drawn_battle` past the 1,000-dead
+    floor, so the pipeline's step 8, the main attack's copy and the auto-charge
+    all reach it."""
+
+    def test_a_before_the_stalemate_credits_no_bucket(self, _d21_world, _d21_contribution_down):
+        """The old figure: the seam down, the Tyrol stalemate through the real
+        pipeline - the ledger holds the dead and the drawn turn, the buckets
+        read 0 for every court."""
+        w = _d21_world
+        _d21_tyrol(w)
+        key = w._make_diplo_key("France", "Austria")
+        assert w.campaign_ledgers[key]["drawn"] == [int(w.current_turn)]
+        assert set(_d21_buckets(w).values()) == {0}
+
+    def test_b_after_both_sides_are_credited_on_the_theater(self, _d21_world):
+        """The new figure: France's side shares its 40 between France
+        (Massena 42,000 and Bernadotte beside Tyrol) and Bavaria (Deroy at
+        Franconia, one hop from Tyrol); Austria's side takes its 40; a court
+        with no corps beside the field takes nothing."""
+        w = _d21_world
+        _d21_tyrol(w)
+        got = _d21_buckets(w)
+        assert got["France"] == 29 and got["Bavaria"] == 11, got
+        assert got["France"] + got["Bavaria"] == 40
+        assert got["Austria"] == 40
+        for far in ("Spain", "Holland", "KingdomOfItaly", "Britain", "Russia"):
+            assert got[far] == 0, (far, got)
+
+    def test_c_the_shares_move_on_the_two_ally_board(self, _d21_world):
+        from backend.game_logic import war_contribution as WC
+        w = _d21_world
+        wid = _d21_war_id(w)
+        _d21_tyrol(w)
+        assert round(WC.contribution_share(w, wid, "France", "attackers"), 3) == 0.725
+        assert round(WC.contribution_share(w, wid, "Bavaria", "attackers"), 3) == 0.275
+        assert WC.contribution_share(w, wid, "Austria", "defenders") == 1.0
+        # the material share the standing classifier reads moves with it
+        assert round(WC.material_contribution_share(w, wid, "Bavaria", "attackers"), 3) == 0.275
+        assert WC.current_episode_material_total(w, wid, "Bavaria") == 11
+
+    def test_d_a_draw_of_no_dead_credits_nothing(self, _d21_world):
+        from backend.game_logic.war_contribution import accrue_drawn_contribution
+        w = _d21_world
+        assert accrue_drawn_contribution(w, "France", "Austria", 0, 0, "Tyrol") is None
+        w.record_drawn_battle("France", "Austria", 0, 0, "Tyrol")
+        assert set(_d21_buckets(w).values()) == {0}
+
+    def test_e_a_skirmish_below_the_battle_floor_credits_nothing(self, _d21_world):
+        """The same 1,000-dead floor as the ledger's drawn stamp (X201 / X209)."""
+        w = _d21_world
+        w.record_drawn_battle("France", "Austria", 300, 200, "Tyrol")
+        assert set(_d21_buckets(w).values()) == {0}
+        w.record_drawn_battle("France", "Austria", 600, 400, "Tyrol")        # exactly the floor
+        assert _d21_buckets(w)["Austria"] == 40
+
+    def test_f_a_pair_at_peace_credits_nothing(self, _d21_world):
+        w = _d21_world
+        assert w.get_diplomatic_state("France", "Prussia") != "WAR"
+        w.record_drawn_battle("France", "Prussia", 5000, 5000, "Silesia")
+        assert set(_d21_buckets(w).values()) == {0}
+
+    def test_g_a_won_battle_is_untouched(self, _d21_world, _d21_contribution_down):
+        """The won arm takes its own door (`record_battle`): the seam held down
+        leaves a won battle's credit exactly as it was."""
+        from backend.game_logic.diplomacy import record_battle
+        w = _d21_world
+        with _d21_quiet():
+            record_battle(w, "France", "Austria", "France", 3000, 8000, "Tyrol")
+        got = _d21_buckets(w)
+        assert got["France"] == 40 and got["Austria"] == 40, got
+
+    def test_h_a_draw_and_a_won_battle_credit_alike(self, _d21_world):
+        """One formula: the same dead credit a side the same whether the field
+        was won or drawn (the won arm adds the winner's decisive bonus to the
+        RAW only when the exchange was decisive - never here)."""
+        from backend.game_logic.diplomacy import record_battle
+        from backend.models.world_state import WorldState
+        base = json.loads(json.dumps(_d21_world.to_dict(), default=str))
+        won, drawn = WorldState.from_dict(json.loads(json.dumps(base))), \
+            WorldState.from_dict(json.loads(json.dumps(base)))
+        with _d21_quiet():
+            record_battle(won, "France", "Austria", "France", 3000, 3000, "Tyrol")
+        drawn.record_drawn_battle("France", "Austria", 3000, 3000)       # no province: the pair alone, as `record_battle` above
+        assert _d21_buckets(won) == _d21_buckets(drawn)
+
+    def test_i_without_a_region_the_principals_alone_are_credited(self, _d21_world):
+        """A caller with no battle province (a legacy test double) has no
+        theater: the pair alone, as `accrue_battle_contribution`'s legacy
+        adapter does."""
+        w = _d21_world
+        w.record_drawn_battle(*_D21_TYROL)
+        got = _d21_buckets(w)
+        assert got["France"] == 40 and got["Austria"] == 40 and got["Bavaria"] == 0, got
+
+    def test_j_the_principals_pre_battle_strength_holds_the_split(self, _d21_world):
+        """A corps the stalemate annihilated must not be floored to 1 against
+        an ally's full column: the pipeline hands the pre-battle strengths to
+        the theater detector (as the won arms' emitters do)."""
+        w = _d21_world
+        w.get_marshal("Massena").strength = 0                  # mutual destruction
+        w.get_marshal("ArchdukeJohn").strength = 0
+        _d21_tyrol(w, outcome="mutual_destruction")
+        got = _d21_buckets(w)
+        assert got["France"] > got["Bavaria"] > 0, got         # 42,000 + beside, not 1 against 22,000
+        assert got["France"] + got["Bavaria"] == 40
+
+    def test_k_the_real_attack_credits_the_draw_too(self, _d21_world, monkeypatch):
+        """The drive: the main attack's own copy of step 8 (it skips the
+        pipeline's via `skip_diplo_record`) credits a stalemate."""
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_milan_board(w)
+        out = _d21_real_attack(w)
+        assert out.get("success"), out.get("message")
+        key = w._make_diplo_key("France", "Austria")
+        assert w.campaign_ledgers[key].get("drawn"), "the guard: a counted stalemate"
+        got = _d21_buckets(w)
+        assert got["France"] > 0 and got["Austria"] == 40, got
+
+    def test_k2_the_reckless_charge_credits_the_draw_too(self, _d21_world, monkeypatch):
+        """The auto-charge is the one combat path outside the pipeline (Mack's
+        charge on Ney, forced to a stalemate)."""
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_charge_board(w)
+        _d21_charge(w)
+        key = w._make_diplo_key("Austria", "France")
+        assert w.campaign_ledgers[key].get("drawn"), "the guard: a counted stalemate"
+        got = _d21_buckets(w)
+        assert got["Austria"] == 40 and got["France"] > 0, got
+
+    def test_k3_the_real_paths_with_the_seam_down_credit_nothing(
+            self, _d21_world, _d21_contribution_down, monkeypatch):
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_milan_board(w)
+        assert _d21_real_attack(w).get("success")
+        assert sum(_d21_buckets(w).values()) == 0
+
+    def test_l_the_three_callers_all_pass_the_province(self):
+        """Census: the pipeline's step 8, the main attack's copy and the
+        auto-charge each hand `record_drawn_battle` the battle's province (and
+        the principals), so the theater opens at every door."""
+        import re
+        seen = []
+        for rel in ("backend/commands/combat_executor.py", "backend/models/world_state.py"):
+            text = (_D21_ROOT / rel).read_text(encoding="utf-8")
+            for m in re.finditer(r"\.record_drawn_battle\(", text):
+                seen.append((rel, text[m.end():m.end() + 900]))
+        assert len(seen) == 3, [r for r, _ in seen]
+        for rel, body in seen:
+            head = body.split("\n\n", 1)[0]
+            assert "a_marshal=" in head and "a_pre=" in head and "b_pre=" in head, (rel, head)
+
+    def test_m_the_only_doors_of_the_accrual(self):
+        """The class: the battle bucket is credited in exactly two places - the
+        winner-only `record_battle` and the winnerless `accrue_drawn_
+        contribution` (which calls the SAME accrual); no other caller."""
+        import ast
+        callers = []
+        for path in sorted((_D21_ROOT / "backend").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+            enclosing = {}
+            for fn in ast.walk(tree):
+                if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    for node in ast.walk(fn):
+                        enclosing.setdefault(id(node), fn.name)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    f = node.func
+                    name = f.id if isinstance(f, ast.Name) else getattr(f, "attr", "")
+                    if name == "accrue_battle_contribution":
+                        callers.append((path.name, enclosing.get(id(node))))
+        assert sorted(callers) == [("diplomacy.py", "record_battle"),
+                                   ("war_contribution.py", "accrue_drawn_contribution")], callers
+
+    def test_n_nothing_new_to_serialize(self, _d21_world):
+        """The accrual writes the existing buckets only: the save round-trips."""
+        from backend.models.world_state import WorldState
+        w = _d21_world
+        _d21_tyrol(w)
+        again = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        assert _d21_buckets(again) == _d21_buckets(w)
+
+
+class TestS14EX244:
+    """The row under D21: `accrue_battle_contribution` was reached only from the
+    winner-only `diplomacy.record_battle`, so a 13,000-dead stalemate credited no
+    ally's battle bucket. Fixed by the seam D21 names; pinned here on the figures
+    and the seam's contract."""
+
+    def test_a_the_tyrol_draw_credits_france_and_austria_by_their_blood(self, _d21_world):
+        """The blood GATES the credit (each side's raw is `inflicted // 100 +
+        suffered // 250`: France 6,020 // 100 + 7,673 // 250 = 90, Austria 7,673
+        // 100 + 6,020 // 250 = 100) and the side's battle weight (40) is split by
+        the theater's strengths, exactly as a won battle's is."""
+        from backend.game_logic.war_contribution import _battle_side_raw
+        assert _battle_side_raw(inflicted_casualties=6020, suffered_casualties=7673,
+                                decisive_win=False) == 90
+        assert _battle_side_raw(inflicted_casualties=7673, suffered_casualties=6020,
+                                decisive_win=False) == 100
+        w = _d21_world
+        _d21_tyrol(w)
+        got = _d21_buckets(w)
+        assert (got["France"], got["Bavaria"], got["Austria"]) == (29, 11, 40)
+        wid = _d21_war_id(w)
+        from backend.game_logic import war_contribution as WC
+        assert WC.current_episode(w, wid, "France")["total"] == 29        # the total follows the bucket
+
+    def test_b_the_seam_down_credits_nothing(self, _d21_world, _d21_contribution_down):
+        w = _d21_world
+        _d21_tyrol(w)
+        assert sum(_d21_buckets(w).values()) == 0
+
+    def test_c_the_seam_returns_the_event_and_none_when_nothing_is_credited(self, _d21_world):
+        from backend.game_logic.war_contribution import accrue_drawn_contribution
+        w = _d21_world
+        ev = accrue_drawn_contribution(w, "France", "Austria", 7673, 6020, "Tyrol")
+        assert ev["winner"] == "" and ev["decisive"] is False
+        assert ev["accrued_battle_points"]["Austria"] == 40
+        assert accrue_drawn_contribution(w, "France", "Austria", 0, 0, "Tyrol") is None
+        assert accrue_drawn_contribution(w, "", "Austria", 100, 100) is None
+        assert accrue_drawn_contribution(w, "France", "Prussia", 5000, 5000, "Silesia") is None, \
+            "no war instance owns the pair"
+
+    def test_d_two_courts_on_one_side_credit_nothing(self, _d21_world):
+        from backend.game_logic.war_contribution import accrue_drawn_contribution
+        w = _d21_world
+        assert accrue_drawn_contribution(w, "France", "Bavaria", 5000, 5000, "Franconia") is None
+
+    def test_e_a_draw_is_never_decisive(self, _d21_world):
+        """A 30,000-to-3,000 stalemate would be a decisive exchange for a
+        winner; with no winner nobody is credited the +25."""
+        from backend.game_logic.war_contribution import accrue_drawn_contribution
+        w = _d21_world
+        ev = accrue_drawn_contribution(w, "France", "Austria", 3000, 30000, "Tyrol")
+        assert ev["decisive"] is False
+
+    def test_f_the_credit_lands_on_the_active_episode_only(self, _d21_world):
+        """A court whose episode closed before the battle is not credited."""
+        from backend.game_logic import war_contribution as WC
+        w = _d21_world
+        wid = _d21_war_id(w)
+        WC.close_episode_for_exit(w, wid, "Bavaria", exited_turn=0)
+        w.current_turn = 5
+        _d21_tyrol(w)
+        got = _d21_buckets(w)
+        assert got["Bavaria"] == 0 and got["France"] == 29, got      # her share is not re-dealt
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-D22 / S14E-X245 - war exhaustion
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14ED22:
+    """RULING S14E-D22 (built as recommended under the user's standing
+    delegation): a DRAWN battle accrues war exhaustion on each side's OWN dead.
+
+    Reproduced on the shipped board (the Great Battle of Tyrol through the real
+    pipeline, 7,673 French and 6,020 Austrian dead): war exhaustion read 0 / 0
+    after the stalemate - the `add_war_exhaustion_from_battle` arms of step 13
+    and the auto-charge are keyed on who WON, and only the loser pays. Built:
+    `coalition.add_war_exhaustion_from_draw` (THE SEAM - down: a no-op), each
+    side through the loser's ONE formula (`casualties // 1000`, +20 a battle,
+    the threshold dispatches): France +7, Austria +6."""
+
+    def test_a_before_the_stalemate_leaves_both_at_zero(self, _d21_world, _d21_exhaustion_down):
+        w = _d21_world
+        assert _d21_we(w) == {}
+        _d21_tyrol(w)
+        assert _d21_we(w) == {}
+
+    def test_b_after_each_side_bears_its_own_dead(self, _d21_world):
+        w = _d21_world
+        _d21_tyrol(w)
+        assert _d21_we(w) == {"France": 7, "Austria": 6}
+
+    def test_c_a_won_battle_is_unchanged(self, _d21_world):
+        """The won arm: only the loser pays its dead (France attacking wins
+        3,000 for 5,000: Austria +5, France nothing) - with the seam up or down."""
+        w = _d21_world
+        _d21_pipeline(w, _d21_pipeline_ctx(
+            w, "Massena", "ArchdukeJohn", "Austria", "Tyrol", outcome="attacker_victory",
+            attacker_won=True, attacker_casualties=3000, defender_casualties=5000))
+        assert _d21_we(w) == {"Austria": 5}
+
+    def test_d_the_defenders_win_is_unchanged(self, _d21_world):
+        w = _d21_world
+        _d21_pipeline(w, _d21_pipeline_ctx(
+            w, "Massena", "ArchdukeJohn", "Austria", "Tyrol", outcome="defender_victory",
+            defender_won=True, attacker_casualties=9000, defender_casualties=2000))
+        assert _d21_we(w) == {"France": 9}
+
+    def test_e_the_cap_the_dispatch_and_the_one_formula(self, _d21_world):
+        """ONE formula, never a copy: the +20 cap and the threshold dispatch
+        are `add_war_exhaustion_from_battle`'s own."""
+        from backend.game_logic.coalition import add_war_exhaustion_from_draw
+        w = _d21_world
+        w.war_exhaustion["Austria"] = 18
+        paid = add_war_exhaustion_from_draw(w, "France", "Austria", 45000, 3000)
+        assert paid == {"France": 20, "Austria": 21}, paid        # France capped at +20; Austria crosses 20
+        assert w.we_dispatched_thresholds.get("Austria") == 20, "the crossing dispatches"
+        assert w.war_exhaustion["France"] == 20
+
+    def test_f_a_third_party_draw_bears_both_sides_on_europe(self, _d21_world):
+        """AI-vs-AI (Britain / Spain are at war on the boot): both bear their
+        dead, as the third-party loser arms do for a won battle."""
+        w = _d21_world
+        _d21_pipeline(w, _d21_pipeline_ctx(
+            w, "Moore", "Castanos", "Spain", "Andalusia",
+            attacker_casualties=3400, defender_casualties=2200))
+        assert _d21_we(w) == {"Britain": 3, "Spain": 2}
+
+    def test_g_the_legacy_board_keeps_the_won_arms_reach(self):
+        """N1: the legacy fixture world pays where the won arms paid - France
+        as the ATTACKER pays her own dead and the court she fought pays his;
+        France as the DEFENDER does not pay (the EC-W2 arm is Europe-scoped),
+        her attacker does; a draw between two other courts accrues nothing."""
+        from backend.game_logic.coalition import add_war_exhaustion_from_draw
+        from backend.models.world_state import WorldState
+        w = WorldState()
+        assert getattr(w, "sovereign_map", "legacy") == "legacy"
+        france = w.player_nation
+        assert add_war_exhaustion_from_draw(w, france, "Austria", 3200, 2100) == {france: 3, "Austria": 2}
+        w.war_exhaustion.clear()
+        assert add_war_exhaustion_from_draw(w, "Austria", france, 3200, 2100) == {"Austria": 3}
+        w.war_exhaustion.clear()
+        assert add_war_exhaustion_from_draw(w, "Austria", "Russia", 3200, 2100) == {}
+
+    def test_h_the_seam_tolerates_an_unnamed_court_and_a_none_dead(self, _d21_world):
+        from backend.game_logic.coalition import add_war_exhaustion_from_draw
+        w = _d21_world
+        assert add_war_exhaustion_from_draw(w, "France", "", 3000, None) == {"France": 3}
+        w.war_exhaustion.clear()
+        assert add_war_exhaustion_from_draw(w, "France", "Austria", -5, 0) == {"France": 0, "Austria": 0}
+        assert _d21_we(w) == {}
+
+
+class TestS14EX245:
+    """The row under D22: the `add_war_exhaustion_from_battle` arms were keyed on
+    `attacker_won` / `defender_won`; the Tyrol stalemate (8,796 dead on the day's
+    ledger in the sighting) left war exhaustion 0 / 0. Pinned through every road
+    a battle takes: the pipeline, the main attack, the auto-charge."""
+
+    def test_a_the_main_attack_s_stalemate_bears_both_sides(self, _d21_world, monkeypatch):
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_milan_board(w)
+        out = _d21_real_attack(w)
+        assert out.get("success"), out.get("message")
+        key = w._make_diplo_key("France", "Austria")
+        dead = w.campaign_ledgers[key]["casualties"]
+        assert dead["France"] > 0 and dead["Austria"] > 0
+        assert w.war_exhaustion.get("France", 0) == min(dead["France"] // 1000, 20)
+        assert w.war_exhaustion.get("Austria", 0) == min(dead["Austria"] // 1000, 20)
+        assert sum(_d21_we(w).values()) > 0, "the guard: the board drew real blood"
+
+    def test_b_the_main_attack_with_the_seam_down_is_zero_zero(
+            self, _d21_world, _d21_exhaustion_down, monkeypatch):
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_milan_board(w)
+        out = _d21_real_attack(w)
+        assert out.get("success"), out.get("message")
+        assert _d21_we(w) == {}
+
+    def test_c_the_auto_charge_s_stalemate_bears_both_sides(self, _d21_world, monkeypatch):
+        """The mirrored arm: the reckless charge is the one combat path outside
+        the pipeline."""
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_charge_board(w)
+        _d21_charge(w)
+        key = w._make_diplo_key("Austria", "France")
+        ledger = w.campaign_ledgers[key]
+        dead = ledger["casualties"]
+        assert ledger.get("drawn"), "the charge was a counted stalemate"
+        assert w.war_exhaustion.get("Austria", 0) == min(dead["Austria"] // 1000, 20)
+        assert w.war_exhaustion.get("France", 0) == min(dead["France"] // 1000, 20)
+        assert sum(_d21_we(w).values()) > 0
+
+    def test_d_the_auto_charge_with_the_seam_down_is_zero_zero(
+            self, _d21_world, _d21_exhaustion_down, monkeypatch):
+        _d21_force_stalemate(monkeypatch)
+        w = _d21_world
+        _d21_charge_board(w)
+        _d21_charge(w)
+        assert _d21_we(w) == {}
+
+    def test_e_a_mutual_destruction_is_a_draw_too(self, _d21_world):
+        w = _d21_world
+        _d21_tyrol(w, outcome="mutual_destruction", attacker_casualties=12000,
+                   defender_casualties=11000)
+        assert _d21_we(w) == {"France": 12, "Austria": 11}
+
+    def test_f_the_callers_import_the_named_seam(self):
+        """The class: the pipeline's step 13 and the auto-charge's mirror both
+        read `add_war_exhaustion_from_draw` off the coalition module at call
+        time (so the arm can hold it down), and nowhere else accrues a draw."""
+        ce = (_D21_ROOT / "backend/commands/combat_executor.py").read_text(encoding="utf-8")
+        ws = (_D21_ROOT / "backend/models/world_state.py").read_text(encoding="utf-8")
+        for text in (ce, ws):
+            assert "add_war_exhaustion_from_draw," in text
+            assert "add_war_exhaustion_from_draw(" in text
+        co = (_D21_ROOT / "backend/game_logic/coalition.py").read_text(encoding="utf-8")
+        assert co.count("add_war_exhaustion_from_battle(") >= 2
+        assert "paid[nation] = add_war_exhaustion_from_battle(" in co, "ONE formula, no copy"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X248 / X250 - the third pairs' siege components
+# ══════════════════════════════════════════════════════════════════════════
+
+def _d21_munich(w, *, mack_strength=6000):
+    """Mack (Austria, at war with Bavaria) besieges Bavaria's capital, Munich;
+    Ney (24,000) stands at Franconia. The Austria|Bavaria capital component
+    reads Mack in Munich (+10 from Austria's chair)."""
+    from backend.game_logic import diplomacy as D
+    mack = w.get_marshal("Mack")
+    mack.location = "Munich"
+    mack.strength = mack_strength
+    w.get_marshal("Ney").location = "Franconia"
+    w.calculate_visibility()
+    D.recalculate_war_scores(w)
+    assert D.get_war_score_for(w, "Austria", "Bavaria") == 10
+
+
+def _d21_ab(w):
+    """(stored, live) of the Austria|Bavaria pair from Austria's chair."""
+    from backend.game_logic import diplomacy as D
+    return D.get_war_score_for(w, "Austria", "Bavaria"), D.live_war_score_for(w, "Austria", "Bavaria")
+
+
+class TestS14EX248:
+    """A battle also moves THIRD pairs' siege components. The war score's capital
+    component reads who stands in a capital; `_post_combat_pipeline` step 8
+    stamped (D14) only attacker x defender.
+
+    Reproduced on the shipped board: Mack (Austria, at war with Bavaria)
+    besieges Munich, Bavaria's capital - the Austria|Bavaria pair reads +10.
+    France's Ney attacks him there and destroys the corps: the siege is gone
+    (live 0) but the pair's STORED score stayed 10 until End Turn. Built:
+    `WorldState.recalculate_battle_war_scores(region, attacker, defender)` over
+    the province's touched set - the controller, the starting owner and every
+    capital owner (`_war_score_nations_at`, the SAME helper the capture stamp
+    uses) - through the D14 seam, at the pipeline's step 8, the main attack's
+    copy, the auto-charge's mirror and the drawn battle's door."""
+
+    def test_a_before_the_third_pair_stayed_at_the_morning(self, _d21_world, _d21_pair_only_stamp):
+        w = _d21_world
+        _d21_munich(w)
+        out = _d21_real_attack(w, "Ney", "Mack")
+        assert out.get("success"), out.get("message")
+        assert w.get_marshal("Mack") is None, "the corps is destroyed and gone"
+        assert _d21_ab(w) == (10, 0)
+
+    def test_b_after_the_store_follows_the_battle(self, _d21_world):
+        w = _d21_world
+        _d21_munich(w)
+        out = _d21_real_attack(w, "Ney", "Mack")
+        assert out.get("success"), out.get("message")
+        assert _d21_ab(w) == (0, 0)
+
+    def test_c_the_pipeline_s_step_8_stamps_the_third_pair(self, _d21_world):
+        w = _d21_world
+        _d21_munich(w)
+        w.get_marshal("Mack").strength = 0                  # the corps the battle destroyed
+        _d21_pipeline(w, _d21_pipeline_ctx(
+            w, "Ney", "Mack", "Austria", "Munich", outcome="attacker_victory",
+            attacker_won=True, attacker_casualties=900, defender_casualties=6000,
+            pre_battle_attacker_strength=24000, pre_battle_defender_strength=6000))
+        assert _d21_ab(w) == (0, 0)
+
+    def test_d_before_the_drawn_door_stamped_the_pair_alone(self, _d21_world, _d21_pair_only_stamp):
+        """The 'before' of the drawn door: the pair-only stamp leaves the third
+        pair at the morning's figure (the next test: with the province it follows;
+        the province-less call, a legacy double, still stamps the pair alone)."""
+        w = _d21_world
+        _d21_munich(w)
+        w.get_marshal("Mack").strength = 0
+        w.record_drawn_battle("France", "Austria", 2000, 6000, "Munich")
+        assert _d21_ab(w) == (10, 0), "the pair-only stamp (the 'before')"
+
+    def test_e_the_drawn_door_with_the_province(self, _d21_world):
+        w = _d21_world
+        _d21_munich(w)
+        w.get_marshal("Mack").strength = 0
+        w.record_drawn_battle("France", "Austria", 2000, 6000, "Munich")
+        assert _d21_ab(w) == (0, 0)
+        w.war_scores[w._make_diplo_key("Austria", "Bavaria")] = 10
+        w.record_drawn_battle("France", "Austria", 2000, 6000)           # no province: the pair alone
+        assert _d21_ab(w)[0] == 10
+
+    def test_f_the_auto_charge_stamps_the_third_pair(self, _d21_world, _d21_pair_only_stamp):
+        """The mirrored arm. Murat (reckless, Franche-Comte) charges Mack in
+        Munich and destroys the corps (100 men): before, the stored pair kept
+        the siege; after (next test), it follows."""
+        w = _d21_world
+        self._charge_board(w)
+        _d21_charge(w)
+        assert w.get_marshal("Mack") is None or w.get_marshal("Mack").strength <= 0
+        assert _d21_ab(w) == (10, 0)
+
+    def test_g_after_the_charge_follows(self, _d21_world):
+        w = _d21_world
+        self._charge_board(w)
+        _d21_charge(w)
+        assert _d21_ab(w) == (0, 0)
+
+    @staticmethod
+    def _charge_board(w, mack_strength=100):
+        _d21_munich(w, mack_strength=mack_strength)
+        murat = w.get_marshal("Murat")
+        murat.cavalry = True
+        murat.personality = "aggressive"
+        murat.recklessness = 5
+        for m in w.marshals.values():
+            if m.nation == "France" and m.name != "Murat":
+                m.location = "Lorraine"
+        w.calculate_visibility()
+
+    def test_h_the_touched_set_is_one_helper_for_capture_and_battle(self, _d21_world):
+        """Lifted, not copied: the capture stamp and the battle stamp both
+        build their set through `_war_score_nations_at`."""
+        import inspect
+        from backend.models.world_state import WorldState
+        assert "_war_score_nations_at" in inspect.getsource(WorldState._recalculate_capture_war_scores)
+        assert "_war_score_nations_at" in inspect.getsource(WorldState.recalculate_battle_war_scores)
+        w = _d21_world
+        assert w._war_score_nations_at("Munich", "France", "Austria") == {"France", "Austria", "Bavaria"}
+        assert w._war_score_nations_at("Vienna", "France") == {"France", "Austria"}
+        assert w._war_score_nations_at("Tyrol", None, "") == {"Austria"}, "starting owner only; Nones dropped"
+
+    def test_i_a_battle_in_an_ordinary_province_stamps_its_own_pair_only(self, _d21_world, monkeypatch):
+        """The set is the province's: Swabia is nobody's capital, so nothing
+        beyond the parties, the controller (Bavaria) and the starting owner."""
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        seen = []
+        real = D.recalculate_pair_war_score
+        monkeypatch.setattr(D, "recalculate_pair_war_score",
+                            lambda world, a, b: (seen.append(frozenset((a, b))), real(world, a, b))[1])
+        w.recalculate_battle_war_scores("Swabia", "France", "Austria")
+        assert frozenset(("France", "Austria")) in seen
+        assert {n for pair in seen for n in pair} == {"France", "Austria", "Bavaria"}
+
+    def test_j_held_down_the_d14_seam_holds_it_down(self, _d21_world, _d21_stamps_down):
+        w = _d21_world
+        _d21_munich(w)
+        w.war_scores[w._make_diplo_key("Austria", "Bavaria")] = 10
+        w.get_marshal("Mack").strength = 0
+        w.recalculate_battle_war_scores("Munich", "France", "Austria")
+        assert _d21_ab(w) == (10, 0)
+
+    def test_k_a_pair_not_at_war_is_never_stored(self, _d21_world):
+        w = _d21_world
+        w.recalculate_battle_war_scores("Munich", "France", "Austria")
+        assert w._make_diplo_key("France", "Bavaria") not in w.war_scores, "allies: no WAR pair"
+
+
+class TestS14EX250:
+    """Sibling of X248 / X224 / X225 (found by X248's sweep): the reckless
+    auto-charge's own rout and retreat relocations stamped nothing - the
+    simplified copy in `WorldState._process_reckless_cavalry_turn_start` has its
+    own forced-retreat and advance blocks and no `recalculate_war_scores_for_
+    march` call, so a corps driven out of (or into) a capital left that pair's
+    stored siege component at the morning's figure until End Turn.
+
+    Reproduced on the shipped board: Mack (3,000) besieges Munich; Murat
+    (reckless) charges, Mack is routed to Tyrol and Murat advances in - the
+    Austria|Bavaria pair read stored 10 / live 0. Fixed: the charge stamps the
+    pairs its relocations moved, through the same helper the executor's retreat
+    and advance use."""
+
+    def test_a_before_the_rout_left_the_pair_stale(self, _d21_world, _d21_stamps_down):
+        w = _d21_world
+        TestS14EX248._charge_board(w, mack_strength=3000)
+        w.war_scores[w._make_diplo_key("Austria", "Bavaria")] = 10
+        _d21_charge(w)
+        assert w.get_marshal("Mack").location != "Munich"
+        assert _d21_ab(w) == (10, 0)
+
+    def test_b_after_the_store_follows_the_rout(self, _d21_world):
+        w = _d21_world
+        TestS14EX248._charge_board(w, mack_strength=3000)
+        _d21_charge(w)
+        mack = w.get_marshal("Mack")
+        assert mack.location == "Tyrol" and mack.strength > 0, "routed, not destroyed"
+        assert w.get_marshal("Murat").location == "Munich", "the charger advanced in"
+        assert _d21_ab(w) == (0, 0)
+
+    def test_c_no_relocation_no_extra_stamp(self, _d21_world, monkeypatch):
+        """A charge that moves neither corps costs no march stamp."""
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_charge_board(w)
+        calls = []
+        monkeypatch.setattr(D, "recalculate_war_scores_for_march",
+                            lambda world, marshal, *locs: calls.append((marshal.name, locs)))
+        _d21_charge(w)
+        # Mack (cavalry, Swabia) charged Ney at Rhineland: the loser may rout,
+        # but every stamp names a corps that actually changed province
+        for name, locs in calls:
+            assert len(set(locs)) >= 2, (name, locs)
+
+
+class TestS14EX251:
+    """Sibling of X248 / X250 (found by the sweep): `CombatExecutor.
+    _apply_forced_retreat_or_break` - the ONE relocation every combat path's
+    rout passes - moved a corps out of (or into) a capital AFTER the battle's
+    stamp with no stamp of its own, so a besieger driven from a third court's
+    capital left that pair's STORED siege component at the morning's figure
+    until End Turn.
+
+    Reproduced on the shipped board: Ney attacks Mack (14,000) at Munich; on a
+    seed that routs rather than destroys him, Mack flees to Tyrol with 126 men -
+    the Austria|Bavaria pair read stored 10 / live 0. Fixed: both branches (the
+    safe retreat and the shattered army's flight to its spawn) stamp the pairs
+    the move touched, through `recalculate_war_scores_for_march`."""
+
+    @staticmethod
+    def _rout(w, *, shatter=False):
+        from backend.commands.executor import CommandExecutor
+        _d21_munich(w, mack_strength=14000)
+        mack, ney = w.get_marshal("Mack"), w.get_marshal("Ney")
+        if shatter:
+            w.get_safe_retreat_destination = lambda *a, **k: None
+        with _d21_quiet():
+            CommandExecutor()._combat._apply_forced_retreat_or_break(mack, ney, w, skip_fate=True)
+        return mack
+
+    def test_a_before_a_routed_besieger_left_the_pair_stale(self, _d21_world, _d21_stamps_down):
+        w = _d21_world
+        mack = self._rout(w)
+        assert mack.location != "Munich"
+        assert _d21_ab(w) == (10, 0)
+
+    def test_b_after_the_store_follows_the_rout(self, _d21_world):
+        w = _d21_world
+        mack = self._rout(w)
+        assert mack.location != "Munich" and mack.retreating
+        assert _d21_ab(w) == (0, 0)
+
+    def test_c_the_shattered_army_s_flight_stamps_too(self, _d21_world):
+        w = _d21_world
+        mack = self._rout(w, shatter=True)
+        assert mack.broken and mack.location != "Munich"
+        assert _d21_ab(w) == (0, 0)
+
+    def test_d_the_shattered_flight_with_the_seam_down_is_stale(self, _d21_world, _d21_stamps_down):
+        w = _d21_world
+        self._rout(w, shatter=True)
+        assert _d21_ab(w) == (10, 0)
+
+    def test_e_the_real_attack_on_a_routing_seed(self, _d21_world):
+        """The sighting end to end: seed 5 routs Mack (14,000) to Tyrol."""
+        w = _d21_world
+        _d21_munich(w, mack_strength=14000)
+        w.actions_remaining = 4
+        random.seed(5)
+        from backend.commands.executor import CommandExecutor
+        with _d21_quiet():
+            out = CommandExecutor().execute(
+                {"success": True, "command": {"type": "specific", "marshal": "Ney",
+                                              "action": "attack", "target": "Mack"}},
+                {"world": w})
+        assert out.get("success"), out.get("message")
+        mack = w.get_marshal("Mack")
+        assert mack is not None and mack.location != "Munich", "the guard: this seed routs"
+        assert _d21_ab(w) == (0, 0)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X249 - a war entered has its stored score
+# ══════════════════════════════════════════════════════════════════════════
+
+def _d21_prussia_holds_bohemia(w):
+    """Prussia holds two Austrian starting provinces (territory +10 from her
+    chair) before a war the board does not have: Prussia|Austria are at peace
+    on the boot."""
+    assert w.get_diplomatic_state("Prussia", "Austria") != "WAR"
+    w.get_region("Bohemia").controller = "Prussia"
+    w.get_region("Moravia").controller = "Prussia"
+
+
+class TestS14EX249:
+    """A newly declared war's pair had no stored entry (read 0) until End Turn.
+
+    Reproduced on the shipped board: Prussia holds Bohemia and Moravia (Austrian
+    starting provinces) and declares on Austria - `get_war_score_for` read 0 and
+    the pair was absent from `world.war_scores` while `live_war_score_for` read
+    10, and so did every ally dragged in by the cascade (Britain, Russia).
+    `set_diplomatic_state` is the one chokepoint every WAR entry passes
+    (declaration, cascade, ally entry, vassal join and rebellion): it now stamps
+    the pair through the D14 seam (`recalculate_pair_war_score`). A truce's
+    COLLAPSE is a war resumed, not entered (PC-R2 ruling D keeps its stored
+    score), and stamps nothing."""
+
+    def test_a_before_the_pair_is_absent_until_end_turn(self, _d21_world, _d21_new_war_down):
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        with _d21_quiet():
+            assert D.declare_war(w, "Prussia", "Austria").get("success")
+        key = w._make_diplo_key("Prussia", "Austria")
+        assert key not in w.war_scores
+        assert D.get_war_score_for(w, "Prussia", "Austria") == 0
+        assert D.live_war_score_for(w, "Prussia", "Austria") == 10
+
+    def test_b_after_the_store_equals_the_live_figure_from_the_first_moment(self, _d21_world):
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        with _d21_quiet():
+            assert D.declare_war(w, "Prussia", "Austria").get("success")
+        key = w._make_diplo_key("Prussia", "Austria")
+        assert w.war_scores[key] == D.live_war_score_for(w, "Austria", "Prussia") * (
+            1 if key.split("|")[0] == "Austria" else -1)
+        assert D.get_war_score_for(w, "Prussia", "Austria") == D.live_war_score_for(w, "Prussia", "Austria") == 10
+        assert D.get_war_score_for(w, "Austria", "Prussia") == -10
+        assert type(w.war_scores[key]) is int
+
+    def test_c_the_cascade_s_pairs_are_stamped_too(self, _d21_world):
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        with _d21_quiet():
+            D.declare_war(w, "Prussia", "Austria")
+        at_war = [k for k, s in w.diplomatic_states.items() if s == "WAR" and "Prussia" in k]
+        assert len(at_war) >= 2, "the cascade joined allies against Prussia"
+        for key in at_war:
+            a, b = key.split("|")
+            assert key in w.war_scores, key
+            assert D.get_war_score_for(w, a, b) == D.live_war_score_for(w, a, b), key
+
+    def test_d_every_road_through_the_setter_is_stamped(self, _d21_world):
+        """The class: an ally's entry, a vassal's rebellion and a bare
+        declaration all route `set_diplomatic_state`."""
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        for reason in ("ally_entry", "vassal_rebellion", "war_declaration", "vassal_auto_join"):
+            ww = type(w).from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+            with _d21_quiet():
+                D.set_diplomatic_state(ww, "Prussia", "Austria", "WAR", reason)
+            key = ww._make_diplo_key("Prussia", "Austria")
+            assert ww.war_scores[key] != 0 or D.live_war_score_for(ww, "Prussia", "Austria") != 0
+            assert D.get_war_score_for(ww, "Prussia", "Austria") == 10, reason
+
+    def test_e_a_stale_entry_is_refreshed_on_a_new_war(self, _d21_world):
+        """A pair that left a war without cleanup keeps its old figure; the new
+        war reads its own."""
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        key = w._make_diplo_key("Prussia", "Austria")
+        w.war_scores[key] = 99
+        with _d21_quiet():
+            D.set_diplomatic_state(w, "Prussia", "Austria", "WAR", "war_declaration")
+        assert D.get_war_score_for(w, "Prussia", "Austria") == 10
+
+    def test_f_a_truce_collapse_keeps_its_stored_score(self, _d21_world):
+        """PC-R2 ruling D: ARMISTICE -> WAR resumes the war with its ledger, its
+        age and its stored score standing (End Turn recomputes it)."""
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        key = w._make_diplo_key("Prussia", "Austria")
+        with _d21_quiet():
+            D.set_diplomatic_state(w, "Prussia", "Austria", "ARMISTICE", "truce")
+        w.war_scores[key] = 17
+        with _d21_quiet():
+            D.set_diplomatic_state(w, "Prussia", "Austria", "WAR", "armistice_expired_war")
+        assert w.war_scores[key] == 17, "the collapse stamps nothing"
+        assert D.live_war_score_for(w, "Prussia", "Austria") == 10
+
+    def test_g_a_redundant_war_to_war_set_stamps_nothing(self, _d21_world):
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        key = w._make_diplo_key("France", "Austria")
+        w.war_scores[key] = 33
+        with _d21_quiet():
+            D.set_diplomatic_state(w, "France", "Austria", "WAR", "cheat")
+        assert w.war_scores[key] == 33
+
+    def test_h_a_state_that_is_not_war_stamps_nothing(self, _d21_world):
+        from backend.game_logic import diplomacy as D
+        w = _d21_world
+        _d21_prussia_holds_bohemia(w)
+        with _d21_quiet():
+            D.set_diplomatic_state(w, "Prussia", "Austria", "NON_AGGRESSION", "treaty")
+        assert w._make_diplo_key("Prussia", "Austria") not in w.war_scores
+
+    def test_i_the_boot_is_unchanged(self, _d21_boot):
+        """The shipped boot's seven starting wars are seeded below the setter
+        and read 0 / 0 (live 0): the store is empty until the first End Turn,
+        exactly as before."""
+        from backend.game_logic import diplomacy as D
+        assert _d21_boot.war_scores == {}
+        for key, state in _d21_boot.diplomatic_states.items():
+            if state == "WAR":
+                a, b = key.split("|")
+                assert D.live_war_score_for(_d21_boot, a, b) == 0
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# x252 (S14f p3, October 25, 2026 — found at the merge)
+# ══════════════════════════════════════════════════════════════════════════
+# S14E-X252: `separate_peace_words`' "named for <province>" reader knew only
+# the retired raw-dict dialect's singular `region` (`clauses: [{"type":
+# "territory_cede", "to": ..., "region": "Tyrol"}]`); the COMPILED clause the
+# ratifier applies — the one source since X211 — carries `regions`, so a
+# cession to a carried ally written in the demands dialect read "she takes
+# nothing by it" beside a row that named her for Tyrol. The reader takes
+# both shapes now; `TestS14EX198::test_f` drives the demands dialect through
+# the real summary.
+
+
+class TestS14EX252:
+    """The words name a carried ally from the compiled clause's `regions`."""
+
+    def test_a_compiled_cession_names_the_ally(self, _w19_world):
+        from backend.game_logic.diplomacy import separate_peace_words
+        from backend.game_logic.treaty import treaty_clauses_of
+        w = _w19_world
+        compiled = treaty_clauses_of(
+            {"sweeteners": [], "demands": [{"type": "territory_cede", "regions": ["Tyrol"],
+                                            "from_nation": "Austria", "to_nation": "Bavaria"}]},
+            "France", "Austria")
+        assert compiled and compiled[0]["to"] == "Bavaria" and compiled[0]["regions"] == ["Tyrol"]
+        words = separate_peace_words(w, "France", "Austria", terms=compiled)
+        assert "named for Tyrol" in words["per_ally"]["Bavaria"], words
+
+    def test_b_the_raw_singular_shape_still_reads(self, _w19_world):
+        from backend.game_logic.diplomacy import separate_peace_words
+        w = _w19_world
+        words = separate_peace_words(
+            w, "France", "Austria",
+            terms=[{"type": "territory_cede", "from": "Austria", "to": "Bavaria", "region": "Tyrol"}])
+        assert "named for Tyrol" in words["per_ally"]["Bavaria"], words

@@ -459,6 +459,9 @@ func _ready():
 	# Music & Sound Core: install the audio singleton once the tree settles
 	# (deferred — root is busy instantiating the main scene right now).
 	AudioManager.boot.call_deferred()
+	# PC-F47 (S15 head): hover text wraps to the window (once per run; the
+	# menu has installed it already — main.tscn alone, from the editor, here).
+	Utils.wrap_tooltips(get_tree())
 
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
@@ -1009,6 +1012,15 @@ func _on_connection_test(response):
 
 		# N4i: Initialize war status HUD on game start
 		_process_active_wars(response)
+
+		# S14E-D18 / S14E-X155 (S14f p3): the notice rail from the first
+		# frame - `/test` carries the same `notifications` every response
+		# does, and this FIRST fill is SILENT (`update_notifications(rows,
+		# true)` marks the ids seen without the desk bell): the rows standing
+		# when a campaign opens are not news, so one chime per row at boot
+		# would be noise. A row that arrives on a later response still rings.
+		if notification_bar and response.has("notifications") and response.notifications is Array:
+			notification_bar.update_notifications(response.notifications, true)
 
 		# POSITION 7: plain entry / Return-to-the-War-Room — the /test payload
 		# carries the full game_state, so the tutor card arms (or disarms)
@@ -7079,6 +7091,14 @@ func _reset_frontend_state_for_world_swap(clear_output: bool = true):
 func _apply_world_swap_response(response: Dictionary, success_text: String):
 	"""Reuse one hydration path for load and new-game world swaps."""
 	_reset_frontend_state_for_world_swap(true)
+	# S14E-D18 / S14E-X155 (S14f p3): the arriving world's standing rows are
+	# not news either - a load or a new campaign opens a rail that already
+	# holds rows, and the sync below would ring the desk bell once per row
+	# (`/load` and `/new_game` ship `notifications` like every envelope). One
+	# SILENT fill first marks them seen; the sync then draws the rail as it
+	# always does and rings for nothing standing.
+	if notification_bar and response.has("notifications") and response.notifications is Array:
+		notification_bar.update_notifications(response.notifications, true)
 	_sync_response_hud(response)
 	_process_active_wars(response)
 	# GE-2 (R6): the arriving campaign's MARKED endings are history; a

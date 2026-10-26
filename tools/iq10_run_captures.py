@@ -901,6 +901,11 @@ SHOTS += [
         "payload": "marshal_overview_doctrine",
         "scene": "res://scenes/marshal_management.tscn",
         "mode": "api_stub", "method": "open", "api_method": "get_marshal_overview",
+        # UXR3-24 / UXR3-80 (S15 head, October 25, 2026): OUR DOCTRINE folds to
+        # its one title line behind "▸ the doctrine" on every board but the one
+        # whose subject IS the doctrine — this shot presses the toggle (the
+        # screen's own meta road, `_on_meta_clicked`) before the frame is taken.
+        "steps": [{"call": "_on_meta_clicked", "args": ["doctrine:toggle"], "then_wait": 4}],
         "must_show": "OUR DOCTRINE — The Corps System: the says line, the strength and the flaw "
                      "with their numbers, the flaw's cure status; THE LAURELS below it; "
                      "nothing clipped at scale 2.0",
@@ -1453,6 +1458,60 @@ SHOTS += [
                      "X attacks Y'…\" — TABLE_LESSON_SPEC §2 line 8) in it (whole at 1.0; the message "
                      "scrolls at 2.0 — S14D-X47); 'Commit the Attack' and 'Cancel Order' above the fold "
                      "at BOTH scales, the box no taller than the band below the bar",
+    },
+]
+
+
+# ═══ PC-F46 / PC-F47 (Pre-Deploy S15's head, October 25, 2026) ═══════════════
+# The peace report's two layout rows, re-shot on the board its frames were
+# taken on (`tests/fixtures/pc_boards/turn6_vienna_held.json`; the capture
+# group `pc_layout`). Frames at 1920x1080 and 5120x1440 come from the
+# physical mode (`--physical`, or one `window` per shot); the hover shots use
+# the harness's real-hover step (`hover`, then `settle_ms` of REAL time).
+SHOTS += [
+    {
+        "id": "pc_armistice_letter",
+        "surface": "Austria's armistice letter — the cost and the expiry rule (PC-F46, M7)",
+        "payload": "armistice_letter_vienna",
+        "scene": "res://scenes/incoming_proposal_popup.tscn",
+        "mode": "call", "method": "show_proposal",
+        "must_show": "the letter's box grows with the window (80 % of its height); the Armistice "
+                     "Terms block — what the truce keeps, the expiry rule (the -60 line), the "
+                     "projection (-65), the cure — stands ABOVE the War Summary and inside the "
+                     "reading window without a scroll, with Accept / Haggle / Reject / Not Now "
+                     "under it",
+    },
+    {
+        "id": "pc_war_detail",
+        "surface": "War Detail popup on the Vienna-held board — the peace table (PC-F46, M2)",
+        "payload": "war_detail_vienna",
+        "scene": "res://scenes/war_detail_popup.tscn",
+        "mode": "call", "method": "show_war",
+        "args": ["$payload.war", "$payload.coalition"],
+        "must_show": "the Settlement Tier line and the peace table's sentences (the table's number, "
+                     "the court-by-court line, the lag note) stand above the fold at 1920x1080",
+    },
+    {
+        "id": "pc_counsel_paths_tooltip",
+        "surface": "Talleyrand's paths — the shut path's hover text (PC-F47, M5)",
+        "payload": "counsel_paths_vienna",
+        "scene": "res://scenes/proposal_confirm_popup.tscn",
+        "mode": "call", "method": "show_dialogue",
+        "steps": [{"wait": 6}, {"hover": {"text": "Generous peace"}, "then_wait": 4}],
+        "settle_ms": 1800,
+        "must_show": "the 452-character refusal on an OPAQUE gold-hairlined panel, wrapped to about "
+                     "40 % of the window, every word inside the window",
+    },
+    {
+        "id": "pc_war_card_tooltip",
+        "surface": "The war card's hover text over the map (PC-F47, M1)",
+        "payload": "active_wars_vienna",
+        "scene": "res://scenes/war_status_panel.tscn",
+        "mode": "call", "method": "update_wars",
+        "steps": [{"wait": 6}, {"hover": {"tooltip": "The peace table reads"}, "then_wait": 4}],
+        "settle_ms": 1800,
+        "must_show": "the war card's tooltip — the peace table, court by court, the standing — on an "
+                     "OPAQUE panel, wrapped, inside the window",
     },
 ]
 

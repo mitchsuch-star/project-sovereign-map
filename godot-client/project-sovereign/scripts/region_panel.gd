@@ -238,10 +238,22 @@ func _render() -> void:
 			bbcode += " · " + terrain.replace("_", " ").capitalize()
 		bbcode += "[/color]"
 	bbcode += "\n"
+	# UXR3-79 (Pre-Deploy S15 head, October 25, 2026): the LAND'S NOTE — the
+	# poor-country / stripped-by-war mark the doctrines' boards exist to show
+	# (SR-7d DC-3a, DOCTRINES_SPEC RV-13) — rides directly under the controller
+	# line, in the Lead step, above the ACTIONS block it used to sit beneath
+	# (and under the help text, as the last row). Composed by the backend with
+	# the fog applied (the stripped mark reads the econ fog; the poor mark is
+	# geography and always shows), so it reads the same on an unscouted
+	# province and on one in view. Absent = no mark.
+	var dmark = data.get("doctrine_supply")
+	if dmark is Dictionary and str(dmark.get("line", "")) != "":
+		bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark.get("line", "")) + "[/color]\n"
 	# UXR3-76 (Pre-Deploy S12 part 2): the ACTIONS block — the recruit,
 	# build and repair chips this panel exists for — is spliced in HERE,
-	# directly under the title line, once the rows are known (below); the
-	# province's figures, its forces and its sea follow it.
+	# directly under the title line (and, since UXR3-79, the land's note),
+	# once the rows are known (below); the province's figures, its forces
+	# and its sea follow it.
 	var actions_at := bbcode.length()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]One province — who holds it, what it pays, what defends it. Click the map to choose another.[/color]\n"
@@ -256,16 +268,13 @@ func _render() -> void:
 	if visibility == "unknown" or visibility == "last_known":
 		var intel_note = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]" + intel_note + " — scout or advance to learn more.[/color]\n"
-		# UXR3-F9 (Pre-Deploy S12 part 2): the three figures stand as Unknown
-		# — the poor-country mark below reads under the Supply line it qualifies.
-		bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]   Stability: [color=#" \
-			+ Utils.COLOR_INFO + "]Unknown[/color]   Supply: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]\n"
+		# UXR3-F9 (Pre-Deploy S12 part 2): the three figures stand as Unknown.
 		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor-country mark is geography
 		# and shows on an unscouted province too; the stripped mark reads
-		# "Stripped? unknown — scout it" here (the backend applied the fog).
-		var dmark_fog = data.get("doctrine_supply")
-		if dmark_fog is Dictionary and str(dmark_fog.get("line", "")) != "":
-			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark_fog.get("line", "")) + "[/color]\n"
+		# "Stripped? unknown — scout it" (the backend applied the fog). UXR3-79
+		# (S15 head): both read in the land's note under the controller line.
+		bbcode += "Income: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]   Stability: [color=#" \
+			+ Utils.COLOR_INFO + "]Unknown[/color]   Supply: [color=#" + Utils.COLOR_INFO + "]Unknown[/color]\n"
 	else:
 		# WO-V-D2 (Score Finish Step 7 slice 8): no hedge on our own soil — its
 		# figures are exact by ownership (`world.region_econ_visible`), and
@@ -293,13 +302,8 @@ func _render() -> void:
 		var supply_cap := int(data.get("supply_capacity", 0))
 		var supply_text := "Unknown" if supply_cap < 0 else Utils.format_number(supply_cap)
 		bbcode += "   Supply: " + supply_text + "\n"
-		# SR-7d DC-3a (DOCTRINES_SPEC RV-13): the poor / stripped mark where our
-		# own supply clause could bite — composed by the backend with the fog
-		# applied (the stripped mark reads the econ fog; the poor mark is
-		# geography and always shows). Absent = no mark.
-		var dmark = data.get("doctrine_supply")
-		if dmark is Dictionary and str(dmark.get("line", "")) != "":
-			bbcode += "[color=#" + Utils.COLOR_WARNING + "]" + str(dmark.get("line", "")) + "[/color]\n"
+		# SR-7d DC-3a (RV-13): the poor / stripped mark moved UP to the land's
+		# note under the controller line (UXR3-79, S15 head).
 		var garrison_info = _map_node.region_garrisons.get(_region, null)
 		if garrison_info != null:
 			var g_strength = int(garrison_info.get("strength", 0))

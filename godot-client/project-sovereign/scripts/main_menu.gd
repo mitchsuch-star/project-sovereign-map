@@ -96,6 +96,9 @@ func _ready() -> void:
 	# add_child to a root that is busy instantiating this very scene.
 	AudioManager.stop_all_loops.call_deferred()
 	AudioManager.set_menu_mood.call_deferred()
+	# PC-F47 (S15 head): hover text wraps to the window — the root watches for
+	# the engine's tooltip popup from the first scene on (once per run).
+	Utils.wrap_tooltips(get_tree())
 
 	# UXR-1 / UXR-X1: the stored Interface Scale is applied HERE, at the first
 	# scene — it used to be applied only when a campaign started (main.gd), so

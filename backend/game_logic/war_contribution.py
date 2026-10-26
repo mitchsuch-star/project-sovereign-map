@@ -1093,6 +1093,79 @@ def accrue_battle_contribution(
     }
 
 
+def accrue_drawn_contribution(
+    world: Any,
+    nation_a: str,
+    nation_b: str,
+    dead_a: int,
+    dead_b: int,
+    region: Optional[str] = None,
+    *,
+    marshal_a: Optional[str] = None,
+    marshal_b: Optional[str] = None,
+    pre_strength_a: Optional[int] = None,
+    pre_strength_b: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """S14E-X244 / S14E-D21 (S14f p3, October 25, 2026): THE SEAM of a DRAWN
+    battle's settlement contribution - a winnerless accrual for BOTH sides on
+    blood alone.
+
+    `accrue_battle_contribution` was reached only from the winner-only
+    `diplomacy.record_battle`, so a 13,000-dead stalemate (the Great Battle of
+    Tyrol) credited no court's battle bucket: the allies who held the field
+    beside France and Austria read 0 in the settlement's shares and the table
+    seated by what the war had not counted. A drawn battle counts as a battle
+    wherever one is counted (S14E-D20's line). This is the SAME accrual with
+    the winner left blank - ONE formula, never a copy: `battle_scale.
+    decisive_credit` credits no side a winner's decisive bonus, so each side's
+    raw is its blood alone (`inflicted // 100 + suffered // 250`, the won and
+    lost arms' own blood terms) and the side's 40 battle points split by the
+    theater's strengths exactly as a won battle's do. `region` (the battle's
+    province) opens the one-hop theater so an ally beside the field is
+    credited; `marshal_*` / `pre_strength_*` hand the principals' pre-battle
+    strengths to the theater detector (a corps the battle annihilated must
+    not be floored to 1 against an ally's full column, as the won arms'
+    emitters already pass them).
+
+    Called from `WorldState.record_drawn_battle` (after the ledger stamp, past
+    the same 1,000-dead floor) - the one door of the pipeline's step 8, the
+    main attack's copy and the auto-charge. A pair with no war instance, two
+    courts on one side, no active episode, or a draw of no dead credits
+    nothing (None). The series arm holds it DOWN with
+    `backend.game_logic.war_contribution:accrue_drawn_contribution=
+    lambda *a, **k: None` - today's behaviour (a draw credits no bucket)."""
+    if not nation_a or not nation_b:
+        return None
+    if max(0, int(dead_a or 0)) + max(0, int(dead_b or 0)) <= 0:
+        return None
+    theater: Optional[Dict[str, Any]] = None
+    if region:
+        theater = detect_battle_theater(
+            world,
+            battle_region=region,
+            attacker_nation=nation_a,
+            defender_nation=nation_b,
+            attacker_marshal_name=marshal_a,
+            defender_marshal_name=marshal_b,
+            attacker_pre_battle_strength=pre_strength_a,
+            defender_pre_battle_strength=pre_strength_b,
+        )
+    return accrue_battle_contribution(
+        world,
+        attacker_nation=nation_a,
+        defender_nation=nation_b,
+        winner_nation="",
+        attacker_casualties=int(dead_a or 0),
+        defender_casualties=int(dead_b or 0),
+        location=region or "",
+        war_id=(theater or {}).get("war_id"),
+        attacker_participants=(theater or {}).get("attacker_participants"),
+        defender_participants=(theater or {}).get("defender_participants"),
+        nation_theater_strength=(theater or {}).get("nation_theater_strength"),
+        turn=getattr(world, "current_turn", None),
+    )
+
+
 # ===========================================================================
 # Slice B2 — Occupation event accrual (spec §9.2 / §9.4)
 # ===========================================================================

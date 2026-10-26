@@ -40,7 +40,11 @@ ITEMS = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"]
 SHOT_TREE = "337b8621"        # part 4: the whole-manifest shoot and the probe
 FIX_TREE = "46f668ef"         # part 5a: the re-shoot and the re-probe
 # the states S12 part 2's closing re-read moves a row on to
-LATER_STATES = ("FIXED October 14, 2026 — Pre-Deploy S12 part 2", "OPEN — re-homed to UXR-4 (S15)")
+LATER_STATES = ("FIXED October 14, 2026 — Pre-Deploy S12 part 2", "OPEN — re-homed to UXR-4 (S15)",
+                # S15's head (October 25, 2026): the re-homed marks' decided
+                # fixes were BUILT and re-shot for the user's eyes; their rows
+                # read FIXED at S15's head (`SYSTEMS_REFERENCE.md` §152.11).
+                "✅ FIXED October 25, 2026 — S15 head")
 
 
 def _load(name: str) -> dict:

@@ -578,34 +578,67 @@ def cap_missions():
                staging=staging, facts={"talleyrand": talleyrand_facts(dl)})
 
     # Transit: he carries a proposal while the mission stands (paused, no Recall).
+    # UXR3-41 (S15 head, October 25, 2026): the board was never staged — the
+    # proposal went to Sweden, whom the backend's own gate refuses (−60 where
+    # Open Borders needs −20), so Talleyrand never left and the payload read
+    # `paused: false`. The letter goes to Prussia now (−10 on the boot, the
+    # gate passed) and the board refuses to be recorded unless the Cabinet
+    # block reads PAUSED in transit.
     world, c = fresh()
     world.diplomatic_points = 10
     world.talleyrand_defiance_cooldown = 99
     with _quiet():
         iq4._start_http(c, "court Denmark")
-        sent = iq4._send_http(c, "propose open borders with Sweden")
+        sent = iq4._send_http(c, "propose open borders with Prussia")
     ledger = get(c, "/ledger")
+    _transit_facts = cabinet_facts(ledger)
+    assert _transit_facts.get("paused") is True and _transit_facts.get("pause_reason") == "transit", \
+        f"UXR3-41: the transit board is not staged — {_transit_facts} / {sent.get('message')}"
     record("ledger_mission_transit", ledger, source="GET /ledger",
            staging="1805 boot; `court Denmark` begun on the typed road, then an open-borders "
-                   "proposal to Sweden SENT (typed echo + the confirm's Send) so Talleyrand "
-                   "is in transit with the mission standing",
-           facts={"cabinet": cabinet_facts(ledger), "talleyrand_state": world.talleyrand_state,
+                   "proposal to Prussia SENT (typed echo + the confirm's Send; UXR3-41 — Sweden's "
+                   "was refused at the relation gate) so Talleyrand is in transit with the "
+                   "mission standing; the capture asserts `paused: true`",
+           facts={"cabinet": _transit_facts, "talleyrand_state": world.talleyrand_state,
                   "send_message": str(sent.get("message"))[:200]})
 
     # Starved: the mission paused for want of DP.
+    # UXR3-41 (S15 head, October 25, 2026): the board was never staged — the
+    # DP written to 0 BEFORE the end turn was refilled by the turn's own
+    # regeneration (`diplomacy._process_dp_regen`, step 1 of the diplomatic
+    # turn) before the mission's tick (step 2) read it, and the write AFTER
+    # the turn came too late for the tick, so the payload read `paused: false`
+    # and "4 funded turns". The shortfall is written AFTER the refill now, for
+    # that one turn, and the board refuses to be recorded unless the Cabinet
+    # block reads PAUSED for want of DP.
     world, c = fresh()
     world.diplomatic_points = 10
     world.talleyrand_defiance_cooldown = 99
     with _quiet():
         iq4._start_http(c, "court Denmark")
-    live_world().diplomatic_points = 0
-    end_turn(c)
+    from backend.game_logic import diplomacy as _dip
+    _regen = _dip._process_dp_regen
+
+    def _regen_then_starve(w):
+        _regen(w)
+        w.diplomatic_points = 0   # the shortfall, after the refill and before the tick
+
+    _dip._process_dp_regen = _regen_then_starve
+    try:
+        end_turn(c)
+    finally:
+        _dip._process_dp_regen = _regen
     live_world().diplomatic_points = 0
     ledger = get(c, "/ledger")
+    _starved_facts = cabinet_facts(ledger)
+    assert _starved_facts.get("paused") is True and _starved_facts.get("pause_reason") == "starved", \
+        f"UXR3-41: the starved board is not staged — {_starved_facts}"
     record("ledger_mission_starved", ledger, source="GET /ledger",
-           staging="1805 boot; `court Denmark` begun; DP WRITTEN to 0 before and after one "
-                   "real end turn (state write) so the mission pauses for want of DP",
-           facts={"cabinet": cabinet_facts(ledger)})
+           staging="1805 boot; `court Denmark` begun; one real end turn with the DP WRITTEN to 0 "
+                   "after the turn's own regeneration and before the mission's tick (UXR3-41 — "
+                   "a write before the turn was refilled first), then 0 again after it, so the "
+                   "mission pauses for want of DP; the capture asserts `paused: true`",
+           facts={"cabinet": _starved_facts})
 
     # Recalled: the idle Cabinet with its 'Last mission' line, on both ledgers.
     world, c = fresh()
@@ -2182,7 +2215,99 @@ def cap_first_open():
     fresh()
 
 
+def cap_pc_layout():
+    """PC-F46 / PC-F47 (Pre-Deploy S15's head, October 25, 2026): the peace
+    report's two layout rows, on the board its frames were shot on —
+    `tests/fixtures/pc_boards/turn6_vienna_held.json`, the user's turn-6
+    autosave copy with Vienna in French hands (`docs/audits/peace_client/`
+    M1 … M8). Four captures, all read off the production roads:
+
+    * `war_detail_vienna` / `active_wars_vienna` — GET /test → active_wars
+      (M2 the war popup's peace table; M1 the war card the hover reads);
+    * `wizard_preview_austria_vienna` — GET /diplomatic_preview?nation=Austria
+      (M3, the Cabinet's page); `counsel_paths_vienna` — the typed "propose
+      peace with Austria" → `diplomatic_dialogue` (M5: Talleyrand's paths,
+      each shut one carrying its reason as the hover text);
+    * `armistice_letter_vienna` — Austria's own `armistice_losing` letter,
+      from the AI's production rung (`process_diplomatic_phase`) through the
+      production `deliver_ai_proposal` (M7; the popup as the wire carries it).
+    """
+    from backend.game_logic.ai_diplomacy import deliver_ai_proposal, process_diplomatic_phase
+    from backend.models.world_state import WorldState
+    board = REPO / "tests" / "fixtures" / "pc_boards" / "turn6_vienna_held.json"
+    with _quiet():
+        world = WorldState.from_dict(json.loads(board.read_text(encoding="utf-8"))["world_state"])
+    seed_rng()
+    c = adopt(world)
+    clear_dialogues(world)
+    staging = ("tests/fixtures/pc_boards/turn6_vienna_held.json (the report's Vienna-held board, "
+               "turn 6) loaded through WorldState.from_dict; dialogue slot emptied (state write)")
+    test = get(c, "/test")
+    wars = test.get("active_wars") or {}
+    record("active_wars_vienna", wars, source="GET /test → active_wars", staging=staging,
+           facts={"war_count": len(wars.get("wars") or [])})
+    war = (wars.get("wars") or [{}])[0]
+    record("war_detail_vienna", {"war": war, "coalition": wars.get("coalition")},
+           source="GET /test → active_wars.wars[0] + .coalition", staging=staging,
+           facts={"opponent": war.get("opponent"),
+                  "peace_table_lines": len((war.get("peace_table") or {}).get("lines") or [])})
+    preview = get(c, "/diplomatic_preview?nation=Austria")
+    refusals = {(a.get("display_name") or a.get("action")): len(str(
+        a.get("disabled_reason_display") or a.get("disabled_reason") or ""))
+        for a in (preview.get("actions") or []) if isinstance(a, dict)}
+    record("wizard_preview_austria_vienna", preview,
+           source="GET /diplomatic_preview?nation=Austria", staging=staging,
+           facts={"refusal_chars": refusals})
+    world.diplomatic_points = max(int(world.diplomatic_points), 5)
+    drafted = cmd(c, "negotiate with Austria")
+    paths = drafted.get("diplomatic_dialogue") or {}
+    # The Part IV frame's refusal (M5, 452 characters) is not on the live copy
+    # any more — PC-R1 made this separate peace allowed and priced — so the
+    # long hover the row is about is WRITTEN onto the two shut options, the
+    # report's own string (moments.json, m5_counsel_paths): the tooltip under
+    # test is the widest real one the client ever carried.
+    refusal = ("I cannot deliver this, Sire — Bavaria is still at war with Austria, and a "
+               "separate peace would break her war. Propose an armistice instead — the court "
+               "reads it Favorable (65): a truce carries no contradiction, and at its expiry it "
+               "becomes the peace if relations stand at -60 or better. Or first Downgrade the "
+               "alliance with Bavaria (2 steps) below a defensive alliance — then the peace "
+               "is ours to make. Or settle the war jointly at the settlement table.")
+    for opt in (paths.get("options") or []):
+        if isinstance(opt, dict) and opt.get("label") in ("Generous peace", "Firmer terms"):
+            opt["available"] = False
+            opt["disabled_reason_display"] = refusal
+    record("counsel_paths_vienna", paths,
+           source="POST /command 'negotiate with Austria' → diplomatic_dialogue",
+           staging=staging + "; the typed vague proposal (Talleyrand's paths: Generous peace, "
+                             "Firmer terms, Continue fighting); the first two WRITTEN shut with "
+                             "the report's 452-character refusal (state write — see the comment)",
+           facts={"dialogue_type": paths.get("type"), "refusal_chars": len(refusal),
+                  "options": [(o.get("label"), o.get("available")) for o in (paths.get("options") or [])
+                              if isinstance(o, dict)]})
+    clear_dialogues(world)
+    with _quiet():
+        letter = process_diplomatic_phase("Austria", world)
+    if not letter:
+        raise RuntimeError("Austria's rung wrote no letter on the Vienna-held board")
+    letter = dict(letter, _force_send=True)
+    with _quiet():
+        delivered = deliver_ai_proposal(copy.deepcopy(letter), world)
+    response = cmd(c, "status")
+    popup = response.get("incoming_proposal") or (delivered or {}).get("popup_payload")
+    snap = (popup or {}).get("war_context_snapshot") or {}
+    record("armistice_letter_vienna", popup,
+           source="POST /command 'status' → incoming_proposal (the delivered letter's popup)",
+           staging=staging + "; Austria's `armistice_losing` letter from the AI's production rung "
+                             "(process_diplomatic_phase), handed to the production deliver_ai_proposal",
+           facts={"proposal_type": (popup or {}).get("proposal_type"),
+                  "war_score": snap.get("war_score"),
+                  "armistice_lines": len(((snap.get("armistice_mechanics") or {})
+                                          .get("display_lines")) or [])})
+    fresh()
+
+
 CAPTURES = {
+    "pc_layout": cap_pc_layout,
     "first_open": cap_first_open,
     "popups_s12": cap_popups_s12,
     "war_room": cap_war_room,

@@ -691,11 +691,15 @@ class TestEGD3TheBench:
         assert world.get_marshal("Deroy").get_relationship("Wrede") == -1
 
     def test_the_series_record(self):
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_THE_BENCH
+        from tests.test_ai_intent_threat_migration import (
+            SERIES_BEFORE_THE_BENCH, SERIES_BEFORE_THE_DEFENDERS_MUSTER)
         rec = json.loads((REPO / "tools" / "_sf_rr4_series_arms_final.json").read_text(
             encoding="utf-8"))
         assert rec["prior"] == SERIES_BEFORE_THE_BENCH == rec["arms"]["0"]["series"]
-        assert rec["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # S14f p3 (October 25, 2026): this record's ALL was the standing series
+        # until S14E-D12 moved it; the historical link reads the series before
+        # the defender's muster, never the live BASELINE_SERIES.
+        assert rec["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_DEFENDERS_MUSTER
         assert rec["arms"]["B"]["first_divergence_vs_prior"] == 7
         assert rec["arms"]["J"]["first_divergence_vs_prior"] == 14
         for lever in ("N", "R", "P", "V", "H", "A", "O"):

@@ -174,6 +174,13 @@ class TestEveryRowIsFixedOrReHomed:
             if r["state"] != "OPEN":
                 continue
             line = _ledger_line(r["id"])
+            # S15's head (October 25, 2026): a re-homed row whose decided fix
+            # was BUILT and re-shot reads FIXED at S15's head, for the user's
+            # eyes (`SYSTEMS_REFERENCE.md` §152.11; `docs/audits/uxr4_s15/`);
+            # UXR3-2 — "none to the bar's order" — stays re-homed as it was.
+            if "| ✅ FIXED October 25, 2026 — S15 head" in line:
+                assert "docs/audits/uxr4_s15/frames/" in line, r["id"]
+                continue
             assert "| OPEN — re-homed to UXR-4 (S15)" in line, r["id"]
             assert "still reads ✗ on:" in line and "docs/audits/uxr3_s12b/frames/" in line, r["id"]
             for pair in r["still"]:

@@ -1,0 +1,626 @@
+{
+ "what": "PC-F46 / PC-F47 (Pre-Deploy S15 head, October 25, 2026): the peace report's two layout rows, re-shot at 1920x1080 (Interface Scale 1.0) and 5120x1440 (1.4) on the report's Vienna-held board (tests/fixtures/pc_boards/turn6_vienna_held.json).",
+ "how": "tools/iq10_capture_payloads.py --only pc_layout, then the IQ-10 harness (tools/iq10_run_captures.py shots pc_armistice_letter, pc_war_detail, pc_counsel_paths_tooltip, pc_war_card_tooltip) windowed at the physical size; the two hover frames use the harness's real-hover step. The peace-report tool (a scratch copy of dd_b_client.gd) was not re-run; the IQ-10 harness shot the same surfaces off the same board.",
+ "frames": [
+  {
+   "id": "pc_armistice_letter",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m7_armistice_letter_s15_before_1920x1080.jpg",
+   "arm": "before (the entry tree)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    620,
+    320,
+    680,
+    440
+   ],
+   "seen_above_the_fold": {
+    "Armistice Terms": false,
+    "When it expires": false,
+    "At expiry": false,
+    "The cure": false,
+    "Political Consequences": false,
+    "War Summary": true
+   },
+   "buttons": [
+    {
+     "text": "Not Now",
+     "rect": [
+      1040,
+      691,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Reject",
+     "rect": [
+      890,
+      691,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Accept",
+     "rect": [
+      740,
+      691,
+      140,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_armistice_letter",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m7_armistice_letter_s15_before_5120x1440.jpg",
+   "arm": "before (the entry tree)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    1488,
+    294,
+    680,
+    440
+   ],
+   "seen_above_the_fold": {
+    "Armistice Terms": false,
+    "When it expires": false,
+    "At expiry": false,
+    "The cure": false,
+    "Political Consequences": false,
+    "War Summary": true
+   },
+   "buttons": [
+    {
+     "text": "Not Now",
+     "rect": [
+      1908,
+      665,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Reject",
+     "rect": [
+      1758,
+      665,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Accept",
+     "rect": [
+      1608,
+      665,
+      140,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_war_detail",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m2_war_detail_s15_before_1920x1080.jpg",
+   "arm": "before (the entry tree)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    1296,
+    261,
+    384,
+    594
+   ],
+   "seen_above_the_fold": {
+    "Settlement Tier": false,
+    "The peace table reads": false,
+    "Court by court": false,
+    "This turn's battles and captures": false,
+    "Score Breakdown": true
+   },
+   "buttons": [
+    {
+     "text": "Request Terms",
+     "rect": [
+      1512,
+      807,
+      150,
+      36
+     ]
+    },
+    {
+     "text": "Open Settlement",
+     "rect": [
+      1314,
+      807,
+      190,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Russia",
+     "rect": [
+      1408,
+      765,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Austria",
+     "rect": [
+      1492,
+      723,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Britain",
+     "rect": [
+      1324,
+      723,
+      160,
+      36
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_war_detail",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m2_war_detail_s15_before_5120x1440.jpg",
+   "arm": "before (the entry tree)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    2817,
+    249,
+    600,
+    565
+   ],
+   "seen_above_the_fold": {
+    "Settlement Tier": true,
+    "The peace table reads": false,
+    "Court by court": false,
+    "This turn's battles and captures": false,
+    "Score Breakdown": true
+   },
+   "buttons": [
+    {
+     "text": "Request Terms",
+     "rect": [
+      3141,
+      766,
+      150,
+      36
+     ]
+    },
+    {
+     "text": "Open Settlement",
+     "rect": [
+      2943,
+      766,
+      190,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Russia",
+     "rect": [
+      3205,
+      724,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Austria",
+     "rect": [
+      3037,
+      724,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Britain",
+     "rect": [
+      2869,
+      724,
+      160,
+      36
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_armistice_letter",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m7_armistice_letter_s15_1920x1080.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    530,
+    108,
+    860,
+    864
+   ],
+   "seen_above_the_fold": {
+    "Armistice Terms": true,
+    "When it expires": true,
+    "At expiry": true,
+    "The cure": true,
+    "Political Consequences": true,
+    "War Summary": true
+   },
+   "buttons": [
+    {
+     "text": "Not Now",
+     "rect": [
+      1040,
+      903,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Reject",
+     "rect": [
+      890,
+      903,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Accept",
+     "rect": [
+      740,
+      903,
+      140,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_armistice_letter",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m7_armistice_letter_s15_5120x1440.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    1398,
+    103,
+    860,
+    822
+   ],
+   "seen_above_the_fold": {
+    "Armistice Terms": true,
+    "When it expires": true,
+    "At expiry": true,
+    "The cure": true,
+    "Political Consequences": true,
+    "War Summary": true
+   },
+   "buttons": [
+    {
+     "text": "Not Now",
+     "rect": [
+      1908,
+      856,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Reject",
+     "rect": [
+      1758,
+      856,
+      140,
+      45
+     ]
+    },
+    {
+     "text": "Accept",
+     "rect": [
+      1608,
+      856,
+      140,
+      45
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_war_detail",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m2_war_detail_s15_1920x1080.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    1219,
+    169,
+    461,
+    778
+   ],
+   "seen_above_the_fold": {
+    "Settlement Tier": true,
+    "The peace table reads": true,
+    "Court by court": true,
+    "This turn's battles and captures": true,
+    "Score Breakdown": true
+   },
+   "buttons": [
+    {
+     "text": "Request Terms",
+     "rect": [
+      1374,
+      898,
+      150,
+      36
+     ]
+    },
+    {
+     "text": "Open Settlement",
+     "rect": [
+      1438,
+      856,
+      190,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Russia",
+     "rect": [
+      1270,
+      856,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Austria",
+     "rect": [
+      1453,
+      814,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Britain",
+     "rect": [
+      1285,
+      814,
+      160,
+      36
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_war_detail",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m2_war_detail_s15_5120x1440.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    2777,
+    162,
+    640,
+    740
+   ],
+   "seen_above_the_fold": {
+    "Settlement Tier": true,
+    "The peace table reads": true,
+    "Court by court": true,
+    "This turn's battles and captures": true,
+    "Score Breakdown": true
+   },
+   "buttons": [
+    {
+     "text": "Request Terms",
+     "rect": [
+      3121,
+      854,
+      150,
+      36
+     ]
+    },
+    {
+     "text": "Open Settlement",
+     "rect": [
+      2923,
+      854,
+      190,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Russia",
+     "rect": [
+      3185,
+      812,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Austria",
+     "rect": [
+      3017,
+      812,
+      160,
+      36
+     ]
+    },
+    {
+     "text": "Negotiate with Britain",
+     "rect": [
+      2849,
+      812,
+      160,
+      36
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pc_counsel_paths_tooltip",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m5_counsel_paths_s15_1920x1080.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    600,
+    280,
+    720,
+    520
+   ],
+   "tooltip": {
+    "rect": [
+     743,
+     763,
+     728,
+     109
+    ],
+    "lines": 4,
+    "autowrap": 3,
+    "bg_alpha": 1.0,
+    "chars": 452,
+    "inside_window": true
+   }
+  },
+  {
+   "id": "pc_counsel_paths_tooltip",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m5_counsel_paths_s15_5120x1440.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    1468,
+    254,
+    720,
+    520
+   ],
+   "tooltip": {
+    "rect": [
+     1611,
+     737,
+     728,
+     109
+    ],
+    "lines": 4,
+    "autowrap": 3,
+    "bg_alpha": 1.0,
+    "chars": 452,
+    "inside_window": true
+   }
+  },
+  {
+   "id": "pc_war_card_tooltip",
+   "resolution": "1920x1080",
+   "interface_scale": 1.0,
+   "file": "m1_war_card_tooltip_s15_1920x1080.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    1920,
+    1080
+   ],
+   "panel_rect": [
+    1653,
+    971,
+    259,
+    101
+   ],
+   "tooltip": {
+    "rect": [
+     1035,
+     404,
+     737,
+     634
+    ],
+    "lines": 25,
+    "autowrap": 3,
+    "bg_alpha": 1.0,
+    "chars": 1500,
+    "inside_window": true
+   }
+  },
+  {
+   "id": "pc_war_card_tooltip",
+   "resolution": "5120x1440",
+   "interface_scale": 1.4,
+   "file": "m1_war_card_tooltip_s15_5120x1440.jpg",
+   "arm": "after (S15 head)",
+   "logical_viewport": [
+    3657,
+    1028
+   ],
+   "panel_rect": [
+    3210,
+    921,
+    439,
+    99
+   ],
+   "tooltip": {
+    "rect": [
+     2682,
+     356,
+     737,
+     630
+    ],
+    "lines": 25,
+    "autowrap": 3,
+    "bg_alpha": 1.0,
+    "chars": 1500,
+    "inside_window": true
+   }
+  }
+ ]
+}

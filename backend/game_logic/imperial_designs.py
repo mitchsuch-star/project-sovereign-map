@@ -1243,8 +1243,15 @@ def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Opti
     if reason:
         return reason
     price = act_price(world, a)
-    chest = int((getattr(world, "nation_gold", {}) or {}).get(owner(world), 0) or 0)
+    # S14E-X196 / S14E-D19: ONE chest - the treasury less the recurring
+    # settlement payments still owed (`instruments.chest_of`); nothing owed,
+    # the sentence is the one it was
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
+    treasury, chest = chest_of(world, owner(world))
     if chest < price:
+        if chest < treasury:
+            return (f"{title} costs {price:,} gold; the treasury holds "
+                    f"{chest:,} gold{FREE_OF_OBLIGATIONS}.")
         return f"{title} costs {price:,} gold; the treasury holds {chest:,}."
     return None
 

@@ -236,13 +236,19 @@ def check_commission(world, nation: str, candidate: Dict,
     if find_spawn_region(world, nation) is None:
         return _no_home_soil(name)
     cost = int(candidate.get("cost", 0))
-    gold = (int(world.nation_gold.get(nation, 0)) if treasury is None
-            else int(treasury))
+    # S14E-X196 / S14E-D19: the PLAYER's commission is gated and quoted against
+    # the ONE chest (`instruments.purse_of`: the treasury less the recurring
+    # settlement payments still owed); the AI court (the P1.75 rung walks this
+    # same gate) keeps its raw treasury, so its figure never moves. A
+    # counterfactual `treasury` (NUI-2) is the caller's own number, untouched.
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, purse = purse_of(world, nation)
+    gold = purse if treasury is None else int(treasury)
     if gold < cost:
         # NUI-2: thousands separators — the Admiralty's button beside this
         # reason reads "Commission Oudinot (3,500g)".
         return (f"Commissioning {name} costs {cost:,}g — the treasury holds "
-                f"{int(world.nation_gold.get(nation, 0)):,}g.")
+                f"{purse:,}g{owed_suffix(coffers, purse)}.")
     arm, size = corps_requirement(candidate)
     pool = world.manpower_pools.get(nation, {})
     have = int(pool.get(arm, 0))

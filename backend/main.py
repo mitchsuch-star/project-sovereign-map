@@ -3148,6 +3148,16 @@ def test_connection():
         "gold_projected_net": _gold_projected_net(world),
         "end_turn_army_warning": _end_turn_army_warning(world),
         "end_turn_peril_warning": _end_turn_peril_warning(world),
+        # S14E-D18 / S14E-X155 (S14f p3, October 25, 2026): the notice rail
+        # from the first frame, not the first response - the ONE reader every
+        # POST envelope and `GET /notifications` ship (`_pending_notifications`,
+        # float-free through `_notification_for_wire`), so a plain entry or a
+        # Return to the War Room no longer shows an empty rail until the
+        # first command. The client fills it SILENTLY
+        # (`notification_bar.update_notifications(rows, true)`): a standing
+        # row is not news, so the desk bell rings only for a row that
+        # arrives on a later response.
+        "notifications": _pending_notifications(world),
     }
     # War status panel data (N4f) — for HUD initialization on page load
     response["active_wars"] = build_active_wars(world)

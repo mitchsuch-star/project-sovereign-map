@@ -353,6 +353,15 @@ def _capture_pair_pre_cleanup_war_data(
             covered_enemy_casualties += attacker_casualties
         elif defender == covered_enemy:
             covered_enemy_casualties += defender_casualties
+    # S14E-X212 (S14f part 3): a DRAWN battle has no winner and so no row in
+    # `battle_records`; its dead ride the pair's ledger (`drawn_dead`, X209) and
+    # are read before cleanup clears it - the bilateral preview and the
+    # bilateral ratification summary count them, and so does this one.
+    # Display only.
+    from backend.game_logic.diplomacy import drawn_battle_dead
+    _drawn = drawn_battle_dead(world, diplo_key)
+    proposer_casualties += int(_drawn.get(proposer_member, 0) or 0)
+    covered_enemy_casualties += int(_drawn.get(covered_enemy, 0) or 0)
 
     player = getattr(world, "player_nation", "France")
     result = {
@@ -937,8 +946,17 @@ def _resolve_pair_state_transitions(
                     # threat when the lord IS the player) — the preview must
                     # not claim +5/+25 for an AI-ally lord that paid none.
                     if vassal_lord == getattr(world, "player_nation", None):
+                        # S14E-X229: the figures `create_vassal_conquest` /
+                        # `create_vassal_treaty` add - one source
+                        # (`vassal.CONQUEST_THREAT` / `TREATY_VASSAL_THREAT`),
+                        # not a second literal that could drift from them.
+                        from backend.game_logic.vassal import (
+                            CONQUEST_THREAT,
+                            TREATY_VASSAL_THREAT,
+                        )
                         clause["threat_delta_for_lord"] = (
-                            25 if term.get("type") == "subjugation" else 5
+                            CONQUEST_THREAT if term.get("type") == "subjugation"
+                            else TREATY_VASSAL_THREAT
                         )
                     else:
                         clause["threat_delta_for_lord"] = 0

@@ -299,13 +299,18 @@ class TestTheRouter:
         """"how do I attack?" asks about the game's GRAMMAR, and the
         reference genuinely is the answer — since DDB-48 (Pre-Deploy S13b
         part 4) the ONE section its nouns name, not the whole 9,500 px of
-        it; a question that names no section keeps the whole reference."""
+        it; a question that names no section gets the section index
+        (S14E-D17 - it kept the whole reference until then)."""
         for text, heading in (("how do I attack?", "MILITARY COMMANDS"),
                               ("how does recruiting work?", "MILITARY COMMANDS")):
             message = ask(text).get("message") or ""
             assert message.startswith(heading), text
             assert COMMAND_REFERENCE not in message, text
-        assert COMMAND_REFERENCE in (ask("how do I sing?").get("message") or "")
+        # S14E-D17 / S14E-X142: flipped - a question that names no section
+        # gets the SECTION INDEX (one `help <topic>` line per section), not
+        # the whole reference; the bare `help` still prints the manual.
+        message = ask("how do I sing?").get("message") or ""
+        assert COMMAND_REFERENCE not in message and "help navy" in message
 
 
 # ═══════════════════════════════════════════════════════════════════════════

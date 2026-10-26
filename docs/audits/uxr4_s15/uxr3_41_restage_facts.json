@@ -1,0 +1,57 @@
+{
+ "row": "UXR3-41",
+ "date": "2026-10-25",
+ "note": "S15 head: the two boards re-staged in tools/iq10_capture_payloads.py (cap_missions); each capture asserts paused: true before it records",
+ "boards": {
+  "ledger_mission_transit": {
+   "staging": "1805 boot; `court Denmark` begun on the typed road, then an open-borders proposal to Prussia SENT (typed echo + the confirm's Send; UXR3-41 — Sweden's was refused at the relation gate) so Talleyrand is in transit with the mission standing; the capture asserts `paused: true`",
+   "facts": {
+    "cabinet": {
+     "live": true,
+     "type": "COURT_NATION",
+     "type_display": "Courting",
+     "target_display": "Denmark",
+     "target_ally_display": "",
+     "effect_per_turn": 8,
+     "drift_per_turn": 0,
+     "net_per_turn": 8,
+     "current_relation": 10,
+     "relation_descriptor": "Neutral",
+     "remaining_note": "paused: he is carrying your proposal — costs nothing, earns nothing until he returns",
+     "dp_per_turn": 2,
+     "paused": true,
+     "pause_reason": "transit",
+     "recall_command": "",
+     "favour_now": 0,
+     "favour_cap": 10
+    },
+    "talleyrand_state": "IN_TRANSIT",
+    "send_message": "Talleyrand departs for the Prussian court with your Open Borders Agreement proposal. Expect a response by next turn. (1 DP spent)"
+   }
+  },
+  "ledger_mission_starved": {
+   "staging": "1805 boot; `court Denmark` begun; one real end turn with the DP WRITTEN to 0 after the turn's own regeneration and before the mission's tick (UXR3-41 — a write before the turn was refilled first), then 0 again after it, so the mission pauses for want of DP; the capture asserts `paused: true`",
+   "facts": {
+    "cabinet": {
+     "live": true,
+     "type": "COURT_NATION",
+     "type_display": "Courting",
+     "target_display": "Denmark",
+     "target_ally_display": "",
+     "effect_per_turn": 8,
+     "drift_per_turn": 0,
+     "net_per_turn": 8,
+     "current_relation": 10,
+     "relation_descriptor": "Neutral",
+     "remaining_note": "paused: 2 DP needed — collapses in 2 turns without it",
+     "dp_per_turn": 2,
+     "paused": true,
+     "pause_reason": "starved",
+     "recall_command": "Talleyrand, cancel mission with Denmark",
+     "favour_now": 0,
+     "favour_cap": 10
+    }
+   }
+  }
+ }
+}

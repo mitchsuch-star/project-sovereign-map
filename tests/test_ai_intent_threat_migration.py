@@ -1512,7 +1512,39 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # defender (A) and the HOLD's post (O) are byte-identical alone (unreached
 # on the passive board). ALL is the shipped tree and the standing series.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 27, 24, 21, 18, 5, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-PINNED by S14f p3 — the nine rulings (October 25, 2026;
+# `DESIGN_REFINEMENT.md` §S14E D12 … D22, `SYSTEMS_REFERENCE.md` §152):
+# ONE ruling moves the ambient board — S14E-D12, the DEFENDER's committed
+# term re-seated on the exact per-outcome expectation, each outcome stamped
+# by the defender's own coordination. The AI's `_muster_price` had priced
+# every friend of a defended target with NO coordination stamp at all, so
+# the re-seat raises its price on a defended French corps by 20–36 %
+# (Austria pricing Soult at Lorraine: 75,737 → 102,681; exactness itself is
+# −0.02 %) and Europe's corps take a different road: the series diverges at
+# [13] (30 → 17), France's alarm returns 5 / 2 / 9 / 14 … from [21], and
+# the unattended France ends turn 40 with 2 provinces (15 before), Britain
+# 28 (12), Holland 1 (4). The D1 war-count band holds: one AI-initiated war
+# per seed on historical / ulm / austerlitz (turns 7 / 10 / 9), down and up.
+# Attribution (`tools/_s14f_p3_series_arms.py`,
+# `tools/_s14f_p3_series_arms_final.json`, thirteen arms, each seam's reach
+# counted): the all-down control reproduces the series before it byte for
+# byte; with D12's two seams (DM: `_defender_mean_exact`,
+# `_muster_ratio_exact`) alone held down the other nine rulings' seams UP
+# are byte-identical to the old series — the AI's downgrade through the one
+# executor (DG, reached 2), the war score's stamps (WS, 277 reads, the store
+# moved 117 times), the fleet action's stamp (FA, 0 — no action on the
+# passive run), the AI's buy-off on its chest (CH, 0), the drawn battle as
+# contact (DR, 78 reads, 1 differs), an AI lead's own exact mean (A, 73 / 22
+# re-seated), the answering defender (PD, 753 / 0 covered), the draw's
+# credit (DC, 14) and its exhaustion (DX, 14); each of those held down alone
+# with DM up gives the new series. D12's own decomposition: its seam 1 alone
+# is the whole move, seam 2 alone byte-identical.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 17, 14, 11, 8, 5, 2, 0, 0, 5, 2, 9, 14, 14, 14, 11, 8, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The standing series of every attribution record through S14f part 2 — the
+# series before D12 moved it (the p3 record's `prior`). The historical
+# records' links read this, never the live BASELINE_SERIES.
+SERIES_BEFORE_THE_DEFENDERS_MUSTER = [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 27, 24, 21, 18, 5, 2, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The standing series of every attribution record through SF-RR3 — the
 # series before the bench moved it (the SF-RR4 record's `prior`). The
 # historical records' links read this, never the live BASELINE_SERIES.

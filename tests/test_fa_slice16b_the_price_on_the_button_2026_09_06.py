@@ -257,7 +257,13 @@ class TestTheMusterStatesItsCeiling:
         against a reachable 96,789, because the sovereign aura is stamped at
         RESOLVE time only. The ceiling stamps it too, and restores what it
         found."""
-        src = inspect.getsource(CombatExecutor._build_muster_preview)
+        # S14E-D12 (S14f p3): flipped - the ceiling block was lifted whole out
+        # of `_build_muster_preview` (its 500-line ratchet) into
+        # `_muster_ceiling`, which the builder calls; the pin's point (the
+        # aura is stamped and restored) reads the lifted body.
+        assert "self._muster_ceiling(" in inspect.getsource(
+            CombatExecutor._build_muster_preview)
+        src = inspect.getsource(CombatExecutor._muster_ceiling)
         assert "sovereign_aura_strength" in src
         assert "finally:" in src
 

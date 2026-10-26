@@ -1217,10 +1217,13 @@ def marshalate_road(world, nation: str) -> str:
     cost = int(cand.get("cost", 0) or 0)
     if not name:
         return ""
-    gold = int(world.nation_gold.get(nation, 0) or 0)
+    # S14E-X237 / S14E-D19: "we hold N" names the PURSE the commission is
+    # gated against (`purse_of`: the player's chest), not the raw coffers
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, gold = purse_of(world, nation)
     return (f"Or, when the treasury allows, commission {name} — "
             f"{int(RECRUIT_MARSHAL_CORPS):,} men for {cost:,}g (we hold "
-            f"{gold:,}g), under the transports' lift from the day he is "
+            f"{gold:,}g{owed_suffix(coffers, gold)}), under the transports' lift from the day he is "
             f"raised — and march him to a yard.")
 
 
@@ -2009,14 +2012,39 @@ def fleet_action_clause(forecast: Optional[Dict]) -> str:
             f"({_fleets_phrase(theirs['fleets'])}); ours ~{ours['fraction_pct']}%.")
 
 
+def _stamp_fleet_action_clock(world, attacker: str, defender: str) -> None:
+    """S14E-D16 / S14E-X130 (Pre-Deploy S14f part 3, October 25, 2026): THE
+    SEAM of a fleet action restarting Europe's armed-peace fuse. A fleet
+    action is a battle the courts read in the Gazette, but the naval layer
+    keeps no battle record by design (`NAVAL_SPEC.md` §4.4), so it stamped
+    nothing: the hegemon's quiet-turn count (`coalition.last_battle_turn_of`)
+    ran on through a Trafalgar. Both principals fought, and (S14E-X243) so
+    did every court whose squadron pooled on either side and bled with the
+    line - the land battle stamps a reinforcer's court the same way
+    (X118). Stamped through the world's ONE writer (`stamp_battle_turn`),
+    at the resolver's START so every caller (the intercepted expedition, the
+    caught diversion) restarts the fuse alike. The series arm holds it down
+    with `lambda world, attacker, defender: None` - the old behaviour (a
+    fleet action stamps nothing)."""
+    turn = int(world.current_turn)
+    courts = {attacker, defender}
+    courts.update(_side_members(world, attacker, defender))
+    courts.update(_side_members(world, defender, attacker))
+    for court in sorted(c for c in courts if c):
+        world.stamp_battle_turn(court, turn)
+
+
 def resolve_fleet_action(world, attacker: str, defender: str,
                          context: str = "action") -> Dict:
     """§4.4 — fires in exactly two situations (an intercepted expedition, a
     caught diversion); never orderable, never ambient. Compares pooled
     effective strengths; loser 20% + 15%×min(r−1,1), winner 8%/max(r,1),
     seeded jitter ±10%; ratio ≥ 1.5 → decisive (loser extra −20%, the
-    `trafalgar` beat, loser WE +8). No land-combat code is touched."""
+    `trafalgar` beat, loser WE +8). No land-combat code is touched — but the
+    action IS a battle for Europe's clock (S14E-D16: both courts and every
+    pooled court are stamped at the start, `_stamp_fleet_action_clock`)."""
     from backend.game_logic.campaign_variance import seeded_int
+    _stamp_fleet_action_clock(world, attacker, defender)
     jitter = seeded_int(
         _seed(world),
         f"naval::action::{int(world.current_turn)}::{attacker}::{defender}",
@@ -3781,10 +3809,14 @@ def build_ships_refusal(world, nation: str) -> str:
     reason = check_build_fleet(world, nation)
     if reason is not None:
         return reason
-    treasury = int(getattr(world, "nation_gold", {}).get(nation, 0))
+    # S14E-X196 / S14E-D19: the PLAYER's keel is gated against the ONE chest
+    # (`instruments.purse_of` - the treasury less the recurring settlement
+    # payments still owed); an AI court keeps its raw treasury.
+    from backend.game_logic.instruments import owed_suffix, purse_of
+    coffers, treasury = purse_of(world, nation)
     if treasury < SHIP_COST:
         return (f"a ship of the line costs {SHIP_COST}g — the treasury holds "
-                f"{treasury}g")
+                f"{treasury}g{owed_suffix(coffers, treasury)}")
     return ""
 
 

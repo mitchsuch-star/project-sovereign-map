@@ -450,4 +450,13 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert rr4["prior"] == bond["arms"]["ALL"]["series"]
         assert rr4["arms"]["0"]["series"] == rr4["prior"]
-        assert BASELINE_SERIES == rr4["arms"]["ALL"]["series"]
+        # S14f p3 (October 25, 2026): SF-RR4's ALL was the standing series until
+        # S14E-D12 moved it — the link reads the series before the defender's
+        # muster (`SERIES_BEFORE_THE_DEFENDERS_MUSTER`), and the p3 record's
+        # all-down control reproduces it byte for byte.
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_THE_DEFENDERS_MUSTER
+        assert SERIES_BEFORE_THE_DEFENDERS_MUSTER == rr4["arms"]["ALL"]["series"]
+        p3 = json.loads((ROOT / "tools" / "_s14f_p3_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert p3["prior"] == rr4["arms"]["ALL"]["series"] == p3["arms"]["ALL"]["series"]
+        assert BASELINE_SERIES == p3["arms"]["0"]["series"]
