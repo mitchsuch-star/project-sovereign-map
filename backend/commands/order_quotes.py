@@ -146,11 +146,39 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         "pay": "",
         # S14E-22: the detour round a shut direct road ("" when none).
         "detour": "",
+        # S14G-11: the guarded ground the road crosses - the Ansbach trap's
+        # price in the order's own words ("" when none).
+        "guard": "",
+        # S14G-7: the front the destination is - an ally's province whose war
+        # a truce of ours leaves running ("" when it is none).
+        "front": "",
         # S14E-24: an attack's muster in one line - who answers the guns and
         # the band they make together ("" for every other order).
         "muster": "",
+        # S14G-2 / S14G-3 (Pre-Deploy S14h part 1): what the STANDING order does
+        # once taken, in the order's own words (`standing_terms`: a support's
+        # lapse, an aggressive man's interrupt) - "" when it has nothing to say.
+        "terms": "",
         "already": False,
     }
+
+
+def standing_terms(world, marshal, order_type: str, target: str,
+                   standing_follow: Optional[bool] = None) -> str:
+    """S14G-2 / S14G-3: the terms of a standing order, said BEFORE it is given
+    - the very sentences the order's reply prints
+    (`strategic.support_terms_clause`, `strategic.aggressive_interrupt_clause`),
+    so what the quote says is what the reply says. A plain SUPPORT: goes now,
+    lapses of itself. An aggressive man: drops the order for a battle in a war
+    of ours (a NEW order is never a road-home order). A FOLLOW has no support
+    clause (it stays). "" when there is nothing to say."""
+    from backend.commands import strategic as road_law
+    parts = []
+    if order_type == "SUPPORT" and not standing_follow:
+        parts.append(road_law.support_terms_clause(
+            marshal.name, target, timed=False).strip())
+    parts.append(road_law.aggressive_interrupt_clause(world, marshal, None).strip())
+    return " ".join(p for p in parts if p)
 
 
 _MUSTER_READER: Dict[str, Any] = {}
@@ -255,6 +283,16 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     if state:
         q["refusal"] = state
         return q
+    # S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): the province he already
+    # stands in is not a destination - the typed order refuses it free
+    # (`_strategic_path`, the same sentence) and the quote said "ok" once a
+    # standing order to it existed (the identical-order arm below). A march
+    # that carries a verb for its arrival keeps the verb's business.
+    if (order_type == "MOVE_TO" and dest == marshal.location
+            and not (arrival and (arrival.get("attack_on_arrival")
+                                  or arrival.get("arrival_verb")))):
+        q["refusal"] = road_law.own_province_march_refusal(marshal, dest)
+        return q
     order = getattr(marshal, "strategic_order", None)
     if (order is not None and not getattr(order, "condition", None)
             and getattr(order, "command_type", None) == order_type
@@ -283,6 +321,7 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
         road=road,
         replaces=_replaces(marshal),
         objection=_strategic_objection(world, marshal, order_type, target, road),
+        terms=standing_terms(world, marshal, order_type, target, standing_follow),
     )
     # S14E-X67: the campaign pay the destination draws; S14E-22: the detour
     # round a shut direct road — both read off the order's own readers
@@ -295,6 +334,14 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
     reading = road_law.march_detour_reading(world, marshal, dest, road, order_type)
     if reading is not None:
         q["detour"] = road_law.march_detour_sentence(dest, reading)
+    # S14G-11: the guarded ground the road crosses (the typed order's free ask
+    # and its reply print the same sentence); S14G-7: the front the
+    # destination is (`movement_executor.front_line`, the reply's own words).
+    from backend.commands.movement_executor import front_line
+    guard = road_law.march_guard_reading(world, marshal, dest, road, order_type)
+    if guard is not None:
+        q["guard"] = road_law.march_guard_sentence(guard)
+    q["front"] = front_line(world, marshal, dest)
     # The first step is taken at once (`_strategic_first_step`): a corps we
     # SEE in the road's FIRST province meets the order now — the personality
     # arm, 1 action; one met deeper within a cavalryman's reach halts the
@@ -309,10 +356,15 @@ def _standing_quote(world, marshal, dest: str, order_type: str, target: str,
         if detour is not None:
             if not detour:
                 q.update(ok=False, ap=0, turns=0, road=[], replaces="", objection="none",
+                         terms="",
                          refusal=f"Path blocked at {contact[1]}, no alternate route.")
                 return q
             q.update(road=detour, turns=int(road_law.march_turns(
                 len(detour), getattr(marshal, "movement_range", 1))))
+            # S14G-11: the literal man's road round the foe is the road walked -
+            # the guarded ground is read off IT, not the road he did not take.
+            _g = road_law.march_guard_reading(world, marshal, dest, detour, order_type)
+            q["guard"] = road_law.march_guard_sentence(_g) if _g is not None else ""
             q["contact"] = (f"{humanize_entity_name(contact[0].name)} blocks the road at "
                             f"{contact[1]} — {q['shown']} goes round him by {detour[0]}, "
                             f"to the letter of the order.")
@@ -356,7 +408,7 @@ def march_quote(world, marshal, dest: str, *, then_attack: str = "",
         # would be refused — the "march & attack" chip says so now.
         sheltered = _peace_soil_refusal_line(world, marshal, world.get_marshal(then_attack))
         if sheltered:
-            q.update(ok=False, refusal=sheltered)
+            q.update(ok=False, refusal=sheltered, terms="")
             return q
     if q["ok"] and then_attack and not q["already"]:
         # S14E-X81: the muster is read where the corps ARRIVES, not here --
@@ -415,7 +467,9 @@ def march_reach(world, marshal) -> Dict[str, Any]:
     roads = road_law.march_roads(world, marshal, "MOVE_TO")
     detours = _literal_detours(world, marshal, roads)
     for dest, (road, refusal, _kind) in roads.items():
-        if already and dest.lower() == already:
+        # S14G-4: the province he stands in is no destination, even one a
+        # standing order still names (`_standing_quote` refuses it first).
+        if already and dest.lower() == already and dest != marshal.location:
             # `_standing_quote`'s identical order: taken at 0 AP, whatever
             # the road reads today.
             reach[dest] = {"turns": int(road_law.march_turns(len(road or []), reach_range)),
@@ -597,7 +651,12 @@ def army_quote(world, region: str, *, memo: Optional[dict] = None) -> Dict[str, 
             doubters.append(mq["shown"])
         # S14E-X88: each corps row carries the march card's `detour` rider.
         corps.append({"marshal": m.name, "shown": mq["shown"], "turns": int(mq["turns"]),
-                      "objection": mq["objection"], "detour": mq["detour"]})
+                      "objection": mq["objection"], "detour": mq["detour"],
+                      # S14G-2: an aggressive corps' interrupt, said on its row too.
+                      "terms": mq["terms"],
+                      # S14G-11 / S14G-7: the guarded ground its road crosses and
+                      # the front it marches to, said on its row too.
+                      "guard": mq["guard"], "front": mq["front"]})
         q["turns"] = max(int(q["turns"]), int(mq["turns"]))
     q["corps"], q["beyond"] = corps, beyond
     if not corps:

@@ -517,6 +517,56 @@ static func cabinet_shut_line(answer_by_turn: int = 0) -> String:
 	return "the Cabinet stays shut until it is answered or the turn ends."
 
 
+static func upper_first(text: String) -> String:
+	"""S14G-6 (Pre-Deploy S14h part 1): the first letter in capitals, the rest
+	untouched ("the Cabinet stays shut..." -> "The Cabinet stays shut...") — a
+	sentence that was built to follow a dash, set to start one."""
+	if text.length() == 0:
+		return text
+	return text.substr(0, 1).to_upper() + text.substr(1)
+
+
+static func cabinet_shut_sentence(answer_by_turn: int = 0) -> String:
+	"""S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the lock's ONE
+	sentence (`cabinet_shut_line`) set to start a sentence — the letter's body
+	prints it in amber, and the line under the letter's buttons leads it with
+	"Set aside — ". One source: every surface that says the lock calls
+	`cabinet_shut_line`, never a second wording."""
+	return upper_first(cabinet_shut_line(answer_by_turn))
+
+
+static func cabinet_shut_letters(courts: Array) -> String:
+	"""S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): WHOSE letters shut the
+	Cabinet, as a noun phrase — "Austria's letter", "Austria's and Prussia's
+	letters". `courts` is the backend's `cabinet_locked_by` (printed forms, so
+	"the Ottoman Empire's letter"); "" when no court is named."""
+	var owners: Array = []
+	for court in courts:
+		var named := str(court).strip_edges()
+		if named != "" and not owners.has(named + "'s"):
+			owners.append(named + "'s")
+	if owners.is_empty():
+		return ""
+	if owners.size() == 1:
+		return str(owners[0]) + " letter"
+	return ", ".join(PackedStringArray(owners.slice(0, owners.size() - 1))) + " and " + str(owners[owners.size() - 1]) + " letters"
+
+
+static func cabinet_shut_lead(courts: Array, capitalize: bool = false) -> String:
+	"""S14G-6 (Pre-Deploy S14h part 1): the lock with a name in it — the lead
+	every surface puts before `cabinet_shut_line`: "Austria's letter stands
+	unanswered — " (several: "Austria's and Prussia's letters stand
+	unanswered — "; no court named: "a letter stands unanswered — "). The
+	sentence after the dash is always `cabinet_shut_line`, called by the
+	surface itself: the lock is worded in ONE place."""
+	var letters := cabinet_shut_letters(courts)
+	var plural_letters := letters.ends_with("letters")
+	if letters == "":
+		letters = "a letter"
+	var lead := letters + (" stand" if plural_letters else " stands") + " unanswered — "
+	return upper_first(lead) if capitalize else lead
+
+
 static func humanize_nation_keys_in_text(text: String) -> String:
 	var result := text
 	# NA-6: the formation overrides run FIRST and shadow the static map.

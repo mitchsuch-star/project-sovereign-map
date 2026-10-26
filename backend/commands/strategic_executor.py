@@ -31,6 +31,10 @@ from backend.commands.objection_v2 import (
 from backend.display_names import action_display_name as _action_display_name, get_strategic_display, humanize_entity_name
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.commands.strategic import clear_order_bound_interrupt  # NPC-2
+from backend.commands.strategic import (  # S14G-2 / S14G-3: the order's terms, said at the order
+    aggressive_interrupt_clause as _aggressive_interrupt_clause,
+    support_terms_clause as _support_terms_clause,
+)
 # FA-54: ONE grounding note, shared by the tactical and strategic routes,
 # so `move` and `march` can never again disagree about disclosing the
 # same substitution.
@@ -138,6 +142,66 @@ def march_detour_ask(ctx, dest: str):
     and the answered ask itself keep today's road. A standing order's later
     re-plots never come through here (the per-turn processor reads
     `march_road` directly)."""
+    pre = _typed_march_preamble(ctx, "_march_confirmed")
+    if pre is None:
+        return None
+    verb, raw = pre
+    world, marshal = ctx.world, ctx.marshal
+    from backend.commands.strategic import march_detour_reading, march_detour_sentence
+    reading = march_detour_reading(world, marshal, dest, ctx.path, ctx.strategic_type)
+    if reading is None:
+        return None
+    ap = int(marshal.strategic_order_ap(order_type=ctx.strategic_type))
+    if int(getattr(world, "actions_remaining", 0) or 0) < ap:
+        return None
+    sentence = march_detour_sentence(dest, reading).rstrip(".")
+    # S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): a detour that also
+    # crosses guarded ground says so in the SAME question - one question, one
+    # answer; "march" confirms both (the flag below), "go round" takes the
+    # road round the guarded provinces (see `march_guard_ask`).
+    guard_options, guard_tail, guard_flags = _guard_ask_parts(ctx, dest, raw, verb, ap)
+    if guard_tail:
+        sentence += ". " + guard_tail.rstrip(".")
+    question = (f"{verb}, go round or cancel?" if len(guard_options) > 0
+                else f"{verb}, or cancel?")
+    return {
+        "success": True,
+        "free_action": True,
+        "state": "awaiting_clarification",
+        "type": "clarification",
+        "clarification_kind": "march_detour_ask",
+        "strategic_type": ctx.strategic_type,
+        # A command-level question is the chief of staff's (the popup titles
+        # from this field: "BERTHIER ASKS:").
+        "marshal": "Berthier",
+        "message": f"{sentence} — {question}",
+        "original_command": raw,
+        "interpreted_target": dest,
+        "interpretation_reason": "detour",
+        "options": [{
+            "label": f"{verb.capitalize()} ({ap} AP)",
+            "value": "specify",
+            "target": dest,
+            # The answer re-issues the order as typed; the flag keeps the ask
+            # from asking twice.
+            "command": raw,
+            "aliases": [verb, f"{verb} anyway", f"{verb} on", "go", "send him"],
+            "flags": {"_march_confirmed": True, **guard_flags},
+        }] + guard_options,
+        "action_summary": world.get_action_summary(),
+        "game_state": world.get_filtered_game_state_summary(),
+    }
+
+
+def _typed_march_preamble(ctx, confirmed_flag: str):
+    """The typed PLAYER order the road asks (S14E-22's detour ask, S14G-11's
+    guard ask) are made of - `(verb, raw)`, or None when the order is not one
+    of those: not a march, a hold, a support or a pursuit, no typed line, a
+    delegation-inferred order, the attack-out-of-reach upgrade (the pursuit
+    ask was that road's one question), an answered ask (`confirmed_flag`), a
+    strategic or autonomous execution, the Staff's army order, an order
+    answered through an objection, or a corps that is not the player's. ONE
+    list of exclusions for both asks, so they cannot drift."""
     cmd = ctx.command if isinstance(ctx.command, dict) else {}
     parsed = ctx.parsed_command if isinstance(ctx.parsed_command, dict) else {}
     # A typed `hold <province>` marches first and holds there: the same
@@ -152,46 +216,118 @@ def march_detour_ask(ctx, dest: str):
             # The attack-out-of-reach upgrade (`_attack_upgrade`): the pursuit
             # ask (DDB-R1) was that road's one question - never a second.
             or parsed.get("_attack_upgrade")
-            or cmd.get("_march_confirmed") or cmd.get("_strategic_execution")
+            or cmd.get(confirmed_flag) or cmd.get("_strategic_execution")
             or cmd.get("_autonomous_execution") or cmd.get("_jealousy_autonomous")
             or cmd.get("_army_order") or cmd.get("objection_response")
             or objection_already_answered(cmd)):
         return None
-    world, marshal = ctx.world, ctx.marshal
-    if marshal.nation != getattr(world, "player_nation", None):
+    if ctx.marshal.nation != getattr(ctx.world, "player_nation", None):
         return None
-    from backend.commands.strategic import march_detour_reading, march_detour_sentence
-    reading = march_detour_reading(world, marshal, dest, ctx.path, ctx.strategic_type)
+    return verb, raw
+
+
+def _guard_round_command(ctx, raw: str) -> str:
+    """The answered "go round"'s command: the player's own words (the order
+    re-parses exactly as typed - a tail like "then attack Mack" survives) with
+    the first gap doubled, so a button click that re-sends the option's
+    command verbatim is told apart from "march" (`interpret_clarification_
+    answer` matches a flagged option by its command text; two options with one
+    text would always resolve to the first). Whitespace is not a token to any
+    parser; the gap after the marshal's name is the one the grammar never
+    reads."""
+    head, comma, rest = raw.partition(",")
+    if comma:
+        # "Soult, march ..." doubles the gap after the comma; "Soult,march ..."
+        # gains the one it lacks - either way a text no other option carries.
+        return head + comma + " " + rest
+    first, space, rest = raw.partition(" ")
+    return (first + space + " " + rest) if space else raw
+
+
+def _guard_ask_parts(ctx, dest: str, raw: str, verb: str, ap: int):
+    """S14G-11: `(options, sentence, flags)` for the guard half of an ask -
+    the "go round" option (when a lawful road avoiding every guarded province
+    exists), the guarded-ground sentence (`strategic.march_guard_sentence`),
+    and the flags an answered ask must carry so it is never asked twice. Three
+    empties when the road crosses no guarded ground."""
+    from backend.commands.strategic import (
+        march_guard_reading, march_guard_round_road, march_guard_sentence)
+    reading = march_guard_reading(ctx.world, ctx.marshal, dest, ctx.path, ctx.strategic_type)
     if reading is None:
+        return [], "", {}
+    flags = {"_guard_confirmed": True}
+    around = march_guard_round_road(ctx.world, ctx.marshal, dest, ctx.strategic_type)
+    options: List[Dict] = []
+    if around is not None:
+        road, turns = around
+        options.append({
+            "label": f"Go round ({ap} AP, {_plural(len(road), 'province')})",
+            "value": "specify",
+            "target": f"{dest} (round)",
+            "command": _guard_round_command(ctx, raw),
+            "aliases": ["go round", "go around", "round", "around", "avoid",
+                        "go round it", "the long way"],
+            "flags": {"_march_confirmed": True, "_guard_confirmed": True,
+                      "_guard_go_round": True},
+        })
+    return options, march_guard_sentence(reading), flags
+
+
+def march_guard_ask(ctx, dest: str):
+    """S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): a typed PLAYER
+    order whose lawful road crosses ground an ACTIVE guard_neutrality design
+    guards - Prussia's Armed Neutrality: Hanover, Westphalia, Brunswick, Berlin,
+    Brandenburg - asks FIRST, at no cost, on the detour ask's own free channel
+    (`clarification_kind: march_guard_ask`, the same popup and the same typed
+    grammar), because the Ansbach trap charges -25 with the guard-holder for a
+    column standing there and the reply said only "Route: ...":
+
+        "Berlin and Brunswick are Prussia's guarded ground (Armed Neutrality)
+        - standing in them costs -25 with Prussia - march, go round or cancel?"
+
+    `march` re-issues the player's own words with `_guard_confirmed` (the order
+    is issued as it always was and its reply carries the sentence after the
+    route); `go round` re-issues them with `_guard_go_round` (the road is the
+    pathfinder's over the board minus the guarded provinces, offered only when
+    one exists); `cancel` spends nothing. The reading is the order's own
+    (`strategic.march_guard_reading` over `agendas.guarded_provinces_for` - the
+    very map the trap reads, Open Borders being no exemption). Typed player
+    orders only, the same exclusions as the detour ask (`_typed_march_preamble`);
+    a detour that also crosses guarded ground carries the sentence in ITS
+    question (`march_detour_ask`) - one question, never two. Returns the
+    clarification response, or None."""
+    pre = _typed_march_preamble(ctx, "_guard_confirmed")
+    if pre is None:
         return None
+    verb, raw = pre
+    world, marshal = ctx.world, ctx.marshal
     ap = int(marshal.strategic_order_ap(order_type=ctx.strategic_type))
     if int(getattr(world, "actions_remaining", 0) or 0) < ap:
         return None
-    sentence = march_detour_sentence(dest, reading).rstrip(".")
+    options, sentence, flags = _guard_ask_parts(ctx, dest, raw, verb, ap)
+    if not sentence:
+        return None
+    question = f"{verb}, go round or cancel?" if options else f"{verb}, or cancel?"
     return {
         "success": True,
         "free_action": True,
         "state": "awaiting_clarification",
         "type": "clarification",
-        "clarification_kind": "march_detour_ask",
+        "clarification_kind": "march_guard_ask",
         "strategic_type": ctx.strategic_type,
-        # A command-level question is the chief of staff's (the popup titles
-        # from this field: "BERTHIER ASKS:").
         "marshal": "Berthier",
-        "message": f"{sentence} — {verb}, or cancel?",
+        "message": f"{sentence.rstrip('.')} — {question}",
         "original_command": raw,
         "interpreted_target": dest,
-        "interpretation_reason": "detour",
+        "interpretation_reason": "guarded_ground",
         "options": [{
             "label": f"{verb.capitalize()} ({ap} AP)",
             "value": "specify",
             "target": dest,
-            # The answer re-issues the order as typed; the flag keeps the ask
-            # from asking twice.
             "command": raw,
             "aliases": [verb, f"{verb} anyway", f"{verb} on", "go", "send him"],
-            "flags": {"_march_confirmed": True},
-        }],
+            "flags": {"_guard_confirmed": True},
+        }] + options,
         "action_summary": world.get_action_summary(),
         "game_state": world.get_filtered_game_state_summary(),
     }
@@ -454,6 +590,10 @@ class StrategicCommandContext:
     # S14E-13's sweep: what the first step costs the corps as it stood
     # (Iron Resolve stacks), read before the step.
     departure_msg: Any = field(init=False)
+    # S14G-11: the guarded-ground rider the reply carries after the route
+    # (stage 6 → stage 10): the sentence of a march made anyway, or the note
+    # of a "go round" - '' when the road crosses no guarded ground.
+    guard_rider: Any = field(init=False)
 
 
 class StrategicExecutor:
@@ -1416,6 +1556,7 @@ class StrategicExecutor:
         (FA-S17-9)."""
         # ── Build path for movement orders ────────────────────────────
         ctx.path = []
+        ctx.guard_rider = ""   # S14G-11: set below once the road is plotted
         # FA-S17-9 (Phase 4): the province the PURSUE road is plotted from —
         # what our own scouts saw at issuance. The acceptance line used to
         # re-resolve this AFTER the first step, and the first step's own
@@ -1512,6 +1653,29 @@ class StrategicExecutor:
                         }
                 dest = resolved
 
+            # S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): "Napoleon, march
+            # to Flanders" with the corps ALREADY at Flanders was accepted — the
+            # road stage below is skipped for a destination he stands in, and
+            # nothing refused it: 1 action charged, a MOVE_TO with an empty path
+            # created (it "arrived" on the next tick) and any standing order
+            # silently replaced (sea #2, turn 3, action 38). The plain `move`
+            # refuses the same order ("is already in"). Refused here, free,
+            # before an order exists or one is replaced. HOLD on the own
+            # province is "hold here" and stays legal; PURSUE / SUPPORT read the
+            # same province as their own business. A march that carries a verb
+            # for its arrival ("then fortify", "then attack Mack") keeps the
+            # verb's business and is left alone.
+            if (ctx.strategic_type == "MOVE_TO" and dest
+                    and dest == ctx.marshal.location
+                    and not ctx.parsed_command.get("arrival_verb")
+                    and not ctx.parsed_command.get("attack_on_arrival")):
+                from backend.commands.strategic import own_province_march_refusal
+                return {
+                    "success": False,
+                    "message": own_province_march_refusal(ctx.marshal, dest),
+                    "variable_action_cost": 0,
+                }
+
             if dest and dest != ctx.marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)
                 # MOVE_TO and HOLD use weighted (Dijkstra) pathfinding for terrain-aware routes
@@ -1577,6 +1741,34 @@ class StrategicExecutor:
                             ),
                             "variable_action_cost": 0,
                         }
+                # S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): the
+                # road the player's order walks may cross ground an ACTIVE
+                # guard_neutrality design guards (the Ansbach trap: -25 with
+                # the guard-holder, Open Borders no exemption). An answered
+                # "go round" takes the road round it; any other order of the
+                # player's carries the guarded-ground sentence after its
+                # route (`_strategic_response`) - read through the ONE reader
+                # (`strategic.march_guard_reading`), None for the AI's corps.
+                from backend.commands.strategic import (
+                    march_guard_reading, march_guard_round_road,
+                    march_guard_round_sentence, march_guard_sentence)
+                _guard = march_guard_reading(
+                    ctx.world, ctx.marshal, dest, ctx.path, ctx.strategic_type)
+                if (_guard is not None and isinstance(ctx.command, dict)
+                        and ctx.command.get("_guard_go_round")):
+                    _round = march_guard_round_road(
+                        ctx.world, ctx.marshal, dest, ctx.strategic_type)
+                    if _round is not None:
+                        ctx.path = list(_round[0])
+                        ctx.guard_rider = " " + march_guard_round_sentence(_guard)
+                        _guard = None
+                    # the answered button's command carries a doubled first gap
+                    # (`_guard_round_command`): the order, its echo and its
+                    # record keep the player's own words.
+                    _typed = (ctx.parsed_command.get("raw_input")
+                              if isinstance(ctx.parsed_command, dict) else None)
+                    if isinstance(_typed, str):
+                        ctx.parsed_command["raw_input"] = _typed.replace("  ", " ", 1)
                 # S14E-22: a typed march whose lawful road is a long or
                 # foreign-soil detour round a shut direct road asks FIRST —
                 # free, before the square breaks (stage 7) or anything is
@@ -1584,6 +1776,12 @@ class StrategicExecutor:
                 _detour_ask = march_detour_ask(ctx, dest)
                 if _detour_ask is not None:
                     return _detour_ask
+                # S14G-11: and so does one whose road crosses guarded ground.
+                _guard_ask = march_guard_ask(ctx, dest)
+                if _guard_ask is not None:
+                    return _guard_ask
+                if _guard is not None:
+                    ctx.guard_rider = " " + march_guard_sentence(_guard)
         return _NEXT_STAGE
 
     def _strategic_objection(self, ctx: StrategicCommandContext):
@@ -2275,7 +2473,7 @@ class StrategicExecutor:
         # the supply it outruns — as a move says it.
         if ctx.first_step_msg.startswith((" Moves to ", " Cavalry charges through ")):
             from backend.commands.movement_executor import (
-                campaign_pay_note, camp_leave_note, supply_warning_line)
+                campaign_pay_note, camp_leave_note, front_note, supply_warning_line)
             ctx.first_step_msg += supply_warning_line(ctx.world, ctx.marshal)
             # S14E-13: and the Descent camp it leaves, if it leaves one — the
             # stop the march made, from where it began.
@@ -2286,6 +2484,10 @@ class StrategicExecutor:
             ctx.first_step_msg += campaign_pay_note(
                 ctx.world, ctx.marshal, ctx.marshal.location,
                 ctx.origin_location)
+            # S14G-7: and the front it stops on - an ally's province whose war
+            # a truce of ours leaves running ('' on any other stop).
+            ctx.first_step_msg += front_note(
+                ctx.world, ctx.marshal, ctx.marshal.location)
             if ctx.departure_msg:
                 ctx.first_step_msg += f"\n{ctx.departure_msg}"
         ctx.remaining = len(ctx.order.path) if ctx.order.path else 0
@@ -2298,15 +2500,21 @@ class StrategicExecutor:
         # one shared helper so the two routes cannot drift again.
         _ground = destination_grounding_note(
             ctx.parsed_command.get("raw_input"), ctx.target)
+        # S14G-11: the guarded ground the road crosses, said after the route
+        # (the sentence of a march made anyway, or a "go round"'s note) -
+        # '' when the road crosses none or the corps is the AI's.
+        _guard_rider = getattr(ctx, "guard_rider", "") or ""
 
         if ctx.strategic_type == "MOVE_TO":
             if ctx.remaining == 0:
                 # Adjacent move — skip redundant route description
                 ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}."
-                       f"{ctx.first_step_msg}{_ground}")
+                       f"{_guard_rider}{ctx.first_step_msg}{_ground}")
             else:
                 ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}. "
-                       f"Route: {route_str}.{ctx.first_step_msg}{_ground}")
+                       f"Route: {route_str}.{_guard_rider}{ctx.first_step_msg}{_ground}")
+            # S14G-2: the aggressive man's interrupt, said at the order.
+            ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
         elif ctx.strategic_type == "PURSUE":
             enemy_m = ctx.world.get_marshal(ctx.target)
             # NPC-5: the acceptance line must not tell the player where the
@@ -2320,7 +2528,7 @@ class StrategicExecutor:
                 loc = (self._pursue_known_location(ctx.world, ctx.marshal, enemy_m)
                        or "unknown")
             ctx.msg = (f"{ctx.marshal.name} pursues {humanize_entity_name(ctx.target)} "
-                   f"(at {loc}).{ctx.first_step_msg}")
+                   f"(at {loc}).{_guard_rider}{ctx.first_step_msg}")
             _upgraded = (bool(ctx.parsed_command.get("attack_on_arrival"))
                          and str((ctx.parsed_command.get("command") or {}).get("action") or "") == "attack")
             if THE_PURSUIT_STATES_ITS_TERMS and _upgraded:
@@ -2337,6 +2545,11 @@ class StrategicExecutor:
                         f"{_road}, attacks on arrival, may be diverted by an "
                         f"interrupt, and stands down if intelligence on him lapses. "
                         f"'{ctx.marshal.name}, cancel' recalls him.")
+            else:
+                # S14G-X13: the typed PURSUE of an aggressive man is the same
+                # standing order the interrupt drops — said here as at every
+                # other order (the upgraded line above names it in its own words).
+                ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
         elif ctx.strategic_type == "HOLD":
             hold_loc = ctx.target or ctx.marshal.location
             # A HOLD is a STANDING order, and the CR-5 rider-(d)
@@ -2345,22 +2558,26 @@ class StrategicExecutor:
             # "Soult, hold Mainz."`, the player's own words and the
             # substituted province contradicting each other in one
             # sentence.
-            ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{ctx.first_step_msg}"
+            ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{_guard_rider}{ctx.first_step_msg}"
                    + ("" if (ctx._hold_placed_by_the_game)
                       else destination_grounding_note(
                           ctx.parsed_command.get("raw_input"), hold_loc))
                    # CC-4 / D8: the watch, and its warnings.
-                   + (getattr(ctx, "contingency_note", "") or ""))
+                   + (getattr(ctx, "contingency_note", "") or "")
+                   # S14G-2: the aggressive man's interrupt, said at the order.
+                   + _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order))
         elif ctx.strategic_type == "SUPPORT" and getattr(ctx.order, "standing_follow", False):
             # AO (October 17, 2026): the SUPPORT that stands — the follow.
             ally_m = ctx.world.get_marshal(ctx.target)
             loc = ally_m.location if ally_m else "unknown"
             shown_ally = humanize_entity_name(ctx.target)
             ctx.msg = (f"{ctx.marshal.name} follows {shown_ally} (at {loc})."
-                       f"{ctx.first_step_msg}"
+                       f"{_guard_rider}{ctx.first_step_msg}"
                        f" {ctx.marshal.name} marches where {shown_ally} marches and to his "
                        f"guns, turn after turn; the order stands until you cancel it or "
                        f"{shown_ally} leaves the field.")
+            # S14G-2: the aggressive man's interrupt, said at the order.
+            ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
             if getattr(ctx.marshal, 'fortified', False):
                 ctx.msg += (
                     f"\n\nBerthier: \"Sire, {ctx.marshal.name} is ordered to follow {ctx.target} "
@@ -2375,7 +2592,7 @@ class StrategicExecutor:
             # ally's location is our own intelligence; no fog arm needed.)
             ctx.msg = (f"{ctx.marshal.name} moves to support "
                    f"{humanize_entity_name(ctx.target)} (at {loc})."
-                   f"{ctx.first_step_msg}")
+                   f"{_guard_rider}{ctx.first_step_msg}")
             # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
             # order authorizes even a literal marshal to march to the guns.
             # CA9-F8 (the COPY half; the mechanic is out of scope and
@@ -2395,11 +2612,18 @@ class StrategicExecutor:
                 f" {ctx.marshal.name} holds your written order: when {ctx.target} "
                 f"leads a battle within reach, he will march to the guns."
             )
-            if not (ctx.condition and getattr(ctx.condition, "max_turns", None)):
-                ctx.msg += (
-                    f" The order lapses of itself once {ctx.target} is out of "
-                    f"danger — name a duration to hold him to it."
-                )
+            # S14G-3 (Pre-Deploy S14h part 1, October 26, 2026): the reply says
+            # what the order DOES — he goes to the ally now and stays only while
+            # the ally is in danger, the order lapsing of itself once he is out
+            # of it ("name a duration" holds him to it; "follow" keeps him at
+            # his side). It used to say only that the order lapses, and a
+            # supporter far from his ally followed him home across Europe.
+            # ONE helper (`strategic.support_terms_clause`): the quote reads it.
+            ctx.msg += _support_terms_clause(
+                ctx.marshal.name, ctx.target,
+                timed=bool(ctx.condition and getattr(ctx.condition, "max_turns", None)))
+            # S14G-2: the aggressive man's interrupt, said at the order.
+            ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
             # A-M3: Berthier advisory — fortified/square marshal cannot reinforce
             if getattr(ctx.marshal, 'fortified', False):
                 ctx.msg += (

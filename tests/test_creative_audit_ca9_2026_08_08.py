@@ -2762,7 +2762,12 @@ class TestF8ConfirmationStopsOverpromising:
         assert "will march to" not in src or "leads a battle within reach" in src
         assert "leads a battle within reach" in src, (
             "the confirmation still promises an unconditional march")
-        assert "lapses of itself" in src, (
+        # S14G-3 (Pre-Deploy S14h part 1, October 26, 2026): the lapse sentence
+        # moved out of the reply stage into the ONE helper the reply AND the
+        # quote read (`strategic.support_terms_clause`); the reply stage calls it.
+        from backend.commands import strategic as st
+        assert "_support_terms_clause(" in src
+        assert "lapses of itself" in inspect.getsource(st.support_terms_clause), (
             "…and never mentions that an undated order ends the first "
             "quiet turn")
 

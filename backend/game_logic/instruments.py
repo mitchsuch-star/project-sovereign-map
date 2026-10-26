@@ -599,6 +599,79 @@ def design_suspended(world, nation: str, design_id: str) -> bool:
     return False
 
 
+def bargain_turns_left(world, payer: str, court: str) -> Optional[int]:
+    """S14G-9 (Pre-Deploy S14h part 1, October 26, 2026): the turns the design
+    bargain `payer` holds with `court` still has to run - `expires_turn` less
+    today, the longest when two stand - or None when no design of hers is
+    bought off by `payer`. NOT FOUND before this: any reader of which bargains
+    are in force or when they lapse (the Balance of Europe page said "she would
+    join" of two courts whose designs the player had just bought to sleep, and
+    nothing said for how long). A record with no design id (the hostage bond of
+    a province paid at the peace) puts nothing to sleep and is not counted.
+    The probe `next_design_after_buyoff` lays down and takes up inside one call
+    is never read. Pure read."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    left: Optional[int] = None
+    for record in getattr(world, "compensation_bargains", []) or []:
+        if (record.get("_probe") or record.get("payer") != payer
+                or record.get("recipient") != court
+                or not record.get("design_id")):
+            continue
+        run = max(0, int(record.get("expires_turn", turn) or turn) - turn)
+        left = run if left is None else max(left, run)
+    return left
+
+
+def buyoff_league_clause(relation: Optional[int] = None) -> str:
+    """S14G-9 / S14G-D6 (RULED: the predicate stays, the sentence is said): the
+    ONE sentence of what a buy-off does to a court's place in a league. A
+    buy-off sleeps a court's DESIGN (what it wants) and warms its relations by
+    `BUYOFF_RELATION_BONUS`; the league forms on RELATIONS
+    (`coalition.qualifies_for_coalition`: below `LEAGUE_KEEP_OUT_RELATION`), so
+    a bought-off court still counts until they stand above that line. The line
+    is read from the coalition's own constant - the number lives in one place.
+    The buy-off quote, the Balance of Europe footer, the league rows and the
+    wizard's chip all call this builder. With the court's live `relation` the
+    sentence carries the arithmetic and says which of the three things is true
+    of her today (already above the line, lifted past it by the +5 alone, or
+    still under it); with none it is the bare sentence."""
+    from backend.game_logic.coalition import LEAGUE_KEEP_OUT_RELATION, _minus
+    bar = _minus(LEAGUE_KEEP_OUT_RELATION)
+    bonus = int(BUYOFF_RELATION_BONUS)
+    if relation is None:
+        return (f"+{bonus} relations; she still counts toward a league until "
+                f"relations reach {bar}")
+    now = int(relation)
+    after = max(-100, min(100, now + bonus))
+    line = f"the {bar} line a league counts her below"
+    if now >= LEAGUE_KEEP_OUT_RELATION:
+        return f"+{bonus} relations ({_minus(now)} → {_minus(after)}); she already stands past {line}"
+    if after >= LEAGUE_KEEP_OUT_RELATION:
+        return (f"+{bonus} relations lifts her from {_minus(now)} to {_minus(after)}, "
+                f"past {line}")
+    return (f"+{bonus} relations ({_minus(now)} → {_minus(after)}); she still counts "
+            f"toward a league until relations reach {bar}")
+
+
+def buyoff_row_clause(world, payer: str, court: str, *, no_design: bool = False) -> str:
+    """S14G-9: the sentence a court's league row carries about her design -
+    "Design bought off, 9 turns left; her league place is her relations." when
+    `payer` holds a bargain with her, "No design to buy off; her league place is
+    her relations." when `no_design` (the row priced her and
+    `compute_buyoff_price` has nothing to price - once no design is live the
+    buy-off clause used to vanish and the row said nothing), else ''. Read by
+    `coalition.league_row_detail`, so the Balance page's row, the desk's answer
+    and the dispatch's `league_joins` headline say it alike."""
+    left = bargain_turns_left(world, payer, court)
+    if left is not None:
+        from backend.display_names import plural
+        return (f"Design bought off, {plural(left, 'turn')} left; her league "
+                f"place is her relations.")
+    if no_design:
+        return "No design to buy off; her league place is her relations."
+    return ""
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Guarantee — protect a border
 # ═══════════════════════════════════════════════════════════════════════
@@ -1099,9 +1172,17 @@ def build_instruments_line(world, nation: str) -> Optional[str]:
             if words not in pieces:
                 pieces.append(words)
             continue
+        # S14G-X39 (Pre-Deploy S14h part 1): the Compacts line names how long
+        # the design sleeps - `expires_turn` was read by nothing the player saw
+        run = ""
+        if record.get("design_id") and not record.get("_probe"):
+            from backend.display_names import plural
+            left = max(0, int(record.get("expires_turn", 0) or 0)
+                       - int(getattr(world, "current_turn", 0) or 0))
+            run = f" ({plural(left, 'turn')} left)"
         pieces.append(
             f"{display_nation(record.get('payer'))} bought off "
-            f"{display_nation(record.get('recipient'))}'s design")
+            f"{display_nation(record.get('recipient'))}'s design{run}")
     for record in getattr(world, "diplomatic_guarantees", []) or []:
         if nation not in (record.get("guarantor"),
                           record.get("protected")):
@@ -1287,9 +1368,94 @@ def _quote_renege_words() -> str:
     return f"relations {RENEGE_RELATION_PENALTY} and the strongest casus belli in Europe"
 
 
+def licensed_war_cost_clause(world, payer: str, licensee: str, aim: str) -> str:
+    """S14G-10 (Pre-Deploy S14h part 1, October 26, 2026): what the war a
+    licence (or a sponsorship) puts in the licensee's hand costs, beside the
+    price of the compact. Was: the quote stated the 1 DP, the term and the
+    renege bond and nothing of the war it licenses - Prussia's declaration took
+    15 off her relations with every court, France's included, undoing the
+    courtship under way, and the player read none of it at the choice.
+
+    Computed live from the declaration's own figures, never a copy:
+    `declaration_relation_penalties` (the indirect hit, halved with a casus
+    belli) for the licensee's declaration, the casus belli read the way the
+    design war's declaration reads it (`war_council._declare_design_war`: the
+    licensee's renege grievance against the aim - a licence is NOT itself a
+    casus belli), the live `payer`-`licensee` relation, the compact's own
+    `SPONSORSHIP_RELATION_BONUS` that lands first, and the live relation
+    mission when the declaration would set it back (`declare_war` writes the
+    same indirect hit to the mission's pair). '' when `aim` is the payer or the
+    licensee (no third court is hit). Pure read."""
+    if not aim or aim in (payer, licensee):
+        return ""
+    from backend.display_names import (
+        MISSION_ROW_DISPLAY, display_nation, with_definite_article)
+    from backend.game_logic.diplomacy import declaration_relation_penalties
+    casus = has_renege_grievance(world, licensee, aim)
+    fall = int(-declaration_relation_penalties(casus)[1])
+    pname = display_nation(payer)
+    lname = with_definite_article(display_nation(licensee))
+    aname = with_definite_article(display_nation(aim))
+    now = int(world.nation_relations.get(world._make_diplo_key(payer, licensee), 0) or 0)
+    after_compact = max(-100, min(100, now + SPONSORSHIP_RELATION_BONUS))
+    final = max(-100, min(100, after_compact - fall))
+
+    def signed(value: int) -> str:
+        return "0" if int(value) == 0 else f"{int(value):+d}"
+
+    halved = f", halved by {lname}'s casus belli against {aname}" if casus else ""
+    text = (f"If {lname} then declares on {aname}, her relations with every "
+            f"court, {pname}'s included, fall {fall}{halved} "
+            f"({pname}–{lname} now {signed(now)}, {signed(after_compact)} once "
+            f"this compact is struck, {signed(final)} after her declaration)")
+    mission = _declaration_mission_hit(world, licensee, aim)
+    if mission:
+        text += (f"; the {MISSION_ROW_DISPLAY.get(mission, mission)} mission "
+                 f"running with {lname} is set back the same {fall}")
+    return text + "."
+
+
+def _declaration_mission_hit(world, aggressor: str, aim: str) -> str:
+    """S14G-10: the type of the live relation-earning mission whose pair
+    `aggressor`'s declaration on `aim` would write the indirect hit to, or ''.
+    The pair is `diplomatic_dialogue.mission_pair_snapshot`'s own (France and
+    the court, or for an undermining the two courts); the war's own parties
+    (the direct hit) are not the indirect one."""
+    from backend.game_logic.diplomatic_dialogue import (
+        _MISSION_EARNING_TYPES, mission_pair_snapshot)
+    snapshot = mission_pair_snapshot(world)
+    if snapshot is None:
+        return ""
+    pair = str(snapshot[0]).split("|")
+    if len(pair) != 2 or aggressor not in pair:
+        return ""
+    other = pair[0] if pair[1] == aggressor else pair[1]
+    if other == aim:
+        return ""
+    mission_type = str((world.active_diplomatic_mission or {}).get("type") or "")
+    return mission_type if mission_type in _MISSION_EARNING_TYPES else ""
+
+
+def guarantee_honour_cost_clause() -> str:
+    """S14G-10 sweep: the later cost of the pledge, from the SAME penalties
+    function as every declaration - honouring a guarantee means France declares
+    on the aggressor (the pledge is abandoned unless she enters the war), and
+    that declaration takes `declaration_relation_penalties` off France's own
+    relations (halved after a rejected ultimatum)."""
+    from backend.game_logic.diplomacy import declaration_relation_penalties
+    direct, indirect = declaration_relation_penalties(False)
+    half_direct, half_indirect = declaration_relation_penalties(True)
+    return (f"Honouring it means declaring on the aggressor: France's relations "
+            f"fall {-direct} with that court and {-indirect} with every other "
+            f"({-half_direct} and {-half_indirect} after a rejected ultimatum)")
+
+
 def buyoff_quote(world, payer: str, court: str, *, title: str, amount: int) -> str:
     """'Buy off <court>': the price, the point, the chest after, how long the
-    want sleeps, what reneging returns, the design that wakes next."""
+    want sleeps, what reneging returns, what the +relations does and does not
+    do to her place in a league (S14G-9 / S14G-D6), the design that wakes next.
+    The buy-off costs no third court anything later - a purchase between two
+    courts, with no war it licenses - so none is named (S14G-10's sweep)."""
     from backend.display_names import display_nation
     name = display_nation(court)
     # S14E-X157: the chest after is the CHEST's (`chest_of`) - what the verb is
@@ -1300,6 +1466,12 @@ def buyoff_quote(world, payer: str, court: str, *, title: str, amount: int) -> s
     wake = (f"Buying it wakes {woken['title']} next "
             f"({int(woken['price']):,}g to buy off in turn)."
             if woken else "No other design wakes after it.")
+    # S14G-9 / S14G-D6: gold buys the design's sleep, not her goodwill - the
+    # league forms on relations, so the quote says what the +relations does to
+    # her place in one (the live relation, the one builder every surface calls)
+    relation = int(world.nation_relations.get(world._make_diplo_key(payer, court), 0) or 0)
+    league = (f"It buys the design's sleep, not her goodwill: "
+              f"{buyoff_league_clause(relation)}.")
     return (
         f"Buy off {name}'s design — {title}: {int(amount):,} gold and "
         f"{_quote_dp_words()}. The treasury holds {chest:,} gold{owed} and would "
@@ -1307,7 +1479,7 @@ def buyoff_quote(world, payer: str, court: str, *, title: str, amount: int) -> s
         f"{COMPENSATION_TERM_TURNS} turns; it does not die — marching on {name} "
         f"inside the term is reneging, and it returns the heavier: their will "
         f"against us +{WEIGHT_RENEGED_BARGAIN}, {_quote_renege_words()}. "
-        f"{wake} Buy it off? (yes / no)")
+        f"{league} {wake} Buy it off? (yes / no)")
 
 
 def sponsorship_quote(world, payer: str, recipient: str, aim: str,
@@ -1323,18 +1495,22 @@ def sponsorship_quote(world, payer: str, recipient: str, aim: str,
     owed = FREE_OF_OBLIGATIONS if chest < treasury else ""
     bond = (f"The compact binds France: marching on {rname} before it lapses, "
             f"or guaranteeing {aname}, is reneging — {_quote_renege_words()}.")
+    # S14G-10: the war the compact licenses has a price the player pays too -
+    # said at the choice, from the declaration's own figures
+    war = licensed_war_cost_clause(world, payer, recipient, aim)
+    war = f" {war}" if war else ""
     if int(amount) <= 0:
         return (
             f"License {rname}'s design against {aname}: no gold, "
             f"{_quote_dp_words()}. France blesses it and pledges "
-            f"non-interference for {SPONSORSHIP_DEFAULT_TURNS} turns. {bond} "
+            f"non-interference for {SPONSORSHIP_DEFAULT_TURNS} turns. {bond}{war} "
             f"License it? (yes / no)")
     return (
         f"Sponsor {rname}'s design against {aname}: {int(amount):,} gold a turn "
         f"for {SPONSORSHIP_DEFAULT_TURNS} turns "
         f"({int(amount) * SPONSORSHIP_DEFAULT_TURNS:,} gold in all) and "
         f"{_quote_dp_words()}. The treasury holds {chest:,} gold{owed} and would "
-        f"hold {chest - int(amount):,} after the first payment. {bond} "
+        f"hold {chest - int(amount):,} after the first payment. {bond}{war} "
         f"Sponsor it? (yes / no)")
 
 
@@ -1359,4 +1535,5 @@ def guarantee_quote(world, guarantor: str, protected: str) -> str:
         f"that covets their soil weighs our army in the scale — their "
         f"willingness falls by {GUARANTEE_WEIGHT_DETERRENT}. The pledge stakes "
         f"France's word: {clock} ({_quote_renege_words()}). "
+        f"{guarantee_honour_cost_clause()}. "
         f"Guarantee them? (yes / no)")

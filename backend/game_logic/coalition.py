@@ -4315,8 +4315,13 @@ def league_price_clause(world, row: Dict[str, Any]) -> str:
                      f"{plural(int(road[0]), 'turn')} ({int(road[1])} DP)")
     price = row.get("buyoff")
     if price is not None:
+        # S14G-9 / S14G-D6: the buy-off's own words of what it does to her place
+        # in a league - the +relations is the lever (the design's sleep is not),
+        # from the ONE builder the quote and the footer call
+        from backend.game_logic.instruments import buyoff_league_clause
         if row.get("buyoff_alone"):
-            clause = f"buying off her design ({int(price):,} gold) is enough alone"
+            clause = (f"buying off her design ({int(price):,} gold) is enough "
+                      f"alone ({buyoff_league_clause(int(row.get('relation', 0)))})")
         else:
             clause = f"buying off her design costs {int(price):,} gold"
             with_buy = row.get("road_with_buyoff")
@@ -4324,6 +4329,7 @@ def league_price_clause(world, row: Dict[str, Any]) -> str:
                     and int(with_buy[0]) < int(road[0])):
                 clause += (f" and shortens the road to "
                            f"{plural(int(with_buy[0]), 'turn')}")
+            clause += f" ({buyoff_league_clause()})"
         if row.get("buyoff_refusal"):
             clause += f" (not today: {row['buyoff_refusal']})"
         parts.append(clause)
@@ -4350,7 +4356,8 @@ def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str
     if status == LEAGUE_OUT:
         margin = int(row.get("relation", 0)) - LEAGUE_KEEP_OUT_RELATION + 1
         return (f"{name} — relations {rel}: she stays out of a league "
-                f"(a fall of {margin} would bring her in).")
+                f"(a fall of {margin} would bring her in)."
+                f"{_league_design_sentence(world, row, forecast)}")
     if status == LEAGUE_BOUND:
         head = (f"{name} — relations {rel}, but her peace with us binds her "
                 f"{plural(int(row.get('bound_turns', 0)), 'more turn')}; then she may join.")
@@ -4360,6 +4367,32 @@ def league_row_text(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str
     return f"{head} {detail}".strip()
 
 
+def _league_design_sentence(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str:
+    """S14G-9 / S14G-D6 (Pre-Deploy S14h part 1, October 26, 2026): the row's
+    sentence about her DESIGN - " Design bought off, 9 turns left; her league
+    place is her relations." (the bargain `instruments.bargain_turns_left`
+    reads), or " No design to buy off; her league place is her relations." for
+    a court the forecast priced and `compute_buyoff_price` could not (it
+    returns None once no design is live, and the buy-off clause used to vanish
+    with nothing said in its place). Was: a bought-off court sat in the table as
+    "she would join" with nothing to say the design slept - or for how long -
+    and the dispatch told the player a court bought off was a regiment the
+    league never fields. A court that refuses the Congress has a different
+    place (her recognition), so it is told nothing of her relations. '' when
+    there is nothing to say. A leading space, to follow a sentence."""
+    status = row.get("status")
+    if status not in (LEAGUE_JOINS, LEAGUE_BOUND, LEAGUE_OUT):
+        return ""
+    target = forecast.get("target")
+    from backend.game_logic.instruments import buyoff_row_clause
+    no_design = bool(status in (LEAGUE_JOINS, LEAGUE_BOUND)
+                     and target == getattr(world, "player_nation", None)
+                     and row.get("buyoff") is None)
+    sentence = buyoff_row_clause(world, str(target or ""), str(row.get("nation") or ""),
+                                 no_design=no_design)
+    return f" {sentence}" if sentence else ""
+
+
 def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> str:
     """The sentences after a court's head line — what her war would reopen,
     who pays her, and the price to keep her out (or why there is none) —
@@ -4367,7 +4400,8 @@ def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> s
     from backend.display_names import plural
     from backend.game_logic.collapse import _join
     status = row.get("status")
-    text = ""
+    # S14G-9: her design - bought off for N more turns, or none to buy - first
+    text = _league_design_sentence(world, row, forecast)
     titles = list(row.get("titles") or [])
     if titles:
         if row.get("titles_contested"):
@@ -4510,11 +4544,18 @@ def league_cheapest_keep_out(world, target: Optional[str] = None) -> Optional[Di
         options = []
         if (row.get("buyoff") is not None and row.get("buyoff_alone")
                 and not row.get("buyoff_refusal")):
+            # S14G-X42 (Pre-Deploy S14h part 1, October 26, 2026): the counsel's
+            # "Buy Off Their Design - keeps X out of the next league: ... is enough
+            # alone" said it was enough and not WHY (the design's sleep is not what
+            # keeps her out - the +5 past the line is). Built from the ONE builder
+            # `league_price_clause` calls, with her live relation.
+            from backend.game_logic.instruments import buyoff_league_clause
             options.append(((0, int(row["buyoff"]), 0 if row["major"] else 1),
                             f"buy off {row['nation']}",
                             f"F1 → {row['display']} → Buy Off Their Design",
                             f"buying off her design ({int(row['buyoff']):,} gold) is "
-                            f"enough alone"))
+                            f"enough alone "
+                            f"({buyoff_league_clause(int(row.get('relation', 0)))})"))
         road = row.get("road")
         if road is not None and not row.get("out_of_time"):
             from backend.display_names import plural

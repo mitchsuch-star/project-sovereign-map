@@ -1232,7 +1232,7 @@ def pursuit_ask(ctx, cost):
     # the first march's soil draws (the march card's own sentence,
     # `campaign_pay_line`). Both are '' on an open road over soil that draws
     # nothing, so the ask is the DDB-R1 sentence byte for byte.
-    from backend.commands.movement_executor import campaign_pay_line
+    from backend.commands.movement_executor import campaign_pay_line, front_line
     from backend.commands.strategic import march_detour_reading, march_detour_sentence
     riders = ""
     _detour = march_detour_reading(world, marshal, where, road, "PURSUE")
@@ -1241,6 +1241,20 @@ def pursuit_ask(ctx, cost):
     _pay = campaign_pay_line(world, marshal, first)
     if _pay:
         riders += " " + _pay
+    # S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): and the front the
+    # first march is, if a truce of ours leaves the ally's war on that soil.
+    _front = front_line(world, marshal, first)
+    if _front:
+        riders += " " + _front
+    # S14G-X51 (Pre-Deploy S14h part 1, October 26, 2026): and the guarded
+    # ground the pursuit's road crosses, if an active guard_neutrality design
+    # guards any of it (S14G-11's reading, `strategic.march_guard_reading` -
+    # the pursuit ask is this road's ONE question, the answered order never asks
+    # again, so the sentence must be here: "... costs -25 with Prussia").
+    from backend.commands.strategic import march_guard_reading, march_guard_sentence
+    _guard = march_guard_reading(world, marshal, where, road, "PURSUE")
+    if _guard is not None:
+        riders += " " + march_guard_sentence(_guard)
     question = (f"{placed}, {marches} off.{riders} Pursue him "
                 f"({cost} AP — a standing order; {first_march}), or cancel?")
     reissue = f"{marshal.name}, attack {enemy.name}"
@@ -5493,7 +5507,14 @@ class CombatExecutor:
                         add_coalition_shock(defender_nation, world)
                 if conquered:
                     cap_reg = world.get_region(battle_region)
-                    if cap_reg and getattr(cap_reg, 'is_capital', False):
+                    # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1): the +15 read
+                    # "conquered AND a capital" with no check of whose capital
+                    # or whose hand it ended in — retaking an ALLY's capital
+                    # from the enemy scored as the conquest of an enemy
+                    # capital (Munich: 84 -> 100 in one turn). A liberation
+                    # hands the capital back: no alarm.
+                    if (cap_reg and getattr(cap_reg, 'is_capital', False)
+                            and not ctx.get('liberated')):
                         add_threat(world, 15, "capital_capture", target=attacker.nation)
                 if attacker.nation == france:
                     add_war_exhaustion_from_battle(defender_nation, int(def_casualties), world)
@@ -5653,6 +5674,11 @@ class CombatExecutor:
         Returns:
             Result dict with success, message, events
         """
+        # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): where this
+        # assault's alarm rows begin - only the main attack printed the
+        # `[Alarm]` line; the assault's own rows (the win, the +15 of a
+        # capital, the +2 of the capture) rode in silence.
+        _alarm_from = self._alarm_mark(world)
         # Calculate garrison effective defense — SR-4a: ONE formula
         # (`garrison_report.garrison_effective`), the one the assault line says.
         from backend.game_logic import garrison_report as _garrison_report
@@ -5876,6 +5902,12 @@ class CombatExecutor:
                 'pre_battle_defender_strength': old_garrison,
                 'battle_result': None,
                 'conquered': True,
+                # S14G-1: this pipeline runs BEFORE the capture below, so the
+                # liberation is read off the board as it stands (the
+                # controller is still the enemy) — a liberation scores no
+                # "captured an enemy capital" alarm.
+                'liberated': bool(_ws_mod.liberates_ally_ground(
+                    world, target_region.name, marshal.nation)),
                 'is_garrison': True,
                 # CA8-19(i): the clear runs. It happens BEFORE move_to below,
                 # so attacker.location is still the origin; stamp_region is
@@ -5937,6 +5969,8 @@ class CombatExecutor:
 
             if capture_result["occupation_started"]:
                 msg += f" {capture_result['message']}"
+                # S14G-X12: the alarm the assault's win wrote, said.
+                msg += self._alarm_rider(world, marshal, _alarm_from)
                 return {
                     "success": True,
                     "message": msg,
@@ -5950,7 +5984,13 @@ class CombatExecutor:
                     "new_state": game_state
                 }
 
-            msg += f" Captured: {old_controller} → {marshal.nation}"  # LV-19: one arrow
+            # S14G-1: a liberation says whose ground it is and that it went back.
+            msg += self._capture_words(
+                capture_result,
+                f" Captured: {old_controller} → {marshal.nation}")  # LV-19: one arrow
+            # S14G-X12: ... and the alarm it raised (the win, the capital's
+            # +15, the capture's +2), the main attack's own line.
+            msg += self._alarm_rider(world, marshal, _alarm_from)
 
             conquest_event = {
                 "type": "conquest",
@@ -5966,6 +6006,12 @@ class CombatExecutor:
             }
             if capture_result.get("capture_choice"):
                 conquest_event["capture_choice"] = capture_result["capture_choice"]
+            if capture_result.get("liberated_to"):
+                # S14G-1: the surfaces that rebuild the line from the event.
+                conquest_event["liberated_to"] = capture_result["liberated_to"]
+                # S14G-X10: ... and the court's printed name (the client's
+                # "handed back to Bavaria", article and all).
+                conquest_event["liberated_to_name"] = capture_result.get("liberated_to_name", "")
 
             result = {
                 "success": True,
@@ -6023,6 +6069,8 @@ class CombatExecutor:
             # EC-W3 (review finding #4): shown = applied on the hold path too.
             if hold_pipeline_out.get('materiel_msg'):
                 msg += hold_pipeline_out['materiel_msg']
+            # S14G-X12: and any alarm a repulse wrote for the player's slot.
+            msg += self._alarm_rider(world, marshal, _alarm_from)
 
             # Custom garrison authority (uses garrison_effective)
             if marshal.nation == world.player_nation:
@@ -6503,10 +6551,45 @@ class CombatExecutor:
         # S14C-X4: the ONE resolver (its dynamic arms included), never the
         # raw table with a raw-key fallback.
         from backend.game_logic.diplomatic_ledger import _threat_source_label
-        parts = [f"{_threat_source_label(world, str(r.get('source') or ''))} "
-                 f"+{int(r.get('amount', 0))}" for r in rows]
+        # S14G-1 (Pre-Deploy S14h part 1, October 26, 2026): the line printed
+        # the APPLIED total ("+8") beside RAW parts that did not add up to it
+        # (+2 +3 +5 +15 = 25) whenever the cap at 100 clipped a row — the
+        # player could not reconcile the figures. Each clipped row now shows
+        # its applied share beside its raw part, and the line says the cap
+        # clipped it (shown = applied, row by row).
+        parts = []
+        capped = False
+        for r in rows:
+            raw = int(r.get("amount", 0) or 0)
+            text = f"{_threat_source_label(world, str(r.get('source') or ''))} +{raw}"
+            if "applied" in r and int(r["applied"] or 0) != raw:
+                text += f" (+{int(r['applied'] or 0)} counted)"
+                capped = True
+            parts.append(text)
         total = sum(int(r.get("applied", r.get("amount", 0)) or 0) for r in rows)
-        return f"\n[Alarm] Europe's alarm rises +{total} — {', '.join(parts)}."
+        head = f"rises +{total}" if total > 0 else "holds at 100"
+        return (f"\n[Alarm] Europe's alarm {head} — {', '.join(parts)}"
+                f"{' (capped at 100)' if capped else ''}.")
+
+    @staticmethod
+    def _alarm_mark(world) -> int:
+        """S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): where an
+        act's alarm rows begin - the `rows_before` the main attack takes at
+        its open (`_attack_open`), for every other site that writes alarm
+        rows for the player (the garrison assault, the charge, the unopposed
+        march, the landing, the reckless auto-charge). No new seam: it only
+        counts the book."""
+        return len(getattr(world, "threat_sources_this_turn", None) or [])
+
+    @classmethod
+    def _alarm_rider(cls, world, marshal, rows_before) -> str:
+        """S14G-X12: the ONE `[Alarm]` line (`_alarm_line`) at a site that is
+        not the main attack - the player's own corps only (an AI corps' reply
+        prints nothing: the alarm is the player's ledger, Golden Rule 5 keeps
+        the AI on the same rows)."""
+        if getattr(marshal, "nation", None) != getattr(world, "player_nation", None):
+            return ""
+        return cls._alarm_line(world, rows_before)
 
     def last_stand_odds_line(self) -> str:
         """DDB-16 (Pre-Deploy S13b part 2): each road's chance, named on the
@@ -6690,10 +6773,13 @@ class CombatExecutor:
         # S14E-X153 (XD7's sweep): a breakout onto allied or neutral soil puts the
         # corps on campaign pay from the next bill - said after the step, '' for
         # the AI and for home soil.
-        from backend.commands.movement_executor import campaign_pay_note
+        from backend.commands.movement_executor import campaign_pay_note, front_note
+        # S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): and the front
+        # the step is, if a truce of ours leaves the ally's war on it running.
         return (f"{marshal.name} falls back on {destination}, his corps "
                 f"disordered but in the field.{attrition_note}"
-                f"{campaign_pay_note(world, marshal, destination, old_loc)}")
+                f"{campaign_pay_note(world, marshal, destination, old_loc)}"
+                f"{front_note(world, marshal, destination)}")
 
     @classmethod
     def _stamp_capture_on_report(cls, battle_result, attacker, defender,
@@ -6906,8 +6992,10 @@ class CombatExecutor:
             # S14E-X89: a rout onto allied or neutral soil puts the corps on
             # campaign pay from the next bill - said after the step (the
             # plain move's own line), '' for the AI and for home soil.
-            from backend.commands.movement_executor import campaign_pay_note
+            from backend.commands.movement_executor import campaign_pay_note, front_note
             _pay_note = campaign_pay_note(world, marshal, retreat_to, old_loc)
+            # S14G-X29: ... and the front the rout lands on (the pay's sibling).
+            _pay_note += front_note(world, marshal, retreat_to)
             return f"{_fate_prefix}{_toll_prefix}[!] {_shown_name(marshal.name)}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for {recovery_turns} turns){_pay_note}"
         else:
             # ════════════════════════════════════════════════════════════
@@ -8008,8 +8096,10 @@ class CombatExecutor:
                         ctx.attrition_info = self._executor._calculate_movement_attrition(ctx.marshal, best_next, ctx.world)
                         attrition_msg = f" ({ctx.attrition_info['total_losses']:,} lost to march)" if ctx.attrition_info["total_losses"] > 0 else ""
                         # S14E-X150 (XR3a's sweep): the step onto allied soil says the pay it now draws.
-                        from backend.commands.movement_executor import campaign_pay_clause
+                        from backend.commands.movement_executor import campaign_pay_clause, front_clause
                         attrition_msg += campaign_pay_clause(ctx.world, ctx.marshal, best_next, ctx.old_location)
+                        # S14G-X29: ... and the front the step is.
+                        attrition_msg += front_clause(ctx.world, ctx.marshal, best_next)
 
                         return {
                             "success": True,
@@ -8712,7 +8802,15 @@ class CombatExecutor:
                         return _occ
 
                     # Instant capture
-                    capture_message += f" Captured: {old_controller} → {ctx.marshal.nation}"
+                    # S14G-1: ... and so does the unopposed march.
+                    capture_message += self._capture_words(
+                        ctx.capture_result,
+                        f" Captured: {old_controller} → {ctx.marshal.nation}")
+                    # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): the
+                    # +2 the capture wrote, said - the unopposed march's own
+                    # line, from where this attack's alarm rows begin.
+                    capture_message += self._alarm_rider(
+                        ctx.world, ctx.marshal, getattr(ctx, "_threat_rows_before", None))
                     if ctx.drill_cancelled_message:
                         capture_message = ctx.drill_cancelled_message + capture_message
 
@@ -8732,6 +8830,9 @@ class CombatExecutor:
                         conquest_event["garrison_gave_way"] = garrison_gave_way
                     if ctx.capture_result.get("capture_choice"):
                         conquest_event["capture_choice"] = ctx.capture_result["capture_choice"]
+                    if ctx.capture_result.get("liberated_to"):
+                        conquest_event["liberated_to"] = ctx.capture_result["liberated_to"]
+                        conquest_event["liberated_to_name"] = ctx.capture_result.get("liberated_to_name", "")  # S14G-X10
                     ctx.result = {
                         "success": True,
                         "message": capture_message,
@@ -9420,12 +9521,14 @@ class CombatExecutor:
                         f"and we are not at war with {ctx.pursuit_block['owner']}.")
                 else:
                     # S14E-X133: the pay an advance onto allied soil draws is read off the province left.
-                    from backend.commands.movement_executor import campaign_pay_clause
+                    from backend.commands.movement_executor import campaign_pay_clause, front_clause
                     _advance_from = ctx.marshal.location
                     ctx.marshal.move_to(ctx.battle_region_name)
                     advance_msg = f" {ctx.marshal.name} advances into {ctx.battle_region_name}."
                     advance_msg += campaign_pay_clause(
                         ctx.world, ctx.marshal, ctx.battle_region_name, _advance_from)
+                    # S14G-X29: ... and the front the advance is.
+                    advance_msg += front_clause(ctx.world, ctx.marshal, ctx.battle_region_name)
 
             # Attempt capture
             ctx.conquest_msg = ""
@@ -9470,7 +9573,9 @@ class CombatExecutor:
                     ctx.capture_result = self._attempt_region_capture(
                         ctx.marshal, ctx.battle_region_name, ctx.world, ctx.game_state, had_garrison=True)
                     if ctx.capture_result.get("captured"):
-                        ctx.conquest_msg = f" {ctx.battle_region_name} captured by {ctx.marshal.nation}!"
+                        ctx.conquest_msg = self._capture_words(
+                            ctx.capture_result,
+                            f" {ctx.battle_region_name} captured by {ctx.marshal.nation}!")
                         # RR4-X10 (EG-X5's sibling): the works, named.
                         from backend.game_logic.garrison_report import capture_garrison_line
                         _bomb_line = capture_garrison_line(
@@ -9523,6 +9628,10 @@ class CombatExecutor:
                 'pre_battle_defender_strength': ctx.pre_battle_defender_strength,
                 'battle_result': auto_kill_battle_result,
                 'conquered': bool(ctx.conquest_msg),
+                # S14G-1: the capture ran above; its result says whether it
+                # handed the ground back.
+                'liberated': bool((getattr(ctx, 'capture_result', None) or {})
+                                  .get('liberated_to')),
                 'is_auto_bombardment_kill': True,
                 'coordination_regions': (
                     auto_kill_stamp_region,
@@ -9534,6 +9643,12 @@ class CombatExecutor:
 
             # EC-W3 (review finding #4): shown = applied on the auto-kill path.
             auto_kill_materiel = ctx.pipeline_out.get('materiel_msg', '')
+            # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): the
+            # barrage's win and the capture it carried wrote alarm rows (the
+            # win, the capital's +15, the +2) and the reply printed none -
+            # the main attack's `[Alarm]` line, from this attack's own mark.
+            auto_kill_materiel += self._alarm_rider(
+                ctx.world, ctx.marshal, getattr(ctx, "_threat_rows_before", None))
             # NP promise audit (Aug 15, 2026): §15.4's "the battle says it
             # out loud" was wired into the ORDINARY attack message only, so
             # an emperor-led auto-kill moved his prestige +-2/-5 in silence
@@ -9561,6 +9676,9 @@ class CombatExecutor:
                 if ctx.capture_result and ctx.capture_result.get("capture_choice"):
                     auto_kill_event["capture_choice"] = (
                         ctx.capture_result["capture_choice"])
+                if ctx.capture_result and ctx.capture_result.get("liberated_to"):
+                    auto_kill_event["liberated_to"] = ctx.capture_result["liberated_to"]  # S14G-1
+                    auto_kill_event["liberated_to_name"] = ctx.capture_result.get("liberated_to_name", "")  # S14G-X10
 
             ctx.result = {
                 "success": True,
@@ -10774,8 +10892,10 @@ class CombatExecutor:
                         march_note += ")"
                         movement_msg += march_note
                     # S14E-X133: an advance onto allied soil says the campaign pay now drawn ('' for the AI and home soil).
-                    from backend.commands.movement_executor import campaign_pay_clause
+                    from backend.commands.movement_executor import campaign_pay_clause, front_clause
                     movement_msg += campaign_pay_clause(ctx.world, ctx.marshal, ctx.target_location, _advance_from)
+                    # S14G-X29: ... and the front the advance is.
+                    movement_msg += front_clause(ctx.world, ctx.marshal, ctx.target_location)
             else:
                 print("[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
@@ -10839,7 +10959,11 @@ class CombatExecutor:
                     ctx.marshal, ctx.target_location, ctx.world, ctx.game_state, had_garrison=True)
                 if ctx.capture_result["captured"]:
                     ctx.conquered = True
-                    ctx.conquest_msg = f" {ctx.target_location} has been captured by {ctx.marshal.nation}!"
+                    # S14G-1: a liberation is said as one (the line names whose
+                    # capital it is and that it went back; no question follows).
+                    ctx.conquest_msg = self._capture_words(
+                        ctx.capture_result,
+                        f" {ctx.target_location} has been captured by {ctx.marshal.nation}!")
                     # EG-X5: the works the field win walked into, named.
                     from backend.game_logic.garrison_report import capture_garrison_line
                     ctx.capture_note = capture_garrison_line(
@@ -10899,6 +11023,9 @@ class CombatExecutor:
             'pre_battle_defender_strength': ctx.pre_battle_defender_strength,
             'battle_result': ctx.battle_result,
             'conquered': ctx.conquered,
+            # S14G-1: the capture ran above; its result says whether it
+            # handed the ground back (no "captured an enemy capital" alarm).
+            'liberated': bool((ctx.capture_result or {}).get('liberated_to')),
             # NP-V: the per-side Presence verdict, computed above on the
             # true battle rosters BEFORE the victor advances (the Shadow
             # and the aura must share one audience).
@@ -10986,6 +11113,11 @@ class CombatExecutor:
                 # `_taken_from_player` reads it; absent = the old render).
                 **({"captured_from": conquest_from}
                    if ctx.conquered and conquest_from else {}),
+                # S14G-1: a liberation names the court it was handed to.
+                **({"liberated_to": ctx.capture_result["liberated_to"],
+                    # S14G-X10: the court's printed name beside the key.
+                    "liberated_to_name": ctx.capture_result.get("liberated_to_name", "")}
+                   if ctx.conquered and (ctx.capture_result or {}).get("liberated_to") else {}),
                 # PC-1 (quiet-France played campaign, Aug 3 2026): this was
                 # `resolved_target`, which is only a REGION when the attacker
                 # named a region. `resolved_target` is reassigned to a region
@@ -11070,6 +11202,10 @@ class CombatExecutor:
             # IQ-5 R11: the optional `faith` caption — passed only when
             # there is one, so the call is unchanged otherwise.
             **({"faith": _iq5_faith_captions} if _iq5_faith_captions else {}),
+            # S14G-X10: the court the capture handed the ground back to,
+            # read off the battle event (passed only for a liberation).
+            **({"liberated_to": ctx.result["events"][0]["liberated_to"]}
+               if ctx.result["events"][0].get("liberated_to") else {}),
         )
         if _bd_payload:
             # LV-11 (row EP F2): the lead card shows the advance's toll
@@ -11260,9 +11396,16 @@ class CombatExecutor:
         # EG-X5: the capture after the field win names the works it took.
         if (getattr(ctx, "capture_note", "")
                 and isinstance(ctx.result.get("battle_report"), dict)):
+            # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1): the report said
+            # "Munich falls to Lannes." over a province handed back to Bavaria
+            # (the driven CMD-H arm, turn 6) - the capture's one sentence
+            # leads here too (`_capture_words`).
             ctx.result["battle_report"]["capture_note"] = (
-                f"{ctx.target_location} falls to {humanize_entity_name(ctx.marshal.name)}. "
-                f"{ctx.capture_note}")
+                self._capture_words(
+                    ctx.capture_result,
+                    f" {ctx.target_location} falls to "
+                    f"{humanize_entity_name(ctx.marshal.name)}.").strip()
+                + f" {ctx.capture_note}")
 
         # Auto-bombardment data (Session 68): pass through for Godot display
         if ctx.auto_bombardment_results:
@@ -11968,6 +12111,10 @@ class CombatExecutor:
         staging site (the third of the four PC15-D1 sites) from mounting a
         war decision the player never asked for.
         """
+        # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): where this
+        # charge's alarm rows begin - the charge's win, its capital and its
+        # capture wrote rows and the reply printed none.
+        _alarm_from = self._alarm_mark(world)
         # Find target (a pure read — DDB-X17 refuses peace soil from it
         # before the square is broken, so the refusal costs nothing)
         target_marshal = self._glorious_charge_target(marshal, target, world)
@@ -12230,8 +12377,9 @@ class CombatExecutor:
                         charge_march_note += " — forward supply lines reduce losses"
                     charge_march_note += ")"
                     movement_msg += charge_march_note
-                from backend.commands.movement_executor import campaign_pay_clause
+                from backend.commands.movement_executor import campaign_pay_clause, front_clause
                 movement_msg += campaign_pay_clause(world, marshal, charge_battle_region, _advance_from)  # S14E-X133
+                movement_msg += front_clause(world, marshal, charge_battle_region)  # S14G-X29
 
         # Check if enemy was destroyed - remove from world
         # PC15-1 sibling seam: _handle_forced_retreat above can CAPTURE
@@ -12317,7 +12465,9 @@ class CombatExecutor:
                     )
                     if capture_result["captured"]:
                         conquered = True
-                        conquest_msg = f" {charge_battle_region} has been captured by {marshal.nation}!"
+                        conquest_msg = self._capture_words(
+                            capture_result,
+                            f" {charge_battle_region} has been captured by {marshal.nation}!")
                         # RR4-X10 (EG-X5's sibling): the works, named.
                         from backend.game_logic.garrison_report import capture_garrison_line
                         _charge_line = capture_garrison_line(
@@ -12347,6 +12497,8 @@ class CombatExecutor:
             'pre_battle_defender_strength': pre_battle_def,
             'battle_result': combat_result,
             'conquered': conquered,
+            # S14G-1: the charge's capture ran above (`capture_result`).
+            'liberated': bool((capture_result or {}).get('liberated_to')),
             'is_glorious_charge': True,
             # NP promise audit: the Shadow reads the SAME roster the aura
             # was stamped from (above), instead of falling back to a
@@ -12384,6 +12536,8 @@ class CombatExecutor:
         # EC-W3: the materiel bill line
         if pipeline_out.get('materiel_msg'):
             charge_message += pipeline_out['materiel_msg']
+        # S14G-X12: the alarm the charge raised - the main attack's line.
+        charge_message += self._alarm_rider(world, marshal, _alarm_from)
         # NP promise audit: the charge is the second path §15.4's "the
         # battle says it out loud" never reached.
         if pipeline_out.get('sovereign_prestige_msg'):
@@ -12406,6 +12560,9 @@ class CombatExecutor:
                 charge_event["captured_from"] = charge_conquest_from  # IQ-2
             if capture_result and capture_result.get("capture_choice"):
                 charge_event["capture_choice"] = capture_result["capture_choice"]
+            if capture_result and capture_result.get("liberated_to"):
+                charge_event["liberated_to"] = capture_result["liberated_to"]  # S14G-1
+                charge_event["liberated_to_name"] = capture_result.get("liberated_to_name", "")  # S14G-X10
 
         charge_result = {
             "success": True,
@@ -12722,6 +12879,19 @@ class CombatExecutor:
         # Check for functional fortification (damaged forts don't block)
         has_fort = region.has_building("fortification")
 
+        # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1, October 26, 2026): the
+        # home nation this capture hands the ground back to ('' = a conquest
+        # as today). Read BEFORE the controller moves. An ally's or client's
+        # province retaken from an enemy was scored as the conquest of an
+        # enemy capital (+2, +15), asked "plunder it for 1,200 gold" and went
+        # to France; now it is a liberation, for the player and the AI alike.
+        liberated_to = _ws_mod.liberates_ally_ground(world, region_name, marshal.nation)
+        # The one clause when the home court is gone: nobody to hand the
+        # province to, so it stays a conquest as today and the reply says so
+        # (S14G-D1). The player reads it; the AI has no reply.
+        _gone = ("" if liberated_to or marshal.nation != world.player_nation
+                 else _ws_mod.liberation_court_gone(world, region_name, marshal.nation))
+
         if has_fort:
             # CONTESTED CAPTURE: Start occupation timer
             turns_required = 2 if had_garrison else 1
@@ -12729,17 +12899,44 @@ class CombatExecutor:
             marshal.occupation_turns_held = 0
             marshal.occupation_turns_required = turns_required
 
+            _siege_tail = (
+                f" It will be handed back to "
+                f"{_ws_mod.court_named(world, liberated_to)}." if liberated_to else
+                f" {_ws_mod.liberation_gone_clause(world, region_name, _gone)}" if _gone
+                else "")
             return {
                 "captured": False,
                 "occupation_started": True,
                 "turns_required": turns_required,
                 "message": f"{region_name} is fortified! {marshal.name} must hold for "
-                           f"{_plural(int(turns_required), 'turn')} to capture.",
+                           f"{_plural(int(turns_required), 'turn')} to capture."
+                           + _siege_tail,
             }
         else:
             # INSTANT CAPTURE (existing behavior)
             old_controller = region.controller
             world.capture_region(region_name, marshal.nation)
+
+            if liberated_to:
+                # The capture handed the ground back (`capture_region`):
+                # hold it as the own-soil liberation does — no question, no
+                # plunder, no estate rule — log it and say it, ONCE, here.
+                _line = _ws_mod.complete_liberation(
+                    world, region, marshal.nation, old_controller, liberated_to)
+                return {
+                    "captured": True,
+                    "occupation_started": False,
+                    "old_controller": old_controller,
+                    "capture_choice": "liberated",
+                    "auto_secured": False,
+                    "liberated_to": liberated_to,
+                    # S14G-X10 (Pre-Deploy S14h part 1, October 26, 2026): the
+                    # court by its printed name (article and all) - the three
+                    # client lines that echoed a liberation as a capture read it.
+                    "liberated_to_name": _ws_mod.court_named(world, liberated_to),
+                    "liberation_line": _line,
+                    "message": _line,
+                }
 
             # Phase 6.2.E: Plunder/Secure choice
             ai_choice = None
@@ -12789,7 +12986,7 @@ class CombatExecutor:
                 # AI capture — auto-decide by personality
                 ai_choice = self._apply_ai_capture_choice(marshal, region, world, old_controller=old_controller)
 
-            return {
+            result = {
                 "captured": True,
                 "occupation_started": False,
                 "old_controller": old_controller,
@@ -12800,6 +12997,26 @@ class CombatExecutor:
                 "auto_secured": auto_secured,
                 "message": "",
             }
+            if _gone:
+                # S14G-D1: the home court is gone — the capture stays a
+                # conquest and the reply says why in one clause.
+                result["liberation_gone_line"] = _ws_mod.liberation_gone_clause(
+                    world, region_name, _gone)
+            return result
+
+    @staticmethod
+    def _capture_words(capture_result, default: str) -> str:
+        """S14G-1 / S14G-D1: THE sentence a capture reports at every site
+        that announces one (the attack, the garrison assault, the unopposed
+        march, the bombardment's advance, the charge): the liberation's own
+        line when the ground was handed back to its home nation, else
+        `default` — with the one clause appended when the home court is gone
+        ("Bavaria's court is gone — Munich is held for the peace.")."""
+        result = capture_result or {}
+        if result.get("liberation_line"):
+            return f" {result['liberation_line']}"
+        gone = result.get("liberation_gone_line")
+        return default + (f" {gone}" if gone else "")
 
     # ════════════════════════════════════════════════════════════════════════════════
     # AUTO-DISPATCH COMBAT METHODS (R10B)
@@ -12985,8 +13202,10 @@ class CombatExecutor:
                     message += f"[{_plural(int(remaining_distance) - 1, 'more move')} needed to reach attack range]"
 
                 # S14E-X151 (XR3a's sweep): the step onto allied soil says the pay it now draws.
-                from backend.commands.movement_executor import campaign_pay_note
+                from backend.commands.movement_executor import campaign_pay_note, front_note
                 message += campaign_pay_note(world, closest_marshal, next_region, old_location)
+                # S14G-X29: ... and the front the step is.
+                message += front_note(world, closest_marshal, next_region)
 
                 if filtered_out:
                     message = f"[NOTE: {', '.join(filtered_out)}]\n\n" + message

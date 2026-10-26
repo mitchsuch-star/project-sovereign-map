@@ -702,10 +702,24 @@ func update_diplomatic_fields(data: Dictionary):
 		mission_summary = "Idle"
 	_set_talleyrand_summary(mission_summary)
 
+	# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the Cabinet's lock
+	# rides the same payload - the Envoys badge's tooltip says whose letter
+	# shuts it (`update_mailbox_count` reads it).
+	if data.has("cabinet_locked"):
+		_cabinet_locked = bool(data.get("cabinet_locked", false))
+		var locked_by = data.get("cabinet_locked_by", [])
+		_cabinet_locked_by = locked_by.duplicate() if locked_by is Array else []
+		_cabinet_locked_until = int(data.get("cabinet_locked_until", 0))
+
 	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
 
 
 var _current_envoy_count: int = 0
+# S14G-6: the Cabinet's lock as the last diplomatic payload said it (whether a
+# letter that locks stands, whose, and to which turn) - the badge's tooltip.
+var _cabinet_locked: bool = false
+var _cabinet_locked_by: Array = []
+var _cabinet_locked_until: int = 0
 
 func get_envoy_count() -> int:
 	return _current_envoy_count
@@ -760,6 +774,13 @@ func update_mailbox_count(envoy_count: int):
 	if envoy_count > 0:
 		mailbox_btn.text = "Envoys (" + str(envoy_count) + ")"
 		mailbox_btn.tooltip_text = Utils.plural(envoy_count, "pending envoy") + (" awaits" if envoy_count == 1 else " await") + " your reply."
+		# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the badge says
+		# the lock too - which court's letter shuts the Cabinet, in the one
+		# sentence every surface uses (`Utils.cabinet_shut_line`). A lesser
+		# court's routine letter shuts nothing and the badge says nothing of
+		# the Cabinet for it (S14G-D3).
+		if _cabinet_locked:
+			mailbox_btn.tooltip_text += " " + Utils.cabinet_shut_lead(_cabinet_locked_by, true) + Utils.cabinet_shut_line(_cabinet_locked_until)
 		mailbox_btn.add_theme_stylebox_override("normal", _mailbox_alert_style)
 		mailbox_btn.add_theme_stylebox_override("hover", _mailbox_alert_hover_style)
 		mailbox_btn.add_theme_color_override("font_color", Utils.UI_WARNING)

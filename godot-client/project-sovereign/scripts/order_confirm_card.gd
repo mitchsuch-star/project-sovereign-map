@@ -279,6 +279,15 @@ func show_group(quotes: Array, ap_left: int) -> void:
 		var pay_row := str(q.get("pay", ""))   # S14E-X67: the campaign pay the destination draws
 		if pay_row != "":
 			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + pay_row + "[/color]")
+		var guard_row := str(q.get("guard", ""))   # S14G-11: the guarded ground the road crosses (the Ansbach trap's price)
+		if guard_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + guard_row + "[/color]")
+		var front_row := str(q.get("front", ""))   # S14G-7: the front the destination is (an ally's province whose war a truce of ours leaves running)
+		if front_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + front_row + "[/color]")
+		var terms_row := str(q.get("terms", ""))   # S14G-2 / S14G-3: what the standing order does once taken
+		if terms_row != "":
+			lines.append("   [color=#" + Utils.COLOR_WARNING + "]" + terms_row + "[/color]")
 	var send: Array = plan["send"]
 	var sum_line := "[b]" + Utils.plural(int(plan["total"]), "action") + " of " + str(ap_left) + " in hand[/b]"
 	if send.is_empty():
@@ -464,6 +473,18 @@ func _terms(q: Dictionary) -> String:
 	var pay := str(q.get("pay", ""))
 	if pay != "":
 		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + pay + "[/color]")
+	# S14G-11: the guarded ground the road crosses - the Ansbach trap's price (the typed order asks the same).
+	var guard := str(q.get("guard", ""))
+	if guard != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + guard + "[/color]")
+	# S14G-7: the front the destination is - an ally's province whose war a truce of ours leaves running.
+	var front := str(q.get("front", ""))
+	if front != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + front + "[/color]")
+	# S14G-2 / S14G-3: what the standing order does once taken (a support's lapse, an aggressive man's interrupt).
+	var terms_text := str(q.get("terms", ""))
+	if terms_text != "":
+		lines.append("[color=#" + Utils.COLOR_WARNING + "]" + terms_text + "[/color]")
 	return "\n".join(lines)
 
 

@@ -1807,13 +1807,20 @@ def _answer_reach_by_the_march(world, player: str, marshal, shown: str,
     # S14E-22 / S14E-X67 (the sweep): the quote's two riders — the detour
     # round a road the diplomacy shuts, and the campaign pay the stop draws —
     # so "can he reach it" says what the march would.
-    from backend.commands.movement_executor import campaign_pay_line
+    from backend.commands.movement_executor import campaign_pay_line, front_line
     detour = _road.march_detour_reading(world, marshal, place, road)
     if detour is not None:
         answer += " " + _road.march_detour_sentence(place, detour)
     pay = campaign_pay_line(world, marshal, place)
     if pay:
         answer += " " + pay
+    # S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): and the front the
+    # stop is, if a truce of ours leaves the ally's war on that soil - the
+    # march's own sentence (`movement_executor.front_line`), so "can he reach
+    # it" says what the march would. No new seam.
+    front = front_line(world, marshal, place)
+    if front:
+        answer += " " + front
     state = _road.march_state_refusal(world, marshal)
     if state:
         answer = (f"Not today, Sire — {state} "

@@ -767,7 +767,14 @@ DIPLOMATIC_TEMPLATES = {
             {
                 "label": "Offer concessions",
                 "description": "Sweeten the deal with gold or territory to secure acceptance.",
-                "action": "execute_proposal",
+                # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): this
+                # option sent the SAME package as "Sue for peace" under a
+                # label that promised gold or territory (the menu's body now
+                # prints each option's terms and the two read identical). It
+                # opens the confirm's own sweetened round instead
+                # (`modify_generous` on the drafted peace) — concessions, the
+                # court's reading and the price shown, nothing sent.
+                "action": "modify_generous",
                 "proposal_type": "peace",
             },
             {
@@ -3645,6 +3652,49 @@ def generate_ultimatum_terms(target_nation: str, world, *, issuer: str = None,
 # prior producer.
 
 
+def inject_coveted_cession(terms: Dict, region: str) -> Dict:
+    """S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the ONE builder of a
+    coveted-province cession — the `territory_cede` sweetener (replacing any
+    other cession) and its `territory_<name>` string clause, exactly what
+    `generate_suggested_terms`' coveted-territory arm authored inline. Lifted
+    out so the design counsel's confirm (`design_peace_terms`) puts the very
+    same clause pair on the table instead of a second copy of it. Mutates and
+    returns `terms`."""
+    terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
+                           if s.get("type") != "territory_cede"]
+    terms["sweeteners"].append(
+        {"type": "territory_cede", "value": 1, "regions": [region]})
+    bonus_clause = f"territory_{region.lower()}"
+    terms.setdefault("clauses", [])
+    if bonus_clause not in terms["clauses"]:
+        terms["clauses"].append(bonus_clause)
+    return terms
+
+
+def design_peace_terms(world, target_nation: str, coveted: List[str]) -> Dict:
+    """S14G-8: the peace Talleyrand's "Satisfy their design" counsel puts on the
+    table — the existing suggested-terms pipeline (`generate_suggested_terms`,
+    centred: no gold jitter, so the quote and the send are one figure) with the
+    first coveted province France holds ceded beside it, through the same
+    clause builder the pipeline's own `war_score < -20` arm calls. At war score
+    +0 the pipeline alone never authors the cession, so the "peace" could not
+    satisfy the design (the sighting); the estimator then scores the whole
+    package, design credit included (`agendas.agenda_acceptance_mod`)."""
+    terms = generate_suggested_terms(target_nation, "peace", world, deterministic=True)
+    if coveted:
+        inject_coveted_cession(terms, str(coveted[0]))
+        # The pipeline's commentary was written for the draft WITHOUT the
+        # cession ("serves both parties' interests"); the package now carries
+        # one, and the line says what it is and what it costs.
+        from backend.display_names import display_nation, humanize_entity_name
+        terms["talleyrand_commentary"] = (
+            f"{display_nation(target_nation)}'s design names "
+            f"{humanize_entity_name(str(coveted[0]))}, Sire. Ceded, it answers "
+            f"what their court fights for — and it is a province of ours to "
+            f"give: weigh what it costs against what the peace buys.")
+    return terms
+
+
 def generate_suggested_terms(target_nation: str, proposal_type: str, world,
                              deterministic: bool = False) -> Dict:
     """Generate smart treaty terms based on game state AND nation-specific knowledge.
@@ -3711,14 +3761,11 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world,
     # base terms already authored (has_territory_sweetener) stays legal.
     if has_territory_sweetener or (coveted and war_score < -20 and not target_holds_all_coveted):
         if coveted:
-            terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
-                                   if s.get("type") != "territory_cede"]
-            terms["sweeteners"].append(
-                {"type": "territory_cede", "value": 1, "regions": [coveted[0]]})
-            bonus_clause = f"territory_{coveted[0].lower()}"
-            terms.setdefault("clauses", [])
-            if bonus_clause not in terms["clauses"]:
-                terms["clauses"].append(bonus_clause)
+            # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the clause
+            # pair is built by the ONE helper the design counsel's confirm
+            # also calls (`design_peace_terms`) — byte-identical to the
+            # inline build it replaced.
+            inject_coveted_cession(terms, coveted[0])
             context_tags.append("coveted_territory_offered")
         elif has_territory_sweetener:
             candidates = rank_cession_candidates(world, player_nation, target_nation)

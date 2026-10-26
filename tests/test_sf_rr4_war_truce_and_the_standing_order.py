@@ -637,16 +637,28 @@ class TestEGX5TheDrivenArm:
     Munich, whose works held 2,000 (Austria's capture had emptied them)."""
 
     def test_the_report_names_the_garrison(self, tmp_path):
+        """Flipped consciously (S14G-1 / S14G-D1, Pre-Deploy S14h part 1, Oct 26
+        2026): this driven arm IS the sighting - on turn 6 Lannes's field win
+        retakes Munich, BAVARIA's capital, from Austria. It is a liberation,
+        handed back at once: no plunder question (no `capture_choice[capture]`
+        popup in the digest) and the report's capture note leads with the
+        liberation's own line instead of "Munich falls to Lannes." The works
+        the win took are still named (EG-X5's clause, unchanged)."""
         arm = _drive(tmp_path, "CMD-H", "historical", 6)
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
-        assert "capture_choice[capture]: Munich" in block
-        assert "Munich falls to Lannes. The last 2,000 of the garrison at Munich give way." in block
+        assert "capture_choice[capture]: Munich" not in block
+        assert "Munich falls to Lannes" not in block
+        assert ("Munich, Bavaria's capital, retaken — handed back to Bavaria. "
+                "The last 2,000 of the garrison at Munich give way.") in block
 
     def test_seam_down_the_capture_is_silent(self, tmp_path):
+        """The garrison line held down: the capture note is silent (Munich's
+        works are not named); the liberation of S14G-1 is untouched by it -
+        still no plunder question on the turn."""
         arm = _drive(tmp_path, "CMD-H", "historical", 6,
                      "--seam", 'backend.game_logic.garrison_report:capture_garrison_line=""')
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
-        assert "capture_choice[capture]: Munich" in block
+        assert "capture_choice[capture]: Munich" not in block
         assert "garrison" not in block.lower()
 
 

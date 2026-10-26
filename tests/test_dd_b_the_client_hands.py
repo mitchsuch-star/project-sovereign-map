@@ -595,7 +595,10 @@ class TestTheThirdMeasureRecords:
             line = next(ln for ln in bugs.splitlines() if ln.startswith(f"| **{c['id']}** |"))
             assert self.TAG in line, c["id"]
             assert f"pillar={c['pillar']}⟩" in line, c["id"]
-            assert "OPEN — owner S14h" in line, c["id"]
+            # S14h part 1 (October 26, 2026): the twelve P2s read FIXED by the part;
+            # the P3s stay OPEN until part 2 closes them.
+            assert ("OPEN — owner S14h" in line
+                    or "✅ FIXED October 26, 2026 — S14h part 1" in line), c["id"]
             assert f"tests/test_s14h_the_third_measure_rows.py::Test{c['id'].replace('-', '')}" in line, c["id"]
             if c.get("dr_id"):
                 assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
@@ -625,8 +628,12 @@ class TestTheThirdMeasureRecords:
         part = {"D1": 1, "D2": 1, "D3": 1, "D6": 1, "D4": 2, "D5": 2}
         for k, n in part.items():
             row = rows[f"S14G-{k}"]
-            assert "OPEN — ruled as recommended on October 26, 2026" in row, k
-            assert f"owner S14h part {n} builds it" in row, k
+            if n == 1:
+                # S14h part 1 (October 26, 2026) built D1, D2, D3 and D6 as recommended.
+                assert "**BUILT October 26, 2026 — S14h part 1, as recommended" in row, k
+            else:
+                assert "OPEN — ruled as recommended on October 26, 2026" in row, k
+                assert f"owner S14h part {n} builds it" in row, k
             assert f"TestS14G{k}" in row, k
         assert "✅ RULED as recommended on October 26, 2026" in rows["S14G-D7"]
         assert "no fourth measure runs before the deploy" in rows["S14G-D7"]

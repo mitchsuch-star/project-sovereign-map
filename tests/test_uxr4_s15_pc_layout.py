@@ -263,9 +263,14 @@ class TestPCF46:
         # the answers stand outside the scroll, inside the window
         view = [0.0, 0.0, vw, vh]
         names = {b["text"] for b in frame["buttons"] if b["text"]}
-        assert {"Accept", "Reject", "Not Now"} <= names
+        # S14G-6 (Pre-Deploy S14h part 1): an armistice is a war decision, so
+        # the letter LOCKS the Cabinet and its Not Now says so on its face
+        # ("Not Now (Cabinet stays shut)"); a lesser court's courtesy keeps
+        # the plain "Not Now". Either way the answers stand inside the window.
+        assert {"Accept", "Reject"} <= names
+        assert names & {"Not Now", "Not Now (Cabinet stays shut)"}
         for b in frame["buttons"]:
-            if b["text"] in ("Accept", "Reject", "Not Now"):
+            if b["text"] in ("Accept", "Reject", "Not Now", "Not Now (Cabinet stays shut)"):
                 assert _inside(b["rect_raw"], view), b
 
     def test_driven_the_authored_floor_still_fits_a_small_window(self, drive):
@@ -278,7 +283,7 @@ class TestPCF46:
         r = _panel(frame, "IncomingProposalPopup")
         assert r[1] >= 44 - 0.5 and r[1] + r[3] <= vh - 12 + 0.5 and r[0] >= 12 - 0.5 and r[0] + r[2] <= vw - 12 + 0.5
         for b in frame["buttons"]:
-            if b["text"] in ("Accept", "Reject", "Not Now"):
+            if b["text"] in ("Accept", "Reject", "Not Now", "Not Now (Cabinet stays shut)"):   # S14G-6
                 assert _inside(b["rect_raw"], [0.0, 0.0, vw, vh]), b
 
     @pytest.mark.parametrize("size", SIZES)

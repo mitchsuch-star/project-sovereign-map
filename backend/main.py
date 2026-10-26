@@ -766,6 +766,11 @@ def build_base_response(world, success: bool = True, message: str = "",
         # S14E-X92: the turn a standing call to arms keeps it shut to (0 = it
         # lifts when the turn ends) - the tooltip's sentence names it.
         "cabinet_locked_until": _cabinet_locked_until(world),
+        # S14G-6 (Pre-Deploy S14h part 1): WHOSE letters shut it - the printed
+        # court names, so the Cabinet button's face and tooltip, the Envoys
+        # badge and the wizard's notice can say who stands in the way. Only a
+        # great court's letter, an ultimatum or a war decision locks (S14G-D3).
+        "cabinet_locked_by": _cabinet_locked_by(world),
         # Aug 30, 2026 review: the badge counts every letter in the book;
         # the end-turn LAPSE warning must count only the ones that lapse.
         # A persistent settlement offer survives the turn by design, so
@@ -1280,6 +1285,27 @@ def _cabinet_locked_until(world) -> int:
     except Exception as exc:
         _errors.report(exc, "main._cabinet_locked_until: call_to_arms.answer_by_turn")
         return 0
+
+
+def _cabinet_locked_by(world) -> list:
+    """S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): WHO shuts the
+    Cabinet - the courts whose unanswered letters lock it
+    (`DialogueManager.locking_letters`, the one predicate
+    `letter_locks_cabinet`), by their printed form ("Austria", "the Ottoman
+    Empire"; a formed nation by its current name), once each, active slot
+    first. [] when nothing locks. Rides `cabinet_locked` beside
+    `cabinet_locked_until`, so the Cabinet button, the Envoys badge and the
+    wizard's notice can say whose letter stands in the way - the lock used to
+    be said only as a sentence with no one in it."""
+    # S14G-X26 (Pre-Deploy S14h part 1, October 26, 2026): the names are
+    # `DialogueManager.locking_court_names` - the Vassals tab reads the same
+    # method, so the wire and the ledger can never name different courts (this
+    # body was its copy).
+    try:
+        return list(world.dialogue_manager.locking_court_names(world))
+    except Exception as exc:
+        _errors.report(exc, "main._cabinet_locked_by: locking_court_names")
+        return []
 
 
 def _copy_truthy_result_fields(
@@ -3135,6 +3161,7 @@ def test_connection():
         "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
         "cabinet_locked": bool(world.dialogue_manager.has_current_turn_offers()),   # S14E-18
         "cabinet_locked_until": _cabinet_locked_until(world),   # S14E-X92
+        "cabinet_locked_by": _cabinet_locked_by(world),   # S14G-6
         "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
         "pending_lapsing_petitions": _pending_lapsing_petitions(world),
         "pending_lapsing_moments": _pending_lapsing_moments(world),   # S14C-X26
@@ -7480,6 +7507,11 @@ def _diplomatic_preview_payload(
                 # turn a standing call to arms keeps the Cabinet shut to.
                 "dialogue_pending_name": _dialogue_pending_name(world),
                 "cabinet_locked_until": _cabinet_locked_until(world),
+                # S14G-6: whether a LETTER is what shuts it, and whose - the
+                # wizard's notice names the courts; a lesser court's routine
+                # letter is no part of the lock (S14G-D3).
+                "cabinet_locked": bool(dm.has_current_turn_offers()),
+                "cabinet_locked_by": _cabinet_locked_by(world),
                 "pending_envoy_count": int(dm.get_mailbox_count()),
                 "pending_lapsing_count": int(dm.get_lapsing_count(int(world.current_turn))),
                 "pending_lapsing_petitions": _pending_lapsing_petitions(world),
@@ -7522,6 +7554,8 @@ def _diplomatic_preview_payload(
             ),
             "dialogue_pending_name": _dialogue_pending_name(world),   # S14E-X91
             "cabinet_locked_until": _cabinet_locked_until(world),   # S14E-X92
+            "cabinet_locked": bool(world.dialogue_manager.has_current_turn_offers()),   # S14G-6
+            "cabinet_locked_by": _cabinet_locked_by(world),   # S14G-6
             "pending_envoy_count": int(world.dialogue_manager.get_mailbox_count()),
             "pending_lapsing_count": int(world.dialogue_manager.get_lapsing_count(int(world.current_turn))),
             "pending_lapsing_petitions": _pending_lapsing_petitions(world),
@@ -7856,7 +7890,34 @@ def _wire_dialogue(active_world, dialogue):
     staged settlement table leaves without the scorer's debug floats, also on
     a copy."""
     from backend.game_logic import first_open
-    return _dialogue_settlement_for_wire(first_open.with_line(active_world, dialogue))
+    return _dialogue_cabinet_lock_for_wire(
+        active_world,
+        _dialogue_settlement_for_wire(first_open.with_line(active_world, dialogue)))
+
+
+def _dialogue_cabinet_lock_for_wire(active_world, dialogue):
+    """S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): a letter leaves with
+    the lock's verdict on a COPY - `locks_cabinet` (bool), from the ONE
+    predicate (`DialogueManager.letter_locks_cabinet`) - so the popup can say,
+    under its buttons and in its body, whether leaving it unanswered shuts the
+    Cabinet (a great court's letter, an ultimatum or a war decision does; a
+    lesser court's routine letter does not - S14G-D3). The stored dialogue
+    never gains the key. The letter is the dialogue itself (a
+    `diplomatic_dialogue` payload) or the popup payload derived from it, found
+    by its `dialogue_id`; anything that is not a held current-turn offer
+    passes through untouched."""
+    if not isinstance(dialogue, dict):
+        return dialogue
+    dm = getattr(active_world, "dialogue_manager", None)
+    if dm is None:
+        return dialogue
+    item = dialogue if str(dialogue.get("type") or "") in dm.CURRENT_TURN_OFFER_TYPES \
+        else dm.find_letter(dialogue.get("dialogue_id"))
+    if not isinstance(item, dict) or str(item.get("type") or "") not in dm.CURRENT_TURN_OFFER_TYPES:
+        return dialogue
+    out = dict(dialogue)
+    out["locks_cabinet"] = bool(dm.item_locks_cabinet(item))
+    return out
 
 
 def _wire_result_dialogues(active_world, result: dict) -> dict:

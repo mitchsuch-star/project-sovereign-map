@@ -802,6 +802,32 @@ def _tribute_note(world, name: str, tribute: int, rate_pct: int) -> str:
     return f"+{int(tribute):,}g/turn ({rate_pct}% of their income)"
 
 
+def _vassal_block_cause(world) -> Dict[str, Any]:
+    """S14G-X25 (Pre-Deploy S14h part 1, October 26, 2026): what suspends the
+    Vassals tab's instruments, for the notice to NAME. It said "Envoys await
+    your reply - vassal instruments are suspended until the matter is
+    answered" with no court in it, and "envoys" even when a hard-stop dialogue
+    (the terms being drafted, a war purpose yet to be declared) was the whole
+    cause. Read in the wizard's own order (`cabinet_locked_by` first, then
+    `dialogue_pending_name`): an unanswered letter that shuts the Cabinet
+    (`DialogueManager.locking_letters`, S14G-6's one predicate) names its
+    courts; else the hard-stop / local-planning dialogue is named by its
+    player-facing name (`display_names.dialogue_display_name`). `blocked_by`
+    is "letter", "dialogue" or "" - display only (GR6); strings and a list of
+    strings, no numbers."""
+    dm = world.dialogue_manager
+    if dm.locking_letters():
+        return {"blocked_by": "letter",
+                "blocked_by_courts": list(dm.locking_court_names(world)),
+                "blocked_by_dialogue": ""}
+    if dm.is_hard_stop() or dm.is_local_planning():
+        from backend.display_names import dialogue_display_name
+        return {"blocked_by": "dialogue", "blocked_by_courts": [],
+                "blocked_by_dialogue": dialogue_display_name(
+                    str((dm.peek() or {}).get("type") or ""))}
+    return {"blocked_by": "", "blocked_by_courts": [], "blocked_by_dialogue": ""}
+
+
 def _build_vassals(world) -> Dict[str, Any]:
     """Build the Vassals tab: the player's client states with the full
     decision picture (loyalty / autonomy / tribute / next-turn forecast)
@@ -832,6 +858,7 @@ def _build_vassals(world) -> Dict[str, Any]:
     actions_blocked = bool(
         dm.is_hard_stop() or dm.has_current_turn_offers() or dm.is_local_planning()
     )
+    blocked_cause = _vassal_block_cause(world)
 
     # VS-R lever blunting is per-lord — hoist out of the loop. The gain
     # fields mirror the executor math EXACTLY (invest_in_vassal /
@@ -965,6 +992,8 @@ def _build_vassals(world) -> Dict[str, Any]:
         "count": int(len(rows)),
         "total_tribute": int(total_tribute),
         "actions_blocked": actions_blocked,
+        # S14G-X25: WHAT suspends the instruments (see `_vassal_block_cause`).
+        **blocked_cause,
     }
 
 
@@ -1551,12 +1580,19 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         _rows = _league.league_rows(world)
         if _rows:
             from backend.game_logic.instruments import (
-                COMPENSATION_TERM_TURNS, INSTRUMENT_DP_COST)
+                COMPENSATION_TERM_TURNS, INSTRUMENT_DP_COST,
+                buyoff_league_clause)
             result["league_rows"] = _rows
+            # S14G-9 / S14G-D6 (Pre-Deploy S14h part 1, October 26, 2026): the
+            # footer said only that a buy-off "puts the design to sleep" - the
+            # player read that the court was out of the league. It is not: the
+            # league forms on relations, so the footer carries the ONE sentence
+            # of what the buy-off does to her place in it.
             result["league_footer"] = (
                 f"Talleyrand courts one court at a time; a buy-off is one "
                 f"order each ({INSTRUMENT_DP_COST} DP and the gold named) and "
-                f"puts the design to sleep {COMPENSATION_TERM_TURNS} turns. "
+                f"puts the design to sleep {COMPENSATION_TERM_TURNS} turns — "
+                f"{buyoff_league_clause()}. "
                 f"The forecast holds the board still.")
         _line = _league.league_summary_line(world)
         if _line:

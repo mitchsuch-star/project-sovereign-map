@@ -3697,7 +3697,12 @@ class CommandExecutor:
                 marshal, target, world, game_state,
                 raw_input=(command.get("_raw_input")
                            if isinstance(command, dict) else None),
-                strategic_execution=is_strategic_execution)
+                strategic_execution=is_strategic_execution,
+                # S14G-X50 (Pre-Deploy S14h part 1, October 26, 2026): an
+                # answered guard ask rides the command as a flag (the way
+                # `_strategic_execution` does) - the move never asks twice.
+                guard_confirmed=bool(isinstance(command, dict)
+                                     and command.get("_guard_confirmed")))
         elif action == "scout":
             return self._movement._execute_scout(marshal, target, world, game_state)
         elif action == "retreat":

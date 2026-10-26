@@ -279,6 +279,12 @@ HEADLINE_WEIGHTS: Dict[str, int] = {
     # CA8-26: a routine conquest is a success below every direct wound to
     # France's own body and above Europe's business and the household nags.
     "region_taken": 68,         # France conquers a province (non-capital)
+    # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1, October 26, 2026): an ALLY's
+    # or client's province retaken from the enemy and HANDED BACK at once —
+    # the same rank as a routine conquest, its own class so the absorption
+    # rule (a won field carries `region_taken`) does not swallow the line
+    # that says whose ground it is.
+    "region_liberated": 68,
     "ally_broken": 60,          # ally suffered a major defeat
     "estate_eroding": 55,       # ES-7 erosion began
     # Econ spec review §6 (a): the establishment stands under the ordinance
@@ -651,6 +657,7 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     "capital_stormed": "Sire — {line}",
     "victory_won": "Sire — {line}",
     "region_taken": "Sire — {line}",
+    "region_liberated": "Sire — {line}",   # S14G-1
 }
 
 # Beat-7 cause copy for the headline arm (R7 — composed backend-side).
@@ -773,7 +780,15 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     # opening did not) — these stand for the census and a direct caller.
     "league_fuse": "Quiet is a clock, Sire. Every turn we keep the peace, Europe counts — and arms.",
     "league_joins": "A court that would march can still be talked out of it, Sire. The Balance of Europe names the price.",
-    "league_paid": "Gold buys armies, Sire. A court bought off now is a regiment the league never fields.",
+    # S14G-9 / S14G-D6 (Pre-Deploy S14h part 1, October 26, 2026): was "Gold buys
+    # armies, Sire. A court bought off now is a regiment the league never
+    # fields." - the league forms on RELATIONS (`qualifies_for_coalition`), never
+    # on a sleeping design, so two buy-offs left Britain and Russia "joining"
+    # under the very note that promised otherwise. The −10 is
+    # `coalition.LEAGUE_KEEP_OUT_RELATION` (pinned equal).
+    "league_paid": ("Gold buys a design's sleep, Sire, not a court's goodwill — a "
+                    "court bought off still counts toward the league while its "
+                    "relations stand under −10."),
     "league_bound": "A peace binds only while its ink is wet, Sire. Use the turns it gives.",
     "league_unmarched": "A league is only as strong as the roads its armies can walk, Sire. Strike the courts that can reach us; the others wait on the sea and on their neighbours.",
     "courts_treaties": "The chanceries are busy, Sire. Every treaty they sign is a line drawn on our map.",
@@ -865,6 +880,8 @@ _HEADLINE_BERTHIER_NOTES: Dict[str, str] = {
     "capital_stormed": "Their capital in our hands is worth ten field victories, Sire. Expect their court to sue — or to flee.",
     "victory_won": "The army knows it is winning, Sire. Press the advantage before their line reforms.",
     "region_taken": "Ground taken must be garrisoned or it bleeds, Sire. Decide what this province is for.",
+    # S14G-1: the ground is the ally's again — no garrison of ours to decide.
+    "region_liberated": "He holds what is his own again, Sire. The column that gave it back is free to march on.",
 }
 
 
@@ -2500,6 +2517,17 @@ def _build_headline(world, player_nation: str,
                         _add("region_lost", f"region_lost:{region}",
                              region=region,
                              captor=formed_display_name(world, captor))
+            elif captor == player_nation and region and e.get("liberated_to"):
+                # ── S14G-1 / S14G-D1: an ALLY's ground handed back ──────
+                # The capture was no conquest — the `region_captured` row
+                # names the court it went back to (`liberated_to`), and the
+                # line is THE one builder's (`world_state.liberation_line`),
+                # the sentence the attack reply and the campaign log carry.
+                from backend.models.world_state import liberation_line
+                _add("region_liberated", f"region_liberated:{region}",
+                     line=liberation_line(
+                         world, region, str(e.get("liberated_to")),
+                         capital=bool(e.get("capital"))))
             elif captor == player_nation and region:
                 # ── CA8-26 / gate CA8-D6: France's own conquest is NEWS ──
                 # The dispatch had no headline class for a French success at
@@ -4568,6 +4596,167 @@ def _derive_danger(marshal, world, player_nation: str,
 
 
 def end_turn_army_warning(world, nation: str) -> Optional[str]:
+    """The end-turn gate's army line: S14G-2's interrupt clause(s) first
+    (`end_turn_interrupt_warning`), then S14E-7's morale pairing
+    (`end_turn_morale_warning`), whose question closes the card. One string on
+    the one key the client already reads (`end_turn_army_warning`) and
+    latches — the gate stops once and re-arms when the words change. None when
+    neither has anything to say. A pure read; the morale half is byte-for-byte
+    what S14E-7 shipped."""
+    interrupt = end_turn_interrupt_warning(world, nation)
+    morale = end_turn_morale_warning(world, nation)
+    if interrupt and morale:
+        return f"{interrupt} {morale}"
+    return interrupt or morale
+
+
+_OFF_PHRASES = {0: "in his own province", 1: "one province off", 2: "two provinces off"}
+_INTERRUPT_LINES_NAMED = 3
+
+
+def end_turn_interrupt_warning(world, nation: str) -> Optional[str]:
+    """S14G-2 + S14G-D2 (Pre-Deploy S14h part 1, October 26, 2026): the end-turn
+    gate's interrupt clause — one line per aggressive corps that holds a
+    standing order with a known enemy of a war of ours within the cannon-fire
+    range, or None.
+
+    "Massena (aggressive) holds a standing order at Bohemia with Kutuzov's
+    ~33,000 two provinces off — he will drop it for any battle within two
+    provinces in a war of ours." The ruling (S14G-D2) keeps the interrupt — the
+    aggressive man answers cannon fire (`strategic._check_interrupts`) — and
+    asks only that it be SAID: at the order (the reply and the quote read
+    `strategic.aggressive_interrupt_clause`) and here, at the click, from the
+    very facts the interrupt reads — the same persona gate
+    (`strategic.aggressive_interrupt_applies`: aggressive, the player's, not
+    on the treaty's road home), the same range (`strategic.CANNON_FIRE_RANGE`)
+    and the same suppression (`cannon_fire_ignored_turn`: a corps that chose
+    "Continue" is not interrupted this tick). A corps already halted on a
+    question is not re-warned.
+
+    Fog-legal: the enemy is one the player SEES (`get_visible_enemies`: at war
+    and standing, PARTIAL or better) and his strength the figure the player's
+    intel shows (`intel_surfaces.sighting_row`, as S14E-7's line). Player
+    nation only. Cheap by construction (Rule 8): the player's own roster, the
+    aggressive corps with orders first (a quiet board returns before any enemy
+    is read), then the visible enemies once — never a scan of the regions."""
+    if nation != getattr(world, "player_nation", None):
+        return None
+    from backend.commands import strategic as _st
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    held = []
+    for m in world.marshals.values():
+        if (m.nation != nation or int(m.strength) <= 0
+                or getattr(m, "captured_by", "")
+                or getattr(m, "pending_interrupt", None)):
+            continue
+        order = getattr(m, "strategic_order", None)
+        if order is None or not _st.aggressive_interrupt_applies(world, m, order):
+            continue
+        ignored = getattr(m, "cannon_fire_ignored_turn", None)
+        if ignored is not None and ignored >= turn - 1:
+            continue
+        held.append(m)
+    if not held:
+        return None
+    foes = [f for f in world.get_visible_enemies(nation) if f.location]
+    if not foes:
+        return None
+    from backend.game_logic import intel_surfaces as _surf
+    rows = {}
+    lines: List[str] = []
+    for m in sorted(held, key=lambda x: x.name):
+        best = None
+        for foe in foes:
+            hops = int(world.get_distance(m.location, foe.location))
+            if hops < 0 or hops > _st.CANNON_FIRE_RANGE:
+                continue
+            row = rows.get(foe.name)
+            if row is None:
+                row = rows[foe.name] = _surf.sighting_row(world, nation, foe)
+            if row is None:
+                continue
+            if row["visibility"] == FULL:
+                shown = int(row["strength"])
+                figure = str(row["strength_display"])
+            else:
+                shown = int(BAND_MIDPOINTS.get(row["strength_display"], 0))
+                figure = f"~{shown:,}"
+            rank = (-shown, str(row["name"]))
+            if best is None or rank < best[0]:
+                best = (rank, row, figure, hops)
+        if best is None:
+            continue
+        _rank, row, figure, hops = best
+        lines.append(
+            f"{humanize_entity_name(m.name)} (aggressive) holds a standing order at "
+            f"{m.location} with {row['name']}'s {figure} {_OFF_PHRASES.get(hops, 'near')} — "
+            f"he will drop it for {_st.AGGRESSIVE_INTERRUPT_TERMS}.")
+    if not lines:
+        return None
+    if len(lines) > _INTERRUPT_LINES_NAMED:
+        extra = len(lines) - _INTERRUPT_LINES_NAMED
+        lines = lines[:_INTERRUPT_LINES_NAMED]
+        lines.append(f"{extra} more aggressive corps "
+                     f"{'stands' if extra == 1 else 'stand'} likewise.")
+    return " ".join(lines)
+
+
+# S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): what each answer to a
+# marshal's question is called on the stored dispatch's HALTED line.
+INTERRUPT_ANSWER_WORDS = {
+    "continue_order": "continued",
+    "attack_again": "attacked again",
+    "attack": "attacked",
+    "attack_anyway": "attacked",
+    "investigate": "went to the guns",
+    "go_around": "went round",
+    "follow": "followed",
+    "hold_current": "held",
+    "hold_position": "held",
+    "cancel_order": "cancelled",
+    "cancel_support": "cancelled",
+    "fight_to_the_last": "fought to the last",
+    "attempt_breakout": "tried the breakout",
+    "cancel": "cancelled",
+}
+
+
+def mark_interrupt_answered(world, marshal_name: str, answer: str) -> bool:
+    """S14G-4: mark a corps' stored HALTED line answered. The end-turn
+    dispatch is built AFTER the advance has raised the corps' question
+    (S14E-30 shows it BEFORE the answer, deliberately), so its row reads
+    "HALTED at Orleanais — awaiting your word" — and the answer ("Continue
+    as Ordered") marched him on while the line stayed. The row, in
+    `world.last_morning_dispatch`, now reads "HALTED at Orleanais —
+    answered: continued." (status `answered`); only a row still
+    `awaiting_decision` is rewritten, and a row whose note is the marshal's
+    arc line (the arc outranks the halt note) keeps its note and takes the
+    status alone. Returns True when a row was marked. `answer` is the choice
+    the player made (`INTERRUPT_ANSWER_WORDS`) or free words. Pure
+    bookkeeping on the stored copy: the live re-read (`GET /dispatch`) is
+    re-derived from the roster and already says what he does now."""
+    dispatch = getattr(world, "last_morning_dispatch", None)
+    rows = dispatch.get("marshals") if isinstance(dispatch, dict) else None
+    if not rows:
+        return False
+    word = INTERRUPT_ANSWER_WORDS.get(str(answer or ""),
+                                      str(answer or "").replace("_", " ").strip())
+    for row in rows:
+        if not isinstance(row, dict) or row.get("name") != marshal_name:
+            continue
+        if row.get("status") != "awaiting_decision":
+            return False
+        note = str(row.get("status_note") or "")
+        if "awaiting your word" in note.lower():
+            head = note.split(" — ", 1)[0].strip()
+            row["status_note"] = (f"{head} — answered: {word}." if head
+                                  else f"Answered: {word}.")
+        row["status"] = "answered"
+        return True
+    return False
+
+
+def end_turn_morale_warning(world, nation: str) -> Optional[str]:
     """S14E-7: the end-turn gate's army line — ONE sentence, or None.
 
     Spent corps (strength standing, morale below `MORALE_FAILING_BELOW`, the
@@ -7857,9 +8046,17 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "province_changed_hands": (
         "{region} passes from {old_display} to {new_display}."
     ),
+    # S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): `{fate}` is the line's
+    # tail, read off the corps' own standing orders when the page is BUILT
+    # (`closed_soil_fate`): "they may march out, but no corps of ours may enter
+    # it again." — or, when Berthier's free road-home order already stands
+    # (`withdrawal.offer_road_home`, handed out at the turn's tick, after the
+    # capture), "Berthier has already put them on the road home to Nivernais
+    # (5 turns of safe passage), and no corps of ours may enter it again." The
+    # page had said "may march out" and "already marched" about the same corps.
     "corps_on_closed_soil": (
         "{marshals} {stand} on {region}, now {new_display}'s soil — {reason}: "
-        "{they} may march out, but no corps of ours may enter it again."
+        "{fate}"
     ),
     # AI-2d §12.6 — the allegiance auction's Courier beat.
     # DDB-34 (Pre-Deploy S13b part 2): the line names where to bid.
@@ -8444,7 +8641,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         from backend.game_logic.diplomacy import declaration_cost_clause
         cost = declaration_cost_clause(
             int(template_vars.get("relation_cost", 0) or 0),
-            str(template_vars.get("player") or "France"))
+            str(template_vars.get("player") or "France"),
+            aggressor=str(nation))      # S14G-10: whose relations fall
         if cost:
             text += f" — {cost}"
         return text + "."
@@ -8546,6 +8744,11 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         # SR-5r RF-2: a beat queued before the Orders in Council could deepen
         # the cut carries no words — it was halved then (never a raw brace).
         template_vars = dict(template_vars, trade_words="halved")
+    if event_type == "corps_on_closed_soil" and "fate" not in template_vars:
+        # S14G-7: a beat queued before the tail was a variable reads as it did.
+        template_vars = dict(template_vars, fate=(
+            f"{template_vars.get('they', 'they')} may march out, but no corps "
+            f"of ours may enter it again."))
     try:
         text = template.format(**template_vars)
     except (KeyError, IndexError):
@@ -8718,6 +8921,7 @@ def _build_diplomatic_events_section(world, player_nation: str) -> list:
             continue
 
         template_vars = _mission_line_vars(world, event_type, template_vars)
+        template_vars = _closed_soil_line_vars(world, event_type, template_vars)
         text = _format_dispatch_event_text(event_type, template_vars)
         if not text:
             # FA-N30 arm 1: a producer that composed its own sentence onto
@@ -8804,6 +9008,65 @@ def _mission_line_vars(world, event_type: str, template_vars: dict) -> dict:
     spent = dp * int(mission.get("turns_active") or 0)
     out["dp_bill"] = f"{dp} DP a turn, {spent} so far."
     return out
+
+
+def closed_soil_fate(world, names, they: str = "they") -> str:
+    """S14G-7: the tail of the `corps_on_closed_soil` line, read off the named
+    corps' standing orders. A corps Berthier has ALREADY put on the road home
+    (`withdrawal.is_road_home_order` — the free order `offer_road_home` hands
+    out at the turn's tick, after the capture that stranded it) is said to be
+    on it, with where it marches and the turns of safe passage the treaty
+    still affords (`withdrawal.passage_reading`); a corps with no such order
+    "may march out". The dispatch had said "they may march out" in the line
+    that announced the capture and "put on the road home to Nivernais; 5 turns
+    of safe passage" in the line beside it, about the same corps."""
+    shut = "no corps of ours may enter it again"
+    old = f"{they} may march out, but {shut}."
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.withdrawal import is_road_home_order, passage_reading
+    marshals = getattr(world, "marshals", None) or {}
+    on_road: Dict[str, str] = {}
+    rest: List[str] = []
+    for name in names or []:
+        marshal = marshals.get(name)
+        order = getattr(marshal, "strategic_order", None) if marshal is not None else None
+        if marshal is not None and is_road_home_order(order):
+            on_road[name] = str(getattr(order, "target", "") or "")
+        else:
+            rest.append(name)
+    if not on_road:
+        return old
+
+    def _names(keys) -> str:
+        shown = [humanize_entity_name(k) for k in keys]
+        return (", ".join(shown[:-1]) + " and " + shown[-1]) if len(shown) > 1 else shown[0]
+
+    dests = sorted({d for d in on_road.values() if d})
+    if len(dests) == 1:
+        where = f" to {dests[0]}"
+    elif dests:
+        where = " — " + ", ".join(f"{humanize_entity_name(k)} to {d}"
+                                  for k, d in on_road.items() if d)
+    else:
+        where = ""
+    turns = (passage_reading(world, getattr(world, "player_nation", "")) or {}).get("turns_left")
+    passage = (f" ({int(turns)} turn{'s' if int(turns) != 1 else ''} of safe passage)"
+               if turns else "")
+    put = f"Berthier has already put {_names(on_road)} on the road home{where}{passage}"
+    if not rest:
+        return f"{put}, and {shut}."
+    return f"{put}; {_names(rest)} may march out. No corps of ours may enter it again."
+
+
+def _closed_soil_line_vars(world, event_type: str, template_vars: dict) -> dict:
+    """S14G-7: the closed soil line's tail, read when the dispatch is BUILT —
+    the capture queued the event in the enemy phase, and Berthier's road-home
+    order is written at the turn's tick, after it (`closed_soil_fate`). An
+    event queued before the names rode it keeps its own `fate`."""
+    if event_type != "corps_on_closed_soil" or not template_vars.get("marshal_names"):
+        return template_vars
+    return dict(template_vars, fate=closed_soil_fate(
+        world, template_vars["marshal_names"], str(template_vars.get("they") or "they")))
 
 
 def _format_cascade_grouped_dispatch_event(world, group: Dict[str, Any]) -> Dict[str, Any]:

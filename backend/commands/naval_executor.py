@@ -663,9 +663,15 @@ class NavalExecutor:
             intercept_clause = f" {intercept}" if intercept else ""
             # S14E-X67: a landing on an ally's or a neutral court's shore draws
             # campaign pay (EAD-1) the card used to leave unsaid.
-            from backend.commands.movement_executor import campaign_pay_line
+            from backend.commands.movement_executor import campaign_pay_line, front_line
             _pay = campaign_pay_line(world, marshal, target)
             pay_clause = f" {_pay}" if _pay else ""
+            # S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): and the
+            # front the beach is, if a truce of ours leaves the ally's war on
+            # that shore (the march's own sentence, `front_line`).
+            _front = front_line(world, marshal, target)
+            if _front:
+                pay_clause += f" {_front}"
             return {
                 "success": True,
                 "free_action": True,
@@ -719,6 +725,7 @@ class NavalExecutor:
                 f" and puts {troops:,} men ashore at {target} "
                 f"(odds were {outcome['odds']} in 100).")
             capture = None
+            _landing_alarm = ""  # S14G-X12: the capture's alarm line, if it wrote any
             controller = getattr(target_region, "controller", None)
             if controller and controller != marshal.nation and world.is_at_war(
                     marshal.nation, controller):
@@ -771,8 +778,13 @@ class NavalExecutor:
                     # The existing land game takes over (§4.3): undefended
                     # soil falls through the SAME capture pipeline every
                     # march uses (capture-choice, estates, EC-W1 — all free).
+                    # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): the
+                    # capture's +2 is Europe's alarm - said, as the march's is.
+                    _landing_alarm_from = self._executor._combat._alarm_mark(world)
                     capture = self._executor._combat._attempt_region_capture(
                         marshal, target, world, game_state)
+                    _landing_alarm = self._executor._combat._alarm_rider(
+                        world, marshal, _landing_alarm_from)
                     # RR4-X10 (EG-X5's sibling): a capital's works, named.
                     if (isinstance(capture, dict) and capture.get("captured")
                             and not _surrenders):
@@ -794,6 +806,8 @@ class NavalExecutor:
                         result[key] = capture[key]
                 if capture.get("message"):
                     result["message"] = message + " " + str(capture["message"])
+                # S14G-X12: the alarm the landing's capture wrote.
+                result["message"] += _landing_alarm
             # WO-34 (found while building slice 15): the landing mounts the
             # plunder/secure question in world state through the shared
             # pipeline above, but this result carried only the three keys
@@ -820,10 +834,14 @@ class NavalExecutor:
                 if _road and _road not in result["message"]:
                     result["message"] += f" {_road}."
             # S14E-X67: and the campaign pay the beach draws, as the quote said.
-            from backend.commands.movement_executor import campaign_pay_line
+            from backend.commands.movement_executor import campaign_pay_line, front_line
             _landed_pay = campaign_pay_line(world, marshal, target, embarked_from)
             if _landed_pay:
                 result["message"] += f" {_landed_pay}"
+            # S14G-X29: ... and the front the beach is, as the quote said.
+            _landed_front = front_line(world, marshal, target)
+            if _landed_front:
+                result["message"] += f" {_landed_front}"
         elif outcome["intercepted"]:
             action = outcome.get("fleet_action")
             sea_line = ""

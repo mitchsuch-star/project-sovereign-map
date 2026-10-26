@@ -1549,7 +1549,11 @@ func _render_vassals():
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]" + str(rows.size()) + " client state" + ("s" if rows.size() != 1 else "")
 	bbcode += " remit [color=#" + Utils.COLOR_GOLD + "]+" + Utils.format_number(total_tribute) + "g/turn[/color] in tribute.[/color]\n"
 	if vassal_data.get("actions_blocked", false):
-		bbcode += "[color=#" + COLOR_AMBER + "]Envoys await your reply — vassal instruments are suspended until the matter is answered.[/color]\n"
+		# S14G-X25 (Pre-Deploy S14h part 1, October 26, 2026): the notice names
+		# what suspends the instruments - the court whose letter stands, or the
+		# dialogue awaiting an answer - where it said "Envoys await your reply"
+		# with no one in it (and "envoys" for a hard-stop dialogue too).
+		bbcode += "[color=#" + COLOR_AMBER + "]" + _vassal_block_notice(vassal_data) + "[/color]\n"
 	bbcode += "\n"
 
 	# UXR3-81 (Pre-Deploy S15 head, October 25, 2026): a court whose petition
@@ -1567,6 +1571,27 @@ func _render_vassals():
 		bbcode += _format_vassal_card(v, bool(vassal_data.get("actions_blocked", false)))
 
 	content_area.text = bbcode
+
+
+func _vassal_block_notice(vassal_data: Dictionary) -> String:
+	"""S14G-X25: the Vassals tab's suspended-instruments notice, naming its
+	cause (the backend's `blocked_by`: "letter" with `blocked_by_courts`, or
+	"dialogue" with `blocked_by_dialogue`). A letter's lead is the lock's one
+	wording (`Utils.cabinet_shut_lead`): "Austria's letter stands unanswered —
+	vassal instruments are suspended until it is answered." A dialogue's name is
+	a number-neutral noun phrase, so the sentence closes on "the matter"."""
+	var blocked_by = str(vassal_data.get("blocked_by", ""))
+	if blocked_by == "letter":
+		var courts = vassal_data.get("blocked_by_courts", [])
+		if not (courts is Array):
+			courts = []
+		var answered = "they are answered." if courts.size() > 1 else "it is answered."
+		return Utils.cabinet_shut_lead(courts, true) + "vassal instruments are suspended until " + answered
+	if blocked_by == "dialogue":
+		var dialogue_name = str(vassal_data.get("blocked_by_dialogue", ""))
+		if dialogue_name != "":
+			return "You have " + dialogue_name + " awaiting your answer — vassal instruments are suspended until the matter is answered."
+	return "A matter awaits your reply — vassal instruments are suspended until the matter is answered."
 
 
 func _vassal_petition_granted(v: Dictionary) -> bool:

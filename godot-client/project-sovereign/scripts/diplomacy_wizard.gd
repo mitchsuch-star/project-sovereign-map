@@ -373,7 +373,8 @@ func _render_nations(data: Dictionary):
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
 		# S14E-X91 / S14E-X92: the notice names the dialogue and the turn.
-		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")))
+		# S14G-6: and whose letter shuts it (`cabinet_locked_by`), when a letter does.
+		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")), data.get("cabinet_locked_by", []), bool(data.get("cabinet_locked", pending_envoy_count > 0)))
 		return
 
 	_add_first_open_line(data)
@@ -1104,7 +1105,8 @@ func _render_preview(data: Dictionary):
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
 		# S14E-X91 / S14E-X92: the notice names the dialogue and the turn.
-		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")))
+		# S14G-6: and whose letter shuts it (`cabinet_locked_by`), when a letter does.
+		_add_dialogue_gate_notice(pending_envoy_count, int(data.get("cabinet_locked_until", 0)), str(data.get("dialogue_pending_name", "")), data.get("cabinet_locked_by", []), bool(data.get("cabinet_locked", pending_envoy_count > 0)))
 		return
 
 	# S14d: the Cabinet's line is drawn on its FIRST view (step 1) only — at
@@ -1743,19 +1745,27 @@ func _add_loading_label():
 	content_list.add_child(lbl)
 
 
-func _add_dialogue_gate_notice(pending_envoy_count: int, locked_until: int = 0, dialogue_name: String = ""):
+func _add_dialogue_gate_notice(pending_envoy_count: int, locked_until: int = 0, dialogue_name: String = "", locked_by: Array = [], letter_locks: bool = true):
 	"""`locked_until` is the backend's `cabinet_locked_until` (S14E-X92: the
 	answer-by turn of a standing call to arms, 0 = the lock lifts when the turn
 	ends); `dialogue_name` is `dialogue_pending_name` (S14E-X91: the display
-	name of the hard-stop / local-planning dialogue that gates the wizard)."""
+	name of the hard-stop / local-planning dialogue that gates the wizard).
+	S14G-6: `locked_by` is `cabinet_locked_by` (the courts whose letters shut
+	the Cabinet) and `letter_locks` the backend's `cabinet_locked` - a LETTER is
+	what gates the wizard only when it says so: a lesser court's routine letter
+	(S14G-D3) is pending mail and no part of the lock, so a hard-stop dialogue
+	with such a letter waiting names the dialogue, not the envoy."""
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	if pending_envoy_count > 0:
+	if pending_envoy_count > 0 and letter_locks:
 		# S14E-18 (S14f part 2): the rule, in the sentence "Not Now" and the
 		# Cabinet button use — the notice named the envoy, never the lock.
-		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply — " + Utils.cabinet_shut_line(locked_until) + " Reopen Envoys to answer it.[/color]"
+		# S14G-6: and WHOSE letter it is, when the backend names the court.
+		var by_letters = Utils.cabinet_shut_letters(locked_by)
+		var whose = (" (" + by_letters + ")") if by_letters != "" else ""
+		lbl.text = "[color=#" + COLOR_ORANGE + "]An unanswered envoy awaits your reply" + whose + " — " + Utils.cabinet_shut_line(locked_until) + " Reopen Envoys to answer it.[/color]"
 	elif dialogue_name != "":
 		# S14E-X91: name the matter. Number-neutral on purpose -- several
 		# display names are plural noun phrases ("the terms you are drafting").
@@ -1763,7 +1773,7 @@ func _add_dialogue_gate_notice(pending_envoy_count: int, locked_until: int = 0, 
 	else:
 		lbl.text = "[color=#" + COLOR_ORANGE + "]Resolve the active dialogue first.[/color]"
 	content_list.add_child(lbl)
-	if pending_envoy_count > 0:
+	if pending_envoy_count > 0 and letter_locks:
 		_add_open_envoys_button(pending_envoy_count)
 
 

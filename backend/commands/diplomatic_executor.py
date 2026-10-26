@@ -76,6 +76,43 @@ def _nation_office(nation: str, office: str) -> str:
     return nation_office(nation, office)
 
 
+def proposal_cooldown_refusal(world, target_nation, proposal_type=None) -> Optional[str]:
+    """S14G-X35 (Pre-Deploy S14h part 1, October 26, 2026): the sentence that
+    refuses a proposal to a court that refused us lately, or None when the
+    court will hear it. The ONE predicate of `player_proposal_cooldowns` -
+    lifted out of `_execute_diplomatic_proposal` (the typed entry), which was
+    the only reader: a counsel or a menu road to a court that had refused us
+    the turn before reached the confirm and its send (`_choice_proposal`)
+    without it ever being asked, and the envoy departed (its DP spent) to a court that
+    would not receive him. The typed entry and the confirm's send both read
+    this; the two keys are the court's (any proposal) and the court's for this
+    TYPE. `remaining` is turns UNTIL she may be asked again (FA-95). Pure read;
+    player-only (the AI never walks a dialogue's send)."""
+    cooldowns = getattr(world, 'player_proposal_cooldowns', None) or {}
+    if not target_nation:
+        return None
+    from backend.game_logic.formations import formed_display_name
+    remaining = int(cooldowns.get(target_nation, 0) or 0)
+    if remaining > 0:
+        # FA-95: printed as turns REMAINING, never as elapsed time.
+        # (Do NOT sweep the Make Amends sibling that shares the "only N turns
+        # ago" phrasing: it computes genuinely elapsed time.)
+        return (f"Talleyrand advises patience, Sire. "
+                f"{formed_display_name(world, target_nation)} refused us; "
+                f"the court will not receive another envoy for "
+                f"{remaining} more turn{'s' if remaining != 1 else ''}.")
+    if proposal_type:
+        remaining = int(cooldowns.get(f"{target_nation}_{proposal_type}", 0) or 0)
+        if remaining > 0:
+            return (f"Talleyrand advises patience, Sire. "
+                    f"{formed_display_name(world, target_nation)} refused "
+                    f"our {_proposal_display_name(proposal_type)} "
+                    f"proposal; she will not hear it again for "
+                    f"{remaining} more turn"
+                    f"{'s' if remaining != 1 else ''}.")
+    return None
+
+
 def _war_purpose_prompt(world, target: str) -> str:
     """SFR-B13: the War Purpose card's question (`diplomacy.war_purpose_prompt`)."""
     from backend.game_logic import diplomacy as _diplomacy
@@ -1486,43 +1523,13 @@ class DiplomaticExecutor:
         # which does not reach here — and both refusals below printed the raw
         # machine key, so a formed nation was addressed by a name it no
         # longer has.
-        from backend.game_logic.formations import formed_display_name
-        cooldowns = getattr(world, 'player_proposal_cooldowns', {})
-        if target_nation in cooldowns and cooldowns[target_nation] > 0:
-            remaining = cooldowns[target_nation]
-            # FA-95: `remaining` is turns UNTIL you may ask again — the slot
-            # is a `CooldownManager` entry, written at rejection and
-            # DECREMENTED to zero. Printing it as elapsed time inverted the
-            # advice: a fresh refusal read as an old one and a stale one as
-            # fresh. Every other reader in the codebase treats it as
-            # remaining, and the correct sibling idiom is forty lines up the
-            # same file ("we must wait N more turns").
-            # ⚠ Do NOT sweep the Make Amends sibling that shares the "only N
-            # turns ago" phrasing: it computes genuinely elapsed time and a
-            # standing pin asserts its wording.
-            return {
-                "success": False,
-                "message": (
-                    f"Talleyrand advises patience, Sire. "
-                    f"{formed_display_name(world, target_nation)} refused us; "
-                    f"the court will not receive another envoy for "
-                    f"{remaining} more turn{'s' if remaining != 1 else ''}."),
-            }
+        # S14G-X35: the two cooldown refusals (FA-95's turns-remaining words
+        # among them) are `proposal_cooldown_refusal`, the ONE predicate the
+        # confirm's send reads too.
         proposal_type = diplomatic_data.get("proposal_type")
-        if proposal_type:
-            type_key = f"{target_nation}_{proposal_type}"
-            if type_key in cooldowns and cooldowns[type_key] > 0:
-                remaining = cooldowns[type_key]
-                return {
-                    "success": False,
-                    "message": (
-                        f"Talleyrand advises patience, Sire. "
-                        f"{formed_display_name(world, target_nation)} refused "
-                        f"our {_proposal_display_name(proposal_type)} "
-                        f"proposal; she will not hear it again for "
-                        f"{remaining} more turn"
-                        f"{'s' if remaining != 1 else ''}."),
-                }
+        _cooldown_refusal = proposal_cooldown_refusal(world, target_nation, proposal_type)
+        if _cooldown_refusal:
+            return {"success": False, "message": _cooldown_refusal}
 
         if proposal_type == "vassalage":
             # S14D-X12 (October 23, 2026): the typed ask meets the state gate
@@ -5397,10 +5404,33 @@ class DiplomaticExecutor:
         )
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
         if ctx.action in ("execute_proposal", "send"):
+            # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): a generic
+            # menu's option OPENS the confirm (terms, the court's reading, the
+            # DP price) — it no longer departs from a card whose body said
+            # nothing. `proposal_options` is the menu's own dialogue type;
+            # every confirm, the objection's rebuilds and the pushback carry
+            # their own types and send as before.
+            if ctx.dialogue.get("type") == "proposal_options":
+                return self._open_confirm_for_menu_option(ctx)
             terms = ctx.selected.get("terms", {})
             proposal_type = (terms.get("proposal_type") or terms.get("type")
                              or ctx.dialogue.get("context", {}).get("proposal_type")
                              or "peace")  # PL-13-B
+
+            # S14G-X35 (Pre-Deploy S14h part 1, October 26, 2026): the court
+            # that refused us lately does not hear this one - the typed entry's
+            # own predicate and words (`proposal_cooldown_refusal`), read here
+            # because a counsel or a menu road reaches the confirm without ever
+            # passing the typed entry. Refused free: no DP, nothing in transit,
+            # the confirm stays up (the verdict refusals below do the same).
+            _cooldown_refusal = proposal_cooldown_refusal(
+                ctx.world, ctx.target_nation, proposal_type)
+            if _cooldown_refusal:
+                return {
+                    "success": False,
+                    "message": _cooldown_refusal,
+                    "diplomatic_dialogue": ctx.dialogue,
+                }
 
             # Build proposal for acceptance formula
             proposal = {
@@ -5708,6 +5738,24 @@ class DiplomaticExecutor:
             }
         else:
             return _NEXT_STAGE
+
+    def _open_confirm_for_menu_option(self, ctx: DialogueChoiceContext):
+        """S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the generic
+        menu's `execute_proposal` option, taken. It opens the `proposal_confirm`
+        on the package the menu drafted for that option — terms, the court's
+        acceptance band and the DP price shown — and spends nothing; the send
+        is the confirm's own `execute_proposal` (`_choice_proposal`), with its
+        refusal verdict and DP deduction. Player-only: no AI road reads the
+        menu (Golden Rule 5 — the AI's proposals are built and sent by
+        `ai_diplomacy`, never through a dialogue)."""
+        from backend.game_logic.diplomatic_dialogue import menu_option_confirm_dialogue
+        new_dialogue = menu_option_confirm_dialogue(ctx.world, ctx.dialogue, ctx.selected)
+        ctx.world.dialogue_manager.replace(new_dialogue)
+        return {
+            "success": True,
+            "message": new_dialogue.get("talleyrand_text", ""),
+            "diplomatic_dialogue": new_dialogue,
+        }
 
     def _choice_ultimatum(self, ctx: DialogueChoiceContext):
         """Stage 3 of `_process_dialogue_choice`: The ultimatum delivered, and
@@ -6197,6 +6245,23 @@ class DiplomaticExecutor:
             if not expand_target:
                 ctx.world.dialogue_manager.pop()
                 return {"success": True, "message": "Very well, Sire."}
+
+            # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): Talleyrand's
+            # "Satisfy their design" counsel carries the design, and taking it
+            # opens the confirm pre-loaded with the peace and the cession of
+            # the coveted province — never the vague standstill menu whose
+            # "Propose peace" sent a plain 3-DP treaty with the design nowhere
+            # in it. A counsel gone stale falls through to the menu below.
+            if terms.get("design_id"):
+                from backend.game_logic.diplomatic_dialogue import design_confirm_dialogue
+                design_dialogue = design_confirm_dialogue(ctx.world, expand_target, terms)
+                if design_dialogue is not None:
+                    ctx.world.dialogue_manager.replace(design_dialogue)
+                    return {
+                        "success": True,
+                        "message": design_dialogue.get("talleyrand_text", ""),
+                        "diplomatic_dialogue": design_dialogue,
+                    }
 
             # Re-route as a vague proposal with the target set
             diplomatic_data = {
@@ -7069,6 +7134,19 @@ class DiplomaticExecutor:
             proposal_type = (terms.get("proposal_type") or terms.get("type")
                              or ctx.dialogue.get("context", {}).get("proposal_type")
                              or "peace")  # PL-13-B
+
+            # S14G-X38 (Pre-Deploy S14h part 1, October 26, 2026): the override
+            # send is the confirm's send by another road (S14G-X35's sibling) -
+            # it never asked the court's cooldown either. The one predicate and
+            # its words; refused free, the objection stays up.
+            _cooldown_refusal = proposal_cooldown_refusal(
+                ctx.world, ctx.target_nation, proposal_type)
+            if _cooldown_refusal:
+                return {
+                    "success": False,
+                    "message": _cooldown_refusal,
+                    "diplomatic_dialogue": ctx.dialogue,
+                }
 
             # Build proposal and send (reuse execute_proposal path)
             proposal = {

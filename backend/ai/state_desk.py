@@ -1618,6 +1618,17 @@ def _quote_sentences(world, q: Dict, me) -> str:
     pay = str(q.get("pay") or "")   # S14E-X67: the campaign pay the destination draws
     if pay:
         tail.append(pay)
+    # S14G-11 / S14G-7 / S14G-2 (Pre-Deploy S14h part 1, October 26, 2026): the
+    # quote's other riders reach the desk's answer too - the guarded ground the
+    # road crosses (the Ansbach trap's -25 with the guard-holder), the front
+    # the destination is (an ally's province whose war a truce of ours leaves
+    # running) and the standing order's terms (a support's lapse, an
+    # aggressive man's interrupt) - each the very sentence the order's reply
+    # and the panel's chip print.
+    for rider in ("guard", "front", "terms"):
+        said = str(q.get(rider) or "")
+        if said:
+            tail.append(said)
     replaces = str(q.get("replaces") or "")
     if replaces and not q.get("already"):
         tail.append(f"It replaces {replaces}.")
@@ -2408,7 +2419,17 @@ def _answer_buyoff(world, nation: str) -> str:
     price = compute_buyoff_price(world, nation)
     if price is None:
         return f"{_court(world, nation, start=True)} has no design we could buy off today, Sire."
-    return f"Buying off {_possessive(_court(world, nation))} design would cost {_money(price)} gold, Sire, and one diplomatic point."
+    # S14G-X43 (Pre-Deploy S14h part 1, October 26, 2026): the desk's price
+    # said gold and a point and nothing of what the buy-off does to her place
+    # in a league - the buy-off quote, the Balance page and the wizard's chip
+    # all say it (S14G-9 / S14G-D6: the design sleeps, her goodwill is the
+    # relation). The ONE builder, with the live relation.
+    from backend.game_logic.instruments import buyoff_league_clause
+    relation = int(world.nation_relations.get(
+        world._make_diplo_key(world.player_nation, nation), 0) or 0)
+    return (f"Buying off {_possessive(_court(world, nation))} design would cost "
+            f"{_money(price)} gold, Sire, and one diplomatic point. It buys the "
+            f"design's sleep, not her goodwill: {buyoff_league_clause(relation)}.")
 
 
 def _answer_war_score(world, nation: str) -> str:

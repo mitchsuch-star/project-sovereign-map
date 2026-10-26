@@ -3313,14 +3313,95 @@ def allies_whose_war_runs_on(world, speaker: str, counterpart: str) -> List[Dict
     return rows
 
 
+def _and_join(names: List[str]) -> str:
+    """"Austria", "Austria and Russia", "Austria, Russia and Prussia"."""
+    names = [str(n) for n in names if n]
+    return (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else (names[0] if names else "")
+
+
+def road_home_safe_passage_turns(world, speaker: str, corps: Iterable[str]) -> int:
+    """S14G-7: the turns of safe passage Berthier would quote for `speaker`'s
+    `corps` marching out of ground that changed hands — the corridor's OWN
+    duration formula (`withdrawal.open_evacuation_corridor`: the longest march
+    home plus `EVACUATION_SLACK_TURNS`, backstopped by `EVACUATION_MAX_TURNS`,
+    never biting into the march itself), measured on where each corps stands
+    now (the road as the board leaves it today). 0 when no corps has a road to
+    quote (none named, or every one cut off by land). Pure read."""
+    from backend.game_logic import withdrawal as _wd
+    home = _wd.cached_home_zone(world, speaker)
+    longest = 0
+    for name in corps:
+        marshal = world.marshals.get(name)
+        if marshal is None:
+            continue
+        dist = _wd.distance_home_from(world, speaker, marshal.location, home, with_grant=False)
+        if dist:
+            longest = max(longest, int(dist))
+    if not longest:
+        return 0
+    return int(min(longest + _wd.EVACUATION_SLACK_TURNS, max(_wd.EVACUATION_MAX_TURNS, longest)))
+
+
+def truce_runs_on_consequence(world, speaker: str, counterpart: str, row: Dict,
+                              *, under: str = "under the truce") -> str:
+    """S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): what an ally's war
+    that a treaty leaves RUNNING does to the speaker's corps — the sentence the
+    armistice's confirm, the incoming letter, the morning dispatch, the
+    separate peace's rows and the chip all say, built ONCE.
+
+    The third measure (diplomacy #7, sea #6) read only a count — "her war runs
+    on, and 7 French corps stand on Bavarian soil under the truce" — and the
+    player accepted a truce whose consequence was Austria storming Munich and
+    Swabia where the corps stood, and Berthier marching them home without an
+    order. The consequence, in the order it happens: the corps do not fight for
+    her (France is not at war with the enemy now); the enemy may take her
+    provinces where the corps stand; ground that changes hands puts them on
+    the road home (`withdrawal.offer_road_home`, free, automatic, `N` turns of
+    safe passage — `road_home_safe_passage_turns`) and none may enter it again
+    (`corps_on_closed_soil`). `row` is `allies_whose_war_runs_on`'s row
+    ({"ally", "enemies", "corps"}); with no corps on her soil only the first
+    half holds. Player-only text (the AI's acceptance reads none of it), so no
+    seam."""
+    from backend.game_logic.formations import formed_display_name as _fdn
+    enemies = [e for e in (row.get("enemies") or [counterpart]) if e]
+    foe = _and_join([_fdn(world, e) for e in enemies])
+    corps = [c for c in (row.get("corps") or []) if c]
+    fight = f"Your corps will not fight for her {under}"
+    if not corps:
+        return f"{fight}; {foe} may take her provinces."
+    turns = road_home_safe_passage_turns(world, speaker, corps)
+    # "up to": the corridor is sized by the farthest corps STRANDED (the ones
+    # whose ground changes hands), which is never farther than the farthest
+    # that stands there — the figure is the ceiling, the dispatch's later line
+    # is the exact one (`withdrawal.passage_reading`).
+    passage = (f" (up to {turns} turn{'s' if turns != 1 else ''} of safe passage)"
+               if turns else "")
+    return (f"{fight}; {foe} may take her provinces where your corps stand, and ground "
+            f"that changes hands puts them on the road home — Berthier marches them "
+            f"out{passage} and none may enter it again.")
+
+
+def _truce_corps_phrase(world, speaker: str, row: Dict) -> str:
+    """"7 French corps stand on Bavarian soil under the truce" / "no corps of
+    ours stands on Bavarian soil" — the count the armistice's line and its
+    confirm row both open on (one builder, S14G-7)."""
+    from backend.display_names import nation_adjective as _adj
+    n = len(row["corps"])
+    if n:
+        return (f"{n} {_adj(speaker)} corps stand{'s' if n == 1 else ''} on "
+                f"{_adj(row['ally'])} soil under the truce")
+    return f"no corps of ours stands on {_adj(row['ally'])} soil"
+
+
 def truce_followers_line(world, speaker: str, counterpart: str) -> str:
     """The truce's own sentence, said on the armistice's confirm, the
     incoming letter and the morning dispatch: which satellites the truce
     BINDS (`clients_following_line`, the lord's clients follow him) and
     which allies' wars it LEAVES RUNNING, with the speaker's corps that
-    stand on that ally's soil under the truce. Empty when nobody follows
-    and nobody fights on."""
-    from backend.display_names import nation_adjective as _adj
+    stand on that ally's soil under the truce — and, since S14G-7, what that
+    does to them (`truce_runs_on_consequence`: they will not fight for her;
+    ground that changes hands puts them on the road home). Empty when nobody
+    follows and nobody fights on."""
     from backend.game_logic.formations import formed_display_name as _fdn
     parts: List[str] = []
     binds = clients_following_line(world, speaker, counterpart, "ARMISTICE", speaker)
@@ -3329,15 +3410,38 @@ def truce_followers_line(world, speaker: str, counterpart: str) -> str:
     for row in allies_whose_war_runs_on(world, speaker, counterpart):
         ally = _fdn(world, row["ally"])
         enemies = ", ".join(_fdn(world, e) for e in row["enemies"])
-        n = len(row["corps"])
-        if n:
-            corps = (f"{n} {_adj(speaker)} corps stand{'s' if n == 1 else ''} on "
-                     f"{_adj(row['ally'])} soil under the truce")
-        else:
-            corps = f"no corps of ours stands on {_adj(row['ally'])} soil"
-        parts.append(f"{ally} stays at war with {enemies} — an ally, not a client: "
-                     f"her war runs on, and {corps}.")
+        corps = _truce_corps_phrase(world, speaker, row)
+        line = (f"{ally} stays at war with {enemies} — an ally, not a client: "
+                f"her war runs on, and {corps}.")
+        # S14G-7: the count said what stands there; this says what happens to it.
+        consequence = truce_runs_on_consequence(world, speaker, counterpart, row)
+        parts.append(f"{line} {consequence}" if consequence else line)
     return " ".join(parts)
+
+
+def truce_front_of_an_ally(world, nation: str, region_name: str) -> Optional[Dict]:
+    """S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): is `region_name` an
+    ALLY's province whose war a truce of ours leaves running? `{"ally",
+    "enemies"}` when the province is held by an ally of `nation` (never its
+    client, who follows the lord) and one or more courts `nation` is in
+    ARMISTICE with are at war with her; None otherwise. The one predicate the
+    march's reply, its quote and the muster read (`movement_executor.front_line`):
+    under the truce a corps there cannot fight for the ally, and the ground
+    may change hands under it (`corps_on_closed_soil`). Pure read, per order
+    (not per turn): one cached-roster scan."""
+    region = world.regions.get(region_name) if region_name else None
+    ally = getattr(region, "controller", None) if region is not None else None
+    if not ally or ally == nation:
+        return None
+    if world.get_diplomatic_state(nation, ally) not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        return None
+    if world._top_overlord(ally) == nation:
+        return None
+    enemies = [e for e in sorted(world.get_active_nations())
+               if e not in (nation, ally)
+               and world.get_diplomatic_state(nation, e) == "ARMISTICE"
+               and world.is_at_war(ally, e)]
+    return {"ally": ally, "enemies": enemies} if enemies else None
 
 
 def ask_return_province(world, asker: str, holder: str, region: str, *,
@@ -6498,7 +6602,11 @@ def separate_peace_words(world, proposer: str, target: str,
 
     S14E-X116: a carried ally the peace NAMES for a province is thanked, and the
     sentence says so with the figure the ratifier writes ("she is named for
-    Tyrol and thanks us (+5 relation)."); `thanks` is `{ally: relation}`."""
+    Tyrol and thanks us (+5 relation)."); `thanks` is `{ally: relation}`.
+
+    S14G-7 (S14h part 1): an ally left fighting with our corps standing on her
+    soil also carries the road-home consequence (`truce_runs_on_consequence`,
+    the armistice row's own sentence); `consequence` is `{ally: sentence}`."""
     from backend.game_logic.formations import formed_display_name as _fdn
     from backend.game_logic.settlement_ratify import carried_in_allies, carry_in_instance
     if not proposer or not target:
@@ -6575,9 +6683,22 @@ def separate_peace_words(world, proposer: str, target: str,
         else:
             tail = "she takes nothing by it."
         per_ally[a] = f"{_fdn(world, a)}'s war with {court} ends in this instrument; {tail}"
+    # S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): an ally left fighting
+    # while our corps stand on her soil — the same fact the armistice's
+    # `war_runs_on` row states — says what happens to those corps (they will
+    # not fight for her; ground that changes hands puts them on the road
+    # home). The sentence is `truce_runs_on_consequence`, built once.
+    consequence: Dict[str, str] = {}
+    if left:
+        for _row in allies_whose_war_runs_on(world, proposer, target):
+            if _row["ally"] in left and _row["corps"]:
+                consequence[_row["ally"]] = truce_runs_on_consequence(
+                    world, proposer, target, _row, under="under this peace")
     for a in left:
         per_ally[a] = (f"{_fdn(world, a)} stays at war with {court} after this separate "
                        f"peace — she fights on alone; it costs {price.get(a, 0)} relation with her.")
+        if a in consequence:
+            per_ally[a] += " " + consequence[a]
 
     parts: List[str] = []
     if len(carried) == 1:
@@ -6597,11 +6718,17 @@ def separate_peace_words(world, proposer: str, target: str,
         costs = [f"{price.get(a, 0)} with {_fdn(world, a)}" for a in left]
         parts.append(f"{_join([_fdn(world, a) for a in left])} stay at war with {court} after "
                      f"this separate peace — they fight on alone; it costs {_join(costs)} relation.")
+        # S14G-7: each left ally our corps stand on, in her own sentence
+        parts.extend(f"{_fdn(world, a)}: {consequence[a][0].lower()}{consequence[a][1:]}"
+                     for a in left if a in consequence)
     display = " ".join(parts)
     return {
         "allies": allies, "carried": carried, "left": left, "price": price,
         "named": named, "per_ally": per_ally, "leader": found is not None,
         "shut_out": shut, "thanks": thanks,
+        # S14G-7: {ally: the road-home consequence sentence} for each left
+        # ally our corps stand on (empty when none does)
+        "consequence": consequence,
         "war_id": str(found[0]) if found else "",
         "display": display, "chip": display,
     }
@@ -6717,22 +6844,28 @@ def get_peace_commitment_conflicts(
             continue
         if truce:
             row = _runs_on.get(nation) or {"ally": nation, "enemies": [target], "corps": []}
-            from backend.display_names import nation_adjective as _adj
             from backend.game_logic.formations import formed_display_name as _fdn
-            n = len(row["corps"])
-            corps = (f"{n} {_adj(proposer)} corps stand{'s' if n == 1 else ''} on "
-                     f"{_adj(nation)} soil under the truce" if n
-                     else f"no corps of ours stands on {_adj(nation)} soil")
+            corps = _truce_corps_phrase(world, proposer, row)
+            display = (f"{_fdn(world, nation)} stays at war with "
+                       f"{', '.join(_fdn(world, e) for e in row['enemies'])} under "
+                       f"this truce — an ally, not a client: her war runs on, and "
+                       f"{corps}.")
+            # S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): the row said a
+            # COUNT ("7 French corps stand on Bavarian soil under the truce"),
+            # not what the truce does to them — Austria storms the ground where
+            # they stand and Berthier marches them out unasked. The row now ends
+            # on the consequence (`truce_runs_on_consequence`, the one sentence
+            # the line and the letter say too) and LEADS the list (below).
+            consequence = truce_runs_on_consequence(world, proposer, target, row)
             conflicts.append({
                 "conflict_type": "war_runs_on",
                 "severity": "WARNING",
                 "affected_entity": nation,
-                "display": (f"{_fdn(world, nation)} stays at war with "
-                            f"{', '.join(_fdn(world, e) for e in row['enemies'])} under "
-                            f"this truce — an ally, not a client: her war runs on, and "
-                            f"{corps}."),
+                "display": f"{display} {consequence}" if consequence else display,
                 "detail": {"ally": nation, "enemies": list(row["enemies"]),
-                           "corps": list(row["corps"])},
+                           "corps": list(row["corps"]),
+                           "safe_passage_turns": int(road_home_safe_passage_turns(
+                               world, proposer, row["corps"])) if row["corps"] else 0},
             })
             continue
         if incoming and _words is None:
@@ -6752,6 +6885,9 @@ def get_peace_commitment_conflicts(
                 f"and views the separate peace unfavorably"
                 f"{_price_words(_words, nation)}."
             )
+            # S14G-7: our corps on her soil — what that does to them
+            if (_words.get("consequence") or {}).get(nation):
+                _display += " " + _words["consequence"][nation]
             _severity = "WARNING"
         elif _joined_at_a_call:
             # DDB-2 (DDB-D8's exit): France entered this war at an ally's
@@ -6769,6 +6905,9 @@ def get_peace_commitment_conflicts(
                 f"so the peace is hers to make; {_fdn(world, nation)} views it "
                 f"unfavorably{_price_words(_called, nation)}."
             )
+            # S14G-7: our corps on her soil — what that does to them
+            if (_called.get("consequence") or {}).get(nation):
+                _display += " " + _called["consequence"][nation]
             _severity = "WARNING"
         else:
             # PC-R1 (i) — rulings B + C (§46, October 16, 2026): the paradox
@@ -6861,6 +7000,12 @@ def get_peace_commitment_conflicts(
                 "claim_region": claim_region,
             },
         })
+
+    # S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): the truce's own row
+    # LEADS the list — it is what the armistice does to the corps standing on
+    # an ally's soil, and the confirm's other rows (a bloc note, a bargain)
+    # had it among many bullets. A stable sort: every other row keeps its place.
+    conflicts.sort(key=lambda c: c.get("conflict_type") != "war_runs_on")
 
     return conflicts
 
@@ -10734,13 +10879,26 @@ def downgrade_cost_to_player(world, actor: str, other: str, relation_all: int) -
     return int(-int(relation_all))
 
 
-def declaration_cost_clause(cost: int, player: str = "France") -> str:
-    """"relations with every court, France's included, fall 15" — the clause
-    the declaration beat (dispatch AND rail) appends; "" at a cost of 0."""
+def declaration_cost_clause(cost: int, player: str = "France",
+                            aggressor: Optional[str] = None) -> str:
+    """"Prussia's relations with every court, France's included, fall 15" — the
+    clause the declaration beat (dispatch AND rail) appends; "" at a cost of 0.
+
+    S14G-10 (Pre-Deploy S14h part 1, October 26, 2026): the clause had NO
+    SUBJECT ("relations with every court, France's included, fall 15"), and the
+    player read it as a fall in everyone's opinion of HIM ("lowers everyone's
+    opinion of me") - it is the AGGRESSOR's relations with every court that
+    fall, France's included, and the loss France feels is the courtship it had
+    running with her. With an `aggressor` the clause names whose relations
+    fall; both beats' callers (the declaration's rail row and dispatch beat,
+    the treaty break's letter) pass it. The subjectless form survives only for a
+    caller with no aggressor to name (the AI downgrade's lines, filed S14G-X46)."""
     if int(cost or 0) <= 0:
         return ""
-    from backend.display_names import display_nation
-    return (f"relations with every court, {display_nation(player)}'s "
+    from backend.display_names import display_nation, with_definite_article
+    subject = (f"{with_definite_article(display_nation(str(aggressor)))}'s "
+               if aggressor else "")
+    return (f"{subject}relations with every court, {display_nation(player)}'s "
             f"included, fall {int(cost)}")
 
 
@@ -11288,8 +11446,12 @@ def declare_war(
     # S14E-9: and what it costs France, when it is a third power's war.
     _cost = declaration_cost_to_player(world, aggressor, target, casus_belli)
     if _cost:
+        # S14G-10: and WHOSE relations fall - the aggressor's, by the court's
+        # current name (`_court_named`)
         war_message = (war_message.rstrip(".") + " — "
-                       + declaration_cost_clause(_cost, world.player_nation) + ".")
+                       + declaration_cost_clause(
+                           _cost, world.player_nation,
+                           aggressor=_court_named(world, aggressor)) + ".")
     world.notifications.add(create_notification(
         WAR_DECLARED,
         NotificationPriority.HIGH,
@@ -15814,6 +15976,7 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         INSTRUMENT_DP_COST,
         chest_of,
         compute_buyoff_price,
+        guarantee_honour_cost_clause,
         guarantors_of,
     )
     from backend.game_logic.intent import get_nation_intent
@@ -15898,6 +16061,13 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         else:
             sponsor_detail = (f"Aim their court at {aim_display} — gold "
                               f"flows, the compact binds both ends (§3.3).")
+            # S14G-10: and the war it licenses has a price - the quote's own
+            # sentence (`instruments.licensed_war_cost_clause`), on the chip too
+            if aim:
+                from backend.game_logic.instruments import licensed_war_cost_clause
+                _war_cost = licensed_war_cost_clause(world, player, target_nation, aim)
+                if _war_cost:
+                    sponsor_detail += f" {_war_cost}"
         if not (at_war and aim == player):
             actions.append(_chip(
                 "sponsor_design",
@@ -15941,7 +16111,15 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         buyoff_detail = ("The design sleeps while the bargain stands — and waking it "
                          "by betrayal is the strongest casus belli in Europe.")
         if has_design and price is not None:
-            from backend.game_logic.instruments import next_design_after_buyoff
+            from backend.game_logic.instruments import (
+                buyoff_league_clause, next_design_after_buyoff)
+            # S14G-9 / S14G-D6: the chip's tooltip carries the ONE sentence of
+            # what the buy-off does to her place in a league (gold buys the
+            # design's sleep, not her goodwill)
+            _rel = int(world.nation_relations.get(
+                world._make_diplo_key(player, target_nation), 0) or 0)
+            buyoff_detail += (f" It buys the design's sleep, not her goodwill: "
+                              f"{buyoff_league_clause(_rel)}.")
             _next = next_design_after_buyoff(world, player, target_nation)
             if _next:
                 buyoff_detail += (f" Buying it wakes {_next['title']} next "
@@ -15974,7 +16152,9 @@ def _instrument_actions(world, player: str, target_nation: str) -> List[Dict]:
         # a hardcoded copy that drifts on retune
         f"Raises every coveter's bar for war "
         f"(-{int(GUARANTEE_WEIGHT_DETERRENT)} weight) — and stakes "
-        "French credibility on the pledge being honoured.")
+        "French credibility on the pledge being honoured. "
+        # S14G-10 sweep: and what honouring it costs - the quote's own sentence
+        f"{guarantee_honour_cost_clause()}.")
     # SF-LB-2 (SCORE_FINISH_SPEC §6.4): where this court is a defenceless
     # prize, the chip says whose reach the pledge lifts it out of — the
     # same predicate the war council opens on.

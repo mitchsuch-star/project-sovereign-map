@@ -461,7 +461,13 @@ class TestTheWoundStillFiresWhenItIsReal:
         # province taken that way left no chronicle line, no holdings stamp
         # and no realm-reduced edition. It now logs one, stamping
         # `captured_from` like every producer here.
-        assert len(producers) == 9, [p for p, _ in producers]
+        # Pin flipped consciously 9 -> 10 (S14G-1 / S14G-D1, Pre-Deploy S14h
+        # part 1, Oct 26 2026): `world_state.complete_liberation` - the ONE
+        # writer of an ALLY's liberated ground's row (the instant capture,
+        # the occupation completing and the reckless auto-charge all call it)
+        # - stamps `captured_from` and `method: "liberated"` like the
+        # producers above, and adds `liberated_to` (the court it was handed to).
+        assert len(producers) == 10, [p for p, _ in producers]
 
 
 # ════════════════════════════════════════════════════════════════════════

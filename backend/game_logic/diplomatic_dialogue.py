@@ -1411,10 +1411,27 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
                 opt.get("description", ""), world, target_nation),
             "action": opt["action"],
         }
+        # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): a confirm opened
+        # on a package already drafted (the design counsel's cession beside the
+        # peace; a menu option's own draft, harsh variant included) carries
+        # THAT package on its send option — `confirm_dialogue_for_terms`.
+        _preloaded = (parsed_command.get("preloaded_terms")
+                      if intent_type != "proposal_options" else None)
         if "terms" in opt:
             resolved_opt["terms"] = opt["terms"]
-        elif opt["action"] == "execute_proposal" and target_nation:
-            # Generate terms for execute options
+        elif (opt["action"] == "execute_proposal" and target_nation
+              and _preloaded and (opt.get("proposal_type") or proposal_type)):
+            import copy as _copy_pre
+            resolved_opt["terms"] = _copy_pre.deepcopy(_preloaded)
+            resolved_opt["terms"]["proposal_type"] = opt.get("proposal_type", proposal_type)
+        elif ((opt["action"] == "execute_proposal"
+               or (opt["action"] == "modify_generous" and opt.get("proposal_type")))
+              and target_nation):
+            # Generate terms for execute options. S14G-8: and for the menu's
+            # concessions option (T2 "Offer concessions"), which carried the
+            # SAME package as "Sue for peace" under a label that promised
+            # gold or territory — its draft now opens through the confirm's
+            # own "More generous" arm.
             ptype = opt.get("proposal_type", proposal_type)
             if ptype:
                 # K item 6 (PC-R8): the plain send opens with the draft the
@@ -1474,6 +1491,13 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
                 "terms": {"suggestion": {"kind": "bid_for_allegiance",
                                          "target_nation": target_nation}},
             })
+        # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the menu's body
+        # said two sentences and left every option's meaning to a tooltip
+        # (a large empty card). Each option is now printed in the text — its
+        # description, its DP price and the terms it would draft — so the
+        # choice is made on what it is; a send opens the confirm
+        # (`_open_confirm_for_menu_option`) and never departs from here.
+        talleyrand_text = _with_menu_body(world, talleyrand_text, options, target_nation)
 
     # Context-aware option descriptions for war proposals
     if target_nation and intent_type == "proposal_confirm":
@@ -1747,6 +1771,177 @@ def _stamp_menu_sends(world, options: list, player: str, target: str) -> list:
             opt["unavailable_reason"] = reason
         out.append(opt)
     return out
+
+
+#: S14G-8: the diplomatic state each proposal type lands on — the DP price's
+#: transition base, the same map `_enrich_proposal_summary` prices with.
+_DP_STATE_FOR_PROPOSAL = {
+    "peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+    "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS",
+    "armistice": "ARMISTICE", "vassalage": "VASSAL",
+}
+
+
+def proposal_dp_cost(world, target_nation: str, proposal_type: str) -> int:
+    """S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the DP a proposal of
+    this type costs to SEND to this court — the figure `_enrich_proposal_
+    summary` prints as the confirm's `dp_cost` (the jump-cost transition base,
+    the diplomat's skill), so the menu's body, the counsel's tooltip and the
+    confirm quote one price. The send arm deducts the same number."""
+    from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
+    ptype = str(proposal_type or "peace")
+    current = world.get_diplomatic_state(get_player_nation(world), target_nation)
+    jump = get_transition_dp_cost(current, _DP_STATE_FOR_PROPOSAL.get(ptype, "PEACE"))
+    talleyrand = get_player_diplomat(world)
+    skill = talleyrand.skill if talleyrand else 5
+    return int(get_dp_cost(f"propose_{ptype}", skill, transition_base=jump))
+
+
+def _menu_option_line(world, opt: Dict, target_nation: str) -> str:
+    """S14G-8: one option of the generic menu as a line of the body — the
+    label, the description the button used to carry as a tooltip alone, and
+    what choosing it costs and drafts. An option the send road's verdict
+    refused (`_stamp_menu_sends`) says so with the reason."""
+    label = str(opt.get("label") or "").strip()
+    desc = str(opt.get("description") or "").strip()
+    if desc and desc[-1] not in ".!?":
+        desc += "."
+    if opt.get("available") is False or opt.get("enabled") is False:
+        reason = str(opt.get("disabled_reason_display")
+                     or opt.get("unavailable_reason") or "").strip()
+        return f"• {label} — shut: {reason}" if reason else f"• {label} — shut."
+    line = f"• {label} — {desc}" if desc else f"• {label}"
+    action = opt.get("action")
+    terms = opt.get("terms") if isinstance(opt.get("terms"), dict) else {}
+    if action in ("execute_proposal", "modify_generous") and terms:
+        ptype = str(terms.get("proposal_type") or terms.get("type") or "peace")
+        try:
+            dp = proposal_dp_cost(world, target_nation, ptype)
+        except Exception as exc:
+            report(exc, "diplomatic_dialogue._menu_option_line: proposal_dp_cost")
+            return line
+        if action == "execute_proposal":
+            summary = "; ".join(
+                str(s) for s in _format_terms_for_display(terms, ptype, target_nation)
+                if str(s) != "No additional terms")
+            if summary:
+                line += f" Terms: {summary}."
+            line += f" {dp} DP to send; the draft opens for your review first."
+        else:
+            line += f" Opens a sweetened draft for your review; {dp} DP only if you send it."
+    elif action == "start_mission":
+        dp = MISSION_DP_COSTS.get(str(terms.get("mission_type") or ""))
+        if dp is not None:
+            line += f" {int(dp)} DP a turn while he is away."
+    return line
+
+
+def _with_menu_body(world, talleyrand_text: str, options: list, target_nation: str) -> str:
+    """S14G-8: the generic menu's prose followed by every option, one line each
+    (`_menu_option_line`) — built in the backend so the client renders it as the
+    card's body with no logic of its own."""
+    lines = [_menu_option_line(world, o, target_nation)
+             for o in options if isinstance(o, dict)]
+    if not lines:
+        return talleyrand_text
+    return talleyrand_text + "\n\nThe paths before us, Sire:\n" + "\n".join(lines)
+
+
+def confirm_dialogue_for_terms(world, target_nation: str, proposal_type: str,
+                               terms: Optional[Dict], *, lead_line: str = "") -> Dict:
+    """S14G-8: a `proposal_confirm` opened on a package already drafted — the
+    ONE road every "choose a proposal" surface takes to the send (the design
+    counsel's cession beside the peace; a generic menu's option, harsh variant
+    included). The confirm is the wizard's own (`generate_dialogue`, the
+    estimate / harshness / DP price from `_enrich_proposal_summary`, Talleyrand's
+    pre-proposal objection merged), its send option carrying THE package; the
+    "harsher" / "more generous" steps build on it instead of redrafting from
+    nothing (which would strike a cession the pipeline does not author at this
+    war score). Nothing is spent here."""
+    import copy as _copy
+    ptype = str(proposal_type or "peace")
+    parsed = {
+        "action": "diplomatic_proposal", "diplomat": "Talleyrand",
+        "target_nation": target_nation, "proposal_type": ptype, "clauses": [],
+        "is_question": False, "has_diplomatic_keywords": True, "tone": "propose",
+        "raw_text": f"propose {ptype} to {target_nation}",
+    }
+    package = _copy.deepcopy(terms) if isinstance(terms, dict) and terms else None
+    if package:
+        parsed["preloaded_terms"] = package
+    dialogue = generate_dialogue("proposal_confirm", parsed, world)
+    if package:
+        for opt in dialogue.get("options", []):
+            if (isinstance(opt, dict) and opt.get("action") in ("modify_harsh", "modify_generous")
+                    and not opt.get("terms")):
+                opt["terms"] = {**_copy.deepcopy(package), "proposal_type": ptype}
+    if lead_line:
+        dialogue["talleyrand_text"] = f"{lead_line}\n\n{dialogue.get('talleyrand_text', '')}".rstrip()
+    return dialogue
+
+
+def menu_option_confirm_dialogue(world, menu_dialogue: Dict, selected: Dict) -> Dict:
+    """S14G-8: the confirm a generic menu's `execute_proposal` option opens —
+    the package the menu drafted for that option (`selected["terms"]`), under
+    the option's own label. The option no longer SENDS: a plain peace left for
+    3 DP from a button whose body was empty, its terms and odds never shown."""
+    terms = selected.get("terms") if isinstance(selected.get("terms"), dict) else {}
+    ptype = str(terms.get("proposal_type") or terms.get("type")
+                or (menu_dialogue.get("context") or {}).get("proposal_type") or "peace")
+    target = str(menu_dialogue.get("target_nation") or "")
+    label = str(selected.get("label") or "that course").strip()
+    lead = (f"As you choose, Sire — \"{label}\". The draft is set out below, with "
+            f"the court's own reading of it and its price. Nothing leaves until "
+            f"you send it.")
+    return confirm_dialogue_for_terms(world, target, ptype, terms, lead_line=lead)
+
+
+def design_confirm_dialogue(world, target_nation: str, design: Optional[Dict]) -> Optional[Dict]:
+    """S14G-8: Talleyrand's "Satisfy their design" counsel, taken. The
+    counsel carries the design (`target_nation`, `design_id`, `design_title`,
+    `coveted`); this re-reads it from the board (a stale counsel — the war
+    ended, the province gone, the court's design changed — returns None and the
+    caller falls back to the generic menu) and opens a `proposal_confirm`
+    PRE-LOADED with the peace and the cession of the coveted province France
+    holds (`design_peace_terms`), so the terms, the court's acceptance band and
+    the DP price stand before anything is sent. The old road re-routed to the
+    standstill menu, whose "Propose peace" SENT a plain peace at once (3 DP)
+    with the design nowhere in it."""
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.agendas import (
+        agenda_satisfiable_by_player, build_agenda_payload, get_agenda_covets,
+    )
+    from backend.game_logic.diplomatic_templates import design_peace_terms
+    from backend.game_logic.formations import formed_display_name
+    design = design if isinstance(design, dict) else {}
+    player = get_player_nation(world)
+    if not target_nation or world.get_diplomatic_state(player, target_nation) != "WAR":
+        return None
+    if not agenda_satisfiable_by_player(target_nation, world):
+        return None
+    payload = build_agenda_payload(target_nation, world) or {}
+    live_id = str(payload.get("id") or "")
+    if design.get("design_id") and live_id and str(design["design_id"]) != live_id:
+        return None
+    held = set(world.get_nation_regions(player))
+    coveted = [r for r in get_agenda_covets(target_nation, world) if r in held]
+    if not coveted:
+        return None
+    title = str(payload.get("title") or design.get("design_title") or "their design")
+    court = formed_display_name(world, target_nation)
+    province = humanize_entity_name(coveted[0])
+    lead = (f"Sire — {court} fights for '{title}', and {province} is what it "
+            f"names. I have set its cession beside the peace: the design is on "
+            f"the table, and the court's own reading of the package, with its "
+            f"price, is below. Nothing leaves until you send it.")
+    dialogue = confirm_dialogue_for_terms(
+        world, target_nation, "peace",
+        design_peace_terms(world, target_nation, coveted), lead_line=lead)
+    dialogue.setdefault("context", {})["design"] = {
+        "design_id": live_id, "design_title": title,
+        "coveted": [str(r) for r in coveted], "ceded": str(coveted[0]),
+    }
+    return dialogue
 
 
 def _stamp_adjust_terms(world, options: list, player: str, target: str,

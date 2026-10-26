@@ -341,7 +341,8 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
                          region_conquered: bool,
                          total_engaged: int,
                          muster_rows: Optional[list] = None,
-                         faith: Optional[Dict[str, str]] = None
+                         faith: Optional[Dict[str, str]] = None,
+                         liberated_to: str = ""
                          ) -> Optional[dict]:
     """Assemble the Battle Diorama payload, or None when fog says the player
     may not see this field. Display-only; every figure is either already on
@@ -349,7 +350,15 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
 
     IQ-5 R11: `faith` maps a contingent name to its optional caption (a
     Broken marshal's weight, FA-D23), rendered like `grudge`. The caller
-    composes the text and applies the fog rule; `committed` is untouched."""
+    composes the text and applies the fog rule; `committed` is untouched.
+
+    S14G-X10 (Pre-Deploy S14h part 1, October 26, 2026): `liberated_to` is
+    the home nation the battle's capture handed the province back to ('' =
+    a conquest, the payload unchanged) - read off the battle event by the
+    caller. The payload then carries `liberated_to` and `liberation_line`
+    (`world_state.liberation_line`, THE sentence: "Munich, Bavaria's
+    capital, retaken - handed back to Bavaria.") so the sub-banner says what
+    the field did instead of "falls to France"."""
     player_nation = getattr(world, "player_nation", "France")
     atk_nation = getattr(attacker, "nation", "")
     def_nation = getattr(defender, "nation", "")
@@ -442,6 +451,12 @@ def build_battle_diorama(world, attacker, defender, battle_result: dict,
     enemy_voice = battle_result.get("enemy_voice")
     if enemy_voice:
         payload["enemy_voice"] = str(enemy_voice)
+    if region_conquered and liberated_to:
+        # S14G-X10: no new seam - the predicate's answer, carried.
+        from backend.models.world_state import liberation_line
+        payload["liberated_to"] = str(liberated_to)
+        payload["liberation_line"] = liberation_line(
+            world, battle_region, str(liberated_to))
     # NP-5 (NAPOLEON_SPEC §9): when a sovereign stood on this field, the
     # typed-last verdict acknowledges the register before Berthier's
     # observation — display-only, both sides' sovereigns alike.

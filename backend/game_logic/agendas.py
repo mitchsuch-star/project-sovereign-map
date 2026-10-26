@@ -1245,6 +1245,125 @@ def agenda_settlement_mod(court: str, settlement_terms, world,
     return 0
 
 
+def _active_guard_map(world) -> Dict[str, str]:
+    """S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): the RAW guard map —
+    region -> holder, from ACTIVE guard agendas only (the deck-priority
+    chokepoint — a latent guard prices nothing). What `process_agenda_violations`
+    read inline before; one body now, so the trap, the player's free ask, the
+    quote and the shift beat read the SAME provinces. Last holder wins on a
+    province two courts guard (the loop's own overwrite, kept)."""
+    guard_holder_by_region: Dict[str, str] = {}
+    for nation in world.get_active_nations():
+        view = get_active_agenda(nation, world)
+        if view is None or view.type != "guard_neutrality":
+            continue
+        for region_name in view.regions:
+            guard_holder_by_region[region_name] = nation
+    return guard_holder_by_region
+
+
+def guarded_provinces_for(world, violator: str) -> Dict[str, str]:
+    """S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): `{region: guard
+    holder}` for every province an ACTIVE guard_neutrality design guards where
+    a column of `violator`'s standing WOULD pay the Ansbach trap — the
+    nation-level half of `process_agenda_violations`' exemptions, one body for
+    the trap and the player's free ask ("Berlin and Brunswick are Prussia's
+    guarded ground ..."), so what is asked is what is charged and the two
+    cannot disagree. Per-column facts (a courier below DISRUPTION_MIN_STRENGTH,
+    a captured corps) and the pair's latch stay in the trap; this reads only
+    what the violator's NATION decides.
+
+    {} unless the violator is a belligerent (only a belligerent's columns
+    offend); a province is dropped when the violator IS the holder, when it is
+    the violator's own or a vassal's soil, when the pair is at open war or in
+    armistice, allied, or lord and client. This is THE SEAM for the series
+    arms: `process_agenda_violations` reads it through the module global, so a
+    patch that restores the old inline reading changes nothing for the AI (the
+    refactor is identity — pinned against the existing agenda tests)."""
+    raw = _active_guard_map(world)
+    if not raw or not violator:
+        return {}
+    if not world.get_nations_at_war_with(violator):
+        return {}  # only a belligerent's columns offend
+    vassals = getattr(world, "vassals", {}) or {}
+    out: Dict[str, str] = {}
+    for region_name, holder in raw.items():
+        if violator == holder:
+            continue
+        if _controlled_by_self_or_vassal(world, violator, region_name):
+            continue  # one's own soil cannot be "crossed" — a garrison on
+            # a legally-held (e.g. treaty-ceded) province is no transit,
+            # however loudly the old owner's guard covers it (review fix)
+        if _belligerent(world, violator, holder):
+            continue  # open war — or its armistice — supersedes outrage
+        if world.are_allies(violator, holder):
+            continue
+        if ((vassals.get(violator) or {}).get("lord") == holder
+                or (vassals.get(holder) or {}).get("lord") == violator):
+            continue  # one's own lord or client is no foreign column
+        out[region_name] = holder
+    return out
+
+
+def guard_court_name(world, holder: str) -> str:
+    """S14G-11: the guard-holder as prose names it - formation-aware
+    (`_live_nation_name`) with the definite article where English wants one
+    ("the Ottoman Empire", "Prussia")."""
+    from backend.display_names import with_definite_article
+    return with_definite_article(_live_nation_name(world, holder))
+
+
+def guard_ground_clause(world, holder: str, provinces, title: str = "") -> str:
+    """S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): the price of
+    guarded ground in one clause, built ONCE from the design's own provinces
+    and the trap's own constant — "Berlin and Brunswick are Prussia's guarded
+    ground (Armed Neutrality) — standing in them costs −25 with Prussia" (no
+    trailing period; every surface adds its own). The player's march ask, its
+    reply rider, the march quote, the "takes up a new design" beat and the
+    Diplomacy ledger's stance line all print this clause, so the price the
+    trap charges is the price every surface names."""
+    from backend.display_names import humanize_entity_name
+    names = [humanize_entity_name(str(p)) for p in provinces if p]
+    if not names:
+        return ""
+    listed = (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else names[0]
+    court = guard_court_name(world, holder)
+    owns = f"{court}'" if court.endswith("s") else f"{court}'s"
+    tag = f" ({title})" if title else ""
+    be, standing_in = ("are", "them") if len(names) > 1 else ("is", "it")
+    return (f"{listed} {be} {owns} guarded ground{tag} — standing in {standing_in} "
+            f"costs −{abs(int(AGENDA_VIOLATION_RELATION_PENALTY))} with {court}")
+
+
+def violation_on_cooldown(world, violator: str, holder: str) -> bool:
+    """The Ansbach trap's latch for the pair (violator, guard-holder): True
+    while a violation of that pair is inside AGENDA_VIOLATION_COOLDOWN turns.
+    S14G-11: lifted out of `process_agenda_violations` unchanged (it was a
+    closure there) so the player's free ask reads the same latch — a pair that
+    already paid inside the window is not asked again for a −25 the trap will
+    not charge."""
+    current_turn = int(getattr(world, "current_turn", 0))
+    log = getattr(world, "event_log", []) or []
+    # Rolling-cap guard (adversarial-review fix): if the capped log
+    # has evicted events INSIDE the cooldown window, a prior latch
+    # may be gone — fail SAFE and suppress rather than re-fire the
+    # penalty (a missed violation is benign; a duplicate -25 is not).
+    max_size = int(getattr(world, "MAX_EVENT_LOG_SIZE", 500) or 500)
+    if len(log) >= max_size:
+        oldest_turn = int((log[0] or {}).get("turn", 0) or 0)
+        if oldest_turn > current_turn - AGENDA_VIOLATION_COOLDOWN:
+            return True
+    for event in log:
+        if event.get("type") != "agenda_violation":
+            continue
+        if (event.get("violator") == violator
+                and event.get("guard_holder") == holder
+                and int(event.get("turn", 0) or 0)
+                > current_turn - AGENDA_VIOLATION_COOLDOWN):
+            return True
+    return False
+
+
 def process_agenda_violations(world) -> List[Dict]:
     """NA-3 §5.9 — the Ansbach trap. One pass over `world.marshals`
     (the EC-W1 get_disrupted_regions idiom — never a region scan): a
@@ -1257,71 +1376,45 @@ def process_agenda_violations(world) -> List[Dict]:
     defensive-refusal-memory idiom; `log_event` auto-stamps `turn`).
     GR5: the player's columns crossing Holstein offend Copenhagen exactly
     as Bernadotte's crossing of Ansbach offended Berlin.
+
+    S14G-11: the guard map and the nation-level exemptions are read through
+    `guarded_provinces_for` (per violator nation, once per pass) — the same
+    reading the player's free ask prints; the checks below are the column's
+    own (a captured corps, a courier) and the pair's latch.
     """
     # Guard map: region -> holder, from ACTIVE guard agendas only (the
     # deck-priority chokepoint — a latent guard prices nothing).
-    guard_holder_by_region: Dict[str, str] = {}
-    for nation in world.get_active_nations():
-        view = get_active_agenda(nation, world)
-        if view is None or view.type != "guard_neutrality":
-            continue
-        for region_name in view.regions:
-            guard_holder_by_region[region_name] = nation
+    guard_holder_by_region = _active_guard_map(world)
     if not guard_holder_by_region:
         return []
 
     from backend.models.world_state import DISRUPTION_MIN_STRENGTH
 
-    current_turn = int(getattr(world, "current_turn", 0))
-
     def _on_cooldown(violator: str, holder: str) -> bool:
-        log = getattr(world, "event_log", []) or []
-        # Rolling-cap guard (adversarial-review fix): if the capped log
-        # has evicted events INSIDE the cooldown window, a prior latch
-        # may be gone — fail SAFE and suppress rather than re-fire the
-        # penalty (a missed violation is benign; a duplicate -25 is not).
-        max_size = int(getattr(world, "MAX_EVENT_LOG_SIZE", 500) or 500)
-        if len(log) >= max_size:
-            oldest_turn = int((log[0] or {}).get("turn", 0) or 0)
-            if oldest_turn > current_turn - AGENDA_VIOLATION_COOLDOWN:
-                return True
-        for event in log:
-            if event.get("type") != "agenda_violation":
-                continue
-            if (event.get("violator") == violator
-                    and event.get("guard_holder") == holder
-                    and int(event.get("turn", 0) or 0)
-                    > current_turn - AGENDA_VIOLATION_COOLDOWN):
-                return True
-        return False
+        return violation_on_cooldown(world, violator, holder)
 
     events: List[Dict] = []
     fired_pairs = set()
-    vassals = getattr(world, "vassals", {}) or {}
+    guarded_by_nation: Dict[str, Dict[str, str]] = {}
     for marshal in world.marshals.values():
-        holder = guard_holder_by_region.get(marshal.location)
-        if holder is None:
-            continue
+        if marshal.location not in guard_holder_by_region:
+            continue  # the cheap gate: only a column on a guarded province
         violator = marshal.nation
-        if violator == holder:
-            continue
         if getattr(marshal, "captured_by", ""):
             continue
         if marshal.strength < DISRUPTION_MIN_STRENGTH:
             continue  # a courier is not an army
-        if not world.get_nations_at_war_with(violator):
-            continue  # only a belligerent's columns offend
-        if _controlled_by_self_or_vassal(world, violator, marshal.location):
-            continue  # one's own soil cannot be "crossed" — a garrison on
-            # a legally-held (e.g. treaty-ceded) province is no transit,
-            # however loudly the old owner's guard covers it (review fix)
-        if _belligerent(world, violator, holder):
-            continue  # open war — or its armistice — supersedes outrage
-        if world.are_allies(violator, holder):
+        # S14G-11: the nation-level reading (the holder is the violator
+        # himself, a belligerent's columns only, own or a vassal's soil,
+        # open war or armistice, an ally, a lord or client) is the ONE helper
+        # the player's free ask reads — per violator, once for the pass.
+        guarded = guarded_by_nation.get(violator)
+        if guarded is None:
+            guarded = guarded_provinces_for(world, violator)
+            guarded_by_nation[violator] = guarded
+        holder = guarded.get(marshal.location)
+        if holder is None:
             continue
-        if ((vassals.get(violator) or {}).get("lord") == holder
-                or (vassals.get(holder) or {}).get("lord") == violator):
-            continue  # one's own lord or client is no foreign column
         pair = (violator, holder)
         if pair in fired_pairs or _on_cooldown(violator, holder):
             continue
@@ -1425,8 +1518,11 @@ def _stance_line(view: AgendaView, world) -> str:
     if view.type == "guard_neutrality":
         guards = list(view.regions)
         if guards:
-            return (f"Armed and neutral — foreign columns near "
-                    f"{guards[0]} would be an outrage.")
+            # S14G-11: the stance line names every guarded province and the
+            # price (the one clause the march ask and the shift beat print) —
+            # it named the first province and called a crossing "an outrage".
+            return (f"Armed and neutral — "
+                    f"{guard_ground_clause(world, view.nation, guards)}.")
         return "Armed and neutral; the court watches the roads."
     return ""
 
@@ -1489,6 +1585,12 @@ def process_agenda_shifts(world) -> List[Dict]:
             continue
 
         focus = view.title if not view.survival else "its own survival"
+        # S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): a guard design's
+        # beat carries its provinces and its price, from the design's own
+        # `regions` and the trap's own constant ("Armed Neutrality" alone told
+        # the player nothing of the −25 a march through Berlin would cost).
+        if view.type == "guard_neutrality" and view.regions and not view.survival:
+            focus += " — " + guard_ground_clause(world, nation, view.regions)
         nation_display = _live_nation_name(world, nation)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "agenda_shift", {

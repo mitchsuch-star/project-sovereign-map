@@ -235,7 +235,13 @@ func _format_action(action: Dictionary) -> String:
 				# DDB-56: ours or a friend's (`_taken_from_player`).
 				if _taken_from_player(taken_event):
 					line_color = COLOR_ERROR
-				action_str += " — " + target + " falls"
+				# S14G-X10: an ally's ground retaken from an enemy is handed
+				# back, not "fallen" - said in the liberation's own words.
+				var move_home := _liberated_court(taken_event)
+				if move_home != "":
+					action_str += " — " + target + " is handed back to " + move_home
+				else:
+					action_str += " — " + target + " falls"
 				action_str += " (was " + Utils.display_nation_name(taken_from) + ")"
 				if fate == "plunder":
 					action_str += " and is sacked"
@@ -402,7 +408,12 @@ func _format_action(action: Dictionary) -> String:
 			var gave_way := int(event.get("garrison_gave_way", 0))
 			if gave_way > 0:
 				result += "[color=#" + conquest_color + "]    The last " + _format_number(gave_way) + " of the garrison of " + str(region) + " give way.[/color]\n"
-			result += "[color=#" + conquest_color + "]    Region captured: " + region + conquest_was + choice_str + "[/color]\n"
+			# S14G-X10: a liberation reads as one, in the battle arm's own words.
+			var conquest_home := _liberated_court(event)
+			if conquest_home != "":
+				result += "[color=#" + conquest_color + "]    " + str(region).to_upper() + " HANDED BACK TO " + conquest_home.to_upper() + conquest_was + "[/color]\n"
+			else:
+				result += "[color=#" + conquest_color + "]    Region captured: " + region + conquest_was + choice_str + "[/color]\n"
 
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
@@ -594,7 +605,13 @@ func _format_battle(event: Dictionary, action_marshal: String = "", action_targe
 		var battle_was = ""
 		if battle_from != "":
 			battle_was = " (was " + Utils.display_nation_name(battle_from) + ")"
-		result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_was + battle_choice_str + "[/color]\n"
+		# S14G-X10: a liberation is not "CAPTURED!" - the province went back
+		# to its home nation (`liberated_to`, the court's printed name beside it).
+		var battle_home := _liberated_court(event)
+		if battle_home != "":
+			result += "[color=#" + battle_capture_color + "]    " + str(region).to_upper() + " HANDED BACK TO " + battle_home.to_upper() + battle_was + "[/color]\n"
+		else:
+			result += "[color=#" + battle_capture_color + "]    " + region + " CAPTURED!" + battle_was + battle_choice_str + "[/color]\n"
 
 	# Check for forced retreat
 	# SF7-X26: a foe driven off is good news; ours (or a friend's) is not.
@@ -906,6 +923,23 @@ func _taken_from_player(event: Dictionary) -> bool:
 	if taken is String and taken == _PLAYER_NATION:
 		return true
 	return str(event.get("captured_from_alignment", "")) in ["player", "friend"]
+
+func _liberated_court(event: Dictionary) -> String:
+	"""S14G-X10 (Pre-Deploy S14h part 1, October 26, 2026): the court a capture
+	HANDED THE PROVINCE BACK TO, as it prints ("Bavaria", "the Kingdom of
+	Italy") - '' for a plain capture. A province whose home nation is the
+	capturer's ally or client, retaken from an enemy, is a liberation, and the
+	three lines of this dialog that said "falls" / "Region captured" /
+	"CAPTURED!" over it read the event's `liberated_to` instead (the court's
+	printed name rides `liberated_to_name`; the key through the display chokepoint
+	when an event carries only the key)."""
+	var key := str(event.get("liberated_to", ""))
+	if key == "" or key == "<null>":
+		return ""
+	var named := str(event.get("liberated_to_name", ""))
+	if named == "" or named == "<null>":
+		named = Utils.display_nation_name(key)
+	return named
 
 func _reinforcement_side(action: Dictionary) -> String:
 	"""IQ-5 review (G): whose reinforcements the lines describe — "player",

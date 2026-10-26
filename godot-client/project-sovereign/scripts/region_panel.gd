@@ -1051,6 +1051,7 @@ func _march_here_section() -> String:
 			+ Utils.COLOR_INFO + "]one order, the Staff's price, every corps within the Emperor's reach[/color]\n"
 		out += _quote_rows([army])
 		out += _army_detour_rows(army)   # S14E-X135: which corps take a long or foreign road
+		out += _army_rider_rows(army)   # S14G-11 / S14G-7 / S14G-2: and which cross guarded ground, march to a front, carry terms
 	var attack = _quotes.get("attack", [])
 	if attack is Array:
 		for row in attack:
@@ -1119,6 +1120,25 @@ func _army_detour_rows(army: Dictionary) -> String:
 	return out
 
 
+func _army_rider_rows(army: Dictionary) -> String:
+	"""S14G-11 / S14G-7 / S14G-2: the army row's other riders, one note-coloured
+	line per corps that carries one -- the guarded ground its road crosses
+	(`corps[].guard`), the front it marches to (`corps[].front`) and the standing
+	order's terms (`corps[].terms`), each the sentence the corps' own card prints."""
+	var out := ""
+	var corps = army.get("corps", [])
+	if not (corps is Array):
+		return out
+	for c in corps:
+		if not (c is Dictionary):
+			continue
+		for rider in ["guard", "front", "terms"]:
+			var said := str(c.get(rider, ""))
+			if said != "":
+				out += "    [color=#" + Utils.COLOR_INFO + "]" + str(c.get("shown", "")) + " — " + said + "[/color]\n"
+	return out
+
+
 func _quote_label(q: Dictionary) -> String:
 	"""`Soult · 2 AP · 3 turns` — the man, the price, the clock."""
 	var label := str(q.get("shown", ""))
@@ -1164,6 +1184,15 @@ func _quote_notes(q: Dictionary) -> String:
 	var pay := str(q.get("pay", ""))   # S14E-X67: the campaign pay the destination draws
 	if pay != "":
 		notes.append(pay)
+	var guard := str(q.get("guard", ""))   # S14G-11: the guarded ground the road crosses (the Ansbach trap's price)
+	if guard != "":
+		notes.append(guard)
+	var front := str(q.get("front", ""))   # S14G-7: the front the destination is (an ally's province whose war a truce of ours leaves running)
+	if front != "":
+		notes.append(front)
+	var terms_text := str(q.get("terms", ""))   # S14G-2 / S14G-3: what the standing order does once taken
+	if terms_text != "":
+		notes.append(terms_text)
 	var replaces := str(q.get("replaces", ""))
 	if replaces != "" and not bool(q.get("already", false)):
 		notes.append("replaces " + replaces)

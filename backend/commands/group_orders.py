@@ -322,10 +322,27 @@ def _run_members(world, game_state, parser, executor, llm_game_state,
         if army and band == "carries" and _would_object(
                 world, marshal, strategic_type, parsed_target=stash.get("target"), rest=rest):
             said += " (He had his doubts; the Staff's order carries.)"
-        lines.append(f"{_display(name)}: {said}" if said else f"{_display(name)}: done.")
+        lines.append(_member_line(name, said))
     world._pending_group = None
     return {"lines": lines, "question": None, "events": events, "waiting": members, "asker": "",
             "spent": spent}
+
+
+def _member_line(name: str, said: str) -> str:
+    """S14G-X17 (Pre-Deploy S14h part 1, October 26, 2026): one member's line
+    in a group's reply. A reply that already opens with his name ("Ney already
+    stands at Vienna - nothing spent.", "Ney begins march to Frankfurt.", "Ney
+    halts his march ...") is the line - the group's "Ney: " prefix printed the
+    name twice ("Ney: Ney already stands at Vienna"). The refusal sentence is
+    shared with the quote and the typed order (`own_province_march_refusal`),
+    so the fix is here, at the group's formatting. A reply that does not open
+    with his name keeps the prefix that says whose it is."""
+    shown = _display(name)
+    if not said:
+        return f"{shown}: done."
+    if re.match(re.escape(shown) + r"(?![A-Za-z])", said):
+        return said
+    return f"{shown}: {said}"
 
 
 def _probe_verbs():

@@ -773,15 +773,10 @@ def _handle_settlement_tier2_action(
         # popup, so a press at the ceiling read as a wordless flash. The notes
         # ride the restaged dialogue as one-shot voice beats (the same carrier
         # as the DC-4 caution), which the popup preamble already renders.
-        voice_beats.extend(
-            {
-                "kind": "dial_note",
-                "speaker": "Talleyrand",
-                "nation": "",
-                "line": note,
-            }
-            for note in unique_notes
-        )
+        # S14G-12: ONE carrier builder (`_dial_note_voice_beats`) for the dial
+        # and the magnitude verb; the popup draws these at the TOP of the
+        # header, under the verdict, where the player's eye already is.
+        voice_beats.extend(_dial_note_voice_beats(unique_notes))
         return _restage_settlement_after_redraw(
             world,
             dialogue,
@@ -998,6 +993,74 @@ def _carve_templates_for_court(world: Any, *, war_instance: Mapping[str, Any],
 # `includes_continental_system: False` (lever down: no flag, which
 # ratification reads as True — the court joined the System anyway).
 THE_PLAIN_ALLIANCE_KEEPS_NO_SYSTEM = True
+
+
+def _dial_note_voice_beats(notes: Iterable[str]) -> List[Dict[str, str]]:
+    """G4F-5 / S14G-12: the dial's one-shot notes as the `dial_note` voice
+    beats the popup's header carries (the dial's ceiling / protection notes
+    and the magnitude verb's credit-ceiling clamp ride the SAME carrier, so a
+    sentence the table speaks is a sentence the player is shown). Dropped by
+    the next restage (the GT-Slice-V contract)."""
+    return [
+        {"kind": "dial_note", "speaker": "Talleyrand", "nation": "", "line": str(note)}
+        for note in notes if str(note)
+    ]
+
+
+def _court_dictated_and_not_raised(
+    world: Any, before: Mapping[str, Any], clause: Mapping[str, Any], ttype: str,
+) -> bool:
+    """PC-R3 (S13e part 2) / S14G-12: a clause a COURT dictated (the consented
+    letter's own ask) that the player kept or lowered — the ask is the court's,
+    priced to the war, so the player's solvency refusal and the credit-ceiling
+    clamp both leave it alone; raising it past the court's figure is the
+    player's own authoring."""
+    court_authored = str(before.get("authored_by") or "") not in (
+        "", "player", str(getattr(world, "player_nation", "France") or "France"))
+    not_raised = int(clause.get("amount", 0) or 0) <= int(before.get("amount", 0) or 0) and (
+        ttype != "gold_per_turn"
+        or int(clause.get("turns", 0) or 0) <= int(before.get("turns", 0) or 0))
+    return bool(court_authored and not_raised)
+
+
+def _clamp_to_credit_ceiling(
+    terms: List[Dict[str, Any]],
+    clause_index: int,
+    clause: Dict[str, Any],
+    covered: List[str],
+    *,
+    amount_given: bool,
+    turns_given: bool,
+) -> str:
+    """S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): the per-line [+]
+    had NO ceiling and spent gold that buys nothing (sea #8: 1,000g stood at
+    26 of 50 and the line would have set 1,100). A gold line that PAYS a court
+    is clamped to what the court's credit still counts — the ceiling less the
+    pair's other lines, per turn for a stream — and the authored note comes
+    back with the figure it was set to. ``clause`` is mutated in place;
+    returns the note ("" when nothing was clamped)."""
+    from backend.game_logic.settlement_staging import (
+        credit_ceiling_note, credit_line_amount_max, credit_line_turns_max,
+    )
+
+    court = str(clause.get("to") or "")
+    if court not in covered or str(clause.get("from") or "") in covered:
+        return ""
+    candidate = [dict(t) for t in terms]
+    candidate[clause_index] = dict(clause)
+    ttype = str(clause.get("type") or "")
+    if amount_given:
+        cap = credit_line_amount_max(candidate, clause_index, court)
+        if cap is not None and int(clause.get("amount", 0) or 0) > cap:
+            clause["amount"] = int(cap)
+            return credit_ceiling_note(court, set_to=int(cap))
+    elif turns_given and ttype == "gold_per_turn":
+        cap = credit_line_turns_max(
+            candidate, clause_index, court, amount=int(clause.get("amount", 0) or 0))
+        if cap is not None and int(clause.get("turns", 0) or 0) > cap:
+            clause["turns"] = int(cap)
+            return credit_ceiling_note(court, set_to=int(cap), unit=" turns")
+    return ""
 
 
 def _demand_clause_label(clause: Mapping[str, Any]) -> str:
@@ -1219,6 +1282,17 @@ def _handle_settlement_demand_action(
                     f"and {GOLD_PER_TURN_MAX_TURNS} turns, Sire.",
                 )
             clause["turns"] = int(turns)
+        # S14G-12: a gold line that PAYS a court is clamped to the credit
+        # ceiling (the per-line [+] had none and spent gold that bought
+        # nothing); the authored note comes back with the figure it was set
+        # to. A court-dictated clause kept or lowered is left as it is.
+        credit_note = ""
+        if not _court_dictated_and_not_raised(world, terms[clause_index], clause, ttype):
+            credit_note = _clamp_to_credit_ceiling(
+                terms, clause_index, clause, covered,
+                amount_given=raw_amount is not None,
+                turns_given=raw_turns is not None,
+            )
         # G4F-2 / DC-1: an explicit magnitude beyond the payer's capacity is
         # refused HERE with the binding constraint named, never authored for
         # the restage validator to bounce as a generic failure.
@@ -1236,13 +1310,8 @@ def _handle_settlement_demand_action(
             # letter's own ask) may be kept or lowered without the player's
             # solvency refusal — the ask is the court's, priced to the war;
             # raising it past the court's figure is the player's authoring.
-            _before = terms[clause_index]
-            _court_authored = str(_before.get("authored_by") or "") not in (
-                "", "player", str(getattr(world, "player_nation", "France") or "France"))
-            _not_raised = int(clause.get("amount", 0) or 0) <= int(_before.get("amount", 0) or 0) and (
-                ttype != "gold_per_turn"
-                or int(clause.get("turns", 0) or 0) <= int(_before.get("turns", 0) or 0))
-            if consumption > headroom and not (_court_authored and _not_raised):
+            if consumption > headroom and not _court_dictated_and_not_raised(
+                    world, terms[clause_index], clause, ttype):
                 return _fail(
                     "gold_payment_budget_conflict",
                     _payer_budget_refusal_display(
@@ -1260,7 +1329,13 @@ def _handle_settlement_demand_action(
             action=action,
             new_terms=new_terms,
             new_covered=covered,
-            message=f"Set {_demand_clause_label(clause)}.",
+            # S14G-12: a clamp answers in the authored note (a one-shot
+            # `dial_note` beat the popup header carries, and the reply).
+            message=credit_note or f"Set {_demand_clause_label(clause)}.",
+            extra=(
+                {"authoring_voice_beats": _dial_note_voice_beats([credit_note])}
+                if credit_note else None
+            ),
         )
 
     # settlement_demand_add
@@ -1665,6 +1740,28 @@ def _handle_settlement_demand_action(
             "liberator": proposer_leader,
         }
 
+    # S14G-X55 (Pre-Deploy S14h part 1, October 26, 2026): an OFFER of gold
+    # past what the pair's credit still counts bought nothing — the add verb
+    # took any amount (and the default read the treasury only), so a line was
+    # authored beside lines that already filled the ceiling. It is clamped to
+    # what the credit still counts, and answers in the authored note
+    # ("— set to N."); where the ceiling is already full nothing is authored:
+    # the refusal is free and says the same words, never a line that buys
+    # nothing. (A demand ON a court has no ceiling.)
+    credit_note = ""
+    if group != "demand" and clause.get("type") in ("gold_indemnity", "gold_per_turn"):
+        from backend.game_logic.settlement_staging import (
+            credit_ceiling_note, credit_headroom,
+        )
+        room = credit_headroom(terms, str(clause.get("from") or ""), court)
+        floor = (GOLD_PER_TURN_MIN_AMOUNT * max(1, int(clause.get("turns", 0) or 0))
+                 if clause.get("type") == "gold_per_turn" else 1)
+        if room < floor:
+            return _fail("credit_ceiling_full", credit_ceiling_note(court))
+        credit_note = _clamp_to_credit_ceiling(
+            [dict(t) for t in terms] + [dict(clause)], len(terms), clause, covered,
+            amount_given=True, turns_given=False,
+        )
     # G4F-2 / DC-1: a gold line the payer cannot fund (explicit over-balance
     # amount, or a default colliding with the payer's other package gold) is
     # refused here with the binding constraint named — never authored for
@@ -1701,7 +1798,8 @@ def _handle_settlement_demand_action(
     # named envoy via `resolve_named_diplomat`, chancery fallback, never
     # an anonymous beat).
     clause_label = _demand_clause_label(clause)
-    voice_beats: List[Dict[str, str]] = []
+    # S14G-X55: a clamp's note leads the beats (it answers the click).
+    voice_beats: List[Dict[str, str]] = _dial_note_voice_beats([credit_note])
     if group == "demand" and direction == "concede":
         voice_beats.append({
             "kind": "talleyrand_caution",
@@ -1732,7 +1830,7 @@ def _handle_settlement_demand_action(
         action=action,
         new_terms=new_terms,
         new_covered=covered,
-        message=f"{arm} {clause_label}.",
+        message=f"{arm} {clause_label}." + (f" {credit_note}" if credit_note else ""),
         extra={"authoring_voice_beats": voice_beats},
     )
 

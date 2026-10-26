@@ -34,6 +34,48 @@ def _nation_display(source: str) -> str:
     return display_nation(str(source or ""))
 
 
+# S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26, 2026): the letters that
+# carry a WAR decision the player must make before treating - a lesser court's
+# letter of these kinds still shuts the Cabinet (`letter_locks_cabinet`, clause
+# 3). Read off the letter's stable P-rule label AND its terms' type (the terms
+# are rewritten downstream: harsh_peace -> peace, armistice_stalemate ->
+# armistice_losing), so a rewritten letter is still caught. A courtesy
+# (open_borders, non_aggression, friendly_gift ...) is deliberately absent.
+WAR_DECISION_LETTER_TYPES = frozenset({
+    "peace",
+    "harsh_peace",
+    "armistice",
+    "armistice_losing",
+    "armistice_stalemate",
+    "armistice_winning",
+    "broker_peace",
+    "call_to_arms",
+})
+
+
+def _is_great_court(nation: str) -> bool:
+    """A GREAT COURT: the authored `power_tier == "major"` of
+    `nation_config.NATION_POWER_TIERS` - the read `world.get_power_tier`
+    makes (an unauthored tag takes the `secondary` default, as everywhere).
+    World-free on purpose: `has_current_turn_offers` has no world."""
+    from backend.nation_config import _POWER_TIER_DEFAULT, NATION_POWER_TIERS
+    return (NATION_POWER_TIERS.get(nation) or _POWER_TIER_DEFAULT) == "major"
+
+
+def _letter_kinds(item: dict) -> set:
+    """The kinds a current-turn letter reads as: its stable P-rule label
+    (`context.proposal_type`) and the `type` of every terms dict it carries
+    (the proposal, a counter's terms, the draft a counter answers)."""
+    context = item.get("context") if isinstance(item.get("context"), dict) else {}
+    kinds = {str((context or {}).get("proposal_type") or "")}
+    for key in ("proposal", "counter_terms", "original_proposal"):
+        terms = (context or {}).get(key)
+        if isinstance(terms, dict):
+            kinds.add(str(terms.get("type") or ""))
+    kinds.discard("")
+    return kinds
+
+
 # FA slice 10.
 # FA-17 / FA-N44: a counter-offer and a commitment paradox mount over MAIL to
 # reach the player (a plain `push` queued them behind anything).
@@ -71,6 +113,9 @@ class DialogueManager:
         get_mailbox_count()    — count of mailbox-eligible items (active + queued)
         get_mailbox_items()    — ordered list of mailbox items for inbox panel
         activate_mailbox_item(id) — swap a queued item into the active slot
+        letter_locks_cabinet(item) — S14G-6/D3: does this letter shut the Cabinet?
+        has_current_turn_offers()  — True while a letter that locks stands
+        locking_letters()          — the held letters that shut the Cabinet
     """
 
     # S5-4 (Score Finish Step 7 slice 7, October 4, 2026): the depth past
@@ -639,6 +684,14 @@ class DialogueManager:
                 # opens in full (a letter-book row answers in place: "").
                 "terms_lines": mailbox_row_terms(d),
                 "reason": mailbox_row_reason(d, world),
+                # S14G-X24 (Pre-Deploy S14h part 1, October 26, 2026): the lock
+                # said on the row - the letter's popup, the Not Now button, the
+                # Cabinet button and the Envoys badge all said whether a letter
+                # shuts the Cabinet (S14G-6), and the mailbox, where the player
+                # chooses which letter to open, did not. From the ONE predicate
+                # (`item_locks_cabinet`: a great court's letter, an ultimatum, a
+                # war decision), so the row can never disagree with the lock.
+                "locks_cabinet": bool(self.item_locks_cabinet(d)),
                 # SR-2d (SR-2-X5): "Britain — Settlement Offer, under Russia's
                 # good offices" — the source stays the belligerent, the
                 # mediation rides the label.
@@ -664,23 +717,137 @@ class DialogueManager:
 
         return items
 
+    def letter_locks_cabinet(self, item) -> bool:
+        """THE seam of S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26,
+        2026): does this unanswered current-turn letter shut the Cabinet (the
+        diplomacy wizard, and every chip that opens it) until it is answered
+        or the turn ends?
+
+        Was: EVERY current-turn offer shut it - three Open Borders courtesies
+        from the Porte and Portugal shut the Cabinet on every turn envoys
+        arrived (DD-B diplomacy #11), and the lock stood on tooltips only. The
+        lock exists so a pending WAR decision is not buried under
+        treaty-making; a minor court's courtesy is not that (the user's ruling
+        S14G-D3: only a great court's letter or an ultimatum locks). A letter
+        locks when it is
+
+        1. an ultimatum (`incoming_ultimatum`) - whoever sends it; or
+        2. from a GREAT COURT - the game's one notion of it, an authored
+           `power_tier == "major"` (`world.get_power_tier`, the same
+           `nation_config.NATION_POWER_TIERS` read, so no world is needed
+           here); or
+        3. a WAR DECISION whatever the sender's rank - the letter's label or
+           its terms read peace, harsh peace, any armistice, a brokered peace
+           (`WAR_DECISION_LETTER_TYPES`), or an ally's call to arms
+           (`call_to_arms`, join or refuse by its answer-by turn); or
+        4. of an unknown sender (the old reading, kept for a letter that
+           names no court).
+
+        Everything else answers in place and never locks - the lesser
+        court's open borders, non-aggression, gift, alliance, design
+        purchase, neutrality compact, offer of submission, its client's
+        petition and its counter-offer in a courtesy negotiation - exactly as
+        a moment letter (`moments.is_moment_letter`, S14c seam 9) never has.
+        `lapse_pending_offers` is untouched: a lesser letter still lapses at
+        the turn's end, and the mailbox still lists it.
+
+        Seam "down" = every current-turn offer that is not a moment letter
+        locks (today's reading): `item_locks_cabinet` (the one reader of this
+        method) applies the type and moment filters itself, so a patch of
+        this method to `lambda self, item: True` restores it byte for byte."""
+        if not isinstance(item, dict):
+            return False
+        from backend.game_logic.moments import is_moment_letter
+        dtype = str(item.get("type", "") or "")
+        if dtype not in self.CURRENT_TURN_OFFER_TYPES or is_moment_letter(item):
+            return False
+        if dtype == "incoming_ultimatum":
+            return True
+        sender = self.letter_sender(item)
+        if not sender or _is_great_court(sender):
+            return True
+        return bool(_letter_kinds(item) & WAR_DECISION_LETTER_TYPES)
+
+    @staticmethod
+    def letter_sender(item) -> str:
+        """The court that wrote a current-turn letter (the dialogue's own
+        `target_nation`, else its context's `source_nation`); "" for none."""
+        if not isinstance(item, dict):
+            return ""
+        context = item.get("context") if isinstance(item.get("context"), dict) else {}
+        return str(item.get("target_nation") or (context or {}).get("source_nation") or "")
+
+    def item_locks_cabinet(self, item) -> bool:
+        """One held dialogue against the lock: a current-turn offer that is not
+        a moment letter (S14c seam 9: the Cabinet's own letter never locks)
+        and that `letter_locks_cabinet` says shuts it. The type and moment
+        filters stand OUTSIDE the seam, so the seam's "down" reading (always
+        True) is exactly today's lock."""
+        from backend.game_logic.moments import is_moment_letter
+        return (isinstance(item, dict)
+                and item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES
+                and not is_moment_letter(item)
+                and bool(self.letter_locks_cabinet(item)))
+
+    def locking_letters(self) -> List[Dict]:
+        """The unanswered letters that shut the Cabinet, active slot first
+        (`item_locks_cabinet` for each held dialogue) - the courts
+        `build_base_response` names beside `cabinet_locked`."""
+        held = ([self._current] if self._current else []) + list(self._queue)
+        return [item for item in held if self.item_locks_cabinet(item)]
+
+    def locking_court_names(self, world) -> List[str]:
+        """S14G-X25 (Pre-Deploy S14h part 1, October 26, 2026): the courts whose
+        unanswered letters shut the Cabinet, by their printed form ("Austria",
+        "the Ottoman Empire"; a formed nation by its current name), once each,
+        active slot first - `locking_letters` read for names. The ledger's
+        Vassals tab says WHOSE letter suspends its instruments with it (it said
+        "Envoys await your reply" with no court, and even when a hard-stop
+        dialogue, not a letter, was the cause). The same names
+        `main._cabinet_locked_by` puts on the wire beside `cabinet_locked`."""
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
+        names: List[str] = []
+        for item in self.locking_letters():
+            court = self.letter_sender(item)
+            if not court:
+                continue
+            name = with_definite_article(formed_display_name(world, court))
+            if name and name not in names:
+                names.append(name)
+        return names
+
+    def find_letter(self, dialogue_id) -> Optional[Dict]:
+        """The held dialogue (active or queued) with this `dialogue_id`, else
+        None - how a popup payload, which carries only the id, is read against
+        the lock (`locks_cabinet` on the wire)."""
+        if dialogue_id is None:
+            return None
+        for item in ([self._current] if self._current else []) + list(self._queue):
+            if item.get("dialogue_id") == dialogue_id:
+                return item
+        return None
+
     def has_current_turn_offers(self) -> bool:
-        """True if any current-turn offer items exist (active or queued).
+        """True if any current-turn offer that LOCKS the Cabinet exists
+        (active or queued).
 
         Used by diplomacy gating to block new diplomacy initiation while
         unanswered offers are pending.
+
+        S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26, 2026): it asks
+        `letter_locks_cabinet` - an ultimatum, a great court's letter or a
+        war decision locks; a lesser court's routine letter does not. Every
+        reader of this method (the wizard's two payloads, the ledger's
+        vassal chips, `get_available_diplomatic_actions`, the base
+        envelope's `cabinet_locked`) now reads the one predicate.
         """
         # S14c (docs/EVENTS_SPEC.md §3.4 seam 9, A2): a moment letter is the
-        # Cabinet's, not a court's offer — it never locks the wizard.
-        from backend.game_logic.moments import is_moment_letter
-
-        def _offer(item) -> bool:
-            return (item.get("type", "") in self.CURRENT_TURN_OFFER_TYPES
-                    and not is_moment_letter(item))
-
-        if self._current and _offer(self._current):
+        # Cabinet's, not a court's offer — it never locks the wizard
+        # (`item_locks_cabinet` keeps that filter outside the seam).
+        if self._current and self.item_locks_cabinet(self._current):
             return True
-        return any(_offer(item) for item in self._queue)
+        return any(self.item_locks_cabinet(item) for item in self._queue)
 
     def lapse_pending_offers(self, current_turn: Optional[int] = None,
                              world=None) -> list:

@@ -207,6 +207,22 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))
 	top_row.add_child(type_label)
 
+	# S14G-X24 (Pre-Deploy S14h part 1, October 26, 2026): the lock on the row.
+	# The letter's popup, its Not Now button, the Cabinet button and the Envoys
+	# badge all said whether a letter shuts the Cabinet (S14G-6); the mailbox,
+	# where the player picks which letter to open, did not. `locks_cabinet` is
+	# the backend's one predicate (`DialogueManager.item_locks_cabinet`); the
+	# tooltip is the one sentence every surface says (`Utils.cabinet_shut_sentence`).
+	# MOUSE_FILTER_PASS: the tooltip shows and a click still opens the row.
+	if bool(item.get("locks_cabinet", false)):
+		var lock_label = Label.new()
+		lock_label.text = "Shuts the Cabinet"
+		lock_label.mouse_filter = Control.MOUSE_FILTER_PASS
+		lock_label.tooltip_text = Utils.cabinet_shut_sentence()
+		lock_label.theme_type_variation = &"Caption"
+		lock_label.add_theme_color_override("font_color", Utils.UI_WARNING)
+		top_row.add_child(lock_label)
+
 	# S14E-27 (S14f part 2): the word is the press. UXR3-63 gave the row the
 	# hand and the word "Open ▸" — a Label that ignored the mouse, so the
 	# control was the whole row and the word was only a sign. It is a flat

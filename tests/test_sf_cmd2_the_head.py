@@ -93,6 +93,14 @@ class TestAReflexiveIsNeverAPlace:
 
     def test_taking_the_field_himself_is_the_emperors_march(self, shipped):
         client, world = shipped
+        # S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): the Emperor stands
+        # at Lorraine on the boot board, and a march to the province a corps
+        # already stands in is now refused free ("Napoleon already stands at
+        # Lorraine — nothing spent") — it used to be ACCEPTED as an empty
+        # MOVE_TO, which is what this pin leaned on. The pin's own subject is the
+        # reflexive ("myself" is the Emperor, never a place), so the march is
+        # staged from Paris, where it is a real one.
+        world.marshals["Napoleon"].location = "Paris"
         data = post(client, "I will take the field myself and march to Lorraine")
         assert order(world, "Napoleon") == ("MOVE_TO", "Lorraine"), data.get("message")
 

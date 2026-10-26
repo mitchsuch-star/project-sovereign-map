@@ -179,6 +179,70 @@ def _weakest_ally(world, player: str) -> Optional[str]:
     return best[0] if best else None
 
 
+def _shore_up_counsel(world, player: str, ally: str) -> Dict:
+    """S14G-X34 (Pre-Deploy S14h part 1, October 26, 2026): the counsel to
+    steady the weakest ally against a coalition bearing down, rung 2.
+
+    Was: `kind: "open_proposal"` at the ally, "Shore up Spain" - which landed on
+    the generic proposal menu for a court we ALREADY ALLY with, where "Propose
+    alliance" and "Non-aggression pact" are shut ("We already have Alliance...")
+    and only Vassalage stands open: a counsel that led to a menu of shut doors.
+    The instrument that shores up an ally is the Cabinet's mission to her court -
+    Reassure Ally in a full alliance, Improve Relations in a defensive one - and
+    the counsel reads it from the ONE lever (`diplomacy.slide_lever`, the gates
+    the Cabinet's mission rows read: transit, a live mission, DP):
+
+    * the lever is OPEN: `kind: "start_mission"`, whose option is the
+      mission-confirm's own `start_mission` action on the same stage (so it
+      runs the Cabinet's executor, GR5), the tooltip naming its price - the
+      relation it pays a turn and the DP a turn, against the DP held;
+    * the lever is SHUT (Talleyrand is at another court or on the road, or the
+      DP is short): `kind: "counsel_only"` - the sentence says what stands in
+      the way and offers no door (the lever's shut reasons in one place). The
+      rung still speaks: it is the coalition's warning.
+
+    Player-only (the advisory is the player's read; no AI road walks it)."""
+    from backend.game_logic.diplomacy import slide_lever
+    from backend.game_logic.formations import formed_display_name
+    name = formed_display_name(world, ally)
+    lever = slide_lever(world, ally, str(world.get_diplomatic_state(player, ally) or ""))
+    label, kind = lever["label"], lever["kind"]
+    lead = (f"the coalition means to fight — steady {name}, our least certain "
+            f"friend, before they test him.")
+    dp_have = int(getattr(world, "diplomatic_points", 0) or 0)
+    if kind == "open":
+        price = (f"{int(lever['effect']):+d} relations a turn for "
+                 f"{int(lever['cost'])} DP a turn")
+        return {
+            "kind": "start_mission",
+            "mission_type": lever["mission"],
+            "target_nation": ally,
+            "label": f"{label} ({name})",
+            "description": (f"Send Talleyrand to {name}: {price} "
+                            f"(you have {dp_have} DP)."),
+            "text": f"{lead} {label}: {price}.",
+        }
+    if kind == "here":
+        shut = f"Talleyrand is already at {name}'s court — leave him there."
+    elif kind == "transit":
+        shut = f"{label} opens when Talleyrand is home from the proposal he carries."
+    elif kind == "busy":
+        shut = (f"{label} waits on his errand — recall Talleyrand from "
+                f"{lever['away_name']} first (the Cabinet's Recall is free).")
+    elif kind == "amends":
+        shut = (f"{lever['amends_name']} is open in the Cabinet; {label} is shut "
+                f"for now.")
+    else:
+        shut = f"{label} needs {int(lever['cost'])} DP, and you have {dp_have}."
+    return {
+        "kind": "counsel_only",
+        "target_nation": ally,
+        "label": "",
+        "description": "",
+        "text": f"{lead} {shut}",
+    }
+
+
 def _recent_vassal_reason(world, vassal_name: str) -> str:
     """The most recent vassal_loyalty event's cause line (W6-3 `reason`),
     from the bounded recent event-log window (GR8-safe, W6-3 precedent)."""
@@ -517,29 +581,49 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
                              f"table and their reason to fight goes "
                              f"with it." + price_clause),
                 }
+            # S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the counsel
+            # carries the design — its id and title and the province(s) France
+            # holds that it names — so the action opens a confirm with the
+            # cession beside the peace (`design_confirm_dialogue`). It used to
+            # carry the target alone and land on the generic standstill menu,
+            # whose "Propose peace" sent a plain 3-DP treaty with the design
+            # nowhere in it. The description now says what the button does and
+            # what it costs (quote first), in the one price the confirm shows.
+            from backend.game_logic.agendas import get_agenda_covets
+            from backend.game_logic.diplomatic_dialogue import proposal_dp_cost
+            from backend.display_names import humanize_entity_name
+            held = set(world.get_nation_regions(player))
+            coveted = [r for r in get_agenda_covets(opponent, world) if r in held]
+            named = ", ".join(humanize_entity_name(r) for r in coveted)
+            wants = f" — {named}" if named else ""
+            dp = proposal_dp_cost(world, opponent, "peace")
             return {
                 "kind": "open_proposal",
                 "target_nation": opponent,
                 "label": f"Satisfy their design ({display})",
-                "description": (f"Their court fights for '{title}' — open "
-                                f"talks and put it on the table."),
+                "description": (f"Their court fights for '{title}'"
+                                f"{wants}. Opens a peace draft with the "
+                                f"cession beside it — the terms, their "
+                                f"reading and the {dp} DP price are shown "
+                                f"before anything is sent."),
                 "text": (f"{display}'s war has a purpose we can price — "
-                         f"'{title}'. We hold what their court wants; "
-                         f"offer it at the table and their reason to "
-                         f"fight goes with it." + price_clause),
+                         f"'{title}'. We hold what their court wants"
+                         f"{wants}; offer it at the table and their reason "
+                         f"to fight goes with it." + price_clause),
+                "design": {
+                    "target_nation": opponent,
+                    "design_id": str(payload.get("id") or ""),
+                    "design_title": title,
+                    "coveted": [str(r) for r in coveted],
+                },
             }
     # 2. An aggressive coalition bearing down → shore the weakest friend.
     if posture == "aggressive" and int(getattr(world, "threat_level", 0)) > 60:
         ally = _weakest_ally(world, player)
         if ally:
-            return {
-                "kind": "open_proposal",
-                "target_nation": ally,
-                "label": f"Shore up {ally}",
-                "description": "Open a proposal to steady our weakest ally.",
-                "text": (f"the coalition means to fight — steady {ally}, "
-                         f"our least certain friend, before they test him."),
-            }
+            # S14G-X34: the Cabinet's mission to the ally's court (or the
+            # sentence of what shuts it) - never the menu of shut doors.
+            return _shore_up_counsel(world, player, ally)
         weak = (coalition_info or {}).get("weak_link")
         if weak:
             return {
@@ -611,6 +695,13 @@ def _build_situation_recommendation(world, player: str, war_rows: List[Dict],
         if nation == player or nation in vassals:
             continue
         if world.is_at_war(player, nation):
+            continue
+        # S14G-X37 (Pre-Deploy S14h part 1, October 26, 2026): a court already in
+        # a full ALLIANCE with us is no opening - the rung called Spain at +40
+        # "neither friend nor enemy" and "Approach Spain" landed on the menu whose
+        # alliance and pact rows are shut (S14G-X34's sibling, found by its
+        # sweep). A defensive ally keeps its open door (the upgrade).
+        if str(world.get_diplomatic_state(player, nation) or "") == "ALLIANCE":
             continue
         rel = int(world.nation_relations.get(
             world._make_diplo_key(player, nation), 0))
@@ -1135,12 +1226,34 @@ def _assess_situation(world) -> Dict:
         lines.append("")
         lines.append(f"My counsel, Sire: {recommendation['text']}")
         if recommendation["kind"] == "open_proposal":
+            # S14G-8: the design counsel's option carries the design (id,
+            # title, coveted provinces) beside the target — the executor's
+            # `expand_options` arm opens the pre-loaded confirm from it; every
+            # other open_proposal counsel carries the target alone and lands
+            # on the generic menu, whose sends open the confirm too.
+            option_terms = {"target_nation": recommendation["target_nation"]}
+            option_terms.update(recommendation.get("design") or {})
             options.append({
                 "label": recommendation["label"],
                 "description": recommendation["description"],
                 "action": "expand_options",
-                "terms": {"target_nation": recommendation["target_nation"]},
+                "terms": option_terms,
             })
+        elif recommendation["kind"] == "start_mission":
+            # S14G-X34: the Cabinet's mission to the ally's court, started by
+            # the mission confirm's own action (`_choice_missions_and_ai_letters`
+            # reads `mission_type` + `target_nation` from the option's terms).
+            options.append({
+                "label": recommendation["label"],
+                "description": recommendation["description"],
+                "action": "start_mission",
+                "terms": {"mission_type": recommendation["mission_type"],
+                          "target_nation": recommendation["target_nation"]},
+            })
+        elif recommendation["kind"] == "counsel_only":
+            # S14G-X34: the sentence is the counsel - it names what is shut
+            # and offers no door (only "Thank you" follows).
+            pass
         else:
             options.append({
                 "label": recommendation["label"],
@@ -1194,7 +1307,8 @@ def _assess_situation(world) -> Dict:
                                if recommendation else None),
             "confidence_level": "high",
             "action_hints": ([recommendation["label"]]
-                             if recommendation else []),
+                             if recommendation and recommendation.get("label")
+                             else []),
         },
         "turn_created": int(world.current_turn),
         "blocking": False,

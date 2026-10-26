@@ -384,7 +384,8 @@ def format_commitments_notice(
         from backend.game_logic.diplomacy import declaration_cost_clause
         cost = declaration_cost_clause(
             int(values.get("relation_cost", 0) or 0),
-            str(values.get("player") or "France"))
+            str(values.get("player") or "France"),
+            aggressor=str(breaker))     # S14G-10: whose relations fall
         tail = f" — {cost}" if cost else ""
         return f"{breaker} has broken the {treaty} with {injured}{suffix}{tail}."
     elif event_type == "commitment_paradox_resolved":

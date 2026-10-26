@@ -2149,11 +2149,86 @@ def _command_arm_ap(marshal) -> int:
             else COMMAND_ARM_AP)
 
 
-def _command_option(world, marshal) -> Dict:
-    """The Q2(a) option, with its availability already derived."""
+# ═══════ S14G-5 (Pre-Deploy S14h part 1, October 26, 2026): THE CARD'S QUARRY ═══════
+#
+# The audience card's "Give him a command" arm named its quarry at BUILD time
+# ("Send him against Mack into Munich") and the click re-derived it through
+# `find_autonomous_attack_target` — the weakest enemy in reach — so a card
+# built on one turn sent the man at whoever stood there on the next: the DD-B
+# sea road (turn 4, action 63) sent Ney, alone, at Archduke Charles (31,690
+# against 18,920) on a card that named Mack, who had been beaten five actions
+# before; the switch was announced only after the 2 AP and the battle.
+#
+# The fix is one sentence built once and carried to every surface the choice
+# is made on: the option NAMES its quarry (`quarry`, `quarry_region` — the
+# internal name and the province the order would fall on), the delivery seam
+# re-derives the arm from the live board (`_with_live_details`), and the
+# click, finding the live man other than the card's, SPENDS NOTHING and ASKS
+# (`_command_card_ask`) — or REFUSES, free, when the odds hold him as they
+# hold an unasked glory attack (`glory_attack_held_by_the_odds`, the ONE
+# predicate). Player-only: `find_autonomous_attack_target` and the odds gate
+# are shared with the AI's P3.9 rung and are untouched.
+_NO_QUARRY_REASON = "There is no enemy within his reach to send him against."
+
+
+def _quarry_men_clause(world, marshal, enemy) -> str:
+    """"31,690 men against his 24,000" — the figures the order would meet:
+    the enemy's through the muster's own fog band (`_fog_banded_strength`:
+    exact only at FULL visibility, else the intel band, else "strength
+    unknown" — R5), the marshal's own exactly."""
+    from backend.commands.combat_executor import CombatExecutor
+    theirs = CombatExecutor._fog_banded_strength(enemy, world)
+    return f"{theirs} against his {int(marshal.strength):,}"
+
+
+def _quarry_changed_clause(world, old_name, old_region, enemy, region,
+                           past: bool = False) -> str:
+    """Why the man the card named is not the man the order would fall on —
+    "Mack has left Munich" / "Mack is out of the field" / "Mack is no
+    longer the weakest in his reach" / "Mack has moved from Munich to
+    Tyrol". `past=True` is the same clause a turn later ("had"/"was"), for
+    the fire-time lines. `enemy` is the live quarry (or None when nobody
+    stands in reach)."""
+    old = _shown_name(old_name)
+    has, is_ = ("had", "was") if past else ("has", "is")
+    foe = world.marshals.get(old_name)
+    if (foe is None or int(getattr(foe, "strength", 0) or 0) <= 0
+            or getattr(foe, "captured_by", "")):
+        return f"{old} {is_} out of the field"
+    if enemy is not None and enemy.name == old_name:
+        return f"{old} {has} moved from {old_region} to {region}"
+    if foe.location != old_region:
+        return f"{old} {has} left {old_region}"
+    if enemy is None:
+        return f"{old} {is_} no longer within his reach"
+    return f"{old} {is_} no longer the weakest in his reach"
+
+
+def _card_quarry_of(card):
+    """`(name, region)` the stored/delivered command option names, or None
+    — a card built before S14G-5, or one built with nobody in reach,
+    carries no quarry and so has nothing to compare."""
+    if not isinstance(card, dict) or not card.get("quarry"):
+        return None
+    return str(card["quarry"]), str(card.get("quarry_region") or "")
+
+
+def _command_option(world, marshal, card=None) -> Dict:
+    """The Q2(a) option, with its availability already derived.
+
+    S14G-5: `card` is the option as the BUILDER stored it. When the live
+    quarry is not the one it names, the detail SAYS so ("Mack has left
+    Munich — send him against Archduke Charles into Franconia instead …")
+    and that the order will ask once more before he goes; with nobody in
+    reach the reason names the man the card promised. A call with no card
+    (the builder's own) reads exactly as it always did."""
     enabled, reason, quarry = command_arm_availability(world, marshal)
     cost = _command_arm_ap(marshal)
+    named = _card_quarry_of(card)
     if not enabled:
+        if (named is not None and reason == _NO_QUARRY_REASON):
+            reason = (_quarry_changed_clause(
+                world, named[0], named[1], None, "") + ". " + reason)
         # PT-A1: `available` is the NON-AP verdict, and it is what makes
         # this refusal survive delivery. `enabled` alone cannot carry it:
         # the builder runs during the turn pass, before `advance_turn`
@@ -2168,10 +2243,18 @@ def _command_option(world, marshal) -> Dict:
     enemy, region = quarry
     where = ("where he stands" if region == marshal.location
              else f"into {region}")
+    if named is not None and named != (enemy.name, region):
+        lead = (f"{_quarry_changed_clause(world, named[0], named[1], enemy, region)}"
+                f" — send him against {_shown_name(enemy.name)} {where} "
+                f"instead ({_quarry_men_clause(world, marshal, enemy)})? "
+                f"Giving the order asks once more, free, with Berthier's "
+                f"reading of the odds, before he goes. ")
+    else:
+        lead = f"Send him against {_shown_name(enemy.name)} {where}. "
     return {
         "id": COMMAND_ARM_ID,
         "label": "Give him a command",
-        "detail": (f"Send him against {_shown_name(enemy.name)} {where}. A grievance "
+        "detail": (lead + f"A grievance "
                    f"ends on the field, not at the table — if he makes "
                    f"good on it, it ends for good. Giving the order may "
                    f"bring on a battle at once."),
@@ -2179,6 +2262,8 @@ def _command_option(world, marshal) -> Dict:
         "ap_cost": cost,
         "available": True,
         "enabled": _player_ap(world) >= cost,
+        "quarry": enemy.name,
+        "quarry_region": region,
     }
 
 
@@ -2798,6 +2883,57 @@ def retire_petition(world, petition, reason: str) -> str:
     return clause
 
 
+def _with_live_details(petition: Dict, options: List, world) -> List:
+    """S14G-5 (and its siblings S14G-X18, S14G-X19): the option details a
+    card bakes at BUILD time and a click re-reads LIVE, re-derived at
+    DELIVERY from the same board the click will read. Returns a new list —
+    every changed option is a copy (the stored petition keeps the builder's
+    verdict; `refresh_petition_affordability` is pure).
+
+      * the confrontation's `command` arm — the man in reach NOW
+        (`_command_option` with the stored option as its `card`, so a
+        changed quarry is SAID on the card);
+      * the confrontation's `acknowledge` arm — his men and the turns left
+        on his grievance (S14G-X18: the figures `_standing_cost_detail`
+        prints were the build turn's, and the combat math reads the live ones);
+      * the rivalry's `mediate` / `force_reconciliation` arms — the odds are
+        banded on the Emperor's authority, which the click reads LIVE
+        (`_apply_rivalry_choice`) while the card baked the build turn's
+        (S14G-X19: shown 70% at authority 70, rolled at 40% after a defeat).
+
+    A world that cannot be read (the AP-only stubs the delivery pins use, a
+    marshal who has left the roster) leaves the card as it was built."""
+    kind = petition.get("kind")
+    if kind not in ("jealousy_confrontation", "rivalry_confrontation"):
+        return options
+    marshals = getattr(world, "marshals", None)
+    if not isinstance(marshals, dict):
+        return options
+    context = petition.get("context") or {}
+    marshal = marshals.get(context.get("marshal"))
+    if marshal is None:
+        return options
+    live = []
+    for option in options:
+        oid = option.get("id") if isinstance(option, dict) else None
+        if kind == "jealousy_confrontation" and oid == COMMAND_ARM_ID:
+            option = _command_option(world, marshal, card=option)
+        elif kind == "jealousy_confrontation" and oid == "acknowledge":
+            target = marshals.get(context.get("target"))
+            if target is not None:
+                option = dict(option,
+                              detail=_standing_cost_detail(marshal, target))
+        elif (kind == "rivalry_confrontation"
+              and oid in ("mediate", "force_reconciliation")
+              and hasattr(world, "authority_tracker")):
+            authority = get_authority_proxy(world, marshal.nation)
+            option = dict(option, detail=(
+                _mediate_detail(authority) if oid == "mediate"
+                else _force_detail(authority)))
+        live.append(option)
+    return live
+
+
 def refresh_petition_affordability(petition: Dict, world) -> Dict:
     """Re-derive each option's `enabled` against the player's CURRENT AP.
 
@@ -2839,6 +2975,11 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     This function is PURE — it copies the petition and every option, and
     never mutates its input, so the stored petition keeps the builder's
     verdict and every re-delivery re-derives from it.
+
+    S14G-5 (Pre-Deploy S14h part 1, October 26, 2026): the DETAILS a card
+    bakes at build time are re-derived here too, as the Fontainebleau
+    concede arm's bill always was (`_with_live_details`) — the command arm
+    names the man in reach NOW, not the one the previous turn pass saw.
     ══════════════════════════════════════════════════════════════════════
     """
     if not isinstance(petition, dict):
@@ -2846,6 +2987,7 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
     options = petition.get("options")
     if not isinstance(options, list):
         return petition
+    options = _with_live_details(petition, options, world)
     ap = _player_ap(world)
     refreshed = []
     for option in options:
@@ -3732,6 +3874,80 @@ def handle_petition_response(world, choice: str, executor=None,
     return result
 
 
+def _stored_command_card(world, marshal):
+    """S14G-5: the STORED command option of the standing confrontation card
+    for `marshal` — what the builder named (`quarry`, `quarry_region`), the
+    one thing the click can compare the live board against (the client posts
+    only the choice id). None when no such card stands."""
+    petition = getattr(world, "pending_marshal_petition", None)
+    if (not isinstance(petition, dict)
+            or petition.get("kind") != "jealousy_confrontation"
+            or (petition.get("context") or {}).get("marshal") != marshal.name):
+        return None
+    for option in petition.get("options") or []:
+        if isinstance(option, dict) and option.get("id") == COMMAND_ARM_ID:
+            return option
+    return None
+
+
+def _command_card_ask(world, marshal, executor, card, enemy, region):
+    """S14G-5: the live quarry is not the man the card named — SPEND NOTHING
+    and say so. Returns None when the card's quarry stands (the order runs as
+    it always did), else a free `success: False` result the petition channel
+    re-delivers the card behind (`handle_petition_response` attaches the
+    DELIVERED card, which now names the live man):
+
+      * the odds HOLD him (`glory_attack_held_by_the_odds` — the predicate an
+        unasked glory attack obeys, on both boards) -> REFUSED with the odds
+        words; the card stands unchanged, so the refusal stands with it;
+      * otherwise an ASK — the figures, Berthier's band, "send him?" — and
+        the stored card is re-stamped to the live man, so a second click
+        (the "yes") runs the order against him.
+
+    Player-only; the enemy AI reaches neither the card nor this ask."""
+    named = _card_quarry_of(card)
+    if named is None or named == (enemy.name, region):
+        return None
+    new = _shown_name(enemy.name)
+    clause = _quarry_changed_clause(world, named[0], named[1], enemy, region)
+    figures = _quarry_men_clause(world, marshal, enemy)
+    if named[0] == enemy.name:
+        lead = f"{clause} ({figures})"
+    else:
+        lead = (f"{clause}; {new} at {region} ({figures}) is what stands in "
+                f"his reach now")
+    combat = getattr(executor, "_combat", None)
+    reading = ""
+    if combat is not None and hasattr(combat, "muster_odds"):
+        held = glory_attack_held_by_the_odds(world, executor, marshal, enemy)
+        gap_fn = getattr(combat, "_unscouted_note_for", None)
+        gap = gap_fn(marshal, enemy, world) if gap_fn else ""
+        gap = f" {gap}" if gap else ""
+        if held is not None:
+            return {
+                "success": False,
+                "held_by_odds": True,
+                "message": (f"{lead}, and the odds hold him — "
+                            f"{_odds_words(held.get('ratio'))} against "
+                            f"{new}'s position at {region}.{gap} He is not "
+                            f"sent: nothing was spent, and the card stands."),
+            }
+        odds = glory_attack_odds(world, executor, marshal, enemy)
+        reading = f" Berthier reads the odds {odds.get('band')}.{gap}"
+    # The Emperor has now been SHOWN the live man: the stored card names
+    # him, and the next click is the answer.
+    fresh = _command_option(world, marshal)
+    card.update({"quarry": fresh.get("quarry"),
+                 "quarry_region": fresh.get("quarry_region"),
+                 "detail": fresh.get("detail")})
+    return {
+        "success": False,
+        "requires_input": True,
+        "quarry_changed": True,
+        "message": f"{lead}.{reading} Send him?",
+    }
+
+
 def _apply_command_choice(world, marshal, executor, game_state) -> Dict:
     """Q2(a): the Emperor gives him the command he asked for.
 
@@ -3754,13 +3970,26 @@ def _apply_command_choice(world, marshal, executor, game_state) -> Dict:
     * `cancel_autonomous_warning_on_order` is called explicitly — it
       normally rides `executor.execute`, which this path bypasses, and a
       marshal who has just been GIVEN an objective must not still launch
-      the attack he was warned about.
+      the attack he was warned about;
+    * S14G-5 (Pre-Deploy S14h part 1, October 26, 2026): the quarry is
+      re-derived (above) and COMPARED with the man the card named. The
+      click used to take whoever was weakest in reach and announce the
+      switch only after the 2 AP and the battle ("Archduke Charles,
+      then."). Now a changed quarry spends nothing and ASKS, with the
+      figures and Berthier's band, or is REFUSED free when the odds hold
+      him (`_command_card_ask`); the same card clicked again goes.
     """
     if executor is None or game_state is None:
         return {"success": False,
                 "message": "There is no staff to carry the order."}
     enabled, reason, quarry = command_arm_availability(world, marshal)
+    card = _stored_command_card(world, marshal)
     if not enabled:
+        named = _card_quarry_of(card)
+        if named is not None and reason == _NO_QUARRY_REASON:
+            # S14G-5: the card promised a man; say what became of him.
+            reason = (_quarry_changed_clause(
+                world, named[0], named[1], None, "") + ". " + reason)
         return {"success": False,
                 "message": reason or "He cannot take the field just now."}
     enemy, region = quarry
@@ -3769,6 +3998,9 @@ def _apply_command_choice(world, marshal, executor, game_state) -> Dict:
     if _player_ap(world) < cost:
         return {"success": False,
                 "message": "Not enough action points to give the order."}
+    asked = _command_card_ask(world, marshal, executor, card, enemy, region)
+    if asked is not None:
+        return asked
 
     phrase = f"{marshal.name}, deal with {enemy.name}"
     result = executor._execute_strategic_command(
@@ -4622,14 +4854,26 @@ def process_turn(world) -> List[Dict]:
             continue
         enemy, region_name = target_region
         marshal.jealousy_autonomous_warned = True
+        # S14G-5: remember WHOM the warning named, in the already-serialized
+        # `jealousy_history` (the `__levels__` / `__audience__` dunder idiom —
+        # zero new fields), so the fire-time line can say when the man he
+        # strikes is not the one the dispatch warned of.
+        marshal.jealousy_history["__warned__"] = {
+            "quarry": enemy.name, "region": region_name,
+            "turn": int(world.current_turn)}
         warning_given = True
         events.append({
             "type": "jealousy_autonomous_warning",
+            # S14G-5: the fore-warning named one man ("Murat is eyeing Mack's
+            # position at Munich") and the fire-time target is re-derived —
+            # the weakest in his reach WHEN HE GOES — silently. It says so.
             "message": (f"{humanize_entity_name(marshal.name)} is eyeing "
                         f"{humanize_entity_name(enemy.name)}'s position "
                         f"at {region_name}. I cannot guarantee he will wait "
-                        f"for orders, Sire — give him something to do and "
-                        f"he will stand down."),
+                        f"for orders, Sire — and if {humanize_entity_name(enemy.name)} "
+                        f"has moved by the time he goes, he will take "
+                        f"whoever is weakest in his reach. Give him "
+                        f"something to do and he will stand down."),
             "nation": marshal.nation,
             "marshal": marshal.name,
         })
@@ -4829,6 +5073,20 @@ def find_autonomous_attack_target(world, marshal):
     return best, best.location
 
 
+def _warned_retarget_clause(world, warned, enemy, region) -> str:
+    """S14G-5: "" when the man he strikes (or would strike) is the one the
+    dispatch warned of — or when no warning was recorded (a pre-S14G-5 save,
+    a hand-set flag) — else the clause, in the past tense, saying what
+    became of the man the warning named ("Mack had left Munich")."""
+    if not isinstance(warned, dict) or not warned.get("quarry"):
+        return ""
+    old, old_region = str(warned["quarry"]), str(warned.get("region") or "")
+    if enemy is not None and (enemy.name, region) == (old, old_region):
+        return ""
+    return _quarry_changed_clause(world, old, old_region, enemy, region,
+                                  past=True)
+
+
 def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
     """Fire warned autonomous attacks for PLAYER-nation jealous aggressive
     marshals (TurnManager.end_turn, before the enemy phase). Any player
@@ -4844,6 +5102,10 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
         if not getattr(marshal, "jealousy_autonomous_warned", False):
             continue
         marshal.jealousy_autonomous_warned = False
+        # S14G-5: the man the warning named, read AFTER the flag and cleared
+        # with it (Golden Rule 4 — get the value, use it, then clear).
+        _warned = (getattr(marshal, "jealousy_history", None)
+                   or {}).pop("__warned__", None)
         if not getattr(marshal, "jealous_of", None) or not _is_standing(marshal):
             continue
         if marshal.personality != "aggressive":
@@ -4854,18 +5116,33 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
             # stands on soil the glory-hunt may not enter. The warning
             # promised a battle; say why none came (WO-28's rule reaches
             # this arm too — a consumed warning is never silent).
+            # S14G-5: and names the man it promised, when it recorded one.
+            _gone = _warned_retarget_clause(world, _warned, None, "")
+            _meant = (f"the enemy" if not _gone else humanize_entity_name(
+                str(_warned.get("quarry"))))
             _pending_events(world).append({
                 "type": "jealousy_autonomous_refused",
                 "nation": marshal.nation,
                 "marshal": marshal.name,
                 "message": (
                     f"{humanize_entity_name(marshal.name)} meant to go at "
-                    f"the enemy on his own initiative, but no enemy stood "
+                    f"{_meant} on his own initiative, but "
+                    + (f"{_gone}, and " if _gone else "")
+                    + f"no enemy stood "
                     f"within his reach when the moment came — he stands "
                     f"where he was, and his orders are unchanged."),
             })
             continue
         enemy, _region = target_info
+        # S14G-5: set when he is about to strike a man other than the one
+        # the dispatch warned of; every line below that names the target
+        # carries it, so the player is never told of a man he did not meet.
+        _retarget = _warned_retarget_clause(world, _warned, enemy, _region)
+        _retarget_note = (
+            f" (Warned of eyeing {humanize_entity_name(str(_warned.get('quarry')))}"
+            f" at {_warned.get('region')}, he found that {_retarget}; the "
+            f"man in his reach was {humanize_entity_name(enemy.name)} at "
+            f"{_region}.)" if _retarget else "")
         # VP-R1 (c): the odds gate — the same floor a delegation-inferred
         # attack obeys — read BEFORE anything is voided, so a held attack
         # leaves the standing order, the hold and the interrupt exactly as
@@ -4890,7 +5167,8 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                     f"{_odds_words(_held.get('ratio'))} against "
                     f"{humanize_entity_name(enemy.name)}'s position at "
                     f"{_region} — he stands where he was, and his orders "
-                    f"are unchanged." + (f" {_gap}" if _gap else "")),
+                    f"are unchanged." + (f" {_gap}" if _gap else "")
+                    + _retarget_note),
                 "held_by_odds": True,
                 "ratio": round(float(_held.get("ratio") or 0.0), 3),
             })
@@ -4965,7 +5243,8 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                     f"{humanize_entity_name(marshal.name)} meant to go at "
                     f"{humanize_entity_name(enemy.name)} on his own "
                     f"initiative, but {_refusal_reason(result)} — he "
-                    f"stands where he was, and his orders are unchanged."),
+                    f"stands where he was, and his orders are unchanged."
+                    + _retarget_note),
             })
             continue
         if _voided is not None and marshal.nation == world.player_nation:
@@ -4989,12 +5268,21 @@ def process_autonomous_attacks(world, executor, game_state) -> List[Dict]:
                     f"initiative — {_what} is void. He awaits fresh "
                     f"orders."),
             })
+        _beat = (f"{humanize_entity_name(marshal.name)}, hungry for "
+                 f"glory, has attacked "
+                 f"{humanize_entity_name(enemy.name)} on his own "
+                 f"initiative.")
+        if _retarget:
+            # S14G-5: the dispatch warned of one man and the weakest in his
+            # reach when he went was another — the beat names both.
+            _beat = (f"{humanize_entity_name(marshal.name)}, warned of "
+                     f"eyeing {humanize_entity_name(str(_warned.get('quarry')))}, "
+                     f"strikes {humanize_entity_name(enemy.name)} at "
+                     f"{_region} instead — {_retarget}, and he took the "
+                     f"weakest man in his reach on his own initiative.")
         events.append({
             "type": "jealousy_autonomous_attack",
-            "message": (f"{humanize_entity_name(marshal.name)}, hungry for "
-                        f"glory, has attacked "
-                        f"{humanize_entity_name(enemy.name)} on his own "
-                        f"initiative."),
+            "message": _beat,
             "nation": marshal.nation,
             "marshal": marshal.name,
         })

@@ -27,8 +27,21 @@ const LETTER_MIN_WIDTH := 680.0
 const LETTER_MIN_HEIGHT := 440.0
 const LETTER_MAX_WIDTH := 860.0
 
+# S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26, 2026): what "Not Now"
+# does to the Cabinet is VISIBLE, not a tooltip — the button's own label when
+# the letter locks it, and a line under the buttons either way. Only a great
+# court's letter, an ultimatum or a war decision locks (the backend's
+# `locks_cabinet`, from `DialogueManager.letter_locks_cabinet`); a lesser
+# court's routine letter waits in the mailbox and the Cabinet stays open.
+const NOT_NOW_LABEL := "Not Now"
+const NOT_NOW_LOCKED_LABEL := "Not Now (Cabinet stays shut)"
+const SET_ASIDE_LOCKED_PREFIX := "Set aside — "
+const SET_ASIDE_WAITS_LINE := "Set aside — it waits in the mailbox until the turn ends; the Cabinet stays open."
+
 var current_data: Dictionary = {}
 var _default_border_color: Color
+# S14G-6: the line under the buttons (built here, not in the .tscn).
+var _set_aside_line: Label = null
 @onready var panel_style: StyleBoxFlat = $PanelContainer.get_theme_stylebox("panel")
 
 func _ready():
@@ -39,6 +52,15 @@ func _ready():
 	counter_btn.pressed.connect(_on_counter)
 	reject_btn.pressed.connect(_on_reject)
 	dismiss_btn.pressed.connect(_on_dismiss)
+	# S14G-6: the line under the buttons — what setting the letter aside does
+	# to the Cabinet, where the player decides it (the sentence was on the
+	# button's tooltip only).
+	_set_aside_line = Label.new()
+	_set_aside_line.theme_type_variation = &"Caption"
+	_set_aside_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_set_aside_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_set_aside_line.visible = false
+	$PanelContainer/VBoxContainer.add_child(_set_aside_line)
 	# Cache default border color for normal proposals
 	_default_border_color = panel_style.border_color
 
@@ -248,6 +270,16 @@ func show_proposal(data: Dictionary):
 	else:
 		bbcode += "\n[color=#e0c060][i]This offer will lapse at end of turn.[/i][/color]"
 
+	# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the lock in the
+	# letter's BODY — a letter that shuts the Cabinet while it stands says so
+	# where it is read (the backend's `locks_cabinet`; a moment letter and a
+	# lesser court's routine letter never do), in the one sentence every
+	# surface uses (`Utils.cabinet_shut_line`, set to start a sentence).
+	var locks_cabinet: bool = bool(data.get("locks_cabinet", false)) and not bool(is_moment)
+	if locks_cabinet:
+		var body_lock_turn: int = int(data.get("answer_by_turn", 0)) if is_call_to_arms else 0
+		bbcode += "\n[color=#" + Utils.COLOR_WARNING + "]" + Utils.cabinet_shut_sentence(body_lock_turn) + "[/color]"
+
 	# Backend prose (clause strings, court rationale, hints) can embed raw
 	# multi-word nation keys — humanize once at the render chokepoint. S12:
 	# through `text`, never append_text (the instrument reads the label's text).
@@ -275,16 +307,32 @@ func show_proposal(data: Dictionary):
 		counter_btn.tooltip_text = counter_reason
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
-	dismiss_btn.text = "Not Now"
+	dismiss_btn.text = NOT_NOW_LABEL
+	_set_aside_line.visible = false
 	# S14E-18 (S14f part 2): a set-aside letter still stands, and while it does
 	# the Cabinet stays shut — said on the button that does it, in the sentence
 	# the echo and the locked Cabinet use. A moment letter locks nothing; a call
 	# to arms stands to its answer-by turn.
+	# S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26, 2026): ...but only
+	# a letter that LOCKS says it. A great court's letter, an ultimatum or a war
+	# decision puts it on the button's face ("Not Now (Cabinet stays shut)") and
+	# on a line under the buttons; a lesser court's routine letter says it waits
+	# in the mailbox and the Cabinet stays open (it used to claim a lock it
+	# did not have to keep).
 	if is_moment:
 		dismiss_btn.tooltip_text = "Set this letter aside. The envoy badge reopens it."
 	else:
 		var _lock_by_turn := int(data.get("answer_by_turn", 0)) if is_call_to_arms else 0
-		dismiss_btn.tooltip_text = "Set this letter aside — " + Utils.cabinet_shut_line(_lock_by_turn) + " The envoy badge reopens it."
+		if locks_cabinet:
+			dismiss_btn.text = NOT_NOW_LOCKED_LABEL
+			dismiss_btn.tooltip_text = "Set this letter aside — " + Utils.cabinet_shut_line(_lock_by_turn) + " The envoy badge reopens it."
+			_set_aside_line.text = SET_ASIDE_LOCKED_PREFIX + Utils.cabinet_shut_line(_lock_by_turn)
+			_set_aside_line.add_theme_color_override("font_color", Utils.UI_WARNING)
+		else:
+			dismiss_btn.tooltip_text = "Set this letter aside — it waits in the mailbox and the Cabinet stays open. The envoy badge reopens it."
+			_set_aside_line.text = SET_ASIDE_WAITS_LINE
+			_set_aside_line.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
+		_set_aside_line.visible = true
 	# Button labels adapt to context
 	if is_ultimatum:
 		accept_btn.text = "Yield"
@@ -509,6 +557,11 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 			var conflict_priority = 0 if conflict_severity == "HARD_STOP" else 4
 			if conflict_severity == "WARNING":
 				conflict_priority = 1
+			# S14G-X52 (Pre-Deploy S14h part 1, October 26, 2026): the truce's
+			# `war_runs_on` row (WARNING) sorts beside HARD_STOP — see the
+			# confirm popup's conflict loop.
+			if conflict is Dictionary and str(conflict.get("conflict_type", "")) == "war_runs_on":
+				conflict_priority = 0
 			var conflict_color = "#e66262" if conflict_severity in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": conflict_priority, "color": conflict_color, "text": conflict_text})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))

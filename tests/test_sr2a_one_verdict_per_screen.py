@@ -597,7 +597,10 @@ class TestTheMenuCollapses:
                 assert harsh[0]["label"] == "Harsh demands"
         else:
             assert "Harsh demands" not in labels
-            assert d["talleyrand_text"].endswith("will sign nothing harsher today.")
+            # S14G-8: the menu's body (each option, its price, its terms) now
+            # follows the prose; the sentence still ends the PROSE.
+            assert d["talleyrand_text"].split("\n\nThe paths before us, Sire:")[0].endswith(
+                "will sign nothing harsher today.")
 
     def test_the_easing_family_matches_the_stage_3_5_tuple(self):
         src = (REPO / "backend" / "game_logic" / "diplomatic_templates.py").read_text(encoding="utf-8")

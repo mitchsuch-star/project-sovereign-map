@@ -4168,8 +4168,13 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                                 # every court, France's included, fall 5." (the two
                                 # lower steps cost France nothing: no clause).
                                 from backend.game_logic.diplomacy import declaration_cost_clause
+                                # S14G-X46 (Pre-Deploy S14h part 1, October 26, 2026):
+                                # the clause had no subject; the downgrading court is named
+                                # - "Austria's relations with every court, France's included,
+                                # fall 5" (S14G-10's form, the declaration beat's).
                                 _clause = declaration_cost_clause(
-                                    int(result.get("relation_cost", 0) or 0), player)
+                                    int(result.get("relation_cost", 0) or 0), player,
+                                    aggressor=stronger)
                                 events.append({
                                     "type": "ai_ai_downgrade",
                                     "nations": [nation_a, nation_b],

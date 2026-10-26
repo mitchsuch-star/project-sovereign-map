@@ -2164,6 +2164,15 @@ def _oneliner_the_field(ctx: OnelinerContext):
         captured_by = ctx.event.get("captured_by", "Unknown")
         region = ctx.event.get("region", "unknown region")
         method = ctx.event.get("method", "")
+        if ctx.event.get("liberated_to"):
+            # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1): an ally's ground
+            # handed back — THE one builder's sentence (the attack reply and
+            # the dispatch carry it), in the log's third person.
+            from backend.models.world_state import court_named, liberation_line
+            return liberation_line(
+                ctx.world, region, str(ctx.event["liberated_to"]),
+                by=court_named(ctx.world, captured_by),
+                capital=bool(ctx.event.get("capital")))
         if method:
             return (f"{region} captured by {captured_by} ({method})"
                     + _holdings_left_clause(ctx.event))
@@ -3484,9 +3493,13 @@ def _oneliner_proposals_and_ultimatums(ctx: OnelinerContext):
         to_raw = ctx.event.get("to_state") or "peace"
         from_state = _state_display.get(from_raw, str(from_raw).replace("_", " "))
         to_state = _state_display.get(to_raw, str(to_raw).replace("_", " "))
+        # S14G-X46 (Pre-Deploy S14h part 1, October 26, 2026): the clause had
+        # no subject; `nation_a` is the ACTOR (`diplomacy.execute_downgrade`) -
+        # the court whose relations with every court fall.
         clause = declaration_cost_clause(
             int(ctx.event.get("relation_cost") or 0),
-            str(ctx.event.get("player") or "France"))
+            str(ctx.event.get("player") or "France"),
+            aggressor=(str(ctx.event.get("nation_a")) if ctx.event.get("nation_a") else None))
         tail = f" — {clause}" if clause else ""
         return f"Relations downgraded: {nation_a}–{nation_b} ({from_state} → {to_state}){tail}"
 

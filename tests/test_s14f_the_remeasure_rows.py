@@ -3394,8 +3394,11 @@ class TestS14EX42:
         with _r9_quiet():
             D.declare_war(w, "Prussia", "Hanover")
         (row,) = [n for n in w.notifications.get_pending() if n.get("type") == "war_declared"]
+        # S14G-10 (Pre-Deploy S14h part 1): FLIPPED - the clause names whose
+        # relations fall ("Prussia's relations with every court ..."), where it
+        # read as a fall in everyone's opinion of France; same figure, same rail.
         assert row["message"].endswith(
-            "\u2014 relations with every court, France's included, fall 15."), row["message"]
+            "\u2014 Prussia's relations with every court, France's included, fall 15."), row["message"]
 
     def test_our_own_war_adds_nothing(self, _r9_w):
         from backend.game_logic import diplomacy as D
@@ -7511,10 +7514,15 @@ _R32_READS_AS = {
     "charge": ("charge", None), "attack": ("attack", None), "move": ("move", None),
     "march": ("move", "MOVE_TO"), "support": ("move", "SUPPORT"),
     "pursue": ("attack", "PURSUE"),
+    # S14G-3 (Pre-Deploy S14h part 1, October 26, 2026): the SUPPORT reply now
+    # quotes the order that stays - "'Ney, follow Napoleon' keeps him at
+    # Napoleon's side" (`strategic.support_terms_clause`); AO's follow parses as
+    # the SUPPORT that stands (`standing_follow`).
+    "follow": ("move", "SUPPORT"),
 }
 # What fills a placeholder in the tail of a quoted order, by verb.
 _R32_OBJECT = {"attack": "Mack", "charge": "Mack", "pursue": "Mack",
-               "support": "Davout", "recruit": "infantry"}
+               "support": "Davout", "recruit": "infantry", "follow": "Davout"}
 _R32_ROOTS = ("backend", "backend/commands", "backend/ai", "backend/game_logic",
               "backend/models")
 # Not messages to the player: the LLM prompt's few-shot examples, and the
@@ -12446,11 +12454,18 @@ class TestS14E25:
 
     @staticmethod
     def _retake_swabia(w):
-        """The sighting: Austria took Bavaria's Swabia, France retook it."""
+        """The sighting: Austria took Bavaria's Swabia, France retook it.
+
+        Flipped consciously (S14G-1 / S14G-D1, Pre-Deploy S14h part 1, Oct 26
+        2026): the retaking of an ALLY's province from the enemy is a
+        liberation, handed back to Bavaria at once - France is no longer the
+        holder it ended with. The row's own claim (the war record names
+        "France retook Swabia for Bavaria", off the campaign ledger) is
+        unchanged: the ledger still remembers who retook what."""
         with _r19_quiet():
             w.capture_region("Swabia", "Austria")
             w.capture_region("Swabia", "France")
-        assert w.regions["Swabia"].controller == "France"
+        assert w.regions["Swabia"].controller == "Bavaria"
 
     def test_a_province_retaken_for_an_ally_is_not_nothing(self, _r19_world):
         from backend.game_logic.war_title import war_title
@@ -15439,7 +15454,10 @@ class TestS14EX143:
         # the sum against the pool, then every corps by name
         assert text.startswith("Every standing order is recalled, corps by corps — 3 corps, 3 actions for the 9 in hand."), text
         for name in held:
-            assert f"{name}: {name} halts his march and awaits new orders." in text, (name, text)
+            # S14G-X17 (Pre-Deploy S14h part 1): the member's own sentence opens with
+            # his name - the group's "Name: " prefix printed it twice ("Ney: Ney halts ...").
+            assert f"\n{name} halts his march and awaits new orders." in text, (name, text)
+            assert f"{name}: {name}" not in text, (name, text)
         # applied == shown: three actions, every order gone, the ordinary trust each
         assert 9 - int(w.actions_remaining) == 3
         assert int((reply.get("action_info") or {}).get("cost")) == 3, reply.get("action_info")
@@ -15466,7 +15484,9 @@ class TestS14EX143:
         assert reply.get("success") is True, text
         assert "3 corps, 3 actions for the 2 in hand." in text, text
         assert "Nothing left for Lannes today" in text, text
-        assert "Ney: Ney halts" in text and "Davout: Davout halts" in text, text
+        # S14G-X17 (Pre-Deploy S14h part 1): one name per line, not "Ney: Ney halts".
+        assert "\nNey halts" in text and "\nDavout halts" in text, text
+        assert "Ney: Ney" not in text and "Davout: Davout" not in text, text
         assert 2 - int(w.actions_remaining) == 2 and int(reply["action_info"]["cost"]) == 2
         left = [m.name for m in w.get_player_marshals() if m.strategic_order is not None]
         assert left == ["Lannes"], left
@@ -18208,7 +18228,9 @@ class TestS14EX177:
         assert reply.get("success") is True, text
         assert text.startswith("Every standing order is recalled, corps by corps — 3 corps, 3 actions for the 9 in hand."), text
         for name in held:
-            assert f"{name}: {name} halts his march and awaits new orders." in text, (name, text)
+            # S14G-X17 (Pre-Deploy S14h part 1): one name per line, not "Ney: Ney halts ...".
+            assert f"\n{name} halts his march and awaits new orders." in text, (name, text)
+            assert f"{name}: {name}" not in text, (name, text)
         assert 9 - int(w.actions_remaining) == 3
         assert [m.name for m in w.get_player_marshals() if m.strategic_order is not None] == []
 
@@ -24692,7 +24714,10 @@ class TestS14EX22:
 # S14E-X38 — a third power's treaty break names its cost to France
 # ══════════════════════════════════════════════════════════════════════════
 
-_RX38_CLAUSE = "relations with every court, France's included, fall 10"
+# S14G-10 (Pre-Deploy S14h part 1): FLIPPED - the break's clause names the
+# BREAKER whose relations fall ("Austria's relations with every court ...");
+# the subjectless form is kept only for a caller with no aggressor to name.
+_RX38_CLAUSE = "Austria's relations with every court, France's included, fall 10"
 
 
 @pytest.fixture
@@ -24805,7 +24830,8 @@ class TestS14EX38:
         text = format_commitments_notice("diplomatic_treaty_broken", {
             "breaker": "Austria", "injured_party": "Prussia", "treaty_type_display": "Full Alliance",
             "reason_phrase": "without seeking release", "relation_cost": 10, "player": "France"})
-        assert text.endswith(" — " + declaration_cost_clause(10, "France") + ".")
+        # S14G-10: the same builder, now with the breaker as its subject
+        assert text.endswith(" — " + declaration_cost_clause(10, "France", aggressor="Austria") + ".")
         assert not any(w in text for w in ("!", "crush", "strike"))     # the Voice Bible's never-says
 
     def test_an_ai_downgrade_names_its_cost_to_france_because_it_takes_it(self, _rx38_world):
@@ -29333,10 +29359,15 @@ class TestS14ED13:
         w = _d13_world
         _d13_stage(w, "ALLIANCE")
         (event,) = _d13_downgrades(_d13_run(w))
+        # S14G-X46 (Pre-Deploy S14h part 1, October 26, 2026): the clause
+        # names whose relations fall - the downgrading court's ("Prussia's
+        # relations with every court, France's included, fall 5"); it was the
+        # subjectless form.
         assert event["message"] == (
             "Prussia has downgraded relations with Sweden: Alliance → "
-            f"Defensive Alliance — {_D13_CLAUSE}.")
+            f"Defensive Alliance — Prussia's {_D13_CLAUSE}.")
         assert declaration_cost_clause(5, "France") == _D13_CLAUSE      # X38's builder, not a second phrasing
+        assert declaration_cost_clause(5, "France", aggressor="Prussia") == f"Prussia's {_D13_CLAUSE}"
         assert not any(t in event["message"] for t in ("!", "crush", "plummet"))
 
     def test_the_line_rides_the_turn_events_past_the_fog_filter(self, _d13_world):
@@ -29358,8 +29389,9 @@ class TestS14ED13:
         logged = [e for e in w.event_log if e.get("type") == "diplomatic_downgrade"][-1]
         assert logged["relation_cost"] == 5 and logged["player"] == "France"
         line = format_event_oneliner(logged, "France", w)
+        # S14G-X46: `nation_a` is the actor - the subject of the clause.
         assert line == ("Relations downgraded: Prussia–Sweden "
-                        f"(Alliance → Defensive Alliance) — {_D13_CLAUSE}")
+                        f"(Alliance → Defensive Alliance) — Prussia's {_D13_CLAUSE}")
 
     def test_the_pair_hit_is_still_booked_for_a_standing_mission(self, _d13_world):
         """The booking census (S14E-X112) still holds: the pair's relation and now

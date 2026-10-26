@@ -153,12 +153,20 @@ class TestTheCooldownCountsForward:
     def test_the_court_is_named_not_keyed(self, world):
         """Both refusals printed the raw machine key, so a formed nation was
         addressed by a name it no longer has."""
+        from backend.commands import diplomatic_executor as DE
         from backend.commands.diplomatic_executor import DiplomaticExecutor
         src = _code(inspect.getsource(
             DiplomaticExecutor._execute_diplomatic_proposal))
         head = src[:src.index("proposal_type = diplomatic_data.get")]
         assert "{target_nation} rejected" not in head
-        assert "formed_display_name(world, target_nation)" in head
+        # S14G-X35 (Pre-Deploy S14h part 1, October 26, 2026): the two
+        # refusals moved into the ONE predicate (`proposal_cooldown_refusal`)
+        # the typed entry and the confirm's send both read; the name is formed
+        # there, and the typed entry calls it.
+        helper = _code(inspect.getsource(DE.proposal_cooldown_refusal))
+        assert "{target_nation} rejected" not in helper
+        assert "formed_display_name(world, target_nation)" in helper
+        assert "proposal_cooldown_refusal(" in src
 
     def test_the_make_amends_sibling_is_NOT_swept(self):
         """⚠ It shares the "only N turns ago" phrasing and is CORRECT — it

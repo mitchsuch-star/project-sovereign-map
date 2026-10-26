@@ -1871,10 +1871,23 @@ def _open_borders_effect_words(proposal_type: str = "") -> str:
     from backend.game_logic.diplomacy import OPEN_MOVEMENT_STATES, trade_for_state
     from backend.game_logic.treaty import TREATY_STATE_MAP
     parts = []
-    if "OPEN_BORDERS" in OPEN_MOVEMENT_STATES:
-        parts.append("each side's armies may cross the other's provinces")
     state = TREATY_STATE_MAP.get(str(proposal_type or "").strip().lower(), "")
     above = state in OPEN_MOVEMENT_STATES and state != "OPEN_BORDERS"
+    if "OPEN_BORDERS" in OPEN_MOVEMENT_STATES:
+        movement = "each side's armies may cross the other's provinces"
+        if state not in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+            # S14G-11 (Pre-Deploy S14h part 1, October 26, 2026): Open Borders is
+            # no exemption from the Ansbach trap - a column standing on a province
+            # an active guard_neutrality design guards costs the penalty with its
+            # holder whatever the letter says (a pact is none either). The trap
+            # exempts an ally, a lord and a client (`agendas.guarded_provinces_for`),
+            # so a letter whose state IS one of those omits the sentence. The price
+            # is the trap's own constant.
+            from backend.game_logic.agendas import AGENDA_VIOLATION_RELATION_PENALTY
+            movement += (" — but not a province she has declared guarded (Armed "
+                         "Neutrality): a column there still offends her "
+                         f"(−{abs(int(AGENDA_VIOLATION_RELATION_PENALTY))})")
+        parts.append(movement)
     trade = int(trade_for_state("OPEN_BORDERS"))
     if trade > 0 and not above:
         parts.append(f"up to +{trade} gold a turn in trade")
@@ -2370,6 +2383,25 @@ def tier_mismatch_cure(court: str, *, plural: bool = False, can_drop: bool = Tru
     return cure
 
 
+def _province_key(name) -> str:
+    """A province name or a `territory_<province>` clause tail, comparable:
+    "Lower Saxony", "lower_saxony" and "LowerSaxony" are one key."""
+    return "".join(ch for ch in str(name or "").lower() if ch.isalnum())
+
+
+def _structured_cession_keys(terms: dict) -> set:
+    """S14G-X36: the provinces the package's STRUCTURED cessions name (a
+    demand or a sweetener of type territory_cede / territory), as
+    `_province_key`s."""
+    keys = set()
+    for bucket in ("demands", "sweeteners"):
+        for item in (terms.get(bucket) or []):
+            if (isinstance(item, dict)
+                    and str(item.get("type", "")).strip().lower() in ("territory_cede", "territory")):
+                keys.update(_province_key(r) for r in (item.get("regions") or []) if r)
+    return keys
+
+
 def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str) -> list[str]:
     """Convert a proposal terms dict into player-facing summary lines."""
     lines = []
@@ -2381,8 +2413,21 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
     lines.append(proposal_summary_display_name(proposal_key, target_label)
                  + (f" - {_state_effect}" if _state_effect else ""))
 
+    # S14G-X36 (Pre-Deploy S14h part 1, October 26, 2026): the legacy string
+    # clause "territory_flanders" and the structured cession ({"type":
+    # "territory_cede", "regions": ["Flanders"]}) are ONE term on a drafted
+    # package (the design confirm's peace carries both) - the summary printed it
+    # twice ("Territory Flanders", then "France cedes Flanders"). The structured
+    # clause is the line the client reads (`annotated_terms`); the string clause
+    # is dropped when a structured one names the same province, and stands alone
+    # when none does.
+    _ceded = _structured_cession_keys(terms)
     for clause in terms.get("clauses", []):
         clause_type = clause.get("type", "unknown") if isinstance(clause, dict) else clause
+        if (isinstance(clause, str) and _ceded
+                and clause.strip().lower().startswith("territory_")
+                and _province_key(clause.strip()[len("territory_"):]) in _ceded):
+            continue
         if str(clause_type).strip().lower() == "open_borders":
             # S14E-23: the player's own draft says what the clause does too.
             _effect = clause_effect_words("open_borders", str(proposal_key))

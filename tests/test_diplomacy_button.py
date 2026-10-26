@@ -376,7 +376,7 @@ class TestPreviewResponseShape:
 
     def test_dialogue_pending_flag(self):
         world = _make_world()
-        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "X"})
+        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "Austria"})  # S14G-6: a great court's letter locks; the old placeholder court "X" is a lesser court (S14G-D3)
         preview = get_diplomatic_preview(world, "Prussia")
         assert preview["dialogue_pending"] is True
 
@@ -1154,7 +1154,7 @@ class TestAuditFixes:
         """Step 2 preview should include dialogue_pending flag."""
         world = _make_world()
         world.diplomatic_points = 3
-        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "X"})
+        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "Austria"})  # S14G-6: a great court's letter locks; the old placeholder court "X" is a lesser court (S14G-D3)
         preview = get_diplomatic_preview(world, "Prussia")
         assert preview["dialogue_pending"] is True
 
@@ -1266,7 +1266,7 @@ class TestEdgeCaseFixes:
         """When a current-turn offer is pending, all actions should be empty."""
         world = _make_world()
         world.diplomatic_points = 10
-        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "X"})
+        world.dialogue_manager.replace({"type": "incoming_proposal", "target_nation": "Austria"})  # S14G-6: a great court's letter locks; the old placeholder court "X" is a lesser court (S14G-D3)
         _set_diplo_state(world, "France", "Prussia", "PEACE")
         actions = get_available_diplomatic_actions(world, "Prussia")
         assert actions == []

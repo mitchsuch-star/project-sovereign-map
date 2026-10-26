@@ -907,6 +907,167 @@ def is_own_soil_recapture(world, region_name: str, nation: str) -> bool:
     return starting.get(region_name) == nation
 
 
+# ═══════ S14G-1 / S14G-D1 (Pre-Deploy S14h part 1, October 26, 2026) ═══════
+# THE LIBERATION OF AN ALLY'S GROUND — handed back at once.
+#
+# The third measure (conquest #5, turn 3, action 58): Ney drove Archduke
+# Charles out of Munich — Bavaria's capital, which Austria had just taken
+# from the ally — and the engine scored it as the conquest of an enemy
+# capital: +2 `region_capture`, +15 `capital_capture`, a plunder/secure
+# question ("Plunder it for 1,200 gold") and the province to France; the bar
+# went 84 -> 100 in one turn. `is_own_soil_recapture` knew only France's own
+# starting soil; DDB-42 (a province the capturer holds title to is recovered)
+# and PT-F1 (an ally-HELD province is not ours to take) were never widened to
+# the other side of the class: an ALLY's (or client's) province retaken FROM
+# AN ENEMY.
+#
+# THE RULING (S14G-D1, October 26, 2026): a liberation, HANDED BACK AT ONCE —
+# control returns to the home nation, no plunder question, no `region_capture`
+# and no `capital_capture` alarm (the battle's own alarm stands: Europe fears
+# the conqueror, not the man who gives an ally his capital back — DDB-42's
+# reasoning). ONE predicate, `liberates_ally_ground`, read by `capture_region`
+# (the hand-back and the +2), by `_attempt_region_capture` and
+# `_apply_occupation_capture_effects` (the question and the line), by the
+# `_post_combat_pipeline`'s +15 and by the reckless auto-charge's own copy —
+# for the player and the AI alike (Golden Rule 5). THE SEAM: held down (it
+# answers '') every arm reads today's conquest, byte for byte.
+
+
+def _retaken_home(world, region_name: str, capturer: str) -> str:
+    """The home nation of `region_name` when a capture by `capturer` NOW would
+    retake a third court's ground from an enemy: the province's controller is
+    at war with `capturer`, and its home nation (`game_end.home_nation_of`)
+    is neither of them. '' otherwise (own soil, unclaimed ground, a province
+    whose holder is not an enemy, a province with no home)."""
+    if not region_name or not capturer:
+        return ""
+    region = (getattr(world, "regions", None) or {}).get(region_name)
+    holder = getattr(region, "controller", None) if region is not None else None
+    if not holder or holder == capturer or not world.is_at_war(capturer, holder):
+        return ""
+    from backend.game_logic.game_end import home_nation_of
+    home = home_nation_of(world, region_name)
+    if not home or home in (capturer, holder):
+        return ""
+    return home
+
+
+def _ally_or_client(world, capturer: str, home: str) -> bool:
+    """`home` is an ally (ALLIANCE / DEFENSIVE_ALLIANCE) of `capturer`, or a
+    client of it (a vassal, at any depth of the lord chain), or its own lord
+    — the PT-F1 pursuit guard's vocabulary, widened by the lord chain."""
+    if world.get_diplomatic_state(capturer, home) in (
+            "ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+        return True
+    return (world._top_overlord(home) == capturer
+            or world._top_overlord(capturer) == home)
+
+
+def liberates_ally_ground(world, region_name: str, capturer: str) -> str:
+    """S14G-1 / S14G-D1: the home nation to hand `region_name` back to when a
+    capture by `capturer` is a LIBERATION, else ''.
+
+    A liberation: the province's home nation is an ally or a client of the
+    capturer (`_ally_or_client`), the province is held by an enemy of the
+    capturer (not by its home nation) and the home court is still in the game
+    (`get_active_nations`). Read BEFORE `capture_region` moves the
+    controller. THE SEAM — the series arms hold it down ('' = today's
+    conquest, byte for byte). One predicate for the player and the AI."""
+    home = _retaken_home(world, region_name, capturer)
+    if not home or not _ally_or_client(world, capturer, home):
+        return ""
+    if home not in (world.get_active_nations() or []):
+        return ""
+    return home
+
+
+def liberation_court_gone(world, region_name: str, capturer: str) -> str:
+    """S14G-D1's other arm: the home nation of ground retaken from an enemy
+    whose court is GONE (a roster court with no province and no lord — its
+    ties went with it, so nobody is left to hand the province to), or ''.
+    The capture stays a conquest as today; the reply says so in one clause
+    (`liberation_gone_clause`). Read before the capture."""
+    home = _retaken_home(world, region_name, capturer)
+    if not home:
+        return ""
+    roster = {getattr(world, "player_nation", None),
+              *(getattr(world, "enemy_nations", None) or [])}
+    if home in roster and home not in (world.get_active_nations() or []):
+        return home
+    return ""
+
+
+def court_named(world, nation: str) -> str:
+    """A court by its CURRENT name with the article English wants — "Bavaria",
+    "the Papal States" (the liberation's one naming). `world` None reads the
+    standard rendering (the campaign log may be asked without a world)."""
+    from backend.display_names import display_nation, with_definite_article
+    if world is None:
+        return with_definite_article(display_nation(nation))
+    from backend.game_logic.formations import formed_display_name
+    return with_definite_article(formed_display_name(world, nation))
+
+
+def _court_possessive(world, nation: str) -> str:
+    """"Bavaria's", "the Papal States'" — a court's name in the possessive."""
+    name = court_named(world, nation)
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
+def liberation_line(world, region_name: str, home: str, *, by: str = "",
+                    capital=None) -> str:
+    """S14G-1 / S14G-D1: THE sentence of a liberation, one builder for every
+    surface (the attack reply, the march, the occupation, the dispatch, the
+    campaign log): "Munich, Bavaria's capital, retaken — handed back to
+    Bavaria." (a province: "Swabia, Bavaria's province, retaken — …").
+
+    `by` names the liberator for the third-person surface (the campaign log:
+    "retaken by France — handed back to Bavaria"); `capital` is read off the
+    board unless the caller already knows (the log row carries it, and the
+    log may be asked without a world)."""
+    if capital is None:
+        capital = bool(world is not None
+                       and world.get_nation_capital(home) == region_name)
+    kind = "capital" if capital else "province"
+    retaken = f"retaken by {by}" if by else "retaken"
+    return (f"{region_name}, {_court_possessive(world, home)} {kind}, "
+            f"{retaken} — handed back to {court_named(world, home)}.")
+
+
+def liberation_gone_clause(world, region_name: str, home: str) -> str:
+    """S14G-D1: the one clause when the home court is gone — "Bavaria's court
+    is gone — Munich is held for the peace." """
+    text = (f"{_court_possessive(world, home)} court is gone — "
+            f"{region_name} is held for the peace.")
+    return text[:1].upper() + text[1:]
+
+
+def complete_liberation(world, region, capturer: str, old_controller,
+                        home: str) -> str:
+    """S14G-1: the province has been handed back (`capture_region` moved the
+    controller to `home`) — hold it as the own-soil liberation does (the
+    secure effects, no question, no estate rule: the ground is the ally's),
+    log the `region_captured` row (`method: "liberated"`, `liberated_to`) and
+    return THE line. Shared by the instant capture and the occupation
+    completing, for either side."""
+    apply_secure_effects(region)
+    line = liberation_line(world, region.name, home)
+    _row = {
+        "type": "region_captured",
+        "region": region.name,
+        "captured_by": capturer,
+        "captured_from": old_controller,
+        "method": "liberated",
+        "liberated_to": home,
+    }
+    if world.get_nation_capital(home) == region.name:
+        # The row carries what the line needs when the log is read without a
+        # world (and `campaign_log.event_tier` already leads a capital).
+        _row["capital"] = True
+    world.log_event(_row)
+    return line
+
+
 # ═══════ WO-19 (row WO slice 14) — THE SACK SURVIVES A CHANGE OF HANDS ═══════
 #
 # `plunder_yield`'s docstring promises the repeat-sack guard holds "until
@@ -1469,13 +1630,23 @@ def announce_third_party_capture(self, region_name: str, old_controller,
         names = [humanize_entity_name(n) for n in ours]
         shown = (names[0] if len(names) == 1
                  else ", ".join(names[:-1]) + f" and {names[-1]}")
+        from backend.game_logic.dispatch import closed_soil_fate
+        _they = "he" if len(names) == 1 else "they"
         queue_dispatch_event(self, "corps_on_closed_soil", {
             "marshals": shown,
             "stand": "stands" if len(names) == 1 else "stand",
-            "they": "he" if len(names) == 1 else "they",
+            "they": _they,
             "region": region_name,
             "new_display": new_display,
             "reason": reason,
+            # S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): the line's tail
+            # says what their orders say — "may march out", or that Berthier
+            # has ALREADY put them on the road home. Queued from the orders as
+            # they stand now; the page re-reads them when it is built
+            # (`dispatch._closed_soil_line_vars`, from `marshal_names`), since
+            # the free road-home order is written at the tick, after this.
+            "marshal_names": list(ours),
+            "fate": closed_soil_fate(self, ours, _they),
         }, "always")
     except Exception as exc:
         report(exc, "world_state._announce_third_party_capture: queue_dispatch_event")
@@ -5156,16 +5327,26 @@ class WorldState:
             return False
 
         old_controller = region.controller
+        # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1, October 26, 2026): an
+        # ALLY's (or client's) province retaken from an enemy was scored as
+        # the conquest of an enemy capital and handed to France. The ONE
+        # predicate, read BEFORE the controller moves: the capture hands the
+        # ground back to its home nation at once ('' = a conquest as today).
+        _liberated_to = liberates_ally_ground(self, region_name, capturing_nation)
+        # The court that holds the province from here: the home nation on a
+        # liberation, else the capturer (every reading below that is about
+        # WHO NOW HOLDS it — the title, the announcement, the guard — uses it).
+        _holder = _liberated_to or capturing_nation
         # GE-3: was it one of the bloc's TITLED provinces? Read before the
         # controller changes (the capture overwrites what the kind reads).
         # Dormant: False at once unless the Congress sits.
         from backend.game_logic import congress as _congress
         _was_titled = _congress.was_titled(self, region_name)
-        region.controller = capturing_nation
+        region.controller = _holder
         self.invalidate_active_nations_cache()
         region.stability = 25  # Captured regions start at low stability
         # AAR4-X1: the loser's garrison does not change sides with the walls.
-        if (old_controller and old_controller != capturing_nation):
+        if (old_controller and old_controller != _holder):
             region.garrison_strength = 0
             region.garrison_detachment = False
 
@@ -5184,7 +5365,13 @@ class WorldState:
         from backend.game_logic import game_end as _game_end
         _game_end.record_province_title(
             self, region_name, _game_end.TITLE_CONQUEST,
-            old_controller, capturing_nation)
+            old_controller, _holder)
+        if _liberated_to:
+            # S14G-1: a liberation leaves no title record at all — the home
+            # court holds its own ground (homeland is title by construction),
+            # so neither `ally_homeland_returns` at a peace nor the status
+            # quo can misread it as a conquest of the capturer's.
+            (getattr(self, "province_title", None) or {}).pop(region_name, None)
         _game_end.count_capture(self, old_controller, capturing_nation,
                                 region_name)
         # GE-3: a capture by force — the hold's "no titled province lost"
@@ -5197,8 +5384,13 @@ class WorldState:
         # Prussia in a war the player could not see, and three French corps
         # stood on it — the map's colour was the only notice), and our corps
         # standing on it are told when its entry just closed to us.
-        announce_third_party_capture(self, region_name, old_controller,
-                                     capturing_nation)
+        # S14G-1: the line names the court that NOW holds it (a liberation
+        # hands the ground to its home nation, not to the liberator) - and
+        # stays the player's own act when the player is the liberator (the
+        # helper's "two OTHER courts" gate: his reply and his dispatch say it).
+        announce_third_party_capture(
+            self, region_name, old_controller,
+            capturing_nation if capturing_nation == self.player_nation else _holder)
 
         # R16: +2 threat per captured region (non-starting territory, France only)
         if capturing_nation:
@@ -5214,7 +5406,11 @@ class WorldState:
             # #24: retaking ceded Vienna and Bohemia from Russia read as
             # conquest, 77 -> 79 -> 81). Every court alike (GR5).
             _recovered = capture_recovers_title(_prior_title, capturing_nation)
-            if starting.get(region_name) != capturing_nation and not _recovered:
+            # S14G-1 (Pre-Deploy S14h part 1): ...and an ALLY's or client's
+            # province retaken from an enemy is handed back, not conquered —
+            # the +2 was the third arm of the same misreading.
+            if (starting.get(region_name) != capturing_nation and not _recovered
+                    and not _liberated_to):
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture", target=capturing_nation)
 
@@ -5612,7 +5808,27 @@ class WorldState:
             return ""
 
         old_controller = region.controller
+        # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1): read BEFORE the capture
+        # moves the controller — a fortress retaken from an enemy that was an
+        # ALLY's (or client's) ground completes as a liberation: handed back
+        # to its home nation, no plunder question for the player, no plunder
+        # for the AI (the ground is not the liberator's to sack).
+        _liberated_to = liberates_ally_ground(self, region_name, marshal.nation)
+        # ...and when the home court is GONE the capture stays a conquest and
+        # the player's line says why in one clause (S14G-D1), as the instant
+        # capture's reply does.
+        _gone_clause = ""
+        if not _liberated_to and marshal.nation == self.player_nation:
+            _gone = liberation_court_gone(self, region_name, marshal.nation)
+            if _gone:
+                _gone_clause = f" {liberation_gone_clause(self, region_name, _gone)}"
         self.capture_region(region_name, marshal.nation)
+
+        if _liberated_to:
+            _line = complete_liberation(
+                self, region, marshal.nation, old_controller, _liberated_to)
+            self._last_occupation_capture_choice = "liberated"
+            return f" {_line}"
 
         if marshal.nation == self.player_nation:
             if is_own_soil_recapture(self, region_name, marshal.nation):
@@ -5642,10 +5858,10 @@ class WorldState:
                     self, region, marshal.name, old_controller,
                     marshal.nation) == "secure":
                 self._last_occupation_capture_choice = "secure"
-                return (f" {region_name} captured by {marshal.nation}! "
+                return (f" {region_name} captured by {marshal.nation}!{_gone_clause} "
                         f"{marshal.name} secures it — an earlier decision "
                         f"still awaits your word.")
-            return (f" {region_name} captured by {marshal.nation}! Plunder it "
+            return (f" {region_name} captured by {marshal.nation}!{_gone_clause} Plunder it "
                     f"for {self.pending_capture_choice['plunder_gold']:,} gold, "
                     f"or secure it?")
         else:
@@ -14918,7 +15134,15 @@ class WorldState:
                     marshal.occupation_turns_held += 1
                     if marshal.occupation_turns_held >= marshal.occupation_turns_required:
                         # CAPTURE COMPLETE
+                        # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026):
+                        # the siege's completing capture writes the +2 (a
+                        # conquest; none for a liberation) and said nothing of
+                        # Europe - the main attack's `[Alarm]` line, from this
+                        # capture's own mark, the player's own corps only.
+                        from backend.commands.combat_executor import CombatExecutor as _occ_ce
+                        _occ_alarm_from = _occ_ce._alarm_mark(self)
                         capture_msg = self._apply_occupation_capture_effects(marshal, occ_region)
+                        capture_msg += _occ_ce._alarm_rider(self, marshal, _occ_alarm_from)
                         marshal.occupation_region = None
                         marshal.occupation_turns_held = 0
                         marshal.occupation_turns_required = 0
@@ -15840,6 +16064,12 @@ class WorldState:
                 pre_battle_def = enemy.strength
                 auto_charge_battle_region = enemy.location
                 _ac_from = marshal.location  # S14E-X250: the province the charger rode from
+                # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): where
+                # this charge's alarm rows begin - the reckless auto-charge
+                # writes the win, the capital's +15 and the decisive +5 and
+                # printed none of them (only the main attack printed `[Alarm]`).
+                from backend.commands.combat_executor import CombatExecutor as _ac_ce
+                _ac_alarm_from = _ac_ce._alarm_mark(self)
 
                 # Clear attacker's combat transient state before combat (V2-48/V2-49)
                 marshal.clear_combat_transient_state()
@@ -16009,6 +16239,9 @@ class WorldState:
                         # S14E-X132 (XD7's sweep): a rout onto allied or neutral soil says the pay it draws.
                         from backend.commands.movement_executor import campaign_pay_line as _ac_pay
                         forced_retreat_msg += (" " + _ac_pay(self, enemy, retreat_to, old_enemy_loc)).rstrip()
+                        # S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): ... and the front it lands on.
+                        from backend.commands.movement_executor import front_clause as _ac_front
+                        forced_retreat_msg += _ac_front(self, enemy, retreat_to)
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": enemy.name,
                                         "nation": getattr(enemy, "nation", ""),
@@ -16054,6 +16287,9 @@ class WorldState:
                         # S14E-X132 (XD7's sweep): ... and the charger's own rout the same.
                         from backend.commands.movement_executor import campaign_pay_line as _ac_pay
                         forced_retreat_msg += (" " + _ac_pay(self, marshal, retreat_to, old_atk_loc)).rstrip()
+                        # S14G-X29: ... and the front it lands on.
+                        from backend.commands.movement_executor import front_clause as _ac_front
+                        forced_retreat_msg += _ac_front(self, marshal, retreat_to)
                         # CA8-5: `forced` marks a rout (vs an ordered withdrawal).
                         self.log_event({"type": "retreat", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
@@ -16208,6 +16444,9 @@ class WorldState:
                         # S14E-X133: an advance onto allied soil says the pay now drawn ('' for the AI and home soil).
                         from backend.commands.movement_executor import campaign_pay_clause as _ac_clause
                         movement_msg += _ac_clause(self, marshal, auto_charge_battle_region, _advance_from)
+                        # S14G-X29: ... and the front the advance is.
+                        from backend.commands.movement_executor import front_clause as _ac_front_clause
+                        movement_msg += _ac_front_clause(self, marshal, auto_charge_battle_region)
 
                     # [5C-12] Fog refresh after advance
                     if marshal.nation == self.player_nation:
@@ -16271,6 +16510,10 @@ class WorldState:
                 # (circular import constraint). Unfortified regions can still be captured.
                 conquered = False
                 conquest_msg = ""
+                # S14G-1 (Pre-Deploy S14h part 1): the court this charge's
+                # capture hands the ground back to ('' = a conquest) — read
+                # before the controller moves, again below at the +15.
+                _ac_liberated_to = ""
                 if attacker_won and marshal.strength > 0 and marshal.location == auto_charge_battle_region:
                     cap_region = self.get_region(auto_charge_battle_region)
                     if cap_region and cap_region.controller != marshal.nation:
@@ -16306,14 +16549,23 @@ class WorldState:
                             from backend.game_logic import congress as _cg
                             _cg_titled = _cg.was_titled(
                                 self, auto_charge_battle_region)
-                            cap_region.controller = marshal.nation
+                            # S14G-1 (the sweep's sibling of capture_region's
+                            # liberation): an ally's or client's province
+                            # retaken from an enemy by a charge is handed
+                            # back to its home nation too.
+                            _ac_liberated_to = liberates_ally_ground(
+                                self, auto_charge_battle_region, marshal.nation)
+                            _ac_holder = _ac_liberated_to or marshal.nation
+                            cap_region.controller = _ac_holder
                             self.invalidate_active_nations_cache()
                             # DDB-43 (Pre-Deploy S13b part 2), the sweep's
                             # sibling: the mirrored conquest announces a
                             # change between two other courts too.
                             announce_third_party_capture(
                                 self, auto_charge_battle_region,
-                                _charge_from, marshal.nation)
+                                _charge_from,
+                                marshal.nation if marshal.nation == self.player_nation
+                                else _ac_holder)
                             # GE-1: the one conquest outside
                             # capture_region writes its title and its
                             # count here (mirrored arm).
@@ -16321,7 +16573,10 @@ class WorldState:
                             _ge.record_province_title(
                                 self, auto_charge_battle_region,
                                 _ge.TITLE_CONQUEST, _charge_from,
-                                marshal.nation)
+                                _ac_holder)
+                            if _ac_liberated_to:
+                                (getattr(self, "province_title", None)
+                                 or {}).pop(auto_charge_battle_region, None)
                             _ge.count_capture(self, _charge_from,
                                               marshal.nation,
                                               auto_charge_battle_region)
@@ -16337,13 +16592,21 @@ class WorldState:
                             # already reported the collapse. Display only
                             # (GR6): no AI logic reads region_captured off
                             # the event log.
-                            self.log_event({
-                                "type": "region_captured",
-                                "region": auto_charge_battle_region,
-                                "captured_by": marshal.nation,
-                                "captured_from": _charge_from,
-                                "method": "charge",
-                            })
+                            if _ac_liberated_to:
+                                # S14G-1: the liberation's own row and line
+                                # (`complete_liberation` secures the ground
+                                # and logs `method: "liberated"`).
+                                _ac_line = complete_liberation(
+                                    self, cap_region, marshal.nation,
+                                    _charge_from, _ac_liberated_to)
+                            else:
+                                self.log_event({
+                                    "type": "region_captured",
+                                    "region": auto_charge_battle_region,
+                                    "captured_by": marshal.nation,
+                                    "captured_from": _charge_from,
+                                    "method": "charge",
+                                })
                             # S14E-D14 / S14E-X221 (S14f p3): the one conquest
                             # outside capture_region stamps the pairs it moved
                             # here too (mirrored arm) - the ledger conquest,
@@ -16352,7 +16615,9 @@ class WorldState:
                                 auto_charge_battle_region, _charge_from,
                                 marshal.nation)
                             conquered = True
-                            conquest_msg = f" {auto_charge_battle_region} captured by {marshal.nation}!"
+                            conquest_msg = (
+                                f" {_ac_line}" if _ac_liberated_to else
+                                f" {auto_charge_battle_region} captured by {marshal.nation}!")
 
                 # ── Authority: Major victory / defeat ──
                 player_nation = self.player_nation
@@ -16421,7 +16686,11 @@ class WorldState:
                             add_coalition_shock(enemy.nation, self)
                     if conquered:
                         cr = self.get_region(auto_charge_battle_region)
-                        if cr and getattr(cr, 'is_capital', False):
+                        # S14G-1: a liberation hands the capital back — no
+                        # "captured an enemy capital" alarm (mirror of the
+                        # executor pipeline's arm).
+                        if (cr and getattr(cr, 'is_capital', False)
+                                and not _ac_liberated_to):
                             add_threat(self, 15, "capital_capture", target=marshal.nation)
                     if marshal.nation == france:
                         add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
@@ -16511,11 +16780,14 @@ class WorldState:
                     reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness unchanged ({recklessness})[/color]"
                 else:
                     reck_footer = "[color=#cd6b6b]FREE ACTION — Recklessness reset to 0[/color]"
+                # S14G-X12: the alarm the charge raised, from its own mark -
+                # the player's own cavalry only (an AI charge prints nothing).
+                ac_alarm_msg = _ac_ce._alarm_rider(self, marshal, _ac_alarm_from)
                 event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}"
                             f"{forced_retreat_msg}{conquest_msg}"
-                            f"{ac_materiel_msg}\n\n"
+                            f"{ac_materiel_msg}{ac_alarm_msg}\n\n"
                             f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
                 # Strip combat_result from the tactical event sent to Godot.
@@ -16616,6 +16888,9 @@ class WorldState:
                     # S14E-X152 (XR3a's sweep): the free ride onto allied soil says the pay it now draws.
                     from backend.commands.movement_executor import campaign_pay_note as _rk_pay
                     _rk_pay_note = _rk_pay(self, marshal, next_region, old_location)
+                    # S14G-X29: ... and the front the ride is.
+                    from backend.commands.movement_executor import front_note as _rk_front
+                    _rk_pay_note += _rk_front(self, marshal, next_region)
 
                     events.append({
                         "type": "reckless_move",

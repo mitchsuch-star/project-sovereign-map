@@ -181,7 +181,11 @@ class TestRecommendationTable:
         world.nation_relations[key] = 20
         rec = _build_situation_recommendation(
             world, "France", [], {"weak_link": "Prussia"}, "aggressive")
-        assert rec["kind"] == "open_proposal"
+        # S14G-X34 (Pre-Deploy S14h part 1, October 26, 2026): shoring up an
+        # ALLY is the Cabinet's mission to her court (Reassure Ally in a full
+        # alliance), not an `open_proposal` onto a menu of shut doors.
+        assert rec["kind"] == "start_mission"
+        assert rec["mission_type"] == "REASSURE_ALLY"
         assert rec["target_nation"] == "Bavaria"
 
     def test_low_vassal_recommends_investment(self, world):

@@ -582,16 +582,148 @@ def _demand_hard_stop_reason(court: str) -> str:
     )
 
 
-def _guided_magnitude_meta(clause_type: str, amount: int, turns: Optional[int]) -> Dict[str, int]:
+_CREDIT_GOLD_CLAUSE_TYPES = ("gold_indemnity", "gold_lump", "gold_per_turn")
+
+
+def credit_gold_ceiling() -> int:
+    """S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): the gold a court's
+    credit stops counting at — the scorer's own `CONCESSION_GOLD_CAP` points at
+    `CONCESSION_GOLD_DIVISOR` gold a point (40 x 25 = 1,000), read from the
+    constants and never retyped. The ONE figure the dial's ceiling, the dial
+    note, the standing hint, the magnitude verb and the row control share."""
+    return int(CONCESSION_GOLD_CAP) * int(CONCESSION_GOLD_DIVISOR)
+
+
+def credit_ceiling_note(court: str, *, set_to: Optional[int] = None, unit: str = "") -> str:
+    """S14G-12: the authored sentence for the credit ceiling — built ONCE for
+    the dial's note ("Gold past 1,000 buys nothing more from Britain at this
+    table, Sire.") and the magnitude verb's clamp (the same sentence, "— set
+    to 1,000."; `unit` " turns" for a stream's term)."""
+    base = (
+        f"Gold past {credit_gold_ceiling():,} buys nothing more from "
+        f"{court} at this table, Sire"
+    )
+    if set_to is None:
+        return f"{base}."
+    return f"{base} — set to {int(set_to):,}{unit}."
+
+
+def _credit_gold_total(term: Mapping[str, Any]) -> int:
+    """A gold clause's whole obligation as the scorer reads it (a stream is its
+    projected amount x turns)."""
+    amount = max(0, int(term.get("amount", 0) or 0))
+    if str(term.get("type") or "") == "gold_per_turn":
+        amount *= max(0, int(term.get("turns", 0) or 0))
+    return amount
+
+
+def _credit_pair_others(terms: List[Mapping[str, Any]], index: int,
+                        frm: str, to: str) -> int:
+    """The gold the OTHER lines of one payer -> payee pair already carry (the
+    scorer sums a pair's lines before the cap — PC-F62)."""
+    return sum(
+        _credit_gold_total(t)
+        for i, t in enumerate(terms)
+        if i != index and isinstance(t, Mapping)
+        and str(t.get("type") or "") in _CREDIT_GOLD_CLAUSE_TYPES
+        and str(t.get("from") or "") == frm and str(t.get("to") or "") == to
+    )
+
+
+def credit_headroom(terms: Iterable[Mapping[str, Any]], frm: str, to: str) -> int:
+    """S14G-X55: the gold a NEW line from ``frm`` to ``to`` could still carry
+    before the credit stops counting it — the ceiling less what the pair's
+    staged lines already carry (0 when the pair has filled it)."""
+    term_list = list(terms or [])
+    return max(0, credit_gold_ceiling() - _credit_pair_others(term_list, -1, str(frm), str(to)))
+
+
+def credit_line_amount_max(
+    terms: Iterable[Mapping[str, Any]],
+    index: int,
+    court: str,
+    *,
+    turns: Optional[int] = None,
+) -> Optional[int]:
+    """S14G-12: the most one staged gold line that PAYS ``court`` can carry
+    before the credit stops counting it — the ceiling less what the pair's
+    other lines already carry, per unit for a stream (a stream's whole
+    projected obligation counts). ``None`` when the line is not a gold line
+    paying the court (a demand on it has no ceiling). Never below the verb's
+    own floor."""
+    term_list = list(terms or [])
+    if index < 0 or index >= len(term_list) or not isinstance(term_list[index], Mapping):
+        return None
+    line = term_list[index]
+    ttype = str(line.get("type") or "")
+    frm, to = str(line.get("from") or ""), str(line.get("to") or "")
+    if ttype not in _CREDIT_GOLD_CLAUSE_TYPES or to != str(court or "") or frm == to:
+        return None
+    room = max(0, credit_gold_ceiling() - _credit_pair_others(term_list, index, frm, to))
+    if ttype == "gold_per_turn":
+        run = int(turns if turns is not None else (line.get("turns", 0) or 0))
+        return max(int(GOLD_PER_TURN_MIN_AMOUNT), room // max(1, run))
+    return max(1, room)
+
+
+def credit_line_turns_max(
+    terms: Iterable[Mapping[str, Any]], index: int, court: str, *, amount: int,
+) -> Optional[int]:
+    """S14G-12: the longest term a staged stream paying ``court`` can run at
+    ``amount`` a turn before the credit stops counting it (the sibling of
+    `credit_line_amount_max` for the turns control)."""
+    term_list = list(terms or [])
+    if credit_line_amount_max(term_list, index, court) is None:
+        return None
+    line = term_list[index]
+    if str(line.get("type") or "") != "gold_per_turn":
+        return None
+    room = max(0, credit_gold_ceiling() - _credit_pair_others(
+        term_list, index, str(line.get("from") or ""), str(line.get("to") or "")))
+    return max(int(GOLD_PER_TURN_MIN_TURNS),
+               min(int(GOLD_PER_TURN_MAX_TURNS), room // max(1, int(amount))))
+
+
+def court_gold_at_credit_ceiling(terms: Iterable[Mapping[str, Any]], court: str) -> bool:
+    """S14G-12: True when the gold paid TO ``court`` by some payer has reached
+    the credit ceiling — the scorer's own test (a pair's lines summed, then
+    `total // DIVISOR` against `CAP`), so more gold buys the court nothing."""
+    pair_total: Dict[str, int] = {}
+    for term in terms or []:
+        if not isinstance(term, Mapping):
+            continue
+        if str(term.get("type") or "") not in _CREDIT_GOLD_CLAUSE_TYPES:
+            continue
+        frm, to = str(term.get("from") or ""), str(term.get("to") or "")
+        if to != str(court or "") or frm == to:
+            continue
+        pair_total[frm] = pair_total.get(frm, 0) + _credit_gold_total(term)
+    return any(total >= credit_gold_ceiling() for total in pair_total.values())
+
+
+def _guided_magnitude_meta(
+    clause_type: str,
+    amount: int,
+    turns: Optional[int],
+    *,
+    amount_max: Optional[int] = None,
+) -> Dict[str, int]:
     """Magnitude metadata for a gold line/suggestion — the bounds the
     `settlement_demand_set_magnitude` verb enforces, exposed so the row
-    control renders valid ranges instead of discovering them by rejection."""
+    control renders valid ranges instead of discovering them by rejection.
+
+    S14G-12: a gold line that PAYS a court carries `amount_max` — the credit
+    ceiling (per unit for a stream) the verb clamps to, so the row control
+    shows the bound instead of spending gold that buys nothing. A demand on a
+    court has no ceiling and carries none."""
     meta: Dict[str, int] = {
         "amount": int(amount),
         "amount_min": int(
             GOLD_PER_TURN_MIN_AMOUNT if clause_type == "gold_per_turn" else 1
         ),
     }
+    if amount_max is not None:
+        meta["amount_max"] = int(amount_max)
     if clause_type == "gold_per_turn":
         meta["turns"] = int(turns or 0)
         meta["turns_min"] = int(GOLD_PER_TURN_MIN_TURNS)
@@ -683,7 +815,8 @@ def _court_current_demand_lines(
     the LORD court's row (the §4 mapping authors it there).
     """
     lines: List[Dict[str, Any]] = []
-    for idx, term in enumerate(settlement_terms or []):
+    term_list = list(settlement_terms or [])
+    for idx, term in enumerate(term_list):
         if not isinstance(term, Mapping):
             continue
         ttype = str(term.get("type") or "")
@@ -721,6 +854,9 @@ def _court_current_demand_lines(
                 ttype,
                 int(term.get("amount", 0) or 0),
                 int(term.get("turns", 0) or 0) if ttype == "gold_per_turn" else None,
+                # S14G-12: a line that PAYS this court carries the credit
+                # ceiling (a demand on it carries none).
+                amount_max=credit_line_amount_max(term_list, idx, court),
             )
             entry["set_magnitude_action"] = {
                 "action": "settlement_demand_set_magnitude",
@@ -1135,6 +1271,13 @@ def _court_demand_suggestions(
         proposer_side_leader=proposer_leader,
         settlement_terms=settlement_terms,
     )
+    # S14G-X55 (Pre-Deploy S14h part 1, October 26, 2026): the default read the
+    # treasury only, so an Offer row stood beside lines that already filled the
+    # pair's credit ceiling and bought nothing. It reads the pair's other lines
+    # now: a row never offers past what the credit still counts, and none is
+    # offered where the ceiling is full.
+    credit_room = credit_headroom(settlement_terms, proposer_leader, court)
+    gold_offer_default = min(int(gold_offer_default), int(credit_room))
     if gold_offer_default > 0:
         offer_group.append(_guided_suggestion(
             label=f"Offer {int(gold_offer_default)} gold to {court}",
@@ -1150,7 +1293,10 @@ def _court_demand_suggestions(
             draft_key=draft_key,
             params={"amount": int(gold_offer_default)},
             magnitude=_guided_magnitude_meta(
-                "gold_indemnity", int(gold_offer_default), None
+                "gold_indemnity", int(gold_offer_default), None,
+                # S14G-12: an offer PAYS the court — the credit ceiling (less
+                # the pair's other lines, S14G-X55).
+                amount_max=int(credit_room),
             ),
         ))
     # PC-F54: the court's occupied capital leads the offer rows ("Offer
@@ -1216,6 +1362,10 @@ def _court_demand_suggestions(
     if recurring_offer:
         amount = int(recurring_offer["amount"])
         turns = int(recurring_offer["turns"])
+        # S14G-X55: a stream is bounded by what the credit still counts, per
+        # turn of its term; none is offered where that is under the floor.
+        amount = min(amount, int(credit_room) // max(1, turns))
+    if recurring_offer and amount >= int(GOLD_PER_TURN_MIN_AMOUNT):
         offer_group.append(_guided_suggestion(
             label=f"Offer {court} {amount} gold a turn for {turns} turns",
             group="offer",
@@ -1230,7 +1380,13 @@ def _court_demand_suggestions(
             war_id=war_id,
             draft_key=draft_key,
             params={"amount": amount, "turns": turns},
-            magnitude=_guided_magnitude_meta("gold_per_turn", amount, turns),
+            magnitude=_guided_magnitude_meta(
+                "gold_per_turn", amount, turns,
+                # S14G-12: an offer PAYS the court — the credit ceiling, per
+                # turn of the stream.
+                amount_max=max(int(GOLD_PER_TURN_MIN_AMOUNT),
+                               int(credit_room) // max(1, turns)),
+            ),
         ))
 
     # PC-R7 (ii) part 2: the articles declared at the war LEAD the demands
@@ -1600,19 +1756,20 @@ def _redial_settlement_terms(
         if direction == "harsher":
             notes.append(f"{court} can pay no more, Sire.")
         elif court in credit_ceiling:
-            notes.append(f"Gold past {_credit_gold_ceiling:,} buys nothing more from "
-                         f"{court} at this table, Sire.")
+            # S14G-12: the sentence is built ONCE (`credit_ceiling_note`) —
+            # the magnitude verb's clamp says the same words.
+            notes.append(credit_ceiling_note(court))
         else:
             notes.append("The treasury can bear no more, Sire.")
     for court in sorted(credit_ceiling - (ceiling - escalated)):
-        notes.append(f"Gold past {_credit_gold_ceiling:,} buys nothing more from "
-                     f"{court} at this table, Sire.")
+        notes.append(credit_ceiling_note(court))
     return out
 
 
 def _settlement_targeted_posture_advisory(
     per_court_acceptance: Iterable[Mapping[str, Any]],
     holdout_courts: Iterable[str],
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
 ) -> str:
     """Re-front Slice 2 / OQ#1 — a VOICE-ONLY targeted-posture suggestion
     ("I'd press X and ease Y, Sire").
@@ -1626,8 +1783,14 @@ def _settlement_targeted_posture_advisory(
     PF-1 / D6 guard: a CONCEDE-direction court (France losing the pair) is
     never a press candidate, whatever its band — Talleyrand does not counsel
     pressing the court that is winning.
+
+    S14G-X54 (Pre-Deploy S14h part 1, October 26, 2026): a holdout whose gold
+    has reached the credit ceiling is NOT counselled to be eased — the sea #8
+    frames read "I'd ease Britain, Sire" over a table whose gold bought nothing
+    more; the carry hint says what weighs on that court instead.
     """
     holdout_set = {str(n) for n in (holdout_courts or [])}
+    terms_in_hand = list(settlement_terms) if settlement_terms is not None else None
     press: List[str] = []
     ease: List[str] = []
     for row in per_court_acceptance:
@@ -1637,7 +1800,9 @@ def _settlement_targeted_posture_advisory(
         if not nation:
             continue
         if nation in holdout_set:
-            if row.get("total") is not None:  # hard-stops cannot be dialed
+            if row.get("total") is not None and not (  # hard-stops cannot be dialed
+                    terms_in_hand is not None
+                    and court_gold_at_credit_ceiling(terms_in_hand, nation)):
                 ease.append(nation)
         elif (
             str(row.get("band") or "") == "accept"
@@ -1837,10 +2002,79 @@ def _settlement_budget_bound_recommendation(
     }
 
 
+def _credit_ceiling_blocker_words(
+    row: Mapping[str, Any],
+    court: str,
+    terms: Iterable[Mapping[str, Any]],
+) -> Tuple[str, int]:
+    """S14G-12: what weighs on a court whose gold is spent — the clause(s)
+    the player has laid on it when the row's top blocker is the terms'
+    harshness ("the erection of Ireland (-23)"), else the blocker's own label.
+    Returns ``(words, clauses_named)``; the count is 0 when no clause is named
+    (there is nothing to "remove"). Nation keys stay raw — the client humanizes
+    them once at render, as it does the rest of the hint."""
+    from backend.display_names import claim_clause_noun
+
+    value = row.get("top_blocker_value")
+    value_text = f" ({int(value):+d})" if isinstance(value, (int, float)) else ""
+    nouns: List[str] = []
+    if str(row.get("top_blocker_component") or "") == "term_harshness_penalty":
+        for term in terms or []:
+            if not isinstance(term, Mapping) or str(term.get("type") or "") == "peace":
+                continue
+            if str(term.get("from") or "") != court:
+                continue
+            noun = claim_clause_noun(term, court, name_of=lambda n: n)
+            noun = noun[:-len(f" on {court}")] if noun.endswith(f" on {court}") else noun
+            if noun and noun not in nouns:
+                nouns.append(noun)
+    if nouns:
+        named = (" and ".join(nouns) if len(nouns) <= 2
+                 else f"{nouns[0]}, {nouns[1]} and {len(nouns) - 2} more")
+        return f"{named}{value_text}", len(nouns)
+    label = str(row.get("top_blocker_display") or "the standing terms")
+    return f"{label[:1].lower()}{label[1:]}{value_text}", 0
+
+
+def _credit_ceiling_hint_line(
+    row: Mapping[str, Any],
+    court: str,
+    *,
+    terms: Iterable[Mapping[str, Any]],
+    can_drop: bool,
+) -> str:
+    """S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): the standing hint's
+    third arm — a holdout whose gold has reached the credit ceiling. "Use
+    'More generous' until each accepts" was FALSE there (the dial stops at the
+    ceiling and gold past it buys nothing: sea #8, 1,000g and 26 of 50 with
+    5,241g spare), so the hint says where the court stands, what weighs on it,
+    and the three ways out the table has — the clause's Remove, land (the
+    province's weight in gold, read from the scorer's own constants), and the
+    court's Drop where the row offers it."""
+    from backend.game_logic.settlement_scoring import gold_land_rates
+
+    total, threshold = row.get("total"), row.get("threshold")
+    standing = (f" ({int(total)} of {int(threshold)})"
+                if isinstance(total, (int, float)) and isinstance(threshold, (int, float)) else "")
+    words, clauses = _credit_ceiling_blocker_words(row, court, terms)
+    ways: List[str] = []
+    if clauses:
+        ways.append("remove it" if clauses == 1 else "remove them")
+    ways.append(f"offer land (a province weighs about {int(gold_land_rates()['credit']):,}g)")
+    if can_drop:
+        ways.append(f"drop {court}")
+    way_text = (ways[0] if len(ways) == 1
+                else (f"{ways[0]} or {ways[1]}" if len(ways) == 2
+                      else f"{', '.join(ways[:-1])}, or {ways[-1]}"))
+    return (f"Gold is at its ceiling for {court}{standing}; what weighs on her "
+            f"is {words} — {way_text}.")
+
+
 def _settlement_propose_carry_hint(
     holdout_courts: Iterable[str],
     per_court_acceptance: Iterable[Mapping[str, Any]],
     budget_bound_constraint: Optional[Mapping[str, Any]] = None,
+    settlement_terms: Optional[Iterable[Mapping[str, Any]]] = None,
 ) -> str:
     """Re-front UX follow-up — a plain guidance line on the PROPOSE surface
     shown ONLY while the package does not carry yet.
@@ -1893,6 +2127,36 @@ def _settlement_propose_carry_hint(
                 f"{names} won't accept these terms yet. {' '.join(mismatch_lines)} "
                 "Then 'Submit for Review' to ratify. "
                 "Submitting now only opens a review you cannot ratify."
+            )
+        # S14G-12: the THIRD arm — a holdout whose gold has reached the credit
+        # ceiling ("More generous" cannot move it). A legitimacy MISMATCH wins
+        # where both apply (its line names the clause and the controls).
+        mismatch_courts = {
+            n for n in easeable
+            if str((rows_by_nation.get(n) or {}).get("top_blocker_detail") or "") == "tier_mismatch"
+            and (rows_by_nation.get(n) or {}).get("top_blocker_line")}
+        ceiling_courts = [
+            n for n in easeable
+            if n not in mismatch_courts and settlement_terms is not None
+            and (rows_by_nation.get(n) or {}).get("total") is not None
+            and court_gold_at_credit_ceiling(settlement_terms, n)]
+        if ceiling_courts:
+            can_drop = len(rows_by_nation) > 1
+            ceiling_lines = [
+                _credit_ceiling_hint_line(
+                    rows_by_nation[n], n, terms=list(settlement_terms or []), can_drop=can_drop)
+                for n in ceiling_courts]
+            rest = [n for n in easeable if n not in ceiling_courts and n not in mismatch_courts]
+            tail = ("Then 'Submit for Review' to ratify. "
+                    "Submitting now only opens a review you cannot ratify.")
+            if not rest:
+                return f"{' '.join(ceiling_lines + mismatch_lines)} {tail}"
+            others = _join_court_names([n for n in holdouts if n not in ceiling_courts])
+            return (
+                f"{others} won't accept these terms yet. Use 'More generous' (or ease "
+                f"a court) until each accepts, then 'Submit for Review' to ratify. "
+                f"Submitting now only opens a review you cannot ratify. "
+                f"{' '.join(ceiling_lines + mismatch_lines)}"
             )
         hint = (
             f"{names} won't accept these terms yet. Use 'More generous' (or ease "
@@ -4321,7 +4585,8 @@ def build_settlement_confirm_dialogue(
             (
                 budget_bound_voice
                 or _settlement_targeted_posture_advisory(
-                    per_court_acceptance, holdout_courts
+                    per_court_acceptance, holdout_courts,
+                    settlement_terms=staged_terms_for_gate,
                 )
             )
             if dialogue_mode == "PROPOSE"
@@ -4337,6 +4602,8 @@ def build_settlement_confirm_dialogue(
                 holdout_courts,
                 per_court_acceptance,
                 budget_bound_constraint=budget_bound_constraint,
+                # S14G-12: the credit-ceiling arm reads the staged gold lines.
+                settlement_terms=staged_terms_for_gate,
             )
             if dialogue_mode == "PROPOSE" and not per_court_carries
             else ""

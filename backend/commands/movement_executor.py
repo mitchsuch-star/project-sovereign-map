@@ -444,6 +444,63 @@ def campaign_pay_note(world, marshal, dest, origin=None) -> str:
     return f"\n{line}" if line else ""
 
 
+def front_line(world, marshal, dest) -> str:
+    """S14G-7 (Pre-Deploy S14h part 1, October 26, 2026): the sentence a march
+    into an ALLY's province whose war a truce of ours leaves running says —
+    "Swabia is Bavaria's front — Austria, under truce with us, is at war with
+    her; a corps there will not fight, and marches home if the ground changes
+    hands." '' for any other destination and for the AI's corps (Rule 5: the
+    reader is the player's; player-only text, no seam).
+
+    The third measure's sea road ordered a 2-AP march to Swabia AFTER it had
+    accepted Austria's armistice and was told nothing at the order: the
+    foreign-soil notes (pay, supply, camp) have no word for "this soil is a
+    front", and Austria stormed the province the corps stood on, so Berthier
+    marched them home unasked. The predicate is `diplomacy.truce_front_of_an_ally`
+    (the ally, never a client of ours; the courts we are in ARMISTICE with that
+    are at war with her) — the same fact the armistice's own row states
+    (`truce_runs_on_consequence`)."""
+    from backend.game_logic import diplomacy as _dip
+    nation = getattr(marshal, "nation", None)
+    if (not nation or nation != getattr(world, "player_nation", None)
+            or not dest):
+        return ""
+    front = _dip.truce_front_of_an_ally(world, nation, dest)
+    if front is None:
+        return ""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    ally = with_definite_article(formed_display_name(world, front["ally"]))
+    owns = f"{ally}'" if ally.endswith("s") else f"{ally}'s"
+    foes = [with_definite_article(formed_display_name(world, e)) for e in front["enemies"]]
+    foe = (", ".join(foes[:-1]) + " and " + foes[-1]) if len(foes) > 1 else foes[0]
+    be = "are" if len(foes) > 1 else "is"
+    return (f"{dest} is {owns} front — {foe}, under truce with us, {be} at war with "
+            f"her; a corps there will not fight, and marches home if the ground "
+            f"changes hands.")
+
+
+def front_note(world, marshal, dest) -> str:
+    """S14G-7: `front_line` on a line of its own beside `camp_leave_note` and
+    `campaign_pay_note` ('' when the destination is no ally's front)."""
+    line = front_line(world, marshal, dest)
+    return f"\n{line}" if line else ""
+
+
+def front_clause(world, marshal, dest) -> str:
+    """S14G-X29 (Pre-Deploy S14h part 1, October 26, 2026): `front_line` as a
+    clause that closes a paragraph beside `campaign_pay_clause` (" Swabia is
+    Bavaria's front — …"), '' when the destination is no ally's front. The
+    S14G-7 note rode the plain march and the retreat only; every other site
+    that prints the campaign pay of a step onto allied soil (a battle's
+    advance, a rout, the naval landing, the reckless cavalry's rides, the
+    pursuit's first march, the "what if he marches" answer) now prints this
+    beside it - no new seam: the sentence is `front_line`'s, the predicate
+    `diplomacy.truce_front_of_an_ally`."""
+    line = front_line(world, marshal, dest)
+    return f" {line}" if line else ""
+
+
 def campaign_pay_clause(world, marshal, dest, origin=None) -> str:
     """S14E-X133: `campaign_pay_line` as a clause that closes a battle report's
     paragraph (" Swabia is Bavaria's soil — ... about −288g more a turn."), '' when
@@ -454,6 +511,87 @@ def campaign_pay_clause(world, marshal, dest, origin=None) -> str:
     figure `calculate_turn_upkeep` then bills; '' for the AI (Rule 5)."""
     line = campaign_pay_line(world, marshal, dest, origin)
     return f" {line}" if line else ""
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# S14G-X50 (Pre-Deploy S14h part 1, October 26, 2026) — THE PLAIN MOVE ASKS
+# BEFORE IT CROSSES GUARDED GROUND.
+#
+# S14G-11 made a typed `march to` ask first (`strategic_executor.march_guard_ask`,
+# free, "... — march, go round or cancel?") and carry the sentence after its
+# route. "Soult, move to Berlin" - the same order one verb over, and the one the
+# march's own reply suggests - walked into Prussia's Armed Neutrality in silence
+# and the -25 followed. The plain move asks too, on the same channel
+# (`clarification_kind: march_guard_ask`), from the ONE reader
+# (`strategic.march_guard_reading`): "<sentence> — move or cancel?". A one-hop
+# move has no road round, so the ask offers none (the typed `march to` does).
+#
+# The answered "move" rides the clarification answer's flag (`_guard_confirmed`,
+# merged onto the re-parsed command exactly as the strategic ask's is, and
+# plumbed by `CommandExecutor._execute_specific` into `_execute_move`), so the
+# echo and the history line keep the player's own words. An order that reaches
+# the move with no typed line (the answered objection's post-objection road, the
+# AI, a strategic step) never asks - the reply's rider says the guarded ground
+# after the move instead. Player-only: the reading is None for the AI's corps
+# (no seam; the trap itself is `agendas.guarded_provinces_for`, the shared one).
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def move_guard_ask(world, marshal, dest: str, road, raw_input, ap: int):
+    """S14G-X50: the plain move's free ask when its road (`road`: the
+    provinces the move crosses, his own stripped, the destination last) crosses
+    ground an ACTIVE guard_neutrality design guards - or None. Typed player
+    moves only (`raw_input` is the typed line; the caller never asks an answered
+    ask - `_execute_move`'s `guard_confirmed`; a corps with fewer actions than
+    the move costs is refused elsewhere, never asked)."""
+    raw = str(raw_input or "").strip()
+    if (not raw
+            or getattr(marshal, "nation", None) != getattr(world, "player_nation", None)):
+        return None
+    ap = int(ap)
+    if int(getattr(world, "actions_remaining", 0) or 0) < ap:
+        return None
+    from backend.commands.strategic import march_guard_reading, march_guard_sentence
+    reading = march_guard_reading(world, marshal, dest, road, "MOVE_TO")
+    if reading is None:
+        return None
+    return {
+        "success": True,
+        "free_action": True,
+        "state": "awaiting_clarification",
+        "type": "clarification",
+        "clarification_kind": "march_guard_ask",
+        "strategic_type": "MOVE_TO",
+        "marshal": "Berthier",
+        "message": f"{march_guard_sentence(reading).rstrip('.')} — move or cancel?",
+        "original_command": raw,
+        "interpreted_target": dest,
+        "interpretation_reason": "guarded_ground",
+        "options": [{
+            "label": f"Move ({ap} AP)",
+            "value": "specify",
+            "target": dest,
+            "command": raw,
+            "aliases": ["move", "move anyway", "move on", "go", "send him"],
+            # the answer re-issues the order as typed; the flag keeps the move
+            # from asking twice
+            "flags": {"_guard_confirmed": True},
+        }],
+        "action_summary": world.get_action_summary(),
+        "game_state": world.get_filtered_game_state_summary(),
+    }
+
+
+def guard_note(world, marshal, dest: str, road, strategic_execution: bool = False) -> str:
+    """S14G-X50: the reply's rider - the guarded ground the move crossed, on a
+    line of its own beside `front_note` ('' for the AI's corps, a per-hop step
+    of a standing order - whose own reply carries it - and ground nobody
+    guards). Read BEFORE the corps stands there."""
+    if strategic_execution or not road:
+        return ""
+    from backend.commands.strategic import march_guard_reading, march_guard_sentence
+    reading = march_guard_reading(world, marshal, dest, road, "MOVE_TO")
+    return f"\n{march_guard_sentence(reading)}" if reading is not None else ""
 
 
 class MovementExecutor:
@@ -763,7 +901,8 @@ class MovementExecutor:
 
     def _execute_move(self, marshal, target, world: WorldState, game_state,
                       raw_input: str = None,
-                      strategic_execution: bool = False) -> Dict:
+                      strategic_execution: bool = False,
+                      guard_confirmed: bool = False) -> Dict:
         """Execute a move order.
 
         strategic_execution: True when this is an automated per-hop step of a
@@ -780,6 +919,10 @@ class MovementExecutor:
         reversible, so it is honored and flagged, never refused (unlike the
         lethal attack guard). AI / strategic / mock callers pass no raw text.
         """
+        # S14G-X50: an answered guard ask rides the command as a flag
+        # (`guard_confirmed`); the order runs as the player typed it.
+        _guard_answered = bool(guard_confirmed)
+
         # Auto-break square formation (Session 67)
         self._executor._tactical._auto_break_square(marshal, "move")
 
@@ -948,6 +1091,17 @@ class MovementExecutor:
                         _road_refusal["message"] = (
                             str(_road_refusal["message"]) + move_substitution_note)
                     return _road_refusal
+            # S14G-X50: and the road the move walks may cross guarded ground
+            # - asked FIRST (free, before anything is spent), the sentence
+            # carried after the route otherwise.
+            _upgrade_guard_note = ""
+            if path and len(path) > 1 and marshal.nation == world.player_nation:
+                _guard_ask = (None if _guard_answered else move_guard_ask(
+                    world, marshal, target_name, list(path[1:]), raw_input, strategic_cost))
+                if _guard_ask is not None:
+                    return _guard_ask
+                _upgrade_guard_note = guard_note(
+                    world, marshal, target_name, list(path[1:]))
             if path and len(path) > 1:
                 order = StrategicOrder(
                     command_type="MOVE_TO",
@@ -1012,7 +1166,7 @@ class MovementExecutor:
                 moved_str = f" Moved to {' -> '.join(regions_moved)}." if regions_moved else ""
                 return {
                     "success": True,
-                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}).{moved_str} Route: {' -> '.join(order.path)}.{move_substitution_note}",
+                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}).{moved_str} Route: {' -> '.join(order.path)}.{move_substitution_note}{_upgrade_guard_note}",
                     "strategic_upgrade": True,
                     "strategic_type": "MOVE_TO",
                     "path": order.path,
@@ -1110,6 +1264,19 @@ class MovementExecutor:
                     "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
                 }
 
+        # S14G-X50: the direct move (one province, or a cavalry hop through
+        # `intermediate`) crossing guarded ground asks FIRST, free; an order
+        # that reaches here unasked (the answered objection's road, the ask's
+        # own answer) carries the sentence after the move.
+        _move_road = ([intermediate] if distance == 2 and intermediate else []) + [target_name]
+        if not strategic_execution and not _guard_answered:
+            _guard_ask = move_guard_ask(
+                world, marshal, target_name, _move_road, raw_input,
+                world.get_action_cost("move"))
+            if _guard_ask is not None:
+                return _guard_ask
+        _guard_msg = guard_note(world, marshal, target_name, _move_road, strategic_execution)
+
         old_location = marshal.location
         # S14E-13's sweep: what the step costs the corps as it stands (read
         # before the move clears it).
@@ -1175,6 +1342,7 @@ class MovementExecutor:
                 and not _garrison_fights(dest_region))
         capture_refused_recovering = False
         capture_refused_raiding_party = False
+        _walk_in_alarm = ""  # S14G-X12: the walk-in capture's `[Alarm]` line, if it wrote rows
         if walk_in_open and corps_takes_no_ground(marshal):
             # FA-9: the province lies open and the corps may stand on it,
             # but a corps still rallying from a rout annexes nothing. Said
@@ -1205,13 +1373,26 @@ class MovementExecutor:
             # states its own march policy: an automated hop auto-secures even
             # when the slot is free.
             _walk_in_garrison = int(getattr(dest_region, "garrison_strength", 0) or 0)
+            # S14G-X12 (Pre-Deploy S14h part 1, October 26, 2026): where this
+            # capture's alarm rows begin - the walk-in's +2 was written and
+            # the march printed no `[Alarm]` line (only the main attack did).
+            _walk_in_alarm_from = self._executor._combat._alarm_mark(world)
             capture_result = self._executor._combat._attempt_region_capture(
                 marshal, target_name, world, game_state, had_garrison=False,
                 auto_secure=bool(strategic_execution))
             if capture_result and capture_result.get("captured"):
                 captured_on_move = True
-                move_message += (f". {target_name} falls to {marshal.nation}! "
-                                 f"(was {_old_controller})")
+                if capture_result.get("liberation_line"):
+                    # S14G-1 / S14G-D1 (Pre-Deploy S14h part 1): an ally's or
+                    # client's province walked back into from an enemy is a
+                    # liberation, handed back at once — the march says whose
+                    # ground it is, not that it "falls to" the liberator.
+                    move_message += f". {capture_result['liberation_line']}"
+                else:
+                    move_message += (f". {target_name} falls to {marshal.nation}! "
+                                     f"(was {_old_controller})")
+                    if capture_result.get("liberation_gone_line"):
+                        move_message += f" {capture_result['liberation_gone_line']}"
                 # RR4-X10 (EG-X5's sibling): the works the march walked into.
                 from backend.game_logic.garrison_report import capture_garrison_line
                 _walk_in_line = capture_garrison_line(
@@ -1276,6 +1457,11 @@ class MovementExecutor:
                                          f"forfeit — the column takes no windfall "
                                          f"and buys no goodwill.")
                     move_message += capture_note
+                # S14G-X12: the alarm the walk-in's capture wrote - held
+                # until the march's own figures are said (the attrition note
+                # closes the capture's sentence), the player's corps only.
+                _walk_in_alarm = self._executor._combat._alarm_rider(
+                    world, marshal, _walk_in_alarm_from)
 
         events = [{
             "type": "move",
@@ -1305,6 +1491,9 @@ class MovementExecutor:
             _fate = (capture_result or {}).get("capture_choice")
             if _fate:
                 events[0]["capture_choice"] = str(_fate)
+            if (capture_result or {}).get("liberated_to"):
+                events[0]["liberated_to"] = str(capture_result["liberated_to"])  # S14G-1
+                events[0]["liberated_to_name"] = str(capture_result.get("liberated_to_name", ""))  # S14G-X10
 
         # Transit intel: cavalry passing through intermediate region gets PARTIAL snapshot
         if distance == 2 and intermediate and marshal.nation == world.player_nation:
@@ -1339,6 +1528,9 @@ class MovementExecutor:
                 attrition_msg += ")"
                 move_message += attrition_msg
                 events[0]["march_losses"] = int(attrition_info["total_losses"])
+
+        # S14G-X12: ... after the march's own figures, the alarm the capture raised.
+        move_message += _walk_in_alarm
 
         # Add drill_cancelled event if drill was interrupted
         if drill_cancelled_message:
@@ -1408,10 +1600,13 @@ class MovementExecutor:
             camp_msg += f"\n{depart_msg}"
         # S14E-X67: and the campaign pay the stop will draw, if it draws any.
         pay_msg = campaign_pay_note(world, marshal, target_name, old_location)
+        # S14G-7 (Pre-Deploy S14h part 1): and the front the stop is, if a truce
+        # of ours leaves the ally's war on it running.
+        front_msg = front_note(world, marshal, target_name)
 
         result = {
             "success": True,
-            "message": move_message + supply_msg + camp_msg + pay_msg + capture_hint_msg,
+            "message": move_message + supply_msg + camp_msg + pay_msg + front_msg + _guard_msg + capture_hint_msg,
             "capture_note": capture_note,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,
@@ -2001,6 +2196,9 @@ class MovementExecutor:
         # campaign pay from the next bill - said after the step (the same
         # line the plain move prints), '' for the AI and for home soil.
         retreat_message += campaign_pay_note(world, marshal, best_region, old_location)
+        # S14G-X28 (S14G-7's sibling): a retreat onto an ally's FRONT says what
+        # the plain move says there ('' for the AI and for every other soil).
+        retreat_message += front_note(world, marshal, best_region)
 
         # Build events list
         events = [{

@@ -84,6 +84,8 @@ func _ready():
 	# UXR3-F3: the document's three regions come to rest on whole lines.
 	for region in [content_label, per_court_table, footer_label]:
 		Utils.keep_whole_lines(region)
+	# S14G-12: the header says when it holds more than its pane shows.
+	_install_header_cue()
 	# UXR3-F5 (Pre-Deploy S12 part 2): a drawn cross at the top right, like
 	# every screen's — it takes the dialogue's own safe exit (Esc's), and
 	# stands only where the dialogue has one.
@@ -262,13 +264,19 @@ func show_dialogue(data: Dictionary):
 	# actually mints affordances (it early-returns outside PROPOSE mode).
 	if tier2_scroll:
 		tier2_scroll.visible = false
+	_header_beat_paragraph = -1
 	if is_settlement_table:
 		# Gate-4 G4F-3: the treasury / narration / advisory / voice-beat
 		# preamble renders in the HEADER (above the scroll), so the scroll
 		# viewport holds only the court rows — at 2 courts the second
 		# court and the Add demand affordances were below the fold and the
 		# guided authoring surface read as missing.
+		var head_paragraphs: int = content_bbcode.count("\n")
 		content_bbcode += Utils.humanize_nation_keys_in_text(_build_settlement_table_preamble(data))
+		# S14G-12: where the one-shot beats stand in the header, so a header
+		# too short to show them is scrolled to them (`_reveal_header_beats`).
+		if _preamble_beat_paragraph >= 0:
+			_header_beat_paragraph = head_paragraphs + _preamble_beat_paragraph
 	content_label.text = content_bbcode
 	if is_settlement_table:
 		_render_per_court_table()
@@ -302,7 +310,13 @@ func show_dialogue(data: Dictionary):
 			btn.text = "Not Now"
 			btn.tooltip_text = "Close this for now — offer lapses at end of turn."
 		# For proposal_options, bind 1-based index so backend can parse as int
-		if is_options_picker and action_str == "expand_options":
+		# S14G-8: EVERY option of the picker, not only the nation list's
+		# `expand_options` rows — the menus' options share action strings (T1
+		# "Generous peace" / "Harsh demands" are both `execute_proposal`; T2
+		# "Sue for peace" / "Stall"), and main.gd resolves a non-index action
+		# to the FIRST option carrying it, so the second button of a pair
+		# opened the first one's draft.
+		if is_options_picker:
 			action_str = str(idx)
 		# War-purpose objectives ALL share action "select_war_objective", so
 		# the shared string cannot tell the backend which one was clicked —
@@ -313,7 +327,26 @@ func show_dialogue(data: Dictionary):
 		elif dtype == "war_purpose_selection" and action_str in ["select_war_objective", "declare_war_article"]:
 			action_str = str(idx)
 		btn.pressed.connect(_on_option_selected.bind(action_str))
-		button_container.add_child(btn)
+		if is_options_picker and original_tooltip != "":
+			# S14G-8 (Pre-Deploy S14h part 1, October 26, 2026): the menu's
+			# option descriptions rendered as tooltips alone — a large empty
+			# card with three bare buttons. The picker's description now
+			# stands as a line UNDER its button (a shut option's own reason in
+			# place of it), the button itself unchanged. Picker only.
+			var cell := VBoxContainer.new()
+			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			cell.add_theme_constant_override("separation", 2)
+			cell.add_child(btn)
+			var note := Label.new()
+			note.text = disabled_reason if (not available and disabled_reason != "") else original_tooltip
+			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			note.custom_minimum_size = Vector2(160, 0)
+			note.theme_type_variation = &"Caption"
+			note.add_theme_color_override("font_color", Color(COLOR_DIMMED))
+			cell.add_child(note)
+			button_container.add_child(cell)
+		else:
+			button_container.add_child(btn)
 		idx += 1
 
 	# Re-front Slice 2: per-court row affordances (holdout Ease/Drop, focused
@@ -340,6 +373,10 @@ func show_dialogue(data: Dictionary):
 	Utils.clamp_centered_panel($PanelContainer)
 	if is_settlement_table:
 		_fit_settlement_document()
+	# S14G-12: the header's "more below" cue (every dtype's ContentLabel) and,
+	# on the settlement table, the one-shot beats brought into view.
+	call_deferred("_update_header_cue")
+	_reveal_header_beats()
 
 
 func _fit_action_columns() -> bool:
@@ -557,8 +594,35 @@ func _build_content(data: Dictionary) -> String:
 	# Talleyrand commentary
 	var ttext = data.get("talleyrand_text", "")
 	if ttext:
-		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % ttext
+		bbcode += _talleyrand_paragraph_bbcode(str(ttext))
 
+	return bbcode
+
+
+# S14G-X53 (Pre-Deploy S14h part 1, October 26, 2026): S14G-8's menu body is
+# `talleyrand_text` + "\n\nThe paths before us, Sire:\n• …" — the backend
+# appends the option list to the VOICE field, and this builder wrapped the
+# whole of it in the italic quoted paragraph, so the list stood inside
+# Talleyrand's quotation marks. The prose stays quoted and italic; the list
+# (its lead-in line and one line per option, the bullet kept) renders after it
+# as plain lines.
+const MENU_BODY_MARKER := "\n\nThe paths before us, Sire:"
+
+
+func _talleyrand_paragraph_bbcode(ttext: String) -> String:
+	var at: int = ttext.find(MENU_BODY_MARKER)
+	var prose: String = ttext if at < 0 else ttext.substr(0, at)
+	var bbcode := ""
+	if prose.strip_edges() != "":
+		bbcode += "\n[color=#c0b080][i]\"%s\"[/i][/color]\n" % prose
+	if at >= 0:
+		var lines: PackedStringArray = ttext.substr(at + 2).split("\n")
+		bbcode += "\n"
+		for i in lines.size():
+			var line: String = lines[i].strip_edges()
+			if line == "":
+				continue
+			bbcode += ("[b]%s[/b]\n" % line) if i == 0 else ("%s\n" % line)
 	return bbcode
 
 
@@ -1094,6 +1158,8 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	# in the HEADER above PerCourtScroll so the scroll viewport spends its
 	# whole height on court rows (at 2 courts the second court and the Add
 	# demand affordances sat below the fold and read as missing).
+	_preamble_beat_paragraph = -1
+	_header_beat_paragraphs = 0
 	var per_court = data.get("per_court_acceptance", [])
 	if not (per_court is Array) or per_court.size() == 0:
 		return ""
@@ -1112,6 +1178,19 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 			if bool(overall_verdict.get("carries", false)):
 				verdict_color = "#80c080"
 			bbcode += "[b][color=%s]%s[/color][/b]\n" % [verdict_color, verdict_line]
+	# S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): THE BEATS STAND HERE,
+	# directly under the verdict and ABOVE the treasury / narration / advisory
+	# block. They were the LAST lines of this header — a scrolling label that
+	# shows about nine lines at 5120x1440 — so the dial's ceiling note ("Gold
+	# past 1,000 buys nothing more from Britain at this table, Sire.") and the
+	# named diplomat's reaction were authored, shipped and never seen (sea #8:
+	# frames 0266 / 0272 / 0278). Each beat is its own line; the next restage
+	# drops them (GT-Slice-V).
+	var beats_bbcode := _settlement_voice_beats_bbcode(data)
+	if beats_bbcode != "":
+		_preamble_beat_paragraph = bbcode.count("\n")
+		_header_beat_paragraphs = beats_bbcode.count("\n")
+		bbcode += beats_bbcode
 	# Guided Terms §3.4 (GT-A1): the shared-treasury allocation line, one pool
 	# across every court's France-paid gold. PROPOSE-only payload.
 	var treasury = data.get("treasury_line", {})
@@ -1131,22 +1210,119 @@ func _build_settlement_table_preamble(data: Dictionary) -> String:
 	var advisory = _safe_str(data.get("targeted_posture_advisory"))
 	if advisory != "":
 		bbcode += "[i][color=#c0b080]\"%s\"[/color][/i]\n" % advisory
-	# GT-Slice-V: one-shot authoring voice beats from the last mutation — the
-	# DC-4 concede-court caution (Talleyrand) and the affected court's
-	# named-diplomat reaction. Dropped by the next restage.
-	var voice_beats = data.get("authoring_voice_beats", [])
-	if voice_beats is Array:
-		for beat in voice_beats:
-			if not (beat is Dictionary):
-				continue
-			var beat_line = _safe_str(beat.get("line"))
-			if beat_line == "":
-				continue
-			if str(beat.get("kind", "")) == "talleyrand_caution":
-				bbcode += "[i][color=#e0c070]\"%s\"[/color][/i]\n" % beat_line
-			else:
-				bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % beat_line
+	# The one-shot authoring voice beats (the DC-4 caution, the dial's notes,
+	# the named diplomat's reaction) stand ABOVE — see the verdict's lines.
 	return bbcode
+
+
+func _settlement_voice_beats_bbcode(data: Dictionary) -> String:
+	# GT-Slice-V: one-shot authoring voice beats from the last mutation — the
+	# DC-4 concede-court caution (Talleyrand), the dial's notes (`dial_note`:
+	# the credit ceiling, a protected line) and the affected court's
+	# named-diplomat reaction. Dropped by the next restage. S14G-12: the
+	# caution and the dial's notes are the answers to the click just made —
+	# the warm gold of a caution, a line each; the diplomat's reaction keeps
+	# its grey italic.
+	var voice_beats = data.get("authoring_voice_beats", [])
+	var bbcode := ""
+	if not (voice_beats is Array):
+		return bbcode
+	for beat in voice_beats:
+		if not (beat is Dictionary):
+			continue
+		var beat_line = _safe_str(beat.get("line"))
+		if beat_line == "":
+			continue
+		if str(beat.get("kind", "")) in ["talleyrand_caution", "dial_note"]:
+			bbcode += "[i][color=#e0c070]\"%s\"[/color][/i]\n" % beat_line
+		else:
+			bbcode += "[i][color=#c0c0c8]%s[/color][/i]\n" % beat_line
+	return bbcode
+
+
+# S14G-12 (Pre-Deploy S14h part 1, October 26, 2026): the header is a
+# scrolling label (`scroll_active`, `fit_content = false`) — the settlement's
+# head holds the heading, the covered courts, the verdict, the treasury, the
+# table's narration and the advice, and a pane that shows about nine lines at
+# 5120x1440 shows fewer wherever the window is smaller. Two things keep it from
+# burying what the player must read. (1) The beats stand at the TOP of the
+# preamble (`_build_settlement_table_preamble`). (2) A header taller than its
+# pane says so — a "▼ more below" chip over the pane's bottom edge, shown while
+# lines remain below the fold and gone once they are read — and a header too
+# short to show the beats is scrolled TO them (`_reveal_header_beats`), the
+# beats being the answer to the click just made. Chosen over a raised
+# `custom_minimum_size` on ContentLabel, which is shared by every dialogue
+# type and the document fit (`_fit_settlement_document`) and would take the
+# height from the court table; the chip and the scroll change no layout.
+var _header_more_below: Label = null
+var _preamble_beat_paragraph: int = -1
+var _header_beat_paragraph: int = -1
+var _header_beat_paragraphs: int = 0
+
+
+func _install_header_cue() -> void:
+	if content_label == null or _header_more_below != null:
+		return
+	var cue := Label.new()
+	cue.name = "HeaderMoreBelow"
+	cue.text = "▼ more below"
+	cue.theme_type_variation = &"Caption"
+	cue.add_theme_color_override("font_color", Color("#" + Utils.COLOR_INFO))
+	cue.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chip := StyleBoxFlat.new()
+	chip.bg_color = Color(0.07, 0.07, 0.09, 0.92)
+	chip.content_margin_left = 8.0
+	chip.content_margin_right = 8.0
+	chip.content_margin_top = 1.0
+	chip.content_margin_bottom = 1.0
+	cue.add_theme_stylebox_override("normal", chip)
+	cue.visible = false
+	content_label.add_child(cue)
+	# the pane's bottom-right corner, left of its scrollbar
+	cue.anchor_left = 1.0
+	cue.anchor_right = 1.0
+	cue.anchor_top = 1.0
+	cue.anchor_bottom = 1.0
+	cue.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	cue.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	cue.offset_left = -140.0
+	cue.offset_right = -24.0
+	cue.offset_top = -26.0
+	cue.offset_bottom = -2.0
+	_header_more_below = cue
+	var bar: VScrollBar = content_label.get_v_scroll_bar()
+	bar.value_changed.connect(func(_v): _update_header_cue())
+	bar.changed.connect(_update_header_cue)
+	content_label.resized.connect(_update_header_cue)
+
+
+func _update_header_cue() -> void:
+	# lines remain below the fold of the header pane
+	if _header_more_below == null or content_label == null:
+		return
+	var bar: VScrollBar = content_label.get_v_scroll_bar()
+	_header_more_below.visible = bar != null and (bar.max_value - bar.page) > bar.value + 1.0
+
+
+func _reveal_header_beats() -> void:
+	var paragraph: int = _header_beat_paragraph
+	if paragraph < 0 or content_label == null:
+		return
+	# the frame the text is set a wrapping label has no width yet; the document
+	# fit waits two frames and moves the header's height, so this waits three
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_instance_valid(content_label) or not visible or paragraph != _header_beat_paragraph:
+		return
+	var after: int = paragraph + _header_beat_paragraphs
+	var beats_bottom: float = content_label.get_paragraph_offset(after) \
+		if after < content_label.get_paragraph_count() else float(content_label.get_content_height())
+	var bar: VScrollBar = content_label.get_v_scroll_bar()
+	if bar != null and (bar.max_value - bar.page) > 1.0 and beats_bottom > bar.value + bar.page + 1.0:
+		content_label.scroll_to_paragraph(paragraph)
+	_update_header_cue()
 
 func _build_settlement_per_court_block(data: Dictionary) -> String:
 	# Re-front Slice 1: render the per-court acceptance table (PROPOSE + REVIEW).
@@ -1294,6 +1470,14 @@ func _build_court_authoring_lines(row: Dictionary, court_index: int) -> String:
 				bbcode += "  [url=mag:%d:%d:amount:-][-][/url][url=mag:%d:%d:amount:+][+][/url]" % [
 					court_index, line_index, court_index, line_index,
 				]
+				# S14G-12: a line that PAYS this court shows the bound its gold
+				# counts to ("up to 1,000"; "a turn" on a stream) — the credit
+				# ceiling the verb clamps to, not a limit found by pressing [+].
+				if magnitude.has("amount_max"):
+					bbcode += " [color=#" + Utils.toned_hex("a0a0a8") + "]up to %s%s[/color]" % [
+						Utils.format_number(int(magnitude.get("amount_max", 0))),
+						" a turn" if magnitude.has("turns") else "",
+					]
 				if magnitude.has("turns"):
 					bbcode += " [color=#" + Utils.toned_hex("a0a0a8") + "]turns[/color][url=mag:%d:%d:turns:-][-][/url][url=mag:%d:%d:turns:+][+][/url]" % [
 						court_index, line_index, court_index, line_index,
@@ -1878,6 +2062,12 @@ func _build_peace_preview_content(data: Dictionary) -> String:
 			var priority = 0 if sev == "HARD_STOP" else 4
 			if sev == "WARNING":
 				priority = 1
+			# S14G-X52 (Pre-Deploy S14h part 1, October 26, 2026): S14G-7's
+			# truce row (`war_runs_on`, severity WARNING) leads the backend's
+			# list, but every WARNING sorted to priority 1 and the dialogue's
+			# own warnings could print before it. It sorts beside HARD_STOP.
+			if conflict is Dictionary and str(conflict.get("conflict_type", "")) == "war_runs_on":
+				priority = 0
 			var color = "#e66262" if sev in ["WARNING", "HARD_STOP"] else "#e0c070"
 			consequence_items.append({"priority": priority, "color": color, "text": txt})
 		consequence_items.sort_custom(func(a, b): return int(a.get("priority", 99)) < int(b.get("priority", 99)))

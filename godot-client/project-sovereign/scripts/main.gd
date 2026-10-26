@@ -309,6 +309,15 @@ var _pending_envoy_request_active: bool = false
 # a standing letter has the Cabinet shut (the backend's `cabinet_locked`).
 var _cabinet_tooltip_default: String = ""
 var _cabinet_locked: bool = false
+# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the Cabinet button's
+# authored face (text and colour, kept to put back) and WHOSE letters shut it
+# (the backend's `cabinet_locked_by`, printed court names) - `_cabinet_locked`
+# now has a reader: the button's face says "shut" in amber while a letter that
+# locks stands, and its tooltip names the court.
+const CABINET_SHUT_FACE := "⚖ The Cabinet — shut"
+var _cabinet_face_default_text: String = ""
+var _cabinet_face_default_color: Color = Color(1, 1, 1, 1)
+var _cabinet_locked_by: Array = []
 # IGR-F: the turn number the letter-book was last auto-raised on. -1 = never.
 var _envoy_digest_shown_turn: int = -1
 # The marshal a reward-rail notification asked us to open, held across the
@@ -4870,7 +4879,22 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	
 	if region_conquered:
 		var region_name = event.get("region_name", "territory")
-		add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
+		# S14G-X10 (Pre-Deploy S14h part 1, October 26, 2026): a liberation
+		# is not a capture - the province went back to its home nation, and
+		# the reply above already says so in the backend's own sentence
+		# (`liberation_line`). The flourish under it said "captured!" over the
+		# same Munich: it reads the event's `liberated_to` (and the court's
+		# printed name, article and all) and says what the field did.
+		var liberated_home := str(event.get("liberated_to_name", ""))
+		if liberated_home == "" or liberated_home == "<null>":
+			liberated_home = ""
+			var liberated_key := str(event.get("liberated_to", ""))
+			if liberated_key != "" and liberated_key != "<null>":
+				liberated_home = Utils.display_nation_name(liberated_key)
+		if liberated_home != "":
+			add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ⚑ " + str(region_name) + " — handed back to " + liberated_home + " ⚑[/color]")
+		else:
+			add_output("[color=#" + Utils.COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
 
 	# BD: every battle with a tableau payload keeps a replay link in the
 	# terminal — the auto-play case for re-viewing, the routine case for a
@@ -6084,7 +6108,15 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
 		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
 		# S14E-18: the Cabinet's letter lock, on the button's tooltip.
+		# S14G-6: and on its face, naming whose letter shuts it (the backend's
+		# `cabinet_locked_by`, read before the lock is applied) - and on the
+		# Envoys badge's tooltip, from the same three fields.
+		var locked_by = response.get("cabinet_locked_by", [])
+		_cabinet_locked_by = locked_by.duplicate() if locked_by is Array else []
 		_set_cabinet_locked(bool(response.get("cabinet_locked", false)), int(response.get("cabinet_locked_until", 0)))
+		diplo_data["cabinet_locked"] = bool(response.get("cabinet_locked", false))
+		diplo_data["cabinet_locked_by"] = _cabinet_locked_by
+		diplo_data["cabinet_locked_until"] = int(response.get("cabinet_locked_until", 0))
 		# Aug 30, 2026 VISUAL PASS — and this line is the pass earning its
 		# keep. `diplo_data` is hand-copied key by key out of the response,
 		# and the first cut of the lapse-count fix read
@@ -6143,10 +6175,25 @@ func _set_cabinet_locked(locked: bool, until: int = 0) -> void:
 		return
 	if _cabinet_tooltip_default == "":
 		_cabinet_tooltip_default = diplomacy_button.tooltip_text
+	if _cabinet_face_default_text == "":
+		_cabinet_face_default_text = diplomacy_button.text
+		_cabinet_face_default_color = diplomacy_button.get_theme_color("font_color")
 	_cabinet_locked = locked
-	if locked:
-		diplomacy_button.tooltip_text = "The Cabinet (F1) — a letter stands unanswered: " + Utils.cabinet_shut_line(until)
+	# S14G-6 (Pre-Deploy S14h part 1, October 26, 2026): the lock on the
+	# button's FACE, not only its tooltip - "The Cabinet — shut" in amber while
+	# a letter that locks stands (a great court's, an ultimatum, a war
+	# decision: S14G-D3) - and the tooltip names the court(s)
+	# (`_cabinet_locked_by`, the backend's `cabinet_locked_by`). The authored
+	# face comes back when the lock lifts. (`_cabinet_locked`, written above,
+	# is what the face reads - it used to have no reader.)
+	if _cabinet_locked:
+		diplomacy_button.text = CABINET_SHUT_FACE
+		diplomacy_button.add_theme_color_override("font_color", Utils.UI_WARNING)
+		diplomacy_button.tooltip_text = "The Cabinet (F1) — " + Utils.cabinet_shut_lead(_cabinet_locked_by) + Utils.cabinet_shut_line(until)
 	else:
+		_cabinet_locked_by = []
+		diplomacy_button.text = _cabinet_face_default_text
+		diplomacy_button.add_theme_color_override("font_color", _cabinet_face_default_color)
 		diplomacy_button.tooltip_text = _cabinet_tooltip_default
 
 
@@ -7850,7 +7897,15 @@ func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 			# answer-by turn. A moment letter (above) never locks the wizard.
 			var setting_aside_court = str(data.get("from_nation_display", Utils.display_nation_name(str(from_nation))))
 			var lock_by_turn = int(data.get("answer_by_turn", 0)) if bool(data.get("is_call_to_arms", false)) else 0
-			add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — %s Click the envoy badge to revisit.[/color]" % [setting_aside_court, Utils.cabinet_shut_line(lock_by_turn)])
+			# S14G-6 / S14G-D3 (Pre-Deploy S14h part 1, October 26, 2026): the
+			# echo says the lock only when this letter HOLDS it (the backend's
+			# `locks_cabinet`); a lesser court's routine letter waits in the
+			# mailbox and the Cabinet stays open - it used to claim a lock it
+			# did not keep.
+			if bool(data.get("locks_cabinet", false)):
+				add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — %s Click the envoy badge to revisit.[/color]" % [setting_aside_court, Utils.cabinet_shut_line(lock_by_turn)])
+			else:
+				add_output("[color=#" + Utils.COLOR_GOLD + "]Setting aside %s's proposal — it waits in the mailbox until the turn ends, and the Cabinet stays open. Click the envoy badge to revisit.[/color]" % setting_aside_court)
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return

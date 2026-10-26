@@ -370,7 +370,15 @@ class TestBARaidingPartyHoldsNoHomeland:
 
     def test_conquered_ground_stays_contested(self):
         """Piedmont is the Kingdom of Italy's homeland; held by Austria it is
-        NOT Austria's, and a 4,000-man corps walks it back."""
+        NOT Austria's, and a 4,000-man corps walks it back.
+
+        S14G-1 / S14G-D1 (Pre-Deploy S14h part 1, October 26, 2026) flipped
+        the destination, consciously: the Kingdom of Italy is France's CLIENT
+        (a vassal), so the corps that walks Piedmont back from the enemy
+        LIBERATES it - the province is handed back to its home court at once,
+        not held by France. The pin's intent stands (a raiding party's floor
+        does not bind conquered ground; the corps takes it), and the reply
+        says whose ground it is."""
         w = _fresh()
         w.regions["Piedmont"].controller = "Austria"
         _clear(w, "Piedmont")
@@ -381,7 +389,9 @@ class TestBARaidingPartyHoldsNoHomeland:
         assert w.regions["Piedmont"].garrison_strength == 0
         r = _exec(w, {"marshal": "Ney", "action": "move", "target": "Piedmont"})
         assert r["success"] is True, r
-        assert w.regions["Piedmont"].controller == "France", r["message"]
+        assert w.regions["Piedmont"].controller == "KingdomOfItaly", r["message"]
+        assert ("Piedmont, the Kingdom of Italy's province, retaken — handed back "
+                "to the Kingdom of Italy.") in r["message"]
         assert not r.get("capture_refused_raiding_party")
 
     def test_the_landing_reads_the_rule(self):

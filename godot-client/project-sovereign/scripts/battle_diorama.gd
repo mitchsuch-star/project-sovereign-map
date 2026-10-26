@@ -1243,6 +1243,14 @@ func _sub_banner_text(register: String) -> String:
 	if not bool(_data.get("region_conquered", false)):
 		return ""
 	var region := str(_data.get("region", ""))
+	# S14G-X10 (Pre-Deploy S14h part 1, October 26, 2026): a liberation is
+	# not a fall - the province went back to its home nation, and the payload
+	# carries the backend's own sentence (`liberation_line`, built with
+	# `liberated_to` from the battle event): "Munich, Bavaria's capital,
+	# retaken — handed back to Bavaria." in every register.
+	var liberation := str(_data.get("liberation_line", ""))
+	if str(_data.get("liberated_to", "")) != "" and liberation != "" and liberation != "<null>":
+		return liberation
 	var victor_nation := _victor_nation()
 	match register:
 		"triumph":

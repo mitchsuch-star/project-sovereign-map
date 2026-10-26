@@ -1193,6 +1193,133 @@ def march_detour_sentence(dest: str, reading: Dict) -> str:
             f"{_plural_lv9(int(reading['lawful']), 'province')}, {clock}{through}.")
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# S14G-11 (Pre-Deploy S14h part 1, October 26, 2026) — GUARDED GROUND IS SAID
+# BEFORE IT IS CROSSED.
+#
+# The DD-B conquest run (turn 10, action 251): "Soult, march to Flanders"
+# answered "Route: Dresden → Berlin → Brunswick → Amsterdam → Flanders" and
+# said nothing else; Prussia had taken up Armed Neutrality the same turn, and
+# on turn 13 "Prussia seethes: France's columns cross Brunswick in defiance of
+# its declared neutrality" — −25 (the Ansbach trap, NATION_AGENDAS_SPEC §5.9),
+# the relation at −32, a courting mission undone, an Open Borders signed on turn
+# 2 notwithstanding (it is not an exemption: the trap reads war, armistice,
+# alliance, lord and client, and one's own soil — `agendas.guarded_provinces_for`).
+# `march_detour_reading` returns None unless the direct road is CLOSED, and a
+# guarded province is open ground, so no ask reached it.
+#
+# `march_guard_reading` is the ONE reader: the typed order's free ask
+# (`strategic_executor.march_guard_ask`), the reply's rider and the march quote's
+# `guard` rider print its sentence, and the sentence is the trap's own clause
+# (`agendas.guard_ground_clause`: the design's provinces and the constant the
+# trap charges). PURE; the player's corps only — the AI's column pays the trap as
+# before (Rule 5: the trap itself is the shared seam, `agendas.guarded_provinces_for`).
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def march_guard_reading(world, marshal, dest: str, road,
+                        strategic_type: str = "MOVE_TO") -> Optional[Dict]:
+    """S14G-11: the guarded ground a lawful `road` to `dest` crosses — or None.
+
+    `road` is `march_road`'s road (his own province stripped): the intermediate
+    provinces AND the destination. A province counts when an ACTIVE
+    guard_neutrality design guards it and the trap WOULD fire on this corps'
+    nation standing there (`agendas.guarded_provinces_for` — open war or
+    armistice, an ally, a lord or client and one's own soil are exempt; Open
+    Borders is not) and the pair's latch is not already running
+    (`agendas.violation_on_cooldown` — a court that was paid inside the window
+    is not asked about again for a −25 the trap will not charge). The player's
+    corps only: the AI's road is not read here.
+
+    Returns `{provinces, holder, penalty, design_title, clause, groups}` for
+    the FIRST guard-holder on the road, `groups` holding one such dict per
+    holder (`provinces` in road order), or None."""
+    nation = getattr(marshal, "nation", None)
+    if not nation or nation != getattr(world, "player_nation", None) or not road:
+        return None
+    from backend.game_logic import agendas
+    guarded = agendas.guarded_provinces_for(world, nation)
+    if not guarded:
+        return None
+    by_holder: Dict[str, List[str]] = {}
+    for name in road:
+        holder = guarded.get(name)
+        if holder and name not in by_holder.setdefault(holder, []):
+            by_holder[holder].append(name)
+    groups: List[Dict] = []
+    for holder, provinces in by_holder.items():
+        if not provinces or agendas.violation_on_cooldown(world, nation, holder):
+            continue
+        view = agendas.get_active_agenda(holder, world)
+        title = str(getattr(view, "title", "") or "")
+        groups.append({
+            "provinces": list(provinces),
+            "holder": holder,
+            "penalty": int(agendas.AGENDA_VIOLATION_RELATION_PENALTY),
+            "design_title": title,
+            "court": agendas.guard_court_name(world, holder),
+            "clause": agendas.guard_ground_clause(world, holder, provinces, title),
+        })
+    if not groups:
+        return None
+    return {**groups[0], "groups": groups}
+
+
+def march_guard_sentence(reading: Dict) -> str:
+    """S14G-11: the guarded ground in the order's own words — "Berlin and
+    Brunswick are Prussia's guarded ground (Armed Neutrality) — standing in
+    them costs −25 with Prussia." (one such sentence per guard-holder on the
+    road). The ask appends its question, the reply carries it after the route
+    and the march quote carries it as the `guard` rider."""
+    return " ".join(str(g["clause"]).rstrip(".") + "."
+                    for g in (reading.get("groups") or [reading]))
+
+
+def march_guard_round_sentence(reading: Dict) -> str:
+    """S14G-11: the reply's note for an answered "go round" - "The road goes
+    round the guarded ground at Berlin and Brunswick, and Prussia is not
+    offended." Names the provinces the first road crossed (the ask's own)."""
+    from backend.display_names import humanize_entity_name
+    groups = reading.get("groups") or [reading]
+    names = [humanize_entity_name(p) for g in groups for p in g["provinces"]]
+    listed = (", ".join(names[:-1]) + " and " + names[-1]) if len(names) > 1 else names[0]
+    courts = []
+    for g in groups:
+        if g["court"] not in courts:
+            courts.append(g["court"])
+    who = (", ".join(courts[:-1]) + " and " + courts[-1]) if len(courts) > 1 else courts[0]
+    be = "are" if len(courts) > 1 else "is"
+    return (f"The road goes round the guarded ground at {listed}, "
+            f"and {who} {be} not offended.")
+
+
+def march_guard_round_road(world, marshal, dest: str, strategic_type: str = "MOVE_TO"):
+    """S14G-11: the lawful road round every province the trap would charge —
+    the order's own finder over the board minus the guarded ground, lawful
+    soil only — `(road, turns)` with the road as `march_road` returns it (his
+    own province stripped), or None when the destination itself is guarded or
+    no lawful road avoids the guarded provinces (the ask then offers no "go
+    round"). PURE."""
+    nation = getattr(marshal, "nation", None)
+    if not nation or nation != getattr(world, "player_nation", None) or not dest:
+        return None
+    from backend.game_logic import agendas
+    guarded = agendas.guarded_provinces_for(world, nation)
+    if not guarded or dest in guarded:
+        return None
+    here = marshal.location
+    finder = (world.find_weighted_path if strategic_type in ("MOVE_TO", "HOLD")
+              else world.find_path)
+    path = finder(here, dest, avoid_regions=list(guarded), passable_for=nation)
+    road = [r for r in (path or []) if r != here]
+    if not road:
+        return None
+    verdict = road_verdict(world, marshal, dest, road)
+    if not verdict.get("legal", True) or verdict.get("naval_check") is not None:
+        return None
+    return road, int(march_turns(len(road), getattr(marshal, "movement_range", 1)))
+
+
 def pick_contact_enemy(order, enemies):
     """CR-7-6 — which of the enemies met does an order engage?  The man the
     arrival tail NAMED (`StrategicOrder.arrival_target`) when he stands among
@@ -1405,6 +1532,85 @@ def _cannon_fire_concerns(world, marshal, battle) -> bool:
         if state in ("WAR", "VASSAL") or world.are_allies(nation, other):
             return True
     return False
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# S14G-2 + S14G-D2 (Pre-Deploy S14h part 1, October 26, 2026) — THE AGGRESSIVE
+# MAN'S INTERRUPT IS SAID AT THE ORDER, NOT ONLY AT THE TURN CHANGE.
+#
+# `_check_interrupts` runs for every order type before the order's own
+# handler; for an aggressive marshal a lawful battle (a war his nation is IN)
+# within two provinces REDIRECTS him — the order is dropped and he rushes to
+# the guns. DDB-D1 / "personality is character, not situation": the deed is
+# KEPT (S14G-D2, ruled as recommended). What was wrong was the silence: the
+# MOVE_TO / HOLD / SUPPORT / FOLLOW replies, the standing quote and the End
+# Turn gate said nothing, and the player found Massena (22,000, morale 36%)
+# gone alone to Kutuzov's 33,000 at the turn change (conquest #7, turn 6).
+# ONE fragment of words, read by every surface: the reply, the quote (its
+# `terms`), the gate — shown == applied. The mechanic is untouched, so there
+# is no behaviour seam; the sentence is player-only text.
+# ════════════════════════════════════════════════════════════════════════════
+
+CANNON_FIRE_RANGE = 2   # provinces: `_check_interrupts` reads it, the sentence says it
+_RANGE_WORDS = {1: "one", 2: "two", 3: "three"}
+AGGRESSIVE_INTERRUPT_TERMS = (
+    f"any battle within {_RANGE_WORDS.get(CANNON_FIRE_RANGE, str(CANNON_FIRE_RANGE))} "
+    f"provinces in a war of ours")
+_STANDING_ORDER = object()   # "read the order the marshal holds now"
+
+
+def aggressive_interrupt_applies(world, marshal, order=_STANDING_ORDER) -> bool:
+    """S14G-2: will `_check_interrupts` drop this marshal's order for a
+    lawful battle? The persona gates it reads: aggressive (a literal man
+    never is, a cautious / balanced one is asked, never rushed), the player's
+    own marshal (the only roster `process_strategic_orders` walks), and not
+    on the treaty's road home (FA-D6). `order` is the order in question — a
+    NEW typed order is never a road-home one (pass None); omitted, the order
+    he holds now. PURE."""
+    if getattr(marshal, "personality", "") != "aggressive":
+        return False
+    if getattr(marshal, "nation", None) != getattr(world, "player_nation", None):
+        return False
+    standing = (getattr(marshal, "strategic_order", None)
+                if order is _STANDING_ORDER else order)
+    from backend.game_logic.withdrawal import is_road_home_order
+    return not is_road_home_order(standing)
+
+
+def aggressive_interrupt_clause(world, marshal, order=_STANDING_ORDER) -> str:
+    """S14G-2: the sentence the order's reply (MOVE_TO, HOLD, SUPPORT, FOLLOW,
+    PURSUE) carries for an aggressive marshal — with its leading space, so it
+    appends — and '' for every other man. The quote reads the same words
+    (`.strip()`), the gate's line reads `AGGRESSIVE_INTERRUPT_TERMS`."""
+    if not aggressive_interrupt_applies(world, marshal, order):
+        return ""
+    return f" He will drop this order for {AGGRESSIVE_INTERRUPT_TERMS}."
+
+
+def own_province_march_refusal(marshal, dest: str) -> str:
+    """S14G-4: the one sentence for a march ordered to the province the corps
+    already stands in — the typed order's free refusal (`_strategic_path`) and
+    the quote's `refusal` read it. The plain `move` says "is already in"."""
+    return f"{_shown_name(marshal.name)} already stands at {dest} — nothing spent."
+
+
+def support_terms_clause(marshal_name: str, ally_target: str, *, timed: bool) -> str:
+    """S14G-3: what a SUPPORT order DOES, in one sentence with its leading
+    space — the reply and the quote read it. A plain support goes to the ally
+    now (and follows him there every tick until it arrives) and lapses of
+    itself, on arrival or after, once he is out of danger — for EVERY
+    supporter alike, whatever his name sorts after; `follow` is the order
+    that stays at his side. A TIMED support holds for the term named."""
+    ally = _shown_name(ally_target)
+    follow = f"'{_shown_name(marshal_name)}, follow {ally}' keeps him at {ally}'s side"
+    if timed:
+        return (f" He goes to {ally} now and holds the order for the term you "
+                f"named; {follow} until you cancel it.")
+    return (f" He goes to {ally} now and stays only while {ally} is in danger — "
+            f"the order lapses of itself once {ally} is out of danger; {follow}. "
+            f"Name a duration to hold him to it.")
+
+
 # Score Finish Step 3 (Oct 2 2026) — combat legibility C1, RS-13's family:
 # the attack an answered contact question commits to prints its muster
 # (the question itself carries only the odds word). False = the re-issue
@@ -2433,6 +2639,30 @@ class StrategicOrderProcessor:
 
     def handle_response(self, marshal_name: str, response_type: str,
                         choice: str, world, game_state: Dict) -> Dict:
+        """The ONE seam every answer to a marshal's question passes (both
+        `main.py` roads — the answer endpoint and the typed answer).
+
+        S14G-4 (Pre-Deploy S14h part 1, October 26, 2026): the end-turn
+        dispatch is built AFTER the advance has raised a corps' interrupt, so
+        its row reads "HALTED at Orleanais — awaiting your word"; "Continue
+        as Ordered" then marched him on and the stored line stayed on the
+        page for ever. A SUCCESSFUL answer now marks the stored line answered
+        ("HALTED at Orleanais — answered: continued") —
+        `dispatch.mark_interrupt_answered`; S14E-30 (the dispatch shows BEFORE
+        the question) is untouched. The answer itself is
+        `_handle_response_body`, unchanged."""
+        result = self._handle_response_body(
+            marshal_name, response_type, choice, world, game_state)
+        try:
+            if isinstance(result, dict) and result.get("success"):
+                from backend.game_logic.dispatch import mark_interrupt_answered
+                mark_interrupt_answered(world, marshal_name, choice)
+        except Exception as exc:
+            _errors.report(exc, "strategic.handle_response: dispatch.mark_interrupt_answered")
+        return result
+
+    def _handle_response_body(self, marshal_name: str, response_type: str,
+                              choice: str, world, game_state: Dict) -> Dict:
         """
         Process player's response to a strategic interrupt.
 
@@ -3210,13 +3440,16 @@ class StrategicOrderProcessor:
         if (isinstance(report, dict) and isinstance(report.get("message"), str)
                 and marshal.location != origin):
             from backend.commands.movement_executor import (
-                campaign_pay_note, camp_leave_note)
+                campaign_pay_note, camp_leave_note, front_note)
             report["message"] += camp_leave_note(
                 world, marshal, [marshal.location], origin)
             # S14E-X67: and the campaign pay the new stop draws (said once,
             # at the step that steps onto allied or neutral soil).
             report["message"] += campaign_pay_note(
                 world, marshal, marshal.location, origin)
+            # S14G-7: and the front the new stop is, if it is one - the per-turn
+            # march says it as the order's own first step does.
+            report["message"] += front_note(world, marshal, marshal.location)
         return report
 
     def _strategic_turn_step(self, marshal, world, game_state) -> Optional[Dict]:
@@ -4664,6 +4897,59 @@ class StrategicOrderProcessor:
     # SUPPORT HANDLER
     # ══════════════════════════════════════════════════════════════════════════
 
+    @staticmethod
+    def _support_ally_is_safe(world, marshal, ally) -> bool:
+        """S14G-3: the SUPPORT lapse's one reading of "the ally is safe" — no
+        enemy the supporter's own side can see in the ally's province or the
+        ones beside it. FOG OF WAR (Session 34B): the player's reading is the
+        fog-honest one (`get_visible_enemies_in_region`); a hidden enemy
+        cannot be assessed, and fog filters information, not mechanics. The
+        co-located arm and the arrival arm (`_support_lapses_on_arrival`) both
+        read this."""
+        ally_safe = True
+        is_player_support = (marshal.nation == world.player_nation)
+        region = world.get_region(ally.location)
+        if region:
+            for adj in region.adjacent_regions:
+                if is_player_support:
+                    if world.get_visible_enemies_in_region(adj, ally.nation):
+                        ally_safe = False
+                        break
+                else:
+                    if world.get_enemies_in_region(adj, ally.nation):
+                        ally_safe = False
+                        break
+            # Also check current region
+            if is_player_support:
+                if world.get_visible_enemies_in_region(ally.location, ally.nation):
+                    ally_safe = False
+            else:
+                if world.get_enemies_in_region(ally.location, ally.nation):
+                    ally_safe = False
+        return ally_safe
+
+    def _support_lapses_on_arrival(self, marshal, order, ally, world) -> Optional[Dict]:
+        """S14G-3 (Pre-Deploy S14h part 1, October 26, 2026) — THE SEAM. A
+        plain SUPPORT whose supporter has just ARRIVED beside an ally who is
+        out of danger completes on the SAME tick ("{ally} is secure") — the
+        rule the co-located arm applies at its own tick, applied after the
+        follow move too, so the order lapses the same way for every
+        supporter whatever his name (the alphabetical pass made it depend on
+        whether the ally had already marched). Not for a named duration
+        (`max_turns`: the term is honoured) nor a FOLLOW (`standing_follow`:
+        the order that stays). Returns the completion row, or None when the
+        order continues. Patched to return None, today's behaviour returns
+        byte for byte (the order stands and is evaluated a tick later)."""
+        if marshal.location != ally.location:
+            return None
+        if order.condition and order.condition.max_turns:
+            return None
+        if getattr(order, "standing_follow", False):
+            return None
+        if not self._support_ally_is_safe(world, marshal, ally):
+            return None
+        return self._complete_order(marshal, world, f"{ally.name} is secure")
+
     def _execute_support(self, marshal, world, game_state) -> Dict:
         """
         Execute one turn of SUPPORT.
@@ -4701,26 +4987,9 @@ class StrategicOrderProcessor:
             # FOG OF WAR (Session 34B): Only report enemies the player can see.
             # If enemies are hidden in fog, SUPPORT cannot assess safety.
             # Fog filters information, not mechanics.
-            ally_safe = True
-            is_player_support = (marshal.nation == world.player_nation)
-            region = world.get_region(ally.location)
-            if region:
-                for adj in region.adjacent_regions:
-                    if is_player_support:
-                        if world.get_visible_enemies_in_region(adj, ally.nation):
-                            ally_safe = False
-                            break
-                    else:
-                        if world.get_enemies_in_region(adj, ally.nation):
-                            ally_safe = False
-                            break
-                # Also check current region
-                if is_player_support:
-                    if world.get_visible_enemies_in_region(ally.location, ally.nation):
-                        ally_safe = False
-                else:
-                    if world.get_enemies_in_region(ally.location, ally.nation):
-                        ally_safe = False
+            # S14G-3: the reading is one helper, `_support_ally_is_safe` — the
+            # arrival lapse below reads the very same rule.
+            ally_safe = self._support_ally_is_safe(world, marshal, ally)
 
             # Only auto-complete on ally_safe if no explicit max_turns set.
             # When player said "support for N turns", honor the full duration.
@@ -4830,6 +5099,23 @@ class StrategicOrderProcessor:
             if marshal.location == ally.location and order.arrived_turn is None:
                 order.arrived_turn = world.current_turn
 
+            # S14G-3 (Pre-Deploy S14h part 1, October 26, 2026): a plain support
+            # that has ARRIVED beside a friend who is out of danger is over on
+            # THIS tick. The "ally is safe" lapse lived only in the co-located
+            # branch above, read at the supporter's own tick — and the player's
+            # corps are processed ALPHABETICALLY, so a supporter sorting before
+            # the ally found him still at home and lapsed, while one sorting
+            # after found him gone, followed him, and (arriving) was only
+            # evaluated a tick later, by which time the ally had gone again: Ney
+            # followed the Emperor's seven-turn road home while Davout and Lannes
+            # stopped. THE SEAM `_support_lapses_on_arrival` (None = today).
+            lapsed = self._support_lapses_on_arrival(marshal, order, ally, world)
+            if lapsed is not None:
+                lapsed["regions_moved"] = moves_made
+                lapsed["message"] = (f"{marshal.name} moves to support {ally.name}. "
+                                     f"{lapsed['message']}")
+                return lapsed
+
             distance = world.get_distance(marshal.location, ally.location)
             return {
                 "marshal": marshal.name,
@@ -4933,7 +5219,10 @@ class StrategicOrderProcessor:
             return None
 
         # Check for nearby battles (cannon fire)
-        nearby_battles = world.get_battles_within_range(marshal.location, 2)
+        # S14G-2: the range is one constant (`CANNON_FIRE_RANGE`) — the order's
+        # reply, the quote and the End Turn gate say "two provinces" from it.
+        nearby_battles = world.get_battles_within_range(
+            marshal.location, CANNON_FIRE_RANGE)
 
         for battle in nearby_battles:
             # Skip battles we're involved in
