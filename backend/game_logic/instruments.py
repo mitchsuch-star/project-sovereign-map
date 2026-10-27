@@ -377,6 +377,153 @@ def standing_sponsorship_amount(world, payer: str, recipient: str) -> int:
     return total
 
 
+def sponsorship_redundant(world, payer: str, recipient: str, aim: str) -> bool:
+    """OCT27-D5 (ruled as recommended, S14i): the AI patron's dedupe — no
+    sponsorship while the payer already pays the recipient by sponsorship
+    (any aim, the old read) or by a coalition BOND for this aim, nor while
+    the recipient funds the payer (a round trip between patrons: Britain
+    paid Russia a 500g bond and a 500g sponsorship for one aim while Russia
+    paid Britain 400). Down (`standing_sponsorship_amount(...) > 0`): the
+    sponsorship-kind read alone."""
+    for record in getattr(world, "directed_sponsorships", []) or []:
+        kind = record.get("kind")
+        if kind not in ("sponsorship", "bond"):
+            continue
+        amount = int(record.get("amount_per_turn", 0) or 0)
+        if record.get("payer") == payer and record.get("recipient") == recipient:
+            if kind == "sponsorship" and amount > 0:
+                return True
+            if kind == "bond" and record.get("aim") == aim:
+                return True
+        if (record.get("payer") == recipient and record.get("recipient") == payer
+                and amount > 0):
+            return True
+    return False
+
+
+def guarantee_join_refusal(world, guarantor: str, aggressor: str) -> str:
+    """OCT27-D6(b) (S14i): why `guarantor` cannot lawfully march on
+    `aggressor` today ("" when it can) — the war council's declaration
+    preview (`can_declare_war`: an armistice's cooldown, a side conflict, an
+    unavailable objective), less the two refusals the join itself never meets
+    (a treaty in the way — the honouring breaks it; and when the aggressor is
+    the player, the objective checks — the join carries none)."""
+    from backend.game_logic.war_council import can_declare_war
+    preview = can_declare_war(world, guarantor, aggressor)
+    reason = str(preview.get("reason") or "")
+    if preview.get("ok") or reason in ("treaty_in_the_way", "already_at_war"):
+        return ""
+    if (aggressor == getattr(world, "player_nation", "France")
+            and reason in ("objective_unavailable", "invalid_objective")):
+        return ""
+    return reason
+
+
+def void_unlawful_joins() -> bool:
+    """OCT27-D6(b) seam (ruled as recommended, S14i): a guarantor that
+    cannot lawfully join has its guarantee VOIDED with a lapse event, never
+    branded `guarantee_abandoned` (`declare_war` failed silently on an
+    armistice cooldown or a side conflict, and two turns later the tick
+    branded the guarantor). Down (False): the old loop — no preflight, a
+    refused join did nothing."""
+    return True
+
+
+def _void_guarantee(world, record: Dict, aggressor: str, refusal: str,
+                    events: List[Dict]) -> None:
+    """OCT27-D6(b): the guarantee ends without a breaker — the lapse
+    event names the aggressor and why the guarantor could not march."""
+    world.diplomatic_guarantees = [
+        r for r in (getattr(world, "diplomatic_guarantees", []) or []) if r is not record]
+    _lapse(world, events, {
+        "type": "instrument_lapsed",
+        "instrument": "guarantee",
+        "payer": str(record.get("guarantor") or ""),
+        "recipient": str(record.get("protected") or ""),
+        "aggressor": str(aggressor),
+        "reason": "cannot_join",
+        "refusal": str(refusal),
+        "turn": int(getattr(world, "current_turn", 0)),
+    })
+    world.invalidate_bloc_members_cache()  # the deterrent lifts
+
+
+def honour_guarantees(world, aggressor: str, target: str,
+                      events: Optional[List[Dict]] = None, *,
+                      plead: bool = True) -> List[Dict]:
+    """OCT27-D7 (ruled as recommended, S14i): THE honouring — every live
+    guarantee of `target` answered against `aggressor`, on whatever road the
+    war came: the war council's design war, the combat seam, the league's
+    declarations, and — at the instruments tick, before any brand — the
+    player's. The player guarantor is pleaded with (the dispatch, when
+    `plead`), never marched; an AI guarantor already at war is in the fight;
+    one that cannot lawfully join (`guarantee_join_refusal`) has the
+    guarantee voided with a lapse event, unblamed (OCT27-D6(b)). Returns the
+    events (appended to `events` when given)."""
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.diplomacy import declare_war
+    from backend.game_logic.dispatch import queue_dispatch_event
+    out: List[Dict] = events if events is not None else []
+    player = getattr(world, "player_nation", "France")
+    voids = bool(void_unlawful_joins())
+    for guarantee in list(live_guarantees_of(world, target)):
+        guarantor = str(guarantee.get("guarantor") or "")
+        if not guarantor or guarantor in (aggressor, target):
+            continue
+        if guarantor == player:
+            # Player agency: the ward pleads; the abandonment clock
+            # (the tick's grace) is the honest consequence machinery.
+            if plead:
+                queue_dispatch_event(world, "guarantee_called", {
+                    "ward": humanize_entity_name(target),
+                    "aggressor": humanize_entity_name(aggressor),
+                }, "always")
+            continue
+        if world.get_diplomatic_state(guarantor, aggressor) == "WAR":
+            continue
+        if voids:
+            refusal = guarantee_join_refusal(world, guarantor, aggressor)
+            if refusal:
+                _void_guarantee(world, guarantee, aggressor, refusal, out)
+                continue
+        join = declare_war(world, guarantor, aggressor, casus_belli=True)
+        if join.get("success"):
+            # Review fix [r8 LOW]: the join war's headline reason is the
+            # guarantee, not bare "conquest" — patch the just-logged
+            # declaration event the same way the design war does (pin 4).
+            for logged in reversed(getattr(world, "event_log", []) or []):
+                if (logged.get("type") == "war_declaration"
+                        and logged.get("aggressor") == guarantor
+                        and logged.get("target") == aggressor):
+                    logged["stated_reason"] = (
+                        f"honouring the guarantee of "
+                        f"{humanize_entity_name(target)}")
+                    break
+            event = {
+                "type": "guarantee_honored",
+                "guarantor": guarantor,
+                "ward": target,
+                "aggressor": aggressor,
+                "message": (f"{humanize_entity_name(guarantor)} honours its "
+                            f"guarantee of {humanize_entity_name(target)} — "
+                            f"war on {humanize_entity_name(aggressor)}."),
+            }
+            world.log_event(dict(event))
+            out.append(event)
+        elif voids:
+            _void_guarantee(world, guarantee, aggressor, "join_refused", out)
+    return out
+
+
+def honour_on_road(world, aggressor: str, target: str, *,
+                   events: Optional[List[Dict]] = None, plead: bool = True) -> List[Dict]:
+    """OCT27-D7 seam: the honouring on every road but the council's own
+    (the combat seam, the league's formation and join, the tick before the
+    brand). Down ([]): those roads gave a guarantor no way to join, and the
+    tick branded it."""
+    return honour_guarantees(world, aggressor, target, events, plead=plead)
+
+
 def live_sponsorships_for(world, recipient: str) -> List[Dict]:
     """All live records paying (or licensing) `recipient`."""
     return [r for r in getattr(world, "directed_sponsorships", []) or []
@@ -1068,8 +1215,18 @@ def process_instruments(world) -> List[Dict]:
     world.compensation_bargains = survivors
 
     # ── Guarantees ──
+    # OCT27-D7 (S14i): an AI guarantor answers the ward's war (the ONE
+    # honouring, `honour_on_road`) before any brand; a guarantee it voids
+    # never survives the tick.
     survivors = []
-    for record in getattr(world, "diplomatic_guarantees", []) or []:
+    _player = getattr(world, "player_nation", "France")
+
+    def _still_live(rec) -> bool:
+        return any(r is rec for r in (getattr(world, "diplomatic_guarantees", []) or []))
+
+    for record in list(getattr(world, "diplomatic_guarantees", []) or []):
+        if not _still_live(record):
+            continue
         guarantor = record.get("guarantor", "")
         protected = record.get("protected", "")
         pledged = int(record.get("started_turn", 0))
@@ -1078,6 +1235,7 @@ def process_instruments(world) -> List[Dict]:
 
         abandoned = False
         voided = False
+        voided_by_honour = False
         for attacker in world.get_nations_at_war_with(protected):
             if attacker == guarantor:
                 # Attribution decides (review fix): the guarantor
@@ -1105,6 +1263,13 @@ def process_instruments(world) -> List[Dict]:
             # because a defensive reading is the safer default for the ward.
             if _pair_aggressor(world, protected, attacker) == protected:
                 continue
+            if guarantor != _player:
+                honour_on_road(world, attacker, protected, events=events, plead=False)
+                if not _still_live(record):
+                    voided_by_honour = True
+                    break
+                if world.is_at_war(guarantor, attacker):
+                    continue
             # Grace runs from the LATER of the war start and the pledge
             # (review fix: a guarantee pledged into an old war branded
             # the guarantor one turn later, before it could ever march).
@@ -1115,6 +1280,8 @@ def process_instruments(world) -> List[Dict]:
             if turn - max(war_start, pledged) >= GUARANTEE_GRACE_TURNS:
                 abandoned = True
                 break
+        if voided_by_honour:
+            continue
         if voided:
             _lapse(world, events, {
                 "type": "instrument_lapsed",
@@ -1138,7 +1305,7 @@ def process_instruments(world) -> List[Dict]:
             )
             continue
         survivors.append(record)
-    world.diplomatic_guarantees = survivors
+    world.diplomatic_guarantees = [r for r in survivors if _still_live(r)]
 
     return events
 

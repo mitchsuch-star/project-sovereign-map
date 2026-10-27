@@ -155,7 +155,9 @@ class TestOnePredicate:
         found that form inert at 0.34)."""
         assert HOLDER_OUTMATCHED_FRACTION == 0.5
         free = 40000
-        monkeypatch.setattr(WC, "get_free_strength", lambda w, n: free)
+        # S14i (OCT27-D6a): the reading weighs the asker's free strength FOR
+        # THIS WAR (`exposure_against`), so the pin sets that read.
+        monkeypatch.setattr(WC, "exposure_against", lambda w, n, t: {"free": free})
         strengths = {"Hanover": 20000}
         monkeypatch.setattr(WC, "_standing_strength",
                             lambda w, n: strengths.get(n, 0))
@@ -179,7 +181,7 @@ class TestOnePredicate:
         assert holder_outmatched(world, "Prussia", "Hanover")
 
     def test_an_asker_with_no_free_strength_threatens_nobody(self, world, monkeypatch):
-        monkeypatch.setattr(WC, "get_free_strength", lambda w, n: 0)
+        monkeypatch.setattr(WC, "exposure_against", lambda w, n, t: {"free": 0})   # S14i: the war's own read
         assert not holder_outmatched(world, "Prussia", "Hanover")
 
     def test_self_and_empty(self, world1805):
@@ -203,7 +205,10 @@ class TestTheWeightTerm:
         assert (view.weight, view.price) == (59, "align")
 
     def test_no_other_boot_court_moves(self, world1805):
-        for nation, weight, price in (("Austria", 85, "fight"), ("Britain", 84, "fight"),
+        # S14i (OCT27-D6a, October 27, 2026): Britain 84 -> 90 — France is
+        # both its worst neighbour and its target; priced once, its rear
+        # reads quiet (+WEIGHT_OWN_REAR_QUIET). Every other court unchanged.
+        for nation, weight, price in (("Austria", 85, "fight"), ("Britain", 90, "fight"),
                                       ("Russia", 89, "fight"), ("Sardinia", 79, "coerce"),
                                       ("Sweden", 89, "fight")):
             view = get_nation_intent(nation, world1805)

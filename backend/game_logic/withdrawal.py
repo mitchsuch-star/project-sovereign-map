@@ -1738,7 +1738,7 @@ def _warn(world, marshal, nation: str, distance: int, surplus: int) -> Dict:
         # it tracks whether he can still reach home in the time left — so
         # that is what the sentence says.
         "message": (
-            f"{marshal.name} is no nearer home"
+            f"{_shown(marshal.name)} is no nearer home"
             + stranding_clause(world, cause, marshal.location)
             + f" — {_plural(int(distance), 'march')} still "
             f"to go from {marshal.location}, and "
@@ -1776,7 +1776,7 @@ def _escort_sovereign_home(world, marshal, host: str, location: str,
         marshal.name, reason="escorted_home",
         detail={"interned_at": location,
                 "corps_interned": max(0, had - max(1, kept)),
-                "message": (f"{marshal.name}'s corps is interned at {location} "
+                "message": (f"{_shown(marshal.name)}'s corps is interned at {location} "
                             f"by {_soil(host)} authorities; the Emperor is "
                             f"escorted home.")})
     if released:
@@ -1795,7 +1795,7 @@ def _escort_sovereign_home(world, marshal, host: str, location: str,
         "location": location,
         "host": host,
         "message": (
-            f"{marshal.name} failed to "
+            f"{_shown(marshal.name)} failed to "
             f"{failed_to or f'quit {nation_adjective(host)} soil'} before "
             f"his safe passage expired. His corps is interned at {location}; "
             f"the Emperor himself is escorted to the frontier and sent home "

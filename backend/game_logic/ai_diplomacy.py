@@ -2134,7 +2134,10 @@ def break_ranks_lines(world, nation: str, *, depth: Optional[Dict] = None) -> Di
     from backend.game_logic.agendas import AGENDA_SEPARATE_PEACE_SCORE
     if depth is None:
         from backend.game_logic.bond import break_ranks_depth
-        depth = break_ranks_depth(world, nation, getattr(world, "player_nation", "France"))
+        from backend.game_logic.coalition import league_target
+        # OCT27-D2 (S14i): the bond against the LEAGUE's target binds her
+        # (an eclipse league's bond had no depth: the read was France's).
+        depth = break_ranks_depth(world, nation, league_target(world))
     d_score = int((depth or {}).get("score", 0) or 0)
     d_we = int((depth or {}).get("exhaustion", 0) or 0)
     return {
@@ -2221,8 +2224,12 @@ def p2_league_gate(world, nation: str, *, war_score: int, diplo_key: str) -> boo
     stalemate on its own account; the league treats when spent. The series
     attribution holds it down (`--seam backend.game_logic.ai_diplomacy:
     p2_league_gate=lambda *a, **k: False`)."""
-    from backend.game_logic.coalition import is_coalition_member
+    from backend.game_logic.coalition import is_coalition_member, league_target
     if not is_coalition_member(nation, world):
+        return False
+    # OCT27-D2 (S14i): the league gates the war it was formed for — a court in
+    # a league against Austria truces with France on its own account.
+    if league_target(world) not in str(diplo_key).split("|"):
         return False
     return coalition_break_ranks_reason(
         world, nation, war_score=war_score, diplo_key=diplo_key) is None
@@ -2273,13 +2280,14 @@ def court_own_readiness(world, court: str, opponent: str) -> Dict:
     the league and no reason to break ranks: the §6a penalty applies),
     `letter` ('peace' below the P1 split, 'truce' while it sues above it, ''
     otherwise) and `exhaustion`. Pure read; every field an int/bool/str."""
-    from backend.game_logic.coalition import is_coalition_member
+    from backend.game_logic.coalition import is_coalition_member, league_target
     key = world._make_diplo_key(court, opponent)
     at_war = bool(world.is_at_war(court, opponent))
     score = int(get_war_score_for(world, court, opponent)) if at_war else 0
     threshold = int(effective_peace_threshold(court, opponent, world))
-    player = getattr(world, "player_nation", "France")
-    in_league = bool(opponent == player and is_coalition_member(court, world))
+    # OCT27-D2 (S14i): in the league against THIS opponent — an eclipse
+    # league's member is loyal against Austria, and owes France nothing.
+    in_league = bool(opponent == league_target(world) and is_coalition_member(court, world))
     reason = (coalition_break_ranks_reason(world, court, war_score=score, diplo_key=key)
               if at_war and in_league else None)
     sues = bool(at_war and score < threshold)
@@ -2600,9 +2608,11 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # ever sent. Every other rung already defers to an earlier proposal.
     if proposal is None and is_at_war and war_score < effective_p1_threshold:
         # A2: Coalition loyalty — members stay loyal unless desperate
-        from backend.game_logic.coalition import is_coalition_member
+        # (OCT27-D2: in the league against the player; an eclipse league's
+        # member sues France on its own account).
+        from backend.game_logic.coalition import is_coalition_member, league_target
         coalition_blocked = False
-        if is_coalition_member(nation, world):
+        if is_coalition_member(nation, world) and league_target(world) == player:
             # SR-1d: the four arms live in ONE helper (score / exhaustion /
             # long war / the NA-2 §5.4 Pressburg arm — a member whose design
             # is SATISFIED breaks ranks at -30 instead of -50), read by this
@@ -2754,7 +2764,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # instead of always leading with open_borders; per-type cooldowns skip
     # a recently rejected or lapsed ask, so consecutive approaches differ.
     if proposal is None and not is_at_war:
-        threat = int(getattr(world, 'threat_level', 0))
+        threat = menace_for(world, nation)   # OCT27-D3: the court's own hegemon
         if threat > 60:
             if diplo_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
                 for ask_type in _hegemony_ask_candidates(
@@ -4414,7 +4424,9 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
             # Trigger 2: Opportunistic Downgrade — skip if fighting common enemy
             if not both_at_war and relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE" and state != "VASSAL":
                 pair_key = f"{nation_a}|{nation_b}"
-                if pair_key not in downgraded_this_turn:
+                # OCT27-D5 (S14i): one step, then the pair's AI-AI cooldown.
+                if (pair_key not in downgraded_this_turn
+                        and rivalry_step_allowed(world, nation_a, nation_b)):
                     troops_a = nation_troops.get(nation_a, 0)
                     troops_b = nation_troops.get(nation_b, 0)
                     stronger, weaker = (nation_a, nation_b) if troops_a > troops_b else (nation_b, nation_a)
@@ -4434,6 +4446,7 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                                 if not result.get("success"):
                                     continue
                                 downgraded_this_turn.add(pair_key)
+                                note_rivalry_step(world, nation_a, nation_b)
                                 from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY
                                 from backend.display_names import display_nation as _dn
                                 # S14E-X120: X38's clause on the line when the downgrade
@@ -4520,7 +4533,10 @@ def _process_ai_sponsorships(world) -> List[Dict]:
             if (view.want_id is None or view.survival
                     or view.against != aim):
                 continue
-            if standing_sponsorship_amount(world, payer, recipient) > 0:
+            # OCT27-D5 (S14i): never a second purse for the same aim, nor a
+            # round trip between patrons.
+            from backend.game_logic.instruments import sponsorship_redundant
+            if sponsorship_redundant(world, payer, recipient, aim):
                 continue
             # EA-12: patronage pays a court that fields an army.
             from backend.game_logic.coalition import (
@@ -5306,8 +5322,117 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
                     and not has_pact_a and not has_pact_b
                     and relation_ab > -10):
                 return {"type": "defensive_alliance", "proposer": nation_a, "target": nation_b}
+    # OCT27-D3 (S14i): the same pre-emptive alliance against an ECLIPSE
+    # hegemon — two courts both cold to Austria find each other too.
+    if (state_ab not in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and relation_ab > -10
+            and eclipse_menace_shared(world, nation_a, nation_b) is not None):
+        return {"type": "defensive_alliance", "proposer": nation_a, "target": nation_b}
 
     return None
+
+
+_PACT_STATES = ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+
+
+def menace_for(world, nation: str) -> int:
+    """OCT27-D3 (ruled as recommended, S14i): the hegemony a court
+    shelters from — the largest threat slot among the courts it holds
+    negative relations with, France's slot always counted
+    (`threat_by_target`). The 1805 boot is byte-identical (France leads every
+    slot); in an Austria-eclipse world a court cold to Austria reads
+    Austria's alarm. Read by P3's shelter rung. Down
+    (`int(getattr(a[0], 'threat_level', 0))`): France's scalar alone."""
+    slots = getattr(world, "threat_by_target", {}) or {}
+    player = getattr(world, "player_nation", "France")
+    best = int(slots.get(player, 0) or 0)
+    for target, value in slots.items():
+        if target in (nation, player):
+            continue
+        if int(world.nation_relations.get(world._make_diplo_key(nation, target), 0) or 0) < 0:
+            best = max(best, int(value or 0))
+    return best
+
+
+def _shared_dislikes(world, a: str, b: str) -> List[str]:
+    """The courts both `a` and `b` hold negative relations with (France
+    first when it qualifies), each with a threat slot."""
+    slots = getattr(world, "threat_by_target", {}) or {}
+    player = getattr(world, "player_nation", "France")
+    order = [player] + sorted(t for t in slots if t != player)
+    out = []
+    for target in order:
+        if target in (a, b) or int(slots.get(target, 0) or 0) <= 0:
+            continue
+        if all(int(world.nation_relations.get(world._make_diplo_key(n, target), 0) or 0) < 0
+               for n in (a, b)):
+            out.append(target)
+    return out
+
+
+def eclipse_menace_shared(world, a: str, b: str) -> Optional[str]:
+    """OCT27-D3 (S14i): AI-AI trigger 5's pre-emptive alliance against a
+    hegemon OTHER than the player — the court with the largest slot over 40
+    that both `a` and `b` hold negative relations with, neither is at war
+    with and neither holds a pact with. France's own case stays the trigger's
+    first branch, unchanged. Down (None): trigger 5 read France alone."""
+    slots = getattr(world, "threat_by_target", {}) or {}
+    player = getattr(world, "player_nation", "France")
+    best, best_slot = None, 40
+    for hegemon in _shared_dislikes(world, a, b):
+        if hegemon == player:
+            continue
+        slot = int(slots.get(hegemon, 0) or 0)
+        if slot <= best_slot:
+            continue
+        if any(world.get_diplomatic_state(n, hegemon) == "WAR"
+               or world.get_diplomatic_state(n, hegemon) in _PACT_STATES for n in (a, b)):
+            continue
+        best, best_slot = hegemon, slot
+    return best
+
+
+def shared_menace_bonus(world, evaluator: str, other: str, ptype: str) -> int:
+    """OCT27-D4 (ruled as recommended, S14i): two courts both cold to the
+    hegemon find each other — a defensive alliance or non-aggression pact
+    between them reads `+min(25, slot - 40)`, the slot being the largest
+    threat slot among the courts BOTH hold negative relations with (France's
+    when both are cold to France). The size is the recommendation's own.
+    Down (0): the silent table — base 25 plus relation, a forty-turn run
+    formed no court-to-court treaty.
+
+    Read between NEIGHBOURS (`get_neighbouring_nations`) — the
+    recommendation's own example, Sweden and Denmark, and the measured
+    ruling under the delegation: unscoped, the term formed eleven defensive
+    alliances in five turns with the Ottoman Empire as their hub (Sweden,
+    Portugal, Saxony, Hanover, the Papal States), and Prussia's border war on
+    Hanover became a war on Naples, the Ottomans and Portugal."""
+    if ptype not in ("defensive_alliance", "non_aggression"):
+        return 0
+    if other not in (world.get_neighbouring_nations(evaluator) or ()):
+        return 0
+    slots = getattr(world, "threat_by_target", {}) or {}
+    top = max((int(slots.get(t, 0) or 0) for t in _shared_dislikes(world, evaluator, other)),
+              default=0)
+    return int(max(0, min(25, top - 40)))
+
+
+RIVALRY_STEP_COOLDOWN = 5   # the ratify cooldown's own five turns (world_state)
+
+
+def rivalry_step_allowed(world, a: str, b: str) -> bool:
+    """OCT27-D5 (ruled as recommended, S14i): trigger 2's opportunistic
+    downgrade waits on the pair's existing `ai_ai|pair` cooldown — an allied
+    pair walked ALLIANCE -> PEACE in four turns. Down (True): every turn."""
+    key = f"ai_ai|{world._make_diplo_key(a, b)}"
+    return int(_get_cooldowns(world).get(key, 0) or 0) <= 0
+
+
+def note_rivalry_step(world, a: str, b: str) -> None:
+    """OCT27-D5: after each downgrade step the pair rests the ratify
+    cooldown's five turns. Down (None): no rest written."""
+    cooldowns = _get_cooldowns(world)
+    cooldowns[f"ai_ai|{world._make_diplo_key(a, b)}"] = RIVALRY_STEP_COOLDOWN
+    _set_cooldowns(world, cooldowns)
 
 
 def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
@@ -5330,7 +5455,9 @@ def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
         "clauses": [],
     }
     result = calculate_acceptance(acceptance_proposal, world)
-    return result["score"]
+    # OCT27-D4 (S14i): the shared menace.
+    return int(result["score"]) + int(
+        shared_menace_bonus(world, evaluator, other, str(proposal.get("type") or "")))
 
 
     # _ratify_ai_ai_treaty removed (R107/R108) — unified into WorldState._ratify_treaty()

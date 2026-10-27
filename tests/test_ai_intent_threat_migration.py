@@ -1570,7 +1570,28 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # (historical / austerlitz / friedland / jena / ulm / marengo / eylau) — four
 # distinct turns, one AI-initiated war per seed; the standing rule holds.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-PINNED by S14i part 1 (the sweep's rulings OCT27-D1 … D7, taken as
+# recommended October 27, 2026; `SYSTEMS_REFERENCE.md` §158). ONE ruling
+# moves the ambient board; the other six, held down alone, are
+# byte-identical to the shipped series (`tools/_s14i_series_arms.py` →
+# `tools/_s14i_series_arms_final.json`: each arm holds a ruling's seams down
+# in the child — the same `S14I_SEAMS_BY_ROW` the recorded boards hold; arm
+# 0, every ruling down, reproduces the series before it byte for byte):
+#   D5 (OCT27-D5) the AI patron's dedupe — at [15]. Its sponsorship half is
+#        the whole move (the rivalry's rest, held down alone, is
+#        byte-identical): Russia's 300g a turn goes to Austria instead of
+#        back to Britain (the round trip — Britain paid Russia 200), and
+#        Britain no longer stacks a 200g sponsorship on its 300g bond to
+#        Austria. On the re-timed board France's idle corps win three
+#        fields (turns 15, 16, 19: battle_win / decisive_victory), so the
+#        unattended France's alarm rises 15 -> 20 and 14 -> 21 before it
+#        decays.
+# The series before S14i (the sweep's): SERIES_BEFORE_THE_RULINGS below.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 15, 20, 17, 14, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The sweep's series (S14i's prior; the October 27 sweep's ALL):
+SERIES_BEFORE_THE_RULINGS = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The series before the October 27 sweep (HEAD's BASELINE_SERIES: the S14f p3 record's arm "0"; the sweep's `prior`):
 # [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 17, 14, 11, 8, 5, 2, 0, 0, 5, 2, 9, 14, 14, 14, 11, 8, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The standing series of every attribution record through S14f part 2 — the

@@ -1410,12 +1410,44 @@
    "message": "You have accepted Saxony's proposal. Treaty signed: Peace → Open Borders with Saxony. Saxony paid 82 gold into the treasury.",
    "arm": "FC",
    "clause": ""
+  },
+  {
+   "turn": 3,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Ottoman",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Ottoman",
+   "target": "Naples",
+   "verdict": "signed",
+   "message": "Ottoman and Naples have signed a Defensive Alliance.",
+   "arm": "FC",
+   "clause": ""
+  },
+  {
+   "turn": 3,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Naples",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Naples",
+   "target": "PapalStates",
+   "verdict": "signed",
+   "message": "Naples and PapalStates have signed a Defensive Alliance.",
+   "arm": "FC",
+   "clause": ""
   }
  ],
  "errors": [],
- "clone_ms_mean": 6.85,
+ "clone_ms_mean": 7.87,
  "clones": 47,
- "seconds": 4.9,
+ "seconds": 6.1,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -1425,7 +1457,7 @@
   "B_messages": [],
   "shown": 45,
   "letters": 9,
-  "real_signs": 2,
+  "real_signs": 4,
   "real_refused_player": 0,
   "asked": 0,
   "errors": 0,
@@ -1435,7 +1467,7 @@
    "congress:signed": 6,
    "settlement:not_shown": 2,
    "letter:signed": 9,
-   "real:signed": 2
+   "real:signed": 4
   }
  }
 }

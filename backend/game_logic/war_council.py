@@ -304,6 +304,35 @@ def get_exposure_view(world, nation: str) -> Dict:
     return view
 
 
+def exposure_against(world, nation: str, target: str) -> Dict:
+    """OCT27-D6(a) (ruled as recommended, S14i): `nation`'s exposure when
+    it prices ITS war on `target` — the general view (`get_exposure_view`)
+    with the target and its live guarantors struck from the reserve's
+    threats. Their armies already stand in the holder's scale
+    (`_holder_scale`); counting them again made a court whose worst neighbour
+    IS the target need (band + 1.25)x its strength. Read by the exposed gate,
+    the outmatched reading, the rear-quiet weight term and beat 7's named
+    threat. Keys as the general view's. Down (`get_exposure_view(a[0],
+    a[1])`): the general view."""
+    view = get_exposure_view(world, nation)
+    from backend.game_logic.instruments import live_guarantees_of
+    struck = {str(target)} | {str(g.get("guarantor") or "")
+                              for g in live_guarantees_of(world, target)}
+    threats = [t for t in view["threats"] if t["nation"] not in struck]
+    worst = threats[0] if threats else None
+    own = int(view["standing"])
+    reserve = int(min(worst["menace"] if worst else 0, RESERVE_CAP_FRACTION * own))
+    return {
+        "nation": nation,
+        "standing": own,
+        "reserve": reserve,
+        "free": int(max(0, own - reserve)),
+        "worst_threat": worst["nation"] if worst else None,
+        "worst_menace": int(worst["menace"]) if worst else 0,
+        "threats": threats,
+    }
+
+
 def get_rear_reserve(world, nation: str) -> int:
     """§2.1: strength that CANNOT march — held against the worst armed
     neighbour."""
@@ -462,11 +491,32 @@ def _crisis_cause_of_death(world, coveter: str, record: Dict) -> Optional[str]:
         return None  # still live (fight; or coerce on a defenceless prize)
 
     # The rung fell below fight: name why (§12.1's taxonomy).
-    from backend.game_logic.instruments import live_guarantees_of
-    for guarantee in live_guarantees_of(world, target):
-        if guarantee.get("guarantor") != coveter:
-            return "deterred"
+    if guarantee_deterred(world, coveter, view, target):
+        return "deterred"
     return "starved"
+
+
+def guarantee_deterred(world, coveter: str, view, target: str) -> bool:
+    """OCT27-D6(c) (ruled as recommended, S14i): "deterred" is credited
+    only when a guarantee MOVED the rung — the counterfactual: the coveter's
+    weight without the guarantee's drop (`+ GUARANTEE_WEIGHT_DETERRENT`)
+    reaches the fight floor, or the coerce floor on a holder that would be a
+    defenceless prize without its guarantors' armies. Otherwise the want
+    starved on its own and beat 7 says so. Down: any live third-party
+    guarantee on the target was credited."""
+    from backend.game_logic.instruments import (
+        GUARANTEE_WEIGHT_DETERRENT, live_guarantees_of)
+    if not any(g.get("guarantor") != coveter for g in live_guarantees_of(world, target)):
+        return False
+    from backend.game_logic.intent import PRICE_THRESHOLDS
+    floors = dict(PRICE_THRESHOLDS)
+    weight = int(getattr(view, "weight", 0) or 0) + int(GUARANTEE_WEIGHT_DETERRENT)
+    if weight >= floors["fight"]:
+        return True
+    if weight >= floors["coerce"] and THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE:
+        free = int(exposure_against(world, coveter, target)["free"])
+        return free > 0 and _prize_against(_standing_strength(world, target), free)
+    return False
 
 
 def reset_stall_on_pass(record: Dict) -> None:
@@ -506,7 +556,8 @@ def _emit_crisis_passed(world, coveter: str, record: Dict, cause: str,
     if "{threat}" in cause_copy:
         # The exposed cause names the neighbour that pinned the army —
         # the same per-turn view the gate itself read (§2.5-1).
-        threat = get_exposure_view(world, coveter).get("worst_threat")
+        threat = exposure_against(
+            world, coveter, str(record.get("target") or "")).get("worst_threat")
         cause_copy = cause_copy.format(
             threat=humanize_entity_name(threat) if threat else "a neighbour")
     event = {
@@ -701,8 +752,8 @@ def _restraint_block_reason(world, coveter: str, target: str,
     if theirs > 0:
         if own < AI_WAR_FORCE_RATIO * theirs:
             return "outmatched"  # even the whole army would not suffice
-        if get_free_strength(world, coveter) < AI_WAR_FORCE_RATIO * theirs:
-            return "exposed"     # the army suffices; the frontier pins it
+        if int(exposure_against(world, coveter, target)["free"]) < AI_WAR_FORCE_RATIO * theirs:
+            return "exposed"     # the army suffices; the frontier pins it (OCT27-D6a)
     if theirs == 0 and own <= 0:
         return "outmatched"
     return None
@@ -729,10 +780,18 @@ def holder_outmatched(world, asker: str, holder: str) -> bool:
     reach (the D5 instrument earning its keep)."""
     if not asker or not holder or asker == holder:
         return False
-    free = int(get_free_strength(world, asker))
+    free = int(exposure_against(world, asker, holder)["free"])   # OCT27-D6a
     if free <= 0:
         return False
-    return _holder_scale(world, asker, holder) <= HOLDER_OUTMATCHED_FRACTION * free
+    return _prize_against(_holder_scale(world, asker, holder), free)
+
+
+def _prize_against(scale: int, free: int) -> bool:
+    """THE one read of `HOLDER_OUTMATCHED_FRACTION`: a holder's scale at
+    most that fraction of the asker's free strength is a prize (§6.4-1) —
+    `holder_outmatched` and the deterrent's counterfactual
+    (`guarantee_deterred`) ask it alike."""
+    return int(scale) <= HOLDER_OUTMATCHED_FRACTION * int(free)
 
 
 def defenceless_prize(world, coveter: str, view=None) -> Optional[str]:
@@ -879,49 +938,10 @@ def _declared_tail(world, result: Dict) -> str:
 
 def _honour_guarantees(world, coveter: str, target: str, war_id: str,
                        events: List[Dict]) -> None:
-    from backend.display_names import humanize_entity_name
-    from backend.game_logic.diplomacy import declare_war
-    from backend.game_logic.dispatch import queue_dispatch_event
-    from backend.game_logic.instruments import live_guarantees_of
-    player = getattr(world, "player_nation", "France")
-    for guarantee in list(live_guarantees_of(world, target)):
-        guarantor = str(guarantee.get("guarantor") or "")
-        if not guarantor or guarantor in (coveter, target):
-            continue
-        if guarantor == player:
-            # Player agency: the ward pleads; the abandonment clock
-            # (instruments' grace) is the honest consequence machinery.
-            queue_dispatch_event(world, "guarantee_called", {
-                "ward": humanize_entity_name(target),
-                "aggressor": humanize_entity_name(coveter),
-            }, "always")
-            continue
-        if world.get_diplomatic_state(guarantor, coveter) == "WAR":
-            continue
-        join = declare_war(world, guarantor, coveter, casus_belli=True)
-        if join.get("success"):
-            # Review fix [r8 LOW]: the join war's headline reason is the
-            # guarantee, not bare "conquest" — patch the just-logged
-            # declaration event the same way the design war does (pin 4).
-            for logged in reversed(getattr(world, "event_log", []) or []):
-                if (logged.get("type") == "war_declaration"
-                        and logged.get("aggressor") == guarantor
-                        and logged.get("target") == coveter):
-                    logged["stated_reason"] = (
-                        f"honouring the guarantee of "
-                        f"{humanize_entity_name(target)}")
-                    break
-            event = {
-                "type": "guarantee_honored",
-                "guarantor": guarantor,
-                "ward": target,
-                "aggressor": coveter,
-                "message": (f"{humanize_entity_name(guarantor)} honours its "
-                            f"guarantee of {humanize_entity_name(target)} — "
-                            f"war on {humanize_entity_name(coveter)}."),
-            }
-            world.log_event(dict(event))
-            events.append(event)
+    """The council road's honouring: `instruments.honour_guarantees`, the
+    ONE loop every declaration road calls (OCT27-D7, S14i)."""
+    from backend.game_logic.instruments import honour_guarantees
+    honour_guarantees(world, coveter, target, events)
 
 
 def _ai_buyoff_funds(world, target: str) -> int:

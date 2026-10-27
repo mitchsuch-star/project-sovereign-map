@@ -2468,6 +2468,9 @@ def form_coalition(qualifying_nations: List[str], world,
             suppress_unresolved_offensive_cascade=THE_LEAGUE_DECLARES_IN_ITS_OWN_RIGHT)
         if result.get("success"):
             war_events.append(result)
+            # OCT27-D7 (S14i): the target's guarantors answer the league too.
+            from backend.game_logic.instruments import honour_on_road
+            honour_on_road(world, nation, france)
     world._league_forming = set()
     if A_FAILED_DECLARATION_IS_NOT_A_MEMBER and new_belligerents:
         # SFR-DR1 rider: a court whose declaration FAILED is not at war with
@@ -2708,6 +2711,9 @@ def join_coalition(world, nation: str) -> Dict:
     result = declare_war(world, nation, target)
     if not result.get("success"):
         return {"success": False, "message": result.get("message", "")}
+    # OCT27-D7 (S14i): the target's guarantors answer the joiner too.
+    from backend.game_logic.instruments import honour_on_road
+    honour_on_road(world, nation, target)
     from backend.game_logic.diplomatic_dialogue import modify_relation_booked
     for member in members:
         modify_relation_booked(world, nation, member, 10, "coalition_join", nation, member)
@@ -3026,8 +3032,8 @@ def dissolve_coalition(world, reason: str,
     # R84: Dismiss superseded COALITION_DECLARED notification on dissolution
     world.notifications.dismiss_by_type(COALITION_DECLARED)
 
-    # Start cooldown (§7c)
-    world.coalition_cooldown = COALITION_COOLDOWN_TURNS
+    # Start cooldown (§7c) — the player's league's alone (OCT27-D2)
+    world.coalition_cooldown = dissolution_cooldown_turns(world, _dissolve_target)
 
     # IQ-3 "The League Is Spent": a treaty that breaks the league spends
     # Europe's alarm against its target (read above, before the league was
@@ -3220,6 +3226,63 @@ def remove_coalition_member(nation: str, world,
 # ════════════════════════════════════════════════════════════════
 # HELPERS
 # ════════════════════════════════════════════════════════════════
+
+def coalition_friction_floor(world, a: str, b: str) -> Optional[int]:
+    """OCT27-D1 (ruled as recommended, S14i, October 27, 2026): friction
+    frays every member pair by 2 a turn, but never takes it below
+    `STATE_RELATION_THRESHOLDS[state] - AUTO_DOWNGRADE_GAP + 1` — the last
+    relation the five-turn downgrade run does not count. Two members fighting
+    one war fray to the edge; only a real wound (a refusal, a reneged bargain,
+    a separate peace) pushes the pair over. None for a state with no
+    threshold (friction runs free there, as before). Down (None): the old
+    clockwork — Austria and Russia slid ALLIANCE -> DEFENSIVE_ALLIANCE ->
+    NON_AGGRESSION mid-war with no quarrel between them."""
+    from backend.game_logic.diplomacy import AUTO_DOWNGRADE_GAP, STATE_RELATION_THRESHOLDS
+    threshold = STATE_RELATION_THRESHOLDS.get(world.get_diplomatic_state(a, b))
+    if threshold is None:
+        return None
+    return int(threshold) - int(AUTO_DOWNGRADE_GAP) + 1
+
+
+def apply_coalition_friction(world) -> None:
+    """§3b (R11): every member pair of the active league frays by 2 a turn
+    — OCT27-D1 (S14i): to the edge of the auto-downgrade, never over it by
+    clockwork (`coalition_friction_floor`)."""
+    if not world.active_coalition:
+        return
+    members = world.active_coalition.get("members", [])
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    for i, member_a in enumerate(members):
+        for member_b in members[i + 1:]:
+            delta = -2
+            floor = coalition_friction_floor(world, member_a, member_b)
+            if floor is not None:
+                current = int(world.nation_relations.get(
+                    world._make_diplo_key(member_a, member_b), 0) or 0)
+                delta = max(delta, min(0, int(floor) - current))
+            if delta:
+                modify_relation_booked(world, member_a, member_b, delta, "coalition_friction")
+
+
+def league_target(world) -> str:
+    """OCT27-D2 (S14i): the court the active league stands against —
+    the player with no league and on every legacy record, an eclipse hegemon
+    when the league formed against one. ONE read for the league's statecraft
+    (the loyalty clause in `court_own_readiness`, P1's and P2's gates, the
+    bond's depth in `break_ranks_lines`): the same statecraft for every
+    league. Down (`a[0].player_nation`): every league read as France's."""
+    coalition = getattr(world, "active_coalition", None) or {}
+    return str(coalition.get("target_nation") or getattr(world, "player_nation", "France"))
+
+
+def dissolution_cooldown_turns(world, target: str) -> int:
+    """OCT27-D2 (S14i): §7c's cooldown belongs to the player's league — an
+    eclipse league's dissolution leaves none on France's own brew. Down
+    (`COALITION_COOLDOWN_TURNS`): every dissolution started it."""
+    if str(target) != str(getattr(world, "player_nation", "France")):
+        return 0
+    return int(COALITION_COOLDOWN_TURNS)
+
 
 def is_coalition_member(nation: str, world) -> bool:
     """Check if a nation is in the active coalition."""
@@ -3615,12 +3678,7 @@ def process_coalition_turn(world) -> List[Dict]:
             world.war_exhaustion[nation] = int(new_we)
 
     # ────────── 3b. Coalition member relation friction (R11) ──────────
-    if world.active_coalition:
-        members = world.active_coalition.get("members", [])
-        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
-        for i, member_a in enumerate(members):
-            for member_b in members[i + 1:]:
-                modify_relation_booked(world, member_a, member_b, -2, "coalition_friction")
+    apply_coalition_friction(world)
 
     # ────────── 4. British subsidy (§4e) ──────────
     subsidy_events = _process_british_subsidy(world)

@@ -56,7 +56,9 @@ class TestBootIntents:
         # ladder — the war IS the pursuit (the _derive_price early
         # return, untouched).
         ("Austria", "redeem_italy", "France", 85, "fight"),
-        ("Britain", "low_countries", "France", 84, "fight"),
+        # S14i (OCT27-D6a): 84 -> 90 — France is Britain's worst neighbour and its
+        # target; priced once, the rear reads quiet (+WEIGHT_OWN_REAR_QUIET).
+        ("Britain", "low_countries", "France", 90, "fight"),
         ("Russia", "arbiter_of_europe", "France", 89, "fight"),
         # Berlin covets Hanover and is maneuvering alliances for it —
         # the Potsdam winter, read straight off the authored opening.
@@ -127,12 +129,19 @@ class TestCacheAndStaleness:
         # set_diplomatic_state → invalidate_bloc_members_cache → the
         # intent cache flushes beside the agenda cache — same turn.
         # AI-3r re-anchor: Austria's peacetime weight (85) now sits AT
-        # the fight threshold, so its price no longer moves on peace —
-        # Britain (84 → coerce) is the court whose rung must flip.
+        # the fight threshold, so its price no longer moves on peace.
+        # S14i (OCT27-D6a, October 27, 2026): neither does Britain's (90:
+        # France, its worst neighbour, is priced once as the target) — every
+        # court at war with France on the boot stands at or over the fight
+        # floor at peace too. Sardinia is the court whose rung must flip: at
+        # peace it reads coerce (79); a war with France prices it at fight,
+        # and the peace returns it — the seam flushes both ways.
         from backend.game_logic.diplomacy import set_diplomatic_state
-        assert get_nation_intent("Britain", world).price == "fight"
-        set_diplomatic_state(world, "Britain", "France", "PEACE", "test")
-        view = get_nation_intent("Britain", world)
+        assert get_nation_intent("Sardinia", world).price == "coerce"
+        set_diplomatic_state(world, "Sardinia", "France", "WAR", "test")
+        assert get_nation_intent("Sardinia", world).price == "fight"
+        set_diplomatic_state(world, "Sardinia", "France", "PEACE", "test")
+        view = get_nation_intent("Sardinia", world)
         assert view.price != "fight"
 
     def test_relations_are_turn_granular_by_design(self, world):

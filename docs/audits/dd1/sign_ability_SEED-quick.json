@@ -1395,6 +1395,38 @@
    "turn": 3,
    "surface": "real",
    "moment": "signed",
+   "court": "Ottoman",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Ottoman",
+   "target": "Naples",
+   "verdict": "signed",
+   "message": "Ottoman and Naples have signed a Defensive Alliance.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 3,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Naples",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Naples",
+   "target": "PapalStates",
+   "verdict": "signed",
+   "message": "Naples and PapalStates have signed a Defensive Alliance.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 3,
+   "surface": "real",
+   "moment": "signed",
    "court": "Denmark",
    "type": "non_aggression",
    "action": "_ratify_treaty",
@@ -2092,7 +2124,39 @@
     "France|PapalStates"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 105 gold into the treasury.",
+   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 116 gold into the treasury.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 4,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Austria",
+   "type": "non_aggression",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "Austria",
+   "target": "Ottoman",
+   "verdict": "signed",
+   "message": "Austria and Ottoman have signed a Non-Aggression Pact.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 4,
+   "surface": "real",
+   "moment": "signed",
+   "court": "PapalStates",
+   "type": "defensive_alliance",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": false,
+   "proposer": "PapalStates",
+   "target": "Sardinia",
+   "verdict": "signed",
+   "message": "PapalStates and Sardinia have signed a Defensive Alliance.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2164,7 +2228,7 @@
     "France|PapalStates"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 105 gold into the treasury.",
+   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 116 gold into the treasury.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2738,9 +2802,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 6.6,
+ "clone_ms_mean": 7.98,
  "clones": 80,
- "seconds": 6.1,
+ "seconds": 7.4,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -2750,7 +2814,7 @@
   "B_messages": [],
   "shown": 76,
   "letters": 14,
-  "real_signs": 9,
+  "real_signs": 13,
   "real_refused_player": 0,
   "asked": 0,
   "errors": 0,
@@ -2760,7 +2824,7 @@
    "congress:signed": 10,
    "settlement:not_shown": 4,
    "letter:signed": 14,
-   "real:signed": 9
+   "real:signed": 13
   }
  }
 }

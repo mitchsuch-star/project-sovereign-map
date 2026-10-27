@@ -249,15 +249,23 @@ class TestMomentTerms:
         outmatched +10 falls away with the pledge — a hollow pledge still
         LIFTS the prize out of reach (the deterrent and the scale are two
         different things, both pinned)."""
-        from backend.game_logic.war_council import holder_outmatched
+        from backend.game_logic.war_council import exposure_against, holder_outmatched
         before = get_nation_intent("Prussia", world).weight
         assert before == PRUSSIA_BOOT_WEIGHT
         pledge_guarantee(world, guarantor="Russia", protected="Hanover")
         world.invalidate_bloc_members_cache()
         assert not holder_outmatched(world, "Prussia", "Hanover")
         after = get_nation_intent("Prussia", world).weight
+        # RE-SEATED by S14i (OCT27-D6a, ruled as recommended, October 27,
+        # 2026): the pledge is priced ONCE. Russia — Prussia's worst neighbour,
+        # 29,399 held back against it — now stands in Hanover's scale, so the
+        # war on Hanover strikes it from Prussia's rear reserve: the reserve
+        # falls to Bavaria's 13,200, under the quiet line (20% of 78,000), and
+        # the rear-quiet term reads (+WEIGHT_OWN_REAR_QUIET).
+        assert exposure_against(world, "Prussia", "Hanover")["worst_threat"] == "Bavaria"
         assert after == (before - 8 + intent_module.WEIGHT_HOLDER_ALLIES_COMMITTED
-                         - intent_module.WEIGHT_HOLDER_OUTMATCHED)
+                         - intent_module.WEIGHT_HOLDER_OUTMATCHED
+                         + intent_module.WEIGHT_OWN_REAR_QUIET)
 
     def test_allies_committed_via_treaty_ally(self, world):
         # War FIRST, alliance second — a declaration cascades the new

@@ -204,6 +204,25 @@ def war_is_the_players(world, war: Dict, player: str) -> bool:
     return player in (war.get("active_participants") or [])
 
 
+def eclipse_league_holds(world, court: str, enemy: str, score: int) -> bool:
+    """OCT27-D2 (ruled as recommended, S14i): a member of a league formed
+    against a court other than the player does not sign a separate peace with
+    that court while P1's break-ranks clause gives it no reason of its own
+    (`coalition_break_ranks_reason`, the bond's deeper lines included) — the
+    same statecraft France's league keeps. Down (False): the members of an
+    anti-Austria league sued freely."""
+    coalition = getattr(world, "active_coalition", None) or {}
+    target = coalition.get("target_nation")
+    if not target or target == getattr(world, "player_nation", "France") or enemy != target:
+        return False
+    if court not in (coalition.get("members") or []):
+        return False
+    from backend.game_logic.ai_diplomacy import coalition_break_ranks_reason
+    return coalition_break_ranks_reason(
+        world, court, war_score=int(score),
+        diplo_key=world._make_diplo_key(court, enemy)) is None
+
+
 def bonded_exit_floor(world, a: str, b: str, floor: int) -> int:
     """OCT27-32: a bonded court's mutual-exhaustion floor never stands past
     the cap. `floor` is the caller's: `pair_is_mutually_exhausted` passes its
@@ -251,6 +270,11 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     for proposer, other in ((attackers_leader, defenders_leader),
                             (defenders_leader, attackers_leader)):
         score = int(get_war_score_for(world, proposer, other))
+        # OCT27-D2 (S14i): an eclipse league's member holds the table until
+        # it has a reason of its own to break ranks — the league treats when
+        # spent, as France's does.
+        if eclipse_league_holds(world, proposer, other, score):
+            continue
         # PC-X55 (S14 part 3): a court the league's bond binds against the
         # other sues only past the bond's deeper line (the pair exits' rule).
         from backend.game_logic.bond import break_ranks_depth

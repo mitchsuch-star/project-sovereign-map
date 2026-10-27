@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14h COMPLETE Oct 26; AI sweep Oct 27 (§157); 0 open defect rows — S15 build NEXT**.
+> **AI sweep Oct 27 (§157); S14i p1 (§158): D1–D7 built; S14i p2 (D8–D13) NEXT, then S15**.
 
 **▶ LIVE STATE (October 27, 2026).** The three most recent landed rows:
-- **Enemy-AI sweep (Oct 27) — 51 rows FIXED, series attributed; 13 design Qs (S14i)** (§157).
+- **S14i part 1 (Oct 27) — OCT27-D1…D7 built as recommended; D4 scoped to neighbours** (§158).
+- **Enemy-AI sweep (Oct 27) — 51 rows FIXED, series attributed; 13 design Qs ruled** (§157).
 - **S14h part 2 (Oct 26) — the 21 P3s, D4/D5, I1, 5 mentions, the re-play; S14h COMPLETE** (§156).
-- **S15 the walk (Oct 26) — UXR3-2 closed, 82/83 fixed; certificate absent; build next** (§153).
 
-**Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS` — nothing on the machine, §153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a), OCT27-D1…D13.
+**Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS` — nothing on the machine, §153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

@@ -723,3 +723,264 @@ class TestEnemyGeneralsBatch:
             held.setattr(EnemyAI, "_stagnation_fallback_dests", lambda self, w, o, t, d: list(d))
             down = _ai()._consider_strategic_move(deroy, "Bavaria", world)
         assert down == {"marshal": "Deroy", "action": "move", "target": "Swabia"}, down
+
+
+# ════════════════════════════════════════════════════════════════════════
+# S14i — the sweep's rulings, OCT27-D1 … D13 (the user, October 27, 2026:
+# "Take OCT27-D1 … D13 as recommended under the standing delegation; S14i
+# builds them before S15."). One class per row; each holds its seam down to
+# show the pin kills the build.
+# ════════════════════════════════════════════════════════════════════════
+
+def _league(world, target, members, leader=None):
+    world.active_coalition = {"name": "The League", "target_nation": target,
+                              "leader": leader or members[0], "members": list(members),
+                              "formed_turn": int(world.current_turn)}
+
+
+def _state(world, a, b, state):
+    import contextlib
+    import io
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    with contextlib.redirect_stdout(io.StringIO()):
+        set_diplomatic_state(world, a, b, state, "test")
+
+
+class TestOCT27D1:
+    """The league frays to the edge, never over it by clockwork."""
+
+    def test_friction_stops_at_the_last_uncounted_relation(self, world, monkeypatch):
+        from backend.game_logic import coalition as CO
+        from backend.game_logic.diplomacy import (AUTO_DOWNGRADE_GAP, STATE_RELATION_THRESHOLDS,
+                                                  check_auto_downgrade)
+        _league(world, "France", ["Austria", "Russia"])
+        assert world.get_diplomatic_state("Austria", "Russia") == "ALLIANCE"
+        floor = STATE_RELATION_THRESHOLDS["ALLIANCE"] - AUTO_DOWNGRADE_GAP + 1
+        key = world._make_diplo_key("Austria", "Russia")
+        world.nation_relations[key] = floor + 1
+        CO.apply_coalition_friction(world)
+        assert world.nation_relations[key] == floor
+        CO.apply_coalition_friction(world)
+        assert world.nation_relations[key] == floor          # the edge, not over it
+        world.turns_below_threshold = {}
+        check_auto_downgrade(world)
+        assert world.turns_below_threshold.get(key, 0) == 0  # the run never starts
+        world.nation_relations[key] = floor - 7              # a real wound
+        CO.apply_coalition_friction(world)
+        assert world.nation_relations[key] == floor - 7      # friction adds nothing
+        monkeypatch.setattr(CO, "coalition_friction_floor", lambda *a, **k: None)
+        world.nation_relations[key] = floor + 1
+        CO.apply_coalition_friction(world)
+        assert world.nation_relations[key] == floor - 1      # down: the clockwork
+
+
+class TestOCT27D2:
+    """The same statecraft for every league."""
+
+    def test_the_league_target_and_the_loyalty_read(self, world, monkeypatch):
+        from backend.game_logic import coalition as CO
+        from backend.game_logic.ai_diplomacy import court_own_readiness, p2_league_gate
+        assert CO.league_target(world) == "France"           # no league: the player
+        _league(world, "Austria", ["Prussia", "Denmark"])
+        _state(world, "Prussia", "Austria", "WAR")
+        assert CO.league_target(world) == "Austria"
+        ready = court_own_readiness(world, "Prussia", "Austria")
+        assert ready["in_league"] and ready["loyal"], ready
+        assert not court_own_readiness(world, "Prussia", "France")["in_league"]
+        _state(world, "Prussia", "France", "WAR")
+        # the eclipse league gates the war it was formed for, not France's
+        assert not p2_league_gate(world, "Prussia", war_score=0,
+                                  diplo_key=world._make_diplo_key("Prussia", "France"))
+        assert p2_league_gate(world, "Prussia", war_score=0,
+                              diplo_key=world._make_diplo_key("Prussia", "Austria"))
+        monkeypatch.setattr(CO, "league_target", lambda w: w.player_nation)
+        assert p2_league_gate(world, "Prussia", war_score=0,
+                              diplo_key=world._make_diplo_key("Prussia", "France"))
+
+    def test_an_eclipse_league_dissolves_without_a_cooldown_on_france(self, world):
+        from backend.game_logic import coalition as CO
+        _league(world, "Austria", ["Prussia", "Denmark"])
+        world.coalition_cooldown = 0
+        CO.dissolve_coalition(world, "low_threat")
+        assert world.coalition_cooldown == 0
+        _league(world, "France", ["Austria", "Russia"])
+        CO.dissolve_coalition(world, "low_threat")
+        assert world.coalition_cooldown == CO.COALITION_COOLDOWN_TURNS
+
+    def test_the_member_holds_the_table_until_spent(self, world, monkeypatch):
+        from backend.game_logic import settlement_third_party as STP
+        _league(world, "Austria", ["Prussia", "Denmark"])
+        _state(world, "Prussia", "Austria", "WAR")
+        assert STP.eclipse_league_holds(world, "Prussia", "Austria", -20)
+        assert not STP.eclipse_league_holds(world, "Prussia", "Austria", -60)  # spent: breaks ranks
+        assert not STP.eclipse_league_holds(world, "Austria", "Prussia", -20)  # the target sues freely
+        world.war_exhaustion["Prussia"] = 90
+        assert not STP.eclipse_league_holds(world, "Prussia", "Austria", -20)  # exhausted: breaks ranks
+        _league(world, "France", ["Prussia", "Denmark"])
+        world.war_exhaustion["Prussia"] = 0
+        assert not STP.eclipse_league_holds(world, "Prussia", "Austria", -20)  # France's league: not this war
+
+    def test_the_bond_against_the_leagues_target_binds_her(self, world, monkeypatch):
+        from backend.game_logic import coalition as CO
+        from backend.game_logic.ai_diplomacy import break_ranks_lines
+        _league(world, "Austria", ["Prussia", "Denmark"])
+        _state(world, "Prussia", "Austria", "WAR")
+        _state(world, "Denmark", "Austria", "WAR")
+        world.directed_sponsorships = [{"kind": "bond", "payer": "Denmark", "recipient": "Prussia",
+                                        "aim": "Austria", "amount_per_turn": 400,
+                                        "turns_remaining": 10, "started_turn": 1,
+                                        "expiry_turn": 11}]
+        deep = break_ranks_lines(world, "Prussia")
+        assert deep["bond"] == "Denmark" and deep["exhaustion"] > 80, deep
+        monkeypatch.setattr(CO, "league_target", lambda w: w.player_nation)
+        assert break_ranks_lines(world, "Prussia")["exhaustion"] == 80   # down: France's bond only
+
+
+class TestOCT27D3:
+    """The shelter rungs read the court's own hegemon."""
+
+    def test_the_menace_is_the_largest_slot_among_the_disliked(self, world):
+        from backend.game_logic.ai_diplomacy import menace_for
+        assert menace_for(world, "Austria") == int(world.threat_level)   # 1805: France leads
+        world.threat_by_target["Austria"] = int(world.threat_level) + 20
+        world.nation_relations[world._make_diplo_key("Denmark", "Austria")] = -15
+        assert menace_for(world, "Denmark") == int(world.threat_level) + 20
+        world.nation_relations[world._make_diplo_key("Denmark", "Austria")] = 10
+        assert menace_for(world, "Denmark") == int(world.threat_level)   # warm to Austria: France's
+
+    def test_two_courts_cold_to_austria_find_each_other(self, world, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AD
+        world.threat_by_target["Austria"] = 75
+        for court in ("Denmark", "Sweden"):
+            world.nation_relations[world._make_diplo_key(court, "Austria")] = -20
+            _state(world, court, "Austria", "PEACE")
+        world.nation_relations[world._make_diplo_key("Denmark", "Sweden")] = 5
+        assert AD.eclipse_menace_shared(world, "Denmark", "Sweden") == "Austria"
+        _state(world, "Denmark", "Austria", "NON_AGGRESSION")
+        assert AD.eclipse_menace_shared(world, "Denmark", "Sweden") is None   # a pact with her
+        monkeypatch.setattr(AD, "eclipse_menace_shared", lambda *a, **k: None)
+        assert AD.eclipse_menace_shared(world, "Denmark", "Sweden") is None
+
+
+class TestOCT27D4:
+    """Two courts both cold to the hegemon find each other."""
+
+    def test_the_shared_menace_term(self, world, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AD
+        world.threat_level = 70
+        for court in ("Denmark", "Sweden"):
+            world.nation_relations[world._make_diplo_key(court, "France")] = -10
+        assert AD.shared_menace_bonus(world, "Denmark", "Sweden", "defensive_alliance") == 25
+        assert AD.shared_menace_bonus(world, "Denmark", "Sweden", "non_aggression") == 25
+        assert AD.shared_menace_bonus(world, "Denmark", "Sweden", "alliance") == 0
+        # neighbours only: Portugal is as cold to France and shares no border
+        world.nation_relations[world._make_diplo_key("Portugal", "France")] = -10
+        assert "Portugal" not in world.get_neighbouring_nations("Denmark")
+        assert AD.shared_menace_bonus(world, "Denmark", "Portugal", "defensive_alliance") == 0
+        world.threat_level = 50
+        assert AD.shared_menace_bonus(world, "Denmark", "Sweden", "defensive_alliance") == 10
+        world.nation_relations[world._make_diplo_key("Sweden", "France")] = 5
+        assert AD.shared_menace_bonus(world, "Denmark", "Sweden", "defensive_alliance") == 0
+        world.nation_relations[world._make_diplo_key("Sweden", "France")] = -10
+        live = AD._ai_ai_acceptance({"type": "defensive_alliance"}, "Denmark", "Sweden", world)
+        monkeypatch.setattr(AD, "shared_menace_bonus", lambda *a, **k: 0)
+        down = AD._ai_ai_acceptance({"type": "defensive_alliance"}, "Denmark", "Sweden", world)
+        assert live - down == 10
+
+
+class TestOCT27D5:
+    """No second purse for one aim, no round trip, a rivalry that rests."""
+
+    def test_the_sponsorship_dedupe_reads_bonds_and_round_trips(self, world):
+        from backend.game_logic.instruments import sponsorship_redundant
+        world.directed_sponsorships = [{"kind": "bond", "payer": "Britain", "recipient": "Russia",
+                                        "aim": "France", "amount_per_turn": 500}]
+        assert sponsorship_redundant(world, "Britain", "Russia", "France")
+        assert not sponsorship_redundant(world, "Britain", "Russia", "Prussia")
+        assert sponsorship_redundant(world, "Russia", "Britain", "France")    # the round trip
+        world.directed_sponsorships = [{"kind": "sponsorship", "payer": "Britain",
+                                        "recipient": "Austria", "aim": "Prussia",
+                                        "amount_per_turn": 300}]
+        assert sponsorship_redundant(world, "Britain", "Austria", "France")   # the old read
+        world.directed_sponsorships = [{"kind": "sponsorship", "payer": "Britain",
+                                        "recipient": "Austria", "aim": "Prussia",
+                                        "amount_per_turn": 0}]                # a licence
+        assert not sponsorship_redundant(world, "Britain", "Austria", "France")
+
+    def test_the_rivalry_rests_after_each_step(self, world):
+        from backend.game_logic import ai_diplomacy as AD
+        assert AD.rivalry_step_allowed(world, "Spain", "Portugal")
+        AD.note_rivalry_step(world, "Spain", "Portugal")
+        assert not AD.rivalry_step_allowed(world, "Portugal", "Spain")
+        key = f"ai_ai|{world._make_diplo_key('Spain', 'Portugal')}"
+        assert world.ai_proposal_cooldowns[key] == AD.RIVALRY_STEP_COOLDOWN == 5
+
+
+class TestOCT27D6:
+    """The reserve priced for the war, no brand for the lawless, an honest deterrent."""
+
+    def test_the_target_and_its_guarantors_leave_the_reserve(self, world):
+        from backend.game_logic.instruments import pledge_guarantee
+        from backend.game_logic.war_council import exposure_against, get_exposure_view
+        assert get_exposure_view(world, "Prussia")["worst_threat"] == "Russia"
+        pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        world.invalidate_bloc_members_cache()
+        priced = exposure_against(world, "Prussia", "Hanover")
+        assert priced["worst_threat"] == "Bavaria" and priced["reserve"] < get_exposure_view(
+            world, "Prussia")["reserve"]
+        assert exposure_against(world, "Prussia", "Russia")["worst_threat"] == "Bavaria"
+
+    def test_a_guarantor_that_cannot_join_is_voided_never_branded(self, world, monkeypatch):
+        from backend.game_logic import instruments as IN
+        IN.pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        _state(world, "Prussia", "Hanover", "WAR")
+        world.armistice_cooldowns = {world._make_diplo_key("Russia", "Prussia"): 4}
+        assert IN.guarantee_join_refusal(world, "Russia", "Prussia") == "armistice_cooldown"
+        events = IN.honour_guarantees(world, "Prussia", "Hanover")
+        assert [e["reason"] for e in events] == ["cannot_join"], events
+        assert not any(g.get("guarantor") == "Russia" for g in world.diplomatic_guarantees)
+        world.current_turn += 5
+        tick = IN.process_instruments(world)
+        assert not any(e.get("type") == "guarantee_abandoned" for e in tick), tick
+        from backend.campaign_log import format_event_oneliner
+        line = format_event_oneliner(events[0])
+        assert "cannot lawfully march on Prussia for Hanover" in line, line
+
+    def test_deterred_is_credited_only_when_the_pledge_moved_the_rung(self, world):
+        from types import SimpleNamespace
+        from backend.game_logic.instruments import pledge_guarantee
+        from backend.game_logic.war_council import guarantee_deterred
+        pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        assert guarantee_deterred(world, "Prussia", SimpleNamespace(weight=80), "Hanover")
+        assert not guarantee_deterred(world, "Prussia", SimpleNamespace(weight=50), "Hanover")
+
+
+class TestOCT27D7:
+    """One honouring, on every road."""
+
+    def test_the_tick_honours_a_war_from_another_road_before_any_brand(self, world, monkeypatch):
+        from backend.game_logic import instruments as IN
+        IN.pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        _state(world, "Prussia", "Hanover", "WAR")    # a war the council never declared
+        world.war_start_turns[world._make_diplo_key("Prussia", "Hanover")] = int(world.current_turn)
+        assert not world.is_at_war("Russia", "Prussia")
+        IN.process_instruments(world)
+        assert world.is_at_war("Russia", "Prussia")   # honoured at the first tick
+        honoured = [e for e in world.event_log if e.get("type") == "guarantee_honored"]
+        assert honoured and honoured[-1]["guarantor"] == "Russia"
+
+    def test_the_road_is_held_down_by_its_seam(self, world, monkeypatch):
+        from backend.game_logic import instruments as IN
+        monkeypatch.setattr(IN, "honour_on_road", lambda *a, **k: [])
+        IN.pledge_guarantee(world, guarantor="Russia", protected="Hanover")
+        _state(world, "Prussia", "Hanover", "WAR")
+        world.war_start_turns[world._make_diplo_key("Prussia", "Hanover")] = int(world.current_turn)
+        IN.process_instruments(world)
+        assert not world.is_at_war("Russia", "Prussia")   # down: no road to join
+
+    def test_the_league_join_road_calls_the_honouring(self):
+        import inspect
+        from backend.game_logic import coalition as CO
+        from backend.commands import combat_executor as CE
+        assert inspect.getsource(CO).count("honour_on_road(") >= 2
+        assert inspect.getsource(CE).count("honour_on_road(") >= 2

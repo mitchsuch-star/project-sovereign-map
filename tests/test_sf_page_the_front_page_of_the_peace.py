@@ -1037,21 +1037,18 @@ class TestTheDrivenArms:
         if c5["measured"] and c5["pass"]:
             return
         # RE-SEATED by the October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE
-        # §157.10 / §157.11), consciously. On HEAD the post-peace geometry
-        # lived on CMD-M alone (an armistice with Britain, a peace with
-        # Austria, two great powers newly free, 18 quoted keep-out levers, 18
-        # flipping). The sweep re-times CMD-M twice: OCT27-40 (a fortified
-        # corps no longer comes down for a province across barred water) took
-        # both treaties away — with that seam alone held down the HEAD
-        # evidence returned byte for byte — and OCT27-51's sibling (a cautious
-        # corps with no nearer step holds instead of walking away) brought the
-        # peace with Austria back: on the final tree CMD-M reads one great
-        # power newly free, 11 quoted keep-out levers, 11 flipping, and C5
-        # passes as measured (the early return above). This fallback stays
-        # for a re-timing that leaves no post-peace league on any arm: then
-        # the contract is the mechanical half, read on EVERY save of the live
-        # arms — keep-out levers are quoted and every one flips the gate (60
-        # of 60 on the board before the sibling).
+        # §157.11), consciously, and kept by S14i (§158.10). On HEAD the
+        # post-peace geometry lived on CMD-M alone (an armistice with Britain,
+        # a peace with Austria, two great powers newly free, 18 quoted
+        # keep-out levers, 18 flipping). Whether a 40-turn scripted arm ends
+        # in such a peace moves with every AI fix: OCT27-40 took both
+        # treaties away (that seam alone held down returned the HEAD evidence
+        # byte for byte), OCT27-51's sibling brought the peace with Austria
+        # back (11 levers quoted, 11 flipping), and on the board after S14i
+        # part 1 no arm carries one. So the pin reads C5 as measured whenever
+        # an arm carries a post-peace league (the early return above), and
+        # otherwise the mechanical half, read on EVERY save of the live arms:
+        # keep-out levers are quoted and every one flips the gate.
         import tools._score_probes as SP
         import tools.score_run as SR
         arms = SR.load_arms(run)

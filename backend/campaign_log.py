@@ -3003,6 +3003,11 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         if reason == "ward_aggression":
             return (f"{recipient} marches of its own will — "
                     f"{payer}'s guarantee is void, unblamed")
+        if reason == "cannot_join":
+            # OCT27-D6(b): the guarantor could not lawfully march.
+            aggressor = display_nation(ctx.event.get("aggressor", "Unknown"))
+            return (f"{payer} cannot lawfully march on {aggressor} for "
+                    f"{recipient} — the guarantee is void, unblamed")
         return (f"War overtakes the compact between {payer} and "
                 f"{recipient} — it lapses, no breaker named")
 

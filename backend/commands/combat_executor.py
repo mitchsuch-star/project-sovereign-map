@@ -8742,6 +8742,9 @@ class CombatExecutor:
                                 f"{ctx.enemy_marshal.nation}: "
                                 f"{war_result.get('message', 'the declaration was refused.')}"),
                 }
+            # OCT27-D7 (S14i): the target's guarantors answer on this road too.
+            from backend.game_logic.instruments import honour_on_road
+            honour_on_road(ctx.world, ctx.marshal.nation, ctx.enemy_marshal.nation)
             # Deduct DP for player
             if ctx.marshal.nation == ctx.world.player_nation:
                 dp = getattr(ctx.world, 'diplomatic_points', 0)
@@ -8821,6 +8824,9 @@ class CombatExecutor:
                                         f"{ctx.resolved_target}: "
                                         f"{war_result.get('message', 'the declaration was refused.')}"),
                         }
+                    # OCT27-D7 (S14i): the target's guarantors answer on this road too.
+                    from backend.game_logic.instruments import honour_on_road
+                    honour_on_road(ctx.world, ctx.marshal.nation, ctx.target_region.controller)
 
                 # Check for any defenders (marshals from nations other than attacker)
                 defenders = [m for m in ctx.world.marshals.values()

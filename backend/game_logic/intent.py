@@ -472,8 +472,8 @@ def _derive_weight(nation: str, agenda: AgendaView,
         # The mirror of the exposure gate — a quiet rear invites
         # adventure. Local import: war_council imports intent the same
         # way (function-local), so no cycle exists at module load.
-        from backend.game_logic.war_council import get_exposure_view
-        exposure = get_exposure_view(world, nation)
+        from backend.game_logic.war_council import exposure_against
+        exposure = exposure_against(world, nation, against)   # OCT27-D6a
         if (exposure["standing"] > 0
                 and exposure["reserve"]
                 < REAR_QUIET_FRACTION * exposure["standing"]):

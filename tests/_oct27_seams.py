@@ -66,6 +66,27 @@ OCT27_SEAMS_DOWN = [
     "backend.commands.diplomatic_executor:override_asks_the_table=None",
 ]
 
+# S14i — the sweep's RULINGS (OCT27-D1 … D13, taken as recommended October 27,
+# 2026), one entry per row so `tools/_s14i_series_arms.py` attributes each.
+# They join the list above: every recorded board was recorded before them.
+S14I_SEAMS_BY_ROW = {
+    "D1": ["backend.game_logic.coalition:coalition_friction_floor=None"],
+    "D2": ["backend.game_logic.coalition:league_target=getattr(a[0], 'player_nation', 'France')",
+           "backend.game_logic.coalition:dissolution_cooldown_turns=__import__('backend.game_logic.coalition').game_logic.coalition.COALITION_COOLDOWN_TURNS",
+           "backend.game_logic.settlement_third_party:eclipse_league_holds=False"],
+    "D3": ["backend.game_logic.ai_diplomacy:menace_for=int(getattr(a[0], 'threat_level', 0))",
+           "backend.game_logic.ai_diplomacy:eclipse_menace_shared=None"],
+    "D4": ["backend.game_logic.ai_diplomacy:shared_menace_bonus=0"],
+    "D5": ["backend.game_logic.instruments:sponsorship_redundant=__import__('backend.game_logic.instruments').game_logic.instruments.standing_sponsorship_amount(a[0], a[1], a[2]) > 0",
+           "backend.game_logic.ai_diplomacy:rivalry_step_allowed=True",
+           "backend.game_logic.ai_diplomacy:note_rivalry_step=None"],
+    "D6": ["backend.game_logic.war_council:exposure_against=__import__('backend.game_logic.war_council').game_logic.war_council.get_exposure_view(a[0], a[1])",
+           "backend.game_logic.instruments:void_unlawful_joins=False",
+           "backend.game_logic.war_council:guarantee_deterred=any(g.get('guarantor') != a[1] for g in __import__('backend.game_logic.instruments').game_logic.instruments.live_guarantees_of(a[0], a[3]))"],
+    "D7": ["backend.game_logic.instruments:honour_on_road=[]"],
+}
+OCT27_SEAMS_DOWN += [spec for row in S14I_SEAMS_BY_ROW for spec in S14I_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)
