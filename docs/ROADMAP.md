@@ -30,6 +30,7 @@
 | Row | What lands |
 |---|---|
 | **11** | Playtest Round 0: 3–5 outside testers on the signed build, with their typed transcripts |
+| **RE** (proposed; **user gate pending**) | **Recurring era events, "Affairs of State"** (`docs/RECURRING_EVENTS_SPEC.md`, spec authored October 27, 2026; its questions §0 Q1–Q14 are the user's). Three recurring letters on the moments engine, the bills of the player's own acts and a war-time door: the Arch-Chancellor's letters, the Host's Claims, Berthier's Memorial. Ten more wait each on a ruled mechanic, the **Edicts** first (recommended in principle as the honest recurring gold sink). ◆ Built after S15 and S16, ordered against S17c; first played in Round 1 (row 16). Nothing here is promised in store copy until the gate rules (Golden Rule 9) |
 | **13** | VP-2's remainder: the Napoleon Comparison, HC-D1's mechanical half (glory as a diplomatic term), NPC-D2 (the Seat), NP-D7 (the designs read the Emperor's state), and showing the campaign seed when a campaign begins. The Imperial Peace, the Verdict, the Fall and "Continue the reign" are built; SFR-B3 moved to S14 |
 | **14** | The Steam page (the copy describes the build that exists; it does not promise arguing with generals until row 15 lands) |
 | **15** | CR-6 proper: arguing back with an objecting marshal in plain English (its LLM gate first) |
