@@ -3053,7 +3053,8 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         regions = list(ctx.event.get("regions") or [])
         first = regions[0] if regions else "its provinces"
         tail = f" and {len(regions) - 1} more" if len(regions) > 1 else ""
-        return (f"REVANCHE: {nation} swears to retake {first}{tail} — "
+        again = " again" if ctx.event.get("renewed") else ""   # OCT27-D8(b)
+        return (f"REVANCHE: {nation} swears{again} to retake {first}{tail} — "
                 f"{author} is not forgiven")
 
     if ctx.event_type == "volte_face":
@@ -3226,6 +3227,10 @@ def _oneliner_allegiance(ctx: OnelinerContext):
         region = ctx.event.get("region", "a province")
         if ctx.event.get("outcome") == "returned":
             return f"{holder} hands {region} back to {asker} — the liberated soil comes home"
+        if ctx.event.get("kept"):
+            # OCT27-D9 (S14i): France kept an ally's home province by choice.
+            return (f"{holder} keeps {region}, {asker}'s home province — relations fall "
+                    f"{abs(int(ctx.event.get('relation', 0) or 0))}")
         return (f"{holder} declines to return {region} to {asker} "
                 f"({int(ctx.event.get('shortfall', 0) or 0)} more standing wanted)")
 
@@ -3380,6 +3385,11 @@ def _oneliner_the_fallen_and_the_clients(ctx: OnelinerContext):
         briber = ctx.event.get("briber", "Unknown")
         outcome = ctx.event.get("outcome", "")
         if outcome == "transfer":
+            if ctx.event.get("marches"):
+                # OCT27-D12(a): bought by a court at war with its old lord.
+                return (f"THE DEFECTION: {briber}'s gold buys {vassal} away "
+                        f"from {lord} — it serves a new master and marches "
+                        f"against the old")
             return (f"THE DEFECTION: {briber}'s gold buys {vassal} away "
                     f"from {lord} — it serves a new master.")
         return (f"THE DEFECTION: {briber}'s gold turns {vassal} against "

@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **AI sweep Oct 27 (§157); S14i p1 (§158): D1–D7 built; S14i p2 (D8–D13) NEXT, then S15**.
+> **AI sweep Oct 27 (§157); S14i COMPLETE Oct 27 (§158): D1–D13 built; S15 NEXT**.
 
 **▶ LIVE STATE (October 27, 2026).** The three most recent landed rows:
+- **S14i part 2 (Oct 27) — OCT27-D8…D13 built; D10(ii) folded, total kept; S14i COMPLETE** (§158).
 - **S14i part 1 (Oct 27) — OCT27-D1…D7 built as recommended; D4 scoped to neighbours** (§158).
 - **Enemy-AI sweep (Oct 27) — 51 rows FIXED, series attributed; 13 design Qs ruled** (§157).
-- **S14h part 2 (Oct 26) — the 21 P3s, D4/D5, I1, 5 mentions, the re-play; S14h COMPLETE** (§156).
 
 **Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS` — nothing on the machine, §153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

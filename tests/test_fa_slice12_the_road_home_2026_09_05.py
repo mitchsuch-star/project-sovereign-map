@@ -372,13 +372,22 @@ class TestTheOfferStandsWhileHeIsStranded:
         assert first["turns"] > 0, "and how long he has"
 
     def test_the_offer_is_reported_before_the_warning_it_answers(
-            self, live, no_interrupts):
+            self, live, no_interrupts, monkeypatch):
         """A corps stranded late has little slack, so he is topped up AND
         warned in the same tick — Massena, measured, at surplus 2. The two
         must read in the order they happened, or the briefing tells the
         player his corps is "no nearer home" before it tells him Berthier
         has just given him a road.
+
+        RE-SEATED by OCT27-D13(c) (S14i part 2, October 27, 2026): the
+        stranded-late corps is a roll of the generals' dice — on their own
+        stream (`enemy_ai.ai_rng`) Austria does not take Milan in the tick
+        that strands Massena — so the fixture plays the shared stream it was
+        measured on; the ordering this pin exists for is the dice's to stage,
+        not to decide.
         """
+        from backend.ai import enemy_ai as _EA
+        monkeypatch.setattr(_EA, "ai_rng", lambda *a, **k: random)
         _peace_with_austria(live.world)
         for _ in range(4):
             body = live.end_turn()

@@ -84,6 +84,26 @@ S14I_SEAMS_BY_ROW = {
            "backend.game_logic.instruments:void_unlawful_joins=False",
            "backend.game_logic.war_council:guarantee_deterred=any(g.get('guarantor') != a[1] for g in __import__('backend.game_logic.instruments').game_logic.instruments.live_guarantees_of(a[0], a[3]))"],
     "D7": ["backend.game_logic.instruments:honour_on_road=[]"],
+    # S14i part 2 — D8 … D13.
+    "D8": ["backend.game_logic.agendas:violation_latch_reads_the_map=False",
+           "backend.game_logic.emergent_designs:emergent_design_refreshes=False"],
+    "D9": ["backend.game_logic.ai_diplomacy:province_letter_to_player=None"],
+    "D10": ["backend.game_logic.diplomacy:personality_term=min(a[0], a[1]) if (a[2] == 'vassalage' or a[3] < -3) else a[0]",
+            "backend.game_logic.diplomacy:held_cession_rate=0.0",
+            "backend.game_logic.diplomacy:situation_changed_is_free=False",
+            "backend.game_logic.diplomacy:forced_alliance_step=0",
+            "backend.game_logic.diplomacy:arrival_drift_line=''"],
+    "D11": ["backend.game_logic.ai_diplomacy:sweetener_multiplier=float(a[0])",
+            "backend.game_logic.ai_diplomacy:compact_aim_for=a[2][0] if a[2] else ''"],
+    "D12": ["backend.game_logic.vassal:bribed_client_marches=False",
+            "backend.game_logic.settlement_third_party:client_war_waits_for_france=False",
+            "backend.game_logic.vassal:onramp_assimilates=False",
+            "backend.game_logic.vassal:client_follows_lord_footing='ARMISTICE' if a[0] in ('ARMISTICE', 'DEFENSIVE_ALLIANCE', 'ALLIANCE') else 'PEACE'"],
+    "D13": ["backend.ai.enemy_ai:cooldown_by_target=False",
+            "backend.ai.enemy_ai:reevaluates_blocked_rung=False",
+            "backend.ai.enemy_ai:front_means_hostile=False",
+            "backend.ai.enemy_ai:ai_rng=__import__('random')",
+            "backend.game_logic.turn_manager:separate_ai_phases=False"],
 }
 OCT27_SEAMS_DOWN += [spec for row in S14I_SEAMS_BY_ROW for spec in S14I_SEAMS_BY_ROW[row]]
 

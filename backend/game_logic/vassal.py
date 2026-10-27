@@ -936,6 +936,17 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str, *,
             set_diplomatic_state(world, vassal, other, "PEACE", "vassal_reconcile")
 
 
+def client_follows_lord_footing(lord_state: str) -> str:
+    """OCT27-D12(d) (ruled as recommended, S14i): the footing a client's
+    war ends on when its lord is not at war with that court — a TRUCE only
+    where the lord stands in one; PEACE where the lord is that court's ally
+    (an armistice there could expire into war against the lord's own ally
+    and be settled the same tick) or at peace with it. Down: a truce for an
+    ally too (`'ARMISTICE' if a[0] in ('ARMISTICE', 'DEFENSIVE_ALLIANCE',
+    'ALLIANCE') else 'PEACE'`)."""
+    return "ARMISTICE" if lord_state == "ARMISTICE" else "PEACE"
+
+
 def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
                               skip=()):
     """S14E-D15: what vassalage does to the pair (`vassal`, `other`) - the
@@ -943,8 +954,10 @@ def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
     conquest's quote and the conquest itself ask the same question.
 
     ("war", "PEACE" | "ARMISTICE") - the client's war with `other` ends where
-    the lord is not at war with `other` (a truce where the lord stands in one
-    or is `other`'s ally), unless the client LEADS the instance (its own war);
+    the lord is not at war with `other` (a truce where the lord stands in one;
+    OCT27-D12(d): peace where it is `other`'s ally,
+    `client_follows_lord_footing`), unless the client LEADS the instance (its
+    own war);
     ("alliance", "PEACE") - the client's alliance with a court the lord is at
     war with is broken; None - nothing moves."""
     from backend.game_logic.settlement_helpers import _find_active_war_instance_for_pair
@@ -957,9 +970,7 @@ def _vassalage_entry_decision(world, lord: str, vassal: str, other: str, *,
         instance = instances.get(war_id) if war_id else None
         if client_leads_its_own_war(vassal, other, instance):
             return None  # the client's own war — it leads it
-        followed = ("ARMISTICE"
-                    if lord_state in ("ARMISTICE", "DEFENSIVE_ALLIANCE", "ALLIANCE")
-                    else "PEACE")
+        followed = client_follows_lord_footing(lord_state)   # OCT27-D12(d)
         return ("war", followed)
     if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
         return ("alliance", "PEACE")
@@ -4803,6 +4814,15 @@ def transfer_vassal(world, vassal_name: str, to_lord: str,
 # MARSHAL ASSIMILATION (EC-K.1)
 # ═══════════════════════════════════════════════════════
 
+def onramp_assimilates() -> bool:
+    """OCT27-D12(c) seam (ruled as recommended, S14i): the vassalage
+    on-ramps — the player accepting a minor's offered crown and an AI
+    hegemon's bandwagon submission — assimilate the client's marshals as
+    every other road to a vassal does (`make_vassal`, the settlement's
+    vassalage, the treaty ratifier). Down (False): the client kept them."""
+    return True
+
+
 def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
     """
     Add vassal nation's marshals to the lord's control.
@@ -5473,16 +5493,57 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     if current_state == "ARMISTICE":
         # A respected armistice is a treaty — the break is not hostile.
         outcome = "free_armistice"
-    else:
-        from backend.game_logic.diplomacy import (
-            _process_war_cascade,
-            cleanup_war_end,
-            set_diplomatic_state,
-        )
-        from backend.game_logic.settlement_helpers import (
-            CascadeContext,
-            ensure_war_instance_for_pair,
-        )
+    elif _client_takes_the_field(world, vassal_name, lord, briber,
+                                 granted_regions) != "war":
+        outcome = "free_peace_fallback"
+
+    _defection_aftermath(world, vassal_name, lord, briber)
+    return {"outcome": outcome, "lord": lord}
+
+
+def bribed_client_marches() -> bool:
+    """OCT27-D12(a) seam (ruled as recommended, S14i): a client bribed
+    away by a court at WAR with its old lord takes the field against him
+    under its new lord (VASSAL_DEEPENING §2.1: "the army joins the enemy
+    order of battle") — the free-and-hostile branch's own war block
+    (`_client_takes_the_field`). Down (False): the transfer left the client
+    at PEACE with its new lord's enemy (4 of 6 organic seeds)."""
+    return True
+
+
+# The standard a client marches under, in the defection's line — an eagle
+# where the court's arms are one, its colours otherwise (OCT27-D12(a)).
+_EAGLE_COURTS = frozenset({"Russia", "Austria", "Prussia", "France"})
+
+
+def marches_under_line(world, vassal: str, new_lord: str, old_lord: str) -> str:
+    """OCT27-D12(a): "Switzerland marches under Russia's eagle against France." """
+    standard = "eagle" if new_lord in _EAGLE_COURTS else "colours"
+    return (f"{display_nation(vassal)} marches under {display_nation(new_lord)}'s "
+            f"{standard} against {display_nation(old_lord)}.")
+
+
+def _client_takes_the_field(world, vassal_name: str, lord: str, briber: str,
+                            granted_regions, *, exit_old_wars: bool = True,
+                            fallback_peace: bool = True) -> str:
+    """The bribed client's WAR on its former lord — VS-6's block, lifted
+    unchanged out of `_defect_vassal_free_and_hostile` so the transfer road
+    (OCT27-D12(a)) writes the same war: the C2 exit from the old wars (the
+    free road only — a transfer has already followed its new lord out of
+    them, `_reconcile_vassal_diplomacy`), the war instance, the cascade, a
+    live mission's books, the VS-3 reclaim. Returns "war", or
+    "peace_fallback" when the instance refuses the pair (F8b: plain PEACE,
+    written only where `fallback_peace`)."""
+    from backend.game_logic.diplomacy import (
+        _process_war_cascade,
+        cleanup_war_end,
+        set_diplomatic_state,
+    )
+    from backend.game_logic.settlement_helpers import (
+        CascadeContext,
+        ensure_war_instance_for_pair,
+    )
+    if exit_old_wars:
         # Post-build review C2 (HIGH, reproduced live): a cascaded-in
         # satellite is an active SAME-SIDE participant of its lord's war
         # instance(s) — ensure_war_instance_for_pair(vassal, lord) would
@@ -5507,45 +5568,50 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
                     world._make_diplo_key(vassal_name, other),
                     conclude_objectives=True,
                 )
-        war_instance_result = ensure_war_instance_for_pair(
-            world, vassal_name, lord,
-            entry_path="coalition_defection",
-            reason="attempt_vassal_bribe",
+    war_instance_result = ensure_war_instance_for_pair(
+        world, vassal_name, lord,
+        entry_path="coalition_defection",
+        reason="attempt_vassal_bribe",
+    )
+    if war_instance_result.get("ok"):
+        set_diplomatic_state(world, vassal_name, lord, "WAR",
+                             "coalition_defection")
+        cascade_ctx = CascadeContext(
+            war_id=war_instance_result["war_id"],
+            root_aggressor=vassal_name,
+            war_entry_entries=[],
         )
-        if war_instance_result.get("ok"):
-            set_diplomatic_state(world, vassal_name, lord, "WAR",
-                                 "coalition_defection")
-            cascade_ctx = CascadeContext(
-                war_id=war_instance_result["war_id"],
-                root_aggressor=vassal_name,
-                war_entry_entries=[],
-            )
-            # S14E-X112: the cascade's -20s keep a live mission's books
-            from backend.game_logic.diplomatic_dialogue import (
-                mission_pair_snapshot, note_mission_shock)
-            _mission_pair_before = mission_pair_snapshot(world)
-            _process_war_cascade(world, vassal_name, lord, ctx=cascade_ctx)
-            note_mission_shock(world, _mission_pair_before, "vassal_defection",
-                               briber, vassal_name)
-            # VS-3 reclaim: the gift flips back when the vassal turns hostile
-            reclaimed = []
-            for granted_name in granted_regions:
-                granted_region = world.regions.get(granted_name)
-                if (granted_region is not None
-                        and getattr(granted_region, 'controller', '') == vassal_name):
-                    granted_region.controller = lord
-                    reclaimed.append(granted_name)
-            if reclaimed:
-                world.invalidate_active_nations_cache()
-        else:
-            # F8b fallback: war-instance conflict → plain independence.
-            # PINNED: the graceful fallback keeps the VS-3 granted land
-            # (consistent with the rebellion path's armistice/graceful arms
-            # — reclaiming during a peaceful break would itself be hostile).
-            set_diplomatic_state(world, vassal_name, lord, "PEACE",
-                                 "coalition_defection_independent")
-            outcome = "free_peace_fallback"
+        # S14E-X112: the cascade's -20s keep a live mission's books
+        from backend.game_logic.diplomatic_dialogue import (
+            mission_pair_snapshot, note_mission_shock)
+        _mission_pair_before = mission_pair_snapshot(world)
+        _process_war_cascade(world, vassal_name, lord, ctx=cascade_ctx)
+        note_mission_shock(world, _mission_pair_before, "vassal_defection",
+                           briber, vassal_name)
+        # VS-3 reclaim: the gift flips back when the vassal turns hostile
+        reclaimed = []
+        for granted_name in granted_regions:
+            granted_region = world.regions.get(granted_name)
+            if (granted_region is not None
+                    and getattr(granted_region, 'controller', '') == vassal_name):
+                granted_region.controller = lord
+                reclaimed.append(granted_name)
+        if reclaimed:
+            world.invalidate_active_nations_cache()
+        return "war"
+    # F8b fallback: war-instance conflict → plain independence.
+    # PINNED: the graceful fallback keeps the VS-3 granted land
+    # (consistent with the rebellion path's armistice/graceful arms
+    # — reclaiming during a peaceful break would itself be hostile).
+    if fallback_peace:
+        set_diplomatic_state(world, vassal_name, lord, "PEACE",
+                             "coalition_defection_independent")
+    return "peace_fallback"
 
+
+def _defection_aftermath(world, vassal_name: str, lord: str, briber: str) -> None:
+    """The free road's aftermath, unchanged: the marshals home, the sibling
+    shock, the two relation writes, the threat relief."""
     # Marshals return to the freed nation (mirror the rebellion block)
     for marshal in list(world.marshals.values()):
         if (getattr(marshal, 'original_nation', None) == vassal_name
@@ -5569,8 +5635,6 @@ def _defect_vassal_free_and_hostile(world, vassal_name: str, briber: str) -> dic
     if lord:
         from backend.game_logic.coalition import reduce_threat
         reduce_threat(world, 10, "vassal_defection", target=lord)
-
-    return {"outcome": outcome, "lord": lord}
 
 
 def attempt_vassal_bribe(world, nation: str) -> List[dict]:
@@ -5700,8 +5764,20 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
                     world._make_diplo_key(nation, vassal_name),
                     conclude_objectives=True,
                 )
+            # OCT27-D12(a): the old lord's gifts, read before the transfer
+            # clears them (`transfer_vassal` pops `granted_regions`).
+            granted_before = list(state.get("granted_regions") or [])
             transfer_result = transfer_vassal(
                 world, vassal_name, nation, reason="coalition_defection")
+            # OCT27-D12(a): bought by a court at war with its old lord, the
+            # client takes the field against him under its new lord.
+            marches = bool(
+                transfer_result.get("success")
+                and bribed_client_marches()
+                and world.is_at_war(nation, lord)
+                and _client_takes_the_field(
+                    world, vassal_name, lord, nation, granted_before,
+                    exit_old_wars=False, fallback_peace=False) == "war")
             # Post-build review C8: losing a satellite relieves the anti-
             # player threat on every other loss path (rebellion −10, release
             # −8, defection-free −10) — the transfer outcome is the same
@@ -5717,7 +5793,10 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
                 f"— bribed away from {display_nation(lord)}, it now serves "
                 f"{display_nation(nation)}."
             )
+            if marches:
+                message += " " + marches_under_line(world, vassal_name, nation, lord)
         else:
+            marches = False
             world.nation_gold[nation] = int(
                 world.nation_gold.get(nation, 0) - BRIBE_FREE_COST)
             # IQ1-2 (3): the cheaper outcome, same purchase.
@@ -5742,6 +5821,7 @@ def attempt_vassal_bribe(world, nation: str) -> List[dict]:
                 "lord": lord,
                 "briber": nation,
                 "outcome": outcome,
+                "marches": bool(marches),   # OCT27-D12(a)
             })
         # GE-3: a satellite bought away during the Congress breaks the hold
         # (both outcomes — the transfer never passes `record_vassal_break`).

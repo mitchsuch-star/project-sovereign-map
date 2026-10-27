@@ -1589,7 +1589,28 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #        decays.
 # The series before S14i (the sweep's): SERIES_BEFORE_THE_RULINGS below.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 15, 20, 17, 14, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by S14i part 2 (the rulings OCT27-D8 … D13; `SYSTEMS_REFERENCE.md`
+# §158). ONE ruling moves the ambient board; the other five, held down
+# alone, are byte-identical (`tools/_s14i_series_arms.py --rows D8,…,D13` →
+# `tools/_s14i_p2_series_arms_final.json`; arm 0, every part-2 ruling down,
+# reproduces part 1's series byte for byte):
+#   D13 (OCT27-D13) the enemy generals — at [10]. Two of its parts move the
+#        board, each alone diverging sooner and together at [10]: the
+#        failed-order cooldown keyed by (action, target) (D13(a), alone at
+#        [8]) and the generals' own dice, one stream per (campaign seed,
+#        turn, nation) (D13(c), alone at [6]); the re-ask, the hostile front
+#        and the split phase guards, held down alone, are byte-identical on
+#        the final tree. On the re-timed board Switzerland rebels at turn 13,
+#        not 11, and Holland's loyalty no longer recovers — it drains to 36
+#        and Holland is bought away at turn 17 (the VS-6 transfer) — so the
+#        unattended France's alarm falls to 0 by turn 18, where her corps had
+#        won two fields (turns 17, 20) on part 1's board.
+# Part 1's series: SERIES_BEFORE_PART_2 below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# Part 1's series (part 2's prior; S14i part 1's ALL):
+SERIES_BEFORE_PART_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 15, 20, 17, 14, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The sweep's series (S14i's prior; the October 27 sweep's ALL):
 SERIES_BEFORE_THE_RULINGS = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The series before the October 27 sweep (HEAD's BASELINE_SERIES: the S14f p3 record's arm "0"; the sweep's `prior`):

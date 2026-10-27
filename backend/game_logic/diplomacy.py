@@ -304,6 +304,12 @@ _MATERIAL_WITHOUT_SCALAR = frozenset({
 })
 
 
+def war_weariness_acceptance_mod(turns_at_war: int) -> int:
+    """R142: +2 a turn at war, capped at +20 — ONE curve, read by the
+    bilateral scorer and the confirm card's arrival forecast (OCT27-D10(i))."""
+    return min(20, max(0, int(turns_at_war)) * 2)
+
+
 def war_age_acceptance_mod(turns_at_war, *, extracts_value: bool) -> int:
     """How much a court resents being asked to close a war this young.
 
@@ -3444,6 +3450,20 @@ def truce_front_of_an_ally(world, nation: str, region_name: str) -> Optional[Dic
     return {"ally": ally, "enemies": enemies} if enemies else None
 
 
+def hand_back_province(world, asker: str, holder: str, region: str) -> None:
+    """The grant's writes — exactly as a treaty cession moves a province
+    (controller, stability 50, the title record). ONE place: the ask's yes
+    (`ask_return_province`) and the player's yes to a court's letter
+    (OCT27-D9, `ai_diplomacy.answer_province_return`)."""
+    from backend.game_logic import game_end as _ge
+    region_obj = world.regions[region]
+    region_obj.controller = asker
+    region_obj.stability = 50
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+    _ge.record_province_title(world, region, _ge.TITLE_TREATY, holder, asker)
+
+
 def ask_return_province(world, asker: str, holder: str, region: str, *,
                         charge_dp: bool = True) -> Dict:
     """DD-1 S8 Step 3 (SFR-D42, October 12, 2026): `asker` asks its ally
@@ -3482,12 +3502,7 @@ def ask_return_province(world, asker: str, holder: str, region: str, *,
     words = ask_return_words(world, asker, holder, region, answer)
     accepted = bool(answer.get("accepts"))
     if accepted:
-        region_obj = world.regions[region]
-        region_obj.controller = asker
-        region_obj.stability = 50
-        if hasattr(world, "invalidate_active_nations_cache"):
-            world.invalidate_active_nations_cache()
-        _ge.record_province_title(world, region, _ge.TITLE_TREATY, holder, asker)
+        hand_back_province(world, asker, holder, region)
     event = {
         "type": "province_returned",
         "nation": asker, "target_nation": holder, "region": region,
@@ -7471,7 +7486,8 @@ def cleanup_war_end(world, diplo_key: str, *,
 # TERRITORY DEMAND ANALYSIS (PL-19/PL-20 shared helper)
 # ═══════════════════════════════════════════════════════
 
-def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
+def analyze_territory_demands(demands: list, target_nation: str, world,
+                              proposer: Optional[str] = None) -> Dict:
     """Analyze territory demands for cost scaling and penalty calculations.
 
     Shared by PL-19 (relation penalty) and PL-20 (acceptance formula).
@@ -7537,6 +7553,25 @@ def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
         escalation = -5 - (3 * idx)
         fallback_escalating_costs.append(escalation)
 
+    # OCT27-D10(iv): a homeland province of the target the proposer already
+    # holds is priced at the status-quo rate (`held_cession_rate`), its
+    # escalation continuing the fresh cessions' index.
+    held_costs = []
+    rate = float(held_cession_rate()) if proposer else 0.0
+    if rate > 0:
+        homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(target_nation, []) or [])
+        held = [r for r in dict.fromkeys(demanded_regions_raw)
+                if r not in target_regions and r in homeland
+                and getattr(regions_map.get(r), "controller", None) == proposer]
+        held = sorted(held, key=lambda r: max(0.5, getattr(regions_map.get(r), "income_value", 100) / 100))
+        for idx, r in enumerate(held):
+            escalation = -5 - (3 * (len(sorted_demanded) + idx))
+            weight = max(0.5, getattr(regions_map.get(r), "income_value", 100) / 100)
+            cost = escalation * weight * rate
+            if r == target_capital:
+                cost *= 2
+            held_costs.append((r, cost))
+
     return {
         "demanded_regions": sorted_demanded,
         "demanded_count": demanded_count,
@@ -7548,6 +7583,7 @@ def analyze_territory_demands(demands: list, target_nation: str, world) -> Dict:
         "escalating_costs": escalating_costs,
         "fallback_escalating_costs": fallback_escalating_costs,
         "territory_demand_count_fallback": territory_demand_count_fallback,
+        "held_costs": held_costs,
     }
 
 
@@ -9626,6 +9662,122 @@ def acceptance_reads_the_field(world, proposer: str, target: str) -> bool:
     return False
 
 
+def bilateral_war_credit(war_score, proposal_type: str,
+                         military_supremacy: int = 0) -> Dict[str, Any]:
+    """OCT27-D10(ii) (ruled as recommended, S14i — the fold, its number
+    MEASURED): the war's whole credit in the bilateral acceptance, read in ONE
+    place — DDB-X5's weight (`bilateral_war_score_weight`, the settlement
+    table's own 0.65), R8's military pressure (0.15 a point, to 15) and R3's
+    battlefield diplomacy (+10 past 20 on a peace or an armistice, never
+    beside military supremacy). The audit's finding was the drift: DDB-X5
+    raised the weight and never revisited R8 and R3, because they lived in
+    three places. The TOTAL is kept: measured on one package against the
+    settlement table, the three together read the war at the table's own felt
+    credit (Britain at war score 50: the table 56, the bilateral 54; at 100:
+    93 and 92), while the weight alone put the bilateral 10-16 points under
+    the table from war score 30 up and re-opened the two-scorer disagreement
+    DDB-X5 closed. There is no over-count against the table to cap; a lower
+    bilateral credit than the table's would be a new balance ruling."""
+    war_score = float(war_score)
+    weighted = war_score * bilateral_war_score_weight()
+    battlefield = 0
+    if (war_score > 20
+            and proposal_type in ("peace", "armistice_losing", "armistice_winning")
+            and int(military_supremacy) == 0):  # Does NOT stack with Military Supremacy
+        battlefield = 10
+    pressure = int(min(15, war_score * 0.15)) if war_score > 0 else 0
+    return {"weighted": weighted, "battlefield": battlefield, "pressure": pressure,
+            "total": weighted + battlefield + pressure}
+
+
+def personality_term(peace_mod: int, harsh_mod: int, proposal_type: str,
+                     demand_total: float) -> int:
+    """OCT27-D10(iii) (ruled as recommended, S14i): the personality term
+    RAMPS from the court's peace disposition (demands worth -3 or less) to
+    its harsh one (-12 or more) — the flip was a 20-point cliff for a dove at
+    -3. A vassalage stays wholly harsh. Monotone non-increasing in harshness,
+    the July 12 clamp kept. Down: the cliff (`min(a[0], a[1]) if (a[2] ==
+    'vassalage' or a[3] < -3) else a[0]`)."""
+    harsh = min(int(peace_mod), int(harsh_mod))
+    if proposal_type == "vassalage":
+        return int(harsh)
+    if float(demand_total) >= -3:
+        return int(peace_mod)
+    fraction = min(1.0, (-3.0 - float(demand_total)) / 9.0)
+    return int(round(int(peace_mod) + (harsh - int(peace_mod)) * fraction))
+
+
+def held_cession_rate() -> float:
+    """OCT27-D10(iv) (ruled as recommended, S14i): a province of the
+    target's homeland that the proposer already holds is no longer demanded
+    for free — it is priced at HALF its fresh cession (the status-quo rate:
+    the court yields its claim, not the ground; the measured number under the
+    delegation). Down (0.0): free."""
+    return 0.5
+
+
+def refund_envoy_dp(world, pit) -> int:
+    """The DP an envoy carried out come back unspent — a proposal voided by
+    a league's formation (the coalition's FINAL-1) or turned back because
+    the situation changed under him (OCT27-D10(v)). ONE door; returns the
+    points refunded. Added to the purse as FINAL-1 always did: the next
+    refill's bank (DP_BANK_CAP) trims any excess."""
+    dp_cost = int((pit or {}).get("dp_cost", 0) or 0)
+    if dp_cost > 0:
+        world.diplomatic_points = int(getattr(world, "diplomatic_points", 0) or 0) + dp_cost
+    return max(0, dp_cost)
+
+
+def situation_changed_is_free() -> bool:
+    """OCT27-D10(v) seam (ruled as recommended, S14i): an envoy turned back
+    because the situation changed under him is not a refusal — his DP come
+    back and nothing is cooled. Down (False): punished like a refusal."""
+    return True
+
+
+def forced_alliance_step(world, key: str, state: str) -> int:
+    """OCT27-D10(vi) (ruled as recommended, S14i): the slide clock walks
+    the forced alliance's own -10 a turn (`_process_forced_alliance_drift`)
+    beside the ordinary drift — the clock read a forced bond as lasting
+    longer than it would. Down (0)."""
+    if state != "ALLIANCE":
+        return 0
+    return -10 if (getattr(world, "alliance_origins", {}) or {}).get(key) == "forced" else 0
+
+
+def arrival_drift_line(world, proposal: Dict, result: Dict) -> str:
+    """OCT27-D10(i) (ruled as recommended, S14i): the confirm card's
+    forecast. Talleyrand's answer is read on the turn he arrives — the next
+    (`_process_proposal_in_transit` waits until `turn_sent < current_turn`) —
+    and in a young war two terms move by then: the war-age sting fades
+    (about 8 a turn, `war_age_acceptance_mod`) and the weariness grows (+2 a
+    turn to its cap), so the card under-read the arrival by about 10. One
+    line, no formula change: "By his arrival Austria will be about +10
+    readier — the young war's sting fades and its weariness grows." "" when
+    the war-age term is not on the card (an old war, a white peace, no war).
+    Down ("")."""
+    components = (result or {}).get("components") or {}
+    age_now = int(components.get("war_age_penalty", 0) or 0)
+    if age_now >= 0:
+        return ""
+    proposer = str(proposal.get("proposer_nation") or getattr(world, "player_nation", "France"))
+    target = str(proposal.get("target_nation") or "")
+    start = (getattr(world, "war_start_turns", {}) or {}).get(world._make_diplo_key(proposer, target))
+    if start is None:
+        return ""
+    t = max(0, int(world.current_turn) - int(start))
+    sting = int(war_age_acceptance_mod(t + 1, extracts_value=True)) - age_now
+    weariness = war_weariness_acceptance_mod(t + 1) - war_weariness_acceptance_mod(t)
+    gain = sting + weariness
+    if gain <= 0:
+        return ""
+    from backend.game_logic.formations import formed_display_name
+    why = ("the young war's sting fades and its weariness grows" if weariness > 0
+           else "the young war's sting fades")
+    return (f"By his arrival {formed_display_name(world, target)} will be about +{gain} "
+            f"readier — {why}.")
+
+
 def calculate_acceptance(proposal: Dict, world) -> Dict:
     """Calculate acceptance score for a diplomatic proposal.
 
@@ -9698,8 +9850,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # turn where the field has moved — as the AI's has been since PC-F5.
     if acceptance_reads_the_field(world, proposer, target):
         war_score = int(live_war_score_for(world, proposer, target))
-    # DDB-X5 (DW-2, Pre-Deploy S13b): the settlement scorer's felt weight.
-    war_score_mod = war_score * bilateral_war_score_weight()
+    # DDB-X5 (DW-2, Pre-Deploy S13b): the settlement scorer's felt weight —
+    # OCT27-D10(ii): read from the war's one credit (`bilateral_war_credit`).
+    war_score_mod = bilateral_war_credit(war_score, proposal_type)["weighted"]
 
     # ── Relation Modifier (R141: dampened during WAR) ──
     relation = world.nation_relations.get(diplo_key, 0)
@@ -9718,7 +9871,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         _war_starts = getattr(world, 'war_start_turns', {}) or {}
         war_start = _war_starts.get(diplo_key, world.current_turn)
         turns_at_war = max(0, int(world.current_turn) - int(war_start))
-        war_weariness_mod = min(20, turns_at_war * 2)
+        war_weariness_mod = war_weariness_acceptance_mod(turns_at_war)
         if diplo_key in _war_starts:
             turns_at_war_for_age = turns_at_war
 
@@ -9820,11 +9973,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # PL-20 §A: Escalating territory cost (replaces flat -5/region)
     import math
     territory_analysis = analyze_territory_demands(
-        proposal.get("demands", []), target, world
+        proposal.get("demands", []), target, world, proposer=proposer
     )
     territory_penalty = 0.0
     # Sum escalating costs from analyzed regions
     for _r, cost in territory_analysis["escalating_costs"]:
+        territory_penalty += cost
+    # OCT27-D10(iv): the held homeland provinces at the status-quo rate
+    for _r, cost in territory_analysis.get("held_costs", []):
         territory_penalty += cost
     # Backward compat fallback for value-only demands (no regions list)
     for fallback_cost in territory_analysis["fallback_escalating_costs"]:
@@ -9898,10 +10054,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
 
     # ── Personality Modifier ──
     peace_mod, harsh_mod = PERSONALITY_MODIFIERS.get(target_personality, (0, 0))
-    is_harsh = proposal_type in ("vassalage",)
-    # Also check if demands outweigh sweeteners significantly
-    if demand_total < -3:  # PL-12-C: was -10 (100g demand = -5 now triggers)
-        is_harsh = True
+    # PL-12-C drew the harsh line at demand_total < -3 (it was -10: a 100g
+    # demand = -5 crosses it); OCT27-D10(iii) ramps the term from there to
+    # -12 instead of flipping it (`personality_term`); a vassalage is harsh.
     # A harsh proposal may only make the target LESS willing through
     # personality, never MORE. For a hawk / schemer (harsh_mod >= peace_mod)
     # the raw flip RAISED the score, so adding a trivial demand IMPROVED the
@@ -9912,7 +10067,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # Clamp to keep the dove penalty (min(+10, -10) = -10) while removing the
     # hawk/schemer inversion (min(-5, +5) = -5), guaranteeing acceptance is
     # monotonic non-increasing in harshness.
-    personality_mod = min(peace_mod, harsh_mod) if is_harsh else peace_mod
+    personality_mod = personality_term(peace_mod, harsh_mod, proposal_type, demand_total)   # OCT27-D10(iii)
 
     # ── Military Supremacy (§6b.1) ── (world-scoped — item 7)
     military_supremacy = 0
@@ -9922,17 +10077,12 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         if cap_region and cap_region.controller == proposer:
             military_supremacy = 25
 
-    # ── Battlefield Diplomacy (COALITION_SPEC R3) ──
-    battlefield_diplomacy = 0
-    if (war_score > 20
-            and proposal_type in ("peace", "armistice_losing", "armistice_winning")
-            and military_supremacy == 0):  # Does NOT stack with Military Supremacy
-        battlefield_diplomacy = 10
-
-    # R8: Military pressure from war score
-    military_pressure = 0
-    if war_score > 0:
-        military_pressure = int(min(15, war_score * 0.15))
+    # ── Battlefield Diplomacy (COALITION_SPEC R3) and R8's military pressure ──
+    # OCT27-D10(ii): the war's one credit (`bilateral_war_credit`) — the
+    # weight, R8 and R3 read in one place, the total kept.
+    _war_credit = bilateral_war_credit(war_score, proposal_type, military_supremacy)
+    battlefield_diplomacy = int(_war_credit["battlefield"])
+    military_pressure = int(_war_credit["pressure"])
 
     # Use whichever is higher (they don't stack)
     situational_bonus = max(military_supremacy, battlefield_diplomacy, military_pressure)
@@ -14997,12 +15147,16 @@ def slide_clock(world, other: str, state: str = "") -> Optional[Dict[str, Any]]:
     relation = int(world.nation_relations.get(key, 0) or 0)
     counted = int((getattr(world, "turns_below_threshold", {}) or {}).get(key, 0) or 0)
     court = _court_exemption(world)
-    rate = -int(relation_drift_step(world, player, other, relation=relation, _court=court))
+    forced = int(forced_alliance_step(world, key, state))   # OCT27-D10(vi)
+    rate = -(int(relation_drift_step(world, player, other, relation=relation, _court=court)) + forced)
     r, c = relation, counted
     under_in = 0 if relation < line else None
     lapse_in = None
     for n in range(1, 100):
-        r += int(relation_drift_step(world, player, other, relation=r, _court=court))
+        # the write's own clamp (`modify_nation_relation`): only the forced
+        # step can carry a relation to the bound
+        r = max(-100, min(100, r + int(relation_drift_step(world, player, other, relation=r,
+                                                           _court=court)) + forced))
         if under_in is None and r < line:
             under_in = n
         c = c + 1 if (line - r) >= AUTO_DOWNGRADE_GAP else 0

@@ -52,7 +52,10 @@ class TestContinentalSystemClearOnRelease:
 class TestReconcileVassalDiplomacy:
     """R48: Vassal's conflicting alliances/wars resolved on vassalization."""
 
-    def test_vassal_war_with_lord_ally_becomes_armistice(self):
+    def test_vassal_war_with_lord_ally_becomes_peace(self):
+        """RE-SEATED by OCT27-D12(d) (S14i part 2, October 27, 2026): a client
+        at war with its lord's ally makes PEACE — an armistice there could
+        expire into war against the lord's own ally (it was ARMISTICE)."""
         world = make_world()
         # France allied with Austria, Saxony at war with Austria
         fa_key = world._make_diplo_key("France", "Austria")
@@ -63,7 +66,16 @@ class TestReconcileVassalDiplomacy:
         fs_key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[fs_key] = "OPEN_BORDERS"
         create_vassal_treaty(world, "France", "Saxony")
-        # Saxony-Austria should now be ARMISTICE
+        assert world.diplomatic_states[sa_key] == "PEACE"
+
+    def test_vassal_war_with_lord_truce_partner_becomes_armistice(self):
+        """OCT27-D12(d): where the lord stands in a truce, the client does too."""
+        world = make_world()
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "ARMISTICE"
+        sa_key = world._make_diplo_key("Saxony", "Austria")
+        world.diplomatic_states[sa_key] = "WAR"
+        world.diplomatic_states[world._make_diplo_key("France", "Saxony")] = "OPEN_BORDERS"
+        create_vassal_treaty(world, "France", "Saxony")
         assert world.diplomatic_states[sa_key] == "ARMISTICE"
 
     def test_vassal_ally_of_lord_enemy_becomes_peace(self):

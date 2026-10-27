@@ -5940,7 +5940,14 @@ class TestS14G11TheTrapSeam:
         w.current_turn -= AGENDA_VIOLATION_COOLDOWN
         cap = w.MAX_EVENT_LOG_SIZE
         w.event_log = [{"type": "noise", "turn": int(w.current_turn)} for _ in range(cap)]
-        assert violation_on_cooldown(w, "France", "Prussia") is True     # the rolled log fails SAFE
+        # RE-SEATED by OCT27-D8(a) (S14i part 2, October 27, 2026): the latch's
+        # record is the serialized map; on a world that keeps it a full log
+        # closes nothing (a violation written to the log alone is not on it) …
+        assert violation_on_cooldown(w, "France", "Prussia") is False
+        # … and a save from before the map keeps the rolled log failing SAFE
+        # for its first window.
+        w.agenda_violation_map_since = int(w.current_turn)
+        assert violation_on_cooldown(w, "France", "Prussia") is True
 
     def test_the_helper_is_deck_agnostic(self, _r11_boot, monkeypatch):
         """Poland's Guard the Vistula and Ulster/Munster's Erin Free read through

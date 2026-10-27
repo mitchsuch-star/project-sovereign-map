@@ -382,6 +382,9 @@ PROPOSAL_TYPE_DISPLAY = {
     # their own ("an a client's petition proposal", "Switzerland's a
     # client's petition offer"). The popup header keeps its own string.
     "client_petition": "Client's Petition",
+    # OCT27-D9 (S14i): an allied court asks France for its home province
+    # back — a letter, Return / Keep. NO article (the rule above).
+    "province_return_ask": "Request for a Home Province",
     # GE-3 "The Congress of Paris" (ENDGAME_PLAN §2.4): a great power's
     # answer to the summons is read through the acceptance formula for a
     # proposal type `recognition` — the order the Emperor asks Europe to

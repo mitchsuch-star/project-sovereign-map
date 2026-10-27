@@ -2510,9 +2510,8 @@ def form_coalition(qualifying_nations: List[str], world,
                 else:
                     world.talleyrand_state = "IDLE"
             # FINAL-1: Refund DP spent on the voided proposal (dp_cost stored at top level)
-            dp_cost = pit.get("dp_cost", 0)
-            if dp_cost > 0:
-                world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
+            from backend.game_logic.diplomacy import refund_envoy_dp
+            refund_envoy_dp(world, pit)
 
     # 3. United cause: +10 relation between all coalition members
     # (S14E-X37: booked on a live mission's pair — an UNDERMINE on two
@@ -2745,9 +2744,8 @@ def _void_for_joiner(world, nation: str) -> Optional[str]:
                 mission["paused"] = False
             else:
                 world.talleyrand_state = "IDLE"
-        dp_cost = pit.get("dp_cost", 0)
-        if dp_cost > 0:
-            world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
+        from backend.game_logic.diplomacy import refund_envoy_dp
+        refund_envoy_dp(world, pit)   # FINAL-1's refund, the one door
     dm = getattr(world, "dialogue_manager", None)
     if dm is not None:
         dm.remove_matching(lambda d: d.get("target_nation", "") == nation)

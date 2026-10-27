@@ -337,16 +337,30 @@ def _drive(script, turns, name, levers=(), hooks=True):
 # (SCORE_FINISH_SPEC.md §3 Step 5 — diplomacy C3, attributed to both).
 from backend.game_logic import contingent as _CG  # noqa: E402
 
+# OCT27-D9 (S14i part 2, October 27, 2026): on the courted drive Austria,
+# France's defensive ally by turn 19, asks for Bohemia back — the province
+# letter (`ai_diplomacy.province_letter_to_player`); the driver keeps it, the
+# relation falls 5 and the courtship lands a turn later (receptive 19 -> 20,
+# the beat 20 -> 21; with the letter held down the drive reads 19 / [20]
+# verbatim). These arms measure the window, the courier and the forecast, not
+# that ruling (its pins: `tests/test_oct27_ai_sweep_batches.py::TestOCT27D9`),
+# so the letter rides down with the pre-Step-5 board.
+def _NO_PROVINCE_LETTER(*a, **k):
+    return None
+
+
 _PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),
                     (_IN, "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE", False),
                     (_WC, "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE", False),
                     (_CG, "THE_CLIENT_SENDS_ITS_CONTINGENT", False),
-                    (ED, "A_CLIENTS_PARTITION_IS_THE_HEGEMONS", False))
+                    (ED, "A_CLIENTS_PARTITION_IS_THE_HEGEMONS", False),
+                    (AD, "province_letter_to_player", _NO_PROVINCE_LETTER))
 _PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
                         "--lever", "backend.game_logic.intent:A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE=0",
                         "--lever", "backend.game_logic.war_council:THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE=0",
                         "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
-                        "--lever", "backend.game_logic.emergent_designs:A_CLIENTS_PARTITION_IS_THE_HEGEMONS=0"]
+                        "--lever", "backend.game_logic.emergent_designs:A_CLIENTS_PARTITION_IS_THE_HEGEMONS=0",
+                        "--seam", "backend.game_logic.ai_diplomacy:province_letter_to_player=None"]
 
 
 @pytest.fixture(autouse=True)

@@ -1066,7 +1066,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # board's first fork, at [6]) reads 18 and the contact rule (OCT27-51
         # and its sibling, at [8]) reads 10 — the board before the sibling.
         # The contract — the cap DELAYS, it does not save — stands.
-        assert capped == 11, capped
+        # Re-measured by S14i part 2 (October 27, 2026; SYSTEMS_REFERENCE
+        # §158): capped 13 — the satellite rebels two turns later on the
+        # board OCT27-D13 re-times (`vassal_broke_free` exit=vassal_rebellion,
+        # turn 13; `tools/_rf3_board_events.py`). With every part-2 seam held
+        # down in the child it reads 11 verbatim; D13 held down alone 11; its
+        # order-keyed cooldown (D13(a)) alone down 11, its own dice (D13(c))
+        # alone down 11 — the two halves move it together, as they move the
+        # series (`tools/_s14i_p2_series_arms_final.json`).
+        assert capped == 13, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

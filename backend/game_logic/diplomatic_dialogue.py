@@ -552,6 +552,8 @@ _STANDING_SHOCK_WORDS = {
     "act_of_empire": "an Act of the Empire",
     "moment_letter": "the letter's answer",
     "forced_alliance_reset": "the forced alliance's reset to zero",
+    # OCT27-D9 (S14i): France keeps an ally's home province.
+    "province_return_refused": "keeping an ally's home province",
 }
 # Per-turn standing writes: consecutive ones fold into ONE entry, so a long
 # mission does not fill its books with twelve lines of the same friction.
@@ -2307,6 +2309,16 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
                 dialogue["acceptance_hint"] = ""
         else:
             dialogue["acceptance_hint"] = ""
+
+        # OCT27-D10(i): the arrival's forecast rides the hint the card renders.
+        from backend.game_logic.diplomacy import arrival_drift_line
+        _drift = arrival_drift_line(world, proposal_for_calc, result)
+        dialogue["acceptance_drift"] = _drift
+        if _drift:
+            _hint = str(dialogue.get("acceptance_hint") or "").rstrip()
+            if _hint and not _hint.endswith((".", "!", "?")):
+                _hint += "."
+            dialogue["acceptance_hint"] = f"{_hint} {_drift}".strip()
 
         # PL-9 Part A: Warn player when acceptance is borderline (50-75%)
         if 50 <= score <= 75:

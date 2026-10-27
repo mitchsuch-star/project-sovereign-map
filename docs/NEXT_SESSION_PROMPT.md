@@ -12,8 +12,11 @@
 > **Landed after S14h, October 27, 2026 — the enemy-AI sweep** (`SYSTEMS_REFERENCE.md` §157; `BUG_FIXES.md` §OCT27 — fifty-one
 > rows FIXED at the cause: the enemy diplomacy AI's coalition, intent ladder, AI-to-AI table, proposal rungs, the courts'
 > answers, the other instruments, and twelve classes of AI orders the executor refused; the repeat-ask governor; the
-> ambient series re-recorded and attributed by `tools/_oct27_series_arms.py`). **Thirteen design questions wait for
-> you in `DESIGN_REFINEMENT.md` §OCT27 (OCT27-D1 … D13, the plan row S14i) — none blocks S15; the census reads 13 open design rows.**
+> ambient series re-recorded and attributed by `tools/_oct27_series_arms.py`). **Its thirteen design questions were
+> taken as recommended and BUILT in S14i (`SYSTEMS_REFERENCE.md` §158 — part 1 D1 … D7, part 2 D8 … D13; S14I-1 … 3
+> fixed beside them); the census reads 0 open defect rows and 0 open design rows. Three choices made under the
+> delegation stand for your review: D4 read between neighbours, D10(ii) the war's credit folded with its total kept
+> (measured against the settlement table), D10(iv) a held province priced at half its fresh cession.**
 >
 > **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
 > fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives

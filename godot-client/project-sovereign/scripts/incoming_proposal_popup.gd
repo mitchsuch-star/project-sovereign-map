@@ -95,6 +95,9 @@ func show_proposal(data: Dictionary):
 	# of the record with no court; the Cabinet (or Talleyrand) lays it before
 	# the Emperor. Two answers, each saying what it does; no Counter.
 	var is_moment = data.get("is_moment", false)
+	# OCT27-D9 (S14i): an allied court asks for its home province back —
+	# Return or Keep, never bargained (the Counter rides hidden).
+	var is_province_letter = data.get("is_province_letter", false)
 	var decision_reason_display = str(data.get("decision_reason_display", ""))
 	# W6-10: the diplomat's own spoken line (voices the motive in-register)
 	var diplomat_line = str(data.get("diplomat_line", ""))
@@ -333,7 +336,10 @@ func show_proposal(data: Dictionary):
 			_set_aside_line.text = SET_ASIDE_WAITS_LINE
 			_set_aside_line.add_theme_color_override("font_color", Utils.toned(Utils.UI_TEXT_DIM))
 		_set_aside_line.visible = true
-	# Button labels adapt to context
+	# Button labels adapt to context. S14I-3: the Reject tooltip is set per
+	# letter below (a moment's quote, a province letter's price) — cleared
+	# first, or it lingered on the next letter's Reject.
+	reject_btn.tooltip_text = ""
 	if is_ultimatum:
 		accept_btn.text = "Yield"
 		reject_btn.text = "Defy"
@@ -352,6 +358,12 @@ func show_proposal(data: Dictionary):
 		accept_btn.text = _moment_caption(data, "accept_ai_proposal", "Accept")
 		reject_btn.text = _moment_caption(data, "reject_ai_proposal", "Decline")
 		reject_btn.tooltip_text = _moment_quote(data, "reject_ai_proposal")
+	elif is_province_letter:
+		# Captions only — the buttons emit the router's "accept" / "reject";
+		# the refusal's price is on the letter and on the button's tooltip.
+		accept_btn.text = "Return"
+		reject_btn.text = "Keep"
+		reject_btn.tooltip_text = str(data.get("keep_line", ""))
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"

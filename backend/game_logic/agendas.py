@@ -1350,15 +1350,50 @@ def guard_ground_clause(world, holder: str, provinces, title: str = "") -> str:
             f"costs −{abs(int(AGENDA_VIOLATION_RELATION_PENALTY))} with {court}")
 
 
+def violation_latch_reads_the_map() -> bool:
+    """OCT27-D8(a) seam (ruled as recommended, S14i): the latch reads the
+    serialized `world.agenda_violation_turns` map — the event log's rolling
+    cap (500) evicted the record, and the latch failed CLOSED once the log
+    was full: a turn of more than ~50 events silently disabled the trap and
+    the player's free march ask. Down (False): the log read."""
+    return True
+
+
+def _violation_key(violator: str, holder: str) -> str:
+    return f"{violator}>{holder}"
+
+
 def violation_on_cooldown(world, violator: str, holder: str) -> bool:
     """The Ansbach trap's latch for the pair (violator, guard-holder): True
     while a violation of that pair is inside AGENDA_VIOLATION_COOLDOWN turns.
     S14G-11: lifted out of `process_agenda_violations` unchanged (it was a
     closure there) so the player's free ask reads the same latch — a pair that
     already paid inside the window is not asked again for a −25 the trap will
-    not charge."""
+    not charge. OCT27-D8(a): the pair's last violation turn is on the
+    serialized map (`world.agenda_violation_turns`); a world that has kept the
+    map for the whole window trusts it, and a full log closes nothing. A save
+    from before the map (`agenda_violation_map_since`, the turn it was loaded)
+    keeps the log's record and its rolled-log guard until the map covers a
+    whole window — the guard existed only because the log was the only record."""
     current_turn = int(getattr(world, "current_turn", 0))
     log = getattr(world, "event_log", []) or []
+    if violation_latch_reads_the_map():
+        last = (getattr(world, "agenda_violation_turns", None) or {}).get(
+            _violation_key(violator, holder))
+        if last is not None:
+            return int(last) > current_turn - AGENDA_VIOLATION_COOLDOWN
+        since = getattr(world, "agenda_violation_map_since", None)
+        if since is None or current_turn - int(since) >= AGENDA_VIOLATION_COOLDOWN:
+            # The map covers the whole window: the log's own record answers
+            # only for a row written around the map; a full log closes nothing.
+            return any(
+                event.get("type") == "agenda_violation"
+                and event.get("violator") == violator
+                and event.get("guard_holder") == holder
+                and int(event.get("turn", 0) or 0) > current_turn - AGENDA_VIOLATION_COOLDOWN
+                for event in log)
+        # A save from before the map, inside its first window: the log is the
+        # only record of what came before, and the rolled-log guard stands.
     # Rolling-cap guard (adversarial-review fix): if the capped log
     # has evicted events INSIDE the cooldown window, a prior latch
     # may be gone — fail SAFE and suppress rather than re-fire the
@@ -1377,6 +1412,16 @@ def violation_on_cooldown(world, violator: str, holder: str) -> bool:
                 > current_turn - AGENDA_VIOLATION_COOLDOWN):
             return True
     return False
+
+
+def _note_violation(world, violator: str, holder: str) -> None:
+    """OCT27-D8(a): the pair's violation turn on the serialized map, pruned
+    to the cooldown window at the write (the map stays a handful of rows)."""
+    turn = int(getattr(world, "current_turn", 0))
+    turns = dict(getattr(world, "agenda_violation_turns", None) or {})
+    turns = {k: int(v) for k, v in turns.items() if int(v) > turn - AGENDA_VIOLATION_COOLDOWN}
+    turns[_violation_key(violator, holder)] = turn
+    world.agenda_violation_turns = turns
 
 
 def process_agenda_violations(world) -> List[Dict]:
@@ -1453,6 +1498,7 @@ def process_agenda_violations(world) -> List[Dict]:
             "region": marshal.location,
             "penalty": AGENDA_VIOLATION_RELATION_PENALTY,
         })
+        _note_violation(world, violator, holder)
         events.append({
             "type": "agenda_violation",
             "violator": violator,

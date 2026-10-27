@@ -374,6 +374,79 @@ def get_effective_ai_personality(marshal: "Marshal", world: Optional["WorldState
     return personality
 
 
+def cooldown_by_target() -> bool:
+    """OCT27-D13(a) seam (ruled as recommended, S14i): a refused order cools
+    ITSELF — the failed-order cooldown and the turn's failed set are keyed by
+    (action, target), so one bad `attack Vienna` no longer hides every attack
+    the marshal could make for two turns. A targetless order (fortify, drill)
+    keys as before. Down (False): keyed by the action type."""
+    return True
+
+
+def reevaluates_blocked_rung() -> bool:
+    """OCT27-D13(a) seam (ruled as recommended, S14i): when the decision
+    tree's pick is refused (failed this turn, or on its cooldown) the tree is
+    asked again without that order — at most three times — so a lower rung's
+    order can stand (every rung from P3 down reads `_admits`; the recovery,
+    the survival rungs and the capital's recapture do not). Down (False): the
+    marshal was skipped."""
+    return True
+
+
+def order_signature(action: Optional[Dict]) -> Tuple[str, str]:
+    """OCT27-D13(a): an order's (action, target) — targetless orders read ''."""
+    action = action or {}
+    return (str(action.get("action") or ""), str(action.get("target") or ""))
+
+
+def failed_order_key(action_type: str, target=None) -> str:
+    """OCT27-D13(a): the failed-order cooldown's key — `attack|Vienna` for a
+    targeted order, `fortify` for a targetless one (and every order with the
+    seam down — the action type, as before)."""
+    if target and cooldown_by_target():
+        return f"{action_type}|{target}"
+    return str(action_type)
+
+
+def front_means_hostile() -> bool:
+    """OCT27-D13(b) seam (ruled as recommended, S14i): a neighbour is the
+    FRONT when its controller is at war with the court or is the target of
+    the court's own hostile design (its intent's `against` at coerce or
+    fight) — not any foreign flag. On a mostly peaceful map every border had
+    counted: forts, depots, watchtowers and the guns' positions were laid
+    against friends. Down (False): any foreign controller."""
+    return True
+
+
+def ai_rng(world, nation: str):
+    """OCT27-D13(c) (ruled as recommended, S14i): the generals' draws — the
+    strategic score's variance, the mood, the stagnation fallback — come from
+    a stream of their own: one `random.Random` per (campaign seed, turn,
+    nation), seeded from a string (stable across processes), cached on the
+    world for the turn and never serialized. A save and a load draw the same
+    moods; one court's draws never shift another's. The seed reaches the
+    stream through the variance layer's own gate (`campaign_variance.
+    is_historical`): every effect of a seed flows through that layer (IQ-7's
+    control — a seed with variance off plays as historical). Down: the
+    module-global `random` every caller shared."""
+    if world is None:
+        return random
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    cache = getattr(world, "_ai_rng_cache", None)
+    if not isinstance(cache, dict) or cache.get("__turn__") != turn:
+        cache = {"__turn__": turn}
+        world._ai_rng_cache = cache
+    rng = cache.get(nation)
+    if rng is None:
+        from backend.game_logic.campaign_variance import HISTORICAL_SEED, is_historical
+        seed = str(getattr(world, "campaign_seed", HISTORICAL_SEED) or HISTORICAL_SEED)
+        if is_historical(seed):
+            seed = HISTORICAL_SEED
+        rng = random.Random(f"{seed}|{turn}|{nation}")
+        cache[nation] = rng
+    return rng
+
+
 def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"], world: Optional["WorldState"] = None) -> int:
     """
     Calculate AI strategic score (parallel to player LLM scoring).
@@ -418,8 +491,8 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
         if ratio < 0.8 and personality == "aggressive":
             score += 15
 
-    # Random variance ±10
-    score += random.randint(-10, 10)
+    # Random variance ±10 (OCT27-D13(c): the court's own stream)
+    score += ai_rng(world, str(getattr(marshal, "nation", "") or "")).randint(-10, 10)
 
     # Clamp to 0-100
     return max(0, min(100, score))
@@ -829,7 +902,8 @@ class EnemyAI:
         variance = self.MOOD_VARIANCE.get(personality, 0.10)
 
         # Apply random variance: threshold * (1 ± variance)
-        mood_modifier = random.uniform(1.0 - variance, 1.0 + variance)
+        mood_modifier = ai_rng(world, str(getattr(marshal, "nation", "") or "")).uniform(
+            1.0 - variance, 1.0 + variance)   # OCT27-D13(c)
         adjusted = base_threshold * mood_modifier
 
         # Log if significantly different from base
@@ -1075,17 +1149,23 @@ class EnemyAI:
     # FAILED ACTION COOLDOWN HELPERS
     # ═══════════════════════════════════════════════════════════════════
 
-    def _is_action_on_cooldown(self, marshal_name: str, action_type: str) -> bool:
+    def _is_action_on_cooldown(self, marshal_name: str, action_type: str,
+                               target=None) -> bool:
         """Check if a marshal's action is on cooldown from a previous failure.
-        Reads from WorldState.ai_failed_action_cooldowns (persists across turns)."""
+        Reads from WorldState.ai_failed_action_cooldowns (persists across turns).
+        OCT27-D13(a): the order's own key (`failed_order_key`); a bare
+        action-type key (a save from before, or a targetless order) still
+        cools every order of that type."""
         marshal_cooldowns = self._current_world.ai_failed_action_cooldowns.get(marshal_name, {})
-        remaining = marshal_cooldowns.get(action_type, 0)
+        remaining = max(int(marshal_cooldowns.get(action_type, 0) or 0),
+                        int(marshal_cooldowns.get(failed_order_key(action_type, target), 0) or 0))
         if remaining > 0:
             ai_debug(f"    [COOLDOWN] {marshal_name} '{action_type}' on cooldown ({remaining} turns)")
             return True
         return False
 
-    def _record_failed_action(self, marshal_name: str, action_type: str, cooldown: int = 2):
+    def _record_failed_action(self, marshal_name: str, action_type: str, cooldown: int = 2,
+                              target=None):
         """Record a failed action with cooldown turns before retry.
         Writes to WorldState.ai_failed_action_cooldowns (persists across turns).
 
@@ -1097,8 +1177,54 @@ class EnemyAI:
         cooldowns = self._current_world.ai_failed_action_cooldowns
         if marshal_name not in cooldowns:
             cooldowns[marshal_name] = {}
-        cooldowns[marshal_name][action_type] = cooldown
+        cooldowns[marshal_name][failed_order_key(action_type, target)] = cooldown   # OCT27-D13(a)
         ai_debug(f"    [COOLDOWN SET] {marshal_name} '{action_type}' cooled down for {cooldown} turns")
+
+    def _fail_key(self, marshal_name: str, action: Optional[Dict]) -> Tuple:
+        """OCT27-D13(a): the turn's failed-set entry — (marshal, action,
+        target) with the seam up, (marshal, action) as before."""
+        kind, target = order_signature(action)
+        if target and cooldown_by_target():
+            return (marshal_name, kind, target)
+        return (marshal_name, kind)
+
+    def _order_refused(self, marshal_name: str, action: Optional[Dict], failed_actions) -> bool:
+        """OCT27-D13(a): the pick is refused — failed this turn or cooling."""
+        kind, target = order_signature(action)
+        return (self._fail_key(marshal_name, action) in failed_actions
+                or self._is_action_on_cooldown(marshal_name, kind, target or None))
+
+    def _admits(self, action: Optional[Dict]) -> bool:
+        """OCT27-D13(a): a rung's order stands unless the re-asked tree has
+        excluded it (`_excluded_orders`, empty outside a re-ask — so the first
+        reading of the tree is unchanged)."""
+        excluded = getattr(self, "_excluded_orders", None)
+        return not excluded or order_signature(action) not in excluded
+
+    def _is_front(self, world, nation: str, controller, *, legacy: bool) -> bool:
+        """OCT27-D13(b): is a neighbour held by `controller` the court's front?
+        At war with it, or its hostile design's target (`front_means_hostile`);
+        with the seam down, the site's own old predicate (`legacy`)."""
+        if not front_means_hostile():
+            return bool(legacy)
+        if not controller or controller == nation:
+            return False
+        return controller in self._front_nations(world, nation)
+
+    def _front_nations(self, world, nation: str) -> frozenset:
+        """OCT27-D13(b): the courts at war with `nation` plus its hostile
+        design's target — read fresh (a war declared mid-phase counts at once;
+        the active courts only, never the regions)."""
+        hostile = {other for other in world.get_active_nations()
+                   if other != nation and world.is_at_war(nation, other)}
+        try:
+            from backend.game_logic.intent import get_nation_intent
+            view = get_nation_intent(nation, world)
+            if view.against and view.price in ("coerce", "fight"):
+                hostile.add(view.against)
+        except Exception as exc:
+            report(exc, "enemy_ai._front_nations: intent")
+        return frozenset(hostile)
 
     def decrement_all_cooldowns(self, world: WorldState):
         """Decrement ALL cooldowns once per turn (V2-20/21 fix).
@@ -1302,6 +1428,9 @@ class EnemyAI:
             List of action results for this nation
         """
         results = []
+        # OCT27-D13(d): the list the turn manager keeps if this phase crashes
+        # (the same object — every completed action is on it).
+        self._partial_results = results
 
         # Store world reference for helper methods (cooldowns, etc.)
         self._current_world = world
@@ -1446,7 +1575,7 @@ class EnemyAI:
                     and selected_action.get("action") == "stance_change"
                     and selected_action.get("target") == "aggressive"):
                 ai_debug(f"  [SKIP] {selected_marshal.name} - aggressive stance on last AP (no follow-up budget)")
-                failed_actions.add((selected_marshal.name, "stance_change"))
+                failed_actions.add(self._fail_key(selected_marshal.name, selected_action))
                 consecutive_skips += 1
                 if consecutive_skips >= max_consecutive_skips:
                     print("  Stance budget skip + all skipped - ending turn")
@@ -1466,7 +1595,7 @@ class EnemyAI:
             if free_action_count >= max_free_actions:
                 is_candidate_free = not self._action_costs_point(selected_action["action"])
                 if is_candidate_free:
-                    failed_actions.add((selected_marshal.name, selected_action["action"]))
+                    failed_actions.add(self._fail_key(selected_marshal.name, selected_action))
                     consecutive_skips += 1
                     if consecutive_skips >= max_consecutive_skips:
                         print("  Free cap + all skipped - ending turn")
@@ -1483,7 +1612,7 @@ class EnemyAI:
             if not self._order_affordable(world, selected_action["action"], actions_remaining):
                 ai_debug(f"  [SKIP] {selected_marshal.name} - {selected_action['action']} "
                          f"costs more than the {actions_remaining} left")
-                failed_actions.add((selected_marshal.name, selected_action["action"]))
+                failed_actions.add(self._fail_key(selected_marshal.name, selected_action))
                 consecutive_skips += 1
                 if consecutive_skips >= max_consecutive_skips:
                     print("  Budget skip + all skipped - ending turn")
@@ -1500,9 +1629,11 @@ class EnemyAI:
             if not result.get("success", False):
                 print(f"    [FAILED] {result.get('message', 'Unknown error')[:60]}...")
                 # Mark this marshal+action combo as failed so we don't retry it this turn
-                failed_actions.add((selected_marshal.name, selected_action["action"]))
-                # Record cross-turn cooldown (2 turns before retrying same action)
-                self._record_failed_action(selected_marshal.name, selected_action["action"])
+                failed_actions.add(self._fail_key(selected_marshal.name, selected_action))
+                # Record cross-turn cooldown (2 turns before retrying the same
+                # order — OCT27-D13(a): keyed by its target)
+                self._record_failed_action(selected_marshal.name, selected_action["action"],
+                                           target=selected_action.get("target"))
                 # Clear any pending intent — the multi-step plan failed
                 self._pending_intents.pop(selected_marshal.name, None)
                 consecutive_skips += 1
@@ -1760,7 +1891,8 @@ class EnemyAI:
             nation: Nation name
             world: Current world state
             actions_used: Dict tracking actions used per marshal this turn
-            failed_actions: Set of (marshal_name, action) tuples that have already failed
+            failed_actions: Set of (marshal_name, action[, target]) tuples that have
+                already failed (OCT27-D13(a): the target rides with the seam up)
 
         Returns:
             Tuple of (selected_marshal, action_dict, action_priority)
@@ -1789,13 +1921,30 @@ class EnemyAI:
                 continue
 
             action, action_priority = self._evaluate_marshal(marshal, nation, world)
+            # OCT27-D13(a): a refused pick hides only itself — the tree is
+            # asked again without it (at most three times); an order a rung
+            # that reads no `_admits` gives again ends the re-ask.
+            if action and reevaluates_blocked_rung():
+                excluded = set()
+                while (action and len(excluded) < 3
+                       and self._order_refused(marshal.name, action, failed_actions)):
+                    signature = order_signature(action)
+                    if signature in excluded:
+                        break
+                    excluded.add(signature)
+                    self._excluded_orders = frozenset(excluded)
+                    try:
+                        action, action_priority = self._evaluate_marshal(marshal, nation, world)
+                    finally:
+                        self._excluded_orders = frozenset()
             if action:
                 # Skip actions that have already failed this turn
-                if (marshal.name, action.get("action")) in failed_actions:
+                if self._fail_key(marshal.name, action) in failed_actions:
                     continue
 
                 # Skip actions on cross-turn cooldown (failed recently)
-                if self._is_action_on_cooldown(marshal.name, action.get("action", "")):
+                if self._is_action_on_cooldown(marshal.name, action.get("action", ""),
+                                               action.get("target")):
                     continue
 
                 # SFR-D35: no hop back onto ground he stood on this phase
@@ -2409,7 +2558,7 @@ class EnemyAI:
                 and threat_action.get("action") in ("fortify", "stance_change")):
             ai_debug("  P3: threat response yields to the wanted square")
             threat_action = None
-        if threat_action:
+        if threat_action and self._admits(threat_action):
             if regions_lost >= 2 and self._nation_has_threat_responder(nation):
                 # Already have a threat responder — this marshal should recapture instead
                 ai_debug("  P3: Threat detected but nation already has responder — falling through to P3.7")
@@ -2429,7 +2578,7 @@ class EnemyAI:
         # waiting to happen, and it falsified the "one predicate" claim.
         if marshal.has_counter_punch():
             counter_punch_action = self._get_counter_punch_action(marshal, nation, world)
-            if counter_punch_action:
+            if counter_punch_action and self._admits(counter_punch_action):
                 ai_debug("  P3.25: COUNTER-PUNCH available!")
                 ai_debug(f"  -> Counter-punch attack: {counter_punch_action}")
                 return (counter_punch_action, 3)  # High priority - FREE and expires
@@ -2445,7 +2594,7 @@ class EnemyAI:
         # next-turn re-fortify oscillation. Stagnation counter is the backstop.
         # ════════════════════════════════════════════════════════════
         fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
-        if fortification_opportunity:
+        if fortification_opportunity and self._admits(fortification_opportunity):
             self._unfortified_this_turn.add(marshal.name)
             return (fortification_opportunity, 3)  # High priority - unlocks attack/capture
 
@@ -2458,7 +2607,7 @@ class EnemyAI:
         # (P3 only claims 1 threat responder per nation).
         # ════════════════════════════════════════════════════════════
         homeland_action = self._find_homeland_defense(marshal, nation, world)
-        if homeland_action:
+        if homeland_action and self._admits(homeland_action):
             ai_debug(f"  -> P3.7 Homeland Defense: {homeland_action}")
             return (homeland_action, 3)
 
@@ -2468,7 +2617,7 @@ class EnemyAI:
         # attacking vassal capitals held by the target nation.
         # ════════════════════════════════════════════════════════════
         liberation_action = self._find_liberation_target(marshal, nation, world)
-        if liberation_action:
+        if liberation_action and self._admits(liberation_action):
             ai_debug(f"  -> P3.8 Liberation Priority: {liberation_action}")
             return (liberation_action, 3)
 
@@ -2513,7 +2662,7 @@ class EnemyAI:
                                                  glory_enemy) is not None:
                     ai_debug("  -> P3.9 held by the odds")
                     glory_target = None
-            if glory_target is not None:
+            if glory_target is not None and self._admits({"action": "attack", "target": glory_target[0].name}):
                 ai_debug(f"  -> P3.9 Jealousy Glory Attack: {marshal.name} "
                          f"-> {glory_enemy.name} (weakest adjacent)")
                 return ({
@@ -2527,7 +2676,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4: Checking attack opportunities...")
         attack_action = self._find_attack_opportunity(marshal, nation, world)
-        if attack_action:
+        if attack_action and self._admits(attack_action):
             ai_debug(f"  -> P4 Attack: {attack_action}")
             return (attack_action, 4)
         ai_debug("  P4: No attack opportunity found")
@@ -2541,7 +2690,7 @@ class EnemyAI:
             getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
         ):
             garrison_action = self._find_garrison_attack(marshal, nation, world)
-            if garrison_action:
+            if garrison_action and self._admits(garrison_action):
                 ai_debug(f"  -> P4.25 Garrison Assault: {garrison_action}")
                 return (garrison_action, 4)
 
@@ -2552,7 +2701,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4.5: Checking undefended captures...")
         capture_action = self._find_undefended_capture(marshal, nation, world)
-        if capture_action:
+        if capture_action and self._admits(capture_action):
             ai_debug(f"  -> P4.5 Capture: {capture_action}")
             return (capture_action, 4)  # Same priority as attack
         ai_debug("  P4.5: No capture opportunity found")
@@ -2561,7 +2710,7 @@ class EnemyAI:
         # declined, the cavalry is still there. Returned at P2.5's own
         # priority; `process_nation_turn` ends the corps' phase on a
         # successful formation (he stands in square).
-        if (square_wanted
+        if (square_wanted and self._admits({"action": "form_square"})
                 and not getattr(marshal, 'fortified', False)
                 and not (getattr(marshal, 'drilling', False)
                          or getattr(marshal, 'drilling_locked', False))):
@@ -2577,7 +2726,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4.6: Checking coordinated attack opportunities...")
         coord_action = self._find_coordinated_attack(marshal, nation, world)
-        if coord_action:
+        if coord_action and self._admits(coord_action):
             ai_debug(f"  -> P4.6 Coordinated Attack: {coord_action}")
             return (coord_action, 4)
         ai_debug("  P4.6: No coordination opportunity found")
@@ -2589,7 +2738,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         ai_debug("  P4.75: Checking ally support opportunities...")
         support_action = self._find_ally_support_opportunity(marshal, nation, world)
-        if support_action:
+        if support_action and self._admits(support_action):
             ai_debug(f"  -> P4.75 Ally Support: {support_action}")
             return (support_action, 4)  # Same priority as attack - helping ally is important
         ai_debug("  P4.75: No ally needs support")
@@ -2599,7 +2748,7 @@ class EnemyAI:
         # If too weak to attack alone, move toward strongest ally
         # ════════════════════════════════════════════════════════════
         consolidate_action = self._consider_consolidation(marshal, nation, world)
-        if consolidate_action:
+        if consolidate_action and self._admits(consolidate_action):
             ai_debug(f"  -> P4.8 Consolidate: {consolidate_action}")
             return (consolidate_action, 5)
         ai_debug("  P4.8: No consolidation needed")
@@ -2613,7 +2762,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         heal_action = self._consider_heal_drill(marshal, nation, world, personality,
                                                 current_region)
-        if heal_action:
+        if heal_action and self._admits(heal_action):
             ai_debug(f"  -> P4.9 Heal: {heal_action}")
             return (heal_action, 5)
 
@@ -2636,7 +2785,7 @@ class EnemyAI:
             )
             if not refortify_blocked:
                 fortify_action = self._consider_fortify(marshal, world)
-                if fortify_action:
+                if fortify_action and self._admits(fortify_action):
                     return (fortify_action, 5)
 
         # ─── P6-P7: OFFENSIVE & POSITIONING PRIORITIES ─────────────────────────
@@ -2653,7 +2802,7 @@ class EnemyAI:
         if personality == "aggressive" or coalition_aggressive:
             ai_debug("  P6: Checking drill (aggressive marshal or coalition aggressive posture)...")
             drill_action = self._consider_drill(marshal, world)
-            if drill_action:
+            if drill_action and self._admits(drill_action):
                 ai_debug(f"  -> P6 Drill: {drill_action}")
                 return (drill_action, 6)
             ai_debug("  P6: Drill not available")
@@ -2667,7 +2816,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         if current_region:
             supply_move = self._supply_pressure_move(marshal, nation, world, current_region)
-            if supply_move:
+            if supply_move and self._admits(supply_move):
                 return (supply_move, 6)
 
         # ════════════════════════════════════════════════════════════
@@ -2677,7 +2826,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         if not self._garrison_placed_this_turn:
             garrison_action = self._consider_garrison(marshal, nation, world)
-            if garrison_action:
+            if garrison_action and self._admits(garrison_action):
                 ai_debug(f"  -> P6.75 Garrison: {garrison_action}")
                 return (garrison_action, 7)  # Score 7 (between drill/supply and strategic move)
 
@@ -2685,7 +2834,7 @@ class EnemyAI:
         # PRIORITY 7: STRATEGIC MOVEMENT
         # ════════════════════════════════════════════════════════════
         move_action = self._consider_strategic_move(marshal, nation, world)
-        if move_action:
+        if move_action and self._admits(move_action):
             return (move_action, 7)
 
         # ════════════════════════════════════════════════════════════
@@ -2700,7 +2849,7 @@ class EnemyAI:
         # position is unchanged, so this is a behavior-preserving relabel only.
         # ════════════════════════════════════════════════════════════
         reinforce_action = self._find_defensive_reinforcement_position(marshal, nation, world)
-        if reinforce_action:
+        if reinforce_action and self._admits(reinforce_action):
             ai_debug(f"  -> P7.4 Defensive Reinforcement: {reinforce_action}")
             return (reinforce_action, 7)
 
@@ -2713,7 +2862,7 @@ class EnemyAI:
         stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
         if stagnation >= 2:
             stagnation_action = self._get_stagnation_action(marshal, nation, world, stagnation, personality)
-            if stagnation_action:
+            if stagnation_action and self._admits(stagnation_action):
                 ai_debug(f"  -> P7.5 STAGNATION (turn {stagnation}): {stagnation_action}")
                 return (stagnation_action, 7)
 
@@ -2724,7 +2873,7 @@ class EnemyAI:
         # Returns None if marshal is already in optimal state - ends turn early
         # ════════════════════════════════════════════════════════════
         default_action = self._get_default_action(marshal, world)
-        if default_action:
+        if default_action and self._admits(default_action):
             return (default_action, 8)
 
         # No useful action found - marshal is in optimal state
@@ -4765,7 +4914,7 @@ class EnemyAI:
                     fallback_dests = self._stagnation_fallback_dests(
                         world, marshal.location, target_region, fallback_dests)
                     if fallback_dests:
-                        fallback = random.choice(fallback_dests)
+                        fallback = ai_rng(world, nation).choice(fallback_dests)   # OCT27-D13(c)
                         print(f"  [STAGNATION] {marshal.name}: Force move to {fallback} (no better option, just reposition)")
                         return {
                             "marshal": marshal.name,
@@ -7414,11 +7563,13 @@ class EnemyAI:
             if getattr(region, 'stability', 100) <= 50:
                 continue
 
-            # Is it a border region? (adjacent to enemy-controlled region)
+            # Is it a border region? (adjacent to enemy-controlled region —
+            # OCT27-D13(b): an enemy's, not any foreign flag)
             is_border = False
             for adj_name in region.adjacent_regions:
                 adj = world.get_region(adj_name)
-                if adj and adj.controller != nation:
+                if adj and self._is_front(world, nation, adj.controller,
+                                          legacy=adj.controller != nation):
                     is_border = True
                     break
 
@@ -7521,10 +7672,12 @@ class EnemyAI:
         return None
 
     def _borders_enemy(self, region, nation: str, world) -> bool:
-        """Check if a region has any adjacent enemy-controlled region."""
+        """Check if a region has any adjacent enemy-controlled region
+        (OCT27-D13(b): at war or the design's target, `_is_front`)."""
         for adj_name in region.adjacent_regions:
             adj = world.get_region(adj_name)
-            if adj and adj.controller and adj.controller != nation:
+            if adj and self._is_front(world, nation, adj.controller,
+                                      legacy=bool(adj.controller and adj.controller != nation)):
                 return True
         return False
 
@@ -7553,14 +7706,21 @@ class EnemyAI:
 
             # Score by border adjacency (heavy bonus) + income value
             score = 0
+            front_neighbours = 0
             for adj_name in region.adjacent_regions:
                 adj = world.get_region(adj_name)
-                if adj and adj.controller and adj.controller != nation:
-                    score += 100  # Border bonus per enemy-adjacent region
+                if adj and self._is_front(world, nation, adj.controller,
+                                          legacy=bool(adj.controller and adj.controller != nation)):
+                    front_neighbours += 1
+                    score += 100  # Border bonus per enemy-adjacent region (OCT27-D13(b))
             score += getattr(region, 'income_value', 0)
 
-            # Only consider border regions (must have at least one enemy neighbor)
-            if score > best_score and score >= 100:
+            # Only consider border regions (must have at least one enemy
+            # neighbor) — S14I-2: COUNTED, never read off the score, which a
+            # province's income alone carried past 100 (an interior province
+            # took the tower); the seam down keeps the old test.
+            on_front = front_neighbours > 0 if front_means_hostile() else score >= 100
+            if score > best_score and on_front:
                 best_score = score
                 best_region = region_name
 
@@ -7664,9 +7824,12 @@ class EnemyAI:
 
         # Prefer positions adjacent to enemy positions (+15, +25 if fortified)
         is_frontline = False
+        front = None if not front_means_hostile() else self._front_nations(world, nation)
         for adj_name in region.adjacent_regions:
             adj_region = world.get_region(adj_name)
-            if adj_region and adj_region.controller and adj_region.controller != nation:
+            # OCT27-D13(b): the front is an enemy's ground, not any foreign flag
+            if adj_region and adj_region.controller and adj_region.controller != nation and (
+                    front is None or adj_region.controller in front):
                 is_frontline = True
                 score += 15
                 score += sum(
@@ -7757,9 +7920,12 @@ class EnemyAI:
                     continue
                 inf_region = world.get_region(infantry_screen.location)
                 if inf_region:
+                    _front = (None if not front_means_hostile()
+                              else self._front_nations(world, nation))   # OCT27-D13(b)
                     inf_on_front = any(
                         world.get_region(a) and world.get_region(a).controller
                         and world.get_region(a).controller != nation
+                        and (_front is None or world.get_region(a).controller in _front)
                         for a in inf_region.adjacent_regions
                     )
                     if inf_on_front:

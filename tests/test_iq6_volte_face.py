@@ -53,6 +53,17 @@ def _quiet():
     return contextlib.redirect_stdout(io.StringIO())
 
 
+@pytest.fixture(autouse=True)
+def _no_province_letter(monkeypatch):
+    """OCT27-D9 (S14i part 2, October 27, 2026): a court courted to France's
+    side asks for its ceded province back (the province letter,
+    `ai_diplomacy.province_letter_to_player`) and the arm's answer moves the
+    courtship by its relation step. These arms measure the volte-face
+    machinery; that ruling's pins are `TestOCT27D9` — the arms play the board
+    before it (T7's subprocess drive is untouched and reads it live)."""
+    monkeypatch.setattr(AD, "province_letter_to_player", lambda *a, **k: None)
+
+
 @pytest.fixture(scope="module")
 def boot():
     with _quiet():

@@ -938,6 +938,27 @@ def _update_stalemate_counter(nation: str, opponent: str, war_score: int,
 # PROPOSAL TERM GENERATION
 # ═══════════════════════════════════════════════════════════════
 
+def sweetener_multiplier(gold_mult: float) -> float:
+    """OCT27-D11(a) (ruled as recommended, S14i): `gold_mult` is the
+    diplomat's DEMAND multiplier — a hawk demands more — but it scaled what
+    the court PAYS too (the armistice and peace offers, the gift, the design
+    purchase, the neutrality price), so hawks paid the most and doves the
+    least. What a court pays scales by its inverse. Down (`float(a[0])`)."""
+    return 1.0 / float(gold_mult) if float(gold_mult or 0) > 0 else 1.0
+
+
+def compact_aim_for(world, nation: str, wars: List[str]) -> str:
+    """OCT27-D11(b) (ruled as recommended, S14i): the neutrality compact's
+    aim is the court's own design target when it is at war with it, else the
+    first of its wars — it was `wars[0]` alphabetically. Down (`a[2][0] if
+    a[2] else ''`)."""
+    if not wars:
+        return ""
+    from backend.game_logic.intent import get_nation_intent
+    against = get_nation_intent(nation, world).against
+    return str(against) if against in wars else str(wars[0])
+
+
 def _build_proposal_terms(
     nation: str,
     proposal_type: str,
@@ -963,6 +984,9 @@ def _build_proposal_terms(
     """
     player = getattr(world, 'player_nation', 'France')
     recipient = recipient or player
+    # OCT27-D11(a): what the court PAYS scales by the inverse — a hawk pays
+    # the least, a dove the most; what it demands keeps `gold_mult`.
+    pay_mult = sweetener_multiplier(gold_mult)
 
     terms = {
         "type": proposal_type,
@@ -977,7 +1001,7 @@ def _build_proposal_terms(
         # AI is losing: offer gold to stop the bleeding
         nation_gold = world.nation_gold.get(nation, 0)
         if nation_gold > 200:
-            offer_amount = min(300, int(nation_gold * 0.15 * gold_mult))
+            offer_amount = min(300, int(nation_gold * 0.15 * pay_mult))
             # R113: Cap gold_per_turn at 50% of region income
             # Fix 8: Skip income cap when income is 0 (nation may have gold reserves)
             income_data = world.calculate_turn_income(nation)
@@ -999,7 +1023,7 @@ def _build_proposal_terms(
         if war_score < -30:
             # Very desperate: offer gold + open borders
             nation_gold = world.nation_gold.get(nation, 0)
-            offer_amount = min(200, int(nation_gold * 0.10 * gold_mult))
+            offer_amount = min(200, int(nation_gold * 0.10 * pay_mult))
             # R113: Cap gold_per_turn at 50% of region income
             # Fix 8: Skip income cap when income is 0 (nation may have gold reserves)
             income_data = world.calculate_turn_income(nation)
@@ -1045,7 +1069,7 @@ def _build_proposal_terms(
             terms["type"] = "open_borders"
             terms["clauses"].append("open_borders")
         nation_gold = world.nation_gold.get(nation, 0)
-        gift = min(150, int(nation_gold * 0.10 * gold_mult))
+        gift = min(150, int(nation_gold * 0.10 * pay_mult))
         if gift >= 25:
             terms["sweeteners"].append(
                 {"type": "gold_lump", "value": int(gift)})
@@ -1082,7 +1106,7 @@ def _build_proposal_terms(
                     int(treasury * DESIGN_PURCHASE_TREASURY_FRACTION),
                     int((DESIGN_PURCHASE_BASE
                          + DESIGN_PURCHASE_PER_WEIGHT * view.weight)
-                        * gold_mult))
+                        * pay_mult))
                 if offer > 0:
                     terms["sweeteners"].append(
                         {"type": "gold_lump", "value": int(offer)})
@@ -1109,13 +1133,13 @@ def _build_proposal_terms(
         treasury = int(world.nation_gold.get(nation, 0))
         offer = max(SELL_NEUTRALITY_BASE,
                     int(treasury * SELL_NEUTRALITY_TREASURY_FRACTION
-                        * gold_mult))
+                        * pay_mult))
         offer = min(offer, treasury)
         if offer > 0:
             terms["sweeteners"].append(
                 {"type": "gold_lump", "value": int(offer)})
         terms["compact"] = "sell_neutrality"
-        terms["compact_aim"] = wars[0] if wars else ""
+        terms["compact_aim"] = compact_aim_for(world, nation, wars)   # OCT27-D11(b)
         # Review fix (the invisible bond): the compact is DISCLOSED at
         # decision time as a rendered clause (pin 23 — a licence is a
         # bond the player must see before signing).
@@ -3018,6 +3042,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                             cooldowns[f"{nation}|offer_vassalage"] = int(
                                 OFFER_VASSALAGE_COOLDOWN_TURNS)
                             _set_cooldowns(world, cooldowns)
+                            # OCT27-D12(c): the on-ramp assimilates.
+                            from backend.game_logic.vassal import (
+                                assimilate_vassal_marshals, onramp_assimilates,
+                            )
+                            if onramp_assimilates():
+                                assimilate_vassal_marshals(world, nation)
         except Exception as exc:
             report(exc, "ai_diplomacy.process_diplomatic_phase: import backend.game_logic.coalition")
             from backend.utils.debug import debug_print
@@ -3372,6 +3402,9 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
     from backend.game_logic.call_to_arms import CALL_TO_ARMS_TYPE, build_call_dialogue
     if proposal.get("proposal_type") == CALL_TO_ARMS_TYPE:
         return build_call_dialogue(proposal, world)
+    # OCT27-D9: an ally's province letter — Return / Keep.
+    if proposal.get("proposal_type") == PROVINCE_RETURN_TYPE:
+        return _build_province_return_dialogue(proposal, world)
     nation = proposal["source"]
     terms = proposal["terms"]
     assessment = proposal.get("talleyrand_assessment", "")
@@ -3678,6 +3711,20 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             int(world.current_turn),
             # S14C-X14: the key the dismissal spares while the call stands.
             details={"call_ally": nation, "call_enemy": _call_enemy, "counterpart": _call_enemy},
+        ))
+    elif proposal.get("proposal_type") == PROVINCE_RETURN_TYPE:
+        # OCT27-D9 (S14i): the court's request names its province and the
+        # refusal's price on the rail, as the letter does.
+        from backend.display_names import with_definite_article
+        _region = _province_return_region(proposal.get("terms") or {})
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"Request from {with_definite_article(sender)}",
+            f"{with_definite_article(sender, capitalize=True)} asks for {_region} back — a home "
+            f"province of its crown that we hold. Return it, or keep it (relations fall "
+            f"{abs(int(PROVINCE_RETURN_REFUSAL_RELATION))}).",
+            int(world.current_turn),
         ))
     elif proposal.get("proposal_type") == "harsh_peace":
         # PC-R3 / PC-F65: a dictated letter announces its tier and its
@@ -4953,6 +5000,177 @@ def allegiance_bid_quote(world, suitor: str, nation: str, gold: int) -> str:
             f"court keeps the gold whoever wins. Lay it? (yes / no)")
 
 
+PROVINCE_RETURN_TYPE = "province_return_ask"
+PROVINCE_RETURN_ASK_COOLDOWN = 8          # turns before the court asks France again
+PROVINCE_RETURN_REFUSAL_RELATION = -5     # "a small relation hit" (the ruling's words)
+
+
+def province_letter_to_player(world, court: str) -> Optional[Dict]:
+    """OCT27-D9 (ruled as recommended, S14i): an allied court whose home
+    province France holds asks for it back — as a letter on the incoming-
+    proposal transport, answered with Return or Keep. At most one letter per
+    court every PROVINCE_RETURN_ASK_COOLDOWN turns; a delivered ask costs the
+    court the ask's 1 DP when it holds any (the AI road's own rule). Returns
+    the delivered dialogue or None. Down (None): the court asks nothing — the
+    sweep's skip."""
+    from backend.game_logic.treaty import (
+        ASK_RETURN_DP_COST, can_ask_return, home_provinces_held_by,
+    )
+    player = getattr(world, "player_nation", "France")
+    cooldowns = _get_cooldowns(world)
+    key = f"{court}|{PROVINCE_RETURN_TYPE}"
+    if int(cooldowns.get(key, 0) or 0) > 0:
+        return None
+    for region in home_provinces_held_by(world, court, player):
+        if not can_ask_return(world, court, player, region, charge=False).ok:
+            continue
+        terms = {
+            "type": PROVINCE_RETURN_TYPE,
+            "proposer_nation": court,
+            "target_nation": player,
+            "sweeteners": [],
+            "demands": [{"type": "territory_cede", "value": 1, "regions": [region]}],
+            "clauses": [],
+            "region": region,
+        }
+        proposal = _make_proposal(court, PROVINCE_RETURN_TYPE, 5, terms, world)
+        dialogue = deliver_ai_proposal(proposal, world)
+        if not dialogue:
+            return None
+        cooldowns[key] = PROVINCE_RETURN_ASK_COOLDOWN
+        _set_cooldowns(world, cooldowns)
+        nation_dp = getattr(world, "nation_dp", {}) or {}
+        if int(nation_dp.get(court, 0) or 0) >= ASK_RETURN_DP_COST:
+            nation_dp[court] = int(nation_dp.get(court, 0)) - ASK_RETURN_DP_COST
+            world.nation_dp = nation_dp
+        return dialogue
+    return None
+
+
+def is_province_return_ask(dialogue: Dict) -> bool:
+    """OCT27-D9: the court's province letter (its stable P-rule label)."""
+    return str(((dialogue or {}).get("context") or {}).get("proposal_type") or "") == PROVINCE_RETURN_TYPE
+
+
+def _province_return_region(terms: Dict) -> str:
+    region = str((terms or {}).get("region") or "")
+    if region:
+        return region
+    for demand in (terms or {}).get("demands") or []:
+        for name in demand.get("regions") or []:
+            return str(name)
+    return ""
+
+
+def _build_province_return_dialogue(proposal: Dict, world) -> Dict:
+    """OCT27-D9: the court's letter — two answers, never bargained (the
+    Counter option rides hidden, the popup's own rule), every name a display
+    name, the refusal's price on its button."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    nation = proposal["source"]
+    terms = proposal["terms"]
+    region = _province_return_region(terms)
+    court = with_definite_article(formed_display_name(world, nation))
+    court_cap = with_definite_article(formed_display_name(world, nation), capitalize=True)
+    diplomats = getattr(world, "diplomats", {}) or {}
+    diplomat = diplomats.get(nation)
+    diplomat_name = diplomat.name if diplomat else f"the envoy of {court}"
+    popup_payload = build_pending_envoy_popup_from_terms(
+        world, nation=nation, terms=terms, assessment="",
+        decision_reason=proposal.get("decision_reason", ""),
+        label_type=PROVINCE_RETURN_TYPE,
+    )
+    refusal = abs(int(PROVINCE_RETURN_REFUSAL_RELATION))
+    keep_line = (f"{region} stays with us; {court} takes it hard — relations fall "
+                 f"{refusal}, and it will not ask again for {PROVINCE_RETURN_ASK_COOLDOWN} turns.")
+    # The popup's own register: Return / Keep, the refusal's price on Keep.
+    popup_payload["is_province_letter"] = True
+    popup_payload["keep_line"] = keep_line
+    return {
+        "type": "incoming_proposal",
+        "target_nation": nation,
+        "talleyrand_text": (
+            f"Sire, {diplomat_name} brings a request from {court}: {region}, a home "
+            f"province of its crown that we hold, handed back to an ally."
+            f"\n\n  Return it: {region} passes to {court}, by treaty."
+            f"\n  Keep it: {keep_line}"
+            f"\n\n{court_cap} asks; the choice is yours alone."
+        ),
+        "options": [
+            {"label": "Return the province",
+             "description": f"Hand {region} back to {court}.",
+             "action": "accept_ai_proposal", "enabled": True, "reason": ""},
+            {"label": "Keep the province",
+             "description": keep_line,
+             "action": "reject_ai_proposal", "enabled": True, "reason": ""},
+            {"label": "Counter",
+             "description": "A province's return is answered, not bargained.",
+             "action": "counter_ai_proposal", "enabled": False, "hidden": True,
+             "reason": "A province's return is answered, not bargained."},
+        ],
+        "context": {
+            "proposal": terms,
+            "source_nation": nation,
+            "acceptance_score": 0,
+            "decision_reason": proposal.get("decision_reason", ""),
+            "proposal_type": PROVINCE_RETURN_TYPE,
+        },
+        "turn_created": int(world.current_turn),
+        "blocking": False,
+        "popup_payload": popup_payload,
+    }
+
+
+def answer_province_return(world, court: str, region: str, *, give: bool) -> Dict:
+    """OCT27-D9: the player's answer to the court's letter. Re-validated
+    at the answer (`treaty.can_ask_return`): a request that no longer stands
+    is WITHDRAWN — nothing changes hands, nothing is charged. Return: the
+    province moves through `diplomacy.hand_back_province`. Keep: relations
+    fall PROVINCE_RETURN_REFUSAL_RELATION and the refusal goes on the record
+    (`record_diplomatic_refusal`) — the consequence is the step and the
+    record; no further grievance is built (the ruling's open question,
+    closed here). One `province_returned` event either way, as the AI road
+    logs it."""
+    from backend.display_names import with_definite_article
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.treaty import can_ask_return
+    player = getattr(world, "player_nation", "France")
+    court_name = with_definite_article(formed_display_name(world, court))
+    court_cap = with_definite_article(formed_display_name(world, court), capitalize=True)
+    if not region or not can_ask_return(world, court, player, region, charge=False).ok:
+        return {"verdict": "withdrawn", "popup": "WITHDRAWN", "success": False,
+                "message": (f"{court_cap}'s request for {region or 'its province'} no longer "
+                            f"stands, Sire — nothing changes hands.")}
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    if give:
+        from backend.game_logic.diplomacy import hand_back_province
+        from backend.game_logic.dispatch import queue_dispatch_event
+        hand_back_province(world, court, player, region)
+        world.log_event({"type": "province_returned", "nation": court, "target_nation": player,
+                         "region": region, "outcome": "returned", "score": 0, "shortfall": 0,
+                         "turn": turn})
+        queue_dispatch_event(world, "province_returned", {
+            "nation": court, "target_nation": player, "region": region,
+            "asker_display": formed_display_name(world, court),
+            "holder_display": formed_display_name(world, player),
+            "outcome": "returned",
+        }, "always")
+        return {"verdict": "granted", "popup": "ACCEPT", "success": True,
+                "message": f"{region} is handed back to {court_name}, Sire."}
+    from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+    modify_relation_booked(world, court, player, int(PROVINCE_RETURN_REFUSAL_RELATION),
+                           "province_return_refused", player, court)
+    record_diplomatic_refusal(world, court, player, PROVINCE_RETURN_TYPE)
+    world.log_event({"type": "province_returned", "nation": court, "target_nation": player,
+                     "region": region, "outcome": "refused", "score": 0, "shortfall": 0,
+                     "kept": True, "relation": int(PROVINCE_RETURN_REFUSAL_RELATION),
+                     "turn": turn})
+    return {"verdict": "refused", "popup": "REJECT", "success": True,
+            "message": (f"{region} stays with us, Sire. {court_cap} takes it hard — relations "
+                        f"fall {abs(int(PROVINCE_RETURN_REFUSAL_RELATION))}.")}
+
+
 def process_province_returns(world) -> List[Dict]:
     """SFR-D42's GR5 half: an AI court whose home province is held by its
     own ally asks for it back through the SAME road the player's verb takes
@@ -4976,8 +5194,14 @@ def process_province_returns(world) -> List[Dict]:
         if court == player or court not in active:
             continue
         for ally in sorted(active):
-            if (ally == court or province_return_skips(ally, player)
+            if (ally == court
                     or world.get_diplomatic_state(court, ally) not in ("ALLIANCE", "DEFENSIVE_ALLIANCE")):
+                continue
+            if province_return_skips(ally, player):
+                # OCT27-D9 (S14i): the court's ask of France is a LETTER the
+                # player answers (`province_letter_to_player`).
+                if ally == player:
+                    province_letter_to_player(world, court)
                 continue
             for region in home_provinces_held_by(world, court, ally):
                 if not can_ask_return(world, court, ally, region, charge=False).ok:

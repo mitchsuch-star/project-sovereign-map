@@ -430,6 +430,24 @@ def _has_emergent_design(world, nation: str) -> bool:
                if isinstance(entry, dict))
 
 
+def _emergent_entry(world, nation: str):
+    for entry in (getattr(world, "agendas", {}) or {}).get(nation) or []:
+        if isinstance(entry, dict) and entry.get("emergent"):
+            return entry
+    return None
+
+
+def emergent_design_refreshes(world, nation: str, entry) -> bool:
+    """OCT27-D8(b) (ruled as recommended, S14i): "one emergent design
+    ever" froze the regions — a transient occupation spent the latch, the
+    soil came home, and a later real partition promoted nothing. A court
+    whose revanche is SATISFIED (every province of it home again) may have it
+    refreshed by a fresh partition: the regions become the union and the
+    court swears it again. Down (False): one emergent design, ever."""
+    from backend.game_logic.agendas import entry_satisfied
+    return bool(entry_satisfied(world, nation, entry))
+
+
 def _grievance_author(world, nation: str, lost: List[str]) -> Tuple[Optional[str], bool]:
     """(author, record_backed): who the grievance is charged to, and
     whether a DURABLE record (punitive memory / renege grievance against
@@ -483,7 +501,8 @@ def process_emergent_designs(world) -> List[Dict]:
     for nation in sorted(world.get_active_nations()):
         if nation == player or nation in vassals:
             continue
-        if _has_emergent_design(world, nation):
+        existing = _emergent_entry(world, nation)
+        if existing is not None and not emergent_design_refreshes(world, nation, existing):
             continue
         lost = _lost_homeland(world, nation)
         if not lost:
@@ -504,7 +523,7 @@ def process_emergent_designs(world) -> List[Dict]:
         entries = deck.setdefault(nation, [])
         design_id = f"revanche_{nation.lower()}"
         if any(str(e.get("id") or "") == design_id for e in entries
-               if isinstance(e, dict)):
+               if isinstance(e, dict) and e is not existing):
             continue  # authored-id collision — the scenario owns the name
 
         first = lost[0]
@@ -512,16 +531,25 @@ def process_emergent_designs(world) -> List[Dict]:
                  f"forgiven the loss of {first}"
                  + (f" and {len(lost) - 1} more" if len(lost) > 1 else "")
                  + ".")
+        renewed = existing is not None
+        regions = list(lost)
+        if renewed:
+            # OCT27-D8(b): the union, the old order first.
+            regions = (list(existing.get("regions") or [])
+                       + [r for r in lost if r not in (existing.get("regions") or [])])
+            entries[:] = [e for e in entries if e is not existing]
         entry = {
             "id": design_id,
             "type": "acquire_regions",
             "title": EMERGENT_DESIGN_TITLE,
             "blurb": blurb,
-            "regions": list(lost),
+            "regions": regions,
             "emergent": True,
             "author": author,
             "promoted_turn": int(world.current_turn),
         }
+        if renewed:
+            entry["renewed_turn"] = int(world.current_turn)
         # Constraint (b): FRONT-insert — first-predicate-wins would leave
         # an appended entry dead behind any still-active authored design.
         entries.insert(0, entry)
@@ -544,10 +572,12 @@ def process_emergent_designs(world) -> List[Dict]:
             "author": author,
             "design_id": design_id,
             "regions": list(lost),
-            "message": (f"{nation_display} swears revanche — the court "
-                        f"will not forgive {author_display} the loss of "
+            "message": (f"{nation_display} {'swears revanche again' if renewed else 'swears revanche'}"
+                        f" — the court will not forgive {author_display} the loss of "
                         f"{province_line}."),
         }
+        if renewed:
+            event["renewed"] = True
         world.log_event(dict(event))
         events.append(event)
         from backend.game_logic.dispatch import queue_dispatch_event
@@ -555,6 +585,7 @@ def process_emergent_designs(world) -> List[Dict]:
             "nation": nation_display,
             "author": author_display,
             "province_line": province_line,
+            "renewed": bool(renewed),   # OCT27-D8(b)
         }, "always")   # a court's design is public — diplomacy has no fog
     return events
 

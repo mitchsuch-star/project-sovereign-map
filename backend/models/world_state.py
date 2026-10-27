@@ -2405,6 +2405,16 @@ class WorldState:
         # make "no cold-open wars" a lie across a save/load.
         self.diplomatic_refusals: Dict[str, List[Dict]] = {}
 
+        # OCT27-D8(a) (S14i): the Ansbach latch's record —
+        # {"{violator}>{guard_holder}": turn of the last violation}, pruned to
+        # AGENDA_VIOLATION_COOLDOWN at write. The latch read the 500-event
+        # log and failed closed when it was full. `agenda_violation_map_since`
+        # is None on a world that has always kept the map; a save from before
+        # the map loads with the turn it was loaded, and the latch keeps the
+        # log's record for the window the map does not yet cover.
+        self.agenda_violation_turns: Dict[str, int] = {}
+        self.agenda_violation_map_since: Optional[int] = None
+
         # SF-LB-2c "The patient ask" (SCORE_FINISH_SPEC.md §6 row 15):
         # {"{asker}>{holder}": turn} — the turn a court first stood at its
         # design-ask rung against that holder, written only where the
@@ -9629,6 +9639,9 @@ class WorldState:
                 k: [dict(e) for e in v]
                 for k, v in self.diplomatic_refusals.items()
             },
+            # OCT27-D8(a): the Ansbach latch's last-violation turns and the map's start.
+            "agenda_violation_turns": {str(k): int(v) for k, v in (self.agenda_violation_turns or {}).items()},
+            "agenda_violation_map_since": getattr(self, "agenda_violation_map_since", None),
             # SF-LB-2c: the turn a court first stood at its design-ask rung.
             "design_ask_first_stood": {
                 str(k): int(v) for k, v in self.design_ask_first_stood.items()
@@ -10463,6 +10476,17 @@ class WorldState:
             str(k): [dict(e) for e in (v or [])]
             for k, v in (data.get("diplomatic_refusals") or {}).items()
         }
+        # OCT27-D8(a): a save from before the map reads {} and starts the map
+        # at the turn it was loaded — the latch keeps the log's record (and its
+        # rolled-log guard) until the map covers a whole window.
+        world.agenda_violation_turns = {
+            str(k): int(v) for k, v in (data.get("agenda_violation_turns") or {}).items()
+        }
+        if "agenda_violation_turns" in data:
+            _since = data.get("agenda_violation_map_since")
+            world.agenda_violation_map_since = None if _since is None else int(_since)
+        else:
+            world.agenda_violation_map_since = int(data.get("current_turn", 1) or 1)
         # SF-LB-2c: a pre-SF-LB-2c save reads {} — a court standing at its
         # rung on load starts its dwell that turn (bounded: <= 4 turns).
         world.design_ask_first_stood = {
@@ -11274,6 +11298,9 @@ class WorldState:
 
         # Use from_dict for actual loading
         world = cls.from_dict(scenario_data)
+        # OCT27-D8(a): a new campaign keeps the Ansbach latch's map from its
+        # first turn (from_dict's save-compat reading starts it at the load).
+        world.agenda_violation_map_since = None
 
         # MC-4 boot-guard log arm: an EXPLICIT retired/typo'd personality is
         # already a hard validator error above, but a marshal dict that
@@ -13271,13 +13298,23 @@ class WorldState:
                     "message": (f"Talleyrand returns from {target}: the diplomatic situation "
                                 f"has changed — our proposal is no longer viable.{_stale_why}"),
                 })
-                # PL-5B: Set cooldowns on stale rejection (+1 for decrement timing)
-                self.player_proposal_cooldowns[target] = 4
                 stale_ptype = proposal.get("type", "")
-                if stale_ptype:
-                    self.player_proposal_cooldowns[f"{target}_{stale_ptype}"] = 6
-                from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
-                apply_rejection_cooldowns(target, stale_ptype, self, deferred=True, escalate=False)
+                from backend.game_logic.diplomacy import refund_envoy_dp, situation_changed_is_free
+                _refund = 0
+                if situation_changed_is_free():
+                    # OCT27-D10(v): the situation changed under the envoy —
+                    # his DP come back with him and nothing is cooled.
+                    _refund = refund_envoy_dp(self, pit)
+                    if _refund and events and events[-1].get("type") == "diplomatic_proposal_returned":
+                        events[-1]["message"] = (f"{events[-1]['message']} His {_refund} DP come back "
+                                                 f"with him; nothing is cooled.")
+                else:
+                    # PL-5B: Set cooldowns on stale rejection (+1 for decrement timing)
+                    self.player_proposal_cooldowns[target] = 4
+                    if stale_ptype:
+                        self.player_proposal_cooldowns[f"{target}_{stale_ptype}"] = 6
+                    from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+                    apply_rejection_cooldowns(target, stale_ptype, self, deferred=True, escalate=False)
                 # PL-5A: Proposal result popup for stale rejection
                 from backend.display_names import proposal_display_name
                 self.proposal_result_popup = {
@@ -13285,7 +13322,9 @@ class WorldState:
                     "proposal_type": proposal_display_name(stale_ptype),
                     "outcome": "REJECT",
                     "message": f"The diplomatic situation with {target} has changed — our proposal is no longer viable.",
-                    "feedback": "The current relations have already surpassed the proposed terms.",
+                    "feedback": ("The current relations have already surpassed the proposed terms."
+                                 + (f" His {_refund} DP come back with him; nothing is cooled."
+                                    if _refund else "")),
                     "decision_reason": determine_counterparty_decision_reason(
                         proposal,
                         self,
@@ -13364,11 +13403,16 @@ class WorldState:
                 apply_acceptance_cooldown(target, self, deferred=True)
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
                 resolve_pending_override(self, "bad")   # FA-N64: agreed in principle is not signed
+                # OCT27-D10(v): the situation changed under the envoy — his DP come back.
+                from backend.game_logic.diplomacy import refund_envoy_dp, situation_changed_is_free
+                _refund = refund_envoy_dp(self, pit) if situation_changed_is_free() else 0
                 events.append({
                     "type": "diplomatic_proposal_returned",
                     "target": target,
                     "outcome": "REJECT",
-                    "message": f"Talleyrand returns from {target}: they agreed in principle, but the diplomatic situation has changed.",
+                    "message": (f"Talleyrand returns from {target}: they agreed in principle, but the "
+                                f"diplomatic situation has changed."
+                                + (f" His {_refund} DP come back with him." if _refund else "")),
                 })
                 # PL-5A: Popup for failed ratification
                 self.proposal_result_popup = {

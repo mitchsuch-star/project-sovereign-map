@@ -222,7 +222,28 @@ class TestPL5BProposalInTransit:
         assert world.proposal_in_transit is None
 
     def test_reject_path_sets_cooldowns_4_6(self):
-        """REJECT outcome sets player cooldowns to 4/6 (+1 for decrement timing)."""
+        """REJECT outcome sets player cooldowns to 4/6 (+1 for decrement timing).
+
+        RE-SEATED by OCT27-D10(v) (S14i part 2, October 27, 2026): a STALE
+        return — the situation changed under the envoy — is not a refusal; his
+        DP come back and nothing is cooled (`diplomacy.situation_changed_is_free`).
+        The 4/6 below is the seam held down; the ruling's own pin is
+        `tests/test_oct27_ai_sweep_batches.py::TestOCT27D10`."""
+        from unittest.mock import patch
+        world = _make_world()
+        world.diplomatic_states["Austria|France"] = "NON_AGGRESSION"
+        world.proposal_in_transit = {
+            "target": "Austria",
+            "proposal": {
+                "type": "non_aggression",
+                "proposer_nation": "France",
+                "target_nation": "Austria",
+            },
+            "turn_sent": 3,
+        }
+        world._process_proposal_in_transit()
+        assert world.player_proposal_cooldowns.get("Austria", 0) == 0     # nothing is cooled
+        assert world.ai_proposal_cooldowns.get("Austria|non_aggression", 0) == 0
         world = _make_world()
         # Stale proposal: current state already at or above proposed level
         world.diplomatic_states["Austria|France"] = "NON_AGGRESSION"
@@ -235,8 +256,9 @@ class TestPL5BProposalInTransit:
             },
             "turn_sent": 3,
         }
-        world._process_proposal_in_transit()
-        # Stale rejection sets player cooldowns to 4/6
+        with patch("backend.game_logic.diplomacy.situation_changed_is_free", lambda: False):
+            world._process_proposal_in_transit()
+        # Stale rejection sets player cooldowns to 4/6 (the seam held down)
         assert world.player_proposal_cooldowns.get("Austria", 0) == 4
         assert world.player_proposal_cooldowns.get("Austria_non_aggression", 0) == 6
         # Also sets AI rejection cooldowns (+1 deferred compensation)

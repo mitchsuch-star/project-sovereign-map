@@ -4487,7 +4487,10 @@ class TestPCF30:
         assert _state(w, "Holland", "Britain") == "WAR" and _state(w, "Russia", "Britain") == "ALLIANCE"
         with _quiet():
             assert V.transfer_vassal(w, "Holland", "Russia")["success"]
-        assert _state(w, "Holland", "Britain") == "ARMISTICE", "Russia's footing with Britain"
+        # RE-SEATED by OCT27-D12(d) (S14i part 2, October 27, 2026): Russia is
+        # Britain's ally, so the client's war ends in PEACE — a truce only where
+        # the lord stands in one (`vassal.client_follows_lord_footing`).
+        assert _state(w, "Holland", "Britain") == "PEACE", "Russia's footing with Britain"
 
     def test_the_old_exemption_is_the_seam(self, vienna_held, monkeypatch):
         from backend.game_logic import vassal as V

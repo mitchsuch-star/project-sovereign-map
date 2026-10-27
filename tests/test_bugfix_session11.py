@@ -105,9 +105,18 @@ class TestPL12HarshnessFix:
         proposal_mild = _make_proposal(demands=[], clauses=[])
         result_mild = calculate_acceptance(proposal_mild, world)
 
-        # Dove: mild gets peace_mod=+10, harsh gets harsh_mod=-10
+        # Dove: mild gets peace_mod=+10. RE-SEATED by OCT27-D10(iii) (S14i
+        # part 2, October 27, 2026): the term RAMPS from the peace disposition
+        # at demands worth -3 to the harsh one at -12 (`personality_term`) — the
+        # 100g demand (-5) reads 10 - 20 x 2/9 = 6, no longer the 20-point
+        # cliff; a demand worth -12 reads the full harsh -10.
         assert result_mild["components"]["personality_modifier"] == 10
-        assert result_harsh["components"]["personality_modifier"] == -10
+        assert result_harsh["components"]["personality_modifier"] == 6
+        proposal_harsher = _make_proposal(demands=[
+            {"type": "gold_per_turn", "value": 240},
+        ])
+        result_harsher = calculate_acceptance(proposal_harsher, world)
+        assert result_harsher["components"]["personality_modifier"] == -10
 
     def test_hawk_harsh_does_not_raise_acceptance(self):
         """July 12 2026 regression: a harsh proposal must never RAISE a

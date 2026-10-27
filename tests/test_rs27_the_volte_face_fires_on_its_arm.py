@@ -114,8 +114,19 @@ class TestTheVolteFaceFiresOnItsArm:
         the question the Emperor asks before declining the chase; the beat
         fires on turn 30 (measured; the refused order had drawn on the
         objection's dice, the question does not, so the war is re-timed by a
-        roll — the arm, not the rule)."""
-        rows = _drive(tmp_path)
+        roll — the arm, not the rule).
+
+        RE-SEATED by OCT27-D13(c) (S14i part 2, October 27, 2026): the
+        generals draw from their own stream (`enemy_ai.ai_rng`). On the new
+        dice France's corps hold Austria's second lost province where Bavaria
+        had taken it, so Austria's revanche at turn 7 names France and the
+        hegemon's door this arm exists to measure is shut for the campaign
+        (measured with the IQ-6 hooks: `sworn_revanche` from turn 7, the
+        courtship otherwise identical). Held down alone, the dice return the
+        beat at turn 26; the order-keyed cooldown, the re-ask and the front
+        held down alone do not. The arm keeps its purpose on the shared
+        stream — the dice stage the war, they are not the rule."""
+        rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

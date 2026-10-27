@@ -8458,6 +8458,32 @@ class DiplomaticExecutor:
             result["incoming_proposal"] = popup
         return result
 
+    def _answer_province_letter(self, dialogue: Dict, world, *, give: bool) -> Dict:
+        """OCT27-D9 (S14i): the court's province letter answered — the
+        outcome is `ai_diplomacy.answer_province_return`'s, its words on the
+        result popup (the PL-14 rule)."""
+        from backend.display_names import proposal_display_name
+        from backend.game_logic.ai_diplomacy import (
+            PROVINCE_RETURN_TYPE, _province_return_region, answer_province_return,
+        )
+        context = dialogue.get("context") or {}
+        terms = context.get("proposal") or {}
+        court = str(terms.get("proposer_nation") or context.get("source_nation") or "")
+        outcome = answer_province_return(world, court, _province_return_region(terms), give=give)
+        world.dialogue_manager.pop()
+        dismiss_letter_notices(world)
+        world.proposal_result_popup = {
+            "target_nation": court,
+            "proposal_type": proposal_display_name(PROVINCE_RETURN_TYPE),
+            "outcome": outcome["popup"],
+            "message": outcome["message"],
+            "feedback": "",
+        }
+        return {"success": bool(outcome.get("success", True)),
+                "message": outcome["message"],
+                "decision_reason": outcome["verdict"],
+                "suppress_proposal_result_popup": True}
+
     def _handle_accept_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Accept an incoming AI proposal. Executes the state transition."""
         # S14c (docs/EVENTS_SPEC.md §3.4 seam 3): a moment letter has no
@@ -8590,6 +8616,17 @@ class DiplomaticExecutor:
                            f"now answers to Paris.")
                 result_outcome = "ACCEPT"
                 feedback = str(outcome.get("message", ""))
+                # OCT27-D12(c): the on-ramp assimilates as `make_vassal` does.
+                from backend.game_logic.vassal import (
+                    assimilate_vassal_marshals, onramp_assimilates,
+                )
+                if onramp_assimilates():
+                    _assimilated = assimilate_vassal_marshals(world, source_nation)
+                    if _assimilated:
+                        from backend.display_names import humanize_entity_name
+                        feedback = (f"{feedback} Marshals assimilated: "
+                                    f"{', '.join(humanize_entity_name(n) for n in _assimilated)}."
+                                    ).strip()
             else:
                 message = (f"The submission could not be sealed, Sire. "
                            f"{outcome.get('message', '')}")
@@ -8613,6 +8650,9 @@ class DiplomaticExecutor:
         # WITHDRAWS the petition: nothing is charged and no refusal penalty
         # falls. No dialogue survives; the outcome rides the result popup
         # (the PL-14 rule).
+        from backend.game_logic.ai_diplomacy import is_province_return_ask
+        if is_province_return_ask(dialogue):
+            return self._answer_province_letter(dialogue, world, give=True)
         from backend.game_logic.vassal import is_client_petition
         if is_client_petition(dialogue):
             from backend.display_names import proposal_display_name
@@ -8877,6 +8917,9 @@ class DiplomaticExecutor:
         # (pinned: `world.diplomatic_refusals` unchanged). The refusal's own
         # price (loyalty, the relation step) is `vassal.refuse_petition`'s,
         # the same figure the popup quoted; no DP is charged.
+        from backend.game_logic.ai_diplomacy import is_province_return_ask
+        if is_province_return_ask(dialogue):
+            return self._answer_province_letter(dialogue, world, give=False)
         from backend.game_logic.vassal import is_client_petition
         if is_client_petition(dialogue):
             terms = context.get("proposal", {}) or {}
@@ -9189,6 +9232,10 @@ class DiplomaticExecutor:
         # never bargained. Refused BEFORE the DP charge, and the dialogue is
         # left pending — the popup hides its Counter button, so this is the
         # typed route's (and the driver's) honest answer.
+        from backend.game_logic.ai_diplomacy import is_province_return_ask
+        if is_province_return_ask(dialogue):
+            return {"success": False,
+                    "message": "A province's return is answered, Sire — not bargained."}
         from backend.game_logic.vassal import is_client_petition
         if is_client_petition(dialogue):
             return {

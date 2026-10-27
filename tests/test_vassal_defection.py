@@ -167,7 +167,12 @@ class TestTransferOutcome:
         # not necessarily happier — VS-4/VS-R apply immediately
         assert world.nation_gold["Austria"] == 5000 - BRIBE_TRANSFER_COST
         assert world.get_diplomatic_state("Austria", "Saxony") == "VASSAL"
-        assert world.get_diplomatic_state("France", "Saxony") == "PEACE"
+        # RE-SEATED by OCT27-D12(a) (S14i part 2, October 27, 2026): bought by a
+        # court at war with its old lord, the client takes the field against
+        # him under its new lord (`vassal.bribed_client_marches`; it stood at
+        # PEACE with its new lord's enemy before the ruling).
+        assert world.get_diplomatic_state("France", "Saxony") == "WAR"
+        assert events[0]["message"].endswith("Saxony marches under Austria's eagle against France.")
 
 
 # ═══════════════════════════════════════════════════════

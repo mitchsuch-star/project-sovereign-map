@@ -30780,8 +30780,10 @@ class TestS14ED15:
         assert f"Their tribute is 100% of their income — {plan['tribute']:,} gold a turn." in text
         assert ("The war with Austria ends. France's clients follow out of it: "
                 "the Kingdom of Italy.") in text
+        # RE-SEATED by OCT27-D12(d) (S14i part 2, October 27, 2026): Bavaria is
+        # France's ally, so the client's war with her ends in peace.
         assert ("As France's client they fight only France's wars: their war with "
-                "Bavaria becomes a truce.") in text
+                "Bavaria ends in peace.") in text
         assert ("Their alliances with Britain and Russia are broken — they are at "
                 "war with France.") in text
         assert "Their marshals take French service: Mack, Archduke Charles, Archduke John." in text
@@ -30813,8 +30815,9 @@ class TestS14ED15:
         for entry in plan["closes"]:
             a, b = entry["pair"]
             assert w.get_diplomatic_state(a, b) == entry["to"], entry
+        # OCT27-D12(d) (S14i part 2): Austria-Bavaria, France's ally, PEACE.
         assert [e["to"] for e in plan["closes"]] == [
-            "VASSAL", "PEACE", "ARMISTICE", "PEACE", "PEACE"]
+            "VASSAL", "PEACE", "PEACE", "PEACE", "PEACE"]
         for name in names:
             assert w.marshals[name].nation == "France"
             assert w.marshals[name].original_nation == "Austria"

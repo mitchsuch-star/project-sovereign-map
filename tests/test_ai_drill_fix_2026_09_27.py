@@ -478,4 +478,14 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert s14i["prior"] == oct27["arms"]["ALL"]["series"]
         assert s14i["arms"]["0"]["series"] == s14i["prior"]
-        assert BASELINE_SERIES == s14i["arms"]["ALL"]["series"]
+        # S14i part 2 (October 27, 2026): part 1's ALL is the prior the
+        # rulings' arm 0 (OCT27-D8 … D13 held down) reproduces byte for byte,
+        # and part 2's ALL is the standing series
+        # (`tools/_s14i_p2_series_arms_final.json`).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_PART_2
+        assert SERIES_BEFORE_PART_2 == s14i["arms"]["ALL"]["series"]
+        s14i2 = json.loads((ROOT / "tools" / "_s14i_p2_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert s14i2["prior"] == s14i["arms"]["ALL"]["series"]
+        assert s14i2["arms"]["0"]["series"] == s14i2["prior"]
+        assert BASELINE_SERIES == s14i2["arms"]["ALL"]["series"]

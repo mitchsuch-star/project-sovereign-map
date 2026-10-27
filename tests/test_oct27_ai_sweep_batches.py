@@ -984,3 +984,457 @@ class TestOCT27D7:
         from backend.commands import combat_executor as CE
         assert inspect.getsource(CO).count("honour_on_road(") >= 2
         assert inspect.getsource(CE).count("honour_on_road(") >= 2
+
+
+class TestOCT27D8:
+    """The Ansbach latch on a serialized map; a satisfied revanche refreshes."""
+
+    def test_the_latch_reads_the_map_when_the_log_is_full(self, world, monkeypatch):
+        from backend.game_logic import agendas as AG
+        size = int(world.MAX_EVENT_LOG_SIZE)
+        world.current_turn = 30
+        world.event_log = [{"type": "filler", "turn": 29} for _ in range(size)]
+        assert not AG.violation_on_cooldown(world, "France", "Prussia")   # never closed blind
+        AG._note_violation(world, "France", "Prussia")
+        assert AG.violation_on_cooldown(world, "France", "Prussia")
+        world.current_turn = 30 + AG.AGENDA_VIOLATION_COOLDOWN
+        assert not AG.violation_on_cooldown(world, "France", "Prussia")
+        world.current_turn = 31
+        reloaded = WorldState.from_dict(json.loads(json.dumps(world.to_dict(), default=str)))
+        assert reloaded.agenda_violation_turns == {"France>Prussia": 30}
+        assert AG.violation_on_cooldown(reloaded, "France", "Prussia")
+        # a write prunes the map to the window
+        world.current_turn = 30 + AG.AGENDA_VIOLATION_COOLDOWN + 1
+        AG._note_violation(world, "France", "Bavaria")
+        assert set(world.agenda_violation_turns) == {"France>Bavaria"}
+        # a save from before the map keeps the rolled-log guard for its first window
+        world.agenda_violation_map_since = int(world.current_turn)
+        world.event_log = [{"type": "filler", "turn": int(world.current_turn)} for _ in range(size)]
+        assert AG.violation_on_cooldown(world, "France", "Britain")
+        world.current_turn += AG.AGENDA_VIOLATION_COOLDOWN
+        world.event_log = [{"type": "filler", "turn": int(world.current_turn)} for _ in range(size)]
+        assert not AG.violation_on_cooldown(world, "France", "Britain")   # the map covers it now
+        old = WorldState.from_dict({k: v for k, v in json.loads(json.dumps(
+            world.to_dict(), default=str)).items() if not k.startswith("agenda_violation")})
+        assert old.agenda_violation_map_since == int(old.current_turn)   # a pre-map save
+        # down: the full log fails closed for a pair that never violated
+        monkeypatch.setattr(AG, "violation_latch_reads_the_map", lambda: False)
+        world.agenda_violation_map_since = None
+        assert AG.violation_on_cooldown(world, "France", "Britain")
+
+    def test_a_satisfied_revanche_is_sworn_again(self, world, monkeypatch):
+        from backend.game_logic import emergent_designs as ED
+        world.agendas.setdefault("Prussia", []).insert(0, {
+            "id": "revanche_prussia", "type": "acquire_regions", "title": "Revanche",
+            "blurb": "", "regions": ["Silesia"], "emergent": True, "author": "Austria",
+            "promoted_turn": 1})
+        for name in ("Berlin", "Brandenburg"):
+            world.regions[name].controller = "France"
+        world.invalidate_active_nations_cache()
+        events = [e for e in ED.process_emergent_designs(world) if e["nation"] == "Prussia"]
+        assert len(events) == 1 and events[0].get("renewed"), events
+        assert "swears revanche again" in events[0]["message"]
+        entry = ED._emergent_entry(world, "Prussia")
+        assert entry["regions"] == ["Silesia", "Berlin", "Brandenburg"]
+        assert entry["author"] == "France" and entry["renewed_turn"] == int(world.current_turn)
+        assert [e for e in world.agendas["Prussia"] if e.get("emergent")] == [entry]
+        # an unsatisfied revanche is not re-sworn
+        assert not [e for e in ED.process_emergent_designs(world) if e["nation"] == "Prussia"]
+
+    def test_down_one_revanche_ever(self, world, monkeypatch):
+        from backend.game_logic import emergent_designs as ED
+        monkeypatch.setattr(ED, "emergent_design_refreshes", lambda *a, **k: False)
+        world.agendas.setdefault("Prussia", []).insert(0, {
+            "id": "revanche_prussia", "type": "acquire_regions", "regions": ["Silesia"],
+            "emergent": True, "author": "Austria", "promoted_turn": 1})
+        for name in ("Berlin", "Brandenburg"):
+            world.regions[name].controller = "France"
+        world.invalidate_active_nations_cache()
+        assert not [e for e in ED.process_emergent_designs(world) if e["nation"] == "Prussia"]
+
+
+def _letters(world):
+    dm = world.dialogue_manager
+    return [d for d in [dm.peek(), *dm.iter_queue()] if d]
+
+
+def _swabia_french(world):
+    world.regions["Swabia"].controller = "France"
+    world.invalidate_active_nations_cache()
+
+
+class TestOCT27D9:
+    """An ally's ask for its home province reaches France as a letter."""
+
+    def test_the_producer_writes_the_letter(self, world):
+        from backend.game_logic import ai_diplomacy as AD
+        _swabia_french(world)
+        AD.process_province_returns(world)
+        letters = [d for d in _letters(world) if AD.is_province_return_ask(d)]
+        assert letters, "no province letter delivered"
+        letter = letters[0]
+        labels = [o["label"] for o in letter["options"] if not o.get("hidden")]
+        assert labels == ["Return the province", "Keep the province"]
+        assert "Swabia" in letter["talleyrand_text"] and "relations fall 5" in letter["talleyrand_text"]
+        assert world.regions["Swabia"].controller == "France"        # nothing moved
+        assert AD._get_cooldowns(world)["Bavaria|province_return_ask"] == AD.PROVINCE_RETURN_ASK_COOLDOWN
+        before = len(letters)
+        AD.process_province_returns(world)                           # the cooldown holds
+        again = [d for d in _letters(world) if AD.is_province_return_ask(d)]
+        assert len(again) == before
+
+    def test_keep_costs_five_and_goes_on_the_record(self, world):
+        from backend.game_logic import ai_diplomacy as AD
+        _swabia_french(world)
+        key = world._make_diplo_key("Bavaria", "France")
+        before = int(world.nation_relations.get(key, 0))
+        out = AD.answer_province_return(world, "Bavaria", "Swabia", give=False)
+        assert out["verdict"] == "refused" and world.regions["Swabia"].controller == "France"
+        assert int(world.nation_relations[key]) == max(-100, before - 5)
+        assert [e["type"] for e in AD.get_refused_asks(world, "Bavaria", "France")] == ["province_return_ask"]
+        kept = [e for e in world.event_log if e.get("type") == "province_returned"]
+        assert kept[-1]["kept"] and kept[-1]["outcome"] == "refused"
+        from backend.campaign_log import format_event_oneliner
+        assert "keeps Swabia" in format_event_oneliner(kept[-1], "France")
+
+    def test_return_hands_it_back_and_a_stale_ask_is_withdrawn(self, world):
+        from backend.game_logic import ai_diplomacy as AD
+        _swabia_french(world)
+        out = AD.answer_province_return(world, "Bavaria", "Swabia", give=True)
+        assert out["verdict"] == "granted" and world.regions["Swabia"].controller == "Bavaria"
+        again = AD.answer_province_return(world, "Bavaria", "Swabia", give=True)
+        assert again["verdict"] == "withdrawn"                       # it no longer stands
+
+    def test_the_popup_reads_return_and_keep(self, world):
+        """The client's register (a source census — the parse harness compiles
+        it): Return / Keep with Keep's price on its tooltip, and S14I-3 — the
+        Reject tooltip cleared before every letter's captions."""
+        from backend.game_logic import ai_diplomacy as AD
+        _swabia_french(world)
+        AD.process_province_returns(world)
+        letter = next(d for d in _letters(world) if AD.is_province_return_ask(d))
+        payload = letter["popup_payload"]
+        assert payload["is_province_letter"] is True
+        assert "relations fall 5" in payload["keep_line"]
+        gd = (REPO / "godot-client" / "project-sovereign" / "scripts"
+              / "incoming_proposal_popup.gd").read_text(encoding="utf-8")
+        assert 'accept_btn.text = "Return"' in gd and 'reject_btn.text = "Keep"' in gd
+        reset = gd.index('reject_btn.tooltip_text = ""')
+        captions = gd.index("if is_ultimatum:", reset)   # the caption chain the reset heads
+        assert captions - reset < 80 < gd.index('reject_btn.text = "Keep"') - reset
+
+    def test_down_the_court_asks_nothing(self, world, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AD
+        monkeypatch.setattr(AD, "province_letter_to_player", lambda *a, **k: None)
+        _swabia_french(world)
+        AD.process_province_returns(world)
+        assert not [d for d in _letters(world) if AD.is_province_return_ask(d)]
+        assert world.regions["Swabia"].controller == "France"
+
+
+class TestOCT27D10:
+    """The courts' answers, measured against what the player is shown."""
+
+    def _young_war(self, world, age=2):
+        _state(world, "France", "Prussia", "WAR")
+        world.war_start_turns[world._make_diplo_key("France", "Prussia")] = int(world.current_turn) - age
+
+    def test_the_arrival_forecast_counts_the_sting_and_the_weariness(self, world):
+        from backend.game_logic import diplomacy as D
+        self._young_war(world, age=2)
+        proposal = {"type": "peace", "proposer_nation": "France", "target_nation": "Prussia",
+                    "sweeteners": [], "demands": [{"type": "gold_lump", "value": 100}], "clauses": []}
+        result = D.calculate_acceptance(proposal, world)
+        assert result["components"]["war_age_penalty"] < 0
+        gain = (D.war_age_acceptance_mod(3, extracts_value=True)
+                - D.war_age_acceptance_mod(2, extracts_value=True)
+                + D.war_weariness_acceptance_mod(3) - D.war_weariness_acceptance_mod(2))
+        line = D.arrival_drift_line(world, proposal, result)
+        assert line == (f"By his arrival Prussia will be about +{gain} readier — the young "
+                        f"war's sting fades and its weariness grows.")
+        white = dict(proposal, demands=[])
+        assert D.arrival_drift_line(world, white, D.calculate_acceptance(white, world)) == ""
+
+    def test_the_war_is_credited_in_one_place_its_total_measured(self, world, monkeypatch):
+        """The fold (D10(ii)): the weight, R8 and R3 read from ONE function;
+        the total is the settlement table's own felt credit (DDB-X5's pin,
+        `tests/test_ddb_s13b_the_rulings.py::TestDDBX5`, holds 54 / 56 at 50)."""
+        from backend.game_logic import diplomacy as D
+        credit = D.bilateral_war_credit(60, "peace")
+        assert credit == {"weighted": 60 * D.bilateral_war_score_weight(), "battlefield": 10,
+                          "pressure": 9, "total": 60 * D.bilateral_war_score_weight() + 19}
+        assert D.bilateral_war_credit(60, "peace", military_supremacy=10)["battlefield"] == 0
+        assert D.bilateral_war_credit(60, "alliance")["battlefield"] == 0
+        assert D.bilateral_war_credit(15, "peace")["battlefield"] == 0
+        self._young_war(world, age=12)
+        monkeypatch.setattr(D, "acceptance_reads_the_field", lambda *a, **k: False)
+        key = world._make_diplo_key("France", "Prussia")
+        world.war_scores[key] = 60 if key.startswith("France") else -60
+        proposal = {"type": "peace", "proposer_nation": "France", "target_nation": "Prussia",
+                    "sweeteners": [], "demands": [], "clauses": []}
+        parts = D.calculate_acceptance(proposal, world)["components"]
+        assert (parts["war_score_modifier"], parts["battlefield_diplomacy"],
+                parts["military_pressure"]) == (round(credit["weighted"], 1), 10, 9)
+        calls = []
+        real = D.bilateral_war_credit
+        monkeypatch.setattr(D, "bilateral_war_credit",
+                            lambda *a, **k: calls.append(a) or real(*a, **k))
+        D.calculate_acceptance(proposal, world)
+        assert len(calls) == 2          # the weight's read and R3/R8's, one function
+
+    def test_the_personality_term_ramps(self):
+        from backend.game_logic.diplomacy import personality_term
+        assert personality_term(10, -10, "peace", -3) == 10
+        assert personality_term(10, -10, "peace", -7.5) == 0
+        assert personality_term(10, -10, "peace", -12) == -10
+        assert personality_term(10, -10, "peace", -40) == -10
+        assert personality_term(10, -10, "vassalage", 0) == -10
+        assert personality_term(-5, 5, "peace", -20) == -5            # the hawk unchanged
+        steps = [personality_term(10, -10, "peace", -x / 2) for x in range(0, 40)]
+        assert steps == sorted(steps, reverse=True)                   # monotone
+
+    def test_a_held_province_is_priced_at_the_status_quo_rate(self, world):
+        from backend.game_logic.diplomacy import analyze_territory_demands, held_cession_rate
+        _swabia_french(world)
+        demands = [{"type": "territory_cede", "regions": ["Swabia"]}]
+        held = analyze_territory_demands(demands, "Bavaria", world, proposer="France")["held_costs"]
+        weight = max(0.5, world.regions["Swabia"].income_value / 100)
+        assert held == [("Swabia", -5 * weight * held_cession_rate())]
+        assert held_cession_rate() == 0.5
+        assert analyze_territory_demands(demands, "Bavaria", world)["held_costs"] == []
+
+    def test_a_turned_back_envoy_brings_his_points_home(self, world, monkeypatch):
+        import contextlib
+        import io
+        from backend.game_logic import diplomacy as D
+        _state(world, "France", "Prussia", "NON_AGGRESSION")
+        world.diplomatic_points = 1
+        world.proposal_in_transit = {
+            "target": "Prussia", "turns_remaining": 0, "turn_sent": int(world.current_turn) - 1,
+            "dp_cost": 2,
+            "proposal": {"type": "open_borders", "proposer_nation": "France", "target_nation": "Prussia",
+                         "sweeteners": [], "demands": [], "clauses": []},
+            "diplomatic_state_at_send": "NON_AGGRESSION", "acceptance_snapshot": 60}
+        with contextlib.redirect_stdout(io.StringIO()):
+            events = world._process_proposal_in_transit()
+        returned = next(e for e in events if e.get("type") == "diplomatic_proposal_returned")
+        assert returned["message"].endswith("His 2 DP come back with him; nothing is cooled.")
+        assert world.diplomatic_points == 3
+        assert "Prussia" not in world.player_proposal_cooldowns
+        monkeypatch.setattr(D, "situation_changed_is_free", lambda: False)
+        world.diplomatic_points = 1
+        world.proposal_in_transit = dict(returned and {
+            "target": "Prussia", "turns_remaining": 0, "turn_sent": int(world.current_turn) - 1,
+            "dp_cost": 2,
+            "proposal": {"type": "open_borders", "proposer_nation": "France", "target_nation": "Prussia",
+                         "sweeteners": [], "demands": [], "clauses": []},
+            "diplomatic_state_at_send": "NON_AGGRESSION", "acceptance_snapshot": 60})
+        with contextlib.redirect_stdout(io.StringIO()):
+            world._process_proposal_in_transit()
+        assert world.diplomatic_points == 1 and world.player_proposal_cooldowns.get("Prussia") == 4
+
+    def test_the_slide_clock_walks_the_forced_step(self, world, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        key = world._make_diplo_key("France", "Spain")
+        assert world.get_diplomatic_state("France", "Spain") == "ALLIANCE"
+        world.nation_relations[key] = 50
+        free = None
+        monkeypatch.setattr(D, "forced_alliance_step", lambda *a, **k: 0)
+        free = D.slide_clock(world, "Spain")
+        monkeypatch.undo()
+        world.alliance_origins = {key: "forced"}
+        forced = D.slide_clock(world, "Spain")
+        assert forced["rate"] == free["rate"] + 10
+        assert forced["lapse_in"] is not None
+        assert free["lapse_in"] is None or forced["lapse_in"] < free["lapse_in"]
+
+
+class TestOCT27D11:
+    """The proposal rungs' prices: a hawk pays the least."""
+
+    def test_what_a_court_pays_scales_by_the_inverse(self, world, monkeypatch):
+        from backend.game_logic import ai_diplomacy as AD
+        assert AD.sweetener_multiplier(1.5) == pytest.approx(1 / 1.5)
+        assert AD.sweetener_multiplier(0.75) == pytest.approx(1 / 0.75)
+        world.nation_gold["Prussia"] = 1000
+        _state(world, "France", "Prussia", "WAR")
+        monkeypatch.setattr(world, "calculate_turn_income", lambda n: {"income": 10000})
+
+        def gift(mult):
+            terms = AD._build_proposal_terms("Prussia", "armistice_losing", -40, world, gold_mult=mult)
+            return sum(int(s.get("value", 0) or 0) for s in terms["sweeteners"]
+                       if s.get("type") == "gold_per_turn")
+        assert gift(0.75) > gift(1.0) > gift(1.5)                    # the dove pays the most
+
+    def test_the_compact_aims_at_the_courts_own_target(self, world, monkeypatch):
+        from types import SimpleNamespace
+        from backend.game_logic import ai_diplomacy as AD
+        from backend.game_logic import intent as IT
+        monkeypatch.setattr(IT, "get_nation_intent", lambda n, w: SimpleNamespace(against="Sweden"))
+        assert AD.compact_aim_for(world, "Russia", ["Austria", "Sweden"]) == "Sweden"
+        assert AD.compact_aim_for(world, "Russia", ["Austria", "Turkey"]) == "Austria"
+        assert AD.compact_aim_for(world, "Russia", []) == ""
+
+
+class TestOCT27D12:
+    """The vassal roads."""
+
+    def test_a_client_follows_its_lords_ally_to_peace(self):
+        from backend.game_logic.vassal import client_follows_lord_footing
+        assert client_follows_lord_footing("ALLIANCE") == "PEACE"
+        assert client_follows_lord_footing("DEFENSIVE_ALLIANCE") == "PEACE"
+        assert client_follows_lord_footing("ARMISTICE") == "ARMISTICE"
+        assert client_follows_lord_footing("PEACE") == "PEACE"
+
+    def test_a_war_of_frances_client_waits_for_france(self, world):
+        from backend.game_logic import settlement_third_party as TP
+        war = {"active_participants": ["Switzerland", "Sweden"],
+               "side_by_nation": {"Switzerland": "defenders", "Sweden": "attackers"}}
+        assert TP.client_war_waits_for_france(world, war, "France")
+        assert not TP.client_war_waits_for_france(world, war, "France", broker="France")
+        assert TP.attempt_third_party_settlement(world, "w", war) is None
+        free = {"active_participants": ["Prussia", "Sweden"], "side_by_nation": {}}
+        assert not TP.client_war_waits_for_france(world, free, "France")
+
+    def test_the_bought_client_marches_against_its_old_lord(self, world, monkeypatch):
+        from backend.game_logic import vassal as VA
+        from backend.game_logic import diplomacy as D
+        assert world.is_at_war("Russia", "France")
+        world.vassals["Switzerland"]["loyalty"] = 5
+        world.nation_gold["Russia"] = 5000
+        monkeypatch.setattr(VA.random, "random", lambda: 0.0)
+        monkeypatch.setattr(D, "check_vassalage_power_cap", lambda *a, **k: {"allowed": True})
+        events = VA.attempt_vassal_bribe(world, "Russia")
+        landed = [e for e in events if e.get("type") == "vassal_defected"]
+        assert landed and landed[0]["outcome"] == "transfer", events
+        assert world.vassals["Switzerland"]["lord"] == "Russia"
+        assert world.get_diplomatic_state("Switzerland", "France") == "WAR"
+        assert landed[0]["message"].endswith("Switzerland marches under Russia's eagle against France.")
+        logged = [e for e in world.event_log if e.get("type") == "vassal_defected"]
+        assert logged[-1]["marches"] is True
+
+    def test_down_the_bought_client_stands_at_peace(self, world, monkeypatch):
+        from backend.game_logic import vassal as VA
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(VA, "bribed_client_marches", lambda: False)
+        world.vassals["Switzerland"]["loyalty"] = 5
+        world.nation_gold["Russia"] = 5000
+        monkeypatch.setattr(VA.random, "random", lambda: 0.0)
+        monkeypatch.setattr(D, "check_vassalage_power_cap", lambda *a, **k: {"allowed": True})
+        VA.attempt_vassal_bribe(world, "Russia")
+        assert world.vassals["Switzerland"]["lord"] == "Russia"
+        assert world.get_diplomatic_state("Switzerland", "France") != "WAR"
+
+    def test_the_offered_crown_assimilates_the_marshals(self, world, monkeypatch):
+        from backend.commands.diplomatic_executor import DiplomaticExecutor
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "check_vassalage_power_cap", lambda *a, **k: {"allowed": True})
+        bavarians = [m for m in world.marshals.values() if m.nation == "Bavaria"]
+        assert bavarians, "the 1805 boot has a Bavarian marshal"
+        dialogue = {"type": "incoming_proposal", "target_nation": "Bavaria",
+                    "context": {"source_nation": "Bavaria", "proposal_type": "offer_vassalage",
+                                "proposal": {"type": "offer_vassalage", "proposer_nation": "Bavaria",
+                                             "target_nation": "France"}}}
+        world.dialogue_manager.replace(dialogue)
+        result = DiplomaticExecutor(None)._handle_accept_ai_proposal(dialogue, world)
+        assert result["success"], result
+        assert world.vassals["Bavaria"]["lord"] == "France"
+        assert all(m.nation == "France" and m.original_nation == "Bavaria" for m in bavarians)
+
+
+class TestOCT27D13:
+    """The enemy generals' remaining class."""
+
+    def test_a_refused_order_cools_itself(self, world, monkeypatch):
+        from backend.ai import enemy_ai as EA
+        ai = _ai()
+        ai._current_world = world
+        assert EA.failed_order_key("attack", "Vienna") == "attack|Vienna"
+        assert EA.failed_order_key("fortify", None) == "fortify"
+        ai._record_failed_action("Ney", "attack", target="Vienna")
+        assert world.ai_failed_action_cooldowns["Ney"] == {"attack|Vienna": 2}
+        assert ai._is_action_on_cooldown("Ney", "attack", "Vienna")
+        assert not ai._is_action_on_cooldown("Ney", "attack", "Munich")
+        world.ai_failed_action_cooldowns["Ney"]["attack"] = 2      # a save from before
+        assert ai._is_action_on_cooldown("Ney", "attack", "Munich")
+        monkeypatch.setattr(EA, "cooldown_by_target", lambda: False)
+        assert EA.failed_order_key("attack", "Vienna") == "attack"
+
+    def test_a_refused_pick_is_asked_again_without_it(self, world, monkeypatch):
+        from backend.ai import enemy_ai as EA
+        ai = _ai()
+        ai._current_world = world
+        ai._marshals_done_this_turn = set()
+        mack = world.marshals["Mack"]
+
+        def fake_eval(marshal, nation, w):
+            if marshal is not mack:
+                return None, 999
+            if ai._admits({"action": "attack", "target": "Munich"}):
+                return {"marshal": marshal.name, "action": "attack", "target": "Munich"}, 4
+            return {"marshal": marshal.name, "action": "fortify"}, 5
+        monkeypatch.setattr(ai, "_evaluate_marshal", fake_eval)
+        failed = {(mack.name, "attack", "Munich")}
+        picked, action, _ = ai._select_next_marshal_action([mack], "Austria", world, {mack.name: 0}, failed)
+        assert picked is mack and action["action"] == "fortify"
+        monkeypatch.setattr(EA, "reevaluates_blocked_rung", lambda: False)
+        picked, action, _ = ai._select_next_marshal_action([mack], "Austria", world, {mack.name: 0}, failed)
+        assert picked is None
+
+    def test_the_front_is_an_enemys_ground(self, world, monkeypatch):
+        from types import SimpleNamespace
+        from backend.ai import enemy_ai as EA
+        from backend.game_logic import intent as IT
+        ai = _ai()
+        monkeypatch.setattr(IT, "get_nation_intent",
+                            lambda n, w: SimpleNamespace(against="Hanover", price="ask"))
+        assert ai._front_nations(world, "Prussia") == frozenset(
+            n for n in world.get_active_nations() if n != "Prussia" and world.is_at_war("Prussia", n))
+        assert not ai._is_front(world, "Prussia", "Hanover", legacy=True)
+        monkeypatch.setattr(IT, "get_nation_intent",
+                            lambda n, w: SimpleNamespace(against="Hanover", price="fight"))
+        assert ai._is_front(world, "Prussia", "Hanover", legacy=False)
+        monkeypatch.setattr(EA, "front_means_hostile", lambda: False)
+        assert ai._is_front(world, "Prussia", "Saxony", legacy=True)
+
+    def test_the_generals_draw_from_their_own_stream(self, world, monkeypatch):
+        import random
+        from backend.ai import enemy_ai as EA
+        state = random.getstate()
+        first = [EA.ai_rng(world, "Austria").random() for _ in range(3)]
+        assert random.getstate() == state                           # the shared stream untouched
+        other = WorldState.from_dict(json.loads(json.dumps(world.to_dict(), default=str)))
+        assert [EA.ai_rng(other, "Austria").random() for _ in range(3)] == first
+        assert EA.ai_rng(world, "Russia").random() != first[0]
+        world.current_turn += 1
+        assert EA.ai_rng(world, "Austria").random() != first[0]     # a new turn, a new stream
+        assert EA.ai_rng(None, "Austria") is random
+        # the seed reaches the stream through the variance layer's gate: a seed
+        # with variance off draws as historical (IQ-7's control)
+        from backend.game_logic import campaign_variance as CV
+        world.current_turn -= 1
+        world._ai_rng_cache = None
+        world.campaign_seed = "ulm"
+        assert EA.ai_rng(world, "Austria").random() != first[0]
+        world._ai_rng_cache = None
+        monkeypatch.setattr(CV, "is_historical", lambda seed: True)
+        assert EA.ai_rng(world, "Austria").random() == first[0]
+
+    def test_a_crashed_march_keeps_what_it_did_and_the_admin_phase_runs(self, world, monkeypatch):
+        from backend.ai.enemy_ai import EnemyAI
+        from backend.game_logic import turn_manager as TM
+        tm = TM.TurnManager(world)
+        ai = _ai()
+
+        def crash(nation, w, gs):
+            ai._partial_results.append({"action": "move", "message": "marched"})
+            raise RuntimeError("mid-march")
+        monkeypatch.setattr(ai, "process_nation_turn", crash)
+        monkeypatch.setattr(ai, "execute_admin_phase", lambda *a, **k: [{"action": "recruit"}])
+        results, admin = tm._run_ai_phases(ai, "Austria", {"world": world})
+        assert [r["action"] for r in results] == ["move", "error", "recruit"]
+        assert admin == [{"action": "recruit"}]
+        monkeypatch.setattr(TM, "separate_ai_phases", lambda: False)
+        results, admin = tm._run_ai_phases(ai, "Austria", {"world": world})
+        assert [r["action"] for r in results] == ["error"] and admin == []
+        assert EnemyAI  # the class the turn manager drives

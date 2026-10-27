@@ -8852,9 +8852,24 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     # hard_reject_posture_* types) were removed; format_commitments_notice
     # owns their copy.
 
+    if event_type == "design_promoted" and template_vars.get("renewed"):
+        # OCT27-D8(b) (S14i): a satisfied revanche re-opened by a fresh loss.
+        return (f"REVANCHE AGAIN: {template_vars.get('nation', 'A court')} will not forgive "
+                f"{template_vars.get('author', 'its despoiler')} the loss of "
+                f"{template_vars.get('province_line', 'its provinces')}. The old design "
+                f"hardens again in their court.")
+
     if event_type == "intent_movement_tail" and template_vars.get("courts"):
         # IQ6-D3 (SR-6a): the tail names its courts when the producer did.
         event_type = "intent_movement_tail_named"
+
+    if (event_type == "diplomatic_ai_proposal"
+            and str(template_vars.get("proposal_type") or "") == "province_return_ask"):
+        # OCT27-D9 (S14i): an ally's request for its home province says so.
+        from backend.display_names import display_nation, with_definite_article
+        nation = with_definite_article(
+            display_nation(str(template_vars.get("nation") or "an allied court")))
+        return f"An envoy from {nation} has arrived asking for a home province back."
 
     if (event_type == "diplomatic_ai_proposal"
             and str(template_vars.get("proposal_type") or "") == "client_petition"):

@@ -27,6 +27,13 @@ from backend.display_names import humanize_entity_name as _shown_name  # NPC-12:
 from backend import errors as _errors
 
 
+def separate_ai_phases() -> bool:
+    """OCT27-D13(d) seam (ruled as recommended, S14i): the AI's military and
+    admin phases each in their own guard (`TurnManager._run_ai_phases`).
+    Down (False): one guard for both."""
+    return True
+
+
 def get_defeat_imminent_state(world: WorldState) -> Optional[Dict]:
     """Return deterministic near-defeat state aligned with live loss rules."""
     if getattr(world, "game_over", False):
@@ -1290,6 +1297,66 @@ class TurnManager:
             "score": score
         }
 
+    def _run_ai_phases(self, ai, nation: str, game_state: Dict):
+        """(nation_results, admin_results) for one court: its military phase
+        (`process_nation_turn`) and, unless the game has ended, its admin
+        phase (Phase 6.2.G, economic actions after military). OCT27-D13(d)
+        (ruled as recommended, S14i): each phase in its own guard
+        (`separate_ai_phases`) — a crash mid-march keeps the actions already
+        made (`ai._partial_results`, the phase's own list) and the admin
+        phase still runs; a crash in the admin phase keeps the marches. V2-19's
+        error row is surfaced either way. Down: one guard for both, the error
+        row replacing everything."""
+        def _error_row():
+            # V2-19: Surface error to player instead of swallowing silently
+            return {
+                "action": "error",
+                "message": f"{nation} encountered an error during their turn",
+                "battle_message": ""
+            }
+
+        from backend.game_logic import game_end as _game_end
+
+        def _admin():
+            return (ai.execute_admin_phase(nation, self.world, game_state)
+                    if _game_end.terminal_ending(self.world) is None
+                    else [])
+
+        if not separate_ai_phases():
+            try:
+                nation_results = ai.process_nation_turn(nation, self.world, game_state)
+                admin_results = _admin()
+                if admin_results:
+                    nation_results.extend(admin_results)
+            except Exception as exc:
+                _errors.report(exc, "turn_manager.TurnManager._process_enemy_turns: ai.process_nation_turn")
+                import traceback
+                debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
+                nation_results = [_error_row()]
+                admin_results = []
+            return nation_results, admin_results
+
+        ai._partial_results = []
+        try:
+            nation_results = ai.process_nation_turn(nation, self.world, game_state)
+        except Exception as exc:
+            _errors.report(exc, "turn_manager.TurnManager._run_ai_phases: the military phase")
+            import traceback
+            debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
+            nation_results = list(getattr(ai, "_partial_results", None) or []) + [_error_row()]
+        admin_results = []
+        try:
+            admin_results = _admin()
+            if admin_results:
+                nation_results.extend(admin_results)
+        except Exception as exc:
+            _errors.report(exc, "turn_manager.TurnManager._run_ai_phases: the admin phase")
+            import traceback
+            debug_print(f"[ERROR] {nation} admin phase crashed: {traceback.format_exc()}")
+            nation_results.append(_error_row())
+            admin_results = []
+        return nation_results, admin_results
+
     def _process_enemy_turns(self, game_state: Dict) -> Dict:
         """
         Process all enemy nations' turns.
@@ -1393,29 +1460,9 @@ class TurnManager:
 
                 continue
 
-            # Process this nation's turn (wrapped for resilience)
-            try:
-                nation_results = ai.process_nation_turn(nation, self.world, game_state)
-
-                # ════════════════════════════════════════════════════════════
-                # AI ADMIN PHASE (Phase 6.2.G): Economic actions after military
-                # ════════════════════════════════════════════════════════════
-                admin_results = (ai.execute_admin_phase(nation, self.world, game_state)
-                                 if _game_end.terminal_ending(self.world) is None
-                                 else [])
-                if admin_results:
-                    nation_results.extend(admin_results)
-            except Exception as exc:
-                _errors.report(exc, "turn_manager.TurnManager._process_enemy_turns: ai.process_nation_turn")
-                import traceback
-                debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
-                # V2-19: Surface error to player instead of swallowing silently
-                nation_results = [{
-                    "action": "error",
-                    "message": f"{nation} encountered an error during their turn",
-                    "battle_message": ""
-                }]
-                admin_results = []
+            # Process this nation's turn (wrapped for resilience — each phase
+            # in its own guard, OCT27-D13(d))
+            nation_results, admin_results = self._run_ai_phases(ai, nation, game_state)
 
             results["nations"][nation] = {
                 "actions": nation_results,

@@ -115,9 +115,13 @@ def fixed_rng(monkeypatch):
 
 @pytest.fixture()
 def zero_variance(monkeypatch):
-    """Pin AI mood variance to 0 so the mood-adjusted threshold == base."""
+    """Pin AI mood variance to 0 so the mood-adjusted threshold == base.
+    OCT27-D13(c) (S14i part 2): the generals draw from their own stream
+    (`enemy_ai.ai_rng`), so the stream is pointed at the patched module."""
     monkeypatch.setattr(_random, "uniform", lambda a, b: (a + b) / 2.0)
     monkeypatch.setattr(_random, "randint", lambda a, b: (a + b) // 2)
+    from backend.ai import enemy_ai as _EA
+    monkeypatch.setattr(_EA, "ai_rng", lambda *a, **k: _random)
 
 
 # ════════════════════════════════════════════════════════════════════════

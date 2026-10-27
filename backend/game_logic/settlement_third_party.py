@@ -204,6 +204,22 @@ def war_is_the_players(world, war: Dict, player: str) -> bool:
     return player in (war.get("active_participants") or [])
 
 
+def client_war_waits_for_france(world, war: Dict, player: str,
+                                broker: Optional[str] = None) -> bool:
+    """OCT27-D12(b) (ruled as recommended, S14i): a war one of whose
+    belligerents answers to the player (its top overlord) is not settled by
+    the third-party pass on its own — France's client paid Sweden 4,800 gold
+    and France was never asked. It ends when France brokers it (the broker
+    ask reaches France for it, `_maybe_ask_france_to_broker`). Down (False):
+    the pass settled it alone."""
+    if broker == player:
+        return False
+    for court in war.get("active_participants") or []:
+        if court != player and world._top_overlord(court) == player:
+            return True
+    return False
+
+
 def eclipse_league_holds(world, court: str, enemy: str, score: int) -> bool:
     """OCT27-D2 (ruled as recommended, S14i): a member of a league formed
     against a court other than the player does not sign a separate peace with
@@ -257,6 +273,9 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     # 2026 sweep: a broker answer accepted after France entered the war
     # closed it "without France", France's own pair with it).
     if war_is_the_players(world, war, player):
+        return None
+    # OCT27-D12(b): France's client's war is France's to end.
+    if client_war_waits_for_france(world, war, player, broker):
         return None
 
     attackers_leader = _side_leader_active(war, "attackers")
@@ -746,13 +765,17 @@ def _maybe_ask_france_to_broker(world, war_id: str, war: Dict) -> None:
     if not attackers_leader or not defenders_leader:
         return
     asker = None
+    # OCT27-D12(b): a war of France's client never settles without France,
+    # so a side past its own line asks France too (the band's floor lifts).
+    client_war = client_war_waits_for_france(
+        world, war, getattr(world, "player_nation", "France"))
     for proposer, other in ((attackers_leader, defenders_leader),
                             (defenders_leader, attackers_leader)):
         score = int(get_war_score_for(world, proposer, other))
         from backend.game_logic.bond import break_ranks_depth
         threshold = effective_peace_threshold(proposer, other, world) - int(
             break_ranks_depth(world, proposer, other)["score"])  # PC-X55
-        if threshold + BROKER_ASK_MARGIN > score >= threshold:
+        if threshold + BROKER_ASK_MARGIN > score and (client_war or score >= threshold):
             asker = proposer
             break
     if asker is None or _has_pending_proposal_from(asker, world):

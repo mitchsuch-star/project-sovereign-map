@@ -1921,9 +1921,16 @@ class TestNeutralityViolation:
     def test_rolled_event_log_fails_safe(self, world):
         """Review fix pin: when the 500-entry rolling cap has evicted
         events INSIDE the cooldown window, the latch cannot prove a
-        prior firing was absent — it suppresses rather than re-fires."""
+        prior firing was absent — it suppresses rather than re-fires.
+
+        RE-SEATED by OCT27-D8(a) (S14i part 2, October 27, 2026): the latch
+        reads the serialized map (`world.agenda_violation_turns`); the guard
+        stands only for a save from before the map, inside its first window
+        (`agenda_violation_map_since` = the turn it was loaded) — the next
+        pin is the kept map's."""
         from backend.game_logic.agendas import process_agenda_violations
         world.marshals["Ney"].location = "Holstein"
+        world.agenda_violation_map_since = int(world.current_turn)   # a save from before the map
         cap = world.MAX_EVENT_LOG_SIZE
         world.event_log = [
             {"type": "noise", "turn": int(world.current_turn)}
@@ -1937,6 +1944,19 @@ class TestNeutralityViolation:
             for _ in range(cap)
         ]
         assert len(process_agenda_violations(world)) == 1
+
+    def test_a_kept_map_is_not_closed_by_a_full_log(self, world):
+        """OCT27-D8(a) (S14i part 2): on a world that has kept the map, a full
+        log closes nothing — the trap fires — and the violation it writes holds
+        the latch through the window whatever the log evicts."""
+        from backend.game_logic.agendas import process_agenda_violations
+        world.marshals["Ney"].location = "Holstein"
+        world.agenda_violation_map_since = None
+        cap = world.MAX_EVENT_LOG_SIZE
+        world.event_log = [{"type": "noise", "turn": int(world.current_turn)} for _ in range(cap)]
+        assert len(process_agenda_violations(world)) == 1
+        world.event_log = [{"type": "noise", "turn": int(world.current_turn)} for _ in range(cap)]
+        assert process_agenda_violations(world) == []        # the map holds the latch
 
     def test_advance_turn_runs_the_violation_pass(self, world):
         """Review fix pin: the world_state wiring itself — deleting the

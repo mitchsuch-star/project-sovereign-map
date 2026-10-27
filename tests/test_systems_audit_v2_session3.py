@@ -262,9 +262,14 @@ class TestEnemyPhaseErrorHandling:
                 results = tm._process_enemy_turns(game_state)
 
         nation_data = results["nations"]["Britain"]
-        assert len(nation_data["actions"]) == 1
+        # OCT27-D13(d) (S14i, October 27, 2026): the military and admin phases
+        # each in their own guard — the crashed march surfaces its error row
+        # FIRST (nothing was completed before the crash) and the admin phase
+        # still runs after it (it was swallowed with the march before).
         assert nation_data["actions"][0]["action"] == "error"
         assert "Britain" in nation_data["actions"][0]["message"]
+        assert [a for a in nation_data["actions"] if a.get("action") == "error"] == \
+            [nation_data["actions"][0]]
 
 
 # ═══════════════════════════════════════════════════════

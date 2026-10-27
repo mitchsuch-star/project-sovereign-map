@@ -753,13 +753,20 @@ class TestMoodVarianceSystem:
         print(f"Hierarchy: Aggressive avg={aggressive_avg:.3f} < Cautious avg={cautious_avg:.3f}")
 
     def test_seeded_random_is_deterministic(self):
-        """Same seed should produce same thresholds."""
+        """Same seed should produce same thresholds.
+
+        RE-SEATED by OCT27-D13(c) (S14i part 2, October 27, 2026): the mood
+        draws from the court's own stream — one per (campaign seed, turn,
+        nation), `enemy_ai.ai_rng` — so the same turn draws the same moods
+        after a reload, whatever the shared `random` holds."""
         blucher = self.world.get_marshal("Blucher")
 
+        self.world._ai_rng_cache = None
         random.seed(12345)
         first_run = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(10)]
 
-        random.seed(12345)
+        self.world._ai_rng_cache = None
+        random.seed(999)          # the shared stream no longer moves the moods
         second_run = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(10)]
 
         assert first_run == second_run, "Same seed should produce identical results"

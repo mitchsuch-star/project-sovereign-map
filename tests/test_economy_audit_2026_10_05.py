@@ -331,6 +331,10 @@ class TestTheAIsPurse:
             up = ai._pick_admin_action("Ottoman", w, 2, skip_actions={"recruit"})
         assert calls == [] and not (up and up.get("building_type") == "watchtower")
         monkeypatch.setattr(EA, "THE_AI_BUILDS_NO_WATCHTOWERS", False)
+        # OCT27-D13(b) (S14i part 2, October 27, 2026): a tower stands on a
+        # FRONT — at war or the design's target — and the boot Ottoman has none
+        # (no war, no hostile design), so the shipped arm is read at war.
+        w.diplomatic_states[w._make_diplo_key("Ottoman", "Austria")] = "WAR"
         with _quiet():
             down = ai._pick_admin_action("Ottoman", w, 2, skip_actions={"recruit"})
         assert calls and down and down.get("building_type") == "watchtower"

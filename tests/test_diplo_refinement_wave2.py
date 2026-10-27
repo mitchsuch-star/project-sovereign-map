@@ -185,7 +185,9 @@ class TestPersonalityProposals:
             assert "patience_bonus" in mods
 
     def test_gold_mult_applied_to_armistice(self):
-        """Hawk gold_mult=1.5 should increase armistice gold offer."""
+        """RE-SEATED by OCT27-D11(a) (S14i part 2, October 27, 2026): what a
+        court PAYS scales by the inverse of `gold_mult` (`sweetener_multiplier`)
+        — a hawk demands more and pays less; it paid the most before."""
         world = make_world()
         world.nation_gold["Prussia"] = 1000
         terms_hawk = _build_proposal_terms("Prussia", "armistice_losing", -50, world, gold_mult=1.5)
@@ -199,8 +201,8 @@ class TestPersonalityProposals:
         for s in terms_base.get("sweeteners", []):
             if s["type"] == "gold_per_turn":
                 base_gold = s["value"]
-        # With gold_mult=1.5, the gold should be higher (or capped)
-        assert hawk_gold >= base_gold
+        # With gold_mult=1.5 the hawk's offer is the smaller (or capped alike)
+        assert hawk_gold <= base_gold
 
     def test_gold_mult_applied_to_opportunistic(self):
         """Hawk gold_mult=1.5 should increase opportunistic demand."""
