@@ -2032,6 +2032,14 @@ def _lost_satellites_phrase(c: Dict[str, Any], rebels: List[str]) -> str:
 # fall clocks and before the Verdict).
 # ════════════════════════════════════════════════════════════════════════
 
+def unwarn_on_relent(c: Dict[str, Any], court: str) -> None:
+    """OCT27-33: a court that relents is un-warned, so a relapse is fore-warned
+    again before the war. Down (None): the latch cleared only at the summons."""
+    if court in (c.get("warned") or []):
+        c["warned"] = [w for w in c.get("warned") or [] if w != court]
+        (c.get("warned_turn") or {}).pop(court, None)
+
+
 def _take_answers(world, first: bool = False) -> Dict[str, Dict[str, Any]]:
     """Re-derive every court's answer and write the record the pressure
     readers use (`refusing_since` — the refusal count is a per-turn
@@ -2067,6 +2075,11 @@ def _take_answers(world, first: bool = False) -> Dict[str, Dict[str, Any]]:
                                         else turn)
         else:
             stored["refusing_since"] = None
+            # A court that relents is un-warned (the October 27, 2026
+            # sweep): the latch was cleared only at the summons, so a
+            # relapse marched to war with no second fore-warning - the
+            # beat the code promises "ALWAYS precedes the war".
+            unwarn_on_relent(c, court)
         standing[court] = row["stance"] in SATISFIED
         if not first and prev:
             was, now = prev.get("stance"), row["stance"]

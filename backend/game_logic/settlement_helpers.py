@@ -1806,6 +1806,22 @@ def _validate_merged_sides(
     return {"ok": True, "side_by_nation": unified}
 
 
+def merge_keeps_letters(survivor: Dict[str, Any], absorbed: Dict[str, Any]) -> None:
+    """OCT27-29: a war-instance merge keeps the dictated letters' history and
+    the truce's sureties. Down (None): the fixed key list that dropped them."""
+    history = list(survivor.get("offer_history") or [])
+    for entry in absorbed.get("offer_history") or []:
+        if entry not in history:
+            history.append(entry)
+    if history:
+        survivor["offer_history"] = history
+    sureties = dict(survivor.get("truce_sureties") or {})
+    for key, value in (absorbed.get("truce_sureties") or {}).items():
+        sureties.setdefault(key, value)
+    if sureties:
+        survivor["truce_sureties"] = sureties
+
+
 def _merge_instance_data(
     survivor: Dict[str, Any],
     absorbed: Dict[str, Any],
@@ -1833,6 +1849,12 @@ def _merge_instance_data(
     for nation, side in (absorbed.get("side_by_nation") or {}).items():
         survivor_side_by_nation.setdefault(nation, side)
     survivor["side_by_nation"] = survivor_side_by_nation
+
+    # The dictated letters' ratchet (`offer_history`) and the truce's
+    # sureties ride the merge too (the October 27, 2026 sweep: the fixed
+    # key list dropped both when the absorbed instance held them).
+    merge_keeps_letters(survivor, absorbed)
+
 
     survivor_meta = dict(survivor.get("diplo_key_meta") or {})
     for pair, meta in (absorbed.get("diplo_key_meta") or {}).items():

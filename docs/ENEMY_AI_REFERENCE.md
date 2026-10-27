@@ -674,6 +674,7 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 | 4 | Lower attack threshold by 20% |
 | 5+ | Lower threshold by 10% more (floor 0.3) |
 | 3+ (surrounded) | Attack weakest adjacent enemy if no safe move exists |
+| 2+ (no nearer step) | Reposition along the front: a safe neighbour no farther from the target, or none — then the lowered-threshold attack and the wait (OCT27-51, `_stagnation_fallback_dests`; the random walk it replaced could march a corps away from the enemy beside it) |
 
 **Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
 **NOT meaningful:** defend, drill, wait.
@@ -712,7 +713,7 @@ Cautious AI marshals (Wellington, Blucher) now advance toward the nearest enemy 
 
 This prevents the cautious AI from camping indefinitely. The marshal finds an adjacent region that is closer to the nearest enemy and moves there. This is evaluated during P7 (Strategic Movement).
 
-**Fallback:** When no distance-reducing move exists and stagnation >= 2, the marshal falls back to any safe adjacent friendly region rather than staying stuck. This handles map topologies where the shortest path requires moving laterally first.
+**Fallback:** When no distance-reducing move exists and stagnation >= 2, the marshal falls back to any safe adjacent friendly region rather than staying stuck. This handles map topologies where the shortest path requires moving laterally first. Since October 27, 2026 (OCT27-51's sibling) the fallback reads the stagnation breaker's contact-keeping helper (`_stagnation_fallback_dests`): a lateral first step, never a step away from the target; with no such neighbour it holds.
 
 ### Garrison Assault (P4.25)
 

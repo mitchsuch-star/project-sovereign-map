@@ -1056,7 +1056,17 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # satellite's rebellion comes four turns sooner on the new trajectory
         # (France ends turn 40 with 2 provinces, not 15); the contract — the
         # cap DELAYS, it does not save — stands on the re-pinned series.
-        assert capped == 14, capped
+        # Re-measured by the October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE
+        # §157.10 / §157.11): capped 11 — the satellite rebels three turns
+        # sooner on the re-timed board (the Kingdom of Italy leaves France's
+        # web at world turn 8 and Switzerland rebels at 11, `vassal_broke_free`
+        # exit=vassal_rebellion; `tools/_rf3_board_events.py`). With every seam
+        # of the sweep held down in the child (`tests/_oct27_seams.py`) it
+        # reads 14 verbatim; held down alone, the crossing gate (OCT27-40, the
+        # board's first fork, at [6]) reads 18 and the contact rule (OCT27-51
+        # and its sibling, at [8]) reads 10 — the board before the sibling.
+        # The contract — the cap DELAYS, it does not save — stands.
+        assert capped == 11, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.
@@ -1219,7 +1229,19 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     as Switzerland rebels (`vassal_broke_free`,
         #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 18 =
         #     index + 1.
-        ELIMINATION_STEP = 5
+        # The October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE §157.10): the
+        # re-recorded series keeps the form. Traced with
+        # `tools/_rf3_board_events.py`:
+        #   - the Kingdom of Italy is eliminated out of France's web at world
+        #     turn 8 (logged; the step from index 7 to 8, 56 -> 43); the decay
+        #     there is -3, so the signature is -13 — the "-12/-13 signature"
+        #     at its -13 end. Named and excluded;
+        #   - the capped exit is the unique largest ORDINARY fall, -13 (40 ->
+        #     27, the step from index 9 to 10, world turn 11): -3 decay - 10
+        #     as Switzerland rebels (`vassal_broke_free`,
+        #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 11 =
+        #     index + 1.
+        ELIMINATION_STEP = 7
         assert steps[ELIMINATION_STEP] == -13, steps
         ordinary = [0 if i == ELIMINATION_STEP else step
                     for i, step in enumerate(steps)]

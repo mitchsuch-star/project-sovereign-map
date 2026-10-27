@@ -185,20 +185,35 @@ def survival_override_active(world, nation: str) -> bool:
 
 # ═══════════════════════ PER-TYPE ACTIVATION ══════════════════════════════
 
+def region_coveted(world, nation: str, region_name: str) -> bool:
+    """SF-LB-1's ONE predicate (the October 27, 2026 sweep): is `region_name`
+    a target `nation` still covets - not its own or its vassal's, and (with
+    the lever up) not held by an ally's bloc? Read by the activation, the
+    obstacle derivation and the unmet-target list alike; before, only the
+    activation skipped the ally, so a two-holder design named an ALLY as
+    the obstacle, read "Sweden stands in the way" on the ledger and opened
+    a crisis against her."""
+    if _controlled_by_self_or_vassal(world, nation, region_name):
+        return False
+    if AN_ALLY_IS_NOT_COVETED:
+        holder = _region_controller(world, region_name)
+        effective = (world._top_overlord(holder) or holder) if holder else None
+        if effective and effective != nation and _held_by_an_allys_bloc(world, nation, effective):
+            return False
+    return True
+
+
+def coveted_unmet(world, nation: str, region_name: str) -> bool:
+    """OCT27-14: the obstacle derivation and the unmet-target list read the
+    ONE coveting predicate. Down (`not __import__('backend.game_logic.agendas')
+    .game_logic.agendas._controlled_by_self_or_vassal(a[0], a[1], a[2])`): the
+    pre-sweep self-held-only read, an ally named as the obstacle."""
+    return region_coveted(world, nation, region_name)
+
+
 def _acquire_active(world, nation: str, regions) -> bool:
-    """Active while >=1 target is not controlled by self (and the holder is
-    not self's vassal). SF-LB-1: a target held by an ALLY's bloc does not
-    keep the design awake (an ally is not coveted)."""
-    for r in regions:
-        if _controlled_by_self_or_vassal(world, nation, r):
-            continue
-        if AN_ALLY_IS_NOT_COVETED:
-            holder = _region_controller(world, r)
-            effective = (world._top_overlord(holder) or holder) if holder else None
-            if effective and effective != nation and _held_by_an_allys_bloc(world, nation, effective):
-                continue
-        return True
-    return False
+    """Active while >=1 target is still coveted (`region_coveted`)."""
+    return any(region_coveted(world, nation, r) for r in regions)
 
 
 def _held_by_an_allys_bloc(world, nation: str, holder: str) -> bool:
@@ -1450,10 +1465,7 @@ def process_agenda_violations(world) -> List[Dict]:
 # ═══════════════════════ LEGIBILITY (NA-1 single source) ══════════════════
 
 def _unmet_targets(view: AgendaView, world) -> List[str]:
-    return [
-        r for r in view.regions
-        if not _controlled_by_self_or_vassal(world, view.nation, r)
-    ]
+    return [r for r in view.regions if coveted_unmet(world, view.nation, r)]
 
 
 def _live_nation_name(world, nation: str) -> str:

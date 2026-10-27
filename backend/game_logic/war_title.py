@@ -286,7 +286,13 @@ def war_title(world, war_id: str = "", *, chair: Optional[str] = None,
             out.update(title=f"War with {formed_display_name(world, roster[0])}", source="court")
         else:
             out.update(title="War", source="none")
-    out["display"] = f"{out['title']} — {roster_display}" if roster_display else out["title"]
+    # A one-court war titled by that court carries no roster suffix - "War
+    # with Switzerland - Switzerland" said the name twice on the arrival
+    # rail, the mailbox and the dispatch (the 30-turn probe of October 26,
+    # 2026); a league or a ground title keeps its roster.
+    _suffix_redundant = out["source"] == "court" and len(roster) == 1
+    out["display"] = (f"{out['title']} — {roster_display}"
+                      if roster_display and not _suffix_redundant else out["title"])
     out["line"] = _line(world, out, chair, ground_enemies, theirs, mine, ours)
     return out
 

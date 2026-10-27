@@ -441,9 +441,15 @@ def _run_dl(tmp_path: Path, script: dict) -> dict:
         env.pop(key, None)
     env.update(PYTHONHASHSEED="0", LLM_MODE="mock", INK_IRON_SAVE_DIR=str(tmp_path / "saves"))
     out = tmp_path / "run"
-    proc = subprocess.run([sys.executable, "tools/playtest_driver.py", "--name", "DL", "--fresh",
-                           "--out", str(out / "arms"), "--llm", "mock", "--script", str(path),
-                           "--turns", "3"], cwd=REPO, env=env, capture_output=True, timeout=900)
+    from tests._oct27_seams import OCT27_SEAMS_DOWN
+    argv = [sys.executable, "tools/playtest_driver.py", "--name", "DL", "--fresh",
+            "--out", str(out / "arms"), "--llm", "mock", "--script", str(path),
+            "--turns", "3"]
+    # The October 27, 2026 enemy-AI sweep's seams down: the DL arm stages the
+    # board its script names (Mack within Davout's reach on turn 2).
+    for seam in OCT27_SEAMS_DOWN:
+        argv += ["--seam", seam]
+    proc = subprocess.run(argv, cwd=REPO, env=env, capture_output=True, timeout=900)
     assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")[-2000:]
     arms = SR.load_arms(out)
     return arms, {"run_dir": out, "arms": arms, "dl_script": script}

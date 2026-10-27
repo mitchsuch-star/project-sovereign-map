@@ -59,6 +59,14 @@ _SETTLEMENT_TIER2_ACTION_IDS = frozenset({
 _MACHINE_ACTION_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 
+def override_asks_the_table(world, proposal):
+    """OCT27-21 (the October 27, 2026 sweep): the override send asks the
+    chancery verdict (`can_sign(at_send=True)`) like the confirm's send;
+    returns the verdict. Down (None): the unvetted send that spent the DP."""
+    from backend.game_logic.treaty import can_sign
+    return can_sign(world, proposal, at_send=True)
+
+
 def _court_named(world, nation: str, *, start: bool = False) -> str:
     """RR3-X4 (SFR-B13's sibling, SF-RR3): a court in the Chancery's replies
     by its current name and article — "There is no treaty with the Ottoman
@@ -7213,6 +7221,19 @@ class DiplomaticExecutor:
                 "clauses": terms.get("clauses", []),
             }
 
+            # DD-1 Slice B's rule on this road too (the October 27, 2026
+            # sweep): a proposal the table would refuse never departs -
+            # the override send spent the DP on an alliance the relation
+            # gate refused on arrival. Refused free, the objection stays up.
+            _verdict = override_asks_the_table(ctx.world, proposal)
+            if _verdict is not None and not _verdict.ok:
+                return {
+                    "success": False,
+                    "message": _verdict.message or "This proposal cannot be sent as it stands.",
+                    "clause": _verdict.clause,
+                    "diplomatic_dialogue": ctx.dialogue,
+                }
+
             if proposal_type == "vassalage":
                 from backend.game_logic.diplomacy import check_vassalage_power_cap
                 cap = check_vassalage_power_cap(
@@ -7441,8 +7462,10 @@ class DiplomaticExecutor:
             from backend.notifications import DIPLOMATIC_PROPOSAL
             dismiss_letter_notices(ctx.world)
             # PL-7/PL-5C: Apply acceptance cooldown (same as _handle_accept_ai_proposal)
-            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
-            apply_acceptance_cooldown(source_nation, ctx.world)
+            # - for a SIGNED counter; a failed ratification starts none.
+            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown, signing_cools
+            if signing_cools(treaty_event):
+                apply_acceptance_cooldown(source_nation, ctx.world)
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
             # G4F-13: a failed ratification must not read as "accepted".
             # The generator now refuses to author gate-vetoed counters, but
@@ -9241,7 +9264,8 @@ class DiplomaticExecutor:
             world,
             nation=source_nation,
             terms=counter_terms,
-            assessment=f"Talleyrand has negotiated revised terms with {source_nation}.",
+            assessment=(f"Talleyrand has negotiated revised terms with "
+                        f"{_court_named(world, source_nation)}."),
             is_counter_offer=True,
             acceptance=acceptance,
             decision_reason=context.get("decision_reason", ""),

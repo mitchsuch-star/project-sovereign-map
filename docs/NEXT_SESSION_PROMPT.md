@@ -7,7 +7,13 @@
 > (`docs/audits/dd_b/replay_2026_10_26/`), `BASELINE_SERIES` byte-identical on every arm, the parse harness green on
 > 80 scripts and 17 scenes, the ratchet held. `SYSTEMS_REFERENCE.md` §155 (part 1) and §156 (part 2);
 > `BUG_FIXES.md` §S14G; `DESIGN_REFINEMENT.md` §S14G; commits through the hook (`git log --format=%h -5`).
-> **The census: 0 open S14G rows — 0 open defect rows, 0 open design rows. The deploy gate's own condition holds.**
+> **The census: 0 open S14G rows — 0 open defect rows. The deploy gate's own condition holds.**
+>
+> **Landed after S14h, October 27, 2026 — the enemy-AI sweep** (`SYSTEMS_REFERENCE.md` §157; `BUG_FIXES.md` §OCT27 — fifty-one
+> rows FIXED at the cause: the enemy diplomacy AI's coalition, intent ladder, AI-to-AI table, proposal rungs, the courts'
+> answers, the other instruments, and twelve classes of AI orders the executor refused; the repeat-ask governor; the
+> ambient series re-recorded and attributed by `tools/_oct27_series_arms.py`). **Thirteen design questions wait for
+> you in `DESIGN_REFINEMENT.md` §OCT27 (OCT27-D1 … D13, the plan row S14i) — none blocks S15; the census reads 13 open design rows.**
 >
 > **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
 > fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives

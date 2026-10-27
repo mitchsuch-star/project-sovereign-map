@@ -428,6 +428,14 @@ def turn6_snapshot():
     from backend.game_logic import ai_diplomacy as _AD
     _prior_league = _AD.THE_LEAGUE_TREATS_WHEN_SPENT
     _AD.THE_LEAGUE_TREATS_WHEN_SPENT = False
+    # The October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE §157) moves the
+    # ambient board from turn 6 (the fortified corps' gated capture intent):
+    # its seams are held down for the five staging turns, as the league
+    # lever is, so the recorded board stands (one petition queued behind the
+    # settlement offer, Mack gone from Swabia).
+    from tests._oct27_seams import hold_down as _hold_sweep_down
+    _sweep = pytest.MonkeyPatch()
+    _hold_sweep_down(_sweep)
     try:
         w = _europe()
         M.world, M.parser = w, _PARSER
@@ -442,6 +450,7 @@ def turn6_snapshot():
         assert head is not pets[0] and head.get("type") == "incoming_settlement_offer"
         snapshot = copy.deepcopy(w.to_dict())
     finally:
+        _sweep.undo()
         _AD.THE_LEAGUE_TREATS_WHEN_SPENT = _prior_league
         save_manager.SAVE_DIR = prior_save_dir
         M.world, M.parser = prior_main[0], prior_main[2]

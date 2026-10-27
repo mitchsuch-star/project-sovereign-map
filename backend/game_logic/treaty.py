@@ -294,11 +294,18 @@ def treaty_clauses_of(proposal: Dict[str, Any], proposer: str, target: str) -> L
         if d.get("type") in ("territory_cede", "territory_compensate") and "regions" in d:
             clause_entry["regions"] = d["regions"]
         _carry_compensation_stamp(d, clause_entry)
-        # WPS-C: Carry over extra fields for forced_alliance/liberation
+        # WPS-C: Carry over extra fields for forced_alliance/liberation.
+        # Either spelling (the scorer `concessions_as_sweeteners` reads
+        # `from`/`from_nation` alike; the ratifier read one and silently
+        # reversed a demand authored with the other - the sweep).
         if "from_nation" in d:
             clause_entry["from"] = d["from_nation"]
+        elif "from" in d:
+            clause_entry["from"] = d["from"]
         if "to_nation" in d:
             clause_entry["to"] = d["to_nation"]
+        elif "to" in d:
+            clause_entry["to"] = d["to"]
         for extra_key in (
             "vassal_nation", "lord_nation", "liberator",
             "includes_continental_system",

@@ -480,6 +480,13 @@ class TestR42SendOverride:
         talleyrand = _make_talleyrand()
         world.diplomats = {"France": talleyrand}
         world.diplomatic_points = 10
+        # The override send asks the chancery's verdict like the confirm's
+        # send (the October 27, 2026 sweep): the legacy fixture's France-
+        # Prussia pair stands at WAR and -40, where a non-aggression pact
+        # is refused at the table - seat the pair where the letter can go.
+        _key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[_key] = "PEACE"
+        world.nation_relations[_key] = 10
         world.dialogue_manager.replace({
             "type": "proposal_confirm",
             "target_nation": "Prussia",

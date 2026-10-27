@@ -626,6 +626,13 @@ def attack_achieved_something(events, marshal_name: str) -> bool:
     return False
 
 
+def engagement_fellows(world, nation: str) -> frozenset:
+    """OCT27-43: the league fellows the ENGAGEMENT rungs (P0 / P8, P3.25, P7.5's
+    surrounded arm, P3.9) never strike - `league_fellows`, read behind its own
+    seam so a recorded board can be reproduced with it down (frozenset())."""
+    return league_fellows(world, nation)
+
+
 def league_fellows(world, nation: str) -> frozenset:
     """EAD-7: the courts that share the standing league with `nation` — empty
     when it is not a member (or the lever is down). A march never aims at
@@ -1469,6 +1476,20 @@ class EnemyAI:
             # Reset skip counter - we found something to do
             consecutive_skips = 0
 
+            # Building Blocks (the October 27, 2026 sweep): the AI pays what
+            # the player pays - an order costing more than the budget left is
+            # not placed (the executor refused it, "Need 2, have 1", and the
+            # refusal cooled the action type for two turns).
+            if not self._order_affordable(world, selected_action["action"], actions_remaining):
+                ai_debug(f"  [SKIP] {selected_marshal.name} - {selected_action['action']} "
+                         f"costs more than the {actions_remaining} left")
+                failed_actions.add((selected_marshal.name, selected_action["action"]))
+                consecutive_skips += 1
+                if consecutive_skips >= max_consecutive_skips:
+                    print("  Budget skip + all skipped - ending turn")
+                    break
+                continue
+
             # Execute the action
             marshal_priority = self._get_marshal_priority_for_turn_order(selected_marshal, world)
             print(f"\n  [?/{actions_remaining}] {selected_marshal.name} (priority {marshal_priority}): {selected_action['action']} -> {selected_action.get('target', 'N/A')}")
@@ -1787,6 +1808,13 @@ class EnemyAI:
                 # Skip stance changes for marshals who already changed this turn
                 if action.get("action") == "stance_change":
                     if self._should_skip_stance_change(action.get("marshal")):
+                        continue
+                    # `Marshal.can_use_stance` (the sweep): reckless cavalry
+                    # whose blood is up refuses the defensive stance at the
+                    # executor - Paget was refused twelve times in one run.
+                    _allowed, _why = self._stance_allowed(marshal, action.get("target"))
+                    if not _allowed:
+                        ai_debug(f"  [SKIP] {marshal.name} - {_why}")
                         continue
                     # PT-F6: a marshal standing in square holds his posture —
                     # a stance change would break the formation he just paid
@@ -2265,6 +2293,11 @@ class EnemyAI:
                 if self._enemy_cavalry_within_range(marshal, nation, world, max_range=2):
                     retreat_dest = self._find_nearest_friendly_infantry(marshal, nation, world)
                     if retreat_dest and retreat_dest != marshal.location:
+                        if self._screen_retreat_unfortifies(marshal):
+                            # The works come down first (a fortified corps
+                            # cannot march - the sweep); the retreat next.
+                            ai_debug(f"  P2: ARTILLERY SCREEN — {marshal.name} exposed, unfortifying to reach the screen at {retreat_dest}")
+                            return ({"marshal": marshal.name, "action": "unfortify"}, 2)
                         ai_debug(f"  P2: ARTILLERY SCREEN — {marshal.name} exposed to cavalry, retreating to screen at {retreat_dest}")
                         return ({
                             "marshal": marshal.name,
@@ -2716,6 +2749,13 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         recovery_dest = getattr(marshal, '_recovery_destination', None)
 
+        # A fortified corps cannot march (the movement seam refuses it) and
+        # is already in the safest posture recovery can buy - it waits
+        # behind its works (the October 27, 2026 sweep: Wellesley's and
+        # John's refused "move" cooled the action type for two turns).
+        if self._recovery_holds_fortified(marshal):
+            return {"marshal": marshal.name, "action": "wait"}
+
         # If destination is locked, use it
         if recovery_dest:
             # Check if we've arrived at destination
@@ -2736,8 +2776,12 @@ class EnemyAI:
             else:
                 # Not yet arrived - continue moving toward locked destination
                 # DLF-12: Check diplomatic permission — armistice may have been declared
-                if not self._can_ai_move_to(world, marshal.nation, recovery_dest, origin=marshal.location):
-                    ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now diplomatically blocked — clearing lock")
+                if (not self._can_ai_move_to(world, marshal.nation, recovery_dest, origin=marshal.location)
+                        or self._recovery_dest_blocked(world, nation, recovery_dest)):
+                    # Diplomatically barred, or an enemy has since occupied it
+                    # ("Cannot move into Orleanais - enemy forces present",
+                    # the sweep) - the lock clears and the rung re-picks.
+                    ai_debug(f"  P1 Recovery: {marshal.name} locked dest {recovery_dest} now blocked — clearing lock")
                     # IGR-X1 (P1): `del` REMOVED the attribute, and
                     # `Marshal.to_dict` reads `self._recovery_destination`
                     # directly — so the next save or autosave died with
@@ -2841,6 +2885,11 @@ class EnemyAI:
         if not hasattr(self, '_marshals_done_this_turn'):
             self._marshals_done_this_turn = set()
         self._marshals_done_this_turn.add(marshal.name)
+        # The ONE defend predicate (the sweep): a corps already DEFENSIVE
+        # behind its works has nothing to defend harder - the executor
+        # refused "defend" about forty times in the ambient runs.
+        if self._survival_defend_refused(marshal):
+            return {"marshal": marshal.name, "action": "wait"}
         return {
             "marshal": marshal.name,
             "action": "defend"
@@ -3164,6 +3213,12 @@ class EnemyAI:
         # attack raised the question and Mack's and John's answered it in
         # the same phase (3,000 -> 1,075 -> captured).
         enemies = [e for e in enemies if not self._freshly_asked(e, world)]
+        # EAD-7 / EC-9 (the October 27, 2026 sweep): a fellow of the standing
+        # league is never engaged, whatever their own wars - the executor
+        # refused the strike and P4 already skipped it; P0 and P8 did not.
+        fellows = engagement_fellows(world, nation)
+        if fellows:
+            enemies = [e for e in enemies if e.nation not in fellows]
         attacked = getattr(self, '_attacked_targets_this_turn', None) or set()
         futility = (getattr(world, "ai_attack_futility", None) or {})
         if not attacked and not futility:
@@ -3202,6 +3257,10 @@ class EnemyAI:
             return None
 
         enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
+        # EAD-7 / EC-9: never a league fellow (the sweep).
+        fellows = engagement_fellows(world, nation)
+        if fellows:
+            enemies = [e for e in enemies if e.nation not in fellows]
         ai_debug(f"    🎯 Valid targets for {nation}: {[e.name for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
@@ -3898,6 +3957,10 @@ class EnemyAI:
         lost_region = world.get_region(best_target)
 
         if best_dist == 1:
+            # The crossing gate (the sweep): Armfelt at Norrland was ordered
+            # on Russian Stralsund across barred water, refused every time.
+            if not self._crossing_ok(world, nation, marshal.location, best_target):
+                return None
             # Adjacent — check if defended
             defenders = self._get_hostile_marshals_in_region(best_target, nation, world)
 
@@ -3951,6 +4014,9 @@ class EnemyAI:
                     continue
                 # DLF-12: diplomatic permission (skip for capital recapture — sovereign right)
                 if not is_capital_target and not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
+                    continue
+                # The sovereign right crosses no barred water (the sweep).
+                if is_capital_target and not self._crossing_ok(world, nation, marshal.location, adj_name):
                     continue
                 # Check for enemy-occupied region
                 enemies_there = [
@@ -4007,6 +4073,13 @@ class EnemyAI:
                 target_nation = obj.get("target_nation", "")
                 if region_name in world.regions:
                     ctrl = world.regions[region_name].controller
+                    # The objective outlives a truce (`cleanup_war_end`
+                    # keeps it through an ARMISTICE) - the rung attacks
+                    # only a holder it is AT WAR with (the October 27, 2026
+                    # sweep: Mack's "attack Munich" under a truce ran
+                    # `declare_war` and broke it).
+                    if not self._liberation_holder_ok(world, nation, ctrl):
+                        continue
                     if ctrl == target_nation or ctrl in [
                         v_nation for v_nation, v_data in getattr(world, 'vassals', {}).items()
                         if v_data.get("lord") == target_nation
@@ -4032,6 +4105,8 @@ class EnemyAI:
             return None
 
         if best_dist == 1:
+            if not self._crossing_ok(world, nation, marshal.location, best_target):
+                return None
             defenders = self._get_hostile_marshals_in_region(best_target, nation, world)
             if not defenders:
                 target_region = world.get_region(best_target)
@@ -4119,6 +4194,11 @@ class EnemyAI:
             return None
         if getattr(marshal, 'fortified', False):
             ai_debug(f"    {marshal.name} cannot capture - fortified")
+            return None
+        # An artillery corps that marched this turn is still setting up -
+        # the executor refuses its attack (the sweep: Shrapnel, four times).
+        if self._artillery_setting_up(marshal):
+            ai_debug(f"    {marshal.name} cannot capture - artillery still setting up")
             return None
 
         marshal_region = world.get_region(marshal.location)
@@ -4680,6 +4760,10 @@ class EnemyAI:
                         and not world.get_hostile_marshals_in_region_indexed(adj_name, nation)
                         and self._can_ai_move_to(world, nation, adj_name, origin=marshal.location)  # DLF-12
                     ]
+                    # OCT27-51: a lateral step along the front, never a step
+                    # away from the enemy the breaker marches toward.
+                    fallback_dests = self._stagnation_fallback_dests(
+                        world, marshal.location, target_region, fallback_dests)
                     if fallback_dests:
                         fallback = random.choice(fallback_dests)
                         print(f"  [STAGNATION] {marshal.name}: Force move to {fallback} (no better option, just reposition)")
@@ -4693,10 +4777,13 @@ class EnemyAI:
                     if stagnation >= 3:
                         weakest_adjacent = None
                         weakest_strength = float('inf')
+                        _fellows = engagement_fellows(world, nation)
                         for adj_name in marshal_region.adjacent_regions:
                             if not self._stagnation_can_strike(world, nation, marshal.location, adj_name):
                                 continue
                             for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation):
+                                if enemy.nation in _fellows:
+                                    continue  # EAD-7 / EC-9 (the sweep)
                                 if enemy.strength < weakest_strength:
                                     weakest_adjacent = enemy
                                     weakest_strength = enemy.strength
@@ -5065,6 +5152,8 @@ class EnemyAI:
                     continue
                 if not self._can_ai_move_to(world, nation, adj_name, origin=marshal.location):
                     continue  # DLF-12: diplomatic permission check
+                if self._supply_dest_held(world, nation, adj_name):
+                    continue  # a march, not an attack (the sweep)
 
                 # PC15-D2 rider: effective cap here too (see above).
                 adj_cap = world.get_effective_supply_cap(
@@ -5514,7 +5603,11 @@ class EnemyAI:
                     # Balance patch: Fallback when no distance-reducing move exists.
                     # Pick any safe adjacent region to avoid dead-end stagnation.
                     # At stagnation >= 3, allow ANY safe region (not just friendly).
+                    # OCT27-51's sibling: a lateral first step, never a step
+                    # away from the enemy the advance marches toward (the
+                    # same contact-keeping helper as the breaker's fallback).
                     if stagnation >= 2:
+                        candidates = []
                         for adj_name in marshal_region.adjacent_regions:
                             if adj_name in visited:
                                 continue
@@ -5528,12 +5621,18 @@ class EnemyAI:
                                 continue
                             # At stagnation >= 3, any safe region is acceptable
                             if adj_region.controller == nation or stagnation >= 3:
-                                ai_debug(f"    P7: Cautious fallback to {adj_name} (stagnation={stagnation}, friendly={adj_region.controller == nation})")
-                                return {
-                                    "marshal": marshal.name,
-                                    "action": "move",
-                                    "target": adj_name
-                                }
+                                candidates.append(adj_name)
+                        candidates = self._stagnation_fallback_dests(
+                            world, marshal.location, target_region, candidates)
+                        if candidates:
+                            adj_name = candidates[0]
+                            friendly = getattr(world.get_region(adj_name), "controller", None) == nation
+                            ai_debug(f"    P7: Cautious fallback to {adj_name} (stagnation={stagnation}, friendly={friendly})")
+                            return {
+                                "marshal": marshal.name,
+                                "action": "move",
+                                "target": adj_name
+                            }
 
         return None
 
@@ -5736,6 +5835,97 @@ class EnemyAI:
                 "marshal": marshal.name,
                 "action": "wait"
             }
+
+    # ── The October 27, 2026 sweep's seams (OCT27-39 … 50). Each is a
+    # function a series arm can hold down (`--seam MODULE:NAME=EXPR`), so a
+    # recorded board is reproducible with the sweep's logic off; the
+    # attribution record is `tools/_oct27_series_arms.py`.
+    def _capture_intent_allowed(self, world, nation: str, marshal: Marshal, adj_name: str) -> bool:
+        """OCT27-40: may a fortified corps come down for `adj_name`? P4.5's own
+        gates - the crossing and WIN-D2's spoils rule. Down: True."""
+        return (self._can_ai_move_to(world, nation, adj_name, origin=marshal.location)
+                and not self._defers_spoils_to_ally(marshal, adj_name, nation, world))
+
+    def _liberation_holder_ok(self, world, nation: str, ctrl) -> bool:
+        """OCT27-39: a liberation target's holder must be AT WAR with the
+        court (the objective outlives a truce). Down: True."""
+        return bool(ctrl) and bool(world.is_at_war(nation, ctrl))
+
+    def _order_affordable(self, world, action: str, remaining: int) -> bool:
+        """OCT27-42: a paid order's cost against the actions left. Down: True."""
+        if not self._action_costs_point(action):
+            return True
+        return int(world.get_action_cost(action)) <= int(remaining)
+
+    def _recovery_holds_fortified(self, marshal: Marshal) -> bool:
+        """OCT27-45: a fortified recovering corps waits behind its works. Down: False."""
+        return bool(getattr(marshal, 'fortified', False))
+
+    def _recovery_dest_blocked(self, world, nation: str, dest: str) -> bool:
+        """OCT27-45: a locked recovery destination an enemy now holds. Down: False."""
+        return bool(self._get_hostile_marshals_in_region(dest, nation, world))
+
+    def _supply_dest_held(self, world, nation: str, adj_name: str) -> bool:
+        """OCT27-46: a supply move never walks into a held province. Down: False."""
+        return bool(world.get_hostile_marshals_in_region_indexed(adj_name, nation))
+
+    def _screen_retreat_unfortifies(self, marshal: Marshal) -> bool:
+        """OCT27-48: a fortified artillery corps unfortifies before its screen retreat. Down: False."""
+        return bool(getattr(marshal, 'fortified', False))
+
+    def _artillery_setting_up(self, marshal: Marshal) -> bool:
+        """OCT27-48: artillery that marched this turn takes no walk-in. Down: False."""
+        return bool(getattr(marshal, 'artillery', False) and getattr(marshal, 'moved_this_turn', False))
+
+    def _stance_allowed(self, marshal: Marshal, target: str) -> tuple:
+        """OCT27-49: `Marshal.can_use_stance` before a stance order. Down: (True, "")."""
+        return marshal.can_use_stance(str(target or ""))
+
+    def _survival_defend_refused(self, marshal: Marshal) -> bool:
+        """OCT27-50: the one defend predicate. Down: False."""
+        from backend.commands.tactical_executor import defend_refusal
+        return bool(defend_refusal(marshal)[0])
+
+    def _stagnation_fallback_dests(self, world, origin: str, target_region: str,
+                                   dests: list) -> list:
+        """OCT27-51: the stagnation breaker marches a corps TOWARD its
+        nearest enemy; when no neighbour is nearer (the corps already stands
+        beside him and the odds keep it from attacking), its reposition keeps
+        the target no farther - a lateral step along the front - or there is
+        none and the breaker falls through to its lowered-threshold attack
+        and its wait. The random walk it replaced sent Deroy out of Munich,
+        with 52,000 Austrians next door in Tyrol, into France's Franche-Comte.
+        The cautious advance's stagnation fallback (P7) reads it too: its
+        first safe neighbour may be a lateral first step, never a step back.
+        Down: every safe neighbour (`list(a[4])`), in the caller's order."""
+        here = world.get_distance(origin, target_region)
+        return [d for d in dests if world.get_distance(d, target_region) <= here]
+
+    def _staging_order(self, regions: list) -> list:
+        """OCT27-47: P4.6's two-hop frontier in walk order. Down: the old
+        set's iteration order (`list(set(a[0]))`)."""
+        return list(regions)
+
+    def _staging_candidates(self, allies: list, dist_of) -> list:
+        """OCT27-47: the allies to try, nearest first with ties by name; the
+        next tried when the nearest has no legal hop. Down: `[min(a[0], key=a[1])]`."""
+        return sorted(allies, key=lambda a: (dist_of(a), a.name))
+
+    # ── The October 27, 2026 sweep's seams (OCT27-39 … 50). Each is a
+    # function a series arm can hold down (`--seam MODULE:NAME=EXPR`), so a
+    # recorded board is reproducible with the sweep's logic off; the
+    # attribution record is `tools/_oct27_series_arms.py`.
+    def _crossing_ok(self, world, nation: str, origin: str, dest: str) -> bool:
+        """DEF-5 §4.1 at an ATTACK seam (the October 27, 2026 sweep): the
+        naval crossing gate alone - no diplomatic read, so a capital's
+        recapture keeps its sovereign-right bypass while a strike across
+        barred water is never ordered (the executor refused it: "the
+        Russian fleet commands the water", and the refusal cooled the
+        whole action type for two turns)."""
+        if origin is None or not getattr(world, "fleets", None):
+            return True
+        from backend.game_logic.naval import crossing_allowed
+        return bool(crossing_allowed(world, nation, origin, dest))
 
     def _can_ai_move_to(self, world, nation: str, region_name: str,
                         origin: str = None) -> bool:
@@ -6135,6 +6325,13 @@ class EnemyAI:
             # oscillation on peace-heavy fronts).
             if not world.is_at_war(nation, adj_region.controller):
                 continue
+            # The crossing gate and WIN-D2's spoils rule, as P4.5's own
+            # capture reads them (the October 27, 2026 sweep): Moore at
+            # London unfortified for Normandy across the barred Channel,
+            # the intent attack was refused and he lost his works and his
+            # attacks for two turns - a fortify/unfortify churn every two.
+            if not self._capture_intent_allowed(world, nation, marshal, adj_name):
+                continue
 
             # Garrisoned regions are P4.25's job (personality ratio gate) —
             # the intent path has no ratio check, so never target them here
@@ -6212,7 +6409,10 @@ class EnemyAI:
                     # But check if it's a useful destination (not just wandering)
                     if (adj_region.controller != nation and adj_region.controller != "Neutral"
                             and world.is_at_war(nation, adj_region.controller)):
-                        # Could capture this region
+                        # Could capture this region - across open water and
+                        # not an ally's spoils (CHECK 1's gates, the sweep)
+                        if not self._capture_intent_allowed(world, nation, marshal, adj_name):
+                            continue
                         is_safe, _ = self._evaluate_capture_safety(marshal, adj_name, nation, world)
                         if is_safe:
                             has_valid_destination = True
@@ -7719,11 +7919,14 @@ class EnemyAI:
             # If strategic pathfinding becomes terrain/ZOC-aware later, keep this
             # helper on "can stage together soon" semantics unless the design changes.
             # Find nearby allies (within 2 distance, not co-located) with relationship >= Rival
-            nearby_regions = set()
-            frontier = {marshal.location}
+            # Ordered (the October 27, 2026 sweep): a set here made the
+            # staging ally - and so the march - depend on PYTHONHASHSEED.
+            # `_staging_order` is the seam (down: the old set's order).
+            nearby_regions = []
+            frontier = [marshal.location]
             checked_regions = {marshal.location}
             for _ in range(2):
-                next_frontier = set()
+                next_frontier = []
                 for region_name in frontier:
                     region = world.get_region(region_name)
                     if not region:
@@ -7732,9 +7935,10 @@ class EnemyAI:
                         if candidate in checked_regions:
                             continue
                         checked_regions.add(candidate)
-                        nearby_regions.add(candidate)
-                        next_frontier.add(candidate)
+                        nearby_regions.append(candidate)
+                        next_frontier.append(candidate)
                 frontier = next_frontier
+            nearby_regions = self._staging_order(nearby_regions)
 
             nearby_allies = [
                 m
@@ -7762,29 +7966,35 @@ class EnemyAI:
                 continue  # Even combined, not enough
 
             # Need to bring in nearby allies — move toward the nearest one
+            # (ties by name, deterministic); an ally with no legal hop toward
+            # him yields to the next (the sweep: the rung gave up when the
+            # nearest ally could not be approached).
             if nearby_allies:
-                best_ally = min(nearby_allies, key=lambda a: world.get_distance(marshal.location, a.location))
                 visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
-
+                best_ally = None
                 best_move = None
-                best_score = -999
-
-                for move_adj in marshal_region.adjacent_regions:
-                    if move_adj in visited:
-                        continue
-                    # Don't move into war enemies
-                    enemies_blocking = world.get_hostile_marshals_in_region_indexed(move_adj, nation)
-                    if enemies_blocking:
-                        continue
-                    if not self._can_ai_move_to(world, nation, move_adj, origin=marshal.location):
-                        continue  # DLF-12
-                    dist = world.get_distance(move_adj, best_ally.location)
-                    current_dist = world.get_distance(marshal.location, best_ally.location)
-                    if dist < current_dist:
-                        score = (current_dist - dist) * 100
-                        if score > best_score:
-                            best_score = score
-                            best_move = move_adj
+                for ally in self._staging_candidates(
+                        nearby_allies, lambda a: world.get_distance(marshal.location, a.location)):
+                    best_score = -999
+                    current_dist = world.get_distance(marshal.location, ally.location)
+                    for move_adj in marshal_region.adjacent_regions:
+                        if move_adj in visited:
+                            continue
+                        # Don't move into war enemies
+                        enemies_blocking = world.get_hostile_marshals_in_region_indexed(move_adj, nation)
+                        if enemies_blocking:
+                            continue
+                        if not self._can_ai_move_to(world, nation, move_adj, origin=marshal.location):
+                            continue  # DLF-12
+                        dist = world.get_distance(move_adj, ally.location)
+                        if dist < current_dist:
+                            score = (current_dist - dist) * 100
+                            if score > best_score:
+                                best_score = score
+                                best_move = move_adj
+                    if best_move:
+                        best_ally = ally
+                        break
 
                 if best_move:
                     ai_debug(f"    P4.6: {marshal.name} staging coordinated attack — moving toward {best_ally.name} at {best_ally.location}")

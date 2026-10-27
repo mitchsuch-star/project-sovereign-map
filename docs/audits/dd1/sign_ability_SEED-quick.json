@@ -652,7 +652,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 60 gold into the treasury.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -720,7 +720,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 60 gold into the treasury.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -1531,7 +1531,7 @@
    "action": "propose_armistice",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Uncertain",
+   "likelihood": "Favorable",
    "verdict": "signed",
    "message": "Treaty signed: At War → Armistice with Austria.",
    "type_sent": "armistice_winning",
@@ -1551,7 +1551,7 @@
    "action": "propose_peace",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Doubtful",
+   "likelihood": "Uncertain — a counter is likely",
    "verdict": "signed",
    "message": "Treaty signed: At War → Peace with Austria.",
    "type_sent": "peace",
@@ -1635,7 +1635,7 @@
    "type": "vassalage",
    "action": "propose_vassal",
    "shown_signable": false,
-   "disabled_reason": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 62% of France).",
+   "disabled_reason": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 59% of France).",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -1991,26 +1991,6 @@
   },
   {
    "turn": 3,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "peace",
-   "action": "sign a peace with Austria",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Austria|Bavaria",
-    "Austria|France",
-    "Austria|KingdomOfItaly"
-   ],
-   "arm": "SEED-quick",
-   "clause": ""
-  },
-  {
-   "turn": 3,
    "surface": "settlement",
    "moment": "shown",
    "court": "Britain",
@@ -2038,19 +2018,20 @@
    "turn": 3,
    "surface": "letter",
    "moment": "arrived",
-   "court": "Hesse",
-   "type": "non_aggression",
+   "court": "Austria",
+   "type": "armistice_losing",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 8,
+   "dialogue_id": 9,
    "action": "accept_ai_proposal",
    "label": "Accept",
    "shown_signable": true,
    "disabled_reason": "",
    "state_moved": [
-    "France|Hesse"
+    "Austria|France",
+    "Austria|KingdomOfItaly"
    ],
    "verdict": "signed",
-   "message": "You have accepted Hesse's proposal. Treaty signed: Peace → Non-Aggression with Hesse.",
+   "message": "You have accepted Austria's proposal. Treaty signed: At War → Armistice with Austria.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2058,10 +2039,31 @@
    "turn": 3,
    "surface": "letter",
    "moment": "shown",
+   "court": "Austria",
+   "type": "armistice_losing",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 9,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "Austria|France",
+    "Austria|KingdomOfItaly"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Austria's proposal. Treaty signed: At War → Armistice with Austria.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 3,
+   "surface": "letter",
+   "moment": "arrived",
    "court": "Hesse",
    "type": "non_aggression",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 8,
+   "dialogue_id": 10,
    "action": "accept_ai_proposal",
    "label": "Accept",
    "shown_signable": true,
@@ -2081,7 +2083,7 @@
    "court": "PapalStates",
    "type": "friendly_gift",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 9,
+   "dialogue_id": 11,
    "action": "accept_ai_proposal",
    "label": "Accept",
    "shown_signable": true,
@@ -2090,7 +2092,43 @@
     "France|PapalStates"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States.",
+   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 105 gold into the treasury.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 4,
+   "surface": "real",
+   "moment": "signed",
+   "court": "Austria",
+   "type": "armistice_losing",
+   "action": "_ratify_treaty",
+   "shown_signable": null,
+   "is_player": true,
+   "proposer": "Austria",
+   "target": "France",
+   "verdict": "signed",
+   "message": "Treaty signed: At War → Armistice with Austria.",
+   "arm": "SEED-quick",
+   "clause": ""
+  },
+  {
+   "turn": 4,
+   "surface": "letter",
+   "moment": "shown",
+   "court": "Hesse",
+   "type": "non_aggression",
+   "letter_type": "incoming_proposal",
+   "dialogue_id": 10,
+   "action": "accept_ai_proposal",
+   "label": "Accept",
+   "shown_signable": true,
+   "disabled_reason": "",
+   "state_moved": [
+    "France|Hesse"
+   ],
+   "verdict": "signed",
+   "message": "You have accepted Hesse's proposal. Treaty signed: Peace → Non-Aggression with Hesse.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2117,7 +2155,7 @@
    "court": "PapalStates",
    "type": "friendly_gift",
    "letter_type": "incoming_proposal",
-   "dialogue_id": 9,
+   "dialogue_id": 11,
    "action": "accept_ai_proposal",
    "label": "Accept",
    "shown_signable": true,
@@ -2126,7 +2164,7 @@
     "France|PapalStates"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States.",
+   "message": "You have accepted the Papal States's proposal. Treaty signed: Peace → Open Borders with the Papal States. The Papal States paid 105 gold into the treasury.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2155,7 +2193,7 @@
    "action": "propose_armistice",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Doubtful",
+   "likelihood": "Doubtful — may counter",
    "verdict": "signed",
    "message": "Treaty signed: At War → Armistice with Britain.",
    "type_sent": "armistice_losing",
@@ -2215,32 +2253,12 @@
    "action": "propose_peace",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Unlikely",
+   "likelihood": "Hopeless",
    "verdict": "signed",
    "message": "Treaty signed: At War → Peace with Russia.",
    "type_sent": "peace",
    "state_moved": [
     "France|Russia"
-   ],
-   "arm": "SEED-quick",
-   "clause": ""
-  },
-  {
-   "turn": 4,
-   "surface": "chip",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "armistice",
-   "action": "propose_armistice",
-   "shown_signable": true,
-   "disabled_reason": "",
-   "likelihood": "Uncertain — a counter is likely",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Armistice with Austria.",
-   "type_sent": "armistice_winning",
-   "state_moved": [
-    "Austria|France",
-    "Austria|KingdomOfItaly"
    ],
    "arm": "SEED-quick",
    "clause": ""
@@ -2256,7 +2274,7 @@
    "disabled_reason": "",
    "likelihood": "Doubtful — may counter",
    "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
+   "message": "Treaty signed: Armistice → Peace with Austria.",
    "type_sent": "peace",
    "state_moved": [
     "Austria|Bavaria",
@@ -2338,7 +2356,7 @@
    "type": "vassalage",
    "action": "propose_vassal",
    "shown_signable": false,
-   "disabled_reason": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 62% of France).",
+   "disabled_reason": "Cannot vassalize Ottoman: Ottoman is too powerful to vassalize (power: 59% of France).",
    "likelihood": "",
    "verdict": "not_shown",
    "message": "",
@@ -2487,6 +2505,7 @@
    "message": "Treaty signed: Alliance → Vassal with Bavaria.",
    "type_sent": "vassalage",
    "state_moved": [
+    "Austria|Bavaria",
     "Bavaria|France"
    ],
    "arm": "SEED-quick",
@@ -2694,26 +2713,6 @@
   },
   {
    "turn": 4,
-   "surface": "congress",
-   "moment": "shown",
-   "court": "Austria",
-   "type": "peace",
-   "action": "sign a peace with Austria",
-   "shown_signable": true,
-   "stance": "REFUSES",
-   "verdict": "signed",
-   "message": "Treaty signed: At War → Peace with Austria.",
-   "type_sent": "peace",
-   "state_moved": [
-    "Austria|Bavaria",
-    "Austria|France",
-    "Austria|KingdomOfItaly"
-   ],
-   "arm": "SEED-quick",
-   "clause": ""
-  },
-  {
-   "turn": 4,
    "surface": "settlement",
    "moment": "shown",
    "court": "Britain",
@@ -2739,9 +2738,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 7.75,
- "clones": 81,
- "seconds": 6.6,
+ "clone_ms_mean": 6.6,
+ "clones": 80,
+ "seconds": 6.1,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,
@@ -2749,19 +2748,19 @@
   "A_by_surface": {},
   "B_refused_unnamed": 0,
   "B_messages": [],
-  "shown": 77,
-  "letters": 12,
-  "real_signs": 8,
+  "shown": 76,
+  "letters": 14,
+  "real_signs": 9,
   "real_refused_player": 0,
   "asked": 0,
   "errors": 0,
   "verdicts": {
-   "chip:signed": 53,
+   "chip:signed": 52,
    "chip:not_shown": 67,
-   "congress:signed": 12,
+   "congress:signed": 10,
    "settlement:not_shown": 4,
-   "letter:signed": 12,
-   "real:signed": 8
+   "letter:signed": 14,
+   "real:signed": 9
   }
  }
 }

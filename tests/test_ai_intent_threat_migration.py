@@ -1540,7 +1540,39 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # with DM up gives the new series. D12's own decomposition: its seam 1 alone
 # is the whole move, seam 2 alone byte-identical.
 # ═══════════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 17, 14, 11, 8, 5, 2, 0, 0, 5, 2, 9, 14, 14, 14, 11, 8, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ═══════════════════════════════════════════════════════════════════════
+# RE-PINNED by the October 27, 2026 enemy-AI sweep (`SYSTEMS_REFERENCE.md`
+# §157; the rows `BUG_FIXES.md` §OCT27). THREE seams (three of the sweep's
+# fifty-one rows) move the ambient board; every other seam, held down alone,
+# is byte-identical to the shipped series (`tools/_oct27_series_arms.py` →
+# `tools/_oct27_series_arms_final.json`, thirty-nine arms: every seam's
+# HEAD body re-bound to the current module's globals and swapped in; arm 0,
+# every seam swapped back, reproduces the series before it byte for byte;
+# the prior is read from HEAD):
+#   EA2  (OCT27-40) the fortified corps' capture intent gated by the crossing
+#        and WIN-D2's spoils rule — the first mover, at [6]: Europe's corps
+#        stop coming down from their works for a province across barred
+#        water or an ally's spoils, and the alarm decays 60 → 58 where the
+#        old board's capture read 47; held down alone the old series returns
+#        through [10];
+#   EA15 (OCT27-51 and its sibling) a stagnating corps with no nearer step
+#        steps along the front or holds, never away from its target — at
+#        [8]: the cautious advance's fallback no longer walks Moore from
+#        London to Cornwall for a Normandy he cannot cross to;
+#   EA4  (OCT27-42) the action budget — a court no longer places an order it
+#        cannot pay for, at [17].
+# Before OCT27-51's sibling landed, the AI-AI refusal rule (AIR, OCT27-12 /
+# 13) moved the board at [9] and artillery setting up (EA10, OCT27-48) at
+# [18]; on the final tree each, held down alone, is byte-identical.
+# The unattended France ends turn 40 with her alarm at 0 from [22]. The
+# seven-seed probe record (`docs/audits/probes/sf_lb2/`) re-recorded with
+# the tree: Prussia→Hanover opens on 9 / 12 / 12 / 9 / 13 / 10 / 13
+# (historical / austerlitz / friedland / jena / ulm / marengo / eylau) — four
+# distinct turns, one AI-initiated war per seed; the standing rule holds.
+# ═══════════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The series before the October 27 sweep (HEAD's BASELINE_SERIES: the S14f p3 record's arm "0"; the sweep's `prior`):
+# [70, 68, 66, 64, 62, 60, 47, 45, 42, 39, 36, 33, 30, 17, 14, 11, 8, 5, 2, 0, 0, 5, 2, 9, 14, 14, 14, 11, 8, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The standing series of every attribution record through S14f part 2 — the
 # series before D12 moved it (the p3 record's `prior`). The historical
 # records' links read this, never the live BASELINE_SERIES.

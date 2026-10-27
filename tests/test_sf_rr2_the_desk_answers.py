@@ -575,7 +575,20 @@ class TestTheSiblings:
         client, world = shipped
         monkeypatch.setattr(P, "_a_generic_follow_keeps_the_attack", lambda *args: False)
         r = post(client, "Davout attacks Mack, cavalry to follow.")
-        assert "support" in str(r.get("message")).lower(), r.get("message")
+        # RE-SEATED (October 27, 2026, the enemy-AI sweep's suite pass;
+        # SYSTEMS_REFERENCE §157.11): the routing is the claim, not the dice.
+        # With the seam down the line becomes a SUPPORT to Bernadotte — issued,
+        # or met by Davout's own objection to it, which rolls on the global
+        # dice. The pin read the objection's WORDS, and one tone ("That road
+        # runs through enemy country, Sire") names no support: it failed once
+        # when the modules ahead of it on its worker had spent the dice
+        # differently. It reads the routed order now, on either road.
+        if r.get("pending_objection"):
+            pending = world.pending_strategic_objection or {}
+            assert (pending.get("strategic_type"), pending.get("target")) == ("SUPPORT", "Bernadotte"), pending
+        else:
+            assert "support" in str(r.get("message")).lower(), r.get("message")
+            assert getattr(world.marshals["Davout"].strategic_order, "target", None) == "Bernadotte"
 
 
 # ═════════════ the HOLD's twenty questions on the boot ════════════════════════

@@ -743,6 +743,26 @@ def guarantors_of(world, protected: str) -> List[str]:
 # The per-turn pass — payments, expiry, renege and abandonment
 # ═══════════════════════════════════════════════════════════════════════
 
+def live_guarantees_of(world, protected: str) -> List[Dict]:
+    """The standing guarantees of `protected` whose guarantor can still
+    answer for them: a court on the board (never an eliminated one - the
+    instruments tick that drops dead parties runs AFTER the war council)
+    and not a client under a lord (the October 27, 2026 sweep: Sweden,
+    eliminated in the enemy phase, "honoured its guarantee of Hanover" from
+    the grave). Every reader of a guarantee's deterrence, scale or
+    honouring asks here."""
+    vassals = getattr(world, "vassals", {}) or {}
+    out: List[Dict] = []
+    for record in getattr(world, "diplomatic_guarantees", []) or []:
+        if not isinstance(record, dict) or record.get("protected") != protected:
+            continue
+        guarantor = str(record.get("guarantor") or "")
+        if not guarantor or guarantor in vassals or _party_gone(world, guarantor):
+            continue
+        out.append(record)
+    return out
+
+
 def _party_gone(world, nation: str) -> bool:
     from backend.game_logic.diplomacy import _is_nation_eliminated
     if nation == getattr(world, "player_nation", "France"):
@@ -1306,13 +1326,14 @@ def _emit_broken_bargain_beat(world, *, breaker: str, victim: str,
     queue_dispatch_event(world, "broken_bargain",
                          {"nation": victim, "breaker": breaker}, "always")
 
+    from backend.display_names import display_nation as _dn
     if breaker != player:
         if victim == player:
             world.notifications.add(create_notification(
                 DIPLOMATIC_PROPOSAL,
                 NotificationPriority.HIGH,
-                f"A bargain broken by {breaker}",
-                f"{breaker} has torn up its compact with France. The "
+                f"A bargain broken by {_dn(breaker)}",
+                f"{_dn(breaker)} has torn up its compact with France. The "
                 f"mark against them stands.",
                 int(world.current_turn),
             ))
@@ -1323,7 +1344,7 @@ def _emit_broken_bargain_beat(world, *, breaker: str, victim: str,
     )
     diplomat = resolve_named_diplomat("envoy", victim, world)
     line = _BROKEN_BARGAIN_LINES[grievance].format(
-        diplomat=diplomat, victim=victim,
+        diplomat=diplomat, victim=_dn(victim),
         turn=int(event.get("turn", world.current_turn)))
     # Review fix (the NA-6b §17.1 clobber class): the outcome slot may
     # already hold this turn's in-transit proposal answer — never
@@ -1342,8 +1363,8 @@ def _emit_broken_bargain_beat(world, *, breaker: str, victim: str,
     world.notifications.add(create_notification(
         DIPLOMATIC_PROPOSAL,
         NotificationPriority.HIGH,
-        f"{victim} declares the bargain broken",
-        f"France's compact with {victim} is torn up — by our hand. "
+        f"{_dn(victim)} declares the bargain broken",
+        f"France's compact with {_dn(victim)} is torn up — by our hand. "
         f"Their envoy has delivered the reproach.",
         int(world.current_turn),
     ))

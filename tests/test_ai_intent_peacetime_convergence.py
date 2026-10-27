@@ -265,7 +265,11 @@ class TestAiAiResolution:
         # mailbox, notifications or popup.
         world = WorldState.from_dict(world1805.to_dict())
         import backend.game_logic.ai_diplomacy as mod
-        monkeypatch.setattr(mod, "_ai_ai_acceptance", lambda *a, **k: 10)
+        # The proposer means it (60); the recipient refuses (10) - a
+        # both-sides balk records nothing (the October 27, 2026 sweep).
+        monkeypatch.setattr(
+            mod, "_ai_ai_acceptance",
+            lambda scored, evaluator, other, w, **k: 60 if evaluator == "Austria" else 10)
         terms = _build_proposal_terms("Austria", "non_aggression", 0,
                                       world, recipient="Prussia")
         proposal = _make_proposal("Austria", "non_aggression", 4, terms,

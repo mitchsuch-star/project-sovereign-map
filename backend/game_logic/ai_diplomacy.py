@@ -49,6 +49,14 @@ NATION_REJECTION_COOLDOWN = 3   # After rejection, nation can't propose for N tu
 # from nation N lapses OR is rejected, N may not re-propose T for N turns
 # (live audit: five identical open-borders proposals in five turns).
 TYPE_REJECTION_COOLDOWN = 6     # After rejection of type X, same type can't be proposed for N turns
+# The repeat-ask governor (October 27, 2026 sweep): a court refused the SAME
+# peacetime ask within the refusal record's memory waits longer before it
+# brings it again - the type cooldown times (1 + prior refused episodes),
+# capped here. The first refusal is byte-identical; a court at war with the
+# recipient is never slowed (a beaten court's peace must keep coming). A
+# 30-turn probe read Hesse's non-aggression pact five times in thirty turns,
+# refused each time, at the bare cadence.
+REPEATED_ASK_COOLDOWN_CAP = 3
 TYPE_LAPSE_COOLDOWN = 6         # After type X lapses unanswered, same block applies
 NATION_ACCEPTANCE_COOLDOWN = 2  # After acceptance, nation can't propose for N turns
 QUEUE_MAX_SIZE = 3              # Maximum queued proposals
@@ -103,6 +111,9 @@ AI_SPONSORSHIPS_PER_TURN = 1      # narration budget: one new patron per turn
 # lean + the standing offers. Bavaria, September 1805 — courted by both
 # empires, signed at Bogenhausen. Blessed numbers, in-band tunable.
 ALLEGIANCE_AUCTION_WINDOW = 3     # turns between the announcement and the flip
+# A closed auction rests this long before the court is in play again (the
+# October 27, 2026 sweep; twice the window).
+ALLEGIANCE_AUCTION_COOLDOWN_TURNS = 2 * ALLEGIANCE_AUCTION_WINDOW
 AUCTION_SPONSORSHIP_LEAN_DIVISOR = 10  # 10g/turn of standing patronage = 1 lean point
 # DD-1 S8 Step 3 (SFR-D40, October 12, 2026): the bid — a lump of gold laid
 # before the court while its allegiance is in play, weighed at the resolution
@@ -404,7 +415,8 @@ def _is_on_cooldown(nation: str, proposal_type: str, world,
 
 def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *,
                               deferred: bool = False,
-                              recipient: str = None) -> None:
+                              recipient: str = None,
+                              escalate: bool = True) -> None:
     """Apply cooldowns after a proposal is rejected.
 
     Called from executor when player rejects an AI proposal. AI-2a:
@@ -414,14 +426,129 @@ def apply_rejection_cooldowns(nation: str, proposal_type: str, world, *,
         deferred: True when called from _process_proposal_in_transit inside
                   advance_turn — adds +1 to compensate for decrement_all running
                   in the same advance_turn call.
+        escalate: the repeat-ask governor (`repeated_ask_factor`) - True
+                  where the court's OWN ask was refused; the callers that
+                  cool a court after it refused FRANCE's proposal pass
+                  False (that record runs the other way).
+
+    Never SHORTER than a cooldown already standing (the October 27, 2026
+    sweep): the vassalage on-ramp stamps `{n}|offer_vassalage` at 12 when
+    it issues, and the refusal overwrote it to 6.
     """
     offset = 1 if deferred else 0
     cooldowns = _get_cooldowns(world)
     nation_key, type_key = _cooldown_keys(nation, proposal_type, world,
                                           recipient)
-    cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN) + offset
-    cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN) + offset
+    factor = (repeated_ask_factor(world, nation, proposal_type, recipient=recipient)
+              if escalate else 1)
+    cooldowns[nation_key] = never_shorter(cooldowns.get(nation_key, 0),
+                                          int(NATION_REJECTION_COOLDOWN) + offset)
+    cooldowns[type_key] = never_shorter(cooldowns.get(type_key, 0),
+                                        int(TYPE_REJECTION_COOLDOWN) * factor + offset)
     _set_cooldowns(world, cooldowns)
+
+
+def never_shorter(existing: int, new: int) -> int:
+    """OCT27-27: a cooldown write never shortens one already standing. Down
+    (`int(a[1])`): the pre-sweep overwrite."""
+    return max(int(existing or 0), int(new))
+
+
+def signing_cools(treaty_event) -> bool:
+    """OCT27-23: the acceptance cooldown follows a SIGNED treaty only. Down
+    (True): the cooldown on a failed ratification too."""
+    return not (isinstance(treaty_event, dict) and treaty_event.get("type") == "diplomatic_treaty_failed")
+
+
+def proposer_meant_it(acceptance_a: int) -> bool:
+    """OCT27-12: an AI-AI refusal is recorded only when the proposer itself
+    would have signed. Down (True): a both-sides balk recorded as the
+    recipient's refusal."""
+    return int(acceptance_a) >= 50
+
+
+def rest_refused_pair(initiator: str, ptype: str, world, target: str) -> None:
+    """OCT27-13: a recipient's refusal rests the ordered pair. Down (None): no stamp."""
+    apply_rejection_cooldowns(initiator, ptype, world, recipient=target)
+
+
+def flush_intent_on_refusal(world) -> None:
+    """OCT27-18: a refusal hardens the asker this turn. Down (None): the
+    turn-late read."""
+    world._intent_cache = None
+
+
+def slot_claim_allowed(world, nation: str, proposal_type: str, player: str) -> bool:
+    """OCT27-24 / 25: a rung claims the turn's slot only with a treaty the
+    table would sign. Down (True): the pre-sweep claim-and-drop."""
+    return not treaty_offer_refusal(world, nation, proposal_type, player)
+
+
+def auction_rests(world, nation: str) -> bool:
+    """OCT27-7: a closed auction rests before the court is in play again.
+    Down (False): the re-open the tick after every close."""
+    return int(_get_cooldowns(world).get(_auction_rest_key(nation), 0) or 0) > 0
+
+
+def alignment_ask_recent(world, proposer: str, target: str) -> bool:
+    """OCT27-9: a refused alignment ask inside the dedupe window yields to
+    the pair's other triggers. Down (False): the shadow."""
+    return any(
+        e.get("type") == "defensive_alliance"
+        and int(world.current_turn) - int(e.get("turn", 0)) < REFUSAL_DEDUPE_TURNS
+        for e in get_refused_asks(world, proposer, target))
+
+
+def province_return_skips(ally: str, player: str) -> bool:
+    """OCT27-6: the ask-back tick never moves the PLAYER's province. Down
+    (False): the formula as France's consent."""
+    return ally == player
+
+
+def prior_refusals_of(world, nation: str, recipient: str,
+                      proposal_type: str) -> int:
+    """How many refused episodes of `proposal_type` the ordered pair
+    `nation>recipient` holds inside the refusal record's memory window
+    (`REFUSAL_MEMORY_TURNS`); 0 on a world without the record."""
+    store = getattr(world, 'diplomatic_refusals', None)
+    if not isinstance(store, dict) or not store:
+        return 0
+    turn = int(getattr(world, 'current_turn', 0))
+    # PRIOR: earlier turns' episodes only - the refusal being answered
+    # this turn is not its own precedent, whichever order the caller
+    # records and cools in.
+    return sum(1 for e in get_refused_asks(world, nation, recipient)
+               if e.get("type") == proposal_type and int(e.get("turn", 0)) < turn)
+
+
+def repeated_ask_factor(world, nation: str, proposal_type: str, *,
+                        recipient: str = None) -> int:
+    """The type cooldown's multiplier for a repeated ask: 1 + the prior
+    refused episodes of the same type (peacetime pairs only), capped at
+    `REPEATED_ASK_COOLDOWN_CAP`. 1 whenever the pair is at war or the
+    record is empty - the pre-governor number."""
+    player = getattr(world, 'player_nation', 'France')
+    whom = recipient or player
+    is_at_war = getattr(world, "is_at_war", None)
+    if not callable(is_at_war) or is_at_war(nation, whom):
+        return 1
+    prior = prior_refusals_of(world, nation, whom, proposal_type)
+    return max(1, min(1 + int(prior), int(REPEATED_ASK_COOLDOWN_CAP)))
+
+
+def repeated_ask_aside(world, nation: str, prior: int) -> str:
+    """Talleyrand's note on an ask France has refused before: "Prussia has
+    brought this same ask twice in the last 12 turns and been refused each
+    time; her envoy comes regardless." '' when `prior` is 0."""
+    prior = int(prior or 0)
+    if prior <= 0:
+        return ""
+    from backend.display_names import display_nation, with_definite_article
+    shown = with_definite_article(display_nation(nation), capitalize=True)
+    times = {1: "once", 2: "twice"}.get(prior, f"{prior} times")
+    return (f" {shown} has brought this same ask {times} in the last "
+            f"{int(REFUSAL_MEMORY_TURNS)} turns and been refused each time; "
+            f"her envoy comes regardless.")
 
 
 def apply_lapse_type_cooldown(nation: str, proposal_type: str, world,
@@ -548,6 +675,12 @@ def record_diplomatic_refusal(world, proposer: str, recipient: str,
             return False
     entries.append({"type": str(proposal_type), "turn": turn})
     store[key] = entries
+    # The refusal hardens the asker THIS turn (`intent.A_REFUSAL_HARDENS_
+    # THE_ASKER` reads the record through the per-turn intent cache, filled
+    # before the AI-AI phase's refusals land) - the `congress._invalidate_
+    # intent` idiom; without it the council read a stale weight for the
+    # turn (the October 27, 2026 sweep).
+    flush_intent_on_refusal(world)
     return True
 
 
@@ -1760,7 +1893,14 @@ def _generate_intent_ask(nation: str, world, diplo_state: str,
                 if not _is_on_cooldown(nation, ptype, world, 0):
                     terms = _build_proposal_terms(nation, ptype, 0, world,
                                                   gold_mult=gold_mult)
-                    if terms.get("sweeteners"):  # a real offer, not a token
+                    # A real offer, not a token - and one the table would
+                    # sign (`deliver_ai_proposal` withholds a refused
+                    # treaty; the ask then burned an intent slot and
+                    # silenced the court's lower rungs every turn - the
+                    # October 27, 2026 sweep).
+                    if (terms.get("sweeteners")
+                            and slot_claim_allowed(
+                                world, nation, str(terms.get("type") or ""), player)):
                         proposal = _make_proposal(nation, ptype, 5, terms,
                                                   world)
 
@@ -2116,6 +2256,13 @@ def coalition_loyalty_penalty(world, court: str, opponent: str) -> int:
                    + int(ready["exhaustion"]) // COALITION_LOYALTY_EASE_PER, 0))
 
 
+def _hope_alive(world, court: str, opponent: str) -> bool:
+    """`diplomacy.truce_hope_alive(...)["alive"]`, read only where the
+    readiness needs it (the court sues above the split)."""
+    from backend.game_logic.diplomacy import truce_hope_alive
+    return bool((truce_hope_alive(world, court, opponent) or {}).get("alive"))
+
+
 def court_own_readiness(world, court: str, opponent: str) -> Dict:
     """What `court` itself would do about its war with `opponent`, as its own
     AI reads it: `score` (the pair war score from the court's side), its
@@ -2145,7 +2292,12 @@ def court_own_readiness(world, court: str, opponent: str) -> Dict:
         "score": int(score), "threshold": int(threshold), "sues": sues,
         "in_league": in_league, "break_ranks": reason or "",
         "loyal": bool(in_league and at_war and reason is None),
-        "letter": ("peace" if (sues and score < P1_PEACE_SPLIT)
+        # P1's own choice (the October 27, 2026 sweep): a peace below the
+        # split, and ABOVE it a truce only while the court's hope is alive
+        # (`truce_hope_alive`, the same read P1 makes) - the panel said
+        # "her letter asks a truce" where the letter that came was a peace.
+        "letter": ("peace" if (sues and (score < P1_PEACE_SPLIT
+                                         or not _hope_alive(world, court, opponent)))
                    else "truce" if sues else ""),
         "exhaustion": exhaustion,
         "bond": str((_bond or {}).get("payer") or ""),
@@ -2630,7 +2782,14 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # Only fires if current state is below NON_AGGRESSION (the proposed type)
     if proposal is None and not is_at_war:
         wars_against_france = _count_nations_at_war_with_france(world)
-        if wars_against_france >= 2 and diplo_state in ("PEACE", "OPEN_BORDERS"):
+        # The letter is a non-aggression pact: a court the table would
+        # refuse (relations under the floor) never claims the turn's slot
+        # with it (the October 27, 2026 sweep: at the 1805 boot's three
+        # wars every hostile court drafted an "opportunistic" the send
+        # filter dropped, and the NA-5 ultimatum and the bandwagon rungs
+        # below - all guarded by `proposal is None` - never ran for it).
+        if (wars_against_france >= 2 and diplo_state in ("PEACE", "OPEN_BORDERS")
+                and slot_claim_allowed(world, nation, "non_aggression", player)):
             ptype = "opportunistic"
             if not _is_on_cooldown(nation, ptype, world, war_score):
                 terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
@@ -2902,6 +3061,20 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             ask_gold=sum(int(d.get("value", 0) or 0) for d in (_dt.get("demands") or [])
                          if d.get("type") == "gold_lump"))
 
+    # The repeat-ask governor's other half: Talleyrand says how often the
+    # court has asked this already (the refusal record, `prior_refusals_of`)
+    # - a player who reads the same envoy's letter a third time is told it
+    # is the third. Player-addressed, peacetime envelopes only.
+    if (proposal.get("recipient") in (None, player) and not is_at_war
+            and isinstance(proposal.get("talleyrand_assessment"), str)):
+        _prior = prior_refusals_of(world, nation, player,
+                                   str(proposal.get("proposal_type") or ""))
+        if _prior:
+            proposal["talleyrand_assessment"] = (
+                proposal["talleyrand_assessment"]
+                + repeated_ask_aside(world, nation, _prior))
+            proposal["repeated_ask_count"] = int(_prior)
+
     # Session 2 follow-up: All proposals delivered immediately through
     # dialogue_manager.push() — no separate queue needed. The dialogue
     # manager handles queuing internally when another dialogue is active.
@@ -3021,23 +3194,28 @@ def _build_ai_ultimatum_dialogue(proposal: Dict, world) -> Dict:
     )
     popup_payload["is_ultimatum"] = True
 
+    # R7: the court's printed form, formation-aware ("the United
+    # Netherlands", never the tag "Holland" - the October 27, 2026 sweep).
+    from backend.display_names import with_definite_article as _the
+    from backend.game_logic.formations import formed_display_name as _fdn
+    shown = _the(_fdn(world, nation))
     return {
         "type": "incoming_ultimatum",
         "target_nation": nation,
         "talleyrand_text": (
-            f"Sire, {diplomat_name} delivers an ULTIMATUM from {nation}:"
+            f"Sire, {diplomat_name} delivers an ULTIMATUM from {shown}:"
             f"\n\n  {proposal_summary}"
             f"\n\n{assessment}"
         ),
         "options": [
             {
                 "label": "Yield",
-                "description": f"Concede {nation}'s demands in full.",
+                "description": f"Concede {shown}'s demands in full.",
                 "action": "accept_ai_ultimatum",
             },
             {
                 "label": "Defy",
-                "description": f"Refuse the demands. {nation}'s court will not forget.",
+                "description": f"Refuse the demands. {shown}'s court will not forget.",
                 "action": "reject_ai_ultimatum",
             },
         ],
@@ -3245,11 +3423,15 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
             popup_payload = dict(popup_payload)
             popup_payload["clauses"] = list(popup_payload.get("clauses") or []) + [_broken]
 
+    # R7: the court's printed form, formation-aware (the sweep).
+    from backend.display_names import with_definite_article as _the
+    from backend.game_logic.formations import formed_display_name as _fdn
+    shown = _the(_fdn(world, nation))
     dialogue = {
         "type": "incoming_proposal",
         "target_nation": nation,
         "talleyrand_text": (
-            f"Sire, {diplomat_name} has arrived with a proposal from {nation}:"
+            f"Sire, {diplomat_name} has arrived with a proposal from {shown}:"
             f"{spoken}"
             f"\n\n  {proposal_summary}"
             f"{release}"
@@ -3259,12 +3441,12 @@ def build_ai_proposal_dialogue(proposal: Dict, world) -> Dict:
         "options": [
             {
                 "label": "Accept",
-                "description": f"Accept {nation}'s proposal as offered.",
+                "description": f"Accept {shown}'s proposal as offered.",
                 "action": "accept_ai_proposal",
             },
             {
                 "label": "Reject",
-                "description": f"Decline {nation}'s proposal outright.",
+                "description": f"Decline {shown}'s proposal outright.",
                 "action": "reject_ai_proposal",
             },
             {
@@ -3824,6 +4006,14 @@ def generate_counter_offer(
     return terms
 
 
+def committed_gold_lump(terms) -> int:
+    """The gold_lump a draft already carries - the sum a bridge or a desire
+    walk must leave in the payer's purse before it raises the line."""
+    return sum(int(s.get("value", 0) or 0)
+               for s in ((terms or {}).get("sweeteners") or [])
+               if isinstance(s, dict) and s.get("type") == "gold_lump")
+
+
 def _gold_line_shape(term) -> Optional[tuple]:
     """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the identity two
     gold sweeteners must share to be ONE line - the type and the turns a
@@ -3921,9 +4111,14 @@ def _gold_bridge_counter(
         return None
     # S14D-X39: the purse stamped at send where the caller has one.
     treasury = int(payer_gold) if payer_gold is not None else _payer_gold(world, payer_nation)
-    if treasury < 100:
+    # S14G-23 merges the bridge into the draft's own gold line, so the
+    # purse is measured against the LINE's total, not the increment (the
+    # October 27, 2026 sweep: a 2,000-gold purse behind a 1,800 draft
+    # quoted a 3,300 lump the ratify clip then paid at 2,000).
+    committed = committed_gold_lump(terms)
+    if treasury - committed < 100:
         return None
-    max_amount = min(treasury, 3000)
+    max_amount = min(treasury - committed, 3000)
     amount = 100
     while amount <= max_amount:
         test_terms = copy.deepcopy(terms)
@@ -3988,7 +4183,8 @@ def _try_add_desired_clauses(
                 # S14D-X39: the purse stamped at send where the caller has one.
                 nation_gold = (int(payer_gold) if payer_gold is not None
                                else world.nation_gold.get(payer, 0))
-                if nation_gold < sweetener_value:
+                # Against the line's total, as the bridge (the sweep).
+                if nation_gold - committed_gold_lump(test_terms) < sweetener_value:
                     continue  # Can't afford this sweetener
             # R113: Validate gold_per_turn against the PAYER's income
             # (prevent unsustainable offers)
@@ -4141,12 +4337,15 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
     enemy_nations = list(getattr(world, 'enemy_nations', []))
     events = []
 
-    # Build territory map: nation → set of regions
+    # Build territory map: nation → set of regions (Golden Rule 8: the
+    # per-turn cache, never a raw region scan in the tick)
     nation_regions: Dict[str, set] = {}
-    for rname, region in world.regions.items():
-        ctrl = getattr(region, 'controller', None)
-        if ctrl and ctrl != player:
-            nation_regions.setdefault(ctrl, set()).add(rname)
+    for ctrl in world.get_active_nations():
+        if ctrl == player:
+            continue
+        held = world.get_nation_regions(ctrl)
+        if held:
+            nation_regions[ctrl] = set(held)
 
     # Build troop counts per nation
     nation_troops: Dict[str, int] = {}
@@ -4372,8 +4571,16 @@ def process_allegiance_auctions(world) -> List[Dict]:
     active = set(world.get_active_nations())
 
     # ── Open new auctions (announce the flip) ──
+    # A closed auction (any outcome) rests `ALLEGIANCE_AUCTION_COOLDOWN_TURNS`
+    # before the same court's allegiance is in play again (the October 27,
+    # 2026 sweep): a minor cresting at `bandwagon` re-opened the tick after
+    # every close - opened t1, resolved t4, opened t5 … - and each close
+    # announced a flip to a court whose pact she already held (SFR-B4's
+    # unfixed half; SF-RR3 added the close line only).
     for nation in getattr(world, "enemy_nations", []):
         if nation in auctions or nation not in active:
+            continue
+        if auction_rests(world, nation):
             continue
         tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
         if tier not in ("minor", "secondary"):
@@ -4430,7 +4637,17 @@ def process_allegiance_auctions(world) -> List[Dict]:
     # ── Resolve or lapse due auctions ──
     for nation, record in list(auctions.items()):
         if nation not in active:
+            # The court fell mid-auction: its open notice and chip close
+            # with it (they stood until an unrelated letter cleared them).
             del auctions[nation]
+            event = {
+                "type": "allegiance_auction_resolved",
+                "nation": nation, "winner": None,
+                "outcome": "fallen", "turn": turn,
+            }
+            world.log_event(event)
+            events.append(event)
+            _announce_allegiance_close(world, nation, "fallen", None)
             continue
         view = get_nation_intent(nation, world)
         if view.price != "bandwagon":
@@ -4508,8 +4725,13 @@ def process_allegiance_auctions(world) -> List[Dict]:
                 outcome = "player_won_no_pact"
         else:
             state = world.get_diplomatic_state(nation, best)
-            outcome = "flipped"
-            if state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE", "WAR"):
+            if state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                # No flip to announce: she stays where she stands.
+                outcome = "already_allied"
+            elif state == "WAR":
+                best, outcome = None, "no_suitor"
+            else:
+                outcome = "flipped"
                 treaty = world._ratify_treaty({
                     "type": "defensive_alliance",
                     "proposer_nation": nation,
@@ -4563,6 +4785,11 @@ def _announce_allegiance_close(world, nation: str, outcome: str, winner) -> None
     if outcome == "flipped" and winner:
         line = (f"The bidding for {shown} is closed: she signs a defensive "
                 f"alliance with {_court_display(world, winner)}.")
+    elif outcome == "already_allied" and winner:
+        line = (f"The bidding for {shown} is closed: she stays with "
+                f"{_court_display(world, winner)}, whose pact she already holds.")
+    elif outcome == "fallen":
+        line = f"The bidding for {shown} is closed: her court is no more."
     elif outcome == "player_offer":
         line = (f"The bidding for {shown} is closed in our favour: her envoy "
                 f"carries a pact to {_court_display(world, player)} — it waits "
@@ -4582,6 +4809,16 @@ def _announce_allegiance_close(world, nation: str, outcome: str, winner) -> None
     world.notifications.dismiss_by_type(
         DIPLOMATIC_PROPOSAL,
         filter_fn=lambda n: (n.get("base_title") or n.get("title")) == title)
+    # Every close rests the court's auction (the open loop reads it).
+    _rest = _get_cooldowns(world)
+    _rest[_auction_rest_key(nation)] = int(ALLEGIANCE_AUCTION_COOLDOWN_TURNS)
+    _set_cooldowns(world, _rest)
+
+
+def _auction_rest_key(nation: str) -> str:
+    """The `ai_proposal_cooldowns` key under which a closed auction rests
+    (decremented by the one cooldown tick, dropped at 0)."""
+    return f"{nation}|allegiance_auction"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -4706,7 +4943,12 @@ def process_province_returns(world) -> List[Dict]:
     (`diplomacy.ask_return_province`) — only when the formula says the ally
     would grant it (a court does not spend its standing on a refusal it can
     read). Boot-dormant on 1805 (no home province is ally-held at boot,
-    pinned); the series moves only where the situation arises."""
+    pinned); the series moves only where the situation arises.
+
+    Never with the PLAYER as the holder (the October 27, 2026 sweep): the
+    tick read the formula's `accepts` as France's consent and moved a
+    province France held to her ally with no letter and no choice - a
+    court's ask of France is a letter the player answers, or nothing."""
     from backend.game_logic.diplomacy import ask_return_province
     from backend.game_logic.treaty import (
         ask_return_score, can_ask_return, home_provinces_held_by,
@@ -4718,8 +4960,8 @@ def process_province_returns(world) -> List[Dict]:
         if court == player or court not in active:
             continue
         for ally in sorted(active):
-            if ally == court or world.get_diplomatic_state(court, ally) not in (
-                    "ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            if (ally == court or province_return_skips(ally, player)
+                    or world.get_diplomatic_state(court, ally) not in ("ALLIANCE", "DEFENSIVE_ALLIANCE")):
                 continue
             for region in home_provinces_held_by(world, court, ally):
                 if not can_ask_return(world, court, ally, region, charge=False).ok:
@@ -4898,14 +5140,22 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
     # (pair, type) per dedupe window, so the every-turn trigger re-poll
     # does not spam either. AI-3's ladder gate reads this record.
     # Review fix [7]/[15]: ONLY a recipient-side refusal is a refusal.
-    # When the proposer's OWN acceptance balks (a < 50 <= b), the ask
-    # never truly happened — recording it would write a false "the
-    # recipient said no" onto the record AI-3 escalates from, and the
-    # one-liner would read "{X} rebuffs {X}". Pre-refactor this dual-
-    # consent failure was silent; it stays silent.
-    if acceptance_b >= 50:
+    # When the proposer's OWN acceptance balks (a < 50), the ask never
+    # truly happened — recording it would write a false "the recipient
+    # said no" onto the record AI-3 escalates from, and the one-liner
+    # would read "{X} rebuffs {X}". Pre-refactor this dual-consent
+    # failure was silent; it stays silent. (The October 27, 2026 sweep:
+    # the guard read `b >= 50` alone, so a < 50 AND b < 50 - the common
+    # case for two cold minors - was recorded as the recipient's refusal:
+    # a 40-turn run logged 122 refusals and no treaty, and
+    # `war_council._ladder_climbed` counted them.)
+    if not proposer_meant_it(acceptance_a) or acceptance_b >= 50:
         return None
     if record_diplomatic_refusal(world, initiator, target, ptype):
+        # The ordered-pair cooldown (`_cooldown_keys`' `{p}>{r}|…` arm) had
+        # a reader and no writer (the October 27, 2026 sweep): the refused
+        # court re-asked the same pact fourteen turns of fourteen.
+        rest_refused_pair(initiator, ptype, world, target)
         event = {
             "type": "ai_ai_proposal_refused",
             "proposer": initiator,
@@ -4995,8 +5245,14 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
                            or int(world.nation_relations.get(
                                obstacle_key, 0) or 0) < 0)
             if target_cold:
-                return {"type": "defensive_alliance", "proposer": proposer,
-                        "target": target}
+                # The 0a dedupe skip, for its sibling (the October 27, 2026
+                # sweep): a refused alignment ask inside the dedupe window
+                # shadowed the pair's triggers 1-5 every turn thereafter -
+                # the poll returned the same `defensive_alliance` and
+                # resolved to nothing.
+                if not alignment_ask_recent(world, proposer, target):
+                    return {"type": "defensive_alliance", "proposer": proposer,
+                            "target": target}
 
     # Trigger 1: Both at war with France, relation > -20 → DEFENSIVE_ALLIANCE
     if (state_a_france == "WAR" and state_b_france == "WAR"

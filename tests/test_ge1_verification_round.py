@@ -70,7 +70,15 @@ class TestNoQuestionAfterTheFall:
         the fatal response asks nothing and the world keeps no question."""
         tc, M = client
         w = M.world
-        _reduce_france_to(w, {"Brittany"})
+        # RE-SEATED by the October 27, 2026 enemy-AI sweep (OCT27-51;
+        # SYSTEMS_REFERENCE §157.11): France's ground goes to RUSSIA, the one
+        # court no ally of France is at war with. Handed to Austria, it could
+        # be retaken by Bavaria (at war with Austria since the boot) and the
+        # ruled liberation (S14G-D1) hands an ally's ground straight back:
+        # on the re-timed board Deroy's lateral step took Lorraine at turn 3
+        # and Franche-Comte at 5, France held two provinces again and the
+        # clock reset — a seeded path the Fall must not hang on.
+        _reduce_france_to(w, {"Brittany"}, to="Russia")
         w.marshals["Davout"].trust.set(15)
         fallen = None
         for i in range(8):

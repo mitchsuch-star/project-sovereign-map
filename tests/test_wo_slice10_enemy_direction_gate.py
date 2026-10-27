@@ -1463,6 +1463,11 @@ class TestTheAiIsNotFrozenInstead:
         """Recorded as a number so a future change that quietly re-freezes
         the AI shows up here: 31 -> 11 on the shipped board.
 
+        Re-measured by the October 27, 2026 enemy-AI sweep: 9 -> 1 on the
+        gated board - twelve classes of orders the executor refused every
+        turn are no longer placed (`SYSTEMS_REFERENCE.md` §157.9); the one
+        write left is the board's own.
+
         Re-measured by FA slice 2 (September 4, 2026): 34 -> 16 on that
         slice's board — and the slice-2 review audit corrected the
         attribution: only TWO of the +6 ungated writes were the brakes'
@@ -1622,7 +1627,7 @@ class TestTheAiIsNotFrozenInstead:
         # rises 20–36 %) re-times the gated board; `tools/_s14f_p3_series_arms_
         # final.json`: D12 alone moves the ambient series, every other ruling's
         # seam is byte-identical with D12's held down.
-        assert cooldowns["gated"] == 9, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 -> 9 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto)
+        assert cooldowns["gated"] == 1, cooldowns     # 11 -> 16 -> 23 -> 7 -> 4 -> 1 -> 4 -> 5 -> 5 -> 4 -> 3 -> 2 -> 1 -> 0 -> 1 -> 0 -> 3 -> 2 -> 13 -> 9 -> 1 across slices (IQ-7: unchanged; EP F5: the walk-in cap; VP-R1: the coast lever; RF-3: the AI enacts; the AI drill fix; SR-5a: the balance package; the economy audit; DDB-X3: the AI's retreat onto an ally's soil; S13e part 3: the peace rulings; S14 part 3: the bond; SF-RR4: the bench and the backtrack veto; the October 27 enemy-AI sweep: the refused orders no longer placed)
 
 
 _COOLDOWN_PROBE = r'''

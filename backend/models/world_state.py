@@ -1661,6 +1661,13 @@ def announce_third_party_capture(self, region_name: str, old_controller,
         report(exc, "world_state._announce_third_party_capture: queue_dispatch_event")
 
 
+def release_frontier_cache(world) -> None:
+    """OCT27-20 (the October 27, 2026 sweep): the intent frontier cache
+    (`war_council.get_intent_frontier`) flushes with its siblings. Down
+    (None): the stale frontier."""
+    world._intent_frontier_cache = None
+
+
 class WorldState:
     """
     The complete game state.
@@ -3657,6 +3664,10 @@ class WorldState:
         # AI-3r §2.1: the exposure view reads neighbours + war/alliance
         # geometry + relations — same mutation families, same chokepoint.
         self._exposure_cache = None
+        # AI-3 (`war_council.get_intent_frontier`): the frontier reads the
+        # same geometry - released the same turn a crisis cools or a
+        # province changes hands (its docstring's promise; it was not).
+        release_frontier_cache(self)
         # WO-17: the evacuation corridor's direction term memoises home
         # zones + stranded verdicts per (nation, location); both read region
         # control and war/peace geometry — same mutation families, same
@@ -13266,7 +13277,7 @@ class WorldState:
                 if stale_ptype:
                     self.player_proposal_cooldowns[f"{target}_{stale_ptype}"] = 6
                 from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
-                apply_rejection_cooldowns(target, stale_ptype, self, deferred=True)
+                apply_rejection_cooldowns(target, stale_ptype, self, deferred=True, escalate=False)
                 # PL-5A: Proposal result popup for stale rejection
                 from backend.display_names import proposal_display_name
                 self.proposal_result_popup = {
@@ -13342,12 +13353,15 @@ class WorldState:
             if "target_nation" not in proposal:
                 proposal["target_nation"] = target
             treaty_event = self._ratify_treaty(proposal)
-            # PL-5B: Apply acceptance cooldown (+1 for decrement timing)
-            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
-            apply_acceptance_cooldown(target, self, deferred=True)
             # Deep audit fix 11: Check ratification result before showing success
             from backend.display_names import proposal_display_name
             ptype_display = proposal_display_name(proposal.get("type", ""))
+            from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown, signing_cools
+            if signing_cools(treaty_event):
+                # PL-5B: Apply acceptance cooldown (+1 for decrement timing)
+                # - a SIGNED treaty's cooldown; a failed ratification starts
+                # none (the October 27, 2026 sweep).
+                apply_acceptance_cooldown(target, self, deferred=True)
             if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
                 resolve_pending_override(self, "bad")   # FA-N64: agreed in principle is not signed
                 events.append({
@@ -13531,7 +13545,7 @@ class WorldState:
                     self.player_proposal_cooldowns[f"{target}_{ptype}"] = 6
                 # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
                 from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
-                apply_rejection_cooldowns(target, ptype, self, deferred=True)
+                apply_rejection_cooldowns(target, ptype, self, deferred=True, escalate=False)
                 # AI-2a review fix [8]: an engaged-then-refused counter IS a
                 # refusal ("treat as rejection" must include the pin-8
                 # record, or the substrate under-counts exactly the asks
@@ -13568,7 +13582,7 @@ class WorldState:
                 self.player_proposal_cooldowns[f"{target}_{ptype}"] = 6
             # PL-5B: AI rejection cooldown (prevents AI re-proposing same type)
             from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
-            apply_rejection_cooldowns(target, ptype, self, deferred=True)
+            apply_rejection_cooldowns(target, ptype, self, deferred=True, escalate=False)
             # AI-2a (§5 pin 8): the mirror direction — FRANCE asked and the
             # court said no. The ordered record keeps both directions apart.
             from backend.game_logic.ai_diplomacy import (

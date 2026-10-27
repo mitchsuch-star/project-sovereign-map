@@ -277,13 +277,14 @@ def _derive_against(nation: str, agenda: AgendaView,
         # resolved to the top overlord (a vassal's soil is its lord's
         # sphere). Deterministic tie-break: first holder in region order.
         from backend.game_logic.agendas import (
-            _controlled_by_self_or_vassal,
             _region_controller,
+            coveted_unmet,
         )
         counts: Dict[str, int] = {}
         order: Dict[str, int] = {}
         for position, region_name in enumerate(agenda.regions):
-            if _controlled_by_self_or_vassal(world, nation, region_name):
+            # An ally's holding is not coveted (SF-LB-1, the one predicate)
+            if not coveted_unmet(world, nation, region_name):
                 continue
             controller = _region_controller(world, region_name)
             if not controller:
@@ -330,9 +331,8 @@ def _holder_allies_committed(nation: str, holder: str, world) -> bool:
     """AI-3r §2.2 (N3): the holder's guarantors/allies are themselves at
     war — HOI4's "their faction is busy". Before this term only the
     holder's OWN wars counted toward opportunism."""
-    for record in getattr(world, "diplomatic_guarantees", []) or []:
-        if record.get("protected") != holder:
-            continue
+    from backend.game_logic.instruments import live_guarantees_of
+    for record in live_guarantees_of(world, holder):
         guarantor = str(record.get("guarantor") or "")
         if not guarantor or guarantor in (nation, holder):
             continue
@@ -427,9 +427,9 @@ def _derive_weight(nation: str, agenda: AgendaView,
             WEIGHT_RENEGED_BARGAIN,
             has_renege_grievance,
         )
-        for record in getattr(world, "diplomatic_guarantees", []) or []:
-            if (record.get("protected") == against
-                    and record.get("guarantor") != nation):
+        from backend.game_logic.instruments import live_guarantees_of
+        for record in live_guarantees_of(world, against):
+            if record.get("guarantor") != nation:
                 weight -= GUARANTEE_WEIGHT_DETERRENT
                 break
         # §3.3: a reneged bargain is the strongest mark in the game — the

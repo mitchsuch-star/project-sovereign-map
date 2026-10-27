@@ -632,9 +632,26 @@ def _turn_block(digest: str, turn: int) -> str:
     return digest[start:end if end != -1 else None]
 
 
+def _sweep_down() -> list:
+    """The October 27, 2026 enemy-AI sweep held down (`tests/_oct27_seams.py`;
+    SYSTEMS_REFERENCE §157.10 / §157.11). EG-X5's arm records ONE sighting on
+    the CMD-H board — Lannes retaking Munich on turn 6 — and the sweep re-times
+    that board (OCT27-51's sibling: a cautious corps with no nearer step holds
+    instead of walking away, and Lannes's turn-6 field win is gone; on the
+    board before it Archduke Charles took Milan that turn). So the arm
+    reproduces its recording with every seam of the sweep held down, as the
+    Step 7 page, the DL arm and the IQ-7 board do."""
+    from tests._oct27_seams import OCT27_SEAMS_DOWN
+    args = []
+    for spec in OCT27_SEAMS_DOWN:
+        args += ["--seam", spec]
+    return args
+
+
 class TestEGX5TheDrivenArm:
     """The gate's CMD-H arm (historical): on turn 6 Lannes's field win takes
-    Munich, whose works held 2,000 (Austria's capture had emptied them)."""
+    Munich, whose works held 2,000 (Austria's capture had emptied them). The
+    board is held at its recording: the sweep's seams down (`_sweep_down`)."""
 
     def test_the_report_names_the_garrison(self, tmp_path):
         """Flipped consciously (S14G-1 / S14G-D1, Pre-Deploy S14h part 1, Oct 26
@@ -644,7 +661,7 @@ class TestEGX5TheDrivenArm:
         popup in the digest) and the report's capture note leads with the
         liberation's own line instead of "Munich falls to Lannes." The works
         the win took are still named (EG-X5's clause, unchanged)."""
-        arm = _drive(tmp_path, "CMD-H", "historical", 6)
+        arm = _drive(tmp_path, "CMD-H", "historical", 6, *_sweep_down())
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
         assert "capture_choice[capture]: Munich" not in block
         assert "Munich falls to Lannes" not in block
@@ -655,7 +672,7 @@ class TestEGX5TheDrivenArm:
         """The garrison line held down: the capture note is silent (Munich's
         works are not named); the liberation of S14G-1 is untouched by it -
         still no plunder question on the turn."""
-        arm = _drive(tmp_path, "CMD-H", "historical", 6,
+        arm = _drive(tmp_path, "CMD-H", "historical", 6, *_sweep_down(),
                      "--seam", 'backend.game_logic.garrison_report:capture_garrison_line=""')
         block = _turn_block((arm / "digest.md").read_text(encoding="utf-8"), 6)
         assert "capture_choice[capture]: Munich" not in block

@@ -87,8 +87,10 @@ def _side_leader_active(war: Dict, side: str) -> Optional[str]:
 
 def build_third_party_terms(world, war: Dict, *, loser: str,
                             winner: str) -> List[Dict]:
-    """The nation-pair-general term package: peace + purse-priced
-    indemnity (the EC-W4 idiom, via the renamed accepter-general builder)
+    """The nation-pair-general term package: peace + war-priced
+    indemnity (the EC-W4 idiom, via the renamed accepter-general builder;
+    the ratifier clamps the transfer to the payer's chest and the record
+    reads the APPLIED clause)
     + up to two cessions of the winner's own DESIGN provinces still held
     by the loser — a war fought for a want ends by taking it."""
     from backend.game_logic.agendas import get_agenda_military_targets
@@ -151,8 +153,9 @@ def _consequence_line(world, winner: str, loser: str,
     """Beat 6's contract: name what the peace MEANS for France."""
     from backend.display_names import humanize_entity_name
     player = getattr(world, "player_nation", "France")
-    ceded = [t.get("region") for t in terms
-             if t.get("type") == "territory_cede" and t.get("region")]
+    from backend.game_logic.settlement_validation import _territory_term_regions
+    ceded = [r for t in terms if t.get("type") == "territory_cede"
+             for r in _territory_term_regions(t)]
     parts = []
     if ceded:
         parts.append(f"{humanize_entity_name(winner)} takes "
@@ -195,6 +198,25 @@ def silent_band_white_peace(world, *, loser: str, winner: str,
     return int(winner_score) < int(SETTLEMENT_OFFER_DECISIVE_WAR_SCORE)
 
 
+def war_is_the_players(world, war: Dict, player: str) -> bool:
+    """OCT27-31: a war the player has since joined is the player's to end.
+    Down (False): the lingering broker answer that closed it "without France"."""
+    return player in (war.get("active_participants") or [])
+
+
+def bonded_exit_floor(world, a: str, b: str, floor: int) -> int:
+    """OCT27-32: a bonded court's mutual-exhaustion floor never stands past
+    the cap. `floor` is the caller's: `pair_is_mutually_exhausted` passes its
+    own constant (the slice-5 single source - the threshold is read in ONE
+    function). Down (`int(a[3]) + int(__import__('backend.game_logic.bond')
+    .game_logic.bond.break_ranks_depth(a[0], a[1], a[2])['exhaustion'])`):
+    uncapped."""
+    from backend.game_logic.bond import break_ranks_depth
+    from backend.game_logic.coalition import WAR_EXHAUSTION_MAX
+    return min(int(WAR_EXHAUSTION_MAX),
+               int(floor) + int(break_ranks_depth(world, a, b)["exhaustion"]))
+
+
 def attempt_third_party_settlement(world, war_id: str, war: Dict,
                                    *, force: bool = False,
                                    broker: Optional[str] = None) -> Optional[Dict]:
@@ -212,6 +234,11 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
 
     player = getattr(world, "player_nation", "France")
     turn = int(getattr(world, "current_turn", 0))
+    # A war France has since joined is France's to end (the October 27,
+    # 2026 sweep: a broker answer accepted after France entered the war
+    # closed it "without France", France's own pair with it).
+    if war_is_the_players(world, war, player):
+        return None
 
     attackers_leader = _side_leader_active(war, "attackers")
     defenders_leader = _side_leader_active(war, "defenders")
@@ -356,7 +383,11 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     world.invalidate_active_nations_cache()
     process_formations(world)
 
-    consequence = _consequence_line(world, winner, loser, terms)
+    # What the peace MEANS is what was APPLIED (the October 27, 2026
+    # sweep): the ask said "Hanover pays 4,800 gold" where the chest held
+    # 120 and 120 moved - the same clamp `record_punitive_cessions` reads.
+    settled = list(applied_clauses or []) + list(_fa or [])
+    consequence = _consequence_line(world, winner, loser, settled)
     from backend.display_names import humanize_entity_name
     event = {
         "type": "third_party_peace",
@@ -364,7 +395,7 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         "proposer": loser,
         "accepter": winner,
         "broker": broker,
-        "terms": [dict(t) for t in terms],
+        "terms": [dict(t) for t in settled],
         "consequence": consequence,
         "message": (f"Peace concluded between {humanize_entity_name(loser)} "
                     f"and {humanize_entity_name(winner)} without France. "
@@ -500,8 +531,12 @@ def pair_is_mutually_exhausted(world, a: str, b: str,
     exhaustion = getattr(world, "war_exhaustion", {}) or {}
     # PC-X55 (S14 part 3): a court bound not to sign a separate peace with the
     # other is spent at the bond's deeper line (`bond.break_ranks_depth`).
-    if (int(exhaustion.get(a, 0)) < PAIR_EXIT_WE_FLOOR + int(break_ranks_depth(world, a, b)["exhaustion"])
-            or int(exhaustion.get(b, 0)) < PAIR_EXIT_WE_FLOOR + int(break_ranks_depth(world, b, a)["exhaustion"])):
+    # A bonded court's floor never stands past the cap (the October 27,
+    # 2026 sweep): 120 + a 300g bond's 90 read 210 where weariness stops
+    # at 200, so the mutual-exhaustion exit never fired for the pair.
+    _floor_a = bonded_exit_floor(world, a, b, PAIR_EXIT_WE_FLOOR)
+    _floor_b = bonded_exit_floor(world, b, a, PAIR_EXIT_WE_FLOOR)
+    if (int(exhaustion.get(a, 0)) < _floor_a or int(exhaustion.get(b, 0)) < _floor_b):
         return False
     return abs(int(get_war_score_for(world, a, b))) <= PAIR_EXIT_STAGNANT_SCORE
 

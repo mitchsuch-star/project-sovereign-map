@@ -2334,6 +2334,15 @@ def add_war_exhaustion_from_battle(nation: str, casualties: int, world) -> int:
     _WE_THRESHOLDS = [20, 40, 60, 80]
     dispatched = world.we_dispatched_thresholds
     last_threshold = dispatched.get(nation, 0)
+    # The high-water re-arms once exhaustion has ebbed back under it (the
+    # October 27, 2026 sweep): before, a nation whose weariness fell at a
+    # peace and climbed again in a new war never crossed "20" a second
+    # time on the dispatch - the memory was cleared only when a league
+    # dissolved.
+    # A full band (20) of hysteresis: a weariness hovering about a mark
+    # (25, 15, 25 …) is not told "nears breaking point" at every crossing.
+    last_threshold = rearm_exhaustion_mark(current, last_threshold, _WE_THRESHOLDS)
+    dispatched[nation] = last_threshold
     for threshold in _WE_THRESHOLDS:
         if new_val >= threshold > current and threshold > last_threshold:
             from backend.game_logic.dispatch import queue_dispatch_event
@@ -2805,14 +2814,20 @@ def check_dissolution(world) -> Optional[str]:
 _DISSOLUTION_REASON_DISPLAY = {
     "low_threat": "Europe's alarm has fallen below {threshold}",
     "insufficient_members": "Too few of its members remain at war",
+    # The §4.4b pivot (the October 27, 2026 sweep): the rail read "The
+    # Fourth Prussian Coalition has dissolved. The greater danger." - the
+    # raw key, naming nobody.
+    "the_greater_danger": "Europe turns on {player}, the greater danger",
 }
 
 
-def _dissolution_reason_display(reason: str) -> str:
+def _dissolution_reason_display(reason: str, player: str = "France") -> str:
     template = _DISSOLUTION_REASON_DISPLAY.get(reason)
     if template is None:
         return reason.replace('_', ' ').capitalize()
-    return template.format(threshold=int(DISSOLUTION_THREAT_THRESHOLD))
+    from backend.display_names import humanize_entity_name
+    return template.format(threshold=int(DISSOLUTION_THREAT_THRESHOLD),
+                           player=humanize_entity_name(player))
 
 
 @contextlib.contextmanager
@@ -3030,9 +3045,9 @@ def dissolve_coalition(world, reason: str,
     # cleared (it changes no war) and only for a player-targeted league —
     # an eclipse coalition's copy is Europe's business, not ours.
     courts_at_war: List[str] = []
-    notice = f"{name} has dissolved. {reason.replace('_', ' ').title()}."
     event_message = f"{name} has dissolved."
-    notice = f"{name} has dissolved. {_dissolution_reason_display(reason)}."
+    notice = (f"{name} has dissolved. "
+              f"{_dissolution_reason_display(reason, player=world.player_nation)}.")
     if _dissolve_target == world.player_nation:
         from backend.game_logic.diplomatic_ledger import (
             courts_at_war_with, remain_at_war_clause,
@@ -3173,7 +3188,10 @@ def remove_coalition_member(nation: str, world,
 
     # §4b: Leader transition
     if nation == coalition.get("leader") and members:
-        new_leader = select_coalition_leader(members, world)
+        # §4.4b: the successor is scored against the league's OWN target
+        # (a legacy record without the key reads the player, byte-identically).
+        new_leader = select_coalition_leader(
+            members, world, target=successor_target(coalition))
         coalition["leader"] = new_leader
         # New leader sets posture
         posture = get_coalition_posture(world)
@@ -3214,6 +3232,29 @@ def is_coalition_member(nation: str, world) -> bool:
 def is_coalition_active(world) -> bool:
     """Check if any coalition is currently active."""
     return world.active_coalition is not None
+
+
+def brew_cancel_floor(world, target: Optional[str] = None) -> int:
+    """OCT27-3: the momentum rule's floor sits the stock distance (60 - 40)
+    under the gate the brew started at - 40 at the stock gate, 20 under the
+    Congress's lowered gate. Down (40): the fixed floor that cancelled the
+    Congress's brew on its first decaying tick."""
+    return min(int(BREWING_CANCEL_THRESHOLD),
+               int(brewing_gate(world, target)) - (int(THREAT_BREWING_MIN) - int(BREWING_CANCEL_THRESHOLD)))
+
+
+def rearm_exhaustion_mark(current: int, last_threshold: int, thresholds) -> int:
+    """OCT27-2: the dispatched high-water re-arms once weariness has ebbed a
+    full band (20) under it. Down (`int(a[1])`): the mark that never re-armed."""
+    if int(current) <= int(last_threshold) - 20:
+        return max([t for t in thresholds if t <= int(current)], default=0)
+    return int(last_threshold)
+
+
+def successor_target(coalition) -> Optional[str]:
+    """OCT27-4: a league's successor is scored against ITS target. Down
+    (None): the France anchor."""
+    return (coalition or {}).get("target_nation")
 
 
 def brewing_gate(world, target: Optional[str] = None) -> int:
@@ -3644,6 +3685,10 @@ def process_coalition_turn(world) -> List[Dict]:
         _brew_target = world.coalition_brewing.get("target_nation") or france
         if _brew_target != france:
             world.coalition_brewing = None
+            # The eclipse brew's card goes with its record (the section 6
+            # cancel arm's own line; without it "Coalition Brewing Against
+            # Austria" stood a tick beside France's own brew card).
+            world.notifications.dismiss_by_type(COALITION_BREWING)
             world.log_event({
                 "type": "coalition_brewing_cancelled",
                 "target_nation": _brew_target,
@@ -3671,8 +3716,13 @@ def process_coalition_turn(world) -> List[Dict]:
             # coalition — France joins wars by the player's own hand.
             qualifying = [n for n in qualifying if n != france]
 
-        # Check cancellation (momentum rule §3c)
-        if brewing_threat < BREWING_CANCEL_THRESHOLD or len(qualifying) == 0:
+        # Check cancellation (momentum rule §3c). The floor sits the stock
+        # distance (60 - 40) under the gate the brew started at (the
+        # October 27, 2026 sweep): with the Congress gate lowered to 40
+        # (GE-3 §2.5) the fixed floor of 40 cancelled the brew on its
+        # first decaying tick, every time - the CRITICAL card flicked on
+        # and off and the league never declared. Stock gate: 40, as before.
+        if brewing_threat < brew_cancel_floor(world, brewing_target) or len(qualifying) == 0:
             world.coalition_brewing = None
             world.notifications.dismiss_by_type(COALITION_BREWING)
             events.append({

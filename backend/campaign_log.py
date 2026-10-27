@@ -2900,9 +2900,13 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
         if THE_COURTS_TREATIES_READ_AS_PROSE:
             # SF-LB-3 rider (Score Finish Step 7b): two courts' treaty as a
             # sentence of the chronicle, the courts by name.
+            # "sign an Open Borders Agreement" - the article by the treaty's
+            # first letter (the 30-turn probe of October 26, 2026 read
+            # "Sweden and Russia sign a Open Borders Agreement").
+            from backend.display_names import with_indefinite_article
             return (f"{with_definite_article(display_nation(nation_a), capitalize=True)} "
                     f"and {with_definite_article(display_nation(nation_b))} sign "
-                    f"a {treaty_type}")
+                    f"{with_indefinite_article(treaty_type)}")
         return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
 
     if ctx.event_type == "ai_ai_proposal_refused":

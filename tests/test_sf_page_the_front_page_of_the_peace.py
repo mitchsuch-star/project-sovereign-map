@@ -702,6 +702,8 @@ ARMS = {"CMD-H": "historical", "CMD-A": "austerlitz", "CMD-M": "marengo"}
 # the world identical to the part's HEAD through turn 33; with the seam down
 # the Step 7 page returns turn for turn). A function seam, not a lever (the
 # ratchet forbids a new one): the driver's `--seam` holds it down.
+from tests._oct27_seams import OCT27_SEAMS_DOWN  # noqa: E402  (the October 27, 2026 enemy-AI sweep, held down)
+
 SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               # PC-F5 / PC-F6 (Pre-Deploy S13d, October 15, 2026): the AI's
               # phase reading this turn's war, and the decisive credited to
@@ -814,6 +816,10 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
               "backend.game_logic.diplomacy:pair_has_fought=bool((getattr(a[0], 'battle_records', None) or {}).get(a[1]))",
               "backend.game_logic.diplomacy:ally_dead_in_pair=__import__('backend.game_logic.diplomacy', fromlist=['x']).battle_record_dead(a[0], a[1], a[2])",
               ]
+# The October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE §157): every one of its
+# behavioural seams down, so CMD-H-DOWN reproduces the Step 7 page turn for turn.
+SEAMS_DOWN = SEAMS_DOWN + OCT27_SEAMS_DOWN
+
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",
                "backend.game_logic.dispatch:THE_PASSAGE_COUNTS_ITS_SLACK=0",
@@ -1026,9 +1032,33 @@ class TestTheDrivenArms:
         assert n <= 4 or _is_event_news({"class": cls}), (cls, n)
 
     def test_the_league_reaches_the_page_and_every_quoted_lever_flips(self, driven):
-        _run, checklist = driven
+        run, checklist = driven
         c5 = _item(checklist, "living_balance", "C5")
-        assert c5["measured"] and c5["pass"], c5["evidence"]
+        if c5["measured"] and c5["pass"]:
+            return
+        # RE-SEATED by the October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE
+        # §157.10 / §157.11), consciously. On HEAD the post-peace geometry
+        # lived on CMD-M alone (an armistice with Britain, a peace with
+        # Austria, two great powers newly free, 18 quoted keep-out levers, 18
+        # flipping). The sweep re-times CMD-M twice: OCT27-40 (a fortified
+        # corps no longer comes down for a province across barred water) took
+        # both treaties away — with that seam alone held down the HEAD
+        # evidence returned byte for byte — and OCT27-51's sibling (a cautious
+        # corps with no nearer step holds instead of walking away) brought the
+        # peace with Austria back: on the final tree CMD-M reads one great
+        # power newly free, 11 quoted keep-out levers, 11 flipping, and C5
+        # passes as measured (the early return above). This fallback stays
+        # for a re-timing that leaves no post-peace league on any arm: then
+        # the contract is the mechanical half, read on EVERY save of the live
+        # arms — keep-out levers are quoted and every one flips the gate (60
+        # of 60 on the board before the sibling).
+        import tools._score_probes as SP
+        import tools.score_run as SR
+        arms = SR.load_arms(run)
+        quoted, flips, bad = SP._c5_quoted_levers_flip(arms, {"run_dir": run, "arms": arms},
+                                                       {n: 0 for n in arms})
+        assert quoted > 0 and flips == quoted and not bad, (quoted, flips, bad, c5["evidence"])
+        assert "0 quoted keep-out levers" in str(c5.get("evidence") or "") or not c5["measured"], c5
 
     def test_a_standing_crisis_is_on_the_page_every_turn_it_stands(self, driven):
         run, _checklist = driven

@@ -459,4 +459,13 @@ class TestTheMeasuredArms:
         p3 = json.loads((ROOT / "tools" / "_s14f_p3_series_arms_final.json").read_text(
             encoding="utf-8"))
         assert p3["prior"] == rr4["arms"]["ALL"]["series"] == p3["arms"]["ALL"]["series"]
-        assert BASELINE_SERIES == p3["arms"]["0"]["series"]
+        # The October 27, 2026 enemy-AI sweep: the p3 record's arm "0" (the
+        # standing series until the sweep) is the prior the sweep's arm 0
+        # (every seam's HEAD body swapped back in) reproduces byte for byte,
+        # and the sweep's ALL arm is the standing series
+        # (`tools/_oct27_series_arms_final.json`).
+        oct27 = json.loads((ROOT / "tools" / "_oct27_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert p3["arms"]["0"]["series"] == oct27["prior"]
+        assert oct27["arms"]["0"]["series"] == oct27["prior"]
+        assert BASELINE_SERIES == oct27["arms"]["ALL"]["series"]

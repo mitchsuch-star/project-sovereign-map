@@ -1157,7 +1157,7 @@ class TestBugFix1_IntentTracking:
         gneisenau.location = "Belgium"
         gneisenau.fortified = True
         gneisenau.defense_bonus = 0.10
-        gneisenau.strength = 70000  # Strong enough to pass safety check
+        gneisenau.strength = 80000  # Strong enough to pass safety check - and more than Britain's 76,000 adjacent (WIN-D2 defers the spoils to the better-placed ally at P3.5 too, the October 27, 2026 sweep)
 
         # Ensure Netherlands is enemy-controlled and undefended
         # (July 2026 AI audit: the capture path now correctly refuses
@@ -1217,7 +1217,7 @@ class TestBugFix1_IntentTracking:
         gneisenau.location = "Belgium"
         gneisenau.fortified = True
         gneisenau.defense_bonus = 0.10
-        gneisenau.strength = 70000  # Strong enough to pass safety check
+        gneisenau.strength = 80000  # Strong enough to pass safety check - and more than Britain's 76,000 adjacent (WIN-D2 defers the spoils to the better-placed ally at P3.5 too, the October 27, 2026 sweep)
         gneisenau.stance = Stance.DEFENSIVE  # Set defensive stance
 
         # Ensure Netherlands is enemy-controlled and undefended

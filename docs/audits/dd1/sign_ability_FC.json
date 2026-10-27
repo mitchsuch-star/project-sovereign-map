@@ -676,7 +676,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 60 gold into the treasury.",
    "arm": "FC",
    "clause": ""
   },
@@ -748,7 +748,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 60 gold into the treasury.",
    "arm": "FC",
    "clause": ""
   },
@@ -1407,15 +1407,15 @@
     "France|Saxony"
    ],
    "verdict": "signed",
-   "message": "You have accepted Saxony's proposal. Treaty signed: Peace → Open Borders with Saxony.",
+   "message": "You have accepted Saxony's proposal. Treaty signed: Peace → Open Borders with Saxony. Saxony paid 82 gold into the treasury.",
    "arm": "FC",
    "clause": ""
   }
  ],
  "errors": [],
- "clone_ms_mean": 8.37,
+ "clone_ms_mean": 6.85,
  "clones": 47,
- "seconds": 5.6,
+ "seconds": 4.9,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

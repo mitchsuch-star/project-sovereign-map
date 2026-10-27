@@ -2809,10 +2809,17 @@ def offer_coverage_label(world: Any, covered: Iterable[str]) -> str:
 
 def offer_substance_clause(world: Any, settlement_terms: Iterable[Mapping[str, Any]]) -> str:
     """PC-F65 (S13e part 1): every substantive clause of a settlement letter
-    in one clause for the rail and the dispatch line — "erects the Duchy of
-    Normandy out of France; France cedes Flanders to Britain" — '' when the
-    letter carries gold or a bare peace only. Gold is the rail's own clause."""
+    in one clause for the rail and the dispatch line — "the Duchy of Normandy
+    is erected out of France; France cedes Flanders to Britain" — '' when the
+    letter carries gold or a bare peace only. Gold is the rail's own clause.
+
+    Every part is a sentence with its own subject (the 30-turn probe of
+    October 26, 2026 read "It also France cedes Savoy to Austria; erects
+    Duchy of Normandy out of France" — a verb-first carve beside a
+    subject-first cession under one "It also"); the rail frames them as
+    "Its articles: …". The carved state carries its article."""
     from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.display_names import with_definite_article as _the
     parts: List[str] = []
     for term in settlement_terms or []:
         if not isinstance(term, Mapping):
@@ -2822,7 +2829,7 @@ def offer_substance_clause(world: Any, settlement_terms: Iterable[Mapping[str, A
         to = str(term.get("to") or "")
         if ttype == "create_client":
             name = str(term.get("client_display_name") or term.get("tag") or "a client state")
-            parts.append(f"erects {name} out of {_fdn(world, frm) if frm else 'the loser'}")
+            parts.append(f"{_the(name)} is erected out of {_fdn(world, frm) if frm else 'the loser'}")
         elif ttype == "territory_cede":
             region = str(term.get("region") or "")
             parts.append(f"{_fdn(world, frm)} cedes {region}" + (f" to {_fdn(world, to)}" if to else ""))

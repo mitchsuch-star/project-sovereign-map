@@ -695,7 +695,7 @@ class TestTheClientRows:
             {"type": "create_client", "from": "France", "to": "Britain", "tag": "Normandy",
              "client_display_name": "the Duchy of Normandy", "provinces": ["Normandy"]},
             {"type": "territory_cede", "from": "France", "to": "Britain", "region": "Flanders"}])
-        assert clause == "erects the Duchy of Normandy out of France; France cedes Flanders to Britain"
+        assert clause == "the Duchy of Normandy is erected out of France; France cedes Flanders to Britain"
         rail = (REPO / "backend" / "game_logic" / "turn_manager.py").read_text(encoding="utf-8")
         assert 'popup_payload.get("coverage_label")' in rail and 'popup_payload.get("substance_clause")' in rail
         row = (REPO / "backend" / "models" / "dialogue_manager.py").read_text(encoding="utf-8")
@@ -3356,7 +3356,7 @@ class TestPCR7:
         # by 12 / 0.65 = 18, the exhaustion line by 12 × 10 = 120.
         assert (B.strength(rec), B.table_price(w, rec), B.bid_gold(w, rec)) == (12, 40, 1000)
         lines = AI.break_ranks_lines(w, "Austria")
-        assert (lines["score"], lines["exhaustion"], lines["pressburg"], lines["bond"]) == (-68, 200, -48, "Britain")
+        assert (lines["score"], lines["exhaustion"], lines["pressburg"], lines["bond"]) == (-68, 199, -48, "Britain")  # 199: the depth stops one short of the cap (the October 27, 2026 sweep - `we > line` never fired at 200)
         assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k) is None
         own = AI.court_own_readiness(w, "Austria", "France")
         assert own["loyal"] and own["bond"] == "Britain"
@@ -3426,7 +3426,7 @@ class TestPCR7:
         score = int(D.get_war_score_for(w, "Austria", "France"))
         k = w._make_diplo_key("Austria", "France")
         held = B.depth_for_strength(B.strength({"amount_per_turn": B.bond_amount(w, "Britain")}))
-        assert held == {"score": 18, "exhaustion": 120}
+        assert held == {"score": 18, "exhaustion": 119}  # the October 27, 2026 sweep: one short of the cap
         assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k, depth=held) == "pressburg"
         with _quiet():
             assert B.ai_paymaster_binds(w) == []
@@ -3843,12 +3843,12 @@ class TestTheS14Part3Siblings:
         w = ulm_t18
         assert war_exhaustion_terms(w, "Austria")["line"] == 80
         self._bind(w)
-        assert war_exhaustion_terms(w, "Austria")["line"] == 200
-        assert "It tires at 200 (Britain's bond holds her past 80) in about 4 turns." in war_exhaustion_lines(
+        assert war_exhaustion_terms(w, "Austria")["line"] == 199  # the October 27, 2026 sweep: a line AT the cap never fired
+        assert "It tires at 199 (Britain's bond holds her past 80) in about 4 turns." in war_exhaustion_lines(
             w, "Austria")[0]
         gate = {"leader": "Austria", "reason": "league_not_spent", "turns_at_most": 4, "rate": 8,
-                "exhaustion": 174, "line": 200, "bond": "Britain"}
-        assert "exhaustion 174 of 200 — Britain's bond holds her past 80" in AI.league_offer_gate_display(w, gate)
+                "exhaustion": 174, "line": 199, "bond": "Britain"}
+        assert "exhaustion 174 of 199 — Britain's bond holds her past 80" in AI.league_offer_gate_display(w, gate)
 
     def test_x53_a_bonded_mate_is_spent_at_the_bonds_line(self, vienna_held):
         """The truce's hope read a league mate spent at the stock 80; a mate
@@ -4034,7 +4034,7 @@ class TestTheS14Part3Siblings:
         from backend.ai.state_desk import _answer_weariness
         w = ulm_t18
         self._bind(w)
-        assert _answer_weariness(w, "Austria").endswith("Britain's bond holds her to the league until 200.")
+        assert _answer_weariness(w, "Austria").endswith("Britain's bond holds her to the league until 199.")
 
 
 class TestDiplomacyIsNeverTyped:

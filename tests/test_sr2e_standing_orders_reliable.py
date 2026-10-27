@@ -44,6 +44,11 @@ def shipped(monkeypatch):
     for key in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "SOVEREIGN_SMOKE_START"):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("LLM_MODE", "mock")
+    # The October 27, 2026 enemy-AI sweep's seams down: these rows pin the
+    # player's standing orders on the board the AI played when they were
+    # written (Massena reaches Vienna on the second turn).
+    from tests._oct27_seams import hold_down as _hold_sweep_down
+    _hold_sweep_down(monkeypatch)
     M._reset_world_state()
     monkeypatch.setattr(M, "parser", CommandParser(use_real_llm=False))
     assert M.parser.llm.use_real_api is False, "a probe must never pay for a parse"

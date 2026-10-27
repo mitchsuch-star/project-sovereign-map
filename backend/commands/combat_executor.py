@@ -843,6 +843,15 @@ def works_halt_line(world, marshal, region) -> str:
 _NEXT_STAGE = object()
 
 
+def charge_has_a_man(target_marshal) -> bool:
+    """OCT27-44 (the October 27, 2026 sweep): the glorious-charge road
+    is mounted only when a HOSTILE CORPS stands at the resolved target -
+    an empty enemy province takes the ordinary attack and is captured.
+    Down (`lambda *a, **k: True`): the pre-sweep road, which sent a
+    region name to the charge and failed "Cannot find target"."""
+    return target_marshal is not None
+
+
 @dataclass(slots=True, repr=False, eq=False)
 class AttackContext:
     marshal: Any
@@ -7895,6 +7904,7 @@ class CombatExecutor:
         return _NEXT_STAGE
 
     def _attack_reckless_cavalry(self, ctx: AttackContext):
+        # the sweep's seam `charge_has_a_man` (module level) gates the charge road
         """Stage 2 of `_execute_attack`: Phase 3 recklessness: the glorious-charge popup or the AI auto-charge."""
         # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS CHECK (Phase 3)
@@ -8056,8 +8066,14 @@ class CombatExecutor:
                             print(f"  [CHARGE BLOCKED] {blocked_terrain_name} terrain blocks "
                                   f"{ctx.marshal.name}'s charge on {ctx.resolved_target} — normal attack")
 
-                    elif not charge_terrain_blocked:
-                        # Terrain allows charge — show popup or auto-charge
+                    elif charge_has_a_man(charge_target_marshal):
+                        # Terrain allows charge and a hostile corps stands
+                        # there — show popup or auto-charge. A resolved
+                        # target that names no hostile marshal (an EMPTY
+                        # enemy province) takes the ordinary road below: the
+                        # charge went looking for "Maine" as a man and
+                        # failed, seven times in one run (the October 27,
+                        # 2026 sweep).
                         # Strategic execution (sally, etc.) auto-charges — no popup.
                         # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
                         # to ask permission. Result shows in strategic report.

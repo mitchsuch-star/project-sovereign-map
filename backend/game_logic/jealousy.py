@@ -5038,12 +5038,18 @@ def find_autonomous_attack_target(world, marshal):
         get_agenda_military_targets(marshal.nation, world))
     best = None
     best_key = None
+    # EAD-7 / EC-9 (the October 27, 2026 sweep): a glory-hunt never aims at
+    # a fellow of the standing league - the executor refuses the strike.
+    from backend.ai.enemy_ai import engagement_fellows
+    _fellows = engagement_fellows(world, marshal.nation)
     for enemy in world.marshals.values():
         if enemy.nation == marshal.nation or enemy.strength <= 0:
             continue
         if getattr(enemy, "captured_by", ""):
             continue
         if not world.is_at_war(marshal.nation, enemy.nation):
+            continue
+        if enemy.nation in _fellows:
             continue
         if enemy.location not in reachable:
             continue

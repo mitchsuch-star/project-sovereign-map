@@ -773,25 +773,35 @@ class TestTheDrivenBoard:
             if len(by_seed) >= 3:
                 assert len(set(by_seed.values())) >= 3, (pair, by_seed)
 
-    def test_the_record_is_seven_seeds_and_marengo_cooled_and_reopened(self):
-        """The record's shape, pinned so a re-run that loses it is noticed:
-        seven seeds; on marengo the first crisis (turn 5) cooled when the
-        seeded weight dipped below coerce and a second opened on turn 10 —
-        the one place on the record where the seed moves the campaign's
-        story, and why the WAR's turn spans three values while the opening
-        spans two."""
+    def test_the_record_is_seven_seeds_each_opening_once(self):
+        """The record's shape, pinned so a re-run that loses it is noticed.
+
+        RE-SEATED by the October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE
+        §157.10 / §157.11), consciously — it was
+        `test_the_record_is_seven_seeds_and_marengo_cooled_and_reopened`: on
+        marengo the first crisis (turn 5) cooled when the seeded weight
+        dipped below coerce and a second opened on turn 11. That turn-5
+        crisis stood on a ladder climbed by an AI-to-AI refusal Prussia's own
+        ask never meant: with the refusal rule (OCT27-12 / 13) alone held down
+        it returns (opening at 4, re-opening at 10), and with every seam of
+        the sweep held down the old record returns byte for byte (5 and 11).
+        On the honest record every seed opens Prussia's crisis ONCE and
+        declares two turns later, after its warning; the seed moves the
+        timing, not the story — the openings span four turns (9, 10, 12, 13)
+        and the wars four (11, 12, 14, 15)."""
         paths = sorted(PROBE_RECORD_DIR.glob("shipped_*.json"))
         assert len(paths) == 7, [p.name for p in paths]
-        marengo = json.loads((PROBE_RECORD_DIR / "shipped_marengo.json").read_text(encoding="utf-8"))
-        prussian = [c["opened_turn"] for c in marengo["crises_opened"] if c["coveter"] == "Prussia"]
-        assert len(prussian) >= 2 and prussian[0] < prussian[1], prussian
-        war_turns = set()
+        openings, war_turns = set(), set()
         for path in paths:
             rec = json.loads(path.read_text(encoding="utf-8"))
-            for war in rec["wars_declared"]:
-                if war["attackers"] == ["Prussia"] and war["defenders"] == ["Hanover"]:
-                    war_turns.add(int(war["started_turn"]))
-        assert len(war_turns) >= 3, war_turns
+            prussian = [int(c["opened_turn"]) for c in rec["crises_opened"] if c["coveter"] == "Prussia"]
+            wars = [int(w["started_turn"]) for w in rec["wars_declared"]
+                    if w["attackers"] == ["Prussia"] and w["defenders"] == ["Hanover"]]
+            assert len(prussian) == 1 and len(wars) == 1, (rec["seed"], prussian, wars)
+            assert wars[0] == prussian[0] + 2, (rec["seed"], prussian, wars)
+            openings.add(prussian[0])
+            war_turns.update(wars)
+        assert len(openings) >= 3 and len(war_turns) >= 3, (openings, war_turns)
 
 
 def _first_openings_in_record() -> dict:

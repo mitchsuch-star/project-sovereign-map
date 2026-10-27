@@ -158,6 +158,8 @@ _CRISIS_CAUSE_COPY = {
     # fought. The design is not abandoned; it is being pressed by arms.
     "war_joined": "the war came by another road — the design is pressed "
                   "by arms",
+    "overtaken": "events overtook the design — the quarrel is set aside, "
+                 "the want unwon",
 }
 
 # SHORT-form beat-7 cause copy, for the compact surfaces: the campaign-log
@@ -177,6 +179,7 @@ _CRISIS_CAUSE_SHORT = {
     "outmatched": "the odds never came",
     "penniless": "the treasury could not bear it",
     "war_joined": "the war came anyway",
+    "overtaken": "overtaken by events",
 }
 
 
@@ -444,21 +447,48 @@ def _crisis_cause_of_death(world, coveter: str, record: Dict) -> Optional[str]:
 
     agenda = get_active_agenda(coveter, world)
     if agenda is None or agenda.id != design_id or agenda.survival:
-        # The deck moved on: satisfied, superseded, or survival override.
-        return "satisfied"
+        # The deck moved on. "Satisfied" only when the design's own entry
+        # IS satisfied; a survival override, a vassalised or eliminated
+        # coveter, a superseded entry read "the want is won" over a
+        # capital that had just fallen (the October 27, 2026 sweep).
+        return ("satisfied" if _design_entry_satisfied(world, coveter, design_id)
+                else "overtaken")
 
     view = get_nation_intent(coveter, world)
     if view.against != target:
-        return "satisfied"  # the obstacle changed — this quarrel is over
+        # The obstacle changed - this quarrel is over, the want is not won.
+        return "overtaken"
     if crisis_rung_holds(world, coveter, view):
         return None  # still live (fight; or coerce on a defenceless prize)
 
     # The rung fell below fight: name why (§12.1's taxonomy).
-    for guarantee in getattr(world, "diplomatic_guarantees", []) or []:
-        if (guarantee.get("protected") == target
-                and guarantee.get("guarantor") != coveter):
+    from backend.game_logic.instruments import live_guarantees_of
+    for guarantee in live_guarantees_of(world, target):
+        if guarantee.get("guarantor") != coveter:
             return "deterred"
     return "starved"
+
+
+def reset_stall_on_pass(record: Dict) -> None:
+    """OCT27-17: the hard stall counts CONSECUTIVE refused turns. Down (None):
+    the cumulative counter."""
+    record.pop("stall_turns", None)
+
+
+def failed_declaration_stalls() -> bool:
+    """OCT27-19: a declaration the preview could not foresee refusing counts
+    a stalled turn. Down (False): the frozen foreground slot."""
+    return True
+
+
+def _design_entry_satisfied(world, nation: str, design_id: str) -> bool:
+    """Is the deck entry `design_id` of `nation` satisfied on the board today
+    (`agendas.entry_satisfied`)? False when the entry is gone."""
+    from backend.game_logic.agendas import entry_satisfied
+    for entry in (getattr(world, "agendas", {}) or {}).get(nation) or []:
+        if str(entry.get("id") or "") == str(design_id or ""):
+            return bool(entry_satisfied(world, nation, entry))
+    return False
 
 
 def _emit_crisis_passed(world, coveter: str, record: Dict, cause: str,
@@ -664,9 +694,9 @@ def _restraint_block_reason(world, coveter: str, target: str,
     own = _standing_strength(world, coveter)
     theirs = _standing_strength(world, target)
     # Alliance webs: a defender's guarantors stand in the scale too.
-    for guarantee in getattr(world, "diplomatic_guarantees", []) or []:
-        if (guarantee.get("protected") == target
-                and guarantee.get("guarantor") not in (coveter, target)):
+    from backend.game_logic.instruments import live_guarantees_of
+    for guarantee in live_guarantees_of(world, target):
+        if guarantee.get("guarantor") not in (coveter, target):
             theirs += _standing_strength(world, str(guarantee.get("guarantor")))
     if theirs > 0:
         if own < AI_WAR_FORCE_RATIO * theirs:
@@ -682,9 +712,9 @@ def _holder_scale(world, coveter: str, target: str) -> int:
     """The holder's standing strength plus its guarantors' — the exact
     `theirs` the restraint gate weighs (one arithmetic, two readers)."""
     theirs = _standing_strength(world, target)
-    for guarantee in getattr(world, "diplomatic_guarantees", []) or []:
-        if (guarantee.get("protected") == target
-                and guarantee.get("guarantor") not in (coveter, target)):
+    from backend.game_logic.instruments import live_guarantees_of
+    for guarantee in live_guarantees_of(world, target):
+        if guarantee.get("guarantor") not in (coveter, target):
             theirs += _standing_strength(world, str(guarantee.get("guarantor")))
     return int(theirs)
 
@@ -852,10 +882,9 @@ def _honour_guarantees(world, coveter: str, target: str, war_id: str,
     from backend.display_names import humanize_entity_name
     from backend.game_logic.diplomacy import declare_war
     from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.game_logic.instruments import live_guarantees_of
     player = getattr(world, "player_nation", "France")
-    for guarantee in list(getattr(world, "diplomatic_guarantees", []) or []):
-        if guarantee.get("protected") != target:
-            continue
+    for guarantee in list(live_guarantees_of(world, target)):
         guarantor = str(guarantee.get("guarantor") or "")
         if not guarantor or guarantor in (coveter, target):
             continue
@@ -1128,6 +1157,10 @@ def process_war_council(world) -> List[Dict]:
                 _emit_crisis_passed(world, coveter, record, "starved", events)
                 del store[coveter]
             continue
+        # The stall is CONSECUTIVE refused turns (the October 27, 2026
+        # sweep): three flickers, five clean turns and one more refusal
+        # cooled a live crisis as "the moment passed".
+        reset_stall_on_pass(record)
 
         if not record.get("coerce_recorded_turn"):
             if record.get("foregrounded") and turn > int(record.get("opened_turn", turn)):
@@ -1169,6 +1202,14 @@ def process_war_council(world) -> List[Dict]:
         record.pop("last_soft_block", None)
         if _declare_design_war(world, coveter, record, events):
             del store[coveter]
+        elif failed_declaration_stalls():
+            # Pin 21's last edge: a declaration the preview could not
+            # foresee refusing (the war merge, a dead court) counts as a
+            # stalled turn too, so the one foreground slot is never frozen.
+            record["stall_turns"] = int(record.get("stall_turns", 0)) + 1
+            if record["stall_turns"] >= CRISIS_HARD_STALL_TURNS:
+                _emit_crisis_passed(world, coveter, record, "starved", events)
+                del store[coveter]
 
     # ── 2. Foreground promotion: one crisis on stage world-wide ──
     if not any(record_in_tenure(r, turn) for r in store.values()):

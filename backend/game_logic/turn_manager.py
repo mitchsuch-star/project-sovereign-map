@@ -285,6 +285,13 @@ def ai_phase_reads_the_field(world: WorldState) -> None:
     recalculate_war_scores(world)
 
 
+def letter_counted(result) -> bool:
+    """OCT27-25 (the October 27, 2026 sweep): a letter counts against the
+    mailbox budgets only when the transport delivered it. Down (True):
+    a withheld letter spent a slot."""
+    return result is not None
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -862,6 +869,7 @@ class TurnManager:
             # one live world-wide + a 15-turn per-nation cooldown SET AT
             # ISSUE, so a throttle deferral here would silently eat the
             # court's one ultimatum for 15 turns.
+            budget = None
             if proposal.get("recipient") not in (None, world.player_nation):
                 # A court-to-court envelope never touches the mailbox —
                 # it must not consume either mailbox budget (review fix).
@@ -870,15 +878,23 @@ class TurnManager:
                 if intent_delivered >= INTENT_ASK_BUDGET_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} intent ask deferred (§4.2c budget)")
                     continue
-                intent_delivered += 1
+                budget = "intent"
             elif (proposal.get("decision_reason") in ("hegemony_pressure",
                                                       "agenda_pursuit")
                     and proposal.get("proposal_type") != "ultimatum"):
                 if bandwagon_delivered >= MAX_BANDWAGON_PER_TURN:
                     debug_print(f"[DIPLOMACY] {nation} bandwagon proposal deferred (per-turn cap)")
                     continue
-                bandwagon_delivered += 1
+                budget = "bandwagon"
             result = deliver_ai_proposal(proposal, world)
+            # A letter the transport WITHHOLDS (a treaty the table refuses)
+            # spends no budget (the October 27, 2026 sweep: a stuck court
+            # burned one of the two slots every turn and delivered nothing).
+            if letter_counted(result):
+                if budget == "intent":
+                    intent_delivered += 1
+                elif budget == "bandwagon":
+                    bandwagon_delivered += 1
             if delivered is None:
                 delivered = result
             debug_print(f"[DIPLOMACY] {nation} delivered proposal: {proposal.get('proposal_type')}")
@@ -985,7 +1001,10 @@ class TurnManager:
             _coverage = str(popup_payload.get("coverage_label") or "")
             _substance = str(popup_payload.get("substance_clause") or "")
             _for = f", {_coverage}," if _coverage else ""
-            _subst = f" It also {_substance}." if _substance else ""
+            # Each part of the substance carries its own subject
+            # (`offer_substance_clause`), so the frame is "Its articles:",
+            # never "It also" (which read "It also France cedes Savoy …").
+            _subst = f" Its articles: {_substance}." if _substance else ""
             if _offices:
                 from backend.display_names import humanize_entity_name
                 title = f"{humanize_entity_name(mediator)} offers good offices"

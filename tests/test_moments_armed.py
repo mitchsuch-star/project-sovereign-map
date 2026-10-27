@@ -196,6 +196,15 @@ class TestThePassiveBoard:
         from backend.commands.executor import CommandExecutor
         from backend.game_logic.turn_manager import TurnManager
         from backend.models.world_state import WorldState
+        # The October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE §157) moves
+        # the passive board from turn 6; on the moved board no moment is due
+        # by turn 31 (Holland's premise never holds). This class is the
+        # series harness's CONTROL - the moments' arithmetic read on the
+        # recorded board - so the sweep's seams are held down here, as the
+        # other recorded boards hold them (`tests/_oct27_seams.py`).
+        from tests._oct27_seams import hold_down as _hold_sweep_down
+        _sweep = pytest.MonkeyPatch()
+        _hold_sweep_down(_sweep)
         with _quiet():
             world = WorldState.from_scenario(str(SCENARIO))
             executor = CommandExecutor()
@@ -215,6 +224,7 @@ class TestThePassiveBoard:
                                       and e.get("proposal_type") == "moment_letter"]
             finally:
                 trace.uninstall()
+                _sweep.undo()
         world._s14c_lapse_rows = lapse_rows
         world._s14c_trace = trace.summary(world)
         return world

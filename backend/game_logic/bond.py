@@ -163,17 +163,37 @@ def bond_on(world: Any, member: str, enemy: str) -> Optional[Dict[str, Any]]:
 # What it binds — the break-ranks read, the table, the bilateral
 # ═══════════════════════════════════════════════════════════════════════════
 
+def exhaustion_depth_ceiling() -> int:
+    """OCT27-32: a bond's exhaustion depth stops one short of the cap (119),
+    so the deepened P1 line is reachable. Down (10**9): uncapped."""
+    from backend.game_logic.ai_diplomacy import BREAK_RANKS_EXHAUSTION
+    from backend.game_logic.coalition import WAR_EXHAUSTION_MAX
+    return int(WAR_EXHAUSTION_MAX) - 1 - int(BREAK_RANKS_EXHAUSTION)
+
+
 def depth_for_strength(points: int) -> Dict[str, int]:
     """A bond of `points` read in the loyalty term's own units: the score
     lines deeper by the bilateral's score-to-points rate, the exhaustion line
     deeper by §6a's ease rate (10 exhaustion a point)."""
     if points <= 0:
         return {"score": 0, "exhaustion": 0}
-    from backend.game_logic.ai_diplomacy import COALITION_LOYALTY_EASE_PER
+    from backend.game_logic.ai_diplomacy import (
+        BREAK_RANKS_EXHAUSTION,
+        COALITION_LOYALTY_EASE_PER,
+    )
+    from backend.game_logic.coalition import WAR_EXHAUSTION_MAX
     from backend.game_logic.diplomacy import bilateral_war_score_weight
     weight = float(bilateral_war_score_weight()) or 1.0
+    # The P1 exhaustion line stays REACHABLE (the October 27, 2026 sweep):
+    # the break-ranks read is `we > 80 + depth` and weariness caps at
+    # WAR_EXHAUSTION_MAX (200), so a 400g bond's +120 put the line AT the
+    # cap - the war card's "she tires at 200" named a turn that never came.
+    # The depth stops one short of the cap (119: "she tires at 199", the
+    # utterly spent court); the 200g and 300g tiers are untouched. The
+    # pair-exit floor is capped at its own site.
     return {"score": int(round(points / weight)),
-            "exhaustion": int(points * COALITION_LOYALTY_EASE_PER)}
+            "exhaustion": max(0, min(int(points * COALITION_LOYALTY_EASE_PER),
+                                     exhaustion_depth_ceiling()))}
 
 
 def break_ranks_depth(world: Any, member: str, enemy: str) -> Dict[str, Any]:
