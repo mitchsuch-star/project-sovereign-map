@@ -9,6 +9,7 @@ Also includes _filter_tactical_events_by_fog (module-level, used by end_turn;
 DDB-R4 retired the auto-end-turn block in executor.py that read it too).
 """
 import random
+import re
 from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.commands.objection_v2 import ConcernLevel
@@ -203,13 +204,15 @@ def _diversion_help_block(world) -> str:
 
 def _ports_help_block() -> str:
     """The PORTS AND THE CONTINENTAL SYSTEM section (DDB-48)."""
+    from backend.ai.counsel import key_hint
     from backend.game_logic import naval as N
     notches = sorted(N.CS_WE_TIERS)
     first = notches[0]
     rest = "; ".join(f"{int(round(pct * 100))}% +{we}" for pct, we in notches[1:])
     return (
         "PORTS AND THE CONTINENTAL SYSTEM (the Admiralty's System line -\n"
-        "press T, then 7):\n"
+        # S14G-16: the screen key through `counsel.key_hint`, Alt form and all.
+        f"press {key_hint('T', then='7')}):\n"
         "  shut       - a court's ports are SHUT to the sea power (Britain)\n"
         "               while it is at war with her, keeps the System as a\n"
         "               member, is a satellite of a lord at war with her\n"
@@ -261,6 +264,27 @@ def _congress_help_figures(help_text: str, world) -> str:
         help_text = help_text.replace(token, str(int(value)))
     return help_text
 
+
+_KEY_HINT_TOKEN = re.compile(r"⟨KEY_([A-Z])(?:_(\d))?⟩")
+
+
+def _key_hint_figures(help_text: str) -> str:
+    """S14G-16 (Pre-Deploy S14h part 2, October 26, 2026): the reference's screen
+    keys, said ONCE. The manual printed "press G" / "press T, then 8" / "(D)" as
+    bare keys — but the command line keeps the caret after nearly every reply, so
+    a bare letter types into it; only Alt+<letter> works while typing
+    (`main.gd::_SCREEN_HOTKEYS`). Each key in the reference's source is a token,
+    `⟨KEY_T⟩` or `⟨KEY_T_8⟩` (the ledger's eighth book), swapped here for
+    `counsel.key_hint` — the one sentence every backend pointer shares.
+
+    S14G-13 (same day): `⟨WAR_BANNER⟩` is the war panel's place, `counsel.WAR_BANNER`
+    ("open the war banner on the left" — the panel is at the lower RIGHT)."""
+    from backend.ai.counsel import WAR_BANNER, key_hint
+    help_text = _KEY_HINT_TOKEN.sub(
+        lambda m: key_hint(m.group(1), then=m.group(2) or ""), help_text)
+    return help_text.replace("⟨WAR_BANNER⟩", WAR_BANNER)
+
+
 # PB-2 (the release build, Sept 23 2026): spliced into `help` only when debug
 # mode is on, so a player's reference never lists orders that answer "not
 # available in this build".
@@ -277,6 +301,7 @@ _MISSIONS_HELP_ORDER = ("IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY",
 
 def _missions_help_block(world) -> str:
     """The `missions` entry of the help's Cabinet block (IQ-4 §3.3)."""
+    from backend.ai.counsel import key_hint
     from backend.display_names import MISSION_ROW_DISPLAY
     from backend.game_logic.diplomatic_dialogue import (
         MISSION_DP_COSTS, mission_effect_text,
@@ -300,7 +325,10 @@ def _missions_help_block(world) -> str:
         "               he is there. Sending a proposal takes him away: the",
         "               mission costs nothing and earns nothing until he",
         "               returns. Watch it in the Strategic Ledger's Orders tab",
-        "               (T) or on its notice; recall him from either, free.",
+        # S14G-16: "(T)" was a bare key (and the wrong one — the tab is the
+        # ledger's sixth book); the key through `counsel.key_hint`.
+        f"               (press {key_hint('T', then='6')}) or on its",
+        "               notice; recall him from either, free.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -1054,7 +1082,7 @@ MILITARY COMMANDS:
                manpower pools. PRICING: base 200-400g, capital -25%,
                x3 AT WAR, dearer above the FORCE LIMIT, and the
                marshal's administration prices the levy (Davout -15%,
-               Murat +15% - his card explains, press G).
+               Murat +15% - his card explains: press ⟨KEY_G⟩).
   substitutes - "buy substitutes for Ney" (1 Admin AP + gold)
                "purchase a levy for Ney" / "hire replacements for Ney"
                The remplacant: under the
@@ -1082,14 +1110,14 @@ MILITARY COMMANDS:
                "enact the Staff" - the Council of State quotes the
                terms first; answer yes to enact. A law costs gold (or
                authority) once and gold every turn; a law the chest
-               cannot pay lapses. The Laws tab: press T, then 8.
+               cannot pay lapses. The Laws tab: press ⟨KEY_T_8⟩.
   repeal     - "repeal the Code Abroad" (1 Admin AP, nothing refunded)
   doctrine   - "what is our doctrine?" / "what is Austria's doctrine?"
                Each great power's army has a strength and a flaw (ours:
                the corps system, and living off the land beyond the
                frontier). A reform law cures the flaw while the Staff
-               stands. Ours: the Generals screen (G); every court's: the
-               Nations tab (D).
+               stands. Ours: the Generals screen (press ⟨KEY_G⟩);
+               every court's: the Nations tab (press ⟨KEY_D⟩).
 
 TACTICAL COMMANDS:
   fortify    - Dig in for growing defense; cannot move/attack
@@ -1191,11 +1219,12 @@ ECONOMY (Admin AP - the new imperial economy):
                available anywhere - but it costs the crown HALF
                AGAIN its face each turn, never grows, and buys no
                title. Re-grant after new victories to top it up.
-               (On the Generals screen - press G - each marshal's
-               card shows his reward state; the [ Reward... ] button
-               appears there once he has EARNED an unmet expectation.)
+               (On the Generals screen - press ⟨KEY_G⟩ - each
+               marshal's card shows his reward state; the [ Reward... ]
+               button appears there once he has EARNED an unmet
+               expectation.)
 
-  THE IMPERIAL BOOKS (press T for the full ledger):
+  THE IMPERIAL BOOKS (the full ledger: press ⟨KEY_T⟩):
   - Upkeep: 8g per 1,000 troops. Armies over your FORCE LIMIT pay
     up to double on the excess; the limit grows with territory.
   - Occupation: conquered provinces bleed gold by stability tier -
@@ -1203,8 +1232,8 @@ ECONOMY (Admin AP - the new imperial economy):
   - Capturing a province holding an enemy marshal's estate offers
     CONFISCATE (gold windfall + his lasting grudge) or RESPECT.
 
-THE ADMIRALTY (the wooden wall - press T, then 7; every order below
-is a button there, with its terms, so none of it need be typed):
+THE ADMIRALTY (the wooden wall - every order below is a button there,
+with its terms, so none of it need be typed; press ⟨KEY_T_7⟩):
   build ships - Lay down ships, on THE ADMIRALTY or a yard's map
                chip (1 Admin AP + 400g). 2 keels/turn at most - 1 under blockade.
                New crews come aboard GREEN; only sea-time drills
@@ -1253,12 +1282,13 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
   assess     - "Talleyrand, assess our situation" stays spoken
                (the war room - fronts, threats, counsel; free);
                "Talleyrand, assess Austria" for one nation.
-  vassals    - the VASSALS tab of the Diplomatic Ledger (D, tab 6)
+  vassals    - the VASSALS tab of the Diplomatic Ledger (press
+               ⟨KEY_D_6⟩)
                carries invest / autonomy / release chips per
                satellite; ceding conquered land, an autonomy jump of
                two and Subjugate (a beaten court, at war) are in the
                Cabinet's court page.
-  war terms  - open the war banner on the left and press
+  war terms  - open ⟨WAR_BANNER⟩ and press
                [Request Terms] to make the enemy name a price.
   THE COMPACTS - three instruments, each a row of the Cabinet
                (F1 -> the court):
@@ -1287,11 +1317,11 @@ DIPLOMACY - THE CABINET IS THE DOOR (press F1):
         it - war on the court, or a pledge that contradicts it,
         is a RENEGE, and Europe remembers who broke a word.
 
-  Press D for the Diplomatic Ledger - all twenty nations of Europe,
-  treaties, wars, and the Balance of Europe.
+  The Diplomatic Ledger - all twenty nations of Europe, treaties,
+  wars, and the Balance of Europe: press ⟨KEY_D⟩.
 
 THE CONGRESS OF PARIS (how the reign is WON - the table of the
-great powers is the Diplomatic Ledger's Congress tab, press D then 7):
+great powers is the Diplomatic Ledger's Congress tab; press ⟨KEY_D_7⟩):
   summon     - the Congress of Paris row atop the Cabinet (F1)
                (1 Admin AP + ⟨SUMMON_DP⟩ DP). It needs
                ⟨HOLD⟩ TITLED provinces - homeland, ceded by treaty, a
@@ -1325,11 +1355,15 @@ SCREENS & HOTKEYS:
   F1 diplomacy wizard | T strategic ledger | G marshals
   D diplomatic ledger | L campaign log | R morning dispatch
   E end turn | Tab terminal | . next marshal with nothing to do
+  N Le Moniteur (the gazette)
+  The letter keys act when the command line is empty and you are
+  not typing; while you type, hold Alt: Alt+T, Alt+G, Alt+D,
+  Alt+L, Alt+N, Alt+R (or Alt+B). Esc closes the open screen.
   On the map, every standing order is an arrow - click it to
   cancel or change the order. Ctrl-click marshals, then a
   province, to march them together on one card.
 
-YOUR MARSHALS (press G - each card shows skills, trust, ability):
+YOUR MARSHALS (press ⟨KEY_G⟩ - each card shows skills, trust, ability):
   Ney "Bravest of the Brave" - devastating assaults
   Davout "Iron Resolve" - fortified patience becomes a hammer-blow
   Soult "Drillmaster of Boulogne" - sharpens his corps in a day
@@ -1390,6 +1424,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         # printed "50 TITLED" while the hold reads 45), and DDB-48: the
         # ports and the System have a section, its numbers the Admiralty's.
         help_text = _congress_help_figures(help_text, _world)
+        # S14G-16: the screen keys, Alt form and all, from the one helper.
+        help_text = _key_hint_figures(help_text)
         help_text = help_text.replace(
             _PORTS_HELP_ANCHOR, _PORTS_HELP_ANCHOR + _ports_help_block(), 1)
         # S14E-14: the Grand Diversion's price in ships.

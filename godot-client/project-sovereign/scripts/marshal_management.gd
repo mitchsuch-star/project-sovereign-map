@@ -282,7 +282,7 @@ func _render_all_cards():
 	# touch. (The old wording is deliberately not repeated here: the R159
 	# pin is a source grep, and a comment quoting it would satisfy the
 	# assertion while the screen said something else.)
-	var bbcode = "[color=#" + Utils.COLOR_INFO + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Press G to close.[/color]\n\n"
+	var bbcode = "[color=#" + Utils.COLOR_INFO + "]Your marshals — loyalty, glory, and grievance. Gold answers loyalty; only glory answers envy. Esc closes it (Alt+G while you type).[/color]\n\n"
 
 	# UXR3-24 (Pre-Deploy S12 part 2): what asks for the Emperor's attention
 	# leads the screen — a marshal captured or waiting on an audience is
@@ -812,7 +812,15 @@ func _render_card(m: Dictionary, index: int) -> String:
 				else:
 					order_chips.append(Utils.bb_chip_disabled("Unfortify") + " [color=#" + Utils.COLOR_INFO + "]" + unfortify_why + "[/color]")
 			elif fortify_why == "":
-				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, "Fortify", Utils.COLOR_COMMAND, "233043"))
+				# S14G-X170 (Pre-Deploy S14h part 2, October 26, 2026): the Generals card's
+				# Fortify chip priced nothing while the region panel's names the price a
+				# NEUTRAL corps pays - the same payload figure (`order_prices.fortify`, the
+				# executor's own `insist_terms`), the same convention (priced above 0).
+				var fortify_label := "Fortify"
+				var fortify_prices = m.get("order_prices", {})
+				if fortify_prices is Dictionary and int(fortify_prices.get("fortify", 0)) > 0:
+					fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"
+				order_chips.append(Utils.bb_button_chip("order:fortify:" + chip_name, fortify_label, Utils.COLOR_COMMAND, "233043"))
 			else:
 				order_chips.append(Utils.bb_chip_disabled("Fortify") + " [color=#" + Utils.COLOR_INFO + "]" + fortify_why + "[/color]")
 			# CN-4: Drill is offered only where the drill would begin;

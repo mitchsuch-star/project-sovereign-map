@@ -91,17 +91,173 @@ from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend.display_names import display_nation, with_definite_article  # SFR-D29
 
 
-def treaty_word(world, nation_a: str, nation_b: str) -> str:
-    """What ended the war for this pair — "truce" or "peace".
+_WAR_ENDERS = ("WAR", "ARMISTICE")  # the states a pair LEAVES when a road home is owed
+
+
+def treaty_word(world, nation_a: str, nation_b: str,
+                prior_state: Optional[str] = None) -> str:
+    """What ended the war for this pair — "truce", "peace", or (S14G-21)
+    "accord" when there was no war to end.
 
     SFR-D43 / SFR-D14 (vi) (SF-RR3, October 21, 2026): the corridor opens on
     WAR -> ARMISTICE exactly as on a peace (§5), and every line it wrote
     said the peace — "Sire — the war with Britain is over" headlined a
     truce whose own sub-beat read "else the war resumes", and a top-up
     read "under the peace with Austria". The pair's live state names it;
-    the events carry the word they were written under."""
+    the events carry the word they were written under.
+
+    S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): the word was binary,
+    so a vassalage with Bavaria and a non-aggression pact with Prussia —
+    pairs France was never at war with — read "the war with Bavaria and
+    Prussia is over". `prior_state` (the state the pair stood in BEFORE the
+    treaty, when the caller knows it) names the third case: a pair that was
+    neither at war nor under a truce signed an "accord", which ends nothing."""
+    if prior_state is not None and str(prior_state) not in _WAR_ENDERS:
+        return "accord"
     state = str(world.get_diplomatic_state(nation_a, nation_b) or "")
     return "truce" if state == "ARMISTICE" else "peace"
+
+
+def corridor_applies(world, nation_a: str, nation_b: str,
+                     prior_state: Optional[str] = None) -> bool:
+    """S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): is a road home
+    OWED by the treaty this pair just signed? The ONE seam.
+
+    A corridor is the right of transit a pair earns by LEAVING a war or a
+    truce (§5). `world_state._ratify_treaty` re-runs the opener after every
+    ratified treaty (WIN-D3's cession re-run) with no regard to what the pair
+    was before, and the opener's stranded set is NATION-WIDE - so a vassalage
+    with Bavaria and a pact with Prussia, signed while Davout, Murat and Ney
+    stood stranded by Austria's truce, each wrote a grant, logged an
+    `evacuation_granted` beat and headlined "the war with Bavaria and Prussia
+    is over". The caller that knows the pair's state before the treaty passes
+    it; `None` (the two `set_diplomatic_state` callers, already gated on the
+    old state) is "the caller has decided". The same gate holds for the AI's
+    stranded corps (GR5), which is why it is a seam: patching this to return
+    True restores the unguarded re-run."""
+    if prior_state is None:
+        return True
+    return str(prior_state) in _WAR_ENDERS
+
+
+def stranded_by_pair(world, nation: str, counterpart: str, marshal) -> bool:
+    """S14G-X100 (Pre-Deploy S14h part 2, October 26, 2026): is this stranded
+    corps of `nation` stranded BY the treaty `nation` and `counterpart` just
+    signed? The ONE seam of the corridor's membership.
+
+    The stranded set `_evacuating_marshals` returns is NATION-WIDE, and the
+    treaty's opener named, ordered and sized its corridor from all of it - so
+    France-Russia ending a war, signed while Ney stood on Swabian ground
+    Austria held under HER truce, wrote a Russian corridor whose beat named
+    Ney and whose length was sized by his march, a road the Russian frontier
+    had nothing to do with. A corps belongs to the pair's corridor when the
+    pair's own change of state closes his road or his standing: with
+    `counterpart`'s soil read as open he would NOT be stranded. When he would
+    still be stranded and another court's soil, read as open alone, would free
+    him, ANOTHER court's treaty strands him and this pair's corridor leaves him
+    to that court's. When no single court frees him (the road crosses two
+    frontiers) nobody is excluded - today's reading, the pair names him.
+
+    Both sides' treaties walk it (Golden Rule 5: the AI's pairs ratify through
+    the same opener). Patching this to return True restores the nation-wide
+    set byte for byte."""
+    if not counterpart or counterpart == nation:
+        return True
+    location = marshal.location
+    if not _stranded_if_open(world, nation, location, counterpart):
+        return True
+    from backend.game_logic.diplomacy import can_enter_territory
+    for other in world.get_active_nations():
+        if other == nation or other == counterpart:
+            continue
+        if can_enter_territory(world, nation, other, ignore_evacuation=True):
+            continue  # reading its soil as open changes nothing for him
+        if not _stranded_if_open(world, nation, location, other):
+            return False
+    return True
+
+
+def _open_court_passable(world, nation: str, open_court: str):
+    """`_passable(with_grant=False)` as a closure over one counterfactual:
+    `open_court`'s soil read as an ally's. The verdict per controller is
+    memoised for the closure's life (a handful of courts, 126 nodes)."""
+    from backend.game_logic.diplomacy import can_enter_territory
+    verdicts: Dict[str, bool] = {}
+
+    def passable(region_name: str) -> bool:
+        region = world.regions.get(region_name)
+        if region is None:
+            return False
+        controller = region.controller
+        if not controller or controller == nation or controller == open_court:
+            return True
+        ok = verdicts.get(controller)
+        if ok is None:
+            ok = can_enter_territory(world, nation, controller,
+                                     ignore_evacuation=True)
+            verdicts[controller] = ok
+        return ok
+
+    return passable
+
+
+def _home_zone_if_open(world, nation: str, passable) -> Set[str]:
+    """`get_home_zone` over the counterfactual's `passable` (the same flood
+    fill from the seat of government, intersected with the realm's own
+    provinces)."""
+    owned = set(world.get_nation_regions(nation))
+    if not owned:
+        return set()
+    seed = world.get_nation_capital(nation)
+    if not seed or seed not in owned:
+        seed = _largest_owned_component_seed(world, nation, owned)
+    if not seed:
+        return set()
+    seen = {seed}
+    queue = deque([seed])
+    while queue:
+        current = queue.popleft()
+        region = world.regions.get(current)
+        if region is None:
+            continue
+        for adjacent in region.adjacent_regions:
+            if adjacent in seen or adjacent not in world.regions:
+                continue
+            if not passable(adjacent):
+                continue
+            seen.add(adjacent)
+            queue.append(adjacent)
+    return seen & owned
+
+
+def _stranded_if_open(world, nation: str, location: str,
+                      open_court: str) -> bool:
+    """`is_stranded_at`'s verdict were `open_court`'s soil an ally's: not home
+    (the body of the realm read the same way, or a title), and either no right
+    to stand where he does or no road to the body of the realm."""
+    passable = _open_court_passable(world, nation, open_court)
+    home = _home_zone_if_open(world, nation, passable)
+    if is_home_at(world, nation, location, home):
+        return False
+    if not passable(location) or not home:
+        return True
+    seen = {location}
+    queue = deque([location])
+    while queue:
+        current = queue.popleft()
+        region = world.regions.get(current)
+        if region is None:
+            continue
+        for adjacent in region.adjacent_regions:
+            if adjacent in seen or adjacent not in world.regions:
+                continue
+            if adjacent in home:
+                return False
+            if not passable(adjacent):
+                continue
+            seen.add(adjacent)
+            queue.append(adjacent)
+    return True
 
 
 def _shown(key: str) -> str:
@@ -544,13 +700,23 @@ def title_is_home(world, nation: str, location: str) -> bool:
     return holds_by_title(world, location, nation)
 
 
-def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
+def _evacuating_marshals(world, nation: str, home: Set[str],
+                         counterpart: Optional[str] = None) -> List:
     """Standing marshals of `nation` who need the road home.
 
     DDB-3 (DDB-D9): a serving contingent whose lord's war is paused by a
     truce holds its post — the Road Home neither issues it a march nor
     judges it stranded (no warning, no internment) while the truce stands
-    (`contingent.holds_its_post`; every lord alike, GR5)."""
+    (`contingent.holds_its_post`; every lord alike, GR5).
+
+    S14G-X100 (Pre-Deploy S14h part 2, October 26, 2026): the set was
+    NATION-WIDE even for a TREATY's corridor, so a war ending with Russia
+    named, ordered and sized its road for the corps ANOTHER court's truce
+    stranded. `counterpart` (the treaty's other signatory, passed by the
+    corridor's opener, the window's promotion and the opener's orders; the
+    per-turn judge, the top-up and the desk pass nothing and keep the
+    nation-wide set) asks `stranded_by_pair` - the one seam - whether this
+    pair's change of state is what strands him."""
     from backend.game_logic.contingent import holds_its_post
     out = []
     for marshal in world.marshals.values():
@@ -563,6 +729,9 @@ def _evacuating_marshals(world, nation: str, home: Set[str]) -> List:
         if not is_stranded(world, marshal, home):
             continue
         if holds_its_post(world, marshal):
+            continue
+        if (counterpart is not None
+                and not stranded_by_pair(world, nation, counterpart, marshal)):
             continue
         out.append(marshal)
     return out
@@ -643,16 +812,24 @@ def _nearest_home_region(world, marshal, home: Set[str]) -> Optional[str]:
 # HALF ONE — the corridor is opened at the peace
 # ══════════════════════════════════════════════════════════════════════════
 
-def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
+def open_evacuation_corridor(world, nation_a: str, nation_b: str,
+                             prior_state: Optional[str] = None) -> Dict:
     """Called from `set_diplomatic_state` when a pair LEAVES WAR.
 
     Writes the grant and hands out the free march orders (half two).  Both
     sides, always — GR5: the ex-enemy's corps on our soil get the same road
     home.  This is not a player courtesy; it is what ending a war means.
 
+    S14G-21: `prior_state` is the state the pair stood in before the treaty,
+    for the caller that does not know it was a war (`_ratify_treaty`'s
+    cession re-run). A pair that was never at war returns {} here, before
+    anything is written (`corridor_applies`).
+
     Returns a summary dict (possibly empty) for the caller to log.
     """
     if nation_a == nation_b:
+        return {}
+    if not corridor_applies(world, nation_a, nation_b, prior_state):
         return {}
 
     # WO-17 review round [F3]: the diplomatic state changed one frame ago,
@@ -689,7 +866,9 @@ def open_evacuation_corridor(world, nation_a: str, nation_b: str) -> Dict:
 
     for nation in (nation_a, nation_b):
         home = get_home_zone(world, nation)
-        for marshal in _evacuating_marshals(world, nation, home):
+        # S14G-X100: the corps THIS pair's treaty strands, not the nation's.
+        counterpart = nation_b if nation == nation_a else nation_a
+        for marshal in _evacuating_marshals(world, nation, home, counterpart):
             dist = distance_home(world, marshal, home)
             if dist is None:
                 cut_off.append({"marshal": marshal.name,
@@ -849,7 +1028,9 @@ def _promote_minimum_windows(world) -> None:
         longest = None
         for nation in parts:
             home = get_home_zone(world, nation)
-            for marshal in _evacuating_marshals(world, nation, home):
+            # S14G-X100: only the corps this pair's peace strands.
+            counterpart = parts[1] if parts[0] == nation else parts[0]
+            for marshal in _evacuating_marshals(world, nation, home, counterpart):
                 dist = distance_home(world, marshal, home)
                 if dist is None:
                     continue
@@ -930,13 +1111,28 @@ def _grant_message(world, summary: Dict) -> str:
         parts.append(
             f"{_shown(name)} is marching home under "
             f"{with_definite_article(formed_display_name(world, vassal))}'s colours.")
+    # S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): `ordered` held every
+    # stranded corps the treaty did not NEWLY order - including the corps that
+    # already hold the treaty's OWN road-home order (an earlier grant's), which
+    # `offer_road_home` skips as "already marching there". The page told
+    # Davout, Murat and Ney "hold under your own orders and were not moved"
+    # while they marched the treaty's road. Split: on the treaty's road /
+    # on the Emperor's own orders.
+    on_the_road = [n for n in ordered
+                   if is_road_home_order(getattr(world.marshals.get(n), "strategic_order", None))]
+    ordered = [n for n in ordered if n not in on_the_road]
+    if on_the_road:
+        named = _names_in_prose(sorted(_shown(n) for n in on_the_road))
+        marching_now = "is" if len(on_the_road) == 1 else "are"
+        parts.append(
+            f"{named} {marching_now} already marching home on the treaty's road.")
     if ordered:
         named = _names_in_prose(sorted(_shown(n) for n in ordered))
         holds = "holds" if len(ordered) == 1 else "hold"
         parts.append(
             f"{named} {holds} under your own orders and {'was' if len(ordered) == 1 else 'were'} "
             f"not moved — the treaty offers a road, it does not overrule the "
-            f"Emperor. Their passage lapses with the corridor.")
+            f"Emperor. {'His' if len(ordered) == 1 else 'Their'} passage lapses with the corridor.")
 
     if not parts and len(pair) == 2:
         return f"The {treaty_word(world, pair[0], pair[1])} grants safe passage home."
@@ -1034,11 +1230,15 @@ def _issue_road_home_orders(world, nation_a: str, nation_b: str) -> List[Dict]:
     """
     issued: List[Dict] = []
     for nation in (nation_a, nation_b):
-        issued.extend(offer_road_home(world, nation))
+        # S14G-X100: the treaty orders the corps ITS OWN pair strands; the
+        # per-turn top-up (`offer_road_home(world, nation)`) stays nation-wide.
+        issued.extend(offer_road_home(
+            world, nation, nation_b if nation == nation_a else nation_a))
     return issued
 
 
-def offer_road_home(world, nation: str) -> List[Dict]:
+def offer_road_home(world, nation: str,
+                    counterpart: Optional[str] = None) -> List[Dict]:
     """The per-nation half of `_issue_road_home_orders`, shared with the tick.
 
     FA-N61 (slice 12) needed the SAME body at a second caller — the per-turn
@@ -1068,6 +1268,11 @@ def offer_road_home(world, nation: str) -> List[Dict]:
 
     `_evacuating_marshals` (not "whose soil is he on") is the membership
     predicate — see the module docstring's correction 1.
+
+    S14G-X100: `counterpart` (the treaty's other signatory, from
+    `_issue_road_home_orders`) limits the offer to the corps that pair's
+    treaty strands (`stranded_by_pair`); the tick passes nothing and offers
+    to every stranded corps of the nation, as before.
     """
     from backend.models.marshal import StrategicOrder
     from backend.game_logic import contingent as _cg
@@ -1076,7 +1281,7 @@ def offer_road_home(world, nation: str) -> List[Dict]:
     home = get_home_zone(world, nation)
     if not home:
         return issued
-    for marshal in _evacuating_marshals(world, nation, home):
+    for marshal in _evacuating_marshals(world, nation, home, counterpart):
         if _cg.takes_its_own_road(world, marshal):
             # DDB-X7: a client's contingent goes home under its own colours —
             # its court's road (`contingent.release_home`), never the

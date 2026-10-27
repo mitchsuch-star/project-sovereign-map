@@ -155,7 +155,7 @@ const STEPS := [
 		# not type. The buttons are built at runtime and carry the marshal's
 		# name and the trust figures, so only the stable leading words are
 		# named here.
-		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. TRUST is the currency of command — his card ([color=#e8d4a8]G[/color]) shows the figure. Yield to him and it rises; overrule him and it falls. A marshal whose trust runs low may DEFY you — refuse an order, or act on his own judgement — and at the bottom he asks for a hearing you must answer. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
+		"body": "He objects — as he should. Answer on the card before you: [color=#e8d4a8]Trust[/color] to let him have his way, [color=#e8d4a8]Proceed as Ordered[/color] to be obeyed at a price in trust, or [color=#e8d4a8]Compromise[/color] to meet him halfway. TRUST is the currency of command — his card ([color=#e8d4a8]G[/color], or Alt+G while you type) shows the figure. Yield to him and it rises; overrule him and it falls. A marshal whose trust runs low may DEFY you — refuse an order, or act on his own judgement — and at the bottom he asks for a hearing you must answer. I advise PROCEED AS ORDERED, Sire — the lesson is that command costs something.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_objection_resolved",
@@ -183,7 +183,7 @@ const STEPS := [
 		# dead route — the card's chip OPENS the real wizard on Austria
 		# instead (`open`), and the step completes when the mission the
 		# wizard confirms is live on the base response.
-		"body": "War is also made at the table. Press [color=#e8d4a8]F1[/color] — the Cabinet — or click below: choose Austria and send Talleyrand to GATHER INTELLIGENCE. For five turns her armies stand revealed to you, at one diplomatic point a turn (you hold 5; they return each turn). Confirm on the card that follows. From the same door you propose peace, alliances and open borders, hire a court's neutrality, or read every court's DESIGN — the why behind their armies; the Diplomatic Ledger ([color=#e8d4a8]D[/color]) keeps the whole of Europe. Letters from other courts arrive in the mailbox at the top, and each one names its terms.",
+		"body": "War is also made at the table. Press [color=#e8d4a8]F1[/color] — the Cabinet — or click below: choose Austria and send Talleyrand to GATHER INTELLIGENCE. For five turns her armies stand revealed to you, at one diplomatic point a turn (you hold 5; they return each turn). Confirm on the card that follows. From the same door you propose peace, alliances and open borders, hire a court's neutrality, or read every court's DESIGN — the why behind their armies; the Diplomatic Ledger ([color=#e8d4a8]D[/color], or Alt+D while you type) keeps the whole of Europe. Letters from other courts arrive in the mailbox at the top, and each one names its terms.",
 		"suggest": "",
 		"suggest_action": "",
 		"open": "cabinet:Austria",
@@ -247,7 +247,7 @@ const STEPS := [
 		# entry would land a mid-lesson reload on the wrong branch of VIII.
 		# It shows from the moment VIII completes (as "waiting") and
 		# releases itself on turn 5's first response.
-		"body": "Read the MUSTER before every battle: it names who WILL JOIN, who WILL NOT, and why — ask [color=#e8d4a8]what if Ney attacks Mack[/color] and Berthier reads it for nothing, before you commit. Your marshals are men with histories — press [color=#e8d4a8]G[/color]: each card shows his TRUST in you, his GLORY, his skills, and whom he loves and hates. Ney and Soult are at odds; two marshals at odds bring half their weight to a shared battle, and friends fight better side by side. Glory is a ladder — in the great campaign a man who watches a rival crowned grows ENVIOUS: he petitions you, demands an estate, and may even march on his own. Here the school keeps the peace; envy sleeps in this lesson. Victories also raise a marshal's EXPECTATION of reward — the [color=#e8d4a8]Reward[/color] chip on his card pays it (an estate or a rente) before his loyalty erodes.",
+		"body": "Read the MUSTER before every battle: it names who WILL JOIN, who WILL NOT, and why — ask [color=#e8d4a8]what if Ney attacks Mack[/color] and Berthier reads it for nothing, before you commit. Your marshals are men with histories — press [color=#e8d4a8]G[/color] (Alt+G while you type): each card shows his TRUST in you, his GLORY, his skills, and whom he loves and hates. Ney and Soult are at odds; two marshals at odds bring half their weight to a shared battle, and friends fight better side by side. Glory is a ladder — in the great campaign a man who watches a rival crowned grows ENVIOUS: he petitions you, demands an estate, and may even march on his own. Here the school keeps the peace; envy sleeps in this lesson. Victories also raise a marshal's EXPECTATION of reward — the [color=#e8d4a8]Reward[/color] chip on his card pays it (an estate or a rente) before his loyalty erodes.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_5",
@@ -256,7 +256,7 @@ const STEPS := [
 		"id": "strategic_order",
 		"turn_gate": 5,
 		"title": "X. Standing Orders",
-		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). Every standing order stands on the map as an ARROW along the road still to march, its clock on the badge — click the arrow to cancel the order or change it. The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color]) lists them all. And [color=#e8d4a8].[/color] finds your next marshal with nothing to do ([color=#e8d4a8]Alt+.[/color] while you type).",
+		"body": "For distant objectives, give a STANDING order — it costs 2 command actions and executes itself each morning until done. March Davout for Franconia, two provinces east; watch the later legs move without you at dawn (he routes around enemies on his own). Every standing order stands on the map as an ARROW along the road still to march, its clock on the badge — click the arrow to cancel the order or change it. The Strategic Ledger's Orders book ([color=#e8d4a8]T[/color], or Alt+T while you type) lists them all. And [color=#e8d4a8].[/color] finds your next marshal with nothing to do ([color=#e8d4a8]Alt+.[/color] while you type).",
 		"suggest": "Davout, march to Franconia",
 		"suggest_action": "move",
 		"advance": "_pred_davout_marching",
@@ -317,7 +317,7 @@ const STEPS := [
 		# scenario's own comment: naval dormant — an Admiralty bill would
 		# bankrupt a 900-gold treasury), so this card TEACHES the great
 		# campaign's rule and points at the book that shows it.
-		"body": "There is no fleet in this lesson — the Danube is a river war — but the great campaign is fought against a sea power. Britain's Royal Navy holds the Channel: NO army crosses water she commands, and the map draws such a crossing SHUT in crimson (an open one is a dashed route). The ledger's seventh book, THE ADMIRALTY ([color=#e8d4a8]T[/color], then 7), shows your fleets and their readiness, the yards that lay keels (its [color=#e8d4a8]Lay down ships[/color] button), and every crossing's verdict. A BLOCKADE taxes your trade every turn — the treasury's Blockade line — and the Continental System is the answer to it. A small corps may still sail as an EXPEDITION where the odds allow, and the Grand Diversion draws the Royal Navy off for a season. Britain lands where an army will receive her: watch Normandy and Lisbon.",
+		"body": "There is no fleet in this lesson — the Danube is a river war — but the great campaign is fought against a sea power. Britain's Royal Navy holds the Channel: NO army crosses water she commands, and the map draws such a crossing SHUT in crimson (an open one is a dashed route). The ledger's seventh book, THE ADMIRALTY ([color=#e8d4a8]T[/color], then 7; Alt+T, then Alt+7 while you type), shows your fleets and their readiness, the yards that lay keels (its [color=#e8d4a8]Lay down ships[/color] button), and every crossing's verdict. A BLOCKADE taxes your trade every turn — the treasury's Blockade line — and the Continental System is the answer to it. A small corps may still sail as an EXPEDITION where the odds allow, and the Grand Diversion draws the Royal Navy off for a season. Britain lands where an army will receive her: watch Normandy and Lisbon.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_11",
@@ -330,7 +330,7 @@ const STEPS := [
 		# tutor's voice — the lesson authors no Congress (its rules are not in
 		# this scenario), so this card TEACHES the great campaign's road and
 		# names the surfaces that count it (SR-1c's roads).
-		"body": "The great campaign does not end when the last army breaks, Sire — it ends when EUROPE SIGNS. Hold forty-five provinces by TITLE — your own soil, what a treaty cedes or leaves in your hands (a signed peace titles what you keep of the loser's), a client's loyal homeland, or a conquest held twelve quiet turns — and you may summon the CONGRESS OF PARIS from the Cabinet ([color=#e8d4a8]F1[/color]). Every great power answers at a public table with its reason and its price; it sits eight turns; refusal has teeth, and every titled province, Paris and your own person must be held. The Diplomatic Ledger's CONGRESS tab ([color=#e8d4a8]D[/color], then 7) counts the provinces and names each held one's road to title; the war room prices the roads it counsels. Full recognition is THE IMPERIAL PEACE — the reign's verdict.",
+		"body": "The great campaign does not end when the last army breaks, Sire — it ends when EUROPE SIGNS. Hold forty-five provinces by TITLE — your own soil, what a treaty cedes or leaves in your hands (a signed peace titles what you keep of the loser's), a client's loyal homeland, or a conquest held twelve quiet turns — and you may summon the CONGRESS OF PARIS from the Cabinet ([color=#e8d4a8]F1[/color]). Every great power answers at a public table with its reason and its price; it sits eight turns; refusal has teeth, and every titled province, Paris and your own person must be held. The Diplomatic Ledger's CONGRESS tab ([color=#e8d4a8]D[/color], then 7; Alt+D, then Alt+7 while you type) counts the provinces and names each held one's road to title; the war room prices the roads it counsels. Full recognition is THE IMPERIAL PEACE — the reign's verdict.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_turn_gte_12",
@@ -343,7 +343,7 @@ const STEPS := [
 		# authors France's own five, the 1805 deck verbatim. A door (opens the
 		# ledger's eighth book) and a quill (the Staff); the Council of State
 		# asks the terms before anything is spent.
-		"body": "The treasury buys more than muskets, Sire: it buys LAWS — acts of state, paid once and then every turn. The ledger's eighth book, [color=#e8d4a8]THE LAWS[/color] ([color=#e8d4a8]T[/color], then 8), lists ours: what each does in numbers, its price, its upkeep, and whether we may enact it now. The Grand Quartier Général is the one road to a FIFTH order of the day — 9,000 gold, then 300 a turn. Say [color=#e8d4a8]enact the Staff[/color]: the Council of State names the terms and you answer. A political law is paid in AUTHORITY instead, and the Council names every line it crosses — the marshals' calm lives above 70. A law the treasury cannot pay LAPSES: the forecast warns a turn early, and repealing a cheaper law first keeps the one you need. Restored within ten turns, a lapsed law costs half its price and the arrears.",
+		"body": "The treasury buys more than muskets, Sire: it buys LAWS — acts of state, paid once and then every turn. The ledger's eighth book, [color=#e8d4a8]THE LAWS[/color] ([color=#e8d4a8]T[/color], then 8; Alt+T, then Alt+8 while you type), lists ours: what each does in numbers, its price, its upkeep, and whether we may enact it now. The Grand Quartier Général is the one road to a FIFTH order of the day — 9,000 gold, then 300 a turn. Say [color=#e8d4a8]enact the Staff[/color]: the Council of State names the terms and you answer. A political law is paid in AUTHORITY instead, and the Council names every line it crosses — the marshals' calm lives above 70. A law the treasury cannot pay LAPSES: the forecast warns a turn early, and repealing a cheaper law first keeps the one you need. Restored within ten turns, a lapsed law costs half its price and the arrears.",
 		"suggest": "enact the Staff",
 		"suggest_action": "enact_law",
 		"open": "ledger:7",
@@ -523,7 +523,13 @@ func _fit_card_height() -> void:
 	if _body == null or not is_instance_valid(_card):
 		return
 	var view := _logical_viewport()
-	var budget := view.y - _card.offset_top - CARD_MARGIN
+	# S14G-X68 (Pre-Deploy S14h part 2, October 26, 2026): the budget was the
+	# VIEWPORT's bottom alone, so a card standing over the command window's
+	# columns (a window the player widened, an extreme Interface Scale) ran
+	# down across a raised reply window; `_terminal_limit` stops it at the
+	# window's top edge, the way `region_panel._fit_height` stops at
+	# `avoid_control`.
+	var budget := _terminal_limit(view) - _card.offset_top - CARD_MARGIN
 	# The chrome is everything but the body: measure it from the current
 	# layout so a confirm row or a longer header is counted when shown.
 	var chrome := maxf(_card.size.y - _body.size.y, 0.0)
@@ -537,6 +543,64 @@ func _fit_card_height() -> void:
 		_body.fit_content = false
 		_body.scroll_active = true
 		_body.custom_minimum_size.y = maxf(room, BODY_MIN_HEIGHT)
+
+
+# S14G-X68 (Pre-Deploy S14h part 2, October 26, 2026): the command window
+# (BottomLeftUI, the terminal) the card keeps its height above. A setter,
+# because the window raises, lowers, widens and hides without a viewport
+# resize (the `avoid_rail` pattern, and `region_panel.avoid_control`). main.gd
+# may wire it; without the wire the sibling is found by name (the overlay is
+# registered as a child of Main, beside BottomLeftUI).
+var avoid_terminal: Control = null:
+	set(value):
+		if avoid_terminal != null and is_instance_valid(avoid_terminal):
+			if avoid_terminal.item_rect_changed.is_connected(_on_terminal_changed):
+				avoid_terminal.item_rect_changed.disconnect(_on_terminal_changed)
+			if avoid_terminal.visibility_changed.is_connected(_on_terminal_changed):
+				avoid_terminal.visibility_changed.disconnect(_on_terminal_changed)
+		avoid_terminal = value
+		if avoid_terminal != null:
+			avoid_terminal.item_rect_changed.connect(_on_terminal_changed)
+			avoid_terminal.visibility_changed.connect(_on_terminal_changed)
+
+
+func _on_terminal_changed() -> void:
+	if is_instance_valid(_card):
+		_fit_card_height.call_deferred()
+
+
+func _terminal_control() -> Control:
+	"""The command window, or null: the wired `avoid_terminal`, else the
+	Main-child sibling named BottomLeftUI (found once, then wired)."""
+	if avoid_terminal != null and is_instance_valid(avoid_terminal):
+		return avoid_terminal
+	var host := get_parent()
+	if host != null:
+		var found := host.get_node_or_null("BottomLeftUI") as Control
+		if found != null:
+			avoid_terminal = found
+	return avoid_terminal
+
+
+func _terminal_limit(view: Vector2) -> float:
+	"""The y the card's bottom may reach: the viewport's bottom, or the
+	command window's top edge when the window is on screen AND stands under
+	the card's columns (its right edge, plus the HUD margin, past the card's
+	left edge). At the default widths the two are disjoint — the window is
+	28 % of the HUD band (never under 400 px) from the left, the card 40 % (never
+	under 520 px) from the right — so the limit is idle there; a window the
+	player widened past the card's left edge, or an Interface Scale that
+	shrinks the logical view, engages it. A raised reply window's top edge
+	can sit above the card's own top; the body's `BODY_MIN_HEIGHT` is then
+	the floor, the last resort the region panel keeps too."""
+	var term := _terminal_control()
+	if term == null or not term.is_visible_in_tree():
+		return view.y
+	var rect := term.get_global_rect()
+	var card_left := view.x + _card.offset_left
+	if rect.end.x + Utils.HUD_MARGIN <= card_left:
+		return view.y
+	return minf(view.y, rect.position.y)
 
 
 func _on_viewport_changed() -> void:

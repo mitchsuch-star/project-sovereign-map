@@ -417,6 +417,13 @@ class TestDrillMorale:
         from backend.game_logic import dispatch as D
         ney = world.marshals["Ney"]
         ney.morale = 20
+        # S14G-30 (Pre-Deploy S14h part 2): flipped consciously. On the boot
+        # board Mack stands one province off Ney, where the executor refuses
+        # drill — the dawn line now says so instead of quoting a price it
+        # cannot apply. The pin's intent (the law's gain is the figure the
+        # OPEN drill quotes) is staged on a quiet board: Mack out of reach.
+        world.marshals["Mack"].location = "Vienna"
+        world.calculate_visibility()
         line = D._derive_danger(ney, world, "France", {})
         assert "+15 morale; +20 with a training ground" in line, line
 

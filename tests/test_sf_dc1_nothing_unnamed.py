@@ -429,9 +429,25 @@ class TestTheDrivenCensus:
         rows = [json.loads(ln) for ln in
                 (tmp_path / "dc1" / "digest.jsonl").read_text(encoding="utf-8").splitlines()
                 if '"doctrine_effect"' in ln]
-        hof = [r for r in rows if r.get("doctrine") == "The Hofkriegsrat"
-               and r.get("verdict") == "named"]
-        assert hof and "enemy_phase" in hof[0]["named_on"], rows
+        # S14G-33 (Pre-Deploy S14h part 2, October 26, 2026) — FLIPPED
+        # CONSCIOUSLY. The foreign-soil hair (`WorldState.foreign_soil_edge_cost`)
+        # breaks a road's tie toward the mover's own and allied ground, so on
+        # this seed the turn-2 pursuit no longer runs Lannes into Mack at
+        # Swabia: the Jena road's opening battle moves, and Archduke John's two
+        # rolls (63, 62) fall under the unshifted bar of 65 — the Hofkriegsrat
+        # decides nothing in four turns. (With the hair held DOWN the
+        # committed tree's series returns byte for byte: John delayed on the
+        # second enemy phase, 67 against 65 → 75.) A seeded path, not a law:
+        # the census still judges the clause (John's candidacy, twice) and the
+        # enemy-phase route still names a doctrine-decided arrival on this
+        # seed — the corps system's, turn 5 — which is the claim the pin
+        # exists for: the client used to drop the enemy phase's doctrine
+        # lines.
+        hof = [r for r in rows if r.get("doctrine") == "The Hofkriegsrat"]
+        assert hof, rows
+        named_in_enemy_phase = [r for r in rows if r.get("verdict") == "named"
+                                and "enemy_phase" in (r.get("named_on") or [])]
+        assert named_in_enemy_phase, rows
         md = (tmp_path / "dc1" / "digest.md").read_text(encoding="utf-8")
         assert "## Doctrine census (SF-DC-1)" in md and "T9 drift: 0 of" in md
 

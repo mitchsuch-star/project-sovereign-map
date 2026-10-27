@@ -240,6 +240,14 @@ class TestD9WaveringLineNamesTheDrill:
         w = _boot()
         ney = w.marshals["Ney"]
         ney.morale = 25
+        # S14G-30 (Pre-Deploy S14h part 2): flipped consciously. On the boot
+        # board Mack stands one province off Ney, where the executor refuses
+        # drill - the line now says so instead of quoting the price (see
+        # test_s14h_p2_row30.py). This pin's intent - the OPEN drill is
+        # priced from the constants the executor applies - is staged on a
+        # quiet board: Mack out of reach, so the drill would begin.
+        w.marshals["Mack"].location = "Vienna"
+        w.calculate_visibility()
         line = D._derive_danger(ney, w, "France", {})
         assert line.startswith("Morale failing (25) — the men waver.")
         assert f"+{int(WorldState.DRILL_MORALE_GAIN)} morale" in line

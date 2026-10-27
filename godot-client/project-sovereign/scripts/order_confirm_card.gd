@@ -451,6 +451,10 @@ func _terms(q: Dictionary) -> String:
 	var muster := str(q.get("muster", ""))
 	if muster != "":
 		lines.append("[color=#" + Utils.COLOR_INFO + "]" + muster + "[/color]")
+	# S14G-X165: what a win here adds to Europe's alarm (the muster preview's own sentence).
+	var alarm := str(q.get("alarm", ""))
+	if alarm != "":
+		lines.append("[color=#" + Utils.COLOR_INFO + "]" + alarm + "[/color]")
 	var contact := str(q.get("contact", ""))
 	var note := str(q.get("note", ""))
 	if contact != "":

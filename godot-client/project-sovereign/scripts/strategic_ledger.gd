@@ -323,7 +323,8 @@ func _congress_clock_line() -> String:
 			out += "[color=#" + Utils.COLOR_INFO + "]  • " + str(r.get("text", "")) + "[/color]\n"
 			shown += 1
 		if roads.size() > shown:
-			out += "[color=#" + Utils.COLOR_INFO + "]  … and " + str(roads.size() - shown) + " more on the Diplomatic Ledger's CONGRESS tab (D, then 7).[/color]\n"
+			# S14G-X77: the book's key form - a bare letter TYPES into the command line.
+			out += "[color=#" + Utils.COLOR_INFO + "]  … and " + str(roads.size() - shown) + " more on the Diplomatic Ledger's CONGRESS tab (press D, then 7; Alt+D, then Alt+7 while you type).[/color]\n"
 	return out + "\n"
 
 
@@ -359,7 +360,7 @@ func _render_forces():
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]═══ FORCES ═══[/color]\n"
 	bbcode += _dated_line()
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); press T to close it.[/color]\n\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]The muster of your corps — strength, morale, and each marshal's temper. Keys 1–8 turn the ledger's books (Alt+1–8 while you type); Esc closes it (Alt+T while you type).[/color]\n\n"
 	bbcode += _collapse_note_line()
 	# UXR3-41: Talleyrand's mission leads the muster when one runs (the
 	# Cabinet's full block); an idle Cabinet says so in one line.
@@ -1110,9 +1111,14 @@ func _render_admiralty_orders(adm: Dictionary) -> String:
 		var names: Array = []
 		for corps in ready:
 			if corps is Dictionary:
+				# S14G-17 (Pre-Deploy S14h part 2, October 26, 2026): and WHY he
+				# may embark where he stands ("an allied shore") - the rule in
+				# words (`naval.embark_reason`), the line the ready list lacked.
+				var why = str(corps.get("reason", ""))
 				names.append(str(corps.get("marshal", "")) + " ("
 					+ Utils.format_number(int(corps.get("strength", 0))) + " at "
-					+ str(corps.get("location", "")) + ")")
+					+ str(corps.get("location", ""))
+					+ (" — " + why if why != "" else "") + ")")
 		var where := " — click a coastal province to choose the landing."
 		if has_road:
 			where = " — or click any coastal province for another landing."
@@ -1130,16 +1136,26 @@ func _chip_row(chip) -> String:
 	if not (chip is Dictionary):
 		return ""
 	var label = str(chip.get("label", ""))
+	# S14G-29 (Pre-Deploy S14h part 2, October 26, 2026): the verb's price at the
+	# point of choice - "(2 AP)" / "(1 Admin AP)" / "(2 AP · 4 turns)", stamped by
+	# the backend from the world's own action table (`naval.ap_cost_note`), rides
+	# beside the label of an enabled AND a withheld chip. A chip with no
+	# `cost_note` (THE LAWS' rows) renders exactly as before.
+	var cost_note = str(chip.get("cost_note", ""))
 	var row := "  "
 	if bool(chip.get("enabled", false)):
 		row += Utils.bb_button_chip("do:" + str(chip.get("command", "")),
 			label, Utils.COLOR_GOLD, _NAVAL_CHIP_BG)
 		var note = str(chip.get("note", ""))
+		var tail = cost_note
 		if note != "":
-			row += "  [color=#" + Utils.COLOR_INFO + "]" + note + "[/color]"
+			tail += (" · " if tail != "" else "") + note
+		if tail != "":
+			row += "  [color=#" + Utils.COLOR_INFO + "]" + tail + "[/color]"
 	else:
+		var why = str(chip.get("reason", "not available"))
 		row += Utils.bb_chip_disabled(label) + "  [color=#" + Utils.COLOR_INFO + "]" \
-			+ str(chip.get("reason", "not available")) + "[/color]"
+			+ (cost_note + " · " if cost_note != "" else "") + why + "[/color]"
 	return row + "\n"
 
 

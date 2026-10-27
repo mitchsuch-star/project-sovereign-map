@@ -69,6 +69,12 @@ var _likelihood_colors: Dictionary = {
 	"Hopeless": Utils.COLOR_ERROR,
 }
 
+# S14G-22: the Cabinet's default height as a share of the viewport (x = 0: the
+# width keeps its authored 560) - about 60 % of a 5120x1440 screen's height,
+# where the authored 520 left five lines of the court list (864 px at 1440).
+# A viewport under ~867 px high (0.6 x 867 = 520) keeps the authored rect.
+const CABINET_CEILING_SHARE := Vector2(0.0, 0.6)
+
 
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
@@ -85,6 +91,15 @@ func _ready():
 	cancel_button.pressed.connect(_close_wizard)
 	back_button.pressed.connect(_go_back)
 	background_overlay.gui_input.connect(_on_overlay_input)
+	# S14G-22 (Pre-Deploy S14h part 2, October 26, 2026): the Cabinet was a bare
+	# 560x520 window with no grip - on a 5120x1440 screen five lines of the
+	# court list and a scroll for every court (DD-B diplomacy #5). It is
+	# CLAMPED AND GRIPPED now, like the layer-50 screens (the player's size is
+	# remembered under "cabinet"), and its DEFAULT height is a share of the
+	# viewport (`CABINET_CEILING_SHARE`, read by the centred-panel clamp in utils.gd;
+	# the authored rect stays the floor, a grip's double-click returns to it).
+	$PanelContainer.set_meta("clamp_ceiling_fraction", CABINET_CEILING_SHARE)
+	ResizeGrip.attach_centered($PanelContainer, "cabinet")
 	# LV-15 (row EP F3): the list never scrolls sideways — a chip that is
 	# wider than the panel WRAPS (see _add_action_button) instead of dragging
 	# a horizontal scrollbar under the list with its gate reason clipped off.
@@ -393,6 +408,12 @@ func _render_nations(data: Dictionary):
 	# browser for the formable world. Top of the list, never hidden.
 	_add_formables_button()
 
+	# S14G-22: "Your courts" - the courts with business waiting (a mission
+	# running, a letter unanswered) in ONE place above the groups, so a court
+	# that moves between At War / Treaties / Neutral as treaties change is
+	# still one click away. Omitted when no court has any.
+	_add_your_courts(data.get("your_courts", []))
+
 	var categories = data.get("categories", {})
 	var has_any = false
 
@@ -430,6 +451,26 @@ func _render_nations(data: Dictionary):
 
 	if not has_any:
 		_show_error("No nations in diplomatic contact.")
+
+
+func _add_your_courts(rows) -> void:
+	"""S14G-22: the "Your courts" rows above the groups. `rows` is the
+	backend's `your_courts` (null-safe: absent, null or empty draws nothing),
+	each the same entry the groups carry plus `why` - the business waiting
+	("letter awaiting your answer"; a running mission already rides the
+	button's [MISSION] tag). The court keeps its place in its own group below:
+	the groups stay complete, this is the shortcut."""
+	if not (rows is Array) or rows.is_empty():
+		return
+	_add_category_header("Your courts (" + str(rows.size()) + ")", Utils.COLOR_GOLD)
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var entry: Dictionary = row.duplicate()
+		var why := str(entry.get("why", ""))
+		if why != "":
+			entry["state_display"] = str(entry.get("state_display", "?")) + " · " + why
+		_add_nation_button(entry)
 
 
 func _add_category_header(text: String, color: String):

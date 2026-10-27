@@ -291,7 +291,9 @@ def test_chip_text_contrast_over_light_palette_entries():
     base_source = _read(BASE_GD)
     garrison_body = _func_body(
         base_source,
-        "func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):",
+        # S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): the header gains the
+        # province the chip's click box is bound to; the body pinned is unchanged.
+        "func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String, region_name: String = \"\"):",
     )
     assert "Utils.contrast_text_color(nation_color)" in garrison_body
     assert "var text_color = Color.WHITE" not in garrison_body

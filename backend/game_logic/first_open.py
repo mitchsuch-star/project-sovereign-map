@@ -99,10 +99,34 @@ def _line_laws(world, ctx: Optional[Mapping[str, Any]]) -> str:
             "its price plus the arrears.")
 
 
+def _camp_holds_off(world) -> str:
+    """S14G-X153: `naval.camp_holds_off_clause` for the player's realm, or ""
+    (no world, no realm, the camp not staged, no squadron held home)."""
+    nation = getattr(world, "player_nation", "") if world is not None else ""
+    if not nation:
+        return ""
+    from backend.game_logic.naval import camp_holds_off_clause
+    return camp_holds_off_clause(world, nation)
+
+
 def _line_admiralty_camp(world, ctx: Optional[Mapping[str, Any]]) -> str:
     from backend.game_logic.naval import (
         DESCENT_CAMP_MIN_TROOPS, DESCENT_CAMP_STAGED_TURNS, WINDOW_TURNS,
     )
+    # S14G-X153 (Pre-Deploy S14h part 2, October 26, 2026): the line said "a
+    # march out resets the count" and "Her blockade on you lifts" and never
+    # what the break BRINGS BACK - S14G-32's clause (`naval.camp_holds_off_
+    # clause`, the ONE sentence the march's reply, the quote and the Admiralty
+    # carry). While the camp is staged with a squadron held home, the line
+    # says it, in the lead's shortest form that fits the cap.
+    held = _camp_holds_off(world)
+    if held:
+        for lead in ("The camp, Sire, is staged — no order; a march out resets the count, and ",
+                     "The camp, Sire: a march out resets the count, and "):
+            line = f"{lead}{held}."
+            if len(line) <= LINE_CAP:
+                break
+        return line
     # S14E-13's sweep: a march out of the camp resets the count — said here
     # too, within the cap (Britain's recall was cut; the lifted blockade stays).
     return (f"The camp, Sire: {int(DESCENT_CAMP_MIN_TROOPS):,} men on the Channel "

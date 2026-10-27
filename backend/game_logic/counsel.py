@@ -295,11 +295,17 @@ def _bilateral_road(world, player: str, court: str, ptype: str, road: str,
         # it keeps, where it heads and what the cure costs.
         from backend.game_logic.diplomacy import truce_words
         words = truce_words(world, player, court)
-        heading = {
-            "dictated": "it would end in a dictated peace on the held line",
-            "peace": "it would ripen into peace on the held line",
-            "war": "the war would resume where it stood",
-        }.get(str(words.get("exit") or "war"), "the war would resume where it stood")
+        # S14G-X114 (Pre-Deploy S14h part 2, October 26, 2026): this road held the
+        # OTHER PC-R2 copy of the truce's three exits (`_truce_reading` is the
+        # standing-truce page's), a dictionary that never learned the bond arm
+        # (PC-X61): a pair the league's bond forces to "war" read "the war would
+        # resume where it stood" on the proposed-truce road while `truce_words`
+        # said "Austria is bound by Britain's bond not to sign alone". It takes
+        # the ONE wording's heading line now, lowercased like `_truce_reading`'s
+        # and without its closing full stop (the sentence below supplies it).
+        heading = str(words.get("heading_line") or "")
+        heading = (heading[0].lower() + heading[1:]).rstrip(".") if heading else (
+            "the war would resume where it stood")
         cure = f" {words['cure_line']}" if words.get("cure_line") else ""
         out["trade"] = (f"It costs {int(quote['cost'])} DP. A truce keeps the ledger "
                         f"({words['keeps']['war_score']:+d} stands, the war "
@@ -813,16 +819,17 @@ def _truce_reading(world, player: str, court: str) -> Dict[str, Any]:
     words = truce_words(world, player, court)
     keeps = str(words.get("keeps_line") or "")
     keeps = (keeps[0].lower() + keeps[1:]) if keeps else ""
-    heading = {
-        "dictated": (f"It heads for a dictated peace on the held line — "
-                     f"{words.get('loser') and _shown(world, words['loser'])} reads "
-                     f"{int(words.get('keeps', {}).get('war_score', 0)) * -1:+d} with her hope dead."),
-        "peace": (f"It ripens into peace on the held line: relations stand at "
-                  f"{int(words.get('relation', 0)):+d} and will thaw to {int(words.get('projected', 0)):+d}."),
-        "war": (f"It heads for the collapse: relations stand at {int(words.get('relation', 0)):+d} and "
-                f"will thaw to {int(words.get('projected', 0)):+d}, short of the line; the war resumes "
-                f"where it stood."),
-    }.get(str(words.get("exit") or "war"), "")
+    # S14G-24 (Pre-Deploy S14h part 2, October 26, 2026): the counsel rebuilt
+    # its own sentence for each exit (PC-R2, before the bond arm existed), so a
+    # truce the league's BOND forced to "war" read "-57, short of the line; the
+    # war resumes" beside a -60 rule - while `truce_words` (the Propose Peace
+    # tooltip, the preview) said "Austria is bound by Britain's bond not to sign
+    # alone". It takes the ONE wording's heading line now, lowercased like
+    # `keeps` (the line's `_tidy` capitalises it again as a sentence), so the
+    # bond, the courtship counted in the projection and the cure read the same
+    # on this page as on every other.
+    heading = str(words.get("heading_line") or "")
+    heading = (heading[0].lower() + heading[1:]) if heading else ""
     return {"truce_keeps": keeps, "truce_heading": heading,
             "truce_cure": str(words.get("cure_line") or ""), "truce_exit": str(words.get("exit") or "")}
 

@@ -476,6 +476,18 @@ func _disable_buttons():
 	reject_btn.disabled = true
 	dismiss_btn.disabled = true
 
+# S14G-X109: one counter-offer line the diff MARKED - what the court struck, added
+# or cut. The backend writes them (`display_names._counter_offer_parts`): "Struck ...",
+# "Added by <court>: ...", "Cut by <court>: ...", and, for a caller that names no
+# reader, "Added: ..." / "Cut: ...". The prefixes are exact, so a plain term whose
+# label starts with the same letters ("Cutoff", "Addition") is not a change line.
+func _is_counter_change_line(line: String) -> bool:
+	for prefix in ["Struck", "Added by ", "Added: ", "Cut by ", "Cut: "]:
+		if line.begins_with(prefix):
+			return true
+	return false
+
+
 func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 	var snapshot = data.get("war_context_snapshot", {})
 	# UXR3-30 (Pre-Deploy S12 part 2): the offer's terms render directly
@@ -489,9 +501,13 @@ func _build_peace_preview_section(data: Dictionary, clauses: Array) -> String:
 		# and keeps others carries its "Struck: …" lines in `clauses` (S14D-X13)
 		# while the annotated preview draws the kept terms — print the struck
 		# lines beneath it, so the letter says what the court would not sign.
+		# S14G-X109 (Pre-Deploy S14h part 2, October 26, 2026): the same beneath
+		# for what the court ADDED or CUT ("Added by Bavaria: you pay 100 gold
+		# more (242 at the signing)") - the annotated preview draws the counter's
+		# terms with nothing marked new, and only "Struck" lines were caught.
 		if bool(data.get("is_counter_offer", false)):
 			for clause in clauses:
-				if str(clause).begins_with("Struck"):
+				if _is_counter_change_line(str(clause)):
 					bbcode += "  - %s\n" % str(clause)
 	else:
 		for clause in clauses:

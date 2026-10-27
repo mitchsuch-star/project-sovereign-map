@@ -332,7 +332,12 @@ class TestOneLiner:
                   "hidden_reaction_count": 7}
         line = compose_digest_oneliner(digest)
         assert "7" in line
-        assert "war_42" in line
+        # S14G-X122 (Pre-Deploy S14h part 2) flips this pin: an event with no
+        # `war_label` printed the RAW id ("war_42") - the line reads "this war" now
+        # (the label, when the event carries one, still wins).
+        assert "war_42" not in line and "this war" in line
+        named = compose_digest_oneliner(dict(digest, war_label="the War for Bohemia"))
+        assert "the War for Bohemia" in named and "war_42" not in named
 
 
 # ===========================================================================

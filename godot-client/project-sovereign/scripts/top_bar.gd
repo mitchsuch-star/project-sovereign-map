@@ -72,6 +72,9 @@ var _mailbox_alert_style: StyleBoxFlat = null
 var _mailbox_alert_hover_style: StyleBoxFlat = null
 var _mailbox_pressed_style: StyleBoxFlat = null
 const TALLEYRAND_SUMMARY_MAX_CHARS := 34
+# S14G-X118: the head of the backend's paused suffix ("paused — carrying a
+# letter", `diplomacy.MISSION_PAUSED_SUFFIX`) - the face keeps this much of it.
+const TALLEYRAND_PAUSED_MARK := " (paused"
 # IQ10-X1 (routed to "the next UI slice" — this one): at Interface Scale
 # 2.0 the logical viewport is 800px wide and the bar's content grew past
 # it — EventLogBtn measured at x=-26 (boot) and x=-65 with a mission
@@ -655,7 +658,12 @@ signal menu_clicked
 # "[THREAT]" / "[THREAT!]", a bracketed tag; it reads in the game's words —
 # the Balance of Europe tab's own figure — its colour still the warning or
 # the alert.
-const THREAT_TOOLTIP := "Europe's alarm at France, out of 100 — a coalition brews at 60 and forms at 80. The Diplomatic Ledger's Balance of Europe tab (D, then 3) tells the sources."
+# S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): the HUD said "Threat" while
+# every reply said "alarm" ("[Alarm] Europe's alarm rises +8") - the tooltip now
+# joins the two nouns: the Threat IS Europe's alarm at France. A win adds to it
+# (the muster says how much), and the morning's Threat line names what moved it.
+# S14G-X77: the Balance of Europe tab in the book's key form (a bare letter TYPES into the line).
+const THREAT_TOOLTIP := "Europe's alarm (the Threat) at France, out of 100 — a coalition brews at 60 and forms at 80. A battle won, a province taken, a war declared each add to it; the morning dispatch names what moved it. The Diplomatic Ledger's Balance of Europe tab (press D, then 3; Alt+D, then Alt+3 while you type) tells the sources."
 
 
 static func _threat_words(threat: int) -> String:
@@ -731,11 +739,32 @@ func _set_talleyrand_summary(mission_summary: String):
 	if clean_summary == "" or clean_summary == "None":
 		clean_summary = "Idle"
 	var full_text = "Talleyrand: " + Utils.humanize_nation_keys_in_text(clean_summary)
+	# S14G-X118 (Pre-Deploy S14h part 2, October 26, 2026): the tooltip is the
+	# backend's WHOLE summary string - suffix and all ("Improving Relations →
+	# Prussia (paused — carrying a letter)", `main._get_talleyrand_mission_summary`),
+	# the one source; the face is the short form of it (`_talleyrand_face`).
 	talleyrand_label.tooltip_text = full_text + "\nClick — Talleyrand's book (Diplomacy)"
-	if full_text.length() > TALLEYRAND_SUMMARY_MAX_CHARS:
-		talleyrand_label.text = full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."
-	else:
-		talleyrand_label.text = full_text
+	talleyrand_label.text = _talleyrand_face(full_text)
+
+
+func _talleyrand_face(full_text: String) -> String:
+	"""S14G-X118: the bar's short form of Talleyrand's summary. The old cut at
+	TALLEYRAND_SUMMARY_MAX_CHARS fell on the tail, so a mission paused under a
+	letter lost the one thing that mattered at a glance - "Talleyrand: Improving
+	Relations..." read as a courtship at work. The body is cut instead and the
+	paused cue stays on the face ("Talleyrand: Improving... (paused)"); the
+	tooltip holds the whole sentence."""
+	if full_text.length() <= TALLEYRAND_SUMMARY_MAX_CHARS:
+		return full_text
+	var cut = full_text.find(TALLEYRAND_PAUSED_MARK)
+	if cut > 0:
+		var cue = TALLEYRAND_PAUSED_MARK + ")"
+		var room = TALLEYRAND_SUMMARY_MAX_CHARS - cue.length() - 3
+		var body = full_text.substr(0, cut)
+		if body.length() > room:
+			body = body.substr(0, room).rstrip(" ") + "..."
+		return body + cue
+	return full_text.substr(0, TALLEYRAND_SUMMARY_MAX_CHARS - 3).rstrip(" ") + "..."
 
 var _audience_marshal := ""
 var _generals_base_text := ""

@@ -309,6 +309,9 @@ var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal := {}
 var hovered_fogged_force := {}
 var hovered_region: String = ""
+# S14G-19: the province a garrison chip under the cursor names ("" for none) -
+# a click on the chip opens ITS province, ahead of the colour map under it.
+var _label_region_hit: String = ""
 # CC-1 "Click names into the line" (October 15, 2026): what the last left
 # click carried besides its province. `region_clicked(name)` keeps its one
 # argument (pinned), so the owner reads the rest here — the piece under the
@@ -400,6 +403,22 @@ var owner_fill_layer: TextureRect
 var region_nodes := {}
 var marshal_hitboxes: Array = []
 var fogged_force_hitboxes: Array = []
+# S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): a map LABEL is a click
+# target. The stack label ("Ney +4"), a marshal's name, a fogged force's name
+# and a garrison chip were `MOUSE_FILTER_IGNORE` text with no box, and hits
+# came only from the pieces' footprints - so a click on the visible name fell
+# to the province under the label (the label floats ~78 world px above its
+# stack and the furniture layout can move it further). Each entry is
+# {rect (WORLD), node (the label), <binding>}, the binding one of `marshal`
+# (a name or stack label: the group's lead), `force` (a fog name), `region`
+# (a garrison chip); `rect` follows the node (`sync_label_hitboxes`, called by
+# the label layer after every furniture layout). The sail counts' own are
+# `sail_hitboxes` (bound `fleet`), rebuilt with the ships. Read AFTER the
+# pieces' boxes (CC-X5: the front piece still wins the hit). NOT part of
+# `_label_avoid_world_rects`: the text furniture yields to the place names
+# (UXR-X28), it is not an obstacle to them.
+var label_hitboxes: Array = []
+var sail_hitboxes: Array = []
 # NUI: the fleets on the map. A ship standee per fleet in commission at its
 # senior yard (`naval_overlay.fleets` — public counts, the §9 fog ruling),
 # faction-tinted like the corps, its sail count above it. Hitboxes are in
@@ -1772,6 +1791,7 @@ func _layout_sail_labels() -> void:
 		if sail != null and is_instance_valid(sail) and piece != null and is_instance_valid(piece):
 			_layout_sail_label(sail, piece.position)
 	_push_furniture()
+	sync_label_hitboxes()   # S14G-19: the counts moved back to their authored places
 
 
 func _furniture_theme(kind: String) -> Theme:
@@ -1846,6 +1866,7 @@ func _rebuild_dynamic_nodes():
 	_clear_children(garrison_layer)
 	marshal_hitboxes.clear()
 	fogged_force_hitboxes.clear()
+	label_hitboxes.clear()   # S14G-19: the labels are rebuilt, so are their boxes
 	_label_avoid_world_rects.clear()
 	_furniture_items.clear()
 	var positions = _get_active_region_positions()
@@ -1865,7 +1886,7 @@ func _rebuild_dynamic_nodes():
 		if region_garrisons.has(region_name):
 			var controller = region_controllers.get(region_name, "Neutral")
 			var visibility = region_visibility.get(region_name, "full")
-			_create_garrison_node(region_pos, region_garrisons[region_name], controller, visibility)
+			_create_garrison_node(region_pos, region_garrisons[region_name], controller, visibility, region_name)
 
 	if map_label_layer != null:
 		map_label_layer.set_avoid_rects(_label_avoid_world_rects)
@@ -1880,6 +1901,64 @@ func _add_furniture(kind: String, nodes: Array) -> void:
 	for n in nodes:
 		base.append((n as Control).position)
 	_furniture_items.append({"kind": kind, "nodes": nodes, "base": base})
+
+
+func _label_hit_rect(node) -> Rect2:
+	"""S14G-19: a label's click box in WORLD coords, from where the node stands
+	NOW (the layout moves nodes): the layers sit at `world_bounds.position`
+	(`_world_to_layer_position`'s inverse), the size is the larger of the
+	node's own and its theme's minimum (a Label grows past what it was given
+	- the label layer measures it the same way). A freed or hidden label has
+	no box: what is not drawn is not a target."""
+	if node == null or not is_instance_valid(node) or not (node as CanvasItem).visible:
+		return Rect2()
+	var c: Control = node
+	var minimum := c.get_combined_minimum_size()
+	return Rect2(c.position + world_bounds.position,
+		Vector2(maxf(c.size.x, minimum.x), maxf(c.size.y, minimum.y)))
+
+
+func _add_label_hitbox(into: Array, node: Control, binding: Dictionary) -> void:
+	"""S14G-19: `node`'s box as a click target, bound to what the label names
+	(`binding`: marshal / force / region / fleet - the same dictionaries the
+	pieces' boxes carry, so a hit on the label IS a hit on the thing)."""
+	var box: Dictionary = binding.duplicate()
+	box["node"] = node
+	box["rect"] = _label_hit_rect(node)
+	into.append(box)
+
+
+func sync_label_hitboxes() -> void:
+	"""S14G-19: put every label box where its label now stands. The label layer
+	calls this after each furniture layout (`_lay_out_furniture` moves, nudges
+	and hides names and chips to clear the place names), so the target is the
+	text the player SEES. The fogged chips' boxes ride their chip the same way
+	(a hidden chip keeps the place it had, as before)."""
+	for box in label_hitboxes:
+		box["rect"] = _label_hit_rect(box["node"])
+	for box in sail_hitboxes:
+		box["rect"] = _label_hit_rect(box["node"])
+	for box in fogged_force_hitboxes:
+		var chip = box.get("node", null)
+		if chip != null and is_instance_valid(chip) and (chip as CanvasItem).visible:
+			box["rect"] = _label_hit_rect(chip)
+	_refresh_hover_state()
+
+
+func _label_hit(key: String, map_mouse: Vector2, boxes: Array):
+	"""S14G-19: what the label under the point names (`key` = marshal / force /
+	region / fleet), or null. Labels never overlap once laid out; where two
+	do, the lower one is drawn in front, as with the pieces (CC-1)."""
+	var named = null
+	var front_bottom := -INF
+	for box in boxes:
+		if not box.has(key):
+			continue
+		var rect: Rect2 = box["rect"]
+		if rect.has_point(map_mouse) and rect.end.y >= front_bottom:
+			named = box[key]
+			front_bottom = rect.end.y
+	return named
 
 
 func _push_furniture() -> void:
@@ -2019,6 +2098,8 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(name_label)
 			_add_furniture("name", [name_label])
+			# S14G-19: the visible name is a click target for its own man.
+			_add_label_hitbox(label_hitboxes, name_label, {"marshal": marshal})
 
 		# The hover hitbox is appended for EVERY marshal — collapsed or not —
 		# so the tooltip still identifies each individual piece. Review-fix
@@ -2040,9 +2121,11 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			if group_size <= 3:
 				continue
 			var lead_name := ""
+			var lead_marshal: Dictionary = {}   # S14G-19: whom the stack label's box names
 			for m in marshals:
 				if str(m.get("nation", "Neutral")) == group_nation:
 					lead_name = Utils.display_marshal_name(str(m.get("name", "?")))  # LV-2
+					lead_marshal = m
 					break
 			var stack_text := "%s +%d" % [lead_name, group_size - 1]
 			var stack_width = font.get_string_size(stack_text, HORIZONTAL_ALIGNMENT_LEFT, -1, _furn_px("name")).x + 4.0
@@ -2064,6 +2147,13 @@ func _create_marshal_nodes(region_pos: Vector2, marshals: Array):
 			stack_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			force_layer.add_child(stack_label)
 			_add_furniture("stack", [stack_label])
+			# S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): "Ney +4" was
+			# text with no box - a click on the visible name opened the
+			# province under the label (Rhineland, with Ney at Franconia), and
+			# the command strip says "click a marshal". The label's own box
+			# names the group's lead (the piece the label names) and moves
+			# with the label.
+			_add_label_hitbox(label_hitboxes, stack_label, {"marshal": lead_marshal})
 			stack_row += 1
 
 
@@ -2224,16 +2314,21 @@ func _create_fogged_force_nodes(region_pos: Vector2, fogged_forces: Array, regul
 		name_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 		name_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 		force_layer.add_child(name_label)
+		# S14G-19: the fogged force's visible name is a click target for it
+		# (as its "?" chip is), and the chip's own box follows the chip when
+		# the furniture layout moves it (`node`, read by sync_label_hitboxes).
+		_add_label_hitbox(label_hitboxes, name_label, {"force": force})
 
 		fogged_force_hitboxes.append({
 			"rect": Rect2(icon_pos, chip_size),
 			"force": force,
+			"node": icon_panel,
 		})
 		_add_furniture("fog_name", [name_label])
 		_add_furniture("fog_chip", [icon_panel, icon_label])
 
 
-func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
+func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String, region_name: String = ""):
 	var strength = garrison_data.get("strength", 0)
 	var colors = _get_colors()
 	var nation_color = colors.get(controller, Utils.MAP_NEUTRAL_NATION)
@@ -2273,6 +2368,11 @@ func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, contr
 	panel.add_theme_stylebox_override("panel", _make_box_style(fill_color, border_color, 1.5, 3))
 	garrison_layer.add_child(panel)
 	_add_furniture("garrison", [panel])
+	# S14G-19: the garrison chip is a click target for its own province (it
+	# floats GARRISON_Y_OFFSET below the anchor, so the colour map under it can
+	# be the neighbour's), moved with the chip.
+	if region_name != "":
+		_add_label_hitbox(label_hitboxes, panel, {"region": region_name})
 
 	var label = Label.new()
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2657,6 +2757,8 @@ func _input(event):
 					str(hovered_sea_link.get("b", "")))
 				return
 			var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))
+			if _label_region_hit != "":
+				clicked_region = _label_region_hit   # S14G-19: a garrison chip is its province's
 			if clicked_region == "":
 				clicked_region = hovered_region
 			if clicked_region != "":
@@ -2714,6 +2816,7 @@ func _clear_hover_state():
 	hovered_fogged_force = {}
 	hovered_fleet = {}
 	hovered_sea_link = {}
+	_label_region_hit = ""   # S14G-19
 	_set_hovered_region("")
 	if order_layer != null:
 		order_layer.set_arrow_hover("")   # CC-5
@@ -3245,6 +3348,7 @@ func _refresh_hover_state():
 	hovered_fogged_force = {}
 	hovered_fleet = {}
 	hovered_sea_link = {}
+	_label_region_hit = ""
 
 	var map_mouse = _get_map_mouse_position()
 	var positions = _get_active_region_positions()
@@ -3265,11 +3369,25 @@ func _refresh_hover_state():
 		_set_hovered_region("")
 		return
 
+	# S14G-19: then the label the eye sees - a stack label ("Ney +4") or a
+	# name is the man it names (a click on it selects him, it does not open
+	# the province under the text).
+	var named_marshal = _label_hit("marshal", map_mouse, label_hitboxes)
+	if named_marshal != null:
+		hovered_marshal = named_marshal
+		_set_hovered_region("")
+		return
+
 	for hitbox in fogged_force_hitboxes:
 		if hitbox["rect"].has_point(map_mouse):
 			hovered_fogged_force = hitbox["force"]
 			_set_hovered_region("")
 			return
+	var named_force = _label_hit("force", map_mouse, label_hitboxes)   # S14G-19: a fogged force's name
+	if named_force != null:
+		hovered_fogged_force = named_force
+		_set_hovered_region("")
+		return
 
 	# NUI: a fleet piece is hoverable and clickable like a corps. CC-3: not
 	# while a corps is selected or a piece is dragged — the province beneath
@@ -3281,6 +3399,20 @@ func _refresh_hover_state():
 			_set_hovered_region("")
 			mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 			return
+	# S14G-19: the sail count is the fleet's (same ordering rule as the ship).
+	var named_fleet = null if ordering else _label_hit("fleet", map_mouse, sail_hitboxes)
+	if named_fleet != null:
+		hovered_fleet = named_fleet
+		_set_hovered_region("")
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		return
+	# S14G-19: a garrison chip is its own province's (the colour map under a
+	# chip that floats below the anchor can be the neighbour's).
+	var chip_region = _label_hit("region", map_mouse, label_hitboxes)
+	if chip_region != null:
+		_label_region_hit = str(chip_region)
+		_set_hovered_region(_label_region_hit)
+		return
 
 	var color_map_region = _lookup_region_from_color_map(map_mouse)
 	if color_map_region != "":
@@ -4009,6 +4141,7 @@ func _update_fleet_pieces() -> void:
 	re-place, create — the war-table pieces' own idiom. Bitmap-art maps only
 	(the legacy fixture has no pieces layer, and no navy)."""
 	fleet_hitboxes.clear()
+	sail_hitboxes.clear()   # S14G-19: the sail counts' boxes are rebuilt with the ships
 	if pieces_layer == null:
 		return
 	var fleets = naval_overlay.get("fleets", [])
@@ -4076,6 +4209,9 @@ func _update_fleet_pieces() -> void:
 			sail_label.add_theme_color_override("font_outline_color", FORCE_NAME_OUTLINE_COLOR)
 			sail_label.add_theme_constant_override("outline_size", FORCE_NAME_OUTLINE_SIZE)
 			_layout_sail_label(sail_label, anchor)
+			# S14G-19: the sail count is a click target for its fleet (THE
+			# ADMIRALTY), moved with the count.
+			_add_label_hitbox(sail_hitboxes, sail_label, {"fleet": entry})
 		fleet_hitboxes.append({
 			"rect": Rect2(world_anchor + Vector2(-frame * 0.35, -frame * 0.62),
 				Vector2(frame * 0.7, frame * 0.62)),

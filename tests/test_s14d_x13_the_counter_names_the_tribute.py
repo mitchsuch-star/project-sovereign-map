@@ -45,7 +45,10 @@ REPO = Path(__file__).resolve().parents[1]
 MAPS = REPO / "godot-client" / "project-sovereign" / "assets" / "maps"
 TABLE_BOARD = MAPS / "tutorial_table_1805.json"
 
-TRIBUTE_LINE = "Struck: the tribute - 126 gold a turn for as long as the treaty stands"
+# S14G-X111 (Pre-Deploy S14h part 2) flips the struck lines: a struck gold term names its
+# payer - from the reader's chair where one is named, else by the draft's own parties.
+TRIBUTE_LINE = "Struck: the tribute - Bavaria pays you 126 gold a turn for as long as the treaty stands"
+TRIBUTE_LINE_NAMED = "Struck: the tribute - Bavaria pays France 126 gold a turn for as long as the treaty stands"
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -195,7 +198,7 @@ class TestTheWording:
         counter = _draft(sweeteners=[{"type": "gold_lump", "value": 50}])
         assert counter_offer_clause_lines(original, counter) == [
             "Proposal: Vassalage",
-            TRIBUTE_LINE,
+            TRIBUTE_LINE_NAMED,
             "Offer: Gold payment - 50",
         ]
 
@@ -204,12 +207,12 @@ class TestTheWording:
         original = _draft(type="peace", demands=[{"type": "gold_per_turn", "value": 126}])
         lines = counter_offer_clause_lines(original, _draft(type="peace"))
         assert lines == ["Proposal: Peace Treaty",
-                         "Struck demand: Gold per turn - 126 for as long as the treaty stands"]
+                         "Struck demand: Bavaria pays France 126 gold a turn for as long as the treaty stands"]
 
     def test_a_stream_with_its_own_term_names_it(self):
         original = _draft(demands=[{"type": "gold_per_turn", "value": 80, "turns": 5}])
         assert counter_struck_lines(original, _draft()) == [
-            "Struck: the tribute - 80 gold a turn for 5 turns"]
+            "Struck: the tribute - Bavaria pays France 80 gold a turn for 5 turns"]
 
     def test_a_struck_offer_and_a_struck_clause(self):
         original = _draft(type="alliance", sweeteners=[{"type": "gold_lump", "value": 100}],
@@ -218,7 +221,7 @@ class TestTheWording:
         assert counter_offer_clause_lines(original, counter) == [
             "Proposal: Full Alliance",
             "Struck clause: Open borders",
-            "Struck offer: Gold payment - 100",
+            "Struck offer: France pays Bavaria 100 gold at the signing",
         ]
 
     def test_a_struck_territory_names_its_regions(self):
@@ -234,20 +237,33 @@ class TestTheWording:
         assert counter_struck_terms(original, counter) == []
         assert counter_struck_lines(original, counter) == []
 
-    def test_a_changed_figure_reads_as_struck_and_as_carried(self):
+    def test_a_changed_figure_is_marked_with_both_figures(self):
+        """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026) flips the S14D-X13
+        reading: a changed figure used to read as struck (the old figure) and
+        as carried (the new one, unmarked); the diff now pairs the two and
+        marks the change - the delta and the new sum."""
         original = _draft(demands=[{"type": "gold_per_turn", "value": 126}])
         counter = _draft(demands=[{"type": "gold_per_turn", "value": 80}])
         lines = counter_offer_clause_lines(original, counter)
-        assert lines[0] == "Proposal: Vassalage"
-        assert TRIBUTE_LINE in lines
-        assert any("Demand: Gold per turn - 80" in line for line in lines)
+        assert lines == [
+            "Proposal: Vassalage",
+            "Cut: the tribute - Bavaria pays France 46 gold a turn less (80 a turn for as long as the treaty stands)"]
+        assert TRIBUTE_LINE not in lines
 
-    def test_a_counter_that_struck_nothing_reads_as_it_always_did(self):
+    def test_a_counter_that_changed_nothing_reads_as_it_always_did(self):
+        """S14G-23 flips the second half: a counter that struck nothing but
+        ADDED terms used to print its own terms unmarked (the added gold read
+        as a second survivor); it now marks what it added. A counter that
+        changed nothing still reads as it always did."""
         original = _draft(sweeteners=[{"type": "gold_lump", "value": 50}])
+        assert counter_offer_clause_lines(original, original) == build_proposal_popup_clauses(
+            original, include_base=False)
         counter = _draft(sweeteners=[{"type": "gold_lump", "value": 50}, {"type": "gold_lump", "value": 100}],
                          clauses=["open_borders"])
-        assert counter_offer_clause_lines(original, counter) == build_proposal_popup_clauses(
-            counter, include_base=False)
+        lines = counter_offer_clause_lines(original, counter)
+        assert lines[0] == "Proposal: Vassalage"
+        assert any(line.startswith("Added: Open borders") for line in lines)
+        assert "Added: France pays Bavaria 100 gold more (150 at the signing)" in lines
 
     def test_an_empty_counter_still_says_which_proposal(self):
         assert counter_offer_clause_lines(_draft(), _draft()) == ["Proposal: Vassalage"]
@@ -267,7 +283,7 @@ class TestTheWording:
     def test_the_summary_carries_the_struck_lines(self):
         original = _draft(demands=[{"type": "gold_per_turn", "value": 126}])
         base = "Vassalage between France and Bavaria"
-        assert counter_summary_with_struck(base, original, _draft()) == base + "\n  - " + TRIBUTE_LINE
+        assert counter_summary_with_struck(base, original, _draft()) == base + "\n  - " + TRIBUTE_LINE_NAMED
         assert counter_summary_with_struck(base, original, original) == base
 
 
@@ -315,9 +331,9 @@ class TestTheAICounterFamily:
         _world, counter = self._counter_the_proposal(monkeypatch)
         assert counter["type"] == "counter_offer"
         lines = counter["popup_payload"]["clauses"]
-        assert lines == ["Proposal: Peace Treaty", "Struck demand: Gold payment - 500"]
+        assert lines == ["Proposal: Peace Treaty", "Struck demand: you pay 500 gold at the signing"]
         assert "Diplomatic proposal" not in lines
-        assert "Struck demand: Gold payment - 500" in counter["talleyrand_text"]
+        assert "Struck demand: you pay 500 gold at the signing" in counter["talleyrand_text"]
 
     def test_the_context_carries_the_draft_for_a_rebuild(self, monkeypatch):
         import backend.main as main_module
@@ -327,7 +343,7 @@ class TestTheAICounterFamily:
         rebuilt_from = dict(counter)
         rebuilt_from.pop("popup_payload", None)
         rebuilt = main_module._build_pending_envoy_popup_from_dialogue(world, rebuilt_from)
-        assert "Struck demand: Gold payment - 500" in rebuilt["clauses"]
+        assert "Struck demand: you pay 500 gold at the signing" in rebuilt["clauses"]
         assert "Diplomatic proposal" not in rebuilt["clauses"]
 
 
@@ -345,9 +361,16 @@ class TestThePeaceCounterPrintsItsStruckLines:
         body = body[:body.index("\nfunc ", 10)]
         assert "_build_annotated_terms_section(annotated)" in body
         assert 'data.get("is_counter_offer", false)' in body
-        assert 'str(clause).begins_with("Struck")' in body
-        # the struck lines print INSIDE the annotated arm, after the kept terms
-        assert body.index("_build_annotated_terms_section(annotated)") < body.index('begins_with("Struck")') < body.index("\telse:")
+        # S14G-X109 (Pre-Deploy S14h part 2) flips the filter's spelling: the
+        # inline `str(clause).begins_with("Struck")` became `_is_counter_change_line`
+        # (struck, added AND cut lines); "Struck" is still the first prefix it holds.
+        assert "_is_counter_change_line(str(clause))" in body
+        helper = gd[gd.index("func _is_counter_change_line("):]
+        helper = helper[:helper.index("\nfunc ", 10)]
+        assert '"Struck"' in helper and "begins_with(prefix)" in helper
+        # the change lines print INSIDE the annotated arm, after the kept terms
+        assert (body.index("_build_annotated_terms_section(annotated)")
+                < body.index("_is_counter_change_line(str(clause))") < body.index("\telse:"))
 
 
 class TestTheIncomingLettersNeverReadEmpty:

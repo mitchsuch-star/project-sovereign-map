@@ -1317,6 +1317,17 @@ def forced_retreat_clears_counter_punch(marshal, world) -> None:
         _errors.report(exc, "combat_executor.forced_retreat_clears_counter_punch: dismiss_by_type")
 
 
+# S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): the alarm a won battle
+# adds to Europe's, as the pipeline applies it - ONE definition, read by the
+# post-combat pipeline (`add_threat`, both combat copies and the autonomous
+# attack's in `world_state`) AND by the muster's "A win here adds +3 ..." line,
+# so the figure the player is told before the attack is the figure the
+# battle's own "[Alarm]" line then prints. The values are the pipeline's own,
+# unchanged (the series is byte-identical).
+BATTLE_WIN_ALARM = 3
+DECISIVE_VICTORY_ALARM = 5
+
+
 def battle_win_on_own_soil(world, region_name, nation, conquered=False) -> bool:
     """DDB-42: a win in a province the victor owns — driving an invader from
     its own soil — is no conquest (EB-4.3's rule, applied to the province).
@@ -2903,6 +2914,14 @@ class CombatExecutor:
             preview["target"]["covering"] = humanize_entity_name(covered.name)
         if unscouted_note:
             preview["target"]["unscouted_note"] = unscouted_note
+            # S14G-14 (Pre-Deploy S14h part 2, October 26, 2026) / S14G-D4:
+            # the second line - the odds on the men in view alone (the
+            # readers that take only the totals skip it).
+            _in_view = (self._in_view_reading(
+                marshal, enemy_marshal, world, will_join_marshals)
+                if with_spread else "")
+            if _in_view:
+                preview["target"]["in_view_note"] = _in_view
         if _spread is not None:
             preview["attacker"]["floor_strength"] = int(
                 marshal.strength + _spread["floor"])
@@ -2985,6 +3004,12 @@ class CombatExecutor:
                 f"Materiel: every 1,000 men we lose costs {_per_thousand}g in "
                 f"guns, horses and stores, charged at the battle — a hard day "
                 f"(15% of the {_mustered:,} we muster) would cost ~{_hard_day:,}g.")
+        # S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): and what a win
+        # adds to Europe's alarm, said BEFORE the attack - the +8 of each win
+        # was noticed only in the Threat figure afterwards.
+        _alarm_note = self._muster_alarm_note(world, marshal, battle_region)
+        if _alarm_note:
+            preview["alarm_note"] = _alarm_note
         # S14E-2: and the campaign pay the corps standing there will draw on
         # allied or neutral soil - read off the upkeep bill's own predicate.
         _campaign = self._campaign_pay_quote(
@@ -3419,7 +3444,8 @@ class CombatExecutor:
         return attacking / defending
 
     def _muster_band(self, marshal, enemy_marshal, world, game_state, joining,
-                     battle_region, priced: bool = True) -> Dict:
+                     battle_region, priced: bool = True,
+                     seen_only=None) -> Dict:
         """S14E-D12 / S14E-X76 / S14E-X77 (S14f p3): THE band's terms - what
         `muster_odds` (the gate) and `_build_muster_preview` (the screen)
         both read, so they cannot disagree (the pin the gate's docstring
@@ -3432,12 +3458,23 @@ class CombatExecutor:
         readings stand in. `priced=False` is the gate's pre-SF-CL-1 reading
         (`THE_GATE_READS_THE_PREVIEWS_CONTEXT` down): no stamp, no exact term.
 
+        `seen_only` (S14G-14, Pre-Deploy S14h part 2, October 26, 2026; None =
+        today's band, every line untouched): the NAMES of the defender's
+        joiners the player can see - the band is then read on the men in
+        view alone (`_in_view_reading`), through this very arithmetic with
+        the unscouted joiners dropped from the defender's roster. Only the
+        player's note passes it; the gate, the screen's band and the AI's
+        reads never do.
+
         Returns {"committed_attacker", "committed_defender",
         "defender_joining", "ratio", "band", "weighed", "attacker_set"}."""
         from backend.commands.objection_v2 import (
             inferred_attack_effective_ratio, odds_reading_of_ratio)
         defender_joining, _ = self._defender_muster(
             enemy_marshal, world, term=False)
+        if seen_only is not None:
+            defender_joining = [m for m in defender_joining
+                                if m.name in seen_only]
         attacker_set = defender_set = None
         a_exact = d_exact = None
         if priced:
@@ -3641,13 +3678,38 @@ class CombatExecutor:
             world, nation)
 
     @staticmethod
+    def _unscouted_provinces_round(battle_region, world) -> list:
+        """S14G-14 (Pre-Deploy S14h part 2, October 26, 2026): the provinces
+        round the battle (the field itself, and every province the defender's
+        muster is drawn from - `_defender_muster`'s own adjacency) whose
+        intel the player holds below PARTIAL, in map order (the codebase's
+        "MAP order" is the sorted order, `get_live_visible_enemies`). Public
+        map adjacency and the player's own intel, so it is fog-legal: it names
+        no army, no size and not the province that holds one."""
+        from backend.models.intel import PARTIAL
+        if not battle_region:
+            return []
+        region = world.get_region(battle_region)
+        ring = set(region.adjacent_regions) if region else set()
+        ring.add(battle_region)
+        return sorted(r for r in ring if r
+                      and not world.get_region_intel(r).visibility_at_least(PARTIAL))
+
+    @staticmethod
     def _unscouted_force_note(defender_joining, committed_defender, seen_joining,
                               battle_region, world, nation) -> str:
         """S14E-17: the one line for a band that weighs a force the player has
         not scouted - '' when the band weighs no joiner, when any joiner of
         the defender's is in view (the hedge row speaks then), or when the
         lead is not the player's. `seen_joining=None` reads the player's view
-        here (the callers that did not already)."""
+        here (the callers that did not already).
+
+        S14G-14 (the ruling S14G-D4, October 26, 2026): the line NAMES the
+        unscouted provinces round the battle - "scout Carniola and Styria" -
+        where it said "scout the provinces round it" and left the player to
+        guess which; the old words stand only where no province can be named.
+        The second line (the odds on the men in view) is
+        `_in_view_reading`'s."""
         if (not defender_joining or committed_defender <= 0
                 or nation != getattr(world, "player_nation", None)):
             return ""
@@ -3656,18 +3718,98 @@ class CombatExecutor:
             seen_joining = [m for m in defender_joining if m.name in visible]
         if seen_joining:
             return ""
-        return (f"The band weighs a force of his you have not scouted within "
-                f"reach of {battle_region} — scout the provinces round it.")
+        named = CombatExecutor._unscouted_provinces_round(battle_region, world)
+        if not named:
+            return (f"The band weighs a force of his you have not scouted "
+                    f"within reach of {battle_region} — scout the provinces "
+                    f"round it.")
+        from backend.game_logic.battle_report import _join_names
+        return (f"The band weighs a force of his you have not scouted — "
+                f"scout {_join_names(named)}.")
+
+    def _muster_joiners(self, marshal, battle_region, world) -> list:
+        """S14G-14: the attacker's WILL JOIN list for a reading made without
+        the preview - `muster_odds`'s own loop (the same ladder, the same
+        adjacency), for the callers that hold no preview."""
+        region = world.get_region(battle_region)
+        adjacent = set(region.adjacent_regions) if region else set()
+        joining = []
+        for m in world.marshals.values():
+            if (m.nation != marshal.nation or m.name == marshal.name
+                    or m.strength <= 0):
+                continue
+            if m.location != battle_region and m.location not in adjacent:
+                continue
+            will_join, _code = self._muster_reason(
+                m, marshal, battle_region, marshal.nation, world)
+            if will_join:
+                joining.append(m)
+        return joining
+
+    def _in_view_reading(self, marshal, enemy_marshal, world, joining=None) -> str:
+        """S14G-14 with its ruling S14G-D4 (Pre-Deploy S14h part 2, October 26,
+        2026): the SECOND line of the fog-honest note - the band on the men IN
+        VIEW alone. "what if Massena attacks Archduke John" read
+        'unfavorable' for 42,000 against 20,000 because `_muster_band` folds
+        the defender's committed term from ground truth (Archduke Charles at
+        unscouted Carniola) and the note said only that a force was weighed:
+        no province, no figure, and no way to check the verdict. The cure for
+        a verdict the player cannot check is to let him check it - "On the men
+        in view alone the odds read 'favorable' (42,000 against 20,000 men)."
+
+        It is `_muster_band`'s own arithmetic (`seen_only`: the defender's
+        joiners the player can see, the unscouted dropped) read through
+        `odds_reading_of_ratio`'s words, so the two readings cannot drift;
+        the gate keeps the TRUE reading (`muster_odds` is untouched). The
+        figures are the player's own: his lead's committed strength ("about"
+        where joiners lift it) and the foe through `_fog_banded_strength` -
+        exact at FULL, his band at PARTIAL. '' when the lead is not the
+        player's or the foe is not in his view (a reading on men he cannot
+        see would leak the foe's strength). `enemy_marshal` is the man who
+        will stand in the battle (`answering_defender`); `joining` None reads
+        the attacker's muster here."""
+        from backend.game_logic.intel_surfaces import in_sight
+        nation = marshal.nation
+        if (nation != getattr(world, "player_nation", None)
+                or not in_sight(world, nation, enemy_marshal)):
+            return ""
+        foe = self._fog_banded_strength(enemy_marshal, world)
+        if foe == "strength unknown":
+            return ""
+        battle_region = enemy_marshal.location
+        if joining is None:
+            joining = self._muster_joiners(marshal, battle_region, world)
+        seen = {m.name for m in world.get_visible_enemies(nation)}
+        terms = self._muster_band(marshal, enemy_marshal, world,
+                                  {"world": world}, joining, battle_region,
+                                  seen_only=seen)
+        committed = float(terms["committed_attacker"])
+        ours = f"{'about ' if committed > 0 else ''}{int(marshal.strength + committed):,}"
+        theirs = foe if foe.endswith(" men") else f"a {foe}"
+        return (f"On the men in view alone the odds read '{terms['band']}' "
+                f"({ours} against {theirs}).")
 
     def _unscouted_note_for(self, marshal, enemy, world) -> str:
         """S14E-17's line for a reading made WITHOUT the muster preview (the
         staff's bad-odds addendum; any surface that speaks `muster_odds`'s
         band): the defender who would stand in the battle, his muster read
-        off the same ladder, the player's view the same."""
+        off the same ladder, the player's view the same.
+
+        S14G-14 / S14G-D4: and the second line behind it - the odds on the
+        men in view alone (`_in_view_reading`) - so every prose carrier (the
+        bad-odds modal, the contact ask, the autonomous-attack refusal and
+        the petition ask in `jealousy.py`) speaks both readings from this one
+        door (S14G-X57: the staff's addendum, the contact ask and the
+        order quote; S14G-X58: the autonomous-attack refusal beat). '' where
+        the note is: the AI's marshals never reach the reading."""
         foe = answering_defender(world, enemy)
         joining, committed = self._defender_muster(foe, world)
-        return self._unscouted_force_note(joining, committed, None, foe.location,
+        note = self._unscouted_force_note(joining, committed, None, foe.location,
                                           world, marshal.nation)
+        if not note:
+            return ""
+        in_view = self._in_view_reading(marshal, foe, world)
+        return f"{note} {in_view}" if in_view else note
 
     def _bad_odds_muster_note(self, marshal, enemy, world) -> str:
         """PC-8 (quiet-France played campaign, Aug 3 2026): the staff's
@@ -3814,6 +3956,30 @@ class CombatExecutor:
             return intel.strength_band
         return "strength unknown"
 
+    @staticmethod
+    def _muster_alarm_note(world, marshal, battle_region) -> str:
+        """S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): `A win here adds
+        +3 to Europe's alarm (+5 more if decisive; none on your own soil) -
+        now 84/100.` The two figures are the post-combat pipeline's own
+        constants (`BATTLE_WIN_ALARM`, `DECISIVE_VICTORY_ALARM` - the
+        pipeline's `add_threat` calls read them), the field's rule is the
+        pipeline's own predicate (`battle_win_on_own_soil`: a win on ground
+        the victor holds adds nothing), the standing is the figure the top
+        bar shows (`coalition.displayed_threat`). "" for the Europe board
+        alone, for the player's own attack alone (the AI's muster is no
+        surface), and for a field that is our own soil (no alarm to name).
+        PURE."""
+        if getattr(world, "sovereign_map", "legacy") != "europe":
+            return ""
+        if marshal is None or marshal.nation != getattr(world, "player_nation", None):
+            return ""
+        if battle_win_on_own_soil(world, battle_region, marshal.nation):
+            return ""
+        from backend.game_logic.coalition import displayed_threat
+        return (f"A win here adds +{BATTLE_WIN_ALARM} to Europe's alarm "
+                f"(+{DECISIVE_VICTORY_ALARM} more if decisive; none on your own "
+                f"soil) — now {int(displayed_threat(world))}/100.")
+
     def _format_muster_lines(self, preview) -> str:
         """Compact text render of the muster block (1 line per marshal)."""
         # PT-D1: the odds band is priced on the COMMITTED joint force
@@ -3900,6 +4066,11 @@ class CombatExecutor:
         # scouted, the line that names the gap (never who or how many).
         if preview["target"].get("unscouted_note"):
             lines.append(f"  {preview['target']['unscouted_note']}")
+            # S14G-14 (Pre-Deploy S14h part 2, October 26, 2026) / S14G-D4:
+            # and, on the next line, the band on the men in view alone - the
+            # verdict the player can check.
+            if preview["target"].get("in_view_note"):
+                lines.append(f"  {preview['target']['in_view_note']}")
         # NP-V (adversarial review): `presence_note` was written under a
         # comment reading "shown = applied" and pinned by a test that
         # asserted the PRODUCER'S DICT — and no formatter and no `.gd`
@@ -3921,6 +4092,10 @@ class CombatExecutor:
         # S14E-2: and the campaign pay the corps standing there will draw.
         if preview.get("campaign_note"):
             lines.append(f"  {preview['campaign_note']}")
+        # S14G-M3: and the alarm a win adds to Europe's (after the campaign
+        # note - S14E-2 pins that note on the line right after Materiel).
+        if preview.get("alarm_note"):
+            lines.append(f"  {preview['alarm_note']}")
         if preview.get("province_fights_note"):
             lines.append(f"  {preview['province_fights_note']}")
         if preview.get("shared_casualty_note"):
@@ -5492,7 +5667,7 @@ class CombatExecutor:
                                                conquered=bool(conquered))
             if attacker_won and attacker.nation:
                 if not _own_soil:
-                    add_threat(world, 3, "battle_win", target=attacker.nation)
+                    add_threat(world, BATTLE_WIN_ALARM, "battle_win", target=attacker.nation)
                 # Decisive: ratio > 2:1 AND total > 10,000
                 if int(def_casualties) > 0 and int(atk_casualties) > 0:
                     ratio = int(def_casualties) / int(atk_casualties)
@@ -5502,7 +5677,7 @@ class CombatExecutor:
                     ratio = 0
                 if ratio > 2 and total_cas > 10000:
                     if not _own_soil:
-                        add_threat(world, 5, "decisive_victory", target=attacker.nation)
+                        add_threat(world, DECISIVE_VICTORY_ALARM, "decisive_victory", target=attacker.nation)
                     if defender and attacker.nation == france:
                         add_coalition_shock(defender_nation, world)
                 if conquered:
@@ -5550,7 +5725,7 @@ class CombatExecutor:
                     else:
                         ratio = 0
                     if ratio > 2 and total_cas > 10000:
-                        add_threat(world, 5, "decisive_victory", target=defender_nation)
+                        add_threat(world, DECISIVE_VICTORY_ALARM, "decisive_victory", target=defender_nation)
                         if defender_nation == france:
                             add_coalition_shock(attacker.nation, world)
                     if defender_nation == france:
@@ -10770,6 +10945,27 @@ class CombatExecutor:
             [ctx.marshal, ctx.enemy_marshal] + list(ctx.atk_participants) + list(ctx.def_participants))
         return _NEXT_STAGE
 
+    def _refresh_sight_after_attack(self, ctx: AttackContext) -> None:
+        """S14G-20 (Pre-Deploy S14h part 2, October 26, 2026): refresh the
+        PLAYER'S fog once the attack's retreat and advance have moved men.
+
+        `update_intel_from_battle` (stage 15) records the defender at the
+        field while he still stands on it; the forced retreat (stage 16) and
+        the victor's advance (stage 17) then move him and the victor without
+        rewriting the snapshot, so every mid-turn reader of the frozen
+        `known_marshals` (the End Turn gate's peril clause, the Berthier
+        report, the Ledger's intel tab, the desk's strength figure) carried
+        yesterday's man until the turn ended - Mack, retreated to Munich,
+        "~29,126 shares the field" at Swabia. The player's march already
+        refreshes (`movement_executor._execute_move`); an attack's advance is
+        a march too.
+
+        PLAYER-ONLY by its guard: an enemy AI's attack gains no visibility
+        call, so its reads (and BASELINE_SERIES) are exactly as they were.
+        The one patch point for a 'down' arm."""
+        if ctx.marshal.nation == ctx.world.player_nation:
+            ctx.world.calculate_visibility()
+
     def _attack_advance_and_capture(self, ctx: AttackContext):
         """Stage 17 of `_execute_attack`: The advance, the capture, the R1 pipeline and the result dict."""
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
@@ -10996,6 +11192,10 @@ class CombatExecutor:
                     f" {ctx.marshal.name}'s sally clears {ctx.target_location} but "
                     f"does not hold it — a province is taken by the army "
                     f"that stands on it.")
+
+        # S14G-20: the retreat and the advance have moved men - the player's
+        # own fog follows them (the march's own refresh, below the battle's).
+        self._refresh_sight_after_attack(ctx)
 
         # Build message with flanking info if applicable
         flanking_prefix = ""

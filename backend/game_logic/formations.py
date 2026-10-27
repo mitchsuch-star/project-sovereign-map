@@ -1688,6 +1688,48 @@ def _closing_tail(road: Mapping[str, Any]) -> str:
     return f", {_unmet_phrase(road)}"
 
 
+def prospect_sentence(row: Mapping[str, Any], province: str) -> str:
+    """S14G-31: the ONE sentence of an unbegun carve's PROSPECT for one of
+    its provinces - "Ulster is half of the Ireland carve (with Munster) - hold
+    both while the war with Britain runs and Britain can be made to erect it
+    at a table" (no full stop). Every surface that points at a first landing
+    (the province panel, the expedition's confirm card, the Land chips, the
+    landing and march replies) prints THIS, through `road_notes`'
+    `by_province` or `road_note_for`; none composes its own."""
+    provinces = [str(p) for p in row["provinces"]]
+    others = [p for p in provinces if p != province]
+    share = "half of" if len(provinces) == 2 else "part of"
+    with_ = f" (with {_and_list(others)})" if others else ""
+    every = "both" if len(provinces) == 2 else "all"
+    court = row["court_display"]
+    return (f"{province} is {share} the {row['display_name']} carve{with_} "
+            f"— hold {every} while the war with {court} runs and {court} "
+            f"can be made to erect it at a table")
+
+
+def _add_prospect(out: Dict[str, Any], template_id: str, display: str,
+                  court: str, court_display: str, provinces: List[str]) -> None:
+    """S14G-31: record one unbegun carve's prospect (the war running, nothing
+    held). The `prospects` key exists only when a prospect does, so a board
+    without one returns the begun-roads dict byte-identical."""
+    row = {
+        "tag": template_id,
+        "display_name": display,
+        "court": court,
+        "court_display": court_display,
+        "provinces": list(provinces),
+        "war": True,
+        "state": "prospect",
+    }
+    row["text"] = (f"The {display} carve needs {_and_list(provinces)} — hold "
+                   f"{'both' if len(provinces) == 2 else 'all'} while the war "
+                   f"with {court_display} runs and {court_display} can be made "
+                   f"to erect it at a table")
+    out.setdefault("prospects", []).append(row)
+    for province in provinces:
+        out["by_province"].setdefault(province, prospect_sentence(row, province))
+
+
 def road_notes(world) -> Dict[str, Any]:
     """S14E-15: the begun-but-unfinished Class C roads of the PLAYER'S bloc,
     as pointers for the points of action.
@@ -1707,7 +1749,13 @@ def road_notes(world) -> Dict[str, Any]:
 
     Returns {"roads": [row], "by_province": {province: sentence},
     "by_court": {court: [open row]}, "completing": [province]} — empty
-    containers when no road is begun, so a surface adds nothing. A row:
+    containers when no road is begun, so a surface adds nothing. S14G-31
+    adds a fifth key only when one exists: "prospects": [row] — a carve
+    the bloc holds NOTHING of while the war with its court runs (a
+    first landing's pointer: "Ulster is half of the Ireland carve (with
+    Munster) — hold both while the war with Britain runs and Britain can
+    be made to erect it at a table"). A prospect sentences each of the
+    template's provinces in `by_province` and feeds nothing else. A row:
     {tag, display_name, court, court_display, held, missing, war, state,
     text}. `text` is the one sentence every surface quotes (no full stop):
     "Ireland needs Ulster too — it lies a march from Munster; carve at a
@@ -1745,11 +1793,24 @@ def road_notes(world) -> Dict[str, Any]:
                 if str(getattr(regions.get(p), "controller", "") or "")
                 in bloc]
         missing = [p for p in provinces if p not in held]
-        if not held:
-            continue                      # not begun
         war = _carve_war_running(world, player, from_court)
         court_display = formed_display_name(world, from_court)
         display = identity["display_name"]
+        if not held:
+            # S14G-31 (Pre-Deploy S14h part 2, October 26, 2026): "not begun"
+            # used to end here, so the FIRST landing on a carve's province
+            # (Ulster, with nothing of Ireland held) got no pointer anywhere
+            # - the confirm card priced the throw and the failure and never
+            # the prize. An unbegun road with the war running is a PROSPECT:
+            # a row in `prospects` and a sentence per province in
+            # `by_province` (the panels, the landing and march replies read
+            # it from there). Never in `roads`, `by_court` or `completing`
+            # (the Admiralty's shore ranking, the war card and the peace
+            # review stay the begun roads' alone).
+            if war:
+                _add_prospect(out, template_id, display, from_court,
+                              court_display, provinces)
+            continue                      # not begun
         if not missing:
             # S14E-15's sweep (the whole-held road): the carve is AVAILABLE
             # — the table's "Erect" row and the Formables page carry it —
@@ -1882,10 +1943,14 @@ def _add_dream_rows(world, out: Dict[str, Any], player) -> Dict[str, Any]:
     return out
 
 
-def road_note_for(world, province: str) -> str:
+def road_note_for(world, province: str,
+                  notes: Optional[Mapping] = None) -> str:
     """The road sentence for ONE province ("" when it lies on no begun
-    road) — the capture and landing replies' reader."""
-    return str(road_notes(world)["by_province"].get(province) or "")
+    road and no prospect) — the capture and landing replies' reader.
+    `notes` (S14G-31): a `road_notes` already built, so a loop over many
+    provinces (the Land chips) asks the builder once."""
+    notes = notes if notes is not None else road_notes(world)
+    return str(notes["by_province"].get(province) or "")
 
 
 def road_clause_for(world, province: str, notes: Optional[Mapping] = None) -> str:

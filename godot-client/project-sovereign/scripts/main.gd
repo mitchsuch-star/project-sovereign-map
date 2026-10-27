@@ -1124,8 +1124,8 @@ func _print_boot_help() -> void:
 	# desk answers questions, free — the first thing a new player wants to ask.
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Ask Berthier: \"who am I fighting\", \"is Paris safe\", \"what happened last turn\" — an answer costs no action[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Diplomacy: click [b][Diplomacy][/b] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight[/color]")
-	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
-	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever you are not typing[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Generals: press [b]G[/b] (Alt+G while you type) to review your marshals — their loyalty, rewards (duchies & rentes), and grievances[/color]")
+	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever the line is empty and you are not typing — Alt+key while you type[/color]")
 	# CC-3: the map's order gesture, taught where the orders are.
 	add_output("[color=#" + Utils.COLOR_INFO + "]  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes[/color]")
 	# CC-5: the war table — the arrows, the idle corps, the group.
@@ -1459,7 +1459,10 @@ func _on_command_input_gui_input(event):
 			elif _order_engaged():
 				_clear_order_selection()   # CC-3: then a selected corps (CC-5: or a group)
 			elif _escape_closes_topmost():
-				pass   # DDB-54: then the topmost thing open — the line keeps focus
+				# DDB-54: then the topmost thing open. S14G-16: the ladder lets an
+				# EMPTY line go itself (`_release_empty_line`) so the bare screen
+				# keys work; a line holding a draft keeps its caret and its text.
+				pass
 			else:
 				command_input.release_focus()  # Unfocus to allow camera controls
 			command_input.accept_event()
@@ -1677,15 +1680,24 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	# same answer when the command line still holds focus beneath it — a
 	# DISABLED line keeps focus, and its Esc would otherwise be the silent
 	# release rung (one invisible press, then the skip, then the close).
+	# S14G-16 (Pre-Deploy S14h part 2, October 26, 2026): every rung that CLOSES a
+	# picture, a modal or a screen then lets an EMPTY command line go
+	# (`_release_empty_line`), so the bare screen keys work at once. The line
+	# held the caret after the close ("the line keeps focus", DDB-54), and the
+	# next bare G / T / D typed a letter into it (conquest #4, diplomacy #14).
+	# A line holding a draft keeps its caret and its text.
 	if battle_diorama and battle_diorama.visible:
 		battle_diorama._on_close_pressed()
+		_release_empty_line()
 		return true
 	# Close diplomacy wizard first (Fix 11)
 	if diplomacy_wizard and diplomacy_wizard.visible:
 		diplomacy_wizard._close_wizard()
+		_release_empty_line()
 		return true
 	if top_bar and top_bar.is_screen_open():
 		top_bar.close_all_screens()
+		_release_empty_line()
 		return true
 	# CC-3: a selected corps swallows one Esc — the topmost thing on
 	# the map (the card's own Esc is the card's, read in its _input).
@@ -1700,6 +1712,7 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	# silently close an invisible panel beneath it.
 	if region_panel and region_panel.visible and not _is_modal_dialog_open():
 		region_panel.close_panel()
+		_release_empty_line()
 		return true
 	# UXR-D4: a screen pinned at the Side Desk — with no popup and
 	# nothing else open, Esc unpins and closes it (before the pause
@@ -1707,8 +1720,38 @@ func _escape_closes_topmost(include_selection: bool = false) -> bool:
 	if top_bar and top_bar.has_method("is_pinned") and top_bar.is_pinned() \
 			and not _is_modal_dialog_open():
 		top_bar.unpin()
+		_release_empty_line()
 		return true
 	return false
+
+
+func _release_empty_line() -> void:
+	"""S14G-16: after Esc closes a picture, a modal, a screen or a panel, an
+	EMPTY command line lets go of the keyboard, so the bare screen keys (T, G,
+	D, L, R, N) work again — they are blocked while the line holds focus
+	(`_is_hotkey_blocked`), and the line took the letter. The placeholder reads
+	"Esc: menu · click to type" (S14E-21's `_refresh_command_placeholder`, wired
+	to the line's focus_exited). A line holding a draft keeps its caret and its
+	text: Esc never throws away what the player was writing."""
+	if command_input == null or not command_input.has_focus():
+		return
+	if command_input.text.strip_edges() != "":
+		return
+	command_input.release_focus()
+
+
+func _release_empty_line_after_esc() -> void:
+	"""S14G-X74: `_release_empty_line` for the roads that close on their OWN
+	Esc handler and hand the caret straight back through the one tail
+	(`_return_control_to_player`: the battle tableau, the enemy-phase dialog, the
+	strategic reports, the Proclamation, the letter-book, a marked ending). The
+	dismissal runs inside the Esc key's own
+	event, so the key is still down (`Input.is_key_pressed` is set before the
+	event is delivered, and holds across a deferred tail); a button click, a
+	backend reply or a timer finds it up and the line keeps the caret, as it
+	always did (typing the next order is the default after a reply)."""
+	if Input.is_key_pressed(KEY_ESCAPE):
+		_release_empty_line()
 
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
@@ -3963,7 +4006,8 @@ func _on_battle_diorama_dismissed():
 	_diorama_standalone = false
 	# PC15-10 B4b (F9): the one tail — the ending, the capture question, the
 	# Proclamation, the letter-book, the redemption, a deferred hard stop, the
-	# petition and the next queued question, in that order.
+	# petition and the next queued question, in that order. S14G-X74: the
+	# tableau's own Esc ends HERE, and the tail lets an empty line go.
 	_return_control_to_player()
 
 
@@ -4048,6 +4092,13 @@ func _return_control_to_player() -> void:
 	_maybe_recover_dropped_redemption()
 	set_input_enabled(true)
 	command_input.grab_focus()
+	# S14G-X74 (Pre-Deploy S14h part 2, October 26, 2026): a picture or pop-up
+	# closed by its OWN Esc handler (the battle tableau, the enemy-phase dialog,
+	# the strategic reports, the Proclamation, the letter-book, a marked ending)
+	# never reaches `_escape_closes_topmost` - it ends here, and the grab above
+	# put the caret back: the next bare T typed a "t" (diplomacy #14). The tail
+	# lets the empty line go again when the Esc key itself is still down.
+	_release_empty_line_after_esc()
 
 
 var _pinned_refresh_queued := false
@@ -4498,9 +4549,12 @@ func _on_command_result(response):
 						add_output("[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]")
 
 		# Check for enemy phase (from end_turn)
-		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
-		# (e.g. debug freeze_enemies). The dialog handles 0-action case with
-		# "No enemy actions this turn." message.
+		# NOTE: No total_actions > 0 gate — a payload that arrives is shown,
+		# except (S14G-27) the `fog_only` phase with no war/truce court, which
+		# `_enemy_phase_is_quiet_fog` turns into one terminal line below. The
+		# backend sends no payload at all for a phase with nothing in it, so
+		# the dialog's "No enemy actions this turn." arm is only the fallback
+		# for a hand-built payload.
 		# ═══ PT-F1: the autonomous glory attacks ═══
 		# Rendered BEFORE the enemy phase, which is the order they were
 		# fought in (`turn_manager.end_turn` fires them, then the enemy
@@ -4512,6 +4566,18 @@ func _on_command_result(response):
 		_display_jealousy_attacks(response)
 
 		if response.has("enemy_phase"):
+			# S14G-27 (Pre-Deploy S14h part 2, October 26, 2026): a phase of
+			# fog alone that names no court at war with France or in a truce
+			# with her is ONE terminal line - not a blocking box the player
+			# clicked through every turn at peace. The dismissal flow runs
+			# at once (mild dispatches, game over, reports, the dispatch,
+			# the control-return tail), exactly as if Continue were pressed.
+			if _enemy_phase_is_quiet_fog(response.enemy_phase):
+				_print_quiet_fog_lines(response.enemy_phase)
+				set_input_enabled(false)   # as the box does: the tail returns control
+				pending_enemy_phase_response = response
+				_on_enemy_phase_dismissed()
+				return
 			if DEBUG_VERBOSE:
 				print("ENEMY PHASE DETECTED - showing dialog")
 			# Close screens before showing modal (avoid stale screen behind dialog)
@@ -5838,7 +5904,13 @@ func _display_morning_dispatch(data: Dictionary):
 			# SF7-X48: the section's tier is the coalition's name (Brewing / Formed
 			# are the dangerous ones); the band names stay for an old payload.
 			var tier_color = Utils.COLOR_ERROR if tier in ["Brewing", "Formed", "CRITICAL", "HIGH"] else Utils.COLOR_BATTLE
-			add_output("[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]")
+			# S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): what moved the figure
+			# since yesterday's dawn - the backend's own sentence ("up 8 since
+			# yesterday (Won a battle +3, Won a decisive battle +5)"); absent
+			# where yesterday's figure is unknown, and the line reads as before.
+			var threat_delta_line = str(coalition_status.get("threat_delta_line", ""))
+			var threat_tail = (" — " + threat_delta_line) if threat_delta_line != "" else ""
+			add_output("[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "]" + threat_tail + "[/color]")
 			var brewing = coalition_status.get("brewing", null)
 			if brewing != null and brewing is Dictionary:
 				var brew_turns = int(brewing.get("turns_remaining", 0))
@@ -5855,10 +5927,12 @@ func _display_morning_dispatch(data: Dictionary):
 				add_output("[color=#" + Utils.COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
 			# SF-LB-3 (Score Finish Step 7b): the next league in one line; the
 			# rows and their prices live on the Dispatch (R) and the Balance of
-			# Europe tab (D).
+			# Europe tab (D). S14G-X76 (Pre-Deploy S14h part 2): the key in the
+			# focus-safe form every other card says ("D, or Alt+D while you type" -
+			# a bare D types into the line).
 			var league_line = str(coalition_status.get("league_line", ""))
 			if league_line != "":
-				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + league_line + " The Balance of Europe (D) names the price to keep each court out.[/color]")
+				add_output("[color=#" + Utils.COLOR_BATTLE + "]  " + league_line + " The Balance of Europe (D, or Alt+D while you type) names the price to keep each court out.[/color]")
 			add_output("")
 
 	# ═══ TODAY — the first morning's doors (LV-1, row EP F1) ═══
@@ -6802,6 +6876,31 @@ func _on_redemption_response(response):
 
 	_update_war_panel_visibility()
 	_return_control_to_player()
+
+
+func _enemy_phase_is_quiet_fog(phase) -> bool:
+	"""S14G-27: true for an enemy phase that is fog and nothing else (the
+	backend's `fog_only`: no visible action, no enemy victory) in which no
+	court it names is at war with France or in a truce with her
+	(`fog_war_courts` empty). Anything else - visible actions, a victory,
+	a war or truce court - keeps the blocking ENEMY PHASE box."""
+	if not (phase is Dictionary):
+		return false
+	if not bool(phase.get("fog_only", false)) or phase.has("enemy_victory"):
+		return false
+	var war_courts = phase.get("fog_war_courts", [])
+	return war_courts is Array and war_courts.is_empty()
+
+
+func _print_quiet_fog_lines(phase: Dictionary) -> void:
+	"""S14G-27: the quiet fog phase's one line, in the terminal's info colour
+	(the same sentence the box would have carried)."""
+	var lines = phase.get("fog_hidden_summary", [])
+	if not (lines is Array):
+		return
+	for line in lines:
+		if str(line).strip_edges() != "":
+			add_output("[color=#" + Utils.COLOR_INFO + "]" + str(line) + "[/color]")
 
 
 func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
@@ -8659,6 +8758,15 @@ func _on_map_region_clicked(region_name: String):
 	if region_panel.visible and region_panel.current_region() == region_name:
 		region_panel.close_panel()
 		return
+	# S14G-15 (Pre-Deploy S14h part 2, October 26, 2026): a tall reply
+	# raises the command window to its tallest until the next SEND, and a map
+	# click is not a send — the province panel opened above it was clamped to
+	# its 120-px floor with the march list below the fold. Opening the panel
+	# is the player turning from the reply to the map: the window goes back
+	# (`_end_reply`) first, so the panel is fitted against the window the
+	# player owns, not the raise. (A raise that arrives while the panel is
+	# open is region_panel's own dock-beside arm.)
+	_end_reply()
 	region_panel.show_region(region_name, map_area)
 	if map_area and map_area.has_method("set_selected_region"):
 		map_area.set_selected_region(region_name)

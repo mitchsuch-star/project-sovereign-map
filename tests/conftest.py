@@ -119,6 +119,7 @@ ENGINE_GROUP_MODULES = frozenset({
     "test_map_owner_fill",
     "test_nui2_the_fleet_rides_at_anchor",
     "test_nui_the_admiralty_on_the_map",
+    "test_s14h_p2_driven",                 # S14G-19: the label-click harness, headless
     "test_score_finish_step8",
     "test_sf7_s8_the_screen_says",
     "test_sf7_s9_the_frames",

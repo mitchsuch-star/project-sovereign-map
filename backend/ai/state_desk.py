@@ -1841,7 +1841,11 @@ def _obey_tail(world, name: str) -> str:
     me = _own(world, name)
     if me is not None and not getattr(me, "is_sovereign", False):
         text += " " + _answer_ability(world, name)
-    return text + " His card on the Generals screen (G) shows both."
+    # S14G-X78 (Pre-Deploy S14h part 2, October 26, 2026): "(G)" with no
+    # "press" before it - a bare G typed into the line is a "g"; the pointer
+    # is the one source (`counsel.surface_pointer`), with the while-typing form.
+    from backend.ai.counsel import surface_pointer as _surface_pointer
+    return text + f" His card on {_surface_pointer('marshals')} shows both."
 
 
 def _answer_morale(world, name: str) -> str:
@@ -2203,8 +2207,12 @@ def _answer_fleet(world) -> str:
     # DDB-60 (Pre-Deploy S13b part 4): asked what postures she can take,
     # Berthier named only the present one (the sea #6). Both, what each
     # does, and the order for each — the Admiralty's own numbers.
+    # S14G-X71 (Pre-Deploy S14h part 2, October 26, 2026): the pointer through
+    # the one source (`counsel.surface_pointer`) - the bare "press T" typed a "t"
+    # into the command line.
+    from backend.ai.counsel import surface_pointer as _surface_pointer
     line += (f" She keeps one of two postures, each an order of 1 action on "
-             f"THE ADMIRALTY (press T, then 7): Recall to home waters covers "
+             f"{_surface_pointer('admiralty')}: Recall to home waters covers "
              f"every crossing that touches our own coast; Blockade the enemy "
              f"closes an at-war court's ports where "
              f"our sail outmatches hers {naval.BLOCKADE_RATIO:g} to 1 — her trade "
@@ -2691,6 +2699,27 @@ def _answer_alarm_natural(world) -> str:
 
 # rules ─────────────────────────────────────────────────────────────────────
 
+def _fortify_rule_words(world) -> Tuple[int, int, str]:
+    """S14G-X164 (Pre-Deploy S14h part 2, October 26, 2026): the figures the
+    fortify rule quotes, read off the order's own sources - never literals.
+    `(price from NEUTRAL, price from DEFENSIVE, the growth words)`: the prices
+    through `tactical_executor.insist_terms` (the road `counsel._fortify_price_tail`
+    and `_execute_fortify` charge by - a NEUTRAL corps goes defensive first, so
+    it is two), the growth through `fortify_growth_words` for an ordinary
+    marshal (the tick's `FORTIFY_FRONT_LOAD` front-load, the rate, the cap)."""
+    from types import SimpleNamespace
+    from backend.commands.tactical_executor import fortify_growth_words, insist_terms
+    from backend.models.marshal import Stance
+    from backend.models.personality_modifiers import (
+        get_fortify_rate, get_instant_fortify_bonus, get_max_fortify_bonus)
+    neutral = int(insist_terms(world, SimpleNamespace(stance=Stance.NEUTRAL), "fortify")[0])
+    defensive = int(insist_terms(world, SimpleNamespace(stance=Stance.DEFENSIVE), "fortify")[0])
+    kit = "balanced"
+    growth = fortify_growth_words(get_instant_fortify_bonus(kit), get_fortify_rate(kit),
+                                  get_max_fortify_bonus(kit))
+    return neutral, defensive, growth
+
+
 def _rule_text(world, key: str, ap: bool) -> str:
     from backend.models import marshal as M
     player = world.player_nation
@@ -2717,9 +2746,15 @@ def _rule_text(world, key: str, ap: bool) -> str:
     pres = int(round(float(getattr(M.Marshal, "SOVEREIGN_PRESENCE_ATTACK", 0.10)) * 100))
     # S14D-X29: the laws answer quotes the live Arrears window (REFORMS_SPEC §2.3).
     from backend.game_logic.reforms import ARREARS_WINDOW_TURNS as _arrears_turns
+    # S14G-X164: "(1 action)" was the face value - a NEUTRAL corps goes
+    # defensive first, so the order is two - and "rises a little each turn" said
+    # nothing of the first dawn's front-load. The price and the schedule are
+    # the order's own (`_fortify_rule_words`).
+    fort_neutral, fort_defensive, fort_growth = _fortify_rule_words(world)
     T = {
-        "fortify": (f"Fortify digs the corps in where it stands ({cost('fortify')} action): its defence rises a little each turn "
-                    f"it holds, up to the marshal's ceiling, and it takes the defensive stance — attacks from the works "
+        "fortify": (f"Fortify digs the corps in where it stands ({_plural(fort_neutral, 'action')} from a neutral stance, "
+                    f"{_plural(fort_defensive, 'action')} from a defensive one): its defence rises {fort_growth} "
+                    f"(an ordinary marshal's figures; a marshal's own kit sets his ceiling), and it takes the defensive stance — attacks from the works "
                     f"are {def_pen}% weaker, and a fortified marshal refuses a march until he breaks camp. A counter-punch "
                     f"from the works is free."),
         "unfortify": "Unfortify breaks camp: the works are abandoned, the defence bonus lost, and the corps may march again. Cautious marshals break camp free.",
@@ -3489,6 +3524,26 @@ _VERB_RULE_KEY = {"fortify": "fortify", "unfortify": "unfortify", "drill": "dril
 _DONE_WHERE_HE_STANDS = frozenset({"fortify", "unfortify", "drill", "garrison", "defend", "hold"})
 
 
+def _from_stance_words(world, me, verb: str) -> str:
+    """S14G-X167 (Pre-Deploy S14h part 2, October 26, 2026): " from his neutral
+    stance" where the verb costs more than its table price BECAUSE of the stance
+    (a fortify from NEUTRAL, a defend from AGGRESSIVE - `insist_terms` carries
+    the note), else "". The what-if's header read "- 1 action" over a rule that
+    says two from neutral; the price and its reason are the order's own."""
+    if verb not in ("fortify", "defend"):
+        return ""
+    from backend.commands.tactical_executor import insist_terms
+    try:
+        _price, note = insist_terms(world, me, verb)
+    except Exception as exc:
+        report(exc, "state_desk._from_stance_words: insist_terms")
+        return ""
+    if not note:
+        return ""
+    stance = getattr(getattr(me, "stance", None), "value", "")
+    return f" from his {stance} stance" if stance else ""
+
+
 def _answer_what_if_verb(world, marshal_name: str, verb: str, place: str) -> str:
     """SFR-H9: "what happens if I order Davout to fortify in the Rhineland" —
     the state probe's verdict and price for that verb (the chips' reader),
@@ -3525,6 +3580,7 @@ def _answer_what_if_verb(world, marshal_name: str, verb: str, place: str) -> str
     else:
         ap = int(order_price(world, me, verb))
         price = "free" if ap == 0 else _plural(ap, "action")
+        price += _from_stance_words(world, me, verb)   # S14G-X167: "2 actions from his neutral stance"
         parts.append(f"{who} would {done} today{sire} — {price}.")
     key = _VERB_RULE_KEY.get(verb)
     if key:
@@ -3640,8 +3696,10 @@ def _answer_why_failed(world) -> str:
         last = getattr(world, "_last_order_reply", None) or {}
     line = str(last.get("line") or "")
     if not line:
-        return ("No order of yours is on record this session, Sire — the campaign log "
-                "(press L) keeps what has been done.")
+        # S14G-X71: the campaign log's pointer through the one source.
+        from backend.ai.counsel import surface_pointer as _surface_pointer
+        return ("No order of yours is on record this session, Sire — "
+                f"{_surface_pointer('log')} keeps what has been done.")
     message = str(last.get("message") or "").strip()
     when = "" if int(last.get("turn", -1)) == int(world.current_turn) else " (an earlier day's)"
     if last.get("question"):
@@ -3732,7 +3790,9 @@ def _answer_trust_all(world) -> str:
     line = "Their trust, Sire: " + "; ".join(f"{n} {v}" + (f" ({lab})" if lab else "") for v, n, lab in rows) + "."
     if low:
         line += f" Below 40, {_join(low)} may object to an order and defy it."
-    return line + " Each card on the Generals screen (G) shows why."
+    # S14G-X78: the Generals pointer, with its while-typing form (see `_obey_tail`).
+    from backend.ai.counsel import surface_pointer as _surface_pointer
+    return line + f" Each card on {_surface_pointer('marshals')} shows why."
 
 
 def _answer_vassal_candidates(world) -> str:

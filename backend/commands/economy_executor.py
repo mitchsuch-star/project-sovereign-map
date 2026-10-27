@@ -692,18 +692,95 @@ def recruit_remedy(world, nation: Optional[str] = None) -> str:
     return text
 
 
+def _arm_men(world, nation: str, arm: str) -> Tuple[List, List]:
+    """S14G-18 (Pre-Deploy S14h part 2, October 26, 2026): `(own, client)` —
+    the living, free marshals of `nation` who command `arm`, split by the ONE
+    predicate the levy selector already uses (`contingent.levy_passes_over`,
+    SF5-RV1): `own` are corps the lord's levy can fill, `client` are a
+    serving contingent's men (the satellite raises and pays them). Measured
+    before: `recruit_arm_remedy` and `named_arm_refusal` built their list
+    straight from `world.marshals`, so a refusal named Holland's Dumonceau —
+    'march him within reach, or give him the order yourself' — and the named
+    order then ran into `contingent.lord_fill_refusal`."""
+    from backend.game_logic.contingent import levy_passes_over
+    own, client = [], []
+    for m in world.marshals.values():
+        if (m.nation == nation and m.strength > 0
+                and not getattr(m, "captured_by", "")
+                and recruit_arm_of(m) == arm):
+            (client if levy_passes_over(world, m) else own).append(m)
+    return own, client
+
+
+def _in_levy_reach(world, marshal, region_name: Optional[str]) -> bool:
+    """S14G-18: the selector's own reach test (`ready_marshals_near`: a corps
+    of 1,000 or more within its movement range of the province)."""
+    if not region_name or marshal.strength < 1000:
+        return False
+    try:
+        d = world.get_distance(marshal.location, region_name)
+    except Exception as exc:
+        report(exc, "economy_executor._in_levy_reach: world.get_distance")
+        return False
+    return d is not None and 0 <= d <= marshal.movement_range
+
+
+def _client_court(world, marshal) -> str:
+    """S14G-18: the court that pays a contingent's men, as the prose names it
+    ("Holland"); '' where the marshal commands no serving contingent."""
+    from backend.display_names import display_nation, with_definite_article
+    from backend.game_logic.contingent import contingent_of
+    vassal = contingent_of(world, marshal)
+    return with_definite_article(display_nation(vassal)) if vassal else ""
+
+
+def contingent_arm_clause(world, nation: str, arm: str,
+                          region_name: Optional[str], *,
+                          own_corps: bool) -> str:
+    """S14G-18: the blocked reason, in one sentence, when the man of `arm`
+    who stands within reach of `region_name` is a serving contingent's —
+    "Dumonceau commands our foot here, but Holland pays its men — recruit
+    into one of our own corps." ('' when no such man is in reach). Built ONCE
+    here; the refusal ("No marshal of infantry can reach …"), the quote's
+    `remedy` (the region chip's words) and the desk's levy answers all read
+    it through `recruit_arm_remedy`. `own_corps` False (no corps of ours
+    commands the arm) drops the tail: the commission road follows instead."""
+    noun = _ARM_NOUN.get(arm, arm)
+    men = sorted((m for m in _arm_men(world, nation, arm)[1]
+                  if _in_levy_reach(world, m, region_name)),
+                 key=lambda m: m.name)
+    if not men:
+        return ""
+    parts = []
+    for m in men:
+        where = "here" if m.location == region_name else f"at {m.location}"
+        parts.append(f"{m.name} commands our {noun} {where}, but "
+                     f"{_client_court(world, m)} pays its men")
+    tail = " — recruit into one of our own corps" if own_corps else ""
+    return "; ".join(parts) + tail + "."
+
+
 def recruit_arm_remedy(world, nation: str, arm: str,
                        region_name: Optional[str] = None) -> str:
     """CN-2: the way to an arm nobody in range commands — DERIVED from the
     board, never written in (the memo's R2 item 9). The NEAREST commander of
     that arm who serves is named with the order that reaches him; failing
     that, the cheapest candidate of that arm on the commission bench, with
-    his price; failing that, the plain fact."""
+    his price; failing that, the plain fact.
+
+    S14G-18 (Pre-Deploy S14h part 2, October 26, 2026): a serving
+    contingent's man is NOT a commander the lord's levy can reach (the
+    selector passes over him - `levy_passes_over`) - he is dropped from the
+    nearest-commander list and, where he stands within reach of the
+    province, named with why (`contingent_arm_clause`) ahead of the way on;
+    a corps of ours already AT the province is not told to be marched
+    'within reach'."""
     noun = _ARM_NOUN.get(arm, arm)
-    serving = [m for m in world.marshals.values()
-               if m.nation == nation and m.strength > 0
-               and not getattr(m, "captured_by", "")
-               and recruit_arm_of(m) == arm]
+    serving, _client = _arm_men(world, nation, arm)
+    blocked = contingent_arm_clause(world, nation, arm, region_name,
+                                    own_corps=bool(serving))
+    lead = f"{blocked} " if blocked else ""
+    of_ours = " of our own" if blocked and not serving else ""
     if serving:
         def _near(m):
             try:
@@ -722,13 +799,21 @@ def recruit_arm_remedy(world, nation: str, arm: str,
         # recruit infantry'" — Massena stands on Milan, Kingdom of Italy's
         # soil, and that order is refused ("We do not control Milan").
         his_ground = world.get_region(man.location)
+        levies_there = (his_ground is not None
+                        and recruit_location_gate(his_ground, nation) is None)
+        if region_name and man.location == region_name:
+            # S14G-18: he stands AT the province already (too weak for the
+            # selector, or the arm's pick passed over him) - 'march him
+            # within reach' meant nothing; only his own order remains.
+            named = (f" — give him the order yourself: "
+                     f"'{man.name}, recruit {arm}'" if levies_there else "")
+            return lead + f"{man.name} commands our {noun} here{named}."
         order = ""
-        if (his_ground is not None
-                and recruit_location_gate(his_ground, nation) is None):
+        if levies_there:
             order = (f", or give him the order yourself: "
                      f"'{man.name}, recruit {arm}'")
-        return (f"{man.name} commands our {noun} at {man.location} — march "
-                f"him within reach{order}.")
+        return lead + (f"{man.name} commands our {noun} at {man.location} — "
+                       f"march him within reach{order}.")
     from backend.game_logic.recruitment import candidate_arm, get_marshal_pool
     bench = [c for c in get_marshal_pool(world, nation)
              if candidate_arm(c) == arm and c.get("name")
@@ -737,10 +822,11 @@ def recruit_arm_remedy(world, nation: str, arm: str,
         bench.sort(key=lambda c: (int(c.get("cost", 0) or 0),
                                   str(c.get("name"))))
         cand = bench[0]
-        return (f"No commander of {noun} serves us — commission "
-                f"{cand['name']} ({int(cand.get('cost', 0) or 0)}g) and he "
-                f"raises a corps of {noun}.")
-    return f"No commander of {noun} serves us, and none waits on the bench."
+        return lead + (f"No commander of {noun}{of_ours} serves us — commission "
+                       f"{cand['name']} ({int(cand.get('cost', 0) or 0)}g) and he "
+                       f"raises a corps of {noun}.")
+    return lead + (f"No commander of {noun}{of_ours} serves us, and none "
+                   f"waits on the bench.")
 
 
 def named_arm_refusal(world, marshal, arm: str) -> str:
@@ -755,10 +841,11 @@ def named_arm_refusal(world, marshal, arm: str) -> str:
     his = recruit_arm_of(marshal)
     his_noun, noun = _ARM_NOUN.get(his, his), _ARM_NOUN.get(arm, arm)
     article = "an" if arm[:1] in "aeiou" else "a"
-    serving = [m for m in world.marshals.values()
-               if m.nation == marshal.nation and m.strength > 0
-               and not getattr(m, "captured_by", "")
-               and recruit_arm_of(m) == arm]
+    # S14G-18 (Pre-Deploy S14h part 2, October 26, 2026): a serving
+    # contingent's man is no road to the arm - his satellite raises and pays
+    # his men (`levy_passes_over`, the selector's own predicate) - so he is
+    # never the corps this refusal sends the player to.
+    serving, client = _arm_men(world, marshal.nation, arm)
     if serving:
         def _near(m):
             try:
@@ -783,6 +870,11 @@ def named_arm_refusal(world, marshal, arm: str) -> str:
         road = (f"commission {bench[0]['name']} "
                 f"({int(bench[0].get('cost', 0) or 0):,}g)" if bench else
                 "none serves us, and none waits on the bench")
+        if client:
+            # S14G-18: say why the man who commands the arm is not the road.
+            lent = min(client, key=lambda m: m.name)
+            road = (f"{lent.name} commands ours at {lent.location}, but "
+                    f"{_client_court(world, lent)} pays his men — " + road)
     return (f"{marshal.name} commands {his} — '{marshal.name}, recruit' raises "
             f"{his_noun} for him; {noun} are raised by {article} {arm} corps — "
             f"{road}. Nothing was spent.")
@@ -794,9 +886,18 @@ def _msg_no_arm_in_range(world, nation: str, arm: str,
     range and what he commands, name the remedy, and spend nothing. Never a
     silent substitution."""
     where = f" {location}" if location else " the depot"
+    # S14G-18 (Pre-Deploy S14h part 2, October 26, 2026): where the only man
+    # of this arm within reach is a serving contingent's, 'none of ours
+    # stands within reach' was followed by 'Dumonceau commands our foot at
+    # Normandy' - the remedy (`recruit_arm_remedy`) now says why he is not
+    # the recipient, and this clause says 'none of our own corps'.
+    nobody = ("none of our own corps stands within reach"
+              if contingent_arm_clause(world, nation, arm, location,
+                                       own_corps=True)
+              else "none of ours stands within reach")
     shown = (", ".join(f"{m.name} commands {recruit_arm_of(m)}"
                        for m, _d in ready[:3])
-             or "none of ours stands within reach")
+             or nobody)
     return (f"Berthier checks the order of battle. 'No marshal of {arm} can "
             f"reach{where}, Sire — {shown}.' "
             f"{recruit_arm_remedy(world, nation, arm, location)}"
@@ -1903,10 +2004,15 @@ class EconomyExecutor:
         elif new_morale < MORALE_FAILING_BELOW:
             # DDB-39 (Pre-Deploy S13b part 2): "dropped" only when it fell —
             # "Morale dropped to 26%" followed "Morale: 21% -> 26%".
+            # S14G-X142 (Pre-Deploy S14h part 2, October 26, 2026): and the
+            # advice is gated on the verb's own predicate - "consider drilling
+            # before battle" was said to a corps that cannot drill (an enemy
+            # one province off, fortified, in retreat recovery).
+            _advice = drill_advice_or_reason(world, marshal, "consider drilling before battle.")
             if new_morale < old_morale:
-                morale_warning = f" [WARNING] Morale dropped to {new_morale}% — consider drilling before battle."
+                morale_warning = f" [WARNING] Morale dropped to {new_morale}% — {_advice}"
             else:
-                morale_warning = f" [WARNING] Morale is still low at {new_morale}% — consider drilling before battle."
+                morale_warning = f" [WARNING] Morale is still low at {new_morale}% — {_advice}"
 
         # Log recruitment event
         world.log_event({
@@ -2288,10 +2394,13 @@ class EconomyExecutor:
         from backend.game_logic.combat import FORCED_RETREAT_THRESHOLD
         rout_line = int(marshal.get_rout_threshold(FORCED_RETREAT_THRESHOLD))
         if new_morale <= rout_line:
+            # S14G-X143: the same gate - "Drill them before you march" is
+            # said only where the drill would begin.
+            _drill_words = drill_advice_or_reason(world, marshal, "Drill them before you march.")
             rout_note = (
                 f" ⚠ Berthier: \"At {new_morale}% he stands ON his own "
                 f"breaking line ({rout_line}%), Sire — one reverse and the "
-                f"corps routs. Drill them before you march.\"")
+                f"corps routs. {_drill_words[0].upper() + _drill_words[1:]}\"")
         world.log_event({
             "type": "substitutes_purchased",
             "turn": int(world.current_turn),
@@ -3496,6 +3605,53 @@ def _levy_pricer() -> 'EconomyExecutor':
     return _LEVY_PRICER
 
 
+def drill_advice_or_reason(world, marshal, open_words: str) -> str:
+    """S14G-X142 / X30.3 (Pre-Deploy S14h part 2, October 26, 2026): the
+    receipt's "consider drilling before battle" / "Drill them before you
+    march" were built without `tactical_executor.drill_refusal` - a corps one
+    province from the enemy, fortified or in retreat recovery was told to
+    drill. Reads the predicate as `dispatch._drill_advice_tail` does (its
+    `_drill_closed_reason`: the stance/fortify/enemy gates, a broken or
+    recovering corps) and returns `open_words` only where the drill would
+    begin; else the reason, in the dawn line's voice with its first letter
+    lowered to follow the dash ("drill is closed: Mack stands here."), or
+    "he is drilling already." for a corps at it."""
+    if marshal is None:
+        return open_words
+    if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+        return "he is drilling already."
+    try:
+        from backend.game_logic.dispatch import _drill_closed_reason
+        closed = _drill_closed_reason(world, marshal)
+    except Exception as exc:
+        report(exc, "economy_executor.drill_advice_or_reason: dispatch._drill_closed_reason")
+        return open_words
+    if not closed:
+        return open_words
+    return closed[0].lower() + closed[1:]
+
+
+def _levy_capital_quote(world, nation: str, capital, recipient) -> dict:
+    """S14G-M4: the capital's infantry levy as `recruit_quote` reads it - ints
+    and the recipient's name only (this rides the ledger payload to Godot).
+    `{}` when there is no recipient in reach or the quote cannot be read;
+    `ok` False (with the reason's kind) when the order would be refused - the
+    headline then falls back to the ordinance's own figures."""
+    if not capital or not recipient or nation != world.player_nation:
+        return {}
+    try:
+        quote = recruit_quote(world, capital, "infantry", nation)
+    except Exception as exc:
+        report(exc, "economy_executor._levy_capital_quote: recruit_quote")
+        return {}
+    return {"ok": bool(quote.get("ok")), "kind": str(quote.get("kind") or ""),
+            "amount": int(quote.get("amount") or 0),
+            "price": int(quote.get("price") or 0),
+            "recipient": str(quote.get("recipient") or ""),
+            "distance": int(quote.get("distance") or 0),
+            "field_capped": bool(quote.get("field_capped"))}
+
+
 def get_levy_status(world, nation: str = None) -> dict:
     """Establishment headroom, the live infantry price, and the pool.
 
@@ -3545,6 +3701,13 @@ def get_levy_status(world, nation: str = None) -> dict:
                    and recipient)
     status = {
         "recipient_in_range": bool(recipient),
+        # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026): WHO would raise
+        # the capital's levy and how far he stands from it - "24,382 men
+        # waiting at Paris - nobody has gone to collect them" named the
+        # headroom as men and said nobody had come while `open` already
+        # required a recipient. "" / 0 with none in reach.
+        "recipient_name": str(recipient[0].name) if recipient else "",
+        "recipient_distance": int(recipient[1]) if recipient else 0,
         "force_limit": int(limit),
         "army_strength": int(total),
         # Positive only on ONE side each — the two are never both non-zero,
@@ -3609,6 +3772,24 @@ def get_levy_status(world, nation: str = None) -> dict:
                 else RECRUIT_GATE_NOT_CONTROLLED)
         status["open"] = bool(is_open and gate is None)
         status["capital_held"] = bool(region is not None and region.controller == nation)
+        # S14G-M4: and the order the headline names, as the executor would
+        # take it - the capital's own quote (`recruit_quote`, the figures the
+        # reply charges: the men after the field cap, the gold), so the
+        # briefing quotes the levy it advertises and not the ordinance's
+        # 10,000 at the base price. Player only (the recipient search is).
+        status["capital_quote"] = _levy_capital_quote(world, nation, capital, recipient)
+        # S14G-X163: and the figures every surface that reads this status
+        # prints as the levy - the Strategic Ledger's "The depots are open: N
+        # foot for Pg" (strategic_ledger.gd), the dispatch, the counsel - are
+        # the order's own where the executor would take it. The ordinance's
+        # headline price (`_calculate_recruit_cost` with no corps) omitted the
+        # war term the order charges: the ledger advertised 450g beside the
+        # 518g the same "recruit infantry in Paris" cost. Unchanged (the
+        # headline's own figures) where the order would be refused.
+        _cq = status["capital_quote"]
+        if _cq.get("ok"):
+            status["infantry_price"] = int(_cq["price"])
+            status["infantry_amount"] = int(_cq["amount"])
         reason = ""
         if gate is not None:
             reason = depot_closed_reason(world, capital or "the capital", region, gate)

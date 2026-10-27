@@ -714,18 +714,28 @@ def plot_route(world, marshal, destination: str, *, use_weighted: bool,
     pathfinder = world.find_weighted_path if use_weighted else world.find_path
     player = marshal.nation == world.player_nation
     _pf = marshal.nation if player else None
+    # S14G-33 / S14G-X159 (Pre-Deploy S14h part 2, October 26, 2026): EVERY
+    # rung names the corps's nation as the MOVER, the AI's omniscient road
+    # (`_pf` None) and the player's terrain-only fallback included, so a TIE
+    # between roads of one length goes to own or allied soil
+    # (`WorldState.foreign_soil_edge_cost`, the one seam) on both sides - the
+    # PF-8 lawful filter (`passable_for`) stays the player's alone. Held down
+    # (the seam at 0.0) every road is today's, byte for byte.
+    _mover = marshal.nation
     avoid = list(avoid_regions or [])
     path = None
     if avoid:
         path = pathfinder(marshal.location, destination,
-                          avoid_regions=avoid, passable_for=_pf)
+                          avoid_regions=avoid, passable_for=_pf, mover_nation=_mover)
     if not path and not avoid_is_law:
-        path = pathfinder(marshal.location, destination, passable_for=_pf)
+        path = pathfinder(marshal.location, destination, passable_for=_pf,
+                          mover_nation=_mover)
     if not path and _pf:
         if avoid_is_law:
-            path = pathfinder(marshal.location, destination, avoid_regions=avoid)
+            path = pathfinder(marshal.location, destination, avoid_regions=avoid,
+                              mover_nation=_mover)
         else:
-            path = pathfinder(marshal.location, destination)
+            path = pathfinder(marshal.location, destination, mover_nation=_mover)
     if not path:
         return None, None
     road = [r for r in path if r != marshal.location]
@@ -903,12 +913,15 @@ def march_roads(world, marshal, strategic_type: str = "MOVE_TO"):
         avoid = list(enemy_occupied_regions(world, marshal.nation, marshal=marshal) or [])
     # `plot_route`'s ladder (avoid_is_law False): avoid + lawful → lawful →
     # terrain-only; the first rung that reaches a province gives its road.
+    # S14G-X159: `plot_route`'s mover on every rung (the same tie rule).
+    mover = marshal.nation
     rungs = []
     if avoid:
-        rungs.append(world.weighted_paths_from(here, avoid_regions=avoid, passable_for=pf))
-    rungs.append(world.weighted_paths_from(here, passable_for=pf))
+        rungs.append(world.weighted_paths_from(here, avoid_regions=avoid, passable_for=pf,
+                                               mover_nation=mover))
+    rungs.append(world.weighted_paths_from(here, passable_for=pf, mover_nation=mover))
     if pf:
-        rungs.append(world.weighted_paths_from(here))
+        rungs.append(world.weighted_paths_from(here, mover_nation=mover))
     # The closed-frontier check's lawful search (`passable_for` = his nation):
     # the lawful rung itself for the player; never asked for anyone else.
     lawful = {"roads": rungs[-2] if pf else None}

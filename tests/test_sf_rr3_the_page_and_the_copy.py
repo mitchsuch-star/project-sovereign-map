@@ -760,7 +760,12 @@ class TestSFRB15TheRemedyIsNamed:
     def test_the_line_names_the_court_and_its_chips(self):
         line = DS._vassal_unrest_line(dict(self.VARS))
         assert line.startswith("Talleyrand reports unrest in the Kingdom of Italy (loyalty 32). Invest"), line
-        assert "Loosen Rein" in line and "the Diplomatic Ledger's Vassals tab (press D, then 6)" in line
+        # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the pointer
+        # carries the while-typing form (`counsel.key_hint`) - the bare "press D"
+        # typed a letter into the command line.
+        assert "Loosen Rein" in line
+        assert ("the Diplomatic Ledger's Vassals tab "
+                "(press D, then 6; Alt+D, then Alt+6 while you type)") in line
 
     def test_seam_down_prints_the_tag(self, monkeypatch):
         monkeypatch.setattr(DS, "_vassal_unrest_line", lambda v: f"Talleyrand reports unrest in {v['nation']}.")

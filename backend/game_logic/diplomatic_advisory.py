@@ -229,6 +229,16 @@ def _shore_up_counsel(world, player: str, ally: str) -> Dict:
     elif kind == "busy":
         shut = (f"{label} waits on his errand — recall Talleyrand from "
                 f"{lever['away_name']} first (the Cabinet's Recall is free).")
+        # S14G-X130 (Pre-Deploy S14h part 2, October 26, 2026): the war room's
+        # sentence named the remedy and not the trade (S14G-28 priced it on the
+        # Cabinet's counsel - `_slide_counsel` - and left this sibling bare):
+        # "recalling forfeits Austria's remaining courtship (+8 a turn, 9
+        # turns); left alone it slides 1 a turn and the alliance lapses in
+        # about 31 turns". The lever carries the trade (`diplomacy.slot_trade`,
+        # the one builder); the unnamed clock - the lead has said who.
+        trade = ((lever.get("trade") or {}).get("line_short") or "")
+        if trade:
+            shut += f" {trade}"
     elif kind == "amends":
         shut = (f"{lever['amends_name']} is open in the Cabinet; {label} is shut "
                 f"for now.")

@@ -78,6 +78,7 @@ from backend.game_logic.settlement_routes import (
     _error_display,
     _reopen_target,
     _safe_reopen_response,
+    dialogue_war_label,
     derive_settlement_review_target,
     mint_settlement_route_id,
 )
@@ -1543,7 +1544,7 @@ def ratify_settlement_confirm(
             error=error,
             talleyrand_text=resolve_settlement_voice_line(
                 "settlement_rescored_after_staging_talleyrand",
-                war_label=str(dialogue.get("war_label") or war_id),
+                war_label=dialogue_war_label(world, dialogue, war_id),   # S14G-X122
                 acceptance_band=band_display,
                 top_blocker=top_blocker,
             ),
@@ -1601,7 +1602,7 @@ def ratify_settlement_confirm(
                 "talleyrand_text": (
                     resolve_settlement_voice_line(
                         "settlement_multi_court_holdout_blocks_talleyrand",
-                        war_label=str(dialogue.get("war_label") or war_id),
+                        war_label=dialogue_war_label(world, dialogue, war_id),   # S14G-X122
                         holdout_court=holdout_label,
                     )
                     or (
@@ -1885,8 +1886,13 @@ def ratify_settlement_confirm(
         from backend.game_logic.settlement_offers import consume_offer_by_id
         consume_offer_by_id(world, offer_id=_consent_offer_id, war_id=war_id)
 
+    # S14G-X122 (Pre-Deploy S14h part 2, October 26, 2026): the record names the war by
+    # its label (the table's, else the sides'), else "this war" - never the raw war id.
+    # (The war has just been cleaned up, so the helper's title lookup is the last resort.)
+    ratified_war_label = (dialogue.get("war_label") or pre_cleanup_war_label
+                          or dialogue_war_label(world, dialogue, war_id))
     result_message = (
-        f"Settlement Ratified: {dialogue.get('war_label') or pre_cleanup_war_label or war_id} "
+        f"Settlement Ratified: {ratified_war_label} "
         f"({len(resolved_pairs)} pair{'s' if len(resolved_pairs) != 1 else ''} resolved)."
     )
     if _sq_lines:
@@ -1944,7 +1950,7 @@ def ratify_settlement_confirm(
         "settlement_reactions": reaction_summary,
         "settlement_result_feedback": {
             "title": "Settlement Ratified",
-            "war_label": dialogue.get("war_label") or pre_cleanup_war_label or war_id,
+            "war_label": ratified_war_label,
             "resolved_pair_count": len(resolved_pairs),
             "review_target": "ledger_settlements",
             "route_id": review_route_id,

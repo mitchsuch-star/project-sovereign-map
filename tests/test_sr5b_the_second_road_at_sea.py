@@ -319,7 +319,12 @@ class TestTheLevers:
         msg = reply.get("message") or ""
         expected = N.levers_line(N.expedition_odds_levers(
             board, "France", "Munster", 12000))
-        assert expected and f" {expected}. Sail? (yes / no)" in msg, msg
+        # S14G-31 / S14G-X138 (Pre-Deploy S14h part 2, October 26, 2026): the
+        # prize ("If it lands: ...") and the price ("Sailing costs 2 AP.") now
+        # stand between the levers and the question; the levers still lead the
+        # card's advice and the card still ends on the question.
+        assert expected and f" {expected}. " in msg, msg
+        assert msg.rstrip().endswith("Sail? (yes / no)"), msg
 
     def test_the_admiralty_land_chips_name_the_levers(self):
         w = _boot()

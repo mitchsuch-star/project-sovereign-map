@@ -116,6 +116,29 @@ def _war_label(war_id: str, war_instance: Mapping[str, Any], world: Any = None) 
     return war_id or "Settlement"
 
 
+def dialogue_war_label(world: Any, dialogue: Mapping[str, Any], war_id: str) -> str:
+    """S14G-X120 / X26.4 (Pre-Deploy S14h part 2, October 26, 2026): the war a
+    Talleyrand line or a settlement record names, as a DISPLAY label - ONE
+    reader for the whole settlement package. The dialogue's (or event's) own
+    `war_label` when it carries one; else the war titled as the war card titles
+    it (`war_title.settlement_war_label` - "the War for Bohemia - Britain +
+    Austria"); else "this war". Never the raw war id ("war_1"): the lines used
+    to fall to it at eleven sites in the package. `world` may be
+    None (a caller that holds none - the aftermath digest - reads "this war"
+    where the dialogue names nothing), and a war the world no longer holds
+    (ended, archived, an id from nowhere) has no title to read."""
+    label = str((dialogue or {}).get("war_label") or "")
+    if label:
+        return label
+    instances = getattr(world, "war_instances", None) or {}
+    if war_id and str(war_id) in instances:
+        from backend.game_logic.war_title import settlement_war_label
+        titled = settlement_war_label(world, str(war_id))
+        if titled:
+            return titled
+    return "this war"
+
+
 def _reopen_target(war_id: str, dialogue: Mapping[str, Any]) -> Dict[str, Any]:
     preview = dialogue.get("settlement_preview") or {}
     covered = list(dialogue.get("covered_enemy_participants") or preview.get("covered_enemy_participants") or [])

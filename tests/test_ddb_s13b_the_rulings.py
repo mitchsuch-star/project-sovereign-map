@@ -1503,7 +1503,10 @@ class TestDDBX6:
         assert rows[0]["priority"] == int(NotificationPriority.HIGH)
         assert rows[0]["expires_after_turn"] == int(w.current_turn)
         assert "outmatches ours 1.25 to 1" in rows[0]["message"]
-        assert "THE ADMIRALTY (press T, then 7) — the Blockade Board." in rows[0]["message"]
+        # S14G-X151 (Pre-Deploy S14h part 2, October 26, 2026): the pointer is
+        # the focus-safe key sentence (`counsel.key_hint`), not the bare "press T".
+        assert ("THE ADMIRALTY (press T, then 7; Alt+T, then Alt+7 while you type) "
+                "— the Blockade Board.") in rows[0]["message"]
 
     def test_a_standing_blockade_says_nothing_new(self, w):
         _naval_tick(w)

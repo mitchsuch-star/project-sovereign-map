@@ -5470,14 +5470,23 @@ class TestS14E15:
         empty = {"roads": [], "by_province": {}, "by_court": {}, "completing": []}
         # the boot: nothing held (and the Italy watcher stands at 2 of 5 —
         # a Class T dream is the client's own climb, never a road note)
-        assert road_notes(w) == empty
-        assert road_note_for(w, "Munster") == ""
+        # S14G-31 (Pre-Deploy S14h part 2, October 26, 2026): nothing held
+        # with the war running is a PROSPECT - a first landing's pointer on the
+        # carve's two shores (`tests/test_s14h_p2_row31.py`) - and still no
+        # BEGUN road: the begun-road sinks, the war card and the peace lines
+        # add nothing.
+        boot = road_notes(w)
+        assert [r["tag"] for r in boot["prospects"]] == ["Ireland"]
+        assert {k: v for k, v in boot.items() if k not in ("prospects", "by_province")} == {
+            k: v for k, v in empty.items() if k != "by_province"}
+        assert set(boot["by_province"]) == {"Munster", "Ulster"}
+        assert road_note_for(w, "Munster").startswith("Munster is half of the Ireland carve")
         assert road_peace_lines(w, ["Britain"], [{"type": "peace"}]) == []
         assert _held_line(w, "France", ["Britain"]) == ""
-        assert not any("road_note" in row
-                       for row in _r15_summary(w)["map_data"].values())
-        assert not any("Ireland" in n for n in
-                       naval.build_admiralty_report(w).get("expedition_notes", []))
+        assert {n for n, row in _r15_summary(w)["map_data"].items()
+                if "road_note" in row} == {"Munster", "Ulster"}
+        assert any("Ireland carve" in n for n in
+                   naval.build_admiralty_report(w).get("expedition_notes", []))
         # both provinces held at war: the carve is AVAILABLE — the table's
         # Erect row and the page carry it; nothing is "partly met", so the
         # points of action (the panels, the Admiralty, the capture reply)
@@ -5490,7 +5499,10 @@ class TestS14E15:
         assert road_note_for(w, "Munster") == ""
         # nothing held but the war running: not begun
         _r15_hold(w, "Munster", "Ulster", nation="Britain")
-        assert road_notes(w) == empty
+        again = road_notes(w)
+        assert {k: v for k, v in again.items() if k not in ("prospects", "by_province")} == {
+            k: v for k, v in empty.items() if k != "by_province"}
+        assert [r["tag"] for r in again["prospects"]] == ["Ireland"]   # S14G-31: a prospect, not a road
 
     def test_the_notes_are_the_players_alone(self, _r15_world):
         """An AI court holding Munster at war with Britain begins no road of
@@ -6605,13 +6617,16 @@ class TestS14E28:
         assert _r28_lines(zero) == ["Offer: Gold payment - 0"]
 
     def test_the_struck_lines_of_a_counter_keep_their_words(self):
-        """S14D-X13's struck lines are a diff of the draft, not a letter's terms."""
+        """S14D-X13's struck lines are a diff of the draft, not a letter's terms.
+        S14G-X111 (Pre-Deploy S14h part 2) flips the struck gold line's words:
+        it names its payer ("Struck offer: Gold payment - 50" -> "you pay 50 gold
+        at the signing"); the line is still the diff's own, marked "Struck"."""
         from backend.display_names import counter_offer_clause_lines
         original = _r28_terms(sweeteners=[{"type": "gold_lump", "value": 50}], proposer="France",
                               target="Saxony", ptype="alliance")
         counter = _r28_terms(ptype="alliance", proposer="France", target="Saxony")
         assert counter_offer_clause_lines(original, counter, viewer="France") == [
-            "Proposal: Full Alliance", "Struck offer: Gold payment - 50"]
+            "Proposal: Full Alliance", "Struck offer: you pay 50 gold at the signing"]
         kept = counter_offer_clause_lines(original, original, viewer="France")
         assert kept == ["You pay Saxony 50 gold at the signing"]
 
@@ -10143,7 +10158,14 @@ class TestS14E34:
         rows = _r34_rows(w, "Austria")
         row = rows["mission_gather_intel"]
         assert row["available"] is False
-        assert row["disabled_reason_display"] == "Talleyrand is at Prussia's court — F1 → Prussia → Cancel"
+        # S14G-28 (Pre-Deploy S14h part 2) flips this pin consciously: the words
+        # stay the head of the display reason and now end with the click's
+        # price - what the recall forfeits ("Recalling forfeits Prussia's
+        # remaining courtship (+8 a turn, N turns).") - the old exact-equality
+        # assertion read the sentence with the trade not yet priced.
+        assert row["disabled_reason_display"].startswith(
+            "Talleyrand is at Prussia's court — F1 → Prussia → Cancel")
+        assert "Recalling forfeits Prussia's remaining courtship (+8 a turn, " in row["disabled_reason_display"]
         assert row["disabled_reason"] == "Mission already active", "the machine reason stays"
 
     def test_the_busy_words_stand_in_the_client_tooltip_chain(self):
@@ -10868,8 +10890,15 @@ class TestS14EX109:
 
 _R17_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client"
                  / "project-sovereign" / "assets" / "maps" / "europe_1805.json")
-_R17_LINE = ("The band weighs a force of his you have not scouted within reach "
-             "of Tyrol — scout the provinces round it.")
+# S14G-14 / S14G-D4 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED the line:
+# it names the unscouted provinces round the battle ("scout Carniola.") and a
+# second line gives the band on the men in view alone. The old words ("within
+# reach of Tyrol - scout the provinces round it.") stand only where no province
+# can be named (pinned in tests/test_s14h_p2_row14.py).
+_R17_LINE = ("The band weighs a force of his you have not scouted — "
+             "scout Carniola.")
+_R17_IN_VIEW_RE = (r"On the men in view alone the odds read '(?:favorable|even|unfavorable)' "
+                   r"\((?:about )?[\d,]+ against (?:a substantial force|a large force|[\d,]+ men)\)\.")
 
 
 def _r17_quiet():
@@ -10952,9 +10981,12 @@ class TestS14E17:
         note = pv["target"]["unscouted_note"]
         assert note == _R17_LINE
         assert not re.search(r"\d", note)                      # no figure
-        for name in ("Charles", "Archduke", "corps", "Austria", "Carniola"):
+        # S14G-14 / S14G-D4 FLIPPED: the note now NAMES the unscouted province
+        # round the battle (public adjacency - "scout Carniola.") where it
+        # named only the ground ("Tyrol"); it still names no man and no size.
+        for name in ("Charles", "Archduke", "corps", "Austria", "Tyrol"):
             assert name not in note
-        assert "Tyrol" in note                                 # it names the ground, only
+        assert "Carniola" in note
 
     def test_it_rides_the_interrupt(self, _r17_w):
         r = _r17_attack(_r17_w)
@@ -11048,7 +11080,10 @@ class TestS14EX74:
     def test_the_staffs_addendum_names_the_gap_after_the_word_on_the_band(self, _r17_w):
         note = self._note(_r17_w)
         assert "weighed together, the balance of force looks unfavorable." in note, note
-        assert note.endswith(f" {_R17_LINE}"), note
+        # S14G-14 / S14G-D4 FLIPPED: the named-province note, then the second
+        # line (the odds on the men in view alone) ends the addendum.
+        assert re.search(
+            re.escape(f" {_R17_LINE} ") + _R17_IN_VIEW_RE + r"$", note), note
 
     def test_a_scouted_defender_muster_keeps_the_addendum_as_it_was(self, _r17_w):
         from backend.models.intel import PARTIAL
@@ -11531,7 +11566,11 @@ class TestS14EX75:
     def test_the_beat_names_the_gap_after_the_odds(self, _r17_w):
         message = self._held(_r17_w)
         assert "the odds held him — 1 to " in message
-        assert message.endswith(f"his orders are unchanged. {_R17_LINE}"), message
+        # S14G-14 / S14G-D4 FLIPPED: the named-province note, then the second
+        # line (the odds on the men in view alone), end the beat.
+        assert re.search(
+            re.escape(f"his orders are unchanged. {_R17_LINE} ")
+            + _R17_IN_VIEW_RE + r"$", message), message
 
     def test_a_scouted_muster_leaves_the_beat_as_it_was(self, _r17_w):
         from backend.models.intel import PARTIAL
@@ -13318,7 +13357,9 @@ class TestS14EX67:
             card = executor._naval._execute_naval_expedition(dict(command), {"world": w})
         line = ("Galicia is Spain's soil — the corps standing there are fed by contract, "
                 "about " + _RX67_MINUS + "144g more a turn.")
-        assert card["state"] == "awaiting_clarification" and line + " Sail? (yes / no)" in card["message"]
+        # S14G-X138 (Pre-Deploy S14h part 2, October 26, 2026): the verb's
+        # price now stands between the pay line and the question.
+        assert card["state"] == "awaiting_clarification" and line + " Sailing costs 2 AP. Sail? (yes / no)" in card["message"]
         before = w.calculate_turn_upkeep("France")["campaign_pay"]
         with _rx67_quiet():
             landed = executor._naval._execute_naval_expedition(
@@ -16089,11 +16130,15 @@ class TestS14EX147:
         the same pair."""
         from backend.commands.order_quotes import attack_quote
         davout, mack = self._board(_w11_world)
-        card = attack_quote(_w11_world, davout, mack)["muster"]
+        quote = attack_quote(_w11_world, davout, mack)
+        card = quote["muster"]
         assert card.startswith("Berthier adds: "), card
         _w11_post(_w11_world, davout)
         detail = _w11_rows(_w11_world)[0]["details"]["action_detail"]
-        assert detail.endswith(card), (detail, card)
+        # S14G-X169 (Pre-Deploy S14h part 2): the card's second line, the alarm
+        # clause, follows the muster on the row's tooltip too (was: ends with the muster)
+        assert quote["alarm"], quote
+        assert detail.endswith(f"{card} {quote['alarm']}"), (detail, card)
         assert _w11_rows(_w11_world)[0]["details"]["muster"] == card
 
     def test_the_line_is_fog_banded_like_the_card(self, _w11_world):
@@ -24949,6 +24994,26 @@ def _rd9_empty():
     return {"roads": [], "by_province": {}, "by_court": {}, "completing": []}
 
 
+def _rd9_begun(notes: dict) -> dict:
+    """S14G-31 (Pre-Deploy S14h part 2, October 26, 2026): the boot's Ireland
+    PROSPECT (nothing held, the war with Britain running: a first landing's
+    pointer in `prospects` and `by_province`) is not a begun road. These pins
+    are about the begun roads and the Class T dreams, so they read the notes
+    with the prospect set aside - the prospect's own pins are
+    `tests/test_s14h_p2_row31.py`."""
+    shores = {p for row in notes.get("prospects", []) for p in row["provinces"]}
+    out = {k: v for k, v in notes.items() if k != "prospects"}
+    out["by_province"] = {p: t for p, t in notes["by_province"].items() if p not in shores}
+    return out
+
+
+def _rd9_stamped(world) -> set:
+    """The provinces whose panel payload carries a `road_note`, less the
+    Ireland prospect's two shores (S14G-31)."""
+    return {name for name, row in _rd9_summary(world)["map_data"].items()
+            if "road_note" in row} - {"Munster", "Ulster"}
+
+
 def _rd9_summary(world) -> dict:
     with _rk_quiet():
         return world.get_filtered_game_state_summary()
@@ -24983,12 +25048,12 @@ class TestS14ED9:
         # Italy stands at 2 of 5 and Holland at 0 of 1 in France's bloc — but
         # no court at war holds a province either dream still lacks
         assert get_formation_watch(w, "KingdomOfItaly")["progress"] == "2 of 5 provinces held"
-        assert road_notes(w) == _rd9_empty()
+        assert _rd9_begun(road_notes(w)) == _rd9_empty()
         assert road_note_for(w, "Rome") == "" and road_note_for(w, "Flanders") == ""
         for court in ("Austria", "Britain", "Russia"):
             assert road_peace_lines(w, [court], [{"type": "peace"}]) == []
         assert _held_line(w, "France", ["Austria", "Britain", "Russia"]) == ""
-        assert not any("road_note" in row for row in _rd9_summary(w)["map_data"].values())
+        assert not _rd9_stamped(w)
         assert not any("Italy" in n for n in
                        naval.build_admiralty_report(w).get("expedition_notes", []))
 
@@ -25013,10 +25078,10 @@ class TestS14ED9:
         from backend.game_logic import naval
         from backend.game_logic.formations import road_note_for, road_notes
         w = _rd9_austria_holds_the_dream(_rd9_world)
-        notes = road_notes(w)
+        notes = _rd9_begun(road_notes(w))
         assert notes["roads"] == [] and notes["by_province"] == {} and notes["completing"] == []
         assert road_note_for(w, "Rome") == "" and road_note_for(w, "Naples") == ""
-        assert not any("road_note" in row for row in _rd9_summary(w)["map_data"].values())
+        assert not _rd9_stamped(w)
         assert not any("Italy" in n for n in
                        naval.build_admiralty_report(w).get("expedition_notes", []))
 
@@ -25054,7 +25119,7 @@ class TestS14ED9:
         w.vassals.pop("KingdomOfItaly", None)
         w.invalidate_bloc_members_cache()
         assert "KingdomOfItaly" not in w.get_bloc_members("France")
-        assert road_notes(w) == _rd9_empty()
+        assert _rd9_begun(road_notes(w)) == _rd9_empty()
 
     def test_the_ex_lord_of_a_carved_client_sees_its_dream(self, _rd9_world):
         """France carved the Duchy of Warsaw and released it: not in her bloc,
@@ -25082,7 +25147,7 @@ class TestS14ED9:
         w = _rd9_austria_holds_the_dream(_rd9_world)
         with _rk_quiet():
             set_diplomatic_state(w, "France", "Austria", "PEACE", "test")
-        assert road_notes(w) == _rd9_empty()
+        assert _rd9_begun(road_notes(w)) == _rd9_empty()
         with _rk_quiet():
             set_diplomatic_state(w, "France", "Austria", "ARMISTICE", "test")
         assert "Austria" in road_notes(w)["by_court"]       # a truce is the war, as the page reads it
@@ -25091,7 +25156,7 @@ class TestS14ED9:
         from backend.game_logic.formations import road_notes
         w = _rd9_austria_holds_the_dream(_rd9_world)
         w.nation_formations["KingdomOfItaly"] = {"id": "risorgimento", "turn": 5, "formed": True}
-        assert road_notes(w) == _rd9_empty()
+        assert _rd9_begun(road_notes(w)) == _rd9_empty()
 
     def test_a_class_c_road_is_unchanged_beside_it(self, _rd9_world):
         """Munster held (the Ireland carve) and Austria on Italy's soil: the
@@ -31275,7 +31340,14 @@ _d17_MANUAL_BAND = 50
 
 
 def _d17_is_the_manual(text: str) -> bool:
-    return _d17_MANUAL in text and abs(len(text) - _d17_OLD_MANUAL_CHARS) <= _d17_MANUAL_BAND
+    # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the band was a
+    # CEILING as well as a floor, and the manual grows with every sentence the
+    # reference learns (the screen keys' while-typing form added ~580 characters
+    # on its own: 23,257 against 22,573 +- 50). The pin's intent is that a
+    # nameless line printed the WHOLE reference and not the ~700-character
+    # index, which a floor at the old figure (less the band) still says exactly;
+    # the index lines' own pin (`n >= _d17_OLD_MANUAL_CHARS`, below) is untouched.
+    return _d17_MANUAL in text and len(text) >= _d17_OLD_MANUAL_CHARS - _d17_MANUAL_BAND
 
 
 def _d17_quiet():

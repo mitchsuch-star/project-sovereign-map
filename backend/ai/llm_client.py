@@ -1219,7 +1219,10 @@ def _place_suggestion(game_state: Optional[Dict], target: str) -> Optional[str]:
     why = str(refusal.get("message") or "").strip()
     door = ""
     if refusal.get("blocked_naval"):
-        door = (" THE ADMIRALTY (press T, then 7) has the state of the fleet "
+        # S14G-X72 (Pre-Deploy S14h part 2, October 26, 2026): the pointer through
+        # the one source - the bare "press T" typed a "t" into the command line.
+        from backend.ai.counsel import surface_pointer
+        door = (f" {surface_pointer('admiralty')} has the state of the fleet "
                 "and of every crossing.")
     return (f"Berthier studies the map. \"Sire, I note the reference to "
             f"{target} — but no corps of ours can march there today. "

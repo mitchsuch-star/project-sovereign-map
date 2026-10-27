@@ -54,6 +54,15 @@ const _CLAMP_MARGIN := 10.0
 # near-full-height footprint the panel keeps a usable window and (drawing on
 # layer 26) overlaps rather than collapsing to nothing.
 const _MIN_CONTENT_H := 120.0
+# S14G-15 (Pre-Deploy S14h part 2, October 26, 2026): under this many px of
+# room above the terminal the panel DOCKS BESIDE it instead of squeezing to
+# the 120 floor. A raised reply window (or a terminal dragged tall) left
+# 120 px of body with the march list below the fold, overlapping the window.
+const _DOCK_BESIDE_BELOW_H := 260.0
+# The strip kept clear at the viewport's bottom when docked beside the
+# terminal: the map controls' row (32 px chips + their frame) stands to the
+# terminal's right at the same edge (main.gd `_fit_map_controls`).
+const _DOCK_BOTTOM_RESERVE := 56.0
 # UXR-2 (the layout law): the panel's WIDTH is a fraction of the logical
 # viewport between the authored 344 (Scroll 320 + the leather's 24) and a
 # ceiling — it was a bare fixed 344 at every size (9% of the user's panel).
@@ -579,8 +588,15 @@ func _render() -> void:
 			if yard_why == "":
 				yard_why = admin_why
 			if yard_why == "":
+				# S14G-X137 (Pre-Deploy S14h part 2, October 26, 2026): the chip
+				# omitted its action - a raised yard is an ADMINISTRATIVE act.
+				# The price is the backend's (`yard_ap_note` on the naval overlay,
+				# `naval.ap_cost_note`, the action table's own number).
+				var yard_ap := ""
+				if _map_node != null and "naval_overlay" in _map_node and _map_node.naval_overlay is Dictionary:
+					yard_ap = str(_map_node.naval_overlay.get("yard_ap_note", ""))
 				build_rows.append("    " + Utils.bb_button_chip("do:build naval yard in " + _region, yard_label, Utils.COLOR_GOLD, _CHIP_BG)
-					+ " [color=#" + Utils.COLOR_INFO + "]keels laid and corps embarked here · "
+					+ " [color=#" + Utils.COLOR_INFO + "]" + (yard_ap + " " if yard_ap != "" else "") + "keels laid and corps embarked here · "
 					+ str(int(yard.get("turns", 0))) + " turns · "
 					+ str(int(yard.get("raised", 0))) + " of " + str(int(yard.get("cap", 0))) + " yards raised[/color]")
 			else:
@@ -663,8 +679,13 @@ func _render() -> void:
 				if ship_why == "":
 					ship_why = admin_why
 				if ship_why == "":
+					# S14G-X137 (Pre-Deploy S14h part 2, October 26, 2026): the keel
+					# is an ADMINISTRATIVE act and the chip said no action - the
+					# price leads the note, from the overlay (`ship_ap_note`,
+					# `naval.ap_cost_note`: the action table's own number).
+					var ship_ap := str(overlay.get("ship_ap_note", ""))
 					action_rows.append("  " + Utils.bb_button_chip("do:build ships", "Lay down ships (" + str(ship_cost) + "g)", Utils.COLOR_GOLD, _CHIP_BG)
-						+ "  [color=#" + Utils.COLOR_INFO + "]" + yard_note + "[/color]")
+						+ "  [color=#" + Utils.COLOR_INFO + "]" + (ship_ap + " " if ship_ap != "" else "") + yard_note + "[/color]")
 				else:
 					action_rows.append("  " + Utils.bb_chip_disabled("Lay down ships (" + str(ship_cost) + "g)")
 						+ "  [color=#" + Utils.COLOR_INFO + "]" + ship_why + "[/color]")
@@ -692,13 +713,33 @@ func _render() -> void:
 					action_rows.append("  " + Utils.bb_chip_disabled("Land " + who + " here")
 						+ "  [color=#" + Utils.COLOR_INFO + "]" + land_why + "[/color]")
 					continue
+				# S14G-X86 (Pre-Deploy S14h part 2, October 26, 2026): the note
+				# leads with the verb's price (`cost_note`, the action table's own
+				# number - an expedition is a real commitment) and says WHY the
+				# corps may embark where he stands (`from_reason`, the rule in
+				# words) - both built once on the backend row, the Admiralty's
+				# chips read the same fields.
+				var land_cost := str(corps.get("cost_note", ""))
+				var land_from := str(corps.get("from", ""))
+				var land_from_why := str(corps.get("from_reason", ""))
+				if land_from_why != "":
+					land_from += " (" + Utils.humanize_nation_keys_in_text(land_from_why) + ")"
 				action_rows.append("  " + Utils.bb_button_chip(
 					"do:land " + who + " in " + _region,
 					"Land " + who + " here", Utils.COLOR_GOLD, _CHIP_BG)
 					+ "  [color=#" + Utils.COLOR_INFO + "]"
+					+ (land_cost + " " if land_cost != "" else "")
 					+ Utils.format_number(int(corps.get("strength", 0)))
-					+ " men from " + str(corps.get("from", "")) + " · "
+					+ " men from " + land_from + " · "
 					+ str(odds) + " in 100 slip past[/color]")
+				# S14G-31: what winning the throw GETS him here - the confirm card's
+				# own sentence (`naval.landing_prize_clause`, built on the row): the
+				# carve's pointer, what waits ashore as far as the fog admits, the
+				# raiding-party floor for a small corps. Absent = not an enemy's shore.
+				var land_prize := str(corps.get("prize", ""))
+				if land_prize != "":
+					action_rows.append("      [color=#" + Utils.COLOR_INFO + "]If it lands: "
+						+ Utils.humanize_nation_keys_in_text(land_prize) + ".[/color]")
 				# SR-5b (AAR-D7): what would make it a better throw — the
 				# resolver's own odds re-asked, one lever at a time.
 				var levers := str(corps.get("levers", ""))
@@ -743,6 +784,14 @@ func _fit_height() -> void:
 		header_h = header.size.y
 	# Panel chrome: top offset + header + separations + PanelContainer margins.
 	var available := limit - _PANEL_TOP - Utils.top_bar_growth() - _CLAMP_MARGIN - header_h - 24.0
+	# S14G-15: too little room above the terminal -> dock at its right edge at
+	# full height (down to the map controls' strip) instead of the 120 floor;
+	# room again (the window lowered) -> back at the HUD band's left edge.
+	var beside_left := _beside_terminal_left(available)
+	_place_dock_left(beside_left if beside_left >= 0.0 else _home_left())
+	if beside_left >= 0.0:
+		available = vp_bottom - _DOCK_BOTTOM_RESERVE - _PANEL_TOP - Utils.top_bar_growth() \
+				- _CLAMP_MARGIN - header_h - 24.0
 	available = maxf(available, _MIN_CONTENT_H)
 	var content_h := float(content_area.get_content_height()) + 4.0
 	scroll.custom_minimum_size.y = clampf(content_h, 40.0, available)
@@ -750,6 +799,37 @@ func _fit_height() -> void:
 	# back to its minimum so closing a long province and opening a short one
 	# doesn't leave a stretched empty frame.
 	panel_container.size = Vector2.ZERO
+
+
+func _home_left() -> float:
+	"""The panel's home dock: the HUD band's left edge plus the authored 12
+	(the same number `_fit_width` writes)."""
+	return Utils.hud_band(get_viewport().get_visible_rect().size).x + _PANEL_LEFT
+
+
+func _beside_terminal_left(available: float) -> float:
+	"""S14G-15: the left edge for the panel docked beside the terminal, or
+	-1.0 when it should stay home. Beside only when the room above the
+	terminal is under `_DOCK_BESIDE_BELOW_H` AND the terminal's right edge
+	leaves the panel's whole width inside the HUD band (else the floor, as
+	before: a panel pushed off the band is worse than a short one)."""
+	if available >= _DOCK_BESIDE_BELOW_H:
+		return -1.0
+	if avoid_control == null or not is_instance_valid(avoid_control) or not avoid_control.visible:
+		return -1.0
+	var left := avoid_control.get_global_rect().end.x + Utils.HUD_MARGIN
+	var width: float = scroll.custom_minimum_size.x + 24.0   # `scroll` is untyped: no `:=`
+	var band := Utils.hud_band(get_viewport().get_visible_rect().size)
+	if left + width > band.y:
+		return -1.0
+	return left
+
+
+func _place_dock_left(left: float) -> void:
+	"""S14G-15: put the panel's left edge at `left`, its width unchanged
+	(the Scroll's width plus the leather's 24 — what `_fit_width` wrote)."""
+	panel_container.offset_left = left
+	panel_container.offset_right = left + scroll.custom_minimum_size.x + 24.0
 
 
 # Build chip catalog: backend BUILDING_TYPES key → chip label → the typed
@@ -888,7 +968,14 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 					else:
 						dimmed.append(["Unfortify", unfortify_why])
 				elif fortify_why == "":
-					row += "  " + Utils.bb_button_chip("order:fortify:" + m_name, "Fortify", Utils.COLOR_COMMAND, _CHIP_BG)
+					# S14G-X168 (Pre-Deploy S14h part 2, October 26, 2026): the chip sends '<Name>, fortify' and priced it
+					# nowhere - a corps standing NEUTRAL goes defensive first and pays two. The figure is the payload's
+					# `tactical_state.order_prices.fortify` (the executor's own, `insist_terms`), the way Hold is priced below.
+					var fortify_label := "Fortify"
+					var fortify_prices = tactical.get("order_prices", {})
+					if fortify_prices is Dictionary and int(fortify_prices.get("fortify", 0)) > 0:
+						fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"
+					row += "  " + Utils.bb_button_chip("order:fortify:" + m_name, fortify_label, Utils.COLOR_COMMAND, _CHIP_BG)
 				# CN-4: the Drill chip is offered only where the drill would
 				# begin; otherwise it is dimmed at the end of the row beside
 				# the executor's own reason (`tactical_state.drill_refusal`,
@@ -925,6 +1012,9 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 							var chip_muster := _here_attack_muster(m_name, enemy)
 							if chip_muster != "":
 								muster_lines.append("Attack " + enemy_shown + ": " + _muster_tail(chip_muster))
+							var chip_alarm := _here_attack_muster(m_name, enemy, "alarm")   # S14G-X165: what a win here adds to Europe's alarm
+							if chip_alarm != "":
+								muster_lines.append("Attack " + enemy_shown + ": " + chip_alarm)
 						else:
 							dimmed.append(["Attack " + enemy_shown, attack_why])
 				if not fortified and fortify_why != "":
@@ -950,7 +1040,7 @@ func _format_marshal_row(m: Dictionary, enemy_names: Array) -> String:
 	return row + "\n"
 
 
-func _here_attack_muster(m_name: String, enemy: String) -> String:
+func _here_attack_muster(m_name: String, enemy: String, key: String = "muster") -> String:
 	"""S14E-X79: Berthier's one-line muster for `<m_name>, attack <enemy>` when
 	both stand in this province -- the quote the backend's `here` list carries
 	(`order_quotes.march_quotes_for_region`), "" until the quotes for THIS
@@ -968,7 +1058,7 @@ func _here_attack_muster(m_name: String, enemy: String) -> String:
 			return ""
 		for q in here:
 			if q is Dictionary and str(q.get("marshal", "")) == m_name and bool(q.get("ok", false)):
-				return str(q.get("muster", ""))
+				return str(q.get(key, ""))   # S14G-X165: "alarm" too (the muster's alarm clause)
 	return ""
 
 
@@ -981,6 +1071,23 @@ func _muster_tail(muster: String) -> String:
 		line = line.substr("Berthier adds: ".length())
 	var parts := line.split(" — ")
 	if parts.size() > 2:
+		# S14G-X61 (Pre-Deploy S14h part 2, October 26, 2026): the S14G-14 note
+		# ("The band weighs a force of his you have not scouted — scout
+		# Carniola. On the men in view alone ...") carries its own ' — ', so
+		# "the last clause" was the NOTE's tail and the chip lost the TRUE band
+		# ("Ney would answer the guns — scout Carniola. On the men in view
+		# alone the odds read 'favorable' ..." and never 'unfavorable'). Keep the
+		# clause that carries the band ("the balance of force looks X") up to its
+		# sentence's end, and cut the note's sentences from the tail; with no
+		# band clause (nothing weighed) the first and last clauses stand as before.
+		for i in range(1, parts.size()):
+			var clause := str(parts[i])
+			if clause.find("balance of force looks") < 0:
+				continue
+			var stop := clause.find(". ")
+			if stop >= 0:
+				clause = clause.substr(0, stop + 1)
+			return str(parts[0]) + " — " + clause
 		return str(parts[0]) + " — " + str(parts[parts.size() - 1])
 	return line
 
@@ -1202,6 +1309,9 @@ func _quote_notes(q: Dictionary) -> String:
 	var muster := str(q.get("muster", ""))
 	if muster != "" and str(q.get("kind", "")) == "attack":
 		notes.append("Berthier: " + _muster_tail(muster))
+	var alarm := str(q.get("alarm", ""))   # S14G-X165: what a win here adds to Europe's alarm
+	if alarm != "" and str(q.get("kind", "")) == "attack":
+		notes.append(alarm)
 	if str(q.get("objection", "none")) == "possible":
 		notes.append("he may object")
 	return " · ".join(PackedStringArray(notes))

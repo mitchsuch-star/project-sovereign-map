@@ -590,6 +590,15 @@ class TestCutOffCorps:
         home = W.get_home_zone(world, "France")
         if W.distance_home(world, davout, home) is not None:
             pytest.skip("fixture drift: this province is reachable by land")
+        # FLIPPED CONSCIOUSLY (S14G-X100, October 26, 2026): the Russian peace
+        # used to count Soult - stranded at Bohemia by the AUSTRIAN peace - in
+        # its own stranded set and write a Russian corridor from his march;
+        # `withdrawal.stranded_by_pair` now leaves him to the Austrian peace, so
+        # the companion's corridor is the Austrian window's, promoted by the
+        # first tick (FA-S12-1). The pin's claim is unchanged: a reachable
+        # companion keeps a grant standing, so the tick reaches the judge.
+        world.current_turn += 1
+        W.process_evacuation_grants(world)
         assert world.evacuation_grants, (
             "the fixture must leave a corridor standing, or the tick returns "
             "at `if not grants:` and this pin proves nothing")

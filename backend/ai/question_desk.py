@@ -1560,6 +1560,23 @@ def _letter_terms_lines(world, letter: Dict, court: str) -> List[str]:
     terms = ctx.get("counter_terms") or ctx.get("proposal") or ctx.get("terms") or {}
     ptype = str(ctx.get("proposal_type") or letter.get("proposal_type")
                 or (terms.get("type") if isinstance(terms, dict) else "") or "")
+    # S14G-X107 (Pre-Deploy S14h part 2, October 26, 2026): a COUNTER letter
+    # (the context holds the draft it answers beside the court's counter) was
+    # read through `format_terms_for_display` unmarked - "what did Bavaria
+    # ask?" listed "You pay Bavaria 142 gold; You pay Bavaria 100 gold" with
+    # nothing marked new, the exact lines the popup marks ("Added by Bavaria:
+    # you pay 100 gold more (242 at the signing)"). The desk reads the counter
+    # through the popup's own diff (`counter_offer_clause_lines`), so the
+    # struck, added and kept terms read the same on both.
+    counter = ctx.get("counter_terms")
+    original = ctx.get("original_proposal")
+    if isinstance(counter, dict) and counter and isinstance(original, dict) and original:
+        from backend.display_names import counter_offer_clause_lines
+        from backend.game_logic.formations import formed_display_name
+        player = str(getattr(world, "player_nation", "") or "")
+        return [str(line) for line in counter_offer_clause_lines(
+            original, counter, viewer=player, proposer=court, target=player,
+            name_of=lambda n, _w=world: formed_display_name(_w, n))]
     if isinstance(terms, dict) and terms:
         from backend.display_names import format_terms_for_display
         return [str(line) for line in format_terms_for_display(terms, ptype, court)]
@@ -3023,8 +3040,11 @@ def _answer_own_army(world, player: str) -> str:
             continue
         marshals.append(marshal)
     if not marshals:
-        return ("No corps of ours stands in the field, Sire. The Generals "
-                "screen (press G) shows the roster.")
+        # S14G-X70 (Pre-Deploy S14h part 2, October 26, 2026): the bare "press G"
+        # typed a "g" into the command line - the pointer carries the Alt form.
+        roster = surface_pointer("marshals") or "the Generals screen"
+        return (f"No corps of ours stands in the field, Sire. {_cap(roster)} "
+                f"shows the roster.")
     marshals.sort(key=lambda m: -int(m.strength))
     total = sum(int(m.strength) for m in marshals)
     plural = "s" if len(marshals) != 1 else ""
@@ -3035,8 +3055,10 @@ def _answer_own_army(world, player: str) -> str:
             for m in marshals[:8]]
     if len(marshals) > 8:
         rows.append(f"  … and {len(marshals) - 8} more")
-    tail = ("The Strategic Ledger's Forces tab (press T) has the full return; "
-            "the Generals screen (press G) has each man's card.")
+    # S14G-X70: both pointers through the one source (the Alt form and all).
+    forces = surface_pointer("forces") or "the Strategic Ledger"
+    generals = surface_pointer("marshals") or "the Generals screen"
+    tail = (f"{_cap(forces)} has the full return; {generals} has each man's card.")
     return "\n".join([head, *rows, tail])
 
 

@@ -144,6 +144,54 @@ def _tier_mismatch_view(world: Any, result: Mapping[str, Any], court: str,
     }
 
 
+def _objective_blocker_view(world: Any, result: Mapping[str, Any], enriched: Mapping[str, Any],
+                            court: str, *, below_threshold: bool, can_drop: bool) -> Dict[str, Any]:
+    """S14G-X171 (the re-play's find NF-2, Pre-Deploy S14h part 2, October 26,
+    2026): a holdout whose top blocker is the war's OBJECT
+    (`war_objective_alignment`) names which way the terms miss it — they give
+    away what the war was declared for (`contradicts`, −20) or ask of the
+    court what it was not declared for (`unrelated_harsh`, −15) — the declared
+    purpose where the record holds one, and the control that moves it: gold
+    cannot (the standing hint told the player to be "More generous" at a court
+    whose blocker no gold touches, replay_table #276). Read from the scorer's
+    own `component_debug`, the seam the tier's view reads. {} for any other
+    blocker, at the bar, or for a reading that is not a negative
+    (`partial` is +5 and never tops the blockers).
+
+    `top_blocker_detail` ("objective_<label>") and `top_blocker_line`."""
+    if not below_threshold:
+        return {}
+    if str(enriched.get("top_blocker_component") or "") != "war_objective_alignment":
+        return {}
+    debug = (result.get("component_debug") or {}).get("war_objective_alignment") or {}
+    label = str(debug.get("alignment_label") or "")
+    if label not in ("contradicts", "unrelated_harsh"):
+        return {}
+    from backend.game_logic.declared_goals import declared_line
+    from backend.game_logic.formations import formed_display_name
+
+    name = formed_display_name(world, court)
+    selected = debug.get("selected_objective") or {}
+    declarer = str(selected.get("declaring_nation") or "")
+    target = str(selected.get("target_nation") or "")
+    purpose = declared_line(world, declarer, target) if declarer and target else ""
+    value = enriched.get("top_blocker_value")
+    value_text = f" ({int(value):+d})" if isinstance(value, (int, float)) else ""
+    miss = (f"the terms give away what the war was declared for{value_text}"
+            if label == "contradicts"
+            else f"the terms ask of {name} what the war was not declared for{value_text}")
+    cure = ("take that term out" if label == "contradicts"
+            else "ease the demands the purpose does not cover")
+    named = f" ({purpose})" if purpose else ""
+    drop = f", or drop {name}" if can_drop else ""
+    return {
+        "top_blocker_detail": f"objective_{label}",
+        "top_blocker_line": (
+            f"{name} reads the terms as ending the war without its object — {miss}{named}; "
+            f"gold cannot move it: {cure} (Set War Purpose on her page names the object){drop}."),
+    }
+
+
 CONCESSION_BASELINE_TREASURY_RESERVE = 500
 
 
@@ -2249,6 +2297,10 @@ def compute_per_court_acceptance(
         below_threshold = total is None or int(total) < int(accept_threshold)
         top_blocker = enriched.get("top_blocker_display") if below_threshold else None
         tier_detail = _tier_blocker_detail(result, enriched, below_threshold)
+        # S14G-X171: the war's OBJECT as the top blocker (gold cannot move it).
+        _objective_view = _objective_blocker_view(
+            world, result, enriched, court, below_threshold=below_threshold,
+            can_drop=bool(not court_passes and court_consulted and len(covered) > 1))
         previous_band = previous_bands.get(court)
         delta_display = None
         if previous_band and previous_band != band:
@@ -2306,13 +2358,16 @@ def compute_per_court_acceptance(
             # PC-F26: the tier blocker's detail — the tier's BASE (a white
             # peace at this court's score) or a MISMATCH (the terms exceed
             # the tier's ceiling) — so the voice says which.
-            "top_blocker_detail": tier_detail,
+            "top_blocker_detail": tier_detail or str(_objective_view.get("top_blocker_detail") or ""),
             # S14E-6: a MISMATCH names the clause on this court that
             # overreaches the field (and the controls that clear it).
             **(_tier_mismatch_view(
                 world, result, court,
                 can_drop=bool(not court_passes and court_consulted and len(covered) > 1),
             ) if tier_detail == "tier_mismatch" else {}),
+            # S14G-X171: the war's object as the top blocker names which way the
+            # terms miss it and the control that moves it.
+            **({"top_blocker_line": _objective_view["top_blocker_line"]} if _objective_view else {}),
             # REFRONT-9 (Guided Terms OQ-5 / GT-A4): the full component
             # table for the expanded per-court row — derived from the score
             # pass already in hand, so the focus trigger stays

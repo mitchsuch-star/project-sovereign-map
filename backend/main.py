@@ -437,7 +437,16 @@ def _get_talleyrand_mission_summary(w) -> str:
         raw_type = mission.get("type", "Unknown")
         m_type = _MISSION_TYPE_DISPLAY.get(raw_type, raw_type.replace("_", " ").title())
         m_target = mission.get("target", "Unknown")
-        return f"{m_type} → {m_target}"
+        summary = f"{m_type} → {m_target}"
+        # S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): a mission paused
+        # because Talleyrand carries a letter said "Improving Relations →
+        # Prussia" as if he were at the court (`mission_status` knew:
+        # pause_reason "transit"). The suffix is the one literal the rail's
+        # chip prints too (`diplomacy.MISSION_PAUSED_SUFFIX`).
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX, mission_paused_for_letter
+        if mission_paused_for_letter(w):
+            summary += f" ({MISSION_PAUSED_SUFFIX})"
+        return summary
     return "None"
 
 
@@ -2043,6 +2052,32 @@ def _join_courts(names: list, capitalize: bool = False) -> str:
     return joined
 
 
+def _court_at_war_or_truce(world, nation: str) -> bool:
+    """S14G-27: `nation` is at war with the player's court, or in a truce
+    (an armistice) with it - the two states in which its movements are the
+    player's business even when the fog hides them."""
+    player = getattr(world, "player_nation", "") or ""
+    if not player or nation == player:
+        return False
+    return world.get_diplomatic_state(player, nation) in ("WAR", "ARMISTICE")
+
+
+def _fog_courts_in_view(world, nations) -> list:
+    """S14G-27: of the courts whose actions the fog hid, the ones the player
+    may be told stirred - those at war or in a truce with the player's court
+    (first) and those holding ground beside one of its provinces. Both are
+    public facts (diplomacy has no fog; the map's borders are drawn), and
+    `world.get_neighbouring_nations` is the per-turn cached helper (Golden
+    Rule 8), so this adds no region scan to the turn. Turn order is kept
+    inside each group."""
+    nations = [str(n) for n in nations]
+    player = getattr(world, "player_nation", "") or ""
+    beside = set(world.get_neighbouring_nations(player)) if player else set()
+    at_war = [n for n in nations if _court_at_war_or_truce(world, n)]
+    near = [n for n in nations if n in beside and n not in at_war]
+    return at_war + near
+
+
 def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
     """Serialize enemy-phase data and apply fog filtering for Godot."""
     from backend.display_names import with_definite_article
@@ -2141,8 +2176,26 @@ def _build_visible_enemy_phase(enemy_phase: dict, world) -> dict | None:
         # `with_definite_article` also kills the unfiled sibling: the
         # possessive rendered "Papal States's borders", and PapalStates is
         # in the boot roster.
+        #
+        # S14G-27 (Pre-Deploy S14h part 2, October 26, 2026): this branch
+        # nearly always fires (any AI recruit/build/wait counts as an action,
+        # and `enemy_phase_fog` hides all of it that is not FULL-visible), and
+        # `main.gd` raised the blocking ENEMY PHASE box on any `enemy_phase`
+        # payload - so at peace the player clicked Continue through "Britain,
+        # Russia, Austria and 6 other courts stirred ..." turn after turn
+        # (DD-B third measure, diplomacy #15, turns 7 to 20). The courts
+        # named are now the ones France can honestly speak of - at war with
+        # her, in a truce with her, or holding ground beside a French
+        # province (`_fog_courts_in_view`, public facts) - and the payload
+        # says it is `fog_only`, with `fog_war_courts` naming the war/truce
+        # courts among them: the client raises the modal only when that list
+        # is not empty, and otherwise prints the ONE line to the terminal.
+        _in_view = _fog_courts_in_view(world, raw_nations)
         _names = [with_definite_article(formed_display_name(world, nation))
-                  for nation in raw_nations]
+                  for nation in _in_view]
+        cleaned_phase["fog_only"] = True
+        cleaned_phase["fog_war_courts"] = [
+            n for n in _in_view if _court_at_war_or_truce(world, n)]
         if len(_names) > 1:
             # LV-13 (row EP F1): with NOTHING visible this branch printed
             # one sentence per court — nine identical lines on turns 4 and 5
@@ -4572,6 +4625,7 @@ def _command_ordinary_road(ctx: CommandContext):
                 # S14E-X175: the corps quoted is a LIVE pair from the board
                 # (the counsel's own first attack), taught with its free
                 # preview; the static example stays when none is lawful today.
+                from backend.ai.counsel import surface_pointer as _surface_pointer
                 from backend.commands.movement_executor import (
                     attack_preview_hint_for as _preview_hint,
                     live_attack_example as _live_attack)
@@ -4583,8 +4637,8 @@ def _command_ordinary_road(ctx: CommandContext):
                     "Berthier sets the dispatch aside. \"The fleet is not a "
                     "corps, Sire — it cannot attack a province, and I have "
                     "relayed nothing. A fleet takes a posture, lands men or "
-                    "makes a diversion from THE ADMIRALTY's buttons (press "
-                    f"T, then 7); {_quoted}. "
+                    "makes a diversion from the buttons of "
+                    f"{_surface_pointer('admiralty')}; {_quoted}. "
                     + _preview_hint(*(_live or ("Ney", "Swabia"))) + "\"")
             elif ctx.parsed["refusal"] == "stand_down_is_no_order":
                 # S14E-X177: "everyone stand down" / "everyone rest" - words
@@ -7405,6 +7459,54 @@ def get_diplomatic_preview_endpoint(
     return payload
 
 
+# S14G-22 (Pre-Deploy S14h part 2, October 26, 2026): what a court's row in the
+# Cabinet's "Your courts" group says is waiting on the player, beside the
+# [MISSION] tag the button already carries.
+YOUR_COURTS_LETTER_WHY = "letter awaiting your answer"
+
+
+def _wizard_your_courts(world, entries: dict, mission_target) -> list:
+    """S14G-22: the Cabinet's "Your courts" group - the courts with business
+    waiting on the player, drawn in ONE place above the At War / Treaties /
+    Vassals / Neutral groups. The court list regroups by live state (Britain
+    drops to Neutral after peace) and runs in roster order, so a court the
+    player was working with moved between visits and cost a scroll to find
+    (DD-B diplomacy #5: "20 notches for the Neutral group").
+
+    Built only from facts the world already records:
+
+    1. the court of the LIVE diplomatic mission (`mission_target`: the
+       Cabinet's own `mission_is_live` read), first;
+    2. every court with an unanswered letter in the mailbox
+       (`DialogueManager.get_mailbox_items` - a lesser court's courtesy that
+       does not lock the Cabinet, a settlement offer, an ally's petition),
+       the active slot first, each court once.
+
+    The world does NOT record a "last court visited" (the Cabinet's court
+    pages are a read, `GET /diplomatic_preview?nation=`; nothing is written),
+    so the group is built from these two. `entries` is the nation list's own
+    `{court: entry}` - a letter from The Cabinet itself (a moment letter) or
+    from a court out of the list names nobody here. Each row is the court's
+    group entry plus `why` ('' for a mission-only court: its [MISSION] tag
+    says it). [] when no court has anything waiting."""
+    order: list = []
+    why: dict = {}
+    if mission_target and mission_target in entries:
+        order.append(mission_target)
+    try:
+        letters = world.dialogue_manager.get_mailbox_items(world)
+    except Exception as exc:
+        _errors.report(exc, "main._wizard_your_courts: get_mailbox_items")
+        letters = []
+    for row in letters:
+        court = str((row or {}).get("source_nation") or "")
+        if court in entries:
+            if court not in order:
+                order.append(court)
+            why[court] = YOUR_COURTS_LETTER_WHY
+    return [dict(entries[court], why=why.get(court, "")) for court in order]
+
+
 def _diplomatic_preview_payload(
     nation: str = "",
     mode: str = "",
@@ -7447,6 +7549,7 @@ def _diplomatic_preview_payload(
             has_deferred_result = world.proposal_result_popup is not None
 
             categories = {"at_war": [], "treaties": [], "vassals": [], "neutral": []}
+            entries_by_court: dict = {}   # S14G-22: the "Your courts" group reads these
             treaty_states = {"ARMISTICE", "OPEN_BORDERS", "NON_AGGRESSION",
                              "DEFENSIVE_ALLIANCE", "ALLIANCE"}
 
@@ -7487,6 +7590,7 @@ def _diplomatic_preview_payload(
                     "relation_descriptor": relation_desc,
                     "has_active_mission": (mission_target == n),
                 }
+                entries_by_court[n] = entry
 
                 if is_vassal:
                     entry["state_display"] = "Vassal"
@@ -7519,6 +7623,9 @@ def _diplomatic_preview_payload(
                 "pending_marshal_decisions": _pending_marshal_decisions(world),
                 "has_deferred_result": has_deferred_result,
                 "categories": categories,
+                # S14G-22: the courts with a mission running or a letter
+                # waiting, above the groups (each also stays in its group).
+                "your_courts": _wizard_your_courts(world, entries_by_court, mission_target),
                 # GE-3: the wizard's top row — "The Congress of Paris" with
                 # its honest gate terms (the executor's own list, in its
                 # order) or, while it sits, the table's clock. None on an

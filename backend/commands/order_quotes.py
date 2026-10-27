@@ -155,6 +155,10 @@ def _blank(kind: str, marshal, dest: str, command: str) -> Dict[str, Any]:
         # S14E-24: an attack's muster in one line - who answers the guns and
         # the band they make together ("" for every other order).
         "muster": "",
+        # S14G-X165 (Pre-Deploy S14h part 2, October 26, 2026): what a win adds to
+        # Europe's alarm - the muster's own alarm sentence, on the attack quote
+        # alone ("" for every other order and for a field that is our own soil).
+        "alarm": "",
         # S14G-2 / S14G-3 (Pre-Deploy S14h part 1): what the STANDING order does
         # once taken, in the order's own words (`standing_terms`: a support's
         # lapse, an aggressive man's interrupt) - "" when it has nothing to say.
@@ -198,6 +202,23 @@ def _muster_line(world, marshal, enemy) -> str:
         return str(reader._contact_muster_note(marshal, enemy, world) or "").strip()
     except Exception as exc:
         report(exc, "order_quotes._muster_line: CombatExecutor._contact_muster_note")
+        return ""
+
+
+def _alarm_line(world, marshal, enemy) -> str:
+    """S14G-X165 (Pre-Deploy S14h part 2, October 26, 2026): the map attack
+    card's alarm clause - `A win here adds +3 to Europe's alarm (+5 more if
+    decisive; none on your own soil) - now N/100.` - the very sentence the
+    attack's muster preview prints (`CombatExecutor._muster_alarm_note`, S14G-M3),
+    read at the field the attack would be fought on (the enemy's province).
+    The one-line muster (`_muster_line`) carried the odds and none of this, so
+    the card that sends at once priced the battle and not its alarm. PURE; ""
+    for any corps but the player's and for our own soil."""
+    try:
+        from backend.commands.combat_executor import CombatExecutor
+        return str(CombatExecutor._muster_alarm_note(world, marshal, enemy.location) or "").strip()
+    except Exception as exc:
+        report(exc, "order_quotes._alarm_line: CombatExecutor._muster_alarm_note")
         return ""
 
 
@@ -507,9 +528,12 @@ def _literal_detours(world, marshal, roads) -> Dict[str, List[str]]:
     here = marshal.location
     seen = _seen_enemy_regions(world, marshal.nation, None)
     pf = marshal.nation if marshal.nation == player else None
-    rungs = [world.weighted_paths_from(here, avoid_regions=seen, passable_for=pf)]
+    # S14G-X159: `plot_route`'s mover on every rung (the same tie rule).
+    mover = marshal.nation
+    rungs = [world.weighted_paths_from(here, avoid_regions=seen, passable_for=pf,
+                                       mover_nation=mover)]
     if pf:
-        rungs.append(world.weighted_paths_from(here, avoid_regions=seen))
+        rungs.append(world.weighted_paths_from(here, avoid_regions=seen, mover_nation=mover))
     out: Dict[str, List[str]] = {}
     for dest, (road, refusal, _kind) in roads.items():
         if refusal is not None or not road or road[0] not in contacts or road[0] == dest:
@@ -724,7 +748,8 @@ def attack_quote(world, marshal, enemy, *, memo: Optional[dict] = None) -> Dict[
     ap = 0 if getattr(marshal, "has_counter_punch", lambda: False)() else int(world.get_action_cost("attack"))
     q.update(ok=True, ap=ap, turns=0, road=[enemy.location],
              objection=_tactical_objection(world, marshal, "attack", enemy.name),
-             muster=_muster_line(world, marshal, enemy))
+             muster=_muster_line(world, marshal, enemy),
+             alarm=_alarm_line(world, marshal, enemy))
     return q
 
 

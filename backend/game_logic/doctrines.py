@@ -484,8 +484,12 @@ def boot_line(world, nation: str) -> Optional[str]:
     p = doctrine_payload(world, nation)
     if p is None:
         return None
+    # S14G-X78 (Pre-Deploy S14h part 2, October 26, 2026): "(G)" named a bare
+    # key the command line swallows; the pointer is `counsel.surface_pointer`.
+    from backend.ai.counsel import surface_pointer
+    pointer = surface_pointer("marshals") or "the Generals screen"
     return (f"Our doctrine: {p['name']} — {p['says']} "
-            f"The Generals screen (G) shows its strength and its flaw.")
+            f"{pointer[:1].upper()}{pointer[1:]} shows its strength and its flaw.")
 
 
 def arrival_copy(row: Dict, lead_name: str) -> str:

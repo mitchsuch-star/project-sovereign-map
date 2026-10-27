@@ -1650,6 +1650,19 @@ static func clamp_centered_panel(panel: Control) -> void:
 		var override: Vector2 = panel.get_meta("clamp_ceiling_override")
 		design = Vector2(maxf(design.x, override.x), maxf(design.y, override.y))
 	var view: Vector2 = viewport.get_visible_rect().size
+	# S14G-22 (Pre-Deploy S14h part 2, October 26, 2026): a ceiling that is a
+	# FRACTION of the viewport - the Cabinet's (the diplomacy wizard, authored
+	# 560x520) was a bare 560x520 window on a 5120x1440 screen, five lines of
+	# the court list and a scroll for every court. The meta
+	# `clamp_ceiling_fraction` (Vector2, 0 = no raise on that axis) raises the
+	# DEFAULT size to that share of the viewport; the authored rect stays the
+	# floor (`maxf`), the viewport caps below still apply, and the PLAYER's
+	# remembered size (`clamp_user_size`, a grip's) is never raised - the
+	# fraction is the default the grip's double-click returns to. Only the
+	# Cabinet sets it: every other centred modal keeps its authored rect.
+	if panel.has_meta("clamp_ceiling_fraction") and not panel.has_meta("clamp_user_size"):
+		var share: Vector2 = panel.get_meta("clamp_ceiling_fraction")
+		design = Vector2(maxf(design.x, share.x * view.x), maxf(design.y, share.y * view.y))
 	var w: float = minf(design.x, maxf(320.0, view.x - 24.0))
 	var h: float = minf(design.y, maxf(240.0, view.y - 88.0 - 2.0 * top_bar_growth()))
 	panel.offset_left = -w / 2.0

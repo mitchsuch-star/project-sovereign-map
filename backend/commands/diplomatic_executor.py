@@ -76,6 +76,22 @@ def _nation_office(nation: str, office: str) -> str:
     return nation_office(nation, office)
 
 
+def _letter_pause_sentence(world, mission, paused_now: bool) -> str:
+    """S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): the send's reply says
+    what the send did to the running mission - " Talleyrand carries this letter;
+    his Improve Relations at Prussia pauses until he is home (about 1 turn)." -
+    from the ONE builder the preview reads (`diplomacy.letter_pause_line`); ""
+    when the send paused nothing (no live mission, or one already paused). The
+    turns are the letter's own (`letter_home_turns`, a stalled envoy counted).
+    Both send paths (the confirm's and the override's) call this."""
+    from backend.game_logic.diplomatic_dialogue import mission_is_live
+    if not paused_now or not mission or not mission_is_live(world):
+        return ""     # a COMPLETED mission is a record: nothing of his pauses
+    from backend.game_logic.diplomacy import letter_home_turns, letter_pause_line
+    line = letter_pause_line(world, letter_home_turns(world), mission=mission)
+    return f" {line}" if line else ""
+
+
 def proposal_cooldown_refusal(world, target_nation, proposal_type=None) -> Optional[str]:
     """S14G-X35 (Pre-Deploy S14h part 1, October 26, 2026): the sentence that
     refuses a proposal to a court that refused us lately, or None when the
@@ -5553,6 +5569,13 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
+                # S14G-X172 (the re-play's find NF-1, Pre-Deploy S14h part 2,
+                # October 26, 2026): the card's verdict and its terms, so the
+                # reply can name what MOVED when the court's answer is not it.
+                "outcome_at_send": str(_snapshot_result.get("outcome") or ""),
+                "components_at_send": {
+                    k: v for k, v in (_snapshot_result.get("components") or {}).items()
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)},
                 "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
                 # S14D-X39: the purse the preview's dry run read — the envoy's
                 # gold bridge walks this, not the purse after the turn's bills.
@@ -5589,6 +5612,8 @@ class DiplomaticExecutor:
                 "message": (
                     f"Talleyrand departs for {_nation_office(ctx.target_nation, 'court')} with your {_proposal_display_name(proposal_type)} proposal. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
+                    # S14G-25: the send's consequence for the running mission, said at the send
+                    f"{_letter_pause_sentence(ctx.world, mission, _mission_paused_now)}"
                 ),
             }
 
@@ -6112,6 +6137,12 @@ class DiplomaticExecutor:
                     suggested.setdefault("sweeteners", []).append({"type": "ap_per_turn", "value": 1})
 
             # Remove demands (generous = no demands)
+            # S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the click
+            # cleared the draft's demands (a 154-gold-a-turn tribute) and said
+            # nothing, so the player blamed the court's counter for the loss.
+            # The reply names what was set aside (read BEFORE the clearing).
+            from backend.display_names import dropped_demands_words
+            dropped_words = dropped_demands_words(suggested.get("demands"))
             suggested["demands"] = []
 
             # Bug 5 fix: Use nation-specific smart commentary
@@ -6129,6 +6160,7 @@ class DiplomaticExecutor:
                     "talleyrand_text": (
                         "You wished for generosity? I have crafted terms that balance "
                         "dignity with pragmatism, Sire."
+                        + (f" {dropped_words}" if dropped_words else "")
                     ),
                     "options": [
                         {
@@ -6205,7 +6237,8 @@ class DiplomaticExecutor:
                 "type": "proposal_confirm",
                 "target_nation": ctx.target_nation,
                 "talleyrand_text": (
-                    f"A magnanimous approach, Sire. More generous terms for {_court_named(ctx.world, ctx.target_nation)}.{cap_msg}"
+                    f"A magnanimous approach, Sire. More generous terms for {_court_named(ctx.world, ctx.target_nation)}."
+                    + (f" {dropped_words}" if dropped_words else "") + cap_msg
                 ),
                 "options": options,
                 "context": context,
@@ -6917,10 +6950,15 @@ class DiplomaticExecutor:
                 ctx.world.dialogue_manager.pop()
                 return {"success": True, "message": "No counter-offer terms to review, Sire."}
             # Build a new confirmation dialogue showing the counter terms
-            from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
             proposal_type = (counter_terms.get("type") or counter_terms.get("proposal_type")
                              or context.get("proposal_type") or "peace")
-            terms_display = _format_terms_for_display(counter_terms, proposal_type, source_nation)
+            # S14G-X106 (Pre-Deploy S14h part 2, October 26, 2026): the review
+            # showed the counter as a flat term list (`_format_terms_for_display`)
+            # with nothing struck or added marked, where the popup and Talleyrand's
+            # text beside it read the DIFF of the draft - the one reader,
+            # `display_names._counter_offer_parts`, through `_counter_review_lines`.
+            terms_display = _counter_review_lines(
+                ctx.world, context, counter_terms, proposal_type, source_nation)
             new_dialogue = {
                 "type": "proposal_confirm",
                 "target_nation": source_nation,
@@ -6943,8 +6981,25 @@ class DiplomaticExecutor:
                 "blocking": False,
                 "proposal_terms_summary": terms_display,
             }
-            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
-            new_dialogue = _enrich_proposal_summary(new_dialogue, source_nation, proposal_type, ctx.world)
+            from backend.game_logic.diplomatic_dialogue import (
+                _enrich_proposal_summary, _format_terms_for_display)
+            # S14G-X112 (Pre-Deploy S14h part 2, October 26, 2026): the enrichment
+            # is handed the COUNTER's own terms (a copy - it writes keys into what
+            # it enriches). This dialogue has no `execute_proposal` option (accept /
+            # reject / dismiss), so the enrichment drafted a FRESH suggestion the
+            # court had never countered and computed the acceptance estimate, the
+            # harshness, the annotated terms and the war snapshot from IT.
+            new_dialogue = _enrich_proposal_summary(
+                new_dialogue, source_nation, proposal_type, ctx.world,
+                terms=copy.deepcopy(counter_terms))
+            # S14G-X106: the flat head of the summary the enrichment writes (and
+            # whatever it appends after it - the status-quo forecast, an alliance's
+            # binding lines, an estate warning, now all about the counter) gives way
+            # to the DIFF of the draft; the appended lines stay.
+            _flat = _format_terms_for_display(counter_terms, proposal_type, source_nation)
+            _written = list(new_dialogue.get("proposal_terms_summary") or [])
+            _appended = _written[len(_flat):] if _written[:len(_flat)] == _flat else []
+            new_dialogue["proposal_terms_summary"] = list(terms_display) + _appended
             ctx.world.dialogue_manager.replace(new_dialogue)
             return {
                 "success": True,
@@ -7224,6 +7279,13 @@ class DiplomaticExecutor:
                 "turn_sent": turn_sent,
                 "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
                 "acceptance_snapshot": _acceptance_snapshot,  # PL-9: tolerance band
+                # S14G-X172 (the re-play's find NF-1, Pre-Deploy S14h part 2,
+                # October 26, 2026): the card's verdict and its terms, so the
+                # reply can name what MOVED when the court's answer is not it.
+                "outcome_at_send": str(_snapshot_result.get("outcome") or ""),
+                "components_at_send": {
+                    k: v for k, v in (_snapshot_result.get("components") or {}).items()
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)},
                 "diplomatic_state_at_send": ctx.world.get_diplomatic_state(get_player_nation(ctx.world), ctx.target_nation),  # PL-13-A
                 # S14D-X39: the purse the preview's dry run read — the envoy's
                 # gold bridge walks this, not the purse after the turn's bills.
@@ -7257,6 +7319,8 @@ class DiplomaticExecutor:
                 "message": (
                     f"Talleyrand departs for {_nation_office(ctx.target_nation, 'court')} despite his objections. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
+                    # S14G-25: the send's consequence for the running mission, said at the send
+                    f"{_letter_pause_sentence(ctx.world, mission, _mission_paused_now)}"
                 ),
             }
         else:
@@ -9152,9 +9216,21 @@ class DiplomaticExecutor:
         # Counter succeeded — present the modified terms
         # S14D-X13 (October 24, 2026): the summary and the letter name the
         # terms the court STRUCK from the proposal, not only the ones it kept.
+        #
+        # S14G-X108 (Pre-Deploy S14h part 2, October 26, 2026): the call gave
+        # `counter_summary_with_struck` no reader, so Talleyrand's text on this
+        # road got only the "Added: ..." fallback lines under the proposer-voiced
+        # summary ("Prussia offers 90 gold") while the popup beside it read the
+        # diff from the player's chair. It is handed the popup's own chair
+        # (`build_pending_envoy_popup_from_terms`' reader: the player reads, the
+        # court that wrote the letter proposes) and reads the same diff.
         from backend.display_names import counter_summary_with_struck
+        from backend.game_logic.formations import formed_display_name
         counter_summary = counter_summary_with_struck(
-            _format_proposal_summary(counter_terms), terms, counter_terms)
+            _format_proposal_summary(counter_terms), terms, counter_terms,
+            viewer=str(world.player_nation or ""), proposer=str(source_nation or ""),
+            target=str(world.player_nation or ""),
+            name_of=lambda n, _w=world: formed_display_name(_w, n))
 
         # Dismiss stale proposal notification (counter replaces original)
         from backend.notifications import DIPLOMATIC_PROPOSAL
@@ -9223,6 +9299,33 @@ class DiplomaticExecutor:
             "diplomatic_dialogue": world.pending_diplomatic_dialogue,
         }
 
+
+
+def _counter_review_lines(world, context: Dict, counter_terms: Dict, proposal_type: str,
+                          source_nation: str) -> list:
+    """S14G-X106 (Pre-Deploy S14h part 2, October 26, 2026): the lines of the
+    "Consider counter" review - the proposal's own description line, then the
+    counter READ AS A DIFF of the draft it answers (`context["original_proposal"]`):
+    what the court struck, what it added or raised ("Added by Bavaria: you pay
+    100 gold more (242 at the signing)"), then the terms she kept, from the
+    player's chair - the lines the popup and Talleyrand's text print. The reader
+    is `build_pending_envoy_popup_from_terms`' (the player reads, the court that
+    wrote the letter proposes). A counter with no draft to diff (an older save's
+    context) keeps the flat list `_format_terms_for_display` has always given."""
+    from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
+    plain = _format_terms_for_display(counter_terms, proposal_type, source_nation)
+    original = context.get("original_proposal")
+    if not isinstance(original, dict) or not original:
+        return plain
+    from backend.display_names import _counter_offer_parts
+    from backend.game_logic.formations import formed_display_name
+    player = str(getattr(world, "player_nation", "") or "")
+    _base, changes, kept = _counter_offer_parts(
+        original, counter_terms, viewer=player, proposer=str(source_nation or ""),
+        target=player, name_of=lambda n, _w=world: formed_display_name(_w, n))
+    if not changes and not kept:
+        return plain
+    return plain[:1] + changes + kept
 
 
 def _phrase_within(needle: str, hay: str) -> bool:

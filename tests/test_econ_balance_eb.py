@@ -464,8 +464,13 @@ class TestThreatHeadroom:
             (Path(__file__).resolve().parents[1] / "backend"
              / "commands" / "combat_executor.py").read_text(encoding="utf-8"))
         exec_calls = call_re.findall(exec_src)
+        # S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): the figure is the
+        # ONE constant `BATTLE_WIN_ALARM` (= 3) the muster quotes too; the census
+        # keeps its teeth — one attacker-crediting call, no defender arm.
+        from backend.commands.combat_executor import BATTLE_WIN_ALARM
+        assert BATTLE_WIN_ALARM == 3
         assert exec_calls == [
-            'add_threat(world, 3, "battle_win", target=attacker.nation)'
+            'add_threat(world, BATTLE_WIN_ALARM, "battle_win", target=attacker.nation)'
         ], (
             f"combat_executor battle_win call census changed: {exec_calls} "
             f"— only the attacker-crediting call may exist (EB-4.3)")
@@ -474,7 +479,7 @@ class TestThreatHeadroom:
              / "world_state.py").read_text(encoding="utf-8"))
         ws_calls = call_re.findall(ws_src)
         assert ws_calls == [
-            'add_threat(self, 3, "battle_win", target=marshal.nation)'
+            'add_threat(self, BATTLE_WIN_ALARM, "battle_win", target=marshal.nation)'
         ], (
             f"world_state battle_win call census changed: {ws_calls} "
             f"— only the auto-charge ATTACKER arm may credit (EB-4.3; "

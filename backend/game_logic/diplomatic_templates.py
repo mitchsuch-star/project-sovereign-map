@@ -13,7 +13,14 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from backend.nation_config import get_player_nation
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
+from backend.display_names import settlement_draft_words  # S14G-26: the draft's bound, said once
 from backend.errors import report
+from backend.ai.counsel import key_hint  # S14G-X78: the ONE sentence for pressing a screen's key
+
+# S14G-X78 (Pre-Deploy S14h part 2, October 26, 2026): four templates said
+# "The Diplomatic Ledger (D key) has the precise figures" - a bare D typed into
+# the command line is a "d"; `counsel.key_hint` carries the while-typing form.
+_LEDGER_FIGURES = f"The Diplomatic Ledger (press {key_hint('D')}) has the precise figures"
 
 
 def _diplomat_name_from_record(record: Any) -> str:
@@ -1082,7 +1089,7 @@ DIPLOMATIC_TEMPLATES = {
             "Sire, a proposal from {target_nation}:\n\n"
             "  {proposal_summary}\n\n"
             "My assessment: {talleyrand_assessment}\n\n"
-            "The Diplomatic Ledger (D key) has the precise figures."
+            + _LEDGER_FIGURES + "."
         ),
         "options": [
             {
@@ -1113,7 +1120,7 @@ DIPLOMATIC_TEMPLATES = {
             "You ask about {target_nation}, Sire? Let me assess the situation.\n\n"
             "{target_nation} is currently at war with {player_nation}. "
             "The campaign continues and passions run deep.\n\n"
-            "The Diplomatic Ledger (D key) has the precise figures."
+            + _LEDGER_FIGURES + "."
         ),
         "options": [
             {
@@ -1135,7 +1142,7 @@ DIPLOMATIC_TEMPLATES = {
             "You ask about {target_nation}, Sire?\n\n"
             "{target_nation} is at peace with {player_nation}. "
             "The diplomatic situation is as one might expect between our courts.\n\n"
-            "The Diplomatic Ledger (D key) has the precise figures."
+            + _LEDGER_FIGURES + "."
         ),
         "options": [
             {
@@ -1182,7 +1189,7 @@ DIPLOMATIC_TEMPLATES = {
     ("advisory_recommendation", "any", "any"): {
         "text": (
             "{recommendation_text}\n\n"
-            "The Diplomatic Ledger (D key) has the precise figures, Sire."
+            + _LEDGER_FIGURES + ", Sire."
         ),
         "options": [
             {
@@ -1578,18 +1585,14 @@ DIPLOMATIC_TEMPLATES = {
         ],
         "recommendation": 0,
     },
-    "settlement_open_war_detail_recovery_talleyrand": (
-        "Sire, I will keep the draft intact and return us to the live war "
-        "detail for {war_label}."
-    ),
-    "settlement_open_history_recovery_talleyrand": (
-        "Sire, this war has ended; the settlement record now belongs in "
-        "the diplomatic ledger."
-    ),
-    "settlement_no_alternative_route_chancery": (
-        "This settlement cannot currently be recovered from the existing "
-        "surfaces. Close the review and reassess the war next turn."
-    ),
+    # S14G-X120 (Pre-Deploy S14h part 2, October 26, 2026): the three
+    # settlement recovery lines (open_war_detail / open_history / no
+    # alternative route) sat HERE - plain strings in the tuple-keyed response
+    # dict - where `resolve_settlement_voice_line` (which reads
+    # `SETTLEMENT_VOICE_TEMPLATES` alone) never found them: it answered "" and
+    # the line "I will keep the draft intact until the turn ends" was never
+    # spoken (`_terminal_recovery_copy` fell to its own literal). They are
+    # registered with the rest of the settlement voice, below.
 }
 
 # ═══════ COALITION TEMPLATES (T28-T34, Session 7) ═══════
@@ -1821,9 +1824,12 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     ),
     # Discard-confirm prompt (SC-2) — Back Out from a non-empty authored
     # draft asks the player to confirm before clearing terms.
+    # S14G-26: "keep the draft" is bounded by the turn - it is set aside at
+    # turn's end - and the question says so.
     "settlement_discard_confirm_talleyrand": (
         "Sire, the authored terms for {war_label} will be discarded if we "
-        "back out now. Shall I keep the draft, or strike it from the table?"
+        "back out now. Shall I keep the draft " + settlement_draft_words("until")
+        + ", or strike it from the table?"
     ),
     # Cross-war collision (SC-26) — a second settlement entry was
     # attempted while a different war already holds the active dialogue.
@@ -2601,6 +2607,28 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     "settlement_dial_escalation_offer_talleyrand": (
         "The treasury can spare no more coin, Sire — I have offered "
         "{court} {region} instead."
+    ),
+    # S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): "intact" was true for
+    # the current turn only - the draft is set aside at turn's end; the line
+    # says so in the words every surface shares.
+    # S14G-X120 (same day): registered HERE (it sat in the tuple-keyed
+    # response dict, where `resolve_settlement_voice_line` could not find it).
+    # `{war_label}` is a DISPLAY label - `settlement_actions._dialogue_war_label`
+    # titles the war as the war card does.
+    "settlement_open_war_detail_recovery_talleyrand": (
+        "Sire, I will keep the draft intact " + settlement_draft_words("until")
+        + " and return us to the live war detail for {war_label}."
+    ),
+    "settlement_open_history_recovery_talleyrand": (
+        "Sire, this war has ended; the settlement record now belongs in "
+        "the diplomatic ledger."
+    ),
+    # S14G-X120: "Close this review" - the words `settlement_routes.
+    # _terminal_recovery_copy` has always printed from its own literal (the
+    # template here said "the review"; the literal was the one the player read).
+    "settlement_no_alternative_route_chancery": (
+        "This settlement cannot currently be recovered from the existing "
+        "surfaces. Close this review and reassess the war next turn."
     ),
 }
 

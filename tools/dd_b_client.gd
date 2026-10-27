@@ -24,7 +24,12 @@
 #                      whose text holds the words, pressed by a real click at
 #                      its centre (a link by its own meta_clicked road); an
 #                      error when none or several match, naming them;
-#                      `click#N <words>` picks the N-th (1-based)
+#                      `click#N <words>` picks the N-th (1-based).
+#                      A bracketed glyph link ([+], [-]) has no text of its
+#                      own (S14G-I1): it is listed as an ICON — its glyph,
+#                      the line it stands on and its measured rect — and
+#                      named by the glyph with the line's words:
+#                      `click + gold`, `click - on the Britain gold line`
 #   click_at <x> <y>   a real click at logical px (the state's `factor` says
 #                      how a view-JPEG pixel converts)
 #   key <K>            Escape, Enter, T, Alt+T, F1, Ctrl+A …
@@ -34,8 +39,9 @@
 #
 # The state record: every visible text row with its rect and layer, grouped
 # by surface (the CanvasLayer it stands on, or the war room's own pane); every
-# visible button, chip and link with its text, rect and disabled state; the
-# map's drawn place names and pieces with their screen rects; which screens,
+# visible button, chip and link with its text, rect and disabled state (a
+# bracketed glyph link — kind "icon" — with its glyph, its line and its
+# measured rect); the map's drawn place names and pieces with their screen rects; which screens,
 # popups and the region panel are open; the focus; the command line's text;
 # the command window's last 12 lines; every backend reply the action drew
 # (`responses`; a typed line's own is `reply`).
@@ -68,6 +74,11 @@ const MAX_TEXT := 4000
 # clipped in the record while the real chip wraps — half of a filed row was
 # the instrument's own. The cap now holds the longest chip whole.
 const MAX_CONTROL_TEXT := 600
+# S14G-I1 (Pre-Deploy S14h part 2, October 26, 2026): the words `click` skips
+# when it matches an icon ("click + on the Britain gold line" asks for the
+# "+" whose line holds "britain" and "gold").
+const ICON_FILLER := ["on", "the", "line", "a", "of", "at", "button", "icon", "link"]
+const MAX_ICON_LINE := 120
 const _SKIP_KEYS := ["message", "success", "game_state", "new_state"]
 
 var _run_dir := ""
@@ -82,6 +93,12 @@ var _url_re := RegEx.create_from_string("(?s)\\[url(?:=([^\\]]*))?\\](.*?)\\[/ur
 var _tag_re := RegEx.create_from_string("\\[[^\\]]*\\]")
 var _img_re := RegEx.create_from_string("(?s)\\[img[^\\]]*\\].*?\\[/img\\]")
 var _ws_re := RegEx.create_from_string("\\s+")
+# S14G-I1: a glyph link's text is a bracketed symbol ("[+]", "[-]") — no
+# letter or digit, so a tag ("[b]", "[color=#fff]", "[/url]") never is one.
+var _bbtag_re := RegEx.create_from_string("\\[/?[A-Za-z][^\\]]*\\]")
+var _glyph_re := RegEx.create_from_string("^\\[([^\\sA-Za-z0-9\\[\\]=/]{1,3})\\]$")
+var _glyph_any_re := RegEx.create_from_string("\\[[^\\sA-Za-z0-9\\[\\]=/]{1,3}\\]")
+var _lead_sym_re := RegEx.create_from_string("^[\\s*\\-•·▸▾>]+")
 var _sv_display_cache: Dictionary = {}
 
 
@@ -261,15 +278,20 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 		return
 	var want := _squash(words)
 	var controls := _controls(true)
-	var tiers := [[], [], []]
+	# S14G-I1: a bracketed glyph link is an icon (no text): `click +` names it
+	# before any control whose text merely HOLDS a "+" ("+ Add demand"), so the
+	# icons are their own tier between the exact text and the contained one.
+	var tiers := [[], [], [], []]
 	for c in controls:
 		var t := _squash(str(c["text"]))
 		if t != "" and t == want:
 			tiers[0].append(c)
-		elif t != "" and t.find(want) >= 0:
+		elif str(c["kind"]) == "icon" and _icon_matches(c, want):
 			tiers[1].append(c)
-		elif t == "" and _squash(str(c.get("tooltip", ""))).find(want) >= 0:
+		elif t != "" and t.find(want) >= 0:
 			tiers[2].append(c)
+		elif t == "" and _squash(str(c.get("tooltip", ""))).find(want) >= 0:
+			tiers[3].append(c)
 	var found: Array = []
 	for tier in tiers:
 		if not tier.is_empty():
@@ -295,7 +317,7 @@ func _act_click_words(words: String, pick: int, rec: Dictionary) -> void:
 		rec["note"] = "the control is disabled; the click did nothing" + \
 				(" (its reason: %s)" % c["tooltip"] if str(c.get("tooltip", "")) != "" else "")
 		return
-	if str(c["kind"]) == "link":
+	if str(c["kind"]) == "link" or str(c["kind"]) == "icon":
 		var rtl: RichTextLabel = c["_node"]
 		rtl.meta_clicked.emit(c["meta_value"])
 		rec["note"] = "pressed the link by its own road (meta_clicked)"
@@ -844,6 +866,17 @@ func _controls(above_floor_only: bool) -> Array:
 				var meta := m.get_string(1)
 				var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true).replace("\u00A0", " ").strip_edges()
 				if label == "":
+					# S14G-I1 (Pre-Deploy S14h part 2, October 26, 2026): the
+					# strip above reads a "[+]" link as empty and the listing
+					# skipped it, so the settlement table's gold [-][+] could
+					# not be named or located (the sea player clicked a guessed
+					# point that missed). A bracketed glyph link is listed as
+					# an icon; an image-only or empty link is skipped as before.
+					var glyph := _glyph_of(m.get_string(2))
+					if glyph != "":
+						var icon := _icon_link(rtl, base, vis, m, glyph)
+						if not icon.is_empty():
+							out.append(icon)
 					continue
 				var link := base.duplicate()
 				link["kind"] = "link"
@@ -853,6 +886,134 @@ func _controls(above_floor_only: bool) -> Array:
 				link["tooltip"] = ""
 				out.append(link)
 	return out
+
+
+# ── bracketed glyph links (S14G-I1) ─────────────────────────────────────────
+
+func _glyph_of(inner: String) -> String:
+	"""The glyph of a bracketed glyph link — "+" from "[+]" — or "" when the
+	link's text is anything else (an image, a word, nothing). Tags that carry a
+	name ("[color=#fff]", "[/color]", "[b]") are not the glyph."""
+	var t := _bbtag_re.sub(_img_re.sub(inner, "", true), "", true).replace("\u00A0", " ").strip_edges()
+	var m := _glyph_re.search(t)
+	return m.get_string(1) if m != null else ""
+
+
+func _icon_link(rtl: RichTextLabel, base: Dictionary, vis: Rect2, m: RegExMatch, glyph: String) -> Dictionary:
+	"""A glyph link as a control of kind "icon": no text, its glyph, the line it
+	stands on (`on_line`: the heading above it, then its own words) and its
+	measured rect. `{}` when the glyph is scrolled out of the pane."""
+	var where := _glyph_place(rtl, m.get_start(), "[" + glyph + "]", vis)
+	if bool(where.get("hidden", false)):
+		return {}
+	var meta := m.get_string(1)
+	var icon := base.duplicate()
+	icon["kind"] = "icon"
+	icon["text"] = ""
+	icon["glyph"] = glyph
+	icon["on_line"] = str(where.get("on_line", ""))
+	icon["meta_value"] = meta if meta != "" else m.get_string(2)
+	icon["disabled"] = false
+	icon["tooltip"] = ""
+	icon["placed"] = where.has("rect")
+	if where.has("rect"):
+		icon["rect"] = _r(where["rect"])
+	return icon
+
+
+func _glyph_place(rtl: RichTextLabel, start: int, shown: String, vis: Rect2) -> Dictionary:
+	"""Where a glyph link stands on screen, and what its line says. A label has
+	no API for a link's rect, so it is measured the way the label lays it out:
+	the link's index in the PARSED text (the BBCode before it, parsed by a
+	scratch label), its visual line (get_character_line), the width of that
+	line's text before it in the label's own font, and the line's offset less
+	the label's own scroll. {"on_line", "rect"} (clipped to what is visible),
+	{"on_line", "hidden"} when it is scrolled out, {"on_line"} alone when the
+	label cannot be measured (the control then keeps the label's rect)."""
+	# (A bound space reads as a space, as in every reader of this file: the
+	# replace is one character for one, so no index below moves.)
+	var parsed := rtl.get_parsed_text().replace("\u00A0", " ")
+	var scratch := RichTextLabel.new()
+	scratch.bbcode_enabled = true
+	scratch.text = rtl.text.substr(0, start)
+	var idx := scratch.get_parsed_text().replace("\u00A0", " ").length()
+	scratch.free()
+	var out := {"on_line": _line_of(parsed, idx)}
+	if idx >= parsed.length() or not rtl.has_method("get_character_line"):
+		return out
+	var line := int(rtl.call("get_character_line", idx))
+	if line < 0:
+		return out
+	var first := idx
+	while first > 0 and int(rtl.call("get_character_line", first - 1)) == line:
+		first -= 1
+	var font: Font = rtl.get_theme_font("normal_font")
+	var size: int = rtl.get_theme_font_size("normal_font_size")
+	if font == null:
+		return out
+	var x := font.get_string_size(parsed.substr(first, idx - first), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var w := font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var h := float(rtl.call("get_line_height", line)) if rtl.has_method("get_line_height") \
+			else font.get_height(size)
+	var origin := rtl.get_global_rect().position
+	var box: StyleBox = rtl.get_theme_stylebox("normal")
+	if box != null:
+		origin += Vector2(box.get_margin(SIDE_LEFT), box.get_margin(SIDE_TOP))
+	var scroll := rtl.get_v_scroll_bar().value if rtl.scroll_active else 0.0
+	var seen := Rect2(origin.x + x, origin.y + float(rtl.get_line_offset(line)) - scroll, w, h).intersection(vis)
+	if seen.size.x < 2.0 or seen.size.y < 2.0:
+		out["hidden"] = true
+	else:
+		out["rect"] = seen
+	return out
+
+
+func _line_of(parsed: String, idx: int) -> String:
+	"""The paragraph a parsed-text index stands in, its glyph links removed and
+	its whitespace collapsed, led by the nearest heading above it (a paragraph
+	indented less): "Britain · Demanded · 300 gold (yours)"."""
+	var paras := parsed.split("\n")
+	var p := parsed.substr(0, idx).count("\n")
+	if p < 0 or p >= paras.size():
+		return ""
+	var own := _ws_re.sub(_glyph_any_re.sub(paras[p], "", true), " ", true).strip_edges()
+	var indent := _indent_of(paras[p])
+	var head := ""
+	if indent > 0:
+		for j in range(p - 1, -1, -1):
+			if paras[j].strip_edges() != "" and _indent_of(paras[j]) < indent:
+				head = _group_name(paras[j])
+				break
+	return ((head + " · " + own) if head != "" else own).left(MAX_ICON_LINE)
+
+
+func _indent_of(para: String) -> int:
+	return para.length() - para.lstrip(" \t\u00A0").length()
+
+
+func _group_name(heading: String) -> String:
+	"""A heading's name: "  * Britain ▸ - Holding out (17/50) …" -> "Britain"."""
+	var h := _lead_sym_re.sub(heading.strip_edges(), "", false).strip_edges()
+	for cut in [" ▸", " ▾", " - ", " — ", " ("]:
+		var at := h.find(cut)
+		if at > 0:
+			h = h.substr(0, at)
+	return h.left(28)
+
+
+func _icon_matches(c: Dictionary, want: String) -> bool:
+	"""`click <glyph> [words]`: the icon whose glyph is the first word and whose
+	line holds the rest ("+ gold", "+ on the Britain gold line"). `want` is
+	already squashed (lower-case, one space between words)."""
+	var words := want.split(" ", false)
+	var glyph := _squash(str(c.get("glyph", "")))
+	if glyph == "" or words.is_empty() or words[0] != glyph:
+		return false
+	var line := _squash(str(c.get("on_line", "")))
+	for i in range(1, words.size()):
+		if not ICON_FILLER.has(words[i]) and line.find(words[i]) < 0:
+			return false
+	return true
 
 
 func _describe(controls: Array) -> Array:

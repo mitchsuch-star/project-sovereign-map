@@ -5313,6 +5313,112 @@ def armistice_projected_relation(relation_now: int, remaining_turns: int) -> int
     return int(relation_now) + int(ARMISTICE_THAW_PER_TURN) * int(max(0, remaining_turns))
 
 
+# S14G-24 (Pre-Deploy S14h part 2, October 26, 2026): the projection read the
+# relation plus the truce's thaw and nothing else, so the player's OWN running
+# courtship (+8 a turn, written by the tick before the thaw) was left out — the
+# counsel said "−57" while the actual rise over the same turns was +11 a turn.
+# `armistice_mission_gain` is the courtship's share of the projection, ONE
+# function (THE SEAM: held down it answers 0 and the projection reads the
+# thaw alone, as before). It is the PLAYER's mission only — `world.active_
+# diplomatic_mission` is the one store and no AI court has a mission — and the
+# processor reads the exit at `remaining == 0`, where the gain is 0 by
+# construction, so the signing of a truce never moves.
+_MISSION_RELATION_TYPES = frozenset({"IMPROVE_RELATIONS", "COURT_NATION", "REASSURE_ALLY"})
+
+
+def letter_home_turns(world, pit=None) -> int:
+    """S14G-25: the turns until Talleyrand is home from the letter he carries —
+    the SAME count `transit_words` prints ("home in 1 turn"): the envoy
+    delivers once `turn_sent < current_turn`, and a stalled envoy's `turn_sent`
+    is one later. With no letter on the road (the preview) the answer is the
+    plain 1."""
+    pit = pit if pit is not None else getattr(world, "proposal_in_transit", None)
+    if not isinstance(pit, dict) or not pit.get("target"):
+        return 1
+    return int(max(1, int(pit.get("turn_sent", 0) or 0) - int(getattr(world, "current_turn", 0) or 0) + 1))
+
+
+def armistice_mission_per_turn(world, nation_a: str, nation_b: str) -> int:
+    """The relation the player's live courtship of the pair's other member
+    writes each funded tick (`mission_effect_magnitude`, the figure the tick
+    applies) — 0 when no live relation mission aims at this pair."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    if player not in (nation_a, nation_b):
+        return 0
+    other = nation_b if nation_a == player else nation_a
+    from backend.game_logic.diplomatic_dialogue import mission_effect_magnitude, mission_is_live
+    if not mission_is_live(world):
+        return 0
+    mission = world.active_diplomatic_mission
+    mission_type = str(mission.get("type") or "")
+    if mission_type not in _MISSION_RELATION_TYPES or str(mission.get("target") or "") != other:
+        return 0
+    return int(max(0, mission_effect_magnitude(world, mission_type, "relation_change")))
+
+
+def armistice_mission_gain(world, nation_a: str, nation_b: str, remaining_turns: int) -> int:
+    """S14G-24: what the player's live courtship adds to the pair's relation by
+    the truce's expiry — its per-turn write times the funded ticks left. A
+    mission paused under a letter loses the turns he is away
+    (`letter_home_turns`); one paused for want of DP is not counted."""
+    remaining = int(max(0, remaining_turns))
+    if remaining <= 0:
+        return 0
+    per_turn = armistice_mission_per_turn(world, nation_a, nation_b)
+    if per_turn <= 0:
+        return 0
+    ticks = remaining
+    if (world.active_diplomatic_mission or {}).get("paused"):
+        if getattr(world, "talleyrand_state", "") != "IN_TRANSIT":
+            return 0
+        ticks -= letter_home_turns(world)
+    return int(per_turn * max(0, ticks))
+
+
+# S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): sending ANY proposal
+# pauses the courtship ("a paused mission earns and costs nothing") and nothing
+# said so at the send - the preview was silent, the reply said only "Talleyrand
+# departs...", the chip's face and the top bar's summary read as if he were
+# still at the court. The consequence is stated ONCE here and read by the
+# preview (`_enrich_proposal_summary`), both send replies, the top bar's summary
+# and (the same suffix, literal in `notification_bar.gd`) the rail's chip.
+MISSION_PAUSED_SUFFIX = "paused — carrying a letter"
+_MISSION_PAUSE_LABELS = {"COURT_NATION": "Court Nation", "UNDERMINE_ALLIANCE": "Undermine Alliances"}
+
+
+def mission_paused_for_letter(world) -> bool:
+    """Is the live mission paused because Talleyrand carries a proposal? The
+    reading `mission_status` makes for `pause_reason == "transit"`."""
+    from backend.game_logic.diplomatic_dialogue import mission_is_live
+    return bool(mission_is_live(world)
+                and (world.active_diplomatic_mission or {}).get("paused")
+                and getattr(world, "talleyrand_state", "") == "IN_TRANSIT")
+
+
+def letter_pause_line(world, turns: int = 1, mission: Optional[Dict[str, Any]] = None) -> str:
+    """S14G-25: the consequence a send has for the running mission - "Talleyrand
+    carries this letter; his Improve Relations at Prussia pauses until he is
+    home (about 1 turn)." "" when there is nothing to pause (no live mission, or
+    one already paused). ``mission`` names the mission explicitly for the send
+    reply, which speaks after the pause has been set."""
+    from backend.display_names import MISSION_ROW_DISPLAY, display_nation, plural, with_definite_article
+    if mission is None:
+        from backend.game_logic.diplomatic_dialogue import mission_is_live
+        if not mission_is_live(world):
+            return ""
+        mission = world.active_diplomatic_mission
+        if mission.get("paused"):
+            return ""
+    mission_type, target = str(mission.get("type") or ""), str(mission.get("target") or "")
+    if not target:
+        return ""
+    label = _MISSION_PAUSE_LABELS.get(
+        mission_type, MISSION_ROW_DISPLAY.get(mission_type, mission_type.replace("_", " ").title()))
+    return (f"Talleyrand carries this letter; his {label} at "
+            f"{with_definite_article(display_nation(target))} pauses until he is home "
+            f"(about {plural(int(max(1, turns)), 'turn')}).")
+
+
 def armistice_resolves_this_turn(world, nation_a: str, nation_b: str) -> str:
     """'war' / 'peace' when the truce between the two runs out at THIS end
     turn's advance (`_process_armistice_expiration`), else ''.
@@ -5447,7 +5553,11 @@ def armistice_expiry_exit(world, nation_a: str, nation_b: str) -> Dict[str, Any]
     elapsed = int((getattr(world, "armistice_turns", {}) or {}).get(key, 0) or 0)
     remaining = (int(max(0, ARMISTICE_DURATION - elapsed)) if state == "ARMISTICE"
                  else int(ARMISTICE_DURATION))
-    projected = int(armistice_projected_relation(relation, remaining))
+    natural = int(armistice_projected_relation(relation, remaining))
+    # S14G-24: the player's own running courtship is part of where the truce
+    # heads (`armistice_mission_gain`, the seam); `natural` is the thaw alone.
+    mission_gain = int(armistice_mission_gain(world, nation_a, nation_b, remaining))
+    projected = natural + mission_gain
     who = truce_loser(world, nation_a, nation_b)
     loser, victor = who["loser"], who["victor"]
     hope = truce_hope_alive(world, loser, victor) if loser else None
@@ -5469,6 +5579,8 @@ def armistice_expiry_exit(world, nation_a: str, nation_b: str) -> Dict[str, Any]
         "exit": exit_, "loser": loser, "victor": victor,
         "loser_score": int(who["loser_score"]), "hope": hope,
         "relation": relation, "projected": projected, "remaining": remaining,
+        "natural": natural, "mission_gain": mission_gain,
+        "mission_per_turn": int(armistice_mission_per_turn(world, nation_a, nation_b)),
         "line": int(ARMISTICE_AUTO_PEACE_RELATION),
         "bond": ({"payer": str(_bond.get("payer") or ""), "member": str(_bond.get("recipient") or "")}
                  if _bond is not None else None),
@@ -5530,6 +5642,36 @@ def record_truce_sureties(world, nation_a: str, nation_b: str,
     store = instance.setdefault("truce_sureties", {})
     store[key] = record
     return record
+
+
+def cure_slot_clause(world) -> str:
+    """S14G-X128 (Pre-Deploy S14h part 2): the truce's cure is "N turns of
+    Improve Relations", which needs Talleyrand's ONE slot - and the line priced
+    it as if he were free. With him at another court it says where he is and
+    what recalling him gives up; with him on the road, when he is home. " " +
+    the clause, or "" when the slot is open (or shut only for want of DP)."""
+    from backend.display_names import display_nation, with_definite_article
+    _available, reason = mission_gate(world, "IMPROVE_RELATIONS")
+    if reason == _MISSION_BUSY:
+        away = str((world.active_diplomatic_mission or {}).get("target") or "")
+        forfeit = mission_forfeit_words(world)
+        return (f" Talleyrand is at {with_definite_article(display_nation(away))}'s court"
+                + (f" — recalling him forfeits {forfeit}." if forfeit else "."))
+    if reason == _MISSION_TRANSIT:
+        return " Talleyrand carries a letter; the cure opens when he is home."
+    return ""
+
+
+def truce_reach_words(exit_: Dict[str, Any]) -> str:
+    """S14G-24: where the relation is heading, in the truce's one wording —
+    "will thaw to -57" for the thaw alone, or, with the player's own courtship
+    running and counted (`armistice_mission_gain`), "will reach -24 (-57 at the
+    natural thaw alone; Talleyrand's courtship adds +33)"."""
+    gain = int(exit_.get("mission_gain", 0) or 0)
+    if gain <= 0:
+        return f"will thaw to {int(exit_['projected'])}"
+    return (f"will reach {int(exit_['projected'])} ({int(exit_.get('natural', 0))} at the natural "
+            f"thaw alone; Talleyrand's courtship adds {gain:+d})")
 
 
 def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
@@ -5618,6 +5760,9 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
         if bits:
             sureties_line = "Sureties filed at the truce: " + "; ".join(bits) + "."
     line = int(exit_["line"])
+    # S14G-24: "will thaw to −57" names the thaw alone; with the player's own
+    # courtship running the figure is the projection WITH it, and says so.
+    reach = truce_reach_words(exit_)
     if exit_["exit"] == "dictated":
         heading_line = (
             f"At expiry: a dictated peace on the held line — {loser_name} reads "
@@ -5626,9 +5771,8 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
         )
     elif exit_["exit"] == "peace":
         heading_line = (
-            f"At expiry: peace — relations stand at {int(exit_['relation'])} and will thaw to "
-            f"{int(exit_['projected'])}, at or past {line}; what each side holds is titled by "
-            f"the signature."
+            f"At expiry: peace — relations stand at {int(exit_['relation'])} and {reach}, "
+            f"at or past {line}; what each side holds is titled by the signature."
         )
     elif exit_.get("bond"):
         # PC-X61: the bond closes the truce's automatic exits
@@ -5640,7 +5784,7 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
     else:
         heading_line = (
             f"At expiry: the war resumes where it stood — relations stand at "
-            f"{int(exit_['relation'])} and will thaw to {int(exit_['projected'])}, short of "
+            f"{int(exit_['relation'])} and {reach}, short of "
             f"{line}; the ledger and the war's age come back with it."
         )
     cure = None
@@ -5648,7 +5792,19 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
     if exit_["exit"] == "war" and not exit_.get("bond"):
         gap = int(line - int(exit_["projected"]))
         gain = int(mission_effect_magnitude(world, "IMPROVE_RELATIONS", "relation_change") or 0)
-        if gap > 0 and gain > 0:
+        if gap > 0 and gain > 0 and int(exit_.get("mission_per_turn", 0) or 0) > 0:
+            # S14G-24: his courtship of this very court already runs and is IN
+            # the projection above — pricing "N more turns of Improve
+            # Relations" would spend the one slot twice. The cure says what the
+            # running courtship reaches and how far short of the line it falls.
+            cure = {"turns": 0, "gain": int(exit_["mission_per_turn"]), "dp": 0, "gap": gap,
+                    "in_reach": False, "running": True}
+            cure_line = (
+                f"The cure is out of reach: Talleyrand's courtship already runs "
+                f"({int(exit_['mission_per_turn']):+d} a turn) and is counted; it carries "
+                f"relations to {int(exit_['projected'])}, {gap} short of {line}."
+            )
+        elif gap > 0 and gain > 0:
             turns = int(-(-gap // gain))
             try:
                 from backend.nation_config import get_player_diplomat
@@ -5671,6 +5827,8 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
                     f"The cure is out of reach: {turns} turns of Improve Relations (+{gain} a "
                     f"turn) would be needed and {remaining} remain."
                 )
+            # S14G-X128: the cure spends the ONE slot - say where it is
+            cure_line += cure_slot_clause(world)
     display_lines = [
         (f"A {ARMISTICE_DURATION}-turn ceasefire: fighting stops. {keeps_line} "
          f"No territory or gold changes hands until it ends."),
@@ -5693,6 +5851,9 @@ def truce_words(world, nation_a: str, nation_b: str) -> Dict[str, Any]:
         "loser": exit_.get("loser", ""), "victor": exit_.get("victor", ""),
         "projected": int(exit_["projected"]), "relation": int(exit_["relation"]),
         "remaining": int(exit_["remaining"]),
+        # S14G-24: the thaw alone and the running courtship's share of the projection
+        "natural": int(exit_.get("natural", exit_["projected"])),
+        "mission_gain": int(exit_.get("mission_gain", 0) or 0),
     }
 
 HARSHNESS_LABELS = [
@@ -10203,6 +10364,46 @@ _REASON_BY_TOP_TERM = {
 }
 
 
+_MOVER_KEYS = _FEEDBACK_TRACKABLE | frozenset({
+    "battlefield_diplomacy", "military_pressure", "military_supremacy"})
+
+
+def proposal_movers_line(pit: Mapping[str, Any], result: Mapping[str, Any]) -> str:
+    """S14G-X172 (the re-play's find NF-1, Pre-Deploy S14h part 2, October 26,
+    2026): when the court's answer is not the verdict the card gave at the
+    send, ONE sentence naming both figures and what moved most between them
+    — the reply blamed "deep-seated hostility" (−10, unchanged since the
+    card) while the war score had fallen 33 in the turn Talleyrand travelled
+    (replay_truce_offer #141 / #373: "Score: 51 - ACCEPT", then rejected).
+    Reads the card's terms the send recorded on the proposal in transit
+    (`components_at_send`, `outcome_at_send`) against the arrival's; "" when
+    the verdict is the card's, nothing was recorded, or nothing moved a
+    point. The phrase is the formula's own (`feedback_phrase`)."""
+    before = pit.get("components_at_send") or {}
+    sent_outcome = str(pit.get("outcome_at_send") or "")
+    final = str(result.get("outcome") or "")
+    if not isinstance(before, Mapping) or not before or not sent_outcome or sent_outcome == final:
+        return ""
+    after = result.get("components") or {}
+    best_key, best_delta = "", 0.0
+    for key in sorted(_MOVER_KEYS):
+        a, b = before.get(key), after.get(key)
+        if (isinstance(a, (int, float)) and not isinstance(a, bool)
+                and isinstance(b, (int, float)) and not isinstance(b, bool)):
+            delta = float(b) - float(a)
+            if abs(delta) > abs(best_delta):
+                best_key, best_delta = key, delta
+    if not best_key or abs(best_delta) < 1:
+        return ""
+    from backend.display_names import feedback_phrase
+    phrase = feedback_phrase(best_key, "negative" if best_delta < 0 else "positive",
+                             str(result.get("grievance_kind") or ""), best_key.replace("_", " "))
+    sent = int(pit.get("acceptance_snapshot", 0) or 0)
+    arrived = int(result.get("score", 0) or 0)
+    return (f"It read {sent} when Talleyrand set out and {arrived} on his arrival — "
+            f"what moved most: {phrase} ({int(round(best_delta)):+d}).")
+
+
 def _ranked_components(components: Dict):
     """(largest_positive, largest_negative, second_negative) over the
     trackable set, each a (key, value) pair — ("", 0) where none."""
@@ -12367,12 +12568,21 @@ def _process_forced_alliance_drift(world) -> List[Dict]:
 
 
 def check_auto_downgrade(world) -> List[Dict]:
-    """Check for automatic downgrades when relations stay 30+ below threshold for 5 turns.
+    """Check for automatic downgrades when relations stay `AUTO_DOWNGRADE_GAP`
+    (30) or more below threshold for `AUTO_DOWNGRADE_TURNS` (5) turns.
+
+    S14G-X131 (Pre-Deploy S14h part 2, October 26, 2026): the gap and the run
+    were literals here and in the mission forecast
+    (`diplomatic_dialogue.project_mission_turns`) and the slide clock
+    (`slide_clock`, which already read the constants). One clock: the tick reads
+    the same two constants the words do. The AI's pairs walk this tick too -
+    the values are unchanged (30, 5), so the run is byte-identical.
 
     Returns list of downgrade events for Morning Dispatch.
     """
     turns_below = getattr(world, 'turns_below_threshold', {})
     events = []
+    warn_at = AUTO_DOWNGRADE_TURNS - 2   # 2 turns before the downgrade (3 of 5)
 
     for diplo_key, state in list(world.diplomatic_states.items()):
         threshold = STATE_RELATION_THRESHOLDS.get(state)
@@ -12384,11 +12594,11 @@ def check_auto_downgrade(world) -> List[Dict]:
         relation = world.nation_relations.get(diplo_key, 0)
         gap = threshold - relation  # Positive = below threshold
 
-        if gap >= 30:
+        if gap >= AUTO_DOWNGRADE_GAP:
             turns_below[diplo_key] = turns_below.get(diplo_key, 0) + 1
 
             # Warn at turn 3 (2 turns before downgrade)
-            if turns_below[diplo_key] == 3:
+            if turns_below[diplo_key] == warn_at:
                 parts = diplo_key.split("|")
                 # S14E-11: for a bond of ours the warning carries its CAUSE
                 # (the slide) and its LEVER (read from the Cabinet's gates);
@@ -12404,7 +12614,7 @@ def check_auto_downgrade(world) -> List[Dict]:
                 })
 
             # Auto-downgrade at turn 5
-            if turns_below[diplo_key] >= 5:
+            if turns_below[diplo_key] >= AUTO_DOWNGRADE_TURNS:
                 parts = diplo_key.split("|")
                 # Apply half penalties
                 idx = _DOWNGRADE_ORDER.index(state) if state in _DOWNGRADE_ORDER else -1
@@ -14741,20 +14951,261 @@ _MISSION_BUSY = "Mission already active"
 _MISSION_TRANSIT = "Talleyrand in transit"
 
 
-def mission_busy_words(world) -> str:
+# ═══════ S14G-28 / S14G-D5 "The Trade Is Priced" (Pre-Deploy S14h part 2) ═══════
+# Talleyrand courts ONE court at a time (`DIPLOMACY_SPEC.md:369` - the scarcity
+# is the design; S14G-D5 ruled it KEPT). What the page lacked was the PRICE: the
+# busy sentence named the remedy ("recall Talleyrand from Austria first") and
+# not the trade - what recalling forfeits (the courtship's remaining turns) and
+# what the shut lever costs (the bond slides on a clock to its lapse). The
+# trade's words are built ONCE here and read by the counsel (`_slide_counsel`),
+# the "may collapse" warning (`slide_lever`'s clause), the Cabinet's shut mission
+# rows (`mission_busy_words`), the truce's cure (`truce_words`) and the mission
+# confirm (`shut_lever_warning`). Player-only text: no AI road reads any of it.
+#
+# `check_auto_downgrade` lets a bond lapse when the relation stands
+# AUTO_DOWNGRADE_GAP under its line for AUTO_DOWNGRADE_TURNS turns running; the
+# clock below steps the tick's own arithmetic (`relation_drift_step`) until
+# that count is reached, so the figure is the one the tick will reach.
+AUTO_DOWNGRADE_GAP = 30
+AUTO_DOWNGRADE_TURNS = 5
+_COURTSHIP_TYPES = frozenset({"IMPROVE_RELATIONS", "COURT_NATION"})
+_LEVER_TYPES = frozenset({"REASSURE_ALLY", "IMPROVE_RELATIONS", "COURT_NATION"})
+
+
+def _court_poss(nation: str) -> str:
+    """"Austria's" / "the Papal States'" - the court named for a possessive."""
+    from backend.display_names import display_nation, with_definite_article
+    name = with_definite_article(display_nation(nation))
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
+def slide_clock(world, other: str, state: str = "") -> Optional[Dict[str, Any]]:
+    """S14G-28: the clock of a bond the auto-downgrade holds to a line, or None
+    for a pair that is not one. ``rate`` is the points the tick takes a turn
+    (the drift's own sign flipped: 0 at or under +10, negative while the
+    relation thaws up from under -10), ``under_in`` the turns until it stands
+    UNDER the line (0 when it already does), ``lapse_in`` the turns until the
+    bond lapses to the next rung (None when nothing the tick does reaches it).
+    Pure; at most 99 arithmetic steps; no region scan."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    state = state or world.get_diplomatic_state(player, other)
+    line = STATE_RELATION_THRESHOLDS.get(state)
+    if line is None:
+        return None
+    line = int(line)
+    key = world._make_diplo_key(player, other)
+    relation = int(world.nation_relations.get(key, 0) or 0)
+    counted = int((getattr(world, "turns_below_threshold", {}) or {}).get(key, 0) or 0)
+    court = _court_exemption(world)
+    rate = -int(relation_drift_step(world, player, other, relation=relation, _court=court))
+    r, c = relation, counted
+    under_in = 0 if relation < line else None
+    lapse_in = None
+    for n in range(1, 100):
+        r += int(relation_drift_step(world, player, other, relation=r, _court=court))
+        if under_in is None and r < line:
+            under_in = n
+        c = c + 1 if (line - r) >= AUTO_DOWNGRADE_GAP else 0
+        if c >= AUTO_DOWNGRADE_TURNS:
+            lapse_in = n
+            break
+    return {
+        "other": other, "state": state, "relation": relation, "line": line,
+        "rate": rate, "under_in": under_in, "lapse_in": lapse_in,
+        "bond": "alliance" if state == "ALLIANCE" else slide_state_words(state),
+    }
+
+
+def slide_clock_words(clock: Optional[Dict[str, Any]], named: bool = True) -> str:
+    """The bond's clock in words: "Spain, at 36, is under the 40 line and slides
+    1 a turn — the alliance lapses in about 31 turns"; unnamed (the counsel has
+    just said where it stands): "left alone it slides 1 a turn and the alliance
+    lapses in about 31 turns". "" when no clock runs to a lapse."""
+    if not clock or clock.get("lapse_in") is None:
+        return ""
+    from backend.display_names import display_nation, plural, with_definite_article
+    bond, rate = str(clock["bond"]), int(clock["rate"])
+    relation, line = int(clock["relation"]), int(clock["line"])
+    court = with_definite_article(display_nation(str(clock["other"])))
+    lapse = f"the {bond} lapses in about {plural(int(clock['lapse_in']), 'turn')}"
+    if rate <= 0:
+        # already counting toward the lapse (at the floor, or thawing up from under it)
+        return (f"it is already counting toward the lapse — {lapse}" if not named
+                else f"{court}, at {relation}, has already fallen to the point where {lapse}")
+    slides = f"slides {rate} a turn"
+    if not named:
+        return f"left alone it {slides} and {lapse}"
+    if relation < line:
+        where = f"is under the {line} line and {slides}"
+    elif relation == line:
+        where = f"stands on the {line} line and {slides}"
+    else:
+        where = (f"falls under the {line} line in about "
+                 f"{plural(int(clock['under_in'] or 0), 'turn')} and {slides}")
+    return f"{court}, at {relation}, {where} — {lapse}"
+
+
+def sliding_bonds(world, exclude: str = "") -> List[Dict[str, Any]]:
+    """S14G-28: the player's bonds that are AT or UNDER the line the
+    auto-downgrade holds them to - the set `_ally_slide_counsel` counsels - with
+    a clock that runs to a lapse, the nearest lapse first. ``exclude`` leaves
+    one court out (the court a mission is being sent to). Walks the diplomatic
+    states once, never the regions."""
+    player = str(getattr(world, "player_nation", "France") or "France")
+    rows: List[Dict[str, Any]] = []
+    for key, state in list((getattr(world, "diplomatic_states", {}) or {}).items()):
+        if state not in STATE_RELATION_THRESHOLDS:
+            continue
+        parts = str(key).split("|")
+        if len(parts) != 2 or player not in parts:
+            continue
+        other = parts[1] if parts[0] == player else parts[0]
+        if other == exclude:
+            continue
+        clock = slide_clock(world, other, state)
+        if clock is None or clock["lapse_in"] is None or clock["relation"] > clock["line"]:
+            continue
+        rows.append(clock)
+    rows.sort(key=lambda c: (int(c["lapse_in"]), str(c["other"])))
+    return rows
+
+
+def _forfeit_parts(world) -> Optional[Tuple[str, str]]:
+    """(what, figures) the live mission would give up on a recall - the court's
+    remaining work and its rate and span ("+8 a turn", "9 turns"), from the
+    mission's own status. None when no mission is live."""
+    from backend.game_logic.diplomatic_dialogue import (
+        mission_is_live, mission_status, project_mission_turns)
+    if not mission_is_live(world):
+        return None
+    status = mission_status(world)
+    if not status:
+        return None
+    from backend.display_names import plural
+    mission_type = str(status["type"])
+    court = _court_poss(str(status["target"]))
+    kind, turns = str(status.get("remaining_kind") or ""), int(status.get("remaining_turns", -1))
+    if status.get("paused"):
+        # paused under a letter or for want of DP, the work still ahead is the
+        # one he resumes - read it as the running mission would
+        kind, turns, _note = project_mission_turns(
+            world, dict(status, paused=False, pause_reason=""))
+    if kind == "peace":
+        span = "until the peace is signed"
+    elif turns >= 0 and kind in ("ceiling", "favour", "duration"):
+        span = plural(turns, "turn")
+    else:
+        span = "no end set"
+    rate = f"{int(status['effect_per_turn']):+d} a turn"
+    if mission_type == "GATHER_INTEL":
+        return f"{court} remaining intelligence", f"{span} left"
+    if mission_type == "UNDERMINE_ALLIANCE":
+        return f"{court} remaining undermining", f"{rate}, {span}"
+    noun = "courtship" if mission_type in _COURTSHIP_TYPES else "reassurance"
+    return f"{court} remaining {noun}", f"{rate}, {span}"
+
+
+def mission_forfeit_words(world, nested: bool = False) -> str:
+    """What recalling Talleyrand gives up, from the live mission's own figures:
+    "Austria's remaining courtship (+8 a turn, 9 turns)"; ``nested`` (for a
+    clause already inside a parenthesis) "Austria's remaining courtship, +8 a
+    turn, 9 turns". "" when no mission is live."""
+    parts = _forfeit_parts(world)
+    if parts is None:
+        return ""
+    what, figures = parts
+    return f"{what}, {figures}" if nested else f"{what} ({figures})"
+
+
+def slot_trade(world, other: str = "", state: str = "") -> Dict[str, Any]:
+    """S14G-28: the one-slot trade, priced from BOTH sides - ``forfeit`` what
+    recalling gives up, ``slide`` (named) / ``slide_short`` (unnamed) what the
+    shut lever costs the bond with `other` (its clock), ``line`` the two as
+    sentences ("Recalling forfeits Austria's remaining courtship (+8 a turn, 9
+    turns); Spain, at 36, is under the 40 line and slides 1 a turn — the alliance
+    lapses in about 31 turns.") and ``line_short`` the same with the unnamed
+    clock (the counsel has already said where the bond stands). Every key is ""
+    when there is nothing to say."""
+    forfeit = mission_forfeit_words(world)
+    clock = slide_clock(world, other, state) if other else None
+    if clock is not None and clock["relation"] > clock["line"]:
+        clock = None        # above its line the bond is not on the slide
+    slide = slide_clock_words(clock, named=True)
+    short = slide_clock_words(clock, named=False)
+
+    def _sentence(slide_part: str) -> str:
+        bits = []
+        if forfeit:
+            bits.append(f"recalling forfeits {forfeit}")
+        if slide_part:
+            bits.append(slide_part)
+        if not bits:
+            return ""
+        text = "; ".join(bits)
+        return text[0].upper() + text[1:] + "."
+
+    return {"forfeit": forfeit, "slide": slide, "slide_short": short,
+            "line": _sentence(slide), "line_short": _sentence(short)}
+
+
+def shut_lever_warning(world, target: str, mission_type: str) -> str:
+    """S14G-28 / S14G-D5: the mission confirm's warning - starting THIS mission
+    holds the one slot, which shuts the lever of every bond on the slide
+    ("Starting this courtship shuts Reassure Ally; Spain, at 36, is under the 40
+    line and slides 1 a turn — the alliance lapses in about 31 turns."). "" when
+    a mission already holds the slot (the confirm's replace note speaks), or
+    when no bond is on the slide. The court the mission is sent to, if the
+    mission is a lever for it, is left out - it IS the remedy."""
+    from backend.game_logic.diplomatic_dialogue import mission_is_live
+    if mission_is_live(world):
+        return ""
+    exclude = target if str(mission_type) in _LEVER_TYPES else ""
+    bonds = sliding_bonds(world, exclude=exclude)
+    if not bonds:
+        return ""
+    labels: List[str] = []
+    for bond in bonds:
+        label = _SLIDE_LEVERS.get(str(bond["state"]), _SLIDE_LEVER_DEFAULT)[1]
+        if label not in labels:
+            labels.append(label)
+    what = "courtship" if str(mission_type) in _COURTSHIP_TYPES else "mission"
+    tail = ""
+    if len(bonds) > 1:
+        from backend.display_names import display_nation, with_definite_article
+        names = [with_definite_article(display_nation(str(b["other"]))) for b in bonds[1:]]
+        tail = f" {' and '.join(names)} {'slides' if len(names) == 1 else 'slide'} too."
+    return (f"Starting this {what} shuts {' and '.join(labels)}; "
+            f"{slide_clock_words(bonds[0], named=True)}.{tail}")
+
+
+def mission_busy_words(world, other: str = "", mission_type: str = "") -> str:
     """S14E-34: what the shut mission row says to the player — WHERE the one
     slot is and how to free it: "Talleyrand is at Austria's court — F1 →
     Austria → Cancel". The row's machine reason (`disabled_reason`) stays
     `_MISSION_BUSY`; the counsel's lever (`slide_lever`) and the dead-end
-    reader compare it."""
+    reader compare it.
+
+    S14G-28 (Pre-Deploy S14h part 2): and what the click COSTS - "Recalling
+    forfeits Austria's remaining courtship (+8 a turn, 9 turns)", plus, on the
+    row that is the LEVER of a bond on the slide (``other`` is that court and
+    ``mission_type`` the mission `slide_lever` names), what the shut lever costs
+    the bond: "Spain, at 36, is under the 40 line and slides 1 a turn — the
+    alliance lapses in about 31 turns." """
     from backend.display_names import display_nation, with_definite_article
     from backend.game_logic.diplomatic_dialogue import mission_is_live
     away = str((world.active_diplomatic_mission or {}).get("target") or "") \
         if mission_is_live(world) else ""
     if not away:
         return _MISSION_BUSY
-    return (f"Talleyrand is at {with_definite_article(display_nation(away))}'s court — "
+    base = (f"Talleyrand is at {with_definite_article(display_nation(away))}'s court — "
             f"F1 → {display_nation(away)} → Cancel")
+    court = ""
+    if other and mission_type:
+        player = str(getattr(world, "player_nation", "France") or "France")
+        lever = _SLIDE_LEVERS.get(world.get_diplomatic_state(player, other), _SLIDE_LEVER_DEFAULT)[0]
+        court = other if lever == mission_type else ""
+    trade = slot_trade(world, court)["line"]
+    return f"{base}. {trade}" if trade else base
 
 
 def transit_words(world) -> str:
@@ -14773,7 +15224,12 @@ def transit_words(world) -> str:
     proposal = pit.get("proposal") or {}
     kind = str(proposal.get("type") or "")
     what = proposal_display_name(kind).lower() if kind else "his letter"
-    turns = max(1, int(pit.get("turn_sent", 0) or 0) - int(getattr(world, "current_turn", 0) or 0) + 1)
+    # S14G-X117 (Pre-Deploy S14h part 2, October 26, 2026): the count was this
+    # function's own copy of `letter_home_turns`' formula (S14G-25 wrote the
+    # helper "the SAME count `transit_words` prints" and a test pinned the two
+    # equal). It reads the one helper now, so the shut rows and the send's
+    # reply can never name different homecomings.
+    turns = letter_home_turns(world, pit)
     court = with_definite_article(display_nation(str(pit["target"])))
     return (f"Talleyrand is in transit with the {what} to {court} — "
             f"home in {plural(turns, 'turn')}")
@@ -14857,8 +15313,15 @@ def slide_lever(world, other: str, state: str = "") -> Dict[str, Any]:
         shut = f"keep Talleyrand at {_named(other)}'s court"
         kind = "here"
     elif reason == _MISSION_BUSY:
-        shut = f"recall Talleyrand from {out['away_name']} first, then {label}"
+        # S14G-28 / S14G-D5: the clause names the PRICE of the recall as well
+        # as the remedy ("that forfeits Russia's remaining courtship, +8 a
+        # turn, 9 turns") - the one slot is kept and the trade is stated. The
+        # trade (`slot_trade`) rides the lever for the counsel's own sentence.
+        _forfeit = mission_forfeit_words(world, nested=True)
+        shut = (f"recall Talleyrand from {out['away_name']} first, then {label}"
+                + (f" (that forfeits {_forfeit})" if _forfeit else ""))
         kind = "busy"
+        out["trade"] = slot_trade(world, other, state)
     else:
         shut = f"{label} (it needs {cost} DP)"
         kind = "dp"
@@ -14934,6 +15397,9 @@ def _slide_counsel(world, target_nation: str, state: str, lead: str) -> Tuple[st
         if shut == "busy":
             text += (f" {label} waits on his errand: recall Talleyrand from "
                      f"{lever['away_name']} first.")
+            # S14G-28 / S14G-D5: the recall's price and the bond's clock
+            if lever["trade"]["line_short"]:
+                text += f" {lever['trade']['line_short']}"
         elif shut == "transit":
             text += f" {label} opens when he is home."
         return text, ""
@@ -14943,9 +15409,17 @@ def _slide_counsel(world, target_nation: str, state: str, lead: str) -> Tuple[st
         return (f"{lead} Talleyrand is already at their court, Sire — net "
                 f"{net:+d} a turn."), ""
     if kind == "busy":
-        return (f"{lead} {label} is shut while Talleyrand is at {lever['away_name']}'s "
+        text = (f"{lead} {label} is shut while Talleyrand is at {lever['away_name']}'s "
                 f"court — recall Talleyrand from {lever['away_name']} first (the "
-                f"Cabinet's Recall is free)."), ""
+                f"Cabinet's Recall is free).")
+        # S14G-28 / S14G-D5 (Pre-Deploy S14h part 2, October 26, 2026): the
+        # sentence named the remedy and not the trade - "recalling forfeits
+        # Austria's remaining courtship (+8 a turn, 9 turns); left alone it
+        # slides 1 a turn and the alliance lapses in about 31 turns". One slot
+        # is KEPT (the ruling); the page prices both sides of it.
+        if lever["trade"]["line_short"]:
+            text += f" {lever['trade']['line_short']}"
+        return text, ""
     if kind == "transit":
         return (f"{lead} {label} is shut while Talleyrand carries a proposal abroad "
                 f"— it opens when he is home."), ""
@@ -15505,7 +15979,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         }
         if reason == _MISSION_BUSY:
             # S14E-34: the client shows `disabled_reason_display` first.
-            row["disabled_reason_display"] = mission_busy_words(world)
+            # S14G-28: ... and the trade, from the row's own court and mission.
+            row["disabled_reason_display"] = mission_busy_words(world, target_nation, mission_type)
         return row
 
     if state == "WAR":

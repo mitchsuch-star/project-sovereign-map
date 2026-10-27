@@ -3824,6 +3824,73 @@ def generate_counter_offer(
     return terms
 
 
+def _gold_line_shape(term) -> Optional[tuple]:
+    """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the identity two
+    gold sweeteners must share to be ONE line - the type and the turns a
+    stream runs (a sweetener is always what the proposer pays the target, so
+    the pair is the same by construction). None for a term that is not a
+    plain gold line (any other key, a non-numeric value): it is its own."""
+    if not isinstance(term, dict):
+        return None
+    ttype = str(term.get("type") or "").strip().lower()
+    if ttype not in ("gold_lump", "gold_per_turn"):
+        return None
+    if set(term) - {"type", "value", "turns"}:
+        return None
+    try:
+        int(term.get("value"))
+        turns = int(term.get("turns") or 0)
+    except (TypeError, ValueError):
+        return None
+    return (ttype, turns)
+
+
+def merged_gold_sweeteners(sweeteners) -> list:
+    """S14G-23: a sweetener list with every same-shape gold line folded into
+    the first of its shape (`gold_lump`s into one sum; `gold_per_turn`s that
+    run the same turns into one stream) - the order of the rest kept, the
+    input untouched. PURE: the counter's reader (`display_names
+    .counter_offer_clause_lines`) and the builders' seam share it, and the
+    acceptance scorer (linear in gold) and the ratifier (one gold_lump clause
+    per line, paid in turn from one purse) read the sum exactly as they read
+    the lines."""
+    merged: list = []
+    at: dict = {}
+    for term in sweeteners or []:
+        shape = _gold_line_shape(term)
+        if shape is None:
+            merged.append(term)
+        elif shape in at:
+            line = merged[at[shape]]
+            line["value"] = int(line["value"]) + int(term["value"])
+        else:
+            at[shape] = len(merged)
+            merged.append(dict(term))
+    return merged
+
+
+def add_counter_gold_sweetener(terms: Dict, sweetener: Dict) -> Dict:
+    """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): add the court's
+    gold sweetener to a counter - THE SEAM (Golden Rule 5; the series arm
+    holds it down). A counter used to APPEND a second gold line beside the
+    draft's own ("You pay 142; You pay 100"); now the line of the same shape
+    (a lump into the lump, a stream into the stream of the same turns) is
+    RAISED, so one line carries the sum, and a sweetener of no shape the draft
+    holds is appended as before. Mutates and returns `terms`.
+
+    "Down" restores the pre-S14G-23 body byte for byte:
+        terms.setdefault("sweeteners", []).append(sweetener)"""
+    sweeteners = terms.setdefault("sweeteners", [])
+    shape = _gold_line_shape(sweetener)
+    if shape is not None:
+        for line in sweeteners:
+            if _gold_line_shape(line) == shape:
+                line["value"] = int(line["value"]) + int(sweetener["value"])
+                return terms
+    sweeteners.append(sweetener)
+    return terms
+
+
 def _payer_gold(world, payer_nation: str) -> int:
     """Treasury of the side that pays counter sweeteners (proposer side).
 
@@ -3860,8 +3927,11 @@ def _gold_bridge_counter(
     amount = 100
     while amount <= max_amount:
         test_terms = copy.deepcopy(terms)
-        test_terms.setdefault("sweeteners", []).append(
-            {"type": "gold_lump", "value": int(amount)}
+        # S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the bridge
+        # RAISES the draft's own gold line through the one seam rather than
+        # appending a second ("You pay 142; You pay 100").
+        add_counter_gold_sweetener(
+            test_terms, {"type": "gold_lump", "value": int(amount)}
         )
         result = calculate_acceptance(test_terms, world)
         if result["score"] >= accept_threshold:
@@ -3928,7 +3998,11 @@ def _try_add_desired_clauses(
                 if max_per_turn <= 0:
                     continue
                 sweetener_value = min(sweetener_value, max_per_turn)
-            test_terms["sweeteners"].append({
+            # S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the court's
+            # sweetener RAISES the draft's own gold line of that shape through
+            # the one seam (`add_counter_gold_sweetener`) - a second same-shape
+            # line read as "You pay 142; You pay 100" with nothing marked new.
+            add_counter_gold_sweetener(test_terms, {
                 "type": dtype,
                 "value": sweetener_value,
             })

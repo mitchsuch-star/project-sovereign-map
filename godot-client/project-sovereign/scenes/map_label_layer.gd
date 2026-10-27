@@ -367,6 +367,12 @@ func _lay_out_furniture(xform: Transform2D, obstacles: Array, pieces: Array) -> 
 		obstacles.append(Rect2(r.position + d, r.size))
 		_furniture_world_rects.append(Rect2(world.position + dw, world.size))
 	_furniture_report = {"moved": moved, "hidden": hidden, "items": count}
+	# S14G-19 (Pre-Deploy S14h part 2, October 26, 2026): the names and chips
+	# above were just moved, nudged or hidden - their click boxes follow them
+	# (a stack label's box stayed where the layout found it, so the visible
+	# "Ney +4" was not what a click on it reached).
+	if _renderer != null and _renderer.has_method("sync_label_hitboxes"):
+		_renderer.sync_label_hitboxes()
 
 
 func _item_alive(nodes: Array) -> bool:

@@ -130,6 +130,9 @@ const PANEL_LIMITS := {
 	"dispatch": [Vector2(480, 320), Vector2(8192, 8192)],
 	"event_log": [Vector2(480, 320), Vector2(8192, 8192)],
 	"gazette": [Vector2(480, 320), Vector2(8192, 8192)],
+	# S14G-22 (Pre-Deploy S14h part 2): the Cabinet (the diplomacy wizard, a
+	# modal at layer 110) is clamped AND gripped - the key its grip stores by.
+	"cabinet": [Vector2(480, 320), Vector2(8192, 8192)],
 }
 
 

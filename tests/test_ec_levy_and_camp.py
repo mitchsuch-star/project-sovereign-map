@@ -102,12 +102,23 @@ class TestLevyStatus:
 
     def test_the_open_price_is_the_memos_measured_450(self):
         """⊕ 450g per 10,000 foot at Paris — the purchase that would have
-        saved the campaign, quoted from the single source that charges it."""
+        saved the campaign, quoted from the single source that charges it.
+
+        S14G-M4 / S14G-X163 (Pre-Deploy S14h part 2, October 26, 2026) -
+        CONSCIOUS FLIP (450 -> 518): the 450 was the ordinance's capital price
+        priced with no corps; the order itself ("recruit infantry in Paris",
+        the recipient at the capital) is charged 518g on this board (the war
+        term the headline omitted), so the open price is the capital quote's.
+        The ordinance's own 450 stays the figure where the order would be
+        refused (`capital_quote.ok` False)."""
+        from backend.commands.economy_executor import recruit_quote
         world = _europe()
         _maul(world)
         levy = get_levy_status(world)
+        quote = recruit_quote(world, world.get_nation_capital("France"), "infantry", "France")
+        assert quote["ok"] and quote["price"] == 518
         assert levy["infantry_amount"] == 10_000
-        assert levy["infantry_price"] == 450
+        assert levy["infantry_price"] == int(quote["price"]) == 518
 
     def test_being_over_the_limit_prices_the_levy_higher(self):
         """Shown = applied: the boot price carries W6-11's overage multiplier,
@@ -172,7 +183,11 @@ class TestLevyHeadline:
         _maul(world)
         head = _build_headline(world, "France") or {}
         assert head.get("class") == "levy_open"
-        assert "450 gold" in head["text"]
+        # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026) - CONSCIOUS FLIP
+        # ("450 gold" -> "518 gold"): the headline quotes the capital's own
+        # quote (what "recruit infantry in Paris" charges), not the
+        # ordinance's unmodified 450.
+        assert "518 gold" in head["text"]
         assert "Paris" in head["text"]
 
     def test_it_is_a_standing_class_so_it_cannot_become_a_stuck_record(self):
@@ -197,7 +212,13 @@ class TestLevyHeadline:
         # and the escalated variants dropped it — and from run 3 onward the
         # escalated wording is what the player sees, forever. Every variant
         # now names the place a marshal must stand.
-        assert any("nobody has gone to collect them" in t for t in seen), seen
+        # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026) - CONSCIOUS FLIP:
+        # "nobody has gone to collect them" named the HEADROOM as men waiting
+        # and said nobody had come though the gate is open only because a
+        # corps is in reach; every variant now names who raises the levy and
+        # the very order.
+        assert not any("nobody has gone to collect them" in t for t in seen), seen
+        assert all("'recruit infantry in Paris'" in t for t in seen if "ordinance" in t), seen
         # SR-6a RS-D2 (Oct 2, 2026) — CONSCIOUS RE-SEAT: after three
         # statements the levy yields the page to the quiet-morning floor,
         # so only its own lines are held to the recipient condition.

@@ -710,7 +710,9 @@ class TestTheReadingSurfaces:
         with contextlib.redirect_stdout(io.StringIO()):
             d = build_morning_dispatch(world, boot=True)
         assert d["today"]["doctrine"].startswith("Our doctrine: The Corps System —")
-        assert "(G)" in d["today"]["doctrine"]
+        # FLIPPED CONSCIOUSLY (S14G-X76b, October 26, 2026): "(G)" -> the
+        # Generals pointer with its while-typing form (`counsel.surface_pointer`).
+        assert "(press G, or Alt+G while you type)" in d["today"]["doctrine"]
 
     def test_the_desk_answers_the_three_questions(self, world):
         from backend.ai.question_desk import answer_board_question, classify_board_question

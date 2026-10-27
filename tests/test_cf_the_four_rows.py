@@ -457,7 +457,9 @@ class TestCF8TheOptions:
         assert "These orders would be carried out today" in answer or "Nothing can be ordered" in answer
 
     @pytest.mark.parametrize("ask,expect", [
-        ("can Ney fortify", "Yes, Sire — Ney can fortify today; it costs 1 action."),
+        # S14G-X167 (Pre-Deploy S14h part 2): Ney stands NEUTRAL at the boot, so
+        # the fortify is two (`insist_terms`: he goes defensive first) - was "1 action".
+        ("can Ney fortify", "Yes, Sire — Ney can fortify today; it costs 2 actions."),
         ("can Ney retreat", "Yes, Sire — Ney can fall back today; it is free."),
         # SFR-H4 (SF-RR2, Oct 21, 2026): the refusal names the verb it refuses.
         ("can Massena garrison", "Not today, Sire — Massena cannot garrison: not our soil."),

@@ -476,8 +476,13 @@ class TestCA811RecruitRefusal:
 
     def test_the_headline_states_the_marshal_requirement(self):
         tpl = dispatch_mod._HEADLINE_TEMPLATES["levy_open"]
-        assert "marshal must stand" in tpl, (
-            "the headline advertises a price and a place but not the condition")
+        # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026) - CONSCIOUS FLIP
+        # ("marshal must stand" -> "{recipient}"): where the gate is open a
+        # corps IS in reach, so the headline NAMES him instead of saying a
+        # marshal must stand there; it still never advertises a price and a
+        # place without the man who receives the levy.
+        assert "{recipient}" in tpl and "marshal must stand" not in tpl, (
+            "the headline advertises a price and a place but not the man")
 
 
 # ════════════════════════════════════════════════════════════════════════

@@ -160,7 +160,11 @@ class TestB1LevyReadsTheDepot:
 
         monkeypatch.setattr(EE, "recruit_location_gate", spy)
         get_levy_status(europe)
-        assert calls == ["Paris"]
+        # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026): the status now also
+        # carries the capital's own quote (`_levy_capital_quote` → `recruit_quote`),
+        # which reads the SAME gate once more — two reads of the one predicate,
+        # both at Paris, never a second predicate.
+        assert set(calls) == {"Paris"} and 1 <= len(calls) <= 2, calls
         europe.regions["Paris"].controller = "Austria"
         res = _execute(europe, {"action": "recruit"})
         assert res["success"] is False

@@ -77,6 +77,7 @@ from backend.game_logic.settlement_routes import (
     _normalize_nation_list,
     _terminal_recovery_copy,
     _war_label,
+    dialogue_war_label,
     evaluate_war_detail_actionability,
     mint_settlement_route_id,
 )
@@ -213,6 +214,7 @@ def _build_settlement_scope_replace_confirm_dialogue(
     current_dialogue: Mapping[str, Any],
     *,
     incoming_request: Mapping[str, Any],
+    world: Any = None,
 ) -> Dict[str, Any]:
     """Build the G2e same-war different-scope replace chooser."""
     war_id = str(current_dialogue.get("war_id") or incoming_request.get("war_id") or "")
@@ -231,7 +233,9 @@ def _build_settlement_scope_replace_confirm_dialogue(
     )
     current_scope_display = _scope_display(current_selected, current_covered)
     incoming_scope_display = _scope_display(incoming_selected, incoming_covered)
-    war_label = str(current_dialogue.get("war_label") or war_id or "this war")
+    # S14G-X122 (Pre-Deploy S14h part 2, October 26, 2026): the dialogue's label, else
+    # the war card's title, else "this war" - never the raw war id.
+    war_label = dialogue_war_label(world, current_dialogue, war_id)
     message = resolve_settlement_voice_line(
         "settlement_scope_replace_confirm_talleyrand",
         war_label=war_label,
@@ -495,6 +499,7 @@ def _build_pair_substitute_confirm_dialogue(
     proposal_type: str,
     selected_target: str,
     eligibility: Mapping[str, Any],
+    world: Any = None,
 ) -> Dict[str, Any]:
     """G4F-8 (Gate-4 smoke) — the pair-substitute confirm chooser.
 
@@ -508,7 +513,7 @@ def _build_pair_substitute_confirm_dialogue(
     terms for the target travel into the new talks.
     """
     war_id = str(current_dialogue.get("war_id") or "")
-    war_label = str(current_dialogue.get("war_label") or war_id or "this war")
+    war_label = dialogue_war_label(world, current_dialogue, war_id)   # S14G-X122
     arm_label = "an armistice" if proposal_type == "armistice" else "peace"
     message = resolve_settlement_voice_line(
         "settlement_pair_substitute_confirm_talleyrand",
@@ -2140,23 +2145,38 @@ def _settlement_propose_carry_hint(
             if n not in mismatch_courts and settlement_terms is not None
             and (rows_by_nation.get(n) or {}).get("total") is not None
             and court_gold_at_credit_ceiling(settlement_terms, n)]
-        if ceiling_courts:
+        # S14G-X171 (the re-play's find NF-2, Pre-Deploy S14h part 2, October
+        # 26, 2026): the FOURTH arm — a holdout whose top blocker is the war's
+        # OBJECT (`objective_<label>` on its row, the line from
+        # `settlement_baseline._objective_blocker_view`): gold cannot move it,
+        # so the court is named with its line beside the ceiling's and the
+        # mismatch's, never under "Use 'More generous'" (replay_table #276:
+        # Britain's ceiling named, Austria and Russia told to be more generous
+        # at a blocker no gold touches).
+        objective_courts = [
+            n for n in easeable
+            if n not in mismatch_courts and n not in ceiling_courts
+            and str((rows_by_nation.get(n) or {}).get("top_blocker_detail") or "").startswith("objective_")
+            and (rows_by_nation.get(n) or {}).get("top_blocker_line")]
+        objective_lines = [str(rows_by_nation[n]["top_blocker_line"]) for n in objective_courts]
+        if ceiling_courts or objective_courts:
             can_drop = len(rows_by_nation) > 1
             ceiling_lines = [
                 _credit_ceiling_hint_line(
                     rows_by_nation[n], n, terms=list(settlement_terms or []), can_drop=can_drop)
                 for n in ceiling_courts]
-            rest = [n for n in easeable if n not in ceiling_courts and n not in mismatch_courts]
+            named_courts = set(ceiling_courts) | set(objective_courts)
+            rest = [n for n in easeable if n not in named_courts and n not in mismatch_courts]
             tail = ("Then 'Submit for Review' to ratify. "
                     "Submitting now only opens a review you cannot ratify.")
             if not rest:
-                return f"{' '.join(ceiling_lines + mismatch_lines)} {tail}"
-            others = _join_court_names([n for n in holdouts if n not in ceiling_courts])
+                return f"{' '.join(ceiling_lines + objective_lines + mismatch_lines)} {tail}"
+            others = _join_court_names([n for n in holdouts if n not in named_courts])
             return (
                 f"{others} won't accept these terms yet. Use 'More generous' (or ease "
                 f"a court) until each accepts, then 'Submit for Review' to ratify. "
                 f"Submitting now only opens a review you cannot ratify. "
-                f"{' '.join(ceiling_lines + mismatch_lines)}"
+                f"{' '.join(ceiling_lines + objective_lines + mismatch_lines)}"
             )
         hint = (
             f"{names} won't accept these terms yet. Use 'More generous' (or ease "
@@ -4137,7 +4157,7 @@ def build_settlement_confirm_dialogue(
                 "selected_target_nation": resolved_target,
                 "talleyrand_text": resolve_settlement_voice_line(
                     voice_key,
-                    war_label=war_label or war_id or "this war",
+                    war_label=dialogue_war_label(world, {"war_label": war_label}, war_id),   # S14G-X122
                     target_nation=resolved_target,
                 ),
                 "voice_family": voice_key,
@@ -4957,6 +4977,7 @@ def stage_settlement_confirm(
                 replace_dialogue = _build_settlement_scope_replace_confirm_dialogue(
                     mounted,
                     incoming_request=incoming_request,
+                    world=world,
                 )
                 world.dialogue_manager.replace(replace_dialogue)
                 return {

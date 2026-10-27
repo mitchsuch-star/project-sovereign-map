@@ -126,7 +126,7 @@ func _on_dispatch_received(response):
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]\n"
 	bbcode += "[color=#" + Utils.COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"
 	# R159 (POSITION 7): each core screen names the mechanic it displays.
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Press R to reread it any time.[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]What changed overnight, before you spend a single order. Esc closes it; Alt+R (or Alt+B) while you type reopens it.[/color]\n"
 	bbcode += "\n"
 	var congress_at := bbcode.length()
 
@@ -499,7 +499,13 @@ func _on_dispatch_received(response):
 			# SF7-X48: the section's tier is the coalition's name (Brewing / Formed
 			# are the dangerous ones); the band names stay for an old payload.
 			var tier_color = Utils.COLOR_ERROR if tier in ["Brewing", "Formed", "CRITICAL", "HIGH"] else Utils.COLOR_BATTLE
-			bbcode += "[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]\n"
+			# S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): what moved the figure
+			# since yesterday's dawn - the backend's own sentence ("up 8 since
+			# yesterday (Won a battle +3, Won a decisive battle +5)"); absent
+			# where yesterday's figure is unknown, and the line reads as before.
+			var threat_delta_line = str(coalition_status.get("threat_delta_line", ""))
+			var threat_tail = (" — " + threat_delta_line) if threat_delta_line != "" else ""
+			bbcode += "[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "]" + threat_tail + "[/color]\n"
 			var brewing = coalition_status.get("brewing", null)
 			if brewing != null and brewing is Dictionary:
 				var brew_turns = int(brewing.get("turns_remaining", 0))

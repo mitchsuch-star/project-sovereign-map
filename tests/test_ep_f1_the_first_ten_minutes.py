@@ -481,23 +481,48 @@ def _fogged_phase(world, monkeypatch, nations):
 
 NINE = ["Britain", "Russia", "Prussia", "Ottoman", "PapalStates",
         "Sweden", "Portugal", "Naples", "Denmark"]
+# S14G-27 (Pre-Deploy S14h part 2, October 26, 2026): the courts the line may
+# name are those at war with France or holding ground beside her - these nine
+# all are (Britain, Russia, Austria at war; the rest on her border).
+NINE_IN_VIEW = ["Britain", "Russia", "Austria", "Bavaria", "Spain",
+                "Hanover", "Hesse", "Holland", "Switzerland"]
 
 
 class TestTheFogIsOneSentence:
 
     def test_nine_fogged_courts_are_one_line(self, monkeypatch):
+        # S14G-27 flip: the sentence's shape is LV-13's, over the nine courts
+        # in view (it was the first nine to act: Prussia, the Ottomans and the
+        # far courts are no longer named - see the next test).
+        world = _scenario_world()
+        out = _fogged_phase(world, monkeypatch, NINE_IN_VIEW)
+        assert out["fog_hidden_summary"] == [
+            "Britain, Russia, Austria and 6 other courts stirred, "
+            "but their formations remain beyond our sight."]
+
+    def test_the_far_courts_are_not_named(self, monkeypatch):
+        """S14G-27: of the first nine the line named, only the two at war
+        with France are named now."""
         world = _scenario_world()
         out = _fogged_phase(world, monkeypatch, NINE)
         assert out["fog_hidden_summary"] == [
-            "Britain, Russia, Prussia and 6 other courts stirred, "
-            "but their formations remain beyond our sight."]
+            "Britain and Russia stirred, but their formations remain "
+            "beyond our sight."]
 
     def test_one_fogged_court_keeps_its_own_sentence(self, monkeypatch):
+        # S14G-27 flip: the Ottomans are neither at war with France nor beside
+        # her (they name no line - the next test); Austria, at war, keeps hers.
+        world = _scenario_world()
+        out = _fogged_phase(world, monkeypatch, ["Austria"])
+        assert out["fog_hidden_summary"] == [
+            "Our scouts report activity within the borders of Austria, "
+            "but their formations remain beyond our sight."]
+
+    def test_a_far_court_alone_names_nothing(self, monkeypatch):
         world = _scenario_world()
         out = _fogged_phase(world, monkeypatch, ["Ottoman"])
-        assert out["fog_hidden_summary"] == [
-            "Our scouts report activity within the borders of the Ottoman "
-            "Empire, but their formations remain beyond our sight."]
+        assert out["fog_hidden_summary"] == []
+        assert out["fog_only"] is True
 
 # ═══════════════════════════════════════════════════════════════════════════
 # LV-12 — the route table: which modals wait behind the order's result

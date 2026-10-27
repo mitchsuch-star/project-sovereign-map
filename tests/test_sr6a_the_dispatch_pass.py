@@ -391,7 +391,10 @@ class TestTheDeskPlacesACourt:
             assert msg.startswith(f"Europe's alarm stands at {level} — "), (q, msg)
             # Score Finish Step 7b (a conscious re-pin): the pointer names
             # the tab the alarm lives on, not the whole ledger.
-            assert "the Diplomatic Ledger's Balance of Europe tab (press D, then 3)" in msg
+            # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the
+            # pointer carries the while-typing form (`counsel.key_hint`).
+            assert ("the Diplomatic Ledger's Balance of Europe tab "
+                    "(press D, then 3; Alt+D, then Alt+3 while you type)") in msg
 
     def test_lever_down_shrugs(self, shipped, monkeypatch):
         from backend.ai import question_desk as QD

@@ -34,6 +34,15 @@ SAILING_ENDS_THE_STANDING_ORDER = True
 THE_EMPEROR_COMMANDS_THE_ADMIRALTY = True
 
 
+def _admiralty_pointer() -> str:
+    """S14G-16 (Pre-Deploy S14h part 2, October 26, 2026): "THE ADMIRALTY (press T,
+    then 7)" for the five refusals below — the ONE pointer, through
+    `counsel.key_hint`: the bare keys type into the command line (it keeps the
+    caret after nearly every reply); Alt+T, then Alt+7, work while typing."""
+    from backend.ai.counsel import surface_pointer
+    return surface_pointer("admiralty") or "THE ADMIRALTY"
+
+
 def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     if actor != getattr(world, "player_nation", "France"):
         return None  # the AI's rungs never carry a marshal
@@ -55,7 +64,7 @@ def _admiralty_misaddressed(command: Dict, world, actor: str, example: str):
     return {"success": False, "variable_action_cost": 0, "message": (
         f"The Admiralty takes its orders from the Emperor, Sire, not from "
         f"{who} in the field — its orders are the buttons on "
-        f"THE ADMIRALTY (press T, then 7).")}
+        f"{_admiralty_pointer()}.")}
 
 
 # S14E-33 (S14f part 2): the number in "lay down TWO ships". The verb phrase
@@ -428,20 +437,20 @@ class NavalExecutor:
                 return {"success": False, "message": (
                     "The Admiralty takes its orders from the Emperor, Sire, "
                     "not from a marshal in the field — and a fleet cannot "
-                    "invest a city. Her posture is set on THE ADMIRALTY "
-                    "(press T, then 7) — Blockade the enemy, or Recall to home "
+                    "invest a city. Her posture is set on "
+                    f"{_admiralty_pointer()} — Blockade the enemy, or Recall to home "
                     "waters; to invest a place, march on it.")}
             if not naval.sentence_is_an_order(raw):
                 return {"success": False, "message": (
                     "I have noted it, Sire, but that is intelligence, not an "
                     "order — nothing has gone to the Admiralty. To move the "
-                    "fleet, use the posture buttons on THE ADMIRALTY (press T, "
-                    "then 7).")}
+                    "fleet, use the posture buttons on "
+                    f"{_admiralty_pointer()}.")}
             posture = naval.derive_posture(raw) or ""
         if posture not in naval.POSTURES:
             return {"success": False, "message": (
-                "Give the Admiralty a posture, Sire, from its buttons (press "
-                "T, then 7): Blockade the enemy (close the ports of every "
+                "Give the Admiralty a posture, Sire, from its buttons on "
+                f"{_admiralty_pointer()}: Blockade the enemy (close the ports of every "
                 "at-war enemy our sail can outmatch) or Recall to home "
                 "waters.")}
 
@@ -553,7 +562,19 @@ class NavalExecutor:
             return {"success": False, "message": (
                 "Choose who embarks, Sire — click a coastal province on the "
                 "map for its landing chip. A corps of 15,000 or fewer sails; "
-                "THE ADMIRALTY (press T, then 7) names who can, and where.")}
+                f"{_admiralty_pointer()} names who can, and where.")}
+        # S14G-X85 (Pre-Deploy S14h part 2, October 26, 2026): "the Emperor
+        # does not sail" was said by the counsel, the help and the term while
+        # this verb quoted and sailed him (FA-D16's ruling (a) left the verb
+        # ungated; a typed `land Napoleon in Ulster` drew up the expedition).
+        # The ONE predicate every list and chip already reads
+        # (`naval.sovereign_stays`) now refuses here, free, before anything is
+        # quoted or in transit. The AI walks this executor too (Golden Rule 5):
+        # `find_ai_expedition` skips the same man, so an authored AI sovereign is
+        # never proposed and refused.
+        if naval.sovereign_stays(marshal):
+            return {"success": False, "variable_action_cost": 0,
+                    "message": naval.sovereign_stays_line(marshal) + "."}
         if not naval.has_naval_layer(world):
             return {"success": False, "message": (
                 "This campaign has no naval theatre — there are no "
@@ -672,6 +693,18 @@ class NavalExecutor:
             _front = front_line(world, marshal, target)
             if _front:
                 pay_clause += f" {_front}"
+            # S14G-31 (Pre-Deploy S14h part 2, October 26, 2026): the card
+            # priced the throw and the failure and never the prize. What a
+            # landing at an enemy's shore gets - the formable's pointer ("Ulster
+            # is half of the Ireland carve ..."), what waits ashore as far as
+            # the fog admits, and the raiding-party floor for a small corps -
+            # is `naval.landing_prize_clause`, the sentence the Land chips and
+            # the Admiralty's chips print too.
+            _prize = naval.landing_prize_clause(world, marshal.nation, target, marshal)
+            prize_clause = f" If it lands: {_prize}." if _prize else ""
+            # S14G-X138: and the price of sailing - the verb's own action
+            # cost from the table (`naval.ap_price_words`), never a literal.
+            sail_price = naval.ap_price_words(world, "naval_expedition")
             return {
                 "success": True,
                 "free_action": True,
@@ -689,7 +722,8 @@ class NavalExecutor:
                     f"~{int(naval.EXPEDITION_TURNBACK_LOSS * 100)}% turned "
                     f"back — and the fleet's readiness "
                     f"−{naval.EXPEDITION_TURNBACK_READINESS} if she is "
-                    f"turned back.{intercept_clause}{levers_clause}{pay_clause} Sail? (yes / no)"),
+                    f"turned back.{intercept_clause}{levers_clause}{pay_clause}"
+                    f"{prize_clause} Sailing costs {sail_price}. Sail? (yes / no)"),
                 "interpreted_target": target,
                 "options": [
                     {"label": f"Sail for {target}", "command": reissue,
@@ -897,8 +931,8 @@ class NavalExecutor:
         if not name:
             return {"success": False, "message": (
                 f"Name the landing, Sire — click a coastal province on the map "
-                f"for {marshal.name}'s landing chip; THE ADMIRALTY (press T, "
-                "then 7) lists the best landings.")}
+                f"for {marshal.name}'s landing chip; {_admiralty_pointer()} "
+                "lists the best landings.")}
         if name == marshal.location:
             return {"success": False, "message":
                     f"{marshal.name} already stands at {name}."}
@@ -1003,8 +1037,14 @@ class NavalExecutor:
                 # FA-31 that note ENDS with the same forecast sentence
                 # `forecast_line` already carries, so appending it would say
                 # the 45% figure twice and the forecast twice. One clause.
-                camp_line = ("" if naval.camp_staged(world, actor) else
-                             " No army is staged to use the open water.")
+                # S14G-31's sibling (X31.4): the card named the staged army
+                # only by its absence; with the camp staged it now says what
+                # the open water is for, off the same predicate.
+                camp_line = (
+                    f" An army is staged to use the open water "
+                    f"({int(naval.camp_strength(world, actor)):,} men in the camp)."
+                    if naval.camp_staged(world, actor) else
+                    " No army is staged to use the open water.")
                 return {
                     "success": True,
                     "free_action": True,
@@ -1038,6 +1078,9 @@ class NavalExecutor:
                          f"{readiness}. Whatever the outcome, she may try it "
                          f"again {naval.DIVERSION_WAIT_TURNS} turns from now.")
                         + f"{price_line}{camp_line}{forecast_line} "
+                        # S14G-X138: the diversion's price, from the table.
+                        f"Ordering it costs "
+                        f"{naval.ap_price_words(world, 'naval_diversion')}. "
                         f"Sail? (yes / no)"),
                     "options": [
                         {"label": "Order the diversion",

@@ -51,6 +51,7 @@ from backend.game_logic.settlement_ratify import (
 )
 from backend.game_logic.settlement_routes import (
     _error_display,
+    dialogue_war_label as _dialogue_war_label,   # S14G-X122: the ONE reader, moved down to L0
     _normalize_nation_list,
     _terminal_recovery_copy,
     evaluate_war_detail_actionability,
@@ -1927,6 +1928,11 @@ def _action_suspend_settlement_editor(
             settlement_terms=terms,
         )
     world.dialogue_manager.pop()
+    # S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): "kept" was true for
+    # the current turn only (`advance_turn` sets every unratified draft aside) -
+    # the reply says the bound, in the words every surface shares
+    # (`display_names.settlement_draft_words`). No behaviour change.
+    from backend.display_names import settlement_draft_words
     return {
         "success": True,
         "dialogue_type": "settlement_confirm",
@@ -1934,7 +1940,10 @@ def _action_suspend_settlement_editor(
         "war_id": war_id,
         "draft_preserved": bool(terms),
         "mutated": False,
-        "message": "Settlement draft kept. Reopen Settlement to continue editing.",
+        # S14G-X119: a Back Out with no terms drafted kept nothing - the
+        # reply no longer says a draft was kept.
+        "message": (settlement_draft_words("reply") if terms
+                    else "Settlement closed — no terms had been drafted."),
         "suppress_proposal_result_popup": True,
     }
 
@@ -1965,7 +1974,7 @@ def _action_back_out_settlement(
         "talleyrand_text": (
             resolve_settlement_voice_line(
                 "settlement_discard_confirm_talleyrand",
-                war_label=str(dialogue.get("war_label") or war_id or "this war"),
+                war_label=_dialogue_war_label(world, dialogue, war_id),
             )
             if has_draft
             else ""
@@ -2031,7 +2040,7 @@ def _action_submit_settlement_for_review(
         )
         talleyrand_line = resolve_settlement_voice_line(
             "settlement_submit_failed_validation_talleyrand",
-            war_label=str(dialogue.get("war_label") or war_id or "this war"),
+            war_label=_dialogue_war_label(world, dialogue, war_id),
             blocker=blocker,
         )
         return {
@@ -2851,7 +2860,7 @@ def _action_open_war_detail(
         source_route_id=str(dialogue.get("route_id") or ""),
     )
     if not actionability.get("actionable"):
-        return {
+        refusal = {
             "success": False,
             "dialogue_type": "settlement_confirm",
             "action": "open_war_detail",
@@ -2863,6 +2872,13 @@ def _action_open_war_detail(
             "mutated": False,
             "suppress_proposal_result_popup": True,
         }
+        # S14G-X120: a war that has ENDED is answered in Talleyrand's own line -
+        # the record now belongs in the diplomatic ledger (the template sat
+        # unregistered and was never spoken).
+        if str(actionability.get("refusal_code") or "") == "war_archived":
+            refusal["talleyrand_text"] = resolve_settlement_voice_line(
+                "settlement_open_history_recovery_talleyrand")
+        return refusal
     if terms:
         save_scoped_settlement_draft(
             world,
@@ -2885,7 +2901,7 @@ def _action_open_war_detail(
         "message": "Opening war detail.",
         "talleyrand_text": resolve_settlement_voice_line(
             "settlement_open_war_detail_recovery_talleyrand",
-            war_label=str(dialogue.get("war_label") or war_id or "this war"),
+            war_label=_dialogue_war_label(world, dialogue, war_id),
         ),
         "suppress_proposal_result_popup": True,
     }
@@ -3300,6 +3316,7 @@ def _handle_pair_peace_substitute_action(
         proposal_type=proposal_type,
         selected_target=selected_target,
         eligibility=eligibility,
+        world=world,
     )
     # PC15-3: the chooser was the only staged dialogue with no
     # turn_created — clear_stale read it as turn 0, so a chooser that held
@@ -3342,7 +3359,7 @@ def _execute_pair_substitute_handoff(
         if action == "seek_armistice_instead"
         else "settlement_seek_bilateral_peace_instead_talleyrand"
     )
-    war_label = str(dialogue.get("war_label") or war_id or "this war")
+    war_label = _dialogue_war_label(world, dialogue, war_id)
 
     # SC-29 / War Detail recovery contract: a successful pair substitute
     # makes any preserved scoped settlement draft that covers the target

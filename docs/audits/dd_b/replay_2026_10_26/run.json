@@ -1,0 +1,5122 @@
+{
+ "road": "sea",
+ "port": 8006,
+ "turn_reached": "Turn 16 — Early May 1806",
+ "turn_number": 16,
+ "actions": [
+  {
+   "n": 0,
+   "action": "boot",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "record": 1928
+   }
+  },
+  {
+   "n": 1,
+   "action": "click Looks right",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "",
+   "durations_ms": {
+    "act": 103,
+    "record": 2536,
+    "settle": 1010
+   }
+  },
+  {
+   "n": 2,
+   "action": "click Load a Campaign…",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 100,
+    "record": 1690,
+    "settle": 11549
+   }
+  },
+  {
+   "n": 3,
+   "action": "click replay_opening",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 103,
+    "record": 1771,
+    "settle": 1192
+   }
+  },
+  {
+   "n": 4,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 87,
+    "record": 1570,
+    "settle": 1134
+   }
+  },
+  {
+   "n": 5,
+   "action": "scroll 1280 400 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 215,
+    "record": 1807,
+    "settle": 973
+   }
+  },
+  {
+   "n": 6,
+   "action": "click Satisfy their design",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Satisfy their design\"",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1798,
+    "settle": 898
+   }
+  },
+  {
+   "n": 7,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 57,
+    "record": 1600,
+    "settle": 993
+   }
+  },
+  {
+   "n": 8,
+   "action": "scroll 2560 800 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 215,
+    "record": 1776,
+    "settle": 934
+   }
+  },
+  {
+   "n": 9,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1789,
+    "settle": 912
+   }
+  },
+  {
+   "n": 10,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 1585,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 11,
+   "action": "scroll 2500 700 down 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 147,
+    "record": 1785,
+    "settle": 964
+   }
+  },
+  {
+   "n": 12,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1582,
+    "settle": 1010
+   }
+  },
+  {
+   "n": 13,
+   "action": "scroll 1828 550 down 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 151,
+    "record": 1662,
+    "settle": 977
+   }
+  },
+  {
+   "n": 14,
+   "action": "click Britain  —  At War",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 1600,
+    "settle": 950
+   }
+  },
+  {
+   "n": 15,
+   "action": "scroll 1828 550 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 152,
+    "record": 1583,
+    "settle": 932
+   }
+  },
+  {
+   "n": 16,
+   "action": "click Satisfy",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Satisfy\"",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1574,
+    "settle": 937
+   }
+  },
+  {
+   "n": 17,
+   "action": "click Back",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 117,
+    "record": 1583,
+    "settle": 948
+   }
+  },
+  {
+   "n": 18,
+   "action": "scroll 1828 550 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 394,
+    "record": 1585,
+    "settle": 954
+   }
+  },
+  {
+   "n": 19,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1766,
+    "settle": 933
+   }
+  },
+  {
+   "n": 20,
+   "action": "click Talleyrand: Idle",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 151,
+    "record": 1415,
+    "settle": 982
+   }
+  },
+  {
+   "n": 21,
+   "action": "click Assess the Situation",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 8,
+    "record": 1588,
+    "settle": 1215
+   }
+  },
+  {
+   "n": 22,
+   "action": "click Satisfy their design",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 116,
+    "record": 1601,
+    "settle": 1075
+   }
+  },
+  {
+   "n": 23,
+   "action": "scroll 1828 550 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 399,
+    "record": 1574,
+    "settle": 949
+   }
+  },
+  {
+   "n": 24,
+   "action": "scroll 1828 550 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 366,
+    "record": 1596,
+    "settle": 962
+   }
+  },
+  {
+   "n": 25,
+   "action": "scroll 1828 550 up 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 149,
+    "record": 1598,
+    "settle": 945
+   }
+  },
+  {
+   "n": 26,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 102,
+    "record": 1757,
+    "settle": 1055
+   }
+  },
+  {
+   "n": 27,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1771,
+    "settle": 977
+   }
+  },
+  {
+   "n": 28,
+   "action": "type who am I fighting",
+   "meant": "question",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 287,
+    "record": 1761,
+    "settle": 951
+   }
+  },
+  {
+   "n": 29,
+   "action": "type what if Massena attacks Archduke John",
+   "meant": "question Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 197,
+    "record": 2230,
+    "settle": 951
+   }
+  },
+  {
+   "n": 30,
+   "action": "click Vienna",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Vienna\"",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 2216,
+    "settle": 923
+   }
+  },
+  {
+   "n": 31,
+   "action": "click_at 2078 600",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 132,
+    "record": 2023,
+    "settle": 931
+   }
+  },
+  {
+   "n": 32,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 72,
+    "record": 1747,
+    "settle": 962
+   }
+  },
+  {
+   "n": 33,
+   "action": "key G",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1414,
+    "settle": 1450
+   }
+  },
+  {
+   "n": 34,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1758,
+    "settle": 936
+   }
+  },
+  {
+   "n": 35,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1731,
+    "settle": 993
+   }
+  },
+  {
+   "n": 36,
+   "action": "key q",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 88,
+    "record": 1762,
+    "settle": 950
+   }
+  },
+  {
+   "n": 37,
+   "action": "key G",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 1435,
+    "settle": 1464
+   }
+  },
+  {
+   "n": 38,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 84,
+    "record": 1762,
+    "settle": 964
+   }
+  },
+  {
+   "n": 39,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1595,
+    "settle": 992
+   }
+  },
+  {
+   "n": 40,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 70,
+    "record": 1789,
+    "settle": 931
+   }
+  },
+  {
+   "n": 41,
+   "action": "type Ney, attack Mack",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 288,
+    "record": 1738,
+    "settle": 1199
+   }
+  },
+  {
+   "n": 42,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 85,
+    "record": 2223,
+    "settle": 944
+   }
+  },
+  {
+   "n": 43,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 52,
+    "record": 1863,
+    "settle": 964
+   }
+  },
+  {
+   "n": 44,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1862,
+    "settle": 942
+   }
+  },
+  {
+   "n": 45,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 1 — Late September 1805",
+   "durations_ms": {
+    "act": 57,
+    "record": 2198,
+    "settle": 921
+   }
+  },
+  {
+   "n": 46,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 129,
+    "record": 1560,
+    "settle": 1177
+   }
+  },
+  {
+   "n": 47,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 195,
+    "record": 1418,
+    "settle": 937
+   }
+  },
+  {
+   "n": 48,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 68,
+    "record": 1807,
+    "settle": 931
+   }
+  },
+  {
+   "n": 49,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1812,
+    "settle": 929
+   }
+  },
+  {
+   "n": 50,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 88,
+    "record": 1670,
+    "settle": 931
+   }
+  },
+  {
+   "n": 51,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1668,
+    "settle": 915
+   }
+  },
+  {
+   "n": 52,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 135,
+    "record": 1676,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 53,
+   "action": "click replay_liberation",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_liberation\"",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1693,
+    "settle": 911
+   }
+  },
+  {
+   "n": 54,
+   "action": "scroll 1828 500 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 381,
+    "record": 1673,
+    "settle": 961
+   }
+  },
+  {
+   "n": 55,
+   "action": "scroll 1828 500 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 353,
+    "record": 1705,
+    "settle": 918
+   }
+  },
+  {
+   "n": 56,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 2 — Early October 1805",
+   "durations_ms": {
+    "act": 1057,
+    "record": 1697,
+    "settle": 905
+   }
+  },
+  {
+   "n": 57,
+   "action": "click replay_liberation",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 119,
+    "record": 1753,
+    "settle": 1172
+   }
+  },
+  {
+   "n": 58,
+   "action": "type Ney, attack Mack",
+   "meant": "attack Ney",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 183,
+    "record": 1680,
+    "settle": 1047
+   }
+  },
+  {
+   "n": 59,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 53,
+    "record": 2200,
+    "settle": 913
+   }
+  },
+  {
+   "n": 60,
+   "action": "scroll 500 700 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 166,
+    "record": 2212,
+    "settle": 955
+   }
+  },
+  {
+   "n": 61,
+   "action": "key L",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 88,
+    "record": 1750,
+    "settle": 977
+   }
+  },
+  {
+   "n": 62,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 2222,
+    "settle": 962
+   }
+  },
+  {
+   "n": 63,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 136,
+    "record": 1581,
+    "settle": 1211
+   }
+  },
+  {
+   "n": 64,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 174,
+    "record": 1769,
+    "settle": 897
+   }
+  },
+  {
+   "n": 65,
+   "action": "click Continue as Ordered",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 119,
+    "record": 1414,
+    "settle": 1057
+   }
+  },
+  {
+   "n": 66,
+   "action": "key R",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 86,
+    "record": 1416,
+    "settle": 963
+   }
+  },
+  {
+   "n": 67,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 69,
+    "record": 1404,
+    "settle": 939
+   }
+  },
+  {
+   "n": 68,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1760,
+    "settle": 945
+   }
+  },
+  {
+   "n": 69,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1751,
+    "settle": 887
+   }
+  },
+  {
+   "n": 70,
+   "action": "key R",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1770,
+    "settle": 958
+   }
+  },
+  {
+   "n": 71,
+   "action": "key Backspace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1756,
+    "settle": 972
+   }
+  },
+  {
+   "n": 72,
+   "action": "click Dispatch (R)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 129,
+    "record": 1522,
+    "settle": 962
+   }
+  },
+  {
+   "n": 73,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 70,
+    "record": 1752,
+    "settle": 922
+   }
+  },
+  {
+   "n": 74,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 88,
+    "record": 1633,
+    "settle": 976
+   }
+  },
+  {
+   "n": 75,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 130,
+    "record": 1682,
+    "settle": 991
+   }
+  },
+  {
+   "n": 76,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 1132,
+    "record": 1682,
+    "settle": 928
+   }
+  },
+  {
+   "n": 77,
+   "action": "click replay_aggressive",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 149,
+    "record": 1757,
+    "settle": 1227
+   }
+  },
+  {
+   "n": 78,
+   "action": "type Massena, support Napoleon",
+   "meant": "support Massena",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 209,
+    "record": 1712,
+    "settle": 995
+   }
+  },
+  {
+   "n": 79,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 139,
+    "record": 2194,
+    "settle": 906
+   }
+  },
+  {
+   "n": 80,
+   "action": "click_at 2024 456",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 134,
+    "record": 2139,
+    "settle": 964
+   }
+  },
+  {
+   "n": 81,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 2117,
+    "settle": 913
+   }
+  },
+  {
+   "n": 82,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 85,
+    "record": 1874,
+    "settle": 942
+   }
+  },
+  {
+   "n": 83,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 102,
+    "record": 1918,
+    "settle": 982
+   }
+  },
+  {
+   "n": 84,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 1126,
+    "record": 1930,
+    "settle": 929
+   }
+  },
+  {
+   "n": 85,
+   "action": "click replay_support",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 116,
+    "record": 1741,
+    "settle": 1186
+   }
+  },
+  {
+   "n": 86,
+   "action": "type Soult, support Napoleon",
+   "meant": "support Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 195,
+    "record": 1717,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 87,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 141,
+    "record": 1563,
+    "settle": 1173
+   }
+  },
+  {
+   "n": 88,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 199,
+    "record": 1420,
+    "settle": 933
+   }
+  },
+  {
+   "n": 89,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"End Turn\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1415,
+    "settle": 906
+   }
+  },
+  {
+   "n": 90,
+   "action": "click Continue",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Continue\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1426,
+    "settle": 935
+   }
+  },
+  {
+   "n": 91,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 53,
+    "record": 1754,
+    "settle": 939
+   }
+  },
+  {
+   "n": 92,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1789,
+    "settle": 987
+   }
+  },
+  {
+   "n": 93,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 101,
+    "record": 1780,
+    "settle": 982
+   }
+  },
+  {
+   "n": 94,
+   "action": "click Continue",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Continue\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1755,
+    "settle": 923
+   }
+  },
+  {
+   "n": 95,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 70,
+    "record": 1641,
+    "settle": 948
+   }
+  },
+  {
+   "n": 96,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"End Turn\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1633,
+    "settle": 946
+   }
+  },
+  {
+   "n": 97,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 119,
+    "record": 1663,
+    "settle": 1104
+   }
+  },
+  {
+   "n": 98,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 1038,
+    "record": 1667,
+    "settle": 920
+   }
+  },
+  {
+   "n": 99,
+   "action": "click replay_petition",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 133,
+    "record": 1750,
+    "settle": 1155
+   }
+  },
+  {
+   "n": 100,
+   "action": "key G",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1718,
+    "settle": 948
+   }
+  },
+  {
+   "n": 101,
+   "action": "click_at 3613 62",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 103,
+    "record": 1790,
+    "settle": 948
+   }
+  },
+  {
+   "n": 102,
+   "action": "key Backspace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 88,
+    "record": 1771,
+    "settle": 949
+   }
+  },
+  {
+   "n": 103,
+   "action": "click_at 3613 62",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 101,
+    "record": 1757,
+    "settle": 978
+   }
+  },
+  {
+   "n": 104,
+   "action": "click Generals (G)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 1440,
+    "settle": 1398
+   }
+  },
+  {
+   "n": 105,
+   "action": "click Hear him",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1031,
+    "settle": 999
+   }
+  },
+  {
+   "n": 106,
+   "action": "click Give him a command",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 102,
+    "record": 1054,
+    "settle": 1074
+   }
+  },
+  {
+   "n": 107,
+   "action": "click Give him a command",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 131,
+    "record": 1441,
+    "settle": 1541
+   }
+  },
+  {
+   "n": 108,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 69,
+    "record": 1799,
+    "settle": 937
+   }
+  },
+  {
+   "n": 109,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 57,
+    "record": 1699,
+    "settle": 975
+   }
+  },
+  {
+   "n": 110,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 121,
+    "record": 1699,
+    "settle": 1046
+   }
+  },
+  {
+   "n": 111,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 1098,
+    "record": 1693,
+    "settle": 930
+   }
+  },
+  {
+   "n": 112,
+   "action": "click replay_envoys",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_envoys\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1677,
+    "settle": 967
+   }
+  },
+  {
+   "n": 113,
+   "action": "scroll 1828 500 up 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 1106,
+    "record": 1690,
+    "settle": 906
+   }
+  },
+  {
+   "n": 114,
+   "action": "scroll 1828 500 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 179,
+    "record": 1690,
+    "settle": 944
+   }
+  },
+  {
+   "n": 115,
+   "action": "scroll 1828 500 down 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 181,
+    "record": 1708,
+    "settle": 974
+   }
+  },
+  {
+   "n": 116,
+   "action": "click replay_envoys",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 116,
+    "record": 1436,
+    "settle": 1230
+   }
+  },
+  {
+   "n": 117,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1404,
+    "settle": 930
+   }
+  },
+  {
+   "n": 118,
+   "action": "click Open ▸",
+   "meant": "",
+   "ok": false,
+   "error": "3 controls match \"Open ▸\" — pick one with click#N",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1417,
+    "settle": 929
+   }
+  },
+  {
+   "n": 119,
+   "action": "click#1 Open ▸",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 99,
+    "record": 1358,
+    "settle": 989
+   }
+  },
+  {
+   "n": 120,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 101,
+    "record": 1784,
+    "settle": 951
+   }
+  },
+  {
+   "n": 121,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1758,
+    "settle": 912
+   }
+  },
+  {
+   "n": 122,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 57,
+    "record": 1571,
+    "settle": 948
+   }
+  },
+  {
+   "n": 123,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 56,
+    "record": 1755,
+    "settle": 936
+   }
+  },
+  {
+   "n": 124,
+   "action": "click Envoys (3)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 99,
+    "record": 1432,
+    "settle": 1026
+   }
+  },
+  {
+   "n": 125,
+   "action": "click#1 Open ▸",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 148,
+    "record": 1391,
+    "settle": 974
+   }
+  },
+  {
+   "n": 126,
+   "action": "click Reject",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 103,
+    "record": 1735,
+    "settle": 1166
+   }
+  },
+  {
+   "n": 127,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 57,
+    "record": 1572,
+    "settle": 1103
+   }
+  },
+  {
+   "n": 128,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1793,
+    "settle": 968
+   }
+  },
+  {
+   "n": 129,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 86,
+    "record": 1662,
+    "settle": 945
+   }
+  },
+  {
+   "n": 130,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 97,
+    "record": 1704,
+    "settle": 1014
+   }
+  },
+  {
+   "n": 131,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 364,
+    "record": 1684,
+    "settle": 944
+   }
+  },
+  {
+   "n": 132,
+   "action": "scroll 1828 500 up 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 211,
+    "record": 1693,
+    "settle": 913
+   }
+  },
+  {
+   "n": 133,
+   "action": "click replay_truce_offer",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 100,
+    "record": 1710,
+    "settle": 1177
+   }
+  },
+  {
+   "n": 134,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 76,
+    "record": 1562,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 135,
+   "action": "click Austria  —",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Austria  —\"",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1562,
+    "settle": 960
+   }
+  },
+  {
+   "n": 136,
+   "action": "scroll 1828 550 down 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 119,
+    "record": 1598,
+    "settle": 949
+   }
+  },
+  {
+   "n": 137,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 133,
+    "record": 1574,
+    "settle": 967
+   }
+  },
+  {
+   "n": 138,
+   "action": "click Propose Armistice",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 1557,
+    "settle": 1040
+   }
+  },
+  {
+   "n": 139,
+   "action": "scroll 1828 550 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 181,
+    "record": 1599,
+    "settle": 899
+   }
+  },
+  {
+   "n": 140,
+   "action": "click Send as suggested",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 1736,
+    "settle": 1071
+   }
+  },
+  {
+   "n": 141,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 118,
+    "record": 1582,
+    "settle": 1197
+   }
+  },
+  {
+   "n": 142,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 160,
+    "record": 1425,
+    "settle": 949
+   }
+  },
+  {
+   "n": 143,
+   "action": "type Murat, march to Swabia",
+   "meant": "move Murat",
+   "ok": false,
+   "error": "the command line is not taking orders now (it is disabled)",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1430,
+    "settle": 941
+   }
+  },
+  {
+   "n": 144,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 81,
+    "record": 1781,
+    "settle": 965
+   }
+  },
+  {
+   "n": 145,
+   "action": "type Murat, march to Swabia",
+   "meant": "move Murat",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 179,
+    "record": 1303,
+    "settle": 1077
+   }
+  },
+  {
+   "n": 146,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1333,
+    "settle": 947
+   }
+  },
+  {
+   "n": 147,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 1323,
+    "settle": 942
+   }
+  },
+  {
+   "n": 148,
+   "action": "click Not Now",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 102,
+    "record": 1729,
+    "settle": 971
+   }
+  },
+  {
+   "n": 149,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 54,
+    "record": 1713,
+    "settle": 936
+   }
+  },
+  {
+   "n": 150,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1713,
+    "settle": 931
+   }
+  },
+  {
+   "n": 151,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 322,
+    "record": 1649,
+    "settle": 952
+   }
+  },
+  {
+   "n": 152,
+   "action": "scroll 1828 500 up 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 231,
+    "record": 1997,
+    "settle": 935
+   }
+  },
+  {
+   "n": 153,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1804,
+    "settle": 950
+   }
+  },
+  {
+   "n": 154,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 101,
+    "record": 1826,
+    "settle": 1025
+   }
+  },
+  {
+   "n": 155,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 319,
+    "record": 1866,
+    "settle": 887
+   }
+  },
+  {
+   "n": 156,
+   "action": "scroll 1828 500 up 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 209,
+    "record": 1840,
+    "settle": 944
+   }
+  },
+  {
+   "n": 157,
+   "action": "click replay_counter",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 2043,
+    "settle": 1166
+   }
+  },
+  {
+   "n": 158,
+   "action": "click Envoys (1)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 104,
+    "record": 1551,
+    "settle": 1042
+   }
+  },
+  {
+   "n": 159,
+   "action": "click#1 Open ▸",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Open ▸\"",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1542,
+    "settle": 935
+   }
+  },
+  {
+   "n": 160,
+   "action": "click Accept counter-offer",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Accept counter-offer\"",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1548,
+    "settle": 954
+   }
+  },
+  {
+   "n": 161,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1539,
+    "settle": 944
+   }
+  },
+  {
+   "n": 162,
+   "action": "click Accept Terms",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 102,
+    "record": 2052,
+    "settle": 1047
+   }
+  },
+  {
+   "n": 163,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 87,
+    "record": 1810,
+    "settle": 1094
+   }
+  },
+  {
+   "n": 164,
+   "action": "click Prussia",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Prussia\"",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1805,
+    "settle": 918
+   }
+  },
+  {
+   "n": 165,
+   "action": "scroll 1828 550 down 12",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 447,
+    "record": 1791,
+    "settle": 941
+   }
+  },
+  {
+   "n": 166,
+   "action": "click Prussia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 552,
+    "record": 1816,
+    "settle": 977
+   }
+  },
+  {
+   "n": 167,
+   "action": "click Skip ahead: Non-Aggression",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1800,
+    "settle": 1083
+   }
+  },
+  {
+   "n": 168,
+   "action": "click Send as suggested",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 2048,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 169,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 2144,
+    "settle": 901
+   }
+  },
+  {
+   "n": 170,
+   "action": "click Continue",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Continue\"",
+   "turn": "Turn 5 — Late November 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 2116,
+    "settle": 879
+   }
+  },
+  {
+   "n": 171,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 112,
+    "record": 1750,
+    "settle": 1119
+   }
+  },
+  {
+   "n": 172,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 163,
+    "record": 2134,
+    "settle": 905
+   }
+  },
+  {
+   "n": 173,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 2125,
+    "settle": 906
+   }
+  },
+  {
+   "n": 174,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 2116,
+    "settle": 882
+   }
+  },
+  {
+   "n": 175,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 326,
+    "record": 1721,
+    "settle": 911
+   }
+  },
+  {
+   "n": 176,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 158,
+    "record": 2013,
+    "settle": 911
+   }
+  },
+  {
+   "n": 177,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1818,
+    "settle": 902
+   }
+  },
+  {
+   "n": 178,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 106,
+    "record": 1864,
+    "settle": 994
+   }
+  },
+  {
+   "n": 179,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 319,
+    "record": 1881,
+    "settle": 918
+   }
+  },
+  {
+   "n": 180,
+   "action": "scroll 1828 500 up 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 125,
+    "record": 1858,
+    "settle": 912
+   }
+  },
+  {
+   "n": 181,
+   "action": "scroll 1828 500 up 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 128,
+    "record": 1852,
+    "settle": 900
+   }
+  },
+  {
+   "n": 182,
+   "action": "click replay_truce_mission",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 113,
+    "record": 2017,
+    "settle": 1123
+   }
+  },
+  {
+   "n": 183,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1774,
+    "settle": 1068
+   }
+  },
+  {
+   "n": 184,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1762,
+    "settle": 901
+   }
+  },
+  {
+   "n": 185,
+   "action": "click Back",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1778,
+    "settle": 936
+   }
+  },
+  {
+   "n": 186,
+   "action": "click Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 105,
+    "record": 1770,
+    "settle": 917
+   }
+  },
+  {
+   "n": 187,
+   "action": "click Propose Peace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 115,
+    "record": 1771,
+    "settle": 1076
+   }
+  },
+  {
+   "n": 188,
+   "action": "click Send as suggested",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1984,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 189,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1750,
+    "settle": 1136
+   }
+  },
+  {
+   "n": 190,
+   "action": "scroll 1828 550 down 6",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 225,
+    "record": 1748,
+    "settle": 917
+   }
+  },
+  {
+   "n": 191,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1771,
+    "settle": 901
+   }
+  },
+  {
+   "n": 192,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 2070,
+    "settle": 901
+   }
+  },
+  {
+   "n": 193,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1790,
+    "settle": 911
+   }
+  },
+  {
+   "n": 194,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 106,
+    "record": 1832,
+    "settle": 1095
+   }
+  },
+  {
+   "n": 195,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 325,
+    "record": 1836,
+    "settle": 917
+   }
+  },
+  {
+   "n": 196,
+   "action": "scroll 1828 500 up 5",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 185,
+    "record": 1835,
+    "settle": 917
+   }
+  },
+  {
+   "n": 197,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 160,
+    "record": 1854,
+    "settle": 900
+   }
+  },
+  {
+   "n": 198,
+   "action": "click replay_truce_mission",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 106,
+    "record": 1999,
+    "settle": 1145
+   }
+  },
+  {
+   "n": 199,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 67,
+    "record": 1757,
+    "settle": 1052
+   }
+  },
+  {
+   "n": 200,
+   "action": "scroll 1828 550 down 6",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 226,
+    "record": 1755,
+    "settle": 912
+   }
+  },
+  {
+   "n": 201,
+   "action": "click Spain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1766,
+    "settle": 912
+   }
+  },
+  {
+   "n": 202,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 2074,
+    "settle": 901
+   }
+  },
+  {
+   "n": 203,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1796,
+    "settle": 917
+   }
+  },
+  {
+   "n": 204,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 2061,
+    "settle": 917
+   }
+  },
+  {
+   "n": 205,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 8,
+    "record": 2083,
+    "settle": 877
+   }
+  },
+  {
+   "n": 206,
+   "action": "scroll 1828 500 down 9",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 326,
+    "record": 1709,
+    "settle": 911
+   }
+  },
+  {
+   "n": 207,
+   "action": "scroll 1828 500 up 6",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 225,
+    "record": 2093,
+    "settle": 928
+   }
+  },
+  {
+   "n": 208,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 2194,
+    "settle": 886
+   }
+  },
+  {
+   "n": 209,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1838,
+    "settle": 894
+   }
+  },
+  {
+   "n": 210,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1877,
+    "settle": 979
+   }
+  },
+  {
+   "n": 211,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 1020,
+    "record": 1880,
+    "settle": 900
+   }
+  },
+  {
+   "n": 212,
+   "action": "click replay_design_peace",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_design_peace\"",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1867,
+    "settle": 898
+   }
+  },
+  {
+   "n": 213,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 157,
+    "record": 1889,
+    "settle": 928
+   }
+  },
+  {
+   "n": 214,
+   "action": "click replay_design_peace",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_design_peace\"",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1891,
+    "settle": 916
+   }
+  },
+  {
+   "n": 215,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 6 — Early December 1805",
+   "durations_ms": {
+    "act": 157,
+    "record": 1885,
+    "settle": 928
+   }
+  },
+  {
+   "n": 216,
+   "action": "click replay_design_peace",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 2084,
+    "settle": 1129
+   }
+  },
+  {
+   "n": 217,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1790,
+    "settle": 1051
+   }
+  },
+  {
+   "n": 218,
+   "action": "scroll 1828 550 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 159,
+    "record": 1803,
+    "settle": 901
+   }
+  },
+  {
+   "n": 219,
+   "action": "click Britain",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1789,
+    "settle": 900
+   }
+  },
+  {
+   "n": 220,
+   "action": "click Back",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1797,
+    "settle": 934
+   }
+  },
+  {
+   "n": 221,
+   "action": "scroll 1828 550 up 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 360,
+    "record": 1807,
+    "settle": 917
+   }
+  },
+  {
+   "n": 222,
+   "action": "scroll 1828 550 down 6",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 226,
+    "record": 1812,
+    "settle": 901
+   }
+  },
+  {
+   "n": 223,
+   "action": "click Austria",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Austria\"",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 7,
+    "record": 1807,
+    "settle": 896
+   }
+  },
+  {
+   "n": 224,
+   "action": "scroll 1828 550 down 10",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 360,
+    "record": 1799,
+    "settle": 901
+   }
+  },
+  {
+   "n": 225,
+   "action": "click Austria",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Austria\"",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1818,
+    "settle": 888
+   }
+  },
+  {
+   "n": 226,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 2144,
+    "settle": 901
+   }
+  },
+  {
+   "n": 227,
+   "action": "click Diplomacy (D)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1624,
+    "settle": 934
+   }
+  },
+  {
+   "n": 228,
+   "action": "click BALANCE OF EUROPE",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1608,
+    "settle": 917
+   }
+  },
+  {
+   "n": 229,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 2147,
+    "settle": 898
+   }
+  },
+  {
+   "n": 230,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 1784,
+    "settle": 934
+   }
+  },
+  {
+   "n": 231,
+   "action": "scroll 1828 550 down 8",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 292,
+    "record": 1809,
+    "settle": 918
+   }
+  },
+  {
+   "n": 232,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1833,
+    "settle": 911
+   }
+  },
+  {
+   "n": 233,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 2156,
+    "settle": 901
+   }
+  },
+  {
+   "n": 234,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 61,
+    "record": 1816,
+    "settle": 917
+   }
+  },
+  {
+   "n": 235,
+   "action": "type license Prussia against Hanover",
+   "meant": "other: license Prussia against Hanover",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 304,
+    "record": 2150,
+    "settle": 901
+   }
+  },
+  {
+   "n": 236,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 0,
+    "record": 2140,
+    "settle": 896
+   }
+  },
+  {
+   "n": 237,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 55,
+    "record": 1789,
+    "settle": 944
+   }
+  },
+  {
+   "n": 238,
+   "action": "scroll 1828 550 down 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 154,
+    "record": 1793,
+    "settle": 917
+   }
+  },
+  {
+   "n": 239,
+   "action": "click Prussia",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1779,
+    "settle": 911
+   }
+  },
+  {
+   "n": 240,
+   "action": "click Licence",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1884,
+    "settle": 1018
+   }
+  },
+  {
+   "n": 241,
+   "action": "click No",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 7 — Late December 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 2092,
+    "settle": 982
+   }
+  },
+  {
+   "n": 242,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 112,
+    "record": 2106,
+    "settle": 1167
+   }
+  },
+  {
+   "n": 243,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2096,
+    "settle": 889
+   }
+  },
+  {
+   "n": 244,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 2096,
+    "settle": 900
+   }
+  },
+  {
+   "n": 245,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 2105,
+    "settle": 896
+   }
+  },
+  {
+   "n": 246,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 1819,
+    "settle": 917
+   }
+  },
+  {
+   "n": 247,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1872,
+    "settle": 995
+   }
+  },
+  {
+   "n": 248,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 1018,
+    "record": 1867,
+    "settle": 917
+   }
+  },
+  {
+   "n": 249,
+   "action": "click replay_guarded",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_guarded\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1875,
+    "settle": 898
+   }
+  },
+  {
+   "n": 250,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1867,
+    "settle": 894
+   }
+  },
+  {
+   "n": 251,
+   "action": "click replay_guarded",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_guarded\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1893,
+    "settle": 915
+   }
+  },
+  {
+   "n": 252,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1884,
+    "settle": 894
+   }
+  },
+  {
+   "n": 253,
+   "action": "click replay_guarded",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_guarded\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1874,
+    "settle": 896
+   }
+  },
+  {
+   "n": 254,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 161,
+    "record": 1877,
+    "settle": 927
+   }
+  },
+  {
+   "n": 255,
+   "action": "click replay_guarded",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 2132,
+    "settle": 1162
+   }
+  },
+  {
+   "n": 256,
+   "action": "type Soult, march to Flanders",
+   "meant": "move Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1923,
+    "settle": 968
+   }
+  },
+  {
+   "n": 257,
+   "action": "click Cancel Order",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 2178,
+    "settle": 1000
+   }
+  },
+  {
+   "n": 258,
+   "action": "type Napoleon, march to Flanders",
+   "meant": "move Napoleon",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 191,
+    "record": 2169,
+    "settle": 911
+   }
+  },
+  {
+   "n": 259,
+   "action": "type Napoleon, march to Paris",
+   "meant": "move Napoleon",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 194,
+    "record": 2149,
+    "settle": 934
+   }
+  },
+  {
+   "n": 260,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2172,
+    "settle": 888
+   }
+  },
+  {
+   "n": 261,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 2224,
+    "settle": 928
+   }
+  },
+  {
+   "n": 262,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 2172,
+    "settle": 896
+   }
+  },
+  {
+   "n": 263,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1859,
+    "settle": 927
+   }
+  },
+  {
+   "n": 264,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 106,
+    "record": 1916,
+    "settle": 962
+   }
+  },
+  {
+   "n": 265,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 1020,
+    "record": 1907,
+    "settle": 918
+   }
+  },
+  {
+   "n": 266,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1900,
+    "settle": 903
+   }
+  },
+  {
+   "n": 267,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1899,
+    "settle": 917
+   }
+  },
+  {
+   "n": 268,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1900,
+    "settle": 905
+   }
+  },
+  {
+   "n": 269,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1902,
+    "settle": 916
+   }
+  },
+  {
+   "n": 270,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1899,
+    "settle": 915
+   }
+  },
+  {
+   "n": 271,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 12 — Early March 1806",
+   "durations_ms": {
+    "act": 154,
+    "record": 1922,
+    "settle": 917
+   }
+  },
+  {
+   "n": 272,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 106,
+    "record": 2166,
+    "settle": 1162
+   }
+  },
+  {
+   "n": 273,
+   "action": "click War with",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"War with\"",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2136,
+    "settle": 888
+   }
+  },
+  {
+   "n": 274,
+   "action": "click War for Munster",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 2123,
+    "settle": 901
+   }
+  },
+  {
+   "n": 275,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1321,
+    "settle": 1169
+   }
+  },
+  {
+   "n": 276,
+   "action": "click More generous",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1322,
+    "settle": 1031
+   }
+  },
+  {
+   "n": 277,
+   "action": "click +",
+   "meant": "",
+   "ok": false,
+   "error": "2 controls match \"+\" — pick one with click#N",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1328,
+    "settle": 887
+   }
+  },
+  {
+   "n": 278,
+   "action": "click#2 +",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 1343,
+    "settle": 1070
+   }
+  },
+  {
+   "n": 279,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 2168,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 280,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1793,
+    "settle": 1182
+   }
+  },
+  {
+   "n": 281,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 199,
+    "record": 1678,
+    "settle": 878
+   }
+  },
+  {
+   "n": 282,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 2129,
+    "settle": 918
+   }
+  },
+  {
+   "n": 283,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2146,
+    "settle": 895
+   }
+  },
+  {
+   "n": 284,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 2184,
+    "settle": 895
+   }
+  },
+  {
+   "n": 285,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2187,
+    "settle": 905
+   }
+  },
+  {
+   "n": 286,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 1869,
+    "settle": 911
+   }
+  },
+  {
+   "n": 287,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 103,
+    "record": 1921,
+    "settle": 984
+   }
+  },
+  {
+   "n": 288,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 1055,
+    "record": 1982,
+    "settle": 902
+   }
+  },
+  {
+   "n": 289,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1880,
+    "settle": 904
+   }
+  },
+  {
+   "n": 290,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 152,
+    "record": 1891,
+    "settle": 917
+   }
+  },
+  {
+   "n": 291,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1862,
+    "settle": 901
+   }
+  },
+  {
+   "n": 292,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1883,
+    "settle": 917
+   }
+  },
+  {
+   "n": 293,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1897,
+    "settle": 904
+   }
+  },
+  {
+   "n": 294,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 158,
+    "record": 1905,
+    "settle": 917
+   }
+  },
+  {
+   "n": 295,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2009,
+    "settle": 908
+   }
+  },
+  {
+   "n": 296,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 151,
+    "record": 1949,
+    "settle": 918
+   }
+  },
+  {
+   "n": 297,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1906,
+    "settle": 892
+   }
+  },
+  {
+   "n": 298,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1891,
+    "settle": 904
+   }
+  },
+  {
+   "n": 299,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 48,
+    "record": 1958,
+    "settle": 917
+   }
+  },
+  {
+   "n": 300,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1906,
+    "settle": 902
+   }
+  },
+  {
+   "n": 301,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 58,
+    "record": 1878,
+    "settle": 901
+   }
+  },
+  {
+   "n": 302,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1876,
+    "settle": 908
+   }
+  },
+  {
+   "n": 303,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1908,
+    "settle": 917
+   }
+  },
+  {
+   "n": 304,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1909,
+    "settle": 903
+   }
+  },
+  {
+   "n": 305,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1917,
+    "settle": 917
+   }
+  },
+  {
+   "n": 306,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 1025,
+    "record": 1908,
+    "settle": 901
+   }
+  },
+  {
+   "n": 307,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1879,
+    "settle": 905
+   }
+  },
+  {
+   "n": 308,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1900,
+    "settle": 916
+   }
+  },
+  {
+   "n": 309,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1907,
+    "settle": 888
+   }
+  },
+  {
+   "n": 310,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1904,
+    "settle": 933
+   }
+  },
+  {
+   "n": 311,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1891,
+    "settle": 905
+   }
+  },
+  {
+   "n": 312,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1992,
+    "settle": 915
+   }
+  },
+  {
+   "n": 313,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_camp\"",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1859,
+    "settle": 905
+   }
+  },
+  {
+   "n": 314,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 160,
+    "record": 1865,
+    "settle": 918
+   }
+  },
+  {
+   "n": 315,
+   "action": "scroll 1828 500 up 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 1028,
+    "record": 1889,
+    "settle": 900
+   }
+  },
+  {
+   "n": 316,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 17 — Late May 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1911,
+    "settle": 909
+   }
+  },
+  {
+   "n": 317,
+   "action": "click replay_sea_camp",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 2145,
+    "settle": 1151
+   }
+  },
+  {
+   "n": 318,
+   "action": "click Ledger (T)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1669,
+    "settle": 935
+   }
+  },
+  {
+   "n": 319,
+   "action": "key 7",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 1682,
+    "settle": 934
+   }
+  },
+  {
+   "n": 320,
+   "action": "click Dumonceau, march to Normandy",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1659,
+    "settle": 1237
+   }
+  },
+  {
+   "n": 321,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 2203,
+    "settle": 899
+   }
+  },
+  {
+   "n": 322,
+   "action": "type Soult, march to Orleanais",
+   "meant": "move Soult",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 307,
+    "record": 2156,
+    "settle": 933
+   }
+  },
+  {
+   "n": 323,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 117,
+    "record": 2608,
+    "settle": 893
+   }
+  },
+  {
+   "n": 324,
+   "action": "click Continue",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Continue\"",
+   "turn": "Turn 8 — Early January 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 2668,
+    "settle": 889
+   }
+  },
+  {
+   "n": 325,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 118,
+    "record": 1837,
+    "settle": 1192
+   }
+  },
+  {
+   "n": 326,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1746,
+    "settle": 869
+   }
+  },
+  {
+   "n": 327,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"End Turn\"",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1727,
+    "settle": 904
+   }
+  },
+  {
+   "n": 328,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 2186,
+    "settle": 917
+   }
+  },
+  {
+   "n": 329,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 9 — Late January 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 2156,
+    "settle": 917
+   }
+  },
+  {
+   "n": 330,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1786,
+    "settle": 1267
+   }
+  },
+  {
+   "n": 331,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 94,
+    "record": 2005,
+    "settle": 901
+   }
+  },
+  {
+   "n": 332,
+   "action": "key R",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1969,
+    "settle": 917
+   }
+  },
+  {
+   "n": 333,
+   "action": "click Attempt a breakout",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 105,
+    "record": 1688,
+    "settle": 1090
+   }
+  },
+  {
+   "n": 334,
+   "action": "click Dispatch (R)",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Dispatch (R)\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1700,
+    "settle": 906
+   }
+  },
+  {
+   "n": 335,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 1638,
+    "settle": 917
+   }
+  },
+  {
+   "n": 336,
+   "action": "click Dispatch (R)",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Dispatch (R)\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1645,
+    "settle": 896
+   }
+  },
+  {
+   "n": 337,
+   "action": "click Close",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 2164,
+    "settle": 934
+   }
+  },
+  {
+   "n": 338,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 2179,
+    "settle": 918
+   }
+  },
+  {
+   "n": 339,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1840,
+    "settle": 917
+   }
+  },
+  {
+   "n": 340,
+   "action": "look",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 1828,
+    "settle": 907
+   }
+  },
+  {
+   "n": 341,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1891,
+    "settle": 982
+   }
+  },
+  {
+   "n": 342,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 1026,
+    "record": 1903,
+    "settle": 918
+   }
+  },
+  {
+   "n": 343,
+   "action": "click replay_sea_landing",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_landing\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1885,
+    "settle": 904
+   }
+  },
+  {
+   "n": 344,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1978,
+    "settle": 900
+   }
+  },
+  {
+   "n": 345,
+   "action": "click replay_sea_landing",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_landing\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1890,
+    "settle": 903
+   }
+  },
+  {
+   "n": 346,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1886,
+    "settle": 917
+   }
+  },
+  {
+   "n": 347,
+   "action": "click replay_sea_landing",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_landing\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 6,
+    "record": 1890,
+    "settle": 902
+   }
+  },
+  {
+   "n": 348,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 158,
+    "record": 1895,
+    "settle": 917
+   }
+  },
+  {
+   "n": 349,
+   "action": "click replay_sea_landing",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_sea_landing\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 7,
+    "record": 1872,
+    "settle": 903
+   }
+  },
+  {
+   "n": 350,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1892,
+    "settle": 900
+   }
+  },
+  {
+   "n": 351,
+   "action": "scroll 1828 500 up 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 1028,
+    "record": 1925,
+    "settle": 901
+   }
+  },
+  {
+   "n": 352,
+   "action": "click replay_sea_landing",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 2126,
+    "settle": 1201
+   }
+  },
+  {
+   "n": 353,
+   "action": "click Ledger (T)",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 1630,
+    "settle": 951
+   }
+  },
+  {
+   "n": 354,
+   "action": "key 7",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 61,
+    "record": 1652,
+    "settle": 933
+   }
+  },
+  {
+   "n": 355,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 2240,
+    "settle": 901
+   }
+  },
+  {
+   "n": 356,
+   "action": "type recruit infantry in Normandy",
+   "meant": "recruit",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 308,
+    "record": 2221,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 357,
+   "action": "type Dumonceau, recruit infantry",
+   "meant": "recruit Dumonceau",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 191,
+    "record": 2152,
+    "settle": 967
+   }
+  },
+  {
+   "n": 358,
+   "action": "type Dumonceau, land at Ulster",
+   "meant": "other: land Dumonceau at Ulster",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 193,
+    "record": 1873,
+    "settle": 1017
+   }
+  },
+  {
+   "n": 359,
+   "action": "click Stand down",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 108,
+    "record": 2162,
+    "settle": 1035
+   }
+  },
+  {
+   "n": 360,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 60,
+    "record": 2129,
+    "settle": 901
+   }
+  },
+  {
+   "n": 361,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 8,
+    "record": 2133,
+    "settle": 901
+   }
+  },
+  {
+   "n": 362,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 59,
+    "record": 1842,
+    "settle": 917
+   }
+  },
+  {
+   "n": 363,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 111,
+    "record": 1875,
+    "settle": 983
+   }
+  },
+  {
+   "n": 364,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 1026,
+    "record": 1879,
+    "settle": 900
+   }
+  },
+  {
+   "n": 365,
+   "action": "click replay_truce_offer",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_truce_offer\"",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 5,
+    "record": 1876,
+    "settle": 906
+   }
+  },
+  {
+   "n": 366,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 10 — Early February 1806",
+   "durations_ms": {
+    "act": 159,
+    "record": 1882,
+    "settle": 918
+   }
+  },
+  {
+   "n": 367,
+   "action": "click replay_truce_offer",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 2124,
+    "settle": 1134
+   }
+  },
+  {
+   "n": 368,
+   "action": "key F1",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 62,
+    "record": 1846,
+    "settle": 1066
+   }
+  },
+  {
+   "n": 369,
+   "action": "scroll 1828 550 down 3",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 126,
+    "record": 1801,
+    "settle": 900
+   }
+  },
+  {
+   "n": 370,
+   "action": "click Austria",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 105,
+    "record": 1819,
+    "settle": 917
+   }
+  },
+  {
+   "n": 371,
+   "action": "click Propose Armistice",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 1842,
+    "settle": 1067
+   }
+  },
+  {
+   "n": 372,
+   "action": "click Send as suggested",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 3 — Late October 1805",
+   "durations_ms": {
+    "act": 108,
+    "record": 2157,
+    "settle": 1033
+   }
+  },
+  {
+   "n": 373,
+   "action": "click End Turn",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 110,
+    "record": 1812,
+    "settle": 1117
+   }
+  },
+  {
+   "n": 374,
+   "action": "click Continue",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 161,
+    "record": 1679,
+    "settle": 899
+   }
+  },
+  {
+   "n": 375,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 58,
+    "record": 2181,
+    "settle": 917
+   }
+  },
+  {
+   "n": 376,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 60,
+    "record": 2180,
+    "settle": 901
+   }
+  },
+  {
+   "n": 377,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"Load Game\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 10,
+    "record": 2263,
+    "settle": 910
+   }
+  },
+  {
+   "n": 378,
+   "action": "key Escape",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 59,
+    "record": 1837,
+    "settle": 901
+   }
+  },
+  {
+   "n": 379,
+   "action": "click Load Game",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 109,
+    "record": 1875,
+    "settle": 1001
+   }
+  },
+  {
+   "n": 380,
+   "action": "scroll 1828 500 down 30",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 1025,
+    "record": 1922,
+    "settle": 903
+   }
+  },
+  {
+   "n": 381,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 6,
+    "record": 1910,
+    "settle": 904
+   }
+  },
+  {
+   "n": 382,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 160,
+    "record": 1911,
+    "settle": 900
+   }
+  },
+  {
+   "n": 383,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 8,
+    "record": 1874,
+    "settle": 900
+   }
+  },
+  {
+   "n": 384,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 146,
+    "record": 1884,
+    "settle": 917
+   }
+  },
+  {
+   "n": 385,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": false,
+   "error": "no visible control's text holds \"replay_table\"",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 5,
+    "record": 1886,
+    "settle": 921
+   }
+  },
+  {
+   "n": 386,
+   "action": "scroll 1828 500 up 4",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 4 — Early November 1805",
+   "durations_ms": {
+    "act": 156,
+    "record": 1875,
+    "settle": 917
+   }
+  },
+  {
+   "n": 387,
+   "action": "click replay_table",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 2140,
+    "settle": 1134
+   }
+  },
+  {
+   "n": 388,
+   "action": "click War for Munster",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 2100,
+    "settle": 900
+   }
+  },
+  {
+   "n": 389,
+   "action": "click Open Settlement",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 109,
+    "record": 1303,
+    "settle": 1118
+   }
+  },
+  {
+   "n": 390,
+   "action": "click Back Out",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 107,
+    "record": 2155,
+    "settle": 1019
+   }
+  },
+  {
+   "n": 391,
+   "action": "click War for Munster",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 110,
+    "record": 2109,
+    "settle": 917
+   }
+  },
+  {
+   "n": 392,
+   "action": "quit",
+   "meant": "",
+   "ok": true,
+   "error": "",
+   "turn": "Turn 16 — Early May 1806",
+   "durations_ms": {
+    "act": 0,
+    "record": 2117,
+    "settle": 0
+   }
+  }
+ ],
+ "n_actions": 393,
+ "wall_s": 2199.6,
+ "engine_exit": 0,
+ "script_errors": [],
+ "n_script_errors": 0,
+ "engine_errors": [],
+ "n_engine_errors": 0
+}

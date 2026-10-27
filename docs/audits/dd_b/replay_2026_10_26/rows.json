@@ -1,0 +1,28 @@
+[
+ {
+  "id": 1,
+  "source": "player",
+  "turn": "Turn 4 — Early November 1805",
+  "turn_number": 4,
+  "action": 373,
+  "action_text": "click End Turn",
+  "frame": "frames/0373_view.jpg",
+  "did": "replay_truce_offer (turn 3): F1 > Austria > Propose Armistice; the confirm card read 'Score: 51 - ACCEPT'; sent as suggested (#372), ended the turn (#373); repeated from a fresh load of the same save (first attempt #138-#141)",
+  "expected": "A card that estimates ACCEPT at 51 is accepted at the court's reply (or the card names what it does not weigh)",
+  "saw": "Austria rejected both times: 'Talleyrand returns from Austria empty-handed. The proposal was rejected. ... the key obstacle was deep-seated hostility.' The truce never ran, so S14G-7's front-line sentence and the stranded-corps dispatch line could not be staged",
+  "severity": "P3"
+ },
+ {
+  "id": 2,
+  "source": "player",
+  "turn": "Turn 16 — Early May 1806",
+  "turn_number": 16,
+  "action": 276,
+  "action_text": "click More generous",
+  "frame": "frames/0276_view.jpg",
+  "did": "replay_table (turn 16): open settlement with Britain, Austria and Russia, click More generous (#276) and read the standing hint",
+  "expected": "S14G-12 retired the standing hint's 'use More generous until each accepts'; the hint should name what actually moves each holdout",
+  "saw": "Britain's half is the new sentence (gold at its ceiling, 30 of 50, Ireland -23, a province weighs about 875g) but the same hint still opens \"Austria and Russia won't accept these terms yet. Use 'More generous' (or ease a court) until each accepts\" - for two courts whose blocker is 'War objective alignment' (white peace), which More generous (gold) cannot move: -18 became -12 and stops there",
+  "severity": "P3"
+ }
+]

@@ -45,6 +45,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.display_names import plural as _plural  # LV-9 (row EP F2)
 from backend import errors as _errors
+from backend.ai.counsel import key_hint as _key_hint  # S14G-X151: the focus-safe key sentence
 
 # ═══════════════════════════════════════════════════════════════════════════
 # CONSTANTS (spec §7 — gate-blessed defaults, in-band tunable; structural
@@ -358,7 +359,12 @@ def has_fleet(world, nation: str) -> bool:
     return bool(rec) and int(rec.get("ships", 0) or 0) > 0
 
 
-ADMIRALTY_POINTER = "THE ADMIRALTY (press T, then 7)"
+# S14G-X151 (Pre-Deploy S14h part 2, October 26, 2026): the bare "press T, then
+# 7" TYPES into the command line (it keeps the caret after nearly every reply);
+# the focus-safe form is Alt+<letter> - `counsel.key_hint`, the one sentence for
+# pressing a screen's key (S14G-16). Identical to
+# `counsel.surface_pointer("admiralty")`.
+ADMIRALTY_POINTER = f"THE ADMIRALTY (press {_key_hint('T', then='7')})"
 
 
 def _naval_notice(world, kind: str, title: str, message: str) -> None:
@@ -391,6 +397,49 @@ def _lift_cause(world, nation: str, blockader: str) -> str:
     if (get_fleet(world, blockader) or {}).get("posture") != "blockade":
         return f"{shown}'s squadrons have been called home to guard her own waters"
     return f"Our fleet now holds {shown}'s squadrons off our coast"
+
+
+def _return_cause(world, nation: str, blockader: str, held_by: str) -> str:
+    """S14G-32 (Pre-Deploy S14h part 2, October 26, 2026): why a blockade on
+    `nation` BEGAN again - `_lift_cause`'s twin. The lift named its cause
+    (the peace, the squadrons called home, our own sail) and the return named
+    none: the player (DD-B sea #7) marched the camp's main body out and read
+    "Britain closes France's ports ... 62%" two turns on with nothing tying it
+    to the order. `held_by` is what was holding the blockader's squadrons home
+    on the PREVIOUS tick (`_held_home_by`, remembered in the naval record):
+    "camp" - the Descent camp, since broken - or "window" - the Strait
+    window, since shut. "" for a plain beginning (no sentence, as before)."""
+    if not blockader or held_by not in ("camp", "window"):
+        return ""
+    from backend.display_names import display_nation
+    shown = display_nation(blockader)
+    if held_by == "camp":
+        where = ", ".join((get_fleet(world, nation) or {}).get("camp_provinces") or [])
+        return (f"The Descent camp ({where}) was broken, and {shown}'s "
+                f"squadrons, no longer held home to guard against it, are "
+                f"back on the blockade")
+    return (f"The Strait window has closed, and {shown}'s squadrons, no "
+            f"longer held home to guard against the crossing, are back on "
+            f"the blockade")
+
+
+def _held_home_by(world) -> Dict[str, str]:
+    """S14G-32: ``{island fleet at war with the player: "camp" | "window"}``
+    for the squadrons `derive_ai_postures` has JUST held at "guard" because of
+    the player's staged camp or open window. Asked straight after the posture
+    derivation, before the camp tick can reset the count - the one moment the
+    cause is still on the record. Player-facing memory only; no mechanic reads
+    it."""
+    player = getattr(world, "player_nation", None)
+    rec = get_fleet(world, player) if player else None
+    if not rec:
+        return {}
+    cause = ("camp" if camp_staged(world, player) else
+             "window" if int(rec.get("window_turns", 0) or 0) > 0 else "")
+    if not cause:
+        return {}
+    return {enemy: cause for enemy in _island_war_enemies(world, player)
+            if (get_fleet(world, enemy) or {}).get("posture") != "blockade"}
 
 
 def _meta(world) -> dict:
@@ -656,12 +705,155 @@ def embark_position_ok(world, marshal, yards=None) -> bool:
     location = getattr(marshal, "location", None)
     if yards is None:
         yards = controlled_dockyards(world, marshal.nation)
+    return _embark_at(world, marshal.nation, location, yards)
+
+
+def _embark_at(world, nation: str, location, yards) -> bool:
+    """The embark rule asked of a PROVINCE (not a corps): a yard we control,
+    or a coastal province that is not the home soil of the realm's body.
+    `embark_position_ok` and the nearest-shore walk (`nearest_embark_shore`)
+    both read it, so the rule and its reason cannot drift (S14G-17)."""
     if location in yards:
         return True
     region = world.regions.get(location)
     if region is None or not getattr(region, "is_coastal", False):
         return False
-    return not on_home_soil(world, marshal.nation, location)
+    return not on_home_soil(world, nation, location)
+
+
+# S14G-17 (Pre-Deploy S14h part 2, October 26, 2026): the Admiralty readied a
+# corps at Moravia (turn 10) and asked for a march when the follow had carried
+# it to Dresden (turn 11) with NO reason printed either time - one rule, and
+# nothing said why a province qualified or failed. The WHY, in the rule's own
+# terms, beside the rule: the ready line, the failed term, the chips and the
+# region panel's landing rows all read `embark_reason`.
+SHORE_SEARCH_DEPTH = 12   # provinces walked looking for the nearest shore
+
+
+def nearest_embark_shore(world, nation: str, location, yards=None
+                         ) -> Optional[Tuple[int, str]]:
+    """`(provinces, name)` of the nearest province, walked by LAND from
+    `location`, where `_embark_at` holds - the nearest yard or foreign/
+    across-the-water coast - or None within `SHORE_SEARCH_DEPTH`. A level-by-
+    level walk (a sea link is a crossing, not a road); the first level with a
+    shore wins and its alphabetically-first name is the answer, so the reply
+    is deterministic. Bounded by the depth, never a scan of the world."""
+    if yards is None:
+        yards = controlled_dockyards(world, nation)
+    start = world.regions.get(location)
+    if start is None:
+        return None
+    seen = {location}
+    frontier = [location]
+    for steps in range(1, SHORE_SEARCH_DEPTH + 1):
+        found = []
+        nxt = []
+        for here in frontier:
+            for adj in sorted(getattr(world.regions.get(here), "adjacent_regions", []) or []):
+                if adj in seen or adj not in world.regions:
+                    continue
+                if is_sea_link(world, here, adj):
+                    continue
+                seen.add(adj)
+                nxt.append(adj)
+                if _embark_at(world, nation, adj, yards):
+                    found.append(adj)
+        if found:
+            return steps, sorted(found)[0]
+        frontier = nxt
+        if not frontier:
+            break
+    return None
+
+
+def _shore_holder_words(world, nation: str, holder) -> str:
+    """Whose shore a foreign beach is, in the one phrase the Admiralty uses."""
+    if not holder:
+        return "an unheld shore"
+    if holder == nation:
+        return "our own shore across the water"
+    if world.is_at_war(nation, holder):
+        return "an enemy shore"
+    if world.get_diplomatic_state(nation, holder) in _POOLING_STATES:
+        return "an allied shore"
+    if getattr(world, "vassals", None) and world.vassals.get(holder, {}).get(
+            "lord") == nation:
+        return "a client's shore"
+    return "a neutral shore"
+
+
+def embark_reason(world, marshal, yards=None) -> str:
+    """S14G-17: WHY `embark_position_ok` says what it says - one clause, the
+    same rule in words. A corps that may embark reads where it stands ("a
+    dockyard of ours", "an allied shore", "an enemy shore", "our own shore
+    across the water", "a neutral shore"); one that may not reads what is
+    wrong and the nearest remedy ("inland; nearest shore 2 provinces
+    (Moravia)", "home soil, not a yard; nearest shore 3 provinces (Normandy)").
+    The map is stylised (DEF-8): an Adriatic reaching inland is a shore here,
+    so the clause is the rule's own word, not a geography lesson."""
+    location = getattr(marshal, "location", None)
+    nation = marshal.nation
+    if yards is None:
+        yards = controlled_dockyards(world, nation)
+    if location in yards:
+        return "a dockyard of ours"
+    if embark_position_ok(world, marshal, yards):
+        return _shore_holder_words(world, nation, _controller(world, location))
+    region = world.regions.get(location)
+    coastal = bool(region is not None and getattr(region, "is_coastal", False))
+    head = "home soil, not a yard" if coastal else "inland"
+    near = nearest_embark_shore(world, nation, location, yards)
+    if near is None:
+        return f"{head}; no shore within reach"
+    steps, shore = near
+    return f"{head}; nearest shore {_plural(int(steps), 'province')} ({shore})"
+
+
+def corps_embark_reasons(world, corps, yards=None) -> str:
+    """S14G-17: `embark_reason` for several corps, those that stand together
+    named together - "Ney and Davout at Dresden — inland; nearest shore 2
+    provinces (Moravia)"; groups joined with "; "."""
+    groups: Dict[Tuple[str, str], List[str]] = {}
+    for m in corps:
+        groups.setdefault((str(m.location), embark_reason(world, m, yards)),
+                          []).append(m.name)
+    out = []
+    for (location, why), names in groups.items():
+        who = (names[0] if len(names) == 1
+               else ", ".join(names[:-1]) + " and " + names[-1])
+        out.append(f"{who} at {location} — {why}")
+    return "; ".join(out)
+
+
+# S14G-17: "the Emperor does not sail" was a sentence in the counsel
+# (FA-D16, ruling (a): the lift counsel never names the sovereign) while the
+# Admiralty's ready list and landing chips went on offering him. ONE
+# predicate and ONE sentence, read by the counsel (`_small_corps`,
+# `no_small_corps_line`, `over_lift_refusal`) AND by every list and chip that
+# OFFERS a corps (the ready list, the landing options, the blocked reasons).
+def sovereign_stays(marshal) -> bool:
+    """True of the man the Admiralty never offers to the transports - the
+    sovereign (FA-D16)."""
+    return bool(getattr(marshal, "is_sovereign", False))
+
+
+def sovereign_stays_line(marshal) -> str:
+    """"Napoleon does not sail — the Emperor stays with the army." (no
+    full stop: callers join it)."""
+    return f"{marshal.name} does not sail — the Emperor stays with the army"
+
+
+def sovereign_left_out_line(world, nation: str, yards=None) -> str:
+    """The sentence above, once, when the sovereign stands where the rule
+    would let a corps embark and under the lift (so he would have been
+    offered) - "" otherwise."""
+    if yards is None:
+        yards = controlled_dockyards(world, nation)
+    for m in world.get_marshals_by_nation(nation):
+        if (sovereign_stays(m) and 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+                and embark_position_ok(world, m, yards)):
+            return sovereign_stays_line(m)
+    return ""
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1119,8 +1311,8 @@ def over_lift_refusal(world, marshal) -> str:
         (m for m in world.get_marshals_by_nation(marshal.nation)
          if m.name != marshal.name and 0 < int(m.strength) <= lift),
         key=lambda m: -int(m.strength))
-    eligible = [m for m in under_lift
-                if not getattr(m, "is_sovereign", False)]
+    # S14G-17: the ONE predicate (`sovereign_stays`) the offers read too.
+    eligible = [m for m in under_lift if not sovereign_stays(m)]
     sovereign_only = [m for m in under_lift if m not in eligible]
     parts = [f"The transports lift {lift:,} men; {marshal.name} commands "
              f"{troops:,} — {excess:,} too many."]
@@ -2617,9 +2809,15 @@ def camp_line(world, nation: str) -> str:
     if turns >= need:
         # S14E-13: the staged line names where the camp is, and that a march
         # out of it is the one thing that undoes it (the sea #5).
+        # S14G-32 (Pre-Deploy S14h part 2, October 26, 2026): and what the
+        # staged camp is HOLDING OFF - the line said only that a march out
+        # "resets the count" (`camp_holds_off_clause`, the one sentence the
+        # march's reply and the quote read too).
+        _held = camp_holds_off_clause(world, nation)
+        _held_tail = f", and then {_held}" if _held else ""
         return (f"Staged: {strength:,} men have stood {turns} turns in the camp "
                 f"({where}) at war with {foe} — no order needed; marching "
-                f"out of those provinces resets the count.")
+                f"out of those provinces resets the count{_held_tail}.")
     return (f"Staged after {need} turns standing at war with {foe} "
             f"({turns} of {need}) — no order needed.")
 
@@ -2662,6 +2860,81 @@ def camp_map_payload(world, nation: str) -> Dict[str, Dict[str, Any]]:
     fields = {"camp": True, "camp_men": men, "camp_turns": turns,
               "camp_staged": bool(staged), "camp_note": note}
     return {province: dict(fields) for province in provinces}
+
+
+def blockade_return_figures(world, nation: str, blockader: str) -> Dict[str, int]:
+    """S14G-32: what `blockader`'s blockade on `nation` would cost the turn it
+    RETURNS - ``{"cut_pct", "gold"}`` - off the blockade's own arithmetic, not
+    typed here. ``cut_pct`` is the share of the trade the blockade takes
+    (`blockade_cut_percent` over the blockader's own laws,
+    `reforms.blockade_denial_factor`); ``gold`` is `blockade_trade_loss`'s
+    per-nation line for the SAME gross (`calculate_trade_income`) - mirrored
+    rather than called because that function reads the postures as they stand
+    and the camp is holding them at "guard" (a parity pin forces the posture
+    and compares the two). A court with no trade loses nothing (gold 0)."""
+    from backend.game_logic.diplomacy import calculate_trade_income
+    factor = 1.0
+    if getattr(world, "reforms", None):
+        from backend.game_logic.reforms import blockade_denial_factor
+        factor = blockade_denial_factor(world, blockader)
+    gross = int(calculate_trade_income(world).get(nation, 0))
+    gold = 0
+    if gross > 0:
+        base = gross - int(gross * BLOCKADE_TRADE_FACTOR)
+        gold = base if factor == 1.0 else min(gross, int(round(base * factor)))
+    return {"cut_pct": int(blockade_cut_percent(factor)), "gold": int(gold)}
+
+
+def camp_held_squadrons(world, nation: str) -> List[str]:
+    """S14G-32: the island fleets a STAGED camp of `nation` is holding home -
+    at war with her, posture "guard" (`derive_ai_postures` sets it while a
+    staged camp or an open window stands), and strong enough that the
+    blockade would pin her the moment they sailed (`blockader_against`'s own
+    ratio, read with their own sail). [] when the camp is not staged."""
+    if not camp_staged(world, nation):
+        return []
+    own = get_fleet(world, nation)
+    if own is None:
+        return []          # no naval entry: not blockadable at all
+    needed = BLOCKADE_RATIO * effective_strength(own)
+    held = []
+    for enemy in _island_war_enemies(world, nation):
+        rec = get_fleet(world, enemy) or {}
+        if rec.get("posture") == "blockade":
+            continue
+        if combined_effective(world, enemy, nation,
+                              match_posture="blockade") >= needed:
+            held.append(enemy)
+    return sorted(held)
+
+
+def camp_holds_off_clause(world, nation: str) -> str:
+    """S14G-32 (Pre-Deploy S14h part 2, October 26, 2026): what the staged
+    camp is holding off, in ONE sentence - "Britain's squadrons, held home by
+    the camp, go back to the blockade (trade -62%, crews rot 5 a turn, about
+    -320g a turn) from the turn after next" (no full stop). The turn after
+    next because posture is derived BEFORE the camp tick (`process_naval_turn`
+    step 1 vs 4): the turn the count breaks they are still "guard", and they
+    sail on the next tick. "" while the camp is not staged or no fleet is
+    held. Read by the march's reply and the quote (`camp_leave_line`) and the
+    Admiralty's staged line (`camp_line`) - none composes its own."""
+    from backend.display_names import display_nation
+    held = camp_held_squadrons(world, nation)
+    if not held:
+        return ""
+    # The strongest holds the pin (`blockader_against`'s own pick).
+    chief = max(held, key=lambda n: combined_effective(
+        world, n, nation, match_posture="blockade"))
+    figures = blockade_return_figures(world, nation, chief)
+    bits = [f"trade −{figures['cut_pct']}%",
+            f"crews rot {READINESS_TICK} a turn"]
+    if figures["gold"] > 0:
+        bits.append(f"about −{figures['gold']:,}g a turn")
+    names = [display_nation(n) for n in held]
+    whose = (f"{names[0]}'s squadrons" if len(names) == 1
+             else f"the squadrons of {', '.join(names[:-1])} and {names[-1]}")
+    return (f"{whose}, held home by the camp, go back to the blockade "
+            f"({', '.join(bits)}) from the turn after next")
 
 
 def camp_leave_line(world, marshal, road, origin: Optional[str] = None) -> str:
@@ -2716,7 +2989,46 @@ def camp_leave_line(world, marshal, road, origin: Optional[str] = None) -> str:
     head = f"{stop} lies outside the camp — this takes {men:,} men out of it"
     if turns <= 0:
         return f"{head}; no turn counts toward staging while they stand there."
-    return f"{head}; the {turns}-turn count resets at the turn's end."
+    # S14G-32 (Pre-Deploy S14h part 2, October 26, 2026): the reply said the
+    # count resets, never what the STAGED camp was holding off - the player
+    # (DD-B sea #7, turn 8) marched the main body out and found "Blockade:
+    # -320g" two turns on, with nothing at the order or the notice naming the
+    # cause. The clause is read off the blockade's own arithmetic and says the
+    # lag (`camp_holds_off_clause`); "" while the camp is not yet staged.
+    held = camp_holds_off_clause(world, nation)
+    tail = f" — {held}" if held else ""
+    return f"{head}; the {turns}-turn count resets at the turn's end{tail}."
+
+
+def _pooled_partners(world, nation: str, foes: Optional[List[str]] = None) -> Dict[str, int]:
+    """S14G-M5: `{partner: ships}` for every court whose sail counts with
+    `nation`'s against `foes` today (default: the island foes, the crossings'
+    usual holders, else any fleet court at war with `nation`) - the ONE read
+    `pooled_sail_clause` and the per-turn pool baseline share."""
+    if foes is None:
+        foes = _island_war_enemies(world, nation) or sorted(
+            n for n, _rec in iter_fleets(world) if world.is_at_war(nation, n))
+    out: Dict[str, int] = {}
+    for partner, rec in sorted(iter_fleets(world), key=lambda kv: kv[0]):
+        ships = int(rec.get("ships", 0) or 0)
+        if ships <= 0:
+            continue
+        if any(_is_pooled_partner(world, nation, partner, foe) for foe in foes):
+            out[partner] = ships
+    return out
+
+
+def _pool_left_cause(world, partner: str, foes: List[str]) -> str:
+    """S14G-M5: why `partner`'s sail stopped counting, in the words the notice
+    and the Admiralty share - the peace she made with the foe, the armistice,
+    or (still at war with him) the alliance that no longer binds her."""
+    from backend.display_names import display_nation
+    foe = display_nation(foes[0]) if foes else "the foe"
+    if foes and not any(world.is_at_war(partner, f) for f in foes):
+        if world.get_diplomatic_state(partner, foes[0]) == "ARMISTICE":
+            return f"she has agreed an armistice with {foe}"
+        return f"she has made peace with {foe}"
+    return "she is no longer our ally in the war"
 
 
 def pooled_sail_clause(world, nation: str) -> str:
@@ -2724,21 +3036,35 @@ def pooled_sail_clause(world, nation: str) -> str:
     POOL_ALLIED of her sail on her own (`_is_pooled_partner`); the legend
     said a crossing "opens by building or pooling a fleet" (the sea #4).
     "Spain's 30 sail already count" — read against the island foes, the
-    crossings' usual holders."""
+    crossings' usual holders.
+
+    S14G-M5 (Pre-Deploy S14h part 2, October 26, 2026): and the partner whose
+    sail STOPPED counting is named once, with the reason - the Descent's
+    window closed when Spain's sail left on her peace with Britain and this
+    clause dropped her without a word (DD-B conquest #4). The record is the
+    naval meta's `pool_left`, written by `process_naval_turn` on the tick she
+    left; it ends when she counts again."""
     from backend.display_names import display_nation
     foes = _island_war_enemies(world, nation) or sorted(
         n for n, _rec in iter_fleets(world) if world.is_at_war(nation, n))
-    counted: List[str] = []
-    for partner, rec in sorted(iter_fleets(world), key=lambda kv: kv[0]):
-        ships = int(rec.get("ships", 0) or 0)
-        if ships <= 0:
-            continue
-        if any(_is_pooled_partner(world, nation, partner, foe) for foe in foes):
-            counted.append(f"{display_nation(partner)}'s {ships} sail")
+    pooled = _pooled_partners(world, nation, foes)
+    counted: List[str] = [f"{display_nation(partner)}'s {ships} sail"
+                          for partner, ships in pooled.items()]
     if not counted:
-        return "an ally at war with the same foe would add her sail on her own"
-    joined = counted[0] if len(counted) == 1 else ", ".join(counted[:-1]) + " and " + counted[-1]
-    return f"an ally at war with the same foe adds her sail on her own ({joined} already count)"
+        base = "an ally at war with the same foe would add her sail on her own"
+    else:
+        joined = counted[0] if len(counted) == 1 else ", ".join(counted[:-1]) + " and " + counted[-1]
+        base = f"an ally at war with the same foe adds her sail on her own ({joined} already count)"
+    gone = []
+    # a PEEK, not `_meta()`: a read must not create the record in a save
+    _record = get_fleets(world).get(META_KEY)
+    _left = (_record or {}).get("pool_left") if isinstance(_record, dict) else None
+    for partner, ships in sorted((_left or {}).items()):
+        if partner in pooled or not has_fleet(world, partner):
+            continue
+        gone.append(f"{display_nation(partner)}'s {int(ships)} sail no longer count — "
+                    f"{_pool_left_cause(world, partner, foes)}")
+    return base + (f"; {'; '.join(gone)}" if gone else "")
 
 
 def rot_line(world, nation: str) -> str:
@@ -3409,23 +3735,91 @@ def window_remedy(world, actor: str) -> str:
     return _window_remedy(world, actor)
 
 
-def _window_remedy(world, actor: str) -> str:
+def _window_need(forecast: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """S14G-M5: the window's own arithmetic for the crossing a success would
+    open, read off a `window_forecast`: the coverer, the least mover that
+    opens it (`ceil(coverage x floor)`, the clause's number, the easier of the
+    window's two turns) and the mover's effective strength now. None when the
+    forecast names no covered crossing."""
+    subject = forecast.get("subject")
+    if not subject:
+        return None
+    best = None
+    for turn_key in ("turn_1", "turn_2"):
+        verdict = (forecast.get(turn_key) or {}).get(subject) or {}
+        coverer, coverage, floor = (verdict.get("coverer"), verdict.get("coverage"),
+                                    verdict.get("floor"))
+        if not coverer or not coverage or not floor:
+            continue
+        needed = math.ceil(float(coverage) * float(floor) - 1e-9)
+        if best is None or needed < best["needed"]:
+            best = {"coverer": coverer, "needed": int(needed),
+                    "mover": float(verdict.get("mover_effective") or 0.0)}
+    return best
+
+
+def _ceiling_truth(world, actor: str, forecast: Optional[Dict[str, Any]] = None) -> str:
+    """S14G-M5 (Pre-Deploy S14h part 2, October 26, 2026): the false hope in
+    `_window_remedy` - "readiness recovers +5/turn to 75" - told a player whose
+    line could never reach the bar that waiting would open the window: after
+    Spain's sail left, "31 effective against 50, 45 is the least that opens
+    it" stood beside "+5/turn" and the camp staged for nothing (DD-B conquest
+    #4). This computes the pool AT THE CEILING the crews can recover to
+    (`NAVY_DRILL_CEILING`, through `combined_effective`'s `own_readiness` -
+    a pooled partner keeps her own) and, when even that is below what the
+    window needs, says so: "even at readiness 75 our line stands at 33; only
+    more sail, or an ally at war with Britain, opens it". "" when waiting
+    would do (or the crews already stand at the ceiling, or no crossing is
+    covered). PURE."""
+    rec = get_fleet(world, actor) or {}
+    if int(rec.get("readiness", 0) or 0) >= NAVY_DRILL_CEILING:
+        return ""
+    try:
+        need = _window_need(forecast if forecast is not None else window_forecast(world, actor))
+    except Exception as exc:
+        _errors.report(exc, "naval._ceiling_truth: window_forecast")
+        return ""
+    if need is None:
+        return ""
+    at_ceiling = combined_effective(world, actor, need["coverer"],
+                                    own_readiness=NAVY_DRILL_CEILING)
+    if math.floor(at_ceiling + 1e-9) >= need["needed"]:
+        return ""
+    from backend.display_names import display_nation
+    return (f"even at readiness {NAVY_DRILL_CEILING} our line stands at "
+            f"{int(at_ceiling)}; only more sail, or an ally at war with "
+            f"{display_nation(need['coverer'])}, opens it")
+
+
+def _window_remedy(world, actor: str, forecast: Optional[Dict[str, Any]] = None) -> str:
     """What to actually DO about a window that would open nothing.
 
     ⚠ The remedy must be gated on the state it names or it becomes FA-31
     again one layer down. A first cut told an already-staged player to stage
     the camp, and told a player whose blockade had already lifted that
     staging would lift it — measured on the real board at t5 and t6.
+
+    S14G-M5: and it must not promise a recovery that cannot reach the bar -
+    `_ceiling_truth` replaces the "+5/turn" tail with the ceiling's own
+    arithmetic where even full readiness would leave the line short.
     """
     blockaded = actor in blockaded_nations(world)
     staged = camp_staged(world, actor)
+    truth = _ceiling_truth(world, actor, forecast)
     if blockaded and not staged:
+        if truth:
+            return f"staging the camp lifts the blockade — but {truth}"
         return ("staging the camp lifts the blockade and readiness recovers "
                 f"+{READINESS_TICK}/turn to {NAVY_DRILL_CEILING}")
     if blockaded and staged:
+        if truth:
+            return ("the blockade lifts as the enemy squadrons come home to "
+                    f"the camp — but {truth}")
         return ("the blockade lifts as the enemy squadrons come home to the "
                 f"camp; readiness then recovers +{READINESS_TICK}/turn to "
                 f"{NAVY_DRILL_CEILING}")
+    if truth:
+        return truth
     return (f"readiness recovers +{READINESS_TICK}/turn to "
             f"{NAVY_DRILL_CEILING} — wait for the crews")
 
@@ -3471,7 +3865,7 @@ def window_forecast_clause(world, actor: str) -> str:
         detail = (f" — {int(mover)} effective against {int(coverage)}, and "
                   f"{needed} is the least that opens it")
     return (f"even a success leaves {pair} shut{detail}; "
-            f"{_window_remedy(world, actor)}")
+            f"{_window_remedy(world, actor, forecast)}")
 
 
 def _emit_verdict_flips(world, before: Dict[str, str],
@@ -3610,7 +4004,13 @@ def process_naval_turn(world) -> List[Dict]:
     meta = _meta(world)
 
     # 1-2. postures, then baselines from the PREVIOUS tick's stored state.
+    # S14G-32: what held the island squadrons home last tick, read before the
+    # derivation overwrites postures (a read of the record only); and what
+    # holds them now, asked straight after it and before the camp tick resets
+    # the count.
+    prev_held = dict(meta.get("held_home", {}) or {})
     derive_ai_postures(world)
+    held_now = _held_home_by(world)
     prev_blockaded = list(meta.get("blockaded", []))
     prev_verdicts = dict(meta.get("verdicts", {}))
     prev_tier = int(meta.get("cs_tier", 0) or 0)
@@ -3709,44 +4109,77 @@ def process_naval_turn(world) -> List[Dict]:
             # does to the trade AS IT BEGINS — "halved", or the deeper cut
             # and the law that made it (the Orders in Council).
             trade_words = blockade_trade_words(world, nation)
+            # S14G-32: the cause of a RETURN (the camp broken, the window shut),
+            # when the squadrons had been held home; "" for a plain beginning.
+            _is_player = nation == getattr(world, "player_nation", None)
+            cause = (_return_cause(world, nation, blockader or "",
+                                   prev_held.get(blockader or "", ""))
+                     if _is_player else "")
             event = {
                 "type": "blockade_begins", "turn": int(world.current_turn),
                 "nation": nation, "blockader": blockader or "",
                 "trade_words": trade_words,
             }
+            if cause:
+                event["cause"] = cause
             world.log_event(event)
             events.append(event)
-            queue_dispatch_event(world, "blockade_begins", {
+            _beat = {
                 "nation": nation, "blockader": blockader or "the enemy",
                 "trade_words": trade_words,
-            }, "always")
-            if nation == getattr(world, "player_nation", None):
+            }
+            if cause:
+                _beat["cause"] = cause
+            queue_dispatch_event(world, "blockade_begins", _beat, "always")
+            if _is_player:
                 from backend.display_names import display_nation
+                _lead = f"{cause}. " if cause else ""
                 _naval_notice(
                     world, "blockade_begins",
                     f"Blockade — {display_nation(blockader) if blockader else 'the enemy'} closes our ports",
-                    (f"{display_nation(blockader) if blockader else 'The enemy'}'s fleet now outmatches "
+                    (f"{_lead}{display_nation(blockader) if blockader else 'The enemy'}'s fleet now outmatches "
                      f"ours {BLOCKADE_RATIO:g} to 1 off our coast: our trade is {trade_words}, "
                      f"our crews rot {READINESS_TICK} a turn at anchor and the yards lay one "
                      f"keel a turn. {ADMIRALTY_POINTER} — the Blockade Board."))
     _prev_blockaders = dict(meta.get("blockaders", {}) or {})
     for nation in prev_blockaded:
         if nation not in now_blockaded and get_fleet(world, nation) is not None:
+            # S14G-X154 (Pre-Deploy S14h part 2, October 26, 2026): the notice
+            # named WHY the blockade lifted (`_lift_cause`: the peace, the
+            # squadrons called home, our own sail) while the event, the
+            # campaign log and the dispatch beat carried none - the records the
+            # player reads later said "her ports breathe again" and no more.
+            # The cause rides the PLAYER's event (the cause is worded "our
+            # coast"); a plain lift - an AI court's - reads as it did.
+            _lifted_is_player = nation == getattr(world, "player_nation", None)
+            lift_cause = (_lift_cause(world, nation, str(_prev_blockaders.get(nation) or ""))
+                          if _lifted_is_player else "")
             event = {
                 "type": "blockade_broken", "turn": int(world.current_turn),
                 "nation": nation,
             }
+            if lift_cause:
+                event["cause"] = lift_cause
             world.log_event(event)
             events.append(event)
-            queue_dispatch_event(world, "blockade_broken",
-                                 {"nation": nation}, "always")
-            if nation == getattr(world, "player_nation", None):
+            _lift_beat = {"nation": nation}
+            if lift_cause:
+                _lift_beat["cause"] = lift_cause
+            queue_dispatch_event(world, "blockade_broken", _lift_beat, "always")
+            if _lifted_is_player:
                 _naval_notice(
                     world, "blockade_lifted", "The blockade on our ports lifts",
-                    (f"{_lift_cause(world, nation, str(_prev_blockaders.get(nation) or ''))}: "
+                    (f"{lift_cause}: "
                      f"our trade runs whole again and the crews recover. "
                      f"{ADMIRALTY_POINTER} — the Blockade Board."))
     meta["blockaded"] = list(now_blockaded)
+    # S14G-32: what held the squadrons home THIS tick, so the tick that sends
+    # them back can name the cause. Absent when nothing holds them - a board
+    # with no staged camp or open window keeps its record byte-identical.
+    if held_now:
+        meta["held_home"] = held_now
+    else:
+        meta.pop("held_home", None)
     # DDB-X6: who held each blockade, so its lifting can name the cause.
     meta["blockaders"] = {n: str(blockader_against(world, n)[0] or "")
                           for n in now_blockaded}
@@ -3755,7 +4188,81 @@ def process_naval_turn(world) -> List[Dict]:
     verdicts = link_verdicts(world)
     _emit_verdict_flips(world, prev_verdicts, verdicts)
     meta["verdicts"] = {key: v["verdict"] for key, v in verdicts.items()}
+
+    # 8. S14G-M5: the pool baseline - who counted with the player's line this
+    # tick, so the tick a partner's sail STOPS counting says so.
+    _pool_baseline_tick(world, meta)
     return events
+
+
+def _pool_left_line(world, partner: str, ships: int, foes: List[str]) -> str:
+    """S14G-M5: the one sentence the rail notice and the dispatch beat share -
+    "Spain's 30 sail no longer count with ours - she has made peace with
+    Britain. The Grand Diversion's window now needs 45 effective; our line
+    stands at 31." The window half is read off the forecast (the Descent's
+    own arithmetic) and omitted where no crossing is covered."""
+    from backend.display_names import display_nation
+    line = (f"{display_nation(partner)}'s {int(ships)} sail no longer count with "
+            f"ours — {_pool_left_cause(world, partner, foes)}.")
+    player = getattr(world, "player_nation", None)
+    try:
+        need = _window_need(window_forecast(world, player))
+    except Exception as exc:
+        _errors.report(exc, "naval._pool_left_line: window_forecast")
+        need = None
+    if need is not None:
+        line += (f" The Grand Diversion's window now needs {need['needed']} "
+                 f"effective; our line stands at {int(need['mover'])}.")
+    return line
+
+
+def _pool_baseline_tick(world, meta: dict) -> None:
+    """S14G-M5 (Pre-Deploy S14h part 2, October 26, 2026): the Descent's window
+    closed when Spain's sail left on her peace with Britain, and the only word
+    of it was the Admiralty page's silent omission - pooling is computed at
+    READ time (`_is_pooled_partner` needs the partner at war with the foe), the
+    tick kept no baseline, and `_emit_verdict_flips` fires only on an
+    open/shut flip (the Channel was already shut).
+
+    `meta["pool"] = {partner: ships}` (a serialized key on the existing record)
+    is who counted against the player's island foes at the last tick; a partner
+    who counted then and does not now - with her fleet still afloat - is
+    announced once, on the rail (`_naval_notice`) and in the dispatch (`"always"`,
+    the `strait_*` precedent), and remembered in `meta["pool_left"]` until she
+    counts again (`pooled_sail_clause` names her). Player-only (the notice and
+    the words; no mechanic reads the record) and silent at peace with every
+    island foe."""
+    player = getattr(world, "player_nation", None)
+    foes = _island_war_enemies(world, player) if player else []
+    if not foes:
+        meta["pool"] = {}
+        meta.pop("pool_left", None)
+        return
+    now = _pooled_partners(world, player, foes)
+    prev = meta.get("pool")
+    left = {k: int(v) for k, v in (meta.get("pool_left") or {}).items()}
+    if isinstance(prev, dict):
+        for partner, ships in sorted(prev.items()):
+            if partner in now or not has_fleet(world, partner):
+                continue
+            left[partner] = int(ships)
+            line = _pool_left_line(world, partner, int(ships), foes)
+            from backend.display_names import display_nation
+            _naval_notice(world, "pool_left",
+                          f"{display_nation(partner)}'s sail no longer counts",
+                          f"{line} {ADMIRALTY_POINTER} — the Crossings.")
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "pool_left", {
+                "partner": partner, "ships": int(ships), "line": line,
+            }, "always")
+    for partner in list(left):
+        if partner in now:
+            del left[partner]
+    meta["pool"] = {k: int(v) for k, v in now.items()}
+    if left:
+        meta["pool_left"] = left
+    else:
+        meta.pop("pool_left", None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3891,7 +4398,7 @@ def _small_corps(world, nation: str) -> List:
     return sorted(
         (m for m in world.get_marshals_by_nation(nation)
          if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-         and not (getattr(m, "is_sovereign", False))),
+         and not sovereign_stays(m)),   # S14G-17: the one predicate
         key=lambda m: -int(m.strength))
 
 
@@ -3909,7 +4416,7 @@ def no_small_corps_line(world, nation: str) -> str:
                  f"is under it from the day he is raised")
     guard = [m for m in world.get_marshals_by_nation(nation)
              if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
-             and getattr(m, "is_sovereign", False)]
+             and sovereign_stays(m)]   # S14G-17: the one predicate
     if guard:
         return (f"only {guard[0].name}'s Guard is under the "
                 f"{EXPEDITION_MAX_TROOPS:,} lift, and the Emperor does not "
@@ -3933,6 +4440,28 @@ EXPEDITION_CHIP_LANDINGS = 4   # the best landings listed; the map has the rest
 EXPEDITION_CHIP_MARCHES = 2    # corps offered a march to a yard
 
 
+# S14G-29 (Pre-Deploy S14h part 2, October 26, 2026): every Admiralty chip
+# omitted its action price - the "march to the yard" link spent 2 of the turn's
+# 4 actions and the player learned it from the counter (DD-B sea #1). The
+# tree states AP elsewhere (the region panel's "Soult · 2 AP · 3 turns", the
+# order replies); the Admiralty's chips now carry theirs at the point of
+# choice. The price is the verb's REAL one - the world's own action table
+# (`get_action_cost`, what `use_action` charges) and the pool the executor
+# routes the verb to (`ADMIN_ACTIONS`: a keel, a yard, a commission spend the
+# ADMINISTRATIVE pool) - never a number typed here.
+def ap_price_words(world, action: str) -> str:
+    """"2 AP" / "1 Admin AP" - the price of the verb `action` in the pool it
+    is charged to."""
+    from backend.commands.meta_executor import ADMIN_ACTIONS
+    price = int(world.get_action_cost(action))
+    return f"{price} Admin AP" if action in ADMIN_ACTIONS else f"{price} AP"
+
+
+def ap_cost_note(world, action: str) -> str:
+    """The chip's cost note: "(2 AP)" - rendered beside the label."""
+    return f"({ap_price_words(world, action)})"
+
+
 def _grid_distance(world, a: str, b: str) -> int:
     ra, rb = world.regions.get(a), world.regions.get(b)
     ga = getattr(ra, "grid_position", None) if ra is not None else None
@@ -3940,6 +4469,76 @@ def _grid_distance(world, a: str, b: str) -> int:
     if not ga or not gb:
         return 0
     return abs(int(ga[0]) - int(gb[0])) + abs(int(ga[1]) - int(gb[1]))
+
+
+# The lines of a march quote that ride its chip, in the REGION PANEL's order
+# (`region_panel.gd` `_quote_notes`): the contact, the camp, what the march
+# costs the corps as it stands, the detour, the campaign pay, the guarded
+# ground, the front, the standing order's terms.
+_MARCH_QUOTE_LINES = ("note", "camp", "departs", "detour", "pay", "guard",
+                      "front", "terms")
+
+
+def march_quote_notes(quote: Dict) -> List[str]:
+    """S14G-29: the quote's rider lines, in the panel's order - then what it
+    would REPLACE and whether he may object. One reader for the Admiralty's
+    march chip; the same words the province panel prints."""
+    parts = [str(quote.get(k) or "") for k in _MARCH_QUOTE_LINES]
+    replaces = str(quote.get("replaces") or "")
+    if replaces and not quote.get("already"):
+        parts.append(f"replaces {replaces}")
+    if str(quote.get("objection") or "none") == "possible":
+        parts.append("he may object")
+    return [p for p in parts if p]
+
+
+def march_to_yard_chip(world, marshal, yard: str, road, yards) -> Dict:
+    """S14G-29 (+ S14G-17): the "march to the yard" link, built from the
+    QUOTE the order's own road gives (`order_quotes.march_quote`) - its price
+    and its clock beside the label ("(2 AP · 4 turns)"), the camp / pay /
+    front / guard / terms lines under it, and a withheld chip that says why.
+    It spent 2 of the turn's 4 actions with no price shown (DD-B sea #1); the
+    S14E-22 detour ask fires only for a road twice the direct one, so the
+    price at the point of choice is the fix. No ask: a march is cheap and
+    cancellable. S14G-17: the corps' own position is read in the rule's words
+    ("Dumonceau at Paris - inland; nearest shore 2 provinces (Normandy)")."""
+    from backend.commands.order_quotes import march_quote
+    try:
+        quote = march_quote(world, marshal, yard)
+    except Exception as exc:
+        _errors.report(exc, "naval.march_to_yard_chip: order_quotes.march_quote")
+        quote = {"ok": True, "ap": int(marshal.strategic_order_ap(order_type="MOVE_TO")),
+                 "turns": 0, "road": list(road or [])}
+    steps = len(quote.get("road") or road or [])
+    head = (f"{int(marshal.strength):,} men, {_plural(int(steps), 'province')} "
+            f"to the yard — he embarks there")
+    where = f"{marshal.name} at {marshal.location} — {embark_reason(world, marshal, yards)}"
+    notes = [head, where] + march_quote_notes(quote)
+    ok = bool(quote.get("ok")) and not quote.get("already")
+    turns = int(quote.get("turns", 0) or 0)
+    if ok:
+        ap = int(quote.get("ap", 0) or 0)
+        price = (f"({ap} AP · "
+                 f"{'this turn' if turns == 0 else _plural(turns, 'turn')})")
+    else:
+        # A refused quote carries no price (0) and no clock; the order's own
+        # price is still what it WOULD cost (`strategic_order_ap`).
+        ap = int(marshal.strategic_order_ap(order_type="MOVE_TO"))
+        price = f"({ap} AP)"
+    reason = ""
+    if not ok:
+        reason = (str(quote.get("refusal") or "")
+                  or str(quote.get("note") or "")
+                  or f"{marshal.name} is already marching to {yard}.")
+    return {
+        "command": f"{marshal.name}, march to {yard}",
+        "label": f"{marshal.name}, march to {yard}",
+        "enabled": ok, "reason": reason,
+        "cost_note": price,
+        "ap": ap,
+        "turns": turns,
+        "note": " · ".join(notes) if ok else "",
+    }
 
 
 def expedition_road_chips(world, player: str, yards: List[str],
@@ -3966,6 +4565,8 @@ def expedition_road_chips(world, player: str, yards: List[str],
                           f"({int(spec['gold_cost']):,}g)"),
                 "enabled": not refusal,
                 "reason": refusal,
+                # S14G-29: the verb's price, from the table (an administrative act).
+                "cost_note": ap_cost_note(world, "build"),
                 "note": (f"{int(spec['build_time'])} turns — then keels may "
                          f"be laid down and a corps embark there"
                          if not refusal else ""),
@@ -3999,6 +4600,9 @@ def expedition_road_chips(world, player: str, yards: List[str],
             note = (f"{int(corps.get('odds', 0))} in 100 slip past · "
                     f"{int(corps.get('strength', 0)):,} men from "
                     f"{corps.get('from', '')}")
+            # S14G-17: and why he may embark there (the rule in words).
+            if corps.get("from_reason"):
+                note += f" ({corps['from_reason']})"
             if region in road_shores:
                 _r = road_shores[region]
                 note += (f" · the next step on the road to "
@@ -4006,10 +4610,16 @@ def expedition_road_chips(world, player: str, yards: List[str],
             # SR-5b (AAR-D7): the land chip names what would move its odds.
             if corps.get("levers"):
                 note += f". {corps['levers']}"
+            # S14G-31: and what winning the throw gets him there (the confirm
+            # card's own sentence, built once on the row).
+            if corps.get("prize"):
+                note += f". If it lands: {corps['prize']}"
             chips.append({
                 "command": f"land {who} in {region}",
                 "label": f"Land {who} in {region}",
                 "enabled": True, "reason": "",
+                # S14G-29: the verb's price - an expedition is a real commitment.
+                "cost_note": ap_cost_note(world, "naval_expedition"),
                 "note": note,
             })
         return chips
@@ -4032,14 +4642,7 @@ def expedition_road_chips(world, player: str, yards: List[str],
         if best is None:
             continue
         yard, road = best
-        chips.append({
-            "command": f"{marshal.name}, march to {yard}",
-            "label": f"{marshal.name}, march to {yard}",
-            "enabled": True, "reason": "",
-            "note": (f"{int(marshal.strength):,} men, {len(road)} "
-                     f"province{'s' if len(road) != 1 else ''} to the yard "
-                     f"— he embarks there"),
-        })
+        chips.append(march_to_yard_chip(world, marshal, yard, road, yards))
         if len(chips) >= EXPEDITION_CHIP_MARCHES:
             break
     if chips:
@@ -4067,6 +4670,8 @@ def expedition_road_chips(world, player: str, yards: List[str],
         "label": f"Commission {name} ({cost:,}g)",
         "enabled": refusal is None,
         "reason": refusal or "",
+        # S14G-29: a commission is an administrative act (+ the gold above).
+        "cost_note": ap_cost_note(world, "recruit_marshal"),
         "note": (f"a {int(RECRUIT_MARSHAL_CORPS):,}-man corps raised at "
                  f"{spawn}, under the lift from the day he is raised — then "
                  f"march him to a yard" if refusal is None else ""),
@@ -4235,17 +4840,28 @@ def build_admiralty_report(world) -> Dict:
     def _embark_ok(m) -> bool:
         return embark_position_ok(world, m, yards)
 
+    # S14G-17 (Pre-Deploy S14h part 2, October 26, 2026): the list offered the
+    # Emperor ("Davout, Ney, Lannes and Napoleon were listed ready", turn 10)
+    # while the counsel said "the Emperor does not sail" - the list now leaves
+    # out whom the counsel leaves out, through the ONE predicate
+    # (`sovereign_stays`), and says so once (the term's detail below).
     ready_corps = sorted(
         (m for m in player_corps
          if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+         and not sovereign_stays(m)
          and _embark_ok(m)),
         key=lambda m: -int(m.strength))
     over_corps = [m for m in player_corps
                   if int(m.strength) > EXPEDITION_MAX_TROOPS
+                  and not sovereign_stays(m)
                   and _embark_ok(m)]
+    # S14G-17: WHY each ready corps qualifies ("an allied shore"), in the
+    # rule's words (`embark_reason`).
+    embark_reasons = {m.name: embark_reason(world, m, yards) for m in ready_corps}
     if ready_corps:
         corps_detail = "ready: " + ", ".join(
-            f"{m.name} ({int(m.strength):,} at {m.location})"
+            f"{m.name} ({int(m.strength):,} at {m.location} — "
+            f"{embark_reasons[m.name]})"
             for m in ready_corps[:3])
     elif over_corps:
         smallest = min(over_corps, key=lambda m: int(m.strength))
@@ -4276,7 +4892,12 @@ def build_admiralty_report(world) -> Dict:
                             for m in _under[:3])
                 + " to a yard — "
                 + ("; ".join(yards[:3]) if len(yards) <= 3
-                   else "; ".join(yards[:3]) + " …"))
+                   else "; ".join(yards[:3]) + f"; and {len(yards) - 3} more")
+                # S14G-17: and why each stands where he cannot embark
+                # ("Ney at Dresden — inland; nearest shore 2 provinces
+                # (Moravia)") - the failed term's own reason. (The yard list
+                # ended in " …"; a full stop after an ellipsis read "….")
+                + ". " + corps_embark_reasons(world, _under[:3], yards) + ".")
         else:
             # SR-5b / NV-D9: "take or build one" named a building that did
             # not exist; the build half now names its site and price.
@@ -4284,6 +4905,12 @@ def build_admiralty_report(world) -> Dict:
             corps_detail = (
                 "we hold no dockyard to embark from — take one"
                 + (f", or {_road}" if _road else ""))
+    # S14G-17: the Emperor, said ONCE - the sentence the counsel carries
+    # (`no_small_corps_line` already says it when his Guard is the only corps
+    # under the lift).
+    _stays = sovereign_left_out_line(world, player, yards)
+    if _stays and "does not sail" not in corps_detail:
+        corps_detail = corps_detail.rstrip(".") + f". {_stays}."
     # Verify-fleet copy corrections (Aug 2026): term 1 is scoped to HOME
     # embarkation (the executor's abroad arm has no yard requirement), and
     # term 2 names both lawful embark states.
@@ -4319,10 +4946,16 @@ def build_admiralty_report(world) -> Dict:
     # runs. The road's own sentence, from the ONE builder (a corps on the
     # held province is never offered the land-adjacent shore as a chip).
     from backend.game_logic.formations import road_notes
-    for _road in road_notes(world)["roads"]:
+    _road_ctx = road_notes(world)
+    for _road in _road_ctx["roads"]:
         if _road.get("state") == "ready":
             continue  # whole-held: no shore to point at (the war card says it)
         report["expedition_notes"].append(_road["text"])
+    # S14G-31: and the carve the bloc has not begun - the FIRST landing's
+    # pointer (the begun roads above say the next step; a prospect says the
+    # whole), the same builder's row.
+    for _prospect in _road_ctx.get("prospects", []):
+        report["expedition_notes"].append(_prospect["text"])
     # Payload-driven client numbers (the client's hardcoded fallbacks were
     # duplicated backend constants — trap 8 of the NV-12 recon).
     report["ship_cost"] = int(SHIP_COST)
@@ -4341,6 +4974,8 @@ def build_admiralty_report(world) -> Dict:
                 "command": "guard home waters",
                 "label": "Recall to home waters",
                 "reason": "", "enabled": True,
+                # S14G-29: the posture order's price, from the table.
+                "cost_note": ap_cost_note(world, "set_fleet_posture"),
                 "note": "covers every crossing touching our own coast"})
         else:
             blockadable = [n for n in world.get_nations_at_war_with(player)
@@ -4393,6 +5028,7 @@ def build_admiralty_report(world) -> Dict:
                 "enabled": bool(blockadable),
                 "reason": ("" if blockadable else
                            "no enemy at sea to blockade"),
+                "cost_note": ap_cost_note(world, "set_fleet_posture"),   # S14G-29
                 "note": _note})
     else:
         # NV-12 (recon trap 9): the whole list used to be gated on
@@ -4405,6 +5041,7 @@ def build_admiralty_report(world) -> Dict:
             "label": "Blockade the enemy",
             "enabled": False,
             "reason": "we keep no fleet in commission",
+            "cost_note": ap_cost_note(world, "set_fleet_posture"),   # S14G-29
             "note": ""})
     # The Diversion chip stands OUTSIDE the fleet gate: its own terms carry
     # the fleetless reason.
@@ -4415,7 +5052,9 @@ def build_admiralty_report(world) -> Dict:
             "command": "order the diversion",
             "label": "The Grand Diversion",
             "enabled": False,
-            "reason": "; ".join(unmet), "note": ""})
+            "reason": "; ".join(unmet),
+            "cost_note": ap_cost_note(world, "naval_diversion"),   # S14G-29
+            "note": ""})
     else:
         # The verb does NOT require a staged camp, and deliberately is
         # not being made to — but spending a once-per-war card to open
@@ -4441,7 +5080,9 @@ def build_admiralty_report(world) -> Dict:
         chips.append({
             "command": "order the diversion",
             "label": "The Grand Diversion",
-            "enabled": True, "reason": "", "note": note})
+            "enabled": True, "reason": "",
+            "cost_note": ap_cost_note(world, "naval_diversion"),   # S14G-29
+            "note": note})
     # NV-12: the keel chip — build_fleet was region-panel-only, and that
     # chip is region-scoped in appearance while nation-scoped in effect
     # (recon gap 11). THE ADMIRALTY is its honest, nation-scoped home; the
@@ -4455,6 +5096,9 @@ def build_admiralty_report(world) -> Dict:
         "label": build_label,
         "enabled": build_reason is None,
         "reason": "" if build_reason is None else build_reason,
+        # S14G-29: gold was the only price the label carried; a keel is also
+        # one ADMINISTRATIVE action (`ADMIN_ACTIONS`).
+        "cost_note": ap_cost_note(world, "build_fleet"),
         "note": ("a keel joins the fleet at green readiness"
                  if build_reason is None else "")})
     report["chips"] = chips
@@ -4469,7 +5113,9 @@ def build_admiralty_report(world) -> Dict:
     # beach, this list omitted him).
     report["embark_ready"] = [
         {"marshal": m.name, "strength": int(m.strength),
-         "location": m.location}
+         "location": m.location,
+         # S14G-17: why he may embark where he stands, in the rule's words.
+         "reason": embark_reasons[m.name]}
         for m in ready_corps]
     report["expedition_chips"] = expedition_road_chips(world, player, yards,
                                                        ready_corps)
@@ -4517,6 +5163,11 @@ def map_naval_overlay(world) -> Dict:
             "player_dockyards": (controlled_dockyards(world, player)
                                  if player else []),
             "ship_cost": int(SHIP_COST),
+            # S14G-29: and the actions those two chips spend (a keel and a
+            # raised yard are ADMINISTRATIVE acts) - the verb's own price from
+            # the table, for the region panel's keel and yard chips.
+            "ship_ap_note": ap_cost_note(world, "build_fleet"),
+            "yard_ap_note": ap_cost_note(world, "build"),
             # CN-4: the dockyard chip's gate — the Admiralty's own
             # (`build_ships_refusal`), "" when a keel would be laid.
             "ship_build_refusal": (build_ships_refusal(world, player)
@@ -4644,6 +5295,116 @@ def player_naval_summary(world, verdicts: Optional[List[Dict]] = None) -> Dict:
     }
 
 
+# S14G-31 (Pre-Deploy S14h part 2, October 26, 2026): the expedition's confirm
+# card priced the throw (the odds) and the failure (30% lost, the fleet action)
+# and never the PRIZE: the success branch is the capture pipeline for undefended
+# soil, a fight or "the beachhead is contested" for a garrison or a marshal, and
+# a corps under the raiding-party floor holds no homeland it walks onto - the
+# player (DD-B sea #5, turn 6) found out what winning got him only afterwards.
+# `landing_prize_clause` is that sentence, built ONCE from the facts the success
+# branch reads (the formable's own road record, the intel the player holds, the
+# movement law's floor constant); the confirm card, the Land chips, the
+# Admiralty's chips and the diversion's sibling read it, none composes their own.
+def landing_ashore_clause(world, nation: str, target: str) -> Tuple[str, Optional[bool]]:
+    """(sentence, defended) for the shore at `target`, FOG-HONEST: below
+    PARTIAL the province is unscouted and nothing is said of it
+    (``defended`` None); in sight, the garrison the fog admits (exact on a FULL
+    read, a band on PARTIAL) and the corps in view. ``defended`` is True when a
+    garrison that fights or a corps stands in view (a battle, so the floor is
+    moot), False when the shore is in view and open."""
+    from backend.models.intel import PARTIAL, VISIBILITY_PRIORITY
+    intel = world.get_region_intel(target)
+    if VISIBILITY_PRIORITY.get(intel.visibility, 0) < VISIBILITY_PRIORITY[PARTIAL]:
+        return "what waits ashore is unscouted", None
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic import garrison_report
+    region = world.regions.get(target)
+    bits: List[str] = []
+    form, value = garrison_report.garrison_view(world, target, nation)
+    if form == "exact":
+        bits.append(f"a garrison of {int(value):,}")
+    elif form == "band":
+        bits.append(f"a garrison ({value})")
+    corps = 0
+    for foe in world.get_visible_enemies_in_region(target, nation):
+        corps += 1
+        if isinstance(foe, dict):
+            bits.append(f"{humanize_entity_name(str(foe.get('name') or ''))} "
+                        f"({foe.get('strength_band') or 'a force'})")
+        else:
+            bits.append(f"{humanize_entity_name(foe.name)} ({int(foe.strength):,})")
+    # Fog-honest: only what the player's read admits decides it. An exact
+    # garrison (FULL, or our own) is asked the attack's one predicate; a
+    # garrison seen only as a band is a garrison standing in view - a fight to
+    # expect - and decides nothing finer than that.
+    defended = bool(corps) or (
+        form == "band"
+        or (form == "exact" and region is not None
+            and garrison_report.garrison_fights(region)))
+    if not bits:
+        return "nothing is in view ashore", False
+    return "in view ashore: " + " and ".join(bits), bool(defended)
+
+
+def landing_floor_clause(world, marshal, target: str) -> str:
+    """The raiding-party floor (`movement_executor.RAIDING_PARTY_FLOOR`, the
+    constant the walk-in and the landing both read - never a literal) in THIS
+    corps' terms: said only when his men are under it and the province is one
+    the rule refuses him (`raiding_party_holds_no_ground`)."""
+    if marshal is None:
+        return ""
+    from backend.commands.movement_executor import (
+        RAIDING_PARTY_FLOOR, raiding_party_holds_no_ground)
+    from backend.display_names import humanize_entity_name
+    if not raiding_party_holds_no_ground(marshal, world.regions.get(target), world):
+        return ""
+    return (f"{humanize_entity_name(marshal.name)}'s {int(marshal.strength):,} "
+            f"men are under {int(RAIDING_PARTY_FLOOR):,} — a corps that "
+            f"small holds no homeland province it walks onto")
+
+
+def landing_region_prize(world, nation: str, target: str,
+                         notes: Optional[Dict] = None) -> Tuple[str, Optional[bool]]:
+    """The REGION half of the prize (the same for every corps that sails
+    there): the formable's pointer (`formations.road_note_for` - a begun road's
+    next step or an unbegun carve's prospect, one builder) and what waits
+    ashore. ("", None) when the shore is not an enemy's: our own soil is the
+    beachhead return, a host's is paid campaign (`campaign_pay_line`), and
+    neither is a prize to win."""
+    holder = _controller(world, target)
+    if (not holder or holder == nation or target not in world.regions
+            or not world.is_at_war(nation, holder)):
+        return "", None
+    from backend.game_logic.formations import road_note_for
+    parts: List[str] = []
+    road = road_note_for(world, target, notes)
+    if road:
+        parts.append(road)
+    ashore, defended = landing_ashore_clause(world, nation, target)
+    parts.append(ashore)
+    return "; ".join(parts), defended
+
+
+def landing_prize_clause(world, nation: str, target: str, marshal=None,
+                         notes: Optional[Dict] = None,
+                         shore: Optional[Tuple[str, Optional[bool]]] = None) -> str:
+    """S14G-31: what winning the throw GETS the corps at `target` - "Ulster is
+    half of the Ireland carve (with Munster) — hold both while the war
+    with Britain runs and Britain can be made to erect it at a table; what
+    waits ashore is unscouted; Dumonceau's 4,100 men are under 5,000 — a corps
+    that small holds no homeland province it walks onto" (no full stop). ""
+    when the shore is not an enemy's. The floor is said only when the shore is
+    not known to be defended (a battle won takes ground at any size).
+    `shore` is the region half already asked (the Land chips' loop asks it
+    once per shore, not once per corps)."""
+    region_part, defended = (shore if shore is not None else
+                             landing_region_prize(world, nation, target, notes))
+    if not region_part:
+        return ""
+    floor = "" if defended else landing_floor_clause(world, marshal, target)
+    return f"{region_part}; {floor}" if floor else region_part
+
+
 def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
     """NV-6 — the region panel's landing chips. Mirrors
     NavalExecutor._resolve_expedition_target's eligibility exactly: a
@@ -4652,13 +5413,25 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
     if not has_naval_layer(world) or not get_fleet(world, nation):
         return {}
     yards = set(controlled_dockyards(world, nation))
+    # S14G-17: the Emperor is not offered (`sovereign_stays`, the counsel's
+    # own predicate).
     corps = [m for m in world.get_marshals_by_nation(nation)
              if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+             and not sovereign_stays(m)
              and embark_position_ok(world, m, yards)]
     if not corps:
         return {}
+    # S14G-17 / S14G-29: why each corps may embark where he stands, and the
+    # verb's price - the same for every landing of one corps, said once here
+    # and carried on each row for the region panel's chip.
+    from_reason = {m.name: embark_reason(world, m, yards) for m in corps}
+    price = ap_cost_note(world, "naval_expedition")
     options: Dict[str, List[Dict]] = {}
     lever_memo: Dict[Tuple[int, str, str], str] = {}
+    # S14G-31: the formables' road builder asked ONCE for the whole sweep (GR8:
+    # no per-province rebuild), the region half of the prize memoised per shore.
+    from backend.game_logic.formations import road_notes
+    road_ctx = road_notes(world)
     for region_name, region in world.regions.items():
         if not getattr(region, "is_coastal", False):
             continue
@@ -4671,6 +5444,7 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
                 and not world.is_at_war(nation, holder)
                 and not is_expedition_host(world, nation, holder)):
             continue
+        shore_prize = None
         for marshal in corps:
             if region_name == marshal.location:
                 continue
@@ -4686,7 +5460,18 @@ def expedition_landing_options(world, nation: str) -> Dict[str, List[Dict]]:
                 "strength": int(marshal.strength),
                 "odds": int(quote["odds"]),
                 "from": marshal.location,
+                "from_reason": from_reason[marshal.name],
+                "cost_note": price,
             }
+            # S14G-31: what winning the throw gets him at THIS shore (the
+            # confirm card's own sentence, `landing_prize_clause`); the shore's
+            # half is asked once, the floor is this corps'.
+            if shore_prize is None:
+                shore_prize = landing_region_prize(world, nation, region_name, road_ctx)
+            _prize = landing_prize_clause(world, nation, region_name, marshal,
+                                          shore=shore_prize)
+            if _prize:
+                row["prize"] = _prize
             # CRT-9 (Oct 3, 2026): the state probe's verdict on THIS corps'
             # landing (the turn's actions — an expedition is two — and his
             # state), so the chip dims with the reason instead of sailing
@@ -4731,8 +5516,10 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
         return {}
     yards = set(controlled_dockyards(world, nation))
     all_corps = list(world.get_marshals_by_nation(nation))
+    # S14G-17: the Emperor is not an embarkable corps (`sovereign_stays`).
     eligible = [m for m in all_corps
                 if 0 < int(m.strength) <= EXPEDITION_MAX_TROOPS
+                and not sovereign_stays(m)
                 and embark_position_ok(world, m, yards)]
     # The one region-independent near-miss, computed once: a corps in an
     # embark-legal position but over the transports' lift. Verify-fleet
@@ -4747,6 +5534,7 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
     if not eligible:
         over_embarkable = [m for m in all_corps
                            if int(m.strength) > EXPEDITION_MAX_TROOPS
+                           and not sovereign_stays(m)
                            and _embark_position_ok(m)]
         if over_embarkable:
             m = min(over_embarkable, key=lambda m: int(m.strength))
@@ -4763,10 +5551,17 @@ def expedition_blocked_reasons(world, nation: str) -> Dict[str, str]:
             # (at the 1805 boot the only one under the lift is the Guard).
             no_corps_reason = no_small_corps_line(world, nation)
         elif yards:
+            # S14G-17: and why the counselable corps stand where they cannot
+            # embark ("Ney at Dresden — inland; nearest shore 2 provinces
+            # (Moravia)"), the Emperor left out once.
+            _why = corps_embark_reasons(world, _small_corps(world, nation)[:3], yards)
+            _stays = sovereign_left_out_line(world, nation, yards)
             no_corps_reason = (
                 f"no corps of {EXPEDITION_MAX_TROOPS:,} or fewer stands at "
                 f"a yard ({', '.join(sorted(yards))}) or on a shore abroad "
-                f"or of ours across the water — march one there")
+                f"or of ours across the water: {_why}"
+                + (f"; {_stays}" if _stays else "")
+                + " — march one there")
         else:
             _road = yard_road_clause(world, nation)
             no_corps_reason = ("we control no dockyard to embark from"
@@ -4937,6 +5732,11 @@ def find_ai_expedition(world, nation: str) -> Optional[Dict]:
         if (m.strength >= AI_EXPEDITION_MIN_TROOPS
             and m.strength <= EXPEDITION_MAX_TROOPS
             and m.location in yards
+            # S14G-X85: the verb refuses a sovereign (`sovereign_stays`);
+            # the rung does not propose him. No AI nation has one on the
+            # shipped board (only Napoleon is `is_sovereign`), so the series
+            # is untouched; an authored enemy sovereign sends his next corps.
+            and not sovereign_stays(m)
             # the capture field is `captured_by` (Aug 2026 audit — the old
             # `is_captured` read was a dead guard; harmless only because
             # capture also zeroes strength)

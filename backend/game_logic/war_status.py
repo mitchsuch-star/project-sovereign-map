@@ -453,7 +453,6 @@ def build_active_wars(world) -> Dict[str, Any]:
     All numbers int()-wrapped per Golden Rule #2.
     """
     from backend.game_logic.diplomacy import (
-        armistice_projected_relation,
         calculate_war_score,
         war_score_fill,
         war_score_fill_lines,
@@ -643,6 +642,7 @@ def build_active_wars(world) -> Dict[str, Any]:
         settlement_draft_kept = _war_has_kept_settlement_draft(
             world, contribution.get("war_id", ""),
         )
+        from backend.display_names import settlement_draft_words
 
         # PC-R3 (ruling I item 4): the war panel shows the tier the court's
         # NEXT letter would dictate, and the refused peace that stands.
@@ -701,6 +701,12 @@ def build_active_wars(world) -> Dict[str, Any]:
             "war_instance_id": contribution.get("war_id", ""),
             "settlement_available": settlement_available,
             "settlement_draft_kept": settlement_draft_kept,
+            # S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): the badge says
+            # how long the keep lasts - until the turn ends - in the words the
+            # Back Out reply shares; the client draws this string.
+            "settlement_draft_kept_line": (
+                settlement_draft_words("badge") if settlement_draft_kept else ""
+            ),
             "settlement_eligibility": settlement_eligibility,
             "war_detail_actionability": war_detail_actionability,
             # SC-30 / Slice G1: the Request Terms affordance + lifecycle
@@ -889,7 +895,10 @@ def build_active_wars(world) -> Dict[str, Any]:
             "armistice_cure_line": str(_words["cure_line"]),
             "armistice_sureties_line": str(_words["sureties_line"]),
             "armistice_lines": list(_words["display_lines"]),
-            "armistice_projected_relation": int(armistice_projected_relation(relation, remaining)),
+            # S14G-24 (Pre-Deploy S14h part 2): the card's figure is the truce's ONE
+            # projection (`armistice_expiry_exit`, read through `truce_words`) - the
+            # thaw AND the player's own running courtship, not the thaw alone.
+            "armistice_projected_relation": int(_words["projected"]),
             "armistice_auto_peace_threshold": int(ARMISTICE_AUTO_PEACE_RELATION),
             "relation": relation,
             "relation_descriptor": relation_desc,

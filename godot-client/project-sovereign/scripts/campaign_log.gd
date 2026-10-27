@@ -68,7 +68,9 @@ func _ready():
 	# UXR3-F5 (Pre-Deploy S12 part 2): the drawn cross every screen closes
 	# with, not a boxed letter X.
 	Utils.apply_icon_only_button(close_button, Utils.ICON_PHOSPHOR + "x.svg")
-	close_button.tooltip_text = "Close (L)"
+	# S14G-X78 (Pre-Deploy S14h part 2, October 26, 2026): "Close (L)" named a
+	# bare key the command line swallows - the screens' own close hint.
+	close_button.tooltip_text = "Esc closes it (Alt+L while you type)"
 	background_overlay.gui_input.connect(_on_overlay_input)
 	# UXR-2: clamped AND gripped — the player's size is remembered.
 	ResizeGrip.attach_centered($PanelContainer, "event_log")

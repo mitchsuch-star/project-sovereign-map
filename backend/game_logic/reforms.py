@@ -794,6 +794,7 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
     rows = [r for r in deck(world, nation) if isinstance(r, dict)]
     if not rows:
         return None
+    from backend.game_logic.naval import ap_cost_note
     out = []
     for row in rows:
         law_id = str(row.get("id") or "")
@@ -820,6 +821,11 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
             refusal = repeal_refusal(world, nation, law_id)
             chip = {"label": "Repeal", "command": f"repeal {name}",
                     "enabled": not refusal}
+            # S14G-X139 (Pre-Deploy S14h part 2, October 26, 2026): the chip named
+            # gold and authority and never the ACTION it spends - "(1 Admin AP)",
+            # from the world's own action table (`naval.ap_cost_note`, the
+            # Admiralty's chips' reader; the ledger's `_chip_row` renders it).
+            chip["cost_note"] = ap_cost_note(world, "repeal_law")
             if refusal:
                 chip["reason"] = refusal
             else:
@@ -854,6 +860,7 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
                 entry["status_line"] = refusal or "Not in force."
             chip = {"label": "Restore" if quote["kind"] == "restore" else "Enact",
                     "command": f"enact {name}", "enabled": not refusal}
+            chip["cost_note"] = ap_cost_note(world, "enact_law")   # S14G-X139
             if refusal:
                 chip["reason"] = refusal
             else:

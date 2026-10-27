@@ -568,8 +568,13 @@ class TestTheRoadHomeAfterATruce:
         from tests import _staged_functions as S
         body = S.staged_source(*S.ratify_treaty())
         cede = body.index("region.controller = to_nation")
+        # S14G-21 (Pre-Deploy S14h part 2): flipped consciously - the re-run
+        # now passes the pair's state before the treaty (`prior_state`), so a
+        # pair that was never at war is owed no road; the call is the same
+        # call, still sited after the transfers.
         reopen = body.index(
-            "open_evacuation_corridor(self, ctx.proposer, ctx.target_nation)")
+            "open_evacuation_corridor(self, ctx.proposer, ctx.target_nation,")
+        assert "prior_state=ctx.current_state" in body[reopen:reopen + 160]
         assert reopen > cede, (
             "the re-run must sit AFTER the transfers or it re-asks the same "
             "question on the same map")

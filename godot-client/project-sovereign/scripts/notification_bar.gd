@@ -20,6 +20,10 @@ signal notification_action_requested(command: String)
 signal suggest_command(command: String)
 
 const MAX_VISIBLE_ICONS := 6
+# S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): the mission chip's suffix while
+# Talleyrand carries a letter - the SAME words the top bar's summary prints
+# (`diplomacy.MISSION_PAUSED_SUFFIX`; tests/test_s14h_p2_row25.py pins the pair).
+const MISSION_PAUSED_SUFFIX := "paused — carrying a letter"
 const MAX_VISIBLE_COMMITMENTS_PER_TURN := 2
 const DETAIL_PANEL_MIN_WIDTH := 280.0
 const DETAIL_PANEL_MAX_WIDTH := 340.0
@@ -507,6 +511,12 @@ func _create_mission_row(notif: Dictionary) -> HBoxContainer:
 	var details = notif.get("details", {})
 	if details is Dictionary and str(details.get("rail_words", "")) != "":
 		btn.tooltip_text = str(details.get("rail_words", ""))   # S14E-X199: the ending, not the standing title
+	# S14G-25: a courtship paused under a letter says so on the tooltip as well - the
+	# notice's own sentence ("While he travels the mission costs nothing and earns
+	# nothing; it resumes when he returns"), not the standing title.
+	if details is Dictionary and str(details.get("beat", "")) == "paused_transit" \
+			and str(notif.get("message", "")).strip_edges() != "":
+		btn.tooltip_text = str(notif.get("message", ""))
 	var recall := ""
 	if details is Dictionary:
 		recall = str(details.get("action_command", ""))
@@ -550,6 +560,11 @@ func _mission_words(notif: Dictionary) -> String:
 		words += " at " + court
 	if kind != "":
 		words += " — " + kind
+	# S14G-25: ... and a mission paused under a letter says it on its face, not only in
+	# the Cabinet afterwards ("Talleyrand at Prussia — Improving Relations (paused —
+	# carrying a letter)").
+	if details is Dictionary and str(details.get("beat", "")) == "paused_transit":
+		words += " (" + MISSION_PAUSED_SUFFIX + ")"
 	return words
 
 

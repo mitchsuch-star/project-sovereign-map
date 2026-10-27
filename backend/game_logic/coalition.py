@@ -4419,9 +4419,12 @@ def league_row_detail(world, row: Dict[str, Any], forecast: Dict[str, Any]) -> s
                  if gold else
                  f" {payers} license{verb_s} her design against us.")
     if status == LEAGUE_REFUSES:
+        # S14G-X78: "(D, then 7)" named bare keys the command line swallows
+        # (the sibling of "(D key)" in this file's league beat).
+        from backend.ai.counsel import key_hint
         return (text + " She refuses the Congress, so no courtship keeps her "
                        "out while it sits — her price is her recognition, on "
-                       "the Congress tab (D, then 7).").strip()
+                       f"the Congress tab (press {key_hint('D', then='7')}).").strip()
     declare = forecast.get("declare_turns")
     if (A_STANDING_LEAGUE_IS_NOT_REOPENED and forecast.get("formed")
             and status in (LEAGUE_JOINS, LEAGUE_BOUND)):
@@ -4819,8 +4822,12 @@ def league_march_line(world, reading: Optional[Dict[str, Any]] = None,
     tail = ""
     if more > 0:
         verb = "stands" if more == 1 else "stand"
+        # S14G-X78 (Pre-Deploy S14h part 2, October 26, 2026): "the Dispatch
+        # (R)" named a bare key the command line swallows; `counsel.key_hint`
+        # is the one source of the key and its while-typing form.
+        from backend.ai.counsel import key_hint
         tail = (f" {_plural(more, 'other member')} also {verb} off — the "
-                f"Dispatch (R) names why.")
+                f"Dispatch (press {key_hint('R')}) names why.")
     return "not every court of the league has struck us. " + " ".join(shown) + tail
 
 

@@ -367,7 +367,9 @@ class TestTheDesk:
 
     def test_the_answer_points_at_the_laws_tab(self, world, client):
         message = post(client, "what laws can I enact?")["message"]
-        assert "the Laws tab (press T, then 8)" in message
+        # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the
+        # pointer carries the while-typing form (`counsel.key_hint`).
+        assert "the Laws tab (press T, then 8; Alt+T, then Alt+8 while you type)" in message
 
     @pytest.mark.parametrize("text, law_id", [
         ("what does the staff cost", STAFF_ID),
@@ -384,7 +386,9 @@ class TestTheDesk:
         from backend.ai.counsel import surface_pointer
         from backend.commands.meta_executor import MetaExecutor
         assert MetaExecutor.question_topic("which reform should I pass?") == "laws"
-        assert surface_pointer("laws") == "the Strategic Ledger's Laws tab (press T, then 8)"
+        # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED, as above.
+        assert surface_pointer("laws") == (
+            "the Strategic Ledger's Laws tab (press T, then 8; Alt+T, then Alt+8 while you type)")
 
     def test_the_help_names_the_verbs(self, world, client):
         message = post(client, "help")["message"]

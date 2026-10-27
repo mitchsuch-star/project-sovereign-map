@@ -810,8 +810,10 @@ def compose_digest_oneliner(event: Mapping[str, Any]) -> str:
     `war_label` when populated.
     """
     hidden = int(event.get("hidden_reaction_count", 0) or 0)
-    war_id = str(event.get("war_id", "") or "war")
-    war_label = str(event.get("war_label", "") or war_id)
+    # S14G-X122 (Pre-Deploy S14h part 2, October 26, 2026): the event's own label, else
+    # "this war" - the digest line never prints a raw war id ("war_1").
+    from backend.game_logic.settlement_routes import dialogue_war_label
+    war_label = dialogue_war_label(None, event, str(event.get("war_id", "") or ""))
     fallback = (
         f"{hidden} additional courts register the settlement aftermath "
         f"({war_label})."

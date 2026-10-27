@@ -991,7 +991,12 @@ class TestPCR2:
         reading = CS.read_counsel(w, "Austria")
         truce_road = next(r for r in reading["roads"] if r["road"] == "truce")
         assert f"keeps the ledger ({live:+d} stands, the war 5 turns old)" in truce_road["trade"]
-        assert "the war would resume where it stood" in truce_road["trade"]
+        # S14G-X114 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the
+        # proposed-truce road takes `truce_words`' ONE heading line ("at
+        # expiry: the war resumes where it stood - ...") instead of its own
+        # dictionary's "the war would resume where it stood" - the dictionary
+        # never learned the bond arm. Same intent: the road names the exit.
+        assert "the war resumes where it stood" in truce_road["trade"]
         assert "1 turn of Improve Relations (+8 a turn, 1 DP)" in truce_road["trade"]
         _truce(w)
         w.nation_relations[k] = -66                           # thaws to -63: one turn of +8 carries it

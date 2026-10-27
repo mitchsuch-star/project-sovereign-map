@@ -2535,7 +2535,19 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
         a = with_definite_article(display_nation(str(ctx.event.get("nation_a", ""))))
         b = with_definite_article(display_nation(str(ctx.event.get("nation_b", ""))))
         # SFR-D14 (vi): the treaty the corridor was written under.
-        treaty = str(ctx.event.get("treaty") or "peace")
+        treaty = str(ctx.event.get("treaty") or "")
+        if not treaty:
+            # S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): an event
+            # without its word is read off the pair's live state through the
+            # ONE `withdrawal.treaty_word` - truce or peace - never assumed
+            # to be a peace (and "accord" when the event carries it: a pair
+            # that was never at war).
+            treaty = "peace"
+            _w = ctx.world
+            if _w is not None and hasattr(_w, "get_diplomatic_state"):
+                from backend.game_logic.withdrawal import treaty_word as _treaty_word
+                treaty = _treaty_word(_w, str(ctx.event.get("nation_a") or ""),
+                                      str(ctx.event.get("nation_b") or ""))
         names = ctx.event.get("marshals") or []
         turns = int(ctx.event.get("turns") or 0)
         cut = ctx.event.get("cut_off") or []
@@ -3084,11 +3096,27 @@ def _oneliner_the_sea(ctx: OnelinerContext):
         nation = display_nation(ctx.event.get("nation", "Unknown"))
         blockader = display_nation(ctx.event.get("blockader", "Unknown"))
         trade = str(ctx.event.get("trade_words") or "halved")
-        return f"BLOCKADE: {blockader} closes {nation}'s ports — trade {trade}, crews rot at anchor"
+        # S14G-X155 (Pre-Deploy S14h part 2, October 26, 2026): the event now
+        # carries `cause` (S14G-32: the camp broken, the window shut - why the
+        # squadrons are back) and this line, the record's own, printed none:
+        # the notice and the beat said it, the log the player reads later did
+        # not. The cause is a sentence with no full stop; it follows the
+        # headline the way the notice's lead precedes its body.
+        cause = str(ctx.event.get("cause") or "").strip().rstrip(".")
+        tail = f". {cause}" if cause else ""
+        return (f"BLOCKADE: {blockader} closes {nation}'s ports — trade {trade}, "
+                f"crews rot at anchor{tail}")
 
     if ctx.event_type == "blockade_broken":
         nation = display_nation(ctx.event.get("nation", "Unknown"))
-        return f"The blockade of {nation} is broken — her ports breathe again"
+        # S14G-X154 (Pre-Deploy S14h part 2, October 26, 2026): the event now
+        # carries `cause` (`naval._lift_cause`: the peace, the squadrons called
+        # home, our own sail) - the notice said it, the log the player reads
+        # later did not. A sentence of its own after the headline, the way
+        # `blockade_begins` carries its cause; a plain lift reads as before.
+        cause = str(ctx.event.get("cause") or "").strip().rstrip(".")
+        tail = f". {cause}" if cause else ""
+        return f"The blockade of {nation} is broken — her ports breathe again{tail}"
 
     if ctx.event_type == "continental_system_membership":
         nation = display_nation(ctx.event.get("nation", "Unknown"))

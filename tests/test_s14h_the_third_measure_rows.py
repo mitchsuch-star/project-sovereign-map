@@ -24,6 +24,24 @@ import random
 import re
 
 import pytest
+import ast
+from collections import deque
+import os
+import subprocess
+import copy
+from backend.game_logic.settlement_preview import (
+    handle_settlement_dialogue_action,
+    load_scoped_settlement_draft,
+    stage_settlement_confirm,
+)
+from backend.game_logic.war_status import build_active_wars
+from backend.models.world_state import (
+    SMOKE_START_ENV,
+    SMOKE_START_SETTLEMENT_LOSING,
+    WorldState,
+)
+import math
+import sys
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -9179,3 +9197,12972 @@ class TestS14GX26:
         with _r14_quiet():
             base = M.build_base_response(w, success=True, message="x")
         assert base["cabinet_locked_by"] == ["Austria"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row13
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-13 "the war banner is on the left" and its
+# two same-builder siblings S14G-X107 and S14G-X114 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-13). "Who am I fighting" sent the player to
+# "the war banner on the left (click the war)"; the ACTIVE WARS panel is at the
+# BOTTOM RIGHT (`war_status_panel.tscn` anchors_preset 3 since `eb11a8e1`, the
+# header comment of `war_status_panel.gd`; DD-B conquest #1, turn 1, action 4,
+# frame 0004 - the rects at x 3214-3644 of 3657, y 933-1014). The string was
+# authored on September 19 (CX-2) in `counsel._SURFACE_FOR_KIND["war"]` and was
+# never true; it fed `surface_pointer("war")` -> the desk's `_answer_wars`
+# ("Each war is on ..."), `_answer_winning` ("The breakdown is on ...") and the
+# help's `war terms` line ("open the war banner on the left and press [Request
+# Terms]").
+#
+# THE FIX. ONE name for the banner's place, `counsel.WAR_BANNER` = "the ACTIVE
+# WARS banner in the lower right" (its own title and its real corner), read by
+# `surface_pointer("war")` and, through the reference's `⟨WAR_BANNER⟩` token, by
+# the help. The pin READS THE PANEL'S ANCHOR from the .tscn and derives the
+# corner from it, so a re-anchoring fails the wording rather than leaving it
+# true by luck. WHAT WAS KEPT: "(click the war)" - the cards do open the war
+# detail; no other `_SURFACE_FOR_KIND` entry names a position (keys and tabs).
+#
+# THE SWEEP. Every positional pointer in the backend's strings (an AST census
+# of the string constants of `counsel.py`, `question_desk.py`,
+# `meta_executor.py`, `first_contact.py`): the war banner's is the only one.
+#
+# S14G-X107 - `question_desk._letter_terms_lines` read a COUNTER letter through
+# `format_terms_for_display` unmarked ("what did Bavaria ask?" listed "You pay
+# Bavaria 142 gold; You pay Bavaria 100 gold", the exact lines the popup marks
+# "Added by Bavaria: ..."). It reads the counter through the popup's own diff
+# (`display_names.counter_offer_clause_lines`) now.
+#
+# S14G-X114 - `game_logic/counsel._bilateral_road` held the other PC-R2 copy of
+# the truce's three exits for the PROPOSED-truce road (`_truce_reading` is the
+# standing-truce page's) and never learned the bond arm: a pair the league's
+# bond forces to "war" read "the war would resume where it stood" where
+# `truce_words` said "Austria is bound by Britain's bond not to sign alone". It
+# takes `truce_words`' `heading_line` now.
+#
+# Player-only text: no seam (the AI never reads these strings).
+
+_P2R13_ROOT = Path(__file__).resolve().parents[1]
+_P2R13_CLIENT = _P2R13_ROOT / "godot-client" / "project-sovereign"
+_P2R13_OLD = "the war banner on the left"
+
+
+def _p2r13_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _p2r13_boot():
+    from backend.ai.parser_eval import build_world
+    with _p2r13_quiet():
+        return build_world("1805")
+
+
+def _p2r13_panel_anchor():
+    """(anchors_preset, {anchor_left, anchor_top, ...}) of the war panel's
+    PanelContainer, read off the scene file."""
+    text = (_P2R13_CLIENT / "scenes" / "war_status_panel.tscn").read_text(encoding="utf-8")
+    block = text.split('[node name="PanelContainer"', 1)[1].split("\n[node", 1)[0]
+    preset = int(re.search(r"^anchors_preset = (\d+)$", block, re.M).group(1))
+    anchors = {k: float(v) for k, v in re.findall(r"^(anchor_\w+) = ([\d.]+)$", block, re.M)}
+    return preset, anchors
+
+
+def _p2r13_corner(anchors) -> str:
+    """The corner an anchor pair names: 'lower right', 'upper left' ..."""
+    vertical = "lower" if anchors["anchor_top"] >= 0.5 else "upper"
+    horizontal = "right" if anchors["anchor_left"] >= 0.5 else "left"
+    return f"{vertical} {horizontal}"
+
+
+def _p2r13_help() -> str:
+    from backend.commands.meta_executor import MetaExecutor
+    with _p2r13_quiet():
+        return MetaExecutor(None)._execute_help({}, {})["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-13
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14G13:
+    """The war pointer names the banner's real place. OLD reading:
+    `surface_pointer("war") == "the war banner on the left (click the war)"`,
+    and the help said "open the war banner on the left and press [Request
+    Terms]"."""
+
+    def test_the_pointer_names_the_banner_and_its_corner(self):
+        from backend.ai.counsel import surface_pointer
+        assert surface_pointer("war") == \
+            "the ACTIVE WARS banner in the lower right (click the war)"
+        assert _P2R13_OLD not in surface_pointer("war")
+
+    def test_the_wording_is_derived_from_the_panels_anchor(self):
+        """The pin that fails on a re-anchoring: the corner is READ from the
+        scene, not asserted from memory."""
+        from backend.ai.counsel import WAR_BANNER
+        preset, anchors = _p2r13_panel_anchor()
+        assert preset == 3, "anchors_preset 3 is the bottom-right corner"
+        assert (anchors["anchor_left"], anchors["anchor_top"],
+                anchors["anchor_right"], anchors["anchor_bottom"]) == (1.0, 1.0, 1.0, 1.0)
+        assert WAR_BANNER == f"the ACTIVE WARS banner in the {_p2r13_corner(anchors)}"
+
+    def test_a_re_anchored_panel_would_fail_the_pin(self):
+        """The derivation is not a tautology: an upper-left anchor reads a
+        different corner than the one the sentence names."""
+        from backend.ai.counsel import WAR_BANNER
+        moved = {"anchor_left": 0.0, "anchor_top": 0.0}
+        assert _p2r13_corner(moved) == "upper left"
+        assert WAR_BANNER != f"the ACTIVE WARS banner in the {_p2r13_corner(moved)}"
+
+    def test_the_panel_script_agrees(self):
+        """The title the sentence quotes and the corner the script's header
+        comment promises."""
+        gd = (_P2R13_CLIENT / "scripts" / "war_status_panel.gd").read_text(encoding="utf-8")
+        assert 'header_label.text = "ACTIVE WARS"' in gd
+        assert "anchored bottom-right" in gd
+
+    def test_the_desk_sends_the_player_to_the_real_corner(self, _p2r13_boot):
+        """The sighting: conquest #1, turn 1 - 'who am I fighting'."""
+        from backend.ai import question_desk as QD
+        with _p2r13_quiet():
+            said = QD._answer_wars(_p2r13_boot, "France")
+        assert "Each war is on the ACTIVE WARS banner in the lower right (click the war)" in said
+        assert _P2R13_OLD not in said
+
+    def test_the_war_score_breakdown_points_the_same_way(self, _p2r13_boot):
+        from backend.ai import question_desk as QD
+        with _p2r13_quiet():
+            said = QD._answer_winning(_p2r13_boot, "France")
+        assert "The breakdown is on the ACTIVE WARS banner in the lower right (click the war)" in said
+        assert _P2R13_OLD not in said
+
+    def test_the_help_names_the_same_banner(self):
+        text = _p2r13_help()
+        assert "open the ACTIVE WARS banner in the lower right and press" in text
+        assert _P2R13_OLD not in text and "⟨WAR_BANNER⟩" not in text
+
+    def test_the_help_and_the_pointer_share_one_name(self):
+        from backend.ai.counsel import WAR_BANNER, surface_pointer
+        assert surface_pointer("war").startswith(WAR_BANNER)
+        assert WAR_BANNER in _p2r13_help()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X56 - the sweep: every positional pointer in the backend strings
+# ══════════════════════════════════════════════════════════════════════════
+
+_P2R13_POSITION = re.compile(
+    r"\b(?:on|in|at|from|to) the (?:left|right|top|bottom)\b"
+    r"|\b(?:upper|lower|top|bottom)[- ](?:left|right)\b"
+    r"|\b(?:left|right)[- ]hand\b", re.I)
+
+
+def _p2r13_string_constants(path: Path):
+    """(lineno, text) of every string constant of the module that is not a
+    docstring."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                docstrings.add(id(body[0].value))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and id(node) not in docstrings):
+            yield node.lineno, node.value
+
+
+class TestS14GX56:
+    """The class of the defect - a pointer that says WHERE on the screen
+    something is. The four files that hold the player-facing pointers carry
+    exactly one: the war banner's, pinned above against its anchor."""
+
+    FILES = ("backend/ai/counsel.py", "backend/ai/question_desk.py",
+             "backend/commands/meta_executor.py", "backend/ai/first_contact.py")
+
+    def test_the_war_banner_is_the_only_positional_pointer(self):
+        found = []
+        for rel in self.FILES:
+            for lineno, text in _p2r13_string_constants(_P2R13_ROOT / rel):
+                if _P2R13_POSITION.search(text):
+                    found.append((rel, text))
+        assert found == [("backend/ai/counsel.py", "the ACTIVE WARS banner in the lower right")], found
+
+    def test_no_other_surface_entry_names_a_position(self):
+        """Every other `_SURFACE_FOR_KIND` entry names a key or a tab."""
+        from backend.ai.counsel import _SURFACE_FOR_KIND
+        for kind, (name, how) in _SURFACE_FOR_KIND.items():
+            if kind == "war":
+                continue
+            assert not _P2R13_POSITION.search(f"{name} {how}"), kind
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X107 - the desk reads a counter letter through the popup's diff
+# ══════════════════════════════════════════════════════════════════════════
+
+def _p2r13_counter_letter(world, original, counter, court="Bavaria"):
+    return {
+        "type": "counter_offer_response", "target_nation": court,
+        "turn_created": int(world.current_turn),
+        "context": {"source_nation": court, "original_proposal": original,
+                    "counter_terms": counter},
+    }
+
+
+def _p2r13_terms(extra_sweetener=None):
+    """A vassalage draft, and Bavaria's counter that RAISES the gold
+    sweetener in place (the S14G-23 shape) and so adds 100 gold."""
+    original = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+                "sweeteners": [{"type": "gold_lump", "value": 142}], "demands": [], "clauses": []}
+    counter = {"type": "vassalage", "proposer_nation": "Bavaria", "target_nation": "France",
+               "sweeteners": [{"type": "gold_lump", "value": 242}], "demands": [], "clauses": []}
+    return original, counter
+
+
+class TestS14GX107:
+    """OLD reading: `_letter_terms_lines` of a counter letter went through
+    `format_terms_for_display` - the counter's own terms, nothing marked
+    added or struck."""
+
+    def test_a_counter_letter_carries_the_popups_marks(self, _p2r13_boot):
+        from backend.ai import question_desk as QD
+        from backend.display_names import counter_offer_clause_lines
+        original, counter = _p2r13_terms()
+        letter = _p2r13_counter_letter(_p2r13_boot, original, counter)
+        with _p2r13_quiet():
+            lines = QD._letter_terms_lines(_p2r13_boot, letter, "Bavaria")
+        popup = counter_offer_clause_lines(
+            original, counter, viewer="France", proposer="Bavaria", target="France")
+        assert lines == [str(line) for line in popup]
+        assert any(line.startswith("Added by") for line in lines), lines
+
+    def test_a_struck_term_is_marked_cut_on_the_desk(self, _p2r13_boot):
+        from backend.ai import question_desk as QD
+        original = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+                    "demands": [{"type": "gold_per_turn", "value": 126, "duration": 10}],
+                    "sweeteners": [], "clauses": []}
+        counter = {"type": "vassalage", "proposer_nation": "Bavaria", "target_nation": "France",
+                   "demands": [], "sweeteners": [], "clauses": []}
+        letter = _p2r13_counter_letter(_p2r13_boot, original, counter)
+        with _p2r13_quiet():
+            lines = QD._letter_terms_lines(_p2r13_boot, letter, "Bavaria")
+        assert any(line.startswith("Struck") for line in lines), lines
+
+    def test_the_demanded_answer_reads_the_marked_lines(self, _p2r13_boot):
+        """The sentence the player reads: 'what did Bavaria ask'."""
+        from backend.ai import question_desk as QD
+        original, counter = _p2r13_terms()
+        letter = _p2r13_counter_letter(_p2r13_boot, original, counter)
+        world = _p2r13_boot
+        manager = world.dialogue_manager
+        saved = (manager._current, list(manager._queue))
+        try:
+            manager._current = None
+            manager._queue = [letter]
+            with _p2r13_quiet():
+                said = QD._answer_demanded(world, "France", "Bavaria")
+        finally:
+            manager._current, manager._queue = saved[0], saved[1]
+        assert "Added by" in said, said
+
+    def test_an_ordinary_letter_reads_as_it_did(self, _p2r13_boot):
+        """A letter with no draft beside it (no counter) keeps the plain reader."""
+        from backend.ai import question_desk as QD
+        from backend.display_names import format_terms_for_display
+        terms = {"type": "alliance", "proposer_nation": "Bavaria", "target_nation": "France",
+                 "sweeteners": [], "demands": [], "clauses": []}
+        letter = {"type": "incoming_proposal", "context": {"proposal": terms,
+                                                           "proposal_type": "alliance"}}
+        with _p2r13_quiet():
+            lines = QD._letter_terms_lines(_p2r13_boot, letter, "Bavaria")
+            expect = [str(x) for x in format_terms_for_display(terms, "alliance", "Bavaria")]
+        assert lines == expect
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X114 - the proposed-truce road names the bond
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX114:
+    """OLD reading: `_bilateral_road`'s truce `trade` said "...; the war would
+    resume where it stood." whatever bound the pair."""
+
+    def test_the_road_takes_the_one_wordings_heading(self, _p2r13_boot):
+        from backend.game_logic import counsel as CS
+        from backend.game_logic.diplomacy import truce_words
+        world = _p2r13_boot
+        with _p2r13_quiet():
+            reading = CS.read_counsel(world, "Austria")
+            words = truce_words(world, "France", "Austria")
+        road = next(r for r in reading["roads"] if r["road"] == "truce")
+        heading = words["heading_line"]
+        heading = heading[0].lower() + heading[1:].rstrip(".")
+        assert f"; {heading}." in road["trade"], (heading, road["trade"])
+
+    def test_a_bonded_pair_says_the_bond(self, _p2r13_boot, monkeypatch):
+        """The pair the league's bond forces to war: the heading is
+        `truce_words`' bond arm, so the proposed-truce road names it."""
+        from backend.game_logic import counsel as CS
+        from backend.game_logic import diplomacy as D
+        world = _p2r13_boot
+        bonded = ("At expiry: the war resumes where it stood - Austria is bound by "
+                  "Britain's bond not to sign alone; a peace with her runs through "
+                  "the table, where the bond is priced.")
+        real = D.truce_words
+
+        def _bonded(w, a, b):
+            words = dict(real(w, a, b))
+            words["heading_line"] = bonded
+            words["exit"] = "war"
+            return words
+        monkeypatch.setattr(D, "truce_words", _bonded)
+        with _p2r13_quiet():
+            reading = CS.read_counsel(world, "Austria")
+        road = next(r for r in reading["roads"] if r["road"] == "truce")
+        assert "Austria is bound by Britain's bond not to sign alone" in road["trade"]
+        assert "the war would resume where it stood" not in road["trade"]
+        assert road["trade"].count("..") == 0
+
+    def test_the_old_dictionary_is_gone(self):
+        src = (_P2R13_ROOT / "backend" / "game_logic" / "counsel.py").read_text(encoding="utf-8")
+        assert "it would ripen into peace on the held line" not in src
+        assert "it would end in a dictated peace on the held line" not in src
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row14
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-14 with its ruling S14G-D4 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-14, `docs/DESIGN_REFINEMENT.md` S14G-D4):
+# the what-if reads "unfavorable" for 42,000 against 20,000 on the strength of an
+# army the note will not locate, with no figures to compare. The sighting (DD-B's
+# third measure, conquest #2, P3, turn 1, action 15): after scouting Tyrol
+# (Archduke John, ~20,000, in mountains) "what if Massena attacks Archduke John"
+# with Massena at 42,000 read "the balance of force looks unfavorable". The band
+# (`_muster_band`) folds the defender's committed term from ground truth
+# (`_defender_muster`: Archduke Charles, 54,000, at Carniola - adjacent to Tyrol and
+# unscouted), and the only disclosure was S14E-17's `_unscouted_force_note`: "The
+# band weighs a force of his you have not scouted within reach of Tyrol - scout the
+# provinces round it." - no province named, no figure given, and the expected /
+# bad-day figures print only when joiners lift the attacker. The player's
+# inference is sound: 42,000 against 20,000 with the mountains' +25% reads about
+# 1.5 on the men in view - not unfavorable.
+#
+# THE RULING (S14G-D4, taken as recommended): NAME THE PROVINCES AND GIVE BOTH
+# READINGS. "The band weighs a force of his you have not scouted - scout Carniola.
+# On the men in view alone the odds read 'favorable' (42,000 against a substantial
+# force)." Both numbers are the player's to hold: the first names public map
+# adjacency (the unscouted provinces round the battle, in map order, never the
+# hidden army, its size or which province holds it); the second is the band
+# re-read through `_muster_band`'s OWN arithmetic with the unscouted joiners
+# dropped from the defender's roster (`seen_only`), the figures the player's own
+# (his lead's committed strength - "about" where joiners lift it - and the foe
+# through `_fog_banded_strength`: exact at FULL, his band at PARTIAL). The gate
+# keeps the TRUE reading (`muster_odds`, `muster_gate_arms` untouched).
+#
+# THE FIX. `CombatExecutor._unscouted_provinces_round` (the provinces),
+# `_unscouted_force_note` (the named note; the old words stand only where no
+# province can be named), `_in_view_reading` (the second line - ONE helper every
+# carrier calls), `_muster_joiners` (the attacker's roster for a reading made
+# without the preview), `_unscouted_note_for` (the prose door: both sentences -
+# the bad-odds modal, the contact ask and the order quote, the autonomous-attack
+# refusal and the petition ask in `jealousy.py`), and the preview's
+# `target.in_view_note` rendered by `_format_muster_lines` on the line under the
+# note (the muster block, the what-if desk, the interrupt, the resolved attack).
+# `_muster_band` gains the default-off `seen_only` kwarg - its arithmetic is
+# untouched, and the AI never passes it.
+#
+# WHAT WAS KEPT. The band, the gate, the AI's reads (`enemy_ai._muster_price`, the
+# AI lead's own exact mean) byte for byte: player-only text, no seam (the AI's
+# marshals fail `_unscouted_force_note`'s nation guard before any new code runs).
+# The hedge row ("does not stand alone: at least N corps") speaks, and the note is
+# silent, when any joiner of his is in view.
+#
+# The board: the shipped 1805 scenario (`WorldState.from_scenario`): Massena
+# (42,000) at Milan, Archduke John (20,000) at Tyrol one march away, Archduke
+# Charles (54,000) at Carniola - adjacent to Tyrol and unscouted. Sibling pins are
+# `TestS14GX14_<k>`; the orchestrator renumbers them.
+
+_P2R14_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client"
+                   / "project-sovereign" / "assets" / "maps" / "europe_1805.json")
+
+_P2R14_NOTE = ("The band weighs a force of his you have not scouted — "
+               "scout Carniola.")
+_P2R14_IN_VIEW = ("On the men in view alone the odds read 'favorable' "
+                  "(42,000 against a substantial force).")
+_P2R14_OLD_NOTE = ("The band weighs a force of his you have not scouted within "
+                   "reach of Tyrol — scout the provinces round it.")
+
+
+def _p2r14_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _p2r14_boot():
+    from backend.models.world_state import WorldState
+    with _p2r14_quiet():
+        return WorldState.from_scenario(str(_P2R14_SCENARIO))
+
+
+@pytest.fixture
+def _p2r14_w(_p2r14_boot):
+    """The shipped board, fog recomputed: Tyrol PARTIAL, Carniola unknown."""
+    from backend.models.world_state import WorldState
+    w = WorldState.from_dict(json.loads(json.dumps(_p2r14_boot.to_dict(), default=str)))
+    w.calculate_visibility()
+    return w
+
+
+def _p2r14_combat():
+    from backend.commands.executor import CommandExecutor
+    with _p2r14_quiet():
+        return CommandExecutor()._combat
+
+
+def _p2r14_preview(w, lead="Massena", foe="ArchdukeJohn") -> dict:
+    with _p2r14_quiet():
+        return _p2r14_combat()._build_muster_preview(
+            w.get_marshal(lead), w.get_marshal(foe), w, {"world": w})
+
+
+def _p2r14_attack(w, **extra):
+    from backend.commands.executor import CommandExecutor
+    with _p2r14_quiet():
+        ex = CommandExecutor()
+        cmd = {"raw_input": "Massena, attack Archduke John", "marshal": "Massena",
+               "action": "attack", "target": "ArchdukeJohn"}
+        cmd.update(extra)
+        return ex.execute({"command": cmd}, {"world": w})
+
+
+def _p2r14_set_visibility(w, region: str, level: str) -> None:
+    w.get_region_intel(region).visibility = level
+
+
+class TestS14G14:
+    """Reproduced (the boot board, before the fix): "what if Massena attacks
+    Archduke John" printed "Massena (42,000) vs Archduke John (substantial force)
+    ... the balance of force looks unfavorable" and, under the rows, the note
+    "The band weighs a force of his you have not scouted within reach of Tyrol -
+    scout the provinces round it." - no province named, no figure given. Fixed:
+    the note names Carniola and a second line reads the men in view."""
+
+    def test_the_old_reading_is_the_true_band_and_stays(self, _p2r14_w):
+        """The premise, and what is KEPT: the band weighs Archduke Charles
+        (80,618 on the target's committed side) and reads 'unfavorable'."""
+        w = _p2r14_w
+        pv = _p2r14_preview(w)
+        assert pv["odds_band"] == "unfavorable"
+        assert pv["target"]["committed_strength"] > 80000
+        assert pv["target"]["reinforcement_note"] == ""          # the hedge is silent
+        assert "ArchdukeCharles" not in {m.name for m in w.get_visible_enemies("France")}
+
+    def test_the_note_names_the_unscouted_province(self, _p2r14_w):
+        pv = _p2r14_preview(_p2r14_w)
+        assert pv["target"]["unscouted_note"] == _P2R14_NOTE
+        assert "within reach of Tyrol" not in pv["target"]["unscouted_note"]
+        assert "scout the provinces round it" not in pv["target"]["unscouted_note"]
+
+    def test_the_note_never_names_the_hidden_army_its_size_or_its_province(self, _p2r14_w):
+        """Carniola is named as the ONE unscouted province round Tyrol (public
+        adjacency) - not as where Charles stands; no figure, no man, no court."""
+        note = _p2r14_preview(_p2r14_w)["target"]["unscouted_note"]
+        assert not re.search(r"\d", note)
+        for word in ("Charles", "Archduke", "Austria", "54", "corps", "stands", "Tyrol"):
+            assert word not in note
+
+    def test_the_second_line_reads_the_men_in_view_with_the_two_figures(self, _p2r14_w):
+        pv = _p2r14_preview(_p2r14_w)
+        assert pv["target"]["in_view_note"] == _P2R14_IN_VIEW
+        # the reading the player's inference expected (about 1.5 -> favorable)
+        # against the band the screen prints on the header line
+        assert pv["odds_band"] == "unfavorable"
+
+    def test_the_formatter_prints_the_second_line_under_the_note(self, _p2r14_w):
+        text = _p2r14_combat()._format_muster_lines(_p2r14_preview(_p2r14_w))
+        lines = text.split("\n")
+        at = lines.index(f"  {_P2R14_NOTE}")
+        assert lines[at + 1] == f"  {_P2R14_IN_VIEW}"
+        assert lines[at + 2].startswith("  Standing modifiers")
+        assert "the balance of force looks unfavorable" in lines[0]
+
+    def test_at_full_sight_the_foe_is_figured_exactly(self, _p2r14_w):
+        """Tyrol scouted to FULL (the sighting's "after scouting Tyrol"): the
+        foe's figure is the player's exact count, the 20,000 of the ledger."""
+        from backend.models.intel import FULL
+        w = _p2r14_w
+        _p2r14_set_visibility(w, "Tyrol", FULL)
+        pv = _p2r14_preview(w)
+        assert pv["target"]["strength_display"] == "20,000 men"
+        assert pv["target"]["in_view_note"] == (
+            "On the men in view alone the odds read 'favorable' "
+            "(42,000 against 20,000 men).")
+
+    def test_at_partial_sight_the_foe_is_only_banded(self, _p2r14_w):
+        """The fog is the player's: at PARTIAL no exact figure of John's
+        appears on any line of the muster, and none of Charles's ever."""
+        text = _p2r14_combat()._format_muster_lines(_p2r14_preview(_p2r14_w))
+        assert "20,000" not in text
+        assert "54,000" not in text and "Charles" not in text
+
+    def test_scouting_carniola_retires_both_lines_and_the_band_is_the_true_one(self, _p2r14_w):
+        from backend.models.intel import PARTIAL
+        w = _p2r14_w
+        before = _p2r14_combat().muster_odds(
+            w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn"), w)
+        _p2r14_set_visibility(w, "Carniola", PARTIAL)
+        pv = _p2r14_preview(w)
+        assert "unscouted_note" not in pv["target"]
+        assert "in_view_note" not in pv["target"]
+        assert "does not stand alone" in pv["target"]["reinforcement_note"]
+        text = _p2r14_combat()._format_muster_lines(pv)
+        assert "have not scouted" not in text and "On the men in view alone" not in text
+        after = _p2r14_combat().muster_odds(
+            w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn"), w)
+        assert before["band"] == after["band"] == pv["odds_band"] == "unfavorable"
+
+    def test_a_band_that_weighs_no_joiner_prints_neither_line(self, _p2r14_w):
+        pv = _p2r14_preview(_p2r14_w, lead="Davout", foe="Mack")
+        assert "unscouted_note" not in pv["target"]
+        assert "in_view_note" not in pv["target"]
+
+    def test_it_rides_the_what_if_the_province_form_and_the_attack(self, _p2r14_w):
+        """Every surface that prints the muster block carries both lines: the
+        desk's what-if, its province form, the muster interrupt and the
+        resolved attack."""
+        from backend.ai.question_desk import _answer_what_if, _answer_what_if_region
+        w = _p2r14_w
+        with _p2r14_quiet():
+            asked = _answer_what_if(w, "France", "ArchdukeJohn", "Massena")
+            province = _answer_what_if_region(w, "France", "Tyrol", "Massena")
+        for text in (asked, province):
+            assert _P2R14_NOTE in text and _P2R14_IN_VIEW in text, text
+        r = _p2r14_attack(w)
+        assert r.get("requires_input")
+        interrupt = r["pending_interrupt"]
+        assert interrupt["interrupt_type"] == "muster_confirm"
+        assert _P2R14_NOTE in interrupt["message"] and _P2R14_IN_VIEW in interrupt["message"]
+        assert interrupt["muster_preview"]["target"]["in_view_note"] == _P2R14_IN_VIEW
+        resolved = _p2r14_attack(w, _muster_confirmed=True)
+        assert not resolved.get("requires_input")
+        assert _P2R14_NOTE in str(resolved["message"])
+        assert _P2R14_IN_VIEW in str(resolved["message"])
+
+
+class TestS14GD4:
+    """The ruling: YES - name the provinces and give both readings. The cost is
+    a second line; the cure for a verdict the player cannot check is to let him
+    check it. Both numbers are the player's to hold; the gate keeps the true
+    reading."""
+
+    def test_the_gate_keeps_the_true_reading(self, _p2r14_w):
+        """The band the CA9 gate reads is the one the header prints, weighing
+        Charles: 'unfavorable', and the cautious man's gate still arms on it."""
+        from backend.commands.objection_v2 import MUSTER_GATE_BAND, muster_gate_arms
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        massena = w.get_marshal("Massena")
+        odds = combat.muster_odds(massena, w.get_marshal("ArchdukeJohn"), w)
+        pv = _p2r14_preview(w)
+        assert odds["band"] == pv["odds_band"] == MUSTER_GATE_BAND
+        assert odds["committed_defender"] > 50000
+        assert muster_gate_arms(SimpleNamespace(personality="cautious"), odds["band"])
+        assert not muster_gate_arms(SimpleNamespace(personality="aggressive"), odds["band"])
+
+    def test_the_second_line_is_the_same_arithmetic_with_the_unscouted_dropped(self, _p2r14_w):
+        """`seen_only` filters the defender's roster and nothing else: all
+        names kept is the band byte for byte; none kept is the men in view."""
+        from backend.commands.objection_v2 import odds_reading_of_ratio
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        massena, john = w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+        joining = combat._muster_joiners(massena, "Tyrol", w)
+        gs = {"world": w}
+        true = combat._muster_band(massena, john, w, gs, joining, "Tyrol")
+        everyone = combat._muster_band(
+            massena, john, w, gs, joining, "Tyrol",
+            seen_only={m.name for m in w.marshals.values()})
+        assert everyone == true                                  # default path untouched
+        in_view = combat._muster_band(massena, john, w, gs, joining, "Tyrol",
+                                      seen_only=set())
+        assert true["committed_defender"] > 0 and in_view["committed_defender"] == 0.0
+        assert true["band"] == "unfavorable" and in_view["band"] == "favorable"
+        assert in_view["ratio"] > true["ratio"]
+        assert in_view["band"] == odds_reading_of_ratio(
+            massena, john, in_view["ratio"], True)[0]            # the one table of words
+
+    def test_the_figures_are_the_players_own(self, _p2r14_w):
+        """The attacker's figure is his committed strength ("about" where
+        joiners lift it); the foe's is `_fog_banded_strength`'s."""
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        massena, john = w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+        assert combat._in_view_reading(massena, john, w) == _P2R14_IN_VIEW
+        w.get_marshal("Ney").location = "Milan"                 # a corps that will answer
+        w.calculate_visibility()
+        line = combat._in_view_reading(massena, john, w)
+        m = re.fullmatch(r"On the men in view alone the odds read '(\w+)' "
+                         r"\(about ([\d,]+) against a substantial force\)\.", line)
+        assert m, line
+        assert int(m.group(2).replace(",", "")) > 42000          # his muster, weighed
+
+    def test_a_foe_out_of_view_is_never_read(self, _p2r14_w):
+        """No men in view, no reading: a band on a corps the player cannot see
+        would leak his strength. The note still names the field itself."""
+        from backend.models.intel import UNKNOWN
+        w = _p2r14_w
+        _p2r14_set_visibility(w, "Tyrol", UNKNOWN)
+        combat = _p2r14_combat()
+        massena, john = w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+        assert combat._in_view_reading(massena, john, w) == ""
+        joining, committed = combat._defender_muster(john, w)
+        note = combat._unscouted_force_note(joining, committed, None, "Tyrol", w, "France")
+        assert note == ("The band weighs a force of his you have not scouted — "
+                        "scout Carniola and Tyrol.")
+
+    def test_the_reading_is_a_pure_read(self, _p2r14_w):
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        before = json.dumps(w.to_dict(), default=str, sort_keys=True)
+        massena, john = w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+        first = combat._in_view_reading(massena, john, w)
+        second = combat._in_view_reading(massena, john, w)
+        assert first == second != ""
+        assert json.dumps(w.to_dict(), default=str, sort_keys=True) == before
+
+    def test_it_is_the_players_text_only(self, _p2r14_w):
+        """The AI's side never reaches it: an Austrian lead's preview carries
+        neither line, the note's own predicate says '' for any other nation, and
+        the reading is '' for a lead that is not the player's."""
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        pv = _p2r14_preview(w, lead="ArchdukeJohn", foe="Massena")
+        assert "unscouted_note" not in pv["target"] and "in_view_note" not in pv["target"]
+        john = w.get_marshal("ArchdukeJohn")
+        massena = w.get_marshal("Massena")
+        assert combat._in_view_reading(john, massena, w) == ""
+        assert combat._unscouted_force_note(
+            [SimpleNamespace(name="X")], 5000.0, [], "Milan", w, john.nation) == ""
+        assert combat._unscouted_note_for(john, massena, w) == ""
+        assert set(combat.muster_odds(john, massena, w)) == {
+            "band", "ratio", "committed_attacker", "committed_defender", "joining"}
+
+
+class TestS14GX57:
+    """Sibling (class: a verdict printed beside figures that leave out the
+    ground truth it folded) - the staff's bad-odds addendum, the contact ask and
+    the order quote's muster line (`_bad_odds_muster_note`,
+    `_contact_muster_note`, `order_quotes._muster_line`) end "weighed together,
+    the balance of force looks unfavorable." over the same unscouted muster.
+    Fixed: `_unscouted_note_for` is the one door and speaks both sentences."""
+
+    def _staged(self, w):
+        w.get_marshal("Ney").location = "Milan"
+        w.calculate_visibility()
+        return w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn")
+
+    def test_the_addendum_carries_the_named_note_and_the_second_sentence(self, _p2r14_w):
+        w = _p2r14_w
+        massena, john = self._staged(w)
+        with _p2r14_quiet():
+            note = _p2r14_combat()._bad_odds_muster_note(massena, john, w)
+        assert "weighed together, the balance of force looks unfavorable." in note, note
+        assert f" {_P2R14_NOTE} " in note
+        assert re.search(r"On the men in view alone the odds read 'favorable' "
+                         r"\(about [\d,]+ against a substantial force\)\.$", note), note
+        assert "within reach of Tyrol" not in note
+
+    def test_the_contact_ask_and_the_order_quote_carry_it(self, _p2r14_w):
+        from backend.commands import order_quotes
+        w = _p2r14_w
+        massena, john = self._staged(w)
+        combat = _p2r14_combat()
+        with _p2r14_quiet():
+            bad_odds = combat._bad_odds_muster_note(massena, john, w)
+            contact = combat._contact_muster_note(massena, john, w)
+            quote = order_quotes._muster_line(w, massena, john)
+        assert contact == bad_odds
+        assert quote == bad_odds.strip()
+        assert _P2R14_NOTE in quote and "On the men in view alone" in quote
+
+    def test_a_scouted_muster_leaves_the_addendum_as_it_was(self, _p2r14_w):
+        from backend.models.intel import PARTIAL
+        w = _p2r14_w
+        massena, john = self._staged(w)
+        _p2r14_set_visibility(w, "Carniola", PARTIAL)
+        with _p2r14_quiet():
+            note = _p2r14_combat()._bad_odds_muster_note(massena, john, w)
+        assert "have not scouted" not in note and "On the men in view alone" not in note
+        assert note.endswith("looks unfavorable."), note
+
+
+def _p2r14_held_message(w) -> str:
+    """The jealousy autonomous-attack refusal beat (S14E-X75's surface) on the
+    shipped board: Murat eyeing a 60,000-man John at Tyrol, Charles at Carniola
+    unscouted."""
+    from backend.commands.executor import CommandExecutor
+    from backend.models.marshal import StrategicOrder
+    import backend.game_logic.jealousy as J
+    murat = w.get_marshal("Murat")
+    john = w.get_marshal("ArchdukeJohn")
+    murat.location = "Munich"
+    murat.jealous_of = "Ney"
+    murat.jealousy_turns_remaining = 4
+    murat.jealousy_autonomous_warned = True
+    john.location = "Tyrol"
+    john.strength = 60000
+    john.fortified = True
+    john.defense_bonus = 0.12
+    w.get_marshal("ArchdukeCharles").location = "Carniola"
+    w.get_marshal("Mack").location = "Bohemia"
+    for name in ("Ney", "Davout", "Lannes"):
+        w.get_marshal(name).location = "Munich"
+    w.calculate_visibility()
+    murat.strategic_order = StrategicOrder(
+        command_type="MOVE_TO", target="Vienna", target_type="region",
+        started_turn=w.current_turn, original_command="move to Vienna")
+    with _p2r14_quiet():
+        ex = CommandExecutor()
+        J.process_autonomous_attacks(w, ex, {"world": w})
+    events = [e for e in getattr(w, "_pending_jealousy_turn_events", [])
+              if e["type"] == "jealousy_autonomous_refused" and e.get("held_by_odds")]
+    assert events, "the odds should have held him"
+    return events[-1]["message"]
+
+
+class TestS14GX58:
+    """Sibling - the jealousy autonomous-attack refusal beat (S14E-X75): "the
+    odds held him - 1 to 2 against Archduke John's position at Tyrol" quotes the
+    ratio the muster's band reads. `jealousy.py` reads `_unscouted_note_for(
+    marshal, enemy, world)` - the signature is unchanged and the door now
+    returns both sentences, so the beat names Carniola and reads the men in
+    view with no edit to `jealousy.py`."""
+
+    def test_the_beat_names_the_province_and_reads_the_men_in_view(self, _p2r14_w):
+        message = _p2r14_held_message(_p2r14_w)
+        assert "the odds held him — 1 to " in message
+        assert re.search(
+            re.escape(f"his orders are unchanged. {_P2R14_NOTE} ")
+            + r"On the men in view alone the odds read '(?:favorable|even|unfavorable)' "
+              r"\(about [\d,]+ against a large force\)\.$", message), message
+
+    def test_a_scouted_muster_leaves_the_beat_as_it_was(self, _p2r14_w):
+        from backend.models.intel import PARTIAL
+        _p2r14_set_visibility(_p2r14_w, "Carniola", PARTIAL)
+        message = _p2r14_held_message(_p2r14_w)
+        assert "have not scouted" not in message
+        assert message.endswith("his orders are unchanged."), message
+
+    def test_the_callers_signature_still_works(self, _p2r14_w):
+        """`jealousy.py` calls `combat._unscouted_note_for(marshal, enemy,
+        world)` positionally, in two places - the contract is unchanged."""
+        import inspect
+        sig = inspect.signature(_p2r14_combat()._unscouted_note_for)
+        assert list(sig.parameters) == ["marshal", "enemy", "world"]
+        w = _p2r14_w
+        text = _p2r14_combat()._unscouted_note_for(
+            w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn"), w)
+        assert text == f"{_P2R14_NOTE} {_P2R14_IN_VIEW}"
+
+
+class TestS14GX59:
+    """Sibling - the same note read from another approach. Massena at Bohemia
+    (the staging of the sighting's frame) stands beside Carniola, so his own
+    presence scouts it: Charles is in view, the hedge row speaks and the note
+    and the second line retire (the band's weighing is then no secret). The
+    unscouted provinces round the battle are drawn from Tyrol's ring (the
+    defender's muster ring), in map order, however many."""
+
+    def test_massena_at_bohemia_scouts_carniola_and_the_note_retires(self, _p2r14_w):
+        w = _p2r14_w
+        w.get_marshal("Massena").location = "Bohemia"
+        w.calculate_visibility()
+        pv = _p2r14_preview(w)
+        assert "ArchdukeCharles" in {m.name for m in w.get_visible_enemies("France")}
+        assert "unscouted_note" not in pv["target"]
+        assert "in_view_note" not in pv["target"]
+        assert "does not stand alone" in pv["target"]["reinforcement_note"]
+
+    def test_massena_at_bohemia_with_carniola_forgotten_names_it_again(self, _p2r14_w):
+        from backend.models.intel import UNKNOWN
+        w = _p2r14_w
+        w.get_marshal("Massena").location = "Bohemia"
+        w.calculate_visibility()
+        _p2r14_set_visibility(w, "Carniola", UNKNOWN)
+        pv = _p2r14_preview(w)
+        assert pv["target"]["unscouted_note"] == _P2R14_NOTE
+        assert pv["target"]["in_view_note"].startswith(
+            "On the men in view alone the odds read '")
+
+    def test_several_unscouted_neighbours_are_listed_in_map_order(self, _p2r14_w):
+        from backend.models.intel import UNKNOWN
+        w = _p2r14_w
+        # Tyrol's ring: Bohemia, Franconia, Carniola, Munich, Milan - three of
+        # them unscouted, named alphabetically (the codebase's MAP order).
+        for region in ("Munich", "Bohemia"):
+            _p2r14_set_visibility(w, region, UNKNOWN)
+        pv = _p2r14_preview(w)
+        assert pv["target"]["unscouted_note"] == (
+            "The band weighs a force of his you have not scouted — "
+            "scout Bohemia, Carniola and Munich.")
+        two = _p2r14_combat()._unscouted_provinces_round("Tyrol", w)
+        assert two == ["Bohemia", "Carniola", "Munich"]
+
+    def test_a_scouted_neighbour_is_not_named(self, _p2r14_w):
+        ring = _p2r14_combat()._unscouted_provinces_round("Tyrol", _p2r14_w)
+        assert ring == ["Carniola"]
+        for scouted in ("Bohemia", "Franconia", "Munich", "Milan", "Tyrol"):
+            assert scouted not in ring
+
+
+class TestS14GX60:
+    """Sibling - where no province can be named the old words stand: the ring of
+    the battle is wholly scouted yet the band weighs a joiner (a corps the
+    player's intel says is not there), so the note cannot point and says what it
+    always said."""
+
+    def test_the_old_words_stand_where_no_province_can_be_named(self, _p2r14_w):
+        from backend.models.intel import FULL
+        w = _p2r14_w
+        combat = _p2r14_combat()
+        for region in ("Milan", "Tyrol", "Bohemia", "Franconia", "Carniola", "Munich"):
+            _p2r14_set_visibility(w, region, FULL)
+        assert combat._unscouted_provinces_round("Tyrol", w) == []
+        note = combat._unscouted_force_note(
+            [SimpleNamespace(name="X")], 5000.0, [], "Tyrol", w, "France")
+        assert note == _P2R14_OLD_NOTE
+
+    def test_a_gone_battle_province_names_nothing(self, _p2r14_w):
+        combat = _p2r14_combat()
+        assert combat._unscouted_provinces_round("", _p2r14_w) == []
+        assert combat._unscouted_provinces_round(None, _p2r14_w) == []
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row15
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-15 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-15): after a tall reply the raised terminal
+# squeezed the province panel to a 120-pixel body with the march list below the
+# fold.
+#
+# THE CAUSE, as traced. A tall reply (the what-if at action 15) calls
+# `main._hold_tall_reply`, which raises the command window to
+# `UiSettings.MAX_TERMINAL_HEIGHT` (900) and leaves it raised until the next
+# SEND (`_end_reply`, called only from `set_input_enabled(false)`); a map click
+# is not a send. The terminal's top then stands near y = 118 of 1028 logical px
+# and `region_panel._fit_height` clamps the panel above `avoid_control` (the
+# terminal): available = 118 - 48 - 10 - header - 24, a handful of px, so it hit
+# the floor `_MIN_CONTENT_H` = 120 - a 517x120 clipped body, MARCH HERE below the
+# fold, the panel overlapping the raised window.
+#
+# THE SIGHTING (DD-B third measure, conquest #3, P3, turn 1, action 16,
+# `docs/audits/dd_b/conquest_2026_10_25/frames/0016.jpg`): the player clicked
+# Vienna to see what it holds and who can march there and got five lines (Vienna
+# / Austria Capital Plains / Stripped? unknown / One province / No intelligence),
+# the march list (Napoleon 3 turns, Soult 4 turns) needing a scroll.
+#
+# THE FIX. (1) `main._on_map_region_clicked` lowers a raised reply window
+# (`_end_reply`) just before it opens the panel - opening the panel is the
+# player turning from the reply to the map - so the panel is fitted against the
+# window the player owns. (2) `region_panel._fit_height`: when the room above the
+# terminal is under `_DOCK_BESIDE_BELOW_H` (260 px - a raise that arrives with
+# the panel already open, or a terminal the player dragged tall) the panel docks
+# at the terminal's right edge at full height (down to the map controls' strip,
+# `_DOCK_BOTTOM_RESERVE`) instead of using the 120 floor; with room again it goes
+# back to the HUD band's left edge. Where the terminal's right edge leaves no
+# room for the panel inside the HUD band, the floor stands as before.
+#
+# WHAT WAS KEPT. The floor `_MIN_CONTENT_H` (the last resort), the toggle (a
+# click on the open province closes the panel without lowering anything), the
+# order gestures (a click with a corps selected, a name written into the line, a
+# piece selected) which never open the panel and so never lower the window, and
+# the second half of the row - the 900-pixel map strip in the middle of a
+# 5120x1440 screen - the deliberate letterbox UXR-4 homed to the user's walk.
+# Player-only presentation: no seam.
+#
+# Sibling pins are `TestS14GX15_<k>`; the orchestrator renumbers them. The
+# pins read the `.gd` source (the house pattern, `tests/test_uxr4_s15_fixes.py`)
+# and mirror the fit arithmetic in Python from the constants parsed out of it.
+
+_R15_SCRIPTS = (Path(__file__).resolve().parents[1] / "godot-client"
+                / "project-sovereign" / "scripts")
+
+
+def _r15_src(name: str) -> str:
+    return (_R15_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _r15_func(src: str, name: str) -> str:
+    m = re.search(rf"(?ms)^(?:static )?func {re.escape(name)}\(.*?(?=^(?:static )?func |^const |^var |\Z)", src)
+    assert m, name
+    return m.group(0)
+
+
+def _r15_const(src: str, name: str) -> float:
+    m = re.search(rf"^const {re.escape(name)} := (-?[0-9.]+)", src, re.M)
+    assert m, name
+    return float(m.group(1))
+
+
+def _r15_fit(view_h: float, terminal_top: float, content_h: float, header_h: float = 30.0):
+    """A Python mirror of `_fit_height`'s arithmetic over the constants parsed
+    from the source: (mode, body_height) with mode 'home' or 'beside'."""
+    rp = _r15_src("region_panel.gd")
+    top = _r15_const(rp, "_PANEL_TOP")
+    margin = _r15_const(rp, "_CLAMP_MARGIN")
+    floor = _r15_const(rp, "_MIN_CONTENT_H")
+    below = _r15_const(rp, "_DOCK_BESIDE_BELOW_H")
+    reserve = _r15_const(rp, "_DOCK_BOTTOM_RESERVE")
+    limit = min(view_h, terminal_top)
+    available = limit - top - margin - header_h - 24.0
+    mode = "beside" if available < below else "home"
+    if mode == "beside":
+        available = view_h - reserve - top - margin - header_h - 24.0
+    available = max(available, floor)
+    return mode, min(max(content_h + 4.0, 40.0), available)
+
+
+def _r15_terminal_top(view_h: float, terminal_h: float) -> float:
+    """Where `main._relayout_terminal` puts the window's top edge (growth 0)."""
+    main = _r15_src("main.gd")
+    anchor_bottom = _r15_const(main, "TERMINAL_ANCHOR_BOTTOM")
+    reserved = _r15_const(main, "TOP_BAR_RESERVED_PX")
+    ui = _r15_src("ui_settings.gd")
+    lo, hi = _r15_const(ui, "MIN_TERMINAL_HEIGHT"), _r15_const(ui, "MAX_TERMINAL_HEIGHT")
+    desired = min(max(terminal_h, lo), hi)                       # _apply_terminal_size
+    disp_h = min(max(desired, lo), max(lo, view_h - 20.0 - reserved))   # _relayout_terminal
+    return view_h + anchor_bottom - disp_h
+
+
+class TestS14G15:
+    """The sighting: 1028 logical px tall, a tall reply raising the terminal
+    to 900. OLD reading: the body floored at 120 px (a 517x120 clip). NEW
+    reading: the click lowers the window first; and were the window still
+    raised, the panel docks beside it at full height."""
+
+    def test_the_raised_terminal_stood_near_118(self):
+        ui = _r15_src("ui_settings.gd")
+        assert int(_r15_const(ui, "MAX_TERMINAL_HEIGHT")) == 900
+        assert int(_r15_terminal_top(1028.0, 900.0)) == 118
+
+    def test_the_old_reading_was_a_120_floor(self):
+        """What the pre-fix arithmetic gave (no dock arm): 118 - 48 - 10 - 30
+        - 24 = 6 px, floored to 120."""
+        rp = _r15_src("region_panel.gd")
+        floor = _r15_const(rp, "_MIN_CONTENT_H")
+        old_available = 118.0 - _r15_const(rp, "_PANEL_TOP") - _r15_const(rp, "_CLAMP_MARGIN") - 30.0 - 24.0
+        assert int(old_available) == 6
+        assert int(max(old_available, floor)) == 120
+
+    def test_a_raised_window_docks_the_panel_beside_at_full_height(self):
+        mode, body = _r15_fit(1028.0, 118.0, content_h=560.0)
+        assert mode == "beside"
+        assert int(body) == 564 and body > 120.0, (
+            "the whole province (the march list too) is in view, not a 120 clip")
+
+    def test_a_lowered_window_keeps_the_panel_home_and_unclipped(self):
+        top = _r15_terminal_top(1028.0, 270.0)   # the default footprint
+        mode, body = _r15_fit(1028.0, top, content_h=560.0)
+        assert mode == "home" and int(body) == 564
+
+    def test_the_threshold_is_260_and_is_a_named_const(self):
+        rp = _r15_src("region_panel.gd")
+        assert re.search(r"^const _DOCK_BESIDE_BELOW_H := 260\.0$", rp, re.M)
+        fn = _r15_func(rp, "_beside_terminal_left")
+        assert "available >= _DOCK_BESIDE_BELOW_H" in fn
+        # 259 docks beside, 260 stays home (the boundary is the const's).
+        header, top, margin = 30.0, 48.0, 10.0
+        chrome = top + margin + header + 24.0
+        assert _r15_fit(1028.0, 259.0 + chrome, 900.0)[0] == "beside"
+        assert _r15_fit(1028.0, 260.0 + chrome, 900.0)[0] == "home"
+
+    def test_fit_height_has_the_dock_arm(self):
+        fn = _r15_func(_r15_src("region_panel.gd"), "_fit_height")
+        assert "_beside_terminal_left(available)" in fn
+        assert "_place_dock_left(" in fn and "_home_left()" in fn
+        floor_at = fn.index("available = maxf(available, _MIN_CONTENT_H)")
+        dock_at = fn.index("_beside_terminal_left(available)")
+        assert dock_at < floor_at, "the dock decides BEFORE the 120 floor applies"
+        assert "vp_bottom - _DOCK_BOTTOM_RESERVE" in fn
+
+    def test_the_click_lowers_the_window_before_the_panel_opens(self):
+        fn = _r15_func(_r15_src("main.gd"), "_on_map_region_clicked")
+        end_at = fn.index("_end_reply()")
+        show_at = fn.index("region_panel.show_region(region_name, map_area)")
+        assert end_at < show_at
+        # after the toggle-close (nothing opens) and the order gestures (a
+        # card, a name, a selection - none opens the panel):
+        assert fn.index("region_panel.close_panel()") < end_at
+        for gesture in ("_order_click(region_name", "_group_click(region_name)",
+                        "_click_writes_a_name(region_name)", "_click_selects_a_marshal()"):
+            assert fn.index(gesture) < end_at, gesture
+
+    def test_end_reply_is_the_one_that_puts_the_window_back(self):
+        fn = _r15_func(_r15_src("main.gd"), "_end_reply")
+        assert "_reply_from_paragraph = -1" in fn
+        assert "_apply_terminal_size(_terminal_width, _reply_restore_height)" in fn
+
+
+class TestS14GX63:
+    """SIBLING: the dock beside the terminal must not push the panel off the
+    HUD band (a terminal dragged wide leaves no room right of it) - then the
+    floor stands, as before the row."""
+
+    def test_no_room_beside_means_no_dock(self):
+        fn = _r15_func(_r15_src("region_panel.gd"), "_beside_terminal_left")
+        assert "left + width > band.y" in fn
+        assert fn.index("left + width > band.y") < fn.rindex("return left")
+        assert "avoid_control.visible" in fn   # a hidden terminal has no edge
+        assert "Utils.hud_band(" in fn
+
+
+class TestS14GX64:
+    """SIBLING: the panel docked beside the terminal and the map controls'
+    chips (`main._fit_map_controls`: x = the window's right edge + the HUD
+    margin, y = the viewport bottom) share that corner - the dock stops short
+    of the chips' strip."""
+
+    def test_the_reserve_clears_the_map_controls_row(self):
+        main = _r15_src("main.gd")
+        utils = _r15_src("utils.gd")
+        chip = _r15_const(main, "MAP_CONTROL_SIZE")
+        margin = _r15_const(utils, "HUD_MARGIN")
+        reserve = _r15_const(_r15_src("region_panel.gd"), "_DOCK_BOTTOM_RESERVE")
+        assert reserve >= chip + 2.0 * margin, (
+            "the chips (32 px) and the margin above and below them")
+
+    def test_the_chips_still_sit_at_the_windows_right_edge(self):
+        fn = _r15_func(_r15_src("main.gd"), "_fit_map_controls")
+        assert "bottom_left_ui.get_global_rect().end.x + Utils.HUD_MARGIN" in fn
+        assert "var y := size.y - Utils.HUD_MARGIN - cs.y" in fn
+
+
+class TestS14GX65:
+    """SIBLING: the panel goes HOME again when the window is lowered or the
+    raise ends (the refit rides the terminal's own rect signal), and the home
+    dock is the same x `_fit_width` writes."""
+
+    def test_home_is_what_fit_width_writes(self):
+        rp = _r15_src("region_panel.gd")
+        assert "panel_container.offset_left = band.x + _PANEL_LEFT" in _r15_func(rp, "_fit_width")
+        assert "Utils.hud_band(get_viewport().get_visible_rect().size).x + _PANEL_LEFT" in _r15_func(rp, "_home_left")
+
+    def test_the_refit_follows_the_terminal(self):
+        rp = _r15_src("region_panel.gd")
+        assert "item_rect_changed.connect(_on_avoid_control_changed)" in rp
+        assert "_fit_height()" in _r15_func(rp, "_on_avoid_control_changed")
+
+    def test_raise_then_lower_while_the_panel_stays_open(self):
+        view = 1028.0
+        modes = [_r15_fit(view, _r15_terminal_top(view, h), 560.0)[0]
+                 for h in (270.0, 900.0, 270.0)]
+        assert modes == ["home", "beside", "home"]
+
+
+class TestS14GX66:
+    """SIBLING (the class: a top-left HUD item placed against `bottom_left_ui`
+    while the window is raised): the census. The only top-left item that reads
+    the window's TOP edge is the region panel (`avoid_control`); the map
+    controls and the order strip read its RIGHT edge (a raise changes the
+    height, not the width); the label layer takes its rect to dodge."""
+
+    def test_only_the_region_panel_reads_the_windows_top(self):
+        scripts = sorted(_R15_SCRIPTS.glob("*.gd"))
+        readers = []
+        for path in scripts:
+            if path.name == "main.gd":
+                continue
+            code = [line for line in path.read_text(encoding="utf-8").splitlines()
+                    if not line.strip().startswith("#")]
+            if any(re.search(r"BottomLeftUI|bottom_left_ui", line) for line in code):
+                readers.append(path.name)
+        # FLIPPED CONSCIOUSLY (S14G-X68, October 26, 2026): `readers == []`.
+        # The tutor card (a top-RIGHT item, not top-left) now keeps its height
+        # above a raised window that stands under its columns, and finds the
+        # window by name in ONE place (`tutorial_overlay._terminal_control`);
+        # the panel's own wire (`avoid_control`) is unchanged.
+        assert readers == ["tutorial_overlay.gd"], readers
+        main = _r15_src("main.gd")
+        assert main.count("region_panel.avoid_control = bottom_left_ui") == 1
+
+    def test_the_strip_and_the_chips_read_only_the_right_edge(self):
+        main = _r15_src("main.gd")
+        for name in ("_fit_map_controls", "_fit_order_strip"):
+            fn = _r15_func(main, name)
+            uses = re.findall(r"bottom_left_ui\.get_global_rect\(\)\.[a-z.]+", fn)
+            assert uses and all(u.endswith(".end.x") for u in uses), (name, uses)
+
+    def test_the_panel_has_one_door(self):
+        hits = []
+        for path in sorted(_R15_SCRIPTS.glob("*.gd")):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#") or stripped.startswith("func "):
+                    continue
+                if ".show_region(" in stripped:
+                    hits.append(path.name)
+        assert hits == ["main.gd"], hits
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row16
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-16 "the screens print 'Press G / T to close'
+# but the command line keeps the caret, so the bare key types into it"
+# (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-16). `marshal_management.gd` said "Press G to
+# close.", `strategic_ledger.gd` "press T to close it", `dispatch_view.gd` "Press
+# R to reread", and about 41 backend strings said "press T / G / D / L / R / N".
+# Opening a screen does not move focus off the command line; after every reply
+# `set_input_enabled(true)` grabs focus; the Escape ladder closed the topmost
+# thing and "the line keeps focus" (DDB-54); `_is_hotkey_blocked()` is
+# `command_input.has_focus() or modal`. So a bare letter TYPED into the line, and
+# only Alt+<key> is intercepted while typing (`_SCREEN_HOTKEYS`, PC15-18). DD-B's
+# players: conquest #4 (P3, turn 2, action 30, frame 0030) pressed G to close the
+# Generals screen and a "g" landed in the line; diplomacy #14 (P3, turn 1,
+# action 35, frame 0035) pressed Escape on a battle picture and then T for the
+# Ledger and a "t" landed. The digit hints had said "Alt+1-8 while you type"
+# since SF7-X24 / S14D-X28; the LETTER keys were never swept.
+#
+# THE FIX, three parts.
+# (a) `main.gd::_escape_closes_topmost` - every rung that CLOSES a picture, a
+#     modal, a screen, a panel or a pin calls `_release_empty_line()` before
+#     `return true`: an EMPTY line lets go of the keyboard (the placeholder then
+#     reads "Esc: menu · click to type", S14E-21's), so the bare keys work. A
+#     line holding a draft keeps its caret and its text. The selection rung closes
+#     nothing and releases nothing.
+# (b) The close hints, re-copied: "Esc closes it (Alt+G while you type)" on the
+#     Generals screen, "Esc closes it (Alt+T while you type)" on the Ledger, "Esc
+#     closes it; Alt+R (or Alt+B) while you type reopens it" on the Dispatch; the
+#     boot help says the bare keys work "whenever the line is empty and you are
+#     not typing - Alt+key while you type" and its Generals line carries
+#     "(Alt+G while you type)".
+# (c) ONE backend helper, `counsel.key_hint(letter, then="")` -> "G, or Alt+G
+#     while you type" (a book: "T, then 7; Alt+T, then Alt+7 while you type";
+#     the Dispatch also answers Alt+B, where a graphics overlay keeps Alt+R;
+#     a function key stands as it is). It sits inside the pointer's own
+#     parentheses, so `surface_pointer` never nests a second pair. Read by
+#     `_SURFACE_FOR_KIND` (13 keyed pointers), the help reference (a `⟨KEY_T_8⟩` token
+#     swapped in `_key_hint_figures`, and the two helpers that build blocks),
+#     `naval_executor` (`_admiralty_pointer()`, five refusals) and
+#     `first_contact` (four lines).
+#
+# WHAT WAS KEPT. The ladder's order and its rungs (DDB-54 / S14E-21 / UXR-D4's
+# pins), the line's own Esc arm (suggestions, then the selection, then the
+# ladder, then the release), the hotkey gate (`_is_hotkey_blocked`), the
+# placeholder. F1 needs no Alt form (the line takes no function key).
+#
+# Player-only text and client focus: no seam (the AI never reads these strings).
+
+_R16_ROOT = Path(__file__).resolve().parents[1]
+_R16_SCRIPTS = _R16_ROOT / "godot-client" / "project-sovereign" / "scripts"
+_R16_LETTERS = ("T", "G", "D", "L", "R", "N")
+
+
+def _r16_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _r16_gd(name: str) -> str:
+    return (_R16_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _r16_func(src: str, name: str) -> str:
+    start = src.index(f"func {name}(")
+    end = src.find("\nfunc ", start + 1)
+    return src[start:end if end != -1 else len(src)]
+
+
+@pytest.fixture(scope="module")
+def _r16_boot():
+    from backend.ai.parser_eval import build_world
+    with _r16_quiet():
+        return build_world("1805")
+
+
+def _r16_help() -> str:
+    from backend.commands.meta_executor import MetaExecutor
+    with _r16_quiet():
+        return MetaExecutor(None)._execute_help({}, {})["message"]
+
+
+# a bare "press <letter>" with no while-typing form after it
+_R16_BARE = re.compile(r"\b[Pp]ress ([TGDLRN])\b(?!, or Alt\+\1|, then \d; Alt\+\1)")
+
+
+def _r16_strings(path: Path):
+    """(lineno, text) of every string constant of a module that is not a
+    docstring (an f-string's literal parts included)."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr)
+                    and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                docstrings.add(id(body[0].value))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and id(node) not in docstrings):
+            yield node.lineno, node.value
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-16 (c) - the backend helper
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14G16:
+    """OLD reading: `surface_pointer("marshals") == "the Generals screen (press
+    G)"` and the help said "press G" - a bare key the command line swallows."""
+
+    def test_the_helper_is_the_one_sentence(self):
+        from backend.ai.counsel import key_hint
+        assert key_hint("G") == "G, or Alt+G while you type"
+        assert key_hint("g") == "G, or Alt+G while you type"
+        assert key_hint("T", then="7") == "T, then 7; Alt+T, then Alt+7 while you type"
+        assert key_hint("R") == "R, or Alt+R or Alt+B while you type"
+        assert key_hint("F1") == "F1"          # no Alt form: the line takes no function key
+        assert key_hint("") == ""
+
+    def test_the_signature_is_the_letter(self):
+        """The one-argument call a sibling builder makes (naval.py) works."""
+        import inspect
+        from backend.ai.counsel import key_hint
+        params = list(inspect.signature(key_hint).parameters)
+        assert params[0] == "letter"
+        assert key_hint("T").startswith("T")
+
+    def test_every_letter_it_names_is_a_key_main_gd_binds(self):
+        """The hint promises Alt+<letter>; `_SCREEN_HOTKEYS` binds it, and the
+        line's gui_input arm intercepts it while typing."""
+        src = _r16_gd("main.gd")
+        block = src[src.index("const _SCREEN_HOTKEYS := {"):]
+        block = block[:block.index("}")]
+        bound = dict(re.findall(r"KEY_([A-Z]): \"(\w+)\"", block))
+        assert {k: bound[k] for k in _R16_LETTERS} == {
+            "T": "ledger", "G": "generals", "D": "diplomatic_ledger",
+            "L": "event_log", "R": "dispatch", "N": "gazette"}
+        assert bound["B"] == "dispatch", "Alt+B is the Dispatch's second while-typing key"
+        gui = _r16_func(src, "_on_command_input_gui_input")
+        assert "event.alt_pressed and _SCREEN_HOTKEYS.has(event.keycode)" in gui
+
+    def test_a_book_s_digits_turn_with_alt_in_both_ledgers(self):
+        """'T, then 7; Alt+T, then Alt+7' - the books answer Alt+digit."""
+        for name in ("strategic_ledger.gd", "diplomatic_ledger.gd"):
+            src = _r16_gd(name)
+            assert "event.alt_pressed" in src and "ALT_TURNS_THE_BOOKS" in src, name
+
+    def test_every_surface_pointer_carries_the_alt_form(self):
+        from backend.ai.counsel import _SURFACE_FOR_KIND, surface_pointer
+        keyed = 0
+        for kind, (_name, how) in _SURFACE_FOR_KIND.items():
+            pointer = surface_pointer(kind)
+            letter = re.search(r"\bpress ([A-Z])\b", how)
+            if letter is None:
+                continue               # F1 (a function key) and "click the war"
+            keyed += 1
+            assert f"Alt+{letter.group(1)}" in pointer, (kind, pointer)
+            assert "while you type" in pointer, (kind, pointer)
+            assert not _R16_BARE.search(pointer), (kind, pointer)
+        assert keyed == 13, keyed
+
+    def test_the_desk_and_the_router_say_it(self, _r16_boot):
+        """The sentences the player reads: the desk's economy answer and the
+        router's, the Generals pointer on a fallen marshal's answer."""
+        from backend.ai import question_desk as QD
+        with _r16_quiet():
+            said = QD._answer_treasury(_r16_boot, "France")
+        assert "Alt+T" in said and "while you type" in said, said
+        assert not _R16_BARE.search(said), said
+
+    def test_the_help_reference_routes_every_screen_key(self):
+        text = _r16_help()
+        assert "⟨KEY" not in text
+        assert not _R16_BARE.findall(text), _R16_BARE.findall(text)
+        for needle in (
+                "his card explains: press G, or Alt+G while you type)",
+                "The Laws tab: press T, then 8; Alt+T, then Alt+8 while you type.",
+                "Ours: the Generals screen (press G, or Alt+G while you type);",
+                "every court's: the Nations tab (press D, or Alt+D while you type).",
+                "THE IMPERIAL BOOKS (the full ledger: press T, or Alt+T while you type):",
+                "press T, then 7; Alt+T, then Alt+7 while you type):",
+                "YOUR MARSHALS (press G, or Alt+G while you type - each card shows"):
+            assert needle in text, needle
+
+    def test_the_references_screens_section_names_the_alt_keys(self):
+        text = _r16_help()
+        section = text[text.index("SCREENS & HOTKEYS"):text.index("YOUR MARSHALS")]
+        assert "not typing; while you type, hold Alt: Alt+T, Alt+G, Alt+D," in section
+        assert "Alt+L, Alt+N, Alt+R (or Alt+B)." in section
+        assert "N Le Moniteur" in section
+
+    def test_the_help_no_longer_names_a_bare_key_in_brackets(self):
+        """'(T)' / '(G)' / '(D)' named a bare key in the missions entry and the
+        doctrine entry."""
+        text = _r16_help()
+        for bare in ("Orders tab\n               (T)", "screen (G);", "tab (D)."):
+            assert bare not in text, bare
+        assert not re.search(r"\((?:T|G|D|L|R|N)\)", text)
+
+    def test_the_ports_and_missions_blocks_route_too(self):
+        from backend.commands.meta_executor import _missions_help_block, _ports_help_block
+        ports = _ports_help_block()
+        assert "press T, then 7; Alt+T, then Alt+7 while you type):" in ports
+        from backend.ai.parser_eval import build_world
+        with _r16_quiet():
+            missions = _missions_help_block(build_world("1805"))
+        assert "(press T, then 6; Alt+T, then Alt+6 while you type) or on its" in missions
+
+    def test_the_reference_sections_still_cut_at_their_headings(self):
+        """A rewrapped line must not start with a capital at column 0 (that
+        is a heading to `reference_sections`)."""
+        from backend.ai.help_topics import reference_sections
+        text = _r16_help()
+        headings = list(reference_sections(text))
+        # a heading is an upper-case title: a key-hint token that landed at
+        # column 0 ("D, then 7; Alt+D ...") would be read as a section of its own
+        for heading in headings:
+            assert re.match(r"[A-Z][A-Z'&\- ]{3,}", heading), heading
+        assert len(headings) == 16, headings
+        assert any(h.startswith("YOUR MARSHALS (press G") for h in headings)
+        assert any(h.startswith("THE ADMIRALTY (the wooden wall") for h in headings)
+        assert any(h.startswith("THE CONGRESS OF PARIS") for h in headings)
+
+    def test_first_contact_says_it(self, _r16_boot):
+        from backend.ai.first_contact import answer_first_contact
+        with _r16_quiet():
+            goal = answer_first_contact("goal", "what is the goal", _r16_boot) or ""
+            laws = answer_first_contact("laws", "what laws can I enact", _r16_boot) or ""
+        assert "Alt+T" in goal and not _R16_BARE.search(goal), goal
+        assert "the Laws tab (press T, then 8; Alt+T, then Alt+8 while you type)" in laws, laws
+
+    def test_the_naval_refusals_say_it(self, _r16_boot):
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.naval_executor import _admiralty_pointer, _admiralty_misaddressed
+        from backend.ai.counsel import surface_pointer
+        assert _admiralty_pointer() == surface_pointer("admiralty")
+        with _r16_quiet():
+            naval_ex = CommandExecutor()._naval
+            unnamed = naval_ex._execute_naval_expedition(
+                {"marshal": ""}, {"world": _r16_boot})["message"]
+            misaddressed = _admiralty_misaddressed(
+                {"marshal": "Ney"}, _r16_boot, "France", "Blockade")
+        pointer = "THE ADMIRALTY (press T, then 7; Alt+T, then Alt+7 while you type)"
+        assert pointer in unnamed, unnamed
+        assert pointer in misaddressed["message"], misaddressed
+        assert not _R16_BARE.search(unnamed + misaddressed["message"])
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-16 (c) - the census: no backend string says "press <letter>" bare
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX69:
+    """The class of the defect, over the five files the row names: no string
+    constant says "press T / G / D / L / R / N" without going through the
+    helper. (A literal that names the key AND its while-typing form passes.)"""
+
+    FILES = ("backend/ai/counsel.py", "backend/commands/meta_executor.py",
+             "backend/commands/naval_executor.py", "backend/ai/first_contact.py",
+             "backend/game_logic/naval.py")
+
+    @pytest.mark.parametrize("rel", FILES)
+    def test_no_bare_press_a_letter(self, rel):
+        bare = [(lineno, text) for lineno, text in _r16_strings(_R16_ROOT / rel)
+                if _R16_BARE.search(text)]
+        assert bare == [], (rel, bare)
+
+    def test_the_whole_backend_has_no_bare_key_pointer(self):
+        """S14G-X70 ... X16.5 (the second pass): the census over EVERY backend
+        module, not only the five the row named. The six strays it found
+        (`question_desk._answer_own_army`, `state_desk._answer_fleet` and
+        `_answer_why_failed`, `llm_client._place_suggestion`, `main.py`'s
+        fleet-is-no-corps refusal, the `world_state` commission note) now
+        read `surface_pointer`; a seventh fails here."""
+        bare = []
+        for path in sorted((_R16_ROOT / "backend").rglob("*.py")):
+            for lineno, text in _r16_strings(path):
+                if _R16_BARE.search(text):
+                    bare.append((str(path.relative_to(_R16_ROOT)), lineno, text[:80]))
+        assert bare == [], bare
+
+    def test_the_admiralty_pointer_is_the_counsels(self):
+        """naval.py's ADMIRALTY_POINTER and the counsel's read the same
+        sentence, so the fleet's lines and the refusals never differ."""
+        from backend.ai.counsel import surface_pointer
+        from backend.game_logic import naval
+        assert naval.ADMIRALTY_POINTER == surface_pointer("admiralty")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-16 (a) - the Escape ladder lets an empty line go
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14G16TheLadder:
+    """OLD reading: `_escape_closes_topmost` closed the screen and "the line
+    keeps focus" - the next bare G / T typed into it."""
+
+    def test_each_closing_rung_releases_an_empty_line_before_it_returns(self):
+        ladder = _r16_func(_r16_gd("main.gd"), "_escape_closes_topmost")
+        for closer in ("battle_diorama._on_close_pressed()",
+                       "diplomacy_wizard._close_wizard()",
+                       "top_bar.close_all_screens()",
+                       "region_panel.close_panel()",
+                       "top_bar.unpin()"):
+            assert re.search(re.escape(closer) + r"\n\t+_release_empty_line\(\)\n\t+return true",
+                             ladder), closer
+
+    def test_the_selection_rung_closes_nothing_and_releases_nothing(self):
+        ladder = _r16_func(_r16_gd("main.gd"), "_escape_closes_topmost")
+        rung = ladder[ladder.index("if include_selection and _order_engaged()"):]
+        rung = rung[:rung.index("return true") + len("return true")]
+        assert "_release_empty_line" not in rung
+
+    def test_the_release_is_guarded_on_an_empty_line(self):
+        body = _r16_func(_r16_gd("main.gd"), "_release_empty_line")
+        assert "command_input.has_focus()" in body
+        guard = body.index('command_input.text.strip_edges() != ""')
+        assert guard < body.index("command_input.release_focus()")
+        assert body[guard:].split("\n", 2)[1].strip() == "return", "a draft keeps its caret"
+        # and nothing throws the text away
+        assert ".clear()" not in body and 'text = ""' not in body
+
+    def test_the_hotkey_gate_is_what_the_release_unblocks(self):
+        body = _r16_func(_r16_gd("main.gd"), "_is_hotkey_blocked")
+        assert "command_input.has_focus() or _is_modal_dialog_open()" in body
+
+    def test_the_lines_esc_arm_keeps_its_order(self):
+        """DDB-54 / CX-3 / CC-3: the list, the selection, the ladder, the
+        release (only when nothing was open) - unchanged."""
+        gui = _r16_func(_r16_gd("main.gd"), "_on_command_input_gui_input")
+        arm = gui[gui.index("elif event.keycode == KEY_ESCAPE:"):]
+        order = [arm.index(x) for x in ("_clear_suggestions()", "_clear_order_selection()",
+                                        "_escape_closes_topmost()", "command_input.release_focus()",
+                                        "command_input.accept_event()")]
+        assert order == sorted(order)
+        assert "S14G-16" in arm
+
+    def test_the_placeholder_follows_the_release(self):
+        src = _r16_gd("main.gd")
+        assert 'const COMMAND_PLACEHOLDER_RELEASED := "Esc: menu · click to type"' in src
+        assert "command_input.focus_exited.connect(_refresh_command_placeholder)" in src
+        body = _r16_func(src, "_refresh_command_placeholder")
+        assert "command_input.editable and not command_input.has_focus()" in body
+
+    def test_the_unfocused_ladder_still_reads_the_same_function(self):
+        """`_unhandled_input` reads the ladder with the selection step; the
+        release is a no-op there (the line holds nothing)."""
+        src = _r16_gd("main.gd")
+        assert "_escape_closes_topmost(true)" in _r16_func(src, "_unhandled_input")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-16 (b) - the screens' close hints and the boot help
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14G16TheHints:
+    """OLD readings: 'Press G to close.' / 'press T to close it.' / 'Press R
+    to reread it any time.'"""
+
+    def test_the_generals_screen_says_esc_and_the_alt_form(self):
+        src = _r16_gd("marshal_management.gd")
+        assert "only glory answers envy. Esc closes it (Alt+G while you type)." in src
+        assert "Press G to close" not in src
+
+    def test_the_ledger_says_esc_and_the_alt_form(self):
+        src = _r16_gd("strategic_ledger.gd")
+        assert "(Alt+1–8 while you type); Esc closes it (Alt+T while you type)." in src
+        assert "press T to close it" not in src
+
+    def test_the_dispatch_says_esc_and_the_alt_form(self):
+        src = _r16_gd("dispatch_view.gd")
+        assert "Esc closes it; Alt+R (or Alt+B) while you type reopens it." in src
+        assert "Press R to reread" not in src
+
+    def test_the_boot_help_says_when_the_bare_keys_work(self):
+        body = _r16_func(_r16_gd("main.gd"), "_print_boot_help")
+        assert ("the bare keys work whenever the line is empty and you are not typing"
+                " — Alt+key while you type") in body
+        assert "press [b]G[/b] (Alt+G while you type) to review your marshals" in body
+        assert "whenever you are not typing" not in body
+
+    def test_no_screen_script_still_says_press_a_letter_to_close(self):
+        """The class, across the Godot scripts: no 'press <letter> to close /
+        reread' survives."""
+        pattern = re.compile(r"[Pp]ress \[?b?\]?([TGDLRN])\b(?:\[/b\])? to (?:close|reread|open)")
+        for path in sorted(_R16_SCRIPTS.glob("*.gd")):
+            text = path.read_text(encoding="utf-8")
+            assert not pattern.search(text), path.name
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The second pass (Pre-Deploy S14h part 2, October 26, 2026): the six siblings
+# the first pass FILED - S14G-X70 ... X16.7. Same rule, same helper.
+# ══════════════════════════════════════════════════════════════════════════
+
+_R16_ALT_POINTER = {
+    "T": "(press T, or Alt+T while you type)",
+    "G": "(press G, or Alt+G while you type)",
+    "L": "(press L, or Alt+L while you type)",
+}
+_R16_ADMIRALTY = "THE ADMIRALTY (press T, then 7; Alt+T, then Alt+7 while you type)"
+
+
+class TestS14GX70:
+    """`question_desk._answer_own_army` ("what is the state of my army"): the
+    return named the Forces tab "(press T)" and the Generals screen "(press
+    G)" - the bare keys the line swallows. OLD reading: "The Strategic Ledger's
+    Forces tab (press T) has the full return; the Generals screen (press G) has
+    each man's card." and "...The Generals screen (press G) shows the roster."
+    """
+
+    def test_the_return_points_with_the_alt_form(self, _r16_boot):
+        from backend.ai import question_desk as QD
+        with _r16_quiet():
+            said = QD._answer_own_army(_r16_boot, "France")
+        assert ("The Strategic Ledger's Forces tab " + _R16_ALT_POINTER["T"]
+                + " has the full return; the Generals screen " + _R16_ALT_POINTER["G"]
+                + " has each man's card.") in said, said
+        assert not _R16_BARE.search(said), said
+
+    def test_an_empty_field_points_the_same_way(self, _r16_boot, monkeypatch):
+        from backend.ai import question_desk as QD
+        monkeypatch.setattr(_r16_boot, "get_player_marshals", lambda: [])
+        with _r16_quiet():
+            said = QD._answer_own_army(_r16_boot, "France")
+        assert said == ("No corps of ours stands in the field, Sire. The Generals screen "
+                        + _R16_ALT_POINTER["G"] + " shows the roster."), said
+
+
+class TestS14GX71:
+    """`state_desk._answer_fleet` (the posture sentence) and
+    `_answer_why_failed` (no order on record): OLD readings "THE ADMIRALTY
+    (press T, then 7): Recall to home waters covers ..." and "the campaign log
+    (press L) keeps what has been done."."""
+
+    def test_the_fleet_answer_names_the_admiralty_with_the_alt_form(self, _r16_boot):
+        from backend.ai import state_desk as SD
+        with _r16_quiet():
+            said = SD._answer_fleet(_r16_boot)
+        assert f"on {_R16_ADMIRALTY}: Recall to home waters covers" in said, said
+
+    def test_the_last_order_answer_names_the_log_with_the_alt_form(self, _r16_boot, monkeypatch):
+        from backend.ai import state_desk as SD
+        monkeypatch.setattr(_r16_boot, "_last_order_reply", None, raising=False)
+        with _r16_quiet():
+            said = SD._answer_why_failed(_r16_boot)
+        assert ("the campaign log " + _R16_ALT_POINTER["L"] + " keeps what has been done.") in said, said
+
+
+class TestS14GX72:
+    """`llm_client._place_suggestion`: the shrug for a place no corps can march
+    to named "THE ADMIRALTY (press T, then 7)" bare. The refusal is the
+    executor's own (`issuance_road_refusal` with `blocked_naval`); the test
+    stages it, as the Channel does on the shipped board."""
+
+    def test_the_shrug_names_the_admiralty_with_the_alt_form(self, _r16_boot, monkeypatch):
+        from backend.ai import llm_client as LC
+        import backend.commands.strategic as S
+        monkeypatch.setattr(S, "issuance_road_refusal",
+                            lambda *a, **k: {"blocked_naval": True, "message": "The Channel is shut."})
+        with _r16_quiet():
+            said = LC._place_suggestion({"world": _r16_boot}, "Swabia")
+        assert f"The Channel is shut. {_R16_ADMIRALTY} has the state of the fleet" in said, said
+        assert not _R16_BARE.search(said), said
+
+
+class TestS14GX73:
+    """`main.py`'s fleet-is-no-corps refusal and the `world_state` commission
+    note. OLD readings: "...from THE ADMIRALTY's buttons (press T, then 7);" and
+    "Open the Generals screen (press G) and see the Commission bench"."""
+
+    def test_the_fleet_is_no_corps_refusal_points_with_the_alt_form(self):
+        from fastapi.testclient import TestClient
+        from backend.ai.parser_eval import build_world
+        from backend.commands.parser import CommandParser
+        import backend.main as main_module
+        saved = (main_module.parser, main_module.world, main_module.game_state)
+        try:
+            with _r16_quiet():
+                world = build_world("1805")
+                main_module.world = world
+                main_module.game_state = {"world": world}
+                main_module.parser = CommandParser(use_real_llm=False)
+                said = TestClient(main_module.app).post(
+                    "/command", json={"command": "Send the fleet to attack Swabia"}
+                ).json().get("message") or ""
+        finally:
+            (main_module.parser, main_module.world, main_module.game_state) = saved
+        assert f"makes a diversion from the buttons of {_R16_ADMIRALTY};" in said, said
+        assert not _R16_BARE.search(said), said
+
+    def test_the_commission_note_points_with_the_alt_form(self):
+        from backend.models.world_state import WorldState
+        from backend.notifications import COMMISSION_AVAILABLE
+        scenario = (_R16_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                    / "europe_1805.json")
+        with _r16_quiet():
+            world = WorldState.from_scenario(str(scenario))
+            world.nation_gold["France"] = 50000
+            world._last_advanced_turn = -1
+            world.advance_turn()
+        notes = [n for n in world.notifications.get_pending() if n.get("type") == COMMISSION_AVAILABLE]
+        assert len(notes) == 1
+        assert ("Open the Generals screen " + _R16_ALT_POINTER["G"]
+                + " and see the Commission bench") in notes[0]["message"], notes[0]["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X74 - a picture or pop-up closed on its OWN Esc handler
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX74:
+    """The diplomacy #14 sighting's own road: Esc on a battle picture, then T
+    for the Ledger, and a "t" landed in the line. The tableau (like the
+    enemy-phase dialog, the strategic reports, the Proclamation, the
+    letter-book and a marked ending) handles Esc in its own `_unhandled_input`,
+    `set_input_as_handled()`s it, and ends in the ONE tail
+    `_return_control_to_player()` - whose `command_input.grab_focus()` put the
+    caret back; main.gd's ladder (the first pass's fix) was never reached.
+
+    The fix: `_release_empty_line_after_esc()` - the empty line lets go when the
+    Esc key is still down - is the last statement of the tail, so every road
+    that ends in it is covered at once. Pinned by source (no engine here): the
+    helper, its place in the tail, each road's handler and connection, and a
+    CENSUS of every script that handles Esc, each classified. A road that
+    answers through the backend (the proposal table's safe exit) returns
+    control on the REPLY, with the key long up: the line keeps the caret there,
+    as after every reply (typing the next order is the default)."""
+
+    # script -> (signal, the connection in main.gd, the handler that returns control)
+    TAIL_ROADS = {
+        "battle_diorama.gd": ("dismissed", "battle_diorama.dismissed.connect(_on_battle_diorama_dismissed)",
+                              "_on_battle_diorama_dismissed"),
+        "enemy_phase_dialog.gd": ("dismissed", "enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)",
+                                  "_on_enemy_phase_dismissed"),
+        "strategic_report_popup.gd": ("dismissed", "strategic_report_popup.dismissed.connect(_on_strategic_report_dismissed)",
+                                      "_on_strategic_report_dismissed"),
+        "mailbox_panel.gd": ("panel_closed", "mailbox_panel.panel_closed.connect(_on_mailbox_panel_closed)",
+                             "_on_mailbox_panel_closed"),
+    }
+    # scripts that handle Esc and are NOT a tail road of their own, and why
+    OTHER_ESC_SCRIPTS = {
+        "main.gd": "the ladder itself (`_escape_closes_topmost`)",
+        "popup_base.gd": "presses `esc_control()`: the Proclamation and a marked ending, below",
+        "proposal_confirm_popup.gd": "a safe-exit answer SENT to the backend: the reply returns control",
+        "order_confirm_card.gd": "a map card: the map press already released the line",
+        "scale_card.gd": "a settings card: never touches the command line",
+        "war_detail_popup.gd": "a non-modal read: never touches the command line",
+        "main_menu.gd": "the main menu's settings view, before any campaign",
+    }
+    POPUP_BASE_ROADS = {
+        "proclamation_popup.gd": ("proclamation_popup.dismissed.connect(_on_proclamation_dismissed)",
+                                  "_on_proclamation_dismissed"),
+        "campaign_end.gd": ("campaign_end.continued.connect(_on_campaign_end_continued)",
+                            "_on_campaign_end_continued"),
+    }
+
+    def test_the_helper_reads_the_esc_key_and_releases_an_empty_line(self):
+        body = _r16_func(_r16_gd("main.gd"), "_release_empty_line_after_esc")
+        gate = body.index("Input.is_key_pressed(KEY_ESCAPE)")
+        assert gate < body.index("_release_empty_line()")
+        assert body[gate:].split("\n", 2)[1].strip() == "_release_empty_line()"
+
+    def test_the_tail_ends_with_it_after_the_grab(self):
+        body = _r16_func(_r16_gd("main.gd"), "_return_control_to_player")
+        assert body.index("command_input.grab_focus()") < body.index("_release_empty_line_after_esc()")
+        # (the function's text runs to the next `func`; a module `var` may follow it)
+        own = body.split("\nvar ")[0]
+        assert own.rstrip().endswith("_release_empty_line_after_esc()"), "it is the tail's last statement"
+
+    def test_the_tail_still_raises_pending_surfaces_first(self):
+        """The release only runs when the tail hands the line back."""
+        body = _r16_func(_r16_gd("main.gd"), "_return_control_to_player")
+        assert body.index("if _raise_pending_surfaces():") < body.index("set_input_enabled(true)")
+
+    @pytest.mark.parametrize("script", sorted(TAIL_ROADS))
+    def test_each_own_esc_road_ends_in_the_tail(self, script):
+        _signal, connect, handler = self.TAIL_ROADS[script]
+        main = _r16_gd("main.gd")
+        assert connect in main, connect
+        assert "_return_control_to_player()" in _r16_func(main, handler), handler
+        esc = _r16_gd(script)
+        assert "ui_cancel" in esc and "set_input_as_handled()" in esc, script
+
+    @pytest.mark.parametrize("script", sorted(POPUP_BASE_ROADS))
+    def test_each_popup_base_esc_road_ends_in_the_tail(self, script):
+        connect, handler = self.POPUP_BASE_ROADS[script]
+        main = _r16_gd("main.gd")
+        assert connect in main, connect
+        assert "_return_control_to_player()" in _r16_func(main, handler), handler
+        assert "func esc_control" in _r16_gd(script), script
+
+    def test_the_battle_tableau_road_is_the_sightings(self):
+        """diplomacy #14: the tableau's `_unhandled_input` presses its own close,
+        which emits `dismissed` - and `_on_battle_diorama_dismissed` ends in the
+        tail the helper closes."""
+        gd = _r16_gd("battle_diorama.gd")
+        assert 'event.is_action_pressed("ui_cancel")' in gd
+        assert "_on_close_pressed()" in gd[gd.index('event.is_action_pressed("ui_cancel")'):][:200]
+        assert "dismissed.emit()" in _r16_func(gd, "_on_close_pressed")
+        body = _r16_func(_r16_gd("main.gd"), "_on_battle_diorama_dismissed")
+        assert body.rstrip().endswith("_return_control_to_player()")
+        assert "S14G-X74" in body
+
+    def test_every_script_that_handles_esc_is_classified(self):
+        """The census: a new Esc handler fails here until it is classified as a
+        tail road (and pinned above) or as one that never returns the caret."""
+        found = set()
+        for path in sorted(_R16_SCRIPTS.glob("*.gd")):
+            text = path.read_text(encoding="utf-8")
+            if "ui_cancel" in text or "KEY_ESCAPE" in text:
+                found.add(path.name)
+        classified = set(self.TAIL_ROADS) | set(self.OTHER_ESC_SCRIPTS)
+        assert found == classified, (sorted(found - classified), sorted(classified - found))
+
+    def test_the_ladders_own_release_is_untouched(self):
+        """The first pass's rungs still close-then-release."""
+        ladder = _r16_func(_r16_gd("main.gd"), "_escape_closes_topmost")
+        assert ladder.count("_release_empty_line()") == 5
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X75 - the School of War's bare keys
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX75:
+    """`tutorial_overlay.gd` (eight cards) and `tutorial_table_steps.gd` named
+    the screen keys bare - "his card (G)", "the Orders book (T)", "THE ADMIRALTY
+    (T, then 7)" - while the school's command line holds the caret after every
+    step. The cards say the Alt form beside the key, in the literal shape the
+    ledgers' own captions use (the cards are `const` data, so no helper can be
+    called at their declaration; one test reads every card)."""
+
+    K = "[color=#e8d4a8]"
+    E = "[/color]"
+
+    def _cards(self):
+        for name in ("tutorial_overlay.gd", "tutorial_table_steps.gd"):
+            for lineno, line in enumerate(_r16_gd(name).splitlines(), 1):
+                if line.lstrip().startswith('"body":'):
+                    yield name, lineno, line
+
+    def test_each_card_names_the_alt_form(self):
+        k, e = self.K, self.E
+        needles = {
+            "tutorial_overlay.gd": (
+                f"his card ({k}G{e}, or Alt+G while you type) shows the figure",
+                f"the Diplomatic Ledger ({k}D{e}, or Alt+D while you type) keeps the whole of Europe",
+                f"press {k}G{e} (Alt+G while you type): each card shows his TRUST",
+                f"Orders book ({k}T{e}, or Alt+T while you type) lists them all",
+                f"THE ADMIRALTY ({k}T{e}, then 7; Alt+T, then Alt+7 while you type), shows your fleets",
+                f"CONGRESS tab ({k}D{e}, then 7; Alt+D, then Alt+7 while you type) counts the provinces",
+                f"{k}THE LAWS{e} ({k}T{e}, then 8; Alt+T, then Alt+8 while you type), lists ours",
+                f"Hold {k}Alt{e} with the letter while you type",
+            ),
+            "tutorial_table_steps.gd": (
+                f"Vassals rows ({k}D{e}, or Alt+D while you type) and drifts",
+            ),
+        }
+        for name, texts in needles.items():
+            src = _r16_gd(name)
+            for text in texts:
+                assert text in src, (name, text)
+
+    def test_no_card_names_a_bare_screen_key(self):
+        """The census: a card that colours a screen key (T / G / D / L / R / N)
+        carries an Alt form on its own line."""
+        key = re.compile(re.escape(self.K) + r"[TGDLRN]" + re.escape(self.E))
+        seen = 0
+        for name, lineno, line in self._cards():
+            if not key.search(line):
+                continue
+            seen += 1
+            assert "Alt+" in line or f"Hold {self.K}Alt{self.E} with the letter" in line, (name, lineno)
+        assert seen == 9, seen
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row17
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-17 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-17, P3, naval): the Admiralty readied an
+# inland corps and then asked for a march, with no reason printed. The sighting
+# (DD-B's third measure, conquest #9, turn 11, action 232): on turn 10 Moravia
+# was a coastal province of an ally's ("abroad"), so `naval.embark_position_ok`
+# - the ONE embark rule: a yard, or a coastal province that is not home soil -
+# listed Davout, Ney, Lannes and Napoleon as ready; on turn 11 S14G-3's follow
+# had carried the corps to Dresden, which is not coastal, the term failed and
+# the chips offered a march. Nothing said why Moravia qualified or why Dresden
+# does not (the map is stylised - DEF-8 - so "deep inland" is real-world
+# geography the rule does not share). A second disagreement: the turn-10 book
+# listed Napoleon as ready and offered four "Land Napoleon" chips while the
+# counsel (`_small_corps`, `no_small_corps_line`, `over_lift_refusal`) said
+# "the Emperor does not sail" (FA-D16, ruling (a): the counsel never names the
+# sovereign).
+#
+# THE FIX. `naval.embark_reason(world, marshal, yards)` beside
+# `embark_position_ok` - the SAME rule in words, one clause: "a dockyard of
+# ours" / "an allied shore" / "an enemy shore" / "a neutral shore" / "our own
+# shore across the water" when the corps may embark, "inland; nearest shore N
+# provinces (X)" / "home soil, not a yard; nearest shore N provinces (X)" when
+# he may not (`nearest_embark_shore`, a bounded level-by-level walk by land;
+# `_embark_at` is the rule asked of a province, and `embark_position_ok` reads
+# it, so rule and reason cannot drift). Read by the ready line ("Davout (9,000
+# at Moravia - an allied shore)"), the `embark_ready` rows the ledger renders,
+# the failed term ("Ney at Dresden - inland; nearest shore 2 provinces
+# (Moravia)"), the Land chips' notes, the landing rows the region panel reads
+# (`from_reason`) and the region panel's withheld-landing reason. And ONE
+# predicate, `naval.sovereign_stays`, decides who the Admiralty never offers:
+# the counsel's three sites AND every list that OFFERS a corps (the ready list,
+# the over-lift arm, the landing options, the blocked reasons) read it, and the
+# sentence "Napoleon does not sail - the Emperor stays with the army" is said
+# ONCE in the term's detail when he stands where he would have been offered.
+#
+# WHAT WAS KEPT. `embark_position_ok` and its callers (the executor, the Road
+# Home's `withdrawal`) read the rule exactly as before; the AI's naval posture
+# (`derive_ai_postures`) and build rung read none of this.
+#
+# SEAM: the reasons and lists are player-only text. The one thing the AI's road
+# can reach is the verb's sovereign gate (TestS14GX85): its seam is
+# `naval.sovereign_stays` - held down (False for everyone) it lifts the gate and
+# the rung's filter and restores today's run byte for byte; by construction it
+# is already identical on the shipped board, where only Napoleon is a sovereign.
+#
+# THE VERB (TestS14GX85, decided by the coordinator under the standing
+# delegation): `naval_executor._execute_naval_expedition` had NO sovereign gate
+# (FA-D16's ruling (a) left the counsel alone), so a typed "land Napoleon in X"
+# quoted and sailed him while four surfaces said he does not. It now refuses
+# the man `naval.sovereign_stays` names, free, with the sentence; the AI's
+# rung (`find_ai_expedition`) skips the same man.
+#
+# Sibling pins below are `TestS14GX17_<k>`; the orchestrator renumbers them.
+
+_R17_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_R17_SCRIPTS = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                / "scripts")
+
+_R17_STAYS = "Napoleon does not sail — the Emperor stays with the army"
+
+
+def _r17_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r17_boot():
+    from backend.models.world_state import WorldState
+    with _r17_quiet():
+        return WorldState.from_scenario(str(_R17_SCENARIO))
+
+
+def _r17_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r17_world(_r17_boot):
+    return _r17_copy(_r17_boot)
+
+
+def _r17_put(world, name, location, strength=9000):
+    m = world.get_marshal(name)
+    m.location = location
+    m.strength = strength
+    if hasattr(world, "_build_marshal_index"):
+        world._build_marshal_index()
+    return m
+
+
+def _r17_only(world, *keep, strength=9000):
+    """Every French corps but `keep` over the lift, so the term is read for
+    the few the test stages."""
+    for m in world.get_marshals_by_nation("France"):
+        if m.name not in keep:
+            m.strength = 30000
+
+
+def _r17_ally_shore(world, region="Moravia"):
+    """The sighting's shore: coastal, an ally's (Bavaria, France's ALLIANCE)."""
+    assert world.get_diplomatic_state("France", "Bavaria") == "ALLIANCE"
+    world.regions[region].controller = "Bavaria"
+    world._evac_direction_cache = None
+
+
+def _r17_oracle(world, nation, start):
+    """The nearest shore, walked independently of `nearest_embark_shore`:
+    breadth-first by land over `adjacent_regions` (sea links skipped), each
+    province asked of the embark rule through `embark_position_ok` itself."""
+    from backend.game_logic import naval
+    yards = naval.controlled_dockyards(world, nation)
+    seen = {start}
+    frontier = [start]
+    steps = 0
+    while frontier and steps < naval.SHORE_SEARCH_DEPTH:
+        steps += 1
+        found, nxt = [], []
+        for here in frontier:
+            for adj in world.regions[here].adjacent_regions:
+                if adj in seen or naval.is_sea_link(world, here, adj):
+                    continue
+                seen.add(adj)
+                nxt.append(adj)
+                probe = SimpleNamespace(location=adj, nation=nation)
+                if naval.embark_position_ok(world, probe, yards):
+                    found.append(adj)
+        if found:
+            return steps, sorted(found)[0]
+        frontier = nxt
+    return None
+
+
+def _r17_term(world) -> dict:
+    from backend.game_logic import naval
+    return naval.build_admiralty_report(world)["expedition_terms"][1]
+
+
+class TestS14G17:
+    """The sighting on the shipped 1805 board. THE OLD READING: the ready
+    line read "ready: Davout (9,000 at Moravia), Napoleon (10,000 at
+    Moravia)" with no reason, the failed term "march Ney (9,000) to a yard -
+    Bordelais; ..." with none either, and Napoleon was listed and offered four
+    Land chips while the counsel said the Emperor does not sail."""
+
+    def test_an_allied_shore_reads_why_it_qualifies(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        davout = _r17_put(_r17_world, "Davout", "Moravia")
+        _r17_only(_r17_world, "Davout")
+        assert naval.embark_position_ok(_r17_world, davout) is True
+        assert naval.embark_reason(_r17_world, davout) == "an allied shore"
+        term = _r17_term(_r17_world)
+        assert term["met"] is True
+        assert term["detail"].startswith("ready: Davout (9,000 at Moravia — an allied shore)")
+        ready = naval.build_admiralty_report(_r17_world)["embark_ready"]
+        assert ready == [{"marshal": "Davout", "strength": 9000, "location": "Moravia",
+                          "reason": "an allied shore"}]
+
+    def test_the_corps_carried_inland_reads_the_distance_to_the_shore(self, _r17_world):
+        """Turn 11's reading: Ney at Dresden. The failed term names WHY and
+        the nearest shore - the same shore an independent walk finds."""
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        ney = _r17_put(_r17_world, "Ney", "Dresden")
+        _r17_only(_r17_world, "Ney")
+        assert naval.embark_position_ok(_r17_world, ney) is False
+        steps, shore = _r17_oracle(_r17_world, "France", "Dresden")
+        word = "province" if steps == 1 else "provinces"
+        expect = f"inland; nearest shore {steps} {word} ({shore})"
+        assert naval.embark_reason(_r17_world, ney) == expect
+        term = _r17_term(_r17_world)
+        assert term["met"] is False
+        assert f"Ney at Dresden — {expect}." in term["detail"], term["detail"]
+        # the march advice is kept, ahead of the reason
+        assert term["detail"].startswith("march Ney (9,000) to a yard — ")
+
+    def test_the_emperor_is_in_no_list_and_no_chip(self, _r17_world):
+        """The list excludes whom the counsel excludes. Napoleon (10,000) stands
+        on the same allied shore as Davout: Davout is ready, Napoleon is not
+        listed, offered no Land chip, no landing row and no marked landing on
+        the map payload."""
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Davout", "Moravia")
+        nap = _r17_put(_r17_world, "Napoleon", "Moravia", 10000)
+        _r17_only(_r17_world, "Davout", "Napoleon")
+        assert nap.is_sovereign is True and naval.embark_position_ok(_r17_world, nap)
+        report = naval.build_admiralty_report(_r17_world)
+        assert [r["marshal"] for r in report["embark_ready"]] == ["Davout"]
+        assert report["expedition_chips"]
+        assert all("Napoleon" not in c["command"] and "Napoleon" not in c["label"]
+                   for c in report["expedition_chips"])
+        options = naval.expedition_landing_options(_r17_world, "France")
+        assert options and all(row["marshal"] != "Napoleon"
+                               for rows in options.values() for row in rows)
+        overlay = naval.map_naval_overlay(_r17_world)["expedition_landings"]
+        assert all(row["marshal"] != "Napoleon" for rows in overlay.values() for row in rows)
+
+    def test_the_sentence_is_said_once(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Davout", "Moravia")
+        _r17_put(_r17_world, "Napoleon", "Moravia", 10000)
+        _r17_only(_r17_world, "Davout", "Napoleon")
+        detail = _r17_term(_r17_world)["detail"]
+        assert detail.count("does not sail") == 1
+        assert detail.endswith(_R17_STAYS + "."), detail
+        # and when his Guard is the only corps under the lift the counsel's own
+        # line (which already says it) is not doubled
+        w = _r17_world
+        _r17_put(w, "Davout", "Lorraine", 30000)
+        detail = _r17_term(w)["detail"]
+        assert detail.count("does not sail") == 1, detail
+        assert detail == naval.no_small_corps_line(w, "France")
+        assert naval.sovereign_stays_line(w.get_marshal("Napoleon")) == _R17_STAYS
+
+    def test_one_predicate_drives_the_list_the_chips_and_the_counsel(self, _r17_world, monkeypatch):
+        """Swap the predicate and WHO is left out moves with it - on the ready
+        list, the chips, the landing rows AND the counsel - because every site
+        reads `naval.sovereign_stays`. With it pointed at Ney instead of the
+        Emperor: Ney is the one left out, Napoleon is offered."""
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Ney", "Moravia")
+        _r17_put(_r17_world, "Davout", "Moravia")
+        _r17_put(_r17_world, "Napoleon", "Moravia", 10000)
+        _r17_only(_r17_world, "Ney", "Davout", "Napoleon")
+        monkeypatch.setattr(naval, "sovereign_stays", lambda m: m.name == "Ney")
+        report = naval.build_admiralty_report(_r17_world)
+        ready = {r["marshal"] for r in report["embark_ready"]}
+        assert ready == {"Davout", "Napoleon"}
+        assert all("Ney" not in c["command"] for c in report["expedition_chips"])
+        rows = {row["marshal"] for r in naval.expedition_landing_options(_r17_world, "France").values()
+                for row in r}
+        assert rows == {"Davout", "Napoleon"}
+        # (largest first: Napoleon's 10,000 leads Davout's 9,000)
+        assert [m.name for m in naval._small_corps(_r17_world, "France")] == ["Napoleon", "Davout"]
+
+    def test_the_rule_is_read_in_one_place(self):
+        """No site but `sovereign_stays` reads `is_sovereign` in the Admiralty
+        module (the counsel's three sites were three inline copies)."""
+        from backend.game_logic import naval
+        src = inspect.getsource(naval)
+        assert src.count('"is_sovereign"') == 1, src.count('"is_sovereign"')
+
+
+class TestS14GX79:
+    """Sibling: the landing rows the region panel's chips read, and the Admiralty's
+    own Land chips, say where the corps stands in the rule's words -
+    `from_reason` on each row, "(an allied shore)" on the chip's note. THE OLD
+    READING: "9,000 men from Moravia" and nothing else."""
+
+    def test_the_landing_rows_carry_the_reason(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Davout", "Moravia")
+        _r17_only(_r17_world, "Davout")
+        options = naval.expedition_landing_options(_r17_world, "France")
+        assert options
+        for rows in options.values():
+            for row in rows:
+                assert row["from"] == "Moravia"
+                assert row["from_reason"] == "an allied shore"
+        overlay = naval.map_naval_overlay(_r17_world)["expedition_landings"]
+        assert all(row["from_reason"] == "an allied shore"
+                   for rows in overlay.values() for row in rows)
+
+    def test_the_land_chip_note_names_it(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Davout", "Moravia")
+        _r17_only(_r17_world, "Davout")
+        chips = naval.build_admiralty_report(_r17_world)["expedition_chips"]
+        assert chips
+        for chip in chips:
+            assert chip["label"].startswith("Land Davout in ")
+            assert "9,000 men from Moravia (an allied shore)" in chip["note"], chip["note"]
+
+
+class TestS14GX80:
+    """Sibling: the region panel's withheld-landing reason (`expedition_blocked_reasons`,
+    the executor's gate in words) said "no corps ... stands at a yard ... - march
+    one there" with no word of where the counselable corps DO stand, and (the
+    Emperor on a shore) nothing of him either."""
+
+    def test_the_blocked_reason_names_where_the_corps_stand(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_put(_r17_world, "Ney", "Dresden")
+        _r17_only(_r17_world, "Ney")
+        blocked = naval.expedition_blocked_reasons(_r17_world, "France")
+        reasons = {r for region, r in blocked.items()
+                   if _r17_world.regions[region].controller == "Britain"}
+        assert len(reasons) == 1
+        reason = reasons.pop()
+        near = _r17_oracle(_r17_world, "France", "Dresden")
+        assert f"Ney at Dresden — inland; nearest shore {near[0]}" in reason
+        assert reason.endswith("— march one there")
+
+    def test_the_emperor_on_a_shore_is_named_once_in_it(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_ally_shore(_r17_world)
+        _r17_put(_r17_world, "Ney", "Dresden")
+        _r17_put(_r17_world, "Napoleon", "Moravia", 10000)
+        _r17_only(_r17_world, "Ney", "Napoleon")
+        blocked = naval.expedition_blocked_reasons(_r17_world, "France")
+        reason = next(r for region, r in blocked.items()
+                      if _r17_world.regions[region].controller == "Britain")
+        assert reason.count("does not sail") == 1
+        assert _R17_STAYS in reason
+
+
+class TestS14GX81:
+    """Sibling: the Admiralty's march chip says where the corps stands in the
+    rule's words, beside the road (the chip IS the answer to "why can he not
+    sail from here?")."""
+
+    def test_the_march_chip_reads_the_corps_position(self, _r17_world):
+        from backend.game_logic import naval
+        lannes = _r17_put(_r17_world, "Lannes", "Franche-Comte", 6500)
+        _r17_only(_r17_world, "Lannes")
+        chips = naval.build_admiralty_report(_r17_world)["expedition_chips"]
+        assert len(chips) == 1 and chips[0]["command"].startswith("Lannes, march to ")
+        want = f"Lannes at Franche-Comte — {naval.embark_reason(_r17_world, lannes)}"
+        assert want in chips[0]["note"], chips[0]["note"]
+        assert "inland; nearest shore" in want
+
+
+class TestS14GX82:
+    """Sibling: the OVER-the-lift arm counted the Emperor too - an Emperor over
+    the lift standing at a yard made the page say "Napoleon commands 20,000 -
+    5,000 over the lift, and a garrison sheds only 3,000 at a time", counselling
+    the player to lighten a man who does not sail. It leaves him out now."""
+
+    def test_the_over_arm_does_not_name_the_emperor(self, _r17_world):
+        from backend.game_logic import naval
+        _r17_put(_r17_world, "Napoleon", "Normandy", 20000)
+        _r17_only(_r17_world, "Napoleon")
+        detail = _r17_term(_r17_world)["detail"]
+        assert "Napoleon" not in detail or "does not sail" in detail
+        assert "5,000 over the lift" not in detail
+        assert detail == naval.no_small_corps_line(_r17_world, "France")
+
+
+class TestS14GX83:
+    """Sibling: the reason and the rule cannot disagree - on EVERY province of
+    the shipped board, a French corps standing there may embark exactly when the
+    reason is not an "inland" / "home soil" one, and every reason is one of
+    the rule's phrases."""
+
+    def test_the_reason_agrees_with_the_rule_everywhere(self, _r17_world):
+        from backend.game_logic import naval
+        yards = naval.controlled_dockyards(_r17_world, "France")
+        seen = set()
+        for region in _r17_world.regions:
+            probe = SimpleNamespace(location=region, nation="France")
+            ok = naval.embark_position_ok(_r17_world, probe, yards)
+            why = naval.embark_reason(_r17_world, probe, yards)
+            assert why, region
+            assert ok == (not why.startswith(("inland", "home soil"))), (region, ok, why)
+            seen.add(why.split(";")[0] if not ok else why)
+        assert {"a dockyard of ours", "an enemy shore", "inland", "home soil, not a yard"} <= seen, seen
+
+    def test_each_holder_has_its_phrase(self, _r17_world):
+        from backend.game_logic import naval
+        w = _r17_world
+        _r17_ally_shore(w, "Moravia")                         # Bavaria: an ally
+        w.regions["Croatia"].controller = "Austria"           # at war with France
+        w.regions["Munster"].controller = "France"            # ours, across the water (DDB-21)
+        w._evac_direction_cache = None
+        neutral = next(n for n, r in w.regions.items()
+                       if r.is_coastal and r.controller not in (None, "France")
+                       and not w.is_at_war("France", r.controller)
+                       and w.get_diplomatic_state("France", r.controller)
+                       not in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+                       and not (w.vassals or {}).get(r.controller, {}).get("lord") == "France")
+        m = SimpleNamespace(nation="France", location="Moravia")
+        assert naval.embark_reason(w, m) == "an allied shore"
+        m.location = "Croatia"
+        assert naval.embark_reason(w, m) == "an enemy shore"
+        m.location = "Munster"
+        assert naval.embark_reason(w, m) == "our own shore across the water"
+        m.location = neutral
+        assert naval.embark_reason(w, m) == "a neutral shore"
+        m.location = "Normandy"
+        assert naval.embark_reason(w, m) == "a dockyard of ours"
+
+
+class TestS14GX84:
+    """Sibling (the client): the ledger's "Ready to embark" line carries the
+    reason each `embark_ready` row now brings."""
+
+    def test_the_ledger_ready_line_reads_the_reason(self):
+        src = (_R17_SCRIPTS / "strategic_ledger.gd").read_text(encoding="utf-8")
+        head = src.index("func _render_admiralty_orders")
+        body = src[head:src.index("\nfunc ", head + 10)]
+        assert 'corps.get("reason", "")' in body
+        assert '(" — " + why if why != "" else "")' in body
+        assert "S14G-17" in body
+
+
+@contextlib.contextmanager
+def _r17_served(world):
+    """The shipped board at the wire: the three module globals swapped together
+    (the testclient world swap) with a mock parser."""
+    import os
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    saved_env = os.environ.get("LLM_MODE")
+    os.environ["LLM_MODE"] = "mock"
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = world
+    M.world = world
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        with _r17_quiet():
+            yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+        if saved_env is None:
+            os.environ.pop("LLM_MODE", None)
+        else:
+            os.environ["LLM_MODE"] = saved_env
+
+
+class TestS14GX85:
+    """Sibling (decided by the coordinator under the standing delegation):
+    the rule the four surfaces state is ENFORCED. THE OLD READING: the counsel,
+    the help and the term said "the Emperor does not sail" while the verb
+    drew up the expedition for him - a typed `land Napoleon in Ulster` quoted
+    "Napoleon with 10,000 men, Normandy to Ulster ... Sail? (yes / no)" and, confirmed,
+    sailed him (FA-D16's ruling (a) left the verb ungated). Now
+    `naval_executor._execute_naval_expedition` refuses the man
+    `naval.sovereign_stays` names, free, before anything is quoted or in
+    transit. Golden Rule 5: the AI walks this executor; no AI nation has a
+    sovereign on the shipped board, and `find_ai_expedition` skips the same man
+    (so an authored enemy sovereign sends his next corps instead of being
+    proposed and refused)."""
+
+    def _napoleon_at_a_yard(self, world):
+        _r17_put(world, "Napoleon", "Normandy", 10000)
+        return world.get_marshal("Napoleon")
+
+    def test_a_typed_order_for_the_emperor_is_refused_free_with_the_sentence(self, _r17_boot):
+        world = _r17_copy(_r17_boot)
+        self._napoleon_at_a_yard(world)
+        mil, admin = int(world.actions_remaining), int(world.admin_actions_remaining)
+        with _r17_served(world) as client:
+            data = client.post("/command", json={"command": "land Napoleon in Ulster"}).json()
+        assert data.get("success") is False, data
+        assert data["message"].startswith(_R17_STAYS + "."), data["message"]
+        assert data.get("state") != "awaiting_clarification"
+        assert not data.get("options")
+        assert (int(world.actions_remaining), int(world.admin_actions_remaining)) == (mil, admin)
+
+    def test_the_executor_refuses_him_confirmed_too(self, _r17_boot):
+        from backend.commands.executor import CommandExecutor
+        world = _r17_copy(_r17_boot)
+        self._napoleon_at_a_yard(world)
+        with _r17_quiet():
+            ex = CommandExecutor()
+            for extra in ({}, {"confirmed": True}):
+                result = ex._naval._execute_naval_expedition(
+                    {"marshal": "Napoleon", "target": "Ulster", **extra}, {"world": world})
+                assert result["success"] is False
+                assert result["message"] == _R17_STAYS + "."
+                assert result["variable_action_cost"] == 0
+        assert world.get_marshal("Napoleon").location == "Normandy"
+
+    def test_a_marshal_still_quotes(self, _r17_boot):
+        world = _r17_copy(_r17_boot)
+        _r17_ally_shore(world)
+        _r17_put(world, "Davout", "Moravia")
+        mil = int(world.actions_remaining)
+        with _r17_served(world) as client:
+            data = client.post("/command", json={"command": "land Davout in Ulster"}).json()
+        assert data.get("success") is True, data
+        assert data.get("state") == "awaiting_clarification"
+        assert "The expedition is drawn up, Sire: Davout with 9,000 men" in data["message"]
+        assert int(world.actions_remaining) == mil
+
+    def test_the_help_states_the_rule_the_verb_enforces(self, _r17_boot):
+        world = _r17_copy(_r17_boot)
+        with _r17_served(world) as client:
+            text = client.post("/command", json={"command": "help"}).json().get("message") or ""
+        section = text[text.index("THE ADMIRALTY"):]
+        assert "the Emperor does not sail" in section
+        assert "stays with the army" in _R17_STAYS
+
+    def test_the_ai_never_proposes_a_sovereign(self, _r17_boot):
+        """By construction no AI nation has one on the shipped board; and when a
+        court's corps IS a sovereign (personality is what makes `is_sovereign`)
+        the rung sends nobody rather than a man the executor refuses."""
+        from backend.game_logic import naval
+        world = _r17_copy(_r17_boot)
+        assert [m.name for m in world.marshals.values()
+                if m.is_sovereign and m.nation != "France"] == []
+        moore = world.get_marshals_by_nation("Britain")[0]
+        moore.location, moore.strength = "London", 12000
+        world._build_marshal_index()
+        order = naval.find_ai_expedition(world, "Britain")
+        assert order is not None and order["marshal"] == moore.name
+        moore.personality = "sovereign"
+        assert moore.is_sovereign
+        assert naval.find_ai_expedition(world, "Britain") is None
+
+    def test_the_seam_is_the_one_predicate(self, _r17_boot, monkeypatch):
+        """Held down (no one stays) the gate and the AI filter both lift:
+        Napoleon's order is drawn up again - the series tool's 'down'."""
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import naval
+        world = _r17_copy(_r17_boot)
+        self._napoleon_at_a_yard(world)
+        monkeypatch.setattr(naval, "sovereign_stays", lambda m: False)
+        with _r17_quiet():
+            result = CommandExecutor()._naval._execute_naval_expedition(
+                {"marshal": "Napoleon", "target": "Ulster"}, {"world": world})
+        assert result["success"] is True and result["state"] == "awaiting_clarification"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row18
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-18 (October 26, 2026): the levy's refusal never
+# sends the player to a man the levy passes over.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-18): "No marshal of infantry can reach
+# Normandy" - then "Dumonceau commands our foot at Normandy" - then "his men
+# belong to Holland". Two helpers disagreed. The levy selector
+# (`WorldState.ready_marshals_near(for_levy=True)`) passes over a serving
+# contingent through `contingent.levy_passes_over` (SF5-RV1), so Holland's
+# Dumonceau was no recipient and the sentence said "none of ours stands within
+# reach" - but the remedy (`economy_executor.recruit_arm_remedy`, and the DDB-R5
+# refusal `named_arm_refusal`) built its list of commanders straight from
+# `world.marshals`, named him at distance 0 and told the player "march him
+# within reach, or give him the order yourself: 'Dumonceau, recruit infantry'".
+# The named order then ran into `contingent.lord_fill_refusal`: "Dumonceau's men
+# belong to Holland, Sire - it raises and pays them. Recruit into one of our own
+# corps." He stood at Normandy already, so "march him within reach" meant
+# nothing. The chip carried the same remedy (`_recruit_quote_core` returns it as
+# the quote's `remedy`, which the region panel's chip prints as its `short`).
+#
+# THE SIGHTING (DD-B's third measure, conquest #11, P3, turn 14, action 271): the
+# player typed `recruit infantry in Normandy`, then `Dumonceau, recruit
+# infantry` as the game suggested.
+#
+# THE FIX. `economy_executor._arm_men(world, nation, arm)` splits the living,
+# free commanders of an arm into `(own, client)` by the ONE predicate the
+# selector uses (`levy_passes_over`, SF5-RV1). `recruit_arm_remedy` and
+# `named_arm_refusal` read `own` only; where a contingent's man of the asked arm
+# stands within the selector's reach, `contingent_arm_clause` says why he is not
+# the recipient ("Dumonceau commands our foot here, but Holland pays its men -
+# recruit into one of our own corps.") ahead of the way on - ONE builder, read
+# by the refusal (`_msg_no_arm_in_range`), the quote's `remedy` and so the
+# chip/desk. A corps of ours already standing AT the province is no longer told
+# to be marched "within reach" (S14G-X87).
+#
+# WHAT WAS KEPT. The selector, the named order's own refusal (`lord_fill_refusal`)
+# and every sentence where no contingent stands in reach, byte for byte. Player-
+# only text: no AI road reads these sentences (the AI's levy picks its own man,
+# `enemy_ai._find_weakest_marshal_for_admin`, which already passes the contingent
+# over), so there is no series seam.
+
+_R18_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+
+_R18_CLAUSE = ("Dumonceau commands our foot here, but Holland pays its men "
+               "— recruit into one of our own corps.")
+_R18_SOULT_ROAD = ("Soult commands our foot at Lorraine — march him within reach, "
+                   "or give him the order yourself: 'Soult, recruit infantry'.")
+
+
+def _r18_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r18_boot():
+    from backend.models.world_state import WorldState
+    with _r18_quiet():
+        return WorldState.from_scenario(str(_R18_SCENARIO))
+
+
+def _r18_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r18_world(boot, *, at: str = "Normandy"):
+    """The shipped board with Holland's contingent raised (France and Holland
+    share the war with Britain) and Dumonceau standing at `at`. At the boot no
+    corps of ours is within a march of Normandy, so he is the only man there."""
+    from backend.game_logic import contingent as C
+    world = _r18_copy(boot)
+    with _r18_quiet():
+        beat = C.raise_contingent(world, "Holland")
+    assert beat is not None, "Holland could not raise its contingent"
+    record = C.contingent_record(world, "Holland")
+    dumonceau = world.marshals[record["marshal"]]
+    dumonceau.location = at
+    world.gold = 20000   # the boot chest (800) cannot pay a 872-gold field levy
+    return world, dumonceau
+
+
+def _r18_executor():
+    from backend.commands.executor import CommandExecutor
+    with _r18_quiet():
+        return CommandExecutor()
+
+
+def _r18_send(world, command: dict) -> dict:
+    with _r18_quiet():
+        return _r18_executor().execute({"command": command}, {"world": world})
+
+
+def _r18_recruit_in(world, province: str, arm: str = "infantry") -> dict:
+    return _r18_send(world, {"raw_input": f"recruit {arm} in {province}", "action": "recruit",
+                             "target": province, "requested_type": arm})
+
+
+class TestS14G18:
+    """The defect on the shipped board. The old reading, reproduced before the
+    fix: `recruit infantry in Normandy` answered "... none of ours stands within
+    reach.' Dumonceau commands our foot at Normandy — march him within reach, or
+    give him the order yourself: 'Dumonceau, recruit infantry'. Nothing was
+    spent." and the order it named was refused with "Dumonceau's men belong to
+    Holland"."""
+
+    def test_the_sighting_names_the_blocked_reason_once(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        quote = recruit_quote(world, "Normandy", arm="infantry")
+        assert quote["kind"] == "no_arm_in_range"
+        reason = quote["reason"]
+        assert reason.count(_R18_CLAUSE) == 1, reason
+        assert reason.count("Dumonceau") == 1, reason
+        assert "Dumonceau commands our foot at Normandy" not in reason
+        assert "march him within reach, or give him the order yourself: 'Dumonceau" not in reason
+        assert "'Dumonceau, recruit" not in reason
+        assert "Nothing was spent." in reason
+
+    def test_the_way_on_is_a_man_the_levy_can_reach(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        reason = recruit_quote(world, "Normandy", arm="infantry")["reason"]
+        assert _R18_CLAUSE + " " + _R18_SOULT_ROAD in reason, reason
+
+    def test_nobody_of_our_own_is_said_when_only_the_contingent_stands_there(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        reason = recruit_quote(world, "Normandy", arm="infantry")["reason"]
+        assert "none of our own corps stands within reach" in reason
+        assert "none of ours stands within reach" not in reason
+
+    def test_the_typed_order_answers_in_the_quotes_words(self, _r18_boot):
+        """CN-1's drift rule: the executor's refusal IS the quote's `reason`."""
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        quote = recruit_quote(world, "Normandy", arm="infantry")
+        result = _r18_recruit_in(world, "Normandy")
+        assert result.get("success") is False
+        assert result["message"] == quote["reason"]
+        assert int(world.admin_actions_remaining) >= 1, "nothing was spent"
+
+    def test_the_chip_and_the_panel_carry_the_same_remedy(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        quote = recruit_quote(world, "Normandy", arm="infantry")
+        assert quote["remedy"].startswith(_R18_CLAUSE), quote["remedy"]
+        assert quote["short"] == quote["remedy"]
+        assert "Dumonceau, recruit" not in quote["remedy"]
+        block = world._region_recruit_block(world.get_region("Normandy"))
+        assert block["arms"]["infantry"]["short"] == quote["short"]
+
+    def test_the_named_order_refuses_as_before(self, _r18_boot):
+        world, dumonceau = _r18_world(_r18_boot)
+        gold = int(world.gold)
+        pool = int(world.manpower_pools["France"]["infantry"])
+        result = _r18_send(world, {"raw_input": "Dumonceau, recruit infantry",
+                                   "action": "recruit", "marshal": "Dumonceau",
+                                   "requested_type": "infantry"})
+        assert result.get("success") is False
+        assert result["message"] == ("Dumonceau's men belong to Holland, Sire — it raises "
+                                     "and pays them. Recruit into one of our own corps.")
+        assert (int(world.gold), int(world.manpower_pools["France"]["infantry"])) == (gold, pool)
+
+    def test_a_corps_of_ours_in_reach_is_named_and_levies(self, _r18_boot):
+        """Soult one march from Normandy: the selector takes HIM (not the
+        contingent) and the refusal for an arm nobody commands lists him."""
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot)
+        soult = world.get_marshal("Soult")
+        soult.location = "Normandy"
+        ok = recruit_quote(world, "Normandy", arm="infantry")
+        assert ok["ok"] is True and ok["recipient"] == "Soult"
+        cavalry = recruit_quote(world, "Normandy", arm="cavalry")
+        assert cavalry["kind"] == "no_arm_in_range"
+        assert "Soult commands infantry" in cavalry["reason"], cavalry["reason"]
+        # no contingent clause for an arm the contingent does not command
+        assert "pays its men" not in cavalry["reason"]
+
+    def test_the_bare_order_at_the_capital_reads_the_same_clause(self, _r18_boot):
+        """`recruit infantry` is raised at Paris; Dumonceau at Normandy is one
+        march away - in reach, passed over, and said so (where he stands)."""
+        world, _d = _r18_world(_r18_boot)
+        result = _r18_send(world, {"raw_input": "recruit infantry", "action": "recruit",
+                                   "requested_type": "infantry"})
+        assert result.get("success") is False
+        msg = result["message"]
+        assert ("Dumonceau commands our foot at Normandy, but Holland pays its men "
+                "— recruit into one of our own corps.") in msg, msg
+        assert "'Dumonceau, recruit" not in msg
+        assert "give him the order yourself: 'Dumonceau" not in msg
+
+    def test_a_contingent_out_of_reach_is_not_named_at_all(self, _r18_boot):
+        """Passed over AND out of reach: nothing to say about him - the
+        sentence is the board's old one, byte for byte."""
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot, at="Amsterdam")
+        reason = recruit_quote(world, "Normandy", arm="infantry")["reason"]
+        assert "Dumonceau" not in reason
+        assert "none of ours stands within reach" in reason
+        assert "pays its men" not in reason
+
+
+class TestS14G18NamedArmRefusal:
+    """DDB-R5's refusal (`named_arm_refusal`: `recruit infantry for Murat`)
+    had the same unfiltered list - it sent the player to 'Dumonceau, recruit'
+    when he was the nearest commander of the asked arm."""
+
+    def test_the_nearest_commander_the_levy_can_reach_is_named(self, _r18_boot):
+        from backend.commands.economy_executor import named_arm_refusal
+        world, dumonceau = _r18_world(_r18_boot, at="Franche-Comte")
+        murat = world.get_marshal("Murat")
+        lannes = world.get_marshal("Lannes")
+        # Nearest to Murat by distance, then strength: make Dumonceau the
+        # stronger of the two at Murat's own province - the old pick.
+        lannes.strength = 3000
+        dumonceau.strength = 6500
+        assert murat.location == lannes.location == dumonceau.location == "Franche-Comte"
+        message = named_arm_refusal(world, murat, "infantry")
+        assert "Dumonceau" not in message, message
+        assert "'Lannes, recruit' raises them at Franche-Comte" in message, message
+        assert message.endswith("Nothing was spent.")
+
+    def test_the_typed_order_is_refused_free_in_those_words(self, _r18_boot):
+        world, dumonceau = _r18_world(_r18_boot, at="Franche-Comte")
+        world.get_marshal("Lannes").strength = 3000
+        dumonceau.strength = 6500
+        result = _r18_send(world, {"raw_input": "recruit infantry for Murat", "action": "recruit",
+                                   "marshal": "Murat", "requested_type": "infantry"})
+        assert result.get("success") is False
+        assert "Dumonceau" not in result["message"], result["message"]
+        assert "'Lannes, recruit'" in result["message"]
+
+    def test_with_no_corps_of_ours_the_blocked_reason_stands_before_the_bench(self, _r18_boot):
+        """Every other foot corps gone: the contingent is NOT the road - the
+        refusal says why, then the commission road."""
+        from backend.commands.economy_executor import named_arm_refusal
+        world, _d = _r18_world(_r18_boot, at="Franche-Comte")
+        for key in ("Ney", "Davout", "Soult", "Lannes", "Bernadotte", "Massena", "Napoleon"):
+            world.marshals.pop(key, None)
+        murat = world.get_marshal("Murat")
+        message = named_arm_refusal(world, murat, "infantry")
+        assert "Dumonceau commands ours at Franche-Comte, but Holland pays his men — " in message
+        assert "'Dumonceau, recruit' raises them" not in message
+        assert "commission " in message or "none serves us" in message
+
+
+class TestS14GX87:
+    """S14G-X87 - a corps of ours standing AT the province is not told to be
+    marched 'within reach' (the row's own clause for the contingent, and the
+    same defect for our own corps the selector passes over as too weak: the
+    selector takes a corps of 1,000 or more, so 800 men at Normandy are no
+    recipient - and `march him within reach` meant nothing)."""
+
+    def test_a_weak_corps_at_the_province_gets_only_its_own_order(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_quote
+        world, _d = _r18_world(_r18_boot, at="Amsterdam")
+        soult = world.get_marshal("Soult")
+        soult.location = "Normandy"
+        soult.strength = 800
+        quote = recruit_quote(world, "Normandy", arm="infantry")
+        assert quote["kind"] == "no_arm_in_range"
+        assert ("Soult commands our foot here — give him the order yourself: "
+                "'Soult, recruit infantry'.") in quote["reason"], quote["reason"]
+        assert "march him within reach" not in quote["reason"]
+
+    def test_that_order_acts(self, _r18_boot):
+        """The remedy is an order the game takes (CN-3's rule for remedies)."""
+        world, _d = _r18_world(_r18_boot, at="Amsterdam")
+        soult = world.get_marshal("Soult")
+        soult.location = "Normandy"
+        soult.strength = 800
+        result = _r18_send(world, {"raw_input": "Soult, recruit infantry", "action": "recruit",
+                                   "marshal": "Soult", "requested_type": "infantry"})
+        assert result.get("success") is True, result.get("message")
+
+    def test_a_corps_a_march_away_keeps_the_march_sentence(self, _r18_boot):
+        """The CN-2/CN-3 sentences for a man elsewhere are unchanged."""
+        from backend.commands.economy_executor import recruit_arm_remedy
+        world, _d = _r18_world(_r18_boot, at="Amsterdam")
+        text = recruit_arm_remedy(world, "France", "infantry", "Normandy")
+        assert text == _R18_SOULT_ROAD, text
+        # No province named: the strongest commander, as before (Massena stands on
+        # Milan, Kingdom of Italy's soil: no order is offered there - CN-3).
+        assert recruit_arm_remedy(world, "France", "infantry", None) == (
+            "Massena commands our foot at Milan — march him within reach.")
+
+
+class TestS14GX88:
+    """S14G-X88 - the remedy with no commander of the arm of our own: the
+    contingent's man stands in reach and is the only foot there is. The
+    blocked reason leads, then the bench road - never 'No commander of foot
+    serves us' beside 'Dumonceau commands our foot'."""
+
+    def test_the_reason_leads_then_the_commission_road(self, _r18_boot):
+        from backend.commands.economy_executor import recruit_arm_remedy
+        world, _d = _r18_world(_r18_boot)
+        for key in ("Ney", "Davout", "Soult", "Lannes", "Bernadotte", "Massena", "Napoleon"):
+            world.marshals.pop(key, None)
+        text = recruit_arm_remedy(world, "France", "infantry", "Normandy")
+        assert text.startswith("Dumonceau commands our foot here, but Holland pays its men. "), text
+        assert "No commander of foot of our own serves us" in text
+        assert "recruit into one of our own corps" not in text
+
+    def test_the_arm_nobody_commands_is_unchanged(self, _r18_boot):
+        """Artillery: no contingent commands guns - the CN-2 sentence."""
+        from backend.commands.economy_executor import recruit_arm_remedy
+        world, _d = _r18_world(_r18_boot)
+        text = recruit_arm_remedy(world, "France", "artillery", "Normandy")
+        assert "Dumonceau" not in text and "pays its men" not in text
+
+
+class TestS14GX89:
+    """S14G-X89 - the desk's levy answer (`state_desk._answer_levy_cost`)
+    prints the executor's own refusal, so the blocked reason reaches it - and
+    the substitute market's 'name the marshal' advice does not name him."""
+
+    def test_the_desk_answer_carries_the_sentence(self, _r18_boot):
+        from backend.ai.state_desk import _answer_levy_cost
+        world, _d = _r18_world(_r18_boot)
+        answer = _answer_levy_cost(world, "infantry", "Normandy")
+        assert _R18_CLAUSE in answer, answer
+        assert "Dumonceau, recruit" not in answer
+
+    def test_the_levy_price_answer_does_not_send_to_the_contingent(self, _r18_boot):
+        from backend.ai.question_desk import _answer_levy_price
+        world, _d = _r18_world(_r18_boot)
+        answer = _answer_levy_price(world, "France", "infantry") or ""
+        # "At Paris the bare order is refused: <the refusal's remedy>" - the
+        # contingent one march off is named WITH why he is not the way.
+        assert ("Dumonceau commands our foot at Normandy, but Holland pays its men "
+                "— recruit into one of our own corps.") in answer, answer
+        assert "'Dumonceau, recruit" not in answer
+        assert "march him within reach, or give him the order yourself: 'Dumonceau" not in answer
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row19
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-19 (October 26, 2026): a map LABEL is a click
+# target.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-19): clicking the stack label "Ney +4" opened
+# the province under the label, not the marshals. The label is a plain `Label`
+# with `mouse_filter = MOUSE_FILTER_IGNORE` - no hitbox - and the comment at its
+# creation said "Hover hitboxes stay per-marshal". Hits came only from the
+# per-marshal footprint rects (`marshal_hitboxes`, tested in
+# `_refresh_hover_state`); anything else fell to `_lookup_region_from_color_map`,
+# the province whose pixels lie under the cursor. The label floats
+# `0.6 x 64 + 8 + ranks x 16` (about 78) world px above the stack's ground point
+# and `map_label_layer._lay_out_furniture` can shift it further; the boxes do not
+# follow. The command strip tells the player to click a marshal, and the visible
+# name was not clickable.
+#
+# THE SIGHTING (DD-B's third measure, conquest #12, P3, turn 2, action 36): Ney
+# stood at Franconia, the label sat over Rhineland, so Rhineland's panel opened;
+# clicking the piece (action 37) selected Ney.
+#
+# THE FIX (`map_renderer_base.gd`, `map_label_layer.gd`):
+# * `label_hitboxes` / `sail_hitboxes` - one box per label, {rect (WORLD), node,
+#   <binding>}, the binding the same dictionary the pieces' boxes carry:
+#   `marshal` for a marshal's name label (his own) and for the stack label (the
+#   group's LEAD, the man the label names), `force` for a fogged force's name,
+#   `region` for a garrison chip, `fleet` for a sail count.
+# * `_add_label_hitbox` builds each from the label's own node
+#   (`_label_hit_rect`: where it stands now, the larger of its size and its theme
+#   minimum, nothing when it is hidden or freed).
+# * `sync_label_hitboxes` re-seats every box on its label; the label layer calls
+#   it at the end of `_lay_out_furniture` (the layout moves, nudges and hides
+#   names and chips) and `_layout_sail_labels` after it resets the counts. The
+#   fogged "?" chips' boxes (`fogged_force_hitboxes`) ride their chip the same
+#   way (S14G-X92).
+# * `_refresh_hover_state` reads the labels AFTER the pieces (CC-X5: the front
+#   piece still wins the hit) and before the colour map; a garrison chip's
+#   province also wins the CLICK over the colour map under it (`_label_region_hit`).
+# * `_label_avoid_world_rects` is untouched: the text furniture yields to the
+#   place names (UXR-X28), it is not an obstacle to them.
+#
+# WHAT WAS KEPT. The pieces' boxes, the order ring's feet and the camera focus
+# (`marshal_hitboxes` only); the drag arm and the click's emit (the label's man
+# rides the same `hovered_marshal` -> `last_click_marshal` road as his piece).
+# Player-only client change: no backend seam.
+#
+# The pins read the .gd source; the driven class (`@pytest.mark.engine`, SKIPS
+# when the engine is absent - and a skip is not a pass) pushes a real press and
+# release on the VISIBLE label through `tools/s14h_r19_label_click_harness.gd`.
+
+REPO = Path(__file__).resolve().parents[1]
+PROJECT = REPO / "godot-client" / "project-sovereign"
+BASE_GD = PROJECT / "scenes" / "map_renderer_base.gd"
+LABEL_GD = PROJECT / "scenes" / "map_label_layer.gd"
+HARNESS = REPO / "tools" / "s14h_r19_label_click_harness.gd"
+
+
+def _r19_src(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _r19_func(src: str, name: str) -> str:
+    start = src.index(f"func {name}(")
+    nxt = src.find("\nfunc ", start + 1)
+    return src[start:] if nxt < 0 else src[start:nxt]
+
+
+class TestS14G19:
+    """The hitbox creation per label kind, the re-sync after the furniture
+    layout and the hover test that reads them - pinned on the source."""
+
+    def test_the_stores_exist_and_say_what_they_are(self):
+        src = _r19_src(BASE_GD)
+        assert "var label_hitboxes: Array = []" in src
+        assert "var sail_hitboxes: Array = []" in src
+        assert "var _label_region_hit: String = \"\"" in src
+
+    def test_a_marshals_name_label_is_his_click_target(self):
+        body = _r19_func(_r19_src(BASE_GD), "_create_marshal_nodes")
+        gate = body.index("if not in_collapsed_group:")
+        named = body.index('_add_label_hitbox(label_hitboxes, name_label, {"marshal": marshal})')
+        piece = body.index("marshal_hitboxes.append({")
+        assert gate < named < piece
+        # inside the label gate (three tabs), the piece box still at loop level
+        assert '\n\t\t\t_add_label_hitbox(label_hitboxes, name_label, {"marshal": marshal})' in body
+        assert "\n\t\tmarshal_hitboxes.append({" in body
+
+    def test_the_stack_label_is_the_lead_marshals_click_target(self):
+        body = _r19_func(_r19_src(BASE_GD), "_create_marshal_nodes")
+        # the lead is taken in the SAME loop that names the label ("Ney +4")
+        loop = body.index("var lead_marshal: Dictionary = {}")
+        assert loop < body.index("lead_marshal = m") < body.index('var stack_text := "%s +%d" % [lead_name, group_size - 1]')
+        added = body.index('_add_label_hitbox(label_hitboxes, stack_label, {"marshal": lead_marshal})')
+        assert body.index('_add_furniture("stack", [stack_label])') < added < body.index("stack_row += 1")
+
+    def test_a_fogged_forces_name_and_chip_boxes_are_bound(self):
+        body = _r19_func(_r19_src(BASE_GD), "_create_fogged_force_nodes")
+        assert '_add_label_hitbox(label_hitboxes, name_label, {"force": force})' in body
+        assert '"node": icon_panel,' in body, "the chip's box rides its chip"
+
+    def test_a_garrison_chip_is_its_provinces_click_target(self):
+        src = _r19_src(BASE_GD)
+        head = ("func _create_garrison_node(region_pos: Vector2, garrison_data: Dictionary, "
+                "controller: String, visibility: String, region_name: String = \"\"):")
+        assert head in src
+        body = _r19_func(src, "_create_garrison_node")
+        assert '_add_label_hitbox(label_hitboxes, panel, {"region": region_name})' in body
+        assert body.index('_add_furniture("garrison", [panel])') < body.index("_add_label_hitbox(")
+        rebuild = _r19_func(src, "_rebuild_dynamic_nodes")
+        assert ("_create_garrison_node(region_pos, region_garrisons[region_name], "
+                "controller, visibility, region_name)") in rebuild
+        assert "label_hitboxes.clear()" in rebuild
+        assert rebuild.index("label_hitboxes.clear()") < rebuild.index("_create_marshal_nodes(")
+
+    def test_a_sail_count_is_its_fleets_click_target(self):
+        body = _r19_func(_r19_src(BASE_GD), "_update_fleet_pieces")
+        assert "sail_hitboxes.clear()" in body
+        assert body.index("sail_hitboxes.clear()") < body.index("pieces_layer == null")
+        assert '_add_label_hitbox(sail_hitboxes, sail_label, {"fleet": entry})' in body
+        assert body.index("_layout_sail_label(sail_label, anchor)") < body.index(
+            "_add_label_hitbox(sail_hitboxes")
+
+    def test_a_box_is_where_its_label_stands_and_nothing_when_it_is_not_drawn(self):
+        body = _r19_func(_r19_src(BASE_GD), "_label_hit_rect")
+        assert "not is_instance_valid(node)" in body
+        assert "not (node as CanvasItem).visible" in body
+        assert "return Rect2()" in body
+        assert "c.position + world_bounds.position" in body
+        assert "c.get_combined_minimum_size()" in body
+
+    def test_the_boxes_follow_the_layout(self):
+        base = _r19_src(BASE_GD)
+        sync = _r19_func(base, "sync_label_hitboxes")
+        assert "for box in label_hitboxes:" in sync and "for box in sail_hitboxes:" in sync
+        assert "for box in fogged_force_hitboxes:" in sync
+        assert "_refresh_hover_state()" in sync
+        layer = _r19_src(LABEL_GD)
+        furniture = _r19_func(layer, "_lay_out_furniture")
+        report = furniture.index('_furniture_report = {"moved": moved')
+        call = furniture.index("_renderer.sync_label_hitboxes()")
+        assert report < call, "the boxes are re-seated AFTER the layout moved the labels"
+        assert 'has_method("sync_label_hitboxes")' in furniture
+        # the sail counts reset to their authored places by `_layout_sail_labels`
+        assert "sync_label_hitboxes()" in _r19_func(base, "_layout_sail_labels")
+
+    def test_the_hover_reads_labels_after_the_pieces_and_before_the_colour_map(self):
+        body = _r19_func(_r19_src(BASE_GD), "_refresh_hover_state")
+        front = body.index("rect.end.y >= front_bottom")
+        marshal = body.index('_label_hit("marshal", map_mouse, label_hitboxes)')
+        chips = body.index("for hitbox in fogged_force_hitboxes:")
+        force = body.index('_label_hit("force", map_mouse, label_hitboxes)')
+        fleets = body.index("for hitbox in ([] if ordering else fleet_hitboxes):")
+        sail = body.index('_label_hit("fleet", map_mouse, sail_hitboxes)')
+        garrison = body.index('_label_hit("region", map_mouse, label_hitboxes)')
+        colour = body.index("var color_map_region = _lookup_region_from_color_map(map_mouse)")
+        assert front < marshal < chips < force < fleets < sail < garrison < colour
+        # the front PIECE still wins; the sail count obeys the ship's ordering rule
+        assert "null if ordering else _label_hit(" in body
+        assert body.index("hovered_marshal = front") < marshal
+
+    def test_a_chips_province_wins_the_click_over_the_colour_map_under_it(self):
+        src = _r19_src(BASE_GD)
+        click = src.index("var clicked_region = _lookup_region_from_color_map(_screen_to_map_position(event.position))")
+        win = src.index("if _label_region_hit != \"\":", click)
+        assert win < src.index("region_clicked.emit(clicked_region)", click)
+        assert 'clicked_region = _label_region_hit' in src
+        assert '_label_region_hit = ""' in _r19_func(src, "_clear_hover_state")
+
+    def test_the_labels_boxes_are_not_obstacles_to_the_place_names(self):
+        """UXR-X28's pin, held: only the pieces' footprints are avoid rects."""
+        base = _r19_src(BASE_GD)
+        appends = re.findall(r"_label_avoid_world_rects\.append\((.*?)\)\n", base)
+        assert appends == ["hitbox_rect"], appends
+
+    def test_the_pieces_keep_their_boxes_for_the_ring_and_the_camera(self):
+        """`_order_piece_feet` / `screen_point_of_marshal` read `marshal_hitboxes`
+        only: a label's box never stands in for a man's feet."""
+        base = _r19_src(BASE_GD)
+        for fn in ("_order_piece_feet", "screen_point_of_marshal"):
+            body = _r19_func(base, fn)
+            assert "marshal_hitboxes" in body and "label_hitboxes" not in body, fn
+
+    def test_the_geometry_of_the_sighting(self):
+        """Mirrors the .gd constants: for a mass of six, at the whole-Europe
+        furniture scale, the stack label's centre lies above EVERY piece
+        footprint - only a box on the label itself can catch the click."""
+        src = _r19_src(BASE_GD)
+        frame = float(re.search(r"const WAR_PIECE_FRAME_PX: float = ([\d.]+)", src).group(1))
+        spacing = float(re.search(r"const WAR_PIECE_SLOT_SPACING: float = ([\d.]+)", src).group(1))
+        depth = float(re.search(r"const WAR_PIECE_RANK_DEPTH: float = ([\d.]+)", src).group(1))
+        count, scale = 6, 2.0
+        ranks = 2 if count <= 4 else 3
+        top_of_boxes = min(-(i % ranks) * depth - frame * 0.62 for i in range(count))
+        stack_h = 14.0 * scale
+        rear_ranks = 1 if count <= 4 else 2
+        stack_y = -(frame * 0.6 + 8.0 + rear_ranks * depth) + 14.0 - stack_h
+        centre_y = stack_y + stack_h / 2.0
+        assert centre_y < top_of_boxes, (centre_y, top_of_boxes)
+        assert centre_y < -(frame * 0.6), "and well above the stack's ground point"
+        assert spacing > 0
+
+
+# ═══ the client, driven ═════════════════════════════════════════════════════
+
+def _r19_board():
+    """Five corps of ours stacked at Rhineland (a collapsed group, "<lead> +4"),
+    Bernadotte alone at Franconia (his own name label), on the shipped boot."""
+    from tests import _chip_census as C
+    import backend.main as M
+    from fastapi.testclient import TestClient
+    C.boot()
+    world = M.world
+    for key in ("Ney", "Davout", "Soult", "Lannes", "Murat"):
+        world.marshals[key].location = "Rhineland"
+    C.refresh_view(world)
+    state = C.game_state_now()
+    with contextlib.redirect_stdout(io.StringIO()):
+        topology = TestClient(M.app).get("/map_topology").json()
+    here = [m for m in state["map_data"]["Rhineland"]["marshals"] if m.get("nation") == "France"]
+    assert len(here) == 5, [m.get("name") for m in here]
+    return {
+        "game_state": state,
+        "topology": topology,
+        "stack": {"text": "", "lead": here[0]["name"], "members": [m["name"] for m in here]},
+        "name": {"text": "Bernadotte", "key": "Bernadotte"},
+    }
+
+
+class TestS14G19Board:
+    """The driven class's board is staged without the engine, so a skip never
+    hides a broken stage: five corps of ours stacked at Rhineland (a collapsed
+    group - more than three of one nation), Bernadotte alone at Franconia, the
+    harness file present and named by the test."""
+
+    def test_the_stack_is_staged_on_the_shipped_board(self):
+        from tests import _chip_census as C
+        with pytest.MonkeyPatch.context() as mp:
+            C.board_env(mp)
+            spec = _r19_board()
+        stack = spec["stack"]
+        assert len(stack["members"]) == 5 and stack["lead"] == stack["members"][0]
+        assert {"Ney", "Davout", "Soult", "Lannes", "Murat"} == set(stack["members"])
+        marshals = spec["game_state"]["map_data"]["Franconia"]["marshals"]
+        assert [m["name"] for m in marshals if m.get("nation") == "France"] == ["Bernadotte"]
+        assert spec["topology"], "the topology the map needs rides the spec"
+
+    def test_the_harness_is_where_the_driven_class_runs_it(self):
+        text = _r19_src(HARNESS)
+        assert text.startswith("extends SceneTree")
+        assert "S14H_R19_SPEC" in text and "push_input" in text
+        assert "marshal_hitboxes" in text, "the click point stays off every piece"
+
+
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row20
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-20 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-20): End Turn warned "2 corps stand in peril -
+# an enemy force of ~29,126 shares the field" about an army that had left.
+#
+# THE CAUSE, as traced. `dispatch.end_turn_peril_warning` reads
+# `_known_enemy_force_at`, which summed the FROZEN `intel[loc].known_marshals`
+# snapshot. `update_intel_from_battle` (stage `_attack_relationships_and_report`)
+# records the defender while he still stands on the field; the forced retreat
+# (`_attack_forced_retreat`) then sends him away and the victor's advance
+# (`_attack_advance_and_capture`) moves the attacker - and neither refreshed
+# intel (`calculate_visibility()` ran only on a player march or at turn end). The
+# gate printed yesterday's man. The same figure on two turns: 29,126 was Mack's
+# post-battle strength (turn 1, Swabia; he was then captured at Munich) and
+# 16,772 Archduke Charles's after the battle that drove him to Tyrol (turn 2).
+#
+# THE SIGHTING. DD-B's third measure, diplomacy #2 (P3, turn 1, action 41) and
+# #3 (P3, turn 2, action 65).
+#
+# THE OLD READING, reproduced on the shipped 1805 board: Ney (9,000) beats Mack
+# (52,000, morale 30) at Swabia and Mack retreats to Munich with 18,885 men; the
+# snapshot of Swabia still lists "Mack, strength 19,075" and the gate said
+# "Ney's corps (8,415) stands in peril - an enemy force of ~19,075 shares the
+# field (Swabia)." about a province Mack had left.
+#
+# THE FIX. (1) `_known_enemy_force_at` reads a province IN SIGHT (PARTIAL or
+# better - the map's rule, `intel_surfaces.in_sight`) LIVE: a man the roster knows
+# counts only where he stands now (`intel_surfaces.sighting_row`: exact at FULL,
+# his band at PARTIAL), a man who arrived since the snapshot counts too; a name
+# the roster has never heard of keeps its frozen figure, and a province NOT in
+# sight is the frozen snapshot exactly as before. `_derive_danger`'s IN PERIL, the
+# gate's clause and the desk's strength estimator (`_enemy_strength_estimate_
+# detail`, S14G-X94) all read it. (2) `CombatExecutor._refresh_sight_after_
+# attack` - one `calculate_visibility()` once the retreat and the advance have
+# moved men, for the PLAYER's attacks only (the AI's attacks gain no visibility
+# call).
+#
+# WHAT WAS KEPT. The clause's words; co-located only (an army beside a corps is
+# the morale line's reading); the PARTIAL band midpoint; the STALE province's
+# frozen snapshot; the player's march refresh; the AI's attacks (a guard, and the
+# BASELINE_SERIES arm that holds the refresh down is byte-identical).
+#
+# THE SEAMS. `CombatExecutor._refresh_sight_after_attack` (down: a no-op - the
+# fog follows only at turn end, as before). The live reader needs none: it is
+# player-facing text (the dispatch), not a mechanic.
+
+_R20_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_R20_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _r20_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r20_boot():
+    from backend.models.world_state import WorldState
+    with _r20_quiet():
+        return WorldState.from_scenario(str(_R20_SCENARIO))
+
+
+def _r20_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r20_battle(boot, ney_strength: int = 9000):
+    """Ney (France) attacks Mack at Swabia; Mack loses and retreats to Munich
+    with his men. Returns (world, reply). The numbers are the nearest the
+    board allows to the sighting (a beaten Mack who SURVIVES the retreat)."""
+    from backend.commands.executor import CommandExecutor
+    world = _r20_copy(boot)
+    ney, mack = world.get_marshal("Ney"), world.get_marshal("Mack")
+    ney.strength, mack.strength, mack.morale = ney_strength, 52000, 30
+    world.calculate_visibility()
+    random.seed(3)
+    with _r20_quiet():
+        ex = CommandExecutor()
+        reply = ex.execute({"command": {"raw_input": "Ney, attack Mack", "marshal": "Ney",
+                                        "action": "attack", "target": "Mack"}},
+                           {"world": world})
+    assert reply.get("success") is True, reply.get("message")
+    assert mack.location == "Munich" and int(mack.strength) > 0, (mack.location, mack.strength)
+    assert not getattr(mack, "captured_by", "")
+    assert ney.location == "Swabia"
+    return world, reply
+
+
+def _r20_frozen_sum(world, location: str) -> int:
+    """The OLD reading: the sum of the frozen snapshot, as `_known_enemy_force_at`
+    returned it before the fix."""
+    intel = world.intel.get(location)
+    total = 0
+    for km in intel.known_marshals:
+        if "strength" in km:
+            total += int(km["strength"])
+        elif "band" in km:
+            from backend.game_logic.dispatch import BAND_MIDPOINTS
+            total += BAND_MIDPOINTS.get(km["band"], 0)
+    return total
+
+
+@pytest.fixture
+def _r20_no_refresh(monkeypatch):
+    """The seam held DOWN: the fog follows only at turn end, as before."""
+    from backend.commands.combat_executor import CombatExecutor
+    monkeypatch.setattr(CombatExecutor, "_refresh_sight_after_attack",
+                        lambda self, ctx: None)
+
+
+class TestS14G20:
+    """The defect on the shipped board. The old reading: the gate named Mack
+    at Swabia (~19,075) after he retreated to Munich."""
+
+    def test_the_old_reading_is_reproduced_when_the_fog_is_not_refreshed(
+            self, _r20_boot, _r20_no_refresh):
+        world, _reply = _r20_battle(_r20_boot)
+        ney = world.get_marshal("Ney")
+        # the battle's snapshot still lists the man who left ...
+        listed = [km["name"] for km in world.intel["Swabia"].known_marshals]
+        assert listed == ["Mack"]
+        old = _r20_frozen_sum(world, "Swabia")
+        assert old >= 1.5 * int(ney.strength), "the OLD gate fired on this board"
+        # ... and the live reader does not read him there.
+        from backend.game_logic.dispatch import end_turn_peril_warning
+        assert end_turn_peril_warning(world, "France") is None
+
+    def test_the_peril_clause_no_longer_names_swabias_absent_man(self, _r20_boot):
+        world, _reply = _r20_battle(_r20_boot)
+        from backend.game_logic.dispatch import _known_enemy_force_at, end_turn_peril_warning
+        assert _known_enemy_force_at(world, "France", "Swabia") == 0
+        assert end_turn_peril_warning(world, "France") is None
+
+    def test_the_clause_names_munichs_live_one(self, _r20_boot):
+        """Murat (7,000) marches to Munich, where Mack stands: the clause names
+        Munich and Mack's LIVE strength (exact - Murat's presence is FULL)."""
+        world, _reply = _r20_battle(_r20_boot)
+        murat, mack = world.get_marshal("Murat"), world.get_marshal("Mack")
+        murat.strength = 7000
+        murat.location = "Munich"
+        world.calculate_visibility()
+        from backend.game_logic.dispatch import end_turn_peril_warning
+        assert end_turn_peril_warning(world, "France") == (
+            f"Murat's corps (7,000) stands in peril — an enemy force of "
+            f"~{int(mack.strength):,} shares the field (Munich).")
+
+    def test_the_dawn_line_reads_the_same_scan(self, _r20_boot, _r20_no_refresh):
+        world, _reply = _r20_battle(_r20_boot)
+        from backend.game_logic.dispatch import _derive_danger
+        assert "IN PERIL" not in _derive_danger(world.get_marshal("Ney"), world, "France", {})
+
+    def test_the_refresh_makes_the_snapshot_follow_him(self, _r20_boot):
+        """The player's fog moves with the retreat and the advance: Swabia no
+        longer lists Mack, Munich (adjacent to Ney's new ground) lists his band."""
+        world, _reply = _r20_battle(_r20_boot)
+        assert world.intel["Swabia"].known_marshals == []
+        munich = world.intel["Munich"]
+        assert [km["name"] for km in munich.known_marshals] == ["Mack"]
+        assert munich.known_marshals[0]["band"] == "substantial force"
+        from backend.game_logic import intel_surfaces
+        row = intel_surfaces.last_seen(world, "France", "Mack")
+        assert row["location"] == "Munich" and row["source"] == "live"
+
+    def test_without_the_refresh_the_snapshot_is_stale_but_the_readers_are_not(
+            self, _r20_boot, _r20_no_refresh):
+        world, _reply = _r20_battle(_r20_boot)
+        assert [km["name"] for km in world.intel["Swabia"].known_marshals] == ["Mack"]
+        from backend.game_logic import intel_surfaces
+        assert intel_surfaces.last_seen(world, "France", "Mack")["location"] == "Munich"
+
+
+class TestS14G20TheLiveReader:
+    """`_known_enemy_force_at` on fixture boards: who counts, at what figure."""
+
+    def _board(self, boot):
+        world = _r20_copy(boot)
+        ney = world.get_marshal("Ney")
+        ney.strength = 9000
+        mack = world.get_marshal("Mack")
+        mack.location, mack.strength = "Rhineland", 52000
+        world.calculate_visibility()
+        return world
+
+    def test_a_man_in_the_province_counts_at_his_live_figure(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 52000
+        world.get_marshal("Mack").strength = 40000      # a battle's losses, snapshot not rewritten
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 40000
+
+    def test_a_man_who_arrived_since_the_snapshot_counts_too(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        john = world.get_marshal("ArchdukeJohn")
+        john.location, john.strength = "Rhineland", 20000   # no snapshot names him
+        assert [km["name"] for km in world.intel["Rhineland"].known_marshals] == ["Mack"]
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 72000
+
+    def test_a_man_who_left_does_not_count(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        world.get_marshal("Mack").location = "Swabia"
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 0
+
+    def test_a_partial_province_reads_his_band_midpoint(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        from backend.models.intel import PARTIAL
+        world = self._board(_r20_boot)
+        world.intel["Rhineland"].visibility = PARTIAL
+        world.get_marshal("Mack").strength = 18885          # substantial force
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 27500
+
+    def test_a_captured_or_empty_man_is_not_a_sighting(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        mack = world.get_marshal("Mack")
+        mack.captured_by, mack.strength = "France", 0
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 0
+
+    def test_a_court_at_peace_with_us_is_not_a_threat(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        brunswick = world.get_marshal("Brunswick")           # Prussia: not at war with France
+        brunswick.location, brunswick.strength = "Rhineland", 50000
+        assert not world.is_at_war("France", "Prussia")
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 52000
+
+    def test_a_province_out_of_sight_keeps_the_frozen_snapshot(self, _r20_boot):
+        """The player has nothing newer: STALE reads exactly as it always did."""
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        from backend.models.intel import STALE
+        world = self._board(_r20_boot)
+        world.get_marshal("Mack").location = "Swabia"
+        world.intel["Rhineland"].visibility = STALE
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 52000
+
+    def test_a_name_the_roster_never_heard_of_keeps_its_frozen_figure(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        world = self._board(_r20_boot)
+        world.get_marshal("Mack").location = "Swabia"
+        world.intel["Rhineland"].known_marshals = [
+            {"name": "Blucher", "nation": "Prussia", "strength": 30000}]
+        world.diplomatic_states[world._make_diplo_key("France", "Prussia")] = "WAR"
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 30000
+
+    def test_an_unseen_province_is_still_nothing(self, _r20_boot):
+        from backend.game_logic.dispatch import _known_enemy_force_at
+        from backend.models.intel import UNKNOWN
+        world = self._board(_r20_boot)
+        world.intel["Rhineland"].visibility = UNKNOWN
+        assert _known_enemy_force_at(world, "France", "Rhineland") == 0
+
+
+class TestS14GX94:
+    """S14G-X94 - the desk's and the dawn's strength estimator
+    (`dispatch._enemy_strength_estimate_detail`) counted a man ONCE at the first
+    province in dict order whose snapshot named him: Mack at Swabia (his
+    battle figure, read as exact) after he retreated to Munich. A snapshot
+    naming a man the player SEES in another province today is yesterday's: he
+    counts once, where he stands, at the live sighting."""
+
+    def test_a_retreated_man_counts_where_he_stands_and_banded(
+            self, _r20_boot, _r20_no_refresh):
+        from backend.game_logic.dispatch import _enemy_strength_estimate_detail
+        world, _reply = _r20_battle(_r20_boot)
+        assert [km["name"] for km in world.intel["Swabia"].known_marshals] == ["Mack"]   # stale
+        detail = _enemy_strength_estimate_detail(world, "France")
+        names = [n for n, _court in detail["names"]]
+        assert names.count("Mack") == 1
+        # Mack's exact battle figure (19,075, read at a FULL province) is gone;
+        # he is read where he stands, at the band the player's fog admits.
+        assert detail["exact"] == 0
+        assert detail["total"] == 27500 * len(names)
+
+    def test_the_estimate_is_the_same_with_the_fog_refreshed(self, _r20_boot, monkeypatch):
+        from backend.game_logic.dispatch import _enemy_strength_estimate_detail
+        world, _reply = _r20_battle(_r20_boot)
+        fresh = _enemy_strength_estimate_detail(world, "France")
+        from backend.commands.combat_executor import CombatExecutor
+        monkeypatch.setattr(CombatExecutor, "_refresh_sight_after_attack",
+                            lambda self, ctx: None)
+        stale_world, _reply = _r20_battle(_r20_boot)
+        stale = _enemy_strength_estimate_detail(stale_world, "France")
+        assert fresh["total"] == stale["total"] and fresh["exact"] == stale["exact"]
+
+    def test_a_man_still_standing_where_the_snapshot_says_keeps_his_figure(self, _r20_boot):
+        from backend.game_logic.dispatch import _enemy_strength_estimate_detail
+        world = _r20_copy(_r20_boot)
+        world.get_marshal("Ney").location = "Rhineland"
+        mack = world.get_marshal("Mack")
+        mack.location, mack.strength = "Rhineland", 52000
+        world.calculate_visibility()
+        detail = _enemy_strength_estimate_detail(world, "France")
+        assert ("Mack", "Austria") in detail["names"]
+        assert detail["exact"] >= 1
+
+
+class TestS14G20ThePlayerOnlyRefresh:
+    """The refresh is the PLAYER's: an AI attack gains no visibility call."""
+
+    def _ctx(self, nation, player="France"):
+        calls = []
+        world = SimpleNamespace(player_nation=player,
+                                calculate_visibility=lambda: calls.append(1))
+        return SimpleNamespace(marshal=SimpleNamespace(nation=nation), world=world), calls
+
+    def test_the_players_attack_refreshes_the_fog_once(self):
+        from backend.commands.combat_executor import CombatExecutor
+        ctx, calls = self._ctx("France")
+        CombatExecutor._refresh_sight_after_attack(None, ctx)
+        assert calls == [1]
+
+    def test_an_enemy_attack_gains_no_visibility_call(self):
+        from backend.commands.combat_executor import CombatExecutor
+        ctx, calls = self._ctx("Austria")
+        CombatExecutor._refresh_sight_after_attack(None, ctx)
+        assert calls == []
+
+    def test_the_stage_calls_the_one_seam_after_the_advance_and_before_the_pipeline(self):
+        src = (_R20_ROOT / "backend" / "commands" / "combat_executor.py").read_text(encoding="utf-8")
+        stage = src[src.index("    def _attack_advance_and_capture("):
+                    src.index("    def _attack_compose_result(")]
+        assert stage.count("self._refresh_sight_after_attack(ctx)") == 1
+        assert stage.index("self._refresh_sight_after_attack(ctx)") < stage.index(
+            "ctx.pipeline_out = self._post_combat_pipeline(")
+        assert stage.index("self._attempt_region_capture(") < stage.index(
+            "self._refresh_sight_after_attack(ctx)")
+        assert stage.index("ctx.marshal.move_to(ctx.target_location)") < stage.index(
+            "self._refresh_sight_after_attack(ctx)")
+
+    def test_the_gate_and_the_dawn_share_the_one_scan_and_neither_reads_the_snapshot(self):
+        src = (_R20_ROOT / "backend" / "game_logic" / "dispatch.py").read_text(encoding="utf-8")
+        assert src.count("def _known_enemy_force_at(") == 1
+        dawn = src[src.index("def _derive_danger("):src.index("def end_turn_army_warning(")]
+        gate = src[src.index("def end_turn_peril_warning("):src.index("_ROUT_CLAUSES = (")]
+        assert "_known_enemy_force_at(world, player_nation, marshal.location)" in dawn
+        assert "_known_enemy_force_at(world, nation, m.location)" in gate
+        assert "known_marshals" not in dawn and "known_marshals" not in gate
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row21
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-21 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-21): the Turn 6 dispatch said "the war with
+# Bavaria and Prussia is over" - France was at war with neither.
+#
+# THE CAUSE, as traced. `world_state._ratify_treaty` (stage `_ratify_war_end`,
+# WIN-D3's cession re-run) called `open_evacuation_corridor(France, X)` after
+# EVERY ratified treaty (`final_state not in ("WAR",)`), the opener's stranded set
+# is nation-wide (`_evacuating_marshals`), and `treaty_word` returned "peace" for
+# any pair not under a truce. Davout, Murat and Ney were stranded by a truce (the
+# sighting: Austria's, S14G-7), so the vassalage (Bavaria) and the non-aggression
+# pact (Prussia) each wrote a grant, logged an `evacuation_granted` beat and
+# `_war_end_opening` turned it into "the war with ... is over", merged by
+# `_one_peace_one_line`; the candidate gate checked only that France was in the
+# pair. A second error in the same line: "hold under your own orders ... not
+# moved" listed corps that already held the TREATY's own road-home order
+# (`offer_road_home` skips them as "already marching there").
+#
+# THE SIGHTING. DD-B's third measure, diplomacy #4 (P3, turn 6, action 133): "Sire
+# - the war with Bavaria and Prussia is over. Davout, Murat and Ney hold under your
+# own orders and were not moved - the treaty offers a road, it does not overrule
+# the Emperor. Their passage lapses with the corridor."
+#
+# THE OLD READING, reproduced on the shipped 1805 board (the truce is Russia's;
+# Davout, Murat and Ney stand stranded at France-held Volhynia, WIN-D3's measured
+# shape): signing a non-aggression pact with Prussia and a vassalage with Bavaria
+# wrote `France|Prussia` and `Bavaria|France` grants - a right of transit between
+# pairs that were never at war - and the page led "the war with Bavaria and
+# Prussia is over".
+#
+# THE FIX. ONE seam, `withdrawal.corridor_applies(world, a, b, prior_state)`: a
+# road home is owed only by a pair that LEFT a war or a truce. `open_evacuation_
+# corridor` takes the `prior_state` and returns {} before anything is written for
+# a pair that was never at war; `_ratify_treaty`'s re-run passes
+# `ctx.current_state`. `treaty_word` gains a third word, "accord" (a pair that was
+# never at war); `_war_end_opening("accord", ...)` and the dispatch's candidate
+# gate read it, and the campaign log reads the pair's state for an event that
+# carries no word. `_grant_message` splits the corps the treaty did not newly
+# order into "already marching home on the treaty's road" (`is_road_home_order`)
+# and "hold under your own orders" - and says "His passage" of one man.
+#
+# WHAT WAS KEPT. A war ended by a treaty (and a truce turned peace) opens its
+# corridor exactly as before; the two `set_diplomatic_state` callers, already
+# gated on the old state; the AI's corps (GR5: the gate is pair-symmetric, so the
+# AI's treaties are gated alike); the mid-treaty top-up.
+#
+# THE SEAM. `withdrawal.corridor_applies` - held down it returns True and the
+# unguarded re-run is back, byte for byte. It reaches the AI's road (AI-AI
+# treaties ratify through the same stage): in the BASELINE_SERIES it is called 7
+# times and refuses 2 and the series is identical with it down.
+
+_R21_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_R21_ROOT = Path(__file__).resolve().parents[1]
+_R21_STRANDED = ("Davout", "Murat", "Ney")
+_R21_OLD_LEAD = "Sire — the war with Bavaria and Prussia is over."
+
+
+def _r21_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture
+def _r21_world():
+    """Davout, Murat and Ney stranded at France-held Volhynia (WIN-D3's measured
+    shape: its four neighbours are Russian), by Russia's TRUCE: France-Russia WAR
+    then ARMISTICE, so the three hold the truce's road home. France is then
+    friends with Prussia and Bavaria (relations 80) - never at war with either."""
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    from backend.models.world_state import WorldState
+    with _r21_quiet():
+        world = WorldState.from_scenario(str(_R21_SCENARIO))
+    world.regions["Volhynia"].controller = "France"
+    for m in list(world.marshals.values()):
+        if m.nation == "France" and m.name not in _R21_STRANDED:
+            m.location = "Paris"
+        elif m.nation == "Russia":
+            m.location = world.get_nation_capital("Russia")
+    for name in _R21_STRANDED:
+        world.marshals[name].location = "Volhynia"
+    with _r21_quiet():
+        set_diplomatic_state(world, "France", "Russia", "WAR")
+        set_diplomatic_state(world, "France", "Russia", "ARMISTICE")
+    for other in ("Prussia", "Bavaria"):
+        world.nation_relations[world._make_diplo_key("France", other)] = 80
+    world.event_log = []
+    return world
+
+
+def _r21_sign(world, kind: str, other: str):
+    with _r21_quiet():
+        return world._ratify_treaty({"type": kind, "proposer_nation": "France",
+                                     "target_nation": other, "sweeteners": [],
+                                     "demands": [], "clauses": []})
+
+
+def _r21_sign_both(world):
+    assert world.get_diplomatic_state("France", "Prussia") == "PEACE"
+    assert world.get_diplomatic_state("France", "Bavaria") == "ALLIANCE"
+    _r21_sign(world, "non_aggression", "Prussia")
+    _r21_sign(world, "vassalage", "Bavaria")
+    assert world.get_diplomatic_state("France", "Prussia") == "NON_AGGRESSION"
+    assert world.get_diplomatic_state("France", "Bavaria") == "VASSAL"
+
+
+def _r21_beats(world) -> list:
+    return [e for e in world.event_log if e.get("type") == "evacuation_granted"]
+
+
+def _r21_page(world) -> list:
+    from backend.game_logic import dispatch as DS
+    with _r21_quiet():
+        head = DS._build_headline(world, "France", record=False) or {}
+    return [head.get("text", "")] + list(head.get("sub_beats", []))
+
+
+class TestS14G21:
+    """The defect on the shipped board. The old reading: the pact and the
+    vassalage each wrote a grant and a beat, and the page led "the war with
+    Bavaria and Prussia is over"."""
+
+    def test_the_truce_strands_and_orders_the_three(self, _r21_world):
+        from backend.game_logic import withdrawal as W
+        world = _r21_world
+        assert set(world.evacuation_grants) == {"France|Russia"}
+        for name in _R21_STRANDED:
+            assert W.is_road_home_order(world.marshals[name].strategic_order)
+
+    def test_a_pact_and_a_vassalage_with_courts_never_at_war_open_no_corridor(self, _r21_world):
+        world = _r21_world
+        expiry = dict(world.evacuation_grants)
+        _r21_sign_both(world)
+        assert _r21_beats(world) == []
+        assert world.evacuation_grants == expiry, "no right of transit for a pair never at war"
+        assert "France|Prussia" not in world.evacuation_grants
+        assert "Bavaria|France" not in world.evacuation_grants
+
+    def test_the_page_no_longer_says_the_war_is_over(self, _r21_world):
+        world = _r21_world
+        _r21_sign_both(world)
+        page = " ".join(_r21_page(world))
+        assert "the war with Bavaria and Prussia is over" not in page, page
+        assert "is over" not in page, page
+
+    def test_the_truce_pairs_corridor_and_the_three_orders_are_intact(self, _r21_world):
+        from backend.game_logic import withdrawal as W
+        world = _r21_world
+        before = {n: world.marshals[n].strategic_order.target for n in _R21_STRANDED}
+        grant = world.evacuation_grants["France|Russia"]
+        _r21_sign_both(world)
+        assert world.evacuation_grants["France|Russia"] == grant
+        for name in _R21_STRANDED:
+            order = world.marshals[name].strategic_order
+            assert W.is_road_home_order(order) and order.target == before[name]
+
+    def test_seam_down_is_the_old_reading(self, _r21_world, monkeypatch):
+        """`corridor_applies` held down (True) restores the unguarded re-run:
+        the grants, the beats and the lead the player read.
+
+        FLIPPED CONSCIOUSLY (S14G-X100, October 26, 2026): the unguarded
+        re-run also read the NATION-WIDE stranded set (Davout, Murat and Ney,
+        stranded by Russia's truce, were named by the Prussian and Bavarian
+        pairs); `withdrawal.stranded_by_pair` now scopes the set to the pair's
+        own stranding, so the old reading is both seams held down."""
+        from backend.game_logic import withdrawal as W
+        monkeypatch.setattr(W, "corridor_applies", lambda *a, **k: True)
+        monkeypatch.setattr(W, "stranded_by_pair", lambda *a, **k: True)
+        world = _r21_world
+        _r21_sign_both(world)
+        assert {"France|Prussia", "Bavaria|France"} <= set(world.evacuation_grants)
+        assert len(_r21_beats(world)) == 2
+        assert _r21_page(world)[0].startswith(_R21_OLD_LEAD), _r21_page(world)[0]
+
+    def test_a_war_ended_by_treaty_still_opens_its_corridor(self, _r21_world):
+        """The gate is on the pair's state BEFORE the treaty: a pair that left a
+        war is owed the road (the opener, as the ratifier now calls it)."""
+        from backend.game_logic import withdrawal as W
+        world = _r21_world
+        world.regions["Volhynia"].controller = "France"
+        # truce -> war -> the war ends: the opener, told the pair left WAR
+        with _r21_quiet():
+            out = W.open_evacuation_corridor(world, "France", "Russia", prior_state="WAR")
+        assert out and out["marching"], out
+        beats = [b for b in _r21_beats(world) if b["nation_b"] == "Russia"]
+        assert beats and beats[-1]["treaty"] == "truce"
+
+    def test_the_gate_is_pair_symmetric_so_the_ais_treaties_hold_it_too(self):
+        from backend.game_logic.withdrawal import corridor_applies
+        for prior in ("PEACE", "NON_AGGRESSION", "OPEN_BORDERS", "ALLIANCE",
+                      "DEFENSIVE_ALLIANCE", "VASSAL"):
+            assert corridor_applies(None, "Austria", "Prussia", prior) is False
+            assert corridor_applies(None, "Prussia", "Austria", prior) is False
+        for prior in ("WAR", "ARMISTICE"):
+            assert corridor_applies(None, "Austria", "Prussia", prior) is True
+            assert corridor_applies(None, "Prussia", "Austria", prior) is True
+        # the two set_diplomatic_state callers pass nothing: they gated on the old state
+        assert corridor_applies(None, "Austria", "Prussia") is True
+
+    def test_the_opener_writes_nothing_for_a_pair_that_was_never_at_war(self, _r21_world):
+        from backend.game_logic import withdrawal as W
+        world = _r21_world
+        before = dict(world.evacuation_grants)
+        with _r21_quiet():
+            assert W.open_evacuation_corridor(world, "France", "Prussia",
+                                              prior_state="PEACE") == {}
+        assert world.evacuation_grants == before and _r21_beats(world) == []
+
+    def test_an_ai_pair_never_at_war_is_gated_alike(self, _r21_world):
+        """GR5: the truce strands a RUSSIAN corps too (Kutuzov, in Paris, the
+        enemy's capital, while the truce shuts the frontier). Russia and Prussia -
+        never at war - sign a pact: no corridor between two courts that never
+        fought. (Held down, the opener wrote `Prussia|Russia` and a beat.)"""
+        world = _r21_world
+        kutuzov = world.marshals["Kutuzov"]
+        kutuzov.location = "Paris"
+        world.nation_relations[world._make_diplo_key("Russia", "Prussia")] = 80
+        assert world.get_diplomatic_state("Russia", "Prussia") == "PEACE"
+        with _r21_quiet():
+            world._ratify_treaty({"type": "non_aggression", "proposer_nation": "Russia",
+                                  "target_nation": "Prussia", "sweeteners": [],
+                                  "demands": [], "clauses": []})
+        assert world.get_diplomatic_state("Russia", "Prussia") == "NON_AGGRESSION"
+        assert "Prussia|Russia" not in world.evacuation_grants
+        assert not [b for b in _r21_beats(world)
+                    if {b["nation_a"], b["nation_b"]} == {"Russia", "Prussia"}]
+
+
+class TestS14G21TheSplit:
+    """The second error of the line: corps already on the TREATY's road are not
+    "under your own orders"."""
+
+    def _reopen(self, world):
+        from backend.game_logic import withdrawal as W
+        world.event_log = []
+        with _r21_quiet():
+            W.open_evacuation_corridor(world, "France", "Russia", prior_state="ARMISTICE")
+        return _r21_beats(world)
+
+    def test_the_old_reading_listed_the_treatys_own_corps_as_holding_own_orders(self, _r21_world):
+        beats = self._reopen(_r21_world)
+        assert len(beats) == 1
+        message = beats[0]["message"]
+        assert "hold under your own orders" not in message, message
+        assert "not moved" not in message, message
+        assert message == "Davout, Murat and Ney are already marching home on the treaty's road."
+
+    def test_a_corps_on_the_emperors_own_order_is_still_said_to_hold(self, _r21_world):
+        from backend.models.marshal import StrategicOrder
+        world = _r21_world
+        world.marshals["Murat"].strategic_order = StrategicOrder(
+            command_type="HOLD", target="Volhynia", target_type="region",
+            started_turn=1, original_command="hold position")
+        message = self._reopen(world)[0]["message"]
+        assert message == (
+            "Davout and Ney are already marching home on the treaty's road. "
+            "Murat holds under your own orders and was not moved — the treaty offers a "
+            "road, it does not overrule the Emperor. His passage lapses with the corridor."), message
+
+    def test_one_man_on_the_road_is_singular(self, _r21_world):
+        from backend.models.marshal import StrategicOrder
+        world = _r21_world
+        for name in ("Murat", "Ney"):
+            world.marshals[name].strategic_order = StrategicOrder(
+                command_type="HOLD", target="Volhynia", target_type="region",
+                started_turn=1, original_command="hold position")
+        message = self._reopen(world)[0]["message"]
+        assert message.startswith("Davout is already marching home on the treaty's road. "), message
+        assert "Murat and Ney hold under your own orders and were not moved" in message
+        assert message.endswith("Their passage lapses with the corridor."), message
+
+    def test_the_two_sentences_are_ones_the_unsplit_grant_still_reads(self, _r21_world):
+        """Nobody on the treaty's road: the sentence the SFR-D14 pin reads."""
+        from backend.game_logic import withdrawal as W
+        world = _r21_world
+        for name in ("Massena", "Murat"):
+            world.marshals[name].strategic_order = None
+        grant = {"pair": ["France", "Britain"], "turns": 9, "orders": [], "cut_off": [],
+                 "marching": [{"marshal": "Massena", "nation": "France"},
+                              {"marshal": "Murat", "nation": "France"}]}
+        line = W._grant_message(world, grant)
+        assert "Massena and Murat hold under your own orders and were not moved" in line, line
+        assert "already marching" not in line
+
+
+class TestS14G21TheThirdWord:
+    """`treaty_word` is no longer binary; the readers carry the word."""
+
+    def test_the_word_for_each_case(self, _r21_world):
+        from backend.game_logic.withdrawal import treaty_word
+        world = _r21_world
+        assert treaty_word(world, "France", "Russia") == "truce"          # ARMISTICE
+        assert treaty_word(world, "France", "Russia", prior_state="WAR") == "truce"
+        assert treaty_word(world, "France", "Prussia") == "peace"          # as before
+        assert treaty_word(world, "France", "Prussia", prior_state="WAR") == "peace"
+        assert treaty_word(world, "France", "Prussia", prior_state="ARMISTICE") == "peace"
+        assert treaty_word(world, "France", "Prussia", prior_state="PEACE") == "accord"
+        assert treaty_word(world, "France", "Bavaria", prior_state="ALLIANCE") == "accord"
+
+    def test_the_opening_of_the_beat(self):
+        from backend.game_logic.dispatch import _war_end_opening
+        assert _war_end_opening("peace", "Austria") == "the war with Austria is over."
+        assert _war_end_opening("truce", "Austria").startswith("a truce with Austria holds")
+        accord = _war_end_opening("accord", "Bavaria and Prussia")
+        assert "is over" not in accord and "no war to end" in accord, accord
+
+    def test_an_accord_is_no_headline_candidate(self, _r21_world):
+        """The dispatch's gate: a corridor written for a pair France never
+        fought (a save written before the gate, a stray producer) tells nothing."""
+        world = _r21_world
+        world.log_event({"type": "evacuation_granted", "nation_a": "France",
+                         "nation_b": "Prussia", "region": "", "turns": 4,
+                         "marshals": ["Davout"], "destinations": {}, "cut_off": [],
+                         "treaty": "accord", "message": "A road."})
+        assert "is over" not in " ".join(_r21_page(world))
+        assert "A road." not in " ".join(_r21_page(world))
+
+    def test_a_peace_and_a_truce_still_merge_by_their_own_word(self, _r21_world):
+        world = _r21_world
+        for court, word in (("Austria", "peace"), ("Britain", "peace"), ("Prussia", "truce")):
+            world.log_event({"type": "evacuation_granted", "nation_a": "France",
+                             "nation_b": court, "region": "", "turns": 4, "marshals": [],
+                             "destinations": {}, "cut_off": [], "treaty": word,
+                             "message": f"The {word} grants safe passage home."})
+        texts = _r21_page(world)
+        assert any(t.startswith("Sire — the war with Austria and Britain is over.")
+                   for t in texts), texts
+
+    def test_the_campaign_log_reads_the_word_the_event_carries(self, _r21_world):
+        from backend.campaign_log import format_event_oneliner
+        world = _r21_world
+        event = {"type": "evacuation_granted", "nation_a": "France", "nation_b": "Prussia",
+                 "region": "", "turns": 4, "marshals": ["Davout", "Ney"],
+                 "destinations": {}, "cut_off": [], "treaty": "accord", "turn": 6}
+        line = format_event_oneliner(event, "France", world)
+        assert "granted by the accord between" in line, line
+
+    def test_the_campaign_log_reads_the_state_for_an_event_without_a_word(self, _r21_world):
+        from backend.campaign_log import format_event_oneliner
+        world = _r21_world
+        event = {"type": "evacuation_granted", "nation_a": "France", "nation_b": "Russia",
+                 "region": "", "turns": 4, "marshals": ["Davout"], "destinations": {},
+                 "cut_off": [], "turn": 6}
+        assert "granted by the truce between" in format_event_oneliner(event, "France", world)
+        event["nation_b"] = "Prussia"
+        assert "granted by the peace between" in format_event_oneliner(event, "France", world)
+        # no world at all: the old default, a peace
+        assert "granted by the peace between" in format_event_oneliner(event, "France")
+
+
+class TestS14G21TheCallSite:
+    def test_the_rerun_passes_the_state_before_the_treaty_and_stays_after_the_cessions(self):
+        src = (_R21_ROOT / "backend" / "models" / "world_state.py").read_text(encoding="utf-8")
+        at = src.index("open_evacuation_corridor(self, ctx.proposer, ctx.target_nation,")
+        assert "prior_state=ctx.current_state" in src[at:at + 140]
+        assert at > src.index("region.controller = to_nation")
+
+    def test_the_opener_asks_the_one_seam_before_it_writes_anything(self):
+        src = (_R21_ROOT / "backend" / "game_logic" / "withdrawal.py").read_text(encoding="utf-8")
+        body = src[src.index("def open_evacuation_corridor("):src.index("def _open_minimum_window(")]
+        assert body.count("corridor_applies(") == 1
+        assert body.index("corridor_applies(") < body.index("grants[key] = ")
+        assert src.count("def corridor_applies(") == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row22
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-22 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-22): the Cabinet is a 560x520 window with no
+# grip on a 5120x1440 screen. The Cabinet is the F1 diplomacy wizard, authored at
+# +/-280 x +/-260 (`diplomacy_wizard.tscn`, layer 110). `Utils.clamp_centered_panel`
+# treats the authored rect as a CEILING and never grows it; unlike the six
+# layer-50 screens it had no ResizeGrip. Five lines of the court list showed at
+# once and the Neutral group cost 20 wheel notches; the list regroups by live
+# state (Britain drops to Neutral after peace) and runs in roster order, so a
+# court the player was working with moved between visits (DD-B diplomacy #5, P3,
+# turn 9, action 199).
+#
+# THE FIX.
+# 1. `ResizeGrip.attach_centered($PanelContainer, "cabinet")` in the wizard's
+#    `_ready`; "cabinet" joins `UiSettings.PANEL_LIMITS` (the closed table every
+#    grip stores by - without the key a grip's size is neither stored nor
+#    restored, and the layout-law census refuses an unknown key).
+# 2. `Utils.clamp_centered_panel` reads a new meta, `clamp_ceiling_fraction`
+#    (Vector2 of viewport shares), that RAISES the default size to that share of
+#    the viewport. The authored rect stays the floor (maxf), the viewport caps
+#    still apply, and the PLAYER's remembered size (`clamp_user_size`) is never
+#    raised - the fraction is the default a grip's double-click returns to. The
+#    Cabinet sets (0.0, 0.6): about 60 % of the viewport's height, the width
+#    keeps its authored 560. ONLY the Cabinet sets it.
+# 3. A "Your courts" group above the At War / Treaties / Vassals / Neutral
+#    groups: the court of the live mission, then every court with an unanswered
+#    letter in the mailbox, each once, built by `main._wizard_your_courts` from
+#    facts the world already records (`active_diplomatic_mission`,
+#    `DialogueManager.get_mailbox_items`). The world records NO "last court
+#    visited" (a court's page is a read, nothing is written), so the group is
+#    built from those two. A court keeps its place in its own group too.
+#
+# WHAT WAS KEPT. Every other centred modal keeps its authored rect on a wide
+# screen: no other script sets the meta. The six layer-50 screens, their keys and
+# sizes; the Congress / Designs / Formables rows and the groups' order and
+# counts; `refit()` as the one road the open wizard fits by.
+
+_R22_ROOT = Path(__file__).resolve().parents[1]
+_R22_SCRIPTS = _R22_ROOT / "godot-client" / "project-sovereign" / "scripts"
+_R22_SCENES = _R22_ROOT / "godot-client" / "project-sovereign" / "scenes"
+_R22_SCENARIO = (_R22_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+_R22_LETTER_WHY = "letter awaiting your answer"
+
+
+def _r22_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _r22_src(name: str) -> str:
+    return (_R22_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _r22_func(src: str, name: str) -> str:
+    """A GDScript function's body: from its header to the next top-level one."""
+    start = src.index(f"func {name}(")
+    ends = [e for e in (src.find("\nfunc ", start + 1), src.find("\nstatic func ", start + 1))
+            if e != -1]
+    return src[start:min(ends) if ends else len(src)]
+
+
+@pytest.fixture(scope="module")
+def _r22_boot():
+    from backend.models.world_state import WorldState
+    with _r22_quiet():
+        return WorldState.from_scenario(str(_R22_SCENARIO))
+
+
+@pytest.fixture
+def _r22_world(_r22_boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(_r22_boot.to_dict(), default=str)))
+
+
+def _r22_letter(world, court: str, ptype: str = "open_borders") -> dict:
+    """A court's letter built by the REAL builder and pushed on the dialogue
+    manager (what the transport does), without the delivery gates."""
+    from backend.game_logic.ai_diplomacy import _make_proposal, build_ai_proposal_dialogue
+    terms = {"type": ptype, "proposer_nation": court, "target_nation": "France",
+             "demands": [], "sweeteners": [], "clauses": []}
+    with _r22_quiet():
+        dialogue = build_ai_proposal_dialogue(_make_proposal(court, ptype, 5, terms, world), world)
+        world.dialogue_manager.push(dialogue)
+    return dialogue
+
+
+def _r22_mission(world, court: str) -> None:
+    world.active_diplomatic_mission = {"target": court, "type": "IMPROVE_RELATIONS",
+                                       "completed": False}
+
+
+def _r22_nations(world) -> dict:
+    """The wizard's step-1 payload as the client receives it (GET /diplomatic_preview)."""
+    with _r22_quiet():
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+        from fastapi.testclient import TestClient
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = world
+    M.world = world
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        with _r22_quiet():
+            return TestClient(M.app).get("/diplomatic_preview").json()
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+
+
+def _r22_clamp(authored, view, *, user=None, share=None, override=None):
+    """The arithmetic `Utils.clamp_centered_panel` does to the panel's HEIGHT
+    and WIDTH, mirrored line for line (the source pins below keep the mirror
+    honest): authored rect or the player's size, the absolute override, the
+    viewport share (never over a remembered size), then the viewport caps."""
+    design = user if user is not None else authored
+    if override is not None:
+        design = (max(design[0], override[0]), max(design[1], override[1]))
+    if share is not None and user is None:
+        design = (max(design[0], share[0] * view[0]), max(design[1], share[1] * view[1]))
+    w = min(design[0], max(320.0, view[0] - 24.0))
+    h = min(design[1], max(240.0, view[1] - 88.0))
+    return (w, h)
+
+
+_R22_CABINET = (560.0, 520.0)
+_R22_SHARE = (0.0, 0.6)
+
+
+class TestS14G22:
+    """The sighting: the Cabinet on a 5120x1440 screen. THE OLD READING: a bare
+    560x520 rect (the authored ceiling), no grip, five list lines in view."""
+
+    def test_the_cabinet_is_clamped_and_gripped_under_its_own_key(self):
+        wiz = _r22_src("diplomacy_wizard.gd")
+        ready = _r22_func(wiz, "_ready")
+        assert ready.count('ResizeGrip.attach_centered($PanelContainer, "cabinet")') == 1
+        # the default-height meta is set BEFORE the grip loads the stored size
+        assert (ready.index('$PanelContainer.set_meta("clamp_ceiling_fraction", CABINET_CEILING_SHARE)')
+                < ready.index('ResizeGrip.attach_centered($PanelContainer, "cabinet")'))
+        assert "const CABINET_CEILING_SHARE := Vector2(0.0, 0.6)" in wiz
+        # the one road the open wizard fits by is untouched
+        assert "Utils.clamp_centered_panel($PanelContainer)" in _r22_func(wiz, "refit")
+        scene = (_R22_SCENES / "diplomacy_wizard.tscn").read_text(encoding="utf-8")
+        assert "offset_left = -280.0" in scene and "offset_bottom = 260.0" in scene   # authored 560x520
+        assert "layer = 110" in scene
+
+    def test_the_key_is_in_the_grips_closed_table(self):
+        ui = _r22_src("ui_settings.gd")
+        table = re.search(r"const PANEL_LIMITS := \{(.*?)\n\}", ui, re.S).group(1)
+        assert re.search(r'"cabinet": \[Vector2\(480, 320\), Vector2\(8192, 8192\)\]', table)
+        # a size is only stored and restored for a key in the table
+        assert "PANEL_LIMITS.has(panel_name)" in _r22_func(ui, "set_panel_size")
+        assert "PANEL_LIMITS.has(panel_name)" in _r22_func(ui, "has_panel_size")
+
+    def test_the_clamp_reads_the_viewport_share_after_the_override_before_the_caps(self):
+        body = _r22_func(_r22_src("utils.gd"), "clamp_centered_panel")
+        user = body.index('has_meta("clamp_user_size")')
+        override = body.index('has_meta("clamp_ceiling_override")')
+        share = body.index('has_meta("clamp_ceiling_fraction")')
+        caps = body.index("view.x - 24.0")
+        assert user < override < share < caps
+        assert 'panel.has_meta("clamp_ceiling_fraction") and not panel.has_meta("clamp_user_size")' in body
+        assert "design = Vector2(maxf(design.x, share.x * view.x), maxf(design.y, share.y * view.y))" in body
+        # the share is read off the live viewport, after `view` is known
+        assert body.index("var view: Vector2 = viewport.get_visible_rect().size") < share
+
+    def test_a_5120x1440_screen_gets_a_taller_cabinet_by_default(self):
+        w, h = _r22_clamp(_R22_CABINET, (5120.0, 1440.0), share=_R22_SHARE)
+        assert (w, h) == (560.0, 864.0)            # 60 % of the height, the width as authored
+        assert h > _R22_CABINET[1] and w == _R22_CABINET[0]
+        # the old reading: the authored rect, never grown
+        assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0)) == _R22_CABINET
+
+    def test_a_smaller_screen_keeps_the_authored_rect(self):
+        """The authored rect is the floor: 0.6 x 720 = 432 < 520."""
+        assert _r22_clamp(_R22_CABINET, (1280.0, 720.0), share=_R22_SHARE) == (560.0, 520.0)
+        assert _r22_clamp(_R22_CABINET, (1920.0, 1080.0), share=_R22_SHARE) == (560.0, 648.0)
+        # and the viewport caps still apply after the raise
+        _w, h = _r22_clamp(_R22_CABINET, (1280.0, 400.0), share=_R22_SHARE)
+        assert h == 400.0 - 88.0
+
+    def test_the_players_grip_size_is_never_raised_by_the_share(self):
+        """A remembered size REPLACES the default: shrinking the Cabinet with
+        the grip on a tall screen must hold (`clamp_user_size`)."""
+        assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0), user=(500.0, 400.0),
+                          share=_R22_SHARE) == (500.0, 400.0)
+        # the double-click that forgets it returns to the share
+        assert _r22_clamp(_R22_CABINET, (5120.0, 1440.0), share=_R22_SHARE)[1] == 864.0
+
+    def test_only_the_cabinet_sets_the_share(self):
+        """Every other centred modal keeps its authored rect on a wide screen:
+        no script but the wizard sets the meta, and `utils.gd` is its one reader."""
+        users = sorted(p.name for p in _R22_SCRIPTS.glob("*.gd")
+                       if "clamp_ceiling_fraction" in p.read_text(encoding="utf-8"))
+        assert users == ["diplomacy_wizard.gd", "utils.gd"]
+        sets = [p.name for p in _R22_SCRIPTS.glob("*.gd")
+                if 'set_meta("clamp_ceiling_fraction"' in p.read_text(encoding="utf-8")]
+        assert sets == ["diplomacy_wizard.gd"]
+
+    def test_the_court_list_leads_with_your_courts_above_the_groups(self):
+        wiz = _r22_src("diplomacy_wizard.gd")
+        render = _r22_func(wiz, "_render_nations")
+        formables = render.index("_add_formables_button()")
+        yours = render.index('_add_your_courts(data.get("your_courts", []))')
+        groups = render.index('categories.get("at_war", [])')
+        assert formables < yours < groups
+        body = _r22_func(wiz, "_add_your_courts")
+        assert "if not (rows is Array) or rows.is_empty():" in body       # null-safe, no empty header
+        assert '_add_category_header("Your courts (" + str(rows.size()) + ")", Utils.COLOR_GOLD)' in body
+        assert "var entry: Dictionary = row.duplicate()" in body          # the shared entry is not mutated
+        assert 'str(entry.get("state_display", "?")) + " · " + why' in body   # the why rides the state
+        assert "_add_nation_button(entry)" in body
+
+    def test_the_payload_carries_the_missions_court_then_the_letters(self, _r22_world):
+        """The sighting's court regrouping, answered: Britain (at war, a live
+        mission) and Portugal (a courtesy letter waiting) lead the list."""
+        w = _r22_world
+        _r22_mission(w, "Britain")
+        _r22_letter(w, "Portugal", "open_borders")
+        out = _r22_nations(w)
+        assert out["success"] is True and out["dialogue_pending"] is False
+        rows = out["your_courts"]
+        assert [r["name"] for r in rows] == ["Britain", "Portugal"]
+        britain, portugal = rows
+        assert britain["has_active_mission"] is True and britain["why"] == ""
+        assert britain["state"] == "WAR" and britain["state_display"] == "At War"
+        assert portugal["why"] == _R22_LETTER_WHY and portugal["has_active_mission"] is False
+        for row in rows:
+            assert isinstance(row["relation"], int) and isinstance(row["relation_descriptor"], str)
+        # each court keeps its place in its own group: the groups stay complete
+        groups = out["categories"]
+        assert "Britain" in [n["name"] for n in groups["at_war"]]
+        assert "Portugal" in [n["name"] for n in groups["neutral"]]
+        assert "why" not in groups["at_war"][0]
+
+    def test_a_court_with_both_is_listed_once(self, _r22_world):
+        w = _r22_world
+        _r22_mission(w, "Portugal")
+        _r22_letter(w, "Portugal", "open_borders")
+        rows = _r22_nations(w)["your_courts"]
+        assert [r["name"] for r in rows] == ["Portugal"]
+        assert rows[0]["has_active_mission"] is True and rows[0]["why"] == _R22_LETTER_WHY
+
+    def test_nothing_waiting_no_group(self, _r22_world):
+        out = _r22_nations(_r22_world)
+        assert out["success"] is True
+        assert out["your_courts"] == []
+
+    def test_a_finished_mission_is_a_record_not_business(self, _r22_world):
+        w = _r22_world
+        w.active_diplomatic_mission = {"target": "Britain", "type": "IMPROVE_RELATIONS",
+                                       "completed": True}
+        assert _r22_nations(w)["your_courts"] == []
+
+    def test_the_world_records_no_last_court_visited(self, _r22_world):
+        """Said in the row: the group is built from the mission and the
+        letters because nothing records a visit (a court's page is a read)."""
+        w = _r22_world
+        names = [a for a in dir(w) if re.search(r"last_(court|visit|cabinet|envoy|nation)", a)]
+        assert names == []
+
+    def test_the_builder_is_wired_to_the_nation_list_branch_only(self):
+        src = (_R22_ROOT / "backend" / "main.py").read_text(encoding="utf-8")
+        assert '"your_courts": _wizard_your_courts(world, entries_by_court, mission_target),' in src
+        assert "entries_by_court[n] = entry" in src
+        assert src.count("_wizard_your_courts(") == 2                 # the def and the one call
+
+
+class TestS14GX101:
+    """Sibling: the builder reads only courts that are in the Cabinet's list
+    - the Cabinet's own moment letter ("The Cabinet"), an eliminated or
+    unknown sender and a letter with no sender name nobody - and a mailbox that
+    fails to read leaves the group empty rather than the list unbuilt."""
+
+    def _entries(self):
+        return {name: {"name": name, "state": "PEACE", "state_display": "Peace",
+                       "is_vassal": False, "relation": 0, "relation_descriptor": "Neutral",
+                       "has_active_mission": False}
+                for name in ("Austria", "Prussia", "Russia")}
+
+    def _world(self, rows):
+        return SimpleNamespace(dialogue_manager=SimpleNamespace(get_mailbox_items=lambda world: rows))
+
+    def test_senders_that_are_not_courts_of_the_list_are_skipped(self):
+        import backend.main as M
+        rows = [{"source_nation": "The Cabinet"}, {"source_nation": "Atlantis"},
+                {"source_nation": ""}, {"source_nation": None}, {}, None,
+                {"source_nation": "Russia"}, {"source_nation": "Austria"},
+                {"source_nation": "Russia"}]
+        out = M._wizard_your_courts(self._world(rows), self._entries(), None)
+        assert [r["name"] for r in out] == ["Russia", "Austria"]
+        assert all(r["why"] == M.YOUR_COURTS_LETTER_WHY for r in out)
+
+    def test_the_mission_court_leads_and_is_deduped(self):
+        import backend.main as M
+        rows = [{"source_nation": "Prussia"}, {"source_nation": "Austria"}]
+        out = M._wizard_your_courts(self._world(rows), self._entries(), "Austria")
+        assert [r["name"] for r in out] == ["Austria", "Prussia"]
+        assert out[0]["why"] == M.YOUR_COURTS_LETTER_WHY               # its letter too
+        # a mission to a court out of the list names nobody
+        assert M._wizard_your_courts(self._world([]), self._entries(), "Atlantis") == []
+
+    def test_a_mailbox_that_fails_leaves_the_group_empty(self):
+        import backend.main as M
+
+        def boom(world):
+            raise RuntimeError("mailbox down")
+
+        world = SimpleNamespace(dialogue_manager=SimpleNamespace(get_mailbox_items=boom))
+        assert M._wizard_your_courts(world, self._entries(), None) == []
+        assert [r["name"] for r in M._wizard_your_courts(world, self._entries(), "Prussia")] == ["Prussia"]
+
+    def test_the_rows_are_copies_the_groups_are_not_mutated(self):
+        import backend.main as M
+        entries = self._entries()
+        out = M._wizard_your_courts(self._world([{"source_nation": "Russia"}]), entries, None)
+        assert out[0] is not entries["Russia"] and "why" not in entries["Russia"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row23
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-23 (October 26, 2026): a counter-offer marks
+# what it ADDED as it marks what it struck.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-23). DD-B's third measure, diplomacy #8 (P3,
+# turn 5, action 108): Bavaria's counter to the player's vassalage read
+# "Revised Terms: You pay Bavaria 142 gold at the signing; You pay Bavaria 100
+# gold at the signing" - nothing marked new, and only by adding the two lines
+# could the player see that 242 gold would go out. Four causes, one class:
+#
+#   1. `counter_offer_clause_lines` marked only the terms the court STRUCK
+#      (S14D-X13); a term it ADDED printed as a survivor.
+#   2. The counter builders (`_try_add_desired_clauses`, `_gold_bridge_counter`)
+#      APPENDED a second gold line beside the draft's own, so the sum was split
+#      over two same-shape lines.
+#   3. The turn-line summary (`WorldState._process_proposal_in_transit` ->
+#      `counter_summary_with_struck` -> `format_proposal_summary`) used a different
+#      renderer - "France offers 142 gold; France offers 100 gold" - from the
+#      popup's reader ("You pay Bavaria ...").
+#   4. The 154-gold-a-turn tribute the player missed was removed by the player's
+#      own "More generous" click (`_choice_generous_and_suggestions` sets
+#      `demands = []`), which said nothing of it.
+#
+# THE FIX. `display_names._counter_offer_parts` reads a counter as a DIFF of the
+# draft - struck terms, then added or raised ones ("Added by Bavaria: you pay 100
+# gold more (242 at the signing)", "Cut by ..." for a lowered figure, "Added by
+# Bavaria: <the term>" for a new one), then the draft's survivors - and is the
+# ONE reader of the popup (`counter_offer_clause_lines`) and the turn line
+# (`format_proposal_summary(..., original=, reader=)`, reached through
+# `counter_summary_with_struck(..., viewer=)`). THE SEAM:
+# `ai_diplomacy.add_counter_gold_sweetener(terms, sweetener)` - the builders
+# RAISE the draft's own gold line of that shape; held down it appends (today's
+# two lines). `ai_diplomacy.merged_gold_sweeteners` is the pure fold the reader
+# shares, so a counter in either shape reads the same. "More generous" names what
+# it set aside through `display_names.dropped_demands_words`.
+#
+# WHAT WAS KEPT. The acceptance scorer is linear in gold (a sum scores as its
+# lines) and the ratifier pays the lines in turn from one purse, so the merged
+# shape ratifies to the same gold (pinned). `format_proposal_summary` without a
+# reader reads as it always did (the AI's own letters' notices). The old pins that
+# asserted the unmarked reading are flipped in
+# `tests/test_s14d_x13_the_counter_names_the_tribute.py`.
+
+_R23_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+
+_R23_ADDED = "Added by Bavaria: you pay 100 gold more (242 at the signing)"
+# S14G-X111 (Pre-Deploy S14h part 2) flips these: a struck gold term names its payer.
+_R23_TRIBUTE = "Struck: the tribute - Bavaria pays you 154 gold a turn for 10 turns"
+_R23_TRIBUTE_READERLESS = "Struck: the tribute - Bavaria pays France 154 gold a turn for 10 turns"
+
+
+def _r23_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r23_boot():
+    from backend.models.world_state import WorldState
+    with _r23_quiet():
+        return WorldState.from_scenario(str(_R23_SCENARIO))
+
+
+def _r23_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r23_draft(**kw):
+    base = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+            "sweeteners": [], "demands": [], "clauses": []}
+    base.update(kw)
+    return base
+
+
+def _r23_reader(world):
+    from backend.game_logic.formations import formed_display_name
+    return {"viewer": "France", "proposer": "Bavaria", "target": "France",
+            "name_of": lambda n, _w=world: formed_display_name(_w, n)}
+
+
+def _r23_road(boot, *, sweeteners=None, demands=None, relation=54):
+    """The sighting's road on the shipped 1805 board: the player's vassalage to
+    Bavaria (allied, relation `relation`) is in transit, the next morning
+    resolves it. At 54 the draft with 142 gold and no demand scores 49 - one
+    point under the bar - so Bavaria's counter bridges with 100 gold.
+    Returns (world, draft, events, counter_dialogue)."""
+    world = _r23_copy(boot)
+    world.nation_relations[world._make_diplo_key("France", "Bavaria")] = relation
+    draft = _r23_draft(
+        sweeteners=copy.deepcopy(sweeteners if sweeteners is not None
+                                 else [{"type": "gold_lump", "value": 142}]),
+        demands=copy.deepcopy(demands or []))
+    world.proposal_in_transit = {
+        "target": "Bavaria", "proposal": draft, "turn_sent": 0, "dp_cost": 3,
+        "acceptance_snapshot": 49, "diplomatic_state_at_send": "ALLIANCE",
+        "payer_gold_at_send": int(world.gold)}
+    with _r23_quiet():
+        events = world._process_proposal_in_transit()
+    return world, draft, events, world.dialogue_manager.peek()
+
+
+class TestS14G23:
+    """The sighting on the shipped board, on every surface that carries the
+    counter. The old reading of each is named in its docstring."""
+
+    def test_the_builders_raise_the_drafts_gold_line_not_a_second(self, _r23_boot):
+        """Old: the counter's sweeteners were [142, 100] (two same-shape lines).
+        Now: one line, 242."""
+        _w, _draft, events, dialogue = _r23_road(_r23_boot)
+        assert dialogue["type"] == "counter_offer_response"
+        counter = dialogue["context"]["counter_terms"]
+        assert counter["sweeteners"] == [{"type": "gold_lump", "value": 242}]
+        assert counter["demands"] == [] and counter["clauses"] == []
+        assert [e["outcome"] for e in events] == ["COUNTER_OFFER"]
+
+    def test_the_popup_marks_what_the_court_added(self, _r23_boot):
+        """Old: ["Proposal: Vassalage", "You pay Bavaria 142 gold at the signing",
+        "You pay Bavaria 100 gold at the signing"] - nothing marked new."""
+        _w, _draft, _events, dialogue = _r23_road(_r23_boot)
+        lines = dialogue["popup_payload"]["clauses"]
+        assert lines == ["Proposal: Vassalage", _R23_ADDED]
+        assert not any(line.startswith("You pay") for line in lines)
+
+    def test_the_turn_line_reads_the_popups_renderer(self, _r23_boot):
+        """Old: the event line and the dialogue text read "France offers 142
+        gold; France offers 100 gold" and marked only what was struck."""
+        _w, _draft, events, dialogue = _r23_road(_r23_boot)
+        popup_lines = dialogue["popup_payload"]["clauses"]
+        body = ["  - " + line for line in popup_lines[1:]]
+        for text in (events[0]["message"], dialogue["talleyrand_text"]):
+            assert "France offers" not in text
+            assert _R23_ADDED in text
+            for line in body:
+                assert line in text.splitlines()
+        assert "Vassalage between France and Bavaria" in events[0]["message"]
+
+    def test_the_popup_and_the_summary_share_one_renderer(self, _r23_boot):
+        from backend.display_names import counter_offer_clause_lines, counter_summary_with_struck
+        world, draft, _events, dialogue = _r23_road(_r23_boot)
+        counter = dialogue["context"]["counter_terms"]
+        reader = _r23_reader(world)
+        popup = counter_offer_clause_lines(draft, counter, **reader)
+        summary = counter_summary_with_struck("ignored", draft, counter, **reader)
+        assert summary.splitlines()[0] == "Vassalage between France and Bavaria"
+        assert [ln[4:] for ln in summary.splitlines()[1:]] == popup[1:]
+
+    def test_the_old_two_line_shape_reads_the_same(self, _r23_boot):
+        """A counter built before the merge (or by a hand) reads as one raised
+        line: the reader folds the same-shape gold lines it is shown."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+        two = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 142},
+                                     {"type": "gold_lump", "value": 100}])
+        assert counter_offer_clause_lines(draft, two, **_r23_reader(world)) == [
+            "Proposal: Vassalage", _R23_ADDED]
+
+    def test_the_seam_held_down_restores_the_two_lines(self, _r23_boot, monkeypatch):
+        """THE SEAM: `add_counter_gold_sweetener` down = append. The counter is
+        the pre-fix shape; the popup still marks the one raised line."""
+        from backend.game_logic import ai_diplomacy
+        monkeypatch.setattr(
+            ai_diplomacy, "add_counter_gold_sweetener",
+            lambda terms, sweetener: terms.setdefault("sweeteners", []).append(sweetener) or terms)
+        _w, _draft, _events, dialogue = _r23_road(_r23_boot)
+        counter = dialogue["context"]["counter_terms"]
+        assert counter["sweeteners"] == [{"type": "gold_lump", "value": 142},
+                                         {"type": "gold_lump", "value": 100}]
+        assert dialogue["popup_payload"]["clauses"] == ["Proposal: Vassalage", _R23_ADDED]
+
+    def test_the_merged_counter_ratifies_to_the_gold_of_the_two_line_shape(self, _r23_boot):
+        """Every reader of the counter's terms: the ratifier pays the lines in
+        turn from one purse, so one 242 line is the same 242 out of the
+        treasury and into Bavaria's as the old two."""
+        world, _draft, _events, dialogue = _r23_road(_r23_boot)
+        merged = dialogue["context"]["counter_terms"]
+        two = copy.deepcopy(merged)
+        two["sweeteners"] = [{"type": "gold_lump", "value": 142},
+                             {"type": "gold_lump", "value": 100}]
+        outcomes = []
+        for terms in (merged, two):
+            ratifying = _r23_copy(world)
+            before = (ratifying.nation_gold["France"], ratifying.nation_gold["Bavaria"])
+            with _r23_quiet():
+                ratifying._ratify_treaty(copy.deepcopy(terms))
+            after = (ratifying.nation_gold["France"], ratifying.nation_gold["Bavaria"])
+            outcomes.append((before[0] - after[0], after[1] - before[1],
+                             ratifying.get_diplomatic_state("France", "Bavaria")))
+        assert outcomes[0] == outcomes[1] == (242, 242, "VASSAL")
+
+    def test_the_acceptance_scorer_reads_the_sum_as_it_read_the_lines(self, _r23_boot):
+        from backend.game_logic.diplomacy import calculate_acceptance
+        world, _draft, _events, dialogue = _r23_road(_r23_boot)
+        merged = dialogue["context"]["counter_terms"]
+        two = copy.deepcopy(merged)
+        two["sweeteners"] = [{"type": "gold_lump", "value": 142},
+                             {"type": "gold_lump", "value": 100}]
+        assert calculate_acceptance(merged, world)["score"] == calculate_acceptance(two, world)["score"]
+        assert int(calculate_acceptance(merged, world)["score"]) >= 50
+
+    def test_a_struck_tribute_and_an_added_sum_in_one_counter(self, _r23_boot):
+        """The diff leads with what was struck, then what was added, then the
+        survivors - each change marked."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(demands=[{"type": "gold_per_turn", "value": 154, "turns": 10}],
+                           sweeteners=[{"type": "gold_lump", "value": 142}],
+                           clauses=["open_borders"])
+        counter = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 242}],
+                             clauses=["open_borders"])
+        lines = counter_offer_clause_lines(draft, counter, **_r23_reader(world))
+        assert lines[:3] == ["Proposal: Vassalage", _R23_TRIBUTE, _R23_ADDED]
+        assert len(lines) == 4 and lines[3].startswith("Clause: Open borders")   # the survivor
+
+    def test_a_raised_stream_names_its_sum_and_its_turns(self, _r23_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(type="alliance", sweeteners=[{"type": "gold_per_turn", "value": 35}])
+        counter = _r23_draft(type="alliance", sweeteners=[{"type": "gold_per_turn", "value": 55}])
+        assert counter_offer_clause_lines(draft, counter, **_r23_reader(world)) == [
+            "Proposal: Full Alliance",
+            "Added by Bavaria: you pay 20 gold a turn more (55 a turn for as long as the treaty stands)"]
+
+    def test_a_lowered_figure_is_cut_not_struck_and_carried(self, _r23_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(demands=[{"type": "gold_per_turn", "value": 126}])
+        counter = _r23_draft(demands=[{"type": "gold_per_turn", "value": 80}])
+        assert counter_offer_clause_lines(draft, counter, **_r23_reader(world)) == [
+            "Proposal: Vassalage",
+            "Cut by Bavaria: the tribute - Bavaria pays you 46 gold a turn less (80 a turn for as long as the treaty stands)"]
+
+    def test_a_term_of_a_new_kind_is_marked_added(self, _r23_boot):
+        """Nothing in the draft to raise: the added term prints as the popup
+        prints every other letter's, behind "Added by Bavaria:"."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(type="alliance")
+        counter = _r23_draft(type="alliance", sweeteners=[{"type": "gold_lump", "value": 100}],
+                             clauses=["open_borders"])
+        lines = counter_offer_clause_lines(draft, counter, **_r23_reader(world))
+        assert lines[0] == "Proposal: Full Alliance"
+        assert "Added by Bavaria: You pay Bavaria 100 gold at the signing" in lines
+        assert any(line.startswith("Added by Bavaria: Open borders") for line in lines)
+        assert len(lines) == 3
+
+    def test_a_counter_that_changed_nothing_reads_as_it_always_did(self, _r23_boot):
+        from backend.display_names import build_proposal_popup_clauses, counter_offer_clause_lines
+        world = _r23_copy(_r23_boot)
+        draft = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+        reader = _r23_reader(world)
+        assert counter_offer_clause_lines(draft, draft, **reader) == build_proposal_popup_clauses(
+            draft, include_base=False, **reader) == ["You pay Bavaria 142 gold at the signing"]
+
+    def test_the_court_is_named_from_the_readers_chair(self):
+        """France countering an AI proposal (the M3 road): the court that adds
+        is the one that is not the reader, whichever side proposed."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = {"type": "alliance", "proposer_nation": "Prussia", "target_nation": "France",
+                 "sweeteners": [{"type": "gold_lump", "value": 50}], "demands": [], "clauses": []}
+        counter = copy.deepcopy(draft)
+        counter["sweeteners"] = [{"type": "gold_lump", "value": 90}]
+        lines = counter_offer_clause_lines(draft, counter, viewer="France", proposer="Prussia",
+                                           target="France")
+        assert lines == ["Proposal: Full Alliance",
+                         "Added by Prussia: Prussia pays you 40 gold more (90 at the signing)"]
+
+    def test_more_generous_names_the_demand_it_set_aside(self, _r23_boot, monkeypatch):
+        """Old: the click replaced the draft's 154-gold-a-turn tribute with
+        nothing and said "A magnanimous approach, Sire. More generous terms for
+        Bavaria." - the player blamed the counter for the loss."""
+        from backend.commands.executor import CommandExecutor
+        world = _r23_copy(_r23_boot)
+        monkeypatch.setattr("backend.commands.diplomatic_defiance.roll_drafting_pushback",
+                            lambda *a, **k: False)
+        terms = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+                 "sweeteners": [{"type": "gold_lump", "value": 95}],
+                 "demands": [{"type": "gold_per_turn", "value": 154, "turns": 10}],
+                 "clauses": [], "proposal_type": "vassalage"}
+        _r23_stage_confirm(world, terms)
+        with _r23_quiet():
+            result = CommandExecutor().handle_diplomatic_dialogue_response(
+                "generous", {"world": world})
+        assert result["success"] is True
+        assert result["message"] == (
+            "A magnanimous approach, Sire. More generous terms for Bavaria. "
+            "Your demands were set aside: 154 gold a turn for 10 turns.")
+        dialogue = result["diplomatic_dialogue"]
+        assert dialogue["talleyrand_text"] == result["message"]
+        sent = next(o for o in dialogue["options"] if o["action"] == "execute_proposal")["terms"]
+        assert sent["demands"] == [] and sent["sweeteners"][0]["value"] == 142   # 95 x 1.5, as before
+
+    def test_the_second_round_says_nothing_more_to_drop(self, _r23_boot, monkeypatch):
+        from backend.commands.executor import CommandExecutor
+        world = _r23_copy(_r23_boot)
+        monkeypatch.setattr("backend.commands.diplomatic_defiance.roll_drafting_pushback",
+                            lambda *a, **k: False)
+        terms = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+                 "sweeteners": [{"type": "gold_lump", "value": 95}],
+                 "demands": [{"type": "gold_per_turn", "value": 154, "turns": 10}],
+                 "clauses": [], "proposal_type": "vassalage"}
+        _r23_stage_confirm(world, terms)
+        executor = CommandExecutor()
+        with _r23_quiet():
+            first = executor.handle_diplomatic_dialogue_response("generous", {"world": world})
+            again = next(i for i, o in enumerate(first["diplomatic_dialogue"]["options"], start=1)
+                         if o["action"] == "modify_generous")
+            second = executor.handle_diplomatic_dialogue_response(again, {"world": world})
+        assert "set aside" not in second["message"]
+        assert second["message"].startswith("A magnanimous approach, Sire.")
+
+    def test_a_draft_with_no_demands_has_nothing_to_report(self, _r23_boot, monkeypatch):
+        from backend.commands.executor import CommandExecutor
+        world = _r23_copy(_r23_boot)
+        monkeypatch.setattr("backend.commands.diplomatic_defiance.roll_drafting_pushback",
+                            lambda *a, **k: False)
+        terms = {"type": "alliance", "proposer_nation": "France", "target_nation": "Bavaria",
+                 "sweeteners": [{"type": "gold_lump", "value": 95}], "demands": [],
+                 "clauses": [], "proposal_type": "alliance"}
+        _r23_stage_confirm(world, terms)
+        with _r23_quiet():
+            result = CommandExecutor().handle_diplomatic_dialogue_response(
+                "generous", {"world": world})
+        assert "set aside" not in result["message"]
+
+    def test_the_pushback_branch_names_it_too(self, _r23_boot, monkeypatch):
+        from backend.commands.executor import CommandExecutor
+        world = _r23_copy(_r23_boot)
+        monkeypatch.setattr("backend.commands.diplomatic_defiance.roll_drafting_pushback",
+                            lambda *a, **k: True)
+        terms = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+                 "sweeteners": [{"type": "gold_lump", "value": 95}],
+                 "demands": [{"type": "gold_per_turn", "value": 154, "turns": 10}],
+                 "clauses": [], "proposal_type": "vassalage"}
+        _r23_stage_confirm(world, terms)
+        with _r23_quiet():
+            result = CommandExecutor().handle_diplomatic_dialogue_response(
+                "generous", {"world": world})
+        assert result["diplomatic_dialogue"]["type"] == "pushback_confirm"
+        assert result["message"].endswith(
+            "Your demands were set aside: 154 gold a turn for 10 turns.")
+
+
+def _r23_stage_confirm(world, terms):
+    """The proposal_confirm dialogue the wizard mounts, carrying `terms` on
+    its Send / More generous options (the shape `_setup_proposal_dialogue`
+    stages in tests/test_bugfix_proposal_flow.py)."""
+    world.dialogue_manager.replace({
+        "type": "proposal_confirm", "target_nation": "Bavaria",
+        "talleyrand_text": "The draft.",
+        "options": [
+            {"label": "Send these terms", "description": "Dispatch.",
+             "action": "execute_proposal", "terms": copy.deepcopy(terms)},
+            {"label": "More generous", "description": "Offer more.",
+             "action": "modify_generous", "terms": copy.deepcopy(terms)},
+            {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+        ],
+        "context": {}, "turn_created": int(world.current_turn), "blocking": False})
+
+
+class TestS14GX102:
+    """S14G-X102 - the pure fold and the seam: every same-shape gold line is
+    one line, a stream folds only into a stream of the same turns, a line that
+    is not a plain gold line is its own, and the input is never touched."""
+
+    def test_the_fold_is_pure_and_shape_aware(self):
+        from backend.game_logic.ai_diplomacy import merged_gold_sweeteners
+        lines = [{"type": "gold_lump", "value": 50},
+                 {"type": "gold_per_turn", "value": 20},
+                 {"type": "gold_lump", "value": 25},
+                 {"type": "gold_per_turn", "value": 10, "turns": 5},
+                 {"type": "gold_per_turn", "value": 7},
+                 {"type": "gold_lump", "value": 9, "named": "extra"},
+                 {"type": "open_borders", "value": 1}]
+        snapshot = copy.deepcopy(lines)
+        assert merged_gold_sweeteners(lines) == [
+            {"type": "gold_lump", "value": 75},
+            {"type": "gold_per_turn", "value": 27},
+            {"type": "gold_per_turn", "value": 10, "turns": 5},
+            {"type": "gold_lump", "value": 9, "named": "extra"},
+            {"type": "open_borders", "value": 1}]
+        assert lines == snapshot
+
+    def test_the_seam_raises_a_matching_line_and_appends_otherwise(self):
+        from backend.game_logic.ai_diplomacy import add_counter_gold_sweetener
+        terms = {"sweeteners": [{"type": "gold_lump", "value": 142}]}
+        add_counter_gold_sweetener(terms, {"type": "gold_lump", "value": 100})
+        assert terms["sweeteners"] == [{"type": "gold_lump", "value": 242}]
+        add_counter_gold_sweetener(terms, {"type": "gold_per_turn", "value": 30})
+        assert terms["sweeteners"][1] == {"type": "gold_per_turn", "value": 30}
+        add_counter_gold_sweetener(terms, {"type": "gold_per_turn", "value": 5})
+        assert terms["sweeteners"][1] == {"type": "gold_per_turn", "value": 35}
+        bare = {}
+        add_counter_gold_sweetener(bare, {"type": "gold_lump", "value": 100})
+        assert bare == {"sweeteners": [{"type": "gold_lump", "value": 100}]}
+
+    def test_the_desire_walk_raises_the_drafts_line_too(self, _r23_boot):
+        """The first builder (`_try_add_desired_clauses`) reaches the same
+        seam: a court with a gold desire raises the draft's lump."""
+        from backend.game_logic import ai_diplomacy
+        world = _r23_copy(_r23_boot)
+        world.nation_relations[world._make_diplo_key("France", "Prussia")] = 10
+        desires = ai_diplomacy.NATION_DESIRES.get("Prussia") or []
+        gold = next((d for d in desires if d.get("type") == "gold_lump"), None)
+        if gold is None:
+            pytest.skip("Prussia carries no gold_lump desire on this table")
+        terms = {"type": "alliance", "proposer_nation": "France", "target_nation": "Prussia",
+                 "sweeteners": [{"type": "gold_lump", "value": 40}], "demands": [], "clauses": []}
+        with _r23_quiet():
+            out = ai_diplomacy._try_add_desired_clauses(
+                terms, "Prussia", world, accept_threshold=-999, payer_nation="France",
+                gold_only=True, payer_gold=5000)
+        assert out is not None
+        lumps = [s for s in out["sweeteners"] if s["type"] == "gold_lump"]
+        assert len(lumps) == 1 and lumps[0]["value"] == 40 + max(5, int(gold["value"]))
+
+
+class TestS14GX103:
+    """S14G-X103 - the caller that does not know the reader (the M3 road's
+    `counter_summary_with_struck(summary, original, counter)` in
+    `_handle_counter_ai_proposal`) keeps its summary and gains a line for each
+    term the counter struck OR added."""
+
+    def test_the_readerless_summary_marks_added_terms(self):
+        from backend.display_names import counter_summary_with_struck
+        draft = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 142}],
+                           demands=[{"type": "gold_per_turn", "value": 154, "turns": 10}])
+        counter = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 242}])
+        base = "Vassalage between France and Bavaria\n  - France offers 242 gold"
+        assert counter_summary_with_struck(base, draft, counter) == (
+            base + "\n  - " + _R23_TRIBUTE_READERLESS
+            + "\n  - Added: France pays Bavaria 100 gold more (242 at the signing)")
+        assert counter_summary_with_struck(base, draft, draft) == base
+
+
+class TestS14GX104:
+    """S14G-X104 - `format_proposal_summary` without a reader reads as it
+    always did (the AI's own letters' notices - proposer-voiced, third person),
+    so the reader's route is opt-in and the series-visible text is unmoved."""
+
+    def test_the_proposer_voiced_lines_are_unchanged(self):
+        from backend.display_names import format_proposal_summary
+        terms = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 242}],
+                           demands=[{"type": "gold_per_turn", "value": 154, "turns": 10}])
+        assert format_proposal_summary(terms) == (
+            "Vassalage between France and Bavaria\n"
+            "  - France offers 242 gold\n"
+            "  - France demands 154 gold per turn for 10 turns")
+
+    def test_with_a_reader_the_lines_are_the_popups(self):
+        from backend.display_names import format_proposal_summary
+        terms = _r23_draft(sweeteners=[{"type": "gold_lump", "value": 242}],
+                           demands=[{"type": "gold_per_turn", "value": 154, "turns": 10}])
+        reader = {"viewer": "France", "proposer": "Bavaria", "target": "France"}
+        assert format_proposal_summary(terms, reader=reader) == (
+            "Vassalage between France and Bavaria\n"
+            "  - Bavaria pays you 154 gold a turn for 10 turns\n"
+            "  - You pay Bavaria 242 gold at the signing")
+
+
+class TestS14GX105:
+    """S14G-X105 - the sentence that names a dropped demand says each kind of
+    demand as the thing asked."""
+
+    def test_each_kind_of_demand(self):
+        from backend.display_names import dropped_demands_words
+        assert dropped_demands_words([]) == ""
+        assert dropped_demands_words(None) == ""
+        assert dropped_demands_words(
+            [{"type": "gold_per_turn", "value": 154, "turns": 10}]) == (
+            "Your demands were set aside: 154 gold a turn for 10 turns.")
+        assert dropped_demands_words(
+            [{"type": "gold_per_turn", "value": 90}, {"type": "gold_lump", "value": 1200},
+             {"type": "territory_cede", "regions": ["Tyrol", "Salzburg"], "value": 2},
+             {"type": "ap_per_turn", "value": 1}]) == (
+            "Your demands were set aside: 90 gold a turn for as long as the treaty stands; "
+            "1,200 gold; Tyrol and Salzburg; 1 action point a turn for as long as the "
+            "treaty stands.")
+        # the same demand twice is said once
+        assert dropped_demands_words([{"type": "gold_lump", "value": 5}] * 2) == (
+            "Your demands were set aside: 5 gold.")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row24
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-24 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-24): Talleyrand's truce reading said "-57,
+# short of the line; the war resumes" beside a -60 rule - the league's BOND forced
+# the exit, and the counsel had rebuilt its own wording.
+#
+# THE CAUSE, as traced. `counsel._truce_reading` built a sentence of its own for
+# each exit (PC-R2, before PC-X61's bond arm existed) and printed "short of the
+# line; the war resumes" for ANY `exit == "war"`. The exit was "war" for another
+# reason: `armistice_expiry_exit` forces `exit_ = "war"` while `pair_bond` binds
+# Austria to Britain's bond, so the relation test (projected >= -60) was never
+# reached. `truce_words` words it correctly ("Austria is bound by Britain's bond
+# not to sign alone") - that is the Propose Peace tooltip and the preview; the
+# counsel, on the same page, did not branch on the bond. And the -57 omitted the
+# player's OWN running courtship: `armistice_projected_relation` is the relation
+# plus the truce's thaw (3 a turn) and nothing else, while the actual rise over
+# the same turns was +11 a turn (the courtship's +8 is written by the tick before
+# the thaw).
+#
+# THE SIGHTING (DD-B third measure, diplomacy #9, P3, turn 6, action 140,
+# `docs/audits/dd_b/diplomacy_2026_10_25/frames/0140.jpg`): a truce with Austria,
+# relations -66 with three turns to run, Britain's bond on Austria - the counsel
+# read -57 beside the -60 line and "short of the line".
+#
+# THE FIX. (1) `_truce_reading` takes `truce_words`' `heading_line` (lowercased like
+# `keeps`; the line's `_tidy` capitalises it again) instead of rebuilding the
+# sentence, so the bond, the courtship and the cure read the same on the counsel's
+# page as on every other. (2) `diplomacy.armistice_mission_gain` - THE SEAM (held
+# down it answers 0 and the projection reads the thaw alone, as before) - adds the
+# player's live courtship of the pair's other member, per funded tick left, to
+# `armistice_expiry_exit`'s `projected` (`natural` keeps the thaw alone;
+# `mission_gain` and `mission_per_turn` ride beside). It is the PLAYER's mission
+# only (`world.active_diplomatic_mission` is the one store; an AI court has no
+# mission), and the processor reads the exit at `remaining == 0`, where the gain is
+# 0 by construction. A mission paused under a letter loses the turns he is away
+# (`letter_home_turns`); one paused for want of DP is not counted. (3) The heading
+# says what the figure counts - "will reach -33 (-57 at the natural thaw alone;
+# Talleyrand's courtship adds +24)" - and the cure does not price a SECOND
+# Improve Relations beside the one that runs ("The cure is out of reach:
+# Talleyrand's courtship already runs (+8 a turn) and is counted; ...").
+# (4) The war card's `armistice_projected_relation` is the truce's one projection.
+#
+# WHAT WAS KEPT. The exits' arithmetic (`ARMISTICE_AUTO_PEACE_RELATION`, the bond's
+# closing of the automatic exits, the dictated peace), `armistice_projected_relation`
+# itself (the thaw alone), every sentence with no mission running (byte-identical),
+# and the processor's read at expiry.
+#
+# THE SEAM. `diplomacy.armistice_mission_gain` - down = 0, the pre-fix projection.
+# No AI court reads a mission and the processor's `remaining` is 0, so the
+# BASELINE_SERIES (a passive 40-turn run the AI walks alone) cannot move; the pins
+# below hold both facts.
+#
+# Sibling pins are `TestS14GX24_<k>`; the orchestrator renumbers them.
+
+_R24_ROOT = Path(__file__).resolve().parents[1]
+_R24_SCENARIO = (_R24_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+
+
+def _r24_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r24_boot():
+    from backend.models.world_state import WorldState
+    with _r24_quiet():
+        return WorldState.from_scenario(str(_R24_SCENARIO))
+
+
+@pytest.fixture
+def _r24_w(_r24_boot):
+    """The shipped 1805 board, a private copy per test."""
+    from backend.models.world_state import WorldState
+    with _r24_quiet():
+        w = WorldState.from_dict(json.loads(json.dumps(_r24_boot.to_dict(), default=str)))
+    w.diplomatic_points = 10
+    return w
+
+
+def _r24_key(w, other="Austria"):
+    return w._make_diplo_key("France", other)
+
+
+def _r24_truce(w, relation, other="Austria", elapsed=2):
+    """A running truce with `other`: `5 - elapsed` turns to run."""
+    key = _r24_key(w, other)
+    w.diplomatic_states[key] = "ARMISTICE"
+    w.armistice_turns[key] = elapsed
+    w.nation_relations[key] = int(relation)
+    return key
+
+
+def _r24_bind(w, payer="Britain", member="Austria", enemy="France"):
+    from backend.game_logic import bond as B
+    with _r24_quiet():
+        res = B.mint_bond(w, payer=payer, member=member, enemy=enemy)
+    assert res["success"], res
+    return res["record"]
+
+
+def _r24_courtship(w, target="Austria", **over):
+    mission = {"type": "IMPROVE_RELATIONS", "target": target, "turns_active": 0,
+               "paused": False, "paused_turns": 0, "started_turn": int(w.current_turn),
+               "initial_relation": int(w.nation_relations.get(_r24_key(w, target), 0))}
+    mission.update(over)
+    w.active_diplomatic_mission = mission
+    w.talleyrand_state = "ON_MISSION"
+    return mission
+
+
+def _r24_exit(w, other="Austria"):
+    from backend.game_logic import diplomacy as D
+    return D.armistice_expiry_exit(w, other, "France")
+
+
+def _r24_counsel(w, court="Austria"):
+    from backend.game_logic import counsel as C
+    with _r24_quiet():
+        reading = C.read_counsel(w, court)
+        return reading, C.compose_counsel_line(reading)["line"]
+
+
+class TestS14G24:
+    """The sighting on the shipped board: Austria in a truce at -66 with three
+    turns to run, Britain's bond on her."""
+
+    def test_a_bonded_truce_at_minus_57_never_says_short_of_the_line(self, _r24_w):
+        """OLD READING: "It heads for the collapse: relations stand at -66 and
+        will thaw to -57, short of the line; the war resumes where it stood."
+        beside the -60 rule. NOW the counsel speaks the bond."""
+        w = _r24_w
+        _r24_bind(w)                       # minted at WAR (the shipped boot), then the truce
+        _r24_truce(w, -66)
+        ex = _r24_exit(w)
+        assert ex["exit"] == "war" and ex["projected"] == -57 and ex["bond"]
+        reading, line = _r24_counsel(w)
+        assert "short of the line" not in line, line
+        assert "short of" not in line, line
+        assert "Austria is bound by Britain's bond not to sign alone" in line, line
+        assert "a peace with her runs through the table, where the bond is priced" in line, line
+
+    def test_the_counsels_heading_is_the_ones_wording(self, _r24_w):
+        """Every exit: the counsel's heading IS `truce_words`' heading line, its
+        first letter lowercased like `keeps`."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        for relation, bonded in ((-66, True), (-66, False), (-90, False)):
+            w2 = _r24_copy(w)
+            if bonded:
+                _r24_bind(w2)
+            _r24_truce(w2, relation)
+            reading, line = _r24_counsel(w2)
+            heading = D.truce_words(w2, "France", "Austria")["heading_line"]
+            assert reading["truce_heading"] == heading[0].lower() + heading[1:], (relation, bonded)
+            assert heading[0].upper() + heading[1:] in line, (relation, bonded, line)
+
+    def test_the_old_rebuilt_sentences_are_gone(self):
+        src = (_R24_ROOT / "backend" / "game_logic" / "counsel.py").read_text(encoding="utf-8")
+        body = src[src.index("def _truce_reading"):src.index("def _second_sentence")]
+        assert "short of the line; the war resumes" not in body
+        assert "It ripens into peace on the held line" not in body
+        assert 'words.get("heading_line")' in body
+
+    def test_a_running_courtship_moves_the_projection(self, _r24_w):
+        """The courtship's +8 a turn is written before the thaw: -72 with three
+        turns to run reads -63 on the thaw alone (the war resumes) and -39 with
+        the courtship counted (the courted peace)."""
+        w = _r24_w
+        _r24_truce(w, -72)
+        plain = _r24_exit(w)
+        assert (plain["exit"], plain["projected"], plain["mission_gain"]) == ("war", -63, 0)
+        _r24_courtship(w)
+        moved = _r24_exit(w)
+        assert moved["natural"] == -63 and moved["mission_per_turn"] == 8
+        assert moved["mission_gain"] == 24 and moved["projected"] == -39
+        assert moved["exit"] == "peace"
+
+    def test_the_projection_is_the_relation_the_ticks_leave(self, _r24_w):
+        """Shown == applied: three real diplomacy ticks of the same board end
+        at the projected relation, and the truce ripens into the peace the
+        projection promised (the old thaw-alone figure promised the war)."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        key = _r24_truce(w, -72)
+        _r24_courtship(w)
+        projected = _r24_exit(w)["projected"]
+        with _r24_quiet():
+            D.process_diplomacy_turn(w)
+            D.process_diplomacy_turn(w)
+        assert _r24_exit(w)["projected"] == projected          # the plan holds as it runs
+        assert int(w.nation_relations[key]) == -72 + 2 * 11
+        with _r24_quiet():
+            D.process_diplomacy_turn(w)
+        assert w.diplomatic_states[key] == "PEACE"
+
+    def test_without_the_courtship_the_same_board_collapses(self, _r24_w):
+        """The control: -72 on the thaw alone is the collapse."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        key = _r24_truce(w, -72)
+        with _r24_quiet():
+            for _ in range(3):
+                D.process_diplomacy_turn(w)
+        assert w.diplomatic_states[key] == "WAR"
+
+    def test_the_heading_names_what_the_figure_counts(self, _r24_w):
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w)
+        words = D.truce_words(w, "France", "Austria")
+        assert ("relations stand at -72 and will reach -39 (-63 at the natural thaw alone; "
+                "Talleyrand's courtship adds +24)") in words["heading_line"], words["heading_line"]
+        assert words["natural"] == -63 and words["mission_gain"] == 24
+        idle = _r24_copy(w)
+        idle.active_diplomatic_mission = None
+        free = D.truce_words(idle, "France", "Austria")
+        assert "will thaw to -63" in free["heading_line"] and "natural thaw" not in free["heading_line"]
+
+    def test_the_war_card_quotes_the_one_projection(self, _r24_w):
+        from backend.game_logic.war_status import build_active_wars
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w)
+        with _r24_quiet():
+            card = next(r for r in build_active_wars(w)["wars"] if r["opponent"] == "Austria")
+        assert card["armistice_projected_relation"] == -39
+        assert card["armistice_exit"] == "peace"
+        assert "will reach -39" in card["armistice_heading_line"]
+        assert isinstance(card["armistice_projected_relation"], int)
+
+    def test_the_card_without_a_mission_is_the_old_figure(self, _r24_w):
+        from backend.game_logic.war_status import build_active_wars
+        from backend.game_logic.diplomacy import ARMISTICE_THAW_PER_TURN
+        w = _r24_w
+        _r24_truce(w, -90, elapsed=0)
+        with _r24_quiet():
+            card = next(r for r in build_active_wars(w)["wars"] if r["opponent"] == "Austria")
+        assert card["armistice_projected_relation"] == -90 + 5 * ARMISTICE_THAW_PER_TURN
+
+
+def _r24_copy(w):
+    from backend.models.world_state import WorldState
+    with _r24_quiet():
+        return WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+
+
+class TestS14G24TheCure:
+    """The cure priced "N turns of Improve Relations" as if no courtship ran."""
+
+    def test_a_free_slot_keeps_the_old_cure_byte_for_byte(self, _r24_w):
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -90, elapsed=0)
+        words = D.truce_words(w, "France", "Austria")
+        assert words["cure_line"].startswith("The cure is in reach: ") or \
+            words["cure_line"].startswith("The cure is out of reach: ")
+        assert "Talleyrand is at" not in words["cure_line"]
+        assert "already runs" not in words["cure_line"]
+
+    def test_a_running_courtship_that_falls_short_is_not_priced_twice(self, _r24_w):
+        """A courtship the runway cannot carry: -90 with ONE turn to run reads
+        -87 on the thaw alone and -79 with the courtship (+8) counted - still
+        short of the -60 line. The cure line says the running courtship is
+        already in the figure instead of pricing a second Improve Relations."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -90, elapsed=4)                      # one turn to run
+        _r24_courtship(w)
+        words = D.truce_words(w, "France", "Austria")
+        assert words["exit"] == "war" and words["projected"] == -90 + 3 + 8
+        assert words["cure"]["running"] is True and words["cure"]["in_reach"] is False
+        assert words["cure_line"] == (
+            "The cure is out of reach: Talleyrand's courtship already runs (+8 a turn) and is "
+            "counted; it carries relations to -79, 19 short of -60."), words["cure_line"]
+
+    def test_the_cure_names_where_he_is_when_the_slot_is_busy(self, _r24_w):
+        """S14G-X128: the cure spends the ONE slot; with him at another court
+        the line says so and what recalling gives up."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -90, elapsed=0)
+        _r24_courtship(w, target="Prussia")
+        words = D.truce_words(w, "France", "Austria")
+        assert "Talleyrand is at Prussia's court — recalling him forfeits Prussia's remaining courtship" \
+            in words["cure_line"], words["cure_line"]
+
+    def test_the_cure_says_when_he_is_on_the_road(self, _r24_w):
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -90, elapsed=0)
+        w.talleyrand_state = "IN_TRANSIT"
+        words = D.truce_words(w, "France", "Austria")
+        assert words["cure_line"].endswith("Talleyrand carries a letter; the cure opens when he is home.")
+
+
+class TestS14G24TheSeamAndTheAI:
+    def test_held_down_the_projection_is_the_thaw_alone(self, _r24_w, monkeypatch):
+        """THE SEAM: `armistice_mission_gain` -> 0 restores the pre-fix numbers."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w)
+        monkeypatch.setattr(D, "armistice_mission_gain", lambda *a, **k: 0)
+        ex = _r24_exit(w)
+        assert (ex["exit"], ex["projected"], ex["mission_gain"]) == ("war", -63, 0)
+
+    def test_the_processors_read_at_expiry_carries_no_gain(self, _r24_w):
+        """At the expiry tick `remaining` is 0: whatever the mission is, the
+        exit is the relation as it stands."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        _r24_truce(w, -72, elapsed=D.ARMISTICE_DURATION)
+        _r24_courtship(w)
+        ex = _r24_exit(w)
+        assert ex["remaining"] == 0 and ex["mission_gain"] == 0 and ex["projected"] == -72
+
+    def test_an_ai_pair_never_carries_the_players_mission(self, _r24_w):
+        """The mission store is the player's: an armistice between two AI courts
+        (or any pair without France) reads the thaw alone."""
+        from backend.game_logic import diplomacy as D
+        w = _r24_w
+        key = w._make_diplo_key("Austria", "Russia")
+        w.diplomatic_states[key] = "ARMISTICE"
+        w.armistice_turns[key] = 2
+        w.nation_relations[key] = -72
+        _r24_courtship(w, target="Austria")
+        ex = D.armistice_expiry_exit(w, "Austria", "Russia")
+        assert ex["mission_gain"] == 0 and ex["mission_per_turn"] == 0 and ex["projected"] == -63
+
+    def test_a_mission_at_another_court_is_not_counted(self, _r24_w):
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w, target="Prussia")
+        assert _r24_exit(w)["mission_gain"] == 0
+
+    @pytest.mark.parametrize("mission_type", ["GATHER_INTEL", "UNDERMINE_ALLIANCE"])
+    def test_a_mission_that_writes_no_relation_is_not_counted(self, _r24_w, mission_type):
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w, type=mission_type)
+        assert _r24_exit(w)["mission_gain"] == 0
+
+    def test_a_completed_mission_is_a_record_not_a_courtship(self, _r24_w):
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w, completed=True)
+        assert _r24_exit(w)["mission_gain"] == 0
+
+    def test_a_mission_paused_for_want_of_dp_is_not_counted(self, _r24_w):
+        w = _r24_w
+        _r24_truce(w, -72)
+        _r24_courtship(w, paused=True, paused_turns=1)
+        assert _r24_exit(w)["mission_gain"] == 0
+
+    def test_a_mission_paused_under_a_letter_loses_the_turns_he_is_away(self, _r24_w):
+        w = _r24_w
+        _r24_truce(w, -72)                                   # three turns to run
+        _r24_courtship(w, paused=True)
+        w.talleyrand_state = "IN_TRANSIT"
+        w.proposal_in_transit = {"target": "Prussia", "turn_sent": int(w.current_turn),
+                                 "proposal": {"type": "peace"}}
+        ex = _r24_exit(w)
+        assert ex["mission_gain"] == 8 * 2                   # one of the three ticks is the letter's
+
+    def test_the_series_baseline_has_no_mission_to_count(self, _r24_boot):
+        """The BASELINE_SERIES is a passive run: no mission is ever live on the
+        boot board, so the gain is 0 for every pair the AI walks."""
+        from backend.game_logic import diplomacy as D
+        assert _r24_boot.active_diplomatic_mission in (None, {})
+        for a, b in (("Austria", "Russia"), ("France", "Austria"), ("Britain", "Prussia")):
+            assert D.armistice_mission_gain(_r24_boot, a, b, 5) == 0
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row25
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-25 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-25): sending ANY proposal pauses Talleyrand's
+# courting mission, and nothing said so at the send.
+#
+# THE CAUSE, as traced. Both send paths (`_choice_proposal`'s confirm send and the
+# override send) set `mission["paused"] = True` and `talleyrand_state =
+# "IN_TRANSIT"`; a paused mission earns and costs nothing (`_process_mission_dp`,
+# counted as `paused_errand`). The send reply was "Talleyrand departs for the
+# British court with your Peace Treaty proposal. Expect a response by next turn.
+# (3 DP spent)"; the preview had nothing. The pause sentence ("While he travels the
+# mission costs nothing and earns nothing") existed only as the rail notice's body;
+# the chip's face was built from the title (`notification_bar.gd`
+# `_mission_words`, ignoring `details.beat`) and its tooltip was the title; the top
+# bar's summary was "Improving Relations -> Prussia" with no paused flag though
+# `mission_status` has `paused` / `pause_reason`. The Cabinet stated the pause only
+# afterwards ("+8 earned; paused 2 turns on your errand").
+#
+# THE SIGHTING (DD-B third measure, diplomacy #12, P3, turn 4, action 89,
+# `docs/audits/dd_b/diplomacy_2026_10_25/frames/0089.jpg`): the player began
+# Improve Relations with Prussia on turn 1, sent a (hopeless) peace letter to
+# Britain the same turn, and found Prussia at -2 after four turns; it repeated on
+# turns 3 and 14.
+#
+# THE FIX. ONE builder, `diplomacy.letter_pause_line`: "Talleyrand carries this
+# letter; his Improve Relations at Prussia pauses until he is home (about 1
+# turn)." Read by (1) the PREVIEW - a medium warning in the confirm's Political
+# Context (`_enrich_proposal_summary`, only on a dialogue that SENDS) and
+# `dialogue["letter_pause_line"]`; (2) BOTH send replies (`_letter_pause_sentence`
+# in `diplomatic_executor`), with the turns the letter's own (`letter_home_turns`,
+# the count `transit_words` prints - a stalled envoy's two); (3) the top bar's
+# summary (`main._get_talleyrand_mission_summary`: " (paused - carrying a
+# letter)" while `mission_paused_for_letter`); (4) the rail chip's face and tooltip
+# (`notification_bar.gd`, on `details.beat == "paused_transit"`; the same
+# `MISSION_PAUSED_SUFFIX`, literal on both sides and pinned equal here). The
+# armistice send passes the same two sites; the ultimatum resolves at once, is
+# never in transit and pauses nothing.
+#
+# WHAT WAS KEPT. The pause itself (nothing earned, nothing billed, no starvation
+# clock - MS-10b), the rail's `paused_transit` notice and its body, the Cabinet's
+# after-the-fact books, every reply with no mission running (byte-identical), and
+# the EC-Q gate. Player-only text: the enemy AI never walks a dialogue's send, so
+# there is NO SEAM and `BASELINE_SERIES` is untouched.
+#
+# Sibling pins are `TestS14GX25_<k>`; the orchestrator renumbers them.
+
+_R25_ROOT = Path(__file__).resolve().parents[1]
+_R25_SCENARIO = (_R25_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+_R25_BAR_GD = (_R25_ROOT / "godot-client" / "project-sovereign" / "scripts"
+               / "notification_bar.gd")
+
+_R25_LINE = ("Talleyrand carries this letter; his Improve Relations at Bavaria pauses "
+             "until he is home (about 1 turn).")
+_R25_REPLY = ("Talleyrand departs for the Prussian court with your Open Borders Agreement "
+              "proposal. Expect a response by next turn. (1 DP spent)")
+
+
+def _r25_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r25_boot():
+    from backend.models.world_state import WorldState
+    with _r25_quiet():
+        return WorldState.from_scenario(str(_R25_SCENARIO))
+
+
+@pytest.fixture
+def _r25_w(_r25_boot):
+    """The shipped board: Prussia tense (-10, the open-borders menu), Talleyrand's
+    defiance cooled so the send is deterministic, a courtship of Bavaria running."""
+    from backend.models.world_state import WorldState
+    with _r25_quiet():
+        w = WorldState.from_dict(json.loads(json.dumps(_r25_boot.to_dict(), default=str)))
+    w.nation_relations[w._make_diplo_key("France", "Prussia")] = -10
+    w.talleyrand_defiance_cooldown = 99
+    w.diplomatic_points = 9
+    return w
+
+
+def _r25_executor():
+    from backend.commands.executor import CommandExecutor
+    with _r25_quiet():
+        return CommandExecutor()
+
+
+def _r25_courtship(w, target="Bavaria", **over):
+    mission = {"type": "IMPROVE_RELATIONS", "target": target, "turns_active": 1,
+               "paused": False, "paused_turns": 0, "started_turn": int(w.current_turn),
+               "initial_relation": 0}
+    mission.update(over)
+    w.active_diplomatic_mission = mission
+    w.talleyrand_state = "ON_MISSION"
+    return mission
+
+
+def _r25_confirm(w, ex, target="Prussia", ptype="open_borders"):
+    data = {"action": "diplomatic_proposal", "diplomat": "Talleyrand", "target_nation": target,
+            "proposal_type": ptype, "clauses": [], "is_question": False,
+            "has_diplomatic_keywords": True, "tone": "propose",
+            "raw_text": f"propose {ptype} to {target}"}
+    with _r25_quiet():
+        res = ex._execute_diplomatic_proposal(data, w)
+    return res["diplomatic_dialogue"]
+
+
+def _r25_click(w, ex, dialogue, action="execute_proposal"):
+    index = [n for n, o in enumerate(dialogue["options"], 1) if o["action"] == action][0]
+    with _r25_quiet():
+        return ex.handle_diplomatic_dialogue_response(index, {"world": w})
+
+
+class TestS14G25:
+    def test_the_preview_says_the_send_pauses_the_courtship(self, _r25_w):
+        """OLD READING: the confirm's Political Context held the hegemony note and
+        nothing about the courtship. NOW it carries the consequence line."""
+        w = _r25_w
+        _r25_courtship(w)
+        dialogue = _r25_confirm(w, _r25_executor())
+        assert dialogue["letter_pause_line"] == _R25_LINE
+        texts = [x["text"] for x in dialogue["warnings"]]
+        assert _R25_LINE in texts, texts
+        assert {"severity": "medium", "text": _R25_LINE} in dialogue["warnings"]
+
+    def test_the_send_reply_says_it_with_the_turns(self, _r25_w):
+        """OLD READING: "... Expect a response by next turn. (1 DP spent)" - and
+        silence about the courtship. NOW the same sentence the preview printed."""
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        result = _r25_click(w, ex, _r25_confirm(w, ex))
+        assert result["success"] is True
+        assert result["message"] == f"{_R25_REPLY} {_R25_LINE}", result["message"]
+        assert w.active_diplomatic_mission["paused"] is True and w.talleyrand_state == "IN_TRANSIT"
+
+    def test_the_preview_and_the_reply_are_one_sentence(self, _r25_w):
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        dialogue = _r25_confirm(w, ex)
+        result = _r25_click(w, ex, dialogue)
+        assert dialogue["letter_pause_line"] in result["message"]
+
+    def test_a_stalled_envoy_says_two_turns(self, _r25_w):
+        """Sabotage ("stalled") puts the envoy a turn behind: the reply counts the
+        letter's own turns (`letter_home_turns`), as `transit_words` does."""
+        from backend.game_logic.diplomacy import letter_home_turns, transit_words
+        w = _r25_w
+        _r25_courtship(w)
+        w.pending_talleyrand_sabotage = {"defiance_type": "stalled"}
+        ex = _r25_executor()
+        result = _r25_click(w, ex, _r25_confirm(w, ex))
+        assert "pauses until he is home (about 2 turns)." in result["message"], result["message"]
+        assert letter_home_turns(w) == 2
+        assert "home in 2 turns" in transit_words(w)
+
+    def test_the_turns_are_the_ones_transit_words_prints(self, _r25_w):
+        from backend.game_logic.diplomacy import letter_home_turns, transit_words
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        _r25_click(w, ex, _r25_confirm(w, ex))
+        said = int(re.search(r"home in (\d+) turn", transit_words(w)).group(1))
+        assert letter_home_turns(w) == said == 1
+
+    def test_the_pause_costs_exactly_the_turns_the_line_says(self, _r25_w):
+        """Shown == applied: one advance after a plain send, the books hold ONE
+        turn on the errand and the mission has resumed."""
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        _r25_click(w, ex, _r25_confirm(w, ex))
+        with _r25_quiet():
+            w.advance_turn()
+        mission = w.active_diplomatic_mission
+        assert int(mission.get("paused_errand") or 0) == 1
+        assert mission["paused"] is False and w.talleyrand_state == "ON_MISSION"
+
+    def test_the_override_send_says_it_too(self, _r25_w):
+        """The second send path (an objection overridden)."""
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        w.dialogue_manager.replace({
+            "type": "proposal_confirm", "target_nation": "Prussia",
+            "talleyrand_text": "x", "context": {"proposal_type": "open_borders"},
+            "options": [{"label": "Send my terms", "description": "Override.",
+                         "action": "send_override",
+                         "terms": {"proposal_type": "open_borders", "demands": [], "sweeteners": []}},
+                        {"label": "Reconsider", "description": "Back.", "action": "reconsider"}],
+            "turn_created": int(w.current_turn), "blocking": False})
+        with _r25_quiet():
+            result = ex.handle_diplomatic_dialogue_response(1, {"world": w})
+        assert result["success"] is True
+        assert "despite his objections." in result["message"]
+        assert result["message"].endswith(_R25_LINE), result["message"]
+
+    def test_an_armistice_send_passes_the_same_sites(self, _r25_w):
+        """The armistice is a proposal like the rest: preview and reply carry the
+        line (the ultimatum resolves at once and is never in transit)."""
+        w = _r25_w
+        key = w._make_diplo_key("France", "Austria")
+        assert w.diplomatic_states[key] == "WAR"
+        _r25_courtship(w)
+        ex = _r25_executor()
+        dialogue = _r25_confirm(w, ex, "Austria", "armistice")
+        if dialogue.get("type") != "proposal_confirm":
+            pytest.skip("the shipped board offers no armistice confirm here")
+        assert dialogue["letter_pause_line"].startswith("Talleyrand carries this letter; his Improve Relations")
+        result = _r25_click(w, ex, dialogue)
+        assert result["success"] is True and _R25_LINE in result["message"]
+
+    def test_the_top_bar_summary_carries_the_suffix(self, _r25_w):
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX
+        w = _r25_w
+        _r25_courtship(w)
+        with _r25_quiet():
+            from backend.main import _get_talleyrand_mission_summary as summary
+        assert summary(w) == "Improving Relations → Bavaria"
+        ex = _r25_executor()
+        _r25_click(w, ex, _r25_confirm(w, ex))
+        assert MISSION_PAUSED_SUFFIX == "paused — carrying a letter"
+        assert summary(w) == "Improving Relations → Bavaria (paused — carrying a letter)"
+        with _r25_quiet():
+            w.advance_turn()
+        assert summary(w) == "Improving Relations → Bavaria"       # home: the suffix goes
+
+    def test_the_summary_agrees_with_mission_status(self, _r25_w):
+        """The summary reads the reading `mission_status` makes."""
+        from backend.game_logic.diplomacy import mission_paused_for_letter
+        from backend.game_logic.diplomatic_dialogue import mission_status
+        w = _r25_w
+        _r25_courtship(w)
+        assert mission_paused_for_letter(w) is False and mission_status(w)["pause_reason"] == ""
+        ex = _r25_executor()
+        _r25_click(w, ex, _r25_confirm(w, ex))
+        assert mission_paused_for_letter(w) is True
+        assert mission_status(w)["pause_reason"] == "transit"
+        w.talleyrand_state = "ON_MISSION"                              # paused, but not under a letter
+        assert mission_paused_for_letter(w) is False
+        assert mission_status(w)["pause_reason"] == "starved"
+
+    def test_the_rail_notice_is_the_paused_transit_beat(self, _r25_w):
+        """The chip's face reads `details.beat` - the backend's notice carries it."""
+        w = _r25_w
+        _r25_courtship(w)
+        ex = _r25_executor()
+        _r25_click(w, ex, _r25_confirm(w, ex))
+        rows = [r for r in w.notifications._pending if r.get("type") == "diplomatic_mission"]
+        assert len(rows) == 1 and rows[0]["details"]["beat"] == "paused_transit"
+        assert "While he travels the mission costs nothing and earns nothing" in rows[0]["message"]
+
+
+class TestS14G25TheChip:
+    """The rail chip is GDScript: pinned by the source text (no engine runs)."""
+
+    def test_the_suffix_is_the_same_literal_on_both_sides(self):
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX
+        src = _R25_BAR_GD.read_text(encoding="utf-8")
+        m = re.search(r'^const MISSION_PAUSED_SUFFIX := "([^"]+)"$', src, re.M)
+        assert m is not None and m.group(1) == MISSION_PAUSED_SUFFIX
+
+    def test_the_face_carries_the_suffix_on_the_paused_beat(self):
+        src = _R25_BAR_GD.read_text(encoding="utf-8")
+        body = src[src.index("func _mission_words("):src.index("func _on_overflow_pressed")]
+        assert 'str(details.get("beat", "")) == "paused_transit"' in body
+        assert 'words += " (" + MISSION_PAUSED_SUFFIX + ")"' in body
+        # the ended-mission words keep the early return: a finished row says nothing of a letter
+        assert body.index('return str(details.get("rail_words", ""))') < body.index("MISSION_PAUSED_SUFFIX")
+
+    def test_the_tooltip_is_the_notices_own_sentence_on_the_paused_beat(self):
+        src = _R25_BAR_GD.read_text(encoding="utf-8")
+        body = src[src.index("func _create_mission_row("):src.index("func _mission_words(")]
+        assert 'str(details.get("beat", "")) == "paused_transit"' in body
+        assert 'btn.tooltip_text = str(notif.get("message", ""))' in body
+
+    def test_the_added_lines_are_tab_indented(self):
+        src = _R25_BAR_GD.read_text(encoding="utf-8")
+        for needle in ('words += " (" + MISSION_PAUSED_SUFFIX + ")"',
+                       'btn.tooltip_text = str(notif.get("message", ""))'):
+            line = next(ln for ln in src.splitlines() if needle in ln)
+            assert line.startswith("\t") and not line.startswith(" "), line
+
+
+class TestS14G25WhereItStaysQuiet:
+    def test_no_mission_no_line(self, _r25_w):
+        w = _r25_w
+        w.active_diplomatic_mission = None
+        ex = _r25_executor()
+        dialogue = _r25_confirm(w, ex)
+        assert "letter_pause_line" not in dialogue
+        result = _r25_click(w, ex, dialogue)
+        assert result["message"] == _R25_REPLY, "byte-identical with no mission running"
+
+    def test_a_completed_mission_is_a_record_and_says_nothing(self, _r25_w):
+        w = _r25_w
+        _r25_courtship(w, completed=True)
+        ex = _r25_executor()
+        dialogue = _r25_confirm(w, ex)
+        assert "letter_pause_line" not in dialogue
+        result = _r25_click(w, ex, dialogue)
+        assert result["message"] == _R25_REPLY
+
+    def test_a_mission_already_paused_has_nothing_new_to_pause(self, _r25_w):
+        w = _r25_w
+        _r25_courtship(w, paused=True, paused_turns=1)
+        ex = _r25_executor()
+        dialogue = _r25_confirm(w, ex)
+        assert "letter_pause_line" not in dialogue
+        assert _r25_click(w, ex, dialogue)["message"] == _R25_REPLY
+
+    def test_a_counter_offers_accept_or_reject_is_not_a_send(self, _r25_w):
+        """`_enrich_proposal_summary` also builds the counter-offer dialogue,
+        whose options are accept / reject - Talleyrand carries nothing."""
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+        w = _r25_w
+        _r25_courtship(w)
+        dialogue = {"type": "proposal_confirm", "target_nation": "Prussia", "talleyrand_text": "x",
+                    "options": [{"label": "Accept", "description": "d", "action": "accept_counter_offer"},
+                                {"label": "Reject", "description": "d", "action": "reject_counter_offer"}],
+                    "context": {}, "turn_created": 1, "blocking": False}
+        with _r25_quiet():
+            out = _enrich_proposal_summary(dialogue, "Prussia", "open_borders", w)
+        assert "letter_pause_line" not in out
+        assert _R25_LINE not in [x.get("text") for x in out.get("warnings", [])]
+
+    def test_the_two_transit_writes_are_the_two_sites_that_speak(self):
+        """Every write of IN_TRANSIT in the executor sits beside a reply that
+        calls `_letter_pause_sentence` - the ultimatum arm writes none."""
+        src = (_R25_ROOT / "backend" / "commands" / "diplomatic_executor.py").read_text(encoding="utf-8")
+        assert src.count('talleyrand_state = "IN_TRANSIT"') == 2
+        assert src.count("_letter_pause_sentence(ctx.world, mission, _mission_paused_now)") == 2
+        ultimatum = src[src.index("def _choice_ultimatum"):src.index("def _choice_generous_and_suggestions")]
+        assert "IN_TRANSIT" not in ultimatum and "proposal_in_transit" not in ultimatum
+
+
+class TestS14G25TheLineItself:
+    def test_the_label_is_the_cabinets_own_row_name(self, _r25_w):
+        from backend.game_logic.diplomacy import letter_pause_line
+        w = _r25_w
+        for mission_type, label in (("IMPROVE_RELATIONS", "Improve Relations"),
+                                    ("COURT_NATION", "Court Nation"),
+                                    ("GATHER_INTEL", "Gather Intel"),
+                                    ("REASSURE_ALLY", "Reassure Ally")):
+            _r25_courtship(w, type=mission_type)
+            assert letter_pause_line(w, 1) == (
+                f"Talleyrand carries this letter; his {label} at Bavaria pauses until he is "
+                f"home (about 1 turn).")
+
+    def test_the_turns_agree_with_the_noun(self, _r25_w):
+        from backend.game_logic.diplomacy import letter_pause_line
+        w = _r25_w
+        _r25_courtship(w)
+        assert letter_pause_line(w, 1).endswith("(about 1 turn).")
+        assert letter_pause_line(w, 2).endswith("(about 2 turns).")
+        assert letter_pause_line(w, 0).endswith("(about 1 turn).")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row26
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-26 (October 26, 2026): "Settlement draft kept"
+# means kept until the turn ends.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-26). DD-B's third measure, diplomacy #13 (P3,
+# turn 3, action 66): the player opened the table with Austria on turn 2, pressed
+# Back Out, and read "Settlement draft kept. Reopen Settlement to continue
+# editing." Turn 3 began with "Your unratified settlement draft with Austria (1
+# clause) was set aside at turn's end." Both lines were true - `advance_turn`
+# sets every unratified draft aside, by design (SC-28 / PF-2) - but the word
+# "kept" promised more than a turn. Five surfaces made the promise unbounded:
+#
+#   1. the Back Out reply (`settlement_actions._action_suspend_settlement_editor`),
+#   2. the war card's "Draft kept" badge (`war_status.build_active_wars` ->
+#      `war_detail_popup.gd`),
+#   3. Talleyrand's "I will keep the draft intact"
+#      (`settlement_open_war_detail_recovery_talleyrand`; S14G-X120: it is
+#      registered in the tuple-keyed response dict, not in
+#      SETTLEMENT_VOICE_TEMPLATES, so `resolve_settlement_voice_line` answers ""
+#      for it today - the words are corrected, the registration is filed),
+#   4. the Back Out discard-confirm ("Shall I keep the draft ...",
+#      `settlement_discard_confirm_talleyrand`),
+#   5. the turn-end notice itself, which said when but not that a draft only ever
+#      lasts the one turn (`WorldState.advance_turn`).
+#
+# THE FIX (wording only, NO behaviour change). The bound is said ONCE
+# (`display_names.settlement_draft_words`: "reply", "badge", "until",
+# "set_aside") and the five surfaces call it. The badge's string rides the war
+# row (`settlement_draft_kept_line`) and the client draws it (its literal fallback
+# is the same words, pinned against the backend's). The draft is still discarded
+# at the turn's end (pinned).
+
+_R26_GD = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+           / "scripts" / "war_detail_popup.gd")
+
+_R26_REPLY = "Settlement draft kept until the turn ends — reopen Settlement this turn to continue."
+_R26_BADGE = "Draft kept until turn's end — Open Settlement resumes your terms."
+_R26_LASTS = "(a draft lasts one turn)"
+
+
+def _r26_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture
+def _r26_world(monkeypatch):
+    monkeypatch.setenv(SMOKE_START_ENV, SMOKE_START_SETTLEMENT_LOSING)
+    with _r26_quiet():
+        return WorldState()
+
+
+def _r26_stage(world, *, target="Britain", covered=("Britain", "Prussia")):
+    staged = stage_settlement_confirm(
+        world, war_id="war_1", actor_nation="France", selected_target_nation=target,
+        covered_enemy_participants=list(covered), caller_kind="player_editor",
+        dialogue_mode="PROPOSE")
+    assert staged.get("success"), staged
+    return staged
+
+
+def _r26_back_out(world) -> dict:
+    return handle_settlement_dialogue_action(
+        world, action="suspend_settlement_editor",
+        dialogue=world.dialogue_manager.peek(), action_params={})
+
+
+def _r26_war_row(world) -> dict:
+    for war in build_active_wars(world).get("wars") or []:
+        if war.get("war_instance_id") == "war_1":
+            return war
+    raise AssertionError("war_1 row missing")
+
+
+class TestS14G26:
+    """The sighting on the settlement-losing board: Back Out, the war card, the
+    recovery line, the discard-confirm, and the turn-end notice - each says the
+    bound."""
+
+    def test_the_words_are_built_once(self):
+        from backend.display_names import settlement_draft_words
+        assert settlement_draft_words("reply") == _R26_REPLY
+        assert settlement_draft_words("badge") == _R26_BADGE
+        assert settlement_draft_words("until") == "until the turn ends"
+        assert settlement_draft_words("set_aside") == _R26_LASTS
+
+    def test_the_back_out_reply_says_until_the_turn_ends(self, _r26_world):
+        """Old: "Settlement draft kept. Reopen Settlement to continue editing." """
+        _r26_stage(_r26_world)
+        reply = _r26_back_out(_r26_world)
+        assert reply["success"] is True and reply["draft_preserved"] is True
+        assert reply["message"] == _R26_REPLY
+        assert "Reopen Settlement to continue editing" not in reply["message"]
+
+    def test_the_war_card_badge_carries_the_bound(self, _r26_world):
+        """Old: "Draft kept - Open Settlement resumes your terms." (drawn from a
+        literal in the client). The row now carries the line; none when no draft
+        is kept."""
+        assert _r26_war_row(_r26_world)["settlement_draft_kept"] is False
+        assert _r26_war_row(_r26_world)["settlement_draft_kept_line"] == ""
+        _r26_stage(_r26_world)
+        _r26_back_out(_r26_world)
+        row = _r26_war_row(_r26_world)
+        assert row["settlement_draft_kept"] is True
+        assert row["settlement_draft_kept_line"] == _R26_BADGE
+
+    def test_the_client_draws_the_backends_line_and_its_literal_is_the_same(self):
+        """The .gd reads `settlement_draft_kept_line`; its fallback literal is the
+        backend's words, character for character."""
+        source = _R26_GD.read_text(encoding="utf-8")
+        assert 'w.get("settlement_draft_kept_line", "")' in source
+        assert f'kept_line = "{_R26_BADGE}"' in source
+        assert "Draft kept — Open Settlement resumes" not in source      # the old literal is gone
+
+    def test_talleyrands_recovery_line_says_the_bound(self):
+        """Old: "Sire, I will keep the draft intact and return us to the live war
+        detail for {war_label}." The template is read from whichever dict holds
+        it (it sits in the tuple-keyed response dict today, not in
+        SETTLEMENT_VOICE_TEMPLATES - see the module record, S14G-X120)."""
+        import backend.game_logic.diplomatic_templates as dt
+        key = "settlement_open_war_detail_recovery_talleyrand"
+        holder = next(v for v in vars(dt).values() if isinstance(v, dict) and key in v)
+        assert holder[key] == ("Sire, I will keep the draft intact until the turn ends and "
+                               "return us to the live war detail for {war_label}.")
+
+    def test_the_discard_confirm_says_the_bound(self, _r26_world):
+        """Old: "Shall I keep the draft, or strike it from the table?" - and the
+        reply of the Back Out that discards carries it."""
+        from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
+        text = resolve_settlement_voice_line(
+            "settlement_discard_confirm_talleyrand", war_label="the war with Britain")
+        assert text.endswith("Shall I keep the draft until the turn ends, or strike it from "
+                             "the table?")
+        _r26_stage(_r26_world)
+        reply = handle_settlement_dialogue_action(
+            _r26_world, action="back_out_settlement",
+            dialogue=_r26_world.dialogue_manager.peek(), action_params={})
+        assert "until the turn ends" in reply["talleyrand_text"]
+
+    def test_every_surface_splices_the_one_phrase(self):
+        """The Talleyrand lines take their bound from `settlement_draft_words`,
+        so a re-wording there reaches them."""
+        import backend.game_logic.diplomatic_templates as dt
+        from backend.display_names import settlement_draft_words
+        for key in ("settlement_open_war_detail_recovery_talleyrand",
+                    "settlement_discard_confirm_talleyrand"):
+            holder = next(v for v in vars(dt).values() if isinstance(v, dict) and key in v)
+            assert settlement_draft_words("until") in holder[key]
+
+    def test_the_notice_at_the_turns_end_says_a_draft_lasts_one_turn(self, _r26_world):
+        """Old: "Your unratified settlement draft with Britain (N clauses) was set
+        aside at turn's end." - and the draft IS still set aside (no behaviour
+        change): the store is empty after the advance and the reopen restores
+        nothing."""
+        _r26_stage(_r26_world)
+        _r26_back_out(_r26_world)
+        assert load_scoped_settlement_draft(
+            _r26_world, war_id="war_1", selected_target_nation="Britain",
+            covered_enemy_participants=[])
+        with _r26_quiet():
+            _r26_world.advance_turn()
+        assert (_r26_world.pending_settlement_drafts_by_key or {}) == {}
+        assert not load_scoped_settlement_draft(
+            _r26_world, war_id="war_1", selected_target_nation="Britain",
+            covered_enemy_participants=[])
+        assert _r26_war_row(_r26_world)["settlement_draft_kept"] is False
+        notices = [n for n in _r26_world.pending_settlement_draft_notices
+                   if not n.get("petition_lapsed")]
+        assert len(notices) == 1
+        text = notices[0]["message_display"]
+        assert text.startswith("Your unratified settlement draft with Britain (")
+        assert text.endswith(f"was set aside at turn's end {_R26_LASTS}.")
+
+
+class TestS14GX119:
+    """S14G-X119 - a Back Out with no terms drafted kept nothing, and the reply
+    no longer says a draft was kept (the empty editor's reply read "Settlement
+    draft kept" over `draft_preserved: False`)."""
+
+    def test_an_empty_editor_keeps_nothing_and_says_so(self, _r26_world):
+        _r26_stage(_r26_world)
+        dialogue = _r26_world.dialogue_manager.peek()
+        emptied = dict(dialogue, settlement_terms=[])
+        reply = handle_settlement_dialogue_action(
+            _r26_world, action="suspend_settlement_editor", dialogue=emptied, action_params={})
+        assert reply["success"] is True and reply["draft_preserved"] is False
+        assert reply["message"] == "Settlement closed — no terms had been drafted."
+        assert "kept" not in reply["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row27
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-27 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-27): a blocking ENEMY PHASE box said
+# "Britain, Russia, Austria and 6 other courts stirred, but their formations
+# remain beyond our sight" every turn at peace.
+#
+# THE CAUSE, as traced. `turn_manager` loops every non-player court
+# (`world.enemy_nations`, at war or not) and counts every AI action (a recruit,
+# a build, a wait); `enemy_phase_fog` hides all of it that is not FULL-visible
+# or about France; `_build_visible_enemy_phase`'s nothing-visible arm then
+# emitted the one collapsed sentence (`raw_total > 0`, true on nearly every
+# turn - SYSTEMS_REFERENCE 40.2 records 12 of 40 phases with no visible action
+# on the AMBIENT board, and the rest are visible-action phases), and
+# `main.gd` raised the modal on ANY `enemy_phase` key. The backend returned None
+# only when `raw_total == 0`. The branch "No enemy actions this turn."
+# (`enemy_phase_dialog.gd`) never showed.
+#
+# THE SIGHTING (DD-B third measure, diplomacy #15, P3, turn 7, action 159,
+# `docs/audits/dd_b/diplomacy_2026_10_25/frames/0159.jpg`): the player ended
+# turns 7 to 20 with no enemy at war with France and clicked Continue through the
+# same sentence each time.
+#
+# THE FIX. A phase of fog alone (no visible action, no `enemy_victory`) returns a
+# `fog_only` payload: ONE line, naming only the courts France may honestly speak
+# of - at war with her, in a truce with her, or holding ground beside one of her
+# provinces (`_fog_courts_in_view`; public facts, `get_neighbouring_nations` is
+# the per-turn cached helper) - and `fog_war_courts`, the war/truce courts among
+# them. `main.gd` (`_enemy_phase_is_quiet_fog`) prints that one line to the
+# terminal and runs the dismissal flow at once when `fog_war_courts` is empty;
+# a phase WITH visible actions, an enemy victory, or a court at war with France
+# or in a truce with her keeps the box.
+#
+# WHAT WAS KEPT. The visible-actions arm and its `fog_hidden_nations` sentence
+# (CA9-F7 pins every acted court beside visible ones: the box there is earned by
+# the visible action); the `fog_hidden_summary` key (the dialog's arm, the
+# playtest driver's `fog_sentences`); `raw_total == 0` -> no payload. Player-only
+# presentation: the enemy AI never reads the payload, so there is NO SEAM and
+# `BASELINE_SERIES` is untouched.
+#
+# Sibling pins are `TestS14GX27_<k>`; the orchestrator renumbers them.
+
+_R27_ROOT = Path(__file__).resolve().parents[1]
+_R27_SCENARIO = (_R27_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+_R27_MAIN_GD = _R27_ROOT / "godot-client" / "project-sovereign" / "scripts" / "main.gd"
+_R27_DIALOG_GD = (_R27_ROOT / "godot-client" / "project-sovereign" / "scripts"
+                  / "enemy_phase_dialog.gd")
+
+# What the box said (the sighting) - the nine courts that acted in the fog.
+_R27_NINE = ["Britain", "Russia", "Austria", "Prussia", "Ottoman",
+             "PapalStates", "Sweden", "Portugal", "Naples"]
+_R27_OLD_LINE = ("Britain, Russia, Austria and 6 other courts stirred, "
+                 "but their formations remain beyond our sight.")
+
+
+def _r27_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r27_boot():
+    from backend.models.world_state import WorldState
+    with _r27_quiet():
+        return WorldState.from_scenario(str(_R27_SCENARIO))
+
+
+def _r27_world(boot, wars_ended: bool = False):
+    """A copy of the shipped board; `wars_ended` puts every war with France
+    at PEACE (the player's turns 7 to 20)."""
+    from backend.models.world_state import WorldState
+    world = WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+    if wars_ended:
+        for key, state in list(world.diplomatic_states.items()):
+            if state == "WAR" and "France" in key.split("|"):
+                world.diplomatic_states[key] = "PEACE"
+        world.invalidate_active_nations_cache()
+    return world
+
+
+def _r27_raw(nations):
+    """The producer's phase: every named court took one action that the fog
+    then hides (a wait is the commonest)."""
+    return {"nations": {n: {"actions": [{"nation": n, "message": "x",
+                                         "ai_action": {"action": "wait",
+                                                       "marshal": "x"}}],
+                            "action_count": 1} for n in nations},
+            "total_actions": len(nations)}
+
+
+def _r27_build(world, nations):
+    import backend.main as M
+    with _r27_quiet():
+        return M._build_visible_enemy_phase(_r27_raw(nations), world)
+
+
+def _r27_fn_body(source: str, name: str) -> str:
+    start = source.index(f"func {name}(")
+    end = source.find("\nfunc ", start + 1)
+    return source[start:end if end != -1 else len(source)]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# The row
+# ═══════════════════════════════════════════════════════════════════════════
+class TestS14G27:
+    """The sighting on the shipped board: turns 7 to 20, every war with France
+    ended, nine courts stirring in the fog. OLD reading: one phase payload
+    that `main.gd` raised as a modal, the line naming Britain, Russia, Austria
+    and 6 other courts (courts that were not at war with France, nor beside
+    her). NEW reading: the same phase is `fog_only`, no war/truce court is
+    shown, and the one line names only the courts France can speak of."""
+
+    def test_at_peace_the_phase_is_fog_only_with_no_war_court(self, _r27_boot):
+        world = _r27_world(_r27_boot, wars_ended=True)
+        out = _r27_build(world, _R27_NINE)
+        assert out is not None
+        assert out["fog_only"] is True
+        assert out["fog_war_courts"] == []
+        assert out["total_actions"] == 0 and not out["nations"]
+
+    def test_the_line_names_only_courts_at_war_or_beside_us(self, _r27_boot):
+        world = _r27_world(_r27_boot, wars_ended=True)
+        beside = set(world.get_neighbouring_nations("France"))
+        out = _r27_build(world, _R27_NINE)
+        (line,) = out["fog_hidden_summary"]
+        # Britain holds ground beside a French province across the Channel;
+        # Austria, Russia, Prussia and the rest do not, and at peace Austria
+        # and Russia are not at war with us.
+        assert "Britain" in beside
+        # Britain alone is one court: it keeps its own sentence.
+        assert line == ("Our scouts report activity within the borders of Britain, "
+                        "but their formations remain beyond our sight."), line
+        for far in ("Russia", "Austria", "Prussia", "Ottoman", "Sweden",
+                    "Portugal", "Naples", "Papal"):
+            assert far not in line, line
+        assert line != _R27_OLD_LINE
+
+    def test_at_war_the_phase_keeps_the_box(self, _r27_boot):
+        """France at war with Britain, Russia and Austria (the boot): the
+        three are named, `fog_war_courts` lists them, and `main.gd` therefore
+        raises the modal."""
+        world = _r27_world(_r27_boot)
+        out = _r27_build(world, _R27_NINE)
+        assert out["fog_only"] is True
+        assert out["fog_war_courts"] == ["Britain", "Russia", "Austria"]
+        (line,) = out["fog_hidden_summary"]
+        assert line == ("Britain, Russia and Austria stirred, but their "
+                        "formations remain beyond our sight."), line
+
+    def test_a_truce_keeps_the_box(self, _r27_boot):
+        world = _r27_world(_r27_boot, wars_ended=True)
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "ARMISTICE"
+        out = _r27_build(world, _R27_NINE)
+        assert out["fog_war_courts"] == ["Austria"]
+        assert out["fog_hidden_summary"][0].startswith("Austria"), out["fog_hidden_summary"]
+
+    def test_one_court_keeps_its_own_sentence(self, _r27_boot):
+        world = _r27_world(_r27_boot, wars_ended=True)
+        out = _r27_build(world, ["Spain"])
+        assert out["fog_hidden_summary"] == [
+            "Our scouts report activity within the borders of Spain, "
+            "but their formations remain beyond our sight."]
+        assert out["fog_war_courts"] == []
+
+    def test_a_distant_court_alone_is_no_line_at_all(self, _r27_boot):
+        """The Ottomans stirring is nothing France can speak of: the payload
+        is `fog_only` with an empty line list - `main.gd` prints nothing and
+        raises nothing."""
+        world = _r27_world(_r27_boot, wars_ended=True)
+        out = _r27_build(world, ["Ottoman"])
+        assert out["fog_only"] is True
+        assert out["fog_hidden_summary"] == []
+        assert out["fog_war_courts"] == []
+
+    def test_visible_actions_keep_the_box_and_no_fog_only_key(self, _r27_boot, monkeypatch):
+        """A phase WITH visible actions is the modal's business, as ever."""
+        import backend.main as M
+        world = _r27_world(_r27_boot, wars_ended=True)
+        monkeypatch.setattr(M, "_filter_enemy_phase_by_visibility", lambda p, _w: p)
+        monkeypatch.setattr(M, "_collapse_enemy_move_chains", lambda p, _w: p)
+        out = _r27_build(world, ["Austria"])
+        assert out["total_actions"] == 1
+        assert "fog_only" not in out and "fog_war_courts" not in out
+
+    def test_an_enemy_victory_keeps_the_box(self, _r27_boot):
+        import backend.main as M
+        world = _r27_world(_r27_boot, wars_ended=True)
+        raw = _r27_raw(_R27_NINE)
+        raw["enemy_victory"] = {"nation": "Austria"}
+        with _r27_quiet():
+            out = M._build_visible_enemy_phase(raw, world)
+        assert out["enemy_victory"] == {"nation": "Austria"}
+        assert "fog_only" not in out
+
+    def test_a_phase_with_nothing_in_it_is_still_no_payload(self, _r27_boot):
+        import backend.main as M
+        world = _r27_world(_r27_boot, wars_ended=True)
+        with _r27_quiet():
+            assert M._build_visible_enemy_phase(
+                {"nations": {}, "total_actions": 0}, world) is None
+
+    def test_main_gd_prints_the_line_instead_of_raising_the_box(self):
+        src = _R27_MAIN_GD.read_text(encoding="utf-8")
+        body = src[src.index('		if response.has("enemy_phase"):'):]
+        quiet_at = body.index("_enemy_phase_is_quiet_fog(response.enemy_phase)")
+        close_at = body.index("top_bar.close_all_screens()")
+        show_at = body.index("_show_enemy_phase_dialog(response.enemy_phase, turn)")
+        assert quiet_at < close_at < show_at, (
+            "the quiet arm must come BEFORE the modal's screen-closing and show")
+        arm = body[quiet_at:close_at]
+        assert "_print_quiet_fog_lines(response.enemy_phase)" in arm
+        assert "set_input_enabled(false)" in arm
+        assert "pending_enemy_phase_response = response" in arm
+        assert "_on_enemy_phase_dismissed()" in arm
+        assert "\n\t\t\t\treturn" in arm, "the quiet arm returns: the tail is the dismissal's"
+
+    def test_the_predicate_reads_fog_only_war_courts_and_victory(self):
+        src = _R27_MAIN_GD.read_text(encoding="utf-8")
+        fn = _r27_fn_body(src, "_enemy_phase_is_quiet_fog")
+        assert 'phase.get("fog_only", false)' in fn
+        assert 'phase.has("enemy_victory")' in fn
+        assert 'phase.get("fog_war_courts", [])' in fn
+        assert "war_courts.is_empty()" in fn
+
+    def test_the_printed_line_is_the_one_the_box_would_carry(self):
+        src = _R27_MAIN_GD.read_text(encoding="utf-8")
+        fn = _r27_fn_body(src, "_print_quiet_fog_lines")
+        assert 'phase.get("fog_hidden_summary", [])' in fn
+        assert "add_output(" in fn and "Utils.COLOR_INFO" in fn
+
+    def test_the_dead_branch_is_explained_not_left_as_a_promise(self):
+        dialog = _R27_DIALOG_GD.read_text(encoding="utf-8")
+        arm = dialog[dialog.index("elif total_actions == 0:"):
+                     dialog.index("else:", dialog.index("elif total_actions == 0:"))]
+        assert "S14G-27" in arm and "No enemy actions this turn." in arm
+
+
+class TestS14GX123:
+    """SIBLING (the early-return road): `_build_result_response` forwards an
+    end-turn result whose capture question interrupted it through the SAME
+    builder, so the client's one predicate holds on both roads (Sweep-5 P0
+    shape). On a peaceful board it is `fog_only` too."""
+
+    def test_the_early_return_road_carries_the_same_payload(self, _r27_boot):
+        from backend.main import _build_result_response
+        world = _r27_world(_r27_boot, wars_ended=True)
+        result = {"success": True, "message": "Turn ended.", "events": [],
+                  "pending_capture_choice": {"marshal": "Soult", "region": "Franconia"},
+                  "enemy_phase": _r27_raw(["Spain", "Ottoman", "Austria"])}
+        with _r27_quiet():
+            response = _build_result_response(result, world)
+        phase = response["enemy_phase"]
+        assert phase["fog_only"] is True and phase["fog_war_courts"] == []
+        assert "Austria" not in phase["fog_hidden_summary"][0]
+
+    def test_the_command_road_helper_carries_it_too(self, _r27_boot):
+        import backend.main as M
+        world = _r27_world(_r27_boot)
+        response: dict = {}
+        with _r27_quiet():
+            M._include_command_enemy_phase(response, {"enemy_phase": _r27_raw(_R27_NINE)}, world)
+        assert response["enemy_phase"]["fog_war_courts"] == ["Britain", "Russia", "Austria"]
+
+
+class TestS14GX124:
+    """SIBLING (the instruments): the playtest driver's `fog_sentences` and
+    the dialog both read `fog_hidden_summary` - the key is kept, so the
+    digest and the screen still agree; an empty list reads as no sentence."""
+
+    def test_the_digest_reads_the_one_line(self, _r27_boot):
+        from tools.playtest_driver import fog_sentences
+        world = _r27_world(_r27_boot)
+        out = _r27_build(world, _R27_NINE)
+        assert fog_sentences(out) == out["fog_hidden_summary"]
+        assert len(fog_sentences(out)) == 1
+
+    def test_an_empty_line_list_is_no_sentence(self, _r27_boot):
+        from tools.playtest_driver import fog_sentences
+        world = _r27_world(_r27_boot, wars_ended=True)
+        assert fog_sentences(_r27_build(world, ["Ottoman"])) == []
+
+
+class TestS14GX125:
+    """SIBLING (the class: a court named from the fog is a fact France can
+    state): the war/truce test is ONE function (`_court_at_war_or_truce`) read
+    by both the line's courts and `fog_war_courts`, so the line and the box's
+    gate cannot disagree; and the helper is the cached one (Golden Rule 8) -
+    no `regions.values()` scan in the builder."""
+
+    def test_one_predicate_feeds_the_line_and_the_gate(self):
+        import inspect
+
+        import backend.main as M
+        view = inspect.getsource(M._fog_courts_in_view)
+        build = inspect.getsource(M._build_visible_enemy_phase)
+        assert "_court_at_war_or_truce" in view
+        assert "_court_at_war_or_truce(world, n)" in build
+        assert "get_neighbouring_nations" in view
+        assert "regions.values()" not in view + build
+
+    def test_a_player_court_is_never_its_own_war_court(self, _r27_boot):
+        import backend.main as M
+        world = _r27_world(_r27_boot)
+        assert M._court_at_war_or_truce(world, "France") is False
+        assert M._court_at_war_or_truce(world, "Austria") is True
+        assert M._court_at_war_or_truce(world, "Spain") is False   # an ally
+
+    def test_war_courts_lead_the_line(self, _r27_boot):
+        """Turn order is kept inside each group; the courts at war come first
+        (the ones that matter most), the neighbours after."""
+        import backend.main as M
+        world = _r27_world(_r27_boot)
+        assert M._fog_courts_in_view(world, ["Spain", "Austria", "Hanover", "Russia"]) == [
+            "Austria", "Russia", "Spain", "Hanover"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row28
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-28 with its ruling S14G-D5 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-28): "Reassure Ally" is shut while Talleyrand
+# courts another court; the busy sentence named the remedy and not the trade, and
+# the alliance slid from 40 to 23.
+#
+# THE CAUSE, as traced. `slide_lever` reads `mission_gate` ("Mission already
+# active" while a mission is live); `_slide_counsel` printed "Reassure Ally is shut
+# while Talleyrand is at Austria's court - recall Talleyrand from Austria first
+# (the Cabinet's Recall is free)." - S14E-11 working as built. The one-mission rule
+# is ruled design (`DIPLOMACY_SPEC.md:369`, "Talleyrand's attention is finite"). The
+# slide is universal peacetime drift, -1 a turn above +10: a 1805 alliance is born
+# on its 40 line and frays from turn 2. The player was partly wrong ("never got a
+# turn": the Recall is free and one click) but the page never priced the trade and
+# gave no deadline for the lapse.
+#
+# THE SIGHTING (DD-B third measure, diplomacy #16, P3, turn 5, action 130,
+# `docs/audits/dd_b/diplomacy_2026_10_25/frames/0130.jpg`): Spain at 36 with
+# Talleyrand at Austria's court.
+#
+# THE RULING (S14G-D5, taken as recommended): KEEP ONE SLOT, PRICE THE TRADE.
+# `slide_lever` stays shut while a mission is live (`TestS14GD5`); what changes is
+# that every surface that offers the choice states both sides.
+#
+# THE FIX. The trade's words are built ONCE (`diplomacy.slot_trade` over
+# `slide_clock`, `mission_forfeit_words`) and read by: the counsel (`_slide_counsel`,
+# busy and make-amends-busy arms), the "may collapse" warning and the dispatch's
+# relation-threshold advisory (both splice `slide_lever`'s clause, which now ends
+# "... (that forfeits Prussia's remaining courtship, +8 a turn, 14 turns)"), the
+# Cabinet's shut mission rows (`mission_busy_words`, the row's own court and
+# mission passed), the truce's cure (`cure_slot_clause`) and the mission confirm
+# (`shut_lever_warning`; the typed replace note names what it forfeits). The clock
+# steps the tick's own arithmetic (`relation_drift_step`, never a literal 1) until
+# the auto-downgrade's count (30 under the line for 5 turns running) is reached,
+# and is pinned against the real ticks.
+#
+# WHAT WAS KEPT. The one slot, the gate, the machine reason ("Mission already
+# active"), the Recall (free), every sentence with the slot free (byte-identical).
+# Player-only text: no AI road reads any of it - NO SEAM, `BASELINE_SERIES`
+# untouched.
+#
+# Sibling pins are `TestS14GX28_<k>`; the orchestrator renumbers them.
+
+_R28_ROOT = Path(__file__).resolve().parents[1]
+_R28_SCENARIO = (_R28_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+
+
+def _r28_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r28_boot():
+    from backend.models.world_state import WorldState
+    with _r28_quiet():
+        return WorldState.from_scenario(str(_R28_SCENARIO))
+
+
+def _r28_copy(boot):
+    from backend.models.world_state import WorldState
+    with _r28_quiet():
+        return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r28_w(_r28_boot):
+    """The shipped 1805 board; Spain's alliance at 36 (the sighting), Talleyrand's
+    DP topped up."""
+    w = _r28_copy(_r28_boot)
+    w.diplomatic_points = 10
+    w.nation_relations[w._make_diplo_key("France", "Spain")] = 36
+    w.turns_below_threshold = {}
+    return w
+
+
+def _r28_key(w, other):
+    return w._make_diplo_key("France", other)
+
+
+def _r28_courting(w, target="Prussia", mission_type="IMPROVE_RELATIONS", **over):
+    """The one slot on another court's errand (Prussia at -10: a long courtship)."""
+    w.nation_relations[_r28_key(w, target)] = -10
+    mission = {"type": mission_type, "target": target, "turns_active": 1, "paused": False,
+               "paused_turns": 0, "started_turn": int(w.current_turn), "initial_relation": -10}
+    mission.update(over)
+    w.active_diplomatic_mission = mission
+    w.talleyrand_state = "ON_MISSION"
+    return mission
+
+
+def _r28_preview(w, court="Spain"):
+    from backend.game_logic import diplomacy as D
+    with _r28_quiet():
+        return D.get_diplomatic_preview(w, court)
+
+
+def _r28_forfeit(w):
+    """The courtship's remaining turns, from the mission's own status."""
+    from backend.game_logic.diplomatic_dialogue import mission_status
+    status = mission_status(w)
+    assert status["remaining_kind"] == "ceiling", status["remaining_kind"]
+    return int(status["effect_per_turn"]), int(status["remaining_turns"])
+
+
+_R28_SLIDE_SHORT = "left alone it slides 1 a turn and the alliance lapses in about 30 turns"
+_R28_SLIDE_NAMED = ("Spain, at 36, is under the 40 line and slides 1 a turn — the alliance "
+                    "lapses in about 30 turns")
+
+
+class TestS14G28:
+    def test_the_busy_counsel_prices_both_sides(self, _r28_w):
+        """OLD READING: "... recall Talleyrand from Prussia first (the Cabinet's
+        Recall is free)." and nothing more. NOW the sentence states what the
+        recall forfeits AND what the shut lever costs, with the live figures."""
+        w = _r28_w
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        text = _r28_preview(w)["recommendation"]
+        assert "recall Talleyrand from Prussia first (the Cabinet's Recall is free)." in text, text
+        assert (f"Recalling forfeits Prussia's remaining courtship ({rate:+d} a turn, {turns} turns); "
+                f"{_R28_SLIDE_SHORT}.") in text, text
+        assert rate == 8
+
+    def test_the_slide_clock_is_the_real_ticks(self, _r28_w):
+        """Shown == applied: the decay and the auto-downgrade, ticked until the
+        alliance lapses, take exactly the turns the sentence says."""
+        from backend.game_logic import diplomacy as D
+        for start in (36, 40, 47, 12, 10, 3, -30):
+            w = _r28_copy(_r28_w)
+            key = _r28_key(w, "Spain")
+            w.nation_relations[key] = start
+            w.turns_below_threshold = {}
+            predicted = D.slide_clock(w, "Spain")["lapse_in"]
+            ticks = 0
+            while w.diplomatic_states[key] == "ALLIANCE" and ticks < 120:
+                ticks += 1
+                with _r28_quiet():
+                    D._process_relation_decay(w)
+                    D.check_auto_downgrade(w)
+            assert w.diplomatic_states[key] == "DEFENSIVE_ALLIANCE"
+            assert predicted == ticks, (start, predicted, ticks)
+
+    def test_the_clock_reads_the_ticks_own_drift_never_a_literal(self, _r28_w, monkeypatch):
+        """The slide rate is `relation_drift_step`'s: held to 2 a turn the clock
+        halves, and the sentence says "slides 2 a turn"."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        monkeypatch.setattr(D, "relation_drift_step", lambda *a, **k: -2 if k.get("relation", 0) > 10 else 0)
+        clock = D.slide_clock(w, "Spain")
+        assert clock["rate"] == 2
+        assert "slides 2 a turn" in D.slide_clock_words(clock)
+        assert clock["lapse_in"] < 30
+
+    def test_the_cabinets_shut_row_carries_the_trade(self, _r28_w):
+        """The Cabinet's Reassure Ally row at Spain: the machine reason stays, the
+        display reason (the tooltip the client shows first) states the trade."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        with _r28_quiet():
+            rows = D.get_available_diplomatic_actions(w, "Spain")
+        row = next(r for r in rows if r["action"] == "mission_reassure")
+        assert row["available"] is False and row["disabled_reason"] == "Mission already active"
+        assert row["disabled_reason_display"] == (
+            "Talleyrand is at Prussia's court — F1 → Prussia → Cancel. "
+            f"Recalling forfeits Prussia's remaining courtship ({rate:+d} a turn, {turns} turns); "
+            f"{_R28_SLIDE_NAMED}."), row["disabled_reason_display"]
+
+    def test_a_shut_row_at_another_court_states_only_the_forfeit(self, _r28_w):
+        """Spain's slide is not THIS row's lever: the Improve Relations row at
+        Sweden prices the click's own cost (the recall) and no more."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        with _r28_quiet():
+            rows = D.get_available_diplomatic_actions(w, "Sweden")
+        row = next(r for r in rows if r["action"] == "mission_improve_relations")
+        assert row["disabled_reason_display"] == (
+            "Talleyrand is at Prussia's court — F1 → Prussia → Cancel. "
+            f"Recalling forfeits Prussia's remaining courtship ({rate:+d} a turn, {turns} turns)."), row
+
+    def test_the_confirm_warns_when_starting_would_shut_reassure_ally(self, _r28_w):
+        """OLD READING: "Sire, I shall begin efforts to improve relations with
+        Prussia. This will cost 2 DP per turn." NOW the shut lever is priced."""
+        from backend.game_logic.diplomatic_dialogue import generate_mission_dialogue
+        w = _r28_w
+        w.nation_relations[_r28_key(w, "Prussia")] = -10
+        for other in ("Bavaria", "Saxony", "Holland", "Naples", "KingdomOfItaly"):
+            key = _r28_key(w, other)
+            if w.diplomatic_states.get(key) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                w.nation_relations[key] = 90               # only Spain is on the slide
+        with _r28_quiet():
+            dialogue = generate_mission_dialogue(
+                {"target_nation": "Prussia", "mission_type": "IMPROVE_RELATIONS"}, w)
+        warning = f"Starting this courtship shuts Reassure Ally; {_R28_SLIDE_NAMED}."
+        assert dialogue["slot_warning"] == warning
+        assert warning in dialogue["talleyrand_text"], dialogue["talleyrand_text"]
+        assert dialogue["talleyrand_text"].startswith(
+            "Sire, I shall begin efforts to improve relations with Prussia. This will cost")
+
+    def test_the_confirm_is_quiet_for_a_steady_ally(self, _r28_w):
+        """The control: every bond comfortably above its line - no warning, and
+        the confirm reads as it always did."""
+        from backend.game_logic.diplomatic_dialogue import generate_mission_dialogue
+        w = _r28_w
+        for key, state in list(w.diplomatic_states.items()):
+            if state in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS") \
+                    and "France" in key.split("|"):
+                w.nation_relations[key] = 95
+        with _r28_quiet():
+            dialogue = generate_mission_dialogue(
+                {"target_nation": "Prussia", "mission_type": "IMPROVE_RELATIONS"}, w)
+        assert dialogue["slot_warning"] == ""
+        assert "shuts" not in dialogue["talleyrand_text"]
+        assert dialogue["talleyrand_text"] == (
+            "Sire, I shall begin efforts to improve relations with Prussia. "
+            "This will cost 1 DP per turn."), dialogue["talleyrand_text"]
+
+    def test_the_confirm_for_the_sliding_ally_itself_is_the_remedy_not_the_warning(self, _r28_w):
+        """Reassure Ally AT the sliding court is the lever - it shuts nothing of
+        Spain's."""
+        from backend.game_logic.diplomatic_dialogue import generate_mission_dialogue
+        from backend.game_logic.diplomacy import shut_lever_warning
+        w = _r28_w
+        for other in ("Bavaria", "Saxony", "Holland", "Naples", "KingdomOfItaly"):
+            key = _r28_key(w, other)
+            if w.diplomatic_states.get(key) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                w.nation_relations[key] = 90
+        assert shut_lever_warning(w, "Spain", "REASSURE_ALLY") == ""
+        with _r28_quiet():
+            dialogue = generate_mission_dialogue(
+                {"target_nation": "Spain", "mission_type": "REASSURE_ALLY"}, w)
+        assert dialogue["slot_warning"] == ""
+
+    def test_the_typed_replace_note_names_what_it_forfeits(self, _r28_w):
+        """With a mission live the typed road replaces it: the note says what that
+        gives up (and the shut-lever warning stays out - the slot is already held)."""
+        from backend.game_logic.diplomatic_dialogue import generate_mission_dialogue
+        w = _r28_w
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        with _r28_quiet():
+            dialogue = generate_mission_dialogue(
+                {"target_nation": "Sweden", "mission_type": "IMPROVE_RELATIONS"}, w)
+        text = dialogue["talleyrand_text"]
+        assert "Note: this will replace my current mission to improve relations with Prussia." in text
+        assert f"That forfeits Prussia's remaining courtship ({rate:+d} a turn, {turns} turns)." in text
+        assert "shuts" not in text and dialogue["slot_warning"] == ""
+
+    def test_the_may_collapse_warning_carries_the_price_of_the_recall(self, _r28_w):
+        """The warning splices `slide_lever`'s clause: the remedy and its price."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        key = _r28_key(w, "Spain")
+        w.nation_relations[key] = 2
+        w.relation_history[key] = [33, 20, 10]
+        events = []
+        with _r28_quiet():
+            for _ in range(3):
+                events.extend(D.check_auto_downgrade(w))
+        (warning,) = [e for e in events if e["type"] == "downgrade_warning" and "France" in e["nations"]]
+        assert ("recall Talleyrand from Prussia first, then Reassure Ally (that forfeits Prussia's "
+                f"remaining courtship, {rate:+d} a turn, {turns} turns), before the alliance lapses "
+                "in 2 turns.") in warning["message"], warning["message"]
+        assert warning["lever"] == ""
+
+    def test_the_figures_are_ints(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        clock = D.slide_clock(w, "Spain")
+        for field in ("relation", "line", "rate", "under_in", "lapse_in"):
+            assert isinstance(clock[field], int) and not isinstance(clock[field], bool), field
+
+
+class TestS14GD5:
+    """The ruling: ONE SLOT KEPT - the lever stays shut while Talleyrand is
+    abroad; the page prices the trade instead of opening a second slot."""
+
+    def test_reassure_ally_stays_shut_beside_a_courtship(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        assert D.mission_gate(w, "REASSURE_ALLY") == (False, "Mission already active")
+        lever = D.slide_lever(w, "Spain")
+        assert lever["kind"] == "busy" and lever["action"] == ""
+        assert "recall Talleyrand from Prussia first, then Reassure Ally" in lever["clause"]
+        with _r28_quiet():
+            rows = D.get_available_diplomatic_actions(w, "Spain")
+        reassure = next(r for r in rows if r["action"] == "mission_reassure")
+        assert reassure["available"] is False
+
+    def test_the_recall_is_still_free_and_reopens_the_lever(self, _r28_w):
+        """The trade is real: recall (free, one order) and the lever opens."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w)
+        ex = _r28_executor()
+        with _r28_quiet():
+            res = ex._diplomatic._recall_mission("Prussia", w)
+        assert res["success"] is True
+        dp = int(w.diplomatic_points)
+        assert D.mission_gate(w, "REASSURE_ALLY") == (True, "")
+        assert int(w.diplomatic_points) == dp
+        assert D.slide_lever(w, "Spain")["kind"] == "open"
+
+    def test_no_second_slot_exists_on_the_state(self):
+        """No parallel "maintenance" store: the one mission field is all there is."""
+        from backend.models.world_state import WorldState
+        src = Path(WorldState.__module__.replace(".", "/") + ".py")
+        text = (_R28_ROOT / src).read_text(encoding="utf-8")
+        assert "maintenance_mission" not in text and "active_maintenance" not in text
+
+
+def _r28_executor():
+    from backend.commands.executor import CommandExecutor
+    with _r28_quiet():
+        return CommandExecutor()
+
+
+class TestS14GX128:
+    """Sibling: the truce's cure ("N turns of Improve Relations") spends the same
+    one slot and priced it as if Talleyrand were free (pins in `test_s14h_p2_row24`
+    too)."""
+
+    def test_the_cure_names_the_busy_slot_and_its_price(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        key = _r28_key(w, "Austria")
+        w.diplomatic_states[key] = "ARMISTICE"
+        w.armistice_turns[key] = 0
+        w.nation_relations[key] = -90
+        _r28_courting(w)
+        rate, turns = _r28_forfeit(w)
+        line = D.truce_words(w, "France", "Austria")["cure_line"]
+        assert line.endswith(
+            f" Talleyrand is at Prussia's court — recalling him forfeits Prussia's remaining "
+            f"courtship ({rate:+d} a turn, {turns} turns)."), line
+
+
+class TestS14GX129:
+    """Sibling: the morning dispatch's relation-threshold advisory splices the
+    same clause, so its "recall first" carries the price too."""
+
+    def test_the_advisory_carries_the_forfeit(self, _r28_w):
+        from backend.game_logic.dispatch import _build_talleyrand_report
+        w = _r28_w
+        _r28_courting(w)
+        key = _r28_key(w, "Spain")
+        w.nation_relations[key] = 39
+        w.previous_nation_relations = {key: 41}
+        w.proactive_suggestion_cooldowns = {}
+        with _r28_quiet():
+            rows = _build_talleyrand_report(w, "France")
+        (row,) = [r for r in rows if r.get("trigger_type") == "relation_threshold"
+                  and r.get("target_nation") == "Spain"]
+        assert "recall Talleyrand from Prussia first, then Reassure Ally (that forfeits Prussia's remaining courtship," \
+            in row["message"], row["message"]
+
+
+class TestS14GX132:
+    def test_a_bond_above_its_line_is_not_on_the_slide(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        w.nation_relations[_r28_key(w, "Spain")] = 47
+        _r28_courting(w)
+        assert D.slot_trade(w, "Spain")["slide"] == ""
+        assert [b["other"] for b in D.sliding_bonds(w) if b["other"] == "Spain"] == []
+
+    def test_a_bond_on_its_line_stands_on_it(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        w.nation_relations[_r28_key(w, "Spain")] = 40
+        words = D.slide_clock_words(D.slide_clock(w, "Spain"))
+        assert words == ("Spain, at 40, stands on the 40 line and slides 1 a turn — the alliance "
+                         "lapses in about 34 turns"), words
+
+    def test_a_bond_already_counting_toward_its_lapse_says_so(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        key = _r28_key(w, "Spain")
+        w.nation_relations[key] = 10
+        w.turns_below_threshold = {key: 3}
+        clock = D.slide_clock(w, "Spain")
+        assert clock["rate"] == 0 and clock["lapse_in"] == 2
+        assert D.slide_clock_words(clock) == (
+            "Spain, at 10, has already fallen to the point where the alliance lapses in about 2 turns")
+        assert D.slide_clock_words(clock, named=False) == (
+            "it is already counting toward the lapse — the alliance lapses in about 2 turns")
+
+    def test_a_courted_pair_does_not_slide(self, _r28_w):
+        """A COURT mission freezes the pair's decay (`_court_exemption`): no clock
+        runs to a lapse, so the sentence has no slide to price."""
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        w.active_diplomatic_mission = {"type": "COURT_NATION", "target": "Spain", "turns_active": 1,
+                                       "paused": False, "paused_turns": 0, "started_turn": 1,
+                                       "initial_relation": 36}
+        w.talleyrand_state = "ON_MISSION"
+        clock = D.slide_clock(w, "Spain")
+        assert clock["lapse_in"] is None and D.slide_clock_words(clock) == ""
+
+    def test_a_pair_that_is_no_bond_has_no_clock(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        assert D.slide_clock(w, "Austria") is None          # at war
+        assert D.slot_trade(w, "Austria")["slide"] == ""
+
+    def test_the_forfeit_of_a_mission_without_an_end_says_so(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w, target="Austria", started_state="WAR")
+        w.nation_relations[_r28_key(w, "Austria")] = -60
+        assert D.mission_forfeit_words(w) == "Austria's remaining courtship (+8 a turn, until the peace is signed)"
+        assert D.mission_forfeit_words(w, nested=True) == \
+            "Austria's remaining courtship, +8 a turn, until the peace is signed"
+
+    def test_no_mission_no_forfeit(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        assert D.mission_forfeit_words(w) == ""
+        assert D.slot_trade(w, "Spain")["forfeit"] == ""
+        # the counsel with the slot FREE offers the lever exactly as it always did
+        assert "Talleyrand recommends: Reassure Ally" in _r28_preview(w)["recommendation"]
+        assert "forfeits" not in _r28_preview(w)["recommendation"]
+
+    def test_a_gather_intel_forfeit_counts_its_turns(self, _r28_w):
+        from backend.game_logic import diplomacy as D
+        w = _r28_w
+        _r28_courting(w, target="Prussia", mission_type="GATHER_INTEL", turns_active=1)
+        assert D.mission_forfeit_words(w) == "Prussia's remaining intelligence (2 turns left)"
+
+    def test_the_trade_is_player_only_text(self):
+        """No AI road reads the new helpers: the series cannot move."""
+        names = ("slot_trade", "slide_clock", "sliding_bonds", "shut_lever_warning",
+                 "mission_forfeit_words", "cure_slot_clause")
+        for rel in ("backend/ai", "backend/game_logic/turn_manager.py"):
+            path = _R28_ROOT / rel
+            files = list(path.rglob("*.py")) if path.is_dir() else [path]
+            for f in files:
+                text = f.read_text(encoding="utf-8")
+                for name in names:
+                    assert name not in text, (f, name)
+
+    def test_the_constants_are_the_downgrades_own(self):
+        """The clock's 30 and 5 are `check_auto_downgrade`'s numbers, named once.
+        S14G-X131 (Pre-Deploy S14h part 2) flips the spelling: the tick used to
+        hold the literals (`gap >= 30`, `>= 5`) while the clock held the names;
+        it reads the names now, so the two can never part."""
+        from backend.game_logic import diplomacy as D
+        src = Path(D.__file__).read_text(encoding="utf-8")
+        body = src[src.index("def check_auto_downgrade"):src.index("def check_auto_downgrade") + 2500]
+        assert "gap >= AUTO_DOWNGRADE_GAP" in body and ">= AUTO_DOWNGRADE_TURNS" in body
+        assert "gap >= 30" not in body and ">= 5:" not in body
+        assert D.AUTO_DOWNGRADE_GAP == 30 and D.AUTO_DOWNGRADE_TURNS == 5
+        assert re.search(r"AUTO_DOWNGRADE_GAP = 30", src)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row29
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-29 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-29, P3, naval): the Admiralty's "march to the
+# yard" link - and every Admiralty chip - names no action price. The sighting
+# (DD-B's third measure, sea #1, turn 2, action 27): the player pressed
+# "Dumonceau, march to Normandy" ("6,500 men, 4 provinces to the yard - he
+# embarks there"); it executed at once as a standing MOVE_TO and spent 2 of the
+# turn's 4 actions, learned from the 2/4 counter. The tree states AP elsewhere
+# (the region panel's "Soult - 2 AP - 3 turns" from `order_quotes.march_quote`,
+# "Hold (2 AP)", the order replies); `naval.py` never read `order_quotes`.
+# Every Admiralty chip omitted it: Recall, Blockade, the Diversion, the Land
+# chips (2 AP), Commission and the yard (admin), and "Lay down ships" (gold
+# only on its label).
+#
+# THE FIX (the price at the point of choice - no ask: a march is cheap and
+# cancellable). Every chip the Admiralty page builds carries a `cost_note`, read
+# from the verb's REAL price: the world's own action table (`get_action_cost`,
+# what `use_action` charges) and the pool the executor routes it to
+# (`ADMIN_ACTIONS`) - `naval.ap_price_words` / `ap_cost_note`: "(1 AP)",
+# "(2 AP)", "(1 Admin AP)". The march chip is built from the QUOTE the order's
+# own road gives (`naval.march_to_yard_chip` over `order_quotes.march_quote`):
+# the price AND the clock beside the label ("(2 AP - 4 turns)"), the quote's
+# lines under it in the region panel's order (`_MARCH_QUOTE_LINES`: contact,
+# camp, departs, detour, pay, guard, front, terms; then "replaces ..." and "he
+# may object"), and a withheld chip with the quote's own refusal. The ledger's
+# `_chip_row` renders the cost note beside the label of an enabled AND a withheld
+# chip (a chip with no `cost_note` - THE LAWS' rows - renders as it did).
+#
+# WHAT WAS KEPT. The chips' labels, commands and gates; the Land chip's
+# confirm card (the quote-then-confirm is free; the price is spent on the
+# confirm); no ask on the march.
+#
+# SEAM: player-only text - no seam (the AI's expedition rung and posture rungs
+# read none of the chip builders).
+#
+# Sibling pins below are `TestS14GX29_<k>`; the orchestrator renumbers them.
+
+_R29_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_R29_SCRIPTS = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                / "scripts")
+
+_R29_PRICE = re.compile(r"^\((\d+) (Admin )?AP(?: · (?:this turn|\d+ turns?))?\)$")
+
+
+def _r29_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r29_boot():
+    from backend.models.world_state import WorldState
+    with _r29_quiet():
+        return WorldState.from_scenario(str(_R29_SCENARIO))
+
+
+def _r29_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@contextlib.contextmanager
+def _r29_served(world):
+    """The shipped board at the wire: the three module globals swapped together
+    (the testclient world swap) with a mock parser."""
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    saved_env = os.environ.get("LLM_MODE")
+    os.environ["LLM_MODE"] = "mock"
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = world
+    M.world = world
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        with _r29_quiet():
+            yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+        if saved_env is None:
+            os.environ.pop("LLM_MODE", None)
+        else:
+            os.environ["LLM_MODE"] = saved_env
+
+
+def _r29_spend(world, client, line) -> dict:
+    """Send `line` to POST /command; return what it spent from each pool."""
+    mil, admin = int(world.actions_remaining), int(world.admin_actions_remaining)
+    data = client.post("/command", json={"command": line}).json()
+    return {"ok": data.get("success"), "message": data.get("message") or "",
+            "state": data.get("state"),
+            "mil": mil - int(world.actions_remaining),
+            "admin": admin - int(world.admin_actions_remaining)}
+
+
+def _r29_price(chip) -> tuple:
+    """(amount, pool) read off a chip's cost note: pool 'admin' / 'mil'."""
+    got = _r29_PRICE_MATCH(chip["cost_note"])
+    return int(got.group(1)), ("admin" if got.group(2) else "mil")
+
+
+def _r29_PRICE_MATCH(note):
+    got = _R29_PRICE.match(note)
+    assert got, f"cost note {note!r} is not '(N AP)' / '(N Admin AP)' / '(N AP - T turns)'"
+    return got
+
+
+def _r29_chip(report, command):
+    rows = [c for c in report["chips"] + report["expedition_chips"] if c["command"] == command]
+    assert rows, (command, [c["command"] for c in report["chips"] + report["expedition_chips"]])
+    return rows[0]
+
+
+def _r29_stage_march(world):
+    world.get_marshal("Soult").strength = 10000
+    world.get_marshal("Lannes").strength = 6500
+
+
+def _r29_stage_land(world):
+    d = world.get_marshal("Davout")
+    d.strength, d.location = 9000, "Moravia"
+    if hasattr(world, "_build_marshal_index"):
+        world._build_marshal_index()
+
+
+def _r29_report(world):
+    from backend.game_logic import naval
+    return naval.build_admiralty_report(world)
+
+
+class TestS14G29:
+    """THE OLD READING (reproduced on the shipped 1805 board before the fix):
+    the march link read "Soult, march to Normandy" - note "10,000 men, 4
+    provinces to the yard - he embarks there" - no price, no clock; pressing it
+    spent the marshal's standing-order price (1 for Soult, 2 for Lannes) with
+    nothing said until the counter moved."""
+
+    def test_the_march_link_names_its_price_and_its_clock(self, _r29_boot):
+        from backend.commands.order_quotes import march_quote
+        world = _r29_copy(_r29_boot)
+        _r29_stage_march(world)
+        chips = _r29_report(world)["expedition_chips"]
+        assert [c["command"].split(",")[0] for c in chips] == ["Soult", "Lannes"]
+        for chip in chips:
+            marshal = world.get_marshal(chip["command"].split(",")[0])
+            yard = chip["command"].rsplit(" ", 1)[1]
+            quote = march_quote(world, marshal, yard)
+            assert quote["ok"] is True
+            turns = int(quote["turns"])
+            word = "this turn" if turns == 0 else f"{turns} turn{'s' if turns != 1 else ''}"
+            assert chip["cost_note"] == f"({int(quote['ap'])} AP · {word})"
+            assert chip["ap"] == int(quote["ap"]) and chip["turns"] == turns
+            assert chip["enabled"] is True and chip["reason"] == ""
+        # the two corps are priced differently - the price is the MAN's
+        assert {c["ap"] for c in chips} == {1, 2}
+
+    def test_pressing_the_link_spends_exactly_what_it_names(self, _r29_boot):
+        for who in ("Soult", "Lannes"):
+            world = _r29_copy(_r29_boot)
+            _r29_stage_march(world)
+            chip = next(c for c in _r29_report(world)["expedition_chips"]
+                        if c["command"].startswith(who))
+            amount, pool = _r29_price(chip)
+            assert pool == "mil"
+            with _r29_served(world) as client:
+                spent = _r29_spend(world, client, chip["command"])
+            assert spent["ok"] is True, spent["message"]
+            assert spent["mil"] == amount == chip["ap"], (who, spent, chip["cost_note"])
+            assert spent["admin"] == 0
+
+    def test_every_chip_family_names_the_price_the_verb_charges(self, _r29_boot):
+        """Each Admiralty chip, executed through the wire: the action points
+        its verb actually took equal the amount its cost note names, in the
+        pool it names. (A quote-then-confirm verb - the Diversion, the Land
+        chips - quotes free and charges on the confirm.)"""
+        from backend.game_logic import naval
+        seen = []
+
+        def run(world, chip, line=None):
+            amount, pool = _r29_price(chip)
+            with _r29_served(world) as client:
+                spent = _r29_spend(world, client, line or chip["command"])
+            assert spent["ok"] is True, (chip["command"], spent["message"])
+            assert spent[pool] == amount, (chip["command"], spent, chip["cost_note"])
+            assert spent["admin" if pool == "mil" else "mil"] == 0
+            seen.append((chip["command"], chip["cost_note"]))
+            return spent
+
+        # Blockade / Lay down ships / the Diversion (boot)
+        world = _r29_copy(_r29_boot)
+        rep = _r29_report(world)
+        run(world, _r29_chip(rep, "blockade the enemy"))
+        world = _r29_copy(_r29_boot)
+        run(world, _r29_chip(_r29_report(world), "build ships"))
+        world = _r29_copy(_r29_boot)
+        chip = _r29_chip(_r29_report(world), "order the diversion")
+        with _r29_served(world) as client:
+            quote = _r29_spend(world, client, chip["command"])
+        assert quote["state"] == "awaiting_clarification" and quote["mil"] == 0
+        run(world, chip, "order the diversion confirmed")
+        # Recall (a fleet on blockade)
+        world = _r29_copy(_r29_boot)
+        naval.get_fleet(world, "France")["posture"] = "blockade"
+        run(world, _r29_chip(_r29_report(world), "guard home waters"))
+        # Land (a corps on an ally's shore)
+        world = _r29_copy(_r29_boot)
+        _r29_stage_land(world)
+        chip = next(c for c in _r29_report(world)["expedition_chips"]
+                    if c["label"].startswith("Land Davout in "))
+        with _r29_served(world) as client:
+            quote = _r29_spend(world, client, chip["command"])
+        assert quote["state"] == "awaiting_clarification" and quote["mil"] == 0
+        run(world, chip, chip["command"] + " confirmed")
+        # Commission (nobody under the lift, gold in hand)
+        world = _r29_copy(_r29_boot)
+        world.nation_gold["France"] = 20000
+        chip = next(c for c in _r29_report(world)["expedition_chips"]
+                    if c["command"].startswith("commission "))
+        assert chip["enabled"] is True
+        run(world, chip)
+        # the march (both men)
+        for who in ("Soult", "Lannes"):
+            world = _r29_copy(_r29_boot)
+            _r29_stage_march(world)
+            run(world, next(c for c in _r29_report(world)["expedition_chips"]
+                            if c["command"].startswith(who)))
+        # the yard (France with no yard, gold in hand)
+        world = _r29_copy(_r29_boot)
+        naval.get_fleets(world)["France"]["dockyards"] = []
+        world.nation_gold["France"] = 20000
+        chip = next(c for c in _r29_report(world)["expedition_chips"]
+                    if c["command"].startswith("build naval yard in "))
+        assert chip["enabled"] is True, chip
+        run(world, chip)
+        # every family was read
+        commands = [c for c, _ in seen]
+        for head in ("blockade", "build ships", "order the diversion", "guard home",
+                     "land Davout", "commission", "Soult, march", "Lannes, march",
+                     "build naval yard"):
+            assert any(c.startswith(head) for c in commands), (head, commands)
+
+    def test_a_withheld_chip_names_its_price_too(self, _r29_boot):
+        """The fleetless board: Blockade and the Diversion are withheld with
+        their reasons - and still carry the price they would charge."""
+        from backend.game_logic import naval
+        world = _r29_copy(_r29_boot)
+        naval.get_fleet(world, "France")["ships"] = 0
+        rep = _r29_report(world)
+        for command in ("blockade the enemy", "order the diversion"):
+            chip = _r29_chip(rep, command)
+            assert chip["enabled"] is False and chip["reason"]
+            assert _r29_price(chip) == (1, "mil")
+        # every chip the page builds has one
+        for chip in rep["chips"] + rep["expedition_chips"]:
+            assert chip["cost_note"], chip["command"]
+
+    def test_a_withheld_march_says_why_and_still_names_the_order_price(self, _r29_boot):
+        world = _r29_copy(_r29_boot)
+        _r29_stage_march(world)
+        world.actions_remaining = 0
+        chips = _r29_report(world)["expedition_chips"]
+        assert chips and all(c["enabled"] is False for c in chips)
+        for chip in chips:
+            assert chip["reason"]
+            marshal = world.get_marshal(chip["command"].split(",")[0])
+            assert chip["cost_note"] == f"({int(marshal.strategic_order_ap(order_type='MOVE_TO'))} AP)"
+
+    def test_the_march_chip_prints_the_quotes_lines_in_the_panels_order(self, _r29_boot, monkeypatch):
+        """Every line of the quote rides the chip, in the order
+        `region_panel.gd::_quote_notes` prints them, then 'replaces' and
+        'he may object'."""
+        from backend.commands import order_quotes
+        world = _r29_copy(_r29_boot)
+        _r29_stage_march(world)
+        crafted = {
+            "kind": "march", "ok": True, "already": False, "ap": 2, "turns": 3,
+            "road": ["Orleanais", "Picardy", "Normandy"],
+            "note": "NOTE-contact", "camp": "CAMP-line", "departs": "DEPARTS-line",
+            "detour": "DETOUR-line", "pay": "PAY-line", "guard": "GUARD-line",
+            "front": "FRONT-line", "terms": "TERMS-line",
+            "replaces": "his march to Rhineland", "objection": "possible",
+        }
+        monkeypatch.setattr(order_quotes, "march_quote", lambda *a, **k: dict(crafted))
+        chip = _r29_report(world)["expedition_chips"][0]
+        note = chip["note"]
+        order = ["NOTE-contact", "CAMP-line", "DEPARTS-line", "DETOUR-line", "PAY-line",
+                 "GUARD-line", "FRONT-line", "TERMS-line", "replaces his march to Rhineland",
+                 "he may object"]
+        at = [note.index(p) for p in order]
+        assert at == sorted(at), note
+        assert chip["cost_note"] == "(2 AP · 3 turns)" and chip["turns"] == 3
+        assert "3 provinces to the yard" in note        # the quote's road, not a copy
+        # a refused quote withholds the chip with its own words
+        crafted.update(ok=False, refusal="REFUSED-by-the-quote", ap=0, turns=0)
+        chip = _r29_report(world)["expedition_chips"][0]
+        assert chip["enabled"] is False and chip["reason"] == "REFUSED-by-the-quote"
+
+    def test_the_line_order_is_the_region_panels(self):
+        """`_MARCH_QUOTE_LINES` is `_quote_notes`'s order: read from the .gd."""
+        from backend.game_logic import naval
+        src = (_R29_SCRIPTS / "region_panel.gd").read_text(encoding="utf-8")
+        head = src.index("func _quote_notes")
+        body = src[head:src.index("\nfunc ", head + 10)]
+        keys = re.findall(r'str\(q\.get\("(\w+)"', body)
+        assert tuple(keys[:len(naval._MARCH_QUOTE_LINES)]) == naval._MARCH_QUOTE_LINES, keys
+
+    def test_the_ledger_renders_the_note_beside_the_label(self):
+        src = (_R29_SCRIPTS / "strategic_ledger.gd").read_text(encoding="utf-8")
+        head = src.index("func _chip_row")
+        body = src[head:src.index("\nfunc ", head + 10)]
+        assert 'chip.get("cost_note", "")' in body
+        enabled, withheld = body.split("else:", 1)
+        assert "cost_note" in enabled and "cost_note" in withheld
+        assert "S14G-29" in body
+
+
+class TestS14GX133:
+    """Sibling: the landing rows the region panel's "Land X here" chip reads
+    carry the same price (`cost_note`), the verb's real one - THE OLD
+    READING: "9,000 men from Moravia - 70 in 100 slip past" with no price."""
+
+    def test_the_landing_rows_carry_the_price_of_a_landing(self, _r29_boot):
+        from backend.game_logic import naval
+        world = _r29_copy(_r29_boot)
+        _r29_stage_land(world)
+        options = naval.expedition_landing_options(world, "France")
+        assert options
+        for rows in options.values():
+            for row in rows:
+                assert row["cost_note"] == f"({int(world.get_action_cost('naval_expedition'))} AP)"
+        overlay = naval.map_naval_overlay(world)["expedition_landings"]
+        assert all(row["cost_note"] == "(2 AP)" for rows in overlay.values() for row in rows)
+
+
+class TestS14GX134:
+    """Sibling: the HELP text's prices for the Admiralty are the chips' prices
+    (shown = applied) - the help types "(1 AP)" / "(2 AP)" / "(1 Admin AP +
+    400g)" by hand in `meta_executor`, and nothing tied them to the table."""
+
+    def test_the_help_and_the_chips_agree(self, _r29_boot):
+        from backend.game_logic import naval
+        world = _r29_copy(_r29_boot)
+        with _r29_served(world) as client:
+            text = client.post("/command", json={"command": "help"}).json().get("message") or ""
+        section = text[text.index("THE ADMIRALTY"):]
+        rep = _r29_report(world)
+        assert f"({naval.ap_price_words(world, 'build_fleet')} + {naval.SHIP_COST}g)" in section
+        assert f"Blockade the enemy ({naval.ap_price_words(world, 'set_fleet_posture')})" in section
+        assert f"Recall to home waters ({naval.ap_price_words(world, 'set_fleet_posture')})" in section
+        assert f"landings ({naval.ap_price_words(world, 'naval_expedition')})" in section
+        assert f"The Grand Diversion ({naval.ap_price_words(world, 'naval_diversion')})" in section
+        # and the chips say the same words
+        assert _r29_chip(rep, "blockade the enemy")["cost_note"] == (
+            f"({naval.ap_price_words(world, 'set_fleet_posture')})")
+
+
+class TestS14GX135:
+    """Sibling: the price is READ, never typed - re-price the verbs in the
+    world's own table and every chip follows."""
+
+    def test_a_repriced_verb_reprices_its_chip(self, _r29_boot):
+        world = _r29_copy(_r29_boot)
+        world._action_costs["naval_diversion"] = 3
+        world._action_costs["set_fleet_posture"] = 2
+        world._action_costs["build_fleet"] = 4
+        rep = _r29_report(world)
+        assert _r29_chip(rep, "order the diversion")["cost_note"] == "(3 AP)"
+        assert _r29_chip(rep, "blockade the enemy")["cost_note"] == "(2 AP)"
+        assert _r29_chip(rep, "build ships")["cost_note"] == "(4 Admin AP)"
+
+    def test_the_admin_pool_is_named(self, _r29_boot):
+        from backend.game_logic import naval
+        world = _r29_copy(_r29_boot)
+        for verb in ("build_fleet", "build", "recruit_marshal"):
+            assert naval.ap_price_words(world, verb) == "1 Admin AP", verb
+        for verb in ("set_fleet_posture", "naval_diversion"):
+            assert naval.ap_price_words(world, verb) == "1 AP", verb
+        assert naval.ap_price_words(world, "naval_expedition") == "2 AP"
+
+
+class TestS14GX136:
+    """Sibling: the AI walks none of it. The AI's expedition rung builds its own
+    command (`find_ai_expedition`) and the posture rungs read `_action_costs`
+    directly - none of them imports the chip builders' price helpers."""
+
+    def test_the_ai_roads_do_not_read_the_chip_helpers(self):
+        root = Path(__file__).resolve().parents[1] / "backend"
+        for rel in ("ai/enemy_ai.py", "commands/naval_executor.py"):
+            text = (root / rel).read_text(encoding="utf-8")
+            for name in ("ap_cost_note", "ap_price_words", "march_to_yard_chip", "embark_reason"):
+                # S14G-X138 (Pre-Deploy S14h part 2, October 26, 2026): the
+                # executor's two PLAYER-ONLY confirm cards (the expedition's and
+                # the diversion's - the AI commits with `confirmed: True` and
+                # never reaches them) now print the verb's price through
+                # `naval.ap_price_words`; the chip builders stay out of it.
+                if rel == "commands/naval_executor.py" and name == "ap_price_words":
+                    continue
+                assert name not in text, (rel, name)
+
+
+class TestS14GX140:
+    """Sibling: the province panel's "Lay down ships" and "Naval Yard" chips are
+    the same two verbs the Admiralty page offers (administrative acts) and the
+    panel named only their gold. The map payload now carries the verbs' prices
+    (`ship_ap_note`, `yard_ap_note`) from the same table for those chips to
+    print; THE OLD READING: no price on either."""
+
+    def test_the_map_payload_carries_the_keel_and_yard_prices(self, _r29_boot):
+        from backend.game_logic import naval
+        world = _r29_copy(_r29_boot)
+        overlay = naval.map_naval_overlay(world)
+        assert overlay["ship_ap_note"] == f"({world.get_action_cost('build_fleet')} Admin AP)"
+        assert overlay["yard_ap_note"] == f"({world.get_action_cost('build')} Admin AP)"
+        # and they are the chips' own words
+        rep = _r29_report(world)
+        assert _r29_chip(rep, "build ships")["cost_note"] == overlay["ship_ap_note"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row30
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-30 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-30): the dispatch advised two turns of drill
+# for a broken corps; the executor refuses drill during retreat recovery.
+#
+# THE CAUSE, as traced. `dispatch._derive_danger`, branch 2 (any corps below
+# `MORALE_FAILING_BELOW`, 40): "Two turns of drill would steady them (+10 morale;
+# +15 with a training ground)" was built from the drill constants alone - it never
+# asked whether drill is open. Massena (morale 0, broken at Milan) is in retreat
+# recovery: `executor.py` refuses ("recovering from retreat and cannot drill.
+# Recovery: 2 turns remaining") and the pure predicate `tactical_executor.
+# drill_refusal` knows it (its retreating arm; the adjacent-enemy arm also fits,
+# Charles being one frontier away). The retreat sentence ("Fell back under fire -
+# the corps is recovering.") is branch 3, SHADOWED by branch 2. The dispatch prose
+# was the one drill advice left off the predicate the chips and the counsel read.
+#
+# THE SIGHTING. DD-B's third measure, sea #3 (P3, turn 4, action 59/60): the drill
+# the player typed was refused one line after the dawn advised it. (The player's
+# `--n` was off by one: the drill is action 60, action 59 is Bernadotte's retreat.)
+#
+# THE OLD READING, reproduced on the shipped 1805 board: Massena at morale 0 in
+# retreat recovery read "Morale failing (0) - the men waver. Two turns of drill
+# would steady them (+10 morale; +15 with a training ground)." and Ney on the boot
+# board at morale 25, Mack one province off, read the same price.
+#
+# THE FIX. `_derive_danger` asks `_drill_advice_tail`: "Drilling now." when he is
+# at it; else `_drill_closed_reason` - the executor's own order of gates, a broken
+# army, a corps in retreat recovery (with the turns left, `state_probe.
+# _recovery_turns`, the number the executor's refusal prints), then `drill_refusal`
+# (stance, fortified, an enemy here or one province off) - and the reason becomes
+# the tail ("Recovering from the rout, 2 turns - drill once he has reformed."); the
+# price only when the drill would begin. Branch 3's retreat sentence rides the
+# morale line ("Fell back under fire.").
+#
+# WHAT WAS KEPT. The price's words and figures (SR-5r RF-2: the laws' gain), the
+# "Drilling now." tail, the not-failing retreat line, the threshold constant.
+#
+# SEAM. Player-only text (the dawn dispatch); no seam.
+
+_R30_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client" / "project-sovereign"
+                 / "assets" / "maps" / "europe_1805.json")
+_R30_ROOT = Path(__file__).resolve().parents[1]
+_R30_PRICE = "Two turns of drill would steady them (+10 morale; +15 with a training ground)."
+
+
+def _r30_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r30_boot():
+    from backend.models.world_state import WorldState
+    with _r30_quiet():
+        return WorldState.from_scenario(str(_R30_SCENARIO))
+
+
+def _r30_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r30_quiet_board(boot):
+    """The shipped board with Mack (the only foe beside Ney) sent far off, so
+    the executor would open the drill."""
+    world = _r30_copy(boot)
+    world.get_marshal("Mack").location = "Vienna"
+    world.calculate_visibility()
+    return world
+
+
+def _r30_danger(world, name: str) -> str:
+    from backend.game_logic.dispatch import _derive_danger
+    return _derive_danger(world.get_marshal(name), world, "France", {})
+
+
+def _r30_drill_reply(world, name: str) -> dict:
+    from backend.commands.executor import CommandExecutor
+    world.actions_remaining = 4
+    with _r30_quiet():
+        ex = CommandExecutor()
+        return ex.execute({"command": {"raw_input": f"{name}, drill", "marshal": name,
+                                       "action": "drill"}}, {"world": world})
+
+
+class TestS14G30:
+    def test_a_corps_in_retreat_recovery_is_told_why_and_when(self, _r30_boot):
+        """Massena, morale 0, in retreat recovery. The old line quoted the price;
+        the executor refuses the drill - the line now says so, with the turns."""
+        world = _r30_quiet_board(_r30_boot)
+        massena = world.get_marshal("Massena")
+        massena.morale, massena.retreating, massena.retreat_recovery = 0, True, 1
+        line = _r30_danger(world, "Massena")
+        assert "Two turns of drill" not in line, line
+        assert line == (
+            "Morale failing (0) — the men waver. Fell back under fire. "
+            "Recovering from the rout, 2 turns — drill once he has reformed."), line
+
+    def test_the_turns_are_the_executors_own_number(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        massena = world.get_marshal("Massena")
+        massena.morale, massena.retreating, massena.retreat_recovery = 0, True, 1
+        refusal = _r30_drill_reply(world, "Massena")
+        assert refusal["success"] is False
+        assert "recovering from retreat and cannot drill" in refusal["message"]
+        turns = int(re.search(r"Recovery: (\d+) turn", refusal["message"]).group(1))
+        shown = int(re.search(r"Recovering from the rout, (\d+) turn", _r30_danger(world, "Massena")).group(1))
+        assert shown == turns
+
+    def test_one_turn_left_is_singular(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        massena = world.get_marshal("Massena")
+        massena.morale, massena.retreating, massena.retreat_recovery = 0, True, 2
+        assert "Recovering from the rout, 1 turn — drill once he has reformed." in _r30_danger(
+            world, "Massena")
+
+    def test_a_steady_corps_keeps_the_drill_advice(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale = 25
+        line = _r30_danger(world, "Ney")
+        assert line == f"Morale failing (25) — the men waver. {_R30_PRICE}", line
+        assert _r30_drill_reply(world, "Ney")["success"] is True      # shown = applied
+
+    def test_the_boot_board_corps_beside_mack_is_told_the_drill_is_closed(self, _r30_boot):
+        """The adjacent-enemy arm, on the boot board: Mack stands one province
+        off Ney, where `drill_refusal` refuses - the old line quoted the price."""
+        world = _r30_copy(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale = 25
+        line = _r30_danger(world, "Ney")
+        assert line == ("Morale failing (25) — the men waver. "
+                        "Drill is closed: Mack is at Swabia, one region away."), line
+        refused = _r30_drill_reply(world, "Ney")
+        assert refused["success"] is False and "cannot drill with enemy forces nearby" in refused["message"]
+
+    def test_a_broken_army_is_told_when_it_reforms(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        massena = world.get_marshal("Massena")
+        massena.morale, massena.broken, massena.broken_recovery = 0, True, 1
+        line = _r30_danger(world, "Massena")
+        assert "Two turns of drill" not in line
+        turns = int(re.search(r"Broken and scattered, (\d+) turn", line).group(1))
+        refused = _r30_drill_reply(world, "Massena")
+        assert refused["success"] is False and refused.get("broken") is True
+        assert turns == int(refused["turns_remaining"])
+        assert line.endswith("— drill once he has reformed.")
+
+    def test_a_fortified_corps_and_an_aggressive_one_are_told_the_reason(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale, ney.fortified = 25, True
+        assert _r30_danger(world, "Ney").endswith("Drill is closed: fortified — unfortify first.")
+        ney.fortified = False
+        from backend.models.marshal import Stance
+        ney.stance = Stance.AGGRESSIVE
+        assert _r30_danger(world, "Ney").endswith(
+            "Drill is closed: aggressive stance — change stance first.")
+
+    def test_an_enemy_in_the_province_closes_the_drill(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale, ney.strength = 25, 40000
+        mack = world.get_marshal("Mack")
+        mack.location, mack.strength = ney.location, 20000     # below the peril ratio
+        world.calculate_visibility()
+        assert _r30_danger(world, "Ney") == (
+            "Morale failing (25) — the men waver. Drill is closed: Mack stands here.")
+
+    def test_a_drilling_corps_is_still_told_so(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale, ney.drilling = 25, True
+        assert _r30_danger(world, "Ney").endswith("Drilling now.")
+
+    def test_the_retreat_sentence_rides_the_morale_line_and_still_stands_alone(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.retreated_this_turn = True                       # fell back, not in recovery
+        assert _r30_danger(world, "Ney") == "Fell back under fire — the corps is recovering."
+        ney.morale = 25
+        assert _r30_danger(world, "Ney") == (
+            f"Morale failing (25) — the men waver. Fell back under fire. {_R30_PRICE}")
+
+    def test_the_roster_row_carries_the_same_line(self, _r30_boot):
+        from backend.game_logic.dispatch import _build_marshal_status
+        world = _r30_quiet_board(_r30_boot)
+        massena = world.get_marshal("Massena")
+        massena.morale, massena.retreating, massena.retreat_recovery = 0, True, 1
+        row = next(r for r in _build_marshal_status(world, "France") if r["name"] == "Massena")
+        assert "Recovering from the rout, 2 turns" in row["danger"], row["danger"]
+
+    def test_the_tail_asks_the_one_predicate(self):
+        src = (_R30_ROOT / "backend" / "game_logic" / "dispatch.py").read_text(encoding="utf-8")
+        helper = src[src.index("def _drill_closed_reason("):src.index("def _derive_danger(")]
+        assert "drill_refusal(world, marshal)" in helper
+        assert "_probe._recovery_turns(marshal)" in helper and "_probe._broken_turns(marshal)" in helper
+        danger = src[src.index("def _derive_danger("):src.index("def end_turn_army_warning(")]
+        assert "_drill_advice_tail(world, marshal)" in danger
+        assert "would steady them (+" not in danger        # the price lives in the tail's helper only
+        assert src.count("would steady them (+") == 1
+
+
+class TestS14GX141:
+    """S14G-X141 - the price is quoted from the drill executor's own constants
+    (shown = applied) and the laws' gain (SR-5r RF-2) - kept, on the open drill."""
+
+    def test_the_laws_gain_rides_the_price_when_the_drill_is_open(self, _r30_boot):
+        world = _r30_quiet_board(_r30_boot)
+        ney = world.get_marshal("Ney")
+        ney.morale = 25
+        gain = int(world.drill_morale_gain("France", False))
+        trained = int(world.drill_morale_gain("France", True))
+        assert f"(+{gain} morale; +{trained} with a training ground)" in _r30_danger(world, "Ney")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row31
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-31 (October 26, 2026): the expedition's prize.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-31): the expedition's confirm card priced
+# the throw (the odds) and the failure (30% lost, the fleet action) and never
+# the PRIZE. The success branch is the capture pipeline for undefended soil, a
+# fight or "the beachhead is contested" for a garrison or a marshal, and a corps
+# under the raiding-party floor holds no homeland it walks onto
+# (`movement_executor.RAIDING_PARTY_FLOOR`). The Ireland pointer is built by
+# `formations.road_notes`, which skipped a road with nothing held ("not begun"),
+# so a FIRST landing got no pointer on any surface. The sighting (DD-B's third
+# measure, sea #5, P3, turn 6, action 109): the player read the "Dumonceau asks"
+# quote before sailing for Ulster (72 in 100; a failure costs 30% and a decisive
+# defeat halves every pooled fleet) and found nothing on what winning got him; the
+# second landing (Dumonceau under 5,000) could not hold the province, which he
+# learned only afterwards.
+#
+# THE FIX. (1) `formations.road_notes` emits a PROSPECT for an unbegun carvable
+# road while the war with its court runs - a row in the new `prospects` key (only
+# present when one exists) and a sentence per province in `by_province`, through
+# `formations.prospect_sentence`: "Ulster is half of the Ireland carve (with
+# Munster) - hold both while the war with Britain runs and Britain can be made to
+# erect it at a table". Never in `roads`, `by_court` or `completing` (the
+# Admiralty's shore ranking, the war card and the peace review stay the begun
+# roads' alone). Every reader of `road_note_for` therefore points at a first
+# landing: the province panel (`road_note`), the landing and march replies, the
+# Admiralty's `expedition_notes`. (2) `naval.landing_prize_clause` is the ONE
+# success sentence - the road's pointer (a begun road's next step, or the
+# prospect), what waits ashore as far as the fog admits ("what waits ashore is
+# unscouted" below PARTIAL; the garrison band / the corps in view above it) and
+# the raiding-party floor in THIS corps' terms. The confirm card ("If it lands:
+# ...") and the Land chips' `prize` field (the region panel's second line and
+# the Admiralty's chip note) read it. (3) the Grand Diversion card names what
+# the open water is for when the camp is staged.
+#
+# WHAT WAS KEPT. The odds, the failure arm, the levers, the campaign-pay and
+# front clauses, the capture pipeline, the post-landing reply's S14E-15 pointer
+# for a begun road. The AI's road: `find_ai_expedition` commits with
+# `confirmed: True` and never builds the card, so the prize is player-only - no
+# seam. Sibling pins are `TestS14GX31_<k>` (this row's own) and
+# `TestS14GX86` / `TestS14GX137..7` / `TestS14GX61` (the siblings filed to
+# this row's functions by the wave-1 and row-14 builders); the orchestrator
+# renumbers them.
+#
+# The board: the shipped 1805 scenario (`WorldState.from_scenario`), France at
+# war with Britain, nothing of Ireland held, Ulster and Munster unscouted.
+
+_R31_ROOT = Path(__file__).resolve().parents[1]
+_R31_SCENARIO = (_R31_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+_R31_PANEL = (_R31_ROOT / "godot-client" / "project-sovereign" / "scripts"
+              / "region_panel.gd")
+
+_R31_ULSTER = ("Ulster is half of the Ireland carve (with Munster) — hold both "
+               "while the war with Britain runs and Britain can be made to "
+               "erect it at a table")
+_R31_MUNSTER = ("Munster is half of the Ireland carve (with Ulster) — hold both "
+                "while the war with Britain runs and Britain can be made to "
+                "erect it at a table")
+
+
+def _r31_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r31_boot():
+    from backend.models.world_state import WorldState
+    with _r31_quiet():
+        return WorldState.from_scenario(str(_R31_SCENARIO))
+
+
+def _r31_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r31_w(_r31_boot):
+    return _r31_copy(_r31_boot)
+
+
+def _r31_corps(w, name="Lannes", where="Brittany", men=12000):
+    marshal = w.get_marshal(name)
+    marshal.location, marshal.strength = where, men
+    w._build_marshal_index()
+    return marshal
+
+
+def _r31_card(w, marshal="Lannes", target="Ulster", confirmed=False) -> dict:
+    from backend.commands.executor import CommandExecutor
+    with _r31_quiet():
+        executor = CommandExecutor()
+        command = {"marshal": marshal, "action": "naval_expedition",
+                   "target": target,
+                   "raw_command": f"land {marshal} in {target}"
+                   + (" confirmed" if confirmed else "")}
+        return executor._naval._execute_naval_expedition(command, {"world": w})
+
+
+def _r31_scout(w, region, level):
+    w._intel_entry(region).visibility = level
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# the builder
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14G31:
+    """Reproduced on the shipped board (before the fix): `land Lannes in
+    Ulster` drew the card "The expedition is drawn up ... What moves the odds:
+    ... Sail? (yes / no)" - the throw, the failure, the levers, and nothing of
+    the prize; `road_notes(w)` was empty (nothing held = not begun), so the
+    Ulster panel, the Admiralty and the landing reply pointed nowhere. Fixed:
+    the card carries ONE success clause - the carve's pointer, what waits
+    ashore (unscouted below PARTIAL), and the raiding-party floor for a corps
+    under it - and the price of sailing."""
+
+    def test_the_first_ulster_card_carries_the_prospect_the_ashore_note_and_the_floor(self, _r31_w):
+        from backend.commands.movement_executor import RAIDING_PARTY_FLOOR
+        w = _r31_w
+        _r31_corps(w, men=4100)
+        card = _r31_card(w)
+        assert card["state"] == "awaiting_clarification", card["message"]
+        msg = card["message"]
+        assert (f" If it lands: {_R31_ULSTER}; what waits ashore is unscouted; "
+                f"Lannes's 4,100 men are under {RAIDING_PARTY_FLOOR:,} — a corps that "
+                f"small holds no homeland province it walks onto.") in msg, msg
+        # the carve's provinces and the war that keeps the road open ride the clause
+        assert "Ulster" in msg and "Munster" in msg and "Britain" in msg
+        # and the card still ends on the question, with the price before it
+        assert msg.rstrip().endswith("Sailing costs 2 AP. Sail? (yes / no)")
+
+    def test_a_corps_over_the_floor_hears_the_pointer_and_the_ashore_note_only(self, _r31_w):
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        msg = _r31_card(w)["message"]
+        assert f"If it lands: {_R31_ULSTER}; what waits ashore is unscouted." in msg, msg
+        assert "are under" not in msg and "holds no homeland" not in msg
+
+    def test_the_floor_is_the_constant_not_a_literal(self, _r31_w, monkeypatch):
+        import backend.commands.movement_executor as ME
+        w = _r31_w
+        _r31_corps(w, men=4100)
+        monkeypatch.setattr(ME, "RAIDING_PARTY_FLOOR", 4000)
+        assert "are under" not in _r31_card(w)["message"]      # 4,100 >= 4,000: not a raiding party
+        monkeypatch.setattr(ME, "RAIDING_PARTY_FLOOR", 7500)
+        assert "men are under 7,500 —" in _r31_card(w)["message"]
+
+    def test_the_munster_landing_is_the_same_clause(self, _r31_w):
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        msg = _r31_card(w, target="Munster")["message"]
+        assert f"If it lands: {_R31_MUNSTER}; what waits ashore is unscouted." in msg, msg
+
+    def test_a_begun_road_keeps_the_s14e15_pointer(self, _r31_w):
+        """Munster held: the road is BEGUN and the card points at the next
+        step in the road's own words, not the prospect's."""
+        w = _r31_w
+        w.regions["Munster"].controller = "France"
+        w.invalidate_active_nations_cache()
+        _r31_corps(w, men=12000)
+        msg = _r31_card(w)["message"]
+        assert ("If it lands: Ireland needs Ulster too — it lies a march from "
+                "Munster; carve at a table while the war with Britain runs; "
+                "what waits ashore is unscouted.") in msg, msg
+        assert "is half of the Ireland carve" not in msg
+
+    def test_a_scouted_province_names_what_waits_ashore_in_the_fogs_terms(self, _r31_w):
+        """PARTIAL: the garrison as a band and the corps as a band, never a
+        figure; FULL: the figures. The fog is the player's, not the world's."""
+        from backend.models.intel import FULL, PARTIAL
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        w.regions["Ulster"].garrison_strength = 3000
+        w.regions["Ulster"].garrison_detachment = True
+        moore = w.get_marshal("Moore")
+        moore.location, moore.strength = "Ulster", 12345
+        w._build_marshal_index()
+        _r31_scout(w, "Ulster", PARTIAL)
+        partial = _r31_card(w)["message"]
+        assert "what waits ashore is unscouted" not in partial
+        m = re.search(r"in view ashore: a garrison \(([^)]+)\) and Moore \(([^)]+)\)", partial)
+        assert m, partial
+        assert "3,000" not in partial and "12,345" not in partial
+        _r31_scout(w, "Ulster", FULL)
+        full = _r31_card(w)["message"]
+        assert "in view ashore: a garrison of 3,000 and Moore (12,345)" in full, full
+
+    def test_a_shore_in_view_and_empty_says_so_and_a_small_corps_still_hears_the_floor(self, _r31_w):
+        from backend.models.intel import PARTIAL
+        w = _r31_w
+        _r31_corps(w, men=4100)
+        _r31_scout(w, "Ulster", PARTIAL)
+        msg = _r31_card(w)["message"]
+        assert "nothing is in view ashore" in msg and "are under 5,000" in msg, msg
+
+    def test_a_defended_shore_in_view_drops_the_floor(self, _r31_w):
+        """A battle won takes ground at any size: the floor is moot where a
+        corps stands in view, so the card does not tell a small corps it can
+        hold nothing."""
+        from backend.models.intel import PARTIAL
+        w = _r31_w
+        _r31_corps(w, men=4100)
+        moore = w.get_marshal("Moore")
+        moore.location, moore.strength = "Ulster", 9000
+        w._build_marshal_index()
+        _r31_scout(w, "Ulster", PARTIAL)
+        msg = _r31_card(w)["message"]
+        assert "in view ashore: Moore" in msg and "are under" not in msg, msg
+
+    def test_the_floor_follows_the_fog_not_the_worlds_numbers(self, _r31_w):
+        """A detachment under the surrender floor lays down its arms to the
+        landing, so a FULL read (exact 400) leaves a raiding party holding
+        nothing - the floor is said; a PARTIAL read shows only a band (a
+        garrison in view, a fight to expect), and the card decides nothing finer
+        from numbers the player was not given."""
+        from backend.models.intel import FULL, PARTIAL
+        w = _r31_w
+        _r31_corps(w, men=4100)
+        w.regions["Ulster"].garrison_strength = 400
+        w.regions["Ulster"].garrison_detachment = True
+        _r31_scout(w, "Ulster", FULL)
+        full = _r31_card(w)["message"]
+        assert "a garrison of 400" in full and "are under 5,000" in full, full
+        _r31_scout(w, "Ulster", PARTIAL)
+        partial = _r31_card(w)["message"]
+        assert "a garrison (" in partial and "400" not in partial, partial
+        assert "are under 5,000" not in partial
+
+    def test_the_first_landing_reply_points_at_the_carve(self, _r31_w):
+        """The reply after a landing that took no ground (a raiding party onto
+        open Ulster): the S14E-15 pointer read nothing on a first landing; it
+        now reads the prospect - the next step IS the carve."""
+        w = _r31_w
+        w.fleets["Britain"]["ships"] = 0                  # a quiet sea: the landing is certain
+        _r31_corps(w, men=4100)
+        landed = _r31_card(w, confirmed=True)
+        assert landed.get("landed"), landed["message"]
+        assert "a raiding party, not an army" in landed["message"]
+        assert f"{_R31_ULSTER}." in landed["message"], landed["message"]
+
+    def test_the_province_panel_stamps_the_prospect(self, _r31_w):
+        w = _r31_w
+        with _r31_quiet():
+            rows = w.get_filtered_game_state_summary()["map_data"]
+        assert rows["Ulster"]["road_note"] == _R31_ULSTER
+        assert rows["Munster"]["road_note"] == _R31_MUNSTER
+        assert "road_note" not in rows["Flanders"]
+
+    def test_the_builder_keeps_the_begun_road_sinks_clear(self, _r31_w):
+        """A prospect is a first landing's pointer and nothing else: the
+        begun roads, the war card's courts and the completing shores stay the
+        begun roads' alone (the Admiralty ranks a begun road's shore first;
+        the peace review closes only a road that was begun)."""
+        from backend.game_logic.formations import road_notes, road_peace_lines
+        w = _r31_w
+        notes = road_notes(w)
+        assert notes["roads"] == [] and notes["by_court"] == {} and notes["completing"] == []
+        [row] = notes["prospects"]
+        assert row["tag"] == "Ireland" and row["state"] == "prospect"
+        assert row["provinces"] == ["Ulster", "Munster"] and row["court"] == "Britain"
+        assert notes["by_province"] == {"Ulster": _R31_ULSTER, "Munster": _R31_MUNSTER}
+        assert road_peace_lines(w, ["Britain"], [{"type": "peace"}]) == []
+
+    def test_no_war_no_prospect(self, _r31_w):
+        """The prospect is a war's act: with the war with the court ended the
+        road opens on no surface (a new war reopens it)."""
+        from backend.game_logic.formations import road_note_for, road_notes
+        w = _r31_w
+        w.diplomatic_states[w._make_diplo_key("France", "Britain")] = "PEACE"
+        notes = road_notes(w)
+        assert "prospects" not in notes and notes["by_province"] == {}
+        assert road_note_for(w, "Ulster") == ""
+
+    def test_a_held_province_is_no_prospect(self, _r31_w):
+        """Both provinces held: the carve is AVAILABLE (the table's Erect row
+        carries it) and nothing is a prospect."""
+        from backend.game_logic.formations import road_notes
+        w = _r31_w
+        w.regions["Ulster"].controller = "France"
+        w.regions["Munster"].controller = "France"
+        w.invalidate_active_nations_cache()
+        notes = road_notes(w)
+        assert "prospects" not in notes and notes["by_province"] == {}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# siblings
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX144:
+    """Sibling (class: a surface where the landing is CHOSEN that priced the
+    throw and not the prize) - the Land chips. `expedition_landing_options`
+    rows carry the same sentence on `prize` (the shore half asked once per
+    shore, the floor per corps), the region panel prints it as a second line,
+    and the Admiralty's chip note ends "If it lands: ...". THE OLD READING:
+    the chip said "12,000 men from Brittany · 72 in 100 slip past" and
+    nothing else."""
+
+    def test_the_row_prize_is_the_cards_sentence(self, _r31_w):
+        from backend.game_logic import naval
+        w = _r31_w
+        marshal = _r31_corps(w, men=4100)
+        rows = naval.expedition_landing_options(w, "France")["Ulster"]
+        [row] = [r for r in rows if r["marshal"] == "Lannes"]
+        assert row["prize"] == naval.landing_prize_clause(w, "France", "Ulster", marshal)
+        card = _r31_card(w)["message"]
+        assert f"If it lands: {row['prize']}." in card
+
+    def test_only_an_enemy_shore_has_a_prize(self, _r31_w):
+        """Our own shore (the beachhead return) and a host's draw no prize:
+        the row has no `prize` key and the helper answers ''."""
+        from backend.game_logic import naval
+        w = _r31_w
+        marshal = _r31_corps(w, men=12000)
+        rows = naval.expedition_landing_options(w, "France")
+        assert any("prize" in r for r in rows["Ulster"])
+        own = [name for name, rs in rows.items()
+               if naval._controller(w, name) == "France"]
+        for name in own:
+            assert all("prize" not in r for r in rows[name]), name
+            assert naval.landing_prize_clause(w, "France", name, marshal) == ""
+
+    def test_the_overlay_payload_carries_it_to_the_panel(self, _r31_w):
+        from backend.game_logic import naval
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        overlay = naval.map_naval_overlay(w)
+        [row] = [r for r in overlay["expedition_landings"]["Ulster"] if r["marshal"] == "Lannes"]
+        assert row["prize"].startswith(_R31_ULSTER)
+        assert isinstance(row["strength"], int) and isinstance(row["odds"], int)
+
+    def test_the_admiralty_chip_note_and_the_notes_carry_it(self, _r31_w):
+        from backend.game_logic import naval
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        report = naval.build_admiralty_report(w)
+        land = [c for c in report["expedition_chips"] if c["command"].startswith("land ")]
+        assert land
+        for chip in land:
+            region = chip["command"].split(" in ", 1)[1]
+            if naval._controller(w, region) != "France":
+                assert " If it lands: " in chip["note"] or ". If it lands: " in chip["note"], chip
+        # and the page's notes name the unbegun carve whole
+        assert ("The Ireland carve needs Ulster and Munster — hold both while "
+                "the war with Britain runs and Britain can be made to erect it "
+                "at a table") in report["expedition_notes"]
+
+    def test_the_panel_prints_the_prize_line_and_the_chip_reads_the_rows_fields(self):
+        text = _R31_PANEL.read_text(encoding="utf-8")
+        assert 'var land_prize := str(corps.get("prize", ""))' in text
+        assert ']If it lands: "' in text
+        # the second line sits under the chip, as the levers' does
+        chip_at = text.index('"do:land " + who + " in " + _region')
+        assert text.index('land_prize', chip_at) > chip_at
+
+
+class TestS14GX145:
+    """Sibling (class: the success of a throw said on one road, not the
+    other) - the card is PLAYER-ONLY: the AI commits with `confirmed: True`
+    (`find_ai_expedition`) and never builds the prize or reads the price, so
+    the sentence needs no seam. A confirmed landing must not reach
+    `landing_prize_clause` at all."""
+
+    def test_a_confirmed_landing_never_builds_the_card_sentence(self, _r31_w, monkeypatch):
+        from backend.game_logic import naval
+        w = _r31_w
+        w.fleets["Britain"]["ships"] = 0
+        _r31_corps(w, men=12000)
+
+        def boom(*a, **k):
+            raise AssertionError("the card's sentence is built on the quote path only")
+        monkeypatch.setattr(naval, "landing_prize_clause", boom)
+        landed = _r31_card(w, confirmed=True)
+        assert landed.get("landed"), landed["message"]
+
+    def test_the_ai_expedition_carries_confirmed(self):
+        text = (_R31_ROOT / "backend" / "game_logic" / "naval.py").read_text(encoding="utf-8")
+        assert '"target": target, "region": target, "confirmed": True,' in text
+
+
+class TestS14GX146:
+    """Sibling - the Grand Diversion's card named the staged army only by its
+    ABSENCE ("No army is staged to use the open water."). With the camp staged
+    it now says what the open water is for, off the same predicate, and the
+    card (like the expedition's) prints the verb's price."""
+
+    def _staged(self, w):
+        for name, where in (("Soult", "Flanders"), ("Ney", "Artois")):
+            w.get_marshal(name).location = where
+        w._build_marshal_index()
+        w.fleets["France"]["camp_turns"] = 2
+        return w
+
+    def _diversion(self, w):
+        from backend.commands.executor import CommandExecutor
+        with _r31_quiet():
+            return CommandExecutor()._naval._execute_naval_diversion(
+                {"action": "naval_diversion", "raw_command": "order the diversion"},
+                {"world": w})
+
+    def test_a_staged_camp_is_named_by_its_men(self, _r31_w):
+        from backend.game_logic import naval
+        w = self._staged(_r31_w)
+        assert naval.camp_staged(w, "France")
+        msg = self._diversion(w)["message"]
+        assert "An army is staged to use the open water (54,000 men in the camp)." in msg, msg
+        assert "No army is staged" not in msg
+
+    def test_an_unstaged_camp_keeps_the_old_line(self, _r31_w):
+        msg = self._diversion(_r31_w)["message"]
+        assert "No army is staged to use the open water." in msg
+
+    def test_the_card_prints_the_verbs_price_from_the_table(self, _r31_w):
+        w = _r31_w
+        msg = self._diversion(w)["message"]
+        assert msg.rstrip().endswith("Ordering it costs 1 AP. Sail? (yes / no)"), msg
+        w._action_costs["naval_diversion"] = 3                  # the table, not a literal
+        assert "Ordering it costs 3 AP. Sail? (yes / no)" in self._diversion(w)["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# the siblings filed to this row's functions
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX86:
+    """Sibling (filed by the S14G-17/29 builder): the Land chip on the region
+    panel printed "12,000 men from Brittany · 72 in 100 slip past" - it
+    omitted WHY the corps may embark where he stands (`from_reason`) and the
+    verb's price (`cost_note`), both of which every row of `expedition_landings`
+    carries and the Admiralty's chips already print. The note now leads with
+    the price and appends " (reason)" after "men from X"."""
+
+    def test_every_row_carries_both_fields(self, _r31_w):
+        from backend.game_logic import naval
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        yards = set(naval.controlled_dockyards(w, "France"))
+        marshal = w.get_marshal("Lannes")
+        rows = [r for rs in naval.expedition_landing_options(w, "France").values() for r in rs]
+        assert rows
+        for row in rows:
+            assert row["cost_note"] == naval.ap_cost_note(w, "naval_expedition")
+            assert row["from_reason"] == naval.embark_reason(w, w.get_marshal(row["marshal"]), yards)
+        assert marshal.name in {r["marshal"] for r in rows}
+
+    def test_the_panel_leads_with_the_price_and_appends_the_reason(self):
+        text = _R31_PANEL.read_text(encoding="utf-8")
+        assert 'var land_cost := str(corps.get("cost_note", ""))' in text
+        assert 'var land_from_why := str(corps.get("from_reason", ""))' in text
+        assert 'land_from += " (" + Utils.humanize_nation_keys_in_text(land_from_why) + ")"' in text
+        assert '(land_cost + " " if land_cost != "" else "")' in text
+        assert '" men from " + land_from + " · "' in text
+
+
+class TestS14GX137:
+    """Sibling (filed by the S14G-29 builder): the region panel's "Lay down
+    ships" and "Naval Yard" chips omitted the administrative action they
+    spend. The map payload carries the prices (`ship_ap_note`,
+    `yard_ap_note`, wave 1); the chips now lead their notes with them."""
+
+    def test_the_overlay_carries_the_two_prices_from_the_table(self, _r31_w):
+        from backend.game_logic import naval
+        w = _r31_w
+        overlay = naval.map_naval_overlay(w)
+        assert overlay["ship_ap_note"] == f"({w.get_action_cost('build_fleet')} Admin AP)"
+        assert overlay["yard_ap_note"] == f"({w.get_action_cost('build')} Admin AP)"
+
+    def test_the_chips_print_them(self):
+        text = _R31_PANEL.read_text(encoding="utf-8")
+        assert 'yard_ap = str(_map_node.naval_overlay.get("yard_ap_note", ""))' in text
+        assert '(yard_ap + " " if yard_ap != "" else "") + "keels laid and corps embarked here · "' in text
+        assert 'var ship_ap := str(overlay.get("ship_ap_note", ""))' in text
+        assert '(ship_ap + " " if ship_ap != "" else "") + yard_note' in text
+
+
+class TestS14GX138:
+    """Sibling (filed by the S14G-29 builder): the expedition and diversion
+    confirm cards ended "Sail? (yes / no)" with no price. Both now print the
+    verb's real action price through `naval.ap_price_words` (the world's own
+    table and the pool the executor routes the verb to), never a literal."""
+
+    def test_the_expedition_card_prices_the_sailing(self, _r31_w):
+        w = _r31_w
+        _r31_corps(w, men=12000)
+        assert "Sailing costs 2 AP. Sail? (yes / no)" in _r31_card(w)["message"]
+        w._action_costs["naval_expedition"] = 4
+        assert "Sailing costs 4 AP. Sail? (yes / no)" in _r31_card(w)["message"]
+
+    def test_the_source_reads_the_helper_not_a_number(self):
+        text = (_R31_ROOT / "backend" / "commands" / "naval_executor.py").read_text(encoding="utf-8")
+        assert 'naval.ap_price_words(world, "naval_expedition")' in text
+        assert "naval.ap_price_words(world, 'naval_diversion')" in text
+
+
+class TestS14GX139:
+    """Sibling (filed by the S14G-29 builder): THE LAWS' chips named gold and
+    authority and never "1 Admin AP" - an act of state spends one of the
+    turn's administrative actions. `reforms.laws_payload` stamps `cost_note`
+    on the Enact / Restore / Repeal chip from the table; the ledger's
+    `_chip_row` already renders it."""
+
+    def test_every_chip_of_the_laws_tab_carries_the_price(self, _r31_w):
+        from backend.game_logic import naval, reforms
+        w = _r31_w
+        payload = reforms.laws_payload(w, "France")
+        assert payload and payload["rows"]
+        for entry in payload["rows"]:
+            assert entry["chip"]["label"] == "Enact"
+            assert entry["chip"]["cost_note"] == naval.ap_cost_note(w, "enact_law") == "(1 Admin AP)"
+        # a law in force offers Repeal, priced by its own verb
+        row = reforms.deck(w, "France")[0]
+        row["enacted_turn"] = 1
+        repeal = next(e for e in reforms.laws_payload(w, "France")["rows"]
+                      if e["id"] == str(row.get("id")))
+        assert repeal["chip"]["label"] == "Repeal"
+        assert repeal["chip"]["cost_note"] == naval.ap_cost_note(w, "repeal_law") == "(1 Admin AP)"
+
+    def test_the_price_is_the_tables(self, _r31_w):
+        from backend.game_logic import reforms
+        w = _r31_w
+        w._action_costs["enact_law"] = 2
+        first = reforms.laws_payload(w, "France")["rows"][0]
+        assert first["chip"]["cost_note"] == "(2 Admin AP)"
+
+    def test_the_ledger_renders_the_chips_cost_note(self):
+        text = (_R31_ROOT / "godot-client" / "project-sovereign" / "scripts"
+                / "strategic_ledger.gd").read_text(encoding="utf-8")
+        assert 'var cost_note = str(chip.get("cost_note", ""))' in text
+
+
+def _r31_muster_tail(muster: str) -> str:
+    """The Python mirror of `region_panel.gd::_muster_tail` (the S14G-X61
+    split): the line without 'Berthier adds: ', split on ' — '; with more than
+    two clauses, the first and the clause that carries the band ('the balance
+    of force looks X') cut at its sentence's end, else the first and the last."""
+    line = muster.strip()
+    if line.startswith("Berthier adds: "):
+        line = line[len("Berthier adds: "):]
+    parts = line.split(" — ")
+    if len(parts) > 2:
+        for part in parts[1:]:
+            if part.find("balance of force looks") < 0:
+                continue
+            stop = part.find(". ")
+            if stop >= 0:
+                part = part[:stop + 1]
+            return parts[0] + " — " + part
+        return parts[0] + " — " + parts[-1]
+    return line
+
+
+def _r31_old_muster_tail(muster: str) -> str:
+    line = muster.strip()
+    if line.startswith("Berthier adds: "):
+        line = line[len("Berthier adds: "):]
+    parts = line.split(" — ")
+    if len(parts) > 2:
+        return parts[0] + " — " + parts[-1]
+    return line
+
+
+class TestS14GX61:
+    """Sibling (filed by the S14G-14 builder): `region_panel.gd::_muster_tail`
+    split the muster line on ' — ' and kept the first and the LAST clause; the
+    S14G-14 unscouted note carries its own ' — ' ("The band weighs a force of
+    his you have not scouted — scout Carniola. On the men in view alone ..."),
+    so the last clause became the note's tail and the chip lost the TRUE band
+    ("Ney would answer the guns — scout Carniola. On the men in view alone the
+    odds read 'favorable' ..." and never 'unfavorable'). The split now keeps
+    the clause that carries 'balance of force looks' and cuts the note's
+    sentences from the tail."""
+
+    _LINE = ("Berthier adds: Ney and Murat would answer the guns — Massena 42,000, "
+             "61,000 with the muster committed, against Archduke John (substantial "
+             "force) — weighed together, the balance of force looks unfavorable. "
+             "The band weighs a force of his you have not scouted — scout Carniola. "
+             "On the men in view alone the odds read 'favorable' (about 61,000 "
+             "against a substantial force).")
+
+    def test_the_old_split_lost_the_true_band(self):
+        tail = _r31_old_muster_tail(self._LINE)
+        assert "unfavorable" not in tail and "scout Carniola" in tail
+
+    def test_the_new_split_keeps_the_band_and_cuts_the_note(self):
+        tail = _r31_muster_tail(self._LINE)
+        assert tail == ("Ney and Murat would answer the guns — weighed together, "
+                        "the balance of force looks unfavorable.")
+        assert "scout Carniola" not in tail and "On the men in view" not in tail
+
+    def test_a_line_with_no_note_reads_as_it_did(self):
+        line = ("Berthier adds: Ney would answer the guns — Massena 42,000 against "
+                "John (substantial force) — weighed together, the balance of force "
+                "looks favorable.")
+        assert _r31_muster_tail(line) == _r31_old_muster_tail(line)
+        solo = "Berthier adds: Ney 24,000 against Mack (a large force) — no other corps stands within reach."
+        assert _r31_muster_tail(solo) == _r31_old_muster_tail(solo)
+
+    def test_on_the_real_muster_line_of_the_shipped_board(self, _r31_boot):
+        """The row-14 board: Massena against Archduke John at Tyrol, the other
+        Habsburg army at unscouted Carniola. The REAL line the backend prints,
+        through the mirror."""
+        from backend.commands.executor import CommandExecutor
+        w = _r31_copy(_r31_boot)
+        w.calculate_visibility()
+        w.get_marshal("Ney").location = "Milan"
+        w.calculate_visibility()
+        with _r31_quiet():
+            combat = CommandExecutor()._combat
+            line = combat._bad_odds_muster_note(
+                w.get_marshal("Massena"), w.get_marshal("ArchdukeJohn"), w)
+        assert "the balance of force looks" in line and "you have not scouted" in line, line
+        tail = _r31_muster_tail(line)
+        assert "the balance of force looks" in tail
+        assert "you have not scouted" not in tail and "On the men in view" not in tail
+        assert re.search(r"looks (unfavorable|favorable|even|[a-z ]+)\.$", tail), tail
+
+    def test_the_gdscript_carries_the_same_split(self):
+        text = _R31_PANEL.read_text(encoding="utf-8")
+        body = text[text.index("func _muster_tail(muster: String) -> String:"):]
+        body = body[:body.index("\n\n\nfunc ")]
+        assert 'clause.find("balance of force looks") < 0' in body
+        assert 'clause.find(". ")' in body
+        assert 'str(parts[0]) + " — " + clause' in body
+        # and the fallback is the old first-and-last
+        assert 'str(parts[0]) + " — " + str(parts[parts.size() - 1])' in body
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row32
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-32 (October 26, 2026): the camp's blockade.
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-32): moving the camp's main body out of the
+# camp brought the blockade back a turn later, and neither the order nor the
+# notice named the cause. The sighting (DD-B's third measure, sea #7, P3, turn 8,
+# action 134; the ledger's "action 140" was the turn-9 end): the player sent Soult
+# (30,000, the main body of the Flanders camp) to "pursue Paget" two turns after
+# the Admiralty said the camp had lifted Britain's blockade; the reply DID carry
+# S14E-13's camp-leave line ("Orleanais lies outside the camp - this takes 30,000
+# men out of it; the 5-turn count resets at the turn's end.") - it said the count
+# resets, never what the STAGED camp was holding off. Turn 9's income had no
+# Blockade line; turn 10's (action 144) showed "Blockade: -320g", and the rail
+# read "Britain closes France's ports ... 62%" with no cause. A staged camp makes
+# `derive_ai_postures` set Britain to "guard"; break it and she returns to
+# "blockade", but posture is derived BEFORE the camp tick (`process_naval_turn`
+# step 1 vs step 4), so the return lands one turn late. The lift names its cause
+# (`_lift_cause`); the return named none.
+#
+# THE FIX (text only - NO SEAM: `derive_ai_postures` and `_camp_tick` are
+# untouched; the BASELINE_SERIES is a threat series the naval text cannot move,
+# verified by `tests/test_ai_intent_threat_migration.py -k Series`).
+# `naval.camp_holds_off_clause` is the ONE sentence - "Britain's squadrons, held
+# home by the camp, go back to the blockade (trade -62%, crews rot 5 a turn,
+# about -320g a turn) from the turn after next" - built from the blockade's own
+# arithmetic (`blockade_cut_percent` over the blockader's laws,
+# `blockade_return_figures` mirroring `blockade_trade_loss` for the same gross,
+# `READINESS_TICK`) and the squadrons the staged camp holds (`camp_held_squadrons`:
+# at war, posture "guard", strong enough to pin us at the ratio). It rides
+# `camp_leave_line` (the march's reply, the plain move's reply, the standing
+# march's turn report AND the order quote - `order_quotes` calls the same
+# function) and the Admiralty's staged line (`camp_line`). The return notice
+# names its cause: `_return_cause` beside `_lift_cause`, fed by the squadrons'
+# station on the PREVIOUS tick (`_held_home_by`, remembered in the naval record
+# under `held_home` and absent whenever nothing holds them).
+#
+# WHAT WAS KEPT. The posture derivation, the camp tick, the blockade's
+# arithmetic, the count's reset, the lift's causes; the unstaged camp's leave
+# line reads exactly as S14E-13 wrote it.
+#
+# The board: the shipped 1805 scenario, France at war with Britain, the camp
+# provinces Flanders / Artois / Normandy / Brittany; Soult (30,000) at Flanders
+# and Ney (24,000) at Artois make a 54,000-man camp, staged by `camp_turns = 2`.
+
+_R32_ROOT = Path(__file__).resolve().parents[1]
+_R32_SCENARIO = (_R32_ROOT / "godot-client" / "project-sovereign" / "assets"
+                 / "maps" / "europe_1805.json")
+
+
+def _r32_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r32_boot():
+    from backend.models.world_state import WorldState
+    with _r32_quiet():
+        return WorldState.from_scenario(str(_R32_SCENARIO))
+
+
+def _r32_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r32_w(_r32_boot):
+    """The camp STAGED: Soult at Flanders, Ney at Artois, the count at 2, the
+    postures derived (Britain held at "guard")."""
+    from backend.game_logic import naval
+    w = _r32_copy(_r32_boot)
+    for name, where in (("Soult", "Flanders"), ("Ney", "Artois")):
+        w.get_marshal(name).location = where
+    w._build_marshal_index()
+    naval.get_fleet(w, "France")["camp_turns"] = 2
+    naval.derive_ai_postures(w)
+    return w
+
+
+def _r32_tick(w):
+    from backend.game_logic import naval
+    with _r32_quiet():
+        return naval.process_naval_turn(w)
+
+
+def _r32_notices(w):
+    return [n for n in w.notifications._pending
+            if (n.get("details") or {}).get("kind") == "blockade_begins"]
+
+
+def _r32_forced_blockade_figures(w):
+    """The blockade's OWN arithmetic with Britain forced onto blockade posture
+    on a copy: what `blockade_trade_loss` and `blockade_trade_words` actually
+    apply."""
+    from backend.game_logic import naval
+    twin = _r32_copy(w)
+    naval.get_fleet(twin, "Britain")["posture"] = "blockade"
+    loss = naval.blockade_trade_loss(twin)["France"]
+    pct = naval.blockade_cut_percent(naval.blockade_denial_factor_against(twin, "France"))
+    return pct, loss
+
+
+def _r32_clause(w):
+    from backend.game_logic import naval
+    pct, loss = _r32_forced_blockade_figures(w)
+    return (f"Britain's squadrons, held home by the camp, go back to the blockade "
+            f"(trade −{pct}%, crews rot {naval.READINESS_TICK} a turn, "
+            f"about −{loss:,}g a turn) from the turn after next")
+
+
+class TestS14G32:
+    """Reproduced on the shipped board (before the fix): with the camp staged
+    and Britain held at "guard", `Soult, march to Picardy` replied "Picardy lies
+    outside the camp - this takes 30,000 men out of it; the 2-turn count resets
+    at the turn's end." and nothing of the blockade that comes back; the turn
+    after, "Blockade: -175g" appeared with a rail line naming no cause. Fixed:
+    the reply carries what the staged camp was holding off, with the figures
+    and the lag, and the notice names the broken camp."""
+
+    def test_a_march_out_prints_the_clause_with_the_figures_and_the_lag(self, _r32_w):
+        from backend.game_logic import naval
+        w = _r32_w
+        line = naval.camp_leave_line(w, w.get_marshal("Soult"), ["Orleanais"])
+        assert line == ("Orleanais lies outside the camp — this takes 30,000 men out of "
+                        "it; the 2-turn count resets at the turn's end — "
+                        f"{_r32_clause(w)}."), line
+        assert "from the turn after next" in line and "crews rot 5 a turn" in line
+
+    def test_the_typed_order_replies_with_it(self, _r32_w):
+        import backend.main as main_module
+        from backend.commands.parser import CommandParser
+        from fastapi.testclient import TestClient
+        w = _r32_w
+        originals = (main_module.game_state["world"], main_module.world, main_module.parser)
+        main_module.game_state["world"] = w
+        main_module.world = w
+        main_module.parser = CommandParser(use_real_llm=False)
+        try:
+            with _r32_quiet():
+                reply = TestClient(main_module.app).post(
+                    "/command", json={"command": "Soult, march to Picardy"}).json()
+        finally:
+            (main_module.game_state["world"], main_module.world,
+             main_module.parser) = originals
+        assert "Picardy lies outside the camp" in reply["message"], reply["message"]
+        assert _r32_clause(w) in reply["message"], reply["message"]
+
+    def test_the_return_lands_the_turn_after_next_and_the_notice_names_the_camp(self, _r32_w):
+        from backend.game_logic import naval
+        w = _r32_w
+        w.get_marshal("Soult").location = "Orleanais"          # the order, taken
+        w._build_marshal_index()
+        # the order's turn: the tick still finds her held home, then resets the count
+        _r32_tick(w)
+        assert naval.blockaded_nations(w) == [] and naval.get_fleet(w, "France")["camp_turns"] == 0
+        assert _r32_notices(w) == []
+        assert w.fleets[naval.META_KEY]["held_home"] == {"Britain": "camp"}
+        # the next tick: posture re-derived with the camp broken - the blockade returns
+        _r32_tick(w)
+        assert "France" in naval.blockaded_nations(w)
+        [note] = _r32_notices(w)
+        assert note["message"].startswith(
+            "The Descent camp (Flanders, Artois, Normandy, Brittany) was broken, and "
+            "Britain's squadrons, no longer held home to guard against it, are back "
+            "on the blockade. Britain's fleet now outmatches ours 1.25 to 1 off our coast"), note["message"]
+        assert "held_home" not in w.fleets[naval.META_KEY]       # absent whenever nothing holds them
+
+    def test_the_log_event_and_the_beat_carry_the_cause(self, _r32_w):
+        w = _r32_w
+        w.get_marshal("Soult").location = "Orleanais"
+        w._build_marshal_index()
+        _r32_tick(w)
+        events = _r32_tick(w)
+        [begins] = [e for e in events if e.get("type") == "blockade_begins" and e.get("nation") == "France"]
+        assert begins["cause"].startswith("The Descent camp (")
+        [beat] = [e for e in w.pending_dispatch_events
+                  if e["type"] == "blockade_begins" and e["template_vars"]["nation"] == "France"]
+        assert beat["template_vars"]["cause"] == begins["cause"]
+        # the template ignores the extra key until it reads it (FILED ONLY: dispatch.py, campaign_log.py)
+        from backend.game_logic.dispatch import _DIPLOMATIC_EVENT_TEMPLATES
+        _DIPLOMATIC_EVENT_TEMPLATES["blockade_begins"].format(**{
+            "blockader_display": "Britain", "nation_display": "France", **beat["template_vars"]})
+
+    def test_the_staged_line_and_the_quote_agree(self, _r32_w):
+        from backend.commands import order_quotes
+        from backend.game_logic import naval
+        w = _r32_w
+        clause = _r32_clause(w)
+        assert clause == naval.camp_holds_off_clause(w, "France")
+        staged = naval.build_admiralty_report(w)["own_fleet"]["camp_line"]
+        assert staged.endswith(f"marching out of those provinces resets the count, and then {clause}."), staged
+        quote = order_quotes.march_quote(w, w.get_marshal("Soult"), "Orleanais")
+        assert quote["ok"] and clause in quote["camp"], quote
+        assert quote["camp"] == naval.camp_leave_line(w, w.get_marshal("Soult"), quote["road"])
+
+    def test_the_figures_are_the_blockades_own_not_literals(self, _r32_w):
+        """A parity pin: `blockade_return_figures` is `blockade_trade_loss` /
+        `blockade_cut_percent` asked of a world where the squadrons have
+        sailed - and it follows the blockader's laws (the Orders in Council)."""
+        from backend.game_logic import naval, reforms
+        w = _r32_w
+        pct, loss = _r32_forced_blockade_figures(w)
+        assert naval.blockade_return_figures(w, "France", "Britain") == {"cut_pct": pct, "gold": loss}
+        assert pct == 50 and loss > 0
+        # deepen the cut: the clause, the percentage and the gold follow the SAME factor
+        real = reforms.blockade_denial_factor
+        w.reforms = w.reforms or {"Britain": []}
+        reforms.blockade_denial_factor = lambda world, nation: 1.25
+        try:
+            deeper = naval.blockade_return_figures(w, "France", "Britain")
+            twin = _r32_copy(w)
+            twin.reforms = w.reforms
+            naval.get_fleet(twin, "Britain")["posture"] = "blockade"
+            assert deeper["cut_pct"] == 62
+            assert deeper["gold"] == naval.blockade_trade_loss(twin)["France"]
+            assert "trade −62%" in naval.camp_holds_off_clause(w, "France")
+        finally:
+            reforms.blockade_denial_factor = real
+
+    def test_an_unstaged_camp_reads_as_s14e13_wrote_it(self, _r32_w):
+        from backend.game_logic import naval
+        w = _r32_w
+        naval.get_fleet(w, "France")["camp_turns"] = 1
+        assert naval.camp_holds_off_clause(w, "France") == ""
+        line = naval.camp_leave_line(w, w.get_marshal("Soult"), ["Orleanais"])
+        assert line == ("Orleanais lies outside the camp — this takes 30,000 men out of "
+                        "it; the 1-turn count resets at the turn's end.")
+        assert "squadrons" not in naval.camp_line(w, "France")
+
+    def test_a_fleet_already_sailing_is_not_held(self, _r32_w):
+        from backend.game_logic import naval
+        w = _r32_w
+        naval.get_fleet(w, "Britain")["posture"] = "blockade"
+        assert naval.camp_held_squadrons(w, "France") == []
+        assert naval.camp_holds_off_clause(w, "France") == ""
+
+    def test_the_text_is_no_seam_postures_and_the_tick_are_unmoved(self, _r32_boot, monkeypatch):
+        """Rule 5: the same two ticks with the memory switched off leave the
+        postures, the blockade set, the count and every fleet record (less the
+        one `held_home` key) byte-identical."""
+        from backend.game_logic import naval
+        runs = []
+        for memory in (True, False):
+            w = _r32_copy(_r32_boot)
+            for name, where in (("Soult", "Flanders"), ("Ney", "Artois")):
+                w.get_marshal(name).location = where
+            w._build_marshal_index()
+            naval.get_fleet(w, "France")["camp_turns"] = 2
+            if not memory:
+                monkeypatch.setattr(naval, "_held_home_by", lambda world: {})
+            w.get_marshal("Soult").location = "Orleanais"
+            w._build_marshal_index()
+            _r32_tick(w)
+            _r32_tick(w)
+            fleets = json.loads(json.dumps(w.fleets, default=str))
+            fleets[naval.META_KEY].pop("held_home", None)
+            runs.append((fleets, naval.blockaded_nations(w)))
+        assert runs[0] == runs[1]
+
+    def test_a_board_without_a_staged_camp_keeps_its_record_byte_identical(self, _r32_boot):
+        from backend.game_logic import naval
+        w = _r32_copy(_r32_boot)
+        before = json.dumps(w.fleets.get(naval.META_KEY, {}), sort_keys=True, default=str)
+        _r32_tick(w)
+        _r32_tick(w)
+        meta = w.fleets[naval.META_KEY]
+        assert "held_home" not in meta
+        assert before.count("held_home") == 0
+
+
+class TestS14GX147:
+    """Sibling (class: a state change whose cause the notice does not name) -
+    the Strait WINDOW. `derive_ai_postures` holds the island squadrons at
+    "guard" while a window is open as it does for a staged camp, and the
+    blockade returns on the tick after the window's last turn; the rail named
+    "The Strait shuts again" a tick earlier and the return itself no cause.
+    `_return_cause` names it from the same remembered station."""
+
+    def test_the_window_closes_and_the_return_names_it(self, _r32_boot):
+        from backend.game_logic import naval
+        w = _r32_copy(_r32_boot)
+        naval.get_fleet(w, "France")["window_turns"] = 1
+        _r32_tick(w)                                   # held home by the window, which then shuts
+        assert naval.get_fleet(w, "France")["window_turns"] == 0
+        assert w.fleets[naval.META_KEY]["held_home"] == {"Britain": "window"}
+        _r32_tick(w)
+        [note] = _r32_notices(w)
+        assert note["message"].startswith(
+            "The Strait window has closed, and Britain's squadrons, no longer held "
+            "home to guard against the crossing, are back on the blockade. "), note["message"]
+
+    def test_a_plain_beginning_has_no_cause(self, _r32_boot):
+        """The boot blockade (nobody held anyone home) reads as it did."""
+        from backend.game_logic import naval
+        w = _r32_copy(_r32_boot)
+        naval._meta(w)["blockaded"] = []
+        _r32_tick(w)
+        [note] = _r32_notices(w)
+        assert note["message"].startswith("Britain's fleet now outmatches ours 1.25 to 1 off our coast")
+        assert "camp" not in note["message"] and "window" not in note["message"]
+
+
+class TestS14GX148:
+    """Sibling - the clause names every held fleet when more than one island
+    court is held home (the squadrons of A and B), the strongest's figures."""
+
+    def test_two_holders_are_named_together(self, _r32_w, monkeypatch):
+        from backend.game_logic import naval
+        w = _r32_w
+        monkeypatch.setattr(naval, "camp_held_squadrons",
+                            lambda world, nation: ["Britain", "Russia"])
+        clause = naval.camp_holds_off_clause(w, "France")
+        assert clause.startswith("the squadrons of Britain and Russia, held home by the camp, "
+                                 "go back to the blockade (trade −")
+        assert clause.endswith("from the turn after next")
+
+    def test_no_trade_no_gold_figure(self, _r32_w, monkeypatch):
+        from backend.game_logic import naval
+        w = _r32_w
+        monkeypatch.setattr(naval, "blockade_return_figures",
+                            lambda world, nation, blockader: {"cut_pct": 50, "gold": 0})
+        clause = naval.camp_holds_off_clause(w, "France")
+        assert "about −" not in clause and "(trade −50%, crews rot 5 a turn)" in clause
+
+
+class TestS14GX149:
+    """Sibling (filed to dispatch.py / campaign_log.py - not this row's
+    functions): the `blockade_begins` beat's template and the campaign log's
+    one-liner print no cause. The event and the queued beat now CARRY `cause`
+    (a key the templates ignore until they read it); the rail names it."""
+
+    def test_the_event_dict_has_the_key_only_for_a_return(self, _r32_boot):
+        from backend.game_logic import naval
+        w = _r32_copy(_r32_boot)
+        naval._meta(w)["blockaded"] = []
+        events = _r32_tick(w)
+        [begins] = [e for e in events if e.get("type") == "blockade_begins" and e.get("nation") == "France"]
+        assert "cause" not in begins
+
+
+class TestS14GX150:
+    """Sibling - the marshal-facing surfaces of a march out of the camp are
+    ONE function: the typed move's reply, the standing march's report and the
+    order quote all call `naval.camp_leave_line` (through
+    `movement_executor.camp_leave_note` and `order_quotes`), so the new clause
+    cannot be said on one and not another."""
+
+    def test_the_callers_are_the_one_function(self):
+        mv = (_R32_ROOT / "backend" / "commands" / "movement_executor.py").read_text(encoding="utf-8")
+        oq = (_R32_ROOT / "backend" / "commands" / "order_quotes.py").read_text(encoding="utf-8")
+        assert "line = camp_leave_line(world, marshal, road, origin)" in mv
+        assert oq.count("camp_leave_line(") >= 2
+        assert "S14G-32" not in oq          # the quote needs no edit of its own: same function
+
+
+class TestS14GX151:
+    """Sibling (class: a bare 'press <letter>' that TYPES into the command
+    line, S14G-16) - `ADMIRALTY_POINTER`, the pointer the blockade, the
+    crossing and the window notices all print, said "press T, then 7". It is
+    now the focus-safe key sentence (`counsel.key_hint`), identical to the
+    counsel's own `surface_pointer("admiralty")`."""
+
+    def test_the_pointer_is_the_key_hint(self):
+        from backend.ai.counsel import key_hint, surface_pointer
+        from backend.game_logic import naval
+        assert naval.ADMIRALTY_POINTER == f"THE ADMIRALTY (press {key_hint('T', then='7')})"
+        assert naval.ADMIRALTY_POINTER == surface_pointer("admiralty")
+        assert "Alt+T, then Alt+7 while you type" in naval.ADMIRALTY_POINTER
+
+    def test_the_notices_print_it(self, _r32_w):
+        from backend.game_logic import naval
+        w = _r32_w
+        w.get_marshal("Soult").location = "Orleanais"
+        w._build_marshal_index()
+        _r32_tick(w)
+        _r32_tick(w)
+        [note] = _r32_notices(w)
+        assert f"{naval.ADMIRALTY_POINTER} — the Blockade Board." in note["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row33
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-33 (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-33): "March to Paris" from Flanders took
+# Westphalia - Prussian soil, three turns - on a TIE. Flanders is not adjacent
+# to Artois; three roads tie at three plains hops: Picardy-Artois-Paris and
+# Picardy-Champagne-Paris (French soil) and Westphalia-Artois-Paris (a
+# stranger's). `WorldState.find_weighted_path` weighed only the destination's
+# terrain and gave every tie to push order - the counter - which is the
+# registry's adjacency order (Flanders lists Westphalia before Picardy), so
+# Westphalia won: onto foreign soil that feeds 15,000 for the 37,692 men
+# marching ("~1,231 a turn lost"). The typed order's reply printed the road and
+# never the days (the player's "3 turns" is `march_turns(3, 1)`). The sibling
+# `weighted_paths_from` feeds the map's ETA tint and must keep the SAME tie rule
+# (`tests/test_cc3_select_click_enter.py` pins the two equal).
+#
+# THE FIX. ONE seam, `WorldState.foreign_soil_edge_cost(mover_nation, region)`:
+# 0.0 for the mover's own soil, an unclaimed province and an ally's or
+# satellite's (`ALLY_SUPPLY_STATES` - the very states that FEED a guest army),
+# `FOREIGN_SOIL_STEP_COST` (0.0001) for any other court's. Added to the edge in
+# `find_weighted_path` and `weighted_paths_from` TOGETHER, so the road's LENGTH
+# and TERRAIN still decide (0.0001 x 126 provinces = 0.0126, under the smallest
+# terrain gap, 0.1) and only a TIE goes to own soil. The mover is `passable_for`
+# (the player's lawful road) or the new optional `mover_nation`; with neither
+# (the AI's omniscient road, the diplomacy-blind fallback) the seam is 0.0 and
+# the push order decides as before. THE SEAM DOWN (patched to return 0.0) restores
+# every road byte for byte (`x + 0.0 == x`). The typed MOVE_TO reply says the
+# clock after the road and the guarded-ground rider: "Arrives in 3 turns." -
+# `march_turns(remaining + range, range)`, the quote's own arrival law.
+#
+# WHAT WAS KEPT. The road's length and terrain decide first; the PF-8 lawful
+# ladder, the avoid-set and the closed-destination exemption; `find_path` (BFS,
+# PURSUE / SUPPORT); `get_weighted_distance` (no mover); the S14G-11 guarded-
+# ground sentence stays the sentence right after "Route:".
+#
+# THE SERIES. `BASELINE_SERIES` is byte-identical with the seam up. The first
+# landing left the AI's omniscient road without a mover (`plot_route`'s `_pf`
+# None); the coordinator's word then built S14G-X159 / X33.5 / X33.6 - every
+# `plot_route` rung names the corps's nation as the mover (both sides take the
+# tie rule), the breadth-first `find_path` ties on the same seam, and the
+# HOLD / SUPPORT / follow replies say their clock (`TestS14GX159` / `_5` / `_6`
+# below). On the real road the 40-turn run asks 11 mover-carrying breadth-first
+# queries, 2 of them differ from the seam-down road, and the series is still
+# byte-identical.
+
+_R33_ROOT = Path(__file__).resolve().parents[1]
+_R33_SCENARIO = (_R33_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+_R33_PICARDY_ROAD = ["Flanders", "Picardy", "Artois", "Paris"]
+_R33_WESTPHALIA_ROAD = ["Flanders", "Westphalia", "Artois", "Paris"]
+
+
+def _r33_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r33_boot():
+    from backend.models.world_state import WorldState
+    with _r33_quiet():
+        return WorldState.from_scenario(str(_R33_SCENARIO))
+
+
+def _r33_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r33_state(w, a: str, b: str, state: str) -> None:
+    w.diplomatic_states[w._make_diplo_key(a, b)] = state
+
+
+def _r33_board(boot, state: str = "OPEN_BORDERS"):
+    """The sighting on the shipped board: Napoleon at Flanders, Westphalia
+    Prussian soil that France may lawfully cross (Open Borders) - the three
+    roads to Paris tie at three plains hops."""
+    w = _r33_copy(boot)
+    w.get_marshal("Napoleon").location = "Flanders"
+    w.regions["Westphalia"].controller = "Prussia"
+    _r33_state(w, "France", "Prussia", state)
+    return w
+
+
+@pytest.fixture
+def _r33_w(_r33_boot):
+    return _r33_board(_r33_boot)
+
+
+@contextlib.contextmanager
+def _r33_seam_down():
+    """The series arms' "down": the seam answers 0.0 for every province."""
+    from backend.models.world_state import WorldState
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(WorldState, "foreign_soil_edge_cost", lambda self, mover, region: 0.0)
+        yield
+
+
+@contextlib.contextmanager
+def _r33_client(w):
+    """The player's road: /command on a swapped world (three globals, restored)."""
+    with _r33_quiet():
+        import backend.main as M
+        from backend.commands.parser import CommandParser
+        from fastapi.testclient import TestClient
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = w
+    M.world = w
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+
+
+def _r33_say(client, text: str) -> dict:
+    with _r33_quiet():
+        return client.post("/command", json={"command": text}).json()
+
+
+def _r33_cost(w, path) -> float:
+    """The road's TERRAIN cost - what the pathfinder minimises before the hair."""
+    from backend.models.region import TERRAIN_MOVEMENT_COST
+    return sum(TERRAIN_MOVEMENT_COST.get(w.regions[r].terrain, 1.0) for r in path[1:])
+
+
+class TestS14G33:
+    """The sighting, reproduced on the shipped 1805 board. THE OLD READING:
+    `find_weighted_path("Flanders", "Paris", passable_for="France")` returned
+    the Westphalia road (push order) and the typed march took it, onto foreign
+    soil, with no turn count in the reply."""
+
+    def test_the_three_roads_tie_on_terrain(self, _r33_w):
+        """The premise: three plains roads of three hops - a TIE the weights
+        could not break before the hair."""
+        w = _r33_w
+        roads = [_R33_PICARDY_ROAD, _R33_WESTPHALIA_ROAD,
+                 ["Flanders", "Picardy", "Champagne", "Paris"]]
+        for road in roads:
+            for a, b in zip(road, road[1:]):
+                assert b in w.regions[a].adjacent_regions, (a, b)
+        assert len({_r33_cost(w, road) for road in roads}) == 1
+        assert "Artois" not in w.regions["Flanders"].adjacent_regions
+        # the push order the old tie followed: Westphalia before Picardy
+        adj = w.regions["Flanders"].adjacent_regions
+        assert adj.index("Westphalia") < adj.index("Picardy")
+
+    def test_the_tie_goes_to_own_soil(self, _r33_w):
+        w = _r33_w
+        assert w.get_diplomatic_state("France", "Prussia") == "OPEN_BORDERS"
+        assert w._region_passable_for("Westphalia", "France", mover_location="Flanders")
+        assert w.find_weighted_path("Flanders", "Paris", passable_for="France") == _R33_PICARDY_ROAD
+
+    def test_the_seam_down_the_westphalia_road_returns(self, _r33_w):
+        w = _r33_w
+        with _r33_seam_down():
+            assert w.find_weighted_path("Flanders", "Paris", passable_for="France") == _R33_WESTPHALIA_ROAD
+            assert w.weighted_paths_from("Flanders", passable_for="France")["Paris"] == _R33_WESTPHALIA_ROAD
+
+    def test_the_typed_march_takes_the_own_soil_road_and_says_three_turns(self, _r33_w):
+        """"Napoleon, march to Paris" from Flanders: Picardy, Artois, Paris, and
+        the reply prints the clock (the old reply printed the road only)."""
+        w = _r33_w
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, march to Paris")
+        assert out.get("success") is True, out.get("message")
+        msg = out["message"]
+        assert "Route: Picardy → Artois → Paris." in msg, msg
+        assert "Westphalia" not in msg, msg
+        assert "Arrives in 3 turns." in msg, msg
+        assert w.get_marshal("Napoleon").location == "Picardy"
+        assert [str(r) for r in w.get_marshal("Napoleon").strategic_order.path] == ["Artois", "Paris"]
+
+    def test_the_seam_down_the_typed_march_takes_westphalia_again(self, _r33_boot):
+        with _r33_seam_down():
+            w = _r33_board(_r33_boot)
+            with _r33_client(w) as client:
+                out = _r33_say(client, "Napoleon, march to Paris")
+        msg = out["message"]
+        assert "Route: Westphalia → Artois → Paris." in msg, msg
+        assert "Arrives in 3 turns." in msg, msg
+
+    def test_the_clock_is_the_quotes_own_number(self, _r33_boot):
+        """Shown = applied: the order card's `turns` (the quote the player met
+        before paying) is the number the reply prints."""
+        from backend.commands.order_quotes import march_quote
+        w = _r33_board(_r33_boot)
+        quote = march_quote(w, w.get_marshal("Napoleon"), "Paris")
+        assert quote["ok"] is True and isinstance(quote["turns"], int)
+        assert quote["road"] == ["Picardy", "Artois", "Paris"]
+        assert quote["turns"] == 3
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, march to Paris")
+        assert f"Arrives in {quote['turns']} turns." in out["message"]
+
+    def test_a_one_hop_march_has_no_clock(self, _r33_w):
+        """It arrives on its first step: "Moves to Picardy." says so."""
+        w = _r33_w
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, march to Picardy")
+        assert out.get("success") is True, out.get("message")
+        assert "Arrives in" not in out["message"], out["message"]
+
+    def test_weighted_paths_from_keeps_the_same_tie_rule(self, _r33_w):
+        """The map's ETA tint: every end of the one-pass search is the
+        targeted run's road, the tie included (`test_cc3_select_click_enter`
+        pins the same on the unstaged board)."""
+        w = _r33_w
+        every = w.weighted_paths_from("Flanders", passable_for="France")
+        assert every["Paris"] == _R33_PICARDY_ROAD
+        for dest in w.regions:
+            if dest == "Flanders":
+                continue
+            assert every.get(dest) == w.find_weighted_path(
+                "Flanders", dest, passable_for="France"), dest
+        with _r33_seam_down():
+            down = w.weighted_paths_from("Flanders", passable_for="France")
+            for dest in w.regions:
+                if dest != "Flanders":
+                    assert down.get(dest) == w.find_weighted_path(
+                        "Flanders", dest, passable_for="France"), dest
+
+    def test_a_shorter_foreign_road_still_wins_over_a_longer_own_one(self, _r33_w):
+        """The hair is far below a step: with Picardy avoided the only other
+        French-soil road to Paris is a hop longer (Orleanais, Burgundy,
+        Limousin), and the three-hop road over Prussian soil still wins."""
+        w = _r33_w
+        road = w.find_weighted_path("Flanders", "Paris", avoid_regions=["Picardy"],
+                                    passable_for="France")
+        assert road == _R33_WESTPHALIA_ROAD
+        own = w.find_weighted_path("Flanders", "Paris", avoid_regions=["Picardy", "Westphalia"],
+                                   passable_for="France")
+        assert own == ["Flanders", "Orleanais", "Burgundy", "Limousin", "Paris"]
+        assert len(own) > len(road)
+
+    def test_terrain_still_decides_before_the_soil(self, _r33_w):
+        """Picardy made a mountain (2.0): the plains road over foreign soil is
+        the cheaper one, the hair notwithstanding."""
+        w = _r33_w
+        w.regions["Picardy"].terrain = "mountains"
+        assert _r33_cost(w, _R33_WESTPHALIA_ROAD) < _r33_cost(w, _R33_PICARDY_ROAD)
+        assert w.find_weighted_path("Flanders", "Paris", passable_for="France") == _R33_WESTPHALIA_ROAD
+        assert w.weighted_paths_from("Flanders", passable_for="France")["Paris"] == _R33_WESTPHALIA_ROAD
+
+    def test_the_hair_is_far_below_one_terrain_step(self):
+        """The invariant that keeps length and terrain first: the whole map's
+        worth of foreign steps stays under the smallest gap between two
+        terrain costs."""
+        from backend.models.region import TERRAIN_MOVEMENT_COST
+        from backend.models.world_state import WorldState
+        costs = sorted(set(TERRAIN_MOVEMENT_COST.values()))
+        gap = min(b - a for a, b in zip(costs, costs[1:]))
+        assert gap >= 0.0999
+        assert WorldState.FOREIGN_SOIL_STEP_COST * 126 < gap
+        assert WorldState.FOREIGN_SOIL_STEP_COST > 0.0
+
+    def test_an_allys_or_satellites_soil_costs_nothing(self, _r33_w):
+        """Own soil 0, an ally's or vassal's 0 (the states that FEED a guest
+        army), any other court's - peace with open borders, war - the hair."""
+        w = _r33_w
+        assert w.foreign_soil_edge_cost("France", "Picardy") == 0.0
+        assert w.foreign_soil_edge_cost("France", "Westphalia") == w.FOREIGN_SOIL_STEP_COST
+        for state in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "VASSAL"):
+            _r33_state(w, "France", "Prussia", state)
+            assert w.foreign_soil_edge_cost("France", "Westphalia") == 0.0, state
+        for state in ("OPEN_BORDERS", "NON_AGGRESSION", "WAR", "PEACE", "ARMISTICE"):
+            _r33_state(w, "France", "Prussia", state)
+            assert w.foreign_soil_edge_cost("France", "Westphalia") == w.FOREIGN_SOIL_STEP_COST, state
+        # an unclaimed province costs nothing, and so does a mover that is nobody
+        w.regions["Westphalia"].controller = None
+        assert w.foreign_soil_edge_cost("France", "Westphalia") == 0.0
+        assert w.foreign_soil_edge_cost(None, "Westphalia") == 0.0
+        assert w.foreign_soil_edge_cost("France", "Nowhere") == 0.0
+
+    def test_on_an_allys_soil_the_push_order_decides_as_before(self, _r33_w):
+        w = _r33_w
+        _r33_state(w, "France", "Prussia", "ALLIANCE")
+        assert w.find_weighted_path("Flanders", "Paris", passable_for="France") == _R33_WESTPHALIA_ROAD
+
+    def test_no_mover_no_tie_break(self, _r33_w):
+        """The AI's omniscient road and the diplomacy-blind fallback name no
+        mover: the seam is never asked and the push order decides as ever."""
+        w = _r33_w
+        assert w.find_weighted_path("Flanders", "Paris") == _R33_WESTPHALIA_ROAD
+        assert w.weighted_paths_from("Flanders")["Paris"] == _R33_WESTPHALIA_ROAD
+        calls = []
+        from backend.models.world_state import WorldState
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(WorldState, "foreign_soil_edge_cost",
+                       lambda self, mover, region: calls.append(region) or 0.0)
+            w.find_weighted_path("Flanders", "Paris")
+            w.weighted_paths_from("Flanders")
+        assert calls == []
+
+    def test_mover_nation_names_the_soil_without_the_lawful_filter(self, _r33_w):
+        """`mover_nation` is the hook for a road that is not filtered by the
+        diplomacy (the AI's) but whose soil preference is still its nation's;
+        `passable_for` is its default."""
+        w = _r33_w
+        assert w.find_weighted_path("Flanders", "Paris", mover_nation="France") == _R33_PICARDY_ROAD
+        assert w.weighted_paths_from("Flanders", mover_nation="France")["Paris"] == _R33_PICARDY_ROAD
+        # a closed Westphalia is still not filtered when only the mover is named
+        _r33_state(w, "France", "Prussia", "PEACE")
+        assert w.find_weighted_path("Flanders", "Paris", mover_nation="France") == _R33_PICARDY_ROAD
+
+    def test_the_seam_is_read_once_per_province_per_query(self, _r33_w):
+        """Golden Rule 8: a Dijkstra pushes a province from every neighbour;
+        the verdict is constant for the query and read once."""
+        from backend.models.world_state import WorldState
+        w = _r33_w
+        counts: dict = {}
+
+        def counting(self, mover, region):
+            counts[region] = counts.get(region, 0) + 1
+            return 0.0
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(WorldState, "foreign_soil_edge_cost", counting)
+            w.find_weighted_path("Flanders", "Paris", passable_for="France")
+            assert counts and max(counts.values()) == 1
+            counts.clear()
+            w.weighted_paths_from("Flanders", passable_for="France")
+            assert counts and max(counts.values()) == 1
+
+    def test_the_tie_break_changes_no_length_anywhere(self, _r33_w):
+        """For every destination the road's LENGTH and terrain cost are the
+        seam-down road's: the hair breaks ties, it never lengthens a road."""
+        w = _r33_w
+        up = w.weighted_paths_from("Flanders", passable_for="France")
+        with _r33_seam_down():
+            down = w.weighted_paths_from("Flanders", passable_for="France")
+        assert set(up) == set(down)
+        for dest in up:
+            assert len(up[dest]) == len(down[dest]), dest
+            assert abs(_r33_cost(w, up[dest]) - _r33_cost(w, down[dest])) < 1e-9, dest
+
+    def test_the_get_weighted_distance_is_untouched(self, _r33_w):
+        """No mover, no hair: the AI's and the dispatch's distances read the
+        terrain sum, as ever."""
+        w = _r33_w
+        assert w.get_weighted_distance("Flanders", "Paris") == pytest.approx(3.0)
+
+    def test_the_clock_clause_source_pins(self):
+        src = (_R33_ROOT / "backend" / "commands" / "strategic_executor.py").read_text(encoding="utf-8")
+        start = src.index("def _march_arrival_clause(")
+        body = src[start:src.index("\n    def ", start + 10)]
+        assert "march_turns(remaining + reach, reach)" in body
+        reply = src[src.index("def _strategic_response("):]
+        move_to = reply[reply.index('if ctx.strategic_type == "MOVE_TO":'):reply.index('elif ctx.strategic_type == "PURSUE":')]
+        # route, then S14G-11's rider (still the sentence right after "Route:"),
+        # then the clock, then the first step
+        route_at = move_to.index("Route: {route_str}.{_guard_rider}")
+        clause_at = move_to.index("self._march_arrival_clause(ctx)")
+        step_at = move_to.index("{ctx.first_step_msg}{_ground}", clause_at)
+        assert route_at < clause_at < step_at
+        assert move_to.count("_aggressive_interrupt_clause(") == 1
+
+
+class TestS14GX156:
+    """Sibling: every surface that plots the player's march reads the ONE
+    tie rule - the typed road, the order card's quote, the desk's reach and
+    the map's ETA tint all name the own-soil road (shown = applied)."""
+
+    def test_the_card_the_reach_and_the_road_agree(self, _r33_w):
+        from backend.commands.order_quotes import march_quote, march_reach
+        from backend.commands.strategic import march_road, march_roads
+        w = _r33_w
+        nap = w.get_marshal("Napoleon")
+        want = ["Picardy", "Artois", "Paris"]
+        assert march_road(w, nap, "Paris", "MOVE_TO")[0] == want
+        assert march_roads(w, nap)["Paris"][0] == want
+        assert march_quote(w, nap, "Paris")["road"] == want
+        reach = march_reach(w, nap)
+        assert reach["ok"] is True
+        assert reach["reach"]["Paris"]["road"] == want
+        assert reach["reach"]["Paris"]["turns"] == 3
+
+
+class TestS14GX157:
+    """Sibling: the detour ask reads a DIRECT road that names no mover; the
+    hair makes it differ from the lawful road on a tie, and it must not read
+    as a detour - open borders (Westphalia passable) and closed alike."""
+
+    def test_the_detour_ask_does_not_fire_on_a_tie(self, _r33_boot):
+        from backend.commands.strategic import march_detour_reading, march_road
+        for state in ("OPEN_BORDERS", "PEACE"):
+            w = _r33_board(_r33_boot, state)
+            nap = w.get_marshal("Napoleon")
+            road, refusal, _kind = march_road(w, nap, "Paris", "MOVE_TO")
+            assert refusal is None and road == ["Picardy", "Artois", "Paris"], state
+            assert march_detour_reading(w, nap, "Paris", road, "MOVE_TO") is None, state
+
+    def test_a_closed_westphalia_changes_nothing_for_the_typed_march(self, _r33_boot):
+        """Peace, no open borders: the lawful road was already Picardy's; the
+        hair leaves it and the reply says its clock."""
+        w = _r33_board(_r33_boot, "PEACE")
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, march to Paris")
+        assert "Route: Picardy → Artois → Paris. Arrives in 3 turns." in out["message"], out["message"]
+
+
+class TestS14GX158:
+    """Sibling, the cavalry man: a corps that walks two provinces a turn gets
+    the clock of its own range (`march_turns(remaining + range, range)`)."""
+
+    def test_the_clause_counts_in_the_corps_own_range(self):
+        from types import SimpleNamespace
+        from backend.commands.strategic import march_turns
+        from backend.commands.strategic_executor import StrategicExecutor
+        for remaining, reach, turns in ((2, 1, 3), (1, 1, 2), (5, 1, 6), (1, 2, 2), (2, 2, 2), (3, 2, 3), (4, 2, 3)):
+            ctx = SimpleNamespace(order=SimpleNamespace(path=["x"] * remaining), movement_range=reach)
+            clause = StrategicExecutor._march_arrival_clause(ctx)
+            assert clause == f" Arrives in {turns} turns.", (remaining, reach, clause)
+            # and it IS the quote's law: the whole road (first step included)
+            assert march_turns(remaining + reach, reach) == turns
+        done = SimpleNamespace(order=SimpleNamespace(path=[]), movement_range=1)
+        assert StrategicExecutor._march_arrival_clause(done) == ""
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The three siblings the first landing FILED, built under the coordinator's
+# word (S14G-X159, X33.5, X33.6).
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r33_ai_board(boot, state: str = "PEACE"):
+    """The sighting with FRANCE as the AI's corps: another court is the
+    player's, so `plot_route` takes the omniscient road (`passable_for` None)
+    for Napoleon - at PEACE, where the player's lawful road would not even
+    enter Westphalia."""
+    w = _r33_board(boot, state)
+    w.player_nation = "Austria"
+    return w
+
+
+def _r33_bfs_reference(w, start, end, avoid=(), passable_for=None):
+    """`find_path`'s breadth-first search exactly as it stood before
+    S14G-X160 (first discovery wins) - the byte-for-byte reference."""
+    from collections import deque
+    if start == end:
+        return [start]
+    visited = {start}
+    queue = deque([(start, [start])])
+    while queue:
+        current, path = queue.popleft()
+        for adjacent in w.regions[current].adjacent_regions:
+            if adjacent == end:
+                return path + [end]
+            if adjacent in visited or adjacent in avoid:
+                continue
+            if passable_for and not w._region_passable_for(adjacent, passable_for, mover_location=start):
+                continue
+            visited.add(adjacent)
+            queue.append((adjacent, path + [adjacent]))
+    return None
+
+
+class TestS14GX159:
+    """Golden Rule 5: the AI's columns take the SAME tie rule. THE OLD READING:
+    `plot_route` named a mover only through the player's `passable_for`, so an
+    AI corps (`_pf` None) took the registry's push order on a tie - Napoleon
+    as an AI corps walked Flanders to Paris through Westphalia. NOW every rung
+    of `plot_route` (and `march_roads`' and the literal detour's mirror of it)
+    names the corps's nation as the mover; the PF-8 lawful filter stays the
+    player's alone. THE SEAM DOWN restores today's AI road byte for byte.
+
+    THE SERIES (the real road, `tests/test_ai_intent_threat_migration.py -k
+    Series` with the seam up): BASELINE_SERIES byte-identical. In that
+    40-turn passive run 11 mover-carrying breadth-first queries are asked, 2 of
+    them answer a road that differs from the seam-down road, and the series
+    does not move."""
+
+    def test_an_ai_corps_prefers_own_soil_on_a_tie(self, _r33_boot):
+        from backend.commands.strategic import plot_route
+        w = _r33_ai_board(_r33_boot)
+        nap = w.get_marshal("Napoleon")
+        assert nap.nation != w.player_nation
+        assert plot_route(w, nap, "Paris", use_weighted=True)[0] == ["Picardy", "Artois", "Paris"]
+        assert plot_route(w, nap, "Paris", use_weighted=False)[0] == ["Picardy", "Artois", "Paris"]
+
+    def test_the_seam_down_the_ai_takes_todays_push_order_road(self, _r33_boot):
+        from backend.commands.strategic import plot_route
+        w = _r33_ai_board(_r33_boot)
+        nap = w.get_marshal("Napoleon")
+        with _r33_seam_down():
+            assert plot_route(w, nap, "Paris", use_weighted=True)[0] == ["Westphalia", "Artois", "Paris"]
+            assert plot_route(w, nap, "Paris", use_weighted=False)[0] == ["Westphalia", "Artois", "Paris"]
+
+    def test_the_seam_down_every_ai_road_is_the_old_road(self, _r33_boot):
+        """For every province, weighted and breadth-first, with and without an
+        avoid-set (a cautious man's, and a reroute's `avoid_is_law`): the road
+        `plot_route` returns with the seam down is the pathfinder's own with
+        NO mover - what the AI walked before this slice."""
+        from backend.commands.strategic import plot_route
+        w = _r33_ai_board(_r33_boot)
+        nap = w.get_marshal("Napoleon")
+        here = nap.location
+        with _r33_seam_down():
+            for dest in w.regions:
+                if dest == here:
+                    continue
+                for avoid, is_law in (([], False), (["Picardy"], False), (["Picardy"], True)):
+                    for weighted in (True, False):
+                        road, _v = plot_route(w, nap, dest, use_weighted=weighted,
+                                              avoid_regions=avoid, avoid_is_law=is_law)
+                        finder = w.find_weighted_path if weighted else w.find_path
+                        want = finder(here, dest, avoid_regions=avoid) if avoid else finder(here, dest)
+                        want = [r for r in (want or []) if r != here] or None
+                        assert (road or None) == want, (dest, avoid, is_law, weighted)
+
+    def test_every_rung_names_the_mover(self):
+        root = _R33_ROOT / "backend" / "commands"
+        strategic = (root / "strategic.py").read_text(encoding="utf-8")
+        plot = strategic[strategic.index("def plot_route("):strategic.index("def road_verdict(")]
+        assert plot.count("mover_nation=_mover") == 4
+        assert "_mover = marshal.nation" in plot
+        roads = strategic[strategic.index("def march_roads("):]
+        roads = roads[:roads.index("\ndef ", 10)]
+        assert roads.count("mover_nation=mover") == 3
+        quotes = (root / "order_quotes.py").read_text(encoding="utf-8")
+        detours = quotes[quotes.index("def _literal_detours("):quotes.index("def support_quote(")]
+        assert detours.count("mover_nation=mover") == 2
+
+    @pytest.mark.parametrize("seam_down", [False, True])
+    def test_the_players_map_tint_and_road_still_agree_on_every_province(self, _r33_w, seam_down):
+        """`march_roads` (the map's ETA tint) is pinned equal to `march_road`
+        for every province: the mirror carries the same mover, up and down."""
+        from backend.commands.strategic import march_road, march_roads
+        w = _r33_w
+        nap = w.get_marshal("Napoleon")
+        with (_r33_seam_down() if seam_down else contextlib.nullcontext()):
+            tint = march_roads(w, nap)
+            for dest in w.regions:
+                assert tint[dest][0] == march_road(w, nap, dest, "MOVE_TO")[0], dest
+
+
+class TestS14GX160:
+    """The breadth-first `find_path` (PURSUE / SUPPORT, both sides) ties by push
+    order too. NOW, with a mover (`mover_nation`, defaulting to
+    `passable_for`), the key is (hops, then the foreign soil on the road read
+    through the SAME seam, then the BFS's own discovery order): fewest hops
+    first, own soil on a tie. With no mover, or the seam down, the search is
+    today's breadth-first first-discovery road byte for byte."""
+
+    def test_the_tie_goes_to_own_soil(self, _r33_w):
+        w = _r33_w
+        assert w.find_path("Flanders", "Paris", passable_for="France") == _R33_PICARDY_ROAD
+        assert w.find_path("Flanders", "Paris", mover_nation="France") == _R33_PICARDY_ROAD
+        # no mover: the registry's push order, as ever
+        assert w.find_path("Flanders", "Paris") == _R33_WESTPHALIA_ROAD
+
+    def test_the_seam_down_the_push_order_road_returns(self, _r33_w):
+        w = _r33_w
+        with _r33_seam_down():
+            assert w.find_path("Flanders", "Paris", passable_for="France") == _R33_WESTPHALIA_ROAD
+            assert w.find_path("Flanders", "Paris", mover_nation="France") == _R33_WESTPHALIA_ROAD
+
+    def test_hops_come_first(self, _r33_w):
+        """With Picardy avoided the only other French-soil road is a hop
+        longer: the three-hop road over Prussian soil still wins."""
+        w = _r33_w
+        assert w.find_path("Flanders", "Paris", avoid_regions=["Picardy"],
+                           passable_for="France") == _R33_WESTPHALIA_ROAD
+
+    def test_the_seam_down_is_the_old_search_for_every_pair(self, _r33_w):
+        """Byte for byte: from sample starts to every province, plain, with an
+        avoid-set, and with the lawful filter - the heap search with the seam
+        down returns the breadth-first first-discovery road."""
+        w = _r33_w
+        names = sorted(w.regions)
+        starts = names[::14] + ["Flanders"]
+        with _r33_seam_down():
+            for start in starts:
+                for end in names:
+                    if end == start:
+                        continue
+                    assert w.find_path(start, end, mover_nation="France") == \
+                        _r33_bfs_reference(w, start, end), (start, end)
+                    assert w.find_path(start, end, avoid_regions=["Picardy", "Artois"],
+                                       mover_nation="France") == \
+                        _r33_bfs_reference(w, start, end, avoid=("Picardy", "Artois")), (start, end)
+                    assert w.find_path(start, end, passable_for="France") == \
+                        _r33_bfs_reference(w, start, end, passable_for="France"), (start, end)
+
+    def test_the_seam_up_no_road_is_longer_than_the_old_one(self, _r33_w):
+        """The hair breaks ties, it never lengthens a road: the same hops for
+        every destination, seam up or down."""
+        w = _r33_w
+        for start in ("Flanders", "Paris"):
+            for end in sorted(w.regions):
+                if end == start:
+                    continue
+                up = w.find_path(start, end, passable_for="France")
+                old = _r33_bfs_reference(w, start, end, passable_for="France")
+                assert (up is None) == (old is None), (start, end)
+                if up:
+                    assert len(up) == len(old), (start, end)
+
+    def test_the_destination_is_never_filtered_and_the_edges_hold(self, _r33_w):
+        w = _r33_w
+        _r33_state(w, "France", "Prussia", "PEACE")           # Westphalia is closed
+        assert w.find_path("Flanders", "Westphalia", passable_for="France") == ["Flanders", "Westphalia"]
+        assert w.find_path("Flanders", "Flanders", mover_nation="France") == ["Flanders"]
+        assert w.find_path("Flanders", "Nowhere", mover_nation="France") is None
+        assert w.find_path("Nowhere", "Paris", mover_nation="France") is None
+        # every province avoided: no road to a destination that is not adjacent
+        assert w.find_path("Flanders", "Paris", avoid_regions=list(w.regions), mover_nation="France") is None
+
+    def test_the_players_support_road_takes_own_soil(self, _r33_w):
+        """`Napoleon, support Soult` (Soult at Paris): breadth-first, the
+        player's road - the card, the reach and the order read the same one."""
+        from backend.commands.strategic import march_road
+        w = _r33_w
+        nap = w.get_marshal("Napoleon")
+        assert march_road(w, nap, "Paris", "SUPPORT")[0] == ["Picardy", "Artois", "Paris"]
+        with _r33_seam_down():
+            assert march_road(w, nap, "Paris", "SUPPORT")[0] == ["Westphalia", "Artois", "Paris"]
+
+    def test_the_variant_reads_the_seam_once_per_province(self, _r33_w):
+        from backend.models.world_state import WorldState
+        w = _r33_w
+        counts: dict = {}
+
+        def counting(self, mover, region):
+            counts[region] = counts.get(region, 0) + 1
+            return 0.0
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(WorldState, "foreign_soil_edge_cost", counting)
+            w.find_path("Flanders", "Paris", passable_for="France")
+        assert counts and max(counts.values()) == 1
+
+    def test_the_weighted_distance_is_untouched(self, _r33_w):
+        assert _r33_w.get_weighted_distance("Flanders", "Paris") == pytest.approx(3.0)
+
+
+class TestS14GX161:
+    """The HOLD-with-a-road, SUPPORT and follow replies say their clock, as the
+    march does - the order card already did (`kind` hold / support / follow
+    -> "arrives in N" / "joins him in N"). Placed after any guarded-ground
+    rider and before the first step ("Moves to X." / "Marching to X.")."""
+
+    def _board(self, boot):
+        w = _r33_board(boot)
+        w.get_marshal("Soult").location = "Paris"
+        return w
+
+    def test_a_hold_with_a_road_says_its_clock(self, _r33_boot):
+        w = self._board(_r33_boot)
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, hold Paris")
+        assert out.get("success") is True, out.get("message")
+        assert ("Napoleon will hold Paris. Arrives in 3 turns. Marching to Paris."
+                in out["message"]), out["message"]
+
+    def test_a_support_says_the_cards_clock(self, _r33_boot):
+        from backend.commands.order_quotes import support_quote
+        w = self._board(_r33_boot)
+        quote = support_quote(w, w.get_marshal("Napoleon"), w.get_marshal("Soult"))
+        assert quote["ok"] is True and quote["turns"] == 3
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, support Soult")
+        assert ("Napoleon moves to support Soult (at Paris). Joins him in 3 turns. Moves to Picardy."
+                in out["message"]), out["message"]
+
+    def test_a_follow_says_the_cards_clock(self, _r33_boot):
+        from backend.commands.order_quotes import follow_quote
+        w = self._board(_r33_boot)
+        quote = follow_quote(w, w.get_marshal("Napoleon"), w.get_marshal("Soult"))
+        assert quote["ok"] is True and quote["turns"] == 3
+        with _r33_client(w) as client:
+            out = _r33_say(client, "Napoleon, follow Soult")
+        assert ("Napoleon follows Soult (at Paris). Joins him in 3 turns. Moves to Picardy."
+                in out["message"]), out["message"]
+
+    def test_no_road_no_clock(self, _r33_boot):
+        """A hold one hop away (arrived on the first step) and a support of a
+        corps already beside him say no clock."""
+        w = self._board(_r33_boot)
+        with _r33_client(w) as client:
+            hold = _r33_say(client, "Napoleon, hold Picardy")
+        assert hold.get("success") is True, hold.get("message")
+        assert "Arrives in" not in hold["message"] and "Joins him" not in hold["message"], hold["message"]
+        w2 = self._board(_r33_boot)
+        w2.get_marshal("Soult").location = "Flanders"      # already beside Napoleon
+        with _r33_client(w2) as client:
+            out = _r33_say(client, "Napoleon, support Soult")
+        assert out.get("success") is True, out.get("message")
+        assert "Joins him" not in out["message"] and "Arrives in" not in out["message"], out["message"]
+
+    def test_the_clause_sits_after_the_guard_rider_before_the_first_step(self):
+        src = (_R33_ROOT / "backend" / "commands" / "strategic_executor.py").read_text(encoding="utf-8")
+        reply = src[src.index("def _strategic_response("):]
+        hold = reply[reply.index('elif ctx.strategic_type == "HOLD":'):
+                     reply.index('elif ctx.strategic_type == "SUPPORT" and getattr(')]
+        assert (hold.index("{_guard_rider}")
+                < hold.index("self._march_arrival_clause(ctx)")
+                < hold.index("{ctx.first_step_msg}"))
+        for header in ('elif ctx.strategic_type == "SUPPORT" and getattr(',
+                       'elif ctx.strategic_type == "SUPPORT":'):
+            at = reply.index(header)
+            arm = reply[at:at + 1400]
+            assert (arm.index("{_guard_rider}")
+                    < arm.index("self._march_arrival_clause(ctx, joins=True)")
+                    < arm.index("{ctx.first_step_msg}")), header
+
+    def test_the_wording_is_the_cards(self):
+        """The card's `_clock`: "arrives in N turns" / "joins him in N turns"."""
+        card = (_R33_ROOT / "godot-client" / "project-sovereign" / "scripts"
+                / "order_confirm_card.gd").read_text(encoding="utf-8")
+        assert '"joins him in " + Utils.plural(turns, "turn")' in card
+        assert '"arrives in " + Utils.plural(turns, "turn")' in card
+        from types import SimpleNamespace
+        from backend.commands.strategic_executor import StrategicExecutor
+        ctx = SimpleNamespace(order=SimpleNamespace(path=["a", "b"]), movement_range=1)
+        assert StrategicExecutor._march_arrival_clause(ctx, joins=True) == " Joins him in 3 turns."
+        assert StrategicExecutor._march_arrival_clause(ctx) == " Arrives in 3 turns."
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row34
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - the siblings of S14G-23, 25, 26 and 28 that lie in
+# the counter-offer reader, the settlement recovery voice, the top bar's face and
+# the busy-slot sentence (October 26, 2026). One file, one class per sibling;
+# the orchestrator renumbers `TestS14GX<row>_<k>` to `S14GX<m>` from X56.
+#
+# S14G-X106  the `review_counter` arm ("Consider counter") showed the counter as
+#             a flat term list (`_format_terms_for_display`) with nothing struck or
+#             added marked - and, under it, `_enrich_proposal_summary` (it finds no
+#             `execute_proposal` option on that dialogue) REWROTE the summary from
+#             a freshly drafted suggestion ("Bavaria pays 126 gold/turn" over a
+#             counter that said 242 at the signing). The arm now reads the counter
+#             as a DIFF of the draft in `context["original_proposal"]`
+#             (`display_names._counter_offer_parts`, the popup's own reader) and
+#             stands the lines (and the annotated terms) on the counter after the
+#             enrichment has run.
+# S14G-X108  `_handle_counter_ai_proposal` (France counters an AI letter) called
+#             `counter_summary_with_struck` with no reader, so Talleyrand's text got
+#             only the "Added: ..." fallback under a proposer-voiced summary
+#             ("Prussia offers 90 gold") while the popup beside it read the diff from
+#             the player's chair. It passes the popup's chair now.
+# S14G-X109  `incoming_proposal_popup.gd::_build_peace_preview_section` printed
+#             beneath a peace counter's annotated terms only the lines beginning
+#             "Struck"; the lines that mark what the court ADDED or CUT went
+#             unprinted. `_is_counter_change_line` holds all five prefixes.
+# S14G-X110  the added / cut gold lines never said WHO PAYS ("Added by Bavaria:
+#             100 gold more (242 at the signing)"). They name the payer from the
+#             reader's chair - "you pay 100 gold more" / "Bavaria pays you ..." /
+#             (no reader) "France pays Bavaria ..." - through `_gold_flow_words`.
+# S14G-X120  `settlement_open_war_detail_recovery_talleyrand`, `..._history_...` and
+#             `settlement_no_alternative_route_chancery` sat in the tuple-keyed
+#             `DIPLOMATIC_TEMPLATES`, which `resolve_settlement_voice_line` does not
+#             read: it answered "" and the line "I will keep the draft intact until
+#             the turn ends" was never spoken. They are registered in
+#             `SETTLEMENT_VOICE_TEMPLATES`, the war label falls to the war's
+#             DISPLAY title (never the raw `war_1`), and a war that has ended is
+#             answered in Talleyrand's own line.
+# S14G-X117  `diplomacy.transit_words` held its own copy of `letter_home_turns`'
+#             formula; it reads the one helper.
+# S14G-X118  the top bar cut the Talleyrand summary at 34 characters from the TAIL,
+#             so a mission paused under a letter lost "(paused - carrying a letter)"
+#             from the face; the body is cut instead and the cue stays, the tooltip
+#             holds the backend's whole string.
+# S14G-X130  the war room's "Shore up" busy arm named the remedy and not the
+#             trade; it appends `slot_trade(...)["line_short"]`.
+# S14G-X131  `check_auto_downgrade` and `project_mission_turns` held the literals 30
+#             and 5; they read `AUTO_DOWNGRADE_GAP` / `AUTO_DOWNGRADE_TURNS`
+#             (values unchanged - byte-identical).
+#
+# S14G-X111 a struck GOLD term named no payer ("Struck demand: Gold per turn - 20
+#             for 5 turns"); it reads "Struck demand: you pay 20 gold a turn for 5
+#             turns" / "Struck: the tribute - Bavaria pays you ..." (`_struck_gold_line`).
+# S14G-X121  three more Talleyrand lines in `settlement_actions` (the discard
+#             confirm, the failed submit, the pair-substitute handoff) fell to the raw
+#             war id when the dialogue carried no label; they read `_dialogue_war_label`.
+# S14G-X122  `dialogue_war_label` moved down to `settlement_routes` (L0) and read at the
+#             eight lower sites (staging x3, ratify x4, presentation x1): the package
+#             holds no raw-war-id fallback (a source census).
+# S14G-X112 `_enrich_proposal_summary(..., terms=)`: the "Consider counter" review
+#             was enriched from a FRESH suggestion (no `execute_proposal` option on
+#             that dialogue) - its acceptance estimate, harshness, annotated terms and
+#             war snapshot described terms that were not the counter's; it is handed
+#             the counter's own terms (a copy).
+#
+# THE SEAM. Player-only text throughout, EXCEPT `check_auto_downgrade` (the AI's
+# pairs walk it): its constants are the same values, so the run is byte-identical
+# (pinned below; `tests/test_ai_intent_threat_migration.py -k Series`). Held "down"
+# means setting `AUTO_DOWNGRADE_GAP = 30` / `AUTO_DOWNGRADE_TURNS = 5` - the
+# shipped values.
+
+_R34_ROOT = Path(__file__).resolve().parents[1]
+_R34_SCENARIO = (_R34_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+_R34_SCRIPTS = _R34_ROOT / "godot-client" / "project-sovereign" / "scripts"
+
+
+def _r34_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r34_boot():
+    from backend.models.world_state import WorldState
+    with _r34_quiet():
+        return WorldState.from_scenario(str(_R34_SCENARIO))
+
+
+def _r34_copy(boot):
+    from backend.models.world_state import WorldState
+    with _r34_quiet():
+        return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+def _r34_draft(**kw):
+    base = {"type": "vassalage", "proposer_nation": "France", "target_nation": "Bavaria",
+            "sweeteners": [], "demands": [], "clauses": []}
+    base.update(kw)
+    return base
+
+
+def _r34_reader(world, *, proposer="Bavaria"):
+    from backend.game_logic.formations import formed_display_name
+    return {"viewer": "France", "proposer": proposer, "target": "France",
+            "name_of": lambda n, _w=world: formed_display_name(_w, n)}
+
+
+def _r34_road(boot, relation=54):
+    """The S14G-23 sighting's road on the shipped board: the player's vassalage
+    (142 gold) to Bavaria is in transit, the next morning resolves it into a
+    COUNTER_OFFER of 242. Returns (world, draft, events, counter_dialogue)."""
+    world = _r34_copy(boot)
+    world.nation_relations[world._make_diplo_key("France", "Bavaria")] = relation
+    draft = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+    world.proposal_in_transit = {
+        "target": "Bavaria", "proposal": draft, "turn_sent": 0, "dp_cost": 3,
+        "acceptance_snapshot": 49, "diplomatic_state_at_send": "ALLIANCE",
+        "payer_gold_at_send": int(world.gold)}
+    with _r34_quiet():
+        events = world._process_proposal_in_transit()
+    return world, draft, events, world.dialogue_manager.peek()
+
+
+_R34_ADDED = "Added by Bavaria: you pay 100 gold more (242 at the signing)"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X106 - the review_counter arm reads the diff
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_review(world, context):
+    """Mount the dialogue that carries a "Consider counter" option (the
+    template route's shape) and press it the way the player does."""
+    from backend.commands.executor import CommandExecutor
+    world.dialogue_manager.replace({
+        "type": "counter_offer_received", "target_nation": context.get("source_nation", "Bavaria"),
+        "talleyrand_text": "A counter has come.",
+        "options": [{"label": "Consider counter", "description": "Review the counter-offer.",
+                     "action": "review_counter"},
+                    {"label": "Dismiss", "description": "Set aside.", "action": "dismiss"}],
+        "context": context, "turn_created": int(world.current_turn), "blocking": False})
+    with _r34_quiet():
+        return CommandExecutor().handle_diplomatic_dialogue_response("review", {"world": world})
+
+
+class TestS14GX106:
+    def test_the_review_marks_what_the_court_struck_and_added(self, _r34_boot):
+        """OLD READING (the sighting's counter reviewed): ["Vassalage (Bavaria
+        becomes a subject state)", "Bavaria pays 126 gold/turn for as long as the
+        treaty stands"] - a flat list, and not even the counter's terms (the
+        enrichment drafted a fresh suggestion over them). NOW: the diff."""
+        world, draft, _events, dialogue = _r34_road(_r34_boot)
+        context = copy.deepcopy(dialogue["context"])
+        assert context["counter_terms"]["sweeteners"] == [{"type": "gold_lump", "value": 242}]
+        draft = copy.deepcopy(draft)
+        draft["demands"] = [{"type": "gold_per_turn", "value": 154, "turns": 10}]
+        context["original_proposal"] = draft            # the draft also asked a tribute
+        result = _r34_review(world, context)
+        assert result["success"] is True
+        review = result["diplomatic_dialogue"]
+        assert review["type"] == "proposal_confirm"
+        assert review["proposal_terms_summary"] == [
+            "Vassalage (Bavaria becomes a subject state)",
+            "Struck: the tribute - Bavaria pays you 154 gold a turn for 10 turns",
+            _R34_ADDED]
+        assert "Bavaria pays 126" not in " ".join(review["proposal_terms_summary"])
+
+    def test_the_review_reads_the_same_lines_as_the_popup(self, _r34_boot):
+        """One reader: the review's change lines are the popup's own."""
+        from backend.display_names import counter_offer_clause_lines
+        world, draft, _events, dialogue = _r34_road(_r34_boot)
+        popup = counter_offer_clause_lines(
+            draft, dialogue["context"]["counter_terms"], **_r34_reader(world))
+        result = _r34_review(world, copy.deepcopy(dialogue["context"]))
+        lines = result["diplomatic_dialogue"]["proposal_terms_summary"]
+        assert lines[1:] == popup[1:] == [_R34_ADDED]
+
+    def test_the_annotated_terms_are_the_counters_not_a_fresh_draft(self, _r34_boot):
+        """The enrichment drafts a suggestion when the dialogue has no execute
+        option; the arm stands the annotated terms on the counter after it."""
+        world, _draft, _events, dialogue = _r34_road(_r34_boot)
+        result = _r34_review(world, copy.deepcopy(dialogue["context"]))
+        rows = result["diplomatic_dialogue"]["annotated_terms"]
+        assert [(r["clause_type"], r["sweetener_value"]) for r in rows] == [("gold_lump", 242)]
+
+    def test_a_counter_with_no_draft_to_diff_keeps_the_flat_list(self, _r34_boot):
+        """An older save's context has no `original_proposal`: nothing to diff,
+        so the flat list stands (byte-identical to before)."""
+        world, _draft, _events, dialogue = _r34_road(_r34_boot)
+        context = copy.deepcopy(dialogue["context"])
+        context.pop("original_proposal")
+        result = _r34_review(world, context)
+        lines = result["diplomatic_dialogue"]["proposal_terms_summary"]
+        assert lines[0] == "Vassalage (Bavaria becomes a subject state)"
+        assert not any(line.startswith(("Added", "Cut", "Struck")) for line in lines)
+
+    def test_no_counter_terms_is_still_graceful(self, _r34_boot):
+        world = _r34_copy(_r34_boot)
+        result = _r34_review(world, {"source_nation": "Bavaria"})
+        assert result["success"] is True and "No counter-offer" in result["message"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X108 - France counters an AI letter: Talleyrand's text reads the diff
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_counter_the_ai_letter(boot, monkeypatch):
+    import backend.game_logic.ai_diplomacy as aidip
+    from backend.commands.executor import CommandExecutor
+    world = _r34_copy(boot)
+    world.diplomatic_points = 3
+    proposal = {"type": "alliance", "proposer_nation": "Prussia", "target_nation": "France",
+                "sweeteners": [{"type": "gold_lump", "value": 50}],
+                "demands": [{"type": "gold_per_turn", "value": 20, "turns": 5}], "clauses": []}
+
+    def raise_the_gold_and_strike_the_demand(terms, w, **_kw):
+        countered = copy.deepcopy(terms)
+        countered["sweeteners"] = [{"type": "gold_lump", "value": 90}]
+        countered["demands"] = []
+        return countered
+
+    monkeypatch.setattr(aidip, "generate_counter_offer", raise_the_gold_and_strike_the_demand)
+    dialogue = {"type": "incoming_proposal", "target_nation": "Prussia", "talleyrand_text": "x",
+                "options": [], "context": {"proposal": proposal, "source_nation": "Prussia",
+                                           "proposal_type": "alliance", "decision_reason": "x"},
+                "turn_created": int(world.current_turn), "blocking": False}
+    with _r34_quiet():
+        result = CommandExecutor()._diplomatic._handle_counter_ai_proposal(dialogue, world)
+    assert result["success"] is True, result.get("message")
+    return world, world.pending_diplomatic_dialogue
+
+
+class TestS14GX108:
+    def test_talleyrands_text_reads_the_diff_from_the_players_chair(self, _r34_boot, monkeypatch):
+        """OLD READING: "Full Alliance between Prussia and France / - Prussia
+        offers 90 gold / - Struck demand: ... / - Added: 40 gold more (90 at the
+        signing)" - the proposer-voiced summary with the fallback lines under it.
+        NOW: the popup's lines, the court named, who pays said."""
+        _world, counter = _r34_counter_the_ai_letter(_r34_boot, monkeypatch)
+        text = counter["talleyrand_text"]
+        assert "Prussia offers" not in text and "  - Added:" not in text
+        assert "Added by Prussia: Prussia pays you 40 gold more (90 at the signing)" in text
+        assert "Struck demand: you pay 20 gold a turn for 5 turns" in text
+
+    def test_the_text_and_the_popup_share_one_renderer(self, _r34_boot, monkeypatch):
+        _world, counter = _r34_counter_the_ai_letter(_r34_boot, monkeypatch)
+        popup = counter["popup_payload"]["clauses"]
+        assert popup == ["Proposal: Full Alliance",
+                         "Struck demand: you pay 20 gold a turn for 5 turns",
+                         "Added by Prussia: Prussia pays you 40 gold more (90 at the signing)"]
+        body = [line.strip()[2:] for line in counter["talleyrand_text"].splitlines()
+                if line.strip().startswith("- ")]
+        assert body == popup[1:]
+
+    def test_the_context_a_rebuild_reads_is_unmoved(self, _r34_boot, monkeypatch):
+        _world, counter = _r34_counter_the_ai_letter(_r34_boot, monkeypatch)
+        assert counter["context"]["original_proposal"]["sweeteners"] == [
+            {"type": "gold_lump", "value": 50}]
+        assert counter["context"]["proposal"]["sweeteners"] == [{"type": "gold_lump", "value": 90}]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X109 - the peace preview prints every marked change line
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_gd_func(name: str) -> str:
+    gd = (_R34_SCRIPTS / "incoming_proposal_popup.gd").read_text(encoding="utf-8")
+    body = gd[gd.index(f"func {name}("):]
+    return body[:body.index("\nfunc ", 10)]
+
+
+def _r34_change_prefixes() -> list[str]:
+    helper = _r34_gd_func("_is_counter_change_line")
+    match = re.search(r"for prefix in \[(.*?)\]:", helper)
+    assert match, helper
+    return re.findall(r'"([^"]*)"', match.group(1))
+
+
+def _r34_godot_prints(line: str) -> bool:
+    """The rule `_is_counter_change_line` holds, read from the source."""
+    return any(line.startswith(prefix) for prefix in _r34_change_prefixes())
+
+
+class TestS14GX109:
+    def test_the_preview_filters_through_the_change_line_rule(self):
+        body = _r34_gd_func("_build_peace_preview_section")
+        assert 'if _is_counter_change_line(str(clause)):' in body
+        assert 'begins_with("Struck")' not in body            # the narrow filter is gone
+        assert body.index("_build_annotated_terms_section(annotated)") < body.index(
+            "_is_counter_change_line(str(clause))") < body.index("\telse:")
+
+    def test_the_helper_holds_all_five_prefixes(self):
+        assert _r34_change_prefixes() == ["Struck", "Added by ", "Added: ", "Cut by ", "Cut: "]
+
+    def test_every_marked_backend_line_is_printed_and_no_plain_one_is(self):
+        """Run the real lines of a peace counter that struck, raised and cut."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = _r34_draft(type="peace",
+                           sweeteners=[{"type": "gold_lump", "value": 100}],
+                           demands=[{"type": "gold_per_turn", "value": 80},
+                                    {"type": "gold_lump", "value": 400}],
+                           clauses=["open_borders"])
+        counter = _r34_draft(type="peace",
+                             sweeteners=[{"type": "gold_lump", "value": 160}],
+                             demands=[{"type": "gold_per_turn", "value": 50}],
+                             clauses=["open_borders"])
+        for reader in (_r34_reader_plain(), {}):
+            lines = counter_offer_clause_lines(draft, counter, **reader)
+            marked = [ln for ln in lines if ln.startswith(("Struck", "Added", "Cut"))]
+            assert len(marked) == 3, lines
+            assert [ln for ln in lines if _r34_godot_prints(ln)] == marked
+            assert not _r34_godot_prints(lines[0])                    # the "Proposal:" base
+            assert not _r34_godot_prints("Clause: Open borders")      # a survivor
+
+    def test_a_plain_term_that_starts_with_the_same_letters_is_not_a_change(self):
+        for plain in ("Cutoff of the Rhine trade", "Additional garrison", "Cut-price grain"):
+            assert not _r34_godot_prints(plain)
+
+
+def _r34_reader_plain():
+    return {"viewer": "France", "proposer": "Bavaria", "target": "France"}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X110 - the gold lines say who pays
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX110:
+    def test_the_sightings_line_names_the_payer(self, _r34_boot):
+        """OLD READING: "Added by Bavaria: 100 gold more (242 at the signing)"."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+        counter = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 242}])
+        assert counter_offer_clause_lines(draft, counter, **_r34_reader(world)) == [
+            "Proposal: Vassalage", _R34_ADDED]
+
+    def test_the_line_on_every_surface_of_the_road(self, _r34_boot):
+        """The popup, the event line and Talleyrand's text - all the one line."""
+        _w, _draft, events, dialogue = _r34_road(_r34_boot)
+        assert dialogue["popup_payload"]["clauses"] == ["Proposal: Vassalage", _R34_ADDED]
+        assert _R34_ADDED in events[0]["message"]
+        assert _R34_ADDED in dialogue["talleyrand_text"]
+
+    def test_the_reader_who_is_paid_reads_the_courts_name(self):
+        """France countering Prussia's letter: Prussia is the payer."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = {"type": "alliance", "proposer_nation": "Prussia", "target_nation": "France",
+                 "sweeteners": [{"type": "gold_lump", "value": 50}], "demands": [], "clauses": []}
+        counter = copy.deepcopy(draft)
+        counter["sweeteners"] = [{"type": "gold_lump", "value": 90}]
+        assert counter_offer_clause_lines(draft, counter, viewer="France", proposer="Prussia",
+                                          target="France") == [
+            "Proposal: Full Alliance", "Added by Prussia: Prussia pays you 40 gold more (90 at the signing)"]
+
+    def test_a_demand_is_paid_by_the_target_to_the_proposer(self, _r34_boot):
+        """The tribute a vassalage demands: Bavaria pays the player."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(demands=[{"type": "gold_per_turn", "value": 126}])
+        counter = _r34_draft(demands=[{"type": "gold_per_turn", "value": 80}])
+        assert counter_offer_clause_lines(draft, counter, **_r34_reader(world)) == [
+            "Proposal: Vassalage",
+            "Cut by Bavaria: the tribute - Bavaria pays you 46 gold a turn less "
+            "(80 a turn for as long as the treaty stands)"]
+
+    def test_an_explicit_payer_on_a_demand_wins(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="peace", demands=[
+            {"type": "gold_lump", "value": 300, "from_nation": "Saxony", "to_nation": "France"}])
+        counter = _r34_draft(type="peace", demands=[
+            {"type": "gold_lump", "value": 200, "from_nation": "Saxony", "to_nation": "France"}])
+        lines = counter_offer_clause_lines(draft, counter, **_r34_reader(world))
+        assert lines == ["Proposal: Peace Treaty",
+                         "Cut by Bavaria: Saxony pays you 100 gold less (200 at the signing)"]
+
+    def test_a_payee_that_is_not_the_other_party_is_named(self, _r34_boot):
+        """The purse goes to an ally, not to the court in the lead: say whose."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="peace", demands=[
+            {"type": "gold_lump", "value": 300, "from_nation": "France", "to_nation": "Saxony"}])
+        counter = _r34_draft(type="peace", demands=[
+            {"type": "gold_lump", "value": 200, "from_nation": "France", "to_nation": "Saxony"}])
+        lines = counter_offer_clause_lines(draft, counter, **_r34_reader(world))
+        assert lines == ["Proposal: Peace Treaty",
+                         "Cut by Bavaria: you pay Saxony 100 gold less (200 at the signing)"]
+
+    def test_a_stream_the_player_pays_names_its_turns(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="alliance", sweeteners=[
+            {"type": "gold_per_turn", "value": 35, "turns": 10}])
+        counter = _r34_draft(type="alliance", sweeteners=[
+            {"type": "gold_per_turn", "value": 55, "turns": 10}])
+        assert counter_offer_clause_lines(draft, counter, **_r34_reader(world)) == [
+            "Proposal: Full Alliance",
+            "Added by Bavaria: you pay 20 gold a turn more (55 a turn for 10 turns)"]
+
+    def test_with_no_reader_the_parties_come_from_the_letter(self):
+        """The reader-less route (a caller that does not know the chair) names
+        both parties: "France pays Bavaria"."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+        counter = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 242}])
+        assert counter_offer_clause_lines(draft, counter) == [
+            "Proposal: Vassalage", "Added: France pays Bavaria 100 gold more (242 at the signing)"]
+        cut = _r34_draft(demands=[{"type": "gold_per_turn", "value": 80}])
+        was = _r34_draft(demands=[{"type": "gold_per_turn", "value": 126}])
+        assert counter_offer_clause_lines(was, cut) == [
+            "Proposal: Vassalage",
+            "Cut: the tribute - Bavaria pays France 46 gold a turn less "
+            "(80 a turn for as long as the treaty stands)"]
+
+    def test_a_new_gold_term_with_no_reader_names_its_payer(self):
+        """OLD READING: "Added: Gold lump (100)" - no payer, no timing."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = _r34_draft(type="alliance")
+        counter = _r34_draft(type="alliance", sweeteners=[{"type": "gold_lump", "value": 100}])
+        assert counter_offer_clause_lines(draft, counter) == [
+            "Proposal: Full Alliance", "Added: France pays Bavaria 100 gold at the signing"]
+        stream = _r34_draft(type="alliance", sweeteners=[
+            {"type": "gold_per_turn", "value": 12, "turns": 4}])
+        assert counter_offer_clause_lines(draft, stream) == [
+            "Proposal: Full Alliance", "Added: France pays Bavaria 12 gold a turn for 4 turns"]
+
+    def test_a_letter_that_names_no_parties_keeps_the_old_wording(self):
+        """Nothing to say who pays: the line reads as it did (no invented parties)."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = {"type": "vassalage", "sweeteners": [{"type": "gold_lump", "value": 142}],
+                 "demands": [], "clauses": []}
+        counter = {"type": "vassalage", "sweeteners": [{"type": "gold_lump", "value": 242}],
+                   "demands": [], "clauses": []}
+        assert counter_offer_clause_lines(draft, counter) == [
+            "Proposal: Vassalage", "Added: 100 gold more (242 at the signing)"]
+
+    def test_a_term_that_is_not_gold_is_untouched(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="alliance")
+        counter = _r34_draft(type="alliance", clauses=["open_borders"])
+        lines = counter_offer_clause_lines(draft, counter, **_r34_reader(world))
+        assert lines[0] == "Proposal: Full Alliance"
+        assert lines[1].startswith("Added by Bavaria: Open borders")
+        assert " pays " not in lines[1] and " pay " not in lines[1]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X120 - the recovery lines are registered, spoken and labelled
+# ══════════════════════════════════════════════════════════════════════════
+
+_R34_RECOVERY_KEYS = ("settlement_open_war_detail_recovery_talleyrand",
+                      "settlement_open_history_recovery_talleyrand",
+                      "settlement_no_alternative_route_chancery")
+
+
+def _r34_rejected_war_world():
+    from backend.models.world_state import WorldState
+    from tests.helpers.full_europe_settlement_fixtures import make_synthetic_war_instance
+    world = WorldState()
+    war = make_synthetic_war_instance(
+        "war_1", attackers=["France", "Saxony"], defenders=["Austria", "Prussia"],
+        attacker_leader="France", defender_leader="Austria", created_turn=1, created_sequence=1)
+    world.war_instances["war_1"] = war
+    for pair in war["active_diplo_keys"]:
+        a, _ = pair.split("|")
+        world.diplomatic_states[pair] = "WAR"
+        world.war_scores[pair] = 70 if a != "France" else -70
+    world.war_exhaustion["Austria"] = 5
+    world.invalidate_war_instance_indexes()
+    return world
+
+
+def _r34_staged(world):
+    from backend.game_logic.settlement_preview import stage_settlement_confirm
+    staged = stage_settlement_confirm(
+        world, war_id="war_1",
+        settlement_terms=[{"type": "gold_indemnity", "from": "Austria", "to": "France", "amount": 100}],
+        covered_enemy_participants=["Austria"], selected_target_nation="Austria")
+    return staged["diplomatic_dialogue"]
+
+
+class TestS14GX120:
+    def test_the_three_lines_are_registered_where_the_resolver_reads(self):
+        """OLD READING: `resolve_settlement_voice_line(<key>)` answered "" for
+        all three - they sat in the tuple-keyed response dict."""
+        from backend.game_logic.diplomatic_templates import (
+            DIPLOMATIC_TEMPLATES, SETTLEMENT_VOICE_TEMPLATES, get_settlement_voice_template,
+            resolve_settlement_voice_line)
+        for key in _R34_RECOVERY_KEYS:
+            assert key in SETTLEMENT_VOICE_TEMPLATES and key not in DIPLOMATIC_TEMPLATES
+            assert get_settlement_voice_template(key)
+            assert resolve_settlement_voice_line(key, war_label="the War for Bohemia")
+        assert resolve_settlement_voice_line(
+            "settlement_open_war_detail_recovery_talleyrand", war_label="the War for Bohemia") == (
+            "Sire, I will keep the draft intact until the turn ends and return us to the live "
+            "war detail for the War for Bohemia.")
+        assert resolve_settlement_voice_line(
+            "settlement_open_history_recovery_talleyrand") == (
+            "Sire, this war has ended; the settlement record now belongs in the diplomatic ledger.")
+
+    def test_the_tuple_keyed_dict_holds_only_tuple_keys(self):
+        from backend.game_logic.diplomatic_templates import DIPLOMATIC_TEMPLATES
+        assert all(isinstance(key, tuple) for key in DIPLOMATIC_TEMPLATES)
+
+    def test_every_static_voice_key_the_backend_asks_for_is_registered(self):
+        """The class sweep: a key spelled out at a `resolve_settlement_voice_line`
+        / `get_settlement_voice_template` call and absent from the dict the
+        resolver reads would answer "" in silence, as these three did."""
+        from backend.game_logic.diplomatic_templates import SETTLEMENT_VOICE_TEMPLATES
+        call = re.compile(r'(?:resolve_settlement_voice_line|get_settlement_voice_template)'
+                          r'\(\s*"([A-Za-z0-9_]+)"')
+        asked = {}
+        for path in (_R34_ROOT / "backend").rglob("*.py"):
+            for key in call.findall(path.read_text(encoding="utf-8")):
+                asked.setdefault(key, path.name)
+        assert asked, "the scan found no calls - the pattern is stale"
+        missing = {key: name for key, name in asked.items() if key not in SETTLEMENT_VOICE_TEMPLATES}
+        assert missing == {}
+
+    def test_the_terminal_copy_is_the_templates_and_reads_as_it_always_did(self):
+        """`_terminal_recovery_copy` fell to its own literal while the template
+        went unfound; the template says the same words now, so the copy the
+        player reads is byte-identical and the literal is the dead safety net."""
+        from backend.game_logic.diplomatic_templates import resolve_settlement_voice_line
+        from backend.game_logic.settlement_routes import _terminal_recovery_copy
+        expected = ("This settlement cannot currently be recovered from the existing surfaces. "
+                    "Close this review and reassess the war next turn.")
+        assert _terminal_recovery_copy("war_1") == expected
+        assert resolve_settlement_voice_line("settlement_no_alternative_route_chancery") == expected
+
+    def test_open_war_detail_speaks_the_line_with_a_display_label(self):
+        """OLD READING: "... the live war detail for war_1." (the raw id) when
+        the dialogue carried no `war_label`."""
+        from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        dialogue = dict(_r34_staged(world), war_label="")
+        reply = handle_settlement_dialogue_action(world, action="open_war_detail", dialogue=dialogue)
+        assert reply["success"] is True
+        label = settlement_war_label(world, "war_1")
+        assert label and label.startswith("the War ")
+        assert reply["talleyrand_text"] == (
+            "Sire, I will keep the draft intact until the turn ends and return us to the live "
+            f"war detail for {label}.")
+        assert "war_1" not in reply["talleyrand_text"]
+
+    def test_the_dialogues_own_label_still_wins(self):
+        from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
+        world = _r34_rejected_war_world()
+        dialogue = dict(_r34_staged(world), war_label="the Austrian war")
+        reply = handle_settlement_dialogue_action(world, action="open_war_detail", dialogue=dialogue)
+        assert reply["talleyrand_text"].endswith("live war detail for the Austrian war.")
+
+    def test_an_unknown_war_is_this_war_never_its_id(self):
+        from backend.game_logic.settlement_actions import _dialogue_war_label
+        world = _r34_rejected_war_world()
+        assert _dialogue_war_label(world, {}, "war_999") == "this war"
+        assert _dialogue_war_label(world, {}, "") == "this war"
+        assert _dialogue_war_label(world, {"war_label": None}, "war_999") == "this war"
+
+    def test_a_war_that_has_ended_is_answered_in_talleyrands_line(self, monkeypatch):
+        from backend.game_logic import settlement_actions as SA
+        world = _r34_rejected_war_world()
+        monkeypatch.setattr(SA, "evaluate_war_detail_actionability", lambda *a, **k: {
+            "actionable": False, "refusal_code": "war_archived", "error": "war_archived",
+            "error_display": "That war has ended."})
+        reply = SA._action_open_war_detail(
+            world, action="open_war_detail", dialogue={"war_id": "war_1"}, action_params={},
+            war_id="war_1")
+        assert reply["success"] is False and reply["error"] == "war_archived"
+        assert reply["talleyrand_text"] == (
+            "Sire, this war has ended; the settlement record now belongs in the diplomatic ledger.")
+        assert reply["terminal_recovery_copy"].startswith("This settlement cannot currently")
+
+    def test_any_other_refusal_stays_unspoken(self, monkeypatch):
+        from backend.game_logic import settlement_actions as SA
+        world = _r34_rejected_war_world()
+        monkeypatch.setattr(SA, "evaluate_war_detail_actionability", lambda *a, **k: {
+            "actionable": False, "refusal_code": "pair_already_resolved",
+            "error": "pair_already_resolved", "error_display": "That pair is settled."})
+        reply = SA._action_open_war_detail(
+            world, action="open_war_detail", dialogue={"war_id": "war_1"}, action_params={},
+            war_id="war_1")
+        assert reply["success"] is False and "talleyrand_text" not in reply
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X117 - transit_words reads letter_home_turns
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX117:
+    def test_the_words_read_the_one_helper(self, _r34_boot, monkeypatch):
+        """Structural: held to a different count the words follow it."""
+        from backend.game_logic import diplomacy as D
+        world = _r34_copy(_r34_boot)
+        world.proposal_in_transit = {"target": "Austria", "turn_sent": int(world.current_turn),
+                                     "proposal": {"type": "peace"}}
+        monkeypatch.setattr(D, "letter_home_turns", lambda w, pit=None: 7)
+        assert D.transit_words(world).endswith("home in 7 turns")
+
+    def test_the_formula_lives_in_one_place(self):
+        import inspect
+        from backend.game_logic import diplomacy as D
+        body = inspect.getsource(D.transit_words)
+        assert "letter_home_turns(world, pit)" in body
+        assert 'pit.get("turn_sent"' not in body and 'getattr(world, "current_turn"' not in body
+
+    @pytest.mark.parametrize("sent_offset,words", [(0, "home in 1 turn"), (1, "home in 2 turns"),
+                                                   (-3, "home in 1 turn")])
+    def test_the_count_is_unchanged(self, _r34_boot, sent_offset, words):
+        """Byte-identical to the old copy: delivered once `turn_sent < current`,
+        a stalled envoy's `turn_sent` is one later, never under one."""
+        from backend.game_logic import diplomacy as D
+        world = _r34_copy(_r34_boot)
+        world.proposal_in_transit = {"target": "Austria",
+                                     "turn_sent": int(world.current_turn) + sent_offset,
+                                     "proposal": {"type": "peace"}}
+        assert D.transit_words(world).endswith(words)
+        assert D.letter_home_turns(world) == int(words.split()[2])
+
+    def test_no_letter_on_the_road_is_the_gates_own_reason(self, _r34_boot):
+        from backend.commands.diplomatic_executor import TRANSIT_DISABLED_REASON
+        from backend.game_logic import diplomacy as D
+        world = _r34_copy(_r34_boot)
+        world.proposal_in_transit = None
+        assert D.transit_words(world) == TRANSIT_DISABLED_REASON
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X118 - the top bar keeps the paused cue on its face
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_top_bar() -> str:
+    return (_R34_SCRIPTS / "top_bar.gd").read_text(encoding="utf-8")
+
+
+def _r34_face(full_text: str, limit: int = 34, mark: str = " (paused") -> str:
+    """A line-for-line port of `top_bar.gd::_talleyrand_face`."""
+    if len(full_text) <= limit:
+        return full_text
+    cut = full_text.find(mark)
+    if cut > 0:
+        cue = mark + ")"
+        room = limit - len(cue) - 3
+        body = full_text[:cut]
+        if len(body) > room:
+            body = body[:room].rstrip(" ") + "..."
+        return body + cue
+    return full_text[:limit - 3].rstrip(" ") + "..."
+
+
+class TestS14GX118:
+    def test_the_tooltip_is_the_backends_whole_string_and_the_face_is_its_short_form(self):
+        src = _r34_top_bar()
+        body = src[src.index("func _set_talleyrand_summary("):]
+        body = body[:body.index("\nfunc ", 10)]
+        assert 'var full_text = "Talleyrand: " + Utils.humanize_nation_keys_in_text(clean_summary)' in body
+        assert 'talleyrand_label.tooltip_text = full_text + "\\nClick' in body
+        assert "talleyrand_label.text = _talleyrand_face(full_text)" in body
+        assert "substr(" not in body            # the tail cut is gone from the setter
+
+    def test_the_face_keeps_the_cue_and_the_cap(self):
+        src = _r34_top_bar()
+        assert "const TALLEYRAND_SUMMARY_MAX_CHARS := 34" in src
+        face = src[src.index("func _talleyrand_face("):]
+        face = face[:face.index("\nvar ", 10)]
+        assert "full_text.find(TALLEYRAND_PAUSED_MARK)" in face
+        assert "return body + cue" in face
+
+    def test_the_mark_is_the_head_of_the_backends_suffix(self):
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX
+        mark = re.search(r'const TALLEYRAND_PAUSED_MARK := "([^"]*)"', _r34_top_bar()).group(1)
+        assert f" ({MISSION_PAUSED_SUFFIX}".startswith(mark) and mark == " (paused"
+
+    def test_the_sightings_summary_keeps_paused_on_a_short_face(self, _r34_boot):
+        """OLD READING: "Talleyrand: Improving Relations..." - the suffix cut from
+        the face. NOW: "Talleyrand: Improving... (paused)"; the tooltip (the
+        whole backend string) still carries "paused - carrying a letter"."""
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX
+        summary = f"Improving Relations → Prussia ({MISSION_PAUSED_SUFFIX})"
+        full = "Talleyrand: " + summary
+        face = _r34_face(full)
+        assert face == "Talleyrand: Improving... (paused)"
+        assert len(face) <= 34 and MISSION_PAUSED_SUFFIX in full
+
+    def test_a_short_summary_and_an_unpaused_long_one_read_as_they_did(self):
+        assert _r34_face("Talleyrand: Idle") == "Talleyrand: Idle"
+        assert _r34_face("Talleyrand: Improving Relations → Prussia") == "Talleyrand: Improving Relations..."
+        assert _r34_face("Talleyrand: Idle (paused — carrying a letter)") == "Talleyrand: Idle (paused)"
+
+    def test_the_backend_string_is_the_one_source(self, _r34_boot):
+        """The summary the bar is handed is `main._get_talleyrand_mission_summary`
+        and nothing in the client adds the words."""
+        from backend.game_logic.diplomacy import MISSION_PAUSED_SUFFIX
+        src = _r34_top_bar()
+        code = "\n".join(ln for ln in src.splitlines() if not ln.strip().startswith("#"))
+        assert MISSION_PAUSED_SUFFIX not in code         # the full words are never a client literal
+        world = _r34_copy(_r34_boot)
+        world.active_diplomatic_mission = {
+            "type": "IMPROVE_RELATIONS", "target": "Prussia", "turns_active": 1, "paused": True,
+            "paused_turns": 0, "started_turn": int(world.current_turn)}
+        world.talleyrand_state = "IN_TRANSIT"
+        with _r34_quiet():
+            from backend.main import _get_talleyrand_mission_summary as summary
+        assert summary(world) == f"Improving Relations → Prussia ({MISSION_PAUSED_SUFFIX})"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X130 - the war room's busy arm prices the trade
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_courting(w, target="Prussia"):
+    w.nation_relations[w._make_diplo_key("France", target)] = -10
+    w.active_diplomatic_mission = {
+        "type": "IMPROVE_RELATIONS", "target": target, "turns_active": 1, "paused": False,
+        "paused_turns": 0, "started_turn": int(w.current_turn), "initial_relation": -10}
+    w.talleyrand_state = "ON_MISSION"
+
+
+@pytest.fixture
+def _r34_w(_r34_boot):
+    w = _r34_copy(_r34_boot)
+    w.diplomatic_points = 10
+    w.nation_relations[w._make_diplo_key("France", "Spain")] = 36
+    w.turns_below_threshold = {}
+    return w
+
+
+class TestS14GX130:
+    def test_the_shore_up_sentence_prices_both_sides_of_the_one_slot(self, _r34_w):
+        """OLD READING: "... Reassure Ally waits on his errand - recall Talleyrand
+        from Prussia first (the Cabinet's Recall is free)." and nothing more."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_advisory import _shore_up_counsel
+        w = _r34_w
+        _r34_courting(w)
+        rec = _shore_up_counsel(w, "France", "Spain")
+        assert rec["kind"] == "counsel_only"
+        trade = D.slot_trade(w, "Spain")["line_short"]
+        assert trade.startswith("Recalling forfeits Prussia's remaining courtship (+8 a turn,")
+        assert "left alone it slides 1 a turn and the alliance lapses in about" in trade
+        assert rec["text"].endswith(
+            "recall Talleyrand from Prussia first (the Cabinet's Recall is free). " + trade)
+
+    def test_it_is_the_cabinets_own_trade_sentence(self, _r34_w):
+        """The same `slot_trade` line the Cabinet's counsel prints."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_advisory import _shore_up_counsel
+        w = _r34_w
+        _r34_courting(w)
+        lever = D.slide_lever(w, "Spain", "ALLIANCE")
+        assert lever["kind"] == "busy"
+        assert lever["trade"]["line_short"] in _shore_up_counsel(w, "France", "Spain")["text"]
+
+    def test_the_other_shut_arms_and_the_open_one_are_unmoved(self, _r34_w):
+        from backend.game_logic.diplomatic_advisory import _shore_up_counsel
+        w = _r34_w
+        assert _shore_up_counsel(w, "France", "Spain")["kind"] == "start_mission"
+        w.diplomatic_points = 0
+        text = _shore_up_counsel(w, "France", "Spain")["text"]
+        assert text.endswith("Reassure Ally needs 1 DP, and you have 0.")
+        w.diplomatic_points = 10
+        w.talleyrand_state = "IN_TRANSIT"
+        text = _shore_up_counsel(w, "France", "Spain")["text"]
+        assert text.endswith("Reassure Ally opens when Talleyrand is home from the proposal he carries.")
+        assert "forfeits" not in text
+
+    def test_a_slot_with_nothing_to_price_adds_nothing(self, _r34_w, monkeypatch):
+        """No trade (an empty `line_short`) leaves the sentence as built."""
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_advisory import _shore_up_counsel
+        w = _r34_w
+        _r34_courting(w)
+        monkeypatch.setattr(D, "slot_trade", lambda *a, **k: {
+            "forfeit": "", "slide": "", "slide_short": "", "line": "", "line_short": ""})
+        text = _shore_up_counsel(w, "France", "Spain")["text"]
+        assert text.endswith("recall Talleyrand from Prussia first (the Cabinet's Recall is free).")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X131 - the downgrade's 30 and 5 are read, not repeated
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_ally_pair(w, a="Austria", b="Russia", relation=10):
+    """An AI pair on the ALLIANCE line (40) with the relation `relation` under it."""
+    key = w._make_diplo_key(a, b)
+    w.diplomatic_states[key] = "ALLIANCE"
+    w.nation_relations[key] = relation
+    w.turns_below_threshold = {}
+    return key
+
+
+def _r34_ticks(w, key, count):
+    """Run `check_auto_downgrade` `count` times; the events about `key`'s pair."""
+    from backend.game_logic import diplomacy as D
+    seen = []
+    for tick in range(1, count + 1):
+        with _r34_quiet():
+            events = D.check_auto_downgrade(w)
+        seen.extend((tick, e["type"]) for e in events
+                    if sorted(e.get("nations") or []) == sorted(key.split("|")))
+    return seen
+
+
+class TestS14GX131:
+    def test_the_tick_and_the_forecast_read_the_constants(self):
+        import inspect
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic import diplomatic_dialogue as DD
+        tick = inspect.getsource(D.check_auto_downgrade)
+        assert "gap >= AUTO_DOWNGRADE_GAP" in tick and ">= AUTO_DOWNGRADE_TURNS" in tick
+        assert "gap >= 30" not in tick and ">= 5:" not in tick
+        forecast = inspect.getsource(DD.project_mission_turns)
+        assert "_d.AUTO_DOWNGRADE_GAP" in forecast and "_d.AUTO_DOWNGRADE_TURNS" in forecast
+        assert "- 30" not in forecast and "after 5 turns" not in forecast and "of 5 " not in forecast
+        assert D.AUTO_DOWNGRADE_GAP == 30 and D.AUTO_DOWNGRADE_TURNS == 5
+
+    def test_the_default_run_is_byte_identical(self, _r34_boot):
+        """30 under the line, 5 ticks running: the warning at the third tick
+        (two to go), the downgrade at the fifth - as the literals did."""
+        w = _r34_copy(_r34_boot)
+        key = _r34_ally_pair(w, relation=10)                 # 40 - 10 = 30 under
+        assert _r34_ticks(w, key, 6) == [(3, "downgrade_warning"), (5, "auto_downgrade")]
+        assert w.diplomatic_states[key] == "DEFENSIVE_ALLIANCE"
+
+    def test_a_gap_of_twenty_nine_never_counts(self, _r34_boot):
+        w = _r34_copy(_r34_boot)
+        key = _r34_ally_pair(w, relation=11)                 # 29 under: not enough
+        assert _r34_ticks(w, key, 8) == []
+        assert w.diplomatic_states[key] == "ALLIANCE"
+
+    def test_the_tick_follows_the_constants(self, _r34_boot, monkeypatch):
+        """Structural: a re-tuned clock moves the tick (3 ticks, 20 under)."""
+        from backend.game_logic import diplomacy as D
+        monkeypatch.setattr(D, "AUTO_DOWNGRADE_GAP", 20)
+        monkeypatch.setattr(D, "AUTO_DOWNGRADE_TURNS", 4)
+        w = _r34_copy(_r34_boot)
+        key = _r34_ally_pair(w, relation=18)                 # 22 under
+        assert _r34_ticks(w, key, 5) == [(2, "downgrade_warning"), (4, "auto_downgrade")]
+
+    def _status(self, **over):
+        status = {"type": "UNDERMINE_ALLIANCE", "target_display": "Austria", "dp_per_turn": 2,
+                  "paused": False, "target": "Austria", "target_ally": "Russia",
+                  "current_relation": 50, "turns_active": 1, "effect_per_turn": -3}
+        status.update(over)
+        return status
+
+    def test_the_forecast_text_is_byte_identical(self, _r34_boot):
+        from backend.game_logic.diplomatic_dialogue import project_mission_turns
+        w = _r34_copy(_r34_boot)
+        key = _r34_ally_pair(w, relation=50)
+        w.turns_below_threshold = {key: 2}
+        assert project_mission_turns(w, self._status()) == (
+            "alliance", -1,
+            "their alliance falls to a defensive alliance after 5 turns at 10 or below — now 50, "
+            "2 of 5 counted; breaking it needs a further 5 turns at -10 or below")
+        w.diplomatic_states[key] = "DEFENSIVE_ALLIANCE"
+        assert project_mission_turns(w, self._status(current_relation=15)) == (
+            "alliance", -1,
+            "their alliance breaks after 5 turns at -10 or below — now 15, 2 of 5 counted")
+
+    def test_the_forecast_follows_the_constants(self, _r34_boot, monkeypatch):
+        from backend.game_logic import diplomacy as D
+        from backend.game_logic.diplomatic_dialogue import project_mission_turns
+        monkeypatch.setattr(D, "AUTO_DOWNGRADE_GAP", 25)
+        monkeypatch.setattr(D, "AUTO_DOWNGRADE_TURNS", 3)
+        w = _r34_copy(_r34_boot)
+        key = _r34_ally_pair(w, relation=50)
+        w.turns_below_threshold = {key: 1}
+        assert project_mission_turns(w, self._status())[2] == (
+            "their alliance falls to a defensive alliance after 3 turns at 15 or below — now 50, "
+            "1 of 3 counted; breaking it needs a further 3 turns at -5 or below")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X111 - a struck gold term names its payer
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX111:
+    """The sibling of X23.9: "Struck demand: Gold per turn - 20 for 5 turns" and
+    "Struck offer: Gold payment - 100" named no payer. They read the same chair
+    as the added / cut lines (`_gold_flow_words`), from the DRAFT's parties."""
+
+    def test_the_struck_tribute_says_who_pays_it(self, _r34_boot):
+        """OLD READING: "Struck: the tribute - 126 gold a turn for as long as the
+        treaty stands"."""
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(demands=[{"type": "gold_per_turn", "value": 126}])
+        lines = counter_offer_clause_lines(draft, _r34_draft(), **_r34_reader(world))
+        assert lines == [
+            "Proposal: Vassalage",
+            "Struck: the tribute - Bavaria pays you 126 gold a turn for as long as the treaty stands"]
+
+    def test_a_struck_offer_the_player_made_reads_you_pay(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="alliance", sweeteners=[{"type": "gold_lump", "value": 100}])
+        assert counter_offer_clause_lines(draft, _r34_draft(type="alliance"),
+                                          **_r34_reader(world)) == [
+            "Proposal: Full Alliance", "Struck offer: you pay 100 gold at the signing"]
+
+    def test_the_ai_letters_struck_terms_read_from_the_players_chair(self):
+        """Prussia's letter to France: her offer is paid by Prussia, her demand
+        by France."""
+        from backend.display_names import counter_offer_clause_lines
+        draft = {"type": "alliance", "proposer_nation": "Prussia", "target_nation": "France",
+                 "sweeteners": [{"type": "gold_lump", "value": 50}],
+                 "demands": [{"type": "gold_per_turn", "value": 20, "turns": 5}], "clauses": []}
+        bare = {"type": "alliance", "proposer_nation": "Prussia", "target_nation": "France",
+                "sweeteners": [], "demands": [], "clauses": []}
+        assert counter_offer_clause_lines(draft, bare, viewer="France", proposer="Prussia",
+                                          target="France") == [
+            "Proposal: Full Alliance",
+            "Struck demand: you pay 20 gold a turn for 5 turns",
+            "Struck offer: Prussia pays you 50 gold at the signing"]
+
+    def test_an_explicit_payer_on_a_struck_demand_wins(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(type="peace", demands=[
+            {"type": "gold_lump", "value": 300, "from_nation": "Saxony", "to_nation": "France"}])
+        assert counter_offer_clause_lines(draft, _r34_draft(type="peace"), **_r34_reader(world)) == [
+            "Proposal: Peace Treaty", "Struck demand: Saxony pays you 300 gold at the signing"]
+
+    def test_with_no_reader_the_draft_names_both_parties(self):
+        from backend.display_names import counter_struck_lines
+        tribute = _r34_draft(demands=[{"type": "gold_per_turn", "value": 126}])
+        assert counter_struck_lines(tribute, _r34_draft()) == [
+            "Struck: the tribute - Bavaria pays France 126 gold a turn for as long as the treaty stands"]
+        lump = _r34_draft(demands=[{"type": "gold_lump", "value": 300}])
+        assert counter_struck_lines(lump, _r34_draft()) == [
+            "Struck demand: Bavaria pays France 300 gold at the signing"]    # a lump is no tribute
+
+    def test_a_term_that_is_not_gold_keeps_its_words(self):
+        from backend.display_names import counter_struck_lines
+        draft = _r34_draft(type="peace", clauses=["open_borders"],
+                           demands=[{"type": "territory_cede", "value": 1, "regions": ["Tyrol"]}])
+        assert counter_struck_lines(draft, _r34_draft(type="peace")) == [
+            "Struck clause: Open borders", "Struck demand: Territory cession - Tyrol"]
+
+    def test_a_draft_that_names_no_parties_keeps_the_old_wording(self):
+        from backend.display_names import counter_struck_lines
+        draft = {"type": "peace", "sweeteners": [], "clauses": [],
+                 "demands": [{"type": "gold_per_turn", "value": 126}]}
+        assert counter_struck_lines(draft, {"type": "peace"}) == [
+            "Struck demand: Gold per turn - 126 for as long as the treaty stands"]
+
+    def test_a_raised_figure_is_still_one_added_line_not_a_struck_one(self, _r34_boot):
+        from backend.display_names import counter_offer_clause_lines
+        world = _r34_copy(_r34_boot)
+        draft = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 142}])
+        counter = _r34_draft(sweeteners=[{"type": "gold_lump", "value": 242}])
+        lines = counter_offer_clause_lines(draft, counter, **_r34_reader(world))
+        assert lines == ["Proposal: Vassalage", _R34_ADDED]
+        assert not any(line.startswith("Struck") for line in lines)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X121 - the three other raw-war-id fallbacks in settlement_actions
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_label_spy(monkeypatch):
+    """Record the `war_label` every settlement voice line is asked for."""
+    from backend.game_logic import settlement_actions as SA
+    seen = []
+    real = SA.resolve_settlement_voice_line
+
+    def spy(key, **slots):
+        seen.append((key, slots.get("war_label")))
+        return real(key, **slots)
+
+    monkeypatch.setattr(SA, "resolve_settlement_voice_line", spy)
+    return seen
+
+
+class TestS14GX121:
+    """`settlement_actions._action_back_out_settlement`,
+    `_action_submit_settlement_for_review` and `_execute_pair_substitute_handoff`
+    fell to `war_id` (the raw "war_1") when the dialogue carried no `war_label`;
+    each reads `_dialogue_war_label` now (X26.2's helper)."""
+
+    def test_the_discard_confirm_names_the_war_not_its_id(self, monkeypatch):
+        from backend.game_logic.war_title import settlement_war_label
+        from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
+        world = _r34_rejected_war_world()
+        seen = _r34_label_spy(monkeypatch)
+        dialogue = dict(_r34_staged(world), war_label="")
+        reply = handle_settlement_dialogue_action(world, action="back_out_settlement",
+                                                  dialogue=dialogue)
+        label = settlement_war_label(world, "war_1")
+        assert ("settlement_discard_confirm_talleyrand", label) in seen
+        assert "war_1" not in reply["talleyrand_text"] and label in reply["talleyrand_text"]
+
+    def test_a_failed_submit_names_the_war_not_its_id(self, monkeypatch):
+        from backend.game_logic import settlement_actions as SA
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        seen = _r34_label_spy(monkeypatch)
+        monkeypatch.setattr(SA, "validate_settlement_terms", lambda *a, **k: {
+            "valid": False, "error": "term_invalid", "disabled_reason_display": "The terms fail."})
+        dialogue = dict(_r34_staged(world), war_label="")
+        reply = SA._action_submit_settlement_for_review(
+            world, action="submit_settlement_for_review", dialogue=dialogue,
+            action_params={}, war_id="war_1")
+        label = settlement_war_label(world, "war_1")
+        assert reply["success"] is False
+        assert ("settlement_submit_failed_validation_talleyrand", label) in seen
+        assert "war_1" not in reply["talleyrand_text"]
+
+    def test_the_pair_substitute_handoff_names_the_war_not_its_id(self, monkeypatch):
+        from backend.game_logic import settlement_actions as SA
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        seen = _r34_label_spy(monkeypatch)
+        dialogue = dict(_r34_staged(world), war_label="")
+        reply = SA._execute_pair_substitute_handoff(
+            world, action="seek_bilateral_peace_instead", dialogue=dialogue, war_id="war_1",
+            selected_target="Austria", proposal_type="peace")
+        label = settlement_war_label(world, "war_1")
+        assert reply["success"] is True
+        assert ("settlement_seek_bilateral_peace_instead_talleyrand", label) in seen
+        assert "war_1" not in reply["talleyrand_text"]
+
+    def test_the_dialogues_own_label_still_wins_everywhere(self, monkeypatch):
+        from backend.game_logic.settlement_preview import handle_settlement_dialogue_action
+        world = _r34_rejected_war_world()
+        seen = _r34_label_spy(monkeypatch)
+        dialogue = dict(_r34_staged(world), war_label="the Austrian war")
+        handle_settlement_dialogue_action(world, action="back_out_settlement", dialogue=dialogue)
+        assert ("settlement_discard_confirm_talleyrand", "the Austrian war") in seen
+
+    def test_no_actions_voice_line_falls_to_the_raw_war_id(self):
+        """The class pin: `settlement_actions.py` holds no `war_label` fallback
+        that reaches `war_id`."""
+        text = (_R34_ROOT / "backend" / "game_logic" / "settlement_actions.py").read_text(encoding="utf-8")
+        assert not re.search(r"war_label[^\n]*\bor war_id\b", text)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X112 - the enrichment is about the counter's own terms
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r34_peace_review_world(boot):
+    """The shipped board at WAR with Austria; a peace counter the player reviews."""
+    world = _r34_copy(boot)
+    assert world.get_diplomatic_state("France", "Austria") == "WAR"
+    return world
+
+
+def _r34_peace_context(demand=300):
+    original = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                "sweeteners": [], "demands": [{"type": "gold_lump", "value": 600}], "clauses": []}
+    counter = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+               "sweeteners": [], "demands": [{"type": "gold_lump", "value": demand}], "clauses": []}
+    return {"counter_terms": counter, "original_proposal": original, "source_nation": "Austria"}
+
+
+class TestS14GX112:
+    def test_the_estimate_and_harshness_are_the_counters(self, _r34_boot):
+        """OLD READING: `acceptance_estimate`, `harshness` and the war snapshot were
+        computed for a freshly drafted suggestion to the court (the dialogue has
+        no `execute_proposal` option); NOW for the counter's own terms."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+        from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+        world = _r34_peace_review_world(_r34_boot)
+        context = _r34_peace_context()
+        counter = copy.deepcopy(context["counter_terms"])
+        result = _r34_review(world, context)
+        review = result["diplomatic_dialogue"]
+        expected = calculate_acceptance({
+            "type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+            "sweeteners": [], "demands": counter["demands"], "clauses": []}, world)
+        assert review["acceptance_estimate"] == max(0, min(100, int(expected["score"])))
+        assert review["harshness"] == int(round(calculate_treaty_harshness(
+            {**counter, "clauses": []}) * 100))
+
+    def test_the_war_snapshot_carries_the_counters_terms(self, _r34_boot):
+        world = _r34_peace_review_world(_r34_boot)
+        review = _r34_review(world, _r34_peace_context(demand=300))["diplomatic_dialogue"]
+        snapshot_terms = review["war_context_snapshot"]["proposal_terms"]
+        assert snapshot_terms["demands"] == [{"type": "gold_lump", "value": 300}]
+        rows = review["annotated_terms"]
+        assert [(r["clause_type"], r["sweetener_value"]) for r in rows] == [("gold_lump", -300)]
+
+    def test_what_the_review_prints_is_what_the_estimate_prices(self, _r34_boot):
+        """Shown == priced: a different counter prices differently, and the
+        summary the player reads is the diff of THAT counter."""
+        world = _r34_peace_review_world(_r34_boot)
+        low = _r34_review(world, _r34_peace_context(demand=100))["diplomatic_dialogue"]
+        world2 = _r34_peace_review_world(_r34_boot)
+        high = _r34_review(world2, _r34_peace_context(demand=550))["diplomatic_dialogue"]
+        assert low["war_context_snapshot"]["proposal_terms"]["demands"][0]["value"] == 100
+        assert high["war_context_snapshot"]["proposal_terms"]["demands"][0]["value"] == 550
+        assert low["harshness"] <= high["harshness"]
+        assert any("500 gold less" in line for line in low["proposal_terms_summary"])
+        assert any("50 gold less" in line for line in high["proposal_terms_summary"])
+
+    def test_the_diff_leads_and_the_enrichments_own_lines_follow(self, _r34_boot):
+        """The summary is head + diff, then whatever the enrichment appended about
+        the counter (the status-quo forecast on a peace from war)."""
+        world = _r34_peace_review_world(_r34_boot)
+        review = _r34_review(world, _r34_peace_context())["diplomatic_dialogue"]
+        summary = review["proposal_terms_summary"]
+        assert summary[0] == "Peace Treaty (end state of war)"
+        assert summary[1].startswith("Cut by Austria: Austria pays you 300 gold less")
+        forecast = review["status_quo_forecast"]["lines"]
+        assert summary[2:] == forecast               # nothing lost, nothing doubled
+
+    def test_the_counters_own_terms_are_not_written_into(self, _r34_boot):
+        """The enrichment writes `type` / `proposal_type` keys into what it
+        enriches; the review hands it a copy, so the terms Accept ratifies are
+        untouched."""
+        world = _r34_peace_review_world(_r34_boot)
+        context = _r34_peace_context()
+        before = copy.deepcopy(context["counter_terms"])
+        _r34_review(world, context)
+        assert context["counter_terms"] == before
+
+    def test_the_hook_takes_terms_and_a_caller_without_them_reads_as_before(self, _r34_boot):
+        """`_enrich_proposal_summary(..., terms=)`: the named package wins over
+        the dialogue's own `execute_proposal` option; with none named the option's
+        terms are read as ever."""
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+        world = _r34_peace_review_world(_r34_boot)
+        option_terms = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                        "sweeteners": [], "demands": [{"type": "gold_lump", "value": 40}],
+                        "clauses": []}
+        named = {"type": "peace", "proposer_nation": "France", "target_nation": "Austria",
+                 "sweeteners": [], "demands": [{"type": "gold_lump", "value": 700}], "clauses": []}
+
+        def dialogue():
+            return {"type": "proposal_confirm", "options": [
+                {"label": "Send", "description": "d", "action": "execute_proposal",
+                 "terms": copy.deepcopy(option_terms)}]}
+
+        with _r34_quiet():
+            plain = _enrich_proposal_summary(dialogue(), "Austria", "peace", world)
+            given = _enrich_proposal_summary(dialogue(), "Austria", "peace", world,
+                                             terms=copy.deepcopy(named))
+        assert plain["war_context_snapshot"]["proposal_terms"]["demands"][0]["value"] == 40
+        assert given["war_context_snapshot"]["proposal_terms"]["demands"][0]["value"] == 700
+
+    def test_the_sightings_vassalage_counter_is_estimated_as_the_counter(self, _r34_boot):
+        """The S14G-23 counter (242 gold at the signing) reviewed: the estimate is
+        the one `calculate_acceptance` gives THAT package."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+        world, _draft, _events, dialogue = _r34_road(_r34_boot)
+        context = copy.deepcopy(dialogue["context"])
+        counter = context["counter_terms"]
+        review = _r34_review(world, context)["diplomatic_dialogue"]
+        expected = calculate_acceptance({
+            "type": counter["type"], "proposer_nation": "France", "target_nation": "Bavaria",
+            "sweeteners": counter["sweeteners"], "demands": counter["demands"],
+            "clauses": counter["clauses"]}, world)
+        assert review["acceptance_estimate"] == max(0, min(100, int(expected["score"])))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X122 - the label reader lives at L0 and the whole package reads it
+# ══════════════════════════════════════════════════════════════════════════
+
+_R34_PACKAGE = sorted((_R34_ROOT / "backend" / "game_logic").glob("settlement_*.py"))
+
+
+class TestS14GX122:
+    """`settlement_routes.dialogue_war_label` is the ONE reader (X26.2's
+    `_dialogue_war_label`, moved down to L0 where `settlement_staging`,
+    `settlement_ratify` and `settlement_presentation` can import it); the eight
+    lower sites (`settlement_staging` x3, `settlement_ratify` x4,
+    `settlement_presentation` x1) fell to the raw war id."""
+
+    def test_the_package_holds_no_raw_id_fallback(self):
+        """OLD READING: `str(dialogue.get("war_label") or war_id or "this war")` at
+        staging 234 / 511 / 4140, `... or war_id)` at ratify 1546 / 1604,
+        `... or pre_cleanup_war_label or war_id` at ratify 1889 / 1947 and
+        `or war_id` in the digest. The census over every settlement_*.py."""
+        assert len(_R34_PACKAGE) >= 10, _R34_PACKAGE
+        hits = []
+        for path in _R34_PACKAGE:
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                if 'or war_id or "this war"' in line or "or war_id or 'this war'" in line:
+                    hits.append((path.name, number))
+                if "war_label" in line and re.search(r"\bor war_id\b", line):
+                    hits.append((path.name, number))
+        assert hits == []
+
+    def test_the_reader_is_public_at_l0_and_actions_calls_the_same_one(self):
+        from backend.game_logic import settlement_actions as SA
+        from backend.game_logic import settlement_routes as SR
+        assert SR.dialogue_war_label is SA._dialogue_war_label
+        text = (_R34_ROOT / "backend" / "game_logic" / "settlement_routes.py").read_text(encoding="utf-8")
+        assert "def dialogue_war_label(world: Any, dialogue: Mapping[str, Any], war_id: str)" in text
+        for name in ("settlement_staging", "settlement_ratify", "settlement_presentation"):
+            source = (_R34_ROOT / "backend" / "game_logic" / f"{name}.py").read_text(encoding="utf-8")
+            assert "dialogue_war_label" in source, name
+
+    def test_the_reader_prefers_the_label_then_the_title_then_this_war(self):
+        from backend.game_logic.settlement_routes import dialogue_war_label
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        assert dialogue_war_label(world, {"war_label": "the Austrian war"}, "war_1") == "the Austrian war"
+        assert dialogue_war_label(world, {}, "war_1") == settlement_war_label(world, "war_1")
+        assert dialogue_war_label(world, {"war_label": ""}, "war_1").startswith("the War ")
+        assert dialogue_war_label(world, {}, "war_999") == "this war"       # a war the world lacks
+        assert dialogue_war_label(world, {}, "") == "this war"
+        assert dialogue_war_label(None, {}, "war_1") == "this war"          # no world to title it
+        assert dialogue_war_label(None, None, "war_1") == "this war"
+        assert dialogue_war_label(None, {"war_label": "the War for Bohemia"}, "war_1") == (
+            "the War for Bohemia")
+
+    def test_the_scope_replace_chooser_names_the_war_card_title(self):
+        """A LOWER site (staging ~234) prints the war's title, never "war_1"."""
+        from backend.game_logic.settlement_staging import _build_settlement_scope_replace_confirm_dialogue
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        current = dict(_r34_staged(world), war_label="")
+        chooser = _build_settlement_scope_replace_confirm_dialogue(
+            current, incoming_request={"war_id": "war_1", "selected_target_nation": "Austria",
+                                       "covered_enemy_participants": ["Austria", "Prussia"]},
+            world=world)
+        title = settlement_war_label(world, "war_1")
+        assert title.startswith("the War ")
+        assert chooser["war_label"] == title and title in chooser["talleyrand_text"]
+        assert "war_1" not in chooser["talleyrand_text"] and chooser["war_label"] != "war_1"
+
+    def test_a_caller_that_holds_no_world_reads_this_war(self):
+        from backend.game_logic.settlement_staging import _build_settlement_scope_replace_confirm_dialogue
+        world = _r34_rejected_war_world()
+        current = dict(_r34_staged(world), war_label="")
+        chooser = _build_settlement_scope_replace_confirm_dialogue(
+            current, incoming_request={"war_id": "war_1", "selected_target_nation": "Austria",
+                                       "covered_enemy_participants": ["Austria", "Prussia"]})
+        assert chooser["war_label"] == "this war" and "war_1" not in chooser["talleyrand_text"]
+
+    def test_the_pair_substitute_chooser_names_the_war_card_title(self):
+        from backend.game_logic.settlement_staging import _build_pair_substitute_confirm_dialogue
+        from backend.game_logic.war_title import settlement_war_label
+        world = _r34_rejected_war_world()
+        current = dict(_r34_staged(world), war_label="")
+        chooser = _build_pair_substitute_confirm_dialogue(
+            current, action="seek_bilateral_peace_instead", proposal_type="peace",
+            selected_target="Austria", eligibility={}, world=world)
+        title = settlement_war_label(world, "war_1")
+        assert chooser["war_label"] == title and title in chooser["talleyrand_text"]
+        assert "war_1" not in chooser["talleyrand_text"]
+
+    def test_the_handoff_passes_the_world_to_the_chooser(self):
+        text = (_R34_ROOT / "backend" / "game_logic" / "settlement_actions.py").read_text(encoding="utf-8")
+        call = text[text.index("confirm_dialogue = _build_pair_substitute_confirm_dialogue("):]
+        call = call[:call.index(")\n")]
+        assert "world=world" in call
+        staging = (_R34_ROOT / "backend" / "game_logic" / "settlement_staging.py").read_text(encoding="utf-8")
+        scope = staging[staging.index("replace_dialogue = _build_settlement_scope_replace_confirm_dialogue("):]
+        assert "world=world" in scope[:scope.index(")\n")]
+
+    def test_the_ratify_sites_and_the_record_read_the_reader(self):
+        """The four ratify sites: the two Talleyrand lines and the record (one
+        label for the result message and the feedback card)."""
+        text = (_R34_ROOT / "backend" / "game_logic" / "settlement_ratify.py").read_text(encoding="utf-8")
+        assert text.count("war_label=dialogue_war_label(world, dialogue, war_id)") == 2
+        assert "ratified_war_label = (dialogue.get(\"war_label\") or pre_cleanup_war_label" in text
+        assert 'f"Settlement Ratified: {ratified_war_label} "' in text
+        assert '"war_label": ratified_war_label,' in text
+        assert "or pre_cleanup_war_label or war_id" not in text
+
+    def test_the_staged_blocked_review_options_read_the_reader(self):
+        text = (_R34_ROOT / "backend" / "game_logic" / "settlement_staging.py").read_text(encoding="utf-8")
+        assert 'war_label=dialogue_war_label(world, {"war_label": war_label}, war_id)' in text
+
+    def test_the_digest_line_never_prints_the_war_id(self):
+        """OLD READING: "... the settlement aftermath (war_1)." when the event
+        carried no label."""
+        from backend.game_logic.settlement_presentation import compose_digest_oneliner
+        bare = compose_digest_oneliner({"war_id": "war_1", "hidden_reaction_count": 3})
+        assert "war_1" not in bare and "this war" in bare
+        named = compose_digest_oneliner({"war_id": "war_1", "war_label": "the War for Bohemia",
+                                         "hidden_reaction_count": 3})
+        assert "the War for Bohemia" in named and "war_1" not in named
+        assert "this war" in compose_digest_oneliner({"hidden_reaction_count": 2})   # no id at all
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row35
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - the five MENTIONS of DD-B's third measure
+# (S14G-M1 ... S14G-M5, October 26, 2026).
+#
+# `docs/audits/DD_B_THIRD_MEASURE_2026_10_25.md` section 8 listed five things the
+# players' notes and final messages named that no row carried; the sweep
+# reproduced each on the shipped 1805 board (or a crafted one) and either built
+# its fix or refuted it. `TestTheMentions` holds the five dispositions in one
+# place; the per-mention classes carry the record.
+#
+# M1 - "Soult, fortify": the reply promised "+2% (grows +2% per turn, max 12%)"
+# while `_process_tactical_states`' FRONT-LOADING branch gave the first dawn +5%
+# more, so the dispatch read "+7% defense" (Davout: "+7% (+3%/turn)" then 12% at
+# the first dawn). FIXED: ONE constant `world_state.FORTIFY_FRONT_LOAD` (= 0.05,
+# the tick's own value, so the series is byte-identical) read by the tick and by
+# the reply (`tactical_executor.fortify_growth_words`): "+2% now, +5% more at the
+# next dawn, then +2% a turn, max 12%" ("+7% now, 12% at dawn (the max)" where the
+# front-load alone reaches the cap). The counsel's fortify line carries "(2 AP)"
+# from NEUTRAL (read off the cost table through `insist_terms`) and the standing
+# order the new order would set aside ("Soult, fortify (2 AP) - his march to
+# Paris would be set aside", `executor.set_aside_clause` in the conditional);
+# `_is_free_to_order` keeps its hard-refusal contract (a corps on a standing order
+# CAN take an order) and the counsel prefers a corps on none.
+#
+# M2 - the Switzerland petition recurring: REFUTED. Two petitions eight turns
+# apart are `PETITION_INTERVAL_TURNS` (vassal.py), stamped at ISSUE whatever the
+# answer; a relief remission of r blocks r+1 end turns; and the Vassals card
+# forecasts the next ask (`petition_standing_keys`). No code changed.
+#
+# M3 - each win's +8 alarm noticed only in the Threat figure. FIXED (the lighter
+# variant, no new serialized state): (a) the muster says it before the attack -
+# "A win here adds +3 to Europe's alarm (+5 more if decisive; none on your own
+# soil) - now 70/100" from `BATTLE_WIN_ALARM` / `DECISIVE_VICTORY_ALARM`, which
+# the post-combat pipeline's `add_threat` calls (and the autonomous attack's
+# mirror) now READ; (b) the morning's coalition section carries `threat_delta` /
+# `threat_delta_line` / `threat_causes` - "up 6 since yesterday (Won a decisive
+# battle +5, ...)" - from yesterday's dawn figure (`last_morning_dispatch.
+# coalition_status.threat_level`) and the day's rows, which `advance_turn` now
+# READS before the clear and carries on that same payload under
+# `threat_rows_yesterday` (the key dies with the payload at the next dawn);
+# `dispatch_view.gd` and `main.gd` render the line; (c) the HUD tooltip says
+# "Europe's alarm (the Threat)".
+#
+# M4 - "24,382 men waiting at Paris - nobody has gone to collect them": the figure
+# is the levy HEADROOM, not men waiting; the standing template said nobody had
+# gone though the gate is open only because a corps is in reach; and
+# `counsel._levy_terms` kept the lowest price, so a 3,000-man field levy beat the
+# 10,000-man raise at the capital the dispatch advertised. FIXED:
+# `get_levy_status` returns `recipient_name`, `recipient_distance` and
+# `capital_quote`; the base and both standing templates read "the ordinance allows
+# N more men to the establishment ... 10,000 foot cost 518 gold at Paris under
+# Massena - 'recruit infantry in Paris'"; `_levy_terms` ranks by men raised, then
+# price, then the capital's quote. S14G-X163: the status's `infantry_price` /
+# `infantry_amount` (the Strategic Ledger's "The depots are open" line) are the
+# capital quote's where the order would be taken (518g, not the ordinance's 450g).
+#
+# M5 - the Descent's window closed when Spain's sail left on her peace with
+# Britain, named only on the Admiralty page. FIXED: `process_naval_turn` keeps
+# `meta["pool"] = {partner: ships}` (a serialized key on the existing record) and
+# `meta["pool_left"]`; the tick a partner stops counting says so once, on the rail
+# and in the dispatch (`pool_left`, "always"); `window_forecast_clause` /
+# `_window_remedy` compute the pool at the crews' ceiling (`NAVY_DRILL_CEILING`)
+# and say "even at readiness 75 our line stands at 39; only more sail, or an ally
+# at war with Britain, opens it" where "+5/turn" could never reach the bar;
+# `pooled_sail_clause` names the departed partner once.
+#
+# Siblings: `TestS14GX62` (the counter-punch muster stamp folds the ring's intel),
+# `TestS14GX152` (the `blockade_begins` dispatch line prints its cause),
+# `TestS14GX142` / `TestS14GX143` (the receipts' drill advice reads the drill's
+# own gate), `TestS14GX76` (the Balance of Europe key hint in main.gd),
+# `TestS14GX163` (above). The orchestrator renumbers `S14G-X<row>.<k>`.
+#
+# The board: the shipped 1805 scenario (`WorldState.from_scenario`); M4's is the
+# sea road's turn-16 board (France mauled to roughly 38%, Massena at Paris).
+
+_R35_SCENARIO = (Path(__file__).resolve().parents[1] / "godot-client"
+                 / "project-sovereign" / "assets" / "maps" / "europe_1805.json")
+_R35_SCRIPTS = (Path(__file__).resolve().parents[1] / "godot-client"
+                / "project-sovereign" / "scripts")
+
+
+def _r35_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def _r35_boot():
+    from backend.models.world_state import WorldState
+    with _r35_quiet():
+        return WorldState.from_scenario(str(_R35_SCENARIO))
+
+
+def _r35_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r35_w(_r35_boot):
+    return _r35_copy(_r35_boot)
+
+
+def _r35_executor():
+    from backend.commands.executor import CommandExecutor
+    with _r35_quiet():
+        return CommandExecutor()
+
+
+def _r35_do(world, ex, command: dict):
+    with _r35_quiet():
+        return ex.execute({"command": command}, {"world": world})
+
+
+def _r35_fortify(world, ex, name: str) -> dict:
+    """The fortify executor's own reply - past the objection roll a mutinous
+    marshal (Ney) may throw at the typed road, which is no part of this row."""
+    with _r35_quiet():
+        return ex._tactical._execute_fortify({"marshal": name, "action": "fortify"},
+                                             {"world": world})
+
+
+def _r35_fortify_typed(world, ex, name: str) -> dict:
+    return _r35_do(world, ex, {"raw_input": f"{name}, fortify", "marshal": name,
+                               "action": "fortify"})
+
+
+def _r35_tick(world) -> list:
+    with _r35_quiet():
+        return world._process_tactical_states()
+
+
+def _r35_pct(marshal) -> int:
+    return int(round(float(marshal.defense_bonus) * 100))
+
+
+def _r35_order(world, name: str, kind: str = "MOVE_TO", target: str = "Paris"):
+    from backend.models.marshal import StrategicOrder
+    m = world.get_marshal(name)
+    m.strategic_order = StrategicOrder(
+        command_type=kind, target=target, target_type="region",
+        started_turn=int(world.current_turn), original_command=f"{name}, march to {target}",
+        path=[target], issued_turn=int(world.current_turn))
+    return m
+
+
+def _r35_src(name: str) -> str:
+    return (_R35_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# M1 - "Soult, fortify"
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GM1:
+    """The reply promised 2%, the first dawn gave 7%. The old reading:
+    "Defense bonus: +2% (grows +2% per turn, max 12%)" then, at dawn, "Soult's
+    fortifications strengthen: +7% defense" (the tick's FRONT-LOADING branch,
+    +5% on the first growth turn)."""
+
+    def test_the_front_load_is_one_constant_the_tick_and_the_reply_both_read(self):
+        from backend.commands import tactical_executor as T
+        from backend.models import world_state as W
+        assert W.FORTIFY_FRONT_LOAD == 0.05          # the tick's own value: the series is unmoved
+        tick = inspect.getsource(W.WorldState._process_tactical_states)
+        assert "increment = FORTIFY_FRONT_LOAD" in tick
+        assert "increment = 0.05" not in tick
+        assert "FORTIFY_FRONT_LOAD" in inspect.getsource(T.fortify_growth_words)
+
+    def test_the_reply_promises_what_the_first_dawn_gives(self, _r35_w):
+        """The sighting: Soult, fortify, then the dawn."""
+        ex = _r35_executor()
+        reply = _r35_fortify(_r35_w, ex, "Soult")["message"]
+        assert ("Defense bonus: +2% now, +5% more at the next dawn, then +2% a turn, "
+                "max 12%.") in reply, reply
+        assert "grows +2% per turn" not in reply
+        soult = _r35_w.get_marshal("Soult")
+        assert _r35_pct(soult) == 2
+        events = _r35_tick(_r35_w)
+        row = next(e for e in events if e["type"] == "fortify_strengthened"
+                   and e["marshal"] == "Soult")
+        assert "+7% defense" in row["message"] and row["front_loaded"] is True
+        assert _r35_pct(soult) == 7                    # 2 now + 5 more = the promise, applied
+        _r35_tick(_r35_w)
+        assert _r35_pct(soult) == 9                    # then +2% a turn
+
+    def test_the_iron_marshals_dawn_is_the_cap(self, _r35_w):
+        """Davout: "+7% (+3%/turn)" then 12% at the first dawn - the reply now
+        says so: the front-load alone reaches the cap."""
+        ex = _r35_executor()
+        reply = _r35_fortify(_r35_w, ex, "Davout")["message"]
+        assert "Defense bonus: +7% now, 12% at dawn (the max)" in reply, reply
+        davout = _r35_w.get_marshal("Davout")
+        assert _r35_pct(davout) == 7
+        _r35_tick(_r35_w)
+        assert _r35_pct(davout) == 12
+
+    def test_the_aggressive_cap_is_said_and_met(self, _r35_w):
+        ex = _r35_executor()
+        reply = _r35_fortify(_r35_w, ex, "Ney")["message"]
+        assert "then +2% a turn, max 8%" in reply, reply
+        ney = _r35_w.get_marshal("Ney")
+        _r35_tick(_r35_w)
+        assert _r35_pct(ney) == 7
+        _r35_tick(_r35_w)
+        assert _r35_pct(ney) == 8                       # capped, as promised
+
+    def test_a_changed_front_load_moves_the_tick_and_the_reply_together(self, _r35_w, monkeypatch):
+        from backend.models import world_state as W
+        monkeypatch.setattr(W, "FORTIFY_FRONT_LOAD", 0.03)
+        ex = _r35_executor()
+        reply = _r35_fortify(_r35_w, ex, "Soult")["message"]
+        assert "+3% more at the next dawn" in reply, reply
+        _r35_tick(_r35_w)
+        assert _r35_pct(_r35_w.get_marshal("Soult")) == 5
+
+    def test_the_tick_is_both_sides_rule_5(self, _r35_w):
+        """The AI walks the same tick: an Austrian marshal's first dawn is the
+        same front-load (the constant's value is unchanged, so the series is)."""
+        from backend.models.personality_modifiers import (
+            get_instant_fortify_bonus, get_max_fortify_bonus)
+        mack = _r35_w.get_marshal("Mack")
+        mack.fortified = True
+        mack.defense_bonus = 0.02 + get_instant_fortify_bonus(mack.personality)
+        start = mack.defense_bonus
+        events = _r35_tick(_r35_w)
+        assert any(e["type"] == "fortify_strengthened" and e["marshal"] == "Mack"
+                   and e["front_loaded"] for e in events), events
+        assert _r35_pct(mack) == int(round(min(start + 0.05, get_max_fortify_bonus(mack.personality)) * 100))
+
+    def test_the_counsel_prices_the_fortify_from_neutral(self, _r35_w):
+        from backend.ai import counsel as C
+        lines = C.military_counsel(_r35_w, "France", limit=6)
+        assert "Soult, fortify (2 AP)" in lines, lines
+        assert not any(line == "Soult, fortify" for line in lines)
+
+    def test_a_defensive_corps_is_priced_at_the_table_and_the_price_is_read_not_typed(
+            self, _r35_w, monkeypatch):
+        from backend.ai import counsel as C
+        from backend.models.marshal import Stance
+        soult = _r35_w.get_marshal("Soult")
+        assert C._fortify_price_tail(_r35_w, soult) == " (2 AP)"
+        soult.stance = Stance.DEFENSIVE
+        assert C._fortify_price_tail(_r35_w, soult) == ""        # face value: no tag
+        soult.stance = Stance.NEUTRAL
+        W = type(_r35_w)
+        monkeypatch.setattr(W, "get_action_cost",
+                            lambda self, action: 2 if action == "fortify" else 1)
+        assert C._fortify_price_tail(_r35_w, soult) == " (3 AP)"  # table + the stance step
+
+    def test_the_counsel_names_the_march_the_order_would_set_aside(self, _r35_w):
+        """"Soult, fortify" met "Soult's march to Paris is set aside." in the
+        reply and nothing in the advice. Only Soult free, on a march to Paris."""
+        from backend.ai import counsel as C
+        ex = _r35_executor()
+        soult = _r35_order(_r35_w, "Soult")
+        for other in _r35_w.get_player_marshals():
+            if other.name != "Soult":
+                other.drilling_locked = True
+        assert [m.name for m in _r35_w.get_player_marshals()
+                if C._is_free_to_order(m)] == ["Soult"]
+        assert C._standing_order_clause(soult) == " — his march to Paris would be set aside"
+        lines = C.military_counsel(_r35_w, "France", limit=6)
+        assert ("Soult, fortify (2 AP) — his march to Paris would be set aside") in lines, lines
+        # ...and it is the reply's own sentence, in the conditional
+        reply = _r35_fortify_typed(_r35_w, ex, "Soult")["message"]
+        assert "Soult's march to Paris is set aside." in reply, reply
+
+    def test_a_corps_on_no_standing_order_is_named_first(self, _r35_w):
+        from backend.ai import counsel as C
+        _r35_order(_r35_w, "Soult")
+        lines = C.military_counsel(_r35_w, "France", limit=6)
+        fortify = [line for line in lines if ", fortify" in line]
+        assert fortify and not fortify[0].startswith("Soult"), lines
+
+    def test_a_man_on_a_standing_order_is_still_free_to_order(self, _r35_w):
+        """`_is_free_to_order` keeps its hard-refusal contract: a standing order
+        is a clause on the line, not a refusal (the army marching under orders
+        must not silence the counsel)."""
+        from backend.ai import counsel as C
+        assert C._is_free_to_order(_r35_order(_r35_w, "Soult")) is True
+
+    def test_the_standing_order_clause_covers_every_kind_and_the_road_home(self, _r35_w):
+        from backend.ai import counsel as C
+        soult = _r35_order(_r35_w, "Soult", "PURSUE", "ArchdukeCharles")
+        assert C._standing_order_clause(soult) == (
+            " — his pursuit of Archduke Charles would be set aside")
+        soult.strategic_order = None
+        assert C._standing_order_clause(soult) == ""
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# M2 - the Switzerland petition recurring: REFUTED
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GM2:
+    """REFUTED (no code change). The sighting: the conquest player met two
+    Swiss petitions eight turns apart. That IS the design - `vassal.
+    PETITION_INTERVAL_TURNS`, a per-vassal cadence stamped at ISSUE whatever
+    the answer; a relief remission of r blocks the next r+1 end turns; and the
+    Vassals card forecasts the next ask in end turns, so the player can see it
+    coming ("N turns until it may ask")."""
+
+    def _swiss(self, boot, *, turn=20, stamped=None, remission=0):
+        w = _r35_copy(boot)
+        w.current_turn = turn
+        row = w.vassals["Switzerland"]
+        assert row["lord"] == "France" and int(row["loyalty"]) >= 60
+        row["created_turn"] = 1
+        row["petitioned_turn"] = stamped
+        row["remission_left"] = remission
+        return w
+
+    def test_the_cadence_is_eight_turns(self):
+        from backend.game_logic import vassal as V
+        assert V.PETITION_INTERVAL_TURNS == 8
+
+    def test_two_asks_are_eight_turns_apart_and_the_card_forecasts_the_next(self, _r35_boot):
+        from backend.game_logic import vassal as V
+        w = self._swiss(_r35_boot, stamped=20)               # asked this turn
+        card = V.petition_standing_keys(w, "Switzerland")
+        assert card["standing_key"] == "cadence"
+        assert card["standing"] == "8 turns until it may ask"
+        assert card["next_petition_in"] == V.PETITION_INTERVAL_TURNS
+        # the producer's own read, turn by turn: shut until the 8th turn on
+        for later in range(21, 28):
+            key, turns, _t = V._petition_gate(w, "France", "Switzerland", turn=later,
+                                              projected=False)
+            assert key == "cadence", (later, key)
+        key, _turns, _t = V._petition_gate(w, "France", "Switzerland", turn=28,
+                                           projected=False)
+        assert key != "cadence"
+        # the card's forecast counts END TURNS and clears one before: the next
+        # advance runs into turn 28, so at turn 27 the card reads it open
+        w.current_turn = 27
+        later_card = V.petition_standing_keys(w, "Switzerland")
+        assert later_card["standing_key"] != "cadence"
+
+    def test_a_remission_of_r_blocks_r_plus_one_end_turns(self, _r35_boot):
+        from backend.game_logic import vassal as V
+        w = self._swiss(_r35_boot, stamped=None, remission=3)
+        card = V.petition_standing_keys(w, "Switzerland")
+        assert card["standing_key"] == "remission"
+        assert card["remission_left"] == 3 and card["next_petition_in"] == 4
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# M3 - each win's +8 alarm noticed only in the Threat figure
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r35_morning(boot):
+    """The live road: the boot briefing is built (it is `last_morning_dispatch`),
+    then Ney attacks Mack and the turn ends."""
+    from backend.game_logic import dispatch as D
+    w = _r35_copy(boot)
+    ex = _r35_executor()
+    with _r35_quiet():
+        D.build_morning_dispatch(w, boot=True)
+    yesterday = w.last_morning_dispatch
+    boot_threat = int(yesterday["coalition_status"]["threat_level"])
+    attack = _r35_do(w, ex, {"raw_input": "Ney, attack Mack", "marshal": "Ney",
+                             "action": "attack", "target": "Mack"})
+    end = _r35_do(w, ex, {"action": "end_turn", "type": "specific"})
+    return w, attack, end, yesterday, boot_threat
+
+
+class TestS14GM3:
+    """The old reading: the win's "[Alarm]" line was the LAST line of a
+    2,700-character reply, the HUD said "Threat" while the reply said "alarm",
+    and the morning's "Threat: 93/100 [Formed]" named no cause (the day's rows
+    are cleared before the dawn builds)."""
+
+    def test_the_muster_says_what_a_win_adds_before_the_attack(self, _r35_w):
+        ex = _r35_executor()
+        with _r35_quiet():
+            preview = ex._combat._build_muster_preview(
+                _r35_w.get_marshal("Ney"), _r35_w.get_marshal("Mack"), _r35_w,
+                {"world": _r35_w})
+            text = ex._combat._format_muster_lines(preview)
+        note = ("A win here adds +3 to Europe's alarm (+5 more if decisive; none on your "
+                "own soil) — now 70/100.")
+        assert preview["alarm_note"] == note
+        lines = text.splitlines()
+        assert f"  {note}" in lines
+        # in the panel that states its terms: after the Materiel line, and
+        # after the campaign note S14E-2 pins right beside it
+        materiel = next(i for i, ln in enumerate(lines) if ln.strip().startswith("Materiel:"))
+        assert lines[materiel + 1].strip() == preview["campaign_note"]
+        assert lines[materiel + 2] == f"  {note}"
+
+    def test_the_figures_are_the_pipelines_own_constants(self):
+        from backend.commands import combat_executor as CE
+        from backend.models import world_state as W
+        assert CE.BATTLE_WIN_ALARM == 3 and CE.DECISIVE_VICTORY_ALARM == 5
+        pipeline = inspect.getsource(CE.CombatExecutor)
+        assert "add_threat(world, BATTLE_WIN_ALARM, \"battle_win\"" in pipeline
+        assert pipeline.count("add_threat(world, DECISIVE_VICTORY_ALARM, \"decisive_victory\"") == 2
+        assert "add_threat(world, 3," not in pipeline and "add_threat(world, 5," not in pipeline
+        mirror = inspect.getsource(W.WorldState)
+        assert "add_threat(self, BATTLE_WIN_ALARM, \"battle_win\"" in mirror
+        assert "add_threat(self, DECISIVE_VICTORY_ALARM, \"decisive_victory\"" in mirror
+        note = inspect.getsource(CE.CombatExecutor._muster_alarm_note)
+        assert "BATTLE_WIN_ALARM" in note and "DECISIVE_VICTORY_ALARM" in note
+
+    def test_the_standing_is_the_figure_the_top_bar_shows(self, _r35_w):
+        _r35_w.threat_by_target["France"] = 84
+        from backend.commands.combat_executor import CombatExecutor
+        note = CombatExecutor._muster_alarm_note(_r35_w, _r35_w.get_marshal("Ney"), "Swabia")
+        assert note.endswith("— now 84/100.")
+
+    def test_there_is_no_line_on_our_own_soil_or_for_the_ai_or_off_the_europe_board(self, _r35_w):
+        """Gated by the pipeline's own predicate (`battle_win_on_own_soil`)."""
+        from backend.commands.combat_executor import CombatExecutor, battle_win_on_own_soil
+        ney = _r35_w.get_marshal("Ney")
+        assert battle_win_on_own_soil(_r35_w, "Rhineland", "France") is True
+        assert CombatExecutor._muster_alarm_note(_r35_w, ney, "Rhineland") == ""
+        assert CombatExecutor._muster_alarm_note(
+            _r35_w, _r35_w.get_marshal("Mack"), "Rhineland") == ""      # the AI's muster is no surface
+        _r35_w.sovereign_map = "legacy"
+        assert CombatExecutor._muster_alarm_note(_r35_w, ney, "Swabia") == ""
+
+    def test_the_win_adds_what_the_muster_said(self, _r35_boot):
+        from backend.commands.combat_executor import BATTLE_WIN_ALARM, DECISIVE_VICTORY_ALARM
+        w = _r35_copy(_r35_boot)
+        ex = _r35_executor()
+        with _r35_quiet():
+            preview = ex._combat._build_muster_preview(
+                w.get_marshal("Ney"), w.get_marshal("Mack"), w, {"world": w})
+        told = re.findall(r"adds \+(\d+) to Europe's alarm \(\+(\d+) more", preview["alarm_note"])
+        assert told == [(str(BATTLE_WIN_ALARM), str(DECISIVE_VICTORY_ALARM))]
+        attack = _r35_do(w, ex, {"raw_input": "Ney, attack Mack", "marshal": "Ney",
+                                 "action": "attack", "target": "Mack"})
+        assert attack["success"]
+        rows = {r["source"]: r["amount"] for r in w.threat_sources_this_turn
+                if r.get("target") == "France"}
+        assert rows["battle_win"] == BATTLE_WIN_ALARM       # the muster's figure, applied
+        if "decisive_victory" in rows:
+            assert rows["decisive_victory"] == DECISIVE_VICTORY_ALARM
+        assert "[Alarm] Europe's alarm rises +" in attack["message"]
+        assert "Won a battle +3" in attack["message"]
+
+    def test_the_morning_reads_the_delta_and_its_cause(self, _r35_boot):
+        """The sighting: Ney beats Mack, End Turn, and the dawn names what moved
+        the Threat. Old reading: "Threat: 77/100 [Formed]" and nothing else."""
+        w, _attack, end, yesterday, boot_threat = _r35_morning(_r35_boot)
+        section = end["morning_dispatch"]["coalition_status"]
+        now = int(section["threat_level"])
+        assert section["threat_delta"] == now - boot_threat
+        causes = {c["label"]: c["amount"] for c in section["threat_causes"]}
+        assert causes["Won a battle"] == 3
+        # the causes reconcile with the figure (shown = applied)
+        assert sum(causes.values()) == section["threat_delta"]
+        line = section["threat_delta_line"]
+        assert line.startswith("up ") and "since yesterday" in line
+        assert "Won a battle +3" in line
+        assert all(isinstance(v, int) for v in (section["threat_delta"], now))
+        assert all(isinstance(c["amount"], int) for c in section["threat_causes"])
+
+    def test_the_rows_are_read_before_the_clear_and_carried_on_the_existing_payload(
+            self, _r35_boot):
+        w, _attack, end, yesterday, _boot = _r35_morning(_r35_boot)
+        carried = yesterday["threat_rows_yesterday"]               # written by advance_turn
+        assert {r["source"] for r in carried} >= {"battle_win"}
+        assert all(r.get("target") == "France" for r in carried)
+        # no new WorldState field: the new dawn replaced the payload, key and all
+        assert "threat_rows_yesterday" not in w.last_morning_dispatch
+        assert "threat_rows_yesterday" not in end["morning_dispatch"]
+        json.dumps(w.to_dict(), default=str)                        # serializes with the world
+
+    def test_no_delta_where_yesterdays_figure_is_unknown_or_not_yesterdays(self, _r35_w):
+        from backend.game_logic import dispatch as D
+        _r35_w.last_morning_dispatch = {}
+        section = D._build_coalition_section(_r35_w, "France")
+        assert "threat_delta" not in section and "threat_delta_line" not in section
+        _r35_w.last_morning_dispatch = {"turn": int(_r35_w.current_turn) - 5,
+                                        "coalition_status": {"threat_level": 10}}
+        assert "threat_delta" not in D._build_coalition_section(_r35_w, "France")
+
+    def test_a_cap_clip_counts_what_was_applied_and_a_flat_day_says_so(self, _r35_w):
+        from backend.game_logic import dispatch as D
+        _r35_w.current_turn = 5
+        _r35_w.last_morning_dispatch = {
+            "turn": 4, "coalition_status": {"threat_level": 96},
+            "threat_rows_yesterday": [
+                {"source": "capital_capture", "amount": 15, "applied": 4, "target": "France"}]}
+        reading = D.threat_delta_reading(_r35_w, "France", 100, [])
+        assert reading["threat_delta"] == 4
+        assert reading["threat_delta_line"] == "up 4 since yesterday (Captured an enemy capital +4)"
+        _r35_w.last_morning_dispatch["coalition_status"]["threat_level"] = 100
+        flat = D.threat_delta_reading(_r35_w, "France", 100, [])
+        assert flat["threat_delta_line"].startswith("unchanged since yesterday")
+
+    def test_the_line_is_capped_and_summarises_the_rest(self, _r35_w):
+        from backend.game_logic import dispatch as D
+        _r35_w.current_turn = 5
+        rows = [{"source": k, "amount": a, "target": "France"} for k, a in (
+            ("battle_win", 3), ("decisive_victory", 5), ("region_capture", 2),
+            ("war_declaration", 10), ("treaty_annex", 8), ("hegemony_passive", 1))]
+        _r35_w.last_morning_dispatch = {"turn": 4, "coalition_status": {"threat_level": 40},
+                                        "threat_rows_yesterday": rows}
+        reading = D.threat_delta_reading(_r35_w, "France", 69, [])
+        assert len(reading["threat_causes"]) == 6
+        assert "2 smaller causes +3" in reading["threat_delta_line"]
+        assert reading["threat_delta_line"].startswith("up 29 since yesterday (Declared war +10")
+
+    def test_the_hud_and_the_reply_share_one_noun(self):
+        top = _r35_src("top_bar.gd")
+        assert "Europe's alarm (the Threat) at France" in top
+        assert "static func _threat_words" in top
+
+    def test_both_dispatch_surfaces_render_the_delta_line(self):
+        for name in ("dispatch_view.gd", "main.gd"):
+            src = _r35_src(name)
+            assert 'coalition_status.get("threat_delta_line", "")' in src, name
+            assert '"/100 [" + tier + "]" + threat_tail' in src, name
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# M4 - "24,382 men waiting at Paris - nobody has gone to collect them"
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r35_turn16(boot):
+    """The sea road's turn-16 board: France mauled to ~38%, Massena at Paris
+    (the ordinance has room, the depots are full, a corps is in reach)."""
+    w = _r35_copy(boot)
+    for m in w.marshals.values():
+        if m.nation == "France" and m.strength > 0:
+            m.strength = int(m.strength * 0.38)
+    w.get_marshal("Massena").location = w.get_nation_capital("France")
+    return w
+
+
+class TestS14GM4:
+    """The old reading: "Sire - 3 turns now with the establishment under the
+    ordinance and the depots standing full. 58,180 men at Paris, and nobody has
+    gone to collect them." (the headroom as men waiting; Massena was AT Paris),
+    while "what can I do" offered the 3,000-man field levy at 510g over the
+    10,000-man raise at Paris (518g)."""
+
+    def test_the_status_names_who_raises_it_and_the_capital_quote(self, _r35_boot):
+        from backend.commands.economy_executor import get_levy_status, recruit_quote
+        w = _r35_turn16(_r35_boot)
+        with _r35_quiet():
+            levy = get_levy_status(w)
+            quote = recruit_quote(w, "Paris", "infantry", "France")
+        assert levy["open"] is True
+        assert levy["recipient_name"] == "Massena" and levy["recipient_distance"] == 0
+        cq = levy["capital_quote"]
+        assert cq == {"ok": True, "kind": "ok", "amount": 10000, "price": int(quote["price"]),
+                      "recipient": "Massena", "distance": 0, "field_capped": False}
+        assert all(isinstance(cq[k], int) for k in ("amount", "price", "distance"))
+
+    def test_the_headline_names_the_man_and_the_order_and_drops_the_false_claim(self, _r35_boot):
+        from backend.game_logic.dispatch import _build_headline
+        w = _r35_turn16(_r35_boot)
+        with _r35_quiet():
+            head = _build_headline(w, "France")
+        text = head["text"]
+        assert head["class"] == "levy_open"
+        assert "the ordinance allows 58,180 more men to the establishment" in text, text
+        assert "10,000 foot cost 518 gold at Paris under Massena" in text, text
+        assert "'recruit infantry in Paris'" in text
+        assert "nobody has gone to collect them" not in text
+        assert "marshal must stand" not in text
+
+    def test_every_standing_variant_says_it(self, _r35_boot):
+        from backend.game_logic.dispatch import _HEADLINE_TEMPLATES, _STANDING_ESCALATION
+        fields = dict(turns=3, headroom="58,180", pool="80,000", amount="10,000",
+                      price="518", capital="Paris", recipient="Massena")
+        for variant in [_HEADLINE_TEMPLATES["levy_open"]] + list(_STANDING_ESCALATION["levy_open"]):
+            assert "{recipient}" in variant and "'recruit infantry in {capital}'" in variant
+            said = variant.format(**fields)
+            assert "under Massena" in said and "collect them" not in said
+            assert "where a marshal must stand" not in said
+
+    def test_the_counsel_ranks_by_men_raised_before_price(self, _r35_boot):
+        """The sighting: the cheapest levy on the board is a 3,000-man field
+        levy; the line the dispatch advertises is the 10,000-man raise at Paris."""
+        from backend.ai import counsel as C
+        from backend.commands.economy_executor import recruit_quote
+        w = _r35_turn16(_r35_boot)
+        with _r35_quiet():
+            field = [recruit_quote(w, m.location, "infantry", "France")
+                     for m in w.get_player_marshals() if m.location != "Paris"]
+            capital = recruit_quote(w, "Paris", "infantry", "France")
+            line = C._levy_terms(w, "France")
+        cheapest = min((q for q in field if q.get("ok")), key=lambda q: q["price"])
+        assert cheapest["amount"] == 3000 and cheapest["price"] < capital["price"]
+        assert line == (f"recruit infantry in Paris — {int(capital['price']):,}g for "
+                        f"10,000 men under Massena"), line
+
+    def test_the_capital_is_a_candidate_even_with_no_corps_standing_there(self, _r35_boot):
+        from backend.ai import counsel as C
+        w = _r35_turn16(_r35_boot)
+        neighbour = sorted(w.get_region("Paris").adjacent_regions)[0]
+        w.get_marshal("Massena").location = neighbour       # within reach of Paris, not on it
+        with _r35_quiet():
+            line = C._levy_terms(w, "France")
+        assert line is not None and line.startswith("recruit infantry in Paris — "), line
+        assert line.endswith("for 10,000 men under Massena"), line
+
+    def test_the_levy_named_is_the_levy_charged(self, _r35_boot):
+        """The headline's figures are the executor's: the order the dispatch
+        quotes costs exactly that and raises exactly those men under that man."""
+        from backend.commands.economy_executor import get_levy_status
+        w = _r35_turn16(_r35_boot)
+        ex = _r35_executor()
+        with _r35_quiet():
+            levy = get_levy_status(w)
+        gold_before = int(w.nation_gold["France"])
+        massena = w.get_marshal("Massena")
+        men_before = int(massena.strength)
+        result = _r35_do(w, ex, {"raw_input": "recruit infantry in Paris", "action": "recruit",
+                                 "target": "Paris", "requested_type": "infantry"})
+        assert result.get("success"), result.get("message")
+        assert gold_before - int(w.nation_gold["France"]) == levy["infantry_price"]
+        assert int(massena.strength) - men_before == levy["infantry_amount"] == 10000
+
+
+class TestS14GX163:
+    """The Strategic Ledger's "The depots are open: 10,000 foot for 450g"
+    (strategic_ledger.gd reads `infantry_price`) advertised the ordinance's
+    unmodified capital price beside the 518g the same order charged. The status
+    now carries the capital quote's figures where the order would be taken."""
+
+    def test_the_ledgers_figures_are_the_orders(self, _r35_boot):
+        from backend.commands.economy_executor import get_levy_status, recruit_quote
+        from backend.game_logic.ledger import build_strategic_ledger
+        w = _r35_turn16(_r35_boot)
+        with _r35_quiet():
+            quote = recruit_quote(w, "Paris", "infantry", "France")
+            ledger = build_strategic_ledger(w)["economy"]["levy"]
+            status = get_levy_status(w)
+        assert ledger["infantry_price"] == status["infantry_price"] == int(quote["price"]) == 518
+        assert ledger["infantry_amount"] == 10000
+
+    def test_where_the_order_would_be_refused_the_ordinances_figures_stand(self, _r35_boot):
+        from backend.commands.economy_executor import get_levy_status
+        w = _r35_turn16(_r35_boot)
+        w.admin_actions_remaining = 0                       # the quote is no_admin_ap
+        with _r35_quiet():
+            levy = get_levy_status(w)
+        assert levy["capital_quote"]["ok"] is False
+        assert levy["infantry_price"] == 450 and levy["infantry_amount"] == 10000
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# M5 - the Descent's window closed when Spain's sail left
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r35_peace(world, a: str, b: str) -> None:
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    with _r35_quiet():
+        set_diplomatic_state(world, a, b, "PEACE")
+
+
+def _r35_naval_tick(world) -> None:
+    from backend.game_logic import naval as N
+    with _r35_quiet():
+        N.process_naval_turn(world)
+
+
+def _r35_sea_rows(world) -> list:
+    from backend.notifications import NAVAL_STATE_CHANGED
+    return [n for n in world.notifications.get_pending() if n["type"] == NAVAL_STATE_CHANGED]
+
+
+class TestS14GM5:
+    """The old reading (the shipped board, Spain at peace with Britain):
+    "even a success leaves London-Normandy shut — 31 effective against 50, and
+    45 is the least that opens it; staging the camp lifts the blockade and
+    readiness recovers +5/turn to 75" - and the pooled-sail clause had dropped
+    Spain without a word. At readiness 75 the line stands at 39: waiting could
+    never reach 45."""
+
+    def test_the_baseline_is_kept_and_survives_a_save(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_naval_tick(_r35_w)
+        assert N._meta(_r35_w)["pool"] == {"Holland": 12, "Spain": 30}
+        again = _r35_copy(_r35_w)
+        assert N._meta(again)["pool"] == {"Holland": 12, "Spain": 30}
+
+    def test_the_departure_is_announced_once_on_the_rail_and_in_the_dispatch(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_naval_tick(_r35_w)                              # the baseline tick
+        _r35_peace(_r35_w, "Spain", "Britain")
+        queued = len(_r35_w.pending_dispatch_events)
+        _r35_naval_tick(_r35_w)
+        need = N._window_need(N.window_forecast(_r35_w, "France"))
+        sentence = ("Spain's 30 sail no longer count with ours — she has made peace with "
+                    f"Britain. The Grand Diversion's window now needs {need['needed']} "
+                    f"effective; our line stands at {int(need['mover'])}.")
+        assert need["needed"] == 45
+        rows = [r for r in _r35_sea_rows(_r35_w) if r["title"] == "Spain's sail no longer counts"]
+        assert len(rows) == 1
+        assert rows[0]["message"].startswith(sentence), rows[0]["message"]
+        assert "THE ADMIRALTY (press T, then 7" in rows[0]["message"]
+        events = [e for e in _r35_w.pending_dispatch_events[queued:] if e["type"] == "pool_left"]
+        assert len(events) == 1 and events[0]["fog_rule"] == "always"
+        assert events[0]["template_vars"]["line"] == sentence
+        # once: a standing departure says nothing new
+        notes, events_now = len(_r35_sea_rows(_r35_w)), len(_r35_w.pending_dispatch_events)
+        _r35_naval_tick(_r35_w)
+        assert len(_r35_sea_rows(_r35_w)) == notes
+        assert len(_r35_w.pending_dispatch_events) == events_now
+
+    def test_the_dispatch_template_prints_the_line(self, _r35_w):
+        from backend.game_logic import dispatch as D
+        _r35_naval_tick(_r35_w)
+        _r35_peace(_r35_w, "Spain", "Britain")
+        queued = len(_r35_w.pending_dispatch_events)
+        _r35_naval_tick(_r35_w)
+        event = next(e for e in _r35_w.pending_dispatch_events[queued:] if e["type"] == "pool_left")
+        text = D._format_dispatch_event_text("pool_left", event["template_vars"])
+        assert text.startswith("THE FLEET: Spain's 30 sail no longer count with ours — "
+                               "she has made peace with Britain.")
+        assert "pool_left" in D._DIPLOMATIC_EVENT_TEMPLATES
+        assert D._DIPLOMATIC_EVENT_PRIORITY["pool_left"] == "HIGH"
+        assert D.dispatch_event_type_is_renderable("pool_left")
+        with _r35_quiet():
+            dispatch = D.build_morning_dispatch(_r35_w)
+        assert "THE FLEET: Spain's 30 sail" in json.dumps(dispatch, default=str)
+
+    def test_the_remedy_tells_the_ceiling_truth(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_peace(_r35_w, "Spain", "Britain")
+        at_ceiling = int(N.combined_effective(_r35_w, "France", "Britain",
+                                              own_readiness=N.NAVY_DRILL_CEILING))
+        truth = (f"even at readiness 75 our line stands at {at_ceiling}; only more sail, or "
+                 f"an ally at war with Britain, opens it")
+        assert at_ceiling < 45
+        clause = N.window_forecast_clause(_r35_w, "France")
+        assert clause.endswith(f"staging the camp lifts the blockade — but {truth}"), clause
+        assert "+5/turn" not in clause
+        assert N.window_remedy(_r35_w, "France") == f"staging the camp lifts the blockade — but {truth}"
+        assert truth in N.rot_line(_r35_w, "France")
+
+    def test_the_hope_stands_where_waiting_would_do(self, _r35_w):
+        """On the shipped boot (Spain still at war) the window opens, and the
+        remedy keeps its recovery sentence untouched."""
+        from backend.game_logic import naval as N
+        assert N._ceiling_truth(_r35_w, "France") == ""
+        assert N.window_remedy(_r35_w, "France") == (
+            "staging the camp lifts the blockade and readiness recovers +5/turn to 75")
+
+    def test_the_ceiling_arm_is_pure(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_peace(_r35_w, "Spain", "Britain")
+        before = json.dumps(_r35_w.fleets, sort_keys=True, default=str)
+        N.window_forecast_clause(_r35_w, "France")
+        N.window_remedy(_r35_w, "France")
+        N.pooled_sail_clause(_r35_w, "France")
+        assert json.dumps(_r35_w.fleets, sort_keys=True, default=str) == before
+        assert N.META_KEY not in before or '"pool_left"' not in before   # a read creates no record
+
+    def test_the_pooled_clause_names_the_departed_partner_once_and_stops_when_she_returns(
+            self, _r35_w):
+        from backend.game_logic import naval as N
+        before = N.pooled_sail_clause(_r35_w, "France")
+        assert "no longer count" not in before
+        _r35_naval_tick(_r35_w)
+        _r35_peace(_r35_w, "Spain", "Britain")
+        _r35_naval_tick(_r35_w)
+        clause = N.pooled_sail_clause(_r35_w, "France")
+        assert clause.count("Spain's 30 sail no longer count — she has made peace with Britain") == 1
+        assert "(Holland's 12 sail already count)" in clause
+        # the war resumes: she counts again and the record ends
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        with _r35_quiet():
+            set_diplomatic_state(_r35_w, "Spain", "Britain", "WAR")
+        _r35_naval_tick(_r35_w)
+        assert "Spain's 30 sail already count" in N.pooled_sail_clause(_r35_w, "France") or \
+            "Spain" in N.pooled_sail_clause(_r35_w, "France")
+        assert "no longer count" not in N.pooled_sail_clause(_r35_w, "France")
+        assert "pool_left" not in N._meta(_r35_w)
+
+    def test_a_sunk_fleet_is_no_departure_and_peace_with_the_foe_is_silent(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_naval_tick(_r35_w)
+        N.get_fleet(_r35_w, "Spain")["ships"] = 0           # sunk, not parted
+        queued = len(_r35_w.pending_dispatch_events)
+        _r35_naval_tick(_r35_w)
+        assert not [e for e in _r35_w.pending_dispatch_events[queued:] if e["type"] == "pool_left"]
+        w2 = _r35_copy(_r35_w)
+        _r35_peace(w2, "France", "Britain")                 # nothing to pool against
+        queued = len(w2.pending_dispatch_events)
+        _r35_naval_tick(w2)
+        assert not [e for e in w2.pending_dispatch_events[queued:] if e["type"] == "pool_left"]
+        assert N._meta(w2)["pool"] == {}
+
+    def test_a_cause_for_every_way_a_partner_parts(self, _r35_w):
+        from backend.game_logic import naval as N
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        assert N._pool_left_cause(_r35_w, "Spain", ["Britain"]) == "she is no longer our ally in the war"
+        with _r35_quiet():
+            set_diplomatic_state(_r35_w, "Spain", "Britain", "ARMISTICE")
+        assert N._pool_left_cause(_r35_w, "Spain", ["Britain"]) == (
+            "she has agreed an armistice with Britain")
+        _r35_peace(_r35_w, "Spain", "Britain")
+        assert N._pool_left_cause(_r35_w, "Spain", ["Britain"]) == "she has made peace with Britain"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The sweep's siblings
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX62:
+    """The counter-punch muster's stored tooltip kept saying "scout Carniola"
+    after Carniola was scouted, until a corps moved: the stamp fingerprinted
+    the board without the player's intel. Now it folds the intel level of the
+    field and the provinces round it."""
+
+    def test_a_scouting_changes_the_stamp_and_nothing_else_does_not(self, _r35_w):
+        from backend.game_logic.dispatch import counter_punch_muster_stamp
+        _r35_w.calculate_visibility()
+        massena, john = _r35_w.get_marshal("Massena"), _r35_w.get_marshal("ArchdukeJohn")
+        john.location = "Tyrol"
+        stamp = counter_punch_muster_stamp(massena, john, _r35_w)
+        assert counter_punch_muster_stamp(massena, john, _r35_w) == stamp
+        ring = set(_r35_w.get_region("Tyrol").adjacent_regions)
+        assert "Carniola" in ring
+        before = _r35_w.get_region_intel("Carniola").visibility
+        _r35_w.get_region_intel("Carniola").visibility = "partial" if before != "partial" else "full"
+        assert counter_punch_muster_stamp(massena, john, _r35_w) != stamp
+        # a province outside the ring changes nothing
+        stamp2 = counter_punch_muster_stamp(massena, john, _r35_w)
+        far = next(r for r in _r35_w.regions if r not in ring and r != "Tyrol")
+        _r35_w.get_region_intel(far).visibility = "full"
+        assert counter_punch_muster_stamp(massena, john, _r35_w) == stamp2
+
+    def test_the_stamp_reads_adjacency_only(self):
+        from backend.game_logic.dispatch import counter_punch_muster_stamp
+        src = inspect.getsource(counter_punch_muster_stamp)
+        assert "regions.values()" not in src and "world.regions" not in src
+
+
+class TestS14GX152:
+    """The queued `blockade_begins` beat carries `cause` (S14G-32: "The Descent
+    camp (...) was broken, and Britain's squadrons, no longer held home to guard
+    against it, are back on the blockade") and the dispatch template printed
+    none. (The campaign-log one-liner is another builder's.)"""
+
+    _CAUSE = ("The Descent camp (Normandy) was broken, and Britain's squadrons, no longer "
+              "held home to guard against it, are back on the blockade")
+
+    def test_the_dispatch_line_prints_its_cause(self):
+        from backend.game_logic import dispatch as D
+        text = D._format_dispatch_event_text("blockade_begins", {
+            "nation": "France", "blockader": "Britain", "trade_words": "halved",
+            "cause": self._CAUSE})
+        assert text == ("BLOCKADE: Britain closes France's ports. Trade is halved and the fleet "
+                        f"is pinned at anchor, where crews rot. {self._CAUSE}."), text
+
+    def test_a_plain_beginning_and_an_old_beat_read_as_they_did(self):
+        from backend.game_logic import dispatch as D
+        plain = D._format_dispatch_event_text("blockade_begins", {
+            "nation": "France", "blockader": "Britain", "trade_words": "halved"})
+        assert plain == ("BLOCKADE: Britain closes France's ports. Trade is halved and the "
+                         "fleet is pinned at anchor, where crews rot."), plain
+        old = D._format_dispatch_event_text("blockade_begins", {
+            "nation": "France", "blockader": "Britain"})
+        assert old.endswith("Trade is halved and the fleet is pinned at anchor, where crews rot.")
+
+
+def _r35_tired_massena(world):
+    """Massena at Paris, morale low enough that the levy's dilution leaves it
+    under the dawn's 'failing' line but above the danger line."""
+    massena = world.get_marshal("Massena")
+    massena.location = world.get_nation_capital("France")
+    massena.strength = 5000
+    massena.morale = 30
+    return massena
+
+
+class TestS14GX142:
+    """The recruit receipt said "consider drilling before battle" to a corps
+    that cannot drill (fortified; an enemy one province off; in retreat
+    recovery). It reads `drill_refusal` as the dawn line does now."""
+
+    def _recruit(self, world):
+        ex = _r35_executor()
+        return _r35_do(world, ex, {"raw_input": "recruit infantry in Paris", "action": "recruit",
+                                   "target": "Paris", "requested_type": "infantry"})
+
+    def test_a_corps_that_can_drill_is_still_told_to(self, _r35_boot):
+        w = _r35_turn16(_r35_boot)
+        _r35_tired_massena(w)
+        message = self._recruit(w)["message"]
+        assert "consider drilling before battle." in message, message
+
+    def test_a_fortified_corps_is_not(self, _r35_boot):
+        w = _r35_turn16(_r35_boot)
+        massena = _r35_tired_massena(w)
+        massena.fortified = True
+        message = self._recruit(w)["message"]
+        assert "consider drilling" not in message
+        assert "— drill is closed: fortified — unfortify first." in message, message
+
+    def test_a_corps_one_province_from_the_enemy_is_not(self, _r35_boot):
+        w = _r35_turn16(_r35_boot)
+        massena = _r35_tired_massena(w)
+        neighbour = sorted(w.get_region("Paris").adjacent_regions)[0]
+        w.get_marshal("Mack").location = neighbour
+        w.calculate_visibility()
+        message = self._recruit(w)["message"]
+        assert "consider drilling" not in message, message
+        assert "drill is closed:" in message, message
+        assert massena.name == "Massena"
+
+    def test_the_helper_is_the_dawn_lines_predicate(self, _r35_w):
+        from backend.commands.economy_executor import drill_advice_or_reason
+        from backend.game_logic.dispatch import _drill_closed_reason
+        soult = _r35_w.get_marshal("Soult")
+        soult.location = "Paris"                              # quiet ground: the drill would begin
+        assert drill_advice_or_reason(_r35_w, soult, "open.") == "open."
+        soult.fortified = True
+        closed = _drill_closed_reason(_r35_w, soult)
+        assert drill_advice_or_reason(_r35_w, soult, "open.") == closed[0].lower() + closed[1:]
+        soult.fortified = False
+        soult.drilling = True
+        assert drill_advice_or_reason(_r35_w, soult, "open.") == "he is drilling already."
+        assert drill_advice_or_reason(_r35_w, None, "open.") == "open."
+
+
+class TestS14GX143:
+    """The substitutes' rout note said "Drill them before you march." to a corps
+    that cannot drill. On the default boot board Ney stands one province from
+    Mack: the old receipt told him to drill."""
+
+    def _buy(self, world, name: str = "Ney"):
+        ex = _r35_executor()
+        marshal = world.get_marshal(name)
+        marshal.morale = 26                       # one point above the line
+        marshal.strength = 1000                   # so the bought men dominate the average
+        world.nation_gold["France"] = 200_000
+        cmd = {"action": "purchase_levy", "marshal": name, "batches": 1, "type": "specific"}
+        with _r35_quiet():
+            return ex.execute({"action": "purchase_levy", "command": cmd}, {"world": world})
+
+    def test_a_corps_beside_the_enemy_is_not_told_to_drill(self, _r35_w):
+        ney = _r35_w.get_marshal("Ney")
+        from backend.commands.tactical_executor import drill_refusal
+        assert drill_refusal(_r35_w, ney) != ("", "")        # the board's own truth
+        result = self._buy(_r35_w)
+        assert result.get("success"), result.get("message")
+        assert "breaking line" in result["message"]
+        assert "Drill them before you march" not in result["message"], result["message"]
+        assert "Drill is closed:" in result["message"], result["message"]
+
+    def test_a_corps_that_can_drill_is_told_to(self, _r35_w):
+        ney = _r35_w.get_marshal("Ney")
+        ney.location = "Paris"
+        result = self._buy(_r35_w)
+        assert result.get("success"), result.get("message")
+        assert "Drill them before you march." in result["message"], result["message"]
+
+
+class TestS14GX76:
+    """main.gd's league line said "The Balance of Europe (D)" - a bare D types
+    into the command line. It reads the focus-safe form every other card does."""
+
+    def test_the_balance_of_europe_key_hint(self):
+        from backend.ai.counsel import key_hint
+        main = _r35_src("main.gd")
+        assert key_hint("D") == "D, or Alt+D while you type"
+        assert f"The Balance of Europe ({key_hint('D')}) names the price" in main
+        assert "The Balance of Europe (D) names the price" not in main
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The five dispositions, in one place
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestTheMentions:
+    """`DD_B_THIRD_MEASURE_2026_10_25.md` section 8: five mentions, five
+    dispositions."""
+
+    DISPOSITIONS = {
+        1: ("the dispatch's 'Soult, fortify' advice against the order's reply",
+            "FIXED", "TestS14GM1"),
+        2: ("the Switzerland petition recurring", "REFUTED", "TestS14GM2"),
+        3: ("each win's +8 alarm noticed only in the Threat figure", "FIXED", "TestS14GM3"),
+        4: ("'24,382 men waiting at Paris - nobody has gone to collect them'",
+            "FIXED", "TestS14GM4"),
+        5: ("the Descent's window closing on Spain's departure", "FIXED", "TestS14GM5"),
+    }
+
+    def test_five_dispositions_each_with_its_class(self):
+        assert sorted(self.DISPOSITIONS) == [1, 2, 3, 4, 5]
+        module = globals()
+        for _n, (_what, verdict, cls) in self.DISPOSITIONS.items():
+            assert verdict in ("FIXED", "REFUTED")
+            assert cls in module and inspect.isclass(module[cls])
+
+    def test_m1_the_promise_is_the_applied(self, _r35_w):
+        ex = _r35_executor()
+        reply = _r35_fortify(_r35_w, ex, "Soult")["message"]
+        assert "+5% more at the next dawn" in reply
+        _r35_tick(_r35_w)
+        assert _r35_pct(_r35_w.get_marshal("Soult")) == 7
+
+    def test_m2_the_cadence_is_the_constant(self):
+        from backend.game_logic import vassal as V
+        assert V.PETITION_INTERVAL_TURNS == 8
+
+    def test_m3_the_morning_names_the_cause(self, _r35_boot):
+        _w, _attack, end, _y, _b = _r35_morning(_r35_boot)
+        assert "Won a battle +3" in end["morning_dispatch"]["coalition_status"]["threat_delta_line"]
+
+    def test_m4_the_headline_names_the_man(self, _r35_boot):
+        from backend.game_logic.dispatch import _build_headline
+        w = _r35_turn16(_r35_boot)
+        with _r35_quiet():
+            assert "under Massena" in _build_headline(w, "France")["text"]
+
+    def test_m5_spains_departure_is_said(self, _r35_w):
+        from backend.game_logic import naval as N
+        _r35_naval_tick(_r35_w)
+        _r35_peace(_r35_w, "Spain", "Britain")
+        _r35_naval_tick(_r35_w)
+        assert "Spain's 30 sail no longer count — she has made peace with Britain" in (
+            N.pooled_sail_clause(_r35_w, "France"))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row36
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - row 36, the last siblings (October 26, 2026).
+#
+# Six siblings of rows part 2 fixed, each filed under the id the orchestrator
+# renumbers to `S14G-X<m>` from X56. Each class docstring carries the record: the
+# cause as traced, the sighting, what the fix does, what was kept.
+#
+# S14G-X68 - the tutor card's height ignored the command window.
+#   CAUSE. `tutorial_overlay._fit_card_height` bounded the card by the VIEWPORT's
+#   bottom alone (`view.y - _card.offset_top - CARD_MARGIN`), so a card standing
+#   over the command window's columns ran down across a raised reply window
+#   (`MAX_TERMINAL_HEIGHT`, the S14G-15 raise). `region_panel._fit_height` (part
+#   2's row 15) stops at the window's live top edge through `avoid_control`.
+#   THE GEOMETRY (read, not assumed). The window is anchored bottom-left at the HUD
+#   band's left edge plus 10, its width the player's (default 28 % of the viewport,
+#   never under 400, capped by the band); a raise changes its HEIGHT only. The card
+#   is anchored top-right at 40 % of the band (never under 520), or beside the
+#   notice rail while its left edge stays in the band's right half. At the default
+#   sizes the columns are disjoint (1920 wide: window right 548, card left >= 960);
+#   they meet when the player widens the window (the grip lets it reach 1000) or an
+#   Interface Scale shrinks the logical view (1280 wide: window right 1010, card left
+#   752). Then a raised window's top edge is the card's real floor.
+#   FIX. A new `_terminal_limit(view)` is the budget's bottom: the viewport's, or
+#   the window's top edge while it is visible AND its right edge plus `HUD_MARGIN`
+#   passes the card's left edge. `avoid_terminal` (a setter in the `avoid_rail`
+#   pattern, so a raise, a lowering, a drag and a hide re-fit the card) is wired by
+#   main.gd when it chooses and otherwise found as the Main-child sibling
+#   `BottomLeftUI` (the overlay is registered through `dialog_manager`, whose parent
+#   is Main). KEPT: the body's `BODY_MIN_HEIGHT` floor (the last resort the region
+#   panel's `_MIN_CONTENT_H` is too), the width and placement code, the rail.
+#   Player-only presentation: no seam.
+#
+# S14G-X100 - a treaty's corridor served the nation's whole stranded set.
+#   CAUSE. `withdrawal._evacuating_marshals` returns every stranded corps of a
+#   NATION, and the opener (`open_evacuation_corridor`) named, sized and ordered
+#   from all of it - so France-Russia ending a war while Ney stood on Swabian ground
+#   Austria held under HER truce wrote a Russian corridor that named Ney, was sized
+#   by his march and (when his order had been let go) re-ordered him: a road the
+#   Russian frontier has nothing to do with.
+#   FIX (ruled under the standing delegation). ONE seam beside `corridor_applies`:
+#   `withdrawal.stranded_by_pair(world, nation, counterpart, marshal)`. A corps
+#   belongs to a pair's corridor when reading the counterpart's soil as open would
+#   free him; when it would not, and another court's soil read as open alone would,
+#   ANOTHER court's treaty strands him and this pair's corridor leaves him to that
+#   court's; when no single court frees him (the road crosses two frontiers) nobody
+#   is excluded - today's reading. `_evacuating_marshals(..., counterpart)` asks it;
+#   the opener, the window's promotion and the opener's orders pass the pair; the
+#   per-turn judge, the top-up and the desk keep the nation-wide set. Both sides'
+#   treaties walk it (Golden Rule 5). Patched to return True it restores the
+#   nation-wide set byte for byte (the BASELINE_SERIES verdict is in the report).
+#
+# S14G-X155 - the campaign log's `blockade_begins` line printed no cause.
+#   The event carries `cause` since part 2's row 32 (the camp broken, the window
+#   shut); the notice and the beat said it and the record the player reads later did
+#   not. The one-liner now ends ". <cause>" (the cause is a sentence with no full
+#   stop); an event with no cause reads exactly as before.
+#
+# S14G-X153 - the first-open Admiralty line named the reset and not what it brings back.
+#   `first_open._line_admiralty_camp` said "a march out resets the count" and "Her
+#   blockade on you lifts". While the camp is STAGED with a squadron held home it now
+#   carries `naval.camp_holds_off_clause` (the one sentence the march's reply, the
+#   quote and the Admiralty carry) in the shortest lead that fits `LINE_CAP`; any
+#   other state reads as it did.
+#
+# S14G-X78 - "(G)" / "(D key)" / "(R)" / "(L)" with no "press" before them.
+#   Row 16's census was the regex `press <letter>` bare; these strings named the key
+#   in brackets after the screen: `state_desk` (twice), `coalition.league_march_line`,
+#   `diplomatic_templates` (four), `doctrines.boot_line`, `campaign_log.gd`'s close
+#   tooltip. They read `counsel.key_hint` / `surface_pointer` now ("G, or Alt+G while
+#   you type"); the census gains a second regex over every backend string.
+#
+# S14G-X162 - the action probe's listing carried the DD-B instrument's label strip.
+#   `tools/uxr3_action_probe.gd` listed a bracketed glyph link ("[+]") with the empty
+#   text the strip leaves and the whole label's rect. The DD-B instrument's
+#   `_glyph_of` / `_glyph_place` / `_line_of` are ported (text-identical, pinned);
+#   the record gains `glyph`, `on_line`, `placed` and the measured `rect`; the probe's
+#   own click road (`meta_clicked`) is untouched. `tools/iq10_surface_screenshot.gd`
+#   lists no controls and presses no link, so it keeps no strip to port.
+
+_R36_ROOT = Path(__file__).resolve().parents[1]
+_R36_PROJECT = _R36_ROOT / "godot-client" / "project-sovereign"
+_R36_SCRIPTS = _R36_PROJECT / "scripts"
+_R36_SCENARIO = _R36_PROJECT / "assets" / "maps" / "europe_1805.json"
+
+
+def _r36_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _r36_gd(name: str) -> str:
+    return (_R36_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _r36_tool(name: str) -> str:
+    return (_R36_ROOT / "tools" / name).read_text(encoding="utf-8")
+
+
+def _r36_func(src: str, name: str) -> str:
+    """One GDScript function: from its `func` line to the next line that starts
+    in column 0 (a following func, var, const or comment)."""
+    start = src.index(f"func {name}(")
+    m = re.search(r"\n(?=\S)", src[start + 1:])
+    return src[start:start + 1 + m.start()] if m else src[start:]
+
+
+def _r36_without_docstring(body: str) -> str:
+    """A function's text less its first triple-quoted block and its comment
+    lines (two instruments, two sets of comments, one body)."""
+    body = re.sub(r'(?s)"""(.*?)"""', "", body, count=1)
+    kept = [line for line in body.splitlines() if not line.strip().startswith("#")]
+    return chr(10).join(kept)
+
+
+@pytest.fixture(scope="module")
+def _r36_boot():
+    from backend.models.world_state import WorldState
+    with _r36_quiet():
+        return WorldState.from_scenario(str(_R36_SCENARIO))
+
+
+def _r36_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X68 - the tutor card keeps its height above the command window
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r36_limit(view_y: float, view_x: float, term_visible: bool, term_rect, card_offset_left: float,
+               hud_margin: float = 8.0) -> float:
+    """A Python mirror of `_terminal_limit`: (x, y, w, h) for the window."""
+    if term_rect is None or not term_visible:
+        return view_y
+    x, y, w, _h = term_rect
+    card_left = view_x + card_offset_left
+    if x + w + hud_margin <= card_left:
+        return view_y
+    return min(view_y, y)
+
+
+def _r36_card_left(view_x: float, band=None, rail_left=None, card_min=520.0, fraction=0.40,
+                   margin=8.0) -> float:
+    """`_fit_card_width` + `_card_placement` in absolute logical px: the card's
+    left edge, in the corner or beside the rail while it stays in the band's
+    right half."""
+    left, right = band if band else (0.0, view_x)
+    width = min(max((right - left) * fraction, card_min), max(view_x - 2.0 * margin, 0.0))
+    corner = right - margin - width
+    if rail_left is not None:
+        beside = rail_left - margin - width
+        if beside >= (left + right) * 0.5:
+            return beside
+    return corner
+
+
+class TestS14GX68:
+    """OLD reading: `var budget := view.y - _card.offset_top - CARD_MARGIN` - the
+    card ran to the viewport's bottom whatever stood under its columns."""
+
+    SRC = _r36_gd("tutorial_overlay.gd")
+
+    def test_the_budget_stops_at_the_windows_top_and_keeps_its_floor(self):
+        body = _r36_func(self.SRC, "_fit_card_height")
+        assert "var budget := _terminal_limit(view) - _card.offset_top - CARD_MARGIN" in body
+        assert "view.y - _card.offset_top" not in body, "the viewport-only budget is gone"
+        assert "maxf(room, BODY_MIN_HEIGHT)" in body, "the body's floor is the last resort, as before"
+        assert "S14G-X68" in body
+
+    def test_the_limit_is_the_windows_top_only_while_it_stands_under_the_card(self):
+        body = _r36_func(self.SRC, "_terminal_limit")
+        for needle in ("var term := _terminal_control()",
+                       "if term == null or not term.is_visible_in_tree():",
+                       "var rect := term.get_global_rect()",
+                       "var card_left := view.x + _card.offset_left",
+                       "if rect.end.x + Utils.HUD_MARGIN <= card_left:",
+                       "return minf(view.y, rect.position.y)"):
+            assert needle in body, needle
+        # absent / hidden / disjoint -> the viewport's bottom
+        assert body.count("return view.y") == 2
+
+    def test_the_card_follows_the_window_through_a_setter(self):
+        setter = self.SRC[self.SRC.index("var avoid_terminal: Control = null:"):
+                          self.SRC.index("func _on_terminal_changed")]
+        for sig in ("item_rect_changed", "visibility_changed"):
+            assert f"avoid_terminal.{sig}.connect(_on_terminal_changed)" in setter
+            assert f"avoid_terminal.{sig}.disconnect(_on_terminal_changed)" in setter
+        handler = _r36_func(self.SRC, "_on_terminal_changed")
+        assert "_fit_card_height.call_deferred()" in handler
+
+    def test_the_window_is_found_as_the_main_child_sibling(self):
+        body = _r36_func(self.SRC, "_terminal_control")
+        assert 'host.get_node_or_null("BottomLeftUI") as Control' in body
+        assert "var host := get_parent()" in body
+        # ... which is where the overlay lands: dialog_manager.register adds to
+        # ITS parent, and main.gd adds the manager as its own child; the window
+        # is Main's direct child in main.tscn.
+        mgr = (_R36_SCRIPTS / "dialog_manager.gd").read_text(encoding="utf-8")
+        assert "get_parent().add_child(instance)" in mgr
+        main_gd = _r36_gd("main.gd")
+        assert re.search(r"dialog_manager\s*=\s*DialogManager\.new\(\)|dialog_manager\s*=\s*.*\.new\(\)", main_gd)
+        assert "add_child(dialog_manager)" in main_gd
+        tscn = (_R36_PROJECT / "scenes" / "main.tscn").read_text(encoding="utf-8")
+        assert '[node name="BottomLeftUI" type="PanelContainer" parent="."]' in tscn
+        # the card's one door to the window (the row-15 census names this reader)
+        assert self.SRC.count('get_node_or_null("BottomLeftUI")') == 1
+        assert "$BottomLeftUI" not in self.SRC
+
+    def test_the_default_columns_are_disjoint_and_the_widened_window_meets_the_card(self):
+        # default: 1920 wide, Full band: window 28 % (never under 400) from the band's left
+        window_right = 10.0 + max(1920 * 0.28, 400.0)
+        assert _r36_card_left(1920.0) >= window_right + 8.0
+        assert _r36_card_left(1920.0, rail_left=1580.0) >= window_right + 8.0     # beside the rail
+        # the 5120 centred band (2560 wide): the default window is 1000 wide
+        assert _r36_card_left(5120.0, band=(1280.0, 3840.0)) >= 1280.0 + 10.0 + 1000.0 + 8.0
+        # a window the player widened to its 1000 maximum, on a 1280-wide logical view
+        card_left = _r36_card_left(1280.0)
+        assert card_left == 752.0
+        assert 10.0 + 1000.0 + 8.0 > card_left, "the columns meet: the limit engages"
+
+    def test_the_mirror_of_the_limit(self):
+        view_x, view_y = 1280.0, 720.0
+        card_offset_left = _r36_card_left(view_x) - view_x
+        raised = (10.0, 118.0, 1000.0, 592.0)            # a raised 1000-wide window, top at 118
+        assert _r36_limit(view_y, view_x, True, raised, card_offset_left) == 118.0
+        assert _r36_limit(view_y, view_x, False, raised, card_offset_left) == view_y     # hidden
+        assert _r36_limit(view_y, view_x, True, None, card_offset_left) == view_y        # absent
+        narrow = (10.0, 118.0, 400.0, 592.0)             # the default window: right edge 410 < 752
+        assert _r36_limit(view_y, view_x, True, narrow, card_offset_left) == view_y
+        # the engaged limit lowers the budget the way the old reading never did
+        assert _r36_limit(view_y, view_x, True, raised, card_offset_left) < view_y
+
+    def test_every_other_card_door_is_untouched(self):
+        # the width / placement code and the callers of the height fit are as they were
+        assert "_fit_card_height.call_deferred()" in _r36_func(self.SRC, "_on_viewport_changed")
+        assert "_fit_card_height.call_deferred()" in _r36_func(self.SRC, "_on_rail_changed")
+        assert "func _card_placement(" in self.SRC and "func _fit_card_width(" in self.SRC
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X100 - a treaty's corridor serves the corps ITS pair strands
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r36_w(boot, ney_at="Hungary", davout_at="Samogitia"):
+    """The shipped 1805 board with Prussia allied (France's road home through
+    Prussia stays open, so a Russian truce strands only the corps on Russian
+    soil and an Austrian truce only those on Austrian soil): Ney on Austrian
+    ground (Hungary, 4 marches home), Davout on Russian ground (Samogitia, 7).
+    Neither truce is signed yet; every other marshal waits in Paris or at home."""
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    w = _r36_copy(boot)
+    for m in list(w.marshals.values()):
+        if m.nation == "France":
+            m.location = "Paris"
+        elif m.nation in ("Russia", "Austria"):
+            m.location = w.get_nation_capital(m.nation)
+    w.marshals["Ney"].location = ney_at
+    w.marshals["Davout"].location = davout_at
+    w._build_marshal_index()
+    with _r36_quiet():
+        set_diplomatic_state(w, "France", "Prussia", "ALLIANCE")
+    w.event_log = []
+    return w
+
+
+def _r36_truce(w, other):
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    with _r36_quiet():
+        set_diplomatic_state(w, "France", other, "WAR")
+        set_diplomatic_state(w, "France", other, "ARMISTICE")
+
+
+def _r36_beats(w, other):
+    return [e for e in w.event_log
+            if e.get("type") == "evacuation_granted" and other in (e.get("nation_a"), e.get("nation_b"))]
+
+
+class TestS14GX100:
+    """THE SIGHTING (the row 21 sweep): Ney stands on Hungarian ground Austria
+    holds under HER truce; France then ends its war with Russia (Davout stands on
+    Russian ground, Prussia is France's ally). OLD reading: the Russian corridor's
+    beat read "2 corps stand on the wrong side of the new frontier ... Ney is
+    already marching home on the treaty's road", it was sized by the longest of
+    Ney's and Davout's marches, and (his order let go) Ney was re-ordered by the
+    Russian treaty. NEW: the Russian corridor names Davout alone, is sized by his
+    march, and Ney is left to the Austrian truce, whose corridor still names him."""
+
+    def test_the_russian_corridor_names_no_ney_and_the_austrian_one_still_does(self, _r36_boot):
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot)
+        _r36_truce(w, "Austria")
+        [austrian] = _r36_beats(w, "Austria")
+        assert austrian["marshals"] == ["Ney"] and austrian["destinations"].keys() == {"Ney"}
+        ney_order = w.marshals["Ney"].strategic_order
+        assert W.is_road_home_order(ney_order)
+        _r36_truce(w, "Russia")
+        [russian] = _r36_beats(w, "Russia")
+        assert russian["marshals"] == ["Davout"], russian
+        assert set(russian["destinations"]) == {"Davout"}
+        assert "Ney" not in russian["message"], russian["message"]
+        assert "1 corps stands" in russian["message"]
+        # the Austrian truce's road is intact: same order, same grant
+        assert w.marshals["Ney"].strategic_order is ney_order
+        assert "Austria|France" in w.evacuation_grants and "France|Russia" in w.evacuation_grants
+
+    def test_the_corridor_is_sized_by_its_own_corps(self, _r36_boot):
+        """Russia first (Davout, 7 marches), then Austria (Ney, 4): the Austrian
+        corridor is Ney's 4 marches plus the slack, not Davout's 7. OLD: 10."""
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot)
+        _r36_truce(w, "Russia")
+        [russian] = _r36_beats(w, "Russia")
+        home = W.get_home_zone(w, "France")
+        d_dav = W.distance_home(w, w.marshals["Davout"], home)
+        d_ney = W.distance_home(w, w.marshals["Ney"], home)
+        assert (int(d_dav), int(d_ney)) == (7, 4)
+        assert russian["turns"] == d_dav + W.EVACUATION_SLACK_TURNS
+        _r36_truce(w, "Austria")
+        [austrian] = _r36_beats(w, "Austria")
+        assert austrian["marshals"] == ["Ney"], austrian
+        assert austrian["turns"] == d_ney + W.EVACUATION_SLACK_TURNS == 7
+        assert "Davout" not in austrian["message"]
+        assert w.evacuation_grants["Austria|France"] == int(w.current_turn) + 7
+
+    def test_the_treaty_orders_only_the_corps_it_strands_and_the_tick_still_serves_the_rest(self, _r36_boot):
+        """Davout's road-home order let go (the latch cleared): the Austrian
+        treaty must not hand it back - it is the Russian truce's road. The
+        per-turn top-up (`offer_road_home(world, nation)`, nation-wide) does."""
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot)
+        _r36_truce(w, "Russia")
+        davout = w.marshals["Davout"]
+        assert W.is_road_home_order(davout.strategic_order)
+        davout.strategic_order = None
+        davout.road_home_offered = False
+        _r36_truce(w, "Austria")
+        assert davout.strategic_order is None, "the Austrian treaty does not order a Russian-stranded corps"
+        assert W.is_road_home_order(w.marshals["Ney"].strategic_order)
+        offers = W.offer_road_home(w, "France")                    # the tick's nation-wide road
+        assert [o["marshal"] for o in offers] == ["Davout"]
+        assert W.is_road_home_order(davout.strategic_order)
+
+    def test_both_sides_of_the_pair_are_scoped(self, _r36_boot):
+        """Golden Rule 5: the counterpart's corps ride the same filter. Kutuzov on
+        French ground is stranded BY the France-Russia truce (the opener names him
+        beside Davout); Ney, stranded by Austria's, is named by neither side."""
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot)
+        w.marshals["Kutuzov"].location = "Lorraine"
+        w._build_marshal_index()
+        _r36_truce(w, "Austria")
+        _r36_truce(w, "Russia")
+        [russian] = _r36_beats(w, "Russia")
+        assert russian["marshals"] == ["Davout"]       # the beat is told from the player's side
+        with _r36_quiet():
+            summary = W.open_evacuation_corridor(w, "France", "Russia", prior_state="WAR")
+        # Davout marches home; Kutuzov, on French ground with Prussia (at peace
+        # with Russia) between him and home, has no land route even with the
+        # corridor - the opener's honest `cut_off` row - and no single court's
+        # soil frees him, so the Russian side's pair keeps him (today's reading).
+        assert [(m["marshal"], m["nation"]) for m in summary["marching"]] == [("Davout", "France")]
+        assert [(c["marshal"], c["nation"]) for c in summary["cut_off"]] == [("Kutuzov", "Russia")]
+        assert W.stranded_by_pair(w, "Russia", "France", w.marshals["Kutuzov"]) is True
+        assert W.stranded_by_pair(w, "France", "Russia", w.marshals["Ney"]) is False
+        assert W.stranded_by_pair(w, "France", "Austria", w.marshals["Ney"]) is True
+        assert W.stranded_by_pair(w, "France", "France", w.marshals["Ney"]) is True   # no pair, no filter
+        assert W.stranded_by_pair(w, "France", "", w.marshals["Ney"]) is True
+
+    def test_a_road_that_crosses_two_frontiers_names_him_in_both(self, _r36_boot):
+        """Prussia at PEACE (the board's own): Davout on Russian ground needs
+        Russian AND Austrian soil open to get home - no single court frees him, so
+        nobody is excluded (today's reading): both pairs' corridors name him."""
+        from backend.game_logic import withdrawal as W
+        from backend.game_logic.diplomacy import set_diplomatic_state
+        w = _r36_w(_r36_boot)
+        with _r36_quiet():
+            set_diplomatic_state(w, "France", "Prussia", "PEACE")
+        w.event_log = []
+        _r36_truce(w, "Austria")
+        _r36_truce(w, "Russia")
+        davout = w.marshals["Davout"]
+        assert W._stranded_if_open(w, "France", davout.location, "Russia") is True
+        assert W._stranded_if_open(w, "France", davout.location, "Austria") is True
+        assert W.stranded_by_pair(w, "France", "Russia", davout) is True
+        assert W.stranded_by_pair(w, "France", "Austria", davout) is True
+
+    def test_the_counterfactual_is_the_stranded_predicate_with_one_court_opened(self, _r36_boot):
+        """The helper is `is_stranded_at` re-asked with the court's soil read as
+        an ally's: with NO court opened it agrees with the live predicate on every
+        marshal of the board."""
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot)
+        _r36_truce(w, "Austria")
+        _r36_truce(w, "Russia")
+        for name in ("Ney", "Davout", "Soult"):
+            m = w.marshals[name]
+            live = W.is_stranded(w, m, W.get_home_zone(w, "France"))
+            # opening a court that holds nothing near him changes nothing
+            assert W._stranded_if_open(w, "France", m.location, "Sweden") is live, name
+
+    def test_the_window_promotion_serves_only_the_corps_its_pair_strands(self, _r36_boot, monkeypatch):
+        """The Russian peace strands nobody of France's but Ney (Austria's) stands
+        stranded: the opener rolls back and leaves a window; the promotion must not
+        read Ney as the Russian peace's corps (OLD: the window promoted into a
+        Russian corridor sized by his march)."""
+        from backend.game_logic import withdrawal as W
+        w = _r36_w(_r36_boot, davout_at="Paris")
+        _r36_truce(w, "Austria")
+        _r36_truce(w, "Russia")
+        assert "France|Russia" not in w.evacuation_grants
+        assert "France|Russia" in w.corridor_windows, "the peace that stranded nobody still leaves a door"
+        with _r36_quiet():
+            W.process_evacuation_grants(w)
+        assert "France|Russia" not in w.evacuation_grants
+        assert "France|Russia" in w.corridor_windows, "the window keeps waiting"
+        # the seam down: the nation-wide set promotes it, sized by Ney
+        monkeypatch.setattr(W, "stranded_by_pair", lambda *a, **k: True)
+        with _r36_quiet():
+            W.process_evacuation_grants(w)
+        assert "France|Russia" in w.evacuation_grants
+
+    def test_seam_down_is_the_old_reading(self, _r36_boot, monkeypatch):
+        """`stranded_by_pair` held down (True): the Russian corridor names Ney and
+        Davout and counts two corps - the nation-wide set, byte for byte."""
+        from backend.game_logic import withdrawal as W
+        monkeypatch.setattr(W, "stranded_by_pair", lambda *a, **k: True)
+        w = _r36_w(_r36_boot)
+        _r36_truce(w, "Austria")
+        _r36_truce(w, "Russia")
+        [russian] = _r36_beats(w, "Russia")
+        assert sorted(russian["marshals"]) == ["Davout", "Ney"], russian
+        assert "2 corps stand" in russian["message"]
+        assert "Ney is already marching home on the treaty's road" in russian["message"]
+
+    def test_the_series_seam_is_one_module_function_called_by_name(self):
+        """The series arms patch ONE name; every consumer resolves it by global
+        lookup (no alias bound at import)."""
+        import inspect
+        from backend.game_logic import withdrawal as W
+        src = inspect.getsource(W)
+        assert src.count("def stranded_by_pair(") == 1
+        calls = re.findall(r"\bstranded_by_pair\(", src)
+        assert len(calls) == 2, "the definition and the one call in `_evacuating_marshals`"
+        assert "stranded_by_pair as" not in src and "= stranded_by_pair" not in src
+        sig = inspect.signature(W.stranded_by_pair)
+        assert list(sig.parameters) == ["world", "nation", "counterpart", "marshal"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X155 / S14G-X153 - the camp's blockade, in the log and the first-open line
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r36_camp(boot):
+    """Soult at Flanders, Ney at Artois, the count at 2, postures derived: the
+    camp STAGED with Britain held at "guard" (part 2 row 32's board)."""
+    from backend.game_logic import naval
+    w = _r36_copy(boot)
+    for name, where in (("Soult", "Flanders"), ("Ney", "Artois")):
+        w.get_marshal(name).location = where
+    w._build_marshal_index()
+    naval.get_fleet(w, "France")["camp_turns"] = 2
+    naval.derive_ai_postures(w)
+    return w
+
+
+class TestS14GX155:
+    """OLD reading: `BLOCKADE: Britain closes France's ports - trade -50%, crews
+    rot at anchor` with the cause the event carried dropped on the floor."""
+
+    def test_the_line_ends_with_the_cause(self):
+        from backend.campaign_log import format_event_oneliner
+        cause = ("The Descent camp (Flanders, Artois) was broken, and Britain's squadrons, "
+                 "no longer held home to guard against it, are back on the blockade")
+        event = {"type": "blockade_begins", "nation": "France", "blockader": "Britain",
+                 "trade_words": "cut by half", "cause": cause}
+        line = format_event_oneliner(event, "France")
+        assert line == ("BLOCKADE: Britain closes France's ports — trade cut by half, crews rot "
+                        f"at anchor. {cause}"), line
+
+    def test_an_event_with_no_cause_reads_as_it_did(self):
+        from backend.campaign_log import format_event_oneliner
+        for extra in ({}, {"cause": ""}, {"cause": None}):
+            event = {"type": "blockade_begins", "nation": "France", "blockader": "Britain",
+                     "trade_words": "halved", **extra}
+            assert format_event_oneliner(event, "France") == (
+                "BLOCKADE: Britain closes France's ports — trade halved, crews rot at anchor")
+
+    def test_a_cause_with_a_full_stop_does_not_double_it(self):
+        from backend.campaign_log import format_event_oneliner
+        event = {"type": "blockade_begins", "nation": "France", "blockader": "Britain",
+                 "trade_words": "halved", "cause": "The Strait window has closed."}
+        assert format_event_oneliner(event, "France").endswith("at anchor. The Strait window has closed")
+
+    def test_the_real_return_logs_a_line_with_the_cause(self, _r36_boot):
+        """The sighting's road (part 2 row 32): the camp's main body marches out,
+        the posture is re-derived a tick later and the blockade returns. The event
+        the naval tick logs reads in the campaign log with its cause."""
+        from backend.campaign_log import format_event_oneliner
+        from backend.game_logic import naval
+        w = _r36_camp(_r36_boot)
+        w.get_marshal("Soult").location = "Orleanais"
+        w._build_marshal_index()
+        with _r36_quiet():
+            naval.process_naval_turn(w)
+            events = naval.process_naval_turn(w)
+        [begins] = [e for e in events if e.get("type") == "blockade_begins" and e.get("nation") == "France"]
+        assert begins["cause"].startswith("The Descent camp (")
+        line = format_event_oneliner(begins, "France", w)
+        assert line.startswith("BLOCKADE: Britain closes France's ports — trade ")
+        assert line.endswith(begins["cause"]), line
+        assert ". The Descent camp (Flanders" in line
+
+
+class TestS14GX153:
+    """OLD reading (the staged board): "The camp, Sire: 40,000 men on the Channel
+    coast, 2 turns at war with Britain, stage a descent - no order; a march out
+    resets the count. Her blockade on you lifts; a won Diversion can open the
+    Strait for up to 2 turns." - 217 of 220 characters and nothing of what the
+    reset brings back."""
+
+    def test_a_staged_camp_carries_the_clause_within_the_cap(self, _r36_boot):
+        from backend.game_logic import first_open as FO
+        from backend.game_logic import naval
+        w = _r36_camp(_r36_boot)
+        clause = naval.camp_holds_off_clause(w, "France")
+        assert clause.startswith("Britain's squadrons, held home by the camp, go back to the blockade (trade −")
+        line = FO._line_admiralty_camp(w, None)
+        assert clause in line
+        assert "a march out resets the count" in line
+        assert line.startswith("The camp, Sire") and "Sire" in line
+        assert len(line) <= FO.LINE_CAP, (len(line), line)
+        assert line == FO.line_for(w, "admiralty_camp")
+        assert FO.attach({}, w, "admiralty_camp")["first_open"]["line"] == line
+
+    def test_the_lead_falls_back_to_the_shortest_that_fits(self, monkeypatch):
+        from backend.game_logic import first_open as FO
+        long_clause = "x" * (FO.LINE_CAP - 60)
+        monkeypatch.setattr(FO, "_camp_holds_off", lambda world: long_clause)
+        line = FO._line_admiralty_camp(None, None)
+        assert line == f"The camp, Sire: a march out resets the count, and {long_clause}."
+        assert len(line) <= FO.LINE_CAP
+        short = "y" * 60
+        monkeypatch.setattr(FO, "_camp_holds_off", lambda world: short)
+        assert FO._line_admiralty_camp(None, None) == (
+            f"The camp, Sire, is staged — no order; a march out resets the count, and {short}.")
+
+    def test_any_other_state_reads_as_it_did(self, _r36_boot):
+        from backend.game_logic import first_open as FO
+        from backend.game_logic.naval import (
+            DESCENT_CAMP_MIN_TROOPS, DESCENT_CAMP_STAGED_TURNS, WINDOW_TURNS,
+        )
+        old = (f"The camp, Sire: {int(DESCENT_CAMP_MIN_TROOPS):,} men on the Channel "
+               f"coast, {int(DESCENT_CAMP_STAGED_TURNS)} turns at war with Britain, "
+               "stage a descent — no order; a march out resets the count. Her "
+               "blockade on you lifts; a won Diversion can open the Strait for up to "
+               f"{int(WINDOW_TURNS)} turns.")
+        assert FO._line_admiralty_camp(None, None) == old            # no world
+        assert FO._line_admiralty_camp(_r36_copy(_r36_boot), None) == old      # the camp not staged
+        w = _r36_camp(_r36_boot)
+        from backend.game_logic import naval
+        naval.get_fleet(w, "France")["camp_turns"] = 0               # unstaged again
+        naval.derive_ai_postures(w)
+        assert FO._line_admiralty_camp(w, None) == old
+        assert len(old) <= FO.LINE_CAP
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X78 - a screen's key said in brackets with no "press" before it
+# ══════════════════════════════════════════════════════════════════════════
+
+# "(G)" / "(D key)" / "(D, then 7)" - a letter (and "key", or a book's digit)
+# alone in parentheses, with no "press" before it
+_R36_KEY_FORM = re.compile(r"\((?:[TGDLRN])(?: key|, then \d)?\)")
+# the same after a screen's name, in a Godot script's string
+# S14G-X77 (Pre-Deploy S14h part 2, October 26, 2026): and the book's `(D, then N)`
+# form - the .gd census caught `(D)` and `(D key)` only, so two scripts kept
+# `tab (D, then 7)` / `tab (D, then 3)` after the backend's census had them.
+_R36_GD_KEY_FORM = re.compile(r"[A-Za-z]\s\((?:[TGDLRN])(?: key|, then \d)?\)")
+
+
+def _r36_strings(path: Path):
+    """(lineno, text) of every non-docstring string constant of a module."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            body = node.body
+            if (body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant)
+                    and isinstance(body[0].value.value, str)):
+                docstrings.add(id(body[0].value))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                and id(node) not in docstrings):
+            yield node.lineno, node.value
+
+
+class TestS14GX78:
+    """OLD reading: `... on the Generals screen (G) shows both.`, `The Diplomatic
+    Ledger (D key) has the precise figures.`, `the Dispatch (R) names why.`,
+    `The Generals screen (G) shows its strength and its flaw.`, `Close (L)` - the
+    bare key a command line swallows (S14G-16: a bare letter TYPES into the line;
+    only Alt+<key> is intercepted while typing)."""
+
+    def test_the_census_regex_catches_the_old_strings(self):
+        for old in ("His card on the Generals screen (G) shows both.",
+                    "The Diplomatic Ledger (D key) has the precise figures.",
+                    "the Dispatch (R) names why.", "Close (L)",
+                    "her price is her recognition, on the Congress tab (D, then 7)."):
+            assert _R36_KEY_FORM.search(old), old
+        for fine in ("the Generals screen (press G, or Alt+G while you type)",
+                     "Esc closes it (Alt+L while you type)", "Ney (Reliable)",
+                     "tab (press D, then 7; Alt+D, then Alt+7 while you type)"):
+            assert not _R36_KEY_FORM.search(fine), fine
+        assert _R36_GD_KEY_FORM.search("The Balance of Europe (D) names")
+        assert not _R36_GD_KEY_FORM.search("func f(n)")
+        # S14G-X77: the .gd census reads the book's `(D, then N)` form too
+        assert _R36_GD_KEY_FORM.search("the Diplomatic Ledger's CONGRESS tab (D, then 7).")
+        assert _R36_GD_KEY_FORM.search("Balance of Europe tab (D, then 3) tells the sources.")
+        assert not _R36_GD_KEY_FORM.search(
+            "tab (press D, then 7; Alt+D, then Alt+7 while you type)")
+
+    def test_no_backend_string_names_a_key_in_brackets(self):
+        """The census over EVERY backend module (row 16's, second regex)."""
+        bad = []
+        for path in sorted((_R36_ROOT / "backend").rglob("*.py")):
+            for lineno, text in _r36_strings(path):
+                for m in _R36_KEY_FORM.finditer(text):
+                    bad.append((str(path.relative_to(_R36_ROOT)), lineno, text[max(0, m.start() - 40):m.end() + 20]))
+        assert bad == [], bad
+
+    def test_no_godot_string_names_a_key_in_brackets(self):
+        bad = []
+        for path in sorted(_R36_SCRIPTS.glob("*.gd")):
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith("#") or '"""' in line or '"' not in line:
+                    continue
+                for m in _R36_GD_KEY_FORM.finditer(line):
+                    literal = re.search(r'"([^"]*' + re.escape(m.group(0)) + r'[^"]*)"', line)
+                    if literal:
+                        bad.append((path.name, lineno, literal.group(1)[:80]))
+        assert bad == [], bad
+
+    def test_the_trust_answers_point_at_the_generals_screen_with_the_while_typing_form(self, _r36_boot):
+        from backend.ai import state_desk
+        from backend.ai.counsel import surface_pointer
+        w = _r36_copy(_r36_boot)
+        pointer = surface_pointer("marshals")
+        assert pointer == "the Generals screen (press G, or Alt+G while you type)"
+        assert state_desk._obey_tail(w, "Ney").endswith(f" His card on {pointer} shows both.")
+        assert state_desk._answer_trust_all(w).endswith(f" Each card on {pointer} shows why.")
+
+    def test_the_league_beat_points_at_the_dispatch_with_the_while_typing_form(self, _r36_boot):
+        from backend.ai.counsel import key_hint
+        from backend.game_logic import coalition
+        w = _r36_copy(_r36_boot)
+        reading = {"silent": [{"text": "A"}, {"text": "B"}, {"text": "C"}, {"text": "D"}]}
+        line = coalition.league_march_line(w, reading)
+        assert line.endswith(f"also stand off — the Dispatch (press {key_hint('R')}) names why."), line
+        assert "Alt+R or Alt+B while you type" in line
+
+    def test_the_congress_refusers_price_points_at_the_tab_with_the_while_typing_form(self, _r36_boot):
+        """The class sweep's find in the same file: `(D, then 7)` named two bare
+        keys; the book's form is `key_hint('D', then='7')`."""
+        from backend.game_logic import coalition
+        w = _r36_copy(_r36_boot)
+        text = coalition.league_row_detail(w, {"status": coalition.LEAGUE_REFUSES}, {})
+        assert text.endswith("on the Congress tab (press D, then 7; Alt+D, then Alt+7 while you type)."), text
+        assert "(D, then 7)" not in text
+
+    def test_the_four_advisory_templates_point_at_the_ledger(self):
+        from backend.ai.counsel import key_hint
+        from backend.game_logic.diplomatic_templates import DIPLOMATIC_TEMPLATES as T
+        want = f"The Diplomatic Ledger (press {key_hint('D')}) has the precise figures"
+        found = [k for k, v in T.items() if "The Diplomatic Ledger" in v.get("text", "")]
+        assert len(found) == 4, found
+        for key in found:
+            text = T[key]["text"]
+            assert want in text, key
+            assert "(D key)" not in text and "{" not in text.split(want)[1], key
+        assert T[("advisory_recommendation", "any", "any")]["text"].endswith(want + ", Sire.")
+        assert T[("advisory", "PEACE", "any")]["text"].endswith(want + ".")
+
+    def test_the_doctrine_boot_line_points_at_the_generals_screen(self, _r36_boot):
+        from backend.game_logic import doctrines
+        w = _r36_copy(_r36_boot)
+        line = doctrines.boot_line(w, "France")
+        assert line is not None
+        assert line.endswith("The Generals screen (press G, or Alt+G while you type) shows its strength and its flaw."), line
+
+    def test_the_campaign_log_close_tooltip_is_the_screens_own_hint(self):
+        src = _r36_gd("campaign_log.gd")
+        assert 'close_button.tooltip_text = "Esc closes it (Alt+L while you type)"' in src
+        assert 'tooltip_text = "Close (L)"' not in src
+        # the same words the Generals screen and the Ledger use for their close hint
+        assert "Esc closes it (Alt+G while you type)" in _r36_gd("marshal_management.gd")
+        assert "Esc closes it (Alt+T while you type)" in _r36_gd("strategic_ledger.gd")
+
+    def test_the_rows_16_census_still_holds_on_the_new_strings(self):
+        """No new string says `press <letter>` bare (row 16's regex)."""
+        bare = re.compile(r"\b[Pp]ress ([TGDLRN])\b(?!, or Alt\+\1|, then \d; Alt\+\1)")
+        bad = []
+        for rel in ("backend/ai/state_desk.py", "backend/game_logic/coalition.py",
+                    "backend/game_logic/diplomatic_templates.py", "backend/game_logic/doctrines.py"):
+            for lineno, text in _r36_strings(_R36_ROOT / rel):
+                if bare.search(text):
+                    bad.append((rel, lineno, text[:60]))
+        assert bad == [], bad
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X162 - the action probe lists a bracketed glyph link by its glyph and place
+# ══════════════════════════════════════════════════════════════════════════
+
+_R36_PROBE = _r36_tool("uxr3_action_probe.gd")
+_R36_CLIENT = _r36_tool("dd_b_client.gd")
+
+
+def _r36_regex(src: str, name: str):
+    m = re.search(r'var %s := RegEx\.create_from_string\("((?:[^"\\]|\\.)*)"\)' % name, src)
+    assert m, name
+    return m.group(1), re.compile(m.group(1).replace("\\\\", "\\"))
+
+
+class TestS14GX162:
+    """OLD reading: `link["text"] = label.left(80)` with `label` the empty string
+    the tag strip leaves for "[+]", and the whole label's rect - the record named
+    the settlement table's gold [-][+] nothing and located them nowhere."""
+
+    def test_the_label_strip_and_the_press_road_are_unchanged(self):
+        reader = 'var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true)'
+        assert _R36_PROBE.count(reader) == 1
+        assert reader + '.replace("\\u00A0", " ").strip_edges()' in _R36_PROBE
+        press = _r36_func(_R36_PROBE, "_press_and_read")
+        assert '(target as RichTextLabel).emit_signal("meta_clicked", c.get("meta_value", c.get("meta", "")))' in press
+        enum = _r36_func(_R36_PROBE, "_enumerate")
+        for needle in ('link["kind"] = "link"', 'link["class"] = "RichTextLabel [url]"',
+                       'link["meta"] = (meta if meta != "" else label).left(160)',
+                       'link["meta_value"] = meta if meta != "" else m.get_string(2)',
+                       'link["text"] = label.left(80)', 'link["link_index"] = k',
+                       'link["disabled"] = false'):
+            assert needle in enum, needle
+
+    def test_a_glyph_link_is_named_before_it_is_listed(self):
+        enum = _r36_func(_R36_PROBE, "_enumerate")
+        arm = enum.split('link["disabled"] = false', 1)[1].split("out.append(link)", 1)[0]
+        assert 'if label == "":' in arm
+        assert "var glyph := _glyph_of(m.get_string(2))" in arm
+        assert 'if glyph != "":' in arm
+        assert "_glyph_link(rtl, link, m, glyph)" in arm
+        assert "S14G-X162" in arm
+        rec = _r36_func(_R36_PROBE, "_glyph_link")
+        for needle in ('link["glyph"] = glyph', 'link["on_line"] = str(where.get("on_line", ""))',
+                       'link["placed"] = where.has("rect")', 'link["hidden"] = true',
+                       "_glyph_place(rtl, m.get_start(), \"[\" + glyph + \"]\", rtl.get_global_rect())"):
+            assert needle in rec, needle
+        # the measured rect replaces the whole label's only when it was placed
+        assert re.search(r'if where\.has\("rect"\):\n\t\tvar r: Rect2 = where\["rect"\]\n\t\tlink\["rect"\] = \[', rec)
+
+    @pytest.mark.parametrize("name", ["_bbtag_re", "_glyph_re", "_glyph_any_re", "_lead_sym_re", "_ws_re",
+                                      "_url_re", "_tag_re", "_img_re"])
+    def test_the_regexes_are_the_dd_b_instruments(self, name):
+        assert _r36_regex(_R36_PROBE, name)[0] == _r36_regex(_R36_CLIENT, name)[0]
+
+    @pytest.mark.parametrize("name", ["_glyph_of", "_glyph_place", "_line_of", "_indent_of", "_group_name"])
+    def test_the_listing_helpers_are_the_dd_b_instruments_text_for_text(self, name):
+        """The two instruments must read a glyph link the same way (the DD-B
+        player's `click +` and the probe's record): same bodies, docstrings aside."""
+        probe = _r36_without_docstring(_r36_func(_R36_PROBE, name))
+        client = _r36_without_docstring(_r36_func(_R36_CLIENT, name))
+        assert probe == client, name
+
+    def test_the_cap_matches_and_the_nbsp_readers_hold(self):
+        for src in (_R36_PROBE, _R36_CLIENT):
+            assert "const MAX_ICON_LINE := 120" in src
+        # TestUXR3_83's invariant: every parsed-text read is plain-spaced
+        n = _R36_PROBE.count(".get_parsed_text()")
+        assert n > 0 and _R36_PROBE.count('.get_parsed_text().replace("\\u00A0", " ")') == n
+        assert "\u00a0" not in _R36_PROBE, "the escape, not the character, in the source"
+
+    def test_the_settlement_tables_links_are_glyphs_and_a_word_link_is_not(self):
+        """The regexes applied to the table's own bbcode (proposal_confirm_popup):
+        `[url=mag:…:amount:+][+][/url]` carries the glyph "+", the "-" twin "-",
+        a coloured one the same; a word, an image-only and an empty link none."""
+        _bb_src, bbtag = _r36_regex(_R36_PROBE, "_bbtag_re")
+        _img_src, img = _r36_regex(_R36_PROBE, "_img_re")
+        _g_src, glyph_re = _r36_regex(_R36_PROBE, "_glyph_re")
+        url_src, url = _r36_regex(_R36_PROBE, "_url_re")
+
+        def glyph_of(inner: str) -> str:
+            t = bbtag.sub("", img.sub("", inner)).replace("\u00a0", " ").strip()
+            m = glyph_re.search(t)
+            return m.group(1) if m else ""
+
+        bbcode = ("  [url=mag:1:0:amount:-][-][/url][url=mag:1:0:amount:+][+][/url] "
+                  "[url=mag:1:0:turns:+][color=#e0c070][+][/color][/url] [url=do:ok]Accept[/url] "
+                  "[url=x][img=12]icon.svg[/img][/url] [url=y][/url]")
+        found = [(m.group(1), glyph_of(m.group(2))) for m in url.finditer(bbcode)]
+        assert found == [("mag:1:0:amount:-", "-"), ("mag:1:0:amount:+", "+"), ("mag:1:0:turns:+", "+"),
+                         ("do:ok", ""), ("x", ""), ("y", "")]
+
+    def test_the_screenshot_tool_lists_no_control_and_presses_no_link(self):
+        """`tools/iq10_surface_screenshot.gd` has no control listing and no link
+        road, so it keeps no label strip to port."""
+        shot = _r36_tool("iq10_surface_screenshot.gd")
+        for needle in ("_url_re", "meta_clicked", "_enumerate", "_controls("):
+            assert needle not in shot, needle
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · row37
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - the final small items (October 26, 2026): five
+# siblings the part-2 builders filed and left, each one a SENTENCE or a READER.
+#
+# Every one is text and readers only - NO seam: no number the AI's road reads
+# changes, and the 40-turn `BASELINE_SERIES` (a threat series) cannot move.
+#
+# S14G-X164 - the fortify rule the desk prints. `state_desk._rule_text`'s
+# "fortify" paragraph said "(1 action)" - a NEUTRAL corps goes defensive first,
+# so the order costs two (`tactical_executor.insist_terms`, the figure
+# `_execute_fortify` charges and `counsel._fortify_price_tail` prints) - and "its
+# defence rises a little each turn", with no word of the first dawn's front-load
+# (`world_state.FORTIFY_FRONT_LOAD`). Fixed: `_fortify_rule_words` reads both
+# prices through `insist_terms` and the growth through
+# `tactical_executor.fortify_growth_words` for an ordinary marshal: "(2 actions
+# from a neutral stance, 1 action from a defensive one): its defence rises +2%
+# now, +5% more at the next dawn, then +2% a turn, max 12%". The question
+# "what does fortify do?" and the what-if "what happens if I order Davout to
+# fortify" print the same paragraph.
+#
+# S14G-X165 - the map attack card's muster has no alarm clause. The attack
+# preview prints `CombatExecutor._muster_alarm_note` ("A win here adds +3 to
+# Europe's alarm (+5 more if decisive; none on your own soil) - now N/100.",
+# S14G-M3) and the one-line muster of the QUOTE (`order_quotes._muster_line`,
+# the card the region panel and the order card send at once) printed none.
+# Fixed: `order_quotes._alarm_line` stamps `q["alarm"]` on the attack quote (the
+# enemy's province is the field; "" for every other order) and the three readers
+# print it - `order_confirm_card.gd::_terms`, `region_panel.gd::_quote_notes`
+# and the here-chips under a marshal's row (`_here_attack_muster(..., "alarm")`).
+# The note is a field of its own, NOT inside `muster`: the counter-punch rail
+# row stores `muster` beside a stamp, and `_muster_tail` clips it by its dashes.
+#
+# S14G-X166 - `world_state._process_tactical_states`' docstring said "Grows +2%
+# per turn (max 15%), no expiration" - three figures the tick does not follow
+# (the first dawn is +5%, the cap is 12%, the works decay). It now names the
+# constants and functions the tick reads.
+#
+# S14G-X154 - the `blockade_broken` event carried no cause though the notice
+# had `_lift_cause`. Fixed: `naval.process_naval_turn` stamps `cause` on the
+# PLAYER's event and its dispatch beat (the cause is worded "our coast"; an AI
+# court's lift reads as before) and the notice reads the same string; the
+# campaign-log arm and the dispatch fill append it as a sentence of its own.
+#
+# S14G-X77 - two Godot strings kept the old key form: `strategic_ledger.gd`
+# "CONGRESS tab (D, then 7)." and `top_bar.gd` `THREAT_TOOLTIP` "Balance of
+# Europe tab (D, then 3)" (a bare letter TYPES into the command line; only
+# Alt+<key> is intercepted while typing). Both now read the book's form, the
+# census of `test_s14h_p2_row36.py::TestS14GX78` reads the form too.
+#
+# S14G-X167 / X35.6 / X35.7 (round 2, the three the first round filed) - the
+# price of a fortify from NEUTRAL (and a defend from AGGRESSIVE) is two, not the
+# table's one: `state_probe._cost` reads `insist_terms`, so `order_price`, the
+# payload's `order_prices` and the pool refusal agree with the executor, the
+# what-if's header says "2 actions from his neutral stance", the region panel's
+# Fortify chip prices itself ("Fortify (2 AP)") and the counter-punch rail row
+# carries the attack card's alarm clause beside its muster, re-read on every
+# restate while the muster's stamp holds.
+#
+# The board: the shipped 1805 scenario (`WorldState.from_scenario`); the lift's
+# is the boot tick's blockade on France (Britain's squadrons) broken three ways.
+
+_R37_ROOT = Path(__file__).resolve().parents[1]
+_R37_SCENARIO = (_R37_ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                 / "europe_1805.json")
+_R37_SCRIPTS = _R37_ROOT / "godot-client" / "project-sovereign" / "scripts"
+
+
+def _r37_quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _r37_gd(name: str) -> str:
+    return (_R37_SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _r37_func(src: str, name: str) -> str:
+    """The body of GDScript `func name(` up to the next top-level `func`."""
+    head = src.index(f"func {name}(")
+    tail = src.find("\nfunc ", head + 10)
+    tail = src.find("\nstatic func ", head + 10) if tail < 0 else tail
+    return src[head:] if tail < 0 else src[head:tail]
+
+
+@pytest.fixture(scope="module")
+def _r37_boot():
+    from backend.models.world_state import WorldState
+    with _r37_quiet():
+        return WorldState.from_scenario(str(_R37_SCENARIO))
+
+
+def _r37_copy(boot):
+    from backend.models.world_state import WorldState
+    return WorldState.from_dict(json.loads(json.dumps(boot.to_dict(), default=str)))
+
+
+@pytest.fixture
+def _r37_w(_r37_boot):
+    return _r37_copy(_r37_boot)
+
+
+@contextlib.contextmanager
+def _r37_served(world):
+    """Swap the three module globals together and restore them."""
+    import backend.main as M
+    from backend.commands.parser import CommandParser
+    from fastapi.testclient import TestClient
+    saved = (M.game_state["world"], M.world, M.parser)
+    M.game_state["world"] = world
+    M.world = world
+    M.parser = CommandParser(use_real_llm=False)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            yield TestClient(M.app)
+    finally:
+        M.game_state["world"], M.world, M.parser = saved
+
+
+def _r37_executor():
+    from backend.commands.executor import CommandExecutor
+    with _r37_quiet():
+        return CommandExecutor()
+
+
+def _r37_tick(world) -> list:
+    with _r37_quiet():
+        return world._process_tactical_states()
+
+
+def _r37_pct(marshal) -> int:
+    return int(round(float(marshal.defense_bonus) * 100))
+
+
+_R37_SCHEDULE = "+2% now, +5% more at the next dawn, then +2% a turn, max 12%"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X164 - the fortify rule: the price from NEUTRAL and the first dawn
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX164:
+    """OLD reading (the shipped boot, "what does fortify do?"): "Fortify digs
+    the corps in where it stands (1 action): its defence rises a little each
+    turn it holds, up to the marshal's ceiling" - one action (it is two from
+    NEUTRAL, where every corps of ours stands at the boot) and no word of the
+    front-load."""
+
+    def test_the_rule_names_both_prices_and_the_whole_schedule(self, _r37_w):
+        from backend.ai.state_desk import _rule_text
+        text = _rule_text(_r37_w, "fortify", False)
+        assert ("(2 actions from a neutral stance, 1 action from a defensive one): "
+                f"its defence rises {_R37_SCHEDULE}") in text, text
+        assert "(1 action)" not in text and "a little each turn" not in text
+        # the rest of the paragraph is as it was
+        assert "it takes the defensive stance — attacks from the works are 10% weaker" in text
+        assert text.endswith("A counter-punch from the works is free.")
+
+    def test_the_prices_are_the_orders_own_road(self, _r37_w):
+        """Shown == charged: the neutral figure is `insist_terms`' (the figure
+        `_execute_fortify` charges and the counsel's "(2 AP)" prints)."""
+        from backend.ai import counsel
+        from backend.ai.state_desk import _fortify_rule_words
+        from backend.commands.tactical_executor import insist_terms
+        soult = _r37_w.get_marshal("Soult")
+        neutral, defensive, _growth = _fortify_rule_words(_r37_w)
+        assert (neutral, defensive) == (2, 1)
+        assert int(insist_terms(_r37_w, soult, "fortify")[0]) == neutral
+        assert counsel._fortify_price_tail(_r37_w, soult) == f" ({neutral} AP)"
+
+    def test_the_price_is_read_from_the_cost_table_never_a_literal(self, _r37_w):
+        from backend.ai.state_desk import _rule_text
+        _r37_w._action_costs["fortify"] = 2
+        text = _rule_text(_r37_w, "fortify", False)
+        assert "(3 actions from a neutral stance, 2 actions from a defensive one)" in text, text
+
+    def test_the_growth_is_read_from_the_constants_never_a_literal(self, _r37_w, monkeypatch):
+        from backend.ai.state_desk import _rule_text
+        from backend.models import world_state as W
+        monkeypatch.setattr(W, "FORTIFY_FRONT_LOAD", 0.04)
+        text = _rule_text(_r37_w, "fortify", False)
+        assert "+2% now, +4% more at the next dawn, then +2% a turn, max 12%" in text, text
+
+    def test_the_rule_is_the_schedule_an_ordinary_marshal_gets(self, _r37_w):
+        """The order's reply and the tick follow the paragraph's words
+        (Soult, an ordinary kit): +2% now, 7% at the first dawn, 9% after."""
+        ex = _r37_executor()
+        with _r37_quiet():
+            reply = ex._tactical._execute_fortify({"marshal": "Soult", "action": "fortify"},
+                                                  {"world": _r37_w})["message"]
+        assert f"Defense bonus: {_R37_SCHEDULE}." in reply, reply
+        soult = _r37_w.get_marshal("Soult")
+        assert _r37_pct(soult) == 2
+        _r37_tick(_r37_w)
+        assert _r37_pct(soult) == 7
+        _r37_tick(_r37_w)
+        assert _r37_pct(soult) == 9
+
+    def test_the_desk_prints_it_for_the_question_and_the_what_if(self, _r37_w):
+        with _r37_served(_r37_w) as client:
+            plain = client.post("/command", json={"command": "What does fortify do?"}).json()["message"]
+            what_if = client.post("/command", json={
+                "command": "What happens if I order Soult to fortify?"}).json()["message"]
+        for text in (plain, what_if):
+            assert "2 actions from a neutral stance, 1 action from a defensive one" in text, text
+            assert _R37_SCHEDULE in text, text
+            assert "(1 action)" not in text
+        assert what_if.endswith("Nothing has been ordered.")
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X165 - the map attack card's alarm clause
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r37_attack(world):
+    """Ney (Rhineland) against Mack (Swabia): the shipped boot's sighted
+    attack the card quotes (`ok`, kind "attack")."""
+    from backend.commands.order_quotes import attack_quote
+    ney, mack = world.get_marshal("Ney"), world.get_marshal("Mack")
+    with _r37_quiet():
+        return ney, mack, attack_quote(world, ney, mack)
+
+
+class TestS14GX165:
+    """OLD reading (the shipped boot, Ney against Mack): the quote's
+    `muster` ("Berthier adds: ...") priced the odds and `alarm` did not
+    exist - the card that sends at once never said that a win adds +3 to
+    Europe's alarm, while the attack preview and the what-if printed it."""
+
+    def test_the_attack_quote_carries_the_previews_own_alarm_sentence(self, _r37_w):
+        from backend.commands.combat_executor import CombatExecutor
+        w = _r37_w
+        w.threat_level = 70
+        ney, mack, q = _r37_attack(w)
+        assert q["ok"] and q["kind"] == "attack"
+        assert q["alarm"] == ("A win here adds +3 to Europe's alarm (+5 more if decisive; "
+                              "none on your own soil) — now 70/100.")
+        # shown == previewed: the muster preview's alarm_note is this sentence
+        with _r37_quiet():
+            preview = _r37_executor()._combat._build_muster_preview(
+                ney, mack, w, {"world": w}, with_spread=False)
+        assert preview["alarm_note"] == q["alarm"]
+        assert q["alarm"] == CombatExecutor._muster_alarm_note(w, ney, mack.location)
+
+    def test_the_figures_are_the_pipelines_constants_and_the_standing_the_top_bars(self, _r37_w, monkeypatch):
+        from backend.commands import combat_executor as CE
+        monkeypatch.setattr(CE, "BATTLE_WIN_ALARM", 4)
+        monkeypatch.setattr(CE, "DECISIVE_VICTORY_ALARM", 6)
+        _r37_w.threat_level = 41
+        _ney, _mack, q = _r37_attack(_r37_w)
+        assert q["alarm"] == ("A win here adds +4 to Europe's alarm (+6 more if decisive; "
+                              "none on your own soil) — now 41/100.")
+
+    def test_the_note_is_a_field_of_its_own_not_inside_the_muster(self, _r37_w):
+        """The counter-punch rail row stores `muster` beside a stamp and the
+        chip tail clips it by its dashes - the line keeps its shape."""
+        _ney, _mack, q = _r37_attack(_r37_w)
+        assert q["muster"].startswith("Berthier adds: ")
+        assert "alarm" not in q["muster"].lower()
+
+    def test_no_alarm_on_our_own_soil_or_off_the_europe_board(self, _r37_w):
+        w = _r37_w
+        w.get_region("Swabia").controller = "France"
+        assert _r37_attack(w)[2]["alarm"] == ""
+        w.get_region("Swabia").controller = "Austria"
+        assert _r37_attack(w)[2]["alarm"] != ""
+        w.sovereign_map = "legacy"
+        assert _r37_attack(w)[2]["alarm"] == ""
+
+    def test_every_other_order_has_the_key_and_says_nothing(self, _r37_w):
+        """A march & attack says when the muster is read - on ARRIVAL - and the
+        alarm is part of that muster; a plain march, a support carry none."""
+        from backend.commands.order_quotes import attack_quote, march_quote
+        w = _r37_w
+        soult, john = w.get_marshal("Soult"), w.get_marshal("ArchdukeJohn")
+        with _r37_quiet():
+            far = attack_quote(w, soult, john)
+            plain = march_quote(w, soult, "Lorraine")
+        assert far["kind"] == "march_attack" and far["alarm"] == ""
+        assert far["muster"] == f"On arrival Berthier will read the muster at {john.location}."
+        assert plain["alarm"] == ""
+
+    def test_the_quote_for_a_province_carries_it_on_both_rows(self, _r37_w):
+        """The panel's payload (`march_quotes_for_region`): a corps elsewhere
+        and a corps already standing in the province both quote the attack."""
+        from backend.commands.order_quotes import march_quotes_for_region
+        w = _r37_w
+        w.threat_level = 55
+        w.get_marshal("Ney").location = "Swabia"
+        w._build_marshal_index()
+        w.calculate_visibility()
+        with _r37_quiet():
+            payload = march_quotes_for_region(w, "Swabia")
+        row = next(r for r in payload["attack"] if r["enemy"] == "Mack")
+        here = next(q for q in row["here"] if q["marshal"] == "Ney")
+        assert here["ok"] and "now 55/100" in here["alarm"], here
+        # a corps in reach quotes the attack (the alarm); one out of reach quotes the
+        # march that carries it there (the muster, and the alarm, are read on arrival)
+        reach = [q for q in row["quotes"] if q["ok"] and q["kind"] == "attack"]
+        marching = [q for q in row["quotes"] if q["ok"] and q["kind"] == "march_attack"]
+        assert reach and all("now 55/100" in q["alarm"] for q in reach)
+        assert all(q["alarm"] == "" for q in marching)
+        json.dumps(payload)                      # the wire: strings only
+
+    def test_the_three_readers_print_it_beside_the_muster(self):
+        card = _r37_func(_r37_gd("order_confirm_card.gd"), "_terms")
+        assert 'var alarm := str(q.get("alarm", ""))' in card
+        assert card.index('q.get("muster", "")') < card.index('q.get("alarm", "")') < card.index('q.get("contact", "")')
+        assert '"[color=#" + Utils.COLOR_INFO + "]" + alarm + "[/color]"' in card
+        panel_src = _r37_gd("region_panel.gd")
+        notes = _r37_func(panel_src, "_quote_notes")
+        assert 'var alarm := str(q.get("alarm", ""))' in notes
+        assert 'if alarm != "" and str(q.get("kind", "")) == "attack":' in notes
+        assert notes.index("_muster_tail(muster)") < notes.index("notes.append(alarm)") < notes.index('"he may object"')
+        row = _r37_func(panel_src, "_format_marshal_row")
+        assert 'var chip_alarm := _here_attack_muster(m_name, enemy, "alarm")' in row
+        assert row.index("_here_attack_muster(m_name, enemy)") < row.index('"alarm")')
+        assert 'muster_lines.append("Attack " + enemy_shown + ": " + chip_alarm)' in row
+        lookup = _r37_func(panel_src, "_here_attack_muster")
+        assert 'key: String = "muster"' in lookup and "return str(q.get(key, \"\"))" in lookup
+        # the older pins' anchors are untouched
+        assert "_quotes_region != _region" in lookup and 'row.get("here", [])' in lookup
+
+    def test_the_panel_keeps_the_march_quote_line_order(self):
+        """`naval._MARCH_QUOTE_LINES` is `_quote_notes`'s first keys - the alarm
+        comes after them all (row 29's pin)."""
+        from backend.game_logic import naval
+        body = _r37_func(_r37_gd("region_panel.gd"), "_quote_notes")
+        keys = re.findall(r'str\(q\.get\("(\w+)"', body)
+        assert tuple(keys[:len(naval._MARCH_QUOTE_LINES)]) == naval._MARCH_QUOTE_LINES, keys
+        assert "alarm" not in naval._MARCH_QUOTE_LINES
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X166 - the tactical tick's docstring says what the tick does
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX166:
+    """OLD reading: "FORTIFY: Grows +2% per turn (max 15%), no expiration" -
+    the first dawn is +5% (`FORTIFY_FRONT_LOAD`), the ordinary cap is 12%
+    (`get_max_fortify_bonus`) and the works decay (`FORTIFY_DECAY_CONFIG`)."""
+
+    def test_the_docstring_names_the_constants_by_name(self):
+        from backend.models.world_state import WorldState
+        doc = inspect.getdoc(WorldState._process_tactical_states)
+        assert "max 15%" not in doc and "no expiration" not in doc
+        for name in ("FORTIFY_FRONT_LOAD", "get_instant_fortify_bonus", "get_fortify_rate",
+                     "get_max_fortify_bonus", "FORTIFY_DECAY_CONFIG", "fortify_growth_words"):
+            assert name in doc, name
+
+    def test_every_name_it_cites_exists(self):
+        from backend.commands import tactical_executor
+        from backend.models import personality_modifiers, world_state
+        assert world_state.FORTIFY_FRONT_LOAD == 0.05
+        assert isinstance(world_state.FORTIFY_DECAY_CONFIG, dict)
+        for fn in ("get_instant_fortify_bonus", "get_fortify_rate", "get_max_fortify_bonus"):
+            assert callable(getattr(personality_modifiers, fn))
+        assert callable(tactical_executor.fortify_growth_words)
+
+    def test_the_tick_does_what_the_docstring_says(self, _r37_w):
+        """An ordinary marshal: +2% at the order, +5% at the first dawn, +2% a
+        turn after, stopping at 12%."""
+        soult = _r37_w.get_marshal("Soult")
+        soult.fortified = True
+        soult.defense_bonus = 0.02
+        seen = []
+        for _ in range(6):
+            _r37_tick(_r37_w)
+            seen.append(_r37_pct(soult))
+        assert seen == [7, 9, 11, 12, 12, 12], seen
+
+    def test_the_block_comment_in_the_tick_no_longer_quotes_the_old_figures(self):
+        src = inspect.getsource(__import__("backend.models.world_state", fromlist=["x"]).WorldState._process_tactical_states)
+        assert "Others +2%/turn, max 15%" not in src
+        assert "0.10-0.20 depending on personality" not in src
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X154 - the blockade's lift names its cause everywhere
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r37_naval_tick(world) -> list:
+    from backend.game_logic import naval
+    with _r37_quiet():
+        return naval.process_naval_turn(world)
+
+
+def _r37_lifted(world, how: str):
+    """The boot's first tick blockades France (Britain's squadrons); `how`
+    breaks it before the second tick. Returns (the tick's events, the world)."""
+    from backend.game_logic import naval
+    _r37_naval_tick(world)
+    assert "France" in naval.blockaded_nations(world)
+    if how == "peace":
+        world.diplomatic_states[world._make_diplo_key("Britain", "France")] = "PEACE"
+        world.invalidate_active_nations_cache()
+    elif how == "called_home":
+        for name, where in (("Soult", "Flanders"), ("Ney", "Artois")):
+            world.get_marshal(name).location = where
+        world._build_marshal_index()
+        naval.get_fleet(world, "France")["camp_turns"] = 2
+    elif how == "our_fleet":
+        naval.get_fleet(world, "France")["ships"] = 200
+    return _r37_naval_tick(world)
+
+
+_R37_CAUSES = {
+    "peace": "The peace with Britain lifts the blockade",
+    "called_home": "Britain's squadrons have been called home to guard her own waters",
+    "our_fleet": "Our fleet now holds Britain's squadrons off our coast",
+}
+
+
+class TestS14GX154:
+    """OLD reading (the boot, the peace with Britain signed after the first
+    tick): the notice read "The peace with Britain lifts the blockade: our
+    trade runs whole again ..." and the event, the dispatch beat and the log
+    line read "The blockade of France is broken - her ports breathe again" and
+    nothing more."""
+
+    @pytest.mark.parametrize("how", sorted(_R37_CAUSES))
+    def test_the_event_the_beat_the_log_and_the_notice_say_one_cause(self, _r37_w, how):
+        from backend.campaign_log import format_event_oneliner
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        cause = _R37_CAUSES[how]
+        events = _r37_lifted(_r37_w, how)
+        [broken] = [e for e in events if e.get("type") == "blockade_broken" and e.get("nation") == "France"]
+        assert broken["cause"] == cause
+        [beat] = [e for e in _r37_w.pending_dispatch_events
+                  if e["type"] == "blockade_broken" and e["template_vars"]["nation"] == "France"]
+        assert beat["template_vars"]["cause"] == cause
+        assert _format_dispatch_event_text("blockade_broken", beat["template_vars"]) == (
+            "The blockade of France is broken — her ports breathe, her crews may drill "
+            f"again. {cause}.")
+        assert format_event_oneliner(broken, player_nation="France") == (
+            f"The blockade of France is broken — her ports breathe again. {cause}")
+        [note] = [n for n in _r37_w.notifications._pending
+                  if (n.get("details") or {}).get("kind") == "blockade_lifted"]
+        assert note["message"].startswith(f"{cause}: our trade runs whole again")
+
+    def test_a_court_the_player_does_not_command_reads_as_before(self, _r37_w):
+        """Holland and Spain lift in the called-home case too: the cause is
+        worded "our coast", so only the player's event carries it."""
+        from backend.campaign_log import format_event_oneliner
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        events = _r37_lifted(_r37_w, "called_home")
+        others = [e for e in events if e.get("type") == "blockade_broken" and e["nation"] != "France"]
+        assert {e["nation"] for e in others} >= {"Holland", "Spain"}
+        for e in others:
+            assert "cause" not in e
+            assert format_event_oneliner(e, player_nation="France") == (
+                f"The blockade of {_r37_shown(e['nation'])} is broken — her ports breathe again")
+        beats = [b for b in _r37_w.pending_dispatch_events
+                 if b["type"] == "blockade_broken" and b["template_vars"]["nation"] != "France"]
+        assert beats
+        for b in beats:
+            assert "cause" not in b["template_vars"]
+            text = _format_dispatch_event_text("blockade_broken", b["template_vars"])
+            assert text.endswith("her crews may drill again.")
+
+    def test_a_beat_queued_before_the_cause_existed_reads_as_it_did(self):
+        from backend.game_logic.dispatch import _format_dispatch_event_text
+        assert _format_dispatch_event_text("blockade_broken", {"nation": "France"}) == (
+            "The blockade of France is broken — her ports breathe, her crews may drill again.")
+
+    def test_the_gazette_prints_the_log_line_so_it_carries_the_cause_too(self):
+        src = (_R37_ROOT / "backend" / "game_logic" / "gazette.py").read_text(encoding="utf-8")
+        assert "format_event_oneliner(e, player_nation=world.player_nation" in src
+        assert '"blockade_broken"' in src
+
+
+def _r37_shown(nation: str) -> str:
+    from backend.display_names import display_nation
+    return display_nation(nation)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# S14G-X77 - the last two `(D, then N)` strings in the Godot scripts
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestS14GX77:
+    """OLD reading: `... on the Diplomatic Ledger's CONGRESS tab (D, then 7).`
+    (strategic_ledger.gd) and `... Balance of Europe tab (D, then 3) tells the
+    sources.` (top_bar.gd THREAT_TOOLTIP) - a bare letter TYPES into the line."""
+
+    def test_the_ledger_line_reads_the_books_form(self):
+        from backend.ai.counsel import key_hint
+        src = _r37_gd("strategic_ledger.gd")
+        want = f"CONGRESS tab (press {key_hint('D', then='7')})."
+        assert want == "CONGRESS tab (press D, then 7; Alt+D, then Alt+7 while you type)."
+        assert want in src
+        assert "(D, then 7)" not in src
+
+    def test_the_threat_tooltip_reads_the_books_form(self):
+        from backend.ai.counsel import key_hint
+        src = _r37_gd("top_bar.gd")
+        want = f"Balance of Europe tab (press {key_hint('D', then='3')}) tells the sources."
+        assert want in src
+        tooltip = next(line for line in src.splitlines() if line.startswith("const THREAT_TOOLTIP"))
+        assert "(D, then 3)" not in tooltip and "Alt+D, then Alt+3 while you type" in tooltip
+
+    def test_no_script_and_no_backend_string_keeps_the_bare_then_form(self):
+        bare = re.compile(r"[A-Za-z]\s\((?:[TGDLRN]), then \d\)")
+        bad = []
+        for path in sorted(_R37_SCRIPTS.glob("*.gd")):
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if line.strip().startswith("#"):
+                    continue
+                if bare.search(line):
+                    bad.append((path.name, lineno))
+        for path in sorted((_R37_ROOT / "backend").rglob("*.py")):
+            text = path.read_text(encoding="utf-8")
+            for m in re.finditer(r"""["'][^"'\n]*[A-Za-z]\s\((?:[TGDLRN]), then \d\)[^"'\n]*["']""", text):
+                bad.append((path.name, m.group(0)[:60]))
+        assert bad == [], bad
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Round 2 (the coordinator's follow-up): X35.5, X35.6, X35.7 - the three the
+# first round filed. Text, probes and readers only: NO seam (the probe is
+# player-facing, the AI never reads a chip; the rail row is display).
+# ══════════════════════════════════════════════════════════════════════════
+
+def _r37_stanced(world, name: str, stance):
+    marshal = world.get_marshal(name)
+    marshal.stance = stance
+    return marshal
+
+
+def _r37_ask(world, line: str) -> str:
+    with _r37_served(world) as client:
+        return str(client.post("/command", json={"command": line}).json().get("message") or "")
+
+
+class TestS14GX167:
+    """OLD reading (the shipped boot, Davout NEUTRAL): `state_probe.order_price`
+    read the cost TABLE - 1 - for a fortify from NEUTRAL and a defend from
+    AGGRESSIVE, while `_execute_fortify` / `_execute_defend` charge two (and,
+    with one action left, REFUSE: "Fortifying from neutral stance requires 2
+    actions ... only 1 remaining"). The what-if's header read "Davout would
+    fortify at Rhineland today, Sire - 1 action." over the rule text that says
+    two from neutral; `tactical_state.order_prices.fortify` (the chips and the
+    Generals card), "what can Soult do?" and "can Soult fortify?" all said 1.
+    Fixed at the ONE reader (`state_probe._cost`, which `order_price` and the
+    pool refusal both read) through `tactical_executor.insist_terms` - the road
+    `counsel._fortify_price_tail` prints - and the what-if names the reason."""
+
+    def test_the_probe_prices_what_the_executor_charges(self, _r37_w):
+        from backend.commands.state_probe import order_price, order_prices
+        from backend.commands.tactical_executor import insist_terms
+        from backend.models.marshal import Stance
+        w = _r37_w
+        for name, stance, verb, want in (
+                ("Soult", Stance.NEUTRAL, "fortify", 2), ("Soult", Stance.DEFENSIVE, "fortify", 1),
+                ("Soult", Stance.AGGRESSIVE, "defend", 2), ("Soult", Stance.NEUTRAL, "defend", 1)):
+            marshal = _r37_stanced(w, name, stance)
+            assert order_price(w, marshal, verb) == want, (stance, verb)
+            assert order_prices(w, marshal)[verb] == want
+            assert order_price(w, marshal, verb) == int(insist_terms(w, marshal, verb)[0])
+
+    @pytest.mark.parametrize("stance_name, verb, spends", [
+        ("NEUTRAL", "fortify", 2), ("DEFENSIVE", "fortify", 1),
+        ("AGGRESSIVE", "defend", 2), ("NEUTRAL", "defend", 1)])
+    def test_the_price_is_what_the_executor_spends(self, _r37_w, stance_name, verb, spends):
+        """Shown == charged: the executor, run on the same board, spends it."""
+        from backend.commands.state_probe import order_price
+        from backend.models.marshal import Stance
+        w = _r37_w
+        soult = _r37_stanced(w, "Soult", Stance[stance_name])
+        w.actions_remaining = 4
+        quoted = order_price(w, soult, verb)
+        with _r37_quiet():
+            reply = _r37_executor().execute(
+                {"command": {"raw_input": f"Soult, {verb}", "marshal": "Soult", "action": verb}},
+                {"world": w})
+        assert reply.get("success"), reply.get("message")
+        assert 4 - int(w.actions_remaining) == quoted == spends
+
+    def test_with_one_action_left_the_probe_refuses_where_the_executor_refuses(self, _r37_w):
+        """The pool refusal reads the same price: a NEUTRAL fortify and an
+        AGGRESSIVE defend need two (the chip dims "needs 2 actions - 1 left");
+        a DEFENSIVE fortify and a NEUTRAL defend still stand."""
+        from backend.commands.state_probe import order_state_refusal
+        from backend.models.marshal import Stance
+        for stance, verb, refused in ((Stance.NEUTRAL, "fortify", True), (Stance.DEFENSIVE, "fortify", False),
+                                      (Stance.AGGRESSIVE, "defend", True), (Stance.NEUTRAL, "defend", False)):
+            w = _r37_copy(_r37_boot_world())
+            soult = _r37_stanced(w, "Soult", stance)
+            w.actions_remaining = 1
+            why = order_state_refusal(w, soult, verb)
+            with _r37_quiet():
+                reply = _r37_executor().execute(
+                    {"command": {"raw_input": f"Soult, {verb}", "marshal": "Soult", "action": verb}},
+                    {"world": w})
+            assert bool(why) is refused, (stance, verb, why)
+            assert (not reply.get("success")) is refused, (stance, verb, reply.get("message"))
+            if refused:
+                assert why == "needs 2 actions — 1 left"
+
+    def test_the_what_if_header_agrees_with_the_rule_for_a_neutral_and_a_defensive_corps(self, _r37_w):
+        from backend.models.marshal import Stance
+        w = _r37_w
+        line = "What happens if I order Davout to fortify in the Rhineland?"
+        neutral = _r37_ask(w, line)
+        assert neutral.startswith("Davout would fortify at Rhineland today, Sire — "
+                                  "2 actions from his neutral stance. Fortify digs the corps in"), neutral
+        assert "(2 actions from a neutral stance, 1 action from a defensive one)" in neutral
+        _r37_stanced(w, "Davout", Stance.DEFENSIVE)
+        defensive = _r37_ask(w, line)
+        assert defensive.startswith("Davout would fortify at Rhineland today, Sire — 1 action. "), defensive
+        assert "from his" not in defensive.split("Fortify digs")[0]
+
+    def test_a_defend_from_aggressive_says_why_it_costs_two(self, _r37_w):
+        from backend.models.marshal import Stance
+        w = _r37_w
+        assert _r37_ask(w, "What happens if Ney defends?").startswith(
+            "Ney would defend at Rhineland today, Sire — 1 action.")
+        _r37_stanced(w, "Ney", Stance.AGGRESSIVE)
+        assert _r37_ask(w, "What happens if Ney defends?").startswith(
+            "Ney would defend at Rhineland today, Sire — 2 actions from his aggressive stance.")
+
+    def test_the_other_readers_of_the_probe_carry_the_number(self, _r37_w):
+        """The options list and the can-question read the same price (the
+        number; the reason rides the what-if)."""
+        w = _r37_w
+        assert "fortify (2 actions)" in _r37_ask(w, "What can Soult do?")
+        assert "it costs 2 actions" in _r37_ask(w, "Can Soult fortify?")
+
+    def test_the_payload_the_chips_read_carries_it(self, _r37_w):
+        from backend.models.marshal import Stance
+        w = _r37_w
+        _r37_stanced(w, "Davout", Stance.DEFENSIVE)
+        prices = _r37_payload_prices(w)
+        assert prices["Soult"]["fortify"] == 2 and prices["Davout"]["fortify"] == 1
+        assert all(isinstance(v, int) for p in prices.values() for v in p.values())
+
+
+def _r37_boot_world():
+    from backend.models.world_state import WorldState
+    with _r37_quiet():
+        return WorldState.from_scenario(str(_R37_SCENARIO))
+
+
+def _r37_payload_prices(world) -> dict:
+    """`tactical_state.order_prices` per player marshal, as the map payload ships it."""
+    summary = world.get_filtered_game_state_summary()
+    prices = {}
+    for region in summary["map_data"].values():
+        for m in region.get("marshals", []):
+            tactical = m.get("tactical_state")
+            if isinstance(tactical, dict):
+                prices[m["name"]] = tactical.get("order_prices")
+    return prices
+
+
+class TestS14GX168:
+    """OLD reading: the region panel's Fortify chip read "Fortify" and sent
+    `<Name>, fortify` - the corps standing NEUTRAL paid two, unquoted (the Hold
+    chip beside it carried "(2 AP)"). The chip's handler is the typed command
+    (`order:fortify:<name>` -> `<Name>, fortify`); there is no separate quote,
+    so the price is the payload's `tactical_state.order_prices.fortify` - now
+    the executor's own figure (S14G-X167)."""
+
+    def test_the_payload_prices_each_corps_by_its_stance(self, _r37_w):
+        prices = _r37_payload_prices(_r37_w)
+        assert prices, "no player marshal rode the map payload"
+        assert all(p["fortify"] == 2 for p in prices.values()), prices      # the boot: every corps NEUTRAL
+
+    def test_the_chip_label_reads_the_payload_price(self):
+        src = _r37_gd("region_panel.gd")
+        row = _r37_func(src, "_format_marshal_row")
+        arm = row[row.index('elif fortify_why == "":'):row.index("# CN-4: the Drill chip")]
+        assert 'var fortify_prices = tactical.get("order_prices", {})' in arm
+        assert 'int(fortify_prices.get("fortify", 0)) > 0' in arm
+        assert 'fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"' in arm
+        # the chip's command expression is the census's pinned text - untouched
+        assert 'Utils.bb_button_chip("order:fortify:" + m_name, fortify_label, Utils.COLOR_COMMAND, _CHIP_BG)' in arm
+        # a dimmed Fortify keeps its bare label (the CN-4 census reads it)
+        assert 'dimmed.append(["Fortify", fortify_why])' in row
+        assert "S14G-X168" in arm
+
+    def test_no_literal_price_is_kept_in_the_script(self):
+        arm = _r37_func(_r37_gd("region_panel.gd"), "_format_marshal_row")
+        arm = arm[arm.index('elif fortify_why == "":'):arm.index("# CN-4: the Drill chip")]
+        assert '"Fortify (' not in arm and '(2 AP)' not in arm and '(1 AP)' not in arm
+
+    def test_the_chip_sends_the_typed_fortify_the_price_is_for(self, _r37_w):
+        """The order the chip sends is `<Name>, fortify` and it spends what the
+        label says (`order_prices.fortify`)."""
+        src = _r37_gd("region_panel.gd")
+        assert 'meta_str.begins_with("order:")' in src
+        w = _r37_w
+        w.actions_remaining = 4
+        quoted = _r37_payload_prices(w)["Soult"]["fortify"]
+        with _r37_quiet():
+            reply = _r37_executor().execute(
+                {"command": {"raw_input": "Soult, fortify", "marshal": "Soult", "action": "fortify"}},
+                {"world": w})
+        assert reply.get("success") and 4 - int(w.actions_remaining) == quoted == 2
+
+
+def _r37_counter_punch_board(world):
+    """Davout (cautious) at Rhineland with Mack one hop off at Swabia, a
+    counter-punch earned - the S14E-X147 board - and the row posted as the
+    combat seam posts it."""
+    davout = world.get_marshal("Davout")
+    davout.counter_punch_available = True
+    davout.counter_punch_turns = 1
+    world.calculate_visibility()
+    with _r37_quiet():
+        _r37_executor()._combat._process_combat_notifications(
+            {"counter_punch_earned": True}, world.get_marshal("Mack"), davout, world)
+    return davout, world.get_marshal("Mack")
+
+
+def _r37_rows(world) -> list:
+    from backend.notifications import COUNTER_PUNCH_EARNED
+    return [n for n in world.notifications.get_pending() if n.get("type") == COUNTER_PUNCH_EARNED]
+
+
+def _r37_rail(world) -> list:
+    """The rail as every response ships it (the restate included)."""
+    import backend.main as M
+    from backend.notifications import COUNTER_PUNCH_EARNED
+    with _r37_quiet():
+        notes = M._pending_notifications(world)
+    return [n for n in notes if n.get("type") == COUNTER_PUNCH_EARNED]
+
+
+class TestS14GX169:
+    """OLD reading (the S14E-X147 board): the rail row's button tooltip carried
+    Berthier's one-line muster and none of the map attack card's second line
+    (S14G-X165) - "A win here adds +3 to Europe's alarm ... now N/100."
+    Fixed: `_add_counter_punch_muster` stores the clause beside the muster at
+    row creation and `_carry_counter_punch_muster` READS IT AGAIN on every
+    restate while the stamp holds (the standing moves when a win lands
+    mid-turn; a figure stored at creation would be the stale one beside a
+    button) - never a rebuild of the muster. When the stamp lets the muster go,
+    the alarm goes with it: the plain row."""
+
+    def test_the_row_carries_the_cards_two_lines(self, _r37_w):
+        from backend.commands.order_quotes import attack_quote
+        w = _r37_w
+        w.threat_level = 70
+        davout, mack = _r37_counter_punch_board(w)
+        quote = attack_quote(w, davout, mack)
+        [row] = _r37_rows(w)
+        details = row["details"]
+        assert details["muster"] == quote["muster"] and details["alarm"] == quote["alarm"]
+        assert "now 70/100" in details["alarm"]
+        assert details["action_detail"].endswith(f"{quote['muster']} {quote['alarm']}")
+        assert details["action_detail"].startswith(
+            "Mack stands within reach at Swabia. The strike costs no action and expires when this turn ends.")
+
+    def test_the_first_read_of_the_rail_keeps_it(self, _r37_w):
+        w = _r37_w
+        w.threat_level = 41
+        _r37_counter_punch_board(w)
+        [row] = _r37_rail(w)
+        assert row["details"]["action_detail"].endswith("now 41/100.")
+        assert row["details"]["alarm"].endswith("now 41/100.")
+
+    def test_a_win_that_moves_the_standing_refreshes_the_clause_not_the_muster(self, _r37_w, monkeypatch):
+        """The refresh: the threat figure follows the rail's next read, the
+        muster is the stored line (the muster's source is called zero times)."""
+        from backend.commands.combat_executor import CombatExecutor
+        w = _r37_w
+        w.threat_level = 41
+        _r37_counter_punch_board(w)
+        first = _r37_rail(w)[0]
+        calls = []
+        real = CombatExecutor._contact_muster_note
+        monkeypatch.setattr(CombatExecutor, "_contact_muster_note",
+                            lambda self, *a, **k: calls.append(1) or real(self, *a, **k))
+        w.threat_level = 49
+        row = _r37_rail(w)[0]
+        assert calls == []
+        assert row["id"] == first["id"]
+        assert row["details"]["muster"] == first["details"]["muster"]
+        assert "now 49/100" in row["details"]["alarm"] and "now 41/100" not in row["details"]["action_detail"]
+        assert row["details"]["action_detail"].endswith("now 49/100.")
+
+    def test_a_board_change_lets_the_muster_and_the_alarm_go_together(self, _r37_w):
+        w = _r37_w
+        _r37_counter_punch_board(w)
+        mover = next(m for m in w.get_player_marshals()
+                     if m.name not in ("Davout", "Mack") and int(m.strength) > 0)
+        mover.location = "Normandy" if mover.location != "Normandy" else "Brittany"
+        w._build_marshal_index()
+        [row] = _r37_rail(w)
+        assert row["details"]["action_command"] == "Davout, attack Mack"
+        assert "Berthier" not in row["details"]["action_detail"]
+        assert "alarm" not in row["details"] and "muster" not in row["details"]
+        assert "Europe's alarm" not in row["details"]["action_detail"]
+
+    def test_our_own_soil_adds_no_clause(self, _r37_w):
+        w = _r37_w
+        w.get_region("Swabia").controller = "France"
+        _r37_counter_punch_board(w)
+        [row] = _r37_rail(w)
+        assert "muster" in row["details"] and "alarm" not in row["details"]
+        assert "Europe's alarm" not in row["details"]["action_detail"]
+
+    def test_the_restate_body_still_never_reads_the_muster_and_the_dawn_note_carries_none(self, _r37_w):
+        from backend.game_logic import dispatch
+        body = inspect.getsource(dispatch.restate_counter_punch_notices)
+        assert "_muster_line" not in body and "_alarm_line" not in body
+        carry = inspect.getsource(dispatch._carry_counter_punch_muster)
+        assert "_alarm_line" in carry and "_muster_line" not in carry
+        davout, _mack = _r37_counter_punch_board(_r37_w)
+        plain = dispatch.counter_punch_notice(davout, _r37_w)
+        assert "alarm" not in plain["details"] and "muster" not in plain["details"]
+
+    def test_the_stored_row_round_trips_through_a_save(self, _r37_w):
+        from backend.models.world_state import WorldState
+        w = _r37_w
+        _r37_counter_punch_board(w)
+        again = WorldState.from_dict(json.loads(json.dumps(w.to_dict(), default=str)))
+        [row] = _r37_rows(again)
+        assert "Europe's alarm" in row["details"]["alarm"]
+        assert isinstance(row["details"]["muster_stamp"], int)
+
+
+class TestS14GX170:
+    """S14G-X170 (the sweep of X35.6's class): the Generals card's own Fortify
+    chip (`marshal_management.gd`, the per-card order chips) priced nothing while
+    the region panel's said "(2 AP)" for a NEUTRAL corps. It reads the same
+    payload figure (`order_prices.fortify`, the executor's own `insist_terms`)
+    with the same convention (priced whenever above 0); the dimmed chip keeps
+    its bare label for the CN-4 census."""
+
+    def test_the_cards_chip_reads_the_payload_price(self):
+        src = _r37_gd("marshal_management.gd")
+        start = src.index('elif fortify_why == "":')
+        arm = src[start:src.index("# CN-4: Drill is offered only where the drill would begin", start)]
+        assert 'var fortify_prices = m.get("order_prices", {})' in arm
+        assert 'int(fortify_prices.get("fortify", 0)) > 0' in arm
+        assert 'fortify_label += " (" + str(int(fortify_prices.get("fortify", 0))) + " AP)"' in arm
+        assert 'Utils.bb_button_chip("order:fortify:" + chip_name, fortify_label, Utils.COLOR_COMMAND, "233043")' in arm
+        assert '"Fortify (' not in arm and "(2 AP)" not in arm and "(1 AP)" not in arm
+        assert "S14G-X170" in arm
+        # the dimmed chip keeps its bare label
+        assert 'Utils.bb_chip_disabled("Fortify")' in src
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# part 2 · rowI1
+# ══════════════════════════════════════════════════════════════════════════
+# Pre-Deploy S14h part 2 - S14G-I1, the instrument row (October 26, 2026).
+#
+# THE ROW (`docs/BUG_FIXES.md` S14G-I1): the DD-B instrument could not name or
+# list a bracketed link, so the settlement table's gold `[-]` / `[+]` were
+# invisible to the player's `click`. `tools/dd_b_client.gd` stripped a link's
+# bracketed text to the empty string (`[+]` is all brackets) and the control
+# listing skipped the empty label. The sea player of DD-B's third measure
+# (S14G-12, sea #8, frame 0275) saw the gold line's `[-][+]` in the screen text,
+# could not press it by words, and clicked a guessed point that missed (the
+# link sits near (1591, 374); the guess was (1758, 530)). The game's control is
+# live (`proposal_confirm_popup.gd`: `[url=mag:<court>:<line>:amount:+][+][/url]`).
+#
+# THE FIX (an instrument row: not a player row, not in the metric, no game file
+# touched, no seam - the instrument is not the game):
+# `tools/dd_b_client.gd` lists a bracketed GLYPH link (one to three symbols in
+# brackets, no letter or digit) as a control of kind `icon` instead of skipping
+# it: no text, its `glyph`, the line it stands on (`on_line`: the heading above
+# it - "Britain" - then its own words), and a rect MEASURED the way the label
+# lays it out (the label has no API for a link's rect): the link's index in the
+# parsed text, its visual line, the width of the line's text before it in the
+# label's own font, the line's offset less the label's scroll. `click +`,
+# `click + gold` and `click + on the Britain gold line` name it (the icons are
+# their own tier between the exact text and the contained one, so "+ Add
+# demand", whose text merely holds a plus, does not shadow them) and press it by
+# the link's own `meta_clicked` road; `click_at` has its centre.
+# `tools/dd_b_play.py` prints it `[icon: + Britain . Demanded . 300 gold (yours)
+# @(x,y)]`.
+#
+# WHAT WAS KEPT: the link-label strip is byte-identical, so every other link
+# lists exactly as before and an image-only or empty link is still skipped; the
+# button, chip and slider arms; the three instruments' U+00A0 readers (the S15
+# session's change); the judge. The 4,350-order census and the judge's readings
+# of the committed DD-B roads do not move (`TestS14GI1.test_the_judge_reads_the_
+# committed_roads_as_it_did`). The engine-driven pins (the real client at the
+# Britain table) live in `tests/test_dd_b_the_client_hands.py::TestThePlayersHands`
+# (the `table` fixture); this module holds the source pins and the census pin,
+# which need no engine.
+
+_RI1_REPO = pathlib.Path(__file__).resolve().parents[1]
+_rI1_CLIENT = _RI1_REPO / "tools" / "dd_b_client.gd"
+_rI1_PLAY = _RI1_REPO / "tools" / "dd_b_play.py"
+sys.path.insert(0, str(_RI1_REPO / "tools"))
+
+
+def _rI1_src() -> str:
+    return _rI1_CLIENT.read_text(encoding="utf-8")
+
+
+def _rI1_pattern(name: str):
+    """A RegEx the instrument builds, read from its source and compiled here."""
+    m = re.search(r'var %s := RegEx\.create_from_string\("((?:[^"\\]|\\.)*)"\)' % name, _rI1_src())
+    assert m, name
+    return re.compile(m.group(1).replace("\\\\", "\\"))
+
+
+def _rI1_func(name: str) -> str:
+    """One function's text, from its `func` line to the next top-level line."""
+    src = _rI1_src()
+    start = src.index(f"func {name}(")
+    m = re.search(r"\n(?=\S)", src[start + 1:])
+    return src[start:start + 1 + m.start()] if m else src[start:]
+
+
+class TestS14GI1:
+    """The instrument lists a bracketed glyph link; nothing else moves."""
+
+    # ── the listing ─────────────────────────────────────────────────────
+
+    def test_the_label_strip_is_unchanged_and_the_empty_arm_lists_a_glyph_link(self):
+        """The old reading: the strip made `[+]` the empty string and the
+        `if label == "": continue` arm skipped it. The strip is the same
+        expression; the arm now lists a glyph link before it skips."""
+        src = _rI1_src()
+        strip = ('var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true)'
+                 '.replace("\\u00A0", " ").strip_edges()')
+        assert strip in src
+        arm = src.split(strip, 1)[1].split("var link := base.duplicate()", 1)[0]
+        assert 'if label == "":' in arm
+        assert "var glyph := _glyph_of(m.get_string(2))" in arm
+        assert 'if glyph != "":' in arm
+        assert "var icon := _icon_link(rtl, base, vis, m, glyph)" in arm
+        assert "if not icon.is_empty():" in arm and "out.append(icon)" in arm
+        assert arm.rstrip().endswith("continue"), "an image-only or empty link is still skipped"
+        # the comment names the row and the old reading
+        flat = re.sub(r"\s*#\s*", " ", arm)
+        assert "S14G-I1" in flat and "could not be named or located" in re.sub(r"\s+", " ", flat)
+
+    def test_every_other_kind_lists_as_it_did(self):
+        """The button, chip, slider and link arms are the S14e listing,
+        word for word (the census and the records read them)."""
+        ctl = _rI1_func("_controls")
+        for needle in (
+            'base["kind"] = "button"', 'base["text"] = text.left(MAX_CONTROL_TEXT)',
+            'base["disabled"] = b.disabled', 'base["kind"] = "chip"',
+            'base["text"] = _own_text(ctrl).strip_edges().left(MAX_CONTROL_TEXT)',
+            'base["kind"] = "slider"', 'base["range"] = [sl.min_value, sl.max_value]',
+            'link["kind"] = "link"', 'link["text"] = label.left(MAX_CONTROL_TEXT)',
+            'link["meta_value"] = meta if meta != "" else m.get_string(2)',
+            'link["disabled"] = false', 'link["tooltip"] = ""',
+        ):
+            assert needle in ctl, needle
+        assert "const MAX_CONTROL_TEXT := 600" in _rI1_src()
+
+    def test_the_icon_is_a_control_with_a_glyph_a_line_and_a_measured_place(self):
+        fn = _rI1_func("_icon_link")
+        for needle in ('icon["kind"] = "icon"', 'icon["text"] = ""', 'icon["glyph"] = glyph',
+                       'icon["on_line"] = str(where.get("on_line", ""))',
+                       'icon["meta_value"] = meta if meta != "" else m.get_string(2)',
+                       'icon["disabled"] = false', 'icon["tooltip"] = ""',
+                       'icon["placed"] = where.has("rect")', 'icon["rect"] = _r(where["rect"])',
+                       'if bool(where.get("hidden", false)):', "return {}"):
+            assert needle in fn, needle
+        assert "var icon := base.duplicate()" in fn, "the icon keeps the label's _node, layer, surface"
+
+    def test_a_link_is_measured_the_way_the_label_lays_it_out(self):
+        """No RichTextLabel API returns a link's rect (the S14G-I1 row's
+        guessed point missed by ~170 px), so the glyph is placed from the
+        label's own layout: index in the parsed text -> visual line -> text
+        width before it in the label's font -> line offset less scroll."""
+        fn = _rI1_func("_glyph_place")
+        for needle in (
+            "var scratch := RichTextLabel.new()", "scratch.bbcode_enabled = true",
+            "scratch.text = rtl.text.substr(0, start)",
+            'scratch.get_parsed_text().replace("\\u00A0", " ").length()',
+            'var parsed := rtl.get_parsed_text().replace("\\u00A0", " ")',
+            "scratch.free()", 'rtl.call("get_character_line", idx)',
+            'rtl.get_theme_font("normal_font")', 'rtl.get_theme_font_size("normal_font_size")',
+            "font.get_string_size(parsed.substr(first, idx - first), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x",
+            "rtl.get_line_offset(line)", "rtl.get_v_scroll_bar().value if rtl.scroll_active",
+            'rtl.get_theme_stylebox("normal")', ".intersection(vis)",
+            'out["hidden"] = true', 'out["rect"] = seen',
+        ):
+            assert needle in fn, needle
+        # an API a version may lack is called dynamically behind has_method, so a
+        # missing method degrades the place to the label's rect and never the script
+        assert 'rtl.has_method("get_character_line")' in fn
+        assert 'rtl.has_method("get_line_height")' in fn
+        assert 'rtl.call("get_line_height", line)' in fn
+
+    def test_the_line_is_the_heading_above_it_then_its_own_words(self):
+        fn = _rI1_func("_line_of")
+        assert 'parsed.substr(0, idx).count("\\n")' in fn
+        assert "_glyph_any_re.sub(paras[p], \"\", true)" in fn
+        assert "_indent_of(paras[j]) < indent" in fn and "_group_name(paras[j])" in fn
+        assert '(head + " · " + own)' in fn
+        assert ".left(MAX_ICON_LINE)" in fn
+
+    # ── the words ───────────────────────────────────────────────────────
+
+    def test_click_names_the_icon_before_a_text_that_merely_holds_a_plus(self):
+        """`click +` while "+ Add demand" is on screen: the old tiers were
+        exact text, contained text, a tooltip; the icons are their own tier
+        between the first two."""
+        src = _rI1_src()
+        assert "var tiers := [[], [], [], []]" in src
+        i_exact = src.index("tiers[0].append(c)")
+        i_icon = src.index('elif str(c["kind"]) == "icon" and _icon_matches(c, want):')
+        i_held = src.index('elif t != "" and t.find(want) >= 0:')
+        i_tip = src.index("tiers[3].append(c)")
+        assert i_exact < i_icon < i_held < i_tip
+        assert src[i_icon:i_held].count("tiers[1].append(c)") == 1
+        assert src[i_held:i_tip].count("tiers[2].append(c)") == 1
+
+    def test_the_words_are_the_glyph_then_the_lines_words(self):
+        fn = _rI1_func("_icon_matches")
+        assert 'words[0] != glyph' in fn and 'ICON_FILLER.has(words[i])' in fn
+        assert 'line.find(words[i]) < 0' in fn
+        assert 'const ICON_FILLER := ["on", "the", "line", "a", "of", "at", "button", "icon", "link"]' in _rI1_src()
+
+    def test_an_icon_is_pressed_by_the_links_own_road(self):
+        """The `[url]`'s `meta_clicked`, as a link is - exact where a point
+        estimate is not; `click_at` is the real-click road and has the centre."""
+        src = _rI1_src()
+        arm = src.split('if str(c["kind"]) == "link" or str(c["kind"]) == "icon":', 1)[1][:400]
+        assert 'var rtl: RichTextLabel = c["_node"]' in arm
+        assert 'rtl.meta_clicked.emit(c["meta_value"])' in arm
+        assert "pressed the link by its own road (meta_clicked)" in arm
+        # the actions comment says so
+        assert "A bracketed glyph link ([+], [-]) has no text of its" in src
+
+    def test_the_glyph_patterns_take_a_symbol_and_never_a_tag(self):
+        glyph = _rI1_pattern("_glyph_re")
+        for text, want in (("[+]", "+"), ("[-]", "-"), ("[−]", "−"), ("[×]", "×"),
+                           ("[▲]", "▲"), ("[**]", "**")):
+            m = glyph.search(text)
+            assert m and m.group(1) == want, text
+        for text in ("[b]", "[Esc]", "[color=#fff]", "[1]", "[/url]", "[]", "[++++]", "+", "Britain [+]",
+                     "[+] x", "[a+]", "[ + ]"):
+            assert glyph.search(text) is None, text
+        tag = _rI1_pattern("_bbtag_re")
+        assert glyph.search(tag.sub("", "[color=#e0a040][+][/color]")).group(1) == "+"
+        assert tag.sub("", "[b]x[/b]") == "x" and tag.sub("", "[-]") == "[-]"
+        every = _rI1_pattern("_glyph_any_re")
+        line = "Demanded · 300 gold (yours)  [-][+]  Remove"
+        assert re.sub(r"\s+", " ", every.sub("", line)).strip() == "Demanded · 300 gold (yours) Remove"
+        lead = _rI1_pattern("_lead_sym_re")
+        assert lead.sub("", "  * Britain ▸ - Holding out (17/50)") == "Britain ▸ - Holding out (17/50)"
+        assert lead.sub("", "Austria") == "Austria"
+
+    # ── the player's side ───────────────────────────────────────────────
+
+    def test_the_player_side_prints_an_icon_and_the_other_kinds_as_they_were(self, tmp_path):
+        import dd_b_play as P
+        icon = {"kind": "icon", "text": "", "glyph": "+", "tooltip": "", "disabled": False,
+                "on_line": "Britain · Demanded · 300 gold (yours)",
+                "rect": [1580, 366, 22, 18]}
+        assert P._button_label(icon) == "[icon: + Britain · Demanded · 300 gold (yours) @(1591,375)]"
+        assert P._button_label(dict(icon, on_line="")) == "[icon: + @(1591,375)]"
+        assert P._button_label({"kind": "link", "text": "+ Add demand", "rect": [0, 0, 4, 4]}) == "<+ Add demand>"
+        assert P._button_label({"kind": "chip", "text": "Fall back", "rect": [0, 0, 4, 4]}) == "{Fall back}"
+        assert P._button_label({"kind": "button", "text": "Back Out", "rect": [0, 0, 4, 4],
+                                "disabled": True, "tooltip": "no"}) == "[Back Out](disabled: no)"
+        assert P._button_label({"kind": "button", "text": "", "tooltip": "Menu",
+                                "rect": [0, 0, 4, 4]}) == "[icon: Menu @(2,2)]"
+        assert "kind == \"icon\"" in _rI1_PLAY.read_text(encoding="utf-8")
+
+    def test_the_three_instruments_nbsp_readers_are_untouched(self):
+        """The S15 session's change (UXR3-83): `get_parsed_text()` readers map
+        U+00A0 to a space. This row leaves them alone."""
+        src = _rI1_src()
+        assert src.count('.replace("\\u00A0", " ")') >= 4
+        assert '(n as RichTextLabel).get_parsed_text().replace("\\u00A0", " ")' in src
+        # TestUXR3_83 (S15): EVERY get_parsed_text() in the file carries the reader,
+        # the measuring calls of the icon's placement included (the replace is one
+        # character for one, so no index moves)
+        assert src.count(".get_parsed_text()") == src.count('.get_parsed_text().replace("\\u00A0", " ")')
+        assert "\u00a0" not in src, "the escape stays an escape, never the raw character"
+
+    # ── the census ──────────────────────────────────────────────────────
+
+    _rI1_ROADS = (
+        "campaign_lines_2026_10_24", "conquest", "conquest_2026_10_24", "conquest_2026_10_25",
+        "diplomacy", "diplomacy_2026_10_24", "diplomacy_2026_10_25", "replay_2026_10_25",
+        "sea", "sea_2026_10_24", "sea_2026_10_25", "table_walk_2026_10_24",
+    )
+
+    def test_the_judge_reads_the_committed_roads_as_it_did(self):
+        """The census does not move. The judge is read through the same
+        `classify_order` / `classify_question` as `dd_b_play.judge_run`, over
+        the 712 judged rows of the twelve committed DD-B roads; the tally and
+        the three rows whose committed class a re-read of the 600-character
+        reply moves are pinned as they stood BEFORE this row. Nothing here
+        touches `tools/_score_probes.py` or `tools/unrehearsed_census.py`."""
+        import dd_b_play as P
+        import unrehearsed_census as C
+        tally: dict = {}
+        moved = []
+        total = 0
+        for road in self._rI1_ROADS:
+            path = _RI1_REPO / "docs" / "audits" / "dd_b" / road / "judge.json"
+            if not path.is_file():
+                pytest.skip(f"{path} not in this checkout")
+            for r in json.loads(path.read_text(encoding="utf-8"))["rows"]:
+                total += 1
+                meant = P._parse_meant(r["meant"])
+                reply = {"message": r["reply"], "success": r["success"]}
+                if meant["action"] == "question":
+                    cls = C.classify_question(reply)
+                elif meant["action"] == "other":
+                    cls = "unjudged_other"
+                else:
+                    cls = C.classify_order({"action": meant["action"], "marshal": meant["marshal"]}, reply)
+                tally[cls] = tally.get(cls, 0) + 1
+                if cls != r["class"]:
+                    moved.append((road, int(r["n"]), r["class"], cls))
+        assert total == 712
+        assert tally == {"answered": 155, "as_meant": 473, "board_refusal": 20, "shrug": 11,
+                         "honest_refusal": 26, "asked": 10, "unjudged_other": 17}, tally
+        assert moved == [("conquest_2026_10_24", 221, "as_meant", "honest_refusal"),
+                         ("conquest_2026_10_25", 129, "board_refusal", "as_meant"),
+                         ("conquest_2026_10_25", 211, "board_refusal", "as_meant")], moved
+
+    def test_no_judge_file_mentions_the_icon(self):
+        for name in ("_score_probes.py", "unrehearsed_census.py"):
+            text = (_RI1_REPO / "tools" / name).read_text(encoding="utf-8")
+            assert "S14G-I1" not in text and '"icon"' not in text, name
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# part 2 · the re-play's finds (October 26, 2026)
+# S14G-X171 — the table's standing hint kept "Use 'More generous'" for a court
+# whose blocker is the war's OBJECT (gold cannot move it): the sibling of
+# S14G-12's Britain sentence (the re-play's NF-2, replay_table #276).
+# S14G-X172 — the court's reply named the standing obstacle, not what MOVED
+# between the card's estimate and the verdict (the re-play's NF-1,
+# replay_truce_offer #141 / #373: "Score: 51 - ACCEPT", then "rejected … the
+# key obstacle was deep-seated hostility" while the war score had fallen 33).
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _x171_result(label="contradicts", declarer="France", target="Austria"):
+    return {"component_debug": {"war_objective_alignment": {
+        "alignment_label": label,
+        "selected_objective": {"declaring_nation": declarer, "target_nation": target,
+                               "objective_type": "conquest", "target_regions": ["Tyrol"]}}}}
+
+
+_X171_TAIL = "Then 'Submit for Review' to ratify. Submitting now only opens a review you cannot ratify."
+
+
+class TestS14GX171:
+    """The FOURTH arm of the standing hint: a holdout whose top blocker is the
+    war's object names which way the terms miss it and the control that moves
+    it — gold cannot."""
+
+    def test_a_the_view_names_the_miss_the_value_and_the_cure(self, _r12_board):
+        from backend.game_logic.settlement_baseline import _objective_blocker_view
+        enriched = {"top_blocker_component": "war_objective_alignment", "top_blocker_value": -20}
+        view = _objective_blocker_view(_r12_board, _x171_result(), enriched, "Austria",
+                                       below_threshold=True, can_drop=True)
+        assert view["top_blocker_detail"] == "objective_contradicts"
+        line = view["top_blocker_line"]
+        assert line.startswith("Austria reads the terms as ending the war without its object — "
+                               "the terms give away what the war was declared for (-20)")
+        assert line.endswith("gold cannot move it: take that term out "
+                             "(Set War Purpose on her page names the object), or drop Austria.")
+        assert "More generous" not in line
+
+    def test_b_unrelated_harshness_has_its_own_miss_and_cure_and_no_drop_where_none_is_offered(self, _r12_board):
+        from backend.game_logic.settlement_baseline import _objective_blocker_view
+        enriched = {"top_blocker_component": "war_objective_alignment", "top_blocker_value": -15}
+        view = _objective_blocker_view(_r12_board, _x171_result("unrelated_harsh"), enriched, "Russia",
+                                       below_threshold=True, can_drop=False)
+        assert view["top_blocker_detail"] == "objective_unrelated_harsh"
+        line = view["top_blocker_line"]
+        assert "the terms ask of Russia what the war was not declared for (-15)" in line
+        assert line.endswith("gold cannot move it: ease the demands the purpose does not cover "
+                             "(Set War Purpose on her page names the object).")
+        assert "drop" not in line
+
+    def test_c_the_declared_purpose_rides_the_line_when_the_record_holds_one(self, _r12_board):
+        from backend.game_logic.settlement_baseline import _objective_blocker_view
+        from backend.game_logic import declared_goals as DG
+        candidates = DG.article_candidates(_r12_board, "France", "Austria")
+        assert candidates, "the shipped boot offers France an article against Austria"
+        DG.declare_articles(_r12_board, "France", "Austria", candidates[:1])
+        purpose = DG.declared_line(_r12_board, "France", "Austria")
+        assert purpose, "the fixture declared an article"
+        enriched = {"top_blocker_component": "war_objective_alignment", "top_blocker_value": -20}
+        view = _objective_blocker_view(_r12_board, _x171_result(), enriched, "Austria",
+                                       below_threshold=True, can_drop=True)
+        assert f"declared for (-20) ({purpose}); gold cannot move it" in view["top_blocker_line"]
+
+    def test_d_the_view_is_empty_for_any_other_blocker_at_the_bar_or_a_reading_that_is_no_negative(self, _r12_board):
+        from backend.game_logic.settlement_baseline import _objective_blocker_view
+        enriched = {"top_blocker_component": "war_objective_alignment", "top_blocker_value": -20}
+        assert _objective_blocker_view(_r12_board, _x171_result(), enriched, "Austria",
+                                       below_threshold=False, can_drop=True) == {}
+        assert _objective_blocker_view(_r12_board, _x171_result("partial"), enriched, "Austria",
+                                       below_threshold=True, can_drop=True) == {}
+        assert _objective_blocker_view(_r12_board, {}, enriched, "Austria",
+                                       below_threshold=True, can_drop=True) == {}
+        other = {"top_blocker_component": "term_harshness_penalty", "top_blocker_value": -23}
+        assert _objective_blocker_view(_r12_board, _x171_result(), other, "Austria",
+                                       below_threshold=True, can_drop=True) == {}
+
+    def test_e_the_sighting_the_hint_carries_the_objective_lines_beside_britains_ceiling(self):
+        """replay_table #276: Britain at the gold ceiling, Austria and Russia on
+        the war's object — the hint named Britain's ceiling and kept "Use 'More
+        generous'" for the other two."""
+        from backend.game_logic import settlement_staging as SS
+        line_a = "Austria reads the terms as ending the war without its object — …, or drop Austria."
+        line_r = "Russia reads the terms as ending the war without its object — …, or drop Russia."
+        rows = [_r12_synthetic("Britain", total=26, component="term_harshness_penalty", value=-23),
+                _r12_synthetic("Austria", total=-12, component="war_objective_alignment", value=-20,
+                               display="War objective alignment", detail="objective_contradicts", line=line_a),
+                _r12_synthetic("Russia", total=-12, component="war_objective_alignment", value=-20,
+                               display="War objective alignment", detail="objective_contradicts", line=line_r)]
+        terms = [{"type": "peace"}, _r12_gold(1000), _R12_IRELAND]
+        hint = SS._settlement_propose_carry_hint(["Britain", "Austria", "Russia"], rows, None, terms)
+        assert "Use 'More generous'" not in hint
+        assert hint.startswith("Gold is at its ceiling for Britain (26 of 50)")
+        assert line_a in hint and line_r in hint
+        assert hint.endswith(_X171_TAIL)
+
+    def test_f_without_a_ceiling_the_objective_court_is_named_and_the_rest_keep_the_generic_road(self):
+        from backend.game_logic import settlement_staging as SS
+        line_a = "Austria reads the terms as ending the war without its object — …, or drop Austria."
+        rows = [_r12_synthetic("Britain", total=26, component="term_harshness_penalty", value=-23),
+                _r12_synthetic("Austria", total=-12, component="war_objective_alignment", value=-20,
+                               display="War objective alignment", detail="objective_contradicts", line=line_a)]
+        terms = [{"type": "peace"}, _r12_gold(500), _R12_IRELAND]
+        hint = SS._settlement_propose_carry_hint(["Britain", "Austria"], rows, None, terms)
+        assert hint.startswith("Britain won't accept these terms yet. Use 'More generous' (or ease a court) "
+                               "until each accepts")
+        assert "Austria won't accept" not in hint
+        assert hint.endswith(line_a)
+        alone = SS._settlement_propose_carry_hint(["Austria"], rows[1:], None, terms)
+        assert alone == f"{line_a} {_X171_TAIL}"
+
+    def test_g_the_ceiling_only_shapes_are_byte_identical(self):
+        """S14G-12's pins read the same words: the arm adds nothing where no
+        court stands on the war's object."""
+        from backend.game_logic import settlement_staging as SS
+        rows = [_r12_synthetic("Britain", total=26, component="term_harshness_penalty", value=-23),
+                _r12_synthetic("Austria", total=12, component="term_harshness_penalty", value=-9)]
+        terms = [{"type": "peace"}, _r12_gold(1000), _R12_IRELAND]
+        hint = SS._settlement_propose_carry_hint(["Britain", "Austria"], rows, None, terms)
+        assert hint.startswith("Austria won't accept these terms yet. Use 'More generous'")
+        assert "Gold is at its ceiling for Britain (26 of 50)" in hint
+        assert "reads the terms as ending the war" not in hint
+
+
+class TestS14GX172:
+    """The court's reply names what MOVED between the card's estimate and the
+    verdict, when the verdict is not the one the card gave."""
+
+    def test_a_the_movers_line_names_both_figures_and_the_largest_change(self):
+        from backend.game_logic.diplomacy import proposal_movers_line
+        pit = {"acceptance_snapshot": 51, "outcome_at_send": "ACCEPT",
+               "components_at_send": {"war_score_modifier": 24.7, "relation_modifier": -10,
+                                      "battlefield_diplomacy": 10, "military_pressure": 5,
+                                      "war_weariness": 4}}
+        result = {"score": 10, "outcome": "REJECT",
+                  "components": {"war_score_modifier": -8.5, "relation_modifier": -10,
+                                 "battlefield_diplomacy": 0, "military_pressure": 0,
+                                 "war_weariness": 6}}
+        assert proposal_movers_line(pit, result) == (
+            "It read 51 when Talleyrand set out and 10 on his arrival — "
+            "what moved most: our military position is weak (-33).")
+
+    def test_b_no_line_when_the_verdict_is_the_cards_nothing_was_recorded_or_nothing_moved(self):
+        from backend.game_logic.diplomacy import proposal_movers_line
+        same = {"acceptance_snapshot": 51, "outcome_at_send": "ACCEPT",
+                "components_at_send": {"war_score_modifier": 24.7}}
+        assert proposal_movers_line(same, {"score": 50, "outcome": "ACCEPT",
+                                           "components": {"war_score_modifier": 24.0}}) == ""
+        assert proposal_movers_line({"acceptance_snapshot": 51},
+                                    {"score": 10, "outcome": "REJECT", "components": {}}) == ""
+        still = {"acceptance_snapshot": 51, "outcome_at_send": "ACCEPT",
+                 "components_at_send": {"war_score_modifier": 24.7, "flag": True}}
+        assert proposal_movers_line(still, {"score": 49, "outcome": "COUNTER_OFFER",
+                                            "components": {"war_score_modifier": 24.2, "flag": False}}) == ""
+
+    def test_c_a_rise_reads_the_positive_phrase(self):
+        from backend.game_logic.diplomacy import proposal_movers_line
+        pit = {"acceptance_snapshot": 28, "outcome_at_send": "REJECT",
+               "components_at_send": {"relation_modifier": -20}}
+        result = {"score": 44, "outcome": "COUNTER_OFFER", "components": {"relation_modifier": -4}}
+        assert proposal_movers_line(pit, result) == (
+            "It read 28 when Talleyrand set out and 44 on his arrival — "
+            "what moved most: goodwill between our nations (+16).")
+
+    def test_d_the_send_records_the_cards_terms_and_verdict_at_both_sites(self):
+        from backend.commands import diplomatic_executor as DE
+        src = inspect.getsource(DE)
+        assert src.count('"components_at_send": {') == 2 and src.count('"outcome_at_send":') == 2
+        assert src.count('"acceptance_snapshot": _acceptance_snapshot,') == 2
+
+    def test_e_the_reply_carries_the_line_on_a_rejection(self, _r12_board):
+        """A proposal in transit whose card read ACCEPT, 40 over the live formula:
+        the returned event's message names the standing obstacle AND what moved."""
+        from backend.game_logic import diplomacy as D
+        w = _r12_board
+        prop = {"type": D.armistice_variant_for(w, "France", "Austria"), "proposer_nation": "France",
+                "target_nation": "Austria", "sweeteners": [], "demands": [], "clauses": []}
+        with _r12_quiet():
+            live = D.calculate_acceptance(prop, w)
+        assert live["outcome"] != "ACCEPT", live["score"]
+        before = {k: v for k, v in live["components"].items()
+                  if isinstance(v, (int, float)) and not isinstance(v, bool)}
+        before["war_score_modifier"] = float(before.get("war_score_modifier", 0)) + 40
+        sent = int(live["score"]) + 40
+        w.proposal_in_transit = {
+            "target": "Austria", "proposal": prop, "turn_sent": int(w.current_turn) - 1,
+            "dp_cost": 0, "acceptance_snapshot": sent, "outcome_at_send": "ACCEPT",
+            "components_at_send": before, "diplomatic_state_at_send": "WAR",
+            "payer_gold_at_send": 6000}
+        w.talleyrand_state = "IN_TRANSIT"
+        with _r12_quiet():
+            events = w._process_proposal_in_transit()
+        returned = [e for e in events if e.get("type") == "diplomatic_proposal_returned"]
+        assert returned and returned[0]["outcome"] == "REJECT", events
+        msg = returned[0]["message"]
+        assert "Talleyrand reports the key obstacle was" in msg
+        assert (f"It read {sent} when Talleyrand set out and {int(live['score'])} on his arrival — "
+                "what moved most: our military position is weak (-40).") in msg
+        assert w.proposal_in_transit is None

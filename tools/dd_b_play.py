@@ -356,6 +356,13 @@ def _button_label(b: dict) -> str:
         r = b["rect"]
         return (f"[slider {b.get('value')} of {b.get('range')}, track x {int(r[0])}..{int(r[0] + r[2])}"
                 f" at y {int(r[1] + r[3] / 2)}]")
+    if kind == "icon":
+        # S14G-I1 (Pre-Deploy S14h part 2, October 26, 2026): a bracketed glyph
+        # link ([+], [-]) has no text; the engine lists it by its glyph, the
+        # line it stands on and its measured rect, so `click +` / `click + gold`
+        # names it and `click_at` has its centre.
+        line = (b.get("on_line") or "").replace("\n", " ")[:60]
+        return f"[icon: {b.get('glyph', '')}{' ' + line if line else ''} @{_centre(b['rect'])}]"
     if not text:
         text = "icon" + (f": {b['tooltip'][:60]}" if b.get("tooltip") else "") + f" @{_centre(b['rect'])}"
     if kind == "link":

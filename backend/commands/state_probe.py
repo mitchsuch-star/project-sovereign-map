@@ -86,6 +86,17 @@ def action_pools(world) -> Dict[str, int]:
 def _cost(world, marshal, action: str, strategic_type: Optional[str]) -> int:
     if strategic_type:
         return int(marshal.strategic_order_ap(order_type=strategic_type))
+    if action in ("fortify", "defend"):
+        # S14G-X167 (Pre-Deploy S14h part 2, October 26, 2026): the table said 1
+        # for a fortify from NEUTRAL and a defend from AGGRESSIVE while the
+        # executor charges (and, with one action left, REFUSES) two - the chips,
+        # the Generals card, the desk's "what can Ney do" and the what-if all
+        # read this. `tactical_executor.insist_terms` is the figure
+        # `_execute_fortify` / `_execute_defend` charge and `counsel.
+        # _fortify_price_tail` prints; the pool refusal reads it too, so the
+        # chip dims with "needs 2 actions - 1 left" where the executor refuses.
+        from backend.commands.tactical_executor import insist_terms
+        return int(insist_terms(world, marshal, action)[0])
     return int(world.get_action_cost(action))
 
 

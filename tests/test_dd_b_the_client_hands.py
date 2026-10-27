@@ -335,6 +335,119 @@ def played(tmp_path_factory) -> dict:
     return states
 
 
+# ── S14G-I1: the settlement table's gold [-][+], on the real client ────────
+# (Pre-Deploy S14h part 2, October 26, 2026.) The sea player of DD-B's third
+# measure saw the gold line's `[-][+]` in the screen text, could not press it
+# by words (the instrument stripped a bracketed link's text to the empty
+# string and skipped the control) and clicked a guessed point that missed.
+# `fixture table` plays the road to that line from turn 1 — the typed
+# "propose common peace with Britain" mounts the whole table (Austria, Britain,
+# Russia; the dialogue arrives `propose_on_mount`), each court's "+ Add demand"
+# opens its suggestions, "Demand 300 gold from Britain" stages the line —
+# and presses the line's `[-]` by words and its `[+]` by a real click at the
+# centre the listing gave.
+
+def _start_engine_run(tmp_path_factory, name: str):
+    """The instrument started as the `played` fixture starts it -> (run,
+    supervisor); the driven pins skip without the engine (a skip is not a pass)."""
+    engine = _engine()
+    if engine is None:
+        pytest.skip("Godot engine not on this machine — the driven pins skip, and a skip is not a pass")
+    if P._godot_running():
+        pytest.skip("another Godot engine is running — never two at once")
+    run = tmp_path_factory.mktemp(name) / "run"
+    env = dict(os.environ)
+    env.pop("PYTHONIOENCODING", None)
+    log = (run.parent / "start.log").open("w", encoding="utf-8")
+    sup = subprocess.Popen([sys.executable, "-X", "utf8", str(PLAY), "start", "--road", "diplomacy",
+                            "--out", str(run), "--godot", engine],
+                           cwd=str(REPO), env=env, stdout=log, stderr=subprocess.STDOUT,
+                           stdin=subprocess.DEVNULL)
+    t0 = time.time()
+    while not (run / "state" / "0000.json").is_file():
+        assert sup.poll() is None, (run.parent / "start.log").read_text(encoding="utf-8")
+        assert time.time() - t0 < 300, "the engine never booted"
+        time.sleep(0.5)
+    return run, sup
+
+
+def _stop_engine_run(run: pathlib.Path, sup) -> None:
+    """Quit the engine and wait for the supervisor; whatever is still alive is killed."""
+    try:
+        if sup.poll() is None:
+            P.main(["stop", "--out", str(run)])
+            sup.wait(timeout=180)
+    finally:
+        if sup.poll() is None:
+            sup.terminate()
+            meta = run / "meta.json"
+            if meta.is_file():
+                for pid in (json.loads(meta.read_text(encoding="utf-8")).get(k)
+                            for k in ("engine_pid", "backend_pid")):
+                    if pid:
+                        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True,
+                                       stdin=subprocess.DEVNULL)
+
+
+def _icons(state: dict, glyph: str = "") -> list:
+    return [b for b in state.get("buttons", [])
+            if b.get("kind") == "icon" and (not glyph or b.get("glyph") == glyph)]
+
+
+def _gold_demand(state: dict) -> int:
+    """The Britain gold line's figure as the table reads it: "Demanded · 300 gold (yours)"."""
+    text = "\n".join(t["text"] for t in state.get("texts", []))
+    m = re.search(r"Demanded\s*·\s*(\d[\d,]*)\s*gold", text)
+    assert m, "no 'Demanded · N gold' line on the table:\n" + text[:1500]
+    return int(m.group(1).replace(",", ""))
+
+
+def _centre_of(rect) -> tuple:
+    return int(rect[0] + rect[2] / 2), int(rect[1] + rect[3] / 2)
+
+
+@pytest.fixture(scope="module")
+def table(tmp_path_factory) -> dict:
+    run, sup = _start_engine_run(tmp_path_factory, "dd_b_table")
+    states: dict = {}
+    try:
+        states["looks_right"] = _act(run, "click Looks right")
+        states["begin"] = _act(run, "click Begin")
+        # The player's road to the table: diplomacy is never typed (the line
+        # answers a typed proposal with Berthier's "Matters of state are
+        # conducted at the table" and sends nothing) — F1 opens the Cabinet,
+        # the court's button its page, "Open Settlement — the whole table" the
+        # guided table with its gold line ("Propose Peace" is the bilateral
+        # preview, which has no demand lines).
+        states["cabinet"] = _act(run, "key F1")
+        states["court"] = _act(run, "click Britain")
+        states["opened"] = _act(run, "click Open Settlement")
+        st = states["opened"]
+        for _ in range(3):
+            if not [b for b in st["buttons"] if b.get("kind") == "link" and b["text"] == "+ Add demand"]:
+                break
+            st = _act(run, "click#1 + Add demand")
+        states["expanded"] = st
+        # the expansion folds each court's options under "▸ Demands of <court> (N)"
+        st = _act(run, "click Demands of Britain")
+        states["demands"] = st
+        gold = [b["text"].strip() for b in st["buttons"] if b.get("kind") == "link"
+                and re.fullmatch(r"Demand \d[\d,]* gold from Britain", b["text"].strip())]
+        assert gold, [b["text"] for b in st["buttons"] if b.get("kind") == "link"]
+        states["staged"] = _act(run, f"click {gold[0]}")
+        states["minus"] = _act(run, "click - on the Britain gold line")
+        plus = (_icons(states["minus"], "+") or [None])[0]
+        if plus is not None:
+            x, y = _centre_of(plus["rect"])
+            states["plus_at"] = [x, y]
+            states["plus"] = _act(run, f"click_at {x} {y}")
+        _stop_engine_run(run, sup)
+    finally:
+        _stop_engine_run(run, sup)
+    states["dir"] = run
+    return states
+
+
 class TestThePlayersHands:
     def test_a_first_launch_at_5120x1440_and_the_derived_scale(self, played):
         boot = played["boot"]
@@ -392,6 +505,156 @@ class TestThePlayersHands:
         assert rec["n_actions"] >= 12
         assert rec["n_script_errors"] == 0, rec["script_errors"]
         assert rec["port"] != 8005
+
+    # ── S14G-I1: a bracketed glyph link is a control the player can name ──
+    # (Pre-Deploy S14h part 2, October 26, 2026.)
+
+    def test_s14g_i1_the_listing_has_an_icon_arm_for_a_bracketed_glyph_link(self):
+        """Non-engine. The sea player of DD-B's third measure could not press
+        the settlement table's gold `[-][+]` by words: `dd_b_client.gd` stripped
+        a link's bracketed text to the empty string and the control listing
+        skipped it. The strip is UNCHANGED (every other link lists as before; an
+        image-only link is still skipped) and the empty-label arm now lists a
+        bracketed GLYPH link as an icon before it skips."""
+        src = CLIENT.read_text(encoding="utf-8")
+        strip = ('var label := _tag_re.sub(_img_re.sub(m.get_string(2), "", true), "", true)'
+                 '.replace("\\u00A0", " ").strip_edges()')
+        assert strip in src, "the link-label strip must stay byte-identical"
+        arm = src.split(strip, 1)[1].split("var link := base.duplicate()", 1)[0]
+        assert 'if label == "":' in arm
+        assert "_glyph_of(m.get_string(2))" in arm and "_icon_link(rtl, base, vis, m, glyph)" in arm
+        assert arm.rstrip().endswith("continue"), "an image-only or empty link is still skipped"
+        # the icon: kind, no text, the glyph, the line, a measured rect
+        for needle in ('icon["kind"] = "icon"', 'icon["text"] = ""', 'icon["glyph"] = glyph',
+                       'icon["on_line"] = str(where.get("on_line", ""))',
+                       'icon["rect"] = _r(where["rect"])',
+                       'icon["meta_value"] = meta if meta != "" else m.get_string(2)'):
+            assert needle in src, needle
+        # a link is measured the way the label lays it out (no rect API exists)
+        for needle in ('rtl.call("get_character_line", idx)', "font.get_string_size(",
+                       "rtl.get_line_offset(line)", "rtl.get_v_scroll_bar().value if rtl.scroll_active",
+                       'scratch.get_parsed_text().replace("\\u00A0", " ").length()'):
+            assert needle in src, needle
+
+    def test_s14g_i1_click_names_the_icon_before_a_text_that_merely_holds_a_plus(self):
+        """Non-engine. `click +` must reach the `[+]` icon even where "+ Add
+        demand" is on screen (its text HOLDS a plus): the icons are their own
+        tier between the exact text and the contained one, and the click of an
+        icon is the link's own meta_clicked road."""
+        src = CLIENT.read_text(encoding="utf-8")
+        assert "var tiers := [[], [], [], []]" in src
+        exact = src.index("tiers[0].append(c)")
+        icon = src.index("_icon_matches(c, want)")
+        held = src.index("t.find(want) >= 0")
+        tooltip = src.index("tiers[3].append(c)")
+        assert exact < icon < held < tooltip
+        assert 'str(c["kind"]) == "link" or str(c["kind"]) == "icon"' in src
+        assert "rtl.meta_clicked.emit" in src.split('str(c["kind"]) == "link" or str(c["kind"]) == "icon"', 1)[1][:200]
+
+    def test_s14g_i1_the_glyph_patterns_take_a_symbol_and_never_a_tag(self):
+        """Non-engine. The instrument's own patterns, read from the source and
+        compiled here: a glyph is one to three symbols in brackets (no letter,
+        no digit); a named tag is never one."""
+        src = CLIENT.read_text(encoding="utf-8")
+
+        def pattern(name: str):
+            m = re.search(r'var %s := RegEx\.create_from_string\("((?:[^"\\]|\\.)*)"\)' % name, src)
+            assert m, name
+            return re.compile(m.group(1).replace("\\\\", "\\"))
+
+        glyph = pattern("_glyph_re")
+        for text, want in (("[+]", "+"), ("[-]", "-"), ("[−]", "−"), ("[×]", "×"),
+                           ("[▲]", "▲")):
+            m = glyph.search(text)
+            assert m and m.group(1) == want, text
+        for text in ("[b]", "[Esc]", "[color=#fff]", "[1]", "[/url]", "[]", "[++++]", "+", "Britain [+]"):
+            assert glyph.search(text) is None, text
+        # a glyph wrapped in styling tags still reads as the glyph
+        tag = pattern("_bbtag_re")
+        assert glyph.search(tag.sub("", "[color=#e0a040][+][/color]")).group(1) == "+"
+        assert tag.sub("", "[b]x[/b]") == "x"
+        # a line's own words lose their glyphs; its heading loses its bullet
+        every = pattern("_glyph_any_re")
+        assert re.sub(r"\s+", " ", every.sub("", "Demanded · 300 gold (yours)  [-][+]  Remove")).strip() \
+            == "Demanded · 300 gold (yours) Remove"
+        lead = pattern("_lead_sym_re")
+        assert lead.sub("", "  * Britain ▸ - Holding out").lstrip() == "Britain ▸ - Holding out"
+
+    def test_s14g_i1_the_player_side_reads_an_icon_as_its_glyph_its_line_and_its_place(self, tmp_path):
+        """Non-engine. The summary prints an icon as `[icon: + <line> @(x,y)]`
+        — the glyph, the line it stands on and its centre — beside the
+        controls it printed before."""
+        icon = {"kind": "icon", "text": "", "glyph": "+", "tooltip": "", "disabled": False,
+                "on_line": "Britain · Demanded · 300 gold (yours)",
+                "rect": [1580, 366, 22, 18], "layer": 110, "surface": "ProposalConfirmPopup"}
+        assert P._button_label(icon) == "[icon: + Britain · Demanded · 300 gold (yours) @(1591,375)]"
+        bare = dict(icon, on_line="")
+        assert P._button_label(bare) == "[icon: + @(1591,375)]"
+        # the other kinds print as they did
+        assert P._button_label({"kind": "link", "text": "Remove", "rect": [0, 0, 4, 4]}) == "<Remove>"
+        assert P._button_label({"kind": "button", "text": "Back Out", "rect": [0, 0, 4, 4]}) == "[Back Out]"
+        assert P._button_label({"kind": "button", "text": "", "tooltip": "Menu", "rect": [0, 0, 4, 4]}) \
+            == "[icon: Menu @(2,2)]"
+        run = tmp_path / "run"
+        (run / "state").mkdir(parents=True)
+        (run / "state" / "0001.json").write_text(json.dumps({
+            "n": 1, "action": "look", "ok": True, "turn": "Turn 1", "factor": {}, "open": {},
+            "surfaces": [{"name": "ProposalConfirmPopup", "layer": 110, "lines": ["The table"],
+                          "buttons": [icon, dict(icon, glyph="-", rect=[1558, 366, 22, 18]),
+                                      {"kind": "link", "text": "Remove", "rect": [1620, 366, 40, 18],
+                                       "disabled": False}]}]}), encoding="utf-8")
+        text = P.summary(run, 1, live=False)
+        assert "[icon: + Britain · Demanded · 300 gold (yours) @(1591,375)]  " \
+               "[icon: - Britain · Demanded · 300 gold (yours) @(1569,375)]  <Remove>" in text
+
+    def test_s14g_i1_the_gold_line_lists_its_two_glyphs_as_icons_with_a_place(self, table):
+        """Engine. The Britain gold line on the real client: `[-]` and `[+]`
+        are listed (they were not), each with its glyph, the line it stands on
+        (the court's name, the line's words) and a rect that lies on the
+        table's text — the `[+]` to the right of the `[-]` on the same line —
+        and the controls the table listed before are still listed."""
+        opened = table["opened"]
+        assert opened["ok"], opened["error"]
+        assert "proposal_confirm" in _modal(opened), (opened["open"], opened.get("reply"))
+        staged = table["staged"]
+        assert staged["ok"], staged["error"]
+        icons = _icons(staged)
+        assert sorted(b["glyph"] for b in icons) == ["+", "-"], [b["text"] for b in staged["buttons"]]
+        minus, plus = _icons(staged, "-")[0], _icons(staged, "+")[0]
+        for b in (minus, plus):
+            assert b["text"] == "" and b["placed"] is True, b
+            line = b["on_line"].lower()
+            assert "britain" in line and "gold" in line, b["on_line"]
+            assert b["rect"][2] >= 8 and b["rect"][3] >= 8, b
+        assert plus["rect"][0] > minus["rect"][0], "the [+] stands right of the [-]"
+        assert abs(plus["rect"][1] - minus["rect"][1]) <= 2, "both stand on the one line"
+        rows = [t for t in staged["texts"] if "Demanded" in t["text"] and "gold" in t["text"]]
+        assert rows, [t["text"][:80] for t in staged["texts"]]
+        for b in (minus, plus):
+            cx, cy = _centre_of(b["rect"])
+            assert any(r["rect"][0] <= cx <= r["rect"][0] + r["rect"][2]
+                       and r["rect"][1] <= cy <= r["rect"][1] + r["rect"][3] for r in rows),                 (b["rect"], [r["rect"] for r in rows])
+        links = [b["text"] for b in staged["buttons"] if b.get("kind") == "link"]
+        assert "Remove" in links and any(t.endswith("Add demand") for t in links), links
+
+    def test_s14g_i1_click_by_words_and_click_at_its_centre_both_reach_the_glyph(self, table):
+        """Engine. `click - on the Britain gold line` names the `[-]` by the
+        glyph and the line's words and presses it by the link's own road: the
+        figure falls by the step (100). The `[+]`'s centre, as the listing gave
+        it, then takes a REAL click and the figure rises back — the sea
+        player's guessed (1758, 530) missed; the listed centre does not."""
+        staged, minus, plus = table["staged"], table["minus"], table.get("plus")
+        before = _gold_demand(staged)
+        assert before == 300, before
+        assert minus["ok"], minus["error"]
+        assert "meta_clicked" in minus["note"], minus["note"]
+        assert minus["pressed"]["kind"] == "icon" and minus["pressed"]["glyph"] == "-"
+        after_minus = _gold_demand(minus)
+        assert after_minus == before - 100, (before, after_minus)
+        assert plus is not None, "no [+] icon was listed after the [-] was pressed"
+        assert plus["ok"], plus["error"]
+        assert plus["note"].startswith("clicked at "), plus["note"]
+        assert _gold_demand(plus) == after_minus + 100, (after_minus, _gold_demand(plus), table["plus_at"])
 
 
 # ── the close: the records hold (S13, October 14, 2026) ───────────────────
@@ -598,7 +861,8 @@ class TestTheThirdMeasureRecords:
             # S14h part 1 (October 26, 2026): the twelve P2s read FIXED by the part;
             # the P3s stay OPEN until part 2 closes them.
             assert ("OPEN — owner S14h" in line
-                    or "✅ FIXED October 26, 2026 — S14h part 1" in line), c["id"]
+                    or "✅ FIXED October 26, 2026 — S14h part 1" in line
+                    or "✅ FIXED October 26, 2026 — S14h part 2" in line), c["id"]
             assert f"tests/test_s14h_the_third_measure_rows.py::Test{c['id'].replace('-', '')}" in line, c["id"]
             if c.get("dr_id"):
                 assert any(ln.startswith(f"| **{c['dr_id']}** |") for ln in design.splitlines()), c["dr_id"]
@@ -607,7 +871,11 @@ class TestTheThirdMeasureRecords:
                 assert (REPO / s["frame"]).is_file(), s["frame"]
                 assert s["frame"] in line, (c["id"], s["frame"])
         # the instrument row and the done-when's own question
-        assert any(ln.startswith("| **S14G-I1** |") and "OPEN — owner S14h" in ln for ln in bugs.splitlines())
+        # S14h part 2 (October 26, 2026): the instrument row reads FIXED by the part.
+        assert any(ln.startswith("| **S14G-I1** |")
+                   and ("OPEN — owner S14h" in ln
+                        or "✅ FIXED October 26, 2026 — S14h part 2" in ln)
+                   for ln in bugs.splitlines())
         assert any(ln.startswith("| **S14G-D7** |") for ln in design.splitlines())
 
     def test_the_six_design_halves_and_the_done_whens_question_are_filed(self):
@@ -632,8 +900,8 @@ class TestTheThirdMeasureRecords:
                 # S14h part 1 (October 26, 2026) built D1, D2, D3 and D6 as recommended.
                 assert "**BUILT October 26, 2026 — S14h part 1, as recommended" in row, k
             else:
-                assert "OPEN — ruled as recommended on October 26, 2026" in row, k
-                assert f"owner S14h part {n} builds it" in row, k
+                # S14h part 2 (October 26, 2026) built D4 and D5 as recommended.
+                assert "**BUILT October 26, 2026 — S14h part 2, as recommended" in row, k
             assert f"TestS14G{k}" in row, k
         assert "✅ RULED as recommended on October 26, 2026" in rows["S14G-D7"]
         assert "no fourth measure runs before the deploy" in rows["S14G-D7"]

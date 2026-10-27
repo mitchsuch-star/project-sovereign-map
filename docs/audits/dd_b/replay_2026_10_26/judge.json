@@ -1,0 +1,159 @@
+{
+ "lines": 15,
+ "classes": {
+  "answered": 2,
+  "as_meant": 10,
+  "unjudged_other": 2,
+  "honest_refusal": 1
+ },
+ "p1": [],
+ "rows": [
+  {
+   "n": 28,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "who am I fighting",
+   "meant": "question",
+   "class": "answered",
+   "success": true,
+   "reply": "We are at war with the Third Coalition (Britain, Austria and Russia), Sire — war score +0 (evenly matched), declared this turn. Our purpose: the defense of the homeland — 28 of 28 provinces held. Their designs: Britain pursues The Low Countries; Austria pursues Redeem Italy; Russia pursues Arbiter of Europe. Each war is on the ACTIVE WARS banner in the lower right (click the war); every court's design in the Diplomatic Ledger (press D, or Alt+D while you type)."
+  },
+  {
+   "n": 29,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "what if Massena attacks Archduke John",
+   "meant": "question Massena",
+   "class": "answered",
+   "success": true,
+   "reply": "Were you to give the order, Sire:\nMUSTER — Massena (42,000) vs Archduke John (substantial force) at Tyrol — the balance of force looks unfavorable.\n  WILL NOT — Bernadotte: hesitates — the I Corps weighs its own ambitions — a written order ('Bernadotte, support Massena') would likely bring him\n  The band weighs a force of his you have not scouted — scout Carniola.\n  On the men in view alone the odds read 'favorable' (42,000 against a substantial force).\n  Standing modifiers, already in the band: the ground favors the defender (+25%, mountains).\n  What Tyrol can feed is not known — the province"
+  },
+  {
+   "n": 41,
+   "turn": "Turn 1 — Late September 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 106,545 with the corps likely to arrive, up to 114,642 if all march; certain 24,000; a bad day (1 in 10) 94,017) vs Mack (large force) at Swabia — the balance of force looks favorable.\n  WILL JOIN — Davout: is willing to march if the roads allow — likely to make it in time (about 98%) (The corps system lowers the bar by 10) — and will stand at Swabia\n  WILL NOT — Soult: awaits explicit orders and will NOT march — order 'Soult, support Ney' and he will march\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in "
+  },
+  {
+   "n": 58,
+   "turn": "Turn 3 — Late October 1805",
+   "line": "Ney, attack Mack",
+   "meant": "attack Ney",
+   "class": "as_meant",
+   "success": true,
+   "reply": "MUSTER — Ney (24,000; expect about 109,247 with the corps likely to arrive, up to 118,036 if all march; certain 24,000; a bad day (1 in 10) 97,607) vs Mack (screening force) at Munich — the balance of force looks favorable.\n  WILL JOIN — Lannes: marches to the sound of the guns — the Roland of the Army — likely to make it in time (about 95%) (The corps system lowers the bar by 10) — and will stand at Munich\n  WILL JOIN — Murat: will march to the sound of the guns — but he and Ney are at odds; expect about half his weight — likely to make it in time (about 76%); order 'Murat, support Ney' and i"
+  },
+  {
+   "n": 78,
+   "turn": "Turn 6 — Early December 1805",
+   "line": "Massena, support Napoleon",
+   "meant": "support Massena",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Massena moves to support Napoleon (at Bohemia). Massena holds your written order: when Napoleon leads a battle within reach, he will march to the guns. He goes to Napoleon now and stays only while Napoleon is in danger — the order lapses of itself once Napoleon is out of danger; 'Massena, follow Napoleon' keeps him at Napoleon's side. Name a duration to hold him to it. He will drop this order for any battle within two provinces in a war of ours. Massena: \"He shall have my sabers the moment he needs them — and I shall have a share of the credit.\""
+  },
+  {
+   "n": 86,
+   "turn": "Turn 9 — Late January 1806",
+   "line": "Soult, support Napoleon",
+   "meant": "support Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult moves to support Napoleon (at Paris). Soult holds your written order: when Napoleon leads a battle within reach, he will march to the guns. He goes to Napoleon now and stays only while Napoleon is in danger — the order lapses of itself once Napoleon is out of danger; 'Soult, follow Napoleon' keeps him at Napoleon's side. Name a duration to hold him to it. \"Soult, support Napoleon.\" Understood to the letter. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 145,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Murat, march to Swabia",
+   "meant": "move Murat",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Murat begins march to Swabia. Moves to Swabia.\nSwabia feeds 60,000; the 71,692 men standing there would lose ~1,642 a turn to short supply.\nSwabia is Bavaria's soil — the corps standing there are fed by contract, about −252g more a turn. He will drop this order for any battle within two provinces in a war of ours. Murat: \"At the double, Sire — the men will smell powder soon enough.\""
+  },
+  {
+   "n": 235,
+   "turn": "Turn 7 — Late December 1805",
+   "line": "license Prussia against Hanover",
+   "meant": "other: license Prussia against Hanover",
+   "class": "unjudged_other",
+   "success": null,
+   "reply": "► license Prussia against Hanover\nBerthier: Matters of state are conducted at the table, Sire — not by dispatch. Take your seat in the Cabinet and the courts of Europe will answer.\nIn the Cabinet: F1 → Prussia → Sponsor Their Design — Licence.\n⚜ Take your seat at the table (F1)"
+  },
+  {
+   "n": 256,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Soult, march to Flanders",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Berlin and Brunswick are Prussia's guarded ground (Armed Neutrality) — standing in them costs −25 with Prussia — march, go round or cancel?"
+  },
+  {
+   "n": 258,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Napoleon, march to Flanders",
+   "meant": "move Napoleon",
+   "class": "honest_refusal",
+   "success": false,
+   "reply": "Napoleon already stands at Flanders — nothing spent."
+  },
+  {
+   "n": 259,
+   "turn": "Turn 12 — Early March 1806",
+   "line": "Napoleon, march to Paris",
+   "meant": "move Napoleon",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Napoleon begins march to Paris. Route: Picardy → Artois → Paris. Arrives in 3 turns. Moves to Picardy.\nPicardy feeds 22,500; the 37,692 men standing there would lose ~381 a turn to short supply. (1 AP — the Emperor commands in his own name.)"
+  },
+  {
+   "n": 322,
+   "turn": "Turn 8 — Early January 1806",
+   "line": "Soult, march to Orleanais",
+   "meant": "move Soult",
+   "class": "as_meant",
+   "success": true,
+   "reply": "Soult begins march to Orleanais. Moves to Orleanais.\nOrleanais lies outside the camp — this takes 30,000 men out of it; the 2-turn count resets at the turn's end — Britain's squadrons, held home by the camp, go back to the blockade (trade −50%, crews rot 5 a turn, about −175g a turn) from the turn after next. \"Soult, march to Orleanais.\" It will be done exactly, Sire. (1 AP — Soult executes precise orders with fewer couriers.)"
+  },
+  {
+   "n": 356,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "recruit infantry in Normandy",
+   "meant": "recruit",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Berthier checks the order of battle. 'No marshal of infantry can reach Normandy, Sire — none of our own corps stands within reach.' Dumonceau commands our foot here, but Holland pays its men — recruit into one of our own corps. Soult commands our foot at Lorraine — march him within reach, or give him the order yourself: 'Soult, recruit infantry'. Nothing was spent."
+  },
+  {
+   "n": 357,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "Dumonceau, recruit infantry",
+   "meant": "recruit Dumonceau",
+   "class": "as_meant",
+   "success": false,
+   "reply": "Dumonceau's men belong to Holland, Sire — it raises and pays them. Recruit into one of our own corps."
+  },
+  {
+   "n": 358,
+   "turn": "Turn 10 — Early February 1806",
+   "line": "Dumonceau, land at Ulster",
+   "meant": "other: land Dumonceau at Ulster",
+   "class": "unjudged_other",
+   "success": true,
+   "reply": "The expedition is drawn up, Sire: Dumonceau with 6,500 men, Normandy to Ulster. The transports slip past unseen 75 times in 100 (Britain watches at 100 effective against our escort). A failed run costs ~30% of the corps if intercepted, ~5% turned back — and the fleet's readiness −10 if she is turned back. If she is intercepted she meets Britain's 110 effective against our 54 — a decisive defeat is the likely result: about half of every pooled fleet (France 45→~20, Spain 30→~14, Holland 12→~5) is lost; Britain's side loses ~4%. What moves the odds: a won diversion first (45 in 100) → 95 · a 5,0"
+  }
+ ],
+ "unsent": [
+  {
+   "n": 143,
+   "turn": "Turn 4 — Early November 1805",
+   "line": "Murat, march to Swabia",
+   "error": "the command line is not taking orders now (it is disabled)",
+   "popups": [
+    "battle_diorama"
+   ]
+  }
+ ],
+ "n_unsent": 1
+}

@@ -2106,7 +2106,9 @@ def counter_struck_terms(original, counter) -> list[tuple[str, object]]:
     (kind: "clause", "demand" or "offer"), in the popup's own order. A multiset
     difference by identity - a term the counter kept, in any position, is not
     struck; a term whose figure changed reads as struck (the old figure) and
-    as a term of the counter (the new one)."""
+    as a term of the counter (the new one). (S14G-23: the popup's reader,
+    `_counter_offer_parts`, pairs a changed GOLD figure's two halves into one
+    "Added by ..." / "Cut by ..." line; this function stays the raw diff.)"""
     if not isinstance(original, dict) or not isinstance(counter, dict):
         return []
     struck = []
@@ -2124,7 +2126,39 @@ def counter_struck_terms(original, counter) -> list[tuple[str, object]]:
     return struck
 
 
-def _struck_line(kind: str, term, proposal_type) -> str:
+def _struck_gold_line(kind: str, term, proposal_type, counter, *, viewer: str, proposer: str,
+                      target: str, name_of) -> str:
+    """S14G-X111 (Pre-Deploy S14h part 2, October 26, 2026): a struck GOLD
+    term says who paid it - the sibling of S14G-X110 (the added / cut lines).
+    "Struck demand: Gold per turn - 20 for 5 turns" named no payer; it reads
+    "Struck demand: Prussia pays you 20 gold a turn for 5 turns" (or "you pay"),
+    and the vassalage tribute "Struck: the tribute - Bavaria pays you 154 gold a
+    turn for 10 turns". "" for any other term, or when the parties are not known
+    (the caller keeps the old wording)."""
+    if kind not in ("offer", "demand"):
+        return ""
+    flow = _gold_flow_words(kind, term, counter, proposer=proposer, target=target,
+                            viewer=viewer, name_of=name_of)
+    amount = _gold_term_sum(term)
+    if not flow or amount is None:
+        return ""
+    is_lump = str(term.get("type") or "").strip().lower() == "gold_lump"
+    if is_lump:
+        sum_words = f"{amount:,} gold at the signing"
+    else:
+        sum_words = f"{amount:,} gold a turn{stream_term_phrase(term)}"
+    if kind == "demand" and not is_lump and str(proposal_type).strip().lower() == "vassalage":
+        # the gold a turn a vassalage demands IS the tribute (as before)
+        return f"Struck: the tribute - {flow} {sum_words}"
+    return f"Struck {kind}: {flow} {sum_words}"
+
+
+def _struck_line(kind: str, term, proposal_type, *, counter=None, viewer: str = "",
+                 proposer: str = "", target: str = "", name_of=None) -> str:
+    gold = _struck_gold_line(kind, term, proposal_type, counter, viewer=viewer,
+                             proposer=proposer, target=target, name_of=name_of)
+    if gold:
+        return gold
     term_type = term.get("type", "unknown") if isinstance(term, dict) else term
     if (kind == "demand" and isinstance(term, dict)
             and str(proposal_type).strip().lower() == "vassalage"
@@ -2140,12 +2174,14 @@ def _struck_line(kind: str, term, proposal_type) -> str:
 
 
 def counter_struck_lines(original, counter) -> list[str]:
-    """One line per term the counter-offer removed ("Struck: the tribute - 126
-    gold a turn for as long as the treaty stands"); empty when it removed none."""
+    """One line per term the counter-offer removed ("Struck: the tribute -
+    Bavaria pays France 126 gold a turn for as long as the treaty stands");
+    empty when it removed none. S14G-X111: a struck gold term names its payer
+    from the draft's own parties (no reader here: names, never "you")."""
     proposal_type = ""
     if isinstance(original, dict):
         proposal_type = original.get("type") or original.get("proposal_type") or ""
-    return [_struck_line(kind, term, proposal_type)
+    return [_struck_line(kind, term, proposal_type, counter=original)
             for kind, term in counter_struck_terms(original, counter)]
 
 
@@ -2160,12 +2196,207 @@ def counter_offer_clause_lines(original, counter, *, viewer: str = "", proposer:
     every other letter uses. A counter that struck nothing reads as it always
     did - its own terms - and a counter with no terms at all still says WHICH
     proposal it answers. S14E-28: the kept terms say who pays whom when the
-    caller names the `viewer` (see `_proposal_term_lines`)."""
+    caller names the `viewer` (see `_proposal_term_lines`).
+
+    S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the diff marks what
+    the court ADDED as it marks what it struck. Bavaria's counter to a
+    vassalage added a second gold sweetener and the letter printed "You pay
+    Bavaria 142 gold at the signing; You pay Bavaria 100 gold at the signing"
+    with nothing marked new - only by adding the two lines could the player
+    see 242 gold would go out. The change lines now lead (struck, then
+    added), each marked - "Added by Bavaria: you pay 100 gold more (242 at the
+    signing)" for a raised sum, "Added by Bavaria: <the term>" for a new term
+    - and the lines after them are the draft's survivors.
+
+    S14G-X110 (Pre-Deploy S14h part 2, October 26, 2026): a raised or lowered
+    gold line says WHO PAYS from the reader's chair - "you pay 100 gold more"
+    when the reader is the payer, "Bavaria pays you 100 gold more" when the
+    reader is paid (`_gold_flow_words`)."""
+    base, changes, kept = _counter_offer_parts(
+        original, counter, viewer=viewer, proposer=proposer, target=target,
+        name_of=name_of)
+    if changes:
+        return [base] + changes + kept
+    return kept or [base]
+
+
+def _counter_merged_view(terms) -> dict:
+    """S14G-23: a draft as the diff reads it - the same-shape gold sweeteners
+    folded into one line (`ai_diplomacy.merged_gold_sweeteners`), so a counter
+    in the old two-line shape and one the builders now raise in place read the
+    same. A shallow copy; the input is untouched."""
+    view = dict(terms) if isinstance(terms, dict) else {}
+    sweeteners = view.get("sweeteners")
+    if isinstance(sweeteners, (list, tuple)) and len(sweeteners) > 1:
+        from backend.game_logic.ai_diplomacy import merged_gold_sweeteners
+        view["sweeteners"] = merged_gold_sweeteners(sweeteners)
+    return view
+
+
+def _counter_added_terms(original: dict, counter: dict) -> tuple[list[tuple[str, object]], dict]:
+    """S14G-23: the terms of `counter` the draft did not carry, as `(kind,
+    term)` pairs in the counter's own order (a multiset difference by identity,
+    the mirror of `counter_struck_terms`), and a copy of the counter holding
+    only its SURVIVORS - the terms the draft carried too."""
+    added: list[tuple[str, object]] = []
+    survivors = dict(counter)
+    for field, kind in _COUNTER_TERM_FIELDS:
+        have: dict[str, int] = {}
+        for term in (original.get(field) or []):
+            key = _counter_term_key(term)
+            have[key] = have.get(key, 0) + 1
+        kept = []
+        for term in (counter.get(field) or []):
+            key = _counter_term_key(term)
+            if have.get(key, 0) > 0:
+                have[key] -= 1
+                kept.append(term)
+            else:
+                added.append((kind, term))
+        survivors[field] = kept
+    return added, survivors
+
+
+def _gold_term_sum(term) -> int | None:
+    """The figure of a gold lump or stream, or None for any other term."""
+    if not isinstance(term, dict):
+        return None
+    if str(term.get("type") or "").strip().lower() not in ("gold_lump", "gold_per_turn"):
+        return None
+    try:
+        return int(term.get("value", term.get("amount")))
+    except (TypeError, ValueError):
+        return None
+
+
+def _gold_term_signature(kind: str, term) -> str:
+    """Identity of a gold term apart from its figure (kind, type, turns and
+    every other key): two terms that share it are one line at two sums."""
+    import json
+    body = {k: v for k, v in _canon_term_value(term).items() if k not in ("value", "amount")}
+    body["type"] = str(body.get("type") or "").strip().lower()
+    return f"{kind}|" + json.dumps(body, sort_keys=True, default=str)
+
+
+def _gold_flow_words(kind: str, term, counter, *, proposer: str = "", target: str = "",
+                     viewer: str = "", name_of=None) -> str:
+    """S14G-X110 (Pre-Deploy S14h part 2, October 26, 2026): WHO PAYS on one
+    gold term, said from the reader's chair - "you pay" when the viewer is the
+    payer, "Bavaria pays you" when the viewer is paid, "France pays Bavaria"
+    when no reader is named (the turn line's reader-less route). The payer and
+    the payee are `_directed_term_line`'s own reading: a sweetener is what the
+    PROPOSER gives the target; a demand is what the proposer asks of the target
+    (its explicit `from_nation` / `to_nation` win). The letter's own
+    `proposer_nation` / `target_nation` win over the caller's. "" for a term
+    that is not gold, or when the parties are not known (the caller keeps its
+    old wording)."""
+    if _gold_term_sum(term) is None:
+        return ""
     counter = counter if isinstance(counter, dict) else {}
-    original_dict = original if isinstance(original, dict) else {}
-    struck = counter_struck_lines(original_dict, counter)
-    kept = _proposal_term_lines(counter, viewer=viewer, proposer=proposer,
-                                target=target, name_of=name_of)
+    proposer = str(counter.get("proposer_nation") or counter.get("proposer") or proposer or "")
+    target = str(counter.get("target_nation") or counter.get("target") or target or "")
+    if kind == "offer":
+        payer, payee = proposer, target
+    else:
+        payer = term.get("from_nation") or target
+        payee = term.get("to_nation") or proposer
+    if not payer or not payee:
+        return ""
+    subject = _term_party(payer, viewer, name_of)
+    if subject == "you":
+        # the court named in the line's lead is the letter's other party: when
+        # the payee is someone else (a demand that sends the purse to an ally)
+        # the payee is named
+        other = proposer if str(proposer) != str(viewer) else target
+        return "you pay" if str(payee) == str(other) else f"you pay {_term_party(payee, viewer, name_of)}"
+    return f"{subject} pays {_term_party(payee, viewer, name_of)}"
+
+
+def _changed_gold_line(court_phrase: str, kind: str, term, delta: int, total: int,
+                       proposal_type, *, counter=None, viewer: str = "", proposer: str = "",
+                       target: str = "", name_of=None) -> str:
+    """"Added by Bavaria: you pay 100 gold more (242 at the signing)" - the
+    figure the court put on a gold line the draft already carried, and the sum
+    the line now makes; a figure she lowered reads "Cut by Bavaria: the tribute
+    - Bavaria pays you 46 gold a turn less (80 a turn ...)". In a vassalage the
+    gold a turn a demand names is the tribute and says so, as the struck line
+    does.
+
+    S14G-X110 (Pre-Deploy S14h part 2, October 26, 2026): the line says WHO
+    PAYS (`_gold_flow_words`) - "Added by Bavaria: 100 gold more" left the
+    reader to work out whose purse the 100 came out of. With no parties known
+    the line reads as it did."""
+    lead = (("Added by" if delta > 0 else "Cut by") + f" {court_phrase}: "
+            if court_phrase else ("Added: " if delta > 0 else "Cut: "))
+    more = "more" if delta > 0 else "less"
+    size = abs(int(delta))
+    flow = _gold_flow_words(kind, term, counter, proposer=proposer, target=target,
+                            viewer=viewer, name_of=name_of)
+    flow = f"{flow} " if flow else ""
+    if str(term.get("type") or "").strip().lower() == "gold_lump":
+        return f"{lead}{flow}{size:,} gold {more} ({total:,} at the signing)"
+    tribute = ("the tribute - " if (kind == "demand"
+                                    and str(proposal_type).strip().lower() == "vassalage") else "")
+    return (f"{lead}{tribute}{flow}{size:,} gold a turn {more} "
+            f"({total:,} a turn{stream_term_phrase(term)})")
+
+
+_TERM_LABEL_PREFIX = re.compile(r"^(?:Clause|Offer|Demand): ")
+
+
+def _added_term_line(court_phrase: str, kind: str, term, counter: dict, *,
+                     viewer: str, proposer: str, target: str, name_of) -> str:
+    """"Added by Bavaria: <the term's own popup line>" - the line every other
+    letter prints for the term (its label dropped, "Added by" says it).
+
+    S14G-X110 (Pre-Deploy S14h part 2, October 26, 2026): a NEW gold term read
+    without a reader named no payer ("Added: Gold lump (100)"); it now reads
+    "Added: France pays Bavaria 100 gold at the signing". With a reader the
+    popup's own directed line already says who pays ("You pay Bavaria 100 gold
+    at the signing") and is unchanged."""
+    if not viewer:
+        flow = _gold_flow_words(kind, term, counter, proposer=proposer, target=target,
+                                viewer=viewer, name_of=name_of)
+        amount = _gold_term_sum(term)
+        if flow and amount is not None:
+            when = (" at the signing" if str(term.get("type") or "").strip().lower() == "gold_lump"
+                    else f" a turn{stream_term_phrase(term)}")
+            return (f"Added by {court_phrase}: " if court_phrase else "Added: ") + (
+                f"{flow} {amount:,} gold{when}")
+    lone = {"type": counter.get("type") or counter.get("proposal_type") or "",
+            "proposer_nation": counter.get("proposer_nation") or "",
+            "target_nation": counter.get("target_nation") or "",
+            "clauses": [], "demands": [], "sweeteners": []}
+    lone[{"clause": "clauses", "demand": "demands", "offer": "sweeteners"}[kind]] = [term]
+    lines = _proposal_term_lines(lone, viewer=viewer, proposer=proposer,
+                                 target=target, name_of=name_of)
+    text = _TERM_LABEL_PREFIX.sub("", lines[0]) if lines else str(term)
+    return (f"Added by {court_phrase}: " if court_phrase else "Added: ") + text
+
+
+def _counter_court(original: dict, counter: dict, *, viewer: str, proposer: str,
+                   target: str, name_of) -> str:
+    """The court that wrote a counter, as the reader reads her name: the party
+    of the letter that is not the reader ("" when the reader is not named)."""
+    if not viewer:
+        return ""
+    first = str(counter.get("proposer_nation") or original.get("proposer_nation") or proposer or "")
+    second = str(counter.get("target_nation") or original.get("target_nation") or target or "")
+    court = first if (first and first != viewer) else (second if second != viewer else "")
+    return _term_party(court, viewer, name_of) if court else ""
+
+
+def _counter_offer_parts(original, counter, *, viewer: str = "", proposer: str = "",
+                         target: str = "", name_of=None) -> tuple[str, list[str], list[str]]:
+    """S14G-23: a counter-offer split into its three readings - `(base, changes,
+    kept)`: the proposal's own name line, the lines of what the court CHANGED
+    (struck terms, then added or raised ones, each marked) and the lines of the
+    terms she kept. ONE reader for the popup (`counter_offer_clause_lines`) and
+    the turn line (`format_proposal_summary` with an `original`)."""
+    counter = _counter_merged_view(counter)
+    original_dict = _counter_merged_view(original)
+    struck = list(counter_struck_terms(original_dict, counter))
+    added, survivors = _counter_added_terms(original_dict, counter)
     proposal_type = (counter.get("type") or counter.get("proposal_type")
                      or original_dict.get("type") or original_dict.get("proposal_type")
                      or "unknown")
@@ -2173,19 +2404,129 @@ def counter_offer_clause_lines(original, counter, *, viewer: str = "", proposer:
         base = "Diplomatic proposal"          # a typeless draft keeps the generic words
     else:
         base = f"Proposal: {proposal_display_name(proposal_type)}"
-    if struck:
-        return [base] + struck + kept
-    return kept or [base]
+    original_type = original_dict.get("type") or original_dict.get("proposal_type") or ""
+    court = _counter_court(original_dict, counter, viewer=viewer, proposer=proposer,
+                           target=target, name_of=name_of)
+    changes: list[str] = []
+    added_lines: list[str] = []
+    for kind, term in added:
+        total = _gold_term_sum(term)
+        mate = None
+        if total is not None and kind in ("offer", "demand"):
+            signature = _gold_term_signature(kind, term)
+            for entry in struck:
+                old = _gold_term_sum(entry[1])
+                if (entry[0] == kind and old is not None and old != total
+                        and _gold_term_signature(*entry) == signature):
+                    mate = (entry, old)
+                    break
+        if mate is not None:
+            struck.remove(mate[0])
+            # S14G-X110: the line names who pays, so it is handed the chair.
+            added_lines.append(_changed_gold_line(
+                court, kind, term, total - mate[1], total, original_type,
+                counter=counter, viewer=viewer, proposer=proposer, target=target,
+                name_of=name_of))
+        else:
+            added_lines.append(_added_term_line(
+                court, kind, term, counter, viewer=viewer, proposer=proposer,
+                target=target, name_of=name_of))
+    # S14G-X111: a struck gold term names its payer too - the DRAFT's parties
+    # (the term belonged to it), the counter's where the draft names none.
+    struck_from = original_dict if (original_dict.get("proposer_nation")
+                                    or original_dict.get("target_nation")) else counter
+    changes.extend(_struck_line(kind, term, original_type, counter=struck_from, viewer=viewer,
+                                proposer=proposer, target=target, name_of=name_of)
+                   for kind, term in struck)
+    changes.extend(added_lines)
+    kept = _proposal_term_lines(survivors, viewer=viewer, proposer=proposer,
+                                target=target, name_of=name_of)
+    return base, changes, kept
 
 
-def counter_summary_with_struck(summary: str, original, counter) -> str:
-    """`format_proposal_summary(counter)` plus a "  - Struck: ..." line for each
-    term the counter removed - the dialogue text and the event line that carry
-    the summary name the struck term the letter does."""
-    lines = counter_struck_lines(original, counter)
-    if not lines:
+def counter_summary_with_struck(summary: str, original, counter, *, viewer: str = "",
+                                proposer: str = "", target: str = "", name_of=None) -> str:
+    """The text of a counter-offer in the dialogue and the event line - one
+    renderer with the popup. S14G-23 (Pre-Deploy S14h part 2, October 26,
+    2026): with a `viewer` the whole body is `format_proposal_summary`'s reading
+    of the counter AS A DIFF OF THE DRAFT (the popup's own lines: "You pay
+    Bavaria 142 gold at the signing", "Added by Bavaria: 100 gold more (242 at
+    the signing)"), where the summary used to say "France offers 142 gold;
+    France offers 100 gold" and mark only what was struck. Without one (a caller
+    that does not know the reader) `summary` stands with a "  - ..." line
+    appended for each term the counter struck or added."""
+    if viewer:
+        return format_proposal_summary(counter, original=original, reader={
+            "viewer": viewer, "proposer": proposer, "target": target, "name_of": name_of})
+    _base, changes, _kept = _counter_offer_parts(original, counter)
+    if not changes:
         return summary
-    return summary + "".join(f"\n  - {line}" for line in lines)
+    return summary + "".join(f"\n  - {line}" for line in changes)
+
+
+def _dropped_demand_phrase(term) -> str:
+    """One demand said as the thing asked, for the sentence that names it
+    dropped: "154 gold a turn for 10 turns", "300 gold", "Tyrol"."""
+    if not isinstance(term, dict):
+        return clause_display_name(str(term or "demand")).lower()
+    ttype = str(term.get("type") or "").strip().lower()
+    try:
+        amount = int(term.get("value", term.get("amount")))
+    except (TypeError, ValueError):
+        amount = None
+    if ttype == "gold_per_turn" and amount is not None:
+        return f"{amount:,} gold a turn{stream_term_phrase(term)}"
+    if ttype == "gold_lump" and amount is not None:
+        return f"{amount:,} gold"
+    if ttype in ("territory_cede", "territory"):
+        regions = [str(r) for r in (term.get("regions") or []) if r]
+        return _join_named(regions) if regions else "territory"
+    if ttype == "ap_per_turn" and amount is not None:
+        return f"{amount:,} action point{'s' if amount != 1 else ''} a turn{stream_term_phrase(term)}"
+    detail = _format_clause_detail(term)
+    label = clause_display_name(ttype).lower()
+    return f"{label} ({detail})" if detail else label
+
+
+def dropped_demands_words(demands) -> str:
+    """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the sentence that
+    names the demands a "More generous" click set aside - "Your demands were
+    set aside: 154 gold a turn for 10 turns." The click cleared the draft's
+    demands (a generous round asks nothing) and said nothing of it, so the
+    player who looked for the 154-gold-a-turn tribute afterwards blamed the
+    counter. "" when the draft held none."""
+    phrases = []
+    for term in demands or []:
+        phrase = _dropped_demand_phrase(term)
+        if phrase and phrase not in phrases:
+            phrases.append(phrase)
+    if not phrases:
+        return ""
+    return "Your demands were set aside: " + "; ".join(phrases) + "."
+
+
+# S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): a settlement draft is
+# kept until the turn ends - `advance_turn` sets every unratified draft aside
+# (SC-28 / PF-2, by design) - and five surfaces promise the keep: the Back Out
+# reply, the war card's badge, Talleyrand's recovery line, the Back Out
+# discard-confirm and the set-aside notice. "Kept" alone read as kept for
+# good (diplomacy #13: the table opened on turn 2, Back Out read "kept", and
+# turn 3 began with "set aside at turn's end"). The bound is said HERE, once;
+# every surface calls `settlement_draft_words`.
+_SETTLEMENT_DRAFT_BOUND = {
+    "reply": "Settlement draft kept until the turn ends — reopen Settlement this turn to continue.",
+    "badge": "Draft kept until turn's end — Open Settlement resumes your terms.",
+    "until": "until the turn ends",
+    "set_aside": "(a draft lasts one turn)",
+}
+
+
+def settlement_draft_words(surface: str) -> str:
+    """The bound on a kept settlement draft, in the words of one surface:
+    "reply" (the Back Out reply), "badge" (the war card), "until" (the phrase
+    Talleyrand's recovery and discard-confirm lines splice in) and "set_aside"
+    (the suffix of the turn-end notice)."""
+    return _SETTLEMENT_DRAFT_BOUND[surface]
 
 
 # DDB-23 (Pre-Deploy S13b part 2): a stream — gold, actions or men a turn —
@@ -2521,8 +2862,37 @@ def format_terms_for_display(terms: dict, proposal_type: str, target_nation: str
     return lines
 
 
-def format_proposal_summary(terms: dict) -> str:
-    """Create a human-readable multi-line summary of proposal terms."""
+def _reader_proposal_summary(terms: dict, original, reader: dict) -> str:
+    """S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the summary read
+    from the reader's chair - the header line, then the popup's own lines
+    (`_proposal_term_lines`; for a counter, the diff of the `original` draft
+    with what was struck and what was added marked, `_counter_offer_parts`)."""
+    terms = terms if isinstance(terms, dict) else {}
+    head = (f"{proposal_display_name(terms.get('type', 'unknown'))} between "
+            f"{terms.get('proposer_nation', 'Unknown')} and {terms.get('target_nation', 'France')}")
+    seat = {"viewer": str(reader.get("viewer") or ""), "proposer": str(reader.get("proposer") or ""),
+            "target": str(reader.get("target") or ""), "name_of": reader.get("name_of")}
+    if isinstance(original, dict):
+        _base, changes, kept = _counter_offer_parts(original, terms, **seat)
+        lines = changes + kept
+    else:
+        lines = _proposal_term_lines(terms, **seat)
+    return "\n".join([head] + [f"  - {line}" for line in lines])
+
+
+def format_proposal_summary(terms: dict, *, original=None, reader=None) -> str:
+    """Create a human-readable multi-line summary of proposal terms.
+
+    S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): with a `reader` (the
+    chair the player sits in - `{"viewer", "proposer", "target", "name_of"}`,
+    the dict `mailbox_payloads` hands the popup's reader) the body is the
+    POPUP'S lines, not this function's proposer-voiced ones: a counter-offer
+    to a player-sent vassalage read "France offers 142 gold; France offers
+    100 gold" in the turn line while the popup said "You pay Bavaria ...".
+    `original` (the draft a counter answers) makes it the diff. Without a
+    reader the lines read as they always did."""
+    if isinstance(reader, dict) and reader.get("viewer"):
+        return _reader_proposal_summary(terms, original, reader)
     parts = []
     proposal_type = terms.get("type", "unknown")
     proposer = terms.get("proposer_nation", "Unknown")

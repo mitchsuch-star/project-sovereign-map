@@ -107,6 +107,13 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 		for msg in fog_messages:
 			content += "[color=#" + Utils.COLOR_INFO + "]" + msg + "[/color]\n"
 	elif total_actions == 0:
+		# S14G-27 (Pre-Deploy S14h part 2, October 26, 2026): this arm was
+		# believed to carry the quiet turns and never did - the backend sends
+		# no payload for a phase with nothing in it, and a phase of fog alone
+		# carries `fog_hidden_summary` (the arm above). Fog with no war/truce
+		# court never reaches this dialog at all: main.gd prints its one line
+		# to the terminal (`_enemy_phase_is_quiet_fog`). Kept as the fallback
+		# for a payload that is neither.
 		content = "[color=#" + Utils.COLOR_INFO + "]No enemy actions this turn.[/color]"
 	else:
 		for nation in nations:

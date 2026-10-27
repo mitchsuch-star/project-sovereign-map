@@ -130,7 +130,10 @@ class TestSFRH9TheWhatIfReadsItsVerb:
     def test_the_fortify_what_if_answers_the_fortify(self, shipped):
         client, world = shipped
         answer = ask(client, world, self.LINE)
-        assert answer.startswith("Davout would fortify at Rhineland today, Sire — 1 action."), answer
+        # S14G-X167 (Pre-Deploy S14h part 2): Davout stands NEUTRAL at the boot -
+        # the fortify is two and the header says why (was "- 1 action.").
+        assert answer.startswith(
+            "Davout would fortify at Rhineland today, Sire — 2 actions from his neutral stance."), answer
         assert "Fortify digs the corps in where it stands" in answer
         assert "Iron Resolve" in answer
         assert answer.endswith("Nothing has been ordered.")
@@ -359,7 +362,9 @@ class TestSFRD2ThePlainQuestions:
         answer = ask(client, world, "will bernadotte actualy obey me? the help says he may not march for me at all")
         assert answer.startswith("Bernadotte's trust stands at 40 of 100"), answer
         assert "below 40 he objects and may defy an order" in answer
-        assert "Bernadotte —" in answer and "(G)" in answer
+        # FLIPPED CONSCIOUSLY (S14G-X76b, October 26, 2026): "(G)" named a bare
+        # key the command line swallows; the tail reads `counsel.surface_pointer`.
+        assert "Bernadotte —" in answer and "(press G, or Alt+G while you type)" in answer
 
 
 # ═════════════ SFR-D16 / SFR-D26: Talleyrand answers from the desk ════════════

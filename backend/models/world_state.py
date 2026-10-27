@@ -164,6 +164,15 @@ FORTIFY_DECAY_CONFIG = {
 }
 FORTIFY_DECAY_DEFAULT = {"start": 6, "rate": 0.01, "floor": 0.0}
 
+# S14G-M1 (Pre-Deploy S14h part 2, October 26, 2026): the first growth turn of a
+# fortification is FRONT-LOADED by this much (the first dawn after the order,
+# for every marshal, both sides). The tick (`_process_tactical_states`) and the
+# order's reply (`tactical_executor._execute_fortify`) read this ONE constant -
+# the reply promised "+2% (grows +2% per turn)" while the tick gave +5% at the
+# first dawn, so the dispatch read "+7% defense" against a promise of 2%.
+# The value is the tick's own 0.05, unchanged: the series is byte-identical.
+FORTIFY_FRONT_LOAD = 0.05
+
 
 def _fortify_percents(old_bonus: float, new_bonus: float):
     """The decay line's two figures — "9% → 8%", rounded, never truncated.
@@ -6759,9 +6768,17 @@ class WorldState:
                                    mover_location=mover_location)
 
     def find_path(self, start: str, end: str, avoid_regions: List[str] = None,
-                  passable_for: str = None) -> Optional[List[str]]:
+                  passable_for: str = None,
+                  mover_nation: str = None) -> Optional[List[str]]:
         """
         Find shortest path between two regions using BFS.
+
+        S14G-X160 (Pre-Deploy S14h part 2, October 26, 2026): with a mover
+        (`mover_nation`, defaulting to `passable_for`) a TIE between roads of
+        one length goes to the road with the least foreign soil - read through
+        the SAME seam as the weighted road (`foreign_soil_edge_cost`) - instead
+        of to the registry's push order. With no mover, or with the seam held
+        down (0.0 everywhere), the search is today's BFS byte for byte.
 
         Args:
             start: Starting region name
@@ -6771,6 +6788,8 @@ class WorldState:
             passable_for: Optional nation name. When set, the path routes only
                           THROUGH regions this nation may enter (PF-8); the
                           destination is never filtered.
+            mover_nation: Optional nation whose soil the tie-break favours
+                          (S14G-X160); defaults to `passable_for`.
 
         Returns:
             List of region names from start to end (inclusive), or None if no path.
@@ -6783,6 +6802,10 @@ class WorldState:
 
         if avoid_regions is None:
             avoid_regions = []
+
+        mover = mover_nation or passable_for
+        if mover:
+            return self._find_path_soil_ties(start, end, avoid_regions, passable_for, mover)
 
         # BFS with path tracking
         visited = {start}
@@ -6812,12 +6835,115 @@ class WorldState:
 
         return None  # Not reachable
 
+    def _find_path_soil_ties(self, start: str, end: str, avoid_regions: List[str],
+                             passable_for: Optional[str], mover: str) -> Optional[List[str]]:
+        """S14G-X160: `find_path`'s breadth-first search with a mover - the
+        least HOPS first (the BFS's own order), then the least foreign soil on
+        the road (`foreign_soil_edge_cost`, the one seam), then the BFS's own
+        discovery order. A heap keyed (hops, foreign, push counter) pops in
+        exactly the BFS's FIFO order whenever the foreign term is 0.0 for
+        every province (seam down, an all-own board), and a node is queued
+        again only for a STRICTLY better key - so with the seam down this IS
+        `find_path`'s first-discovery road byte for byte (pinned for every
+        destination). The destination is never avoided or filtered, as ever;
+        `start` is the mover's standing province (WO-17)."""
+        import heapq
+
+        soil_cost = self._soil_cost_reader(mover)
+        counter = 0
+        heap = [(0, 0.0, counter, start, [start])]
+        best: Dict[str, tuple] = {start: (0, 0.0)}
+        visited = set()
+        while heap:
+            hops, foreign, _, current, path = heapq.heappop(heap)
+            if current in visited:
+                continue
+            visited.add(current)
+            if current == end:
+                return path
+            for adjacent in self.regions[current].adjacent_regions:
+                if adjacent in visited:
+                    continue
+                if adjacent != end:
+                    if adjacent in avoid_regions:
+                        continue
+                    if (passable_for
+                            and not self._region_passable_for(
+                                adjacent, passable_for, mover_location=start)):
+                        continue
+                key = (hops + 1, foreign + soil_cost(adjacent))
+                if adjacent in best and best[adjacent] <= key:
+                    continue
+                best[adjacent] = key
+                counter += 1
+                heapq.heappush(heap, (key[0], key[1], counter, adjacent, path + [adjacent]))
+        return None  # Not reachable
+
+    # S14G-33 (Pre-Deploy S14h part 2, October 26, 2026): the weight a step
+    # onto a stranger's soil adds to the road. FAR below the smallest gap
+    # between two terrain costs (0.1: hills 1.2 against forest 1.3) times the
+    # longest road a map of 126 provinces can hold (126 x 0.0001 = 0.0126), so
+    # the road's LENGTH and TERRAIN still decide every choice and only a TIE
+    # is settled by the soil. A float, not a lever - the seam is the method.
+    FOREIGN_SOIL_STEP_COST = 0.0001
+
+    def foreign_soil_edge_cost(self, mover_nation: str, region_name: str) -> float:
+        """S14G-33: THE tie-break seam of the weighted road. A step onto a
+        province `mover_nation` neither holds nor is fed on (an ally's or a
+        satellite's soil, `ALLY_SUPPLY_STATES` - the same states that feed a
+        guest army) costs `FOREIGN_SOIL_STEP_COST` more than the same step
+        onto its own or its ally's ground; an unclaimed province and the
+        mover's own cost nothing. Without a mover (the AI's omniscient road,
+        the diplomacy-blind terrain-only fallback) it is 0.0 - those roads
+        keep the registry's push order on a tie exactly as before.
+
+        WHY: "March to Paris" from Flanders ties three plains roads of three
+        hops - Picardy-Artois-Paris and Picardy-Champagne-Paris on French
+        soil, Westphalia-Artois-Paris on a stranger's - and the tie went to
+        the registry's adjacency order (Westphalia first): onto foreign soil
+        that feeds 15,000 for the 37,692 men marching (~1,231 a turn lost).
+        PATCHING THIS METHOD TO RETURN 0.0 restores every road byte for byte
+        (`x + 0.0 == x`): the series arms hold it down. PURE; O(1) - a dict
+        get and a diplomatic-state lookup, no region scan (Golden Rule 8)."""
+        if not mover_nation:
+            return 0.0
+        region = self.regions.get(region_name)
+        controller = getattr(region, "controller", None) if region is not None else None
+        if not controller or controller == mover_nation:
+            return 0.0
+        if self.get_diplomatic_state(mover_nation, controller) in self.ALLY_SUPPLY_STATES:
+            return 0.0
+        return float(self.FOREIGN_SOIL_STEP_COST)
+
+    def _soil_cost_reader(self, mover_nation: Optional[str]):
+        """S14G-33: `foreign_soil_edge_cost` read at most ONCE per province
+        for one pathfinding query (a Dijkstra pushes a province from every
+        neighbour; the verdict is constant for the query). With no mover the
+        reader is a constant 0.0 and never touches the seam."""
+        if not mover_nation:
+            return lambda region_name: 0.0
+        memo: Dict[str, float] = {}
+
+        def read(region_name: str) -> float:
+            cost = memo.get(region_name)
+            if cost is None:
+                cost = self.foreign_soil_edge_cost(mover_nation, region_name)
+                memo[region_name] = cost
+            return cost
+
+        return read
+
     def find_weighted_path(self, start: str, end: str, avoid_regions: List[str] = None,
-                           passable_for: str = None) -> Optional[List[str]]:
+                           passable_for: str = None,
+                           mover_nation: str = None) -> Optional[List[str]]:
         """
         Find lowest-attrition path between two regions using Dijkstra.
 
-        Edge weight = TERRAIN_MOVEMENT_COST of the destination region.
+        Edge weight = TERRAIN_MOVEMENT_COST of the destination region, plus
+        (S14G-33) `foreign_soil_edge_cost` - a hair for a stranger's soil, so a
+        TIE between roads of one length and one terrain goes to the road on
+        the mover's own or its ally's ground rather than to the registry's
+        push order.
         This means mountains (2.0) are expensive to enter, plains (1.0) are cheap.
 
         Args:
@@ -6829,6 +6955,9 @@ class WorldState:
                           THROUGH regions this nation may enter (PF-8 — prefer
                           friendly/open-border corridors over impassable neutral
                           land); the destination is never filtered.
+            mover_nation: Optional nation whose soil the tie-break favours
+                          (S14G-33). Defaults to `passable_for`; with neither
+                          there is no tie-break and the push order decides.
 
         Returns:
             List of region names from start to end (inclusive), or None if no path.
@@ -6843,6 +6972,8 @@ class WorldState:
 
         if avoid_regions is None:
             avoid_regions = []
+
+        soil_cost = self._soil_cost_reader(mover_nation or passable_for)
 
         # Dijkstra with (cost, counter, region_name, path) tuples
         # Counter prevents comparing region names when costs are equal
@@ -6876,14 +7007,17 @@ class WorldState:
                 edge_cost = TERRAIN_MOVEMENT_COST.get(
                     self.regions[adjacent].terrain, 1.0
                 )
-                new_cost = cost + edge_cost
+                # S14G-33: a stranger's soil weighs a hair more (0.0 on the
+                # mover's own, an ally's, or with no mover named).
+                new_cost = cost + edge_cost + soil_cost(adjacent)
                 counter += 1
                 heapq.heappush(heap, (new_cost, counter, adjacent, path + [adjacent]))
 
         return None  # Not reachable
 
     def weighted_paths_from(self, start: str, avoid_regions: List[str] = None,
-                            passable_for: str = None) -> Dict[str, List[str]]:
+                            passable_for: str = None,
+                            mover_nation: str = None) -> Dict[str, List[str]]:
         """CC-3 (row CC, Rule 8): `find_weighted_path(start, end, ...)` for
         EVERY end at once — ``{end: path}`` from ONE Dijkstra pass, where the
         map's select-then-click tint would otherwise run 125 searches.
@@ -6896,13 +7030,19 @@ class WorldState:
         popped terminal pushes nothing), so each end's first pop carries the
         targeted run's own path, ties included. Pinned against
         `find_weighted_path` in `tests/test_cc3_select_click_enter.py`.
-        `passable_for` is read once per province (constant for the query)."""
+        `passable_for` is read once per province (constant for the query).
+
+        S14G-33: the stranger's-soil hair (`foreign_soil_edge_cost`) rides the
+        edge here exactly as in `find_weighted_path` - the map's ETA tint must
+        keep the SAME tie rule the typed road keeps - and `mover_nation`
+        defaults to `passable_for` the same way."""
         import heapq
 
         if start not in self.regions:
             return {}
         avoid = set(avoid_regions or [])
         passable = {}
+        soil_cost = self._soil_cost_reader(mover_nation or passable_for)
 
         def blocked(region_name: str) -> bool:
             if region_name in avoid:
@@ -6935,8 +7075,8 @@ class WorldState:
                     self.regions[adjacent].terrain, 1.0
                 )
                 counter += 1
-                heapq.heappush(heap, (cost + edge_cost, counter, adjacent,
-                                      path + [adjacent]))
+                heapq.heappush(heap, (cost + edge_cost + soil_cost(adjacent),
+                                      counter, adjacent, path + [adjacent]))
         return out
 
     def get_weighted_distance(self, start: str, end: str) -> float:
@@ -12290,16 +12430,21 @@ class WorldState:
                 clause_phrase = (
                     f"{clause_count} clause{'s' if clause_count != 1 else ''}"
                 )
+                # S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): the Back
+                # Out reply said "kept"; the notice says how long a draft
+                # lasts (the words every surface shares). No behaviour change.
+                from backend.display_names import settlement_draft_words
+                _lasts = settlement_draft_words("set_aside")
                 if selected_display:
                     message_display = (
                         f"Your unratified settlement draft with "
                         f"{selected_display} ({clause_phrase}) was set "
-                        "aside at turn's end."
+                        f"aside at turn's end {_lasts}."
                     )
                 else:
                     message_display = (
                         f"An unratified settlement draft ({clause_phrase}) "
-                        "was set aside at turn's end."
+                        f"was set aside at turn's end {_lasts}."
                     )
                 notices.append({
                     "war_id": str(wid),
@@ -12350,6 +12495,21 @@ class WorldState:
         self.diplomatic_trust_applied = {}
 
         # Coalition - clear per-turn threat source tracking
+        # S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): the day's alarm
+        # rows (the player's: "Won a battle +3", "Won a decisive battle +5")
+        # are READ here, before the clear, and carried on the EXISTING
+        # `last_morning_dispatch` payload (a dict already serialized with the
+        # world - no new field) under `threat_rows_yesterday`, so the next
+        # morning's coalition section can name what moved the figure. The
+        # clear ran first and the dawn shipped only the new turn's tick rows.
+        # The key dies with the payload when the next dawn replaces it.
+        _dawn = getattr(self, "last_morning_dispatch", None)
+        if isinstance(_dawn, dict):
+            _day_rows = [dict(s) for s in (self.threat_sources_this_turn or [])
+                         if isinstance(s, dict)
+                         and s.get("target", self.player_nation) == self.player_nation]
+            _dawn["threat_rows_yesterday"] = (
+                list(_dawn.get("threat_rows_yesterday") or []) + _day_rows)
         self.threat_sources_this_turn = []
 
         # S4: Snapshot WE before changes this turn (for trend calculation)
@@ -12815,6 +12975,7 @@ class WorldState:
         from backend.game_logic import game_end as _ge_bench
         if (not self.commission_hint_shown
                 and _ge_bench.terminal_ending(self) is None):
+            from backend.ai.counsel import surface_pointer as _surface_pointer
             from backend.game_logic.recruitment import (
                 first_affordable_commission,
             )
@@ -12832,8 +12993,8 @@ class WorldState:
                     message=(
                         f"The treasury could commission a new marshal — "
                         f"{_bench.get('name', '?')} waits at "
-                        f"{int(_bench.get('cost', 0)):,}g. Open the "
-                        f"Generals screen (press G) and see the Commission "
+                        f"{int(_bench.get('cost', 0)):,}g. Open "
+                        f"{_surface_pointer('marshals')} and see the Commission "
                         f"bench, or order it by name."
                     ),
                     turn_created=int(self.current_turn),
@@ -13156,6 +13317,14 @@ class WorldState:
 
         outcome = result.get("outcome", "REJECT")
         feedback = result.get("feedback", "")
+        # S14G-X172 (the re-play's find NF-1, Pre-Deploy S14h part 2, October
+        # 26, 2026): a verdict that is not the card's names what MOVED since
+        # the send, after the standing obstacle — the reply blamed "deep-seated
+        # hostility" (unchanged) while the war score had fallen 33.
+        from backend.game_logic.diplomacy import proposal_movers_line
+        _moved = proposal_movers_line(pit, result)
+        if _moved:
+            feedback = f"{feedback} {_moved}".strip()
         decision_reason = determine_counterparty_decision_reason(proposal, self, result)
 
         from backend.game_logic.dispatch import queue_dispatch_event
@@ -13247,9 +13416,20 @@ class WorldState:
                 # the terms the court STRUCK from the draft it was sent, not
                 # only the terms it kept (a vassalage that struck its tribute
                 # read "Vassalage between France and Bavaria" and nothing more).
+                #
+                # S14G-23 (Pre-Deploy S14h part 2, October 26, 2026): the turn
+                # line reads the counter through the POPUP'S renderer (the
+                # reader's chair, the diff of the draft - what was struck and
+                # what the court ADDED, each marked), where it said "France
+                # offers 142 gold; France offers 100 gold" and marked only
+                # what was struck.
                 from backend.display_names import counter_summary_with_struck
+                from backend.game_logic.formations import formed_display_name
                 summary = counter_summary_with_struck(
-                    _format_proposal_summary(counter_terms), proposal, counter_terms)
+                    _format_proposal_summary(counter_terms), proposal, counter_terms,
+                    viewer=str(self.player_nation or ""), proposer=str(target or ""),
+                    target=str(self.player_nation or ""),
+                    name_of=lambda n, _w=self: formed_display_name(_w, n))
                 ptype = proposal_display_name(proposal.get("type", "unknown"))
                 events.append({
                     "type": "diplomatic_proposal_returned",
@@ -14388,7 +14568,15 @@ class WorldState:
         try:
             from backend.game_logic.withdrawal import open_evacuation_corridor
             if final_state not in ("WAR",):
-                open_evacuation_corridor(self, ctx.proposer, ctx.target_nation)
+                # S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): this
+                # re-run fired after EVERY ratified treaty and the stranded
+                # set is nation-wide, so a vassalage with Bavaria and a pact
+                # with Prussia (never at war with France) each logged a
+                # "war is over" corridor for the corps Austria's truce had
+                # stranded. The pair's state BEFORE the treaty decides whether
+                # a road home is owed (`withdrawal.corridor_applies`).
+                open_evacuation_corridor(self, ctx.proposer, ctx.target_nation,
+                                         prior_state=ctx.current_state)
         except Exception as exc:
             report(exc, "world_state.WorldState._ratify_treaty: import backend.game_logic.withdrawal")
 
@@ -15047,7 +15235,17 @@ class WorldState:
 
         Handles:
         - DRILL: drilling -> drilling_locked -> shock_bonus ready
-        - FORTIFY: Grows +2% per turn (max 15%), no expiration
+        - FORTIFY (S14G-X166, Pre-Deploy S14h part 2, October 26, 2026: this
+          line named three figures the tick does not follow - a flat rate, a
+          15% cap and no expiry): the order sets +2% plus the kit's instant
+          bonus (`get_instant_fortify_bonus`); the FIRST dawn adds
+          `FORTIFY_FRONT_LOAD` (+5%, front-loaded); every later turn adds the
+          kit's `get_fortify_rate` (+2% a turn, the cautious kit more); the
+          growth stops at `get_max_fortify_bonus` (12%, the aggressive kit
+          lower); and from the kit's `FORTIFY_DECAY_CONFIG` "start" turn the
+          works decay at its "rate" down to its "floor" (a HOLD order slows
+          the decay). The reply words the same schedule through
+          `tactical_executor.fortify_growth_words`.
         - RETREAT: Advance recovery stage
         - SHOCK BONUS REMINDER: Notify if marshals have shock ready
 
@@ -15236,7 +15434,10 @@ class WorldState:
 
             # ════════════════════════════════════════════════════════════
             # FORTIFY GROWTH & DECAY (Phase 3 - Turtle Prevention)
-            # Growth: Davout +3%/turn, max 20% | Ney max 10% | Others +2%/turn, max 15%
+            # Growth (S14G-X166: this line quoted caps the kits do not have): the first
+            # dawn adds FORTIFY_FRONT_LOAD, then the kit's get_fortify_rate a turn (+2%;
+            # the cautious kit more) up to its get_max_fortify_bonus (12%; the aggressive
+            # kit 8%)
             # Decay: Starts after threshold turns, personality-based rate and floor
             # Cavalry: Handled by auto-unfortify at turn 3 (skip decay for them)
             # ════════════════════════════════════════════════════════════
@@ -15247,7 +15448,7 @@ class WorldState:
 
                 personality = getattr(marshal, 'personality', 'unknown')
                 is_cavalry = getattr(marshal, 'cavalry', False)
-                max_bonus_rate = get_max_fortify_bonus(personality)  # 0.10-0.20 depending on personality
+                max_bonus_rate = get_max_fortify_bonus(personality)  # the kit's ceiling: 0.12, the aggressive kit 0.08
                 fortify_rate = get_fortify_rate(personality)  # 0.02-0.03 depending on personality
                 instant_bonus = get_instant_fortify_bonus(personality)  # 0.05 for Davout, 0 for others
 
@@ -15360,7 +15561,7 @@ class WorldState:
                     initial_fortify_value = 0.02 + instant_bonus
 
                     if abs(current_bonus - initial_fortify_value) < 0.001:  # First turn of growth
-                        increment = 0.05  # Front-loaded +5%
+                        increment = FORTIFY_FRONT_LOAD  # Front-loaded +5% (S14G-M1: one constant, the reply reads it too)
                         front_loaded = True
                     else:
                         increment = fortify_rate  # Normal rate (+2% or +3%)
@@ -16666,13 +16867,15 @@ class WorldState:
                 # DDB-42 (Pre-Deploy S13b part 2), the mirror: a win on the
                 # victor's own soil adds no alarm (the sweep found this second
                 # combat copy — the reckless auto-charge — without the rule).
-                from backend.commands.combat_executor import battle_win_on_own_soil
+                from backend.commands.combat_executor import (
+                    BATTLE_WIN_ALARM, DECISIVE_VICTORY_ALARM, battle_win_on_own_soil,
+                )
                 _ac_own_soil = battle_win_on_own_soil(
                     self, auto_charge_battle_region, marshal.nation,
                     conquered=bool(conquered))
                 if combat_result.get("victor") == marshal.name and marshal.nation:
                     if not _ac_own_soil:
-                        add_threat(self, 3, "battle_win", target=marshal.nation)
+                        add_threat(self, BATTLE_WIN_ALARM, "battle_win", target=marshal.nation)  # S14G-M3: the one constant
                     if ac_def_cas > 0 and ac_atk_cas > 0:
                         ratio = ac_def_cas / ac_atk_cas
                     elif ac_def_cas > 0:
@@ -16681,7 +16884,7 @@ class WorldState:
                         ratio = 0
                     if ratio > 2 and ac_total_cas > 10000:
                         if not _ac_own_soil:
-                            add_threat(self, 5, "decisive_victory", target=marshal.nation)
+                            add_threat(self, DECISIVE_VICTORY_ALARM, "decisive_victory", target=marshal.nation)  # S14G-M3
                         if marshal.nation == france:
                             add_coalition_shock(enemy.nation, self)
                     if conquered:

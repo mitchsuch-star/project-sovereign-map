@@ -2464,6 +2464,34 @@ class StrategicExecutor:
                 ctx.order.arrived_turn = ctx.world.current_turn
         return _NEXT_STAGE
 
+    @staticmethod
+    def _march_arrival_clause(ctx: StrategicCommandContext, joins: bool = False) -> str:
+        """S14G-33 (Pre-Deploy S14h part 2, October 26, 2026): the typed
+        march's clock, said in the reply - " Arrives in 3 turns." The reply
+        printed the road and never the days: the player counted them off the
+        route (a three-hop road to Paris read as one march), while the card
+        and the desk before the order already said it. ONE arrival law
+        (`strategic.march_turns`, the quote's own): the road remaining after
+        the first step is `ctx.order.path`; the order's issuing turn's tick is
+        skipped and `range` provinces are walked a turn after it, so the end
+        turns to the road's end are `march_turns(remaining + range, range)` =
+        1 + ceil(remaining / range) - the quote's `march_turns(len(road), range)`
+        by construction. '' when the corps arrived on its first step (the
+        reply's "Moves to X." already says so).
+
+        S14G-X161: a SUPPORT or a follow says it in the order card's own
+        words ("joins him in N turns", `order_confirm_card._clock`) - `joins`
+        - and a HOLD with a road to its ground says "Arrives" like a march."""
+        remaining = len(getattr(ctx.order, "path", None) or [])
+        if remaining <= 0:
+            return ""
+        from backend.commands.strategic import march_turns
+        reach = max(1, int(getattr(ctx, "movement_range", 1) or 1))
+        turns = int(march_turns(remaining + reach, reach))
+        if joins:
+            return f" Joins him in {_plural(turns, 'turn')}."
+        return f" Arrives in {_plural(turns, 'turn')}."
+
     def _strategic_response(self, ctx: StrategicCommandContext):
         """Stage 10 of `_execute_strategic_command`: The reply's road, the
         grounding note (FA-54), the MOVE_TO lines."""
@@ -2511,8 +2539,13 @@ class StrategicExecutor:
                 ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}."
                        f"{_guard_rider}{ctx.first_step_msg}{_ground}")
             else:
+                # S14G-33: and the clock - "Arrives in 3 turns." - after the
+                # route and S14G-11's guarded-ground rider (which stays the
+                # sentence right after "Route:"), before the first step.
                 ctx.msg = (f"{ctx.marshal.name} begins march to {ctx.target}. "
-                       f"Route: {route_str}.{_guard_rider}{ctx.first_step_msg}{_ground}")
+                       f"Route: {route_str}.{_guard_rider}"
+                       f"{self._march_arrival_clause(ctx)}"
+                       f"{ctx.first_step_msg}{_ground}")
             # S14G-2: the aggressive man's interrupt, said at the order.
             ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
         elif ctx.strategic_type == "PURSUE":
@@ -2558,7 +2591,10 @@ class StrategicExecutor:
             # "Soult, hold Mainz."`, the player's own words and the
             # substituted province contradicting each other in one
             # sentence.
-            ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{_guard_rider}{ctx.first_step_msg}"
+            # S14G-X161: and the clock of the road to its ground, after the
+            # guarded-ground rider, before the first step ('' with no road).
+            ctx.msg = (f"{ctx.marshal.name} will hold {hold_loc}.{_guard_rider}"
+                   f"{self._march_arrival_clause(ctx)}{ctx.first_step_msg}"
                    + ("" if (ctx._hold_placed_by_the_game)
                       else destination_grounding_note(
                           ctx.parsed_command.get("raw_input"), hold_loc))
@@ -2571,8 +2607,10 @@ class StrategicExecutor:
             ally_m = ctx.world.get_marshal(ctx.target)
             loc = ally_m.location if ally_m else "unknown"
             shown_ally = humanize_entity_name(ctx.target)
+            # S14G-X161: and the clock of the road to him (the card's words).
             ctx.msg = (f"{ctx.marshal.name} follows {shown_ally} (at {loc})."
-                       f"{_guard_rider}{ctx.first_step_msg}"
+                       f"{_guard_rider}{self._march_arrival_clause(ctx, joins=True)}"
+                       f"{ctx.first_step_msg}"
                        f" {ctx.marshal.name} marches where {shown_ally} marches and to his "
                        f"guns, turn after turn; the order stands until you cancel it or "
                        f"{shown_ally} leaves the field.")
@@ -2590,9 +2628,11 @@ class StrategicExecutor:
             # the exact pair a source-grep pin could not tell apart, and the
             # reason the previous fix of this class left this one raw. (An
             # ally's location is our own intelligence; no fog arm needed.)
+            # S14G-X161: and the clock of the road to him (the card's words).
             ctx.msg = (f"{ctx.marshal.name} moves to support "
                    f"{humanize_entity_name(ctx.target)} (at {loc})."
-                   f"{_guard_rider}{ctx.first_step_msg}")
+                   f"{_guard_rider}{self._march_arrival_clause(ctx, joins=True)}"
+                   f"{ctx.first_step_msg}")
             # W6-4 §6.3: confirm the standing-orders doctrine — a SUPPORT
             # order authorizes even a literal marshal to march to the guns.
             # CA9-F8 (the COPY half; the mechanic is out of scope and

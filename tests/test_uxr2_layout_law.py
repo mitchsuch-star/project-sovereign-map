@@ -214,7 +214,12 @@ class TestTheLaw:
         _scenes, scripts, _main, keys = tree
         found = [m.group(1) for s in scripts.values()
                  for m in re.finditer(r'ResizeGrip\.attach_centered\(\$\w+, "(\w+)"\)', G.code_lines(s))]
-        assert len(found) == len(set(found)) == 6, found
+        # CONSCIOUS FLIP (S14G-22, Pre-Deploy S14h part 2, October 26, 2026): six
+        # -> seven. The Cabinet (the diplomacy wizard, a layer-110 modal) is
+        # clamped AND gripped under its own key "cabinet"; the six layer-50
+        # screens still carry theirs (`test_every_layer_50_screen_is_gripped`).
+        assert len(found) == len(set(found)) == 7, found
+        assert "cabinet" in found
         assert set(found) <= keys
 
     def test_the_clamped_set_is_the_derived_set(self, tree):
@@ -291,8 +296,10 @@ class TestTheGripMechanics:
 
     def test_the_store(self, tree):
         _s, scripts, _m, keys = tree
+        # CONSCIOUS FLIP (S14G-22, Pre-Deploy S14h part 2): + "cabinet" - the
+        # Cabinet's grip stores its size under its own key.
         assert keys == {"terminal", "war_status", "ledger", "diplomatic_ledger", "generals",
-                        "dispatch", "event_log", "gazette"}
+                        "dispatch", "event_log", "gazette", "cabinet"}
         ui = scripts["ui_settings"]
         assert "clear_all_panel_sizes()" in G.func_body(ui, "reset_layout")
         assert 'set_panel_size("terminal", Vector2(width, height))' in G.func_body(ui, "set_terminal_size")

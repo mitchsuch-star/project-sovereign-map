@@ -508,7 +508,14 @@ func _render_war_detail(w: Dictionary):
 	# visible where the player reopens — the badge appears iff a same-turn
 	# scoped draft would actually restore.
 	if bool(w.get("settlement_draft_kept", false)):
-		bbcode += "[color=" + COLOR_GOLD + "]▸ Draft kept — Open Settlement resumes your terms.[/color]\n"
+		# S14G-26 (Pre-Deploy S14h part 2, October 26, 2026): the keep lasts until
+		# the turn ends (`advance_turn` sets every unratified draft aside) - the
+		# badge says so. The backend's string (`settlement_draft_kept_line`, the
+		# words the Back Out reply shares) is drawn; the literal is its twin.
+		var kept_line = str(w.get("settlement_draft_kept_line", ""))
+		if kept_line == "":
+			kept_line = "Draft kept until turn's end — Open Settlement resumes your terms."
+		bbcode += "[color=" + COLOR_GOLD + "]▸ " + kept_line + "[/color]\n"
 	if tier_display or peace_table is Dictionary or bool(w.get("settlement_draft_kept", false)):
 		bbcode += "\n"
 

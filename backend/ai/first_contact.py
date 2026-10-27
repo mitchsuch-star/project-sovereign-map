@@ -33,6 +33,9 @@ from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 from backend.errors import report
+# S14G-16 (Pre-Deploy S14h part 2, October 26, 2026): every "press <letter>" below
+# goes through the ONE hint — the bare key types into the command line.
+from backend.ai.counsel import key_hint
 
 # ── the lever ────────────────────────────────────────────────────────────
 
@@ -309,7 +312,8 @@ def _judged_goal(world) -> str:
                    f"of war with his captor is deposed; and an Emperor who "
                    f"leads from the front can die with his corps")
     tail = (" Take provinces, keep the Emperor free and the marshals loyal, "
-            "and make peace on your own terms. The Strategic Ledger (press T) "
+            "and make peace on your own terms. The Strategic Ledger "
+            f"(press {key_hint('T')}) "
             "keeps the score and the Cabinet (F1) holds every court.")
     # GE-3: the win leads — the Congress of Paris — and the Verdict and the
     # Fall follow it; "Sire" is said once.
@@ -535,7 +539,8 @@ def _laws_answer(asked: str, world) -> str:
             lines.append(says)
     return ("The laws of state, Sire. " + " ".join(lines)
             + " Say 'enact <law>' to enact one, or 'repeal <law>' to strike "
-              "one down; the Laws tab (press T, then 8) keeps them all."
+              f"one down; the Laws tab (press {key_hint('T', then='8')}) "
+              "keeps them all."
             + relayed)
 
 
@@ -607,11 +612,12 @@ def answer_first_contact(kind: str, asked: str, world) -> Optional[str]:
                     "laurel to be handed out; the war is the game. Take "
                     "provinces, keep the marshals loyal and the treasury "
                     "whole, and make peace on your own terms. The Strategic "
-                    "Ledger (press T) keeps the score and the Cabinet (F1) "
-                    "holds every court.")
+                    f"Ledger (press {key_hint('T')}) keeps the score and the "
+                    "Cabinet (F1) holds every court.")
         else:
             goal = ("The campaign's objectives are on the Strategic Ledger, "
-                    "Sire (press T) — that is the measure of the war.")
+                    f"Sire (press {key_hint('T')}) — that is the measure of "
+                    "the war.")
         today = ""
         if counsel:
             today = " Today: " + "; ".join(f"'{line}'" for line in counsel[:3]) + "."

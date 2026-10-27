@@ -218,6 +218,15 @@ var _norm_re := RegEx.create_from_string("@([A-Za-z0-9_]+)@[0-9]+")
 var _url_re := RegEx.create_from_string("(?s)\\[url(?:=([^\\]]*))?\\](.*?)\\[/url\\]")
 var _tag_re := RegEx.create_from_string("\\[[^\\]]*\\]")
 var _img_re := RegEx.create_from_string("(?s)\\[img[^\\]]*\\].*?\\[/img\\]")
+# S14G-X162 (ported from tools/dd_b_client.gd, S14G-I1): a glyph link's text is
+# a bracketed symbol ("[+]", "[-]") - no letter or digit, so a tag ("[b]",
+# "[color=#fff]", "[/url]") never is one.
+const MAX_ICON_LINE := 120
+var _ws_re := RegEx.create_from_string("\\s+")
+var _bbtag_re := RegEx.create_from_string("\\[/?[A-Za-z][^\\]]*\\]")
+var _glyph_re := RegEx.create_from_string("^\\[([^\\sA-Za-z0-9\\[\\]=/]{1,3})\\]$")
+var _glyph_any_re := RegEx.create_from_string("\\[[^\\sA-Za-z0-9\\[\\]=/]{1,3}\\]")
+var _lead_sym_re := RegEx.create_from_string("^[\\s*\\-•·▸▾>]+")
 # A label LEADS with its verb ("Save Game", "Load a campaign", "Quit"); the
 # Menu button's tooltip only LISTS "Save, Load, Settings" and is pressed.
 # (The diorama's "Replay" replays its own tableau: it is pressed.)
@@ -1101,9 +1110,124 @@ func _enumerate(floor: int) -> Array:
 				link["text"] = label.left(80)
 				link["link_index"] = k
 				link["disabled"] = false
+				# S14G-X162 (Pre-Deploy S14h part 2, October 26, 2026): the strip
+				# above reads a "[+]" link as the empty string, so the record named
+				# it nothing and gave it the whole label's rect (the DD-B instrument
+				# had the same strip and hid the settlement table's gold [-][+];
+				# S14G-I1). A bracketed GLYPH link keeps the glyph, the line it
+				# stands on and its measured rect (`tools/dd_b_client.gd`'s
+				# `_icon_link`); the press road below is unchanged (meta_clicked).
+				if label == "":
+					var glyph := _glyph_of(m.get_string(2))
+					if glyph != "":
+						_glyph_link(rtl, link, m, glyph)
 				out.append(link)
 				k += 1
 	return out
+
+
+# ── bracketed glyph links (S14G-X162) ───────────────────────────────────────
+
+func _glyph_of(inner: String) -> String:
+	"""The glyph of a bracketed glyph link — "+" from "[+]" — or "" when the
+	link's text is anything else (an image, a word, nothing). Tags that carry a
+	name ("[color=#fff]", "[/color]", "[b]") are not the glyph."""
+	var t := _bbtag_re.sub(_img_re.sub(inner, "", true), "", true).replace("\u00A0", " ").strip_edges()
+	var m := _glyph_re.search(t)
+	return m.get_string(1) if m != null else ""
+
+
+func _glyph_link(rtl: RichTextLabel, link: Dictionary, m: RegExMatch, glyph: String) -> void:
+	"""Name a glyph link on its record: its glyph, the line it stands on
+	(`on_line`) and its measured rect (`placed`; a glyph scrolled out of the
+	label keeps the label's rect and says `hidden`)."""
+	var where := _glyph_place(rtl, m.get_start(), "[" + glyph + "]", rtl.get_global_rect())
+	link["glyph"] = glyph
+	link["on_line"] = str(where.get("on_line", ""))
+	link["placed"] = where.has("rect")
+	if bool(where.get("hidden", false)):
+		link["hidden"] = true
+	if where.has("rect"):
+		var r: Rect2 = where["rect"]
+		link["rect"] = [roundf(r.position.x), roundf(r.position.y), roundf(r.size.x), roundf(r.size.y)]
+
+
+func _glyph_place(rtl: RichTextLabel, start: int, shown: String, vis: Rect2) -> Dictionary:
+	"""Where a glyph link stands on screen, and what its line says. A label has
+	no API for a link's rect, so it is measured the way the label lays it out:
+	the link's index in the PARSED text (the BBCode before it, parsed by a
+	scratch label), its visual line (get_character_line), the width of that
+	line's text before it in the label's own font, and the line's offset less
+	the label's own scroll. {"on_line", "rect"} (clipped to `vis`),
+	{"on_line", "hidden"} when it is scrolled out, {"on_line"} alone when the
+	label cannot be measured."""
+	var parsed := rtl.get_parsed_text().replace("\u00A0", " ")
+	var scratch := RichTextLabel.new()
+	scratch.bbcode_enabled = true
+	scratch.text = rtl.text.substr(0, start)
+	var idx := scratch.get_parsed_text().replace("\u00A0", " ").length()
+	scratch.free()
+	var out := {"on_line": _line_of(parsed, idx)}
+	if idx >= parsed.length() or not rtl.has_method("get_character_line"):
+		return out
+	var line := int(rtl.call("get_character_line", idx))
+	if line < 0:
+		return out
+	var first := idx
+	while first > 0 and int(rtl.call("get_character_line", first - 1)) == line:
+		first -= 1
+	var font: Font = rtl.get_theme_font("normal_font")
+	var size: int = rtl.get_theme_font_size("normal_font_size")
+	if font == null:
+		return out
+	var x := font.get_string_size(parsed.substr(first, idx - first), HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var w := font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var h := float(rtl.call("get_line_height", line)) if rtl.has_method("get_line_height") \
+			else font.get_height(size)
+	var origin := rtl.get_global_rect().position
+	var box: StyleBox = rtl.get_theme_stylebox("normal")
+	if box != null:
+		origin += Vector2(box.get_margin(SIDE_LEFT), box.get_margin(SIDE_TOP))
+	var scroll := rtl.get_v_scroll_bar().value if rtl.scroll_active else 0.0
+	var seen := Rect2(origin.x + x, origin.y + float(rtl.get_line_offset(line)) - scroll, w, h).intersection(vis)
+	if seen.size.x < 2.0 or seen.size.y < 2.0:
+		out["hidden"] = true
+	else:
+		out["rect"] = seen
+	return out
+
+
+func _line_of(parsed: String, idx: int) -> String:
+	"""The paragraph a parsed-text index stands in, its glyph links removed and
+	its whitespace collapsed, led by the nearest heading above it (a paragraph
+	indented less): "Britain · Demanded · 300 gold (yours)"."""
+	var paras := parsed.split("\n")
+	var p := parsed.substr(0, idx).count("\n")
+	if p < 0 or p >= paras.size():
+		return ""
+	var own := _ws_re.sub(_glyph_any_re.sub(paras[p], "", true), " ", true).strip_edges()
+	var indent := _indent_of(paras[p])
+	var head := ""
+	if indent > 0:
+		for j in range(p - 1, -1, -1):
+			if paras[j].strip_edges() != "" and _indent_of(paras[j]) < indent:
+				head = _group_name(paras[j])
+				break
+	return ((head + " · " + own) if head != "" else own).left(MAX_ICON_LINE)
+
+
+func _indent_of(para: String) -> int:
+	return para.length() - para.lstrip(" \t\u00A0").length()
+
+
+func _group_name(heading: String) -> String:
+	"""A heading's name: "  * Britain ▸ - Holding out (17/50) …" -> "Britain"."""
+	var h := _lead_sym_re.sub(heading.strip_edges(), "", false).strip_edges()
+	for cut in [" ▸", " ▾", " - ", " — ", " ("]:
+		var at := h.find(cut)
+		if at > 0:
+			h = h.substr(0, at)
+	return h.left(28)
 
 
 func _find_control(c: Dictionary, i: int) -> Node:

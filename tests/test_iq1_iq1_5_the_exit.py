@@ -247,7 +247,13 @@ class TestCompletionItemTwo:
     """
 
     TICKS = 9
-    BLEED_TICK = 5     # where the beaten army takes its further 25,000
+    # S14G-X100 (Pre-Deploy S14h part 2, October 26, 2026): flipped 5 → 4
+    # consciously. The corridor a treaty grants is now sized by the PAIR's own
+    # stranded corps (`withdrawal.stranded_by_pair`), so Ney's and Davout's
+    # window on the ceded Rhineland closes one tick sooner and the internment
+    # that cuts the loser's upkeep lands at tick 4. The mechanism the pin names
+    # is unchanged; the tick is the corridor's.
+    BLEED_TICK = 4     # where the beaten army takes its further 25,000
 
     @pytest.fixture(scope="class")
     def series(self):
@@ -313,8 +319,23 @@ class TestCompletionItemTwo:
         assert before - after == 25_000
         gaps = [b - w for w, b, _, _c in series]
         # SR-5a: on the ruled board the gap is already positive before the
-        # bleed; what the internment does is DOUBLE it at a stroke.
-        assert gaps[self.BLEED_TICK] > 2 * gaps[self.BLEED_TICK - 1] > 0, gaps
+        # bleed; what the internment does is widen it at a stroke, by the
+        # interned corps' upkeep.
+        #
+        # S14G-X100 (Pre-Deploy S14h part 2, October 26, 2026): the old line
+        # read "> 2 ×" and held only because the internment (tick 5 then) fell
+        # on the SAME tick as the beaten France's 23 provinces crossing
+        # stability 80 (Settling → Stable: +382 gross, a post-war recovery
+        # that owes nothing to the corps — it lands at tick 5 on the old
+        # corridor and the new alike). With the corridor sized by the pair's
+        # own stranded corps the internment lands at tick 4 and the two come
+        # apart, so the pin names the internment's OWN step: the 25,000 men's
+        # upkeep (8 gold per thousand), and the largest step before the
+        # recovery.
+        step = gaps[self.BLEED_TICK] - gaps[self.BLEED_TICK - 1]
+        earlier = [gaps[i + 1] - gaps[i] for i in range(self.BLEED_TICK - 1)]
+        assert gaps[self.BLEED_TICK - 1] > 0 and step >= 25_000 * 8 // 1000, gaps
+        assert step > max(earlier), gaps
 
     def test_the_engine_names_the_mechanism_internment(self):
         """⚠ WRITTEN BECAUSE A MUTATION CAME BACK INERT. The pins above INFER

@@ -496,13 +496,21 @@ _STANDING_ESCALATION: Dict[str, List[str]] = {
         "Each turn he holds them is a turn his recruiting sergeants work "
         "our ground.",
     ],
+    # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026): "24,382 men waiting at
+    # Paris - nobody has gone to collect them" named the HEADROOM (what the
+    # ordinance allows) as men waiting and said nobody had come, when the
+    # gate is open only because a corps IS in reach. Both variants now say
+    # what the headroom is, what the levy costs, who raises it and the very
+    # order that does it ({recipient} / {capital} / {amount} / {price} come
+    # from the capital's own quote - `economy_executor.get_levy_status`).
     "levy_open": [
         "Sire — {turns} turns now with the establishment under the ordinance "
-        "and the depots standing full. {headroom} men at {capital}, and "
-        "nobody has gone to collect them.",
+        "and the depots standing full. The ordinance allows {headroom} more; "
+        "{amount} foot cost {price} gold at {capital} under {recipient} — "
+        "'recruit infantry in {capital}'.",
         "Sire — the levy has stood open {turns} turns. {price} gold puts "
-        "{amount} foot in the line at {capital}, where a marshal must "
-        "stand to receive them; the conscripts do not improve with "
+        "{amount} foot in the line at {capital} under {recipient} — "
+        "'recruit infantry in {capital}'; the conscripts do not improve with "
         "keeping.",
     ],
 }
@@ -641,10 +649,13 @@ _HEADLINE_TEMPLATES: Dict[str, str] = {
     # the condition — recruits join a marshal who can reach the depot, and
     # in the played campaign every French marshal was in Germany or Italy
     # while the briefing kept advertising Paris.
-    "levy_open": ("Sire — the establishment stands {headroom} men under the "
-                  "ordinance, and the depots hold {pool}. {amount} foot cost "
-                  "{price} gold at {capital}, where a marshal must stand to "
-                  "receive them."),
+    # S14G-M4: the headroom is what the ordinance ALLOWS, not men waiting; the
+    # recipient (a corps within reach - the gate's own condition) and the very
+    # order are named, and "nobody has gone to collect them" is gone.
+    "levy_open": ("Sire — the ordinance allows {headroom} more men to the "
+                  "establishment, and the depots hold {pool}. {amount} foot "
+                  "cost {price} gold at {capital} under {recipient} — "
+                  "'recruit infantry in {capital}'."),
     "europe_at_war": "Sire — {aggressor} has declared war on {target}. The stated cause: {reason}.",
     "europe_crisis": "Sire — {nation} moves toward war with {target}. The design is open; the timing is not.",
     "europe_congress": "Sire — {proposer} and {accepter} have made peace without us.",
@@ -1768,10 +1779,17 @@ def _war_end_opening(treaty: str, other: str) -> str:
 
     SFR-D43 (SF-RR3, October 21, 2026): the corridor opens on a truce as on
     a peace, and the beat said "the war with Britain is over" of a truce
-    whose own sub-beat warned the war resumes at its end."""
+    whose own sub-beat warned the war resumes at its end.
+
+    S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): the third word,
+    "accord" (`withdrawal.treaty_word` - a pair that was never at war),
+    says so: "the war with Bavaria and Prussia is over" headlined a
+    vassalage and a pact with two courts France had no war with."""
     if treaty == "truce":
         return (f"a truce with {other} holds the guns silent — the war is "
                 f"paused, not over.")
+    if treaty == "accord":
+        return f"the accord with {other} stands — there was no war to end."
     return f"the war with {other} is over."
 
 
@@ -3058,8 +3076,13 @@ def _build_headline(world, player_nation: str,
             # producer's own message names our corps and their destinations
             # (the campaign-log filter draws the same line).
             _pair = (e.get("nation_a", ""), e.get("nation_b", ""))
-            if player_nation in _pair and (not e.get("mid_treaty")
-                                           or _mid_treaty_road_is_current(world, e, player_nation)):
+            # S14G-21 (Pre-Deploy S14h part 2, October 26, 2026): the gate read
+            # only that France was in the pair, so a corridor written for a
+            # pair France was never at war with (treaty word "accord") still
+            # headlined "the war with ... is over". An accord ended nothing.
+            if (player_nation in _pair and str(e.get("treaty") or "") != "accord"
+                    and (not e.get("mid_treaty")
+                         or _mid_treaty_road_is_current(world, e, player_nation))):
                 _other = _pair[1] if _pair[0] == player_nation else _pair[0]
                 # FA-N61 (slice 12): a mid-treaty top-up is keyed on the
                 # CORPS, not the pair. The peace's own beat already holds
@@ -3380,12 +3403,21 @@ def _build_headline(world, player_nation: str,
     _levy = get_levy_status(world, player_nation)
     if _levy["open"] and not _levy_drawn_lately(world, player_nation):
         _capital = world.get_nation_capital(player_nation) or "the depots"
+        # S14G-M4: the figures are the capital's own quote where the executor
+        # would take the order (the men after the field cap, the gold it
+        # charges) and the ordinance's where it would not (no administrative
+        # action left at a mid-turn read); the man is the status's recipient.
+        _quote = _levy.get("capital_quote") or {}
+        _amount = int(_quote["amount"]) if _quote.get("ok") else int(_levy["infantry_amount"])
+        _price = int(_quote["price"]) if _quote.get("ok") else int(_levy["infantry_price"])
+        from backend.display_names import humanize_entity_name as _hen
         _add("levy_open",
              headroom=f"{_levy['headroom']:,}",
              pool=f"{_levy['infantry_pool']:,}",
-             amount=f"{_levy['infantry_amount']:,}",
-             price=f"{_levy['infantry_price']:,}",
-             capital=_capital)
+             amount=f"{_amount:,}",
+             price=f"{_price:,}",
+             capital=_capital,
+             recipient=_hen(str(_levy.get("recipient_name") or "")) or "the nearest corps")
 
     # ────────────────────────────────────────────────────────────────────
     # CA8-9: the marshal's fall, told with the rise it reverses.
@@ -4494,23 +4526,111 @@ MORALE_FAILING_BELOW = 40
 PERIL_RATIO = 1.5
 
 
+def _snapshot_force(km: dict) -> int:
+    """What ONE frozen `known_marshals` entry is worth: its exact strength
+    (a FULL read), else its band's midpoint (a PARTIAL read), else 0."""
+    if "strength" in km:
+        return int(km["strength"])
+    if "band" in km:
+        return BAND_MIDPOINTS.get(km["band"], 0)
+    return 0
+
+
+def _live_sighting_force(row: dict) -> int:
+    """What ONE live sighting row (`intel_surfaces.sighting_row`) is worth —
+    exact at FULL, the band's midpoint at PARTIAL (S14E-7's own reading)."""
+    if row["visibility"] == FULL:
+        return int(row["strength"])
+    return int(BAND_MIDPOINTS.get(row["strength_display"], 0))
+
+
 def _known_enemy_force_at(world, player_nation: str, location) -> int:
     """The enemy force the PLAYER'S OWN intel shows standing at `location`:
     exact at FULL, the band's midpoint at PARTIAL, 0 where the province is
     unseen. Fog-legal by construction (never omniscient marshal data - R5);
-    the ONE scan behind `_derive_danger`'s IN PERIL and the gate's clause."""
+    the ONE scan behind `_derive_danger`'s IN PERIL and the gate's clause.
+
+    S14G-20 (Pre-Deploy S14h part 2, October 26, 2026): a province IN SIGHT
+    (PARTIAL or better - the map's rule, `intel_surfaces.in_sight`) is read
+    LIVE, not from the frozen `known_marshals` snapshot. The snapshot is
+    written at the battle (`update_intel_from_battle`) and at the turn's
+    refresh, and a player attack's retreat and advance move men without
+    rewriting it - so the End Turn gate printed "2 corps stand in peril - an
+    enemy force of ~29,126 shares the field (Swabia)" about Mack, who had
+    retreated to Munich the same click. A man the roster knows counts only
+    where he STANDS now (`intel_surfaces.sighting_row`: exact at FULL, his
+    band at PARTIAL), and a man who arrived since the snapshot counts too;
+    a snapshot name the roster has never heard of keeps its frozen figure,
+    and a province NOT in sight (STALE / LAST_KNOWN) is the frozen snapshot
+    exactly as before - the player has nothing newer."""
     intel = world.intel.get(location)
     if intel is None or intel.visibility == UNKNOWN:
         return 0
-    enemy_total = 0
-    for km in intel.known_marshals:
+    from backend.game_logic import intel_surfaces as _surf
+    from backend.models.intel import VISIBILITY_PRIORITY
+    in_view = (VISIBILITY_PRIORITY.get(intel.visibility, 0)
+               >= VISIBILITY_PRIORITY[PARTIAL])
+    roster = getattr(world, "marshals", None) or {}
+    figures: Dict[str, int] = {}
+    for index, km in enumerate(intel.known_marshals):
         if not _intel_marshal_is_enemy(world, player_nation, km):
             continue
-        if "strength" in km:
-            enemy_total += int(km["strength"])
-        elif "band" in km:
-            enemy_total += BAND_MIDPOINTS.get(km["band"], 0)
-    return enemy_total
+        name = str(km.get("name") or "")
+        if in_view and name in roster:
+            continue  # a man the roster knows is read where he stands NOW, below
+        figures[name or f"?{index}"] = _snapshot_force(km)
+    if in_view:
+        for man in world.get_enemies_in_region(location, player_nation):
+            row = _surf.sighting_row(world, player_nation, man)
+            if row is not None:
+                figures[man.name] = _live_sighting_force(row)
+    return sum(figures.values())
+
+
+def _drill_closed_reason(world, marshal) -> str:
+    """S14G-30: why `<marshal>, drill` would be refused TODAY, in the dawn
+    line's voice, and when it opens - "" when the drill would begin. The
+    executor's own order of gates: a broken army (only recruitment), a corps
+    in retreat recovery, then `tactical_executor.drill_refusal` (stance,
+    fortified, an enemy here or one province off) - the ONE predicate the
+    chips, the counsel and the typed road already read."""
+    from backend.display_names import plural as _plural
+    from backend.commands import state_probe as _probe
+    from backend.commands.tactical_executor import drill_refusal
+    if getattr(marshal, "broken", False):
+        return (f"Broken and scattered, {_plural(_probe._broken_turns(marshal), 'turn')} "
+                f"— drill once he has reformed.")
+    if getattr(marshal, "retreating", False):
+        return (f"Recovering from the rout, {_plural(_probe._recovery_turns(marshal), 'turn')} "
+                f"— drill once he has reformed.")
+    _sentence, short = drill_refusal(world, marshal)
+    return f"Drill is closed: {short}." if short else ""
+
+
+def _drill_advice_tail(world, marshal) -> str:
+    """S14G-30: the morale line's tail - the drill's price when drill is open
+    (FA-D9, priced from the constants the drill executor applies: shown =
+    applied), the reason and when it opens when it is not, "Drilling now."
+    when he is at it."""
+    if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
+        return " Drilling now."
+    try:
+        closed = _drill_closed_reason(world, marshal)
+    except Exception as exc:  # a fixture world without the executor's probes
+        report(exc, "dispatch._drill_advice_tail: drill_refusal / state_probe")
+        closed = ""
+    if closed:
+        return f" {closed}"
+    # SR-5r RF-2: the gain the drill will APPLY, laws included.
+    _gain_of = getattr(world, "drill_morale_gain", None)
+    if callable(_gain_of):
+        gain = int(_gain_of(marshal.nation, False))
+        trained = int(_gain_of(marshal.nation, True))
+    else:
+        gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
+        trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
+    return (f" Two turns of drill would steady them (+{gain} morale; "
+            f"+{trained} with a training ground).")
 
 
 def _derive_danger(marshal, world, player_nation: str,
@@ -4533,21 +4653,17 @@ def _derive_danger(marshal, world, player_nation: str,
         # and the line named no verb — a corps sat at 0 for eight turns and
         # broke at first contact. The remedy, priced from the constants the
         # drill executor applies (shown = applied).
-        tail = ""
-        if getattr(marshal, "drilling", False) or getattr(marshal, "drilling_locked", False):
-            tail = " Drilling now."
-        else:
-            # SR-5r RF-2: the gain the drill will APPLY, laws included.
-            _gain_of = getattr(world, "drill_morale_gain", None)
-            if callable(_gain_of):
-                gain = int(_gain_of(marshal.nation, False))
-                trained = int(_gain_of(marshal.nation, True))
-            else:
-                gain = int(getattr(type(world), "DRILL_MORALE_GAIN", 10))
-                trained = int(getattr(type(world), "DRILL_MORALE_GAIN_TRAINED", 15))
-            tail = (f" Two turns of drill would steady them (+{gain} morale; "
-                    f"+{trained} with a training ground).")
-        return f"Morale failing ({int(marshal.morale)}) — the men waver.{tail}"
+        #
+        # S14G-30 (Pre-Deploy S14h part 2, October 26, 2026): the price was built
+        # from the drill constants alone - Massena (morale 0, in retreat
+        # recovery) read "Two turns of drill would steady them" while the
+        # executor refuses drill until he has reformed. The tail now asks the
+        # verb's own predicate (`_drill_advice_tail`), and the retreat sentence
+        # (branch 3, shadowed by this one) rides the morale line.
+        fell_back = (" Fell back under fire." if getattr(marshal, "retreating", False)
+                     or getattr(marshal, "retreated_this_turn", False) else "")
+        return (f"Morale failing ({int(marshal.morale)}) — the men waver."
+                f"{fell_back}{_drill_advice_tail(world, marshal)}")
     # 3. Force-retreated last phase.
     if getattr(marshal, "retreating", False) or getattr(
             marshal, "retreated_this_turn", False):
@@ -4841,9 +4957,15 @@ def end_turn_peril_warning(world, nation: str) -> Optional[str]:
     (and a ratio against every neighbour would gate the boot board's first
     turn - Ney, 24,000, beside Mack, ~55,000).
 
+    S14G-20 (Pre-Deploy S14h part 2, October 26, 2026): the scan reads a
+    province in sight LIVE (`_known_enemy_force_at`), so the clause names the
+    man who stands on the field at the click - never the one a battle's
+    frozen snapshot still lists after he retreated: "Mack ... ~29,126" about
+    Swabia, a province Mack had left for Munich the same click.
+
     Player nation only; a pure read. Cheap by construction (Rule 8): the
-    player's own roster and one intel dict lookup each - never a region scan,
-    never an enemy list."""
+    player's own roster, one intel dict lookup and the men standing in each
+    corps' own province - never a region scan, never an enemy list."""
     if nation != getattr(world, "player_nation", None):
         return None
     fields: Dict[str, Tuple[int, List[Any]]] = {}
@@ -6009,6 +6131,20 @@ def _enemy_strength_note(detail: Dict[str, int]) -> str:
     return "(known corps only — unscouted armies are not counted)"
 
 
+def _sighted_elsewhere(world, player_nation: str, region_name: str,
+                       name: str) -> Optional[Dict[str, Any]]:
+    """S14G-X94: the live sighting row (`intel_surfaces.sighting_row`) of a
+    snapshot's man when the roster puts him in a DIFFERENT province than the
+    snapshot's and the player sees that province today - else None (he still
+    stands there, or he is out of sight and the snapshot is all the player
+    has)."""
+    man = (getattr(world, "marshals", None) or {}).get(name)
+    if man is None or man.location == region_name:
+        return None
+    from backend.game_logic import intel_surfaces as _surf
+    return _surf.sighting_row(world, player_nation, man)
+
+
 def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, Any]:
     """WO-10 (slice 12): the estimator's arithmetic with its COVERAGE —
     `total` (what the dispatch always used), `counted` (known enemy corps)
@@ -6036,6 +6172,18 @@ def _enemy_strength_estimate_detail(world, player_nation: str) -> Dict[str, Any]
             counted_marshals.add(name)
             counted += 1
             names.append((name, str(km.get("nation") or "")))
+
+            # S14G-X94 (Pre-Deploy S14h part 2, October 26, 2026): a snapshot
+            # naming a man the player sees standing in a DIFFERENT province
+            # today is yesterday's - the desk answered "what does the dispatch
+            # weigh" mid-turn with Mack's post-battle figure at Swabia (the
+            # first province in dict order) after he retreated to Munich. He
+            # counts once, where he stands, at the live sighting.
+            _sighted = _sighted_elsewhere(world, player_nation, region_name, name)
+            if _sighted is not None:
+                total += _live_sighting_force(_sighted)
+                exact += 1 if _sighted["visibility"] == FULL else 0
+                continue
 
             if intel.visibility == FULL and "strength" in km:
                 total += int(km["strength"])
@@ -6183,8 +6331,18 @@ def counter_punch_muster_stamp(marshal, foe, world) -> int:
     import zlib
     corps = sorted((str(m.name), str(m.location), int(m.strength))
                    for m in world.get_player_marshals() if int(m.strength) > 0)
+    # S14G-X62 (Pre-Deploy S14h part 2, October 26, 2026): and the player's
+    # intel level of the muster's ring (the field and the provinces round it -
+    # the same ring `_unscouted_provinces_round` names). The muster line says
+    # "scout Carniola" when the band weighs a force the player has not
+    # scouted; the stamp knew nothing of intel, so a stored tooltip kept
+    # saying "scout Carniola" after Carniola was scouted - until a corps
+    # moved. A scouting changes the stamp (adjacency only: Rule 8).
+    _field = world.get_region(str(foe.location))
+    _ring = sorted(set(getattr(_field, "adjacent_regions", None) or []) | {str(foe.location)})
+    intel = tuple((str(r), str(world.get_region_intel(r).visibility)) for r in _ring)
     key = repr((str(marshal.location), str(foe.name), str(foe.location),
-                int(foe.strength), corps))
+                int(foe.strength), corps, intel))
     return int(zlib.crc32(key.encode("utf-8")))
 
 
@@ -6198,7 +6356,7 @@ def _add_counter_punch_muster(details: dict, marshal, foe_key: str, world) -> No
     foe = world.get_marshal(foe_key)
     if foe is None:
         return
-    from backend.commands.order_quotes import _muster_line
+    from backend.commands.order_quotes import _alarm_line, _muster_line
     line = _muster_line(world, marshal, foe)
     if not line:
         return
@@ -6206,6 +6364,13 @@ def _add_counter_punch_muster(details: dict, marshal, foe_key: str, world) -> No
     details["muster_foe"] = str(foe_key)
     details["muster_stamp"] = counter_punch_muster_stamp(marshal, foe, world)
     details["action_detail"] = f"{details['action_detail']} {line}"
+    # S14G-X169 (Pre-Deploy S14h part 2, October 26, 2026): and what a win adds
+    # to Europe's alarm - the map attack card's second line (`attack_quote`'s
+    # `alarm`, S14G-X165). The row's tooltip carried the muster and not this.
+    alarm = _alarm_line(world, marshal, foe)
+    if alarm:
+        details["alarm"] = alarm
+        details["action_detail"] = f"{details['action_detail']} {alarm}"
 
 
 def _carry_counter_punch_muster(stored: dict, fresh: dict, marshal, world) -> None:
@@ -6226,6 +6391,17 @@ def _carry_counter_punch_muster(stored: dict, fresh: dict, marshal, world) -> No
     fresh["muster_foe"] = stored.get("muster_foe")
     fresh["muster_stamp"] = stored.get("muster_stamp")
     fresh["action_detail"] = f"{fresh['action_detail']} {line}"
+    # S14G-X169: the alarm clause rides the same stamp - while the stored muster
+    # still prices the board, the clause is READ AGAIN (a win mid-turn moves the
+    # standing, and "now N/100" stored at creation would be the stale figure beside
+    # a button); `_alarm_line` is a constant-time read (the cached active-nation
+    # list and the field's controller), never a rebuild of the muster. When the
+    # stamp lets the muster go, the alarm goes with it - the plain row.
+    from backend.commands.order_quotes import _alarm_line
+    alarm = _alarm_line(world, marshal, foe)
+    if alarm:
+        fresh["alarm"] = alarm
+        fresh["action_detail"] = f"{fresh['action_detail']} {alarm}"
 
 
 def counter_punch_notice(marshal, world, with_muster: bool = False) -> dict:
@@ -7809,6 +7985,67 @@ def _build_peace_settlement_section(world) -> List[Dict]:
     return settlements
 
 
+THREAT_DELTA_CAUSES_SHOWN = 4   # S14G-M3: the causes a morning's Threat line names
+
+
+def threat_delta_reading(world, player_nation: str, threat: int,
+                         tick_rows) -> Dict[str, Any]:
+    """S14G-M3 (Pre-Deploy S14h part 2, October 26, 2026): what moved the
+    Threat since yesterday's dawn - "up 8 since yesterday (Won a battle +3,
+    Won a decisive battle +5)". The measured defect (DD-B diplomacy #4): each
+    win's +8 alarm was noticed only in the Threat figure - the reply's
+    "[Alarm]" line was the last of 2,700 characters and the morning's "Threat:
+    93/100 [Formed]" named no cause, because the day's rows are cleared at the
+    turn's advance before the dawn builds and the section shipped only the new
+    turn's tick.
+
+    The figure is yesterday's dawn (`last_morning_dispatch.coalition_status.
+    threat_level`, the payload the world already stores) against today's; the
+    causes are the day's rows (`threat_rows_yesterday`, carried on that same
+    payload by `advance_turn` before the clear) plus the tick's own rows
+    (`tick_rows`, the section's `sources`), summed by cause. They add up to the
+    delta, so the player can reconcile it (a clipped row counts what it
+    applied). `{}` where yesterday's figure is unknown (no section then, or a
+    dawn that is not the previous turn's) - the line is then silent.
+    """
+    prev = getattr(world, "last_morning_dispatch", None)
+    if not isinstance(prev, dict):
+        return {}
+    prev_section = prev.get("coalition_status")
+    if not isinstance(prev_section, dict):
+        return {}
+    if int(prev.get("turn", -1)) != int(getattr(world, "current_turn", 0) or 0) - 1:
+        return {}
+    before = int(prev_section.get("threat_level", 0) or 0)
+    delta = int(threat) - before
+    from backend.game_logic.diplomatic_ledger import _threat_source_label
+    totals: Dict[str, int] = {}
+    for row in list(prev.get("threat_rows_yesterday") or []) + list(tick_rows or []):
+        if not isinstance(row, dict):
+            continue
+        amount = int(row.get("applied", row.get("amount", 0)) or 0)
+        if not amount:
+            continue
+        label = str(row.get("label") or _threat_source_label(world, str(row.get("source") or "")))
+        totals[label] = totals.get(label, 0) + amount
+    causes = sorted(((label, amt) for label, amt in totals.items() if amt),
+                    key=lambda kv: (-abs(kv[1]), kv[0]))
+    shown = [f"{label} {amt:+d}" for label, amt in causes[:THREAT_DELTA_CAUSES_SHOWN]]
+    rest = causes[THREAT_DELTA_CAUSES_SHOWN:]
+    if rest:
+        shown.append(f"{len(rest)} smaller {'cause' if len(rest) == 1 else 'causes'} "
+                     f"{sum(a for _l, a in rest):+d}")
+    if delta > 0:
+        head = f"up {delta} since yesterday"
+    elif delta < 0:
+        head = f"down {-delta} since yesterday"
+    else:
+        head = "unchanged since yesterday"
+    line = head + (f" ({', '.join(shown)})" if shown else "")
+    return {"threat_delta": int(delta), "threat_delta_line": line,
+            "threat_causes": [{"label": label, "amount": int(amt)} for label, amt in causes]}
+
+
 def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
     """Build coalition status section for Morning Dispatch (COALITION_SPEC §9c).
 
@@ -7850,6 +8087,10 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
             if not isinstance(s, dict) or s.get("target", _player) == _player
         ],
     }
+    # S14G-M3: and what moved it since yesterday's dawn, in the cause names the
+    # reply's "[Alarm]" line and the Balance of Europe use (`{}` when
+    # yesterday's figure is unknown - the key is then absent).
+    section.update(threat_delta_reading(world, _player, threat, section["sources"]))
 
     # Brewing status — player-targeted brewing only (an eclipse brewing
     # against another power is not France's coalition section).
@@ -8146,6 +8387,14 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # {line} because two emitters share the type).
     # SF7-X38 (Score Finish Step 7b): the courts by name — "Britain closes
     # the Kingdom of Italy's ports", never "KingdomOfItaly's".
+    # S14G-X152 (Pre-Deploy S14h part 2, October 26, 2026): the beat carries
+    # the CAUSE of a return (`naval._return_cause`: the Descent camp broken, the
+    # window shut) and the line printed none - the player read "Britain closes
+    # France's ports" with nothing tying it to the order. The cause follows the
+    # line as a sentence of its own, appended at the fill site
+    # (`_format_dispatch_event_text`); the template itself keeps its keys, so a
+    # beat with no cause (a plain beginning, one queued before the cause
+    # existed) reads exactly as it did.
     "blockade_begins": (
         "BLOCKADE: {blockader_display} closes {nation_display}'s ports. Trade is {trade_words} "
         "and the fleet is pinned at anchor, where crews rot."
@@ -8181,6 +8430,12 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     ),
     "strait_open": "THE STRAIT: {line}.",
     "strait_shut": "THE STRAIT: {line}.",
+    # S14G-M5 (Pre-Deploy S14h part 2, October 26, 2026): a partner's sail stops
+    # counting with the player's line (her peace with the foe, a lapsed
+    # alliance) - the Descent's window closes with nothing said. The producer
+    # (`naval._pool_baseline_tick`) sends the whole sentence, the window's
+    # new arithmetic included; it ends in its own full stop.
+    "pool_left": "THE FLEET: {line}",
     "cs_tier_shift": (
         "THE CONTINENTAL SYSTEM {direction}: {ports_line} of the "
         "Continent's ports are closed to {target}."
@@ -8333,6 +8588,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "trafalgar": "HIGH",
     "strait_open": "HIGH",
     "strait_shut": "HIGH",
+    "pool_left": "HIGH",    # S14G-M5
     "boulogne_camp": "HIGH",
     "expedition_landed": "HIGH",
     "expedition_intercepted": "HIGH",
@@ -8754,6 +9010,12 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     except (KeyError, IndexError):
         # Graceful fallback if template vars missing
         return template
+    if event_type in ("blockade_begins", "blockade_broken") and str(template_vars.get("cause") or "").strip():
+        # S14G-X152: the cause of a return, as a sentence of its own.
+        # S14G-X154 (Pre-Deploy S14h part 2, October 26, 2026): and the cause
+        # of a LIFT (`naval._lift_cause`: the peace, the squadrons called home,
+        # our own sail) the same way - the notice named it, the beat did not.
+        text = f"{text} {str(template_vars['cause']).strip().rstrip('.')}."
     if event_type == "diplomatic_mission_progress" and template_vars.get("ledger"):
         # S14E-9: the books, when a shock has landed on the pair.
         text = f"{text.rstrip('.')} ({template_vars['ledger']})."

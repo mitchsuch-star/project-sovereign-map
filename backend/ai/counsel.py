@@ -136,6 +136,43 @@ def _is_free_to_order(marshal) -> bool:
     return True
 
 
+def _standing_order_clause(marshal) -> str:
+    """S14G-M1 (Pre-Deploy S14h part 2, October 26, 2026): `Soult — his march
+    to Paris would be set aside`. A corps on a standing order IS free to take
+    a new one (`_is_free_to_order` keeps its hard-refusal contract), but the
+    order replaces the march (`executor.set_aside_clause` - the reply's own
+    sentence, in the conditional) and the counsel offered "Soult, fortify"
+    without a word of it (DD-B conquest #4: the dispatch's advice against the
+    order's reply). The clause is the ONE sentence the reply prints, read
+    from that builder - "" for a man on no standing order."""
+    order = getattr(marshal, "strategic_order", None)
+    if order is None:
+        return ""
+    try:
+        from backend.commands.executor import set_aside_clause
+        said = set_aside_clause(marshal, order)
+    except Exception as exc:
+        report(exc, "counsel._standing_order_clause: executor.set_aside_clause")
+        return ""
+    body = said.split("'s ", 1)[-1].replace(" is set aside", " would be set aside", 1)
+    return f" — his {body.rstrip('.')}"
+
+
+def _fortify_price_tail(world, marshal) -> str:
+    """S14G-M1: ` (2 AP)` on the fortify line when the order costs more than
+    its face value - a NEUTRAL corps goes defensive first, so it is two
+    (`tactical_executor.insist_terms`, the figure `_execute_fortify`
+    charges, read off the action-cost table, never a literal)."""
+    try:
+        from backend.commands.tactical_executor import insist_terms
+        price = int(insist_terms(world, marshal, "fortify")[0])
+        face = int(world.get_action_cost("fortify"))
+    except Exception as exc:
+        report(exc, "counsel._fortify_price_tail: insist_terms / world.get_action_cost")
+        return ""
+    return f" ({price} AP)" if price > face else ""
+
+
 def _military_actions_left(world) -> int:
     try:
         return int(getattr(world, "actions_remaining", 0) or 0)
@@ -270,7 +307,11 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
 
     def _pick(candidates):
         fresh = [m for m in candidates if m.name not in used]
-        return fresh + [m for m in candidates if m.name in used]
+        ordered = fresh + [m for m in candidates if m.name in used]
+        # S14G-M1: and among them a corps on no standing order first - the
+        # order a man takes sets his march aside (`_standing_order_clause`).
+        return ([m for m in ordered if getattr(m, "strategic_order", None) is None]
+                + [m for m in ordered if getattr(m, "strategic_order", None) is not None])
 
     try:
         marshals = [m for m in world.get_player_marshals() if _is_free_to_order(m)]
@@ -333,7 +374,8 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
                         best = d
                 return best if best is not None else 999
             roads.sort(key=_closing)
-        lines.append(f"{_display(marshal.name)}, march to {roads[0]}")
+        lines.append(f"{_display(marshal.name)}, march to {roads[0]}"
+                     f"{_standing_order_clause(marshal)}")
         seen_verbs.add("move")
         used.add(marshal.name)
         break
@@ -358,7 +400,11 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
             stance = getattr(getattr(marshal, "stance", None), "name", "")
             if stance == "NEUTRAL" and is_player and actions_left < 2:
                 continue
-            lines.append(f"{_display(marshal.name)}, fortify")
+            # S14G-M1: the price (two actions from NEUTRAL) and the march it
+            # would set aside, said on the line the player types.
+            lines.append(f"{_display(marshal.name)}, fortify"
+                         f"{_fortify_price_tail(world, marshal)}"
+                         f"{_standing_order_clause(marshal)}")
             seen_verbs.add("fortify")
             used.add(marshal.name)
     for marshal in _pick(marshals):
@@ -368,7 +414,8 @@ def military_counsel(world, nation: str, limit: int = 4) -> List[str]:
             continue
         if drill_refusal(world, marshal) != ("", ""):
             continue
-        lines.append(f"{_display(marshal.name)}, drill")
+        lines.append(f"{_display(marshal.name)}, drill"
+                     f"{_standing_order_clause(marshal)}")
         seen_verbs.add("drill")
         used.add(marshal.name)
     return lines[:limit]
@@ -495,8 +542,9 @@ def _peace_sink_terms(world, nation: str) -> Optional[str]:
 
 def _levy_terms(world, nation: str) -> Optional[str]:
     """`recruit infantry in <Region> — Ng for N men`, on a province where a
-    corps of ours actually stands (which is the backend's own condition for
-    pricing it).
+    corps of ours actually stands or at the capital (the backend's own
+    condition for pricing it is a recipient within reach); the levy that
+    raises the most men, then the cheapest, then the capital's (S14G-M4).
 
     DESK-2 (CRT-7): the figures are `economy_executor.recruit_quote`'s — the
     recipient, the men after the field cap, the gold the executor charges —
@@ -513,15 +561,26 @@ def _levy_terms(world, nation: str) -> Optional[str]:
     best = None
     try:
         marshals = list(world.get_player_marshals())
+        capital = world.get_nation_capital(nation)
     except Exception as exc:
         report(exc, "counsel._levy_terms: list / world.get_player_marshals")
         return None
+    # S14G-M4 (Pre-Deploy S14h part 2, October 26, 2026): the capital is a
+    # candidate too - the levy the morning's headline advertises ("recruit
+    # infantry in Paris") is raised there by the corps within reach of it,
+    # and a corps standing elsewhere (a 3,000-man field levy) used to beat it
+    # on the PRICE alone. The wanted levy is the one that raises the most
+    # men, then the cheapest, then the capital's own quote.
+    places = []
     for marshal in marshals:
         if int(getattr(marshal, "strength", 0) or 0) <= 0:
             continue
         if getattr(marshal, "captured_by", ""):
             continue
-        where = marshal.location
+        places.append(marshal.location)
+    if capital:
+        places.append(capital)
+    for where in places:
         if where in seen or where not in getattr(world, "regions", {}):
             continue
         seen.add(where)
@@ -530,12 +589,14 @@ def _levy_terms(world, nation: str) -> Optional[str]:
         except Exception as exc:
             report(exc, "counsel._levy_terms: recruit_quote")
             continue
-        if quote.get("ok") and (best is None
-                                or int(quote["price"]) < int(best[1]["price"])):
-            best = (where, quote)
+        if not quote.get("ok"):
+            continue
+        rank = (-int(quote["amount"]), int(quote["price"]), 0 if where == capital else 1)
+        if best is None or rank < best[2]:
+            best = (where, quote, rank)
     if best is None:
         return None
-    where, quote = best
+    where, quote, _rank = best
     return (f"recruit infantry in {where} — {int(quote['price']):,}g for "
             f"{int(quote['amount']):,} men under {_display(str(quote['recipient']))}")
 
@@ -701,30 +762,78 @@ def congress_counsel(world, nation: str) -> List[str]:
 # holds` or `how many men` even once. A player who asks a question the game
 # holds the answer to on a SCREEN should be sent to that screen by name, not
 # handed a manual.
+#
+# S14G-16 (Pre-Deploy S14h part 2, October 26, 2026): every "press <letter>" the
+# backend prints goes through `key_hint` below. The command line keeps the caret
+# after nearly every reply, so a bare letter TYPES into it; the focus-safe form is
+# Alt+<letter> (`main.gd::_SCREEN_HOTKEYS`, PC15-18). The digit hints had said so
+# since SF7-X24 / S14D-X28 ("Alt+1-8 while you type"); the LETTER keys were never
+# swept — a player who pressed G to close the Generals screen put a "g" in the line.
+_ALT_FORMS = {
+    # Alt+R is eaten by NVIDIA's and AMD's overlays before the game sees it, so
+    # the Dispatch has a second while-typing key (EA-E9 / SF-RR5: Alt+B).
+    "R": "Alt+R or Alt+B",
+}
+
+
+def key_hint(letter: str, then: str = "") -> str:
+    """S14G-16: the ONE sentence for pressing a screen's key — `"G, or Alt+G
+    while you type"`. Written to sit inside the pointer's own parentheses
+    (`surface_pointer` wraps `how` in "(…)"), so it never nests a second pair:
+    `the Generals screen (press G, or Alt+G while you type)`.
+
+    `then` is a book's number once the screen is open (`T`, then `7`): the
+    while-typing form turns the book with Alt as well (SF7-X24), so it reads
+    `"T, then 7; Alt+T, then Alt+7 while you type"`.
+
+    A function key (F1…F12) is returned as it stands: a function key is no
+    text, the line never takes it, and `main.gd` answers F1 while typing."""
+    key = str(letter or "").strip()
+    if not key:
+        return ""
+    upper = key.upper()
+    if len(upper) > 1 and upper[0] == "F" and upper[1:].isdigit():
+        return upper
+    alt = _ALT_FORMS.get(upper, f"Alt+{upper}")
+    digit = str(then or "").strip()
+    if digit:
+        return f"{upper}, then {digit}; {alt}, then Alt+{digit} while you type"
+    return f"{upper}, or {alt} while you type"
+
+
+# S14G-13 (Pre-Deploy S14h part 2, October 26, 2026): `"war"` said "the war banner
+# on the left (click the war)". The ACTIVE WARS panel is anchored at the BOTTOM
+# RIGHT (`war_status_panel.tscn` anchors_preset 3, the header comment of
+# `war_status_panel.gd`) — the string was authored on September 19 (CX-2) and was
+# never true. `WAR_BANNER` names the banner by its own title and its real place;
+# the pin reads the panel's anchor from the .tscn/.gd source, so a re-anchoring
+# fails it.
+WAR_BANNER = "the ACTIVE WARS banner in the lower right"
+
 _SURFACE_FOR_KIND = {
-    "economy": ("the Strategic Ledger's Economy tab", "press T, then 3"),
-    "forces": ("the Strategic Ledger's Forces tab", "press T"),
-    "orders": ("the Strategic Ledger's Orders tab", "press T, then 6"),
-    "admiralty": ("THE ADMIRALTY", "press T, then 7"),
+    "economy": ("the Strategic Ledger's Economy tab", f"press {key_hint('T', then='3')}"),
+    "forces": ("the Strategic Ledger's Forces tab", f"press {key_hint('T')}"),
+    "orders": ("the Strategic Ledger's Orders tab", f"press {key_hint('T', then='6')}"),
+    "admiralty": ("THE ADMIRALTY", f"press {key_hint('T', then='7')}"),
     # SR-5r RF-4a: the laws of state — the Strategic Ledger's eighth book.
-    "laws": ("the Strategic Ledger's Laws tab", "press T, then 8"),
-    "marshals": ("the Generals screen", "press G"),
-    "diplomacy": ("the Cabinet", "press F1"),
+    "laws": ("the Strategic Ledger's Laws tab", f"press {key_hint('T', then='8')}"),
+    "marshals": ("the Generals screen", f"press {key_hint('G')}"),
+    "diplomacy": ("the Cabinet", f"press {key_hint('F1')}"),
     # VP-1 (S14b part 2): the Emperor's designs — the Cabinet's road page.
-    "designs": ("the Cabinet's road page, The Emperor's Designs", "press F1"),
-    "courts": ("the Diplomatic Ledger", "press D"),
+    "designs": ("the Cabinet's road page, The Emperor's Designs", f"press {key_hint('F1')}"),
+    "courts": ("the Diplomatic Ledger", f"press {key_hint('D')}"),
     # SF-LB-3: the next league's table — who would march, the price to keep
     # each court out.
-    "balance": ("the Diplomatic Ledger's Balance of Europe tab", "press D, then 3"),
+    "balance": ("the Diplomatic Ledger's Balance of Europe tab", f"press {key_hint('D', then='3')}"),
     # GE-3: the Congress of Paris — the table of the great powers' answers,
     # their reasons and their prices (ENDGAME_PLAN §4).
-    "congress": ("the Diplomatic Ledger's Congress tab", "press D, then 7"),
+    "congress": ("the Diplomatic Ledger's Congress tab", f"press {key_hint('D', then='7')}"),
     # SFR-B15: the satellites' chips (Invest, Loosen Rein, Cede Province…).
-    "vassals": ("the Diplomatic Ledger's Vassals tab", "press D, then 6"),
-    "war": ("the war banner on the left", "click the war"),
-    "gazette": ("Le Moniteur", "press N"),
-    "log": ("the campaign log", "press L"),
-    "dispatch": ("this morning's dispatch", "press R"),
+    "vassals": ("the Diplomatic Ledger's Vassals tab", f"press {key_hint('D', then='6')}"),
+    "war": (WAR_BANNER, "click the war"),
+    "gazette": ("Le Moniteur", f"press {key_hint('N')}"),
+    "log": ("the campaign log", f"press {key_hint('L')}"),
+    "dispatch": ("this morning's dispatch", f"press {key_hint('R')}"),
 }
 
 

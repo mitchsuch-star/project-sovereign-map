@@ -600,7 +600,10 @@ class TestTheWordsTeachALandingThatSails:
             {"marshal": ""}, {"world": M.world})["message"]
         assert "click a coastal province on the map for its landing chip" in unnamed
         assert "land <marshal>" not in unnamed
-        assert "THE ADMIRALTY (press T, then 7)" in unnamed
+        # S14G-16 (Pre-Deploy S14h part 2, October 26, 2026) FLIPPED: the pointer
+        # carries the while-typing form (`counsel.key_hint`) - the bare "press T"
+        # typed a letter into the command line.
+        assert "THE ADMIRALTY (press T, then 7; Alt+T, then Alt+7 while you type)" in unnamed
         assert "Soult" not in unnamed
         nowhere = naval_ex._execute_naval_expedition(
             {"marshal": "Lannes", "target": ""}, {"world": M.world})["message"]

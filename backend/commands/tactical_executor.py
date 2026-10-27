@@ -375,6 +375,31 @@ def _square_break_infinitive(action_name) -> str:
     }.get(key, "act")
 
 
+def fortify_growth_words(instant_bonus: float, fortify_rate: float,
+                         max_fortify: float) -> str:
+    """S14G-M1 (Pre-Deploy S14h part 2, October 26, 2026): what a fortification
+    WILL do, in the figures the tick (`_process_tactical_states`) applies - the
+    order's reply read "+2% (grows +2% per turn, max 12%)" while the first dawn
+    gave the front-load, +5% more (`FORTIFY_FRONT_LOAD`, the tick's own
+    constant), so the dispatch read "+7% defense" against a promise of 2%.
+
+    "+2% now, +5% more at the next dawn, then +2% a turn, max 12%"; where the
+    front-load alone reaches the cap (the Iron Marshal: 7% now, 12% at dawn) it
+    says "12% at dawn" and stops. Whole percents, the way the tick prints them.
+    """
+    from backend.models.world_state import FORTIFY_FRONT_LOAD
+    now = int(round((0.02 + instant_bonus) * 100))
+    cap = int(round(max_fortify * 100))
+    front = int(round(FORTIFY_FRONT_LOAD * 100))
+    rate = int(round(fortify_rate * 100))
+    if now >= cap:
+        return f"+{now}% now, already at the max ({cap}%)"
+    if now + front >= cap:
+        return f"+{now}% now, {cap}% at dawn (the max)"
+    return (f"+{now}% now, +{front}% more at the next dawn, then +{rate}% a "
+            f"turn, max {cap}%")
+
+
 class TacticalExecutor:
     """Handles tactical state actions: defend, wait, drill, fortify, stance, restrain."""
 
@@ -618,7 +643,7 @@ class TacticalExecutor:
 
         While fortified:
         - Cannot move or attack
-        - Starts at +2% defense, grows +2% per turn (max 15%)
+        - Starts at +2% defense, +5% more at the first dawn (FORTIFY_FRONT_LOAD), then +2% a turn (max 12%)
         - Permanent until ordered to un-fortify
         """
         from backend.models.world_state import WorldState
@@ -703,11 +728,12 @@ class TacticalExecutor:
             personality_message = f" (Aggressive: max {int(max_fortify * 100)}% only)"
 
         current_bonus_pct = int(marshal.defense_bonus * 100)
-        rate_pct = int(fortify_rate * 100)
-        max_pct = int(max_fortify * 100)
 
         message = stance_message + f"{marshal.name} fortifies position at {marshal.location}. "
-        message += f"Defense bonus: +{current_bonus_pct}% (grows +{rate_pct}% per turn, max {max_pct}%){personality_message}. "
+        # S14G-M1: the promise is the tick's own schedule (the front-load
+        # constant and the cap), not a rate the first dawn does not follow.
+        message += (f"Defense bonus: {fortify_growth_words(instant_bonus, fortify_rate, max_fortify)}"
+                    f"{personality_message}. ")
         message += "Cannot move or attack while fortified. Use 'unfortify' to become mobile."
 
         events = [{

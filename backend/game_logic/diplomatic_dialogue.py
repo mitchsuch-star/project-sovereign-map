@@ -414,7 +414,14 @@ def project_mission_turns(world, status: dict) -> tuple:
     if mission_type == "UNDERMINE_ALLIANCE":
         target, ally = status["target"], status.get("target_ally", "")
         state = world.diplomatic_states.get(world._make_diplo_key(target, ally), "PEACE")
-        floor = int(_d.STATE_RELATION_THRESHOLDS.get(state, 0) or 0) - 30
+        # S14G-X131 (Pre-Deploy S14h part 2, October 26, 2026): the gap under the
+        # line (30) and the run of turns it must last (5) were literals here -
+        # and in `check_auto_downgrade`, the tick this forecast describes. Both
+        # now read the constants (`diplomacy.AUTO_DOWNGRADE_GAP` /
+        # `AUTO_DOWNGRADE_TURNS`), so a re-tuned clock moves the tick and the
+        # words together. The values are the same; the text is byte-identical.
+        gap, run = int(_d.AUTO_DOWNGRADE_GAP), int(_d.AUTO_DOWNGRADE_TURNS)
+        floor = int(_d.STATE_RELATION_THRESHOLDS.get(state, 0) or 0) - gap
         counted = int((getattr(world, "turns_below_threshold", {}) or {}).get(
             world._make_diplo_key(target, ally), 0) or 0)
         # IQ-4 review: the auto-downgrade steps ONE rung — an ALLIANCE falls to
@@ -424,15 +431,15 @@ def project_mission_turns(world, status: dict) -> tuple:
             return ("alliance", -1, "their alliance is broken — he reports home")
         if state == "ALLIANCE":
             next_floor = int(_d.STATE_RELATION_THRESHOLDS.get(
-                "DEFENSIVE_ALLIANCE", 0) or 0) - 30
+                "DEFENSIVE_ALLIANCE", 0) or 0) - gap
             return ("alliance", -1, f"their alliance falls to a defensive alliance "
-                                    f"after 5 turns at {floor} or below — now "
-                                    f"{status['current_relation']}, {counted} of 5 "
-                                    f"counted; breaking it needs a further 5 turns "
+                                    f"after {run} turns at {floor} or below — now "
+                                    f"{status['current_relation']}, {counted} of {run} "
+                                    f"counted; breaking it needs a further {run} turns "
                                     f"at {next_floor} or below")
-        return ("alliance", -1, f"their alliance breaks after 5 turns at {floor} "
+        return ("alliance", -1, f"their alliance breaks after {run} turns at {floor} "
                                 f"or below — now {status['current_relation']}, "
-                                f"{counted} of 5 counted")
+                                f"{counted} of {run} counted")
     # S14E-34: a mission sent to win a peace ends WHEN the peace is signed —
     # the ceiling it would otherwise be projected to is not its end.
     if (mission_type in _MISSION_PEACE_TYPES
@@ -2059,11 +2066,22 @@ def fold_hegemony_warning_into_bloc_row(dialogue: Dict, warnings: list) -> list:
     return [w for w in warnings if not any(w is h for h in heg)]
 
 
-def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
+def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world,
+                             *, terms: Optional[Dict] = None) -> Dict:
     """Add proposal terms summary, acceptance estimate, harshness, and DP cost to dialogue.
 
     These fields let the frontend popup display the mechanical content of the
     proposal alongside Talleyrand's thematic commentary.
+
+    S14G-X112 (Pre-Deploy S14h part 2, October 26, 2026): `terms` names the
+    package the dialogue is ABOUT. Without it the terms are the dialogue's own
+    `execute_proposal` option's, else a freshly drafted suggestion - and a
+    dialogue with no such option (the "Consider counter" review: accept /
+    reject / dismiss) was enriched from a suggestion the court had never
+    countered, so its acceptance estimate, harshness, annotated terms and war
+    snapshot described terms that were not the counter's. The review passes the
+    counter's own terms. A caller that gives none reads as it always did. The
+    function writes keys into the terms it enriches - pass a copy.
     """
     from backend.game_logic.diplomacy import (
         build_war_context_snapshot,
@@ -2076,8 +2094,8 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
 
     # Find terms from the first execute_proposal option, or generate fresh
     player_nation = get_player_nation(world)
-    terms = None
-    for opt in dialogue.get("options", []):
+    terms = terms if isinstance(terms, dict) and terms else None
+    for opt in (dialogue.get("options", []) if terms is None else []):
         if opt.get("action") == "execute_proposal" and opt.get("terms"):
             terms = opt["terms"]
             break
@@ -2365,6 +2383,23 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     warnings = fold_hegemony_warning_into_bloc_row(dialogue, warnings)
     if _built:
         dialogue["warnings"] = list(dialogue.get("warnings", [])) + warnings
+
+    # S14G-25 (Pre-Deploy S14h part 2, October 26, 2026): SENDING this pauses
+    # the courtship Talleyrand is on, and the preview was silent ("a paused
+    # mission earns and costs nothing"; the Prussia courtship lost its turns to
+    # a hopeless letter to Britain, three times, unwarned). The consequence is
+    # a line in the Political Context beside the other warnings - only on a
+    # dialogue that SENDS (an execute_proposal / send_override option), so a
+    # counter-offer's accept/reject, which Talleyrand does not carry, stays
+    # quiet. The send's reply says the same sentence (`diplomacy.letter_pause_line`).
+    if any(isinstance(_o, dict) and _o.get("action") in ("execute_proposal", "send_override")
+           for _o in (dialogue.get("options") or [])):
+        from backend.game_logic.diplomacy import letter_pause_line
+        _pause = letter_pause_line(world, 1)     # a plain letter is home in a turn
+        if _pause:
+            dialogue["letter_pause_line"] = _pause
+            dialogue["warnings"] = list(dialogue.get("warnings", [])) + [
+                {"severity": "medium", "text": _pause}]
 
     # Gate-4 1805 smoke (E-2, honesty half): the BPH-C §10.1 alliance-paradox
     # HARD_STOP only fired at Send — the player walked the whole flow (the
@@ -3053,6 +3088,20 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
             f"{MISSION_DESCRIPTIONS.get(existing['type'], 'conduct diplomacy with')} "
             f"{_dn(existing['target'])}."
         )
+        # S14G-28 / S14G-D5 (Pre-Deploy S14h part 2, October 26, 2026): the
+        # replace names what it gives up, from the live mission's own figures.
+        from backend.game_logic.diplomacy import mission_forfeit_words
+        _forfeit = mission_forfeit_words(world)
+        if _forfeit:
+            existing_text += f" That forfeits {_forfeit}."
+    # ... and a mission begun with the slot FREE shuts the lever of every bond on
+    # the slide: "Starting this courtship shuts Reassure Ally; Spain, at 36, is
+    # under the 40 line and slides 1 a turn - the alliance lapses in about 31
+    # turns." (one slot is kept - S14G-D5 - and the trade is stated at the click).
+    from backend.game_logic.diplomacy import shut_lever_warning
+    slot_warning = shut_lever_warning(world, target_nation, str(mission_type or ""))
+    if slot_warning:
+        existing_text += f" {slot_warning}"
 
     # DLF-2: UNDERMINE_ALLIANCE requires ally selection
     if mission_type == "UNDERMINE_ALLIANCE":
@@ -3155,6 +3204,9 @@ def generate_mission_dialogue(parsed_command: Dict, world) -> Dict:
         "context": {
             "dp_cost_per_turn": int(dp_cost),
         },
+        # S14G-28: the shut-lever warning also rides as its own key (the sentence
+        # is already in `talleyrand_text`); "" when no bond is on the slide.
+        "slot_warning": slot_warning,
         # IQ-4: the top-level key `proposal_confirm_popup.gd` reads.
         "dp_cost": int(dp_cost),
         "turn_created": int(world.current_turn),

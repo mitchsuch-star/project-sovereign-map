@@ -96,7 +96,7 @@ const STEPS := [
 		"id": "first_stone",
 		"turn_gate": 3,
 		"title": "VI. The First Stone",
-		"body": "Bavaria is yours to protect, Sire. Her loyalty stands in the Diplomatic Ledger's Vassals rows ([color=#e8d4a8]D[/color]) and drifts a little each turn unless it is tended — invest in her, grant her autonomy, garrison her capital, or cede her a province; what the treaty names she pays each morning, and her corps marches when we call. The first stone of the Confederation is laid.",
+		"body": "Bavaria is yours to protect, Sire. Her loyalty stands in the Diplomatic Ledger's Vassals rows ([color=#e8d4a8]D[/color], or Alt+D while you type) and drifts a little each turn unless it is tended — invest in her, grant her autonomy, garrison her capital, or cede her a province; what the treaty names she pays each morning, and her corps marches when we call. The first stone of the Confederation is laid.",
 		"suggest": "",
 		"suggest_action": "",
 		"advance": "_pred_bavaria_vassal_signed",
