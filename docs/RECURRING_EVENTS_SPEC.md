@@ -1,8 +1,9 @@
 # Recurring era events — "Affairs of State": the gate
 
-**Status:** ✅ **SPEC AUTHORED October 27, 2026 — ⚠ USER GATE PENDING (§0).**
-- **Design only.** Nothing is built and no game code changed. Nothing here holds the deploy.
-- **Owner:** a proposed row **RE**, recommended after S15 (§15).
+**Status:** ✅ **SPEC AUTHORED and ✅ RULED October 27, 2026.** The user took every recommended default (§0 Q1–Q14), the Edicts in principle; RE stays after S15.
+- **The ruling, in the user's words:** "Take the recurring-events gate's recommended defaults (docs/RECURRING_EVENTS_SPEC.md §0 Q1–Q14), including the Edicts in principle; RE stays after S15."
+- **Nothing is built yet** and no game code changed. Nothing here holds the deploy.
+- **Owner:** row **RE**, after S15 (§15); about five sessions — the core's three and a half, and the Edicts' one and a half.
 - **The code name is "affairs".** Module `backend/game_logic/affairs.py`; authored deck `moments.affairs`; runtime store `world.moments["affairs"]`; log type `moment`, with the phases `affair` and `court`. "Event" already means `event_log`, and the deck rides S14c's moments engine rather than forking it.
 
 **The question it answers.** The user asked whether Ink & Iron has recurring events built on blocks of attributes — simpler, repeatable, era-flavoured events that could serve as gold sinks or slow a runaway advance. It has none. S14c (`docs/EVENTS_SPEC.md`) built four one-shot letters for France, each latched forever by its id, and struck the situational class (A1). This spec designs the recurring class against the game as it stands after S14i.
@@ -23,7 +24,7 @@
    - A France that holds its ground ends turn 30 with 41–47k gold on all three commanded seeds. The user's own ruling (IQ-1, September 13, 2026) is that such a France is *not* taxed: "the defect is not the size of the pile but that no decision touches it".
    - The scripted conqueror is already pulled down by the coalition: alarm 95–97 by turns 5–10, eclipsed by turns 30–34 on two of three seeds.
    - Gold cannot brake a France at war. At the war-time Charges rates (100–450), most of a gold answer comes back as lower Charges within ten to twenty turns. So the deck's brakes are priced in standing and the Emperor's administrative day.
-4. **As a gold sink the core deck converts; it does not drain.** It takes at most about 1,800 gold an act beyond the Staff's own price. **The honest recurring sink is the Edicts** (§0 Q2): fixed-term decrees bought again and again, the era's own instrument. This spec recommends them in principle.
+4. **As a gold sink the core deck converts; it does not drain.** It takes at most about 1,800 gold an act beyond the Staff's own price. **The honest recurring sink is the Edicts** (§0 Q2): fixed-term decrees bought again and again, the era's own instrument. Ruled in, in principle (October 27, 2026); their build contract is RE-6's.
 
 **How it was designed** (the S14c gate pattern; every subagent on Sonnet; the synthesis the orchestrator's own):
 1. **Three read-only code maps:** the moments engine and its seams; the economy's sinks and brakes; the measuring tools.
@@ -80,13 +81,22 @@
 
 ---
 
-## §0 The gate — the questions for the user (◆ = the recommended default)
+## §0 The gate — ✅ RULED October 27, 2026: every recommended default (◆) taken
 
-Answering at the defaults blesses §5–§16 as the build contract. Numbers marked as bands are in-band tunable after landing. A shape change — a new op, a new currency, a change to the lapse rule — re-escalates. Each answer is one block field or one constant, so the user may take any mix.
+**The ruling.** The user, October 27, 2026: *"Take the recurring-events gate's recommended defaults (docs/RECURRING_EVENTS_SPEC.md §0 Q1–Q14), including the Edicts in principle; RE stays after S15."*
+- Every ◆ below is therefore the ruling, and §5–§16 are the build contract.
+- The alternatives stand as the record of what was weighed. Each re-opens only by a new ruling.
 
-| # | Question | ◆ Recommended | The alternatives, and the historically fuller option with its cost |
+**One reading taken where two answers meet, Q2 and Q5.**
+- **Q5 governs the affairs:** no court pays gold in an affair.
+- **The Edicts' AI rung at the same prices (GR5)** is Q2's own stated cost, which the ruling accepted in principle.
+- **RE-6's head** therefore writes the Edicts' build contract and measures that rung's spend of the courts' war chests per seed — the EAD-6 reopening Q2 named — before E1–E3 are armed. A shape change found there re-escalates, as below.
+
+**What the ruling leaves open.** Numbers marked as bands are in-band tunable after landing. A shape change — a new op, a new currency, a change to the lapse rule — re-escalates. Each answer is one block field or one constant, so a later ruling may change any one of them alone.
+
+| # | Question | ◆ Ruled — the recommended default, taken October 27, 2026 | The alternatives, and the historically fuller option with its cost |
 |---|---|---|---|
-| **Q1** | **What to build** | **(a)** The engine with the three live templates (§6.1), **and the Edicts' three offers** (§6.2 E1–E3) if Q2 rules the Edicts in: a small deck of the bills of the player's own acts, a door, and the offers that give a rich peace something real to buy. | **(b) The engine and the three live templates only.** A seasoning: two to four letters an act, converting at most about 1,800 gold an act. **(c) Hold RE** until a fuller option is ruled. Three letters do not repay the engine's four or five sessions, and that is the honest alternative. **(d) The full catalogue:** every §6.2 template, each with the mechanic it waits on (Q3). |
+| **Q1** | **What to build** | **(a)** The engine with the three live templates (§6.1), **and the Edicts' three offers** (§6.2 E1–E3; Q2 ruled the Edicts in, in principle): a small deck of the bills of the player's own acts, a door, and the offers that give a rich peace something real to buy. | **(b) The engine and the three live templates only.** A seasoning: two to four letters an act, converting at most about 1,800 gold an act. **(c) Hold RE** until a fuller option is ruled. Three letters do not repay the engine's four or five sessions, and that is the honest alternative. **(d) The full catalogue:** every §6.2 template, each with the mechanic it waits on (Q3). |
 | **Q2** | **The gold-sink ask — the Edicts** | **Yes in principle.** An Edict is a fixed-term decree (eight turns, bought again after an eight-turn rest) on REFORMS §4's closed effect set. It costs gold and one administrative action, with no upkeep. France's three are those its laws do not already carry: **the Magazines** (supply capacity ×1.25), **the Remounts** (cavalry recruit price ×0.8) and **the Camps of Instruction** (drill morale +5). These are the era's own instruments: the magazines stocked before a campaign, the remounts after a winter, the camps of 1803–05 and 1807–08. They give the golden peace a recurring purchase with a real effect, and the affairs push each on the morning it is live. The Edicts' build contract is written at RE-6's head (DRAFT numbers here). | **No:** the deck stays a seasoning, and the laws' upkeep stays the only recurring drain. **Cost of yes:** a second lifecycle for an effect (a source that expires; structural by REFORMS §4, so it is put here); an AI rung at the same prices (GR5), which reopens EAD-6 for the courts' war chests; one more slice. |
 | **Q3** | **The other fuller options** | **None now.** Each is named in §6.2 with its cost and the templates it would unlock. | **The domestic setters** — a signed war-exhaustion setter, a manpower credit that is not truncated at regen, a strength op — unlock the bread, the class and the fever. They reverse S14c §3.2 in three subsystems. **Imperial Governance** unlocks the conquered provinces with faces; it needs its own spec. **A Papal province on the map** unlocks the Holy See; it needs a map change and the reopening of VP-1's "Rome 1809" strike. **EC-5b's leakage with the Decree in force** unlocks licences or burnings; it needs EC-5b and the reopening of VP-1's "Trianon licences" strike. **A court's authority regrowth** (REFORMS §3) unlocks the courts' credit. |
 | **Q4** | **Whose events — GR5, and S14c Q6** | **France's content, on code shared by every court.** Each template is a function of `(world, lord)`; the block's `scope` field names who meets it, as S14c Q6 kept for the moments ("an asymmetry of content, not of code"). v1 authors every template `owner`. | **(b) The Host's Claims for every court.** Measured: AI armies quarter on their allies (Russia on Austria, Spain on France). A court that will not pay gold (EAD-6) lives off the land, and its allies' relations fall. Those relations feed `coalition.get_coalition_friction`, and so the AI's co-location and joint-attack bonuses: **a court-run Host's Claims weakens coalitions and helps a runaway France.** It also has to hold AI Intent's soap-opera share (pin 13, measured at 0.91–0.98). |
@@ -714,7 +724,7 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 - At the golden peace about 89% of a sink is still missing ten turns later (rate about 28).
 - At war most of it comes back: 2,500 gold paid at T15 on the Rhine road leaves 511 or 127 of difference at T30, at the measured rates of 251 and 449 (§1).
 
-**The Edicts, if Q2 rules them in:**
+**The Edicts, ruled in principle (Q2; DRAFT prices, set at RE-6's head):**
 - **Prices:** the Magazines 2,500, the Remounts 1,500 and the Camps of Instruction 2,000, each for eight turns and then an eight-turn rest.
 - **The peace's own offer:** the Camps alone, bought at every chance, take 2,000 every 16 turns — about 5,500 an act, a real fraction of a golden-peace pile, spent on drilled men.
 - **All three** at every chance: up to about 16,000 an act.
@@ -754,15 +764,14 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 - **Measured on its own arms.** RE-3 is measured on its own Mode A arms. Round 0 (ROADMAP row 11) carries no economy instrument (its three questions are the launch, the first ten minutes and the typed-transcript misreads), so it is a control only.
 - **Round 1** (row 16) is the deck's first meeting with players.
 - **Size:**
-  - **About three and a half sessions** for the core (§16);
-  - about one and a half more for the Edicts if Q2 rules them in;
-  - one more for a court-run deck if Q4(b) is ruled.
+  - **About five sessions**, as ruled: three and a half for the core (§16) and one and a half for the Edicts (Q2, in principle).
+  - A court-run deck is struck by the ruling (Q4).
 - **Brought forward:** only RE-1 (unarmed, byte-identical) could ride before S15.
 - **The gate commit's own lines:** this file, a ROADMAP row, a `PRE_DEPLOY_PLAN.md` row and a STATUS entry. CLAUDE.md's Document Map gains its row at RE-1, paid for by a trim (30 bytes of headroom today).
 
 ---
 
-## §16 The build — four slices for the core, two by ruling
+## §16 The build — five slices, as ruled: RE-1, RE-2, RE-3, RE-6, then RE-5's close
 
 **The series and the seams.**
 - **The series tool** is `tools/_affairs_series_arms.py`, a child-process tool in the `tools/_s14c_series_arms.py` style, chained from `tools/_s14i_p2_series_arms_final.json`.
@@ -842,15 +851,15 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
   - **the reach review:** each template's reach per seed recorded; one with zero reach across RE-3's arms and the hand-played starts is deleted with its count pin, or kept, at the user's word from that record;
   - the hand-off to Round 1.
 
-**RE-6 — the Edicts, only if Q2 rules them in** (about 1.5 sessions)
+**RE-6 — the Edicts, ruled in principle (Q2)** (about 1.5 sessions; after RE-3, before RE-5's close)
 - **Scope:**
-  - the Edicts' build contract written at its head: the second lifecycle in `reforms.effect_terms` (a source that expires), the LAWS tab's Edicts section, and the AI rung at the same prices, with its EAD-6 consequence measured;
-  - then E1–E3 armed as offers.
+  - the Edicts' build contract written at its head: the second lifecycle in `reforms.effect_terms` (a source that expires), the LAWS tab's Edicts section, and the AI rung at the same prices;
+  - **the AI rung's spend of the courts' war chests measured per seed** (the EAD-6 reopening Q2 named, §0's reading), with any series movement attributed and re-pinned in the slice — a shape change found there re-escalates;
+  - then E1–E3 armed as offers, each with its `source` cited (the citations owed in §6.2).
+- **Done when:** an edict is granted, takes effect through `effect_terms` and expires on its turn; E1–E3 arrive on their mornings and pass the nondominance pin; the AI rung's spend is recorded per seed; the full suite is green through the hook.
 - **Pins:** `tests/test_affairs_edicts.py`.
 
-**RE-4 — a court-run deck, only if Q4(b) is ruled** (about 1 session)
-- **Scope:** `resolve_courts` with the exclusions of §8, seam AFA held down then up, the soap-opera share per seed (AI Intent pin 13), and coalition friction measured.
-- **Pins:** `tests/test_affairs_courts.py`.
+**RE-4 — a court-run deck: struck by the ruling (Q4).** v1 is France's content (S14c Q6's precedent), and the code stays symmetric. A court-run deck would need a new ruling; its scope would be `resolve_courts` with §8's exclusions, seam AFA held down and then up, the soap-opera share per seed (AI Intent pin 13), and coalition friction measured. It is kept here as the record of what that ruling would build.
 
 ---
 
@@ -858,11 +867,11 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 
 | Item | Disposition | Owner · landing · completion · STATUS line · test |
 |---|---|---|
-| **The Edicts** (Q2) | gate | **No:** struck; the laws' upkeep stays the recurring drain. **Yes:** RE-6, owner this spec; done when an edict is granted and expires through `reforms.effect_terms` and E1–E3 arrive on their mornings; STATUS "Recurring events: the Edicts"; `tests/test_affairs_edicts.py` |
+| **The Edicts** (Q2) | **✅ ruled in, in principle** (October 27, 2026) | RE-6, owner this spec, after RE-3 and before RE-5's close. Done when an edict is granted and expires through `reforms.effect_terms`, E1–E3 arrive on their mornings, and the AI rung's spend is recorded per seed (§16). STATUS "Recurring events: the Edicts (RE-6)". `tests/test_affairs_edicts.py` |
 | **D1–D3, G1, P1, S1, C1** (§6.2) | options, not promises | Each waits on a mechanic named in Q3, whose own gate would write its landing slice. Until then the validator refuses their ops, so none can ship (pinned in RE-1's refusals), and no player-facing text names them. STATUS: the gate line below |
 | **A dial** (Q13) | struck from v1; no player-facing promise | Re-opens only on Round 1 evidence: more than 60% of affairs lapsing, read from the testers' saves (the occurrence rows carry `lapsed` and `answered`) by `tools/_affairs_lapse_share.py`, written at RE-5. Owner ROADMAP row 16 ("Settings completed"); done when the Settings panel carries the control; STATUS "Affairs dial — row 16"; `tests/test_affairs_dial.py` |
-| **`tempo`** (Q6) | gate | **No:** struck. **Yes:** RE-1 adds it through the treaty AP clause's body (`world_state.py:15225`); done when a debt applies once at the next refill, never below 2 orders; STATUS "Affairs: tempo"; `tests/test_affairs_engine.py` |
-| **A court-run deck** (Q4(b)) | gate | **No:** France's content stands (S14c Q6). **Yes:** RE-4; done when §8's exclusions hold and the soap-opera share and coalition friction are measured per seed; STATUS "Affairs: the courts' pass"; `tests/test_affairs_courts.py` |
+| **`tempo`** (Q6) | **struck by the ruling** (Q6: two ops) | The treaty AP clause stays the only writer of a lost order; nothing here promises one. It re-opens only by a new ruling. |
+| **A court-run deck** (Q4(b)) | **struck for v1 by the ruling** (Q4: France's content) | Covering surface: S14c Q6's precedent. The code stays symmetric, and RE-4 (§16) records what a new ruling would build. |
 | **A court's authority** | struck from v1 | Not used by any v1 template. C1 waits on REFORMS §3's regrowth writer (Q3), which has no row today, so nothing here is homed to it. |
 | **EC-5b smuggling, and a System member's defection** | stay EC-5b's | `ECONOMY_REVISIT_SPEC.md` EC-5b. S1 waits on it; this deck promises no leakage mechanic |
 | **Every candidate in §6.3** | **struck** | each beside its covering surface |
@@ -870,7 +879,7 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 | **The Chaos Engine** (`FUTURE_DESIGN.md`) | stays unhomed: an idea, not a promise | dice, against VISION; this deck is its board-driven answer |
 | **Imperial Governance** | stays where `ROADMAP.md` homes it ("Later", behind its own gate) | G1 is written for it, not promised |
 | **The reach review** (RE-5) | owned | RE-5. Done when each core template's reach is recorded and the user has kept or deleted any with zero reach (its count pin in `tests/test_affairs_pacing.py`); STATUS "Affairs: the reach review" |
-| **This gate** | open with the user | STATUS "Open with you: the recurring-events gate (`RECURRING_EVENTS_SPEC.md` §0)". The questions live in §0, not in `BUG_FIXES.md` or `DESIGN_REFINEMENT.md`: the census pin `tests/test_the_plan_homes_every_row.py` forbids an open ledger row homed after the deploy |
+| **This gate** | **✅ RULED October 27, 2026** — every default taken | STATUS "Recurring events: the gate ruled — RE after S15". The record lives in §0, not in `BUG_FIXES.md` or `DESIGN_REFINEMENT.md`; the census pin `tests/test_the_plan_homes_every_row.py` forbids an open ledger row homed after the deploy, and none is open. RE's slices are homed by `PRE_DEPLOY_PLAN.md` §2's RE row. |
 
 ---
 
