@@ -338,9 +338,12 @@ class TestTheAIsPurse:
         # S14k K2 (October 28, 2026): the Ottomans have a bench now, and at
         # war on 50,000 the commission rung takes the slot before the tower's
         # — skipped here, as the recruit rungs are; the pin reads the tower.
+        # S14k G3 (October 28, 2026): at war on 50,000 the Porte proclaims
+        # the New Order first (`under_threat`, the war is the threat) —
+        # skipped here too; the pin reads the tower.
         with _quiet():
             down = ai._pick_admin_action("Ottoman", w, 2,
-                                         skip_actions={"recruit", "recruit_marshal"})
+                                         skip_actions={"recruit", "recruit_marshal", "enact_law"})
         assert calls and down and down.get("building_type") == "watchtower"
 
     def test_a_subsidy_pays_a_court_that_fights(self, monkeypatch):

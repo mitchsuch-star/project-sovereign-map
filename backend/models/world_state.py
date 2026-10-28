@@ -601,10 +601,30 @@ def force_limit_floor(world, nation: str) -> int:
     `NATION_POWER_TIERS` the capital garrisons read (unauthored courts read
     `secondary`, the taxonomy's own fallback). The great powers keep
     `FORCE_LIMIT_BASE`; at boot no court stands over its new limit, so every
-    turn-1 bill is unchanged. The seam the recorded boards hold down (down:
-    `FORCE_LIMIT_BASE` for every court)."""
+    turn-1 bill is unchanged. A law in force may raise it to a higher tier's
+    (S14k G3, the `force_limit` clause — the Porte's New Order). The seam the
+    recorded boards hold down (down: `FORCE_LIMIT_BASE` for every court)."""
     tier = world.get_power_tier(nation) or "secondary"
-    return int(FORCE_LIMIT_BASE_BY_TIER.get(tier, FORCE_LIMIT_BASE))
+    floor = int(FORCE_LIMIT_BASE_BY_TIER.get(tier, FORCE_LIMIT_BASE))
+    from backend.game_logic.reforms import force_limit_floor_of_laws
+    return max(floor, force_limit_floor_of_laws(world, nation))
+
+
+def deck_entry_stands(nation: str, entry) -> bool:
+    """S14k G1 "the courts' goals" (the user, October 28, 2026: "they should
+    have goals ... it should be possible for underdog stories, see EU4:
+    generally the same but some runs are surprising"): an authored agenda
+    entry stands at boot — Saxony's Wettin Crown, Hesse's Westphalian
+    Duchy, the neutral courts' postures, Denmark's Scania and the Porte's
+    Black Sea Shore. The seam the recorded boards hold down (down: S14k's
+    entries struck, the decks as before)."""
+    return True
+
+
+def reform_deck_stands(nation: str) -> bool:
+    """S14k G3: a court's authored law deck stands at boot — the Porte's
+    one-row deck, the New Order (R6 amended). Down: no Ottoman deck."""
+    return True
 
 
 def _levy_status(world) -> dict:
@@ -11395,6 +11415,23 @@ class WorldState:
             scenario_data["marshal_pool"] = {
                 nation: rows for nation, rows in scenario_data["marshal_pool"].items()
                 if bench_stands(nation)}
+        # S14k G1/G3: the courts' goals and the Porte's law deck, read the
+        # same way (a deck its seam empties is no deck at all, as before it
+        # was authored).
+        if isinstance(scenario_data.get("agendas"), dict):
+            decks = {}
+            for nation, deck in scenario_data["agendas"].items():
+                if not isinstance(deck, list):
+                    decks[nation] = deck
+                    continue
+                kept = [entry for entry in deck if deck_entry_stands(nation, entry)]
+                if kept or not deck:
+                    decks[nation] = kept
+            scenario_data["agendas"] = decks
+        if isinstance(scenario_data.get("reforms"), dict):
+            scenario_data["reforms"] = {
+                court: rows for court, rows in scenario_data["reforms"].items()
+                if reform_deck_stands(court)}
 
         # Validate scenario before loading
         from backend.modding.validator import validate_scenario

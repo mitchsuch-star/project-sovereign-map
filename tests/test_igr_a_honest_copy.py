@@ -489,12 +489,14 @@ class TestA4VassalReleaseReport:
         assert int(world.threat_by_target["France"]) == 0
 
     def test_no_clause_fires_when_it_would_be_false(self):
-        """Switzerland has NO agenda deck, no marshals, and the Continental
-        System is empty at boot — three lies waiting for an unconditional
-        report."""
+        """Switzerland has no marshals and the Continental System is empty
+        at boot — two lies waiting for an unconditional report. Re-seated by
+        S14k G1 (October 28, 2026): Switzerland carries the Confederation
+        now, dormant while France's satellite, so the woken-deck clause is
+        TRUE on its release and names it."""
         world = _world1805()
         message = release_vassal(world, "Switzerland")["message"]
-        assert "design of their own" not in message
+        assert "The Confederation" in message
         assert "marshals return" not in message
         assert "Continental System" not in message
         assert "225 gold a turn" in message

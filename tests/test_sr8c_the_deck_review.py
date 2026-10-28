@@ -157,14 +157,24 @@ class TestASatelliteDesignItsLordCanGive:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheConfederationIsRecordedUnreachable:
-    def test_the_german_minors_carry_no_deck(self, world):
-        for minor in ("Bavaria", "Saxony", "Hesse"):
-            assert minor not in world.agendas, minor
+    # AMENDED by S14k G1 (October 28, 2026 — the user: "they should have
+    # goals ... it should be possible for underdog stories"): Saxony and Hesse
+    # carry covet designs (the Wettin Crown, the Westphalian Duchy) on sleepier
+    # courts. The refusal record SR-8c foresaw is measured (SYSTEMS_REFERENCE
+    # §160.11): one refused ask every six turns, never on the dispatch, and each
+    # refusal a rung the design climbs. Bavaria, the Bogenhausen ally, still
+    # carries none; the scene stays the player's act through the vassalage road.
+    def test_bavaria_carries_no_deck_saxony_and_hesse_carry_s14ks(self, world):
+        assert "Bavaria" not in world.agendas
+        assert [e["id"] for e in world.agendas["Saxony"]] == ["the_wettin_crown"]
+        assert [e["id"] for e in world.agendas["Hesse"]] == ["the_westphalian_duchy"]
 
-    def test_their_intent_reads_no_want(self, world):
-        from backend.game_logic.intent import get_nation_intent
-        for minor in ("Bavaria", "Saxony", "Hesse"):
-            assert get_nation_intent(minor, world).want_id is None, minor
+    def test_bavaria_reads_no_want_saxony_and_hesse_sleep(self, world):
+        from backend.game_logic.intent import get_nation_intent, rung_index
+        assert get_nation_intent("Bavaria", world).want_id is None
+        for minor in ("Saxony", "Hesse"):
+            view = get_nation_intent(minor, world)
+            assert rung_index(view.price) < rung_index("coerce"), minor
 
     def test_the_1805_half_is_the_boot_state(self, world):
         """Bogenhausen (25 August 1805): Bavaria is France's ally at boot —

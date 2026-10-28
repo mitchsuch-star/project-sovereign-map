@@ -898,13 +898,16 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
     "strike, never invent") / says. Nothing is in force at boot, so a
     scenario may not author `enacted_turn` or `lapsed_turn`. Each court
     carries exactly ONE `actions` law (the Staff, value 1), and every court's
-    Staff costs the same (§5, Q3, GR5). A deck for a court beyond the five
-    great powers is a warning (R6: v1's decks)."""
+    Staff costs the same (§5, Q3, GR5). A deck for a court beyond R6's decks
+    is a warning (the five great powers, and the Porte's New Order since
+    S14k G3 — a deck beyond the great powers carries no Staff). A row may
+    mark itself `under_threat` (a boolean: the AI enacts it only at war or
+    called to arms)."""
     if "reforms" not in data:
         return
     from backend.game_logic.reforms import (
         CLAUSE_SHAPES, CURRENCIES, EFFECT_TYPES, GREAT_POWERS, MAX_CLAUSES,
-        WIRED_EFFECT_TYPES)
+        REFORM_DECKS, WIRED_EFFECT_TYPES)
     block = data.get("reforms")
     if not isinstance(block, dict):
         result.add_error("reforms",
@@ -917,9 +920,9 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
         path = f"reforms.{court}"
         if known_nations and court not in known_nations:
             result.add_error(path, f"Unknown nation '{court}'")
-        if court not in GREAT_POWERS:
+        if court not in REFORM_DECKS:
             result.add_warning(
-                path, "R6: v1's decks are the five great powers only")
+                path, "R6: the decks are the five great powers' and the Porte's only")
         if not isinstance(rows, list):
             result.add_error(path, "Must be a list of law rows")
             continue
@@ -942,6 +945,8 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                 result.add_error(
                     rp, "A scenario may not put a law in force: nothing is "
                         "in force at boot (REFORMS_SPEC §1)")
+            if "under_threat" in row and not isinstance(row.get("under_threat"), bool):
+                result.add_error(rp, "under_threat must be true or false")
             if "currency" in row and row.get("currency") not in CURRENCIES:
                 result.add_error(
                     rp, f"currency must be one of {CURRENCIES}, got "
@@ -999,11 +1004,15 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                     else:
                         _validate_law_clause(result, cp, etype, clause,
                                              CLAUSE_SHAPES.get(etype) or {})
-        if len(staffs) != 1:
+        if court in GREAT_POWERS and len(staffs) != 1:
             result.add_error(
-                path, f"Exactly one Staff (the `actions` law) per court — "
+                path, f"Exactly one Staff (the `actions` law) per great power — "
                       f"found {len(staffs)} (REFORMS_SPEC §5)")
-        else:
+        elif len(staffs) > 1:
+            result.add_error(
+                path, f"At most one Staff (the `actions` law) per court — "
+                      f"found {len(staffs)} (REFORMS_SPEC §5)")
+        elif staffs:
             s = staffs[0]
             staff_terms[court] = (s.get("currency"), s.get("price"),
                                   s.get("upkeep"))

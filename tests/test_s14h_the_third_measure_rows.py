@@ -4767,9 +4767,11 @@ class TestS14G9:
         buy-off clause used to vanish and the row said nothing in its place."""
         from backend.game_logic.instruments import compute_buyoff_price
         w = _r9_world
-        _r9_set_rel(w, "Saxony", -30)
-        assert compute_buyoff_price(w, "Saxony") is None
-        row = _r9_row(w, "Saxony")
+        # S14k G1 (October 28, 2026) gave Saxony the Wettin Crown: the court
+        # with no design read here is Naples.
+        _r9_set_rel(w, "Naples", -30)
+        assert compute_buyoff_price(w, "Naples") is None
+        row = _r9_row(w, "Naples")
         assert row["status"] == "joins"
         assert "No design to buy off; her league place is her relations." in row["text"]
 
@@ -5986,7 +5988,13 @@ class TestS14G11TheTrapSeam:
         ney = w.get_marshal("Ney")
         road, refusal, _kind = S.march_road(w, ney, "Copenhagen", "MOVE_TO")
         assert refusal is None
+        # S14k G1 (October 28, 2026): Hanover's Electorate guards its own six
+        # provinces now, so the road's FIRST guarded ground is Hanover's and
+        # Denmark's is the second group the ask names.
         reading = S.march_guard_reading(w, ney, "Copenhagen", road, "MOVE_TO")
+        assert reading["holder"] == "Hanover"
+        assert [g["holder"] for g in reading["groups"]] == ["Hanover", "Denmark"]
+        reading = next(g for g in reading["groups"] if g["holder"] == "Denmark")
         assert reading["holder"] == "Denmark" and reading["provinces"] == ["Holstein", "Copenhagen"]
         assert S.march_guard_sentence(reading) == (
             "Holstein and Copenhagen are Denmark's guarded ground (Neutrality of the North) "
@@ -6115,7 +6123,9 @@ class TestS14GX43:
     def test_a_court_with_no_design_is_unchanged(self, _r11_boot):
         from backend.ai.state_desk import _answer_buyoff
         w = _r11_copy(_r11_boot)
-        said = _answer_buyoff(w, "Portugal")
+        # S14k G1 gave Portugal the Old Alliance: the court with no design is Naples.
+        said = _answer_buyoff(w, "Naples")
+        assert "no design we could buy off" in said
         assert "league" not in said
 
 
@@ -17182,10 +17192,22 @@ class TestS14G33:
         assert [str(r) for r in w.get_marshal("Napoleon").strategic_order.path] == ["Artois", "Paris"]
 
     def test_the_seam_down_the_typed_march_takes_westphalia_again(self, _r33_boot):
+        # S14k G1 (October 28, 2026): Westphalia is in the Electorate's sphere
+        # (Hanover's guard posture names it, as Prussia's armed neutrality
+        # names Hanover's soil), so the old road through Prussian Westphalia
+        # asks the guard question first; with the Electorate struck the old
+        # road returns as before.
         with _r33_seam_down():
             w = _r33_board(_r33_boot)
             with _r33_client(w) as client:
                 out = _r33_say(client, "Napoleon, march to Paris")
+            asked = out["message"]
+            w = _r33_board(_r33_boot)
+            w.agendas.pop("Hanover", None)
+            w.invalidate_active_nations_cache()
+            with _r33_client(w) as client:
+                out = _r33_say(client, "Napoleon, march to Paris")
+        assert "Westphalia is Hanover's guarded ground (The Electorate)" in asked, asked
         msg = out["message"]
         assert "Route: Westphalia → Artois → Paris." in msg, msg
         assert "Arrives in 3 turns." in msg, msg

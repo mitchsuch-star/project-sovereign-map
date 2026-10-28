@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j economy rebalance (§159); S14k part 1 courts in arms (§160); part 2 NEXT, then S15**.
+> **S14j economy rebalance (§159); S14k courts in arms, minors' goals (§160); S15 NEXT**.
 
 **▶ LIVE STATE (October 28, 2026).** The three most recent landed rows:
+- **S14k part 2 (Oct 28) — minors' goals, Saxony/Hesse sleepier, the Porte's New Order** (§160).
 - **S14k part 1 (Oct 28) — Saxony/Portugal corps, 11 benches, menace call-up, tiered limit** (§160).
 - **S14j (Oct 27) — economy: detached garrisons paid, conquests +0.15, crown 30→250** (§159).
-- **S14i part 2 (Oct 27) — OCT27-D8…D13 built; D10(ii) folded, total kept; S14i COMPLETE** (§158).
 
 **Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS` — nothing on the machine, §153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

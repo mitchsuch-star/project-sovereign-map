@@ -693,10 +693,12 @@ def _backfill_reforms(world: WorldState) -> None:
             continue
         if isinstance(block, dict) and block:
             import copy as _copy
+            from backend.models.world_state import reform_deck_stands
             world.reforms = {
                 str(k): _copy.deepcopy(list(v))
                 for k, v in block.items()
                 if not str(k).startswith("_") and isinstance(v, list)
+                and reform_deck_stands(str(k))  # S14k G3: the boot's own seam
             }
             return
 

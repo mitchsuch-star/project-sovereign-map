@@ -8,8 +8,9 @@ AI-V in Stage G).
 
 Boot-neutrality (§3.4 "must not perturb the 1805 boot"): statecraft
 biases ask ORDER, coercion ANSWERS and the AI-AI counter arm; its
-weight_mod is authored 0 for every 1805 court, asserted here beside the
-untouched boot intents.
+weight_mod is authored 0 for every great power, asserted here beside the
+untouched boot intents (S14k G2 authored Saxony -8 and Hesse -12 for the
+two designs S14k gave them).
 """
 
 from pathlib import Path
@@ -70,7 +71,9 @@ class TestHomogeneityGuard:
             seen.add(signature)
 
     def test_default_profile_is_neutral(self, world):
-        profile = world.get_statecraft("Hesse")
+        # S14k G2 authored Hesse's weight (-12): the unauthored court read
+        # here is Portugal.
+        profile = world.get_statecraft("Portugal")
         assert profile["reaches_first"] == ()
         assert profile["coercion"] == "neutral"
         assert profile["weight_mod"] == 0
@@ -91,8 +94,14 @@ class TestBootNeutrality:
     """§3.4 'It must not perturb the 1805 boot (§5 pin 1).'"""
 
     def test_every_authored_weight_mod_is_zero(self, world):
+        # S14k G2 (October 28, 2026 — the user: "they should have goals ...
+        # won't happen all the time but possible"): Saxony and Hesse, whose
+        # acquiring designs S14k authored, read sleepier (-8 / -12); every
+        # other court, every great power among them, stays 0 — so no design
+        # that stood before S14k moves (SYSTEMS_REFERENCE.md §160.11).
+        sleepier = {"Saxony": -8, "Hesse": -12}
         for nation in NATION_STATECRAFT:
-            assert statecraft_weight_mod(world, nation) == 0
+            assert statecraft_weight_mod(world, nation) == sleepier.get(nation, 0), nation
 
     def test_boot_intents_unmoved_by_statecraft(self, world):
         # The Stage B measured pins hold with the statecraft wire live.

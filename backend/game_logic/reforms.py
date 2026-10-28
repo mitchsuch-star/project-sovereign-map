@@ -50,6 +50,7 @@ EFFECT_TYPES = (
     "cs_closure",         # who counts toward the Continental System closure
     "blockade_denial",    # ×m on a blockaded court's trade loss
     "cures",              # removes one named doctrine flaw (lands at DC-2)
+    "force_limit",        # S14k G3: the force-limit floor rises to a tier's — world_state.force_limit_floor
 )
 # The types WIRED to their seam in this build. The validator refuses a row
 # whose effect is not wired: a law must do what it says the day it ships
@@ -60,6 +61,7 @@ WIRED_EFFECT_TYPES = (
     "manpower_regen", "recruit_price", "recruit_morale", "drill_morale",
     "supply_capacity", "satellite_loyalty", "cs_closure", "blockade_denial",
     "cures",              # SR-7d DC-2: read at the doctrine's own seam (DOCTRINES_SPEC §3)
+    "force_limit",        # S14k G3: read at `world_state.force_limit_floor` (K5's seam)
 )
 # RF-2: each wired type's clause parameters — what the validator checks (a
 # number inside a type is in-band; a new type or a new parameter is
@@ -78,6 +80,7 @@ CLAUSE_SHAPES = {
     "satellite_loyalty": {"value": ("int", 1, 5)},
     "cs_closure": {"rule": ("every_client",)},
     "blockade_denial": {"value": ("float", 1.0, 2.0)},
+    "force_limit": {"tier": ("major", "secondary")},
 }
 CURRENCIES = ("gold", "authority")
 MAX_CLAUSES = 2                       # §4: at most two clauses per law
@@ -93,6 +96,10 @@ ARREARS_PRICE_DIVISOR = 2
 
 # The five decks of v1 (R6); a minor court has no laws.
 GREAT_POWERS = ("France", "Austria", "Prussia", "Russia", "Britain")
+# R6 AMENDED by S14k G3 (October 28, 2026 — the user: "what if ottomans
+# reformed"): the Porte's one-row deck, the New Order. It carries no Staff —
+# the one-Staff rule binds the five great powers.
+REFORM_DECKS = GREAT_POWERS + ("Ottoman",)
 
 
 # ════════════════════════════ reading the store ═══════════════════════════════
@@ -143,6 +150,27 @@ def effect_terms(world, nation: str, effect_type: str) -> List[tuple]:
 def effect_clauses(world, nation: str, effect_type: str) -> List[Dict]:
     """Every clause of `effect_type` among the laws in force."""
     return [clause for _row, clause in effect_terms(world, nation, effect_type)]
+
+
+def force_limit_floor_of_laws(world, nation: str) -> int:
+    """S14k G3: the highest force-limit floor a law in force raises the
+    court to (0 = none) — the `force_limit` clause names a tier, read at
+    `world_state.force_limit_floor`, K5's one seam."""
+    from backend.models.world_state import FORCE_LIMIT_BASE_BY_TIER
+    return max((int(FORCE_LIMIT_BASE_BY_TIER.get(str(clause.get("tier")), 0))
+                for clause in effect_clauses(world, nation, "force_limit")), default=0)
+
+
+def threat_moves_the_court(world, nation: str) -> bool:
+    """S14k G3: a law its scenario marks `under_threat` (the Porte's New
+    Order) is enacted by the AI only while its court is at war or called to
+    arms by a design priced against it — Selim's reform answered defeat, and
+    Alemdar's restoration came in the 1806 war, so a quiet Porte stays
+    unreformed and a threatened one may not. The player's verb is ungated."""
+    if world.get_nations_at_war_with(nation):
+        return True
+    from backend.game_logic.recruitment import court_called_to_arms
+    return court_called_to_arms(world, nation)
 
 
 def staff_actions(world, nation: str) -> int:
@@ -752,6 +780,12 @@ def effect_line(clause) -> str:
     if etype == "cures":
         # SR-7d DC-2 (DOCTRINES_SPEC D-R4, RV-15)
         return f"cures {clause.get('flaw')} — the court's doctrine flaw — while its Staff stands"
+    if etype == "force_limit":
+        # S14k G3: the Porte's New Order
+        from backend.models.world_state import FORCE_LIMIT_BASE_BY_TIER
+        tier = str(clause.get("tier"))
+        return (f"the army may grow as a {tier} power's — the force limit's floor rises to "
+                f"{int(FORCE_LIMIT_BASE_BY_TIER.get(tier, 0)):,}")
     return ""
 
 
@@ -1252,6 +1286,8 @@ def find_ai_enactment(world, nation: str, treasury: int,
         if not isinstance(row, dict) or is_in_force(row):
             continue
         if saving and not is_staff(row):
+            continue
+        if row.get("under_threat") and not threat_moves_the_court(world, nation):
             continue
         law_id = str(row.get("id") or "")
         if law_refusal(world, nation, law_id, admin_actions=admin_ap):

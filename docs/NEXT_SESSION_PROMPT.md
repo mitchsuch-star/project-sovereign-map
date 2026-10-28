@@ -31,9 +31,13 @@
 > `docs/audits/COURTS_IN_ARMS_2026_10_28.md`): Saxony and Portugal boot with their 1805 field corps; every court that fought
 > in the period has a bench (eleven, twelve Commons portraits on the user's yes); a court with no general is called to arms
 > by a design priced against it; a satellite fights its lord's war by its contingent; the force limit reads the court's
-> tier. Like for like no checklist item flips; `BASELINE_SERIES` re-pinned (K2 + K3 at [11]). **S14k part 2 — the courts'
-> goals and the Ottoman New Order (`PRE_DEPLOY_PLAN.md` §2 S14k) — lands before S15**; if this prompt is read before it
-> has, run part 2 first.
+> tier. Like for like no checklist item flips; `BASELINE_SERIES` re-pinned (K2 + K3 at [11]). **Part 2 landed the same day**
+> (§160.10 on): the courts' goals — Saxony's Wettin Crown and Hesse's Westphalian Duchy on sleepier courts, the neutral
+> postures of Portugal, Hanover and Switzerland, Denmark's Scania and the Porte's Black Sea Shore behind their neutrality —
+> and the Porte's New Order, a one-law deck that lifts its force limit to a great power's. A minor opens a war of its own
+> on 1 of 10 ambient seeds. The user kept Portugal's goal though it re-times the historical seed (CMD-H 23 → 17; nine
+> commanded seeds −1.1 on average, 8 of 9 at 20 or more), and ruled the three armed courts still deckless — Bavaria,
+> Spain, Naples — row S14k-3, the first slice after the deploy. **S14k is COMPLETE; S15 is next.**
 >
 > **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
 > fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives

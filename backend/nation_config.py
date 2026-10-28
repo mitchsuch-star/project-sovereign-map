@@ -156,7 +156,9 @@ NATION_HONOR_BIAS: Dict[str, float] = {
 # (`coercion` — the acceptance delta at the ultimatum seam; Britain's
 # `subsidy` answer is DERIVED from hostile-army-on-home-soil, never
 # hard-coded), and a `weight_mod` on its design (authored 0 for every
-# 1805 court — a capability, deliberately boot-neutral per §5 pin 1).
+# great power — a capability, deliberately boot-neutral per §5 pin 1;
+# S14k G2 authored the two acquiring minors' sleepier courts below, whose
+# designs are S14k's own, so no design that stood before moved).
 # `haggles` drives the AI-2c court-to-court counter-offer arm.
 # Behaviour helpers live in backend/game_logic/statecraft.py.
 # ════════════════════════════════════════════════════════════════════════
@@ -212,6 +214,17 @@ NATION_STATECRAFT: Dict[str, Dict] = {
     "Sardinia": {"reaches_first": ("align",), "coercion": "hardens"},
     "Naples": {"reaches_first": ("align",), "coercion": "folds"},
     "Spain": {"reaches_first": ("buy",), "coercion": "folds"},
+    # S14k G2 (October 28, 2026 — the user: "it should be possible for
+    # underdog stories ... generally the same but some runs are
+    # surprising"): the two courts whose acquiring goals S14k authored are
+    # SLEEPIER than the ladder's default, so the moment wakes the design and
+    # the clock does not — Saxony, the legitimist court that turned on Berlin
+    # only after Jena, and Hesse, whose courts hedged in 1805–06 (Kassel's
+    # neutrality cost the Elector his throne). Measured on the ten
+    # ambient seeds: the Wettin Crown reaches coerce on 3, the Westphalian
+    # Duchy on 4, one war of a minor's own (`SYSTEMS_REFERENCE.md` §160).
+    "Saxony": {"weight_mod": -8},
+    "Hesse": {"weight_mod": -12},
 }
 
 RUNTIME_NATIONS = tuple(

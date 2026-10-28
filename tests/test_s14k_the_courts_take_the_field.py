@@ -1,4 +1,5 @@
-"""S14k "The Courts Take the Field" — part 1: armies, benches and the ceiling.
+"""S14k "The Courts Take the Field" — part 1: armies, benches and the ceiling;
+part 2: the courts' goals and the Porte's New Order.
 
 The user, October 28, 2026: "they should get armies or the ability to make
 them, we want the game dynamic". Nine courts booted with no marshal and no
@@ -12,14 +13,31 @@ K2 a bench for every court that fought in the period (+ the save backfill);
 K3 a menaced court calls up its first general (armed neutrality);
 K4 a satellite fights its lord's war by its contingent;
 K5 the force limit reads the court's tier.
+
+Part 2 (the user: "it should be possible for underdog stories, see EU4:
+generally the same but some runs are surprising"; "what if ottomans
+reformed"):
+G1 the courts' goals — Saxony's Wettin Crown, Hesse's Westphalian Duchy, the
+   neutral postures of Portugal, Hanover and Switzerland, Denmark's Scania and
+   the Porte's Black Sea Shore behind their neutrality;
+G2 Saxony's and Hesse's courts read sleepier than the ladder's default, so a
+   moment wakes the design and the clock does not;
+G3 the Porte's one-law deck, the New Order (a `force_limit` clause to a great
+   power's floor; proclaimed by the AI only at war or called to arms).
 """
+import copy
+import json
 from pathlib import Path
 
 import pytest
 
 from backend.game_logic import recruitment as R
-from backend.game_logic.intent import IntentView
+from backend.game_logic import reforms as RF
+from backend.game_logic import statecraft as SC
+from backend.game_logic.diplomacy import set_diplomatic_state
+from backend.game_logic.intent import IntentView, get_nation_intent, rung_index
 from backend.game_logic.ledger import _build_economy
+from backend.modding.validator import validate_scenario
 from backend.models import world_state as WS
 from backend.models.world_state import WorldState, severe_band_threshold
 from tests._oct27_seams import S14K_SEAMS_BY_ROW, hold_down
@@ -212,6 +230,187 @@ class TestK5TheForceLimitReadsTheTier:
         assert WS.force_limit_floor(world, "Saxony") == 15000
 
 
+GOALS = {
+    "Saxony": ["the_wettin_crown"],
+    "Hesse": ["the_westphalian_duchy"],
+    "Portugal": ["the_old_alliance"],
+    "Hanover": ["the_electorate"],
+    "Switzerland": ["the_confederation"],
+    "Denmark": ["neutrality_of_the_north", "scania"],
+    "Ottoman": ["guard_the_straits", "the_black_sea_shore"],
+}
+
+
+def _ids(world, nation):
+    return [entry.get("id") for entry in world.agendas.get(nation, [])]
+
+
+class TestG1TheCourtsGoals:
+    def test_every_court_that_fought_has_a_goal(self, world):
+        for nation, ids in GOALS.items():
+            assert _ids(world, nation) == ids, nation
+
+    def test_the_ambitions_sleep_at_boot(self, world):
+        """The moment wakes them, not the clock: each design is aimed at
+        its holder and priced below `coerce` on turn 1."""
+        for nation, holder in (("Saxony", "Prussia"), ("Hesse", "Hanover")):
+            view = get_nation_intent(nation, world)
+            assert view.against == holder, nation
+            assert rung_index(view.price) < rung_index("coerce"), (nation, view.price)
+
+    def test_the_neutral_courts_guard_their_own_soil(self, world):
+        for nation, want in (("Portugal", "the_old_alliance"),
+                             ("Hanover", "the_electorate"),
+                             ("Denmark", "neutrality_of_the_north"),
+                             ("Ottoman", "guard_the_straits")):
+            view = get_nation_intent(nation, world)
+            assert (view.want_id, view.against) == (want, None), nation
+
+    def test_switzerland_sleeps_while_frances_satellite(self, world):
+        assert get_nation_intent("Switzerland", world).want_id is None
+
+    def test_a_neutral_posture_yields_to_a_war(self, world):
+        set_diplomatic_state(world, "Portugal", "Spain", "WAR", "test")
+        assert get_nation_intent("Portugal", world).want_id is None
+
+    def test_denmarks_scania_wakes_only_in_a_war(self, world):
+        set_diplomatic_state(world, "Denmark", "Sweden", "WAR", "test")
+        view = get_nation_intent("Denmark", world)
+        assert (view.want_id, view.against) == ("scania", "Sweden")
+
+    def test_the_portes_black_sea_shore_wakes_only_in_a_war(self, world):
+        set_diplomatic_state(world, "Ottoman", "Russia", "WAR", "test")
+        view = get_nation_intent("Ottoman", world)
+        assert (view.want_id, view.against) == ("the_black_sea_shore", "Russia")
+
+    def test_held_down_the_decks_are_as_before(self, monkeypatch):
+        hold_down(monkeypatch, S14K_SEAMS_BY_ROW["G1"])
+        world = WorldState.from_scenario(str(SCENARIO))
+        for nation in ("Saxony", "Hesse", "Portugal", "Hanover", "Switzerland"):
+            assert nation not in world.agendas, nation
+        assert _ids(world, "Denmark") == ["neutrality_of_the_north"]
+        assert _ids(world, "Ottoman") == ["guard_the_straits"]
+
+
+class TestG2TheSleepierCourts:
+    def test_saxony_and_hesse_read_sleepier_than_the_default(self, world):
+        assert SC.statecraft_weight_mod(world, "Saxony") == -8
+        assert SC.statecraft_weight_mod(world, "Hesse") == -12
+        others = [n for n in world.get_active_nations() if n not in ("Saxony", "Hesse")]
+        assert all(SC.statecraft_weight_mod(world, n) == 0 for n in others)
+
+    def test_held_down_the_ladder_reads_the_default(self, monkeypatch):
+        shipped = WorldState.from_scenario(str(SCENARIO))
+        before = {n: get_nation_intent(n, shipped).weight for n in ("Saxony", "Hesse")}
+        hold_down(monkeypatch, S14K_SEAMS_BY_ROW["G2"])
+        down = WorldState.from_scenario(str(SCENARIO))
+        assert get_nation_intent("Saxony", down).weight == before["Saxony"] + 8
+        assert get_nation_intent("Hesse", down).weight == before["Hesse"] + 12
+
+
+class TestG3TheNewOrder:
+    def test_the_porte_boots_with_the_new_order_not_in_force(self, world):
+        assert [row["id"] for row in RF.deck(world, "Ottoman")] == ["nizam_i_cedid"]
+        assert not RF.laws_in_force(world, "Ottoman")
+        assert world.get_force_limit("Ottoman") == 65000   # secondary 30,000 + 14 provinces
+
+    def test_proclaimed_the_porte_fields_an_army_as_a_great_power_does(self, world):
+        world.nation_gold["Ottoman"] = 20000
+        RF.enact_law(world, "Ottoman", RF.find_law(world, "Ottoman", "nizam_i_cedid"))
+        assert WS.force_limit_floor(world, "Ottoman") == 60000
+        assert world.get_force_limit("Ottoman") == 95000
+        assert severe_band_threshold(world.get_force_limit("Ottoman")) == 142500
+        assert RF.effect_clauses(world, "Ottoman", "recruit_morale") == [
+            {"type": "recruit_morale", "arm": "infantry", "value": 5}]
+        assert RF.law_upkeep_bill(world, "Ottoman") == 200
+
+    def test_an_empty_chest_lapses_it_like_any_law(self, world):
+        """The Janissaries' revolt of 1807, by machinery: the New Order
+        lapses when the treasury cannot pay its wages, and the floor falls
+        back to the Porte's own tier."""
+        world.nation_gold["Ottoman"] = 20000
+        RF.enact_law(world, "Ottoman", RF.find_law(world, "Ottoman", "nizam_i_cedid"))
+        world.nation_gold["Ottoman"] = -50
+        RF.process_law_lapses(world)
+        assert not RF.laws_in_force(world, "Ottoman")
+        assert world.get_force_limit("Ottoman") == 65000
+
+    def test_a_quiet_porte_does_not_proclaim_it(self, world):
+        world.nation_gold["Ottoman"] = 50000
+        assert RF.threat_moves_the_court(world, "Ottoman") is False
+        assert RF.find_ai_enactment(world, "Ottoman", 50000, 2) is None
+
+    def test_a_porte_at_war_proclaims_it(self, world):
+        world.nation_gold["Ottoman"] = 50000
+        set_diplomatic_state(world, "Ottoman", "Russia", "WAR", "test")
+        assert RF.find_ai_enactment(world, "Ottoman", 50000, 2) == {
+            "action": "enact_law", "target": "nizam_i_cedid"}
+
+    def test_a_design_priced_against_the_porte_proclaims_it(self, world, monkeypatch):
+        import backend.game_logic.intent as I
+        real = I.get_nation_intent
+        monkeypatch.setattr(I, "get_nation_intent", lambda n, w: (
+            _view(n, "Ottoman", "coerce") if n == "Russia" else real(n, w)))
+        world.nation_gold["Ottoman"] = 50000
+        assert RF.find_ai_enactment(world, "Ottoman", 50000, 2) == {
+            "action": "enact_law", "target": "nizam_i_cedid"}
+
+    def test_held_down_the_porte_has_no_deck(self, monkeypatch):
+        hold_down(monkeypatch, S14K_SEAMS_BY_ROW["G3"])
+        world = WorldState.from_scenario(str(SCENARIO))
+        assert RF.deck(world, "Ottoman") == []
+        assert world.get_force_limit("Ottoman") == 65000
+
+
+@pytest.fixture(scope="module")
+def scenario():
+    with open(SCENARIO, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _reform_findings(scenario, mutate):
+    data = copy.deepcopy(scenario)
+    mutate(data["reforms"])
+    result = validate_scenario(data)
+    return ([str(e) for e in result.errors if "reforms" in str(e)],
+            [str(w) for w in result.warnings if "reforms" in str(w)])
+
+
+class TestTheNewOrderValidates:
+    def test_the_portes_deck_carries_no_staff_and_validates(self, scenario):
+        assert set(scenario["reforms"]) == set(RF.REFORM_DECKS)
+        assert _reform_findings(scenario, lambda b: None) == ([], [])
+
+    def test_a_great_power_still_carries_its_one_staff(self, scenario):
+        errors, _ = _reform_findings(scenario, lambda b: b["France"].pop(0))
+        assert errors
+
+    def test_a_second_staff_on_the_porte_is_refused(self, scenario):
+        def two(b):
+            for law_id in ("a", "b"):
+                staff = copy.deepcopy(b["France"][0])
+                staff["id"] = law_id
+                b["Ottoman"].append(staff)
+        errors, _ = _reform_findings(scenario, two)
+        assert errors
+
+    def test_under_threat_is_a_boolean(self, scenario):
+        errors, _ = _reform_findings(
+            scenario, lambda b: b["Ottoman"][0].__setitem__("under_threat", "yes"))
+        assert errors
+
+    @pytest.mark.parametrize("tier", ["minor", "emperor"])
+    def test_a_force_limit_clause_names_a_higher_tier(self, scenario, tier):
+        errors, _ = _reform_findings(
+            scenario, lambda b: b["Ottoman"][0]["effects"][0].__setitem__("tier", tier))
+        assert errors
+
+    def test_a_deck_beyond_r6_is_still_a_warning(self, scenario):
+        errors, warnings = _reform_findings(
+            scenario, lambda b: b.__setitem__("Saxony", copy.deepcopy(b["Ottoman"])))
+        assert not errors and warnings
+
+
 class TestTheRowsHeldDownAreTheOldBoot:
     def test_every_s14k_row_down_boots_the_world_before_it(self, monkeypatch):
         hold_down(monkeypatch, [s for row in S14K_SEAMS_BY_ROW for s in S14K_SEAMS_BY_ROW[row]])
@@ -221,3 +420,26 @@ class TestTheRowsHeldDownAreTheOldBoot:
             "Portugal", "Saxony", "Hanover", "Hesse", "PapalStates", "Sardinia",
             "Holland", "KingdomOfItaly", "Switzerland"}
         assert world.get_force_limit("Switzerland") == 62500
+        assert not any(nation in world.agendas for nation in
+                       ("Saxony", "Hesse", "Portugal", "Hanover", "Switzerland"))
+        assert _ids(world, "Ottoman") == ["guard_the_straits"]
+        assert set(world.reforms) == set(RF.GREAT_POWERS)
+        assert SC.statecraft_weight_mod(world, "Hesse") == 0
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="S14k part 3 (after S15 — the user's ruling, October 28, 2026: "
+           "'After S15'; PRE_DEPLOY_PLAN.md §2 row S14k-3): GR10's sibling of "
+           "G1 — Bavaria, Spain and Naples field armies but carry no goal of "
+           "their own (NATION_AGENDAS_SPEC.md's v1.1 deckless list). This "
+           "turns RED the day each carries an authored deck — then retire "
+           "the xfail.")
+def test_every_armed_court_carries_a_goal(world):
+    """Every court that fields an army at boot or can raise one (a bench)
+    carries a deck of its own — the player's France aside (the Victory Pass
+    owns its goals)."""
+    armed = ({m.nation for m in world.marshals.values()}
+             | {n for n, rows in (world.marshal_pool or {}).items() if rows})
+    deckless = sorted(n for n in armed - {world.player_nation} if not world.agendas.get(n))
+    assert deckless == [], deckless

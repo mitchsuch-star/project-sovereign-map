@@ -1445,9 +1445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 7.04,
+ "clone_ms_mean": 7.48,
  "clones": 47,
- "seconds": 7.0,
+ "seconds": 5.0,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

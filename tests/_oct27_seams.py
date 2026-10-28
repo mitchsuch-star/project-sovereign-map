@@ -140,6 +140,14 @@ S14K_SEAMS_BY_ROW = {
     "K4": ["backend.game_logic.recruitment:satellite_serves_by_contingent=False"],
     # K5 the force limit reads the court's tier (down: one floor, 60,000).
     "K5": ["backend.models.world_state:force_limit_floor=60000"],
+    # S14k part 2 — the underdog road.
+    # G1 the courts' goals: the decks S14k authored (down: struck, as before).
+    "G1": ["backend.models.world_state:deck_entry_stands=(a[1] or {}).get('id') not in ('the_wettin_crown', 'the_westphalian_duchy', 'the_old_alliance', 'the_electorate', 'the_confederation', 'scania', 'the_black_sea_shore')"],
+    # G2 the courts' temperament: Saxony and Hesse sleepier (down: every
+    # court's weight_mod 0, as every 1805 court's was).
+    "G2": ["backend.game_logic.statecraft:statecraft_weight_mod=0"],
+    # G3 the Porte's New Order (down: no Ottoman law deck).
+    "G3": ["backend.models.world_state:reform_deck_stands=a[0] != 'Ottoman'"],
 }
 OCT27_SEAMS_DOWN += [spec for row in S14K_SEAMS_BY_ROW for spec in S14K_SEAMS_BY_ROW[row]]
 

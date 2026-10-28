@@ -1646,7 +1646,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #        byte-identical.
 # S14j's series: SERIES_BEFORE_S14K below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by S14k part 2 (the courts' goals, October 28, 2026 — the user:
+# "it should be possible for underdog stories, see EU4: generally the same but
+# some runs are surprising"; `SYSTEMS_REFERENCE.md` §160). ONE row moves the
+# ambient board (`tools/_s14k_series_arms.py --rows G1,G2,G3` →
+# `tools/_s14k_p2_series_arms_final.json`; arm 0, the three rows down,
+# reproduces part 1's series byte for byte):
+#   G1 the courts' decks — at [11]: Portugal's Old Alliance guards Lisbon, so
+#        Britain's Wellesley, who walked into Lisbon at turn 8, keeps to
+#        Andalusia; the board's draws differ from turn 9 and the war-cascade
+#        roll that frees Switzerland lands at turn 13 again (part 1: 11), as
+#        S14j's did. The alarm reads 34 at [11] and 0 at [19]. On this seed
+#        Hesse's Westphalian Duchy climbs to bandwagon against Hanover and
+#        Hesse raises Emil at turn 13; no minor declares a war of its own.
+#   G2 (Saxony's and Hesse's sleepier courts) and G3 (the Porte's New Order,
+#        never proclaimed on this board) held down alone are byte-identical.
+# Part 1's series: SERIES_BEFORE_S14K_PART_2 below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# S14k part 1's series (part 2's prior; part 1's ALL):
+SERIES_BEFORE_S14K_PART_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14j's series (S14k's prior; S14j's ALL):
 SERIES_BEFORE_S14K = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14i's series (S14j's prior; S14i part 2's ALL):

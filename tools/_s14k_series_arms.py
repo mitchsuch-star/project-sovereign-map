@@ -2,6 +2,7 @@
 where.
 
     .venv/Scripts/python.exe tools/_s14k_series_arms.py --rows K1,K2,K3,K4,K5 --out tools/_s14k_p1_series_arms_final.json
+    .venv/Scripts/python.exe tools/_s14k_series_arms.py --rows G1,G2,G3 --out tools/_s14k_p2_series_arms_final.json
 
 Each arm is the shipped tree with a set of the slice's SEAMS held down in the
 child (the driver's `--seam MODULE:NAME=EXPR` idiom: the seam becomes

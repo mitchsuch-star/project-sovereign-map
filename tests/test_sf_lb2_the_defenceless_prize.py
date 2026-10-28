@@ -715,9 +715,16 @@ class TestTheDrivenBoard:
         """The addendum: no fight-road theatre — every crisis the board
         opens is one its court could declare (Sardinia's free strength of 0
         and Russia's war with France fore-warn nothing)."""
+        # S14k G1 (October 28, 2026): Hesse's Westphalian Duchy is a prize of
+        # the same kind — on eylau Hesse (Emil raised at 15) opens its crisis
+        # against the Hanover Prussia has beaten, at coerce on turn 18; it is
+        # a war Hesse could declare (it declares one on marengo in the
+        # ten-seed sweep). Every other seed opens Prussia's alone.
         for seed, rec in records.items():
             coveters = {c["coveter"] for c in rec["crises_opened"]}
-            assert coveters == {"Prussia"}, (seed, rec["crises_opened"])
+            expected = {"Prussia", "Hesse"} if seed == "eylau" else {"Prussia"}
+            assert coveters == expected, (seed, rec["crises_opened"])
+            assert all(c["target"] == "Hanover" for c in rec["crises_opened"]), seed
 
     def test_the_restraints_held_at_the_opening(self, records):
         for seed, rec in records.items():

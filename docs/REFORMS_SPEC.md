@@ -59,7 +59,7 @@ Each reading is one catalogue field or one constant to flip. **The user confirme
   - The bounced upkeep is refunded: ESP-4's shape, one obligation over.
   - The principle: the state sheds its machinery before it breaks faith with its marshals.
   - The forecast names the doomed law a turn early. Repealing a different law first is how the player chooses which one goes.
-- **R6 — Five decks in v1:** France, Austria, Prussia, Russia, Britain. No minor court has laws. ✅ CONFIRMED.
+- **R6 — Five decks in v1:** France, Austria, Prussia, Russia, Britain. No minor court has laws. ✅ CONFIRMED. **AMENDED by S14k G3 (October 28, 2026 — the user: "make their strength cap … make sense for where they could go, for instance what if ottomans reformed, event perhaps"):** a sixth deck, the Porte's one law, the New Order (Nizam-i Cedid, 8,000 gold, 200 a turn) — it carries no Staff (§5's one-Staff rule binds the five great powers), and every other minor court still has no laws (`reforms.REFORM_DECKS`; `SYSTEMS_REFERENCE.md` §160).
 - **R7 — v1 mints ONE new action point, the fifth.** ✅ CONFIRMED.
   - A sixth (a second tier of the Staff) is not built.
   - It re-opens only on a named condition (§13).
@@ -175,12 +175,14 @@ Every seam below was verified at HEAD `b858b806`.
 | `satellite_loyalty` | +N a turn for every satellite of the enacting lord | `vassal.process_vassal_loyalty` and `vassal.forecast_vassal_loyalty` (applied and forecast from one term) |
 | `cs_closure` | who counts toward the closure | `naval.closure_against` |
 | `blockade_denial` | ×m on a blockaded court's trade loss — the BLOCKADER's law | `naval.blockade_trade_loss` (RF-2 correction: `process_trade_income` only subtracts that function's figure, and five other surfaces read it directly — a multiplier at `process_trade_income` would have shown the old loss everywhere) |
+| `force_limit` | raises the court's force-limit floor to a named higher tier's — `{"tier": "major" | "secondary"}`. **Added October 28, 2026 by S14k G3** (the Porte's New Order; the type is structural and the user's ruling owns it) | `world_state.force_limit_floor`, S14k K5's one seam — so `WorldState.get_force_limit`, the arming rung's war ceiling, the ledger and the counsel all read it |
 | `cures` | removes one named doctrine flaw | the doctrine's own seam (`DOCTRINES_SPEC.md` §3). **Added September 27, 2026 by the doctrines ruling (D-R4); ✅ WIRED October 3, 2026 at DC-2** — `{"type": "cures", "flaw": "<the court's flaw name>"}`, read by `doctrines.cure_status` (the cure law in force AND the court's Staff in force, RV-15); the validator cross-checks the flaw against the court's doctrine, and a cure on a court that authors no doctrine (the tutorial) is a WARNING. |
 
 Rules:
 - **Strike, never invent.** If the build cannot site a type on ONE existing single source, the type is struck with its laws and recorded — never invented. A new type is structural and escalates; a number inside a type is in-band.
 - **Shown = applied, by construction.** The source that applies an effect is the source every surface quotes: the LAWS tab, the recruit quote, the supply headline, the vassal forecast.
 - **At most two clauses per law**, so an act can carry its own trade-off. Russia's Extraordinary Levy is cheap men at low morale.
+- **`under_threat` (S14k G3, October 28, 2026).** A row may mark itself `"under_threat": true`: the AI enacts it only while its court is at war or called to arms by a design priced against it (`reforms.threat_moves_the_court`, read by `find_ai_enactment`); the player's verb is ungated. The Porte's New Order carries it — Selim's reform answered defeat, and a quiet Porte stays unreformed. A non-boolean is a validation ERROR.
 
 ---
 

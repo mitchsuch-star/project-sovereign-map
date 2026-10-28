@@ -85,9 +85,11 @@ class TestBootActivation:
         assert view.title
         assert not view.survival
 
+    # S14k G1 (October 28, 2026): Portugal, Saxony, Hesse and Hanover carry
+    # decks now (the Old Alliance, the Wettin Crown, the Westphalian Duchy,
+    # the Electorate); the courts still deckless are these.
     @pytest.mark.parametrize("nation", [
-        "France", "Spain", "Naples", "Portugal", "PapalStates",
-        "Bavaria", "Saxony", "Hesse", "Hanover",
+        "France", "Spain", "Naples", "PapalStates", "Bavaria",
     ])
     def test_deckless_nations_have_no_agenda(self, world, nation):
         assert get_active_agenda(nation, world) is None
@@ -276,7 +278,8 @@ class TestCacheAndSerialization:
         from backend.game_logic.diplomacy import set_diplomatic_state
         assert get_active_agenda("Denmark", world).id == "neutrality_of_the_north"
         set_diplomatic_state(world, "France", "Denmark", "WAR", "test")
-        assert get_active_agenda("Denmark", world) is None  # guard broken
+        # The guard broken; S14k G1's Scania stands behind it and wakes.
+        assert get_active_agenda("Denmark", world).id == "scania"
 
     def test_decks_and_seen_map_round_trip(self, world):
         world.nation_agenda_seen["Austria"] = "redeem_italy"
@@ -437,8 +440,13 @@ class TestResolveFeeders:
                 == AGENDA_RESOLVE_SATISFIED)
 
     def test_irrelevant_war_changes_nothing(self, world):
+        # S14k G1: Denmark's war on Sweden is Scania's now (it advances
+        # the design); the irrelevant war is a deckless court's.
+        _war(world, "Naples", "Sweden")
+        assert get_agenda_resolve_delta("Naples", "Sweden", world) == 0
         _war(world, "Denmark", "Sweden")
-        assert get_agenda_resolve_delta("Denmark", "Sweden", world) == 0
+        assert (get_agenda_resolve_delta("Denmark", "Sweden", world)
+                == AGENDA_RESOLVE_ADVANCING)
 
     def test_agenda_concerns_player_bloc(self, world):
         assert agenda_concerns_player_bloc("Austria", world)   # Milan is French-bloc

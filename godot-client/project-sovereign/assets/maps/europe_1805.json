@@ -1086,7 +1086,7 @@
         "Ottoman": { "wary_of": { "Russia": 1.5 } },
         "Sweden": { "wary_of": { "Russia": 1.4 } }
     },
-    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot.",
+    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war.",
     "agendas": {
         "Austria": [
             {
@@ -1177,6 +1177,13 @@
                 "title": "Guard the Straits",
                 "regions": ["Constantinople", "Rumelia"],
                 "blurb": "The Porte stays neutral; the Straits are inviolate."
+            },
+            {
+                "id": "the_black_sea_shore",
+                "type": "acquire_regions",
+                "title": "The Black Sea Shore",
+                "regions": ["New Russia"],
+                "blurb": "The Crimea and the Yedisan, lost to Russia between 1774 and 1792 - the Porte's revanche, once it is at war."
             }
         ],
         "Sardinia": [
@@ -1195,6 +1202,13 @@
                 "title": "Neutrality of the North",
                 "regions": ["Holstein", "Copenhagen"],
                 "blurb": "Armed neutrality - the fleet is the state."
+            },
+            {
+                "id": "scania",
+                "type": "acquire_regions",
+                "title": "Scania",
+                "regions": ["Scania"],
+                "blurb": "Scania, lost to Sweden in 1658 - Copenhagen's war aim the day the North goes to war, as it did in 1808."
             }
         ],
         "KingdomOfItaly": [
@@ -1244,6 +1258,51 @@
                 "title": "Ostfriesland",
                 "regions": ["East Frisia"],
                 "blurb": "The Ems coast the Treaty of Fontainebleau gave Louis Bonaparte's kingdom in 1807 - the one province of Holland's own dream its lord can give, once the land is his. Dormant while Amsterdam answers to Paris."
+            }
+        ],
+        "Saxony": [
+            {
+                "id": "the_wettin_crown",
+                "type": "acquire_regions",
+                "title": "The Wettin Crown",
+                "regions": ["Posen"],
+                "blurb": "The Wettins wore Poland's crown for sixty-six years, and Dresden has not forgotten Warsaw - but Berlin is a friend until it is beaten."
+            }
+        ],
+        "Hesse": [
+            {
+                "id": "the_westphalian_duchy",
+                "type": "acquire_regions",
+                "title": "The Westphalian Duchy",
+                "regions": ["Westphalia"],
+                "blurb": "Darmstadt has held the Duchy of Westphalia since 1803; a Hesse grown strong would take the whole of it while its neighbour is down."
+            }
+        ],
+        "Portugal": [
+            {
+                "id": "the_old_alliance",
+                "type": "guard_neutrality",
+                "title": "The Old Alliance",
+                "regions": ["Lisbon", "Porto", "Alentejo", "Beira"],
+                "blurb": "England's oldest ally keeps its ports open and its frontier shut - a neutral court that marches only when it must."
+            }
+        ],
+        "Hanover": [
+            {
+                "id": "the_electorate",
+                "type": "guard_neutrality",
+                "title": "The Electorate",
+                "regions": ["Hanover", "Brunswick", "Westphalia", "Osnabruck", "Oldenburg", "East Frisia"],
+                "blurb": "The King of England's German lands ask only to be left alone - and remember who did not leave them so."
+            }
+        ],
+        "Switzerland": [
+            {
+                "id": "the_confederation",
+                "type": "guard_neutrality",
+                "title": "The Confederation",
+                "regions": ["Bern"],
+                "blurb": "Armed neutrality, the Diet's oldest policy - the cantons call up their contingents when an army nears the frontier."
             }
         ]
     },
@@ -1346,7 +1405,7 @@
             "grudge_label": "The Irish Question"
         }
     },
-    "_reforms_comment": "SR-5r RF-0 (docs/REFORMS_SPEC.md, gate record section 0 RULED September 27, 2026; readings section 0.1 CONFIRMED). One deck per great power (R6), in the order the AI court enacts (section 7). A row is bought once (currency gold or authority, plus one admin action) and pays upkeep gold every turn as the signed Net component 'Laws'; it lapses, largest upkeep first, when the treasury cannot pay (R5), and a lapsed law may be restored within ten turns for half its price plus its arrears (R8 'The Arrears'). Nothing is in force at boot: the validator refuses enacted_turn / lapsed_turn here. effects draw from the closed set of section 4 (at most two clauses); a type not yet wired to its seam is refused ('strike, never invent'). RF-0 authors each court's Staff - the ONE actions law, the only road to a fifth action, one price for every court (section 5, Q3); the rest of the section 6 catalogue arrives with RF-2, when its effect types are wired.",
+    "_reforms_comment": "SR-5r RF-0 (docs/REFORMS_SPEC.md, gate record section 0 RULED September 27, 2026; readings section 0.1 CONFIRMED). One deck per great power (R6), in the order the AI court enacts (section 7). A row is bought once (currency gold or authority, plus one admin action) and pays upkeep gold every turn as the signed Net component 'Laws'; it lapses, largest upkeep first, when the treasury cannot pay (R5), and a lapsed law may be restored within ten turns for half its price plus its arrears (R8 'The Arrears'). Nothing is in force at boot: the validator refuses enacted_turn / lapsed_turn here. effects draw from the closed set of section 4 (at most two clauses); a type not yet wired to its seam is refused ('strike, never invent'). RF-0 authors each court's Staff - the ONE actions law, the only road to a fifth action, one price for every court (section 5, Q3); the rest of the section 6 catalogue arrives with RF-2, when its effect types are wired. R6 AMENDED by S14k (October 28, 2026 - the user: 'what if ottomans reformed'): the Porte's one-row deck, the New Order (Nizam-i Cedid) - no Staff (the one-Staff rule binds the five great powers); its force_limit clause raises the Porte's force-limit floor to a great power's, and under_threat lets the AI proclaim it only at war or when a design is priced against the Porte.",
     "reforms": {
         "France": [
             {
@@ -1780,6 +1839,29 @@
                     }
                 ],
                 "says": "Congreve's rockets beside the guns: artillery levies cost 15% less."
+            }
+        ],
+        "Ottoman": [
+            {
+                "id": "nizam_i_cedid",
+                "name": "The New Order",
+                "date": "the Nizam-i Cedid of Selim III, 1793, to the Janissaries' revolt of 1807",
+                "currency": "gold",
+                "price": 8000,
+                "upkeep": 200,
+                "under_threat": true,
+                "effects": [
+                    {
+                        "type": "force_limit",
+                        "tier": "major"
+                    },
+                    {
+                        "type": "recruit_morale",
+                        "arm": "infantry",
+                        "value": 5
+                    }
+                ],
+                "says": "Selim's drilled regiments on the European pattern: the Porte may field an army as a great power does, and its infantry drafts muster steadier - while the treasury pays the New Order its wages. The Porte proclaims it only at war, or when a design is priced against it."
             }
         ]
     },

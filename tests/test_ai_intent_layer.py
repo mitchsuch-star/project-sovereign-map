@@ -89,7 +89,8 @@ class TestBootIntents:
 
     def test_deckless_and_vassal_and_player_are_indifferent(self, world1805):
         # §5 pin 18's backend arm: no live agenda → the bottom rung.
-        for nation in ("France", "Bavaria", "Saxony", "Hesse",
+        # S14k G1 (October 28, 2026): Saxony and Hesse carry designs now.
+        for nation in ("France", "Bavaria", "Spain", "Naples",
                        "KingdomOfItaly", "Holland"):
             view = get_nation_intent(nation, world1805)
             assert view.price == "indifferent"
@@ -221,8 +222,10 @@ class TestSurfaces:
         assert austria["price"] == "fight"
         assert "war" in austria["summary"]
         assert austria["against_display"] == "France"
-        # Deckless court: the row carries None and the renderer omits.
-        assert rows["Saxony"]["intent"] is None
+        # Deckless court: the row carries None and the renderer omits
+        # (Bavaria; S14k G1 gave Saxony the Wettin Crown).
+        assert rows["Bavaria"]["intent"] is None
+        assert rows["Saxony"]["intent"]["against"] == "Prussia"
 
     def test_mirror_reads_the_hegemon(self, world1805):
         from backend.game_logic.diplomatic_ledger import (

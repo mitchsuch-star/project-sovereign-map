@@ -1089,7 +1089,14 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # every S14k seam held down in the child it reads 14 verbatim; K2 (the
         # benches) or K3 (the call-up) held down alone 14; K1, K4 and K5 held
         # down alone 12.
-        assert capped == 12, capped
+        # Re-measured by S14k part 2, the courts' goals (October 28, 2026;
+        # SYSTEMS_REFERENCE §160): capped 14 — Portugal's Old Alliance guards
+        # Lisbon, Britain's Wellesley keeps out of it at turn 8, and the
+        # war-cascade roll that frees Switzerland lands two turns later again,
+        # as the series does at [11]. With part 2's seams held down in the
+        # child it reads 12 verbatim; G1 (the decks) held down alone 12; G2
+        # and G3 held down alone 14.
+        assert capped == 14, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

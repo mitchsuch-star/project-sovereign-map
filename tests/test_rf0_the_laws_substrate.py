@@ -52,13 +52,19 @@ def _staff(world, nation):
 
 class TestTheAuthoredCatalogue:
 
-    def test_five_decks_the_great_powers_only(self, scenario):
+    def test_the_r6_decks_the_great_powers_and_the_porte(self, scenario):
+        # S14k G3 (October 28, 2026 — the user: "what if ottomans reformed")
+        # amended R6: the five great powers' decks and the Porte's one-law
+        # deck, the New Order.
         block = scenario["reforms"]
-        assert set(block) == set(R.GREAT_POWERS)
+        assert set(block) == set(R.REFORM_DECKS)
+        assert set(R.REFORM_DECKS) == set(R.GREAT_POWERS) | {"Ottoman"}
 
     def test_one_staff_per_court_one_price_for_all(self, scenario):
         terms = set()
-        for court, rows in scenario["reforms"].items():
+        # The Staff binds the great powers (S14k G3: the Porte's deck carries none).
+        for court in R.GREAT_POWERS:
+            rows = scenario["reforms"][court]
             staffs = [r for r in rows
                       if any(c.get("type") == "actions" for c in r["effects"])]
             assert len(staffs) == 1, court
@@ -256,7 +262,8 @@ class TestTheStore:
     def test_a_pre_reform_1805_save_is_backfilled(self, world):
         world.reforms = {}
         save_manager._backfill_reforms(world)
-        assert set(world.reforms) == set(R.GREAT_POWERS)
+        # S14k G3: the scenario NOW authors the Porte's deck too.
+        assert set(world.reforms) == set(R.REFORM_DECKS)
         assert R.laws_in_force(world, "France") == []
 
     def test_an_armed_save_is_never_overwritten(self, world):
@@ -283,5 +290,5 @@ class TestTheStore:
         loaded = save_manager.load_game(fixture)
         assert loaded["success"], loaded["message"]
         world = loaded["world"]
-        assert set(world.reforms) == set(R.GREAT_POWERS)
-        assert all(R.laws_in_force(world, n) == [] for n in R.GREAT_POWERS)
+        assert set(world.reforms) == set(R.REFORM_DECKS)   # S14k G3: + the Porte
+        assert all(R.laws_in_force(world, n) == [] for n in R.REFORM_DECKS)

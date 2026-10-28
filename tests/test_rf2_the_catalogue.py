@@ -120,10 +120,12 @@ class TestTheCatalogue:
     def test_twenty_six_laws_five_decks(self, scenario):
         # SR-7d "The Doctrines" (October 3, 2026): the Train des Équipages joined France's
         # deck at DC-2 (D-R3) — 25 laws became 26.
+        # S14k G3 (October 28, 2026 — the user: "what if ottomans
+        # reformed"): R6 amended, the Porte's one-law deck — 27 laws, six decks.
         decks = {c: rows for c, rows in scenario["reforms"].items() if not c.startswith("_")}
-        assert set(decks) == set(R.GREAT_POWERS)
+        assert set(decks) == set(R.REFORM_DECKS)
         assert {c: len(rows) for c, rows in decks.items()} == {
-            "France": 6, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5}
+            "France": 6, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5, "Ottoman": 1}
 
     def test_the_train_arrived_with_the_doctrines(self, scenario):
         """RE-SEATED by SR-7d "The Doctrines" (October 3, 2026): the pin that held the Train

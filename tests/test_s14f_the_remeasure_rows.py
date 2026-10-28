@@ -8813,7 +8813,8 @@ class TestS14E26:
         before = _r26_book(w)
         with _r26_client(w) as client:
             at_war = _r26_say(client, "buy off Austria")
-            no_design = _r26_say(client, "buy off Hanover")
+            # S14k G1 gave Hanover the Electorate: the court with no design is Naples.
+            no_design = _r26_say(client, "buy off Naples")
             lowball = _r26_say(client, "buy off Sweden, 50 gold")
             w.nation_gold["France"] = 100
             poor = _r26_say(client, "buy off Sweden")

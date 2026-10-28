@@ -33,10 +33,11 @@ SWEEP_SEEDS = ("historical", "crimson-1805", "ulm", "austerlitz",
                "jena-06", "wagram", "tilsit")
 VARIANCE_SEEDS = tuple(s for s in SWEEP_SEEDS if s != "historical")
 
-# The two French satellites carry dormant decks (vassalized at boot) —
+# The French satellites carry dormant decks (vassalized at boot) —
 # excluded from historian clause 3, per the pinned satellite-dormancy
-# contract (test_nation_agendas.py::TestSatelliteDormancy).
-BOOT_VASSAL_DECK_HOLDERS = {"KingdomOfItaly", "Holland"}
+# contract (test_nation_agendas.py::TestSatelliteDormancy). S14k G1
+# (October 28, 2026) gave Switzerland its Confederation: the third.
+BOOT_VASSAL_DECK_HOLDERS = {"KingdomOfItaly", "Holland", "Switzerland"}
 
 
 @pytest.fixture(scope="module")

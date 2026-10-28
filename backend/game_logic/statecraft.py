@@ -123,7 +123,10 @@ def haggles(world, nation: str) -> bool:
 
 def statecraft_weight_mod(world, nation: str) -> int:
     """The §3.4 weight modifier on the nation's design. Authored 0 for
-    every 1805 court — the wire exists, the boot is untouched (pin 1)."""
+    every great power — the wire exists, their boot is untouched (pin 1);
+    S14k G2 authored Saxony −8 and Hesse −12, the two courts whose
+    acquiring designs S14k wrote (the seam the recorded boards hold down:
+    down, 0 for every court)."""
     try:
         return int((world.get_statecraft(nation) or {})
                    .get("weight_mod", 0) or 0)

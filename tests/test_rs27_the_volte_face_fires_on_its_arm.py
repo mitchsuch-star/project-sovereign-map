@@ -125,8 +125,18 @@ class TestTheVolteFaceFiresOnItsArm:
         courtship otherwise identical). Held down alone, the dice return the
         beat at turn 26; the order-keyed cooldown, the re-ask and the front
         held down alone do not. The arm keeps its purpose on the shared
-        stream — the dice stage the war, they are not the rule."""
-        rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')")
+        stream — the dice stage the war, they are not the rule.
+
+        RE-SEATED by S14k part 2 (October 28, 2026; the user kept Portugal's
+        goal, "Keep it"): Portugal's Old Alliance keeps Britain's Wellesley
+        out of neutral Lisbon at turn 8, as in 1805, and the historical
+        board re-times from there — 0 beats in forty turns. With the Old
+        Alliance held down alone the beat returns at turn 27 (G1's other
+        entries, G2 and G3 held down alone: 0). The arm keeps its purpose
+        with that one entry down (`SYSTEMS_REFERENCE.md` §160.13)."""
+        rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
+                      "--seam", "backend.models.world_state:deck_entry_stands="
+                      "(a[1] or {}).get('id') != 'the_old_alliance'")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20
