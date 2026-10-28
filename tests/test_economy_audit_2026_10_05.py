@@ -335,8 +335,12 @@ class TestTheAIsPurse:
         # FRONT — at war or the design's target — and the boot Ottoman has none
         # (no war, no hostile design), so the shipped arm is read at war.
         w.diplomatic_states[w._make_diplo_key("Ottoman", "Austria")] = "WAR"
+        # S14k K2 (October 28, 2026): the Ottomans have a bench now, and at
+        # war on 50,000 the commission rung takes the slot before the tower's
+        # — skipped here, as the recruit rungs are; the pin reads the tower.
         with _quiet():
-            down = ai._pick_admin_action("Ottoman", w, 2, skip_actions={"recruit"})
+            down = ai._pick_admin_action("Ottoman", w, 2,
+                                         skip_actions={"recruit", "recruit_marshal"})
         assert calls and down and down.get("building_type") == "watchtower"
 
     def test_a_subsidy_pays_a_court_that_fights(self, monkeypatch):

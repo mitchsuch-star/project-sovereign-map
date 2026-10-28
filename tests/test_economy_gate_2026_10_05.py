@@ -536,11 +536,13 @@ class TestACourtWithoutAGeneralMayCommission:
             assert ai.execute_commission_only("Austria", w, {"world": w}) == []
 
     def test_a_court_with_no_bench_stays_inert(self):
+        # RE-AIMED by S14k K2 (October 28, 2026): Portugal has a bench now
+        # (Silveira); the Papal States keep their garrison only.
         w = _boot()
-        w.nation_gold["Portugal"] = 50000
+        w.nation_gold["PapalStates"] = 50000
         ai = EnemyAI(CommandExecutor())
         with _quiet():
-            assert ai.execute_commission_only("Portugal", w, {"world": w}) == []
+            assert ai.execute_commission_only("PapalStates", w, {"world": w}) == []
 
     def test_the_enemy_turn_runs_the_rung_for_her(self):
         from backend.game_logic.turn_manager import TurnManager

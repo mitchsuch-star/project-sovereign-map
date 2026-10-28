@@ -50,8 +50,8 @@
       "name": "submit_parsed_command"
     },
     "system_sha256": "16ba8e4443012b536e1254b3fb6825f642ef89465d27b59ef0483e58cea07f95",
-    "prompt_sha256": "e2f1ff7be2484115586cbbb2a10f31d26ca40e681dd55d60d32a594fdc5650ec",
-    "prompt_chars": 18362,
+    "prompt_sha256": "44d06c95e549ecee5d61c779b51740d3460f85dcd67d0cececcffeec489a67a2",
+    "prompt_chars": 18411,
     "tool_schema_sha256": "9f77d1632dda3d9cab67312fdfb9451a45c5b91bb6f5a4d3d64f6ad353e5bb40"
   },
   "recorded": {

@@ -1328,9 +1328,11 @@ def _answer_force_limit(world) -> str:
     upkeep = world.calculate_turn_upkeep(world.player_nation) or {}
     surcharge = int(upkeep.get("surcharge") or 0)
     # SF-RR2 (the HOLD's "how do I get it higher?"): the limit's own rule,
-    # read off the constants `WorldState.get_force_limit` sums.
-    from backend.models.world_state import FORCE_LIMIT_BASE, FORCE_LIMIT_PER_REGION
-    grows = (f" It grows with the Empire: {_money(FORCE_LIMIT_BASE)} men, and "
+    # read off the terms `WorldState.get_force_limit` sums (S14k K5: the
+    # floor is the court's tier's).
+    from backend.models.world_state import FORCE_LIMIT_PER_REGION, force_limit_floor
+    floor = force_limit_floor(world, world.player_nation)
+    grows = (f" It grows with the Empire: {_money(floor)} men, and "
              f"{_money(FORCE_LIMIT_PER_REGION)} more for every province we hold "
              f"({len(world.get_nation_regions(world.player_nation) or [])} today).")
     if over > 0:

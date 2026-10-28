@@ -5,7 +5,9 @@
 
 ## 1. What it is
 
-Nations with an authored candidate pool can **commission new marshals mid-campaign**. France reaches for its historical bench (Mortier, Grouchy, Suchet, Oudinot, Augereau, Marmont); the great powers reach for theirs (Austria: Schwarzenberg/Hiller/Liechtenstein · Russia: Bagration/Bennigsen/Dokhturov · Prussia: Blücher/Scharnhorst/Yorck · Britain: Wellesley/Paget). Minor nations have no pool and simply cannot recruit — pool presence is the feature gate.
+Nations with an authored candidate pool can **commission new marshals mid-campaign**. France reaches for its historical bench (Mortier, Grouchy, Suchet, Oudinot, Augereau, Marmont); the great powers reach for theirs (Austria: Schwarzenberg/Hiller/Liechtenstein · Russia: Bagration/Bennigsen/Dokhturov · Prussia: Blücher/Scharnhorst/Yorck · Britain: Wellesley/Paget). Pool presence is the feature gate.
+
+**The courts' benches (S14k, October 28, 2026 — the user: "they should get armies or the ability to make them"; `SYSTEMS_REFERENCE.md` §160).** Every court that fought in the period now has a bench: the secondaries' (SF-RR4 — Spain, Sweden, Bavaria), and Portugal (Silveira), Saxony (Le Coq), Hesse (Emil), Hanover (Wallmoden, Alten), Holland (Janssens), the Kingdom of Italy (Fontanelli), Switzerland (Wattenwyl, Bachmann), and the one-general courts' second men — Denmark (Christian August), Naples (Philippsthal), the Ottomans (Alemdar, Yusuf Ziya). Saxony and Portugal also boot with their 1805 field corps (Zezschwitz, Bernardim Freire). **Sardinia and the Papal States keep their capital garrisons only** — neither fielded an army in the period — so no pool, no recruit. A save from before S14k gains the benches on load (`save_manager._backfill_court_benches`).
 
 Player and AI share ONE executor path (**GR5**): `economy_executor._execute_recruit_marshal`, an **ADMIN_ACTIONS** verb (1 admin AP) like recruit/build.
 
@@ -37,10 +39,13 @@ Player and AI share ONE executor path (**GR5**): `economy_executor._execute_recr
 
 `enemy_ai._pick_admin_action` **Priority 1.75** (after the ES-7 reward rung, before builds): commission the FIRST authored candidate (authored order = quality order) when
 
-- at war, AND
+- at war, OR preparing its own design at `coerce`+ (AI-5), OR **called to arms** — another court's design priced at `coerce`+ against it, or Europe's reading of France naming it the target at `coerce`+ (S14k K3, `recruitment.court_called_to_arms`: armed neutrality, Switzerland in 1805, 1809 and 1813), AND
+- it is not **a satellite serving its lord's war by its contingent** — a client whose every enemy is its lord's sends its men under the lord's flag (VD-C) and commissions nothing of its own; its bench is for a war of its own (S14k K4, `recruitment.satellite_serves_by_contingent`), AND
 - standing roster `< AI_RECRUIT_MAX_STANDING` (3), AND
 - treasury ≥ cost + `AI_RECRUIT_TREASURY_BUFFER` (1000), AND
 - the shared `check_commission` gate passes (manpower, soil).
+
+A court with no general at all runs this one rung through EA-7's `execute_commission_only` (its whole turn is skipped otherwise), so a bench is what gives a marshal-less court the ability to raise its first corps.
 
 Austria replaces a lost Mack with Schwarzenberg; Russia calls up Bagration; Britain builds its expeditionary command. Live-verified in the 8-turn probe (Britain fielded Paget and Wellesley unprompted).
 
@@ -59,7 +64,7 @@ Austria replaces a lost Mack with Schwarzenberg; Russia calls up Bagration; Brit
 
 ## 7. Constants (in-band tunable)
 
-`RECRUIT_MARSHAL_CORPS = 5000` · `RECRUIT_MARSHAL_AP = 1` (admin) · `AI_RECRUIT_MAX_STANDING = 3` · `AI_RECRUIT_TREASURY_BUFFER = 1000` · authored costs 3,500–6,000g.
+`RECRUIT_MARSHAL_CORPS = 5000` · `RECRUIT_MARSHAL_AP = 1` (admin) · `AI_RECRUIT_MAX_STANDING = 3` · `AI_RECRUIT_TREASURY_BUFFER = 1000` · authored costs 2,500–6,000g (the minor courts' 2,500–3,500).
 
 ## 8. Deliberately out (owned)
 

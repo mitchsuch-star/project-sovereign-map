@@ -376,17 +376,69 @@ def _preparing_for_design(world, nation: str) -> bool:
     return rung_index(view.price) >= rung_index("coerce")
 
 
+def court_called_to_arms(world, nation: str) -> bool:
+    """S14k K3 "A menaced court calls up its first general" (October 28,
+    2026 — the user: "they should get armies or the ability to make them").
+    Armed neutrality: Switzerland mobilised under Wattenwyl in 1805, 1809
+    and 1813, and a court whose neighbour prices a war against it raises
+    men before the declaration, not after. A court is CALLED TO ARMS while
+    another court's design is aimed at it at `coerce` or above, or while
+    Europe's reading of France names it the target at `coerce` or above
+    (the mirror, `get_france_perceived_intent`: the player's plans never
+    feed an intent, so his menace is read the way every court reads it).
+    `find_ai_commission` reads it only for a court with NO general standing
+    — its first — so a court already in the field keeps its war-or-design
+    gate. A pure per-turn reading off the cached intent chokepoint, never a
+    latch. The seam the recorded boards hold down (down: False — war or
+    the court's own design only, as before)."""
+    from backend.game_logic.intent import (
+        get_france_perceived_intent, get_nation_intent, rung_index)
+    floor = rung_index("coerce")
+    for other in world.get_active_nations():
+        if other == nation:
+            continue
+        view = get_nation_intent(other, world)
+        if view.against == nation and rung_index(view.price) >= floor:
+            return True
+    price, _weight, target = get_france_perceived_intent(world)
+    return target == nation and rung_index(price) >= floor
+
+
+def satellite_serves_by_contingent(world, nation: str) -> bool:
+    """S14k K4 "A satellite fights its lord's war by its contingent": a
+    client whose every enemy is its lord's enemy sends its men under the
+    lord's flag (VD-C, `contingent.py`) and commissions nothing of its own
+    — Louis's army marched with Napoleon's. Its bench is for a war of its
+    own: a rebellion, the bribe that turned it, a break. Not a satellite,
+    not at war, or at war with its own lord -> False. The seam the
+    recorded boards hold down (down: False)."""
+    record = (getattr(world, "vassals", {}) or {}).get(nation)
+    if not isinstance(record, dict):
+        return False
+    lord = record.get("lord")
+    enemies = set(world.get_nations_at_war_with(nation))
+    if not enemies or not lord or lord in enemies:
+        return False
+    return enemies <= set(world.get_nations_at_war_with(lord))
+
+
 def find_ai_commission(world, nation: str, treasury: int) -> Optional[Dict]:
     """The enemy AI's admin-phase rung: commission the FIRST authored
     candidate when at war — or preparing a design at `coerce`+ (AI-5:
-    Prussia calls up Blücher BEFORE Jena, not after) — under-officered,
-    and solvent (pool order is the authored quality order). Returns an
-    action dict or None."""
+    Prussia calls up Blücher BEFORE Jena, not after), or, for a court with
+    no general standing, called to arms by a design priced against it
+    (S14k K3) — under-officered, and solvent (pool order is the authored
+    quality order). A satellite serving its lord's war by its contingent
+    commissions nothing (S14k K4). Returns an action dict or None."""
     pool = get_marshal_pool(world, nation)
     if not pool:
         return None
+    if satellite_serves_by_contingent(world, nation):
+        return None
     if (not world.get_nations_at_war_with(nation)
-            and not _preparing_for_design(world, nation)):
+            and not _preparing_for_design(world, nation)
+            and not (_standing_count(world, nation) == 0
+                     and court_called_to_arms(world, nation))):
         return None
     if _standing_count(world, nation) >= AI_RECRUIT_MAX_STANDING:
         return None

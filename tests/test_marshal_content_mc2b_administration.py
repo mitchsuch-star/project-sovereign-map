@@ -41,6 +41,8 @@ ADMIN_TABLE = {
     "ArchdukeCharles": 8, "ArchdukeJohn": 4, "Kutuzov": 4, "Buxhowden": 4,
     "Moore": 8, "Brunswick": 5, "Hohenlohe": 4, "Armfelt": 5, "Damas": 4,
     "Frederick": 7, "Castanos": 4, "Abdurrahman": 4,
+    # S14k K1: Saxony's and Portugal's 1805 field corps.
+    "Zezschwitz": 5, "BernardimFreire": 4,
 }
 
 THRIFTY = {"Davout", "ArchdukeCharles", "Moore"}

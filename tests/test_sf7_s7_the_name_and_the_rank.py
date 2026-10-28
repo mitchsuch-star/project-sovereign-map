@@ -462,7 +462,12 @@ class TestNPC12TheKeyNeverReachesTheReader:
         _, world = shipped
         # RE-SEATED by SF-RR4 (EG-D3): Spain's bench seats La Romana by the
         # key "LaRomana" (the ArchdukeCharles idiom), so the census reads it too.
-        assert NC.derive_keys(world) == ["ArchdukeCharles", "ArchdukeJohn", "LaRomana"]
+        # RE-SEATED by S14k (October 28, 2026): four more two-word names by
+        # the same idiom — Portugal's Bernardim Freire (boot), Saxony's
+        # Le Coq, Denmark's Christian August and the Ottomans' Yusuf Ziya.
+        assert NC.derive_keys(world) == [
+            "ArchdukeCharles", "ArchdukeJohn", "BernardimFreire", "ChristianAugust",
+            "LaRomana", "LeCoq", "YusufZiya"]
 
     def test_the_driven_census(self, tmp_path):
         """Twelve loops of the commanded arm, in-process with the census on:
@@ -483,7 +488,9 @@ class TestNPC12TheKeyNeverReachesTheReader:
         assert meta_path.is_file(), proc.stderr[-2000:]
         census = json.loads(meta_path.read_text(encoding="utf-8"))["name_census"]
         assert census["verdict"] == "PASS", census
-        assert census["keys"] == ["ArchdukeCharles", "ArchdukeJohn", "LaRomana"]  # SF-RR4: Spain's bench
+        assert census["keys"] == [  # SF-RR4: Spain's bench; S14k: the courts' names
+            "ArchdukeCharles", "ArchdukeJohn", "BernardimFreire", "ChristianAugust",
+            "LaRomana", "LeCoq", "YusufZiya"]
         assert census["display_seen"] > 0 and census["responses"] > 0
         assert census["by_method"].get("GET", 0) > 0, census["by_method"]  # the log, the ledger
 

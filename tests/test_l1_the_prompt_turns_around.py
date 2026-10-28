@@ -222,7 +222,14 @@ class TestTheCassetteAttribution:
     ⚑ Re-derived at S14f part 2 (October 25, 2026, S14E-X193): the cancel
     keywords of the keyed prompt dropped "stand down" (no cancel verb - X177)
     and gained "cease" - every parse prompt -5 characters (16 cassettes, the
-    recovery prompt unchanged), re-stamped keylessly the same way."""
+    recovery prompt unchanged), re-stamped keylessly the same way.
+
+    ⚑ Re-derived at S14k part 1 (October 28, 2026, the courts take the
+    field): the 1805 roster gained Saxony's Zezschwitz, who stands in the
+    prompt's board list ("- Zezschwitz (Saxony) at Dresden") — every 1805
+    parse prompt +49 characters and the Berthier recovery prompt +49 (15
+    cassettes; the two legacy-world cassettes unchanged), re-stamped
+    keylessly the same way, the responses untouched."""
 
     @pytest.mark.parametrize("cid", sorted(RESTAMP))
     def test_both_arms(self, cid, monkeypatch):

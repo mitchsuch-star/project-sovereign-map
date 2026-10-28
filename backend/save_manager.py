@@ -433,6 +433,11 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # scenario's table (a raised contingent would otherwise take the
     # generic "<Adjective> Contingent" name).
     _backfill_contingent_commanders(world)
+    # S14k K2: a pre-S14k save of the 1805 campaign gains the benches its
+    # scenario NOW authors for the courts that had none (Hanover's
+    # Wallmoden, Switzerland's Wattenwyl ...) — never overwriting a bench the
+    # save already carries.
+    _backfill_court_benches(world)
     # VP-1 (S14b): a pre-VP-1 save of a scenario that NOW authors the
     # Emperor's designs is armed with them, a fresh state (no road).
     _backfill_imperial_designs(world)
@@ -812,6 +817,41 @@ def _backfill_contingent_commanders(world: WorldState) -> None:
                 if not str(k).startswith("_") and isinstance(v, list)
             }
             return
+
+
+def _backfill_court_benches(world: WorldState) -> None:
+    """S14k K2: arm a pre-S14k save with the benches its scenario NOW
+    authors (the `_backfill_contingent_commanders` idiom): ONLY the 1805
+    campaign; a court whose bench the save already carries keeps it (an
+    emptied bench stays empty); each court reads `bench_stands`, the boot's
+    own seam."""
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    from backend.models.world_state import bench_stands
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                block = json.load(fh).get("marshal_pool")
+        except (OSError, ValueError):
+            continue
+        if not isinstance(block, dict):
+            return
+        pool = getattr(world, "marshal_pool", None)
+        if not isinstance(pool, dict):
+            pool = {}
+            world.marshal_pool = pool
+        for nation, rows in block.items():
+            if str(nation).startswith("_") or not isinstance(rows, list):
+                continue
+            if nation in pool or not bench_stands(nation):
+                continue
+            pool[nation] = [dict(row) for row in rows if isinstance(row, dict)]
+        return
 
 
 def autosave(world: WorldState) -> Dict:

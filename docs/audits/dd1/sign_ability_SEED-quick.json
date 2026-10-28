@@ -652,7 +652,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 106 gold into the treasury.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -720,7 +720,7 @@
     "France|Portugal"
    ],
    "verdict": "signed",
-   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal. Portugal paid 106 gold into the treasury.",
+   "message": "You have accepted Portugal's proposal. Treaty signed: Peace → Open Borders with Portugal.",
    "arm": "SEED-quick",
    "clause": ""
   },
@@ -2802,9 +2802,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 7.39,
+ "clone_ms_mean": 6.82,
  "clones": 80,
- "seconds": 8.3,
+ "seconds": 8.1,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

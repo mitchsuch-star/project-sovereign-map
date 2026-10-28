@@ -2,74 +2,74 @@
   "aggressive-plain": {
     "recorded_chars": 17804,
     "recorded_sha256": "f9671079a3fc507ad1e39b75b45543c184ababcf7b9c13aece1b647701a6a469",
-    "static_first_chars": 18416,
-    "static_first_sha256": "b4b175a093906f643015ef1f3b9697fa99fcc62fbb1f9a5104487a63330dc1fa"
+    "static_first_chars": 18465,
+    "static_first_sha256": "f599768154ef4db659b1b22b2ac14d7acb873fb50755f63af74dfa1021146e43"
   },
   "backlog-make-your-way": {
     "recorded_chars": 17808,
     "recorded_sha256": "55e981aebe9c1b69c876da396451535fc9b362fd9e044027e6f3a94ed165d3f9",
-    "static_first_chars": 18423,
-    "static_first_sha256": "4b2add5dec81f254016a946340ac8c95c6ece40ffece8b69f8c076ee43bc72d1"
+    "static_first_chars": 18472,
+    "static_first_sha256": "938fb1bab4b437820e39ddd76a722a46b86ed654b482a9031bb45999c1a2b21d"
   },
   "below-gate-get-after": {
     "recorded_chars": 17796,
     "recorded_sha256": "db55d35011fe6239b877ce2a9b85a9ef38d9b7494017e49ee08f974c1a23afa5",
-    "static_first_chars": 18408,
-    "static_first_sha256": "1dccee6a235b25833b95fa66bb6962d90bbe2708babb15d07fa2de5f7808a29b"
+    "static_first_chars": 18457,
+    "static_first_sha256": "48171192c22378eadbd07f49680ebd2ad111e3f67bd5fb91a341c7e4db5191c3"
   },
   "below-gate-keep-an-eye": {
     "recorded_chars": 17804,
     "recorded_sha256": "c16b8e84a7cf0af4fb7cc04dbe3cf0a53c852550aaaa369b28fffe2f22d95a88",
-    "static_first_chars": 18417,
-    "static_first_sha256": "9d0e7de2d642d7d71af395dffaf5114dfd3fdf3a3f95ceb77f2a849ee1caaeea"
+    "static_first_chars": 18466,
+    "static_first_sha256": "4e0f7f1806ebe5c3e825c3df3feebb62b038cf579c01b51f5d90bcb560d5b781"
   },
   "cr2-retry-hunt-down-mack": {
     "recorded_chars": 17791,
     "recorded_sha256": "8773110b6928f735a894cd343d4f69ddb5f0c2715a81a8f720e3c5224bb92121",
-    "static_first_chars": 18356,
-    "static_first_sha256": "83662add6998153b04f29daa0fb275d4745a50a8b74442dc1190f22c051ed8f6"
+    "static_first_chars": 18405,
+    "static_first_sha256": "97284e04880f7a102ae036c7a7950e9d201897bccfb9cfc5ea11037225b1ac96"
   },
   "cr2-unresolved-address": {
     "recorded_chars": 17797,
     "recorded_sha256": "64421b5759712f723e42288f9578ac9f927e4f4d77a0f881feea5b0487ba2e70",
-    "static_first_chars": 18362,
-    "static_first_sha256": "e2f1ff7be2484115586cbbb2a10f31d26ca40e681dd55d60d32a594fdc5650ec"
+    "static_first_chars": 18411,
+    "static_first_sha256": "44d06c95e549ecee5d61c779b51740d3460f85dcd67d0cececcffeec489a67a2"
   },
   "cr5-deleg-aggressive-ney-resolves-live": {
     "recorded_chars": 17796,
     "recorded_sha256": "adbc6c4c43cafb2c383c35b854374f5a806680a241b76c75fe87f1e4a336f80c",
-    "static_first_chars": 18408,
-    "static_first_sha256": "e3b6370637bd7a5fe32608ed89d1c3b07e70ca05d4808f7d06f0105166d1dc3c"
+    "static_first_chars": 18457,
+    "static_first_sha256": "6e1b2f08b5fdf310a0585b4a894e2603e3e079a4c018150713177b28598f15ff"
   },
   "cr5-deleg-cautious-davout-resolves-live": {
     "recorded_chars": 17799,
     "recorded_sha256": "224e79aa238be524d77e1f15ddf6e518b5ad6605c1fb04988f7c12952fe42297",
-    "static_first_chars": 18412,
-    "static_first_sha256": "9ff362d8aae6feacc1be128f566ef44b0c35e49271d5c1e99b3a57b42d166da9"
+    "static_first_chars": 18461,
+    "static_first_sha256": "9444bee41b038953294daf45c6857622ef01295f2219d312ecb44c98453c3120"
   },
   "cr5-deleg-literal-soult-asks": {
     "recorded_chars": 17798,
     "recorded_sha256": "f8bd1442fbd9ae8a09b4b46eca7dfc49e587980b6a5666766d2a9ff5e0dabe57",
-    "static_first_chars": 18409,
-    "static_first_sha256": "a681755bae457d5d0f3819fe9819e007c983eedd773910d877741759ea6c6515"
+    "static_first_chars": 18458,
+    "static_first_sha256": "4401b98a4c1fc2c7e7f702ab1a8d548907de65b5d02b8a67ce89cfa0f703c3f0"
   },
   "demonym-harass": {
     "recorded_chars": 17804,
     "recorded_sha256": "0282296f27eaeebfc127af81743cda9606a4b08f16089970cafedc2a417a9a4d",
-    "static_first_chars": 18418,
-    "static_first_sha256": "7e46f3c4d7475cad18de92bfd0f435a07fb19bc1d60d7e0f0215544ab9abb8f3"
+    "static_first_chars": 18467,
+    "static_first_sha256": "2e33949401a0a80ca3175aa3c691274e8c10bfa0a0d4946569622a5229cbccf9"
   },
   "diplomatic-ask-austria": {
     "recorded_chars": 17803,
     "recorded_sha256": "00005dc7143bfd293325f17f83f79ec2cb1114a6b0cb2f54d51bc1dec9e4193c",
-    "static_first_chars": 18368,
-    "static_first_sha256": "11853438c86182edaad3c4740f8a4d2d4ac9060a063c42a69fd01850a1f47e7d"
+    "static_first_chars": 18417,
+    "static_first_sha256": "9ce8c770e2ef2711cc05db11863237edc7fab4a424e6e44329a2bad28f1ac2ae"
   },
   "fa73-live-cover-the-retreat-is-not-a-retreat.1805": {
     "recorded_chars": 17799,
     "recorded_sha256": "6dbfdab36e5b1fdf631986bdbabb3270d7c98fa058f56af667c7cfee63149d68",
-    "static_first_chars": 18411,
-    "static_first_sha256": "5b708ce15aee8104f80c01fce059c77f8fa3a6a7c2dde6c94d8ffb09afe38e10"
+    "static_first_chars": 18460,
+    "static_first_sha256": "3a322c3c7cd8e701fcfb72650153a7cca9179f82bd3a3d539662c60f1f9afd7c"
   },
   "fa73-live-cover-the-retreat-is-not-a-retreat.legacy": {
     "recorded_chars": 16038,
@@ -80,8 +80,8 @@
   "fa73-live-fix-bayonets-is-not-a-repair.1805": {
     "recorded_chars": 17794,
     "recorded_sha256": "11e5ef73a7022658421b234250a9976c76d9d261ff085c7e483d780bcfb3695e",
-    "static_first_chars": 18406,
-    "static_first_sha256": "0f4d81798d19048bf615e36ef1bb192d747a027bdfe5ff033fdf1aac3bd0d4a3"
+    "static_first_chars": 18455,
+    "static_first_sha256": "ac52ee8a8af2195fc390a01c787d580c1ae2e55781bda4ae075f31bdfdd428f8"
   },
   "fa73-live-fix-bayonets-is-not-a-repair.legacy": {
     "recorded_chars": 16033,
@@ -92,7 +92,7 @@
   "gibberish-berthier": {
     "recorded_chars": 17795,
     "recorded_sha256": "f6d29b6f452278482077f0bf4dc228c4d081ec59aa3b83ffc730ca563b2f3e53",
-    "static_first_chars": 18360,
-    "static_first_sha256": "61a7c07608e815936cb44cd89846ad40735f9195e21b89eac3fe3da65783ebc6"
+    "static_first_chars": 18409,
+    "static_first_sha256": "c82386281132b081465be6a467f0e73216f206b29e7586d10d492d2041140cef"
   }
 }

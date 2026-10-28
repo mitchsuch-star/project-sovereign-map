@@ -456,9 +456,31 @@
             "tactical_skill": 4,
             "trust": { "value": 60 },
             "biography": "Kadi Abdurrahman Pasha, governor of Karaman, with the Nizam-i Cedid new-model troops - the Porte's reformed army, far from Europe's quarrel."
+        },
+        "Zezschwitz": {
+            "name": "Zezschwitz",
+            "nation": "Saxony",
+            "location": "Dresden",
+            "strength": 15000,
+            "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 5, "defense": 5, "logistics": 4, "administration": 5, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 70 },
+            "biography": "Hans Gottlob von Zezschwitz - the old general of the Elector's troops, mobilised as an observation corps of 15,000 in the autumn of 1805; at Jena he held the Saxon line under Hohenlohe until hope was gone."
+        },
+        "BernardimFreire": {
+            "name": "BernardimFreire",
+            "nation": "Portugal",
+            "location": "Lisbon",
+            "strength": 12000,
+            "personality": "cautious",
+            "skills": { "tactical": 4, "shock": 5, "defense": 5, "logistics": 5, "administration": 4, "command": 4 },
+            "tactical_skill": 4,
+            "trust": { "value": 65 },
+            "biography": "Bernardim Freire de Andrade - a careful, prickly general of a neutral court's unmobilised army; in 1808 he led Portugal's northern army beside Wellesley, who found him hard to work with."
         }
     },
-    "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service. The secondaries' benches (EG-D3, ruled October 13, 2026; built in SF-RR4): Spain's La Romana, Blake and Cuesta, Sweden's Toll and Adlercreutz, Bavaria's Wrede - each court at war commissions from its own, as the great powers do.",
+    "_marshal_pool_comment": "Marshal Recruitment (docs/MARSHAL_RECRUITMENT_SPEC.md): commissionable candidates per nation, authored quality order (the AI takes the first affordable). No location/strength - the corps is raised at commission (5,000 infantry from the pool). cost = gold. Relationship seeds apply symmetrically to marshals in service. The secondaries' benches (EG-D3, ruled October 13, 2026; built in SF-RR4): Spain's La Romana, Blake and Cuesta, Sweden's Toll and Adlercreutz, Bavaria's Wrede - each court at war commissions from its own, as the great powers do. S14k (ruled October 28, 2026 - the user: 'they should get armies or the ability to make them'): the courts that had none - Portugal's Silveira, Saxony's Le Coq, Hesse's Emil, Hanover's Wallmoden and Alten, Holland's Janssens, the Kingdom of Italy's Fontanelli, Switzerland's Wattenwyl and Bachmann - and the one-general courts' second men, Denmark's Christian August, Naples' Philippsthal, the Ottomans' Alemdar and Yusuf Ziya. A court commissions at war, preparing a design, or called to arms by a design priced against it; a satellite serving its lord's war fights by its contingent, and its bench is for a war of its own. Sardinia and the Papal States keep their garrisons only: neither fielded an army in the period.",
     "marshal_pool": {
         "France": [
             {
@@ -761,6 +783,156 @@
                 "cost": 3500,
                 "biography": "Carl Philipp von Wrede - the Bavarian army's field commander from Ulm to Wagram, Deroy's rival for the King's favour; he led the Bavarians into Russia in 1812 and against Napoleon at Hanau in 1813.",
                 "relationships": { "Deroy": -1 }
+            }
+        ],
+        "Portugal": [
+            {
+                "name": "Silveira",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 4, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 2500,
+                "biography": "Francisco da Silveira - bold to the edge of rashness; he retook Chaves in 1809 and held the bridge at Amarante against Soult for a fortnight.",
+                "relationships": {}
+            }
+        ],
+        "Saxony": [
+            {
+                "name": "LeCoq",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Karl Christian Erdmann von Le Coq - a prudent Saxon general who led his division at Grossbeeren and Dennewitz in 1813 and the Saxon corps in the Netherlands in 1814.",
+                "relationships": {}
+            }
+        ],
+        "Hesse": [
+            {
+                "name": "Emil",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 4, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 2500,
+                "biography": "Prince Emil of Hesse - an energetic young prince who led the Hessian troops from 1809, into Russia in 1812 and on to Leipzig in 1813.",
+                "relationships": {}
+            }
+        ],
+        "Hanover": [
+            {
+                "name": "Wallmoden",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 6, "logistics": 5, "administration": 6, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Ludwig von Wallmoden-Gimborn - calm and methodical; he commanded the allied corps on the Lower Elbe in 1813 and beat Pecheux at the Gohrde.",
+                "relationships": {}
+            },
+            {
+                "name": "Alten",
+                "personality": "literal",
+                "skills": { "tactical": 6, "shock": 5, "defense": 6, "logistics": 5, "administration": 4, "command": 5 },
+                "tactical_skill": 6,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Charles Alten - a Hanoverian of the King's German Legion who led the Light Division in Spain and the 3rd Division at Waterloo; steady under orders, never one to improvise.",
+                "relationships": {}
+            }
+        ],
+        "Holland": [
+            {
+                "name": "Janssens",
+                "personality": "literal",
+                "skills": { "tactical": 4, "shock": 4, "defense": 5, "logistics": 5, "administration": 5, "command": 4 },
+                "tactical_skill": 4,
+                "trust": { "value": 60 },
+                "cost": 2500,
+                "biography": "Jan Willem Janssens - a dutiful Dutch general who fought for the Cape in 1806 and for Java in 1811, each time against the odds.",
+                "relationships": {}
+            }
+        ],
+        "KingdomOfItaly": [
+            {
+                "name": "Fontanelli",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 5, "logistics": 5, "administration": 6, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Achille Fontanelli - the Kingdom of Italy's prudent minister of war; he fought at Raab in 1809 and held the rearguard at Hanau in 1813.",
+                "relationships": {}
+            }
+        ],
+        "Switzerland": [
+            {
+                "name": "Wattenwyl",
+                "personality": "cautious",
+                "skills": { "tactical": 4, "shock": 4, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 4,
+                "trust": { "value": 60 },
+                "cost": 2500,
+                "biography": "Niklaus Rudolf von Wattenwyl - General of the Confederation in 1805, 1809 and 1813; he guarded Swiss neutrality and shunned a fight he could not win.",
+                "relationships": {}
+            },
+            {
+                "name": "Bachmann",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 5, "defense": 5, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Niklaus Franz von Bachmann - the old professional who led the Swiss army into Franche-Comte in 1815.",
+                "relationships": {}
+            }
+        ],
+        "Denmark": [
+            {
+                "name": "ChristianAugust",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 6, "logistics": 5, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Prince Christian August of Augustenborg - commander in Norway, who turned back the Swedish invasion of 1808 at Prestebakke and Toverud.",
+                "relationships": {}
+            }
+        ],
+        "Naples": [
+            {
+                "name": "Philippsthal",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 5, "defense": 7, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Prince Louis of Hesse-Philippsthal - the defiant governor of Gaeta, who held the fortress against Massena for five months in 1806: 'Gaeta is not Ulm'.",
+                "relationships": {}
+            }
+        ],
+        "Ottoman": [
+            {
+                "name": "Alemdar",
+                "personality": "aggressive",
+                "skills": { "tactical": 5, "shock": 6, "defense": 4, "logistics": 4, "administration": 4, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3000,
+                "biography": "Alemdar Mustafa Pasha - the ayan of Ruse, who raised the Danube's defence against Russia in 1806-07 and marched on Constantinople in 1808 to restore the New Order.",
+                "relationships": {}
+            },
+            {
+                "name": "YusufZiya",
+                "personality": "cautious",
+                "skills": { "tactical": 5, "shock": 4, "defense": 5, "logistics": 6, "administration": 5, "command": 5 },
+                "tactical_skill": 5,
+                "trust": { "value": 60 },
+                "cost": 3500,
+                "biography": "Yusuf Ziya Pasha - twice Grand Vizier; he led the army that retook Egypt beside the British in 1801 and commanded against Russia from 1809.",
+                "relationships": {}
             }
         ]
     },

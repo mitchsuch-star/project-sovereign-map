@@ -405,6 +405,12 @@ LEGACY_UPKEEP_RATE = 5                 # g per 1,000 troops (legacy fixture worl
 EUROPE_UPKEEP_RATE = 8                 # g per 1,000 troops (E3 blessed, was 5)
 FORCE_LIMIT_BASE = 60000               # Per-nation force-limit floor (E3)
 FORCE_LIMIT_PER_REGION = 2500          # Limit growth per controlled region (E3)
+# S14k K5 (October 28, 2026): the floor reads the court's tier, as the capital
+# garrisons do (25k / 15k / 10k). One floor for every court let a court of one
+# province arm to 93,750 before its severe band — measured in the S14k
+# prototype: Sardinia at 55–85k on one island, Switzerland at ~35k. Read
+# through `force_limit_floor()`; the great powers keep `FORCE_LIMIT_BASE`.
+FORCE_LIMIT_BASE_BY_TIER = {"major": 60000, "secondary": 30000, "minor": 15000}
 # EC-U3 (Combat Overhaul Phase 4, Sweep-3 follow-up): the "Grande Armée"
 # surcharge — a premium upkeep rate on TOTAL nation strength above an ABSOLUTE
 # threshold, modelling the ruinous diseconomies of scale a supermassive
@@ -569,6 +575,36 @@ def charges_crown_rate() -> int:
     """S14j: the crown term of the Charges of Empire, "the household, the
     pensions, the ministries" (the seam the series holds down to 30)."""
     return int(CHARGES_CROWN_BASE)
+
+
+def boot_marshal_stands(entry) -> bool:
+    """S14k K1 "The courts take the field" (October 28, 2026 — the user: "they
+    should get armies or the ability to make them, we want the game
+    dynamic"): a scenario marshal stands at boot. Saxony's observation corps
+    of autumn 1805 (Zezschwitz, 15,000 at Dresden) and Portugal's army
+    (Bernardim Freire, 12,000 at Lisbon) are authored in `europe_1805.json`;
+    `from_scenario` reads each entry through this seam before validation.
+    The seam the recorded boards hold down (down: no corps for a court that
+    booted armyless before S14k)."""
+    return True
+
+
+def bench_stands(nation: str) -> bool:
+    """S14k K2: a court's authored bench stands at boot — the eleven benches
+    S14k authored for the courts that had none (`marshal_pool`), read the
+    same way. Down: those courts' benches read empty, as before."""
+    return True
+
+
+def force_limit_floor(world, nation: str) -> int:
+    """S14k K5: the force-limit floor of `nation`'s tier — the authored
+    `NATION_POWER_TIERS` the capital garrisons read (unauthored courts read
+    `secondary`, the taxonomy's own fallback). The great powers keep
+    `FORCE_LIMIT_BASE`; at boot no court stands over its new limit, so every
+    turn-1 bill is unchanged. The seam the recorded boards hold down (down:
+    `FORCE_LIMIT_BASE` for every court)."""
+    tier = world.get_power_tier(nation) or "secondary"
+    return int(FORCE_LIMIT_BASE_BY_TIER.get(tier, FORCE_LIMIT_BASE))
 
 
 def _levy_status(world) -> dict:
@@ -7903,14 +7939,16 @@ class WorldState:
     def get_force_limit(self, nation: str) -> Optional[int]:
         """ES-3: the nation's force limit, or None on the legacy world.
 
-        limit = FORCE_LIMIT_BASE + FORCE_LIMIT_PER_REGION × controlled regions
-        (E3 blessed). Region count rides the cached get_nation_regions index
-        (GR8 — this is called per nation per income phase).
+        limit = the tier's floor + FORCE_LIMIT_PER_REGION × controlled regions
+        (E3 blessed; S14k K5 the floor by tier, `force_limit_floor`). Region
+        count rides the cached get_nation_regions index (GR8 — this is called
+        per nation per income phase).
         """
         if getattr(self, "sovereign_map", "legacy") != "europe":
             return None
         region_count = len(self.get_nation_regions(nation))
-        return int(FORCE_LIMIT_BASE + FORCE_LIMIT_PER_REGION * region_count)
+        return int(force_limit_floor(self, nation)
+                   + FORCE_LIMIT_PER_REGION * region_count)
 
     def campaign_pay_homeland(self, nation: str) -> Optional[set]:
         """EAD-1 / S14E-2: the set of provinces where a corps of `nation`
@@ -11345,6 +11383,18 @@ class WorldState:
                 name: marshal.to_dict()
                 for name, marshal in default_marshals.items()
             }
+
+        # S14k K1/K2: the courts' 1805 field corps and their benches stand at
+        # boot through their seams, read before validation so the validator
+        # sees the board that boots.
+        if isinstance(scenario_data.get("marshals"), dict):
+            scenario_data["marshals"] = {
+                key: entry for key, entry in scenario_data["marshals"].items()
+                if boot_marshal_stands(entry)}
+        if isinstance(scenario_data.get("marshal_pool"), dict):
+            scenario_data["marshal_pool"] = {
+                nation: rows for nation, rows in scenario_data["marshal_pool"].items()
+                if bench_stands(nation)}
 
         # Validate scenario before loading
         from backend.modding.validator import validate_scenario

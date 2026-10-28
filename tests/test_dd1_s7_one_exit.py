@@ -81,14 +81,17 @@ def test_dd1_5_a_bilateral_armistice_pauses_the_pair_on_its_instance():
 
 
 def test_dd1_5_the_typed_conquest_resolves_the_pair():
+    # RE-AIMED by S14k K1 (October 28, 2026): Portugal fields Bernardim
+    # Freire's 12,000 at boot, so a conquest of it is refused while its corps
+    # stands; Hesse keeps its garrison only at boot.
     w = _boot()
     with contextlib.redirect_stdout(io.StringIO()):
-        D.set_diplomatic_state(w, "France", "Portugal", "WAR", "war_declaration")
-        ensure_war_instance_for_pair(w, "France", "Portugal", entry_path="war_declaration")
-        result = create_vassal_conquest(w, "France", "Portugal", garrison_size=10_000)
+        D.set_diplomatic_state(w, "France", "Hesse", "WAR", "war_declaration")
+        ensure_war_instance_for_pair(w, "France", "Hesse", entry_path="war_declaration")
+        result = create_vassal_conquest(w, "France", "Hesse", garrison_size=10_000)
     assert result.get("success"), result
-    assert w.get_diplomatic_state("France", "Portugal") == "VASSAL"
-    _war, meta = _pair_meta(w, "France", "Portugal")
+    assert w.get_diplomatic_state("France", "Hesse") == "VASSAL"
+    _war, meta = _pair_meta(w, "France", "Hesse")
     assert meta["pair_status"] == "resolved", meta
     assert_war_instance_invariants(w, context="dd1-5 conquest")
 

@@ -26,6 +26,15 @@
 > purses at 146–193k together on the commanded arms (were 43–75k and 380–453k); `BASELINE_SERIES` re-pinned (J3 alone at
 > [12]); the census still 0 / 0. **Nothing in it holds S15** — the crown's level (250, measured band 200–250) is yours to move.
 >
+> **Landed after S14j, October 28, 2026 — S14k part 1, the courts take the field, by the user's word ("they should get armies
+> or the ability to make them, we want the game dynamic")** (`SYSTEMS_REFERENCE.md` §160; the record
+> `docs/audits/COURTS_IN_ARMS_2026_10_28.md`): Saxony and Portugal boot with their 1805 field corps; every court that fought
+> in the period has a bench (eleven, twelve Commons portraits on the user's yes); a court with no general is called to arms
+> by a design priced against it; a satellite fights its lord's war by its contingent; the force limit reads the court's
+> tier. Like for like no checklist item flips; `BASELINE_SERIES` re-pinned (K2 + K3 at [11]). **S14k part 2 — the courts'
+> goals and the Ottoman New Order (`PRE_DEPLOY_PLAN.md` §2 S14k) — lands before S15**; if this prompt is read before it
+> has, run part 2 first.
+>
 > **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
 > fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives
 > both readings; the caret is released on every Esc road and every key pointer says the typing form; the Admiralty says

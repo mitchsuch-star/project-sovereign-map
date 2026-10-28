@@ -251,6 +251,38 @@ the Commons 1,280-px rendering of `Johan Kristoffer Toll, 1743-1817 (Johan Way) 
 `Adlercreutz.jpg` — Carl Johan Adlercreutz, after Carl Frederik von Breda (1846), Nationalmuseum Stockholm
 (NMGrh 15479), the Commons 1,280-px rendering of its cropped TIFF.
 
+The courts' benches and the 1805 field corps (S14k, October 28, 2026 — downloaded on
+the user's yes), each the lead image of its subject's Wikipedia article unless noted,
+marked public domain on Commons unless noted, re-encoded in-repo (JPEG, at most
+1,100 px; no other change):
+`BernardimFreire.jpg` — Bernardim Freire de Andrade, by G. F. de Queiroz (early 19th century),
+`Bernardim Freire de Andrada e Castro - G.F. de Queiroz. Início do séc. XIX (cropped).png`;
+`Silveira.jpg` — Francisco da Silveira, Count of Amarante, unknown 19th-century painter,
+`Retrato do Conde de Amarante.jpg`;
+`LeCoq.jpg` — Karl Christian Erdmann von Le Coq, lithograph by M. Knäbig after Rentzsch (c. 1840),
+`Karl Christian Erdmann von Le Coq.jpg`;
+`Emil.jpg` — Prince Emil of Hesse, circle of Franz Xaver Winterhalter (by 1852),
+`Franz Xaver Winterhalter (circle) Prinz Emil von Hessen und bei Rhein.jpg` (the Commons 960-px rendering);
+`Wallmoden.jpg` — Ludwig von Wallmoden-Gimborn, by George Dawe (the Military Gallery), `Walmoden.jpg`
+(the Commons 960-px rendering);
+`Alten.jpg` — Charles Alten, by Joseph Paelinck (1818), Bomann-Museum Celle,
+`Ahlten BomannMuseum@20150903 03.JPG` (the Commons 960-px rendering);
+`Janssens.jpg` — Jan Willem Janssens, by Jan Willem Pieneman, Rijksmuseum (SK-A-2219), the Commons
+960-px rendering of its file;
+`Fontanelli.jpg` — Achille Fontanelli, by Andrea Appiani, `PORTRAIT OF ACHILLE FONTANELLI.PNG`;
+`Bachmann.jpg` — Niklaus Franz von Bachmann, by Felix Maria Diogg (1817), `Bachmann-Anderletz 1817.jpg`;
+`ChristianAugust.jpg` — Christian August (Karl August) of Augustenborg, by Per Krafft the Younger (1809),
+Nationalmuseum Stockholm (NMGrh 39744), the Commons 960-px rendering of its TIFF;
+`Philippsthal.jpg` — Louis of Hesse-Philippsthal, by Johann Werner Kobold (1782),
+`Ludwig Prinz von Hessen-Philippsthal.jpg` (the Commons 960-px rendering);
+`Wattenwyl.jpg` — Niklaus Rudolf von Wattenwyl, by David Sulzer (1825), `Niklaus Rudolf von Wattenwyl.jpg`
+(a Commons search; his article carries no image).
+
+Not downloaded (S14k): **Zezschwitz** (no likeness on Commons), **Alemdar** (the only
+image is a modern contributor's drawing, not a period likeness) and **YusufZiya** (his
+article's photograph is of a later Ziya Pasha) — left unillustrated by design, the
+gold-monogram fallback, rather than risk a wrong likeness.
+
 Not downloaded: **Abdurrahman** (Ottoman roster entry) — no confident public-domain
 portrait of the correct historical figure was found; left unillustrated by design
 rather than risk a wrong likeness.

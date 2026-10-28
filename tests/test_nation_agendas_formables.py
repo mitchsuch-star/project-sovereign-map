@@ -1725,6 +1725,13 @@ class TestCarveCreatesANation:
             # ships change hands by no other door).
             if attr == "fleets":
                 continue
+            # S14k K2 (conscious exemption, NOT drift): `marshal_pool` is the
+            # AUTHORED bench — the Kingdom of Italy's Fontanelli is content,
+            # and a carved client is born without one, as Sardinia and the
+            # Papal States boot without one (it raises no commissioned corps;
+            # its men serve as its lord's contingent).
+            if attr == "marshal_pool":
+                continue
             value = getattr(world, attr)
             if isinstance(value, (dict, list)) and "KingdomOfItaly" in value:
                 if "DuchyOfWarsaw" not in value:

@@ -47,6 +47,10 @@ UI1_FONTS = [
 PORTRAIT_EXEMPT = {
     "Abdurrahman",
     "Senarmont", "Smola", "Kutaisov", "Holtzendorff", "Shrapnel",
+    # S14k (October 28, 2026): no confident PD likeness — Zezschwitz has none
+    # on Commons, Alemdar's only image is a modern drawing, and Yusuf Ziya's
+    # article photograph is of a later Ziya Pasha (THIRD_PARTY_LICENSES.md).
+    "Zezschwitz", "Alemdar", "YusufZiya",
 }
 PORTRAIT_EXTS = (".jpg", ".png", ".jpeg", ".webp")
 

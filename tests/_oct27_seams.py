@@ -124,6 +124,25 @@ S14J_SEAMS_BY_ROW = {
 }
 OCT27_SEAMS_DOWN += [spec for row in S14J_SEAMS_BY_ROW for spec in S14J_SEAMS_BY_ROW[row]]
 
+# S14k — the courts take the field (the user, October 28, 2026: "they should
+# get armies or the ability to make them, we want the game dynamic"), one
+# entry per row so `tools/_s14k_series_arms.py` attributes each. They join
+# the list above: every recorded board was recorded before them.
+S14K_SEAMS_BY_ROW = {
+    # K1 the 1805 field corps: Saxony's Zezschwitz, Portugal's Bernardim
+    # Freire (down: the two courts boot armyless, as before).
+    "K1": ["backend.models.world_state:boot_marshal_stands=(a[0] or {}).get('nation') not in ('Saxony', 'Portugal')"],
+    # K2 the benches of the courts that had none (down: those benches empty).
+    "K2": ["backend.models.world_state:bench_stands=a[0] not in ('Portugal', 'Saxony', 'Hesse', 'Hanover', 'Holland', 'KingdomOfItaly', 'Switzerland', 'Denmark', 'Naples', 'Ottoman')"],
+    # K3 a menaced court calls up its first general.
+    "K3": ["backend.game_logic.recruitment:court_called_to_arms=False"],
+    # K4 a satellite fights its lord's war by its contingent.
+    "K4": ["backend.game_logic.recruitment:satellite_serves_by_contingent=False"],
+    # K5 the force limit reads the court's tier (down: one floor, 60,000).
+    "K5": ["backend.models.world_state:force_limit_floor=60000"],
+}
+OCT27_SEAMS_DOWN += [spec for row in S14K_SEAMS_BY_ROW for spec in S14K_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

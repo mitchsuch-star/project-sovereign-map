@@ -60,6 +60,11 @@ BLESSED_TABLE = {
     "Frederick":       (3, 3, 5, 5, 7, 4, 85),
     "Castanos":        (4, 3, 4, 5, 4, 4, 70),
     "Abdurrahman":     (4, 5, 4, 5, 4, 4, 60),
+    # S14k K1 (October 28, 2026; `SYSTEMS_REFERENCE.md` §160) — the two
+    # courts' 1805 field corps, authored to the frame: every skill mean stays
+    # inside 4.95–5.10 and the roster's trust mean reads 66.74.
+    "Zezschwitz":      (4, 5, 5, 4, 5, 4, 70),
+    "BernardimFreire": (4, 5, 5, 5, 4, 4, 65),
 }
 
 FRENCH = ("Ney", "Davout", "Soult", "Lannes", "Murat", "Bernadotte", "Massena")

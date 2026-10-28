@@ -348,34 +348,37 @@ def _forced_view(nation, want_id, want_type, against):
 class TestWidening:
     def test_contain_design_opens_and_declares(self, world, monkeypatch):
         """Sweden (contain deck, at peace) opens a fore-warned crisis
-        against a non-player holder and declares on schedule."""
+        against a non-player holder and declares on schedule. RE-AIMED by
+        S14k K1 (October 28, 2026): Saxony fields Zezschwitz's 15,000 at
+        boot, so Sweden's 12,000 stand outmatched by it; Hesse keeps its
+        garrison only at boot."""
         forced = _forced_view("Sweden", "scourge_of_the_usurper",
-                              "contain_hegemon", "Saxony")
+                              "contain_hegemon", "Hesse")
         monkeypatch.setattr(
             intent_module, "get_nation_intent",
             lambda nation, w: forced if nation == "Sweden"
             else intent_module._indifferent(nation))
         world.current_turn = 20
         world.nation_gold["Sweden"] = 2000
-        record_diplomatic_refusal(world, "Sweden", "Saxony", "design_purchase")
-        record_diplomatic_refusal(world, "Sweden", "Saxony", "alignment")
+        record_diplomatic_refusal(world, "Sweden", "Hesse", "design_purchase")
+        record_diplomatic_refusal(world, "Sweden", "Hesse", "alignment")
         process_war_council(world)
         assert "Sweden" in world.war_intents, \
             "a contain design must be able to open a crisis (Q3)"
         _poll_next_turn(world)   # coerce
         _poll_next_turn(world)   # declare
-        assert world.is_at_war("Sweden", "Saxony")
+        assert world.is_at_war("Sweden", "Hesse")
         wars = [w for w in world.war_instances.values()
                 if w.get("ai_initiated")]
         assert wars and wars[-1].get("design_id") == "scourge_of_the_usurper"
         # Ruling R4: the objective keeps the [capital] default — no
         # design stamp, no design-province list (acquire-only military
         # targets, the NA-3 §3.1 pin preserved).
-        key = world._make_diplo_key("Sweden", "Saxony")
+        key = world._make_diplo_key("Sweden", "Hesse")
         objective = world.war_objectives[key]["Sweden"]
         assert objective.get("design") is None
         assert objective.get("target_regions") == [
-            world.get_nation_capital("Saxony")]
+            world.get_nation_capital("Hesse")]
 
     def test_deny_design_eligible(self):
         assert "deny_regions" in war_council.CRISIS_ELIGIBLE_DESIGNS
@@ -401,17 +404,18 @@ class TestWidening:
 
     def test_frontier_inert_for_contain_crisis(self, world, monkeypatch):
         """Ruling R4's frontier arm: a deny/contain crisis exposes no
-        massing ground (empty military-target set), accepted + pinned."""
+        massing ground (empty military-target set), accepted + pinned.
+        RE-AIMED by S14k K1 at Hesse, as above."""
         forced = _forced_view("Sweden", "scourge_of_the_usurper",
-                              "contain_hegemon", "Saxony")
+                              "contain_hegemon", "Hesse")
         monkeypatch.setattr(
             intent_module, "get_nation_intent",
             lambda nation, w: forced if nation == "Sweden"
             else intent_module._indifferent(nation))
         world.current_turn = 20
         world.nation_gold["Sweden"] = 2000
-        record_diplomatic_refusal(world, "Sweden", "Saxony", "design_purchase")
-        record_diplomatic_refusal(world, "Sweden", "Saxony", "alignment")
+        record_diplomatic_refusal(world, "Sweden", "Hesse", "design_purchase")
+        record_diplomatic_refusal(world, "Sweden", "Hesse", "alignment")
         process_war_council(world)
         assert "Sweden" in world.war_intents
         assert war_council.get_intent_frontier(world, "Sweden") == []

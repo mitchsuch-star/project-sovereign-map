@@ -239,13 +239,14 @@ class TestLevyHeadline:
 
 class TestEstablishmentThreat:
     def test_nobody_accrues_at_boot(self):
-        """⊕ France is 31.5% of Europe's 600,000 standing men, so the 0.40
-        gate is boot-zero for every court — the pin that keeps this from
-        being a hidden opening-turn balance change."""
+        """⊕ France is 30.1% of Europe's 627,000 standing men (31.5% of
+        600,000 before S14k K1 put Saxony's 15,000 and Portugal's 12,000 in
+        the field), so the 0.40 gate is boot-zero for every court — the pin
+        that keeps this from being a hidden opening-turn balance change."""
         world = _europe()
         totals = coalition_mod._standing_strength_by_nation(world)
         europe = sum(totals.values())
-        assert europe == 600_000
+        assert europe == 627_000
         assert max(totals.values()) / europe < coalition_mod.ESTABLISHMENT_THREAT_SHARE
 
     def test_a_re_arming_hegemon_becomes_visible(self):

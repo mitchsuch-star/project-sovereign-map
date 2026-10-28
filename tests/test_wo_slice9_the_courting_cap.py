@@ -1081,7 +1081,15 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # With every S14j seam held down in the child it reads 13 verbatim;
         # J3 (the crown and the AI's read) held down alone 13; J1 and J2 held
         # down alone 14.
-        assert capped == 14, capped
+        # Re-measured by S14k part 1, the courts take the field (October 28,
+        # 2026; SYSTEMS_REFERENCE §160): capped 12 — Hanover calls Wallmoden
+        # up at turn 6 (Prussia's design priced at coerce against it) and the
+        # board re-times from there, as the series does at [11]: the
+        # war-cascade roll that frees Switzerland lands two turns sooner. With
+        # every S14k seam held down in the child it reads 14 verbatim; K2 (the
+        # benches) or K3 (the call-up) held down alone 14; K1, K4 and K5 held
+        # down alone 12.
+        assert capped == 12, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

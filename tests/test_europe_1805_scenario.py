@@ -97,8 +97,14 @@ ALLIANCE_PAIRS = (
     ("Austria", "Russia"),
 )
 
+# S14k K1 (October 28, 2026; `SYSTEMS_REFERENCE.md` §160) — FLIPPED
+# consciously: Saxony (Zezschwitz's observation corps of autumn 1805) and
+# Portugal (Bernardim Freire's army) boot armed; the other seven still boot
+# with a capital garrison only (Hanover, Hesse, Holland, the Kingdom of Italy
+# and Switzerland raise from their benches; Sardinia and the Papal States
+# keep their garrisons only).
 ARMYLESS_NATIONS = {
-    "Portugal", "Saxony", "Hanover", "Hesse", "PapalStates", "Sardinia",
+    "Hanover", "Hesse", "PapalStates", "Sardinia",
     "Holland", "KingdomOfItaly", "Switzerland",
 }
 
@@ -120,8 +126,9 @@ def test_scenario_loads_full_1805_world(world1805):
     assert world1805.sovereign_map == "europe"
     assert len(world1805.regions) == 126
     # NP-A (Aug 15, 2026): 21 -> 22 — the Emperor takes the field
-    # (NAPOLEON_SPEC §3.2; conscious flip).
-    assert len(world1805.marshals) == 22
+    # (NAPOLEON_SPEC §3.2; conscious flip). S14k K1 (October 28, 2026):
+    # 22 -> 24 — Saxony's Zezschwitz and Portugal's Bernardim Freire.
+    assert len(world1805.marshals) == 24
     assert world1805.player_nation == "France"
     assert world1805.current_turn == 1
     assert world1805.max_turns == 60
@@ -395,8 +402,9 @@ def test_turn_advances_cleanly_with_mack_on_hostile_swabia():
     # nobody eliminated by scenario data alone (NP-A: 22) — FLIPPED consciously
     # by VD-C (Score Finish Step 5, October 2026): the two boot satellites that
     # share France's war raise their contingents on turn 2 (Holland's
-    # Dumonceau, the Kingdom of Italy's Teulie), 22 + 2.
-    assert len(world.marshals) == 24
+    # Dumonceau, the Kingdom of Italy's Teulie), 22 + 2. S14k K1: 24 + 2,
+    # the two courts' 1805 field corps.
+    assert len(world.marshals) == 26
     assert {"Dumonceau", "Teulie"} <= set(world.marshals)
     mack = world.marshals["Mack"]
     assert mack.location == "Swabia"
@@ -404,7 +412,7 @@ def test_turn_advances_cleanly_with_mack_on_hostile_swabia():
 
 
 def test_enemy_phase_end_turn_runs_clean():
-    """The live end-turn pipeline (TurnManager → enemy AI for all 10 armed AI
+    """The live end-turn pipeline (TurnManager → enemy AI for all 12 armed AI
     nations over 126 provinces, incl. Mack ACTING from hostile Swabia) — the
     path a player's 'end turn' actually runs, not just world.advance_turn()."""
     from backend.commands.executor import CommandExecutor
@@ -518,7 +526,7 @@ def test_scenario_boots_via_sovereign_scenario_env(monkeypatch):
         world = main_module._reset_world_state()
         assert world.sovereign_map == "europe"
         assert len(world.regions) == 126
-        assert len(world.marshals) == 22  # NP-A: the Emperor joins
+        assert len(world.marshals) == 24  # NP-A: the Emperor joins; S14k K1: Saxony, Portugal
         assert world.active_coalition is not None
         assert main_module.world is world
     finally:

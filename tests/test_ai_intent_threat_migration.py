@@ -1626,7 +1626,29 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #        garrison and holds no conquest.
 # S14i's series: SERIES_BEFORE_S14J below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by S14k part 1 (the courts take the field, October 28, 2026 — the
+# user: "they should get armies or the ability to make them, we want the game
+# dynamic"; `SYSTEMS_REFERENCE.md` §160). TWO rows move the ambient board
+# together (`tools/_s14k_series_arms.py` →
+# `tools/_s14k_p1_series_arms_final.json`; arm 0, every row down, reproduces
+# S14j's series byte for byte):
+#   K2 the benches + K3 a menaced court calls up its first general — at [11]:
+#        Prussia's design on Hanover is priced at coerce, so Hanover calls
+#        Wallmoden up at turn 6, four turns before Prussia declares (10). His
+#        corps acts every turn from 6 and the board re-times from there: the
+#        war-cascade roll (a `random.random()` draw) that frees Switzerland
+#        lands at turn 11 (was 13), and the unattended France's alarm reads
+#        24 at [11] and 0 at [18]. With K3 held down the benches alone move
+#        the board at [18] (Wallmoden raised at 11, after the declaration).
+#   K1 (Saxony's and Portugal's corps, at peace all forty turns), K4 (the
+#        satellite rule) and K5 (the tiered force limit) held down alone are
+#        byte-identical.
+# S14j's series: SERIES_BEFORE_S14K below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# S14j's series (S14k's prior; S14j's ALL):
+SERIES_BEFORE_S14K = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14i's series (S14j's prior; S14i part 2's ALL):
 SERIES_BEFORE_S14J = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # Part 1's series (part 2's prior; S14i part 1's ALL):
