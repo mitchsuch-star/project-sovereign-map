@@ -488,4 +488,14 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert s14i2["prior"] == s14i["arms"]["ALL"]["series"]
         assert s14i2["arms"]["0"]["series"] == s14i2["prior"]
-        assert BASELINE_SERIES == s14i2["arms"]["ALL"]["series"]
+        # S14j (the economy rebalance, October 27, 2026): S14i part 2's ALL is
+        # the prior the rebalance's arm 0 (J1 … J3 held down) reproduces byte
+        # for byte, and the rebalance's ALL is the standing series
+        # (`tools/_s14j_series_arms_final.json`).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_S14J
+        assert SERIES_BEFORE_S14J == s14i2["arms"]["ALL"]["series"]
+        s14j = json.loads((ROOT / "tools" / "_s14j_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert s14j["prior"] == s14i2["arms"]["ALL"]["series"]
+        assert s14j["arms"]["0"]["series"] == s14j["prior"]
+        assert BASELINE_SERIES == s14j["arms"]["ALL"]["series"]

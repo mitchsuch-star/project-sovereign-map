@@ -88,6 +88,12 @@ reading and are **left untouched** by this ruling; the alternative reading —
 that golden peace should now pay a size-scaled rate around 117 instead of 30 —
 would red all three and is a different game. It remains available.
 
+**AMENDED October 27, 2026 (Pre-Deploy S14j, `SYSTEMS_REFERENCE.md` §159; the record `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`)** — the user: "lets actually fix this economy before build … it shouldnt run away like this". The user took the alternative this ruling kept
+available: the golden peace pays a crown term of 250, so the size of the pile now bites
+(three pins re-blessed: the golden-peace charge is a tenth above the floor, the plateau, the
+fixed point). The ruling's other half stands — the decisions that touch the pile (the laws,
+the Acts, the relief line) remain, and the AI's purse now reads the Net before the Charges.
+
 **DISSENT ON RECORD** (§0.8), because the row had none and its own exit clause
 instructs that one be read.
 

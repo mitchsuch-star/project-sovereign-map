@@ -1608,7 +1608,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #        won two fields (turns 17, 20) on part 1's board.
 # Part 1's series: SERIES_BEFORE_PART_2 below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by S14j (the economy rebalance, October 27, 2026 — the user:
+# "lets actually fix this economy before build"; `SYSTEMS_REFERENCE.md` §159).
+# ONE amount moves the ambient board; the other two, held down alone, are
+# byte-identical (`tools/_s14j_series_arms.py` →
+# `tools/_s14j_series_arms_final.json`; arm 0, every amount down, reproduces
+# S14i's series byte for byte):
+#   J3 the state's running cost — at [12]: the crown term 30 → 250 (and the
+#        AI's purse read before the Charges). The courts' purses are smaller,
+#        so the bribes that buy France's clients away land on other turns:
+#        Switzerland a turn later (13, was 12) and Holland a turn sooner (16,
+#        was 17). The unattended France's alarm reads 31 at [12] and reaches
+#        0 at [16], a turn sooner.
+#   J1 (a detached garrison keeps its pay) and J2 (conquered soil +0.15)
+#        held down alone are byte-identical: the ambient board detaches no
+#        garrison and holds no conquest.
+# S14i's series: SERIES_BEFORE_S14J below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# S14i's series (S14j's prior; S14i part 2's ALL):
+SERIES_BEFORE_S14J = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # Part 1's series (part 2's prior; S14i part 1's ALL):
 SERIES_BEFORE_PART_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 15, 20, 17, 14, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The sweep's series (S14i's prior; the October 27 sweep's ALL):

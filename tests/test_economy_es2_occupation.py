@@ -3,7 +3,8 @@
 Blessed shape (EC-2 gate, July 9, 2026): every controlled province NOT in the
 nation's `nation_starting_regions` pays a per-turn occupation cost = stability-
 tier fraction × the region's BASE `income_value` — Hostile 0.50 / Unrest 0.35 /
-Settling 0.20 / Stable 0.10 permanent floor. ZERO new serialized fields: the
+Settling 0.20 / Stable 0.10 permanent floor (S14j, October 27, 2026: every
+tier +0.15, 0.65 / 0.50 / 0.35 / 0.25). ZERO new serialized fields: the
 homeland substrate (`nation_starting_regions`) and the stability ramp already
 exist, so recapture-reset is free (recapture drops stability) and marshal
 pacification is free (the existing +10 garrisoned stability growth). E6:
@@ -126,11 +127,25 @@ class TestOccupationFractions:
 
     def test_blessed_fractions(self):
         """The §0.6.7 blessed starting fractions — a conscious re-pin is a
-        band retune, allowed without a new gate; a SHAPE change is not."""
-        assert OCCUPATION_HOSTILE_FRACTION == 0.50
-        assert OCCUPATION_UNREST_FRACTION == 0.35
-        assert OCCUPATION_SETTLING_FRACTION == 0.20
-        assert OCCUPATION_STABLE_FRACTION == 0.10
+        band retune, allowed without a new gate; a SHAPE change is not.
+
+        S14j (the economy rebalance, October 27, 2026 — the user: "in real
+        life you need to maintain conquests"), re-pinned consciously: every
+        tier +0.15 (was 0.50/0.35/0.20/0.10). The tier GAPS are unchanged —
+        pinned below — because they are what IGR-E's plunder judge reads."""
+        assert OCCUPATION_HOSTILE_FRACTION == 0.65
+        assert OCCUPATION_UNREST_FRACTION == 0.50
+        assert OCCUPATION_SETTLING_FRACTION == 0.35
+        assert OCCUPATION_STABLE_FRACTION == 0.25
+
+    def test_s14j_shift_is_uniform(self):
+        """S14j: the shift is the same in every tier, so Secure and Plunder
+        pay the same extra a turn and every difference the plunder judge
+        measures (`tests/test_igr_e_plunder_prompt.py`) is unchanged."""
+        from backend.models.region import occupation_fraction_for
+        shipped = {25: 0.50, 50: 0.35, 75: 0.20, 100: 0.10}
+        shifts = {round(occupation_fraction_for(s) - f, 9) for s, f in shipped.items()}
+        assert shifts == {0.15}
 
     def test_cost_is_fraction_of_base_income_not_effective(self, europe):
         """Hostile soil yields ZERO effective income but still costs 50% of

@@ -534,6 +534,43 @@ def infrastructure_upkeep_rate(region) -> int:
         getattr(region, "region_type", "town"), EUROPE_INFRASTRUCTURE_UPKEEP))
 
 
+def garrisons_draw_pay(world) -> bool:
+    """S14j "A detached garrison keeps its pay" (the economy rebalance,
+    October 27, 2026 — the user: "in real life you need to maintain
+    conquests").
+
+    A corps detached into a garrison (`region.garrison_detachment`, the
+    `garrison` verb's own flag, the player's and the AI's alike) draws the
+    field rate, `EUROPE_UPKEEP_RATE` per 1,000 men, billed in
+    `calculate_turn_upkeep`'s base. Before it the bill read marshals only,
+    so men detached to hold a conquest stopped costing anything, and a corps
+    could be parked in garrisons for free. A court's standing capital
+    garrison, which the capital raises and regenerates, stays unbilled: paying
+    every one of them (measured: 330,000 men, ~2,200 a turn across the
+    courts) emptied the coalition's war chests, and the scripted conqueror
+    stopped being broken on every seed. Detachments stay outside the force
+    limit, the Grande Armée, the levy and the substitute market, which read
+    the fielded strength. Europe-scoped (N1); every court (GR5). The seam the
+    series holds down (False = the shipped bill)."""
+    return getattr(world, "sovereign_map", "legacy") == "europe"
+
+
+def garrison_pay_of(region, rate: int) -> int:
+    """S14j: what one province's DETACHED garrison draws a turn — the
+    per-1,000 floor the field bill applies per corps; 0 for a standing
+    garrison. One expression for the bill and for the vassal grant's
+    `garrison_relieved` part."""
+    if not getattr(region, "garrison_detachment", False):
+        return 0
+    return (int(getattr(region, "garrison_strength", 0) or 0) // 1000) * int(rate)
+
+
+def charges_crown_rate() -> int:
+    """S14j: the crown term of the Charges of Empire, "the household, the
+    pensions, the ministries" (the seam the series holds down to 30)."""
+    return int(CHARGES_CROWN_BASE)
+
+
 def _levy_status(world) -> dict:
     """Lazy door onto `economy_executor.get_levy_status` — the single source.
 
@@ -601,7 +638,16 @@ REQUISITION_RATE = 0.25
 WAR_EFFORT_DIVISOR = 2500
 CHARGES_HOARD_FLOOR = 2000    # B6: boot-neutrality anchor (= Britain's boot gold);
 #                               lowering below 2,000 is a SHAPE change
-CHARGES_CROWN_BASE = 30       # B1: always — "the household, the pensions, the ministries"
+# S14j (the economy rebalance, October 27, 2026 — the user: "lets actually fix
+# this economy before build … it shouldnt run away like this"): the crown
+# term 30 → 250, read through `charges_crown_rate()`. The golden peace above
+# is AMENDED by the user's own later word: at 30 a peaceful court's chest
+# levelled off near 2,000 + 83 × its surplus (200–330k), 83 turns away, so it
+# never levelled within a campaign. At 250 it levels off near 2,000 + 10 ×
+# its surplus, 10 turns away. 250 is the lowest measured value that held
+# France under 40k and every court under 35k on all four commanded seeds;
+# 200 left CMD-A steering to 49k (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md`).
+CHARGES_CROWN_BASE = 250      # B1: always — "the household, the pensions, the ministries"
 CHARGES_WAR_RATE = 50         # B2: any active war — "the war establishment"
 CHARGES_ILL_RATE = 75         # B3: any war going ill (side score < −20) — "the wars go ill"
 CHARGES_UNREST_RATE = 75      # B4: restless interior — "the interior is restless"
@@ -7457,7 +7503,7 @@ class WorldState:
             terms.append({"key": "war_exhaustion",
                           "label": "the long war wears on", "amount": we})
         terms.append({"key": "crown", "label": "the household and the pensions",
-                      "amount": CHARGES_CROWN_BASE})
+                      "amount": charges_crown_rate()})
         at_war = self.get_nations_at_war_with(nation)
         if at_war:
             terms.append({"key": "war_establishment",
@@ -7971,6 +8017,25 @@ class WorldState:
                         "pay": due["pay"],
                     })
 
+        # S14j "A detached garrison keeps its pay": each detached garrison
+        # draws the field rate, folded into `base` (so `total == base +
+        # surcharge` holds and no Net component is added) and kept OUT of
+        # `total_strength` — the force limit, the Grande Armée, the levy and
+        # the substitute market read the field army only. One pass over the
+        # nation's own provinces through the cached index (GR8).
+        garrison_pay = 0
+        garrison_men = 0
+        if europe and garrisons_draw_pay(self):
+            for region_name in self.get_nation_regions(nation):
+                region = self.regions.get(region_name)
+                if region is None:
+                    continue
+                pay = garrison_pay_of(region, rate)
+                if pay > 0:
+                    garrison_men += int(getattr(region, "garrison_strength", 0) or 0)
+                    garrison_pay += pay
+            base_upkeep += garrison_pay
+
         # ES-3 over-limit surcharge (marginal bands on total nation strength)
         force_limit = self.get_force_limit(nation)
         surcharge = 0
@@ -8002,11 +8067,16 @@ class WorldState:
             surcharge = surcharge // 2
             grande = grande // 2
             campaign = campaign // 2
+            garrison_pay = garrison_pay // 2
 
         return {
             "total": int(base_upkeep + surcharge),
             "base": int(base_upkeep),
             "surcharge": int(surcharge),
+            # S14j: the detached garrisons' portion OF `base`
+            # (informational, like `grande_armee`) and the men it pays.
+            "garrison_pay": int(garrison_pay),
+            "garrison_men": int(garrison_men),
             # EC-U3: the Grande Armée portion OF the surcharge (informational;
             # already inside `surcharge`/`total`, so the ledger reconciliation
             # is untouched — this only lets the UI split the line for legibility).

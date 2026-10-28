@@ -1074,7 +1074,14 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # order-keyed cooldown (D13(a)) alone down 11, its own dice (D13(c))
         # alone down 11 — the two halves move it together, as they move the
         # series (`tools/_s14i_p2_series_arms_final.json`).
-        assert capped == 13, capped
+        # Re-measured by S14j, the economy rebalance (October 27, 2026;
+        # SYSTEMS_REFERENCE §159): capped 14 — the courts' purses are smaller
+        # under the crown term at 250, so the bribe that buys Switzerland away
+        # lands a turn later (the same re-timing the series shows at [12]).
+        # With every S14j seam held down in the child it reads 13 verbatim;
+        # J3 (the crown and the AI's read) held down alone 13; J1 and J2 held
+        # down alone 14.
+        assert capped == 14, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

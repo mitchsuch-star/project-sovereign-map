@@ -1124,6 +1124,20 @@ def _court_dp_after(world, nation: str, authority_after: int) -> int:
     return int(calculate_dp(diplomat, int(authority_after), holds))
 
 
+def ai_reads_net_before_charges() -> bool:
+    """S14j (the economy rebalance, October 27, 2026): the AI's purse reads the
+    Net BEFORE the Charges of Empire, the player's counsel's rule (EA-18).
+
+    EAD-9 kept the plain read because, with the crown term at 30, the two
+    reads agreed on every commanded seed. With the crown at 250 they do not.
+    A rich court's forecast Net turns negative as the Charges draw on its
+    hoard, so the plain read refused a law and a levy BECAUSE the court was
+    rich (measured: Britain at war on 60,000 refused to arm). Read by the
+    laws rung and by `EnemyAI._court_arms_with_its_purse`. The seam the
+    series holds down (False = the plain read)."""
+    return True
+
+
 def ai_purse_refusal(world, nation: str, row: Dict,
                      treasury: Optional[int] = None,
                      net_before_charges: bool = False) -> str:
@@ -1144,8 +1158,9 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     at a lower ceiling instead of draining. Read the plain forecast Net and a
     rich court is refused for being rich (measured: a France holding 30,000
     nets +47 and is told to levy 3,000 infantry, not to enact the Staff).
-    The AI rung keeps the plain read (the default) — changing it moves the
-    rivals' enactments, a balance call filed as EAD-9."""
+    The AI rung kept the plain read until S14j (EAD-9). It now passes
+    `ai_reads_net_before_charges()`, because the raised crown term made the
+    two reads disagree for every rich court."""
     quote = restoration_price(world, nation, row)
     gold = _court_gold(world, nation) if treasury is None else int(treasury)
     need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
@@ -1241,7 +1256,8 @@ def find_ai_enactment(world, nation: str, treasury: int,
         law_id = str(row.get("id") or "")
         if law_refusal(world, nation, law_id, admin_actions=admin_ap):
             continue
-        if ai_purse_refusal(world, nation, row, treasury):
+        if ai_purse_refusal(world, nation, row, treasury,
+                            net_before_charges=ai_reads_net_before_charges()):
             continue
         return {"action": "enact_law", "target": law_id}
     return None

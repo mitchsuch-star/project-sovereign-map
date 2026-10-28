@@ -64,10 +64,32 @@ CHARGE_BLOCKED_TERRAIN = {"mountains", "forest", "urban"}
 # BASE income_value, keyed by the stability tier (same boundaries as
 # _get_stability_modifier). Constants are OCCUPATION_* by gate mandate —
 # never "garrison", which belongs to the real garrison mechanics.
-OCCUPATION_HOSTILE_FRACTION = 0.50
-OCCUPATION_UNREST_FRACTION = 0.35
-OCCUPATION_SETTLING_FRACTION = 0.20
-OCCUPATION_STABLE_FRACTION = 0.10  # permanent floor on conquered soil
+# S14j (the economy rebalance, October 27, 2026 — the user: "in real life you
+# need to maintain conquests"): every tier +0.15, 0.50/0.35/0.20/0.10 →
+# 0.65/0.50/0.35/0.25, so settled conquered soil nets three-quarters of its
+# base rather than nine-tenths. The shift is UNIFORM on purpose: Secure and
+# Plunder pay the same extra per turn in every tier, so every difference
+# IGR-E's falsifiable judge measures (`tests/test_igr_e_plunder_prompt.py`)
+# is unchanged and the plunder multiplier needs no third attempt. Read
+# through `occupation_fraction_for` (the seam the series holds down).
+OCCUPATION_HOSTILE_FRACTION = 0.65
+OCCUPATION_UNREST_FRACTION = 0.50
+OCCUPATION_SETTLING_FRACTION = 0.35
+OCCUPATION_STABLE_FRACTION = 0.25  # permanent floor on conquered soil
+
+
+def occupation_fraction_for(stability: int) -> float:
+    """ES-2's ladder by stability tier (S14j: the seam the series holds down
+    to the shipped 0.50/0.35/0.20/0.10). Same boundary rule as
+    `Region._get_stability_modifier`: a boundary value falls into the LOWER
+    tier."""
+    if stability <= 25:
+        return OCCUPATION_HOSTILE_FRACTION
+    if stability <= 50:
+        return OCCUPATION_UNREST_FRACTION
+    if stability <= 75:
+        return OCCUPATION_SETTLING_FRACTION
+    return OCCUPATION_STABLE_FRACTION
 
 TERRAIN_BOMBARDMENT_MODIFIER = {
     "plains": 1.10,          # +10% damage — open ground, no cover
@@ -388,14 +410,7 @@ class Region:
         Stable conquered soil keeps a permanent floor — occupation never
         reaches zero on non-homeland provinces.
         """
-        if self.stability <= 25:
-            return OCCUPATION_HOSTILE_FRACTION
-        elif self.stability <= 50:
-            return OCCUPATION_UNREST_FRACTION
-        elif self.stability <= 75:
-            return OCCUPATION_SETTLING_FRACTION
-        else:
-            return OCCUPATION_STABLE_FRACTION
+        return occupation_fraction_for(self.stability)
 
     def apply_war_damage(self, amount: float):
         """Add war damage, capped at 0.5."""

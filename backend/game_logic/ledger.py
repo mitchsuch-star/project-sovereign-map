@@ -1024,8 +1024,11 @@ def why_the_bills_moved(world, nation: str, upkeep_data: dict,
     out = {"upkeep_note": "", "charges_note": ""}
     men = int((upkeep_data or {}).get("total_strength", 0) or 0)
     upkeep = int((upkeep_data or {}).get("total", 0) or 0)
-    out["upkeep_note"] = (f"paid for the {men:,} men under arms — the fallen "
-                          f"draw no pay") if men > 0 else ""
+    # S14j: the garrisons draw the field rate too, so the note names them.
+    garrisoned = int((upkeep_data or {}).get("garrison_men", 0) or 0)
+    held = f" and {garrisoned:,} in garrison" if garrisoned > 0 else ""
+    out["upkeep_note"] = (f"paid for the {men:,} men under arms{held} — the "
+                          f"fallen draw no pay") if men > 0 else ""
     last = (getattr(world, "_income_phase_results", None) or {}).get(nation) or {}
     last_upkeep = last.get("upkeep_data") or {}
     if last_upkeep:
@@ -1136,6 +1139,10 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # EAD-1: the campaign-pay portion OF the surcharge (informational, like
     # the Grande Armée's) and the corps that pay it — formed names (R7).
     campaign_pay = int(upkeep_data.get("campaign_pay", 0) or 0)
+    # S14j: the garrisons' portion OF the base (informational, like the two
+    # above) and the men it pays.
+    garrison_pay = int(upkeep_data.get("garrison_pay", 0) or 0)
+    garrison_men = int(upkeep_data.get("garrison_men", 0) or 0)
     campaign_ground = []
     for row in upkeep_data.get("campaign_ground") or []:
         from backend.game_logic.formations import formed_display_name
@@ -1450,6 +1457,8 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         "grande_armee": grande_armee,
         "campaign_pay": campaign_pay,
         "campaign_ground": campaign_ground,
+        "garrison_pay": garrison_pay,
+        "garrison_men": garrison_men,
         # 0 = no limit (legacy world) — int-safe sentinel for Godot (GR2)
         "force_limit": int(upkeep_data.get("force_limit") or 0),
         "over_force_limit": bool(upkeep_data.get("over_limit", False)),

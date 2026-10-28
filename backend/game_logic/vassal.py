@@ -3120,6 +3120,9 @@ def province_grant_price(world, lord: str, vassal_name: str,
                               always present; a bankrupt lord's mercy halves
                               the TOTAL, so the delta is taken on the total);
       infrastructure_relieved EC-U2's bill on the province's works, likewise;
+      garrison_relieved       S14j's pay of the province's DETACHED garrison,
+                              which passes with the province (halved under
+                              the lord's mercy, like the base it rides in);
       tribute_gained          `vassal_tribute_owed` WITH the province minus
                               WITHOUT it — the floor-of-sum arithmetic the
                               collection uses, never per-province × rate
@@ -3139,6 +3142,7 @@ def province_grant_price(world, lord: str, vassal_name: str,
         "region": str(region_name),
         "income_forfeited": 0, "contributions_relief": 0,
         "occupation_relieved": 0, "infrastructure_relieved": 0,
+        "garrison_relieved": 0,
         "tribute_gained": 0, "tribute_pct": int(float(row.get("tribute_rate", 0.75)) * 100),
         "remission_standing": bool(int(row.get("remission_left", 0) or 0) > 0),
         "surcharge_rise": 0, "force_limit_fall": 0, "net_delta": 0,
@@ -3181,6 +3185,15 @@ def province_grant_price(world, lord: str, vassal_name: str,
     else:
         parts["occupation_relieved"] = occ_region
         parts["infrastructure_relieved"] = infra_region
+    if europe:
+        from backend.models.world_state import (
+            EUROPE_UPKEEP_RATE, garrison_pay_of, garrisons_draw_pay,
+        )
+        if garrisons_draw_pay(world):
+            # Every bill term is a multiple of the even rate, so the mercy's
+            # halving of the whole base takes exactly half of this one.
+            pay = garrison_pay_of(region, EUROPE_UPKEEP_RATE)
+            parts["garrison_relieved"] = pay // 2 if bankrupt else pay
 
     if not parts["remission_standing"]:
         rate = float(row.get("tribute_rate", 0.5))
@@ -3206,6 +3219,7 @@ def province_grant_price(world, lord: str, vassal_name: str,
     parts["net_delta"] = int(
         -parts["income_forfeited"] + parts["contributions_relief"]
         + parts["occupation_relieved"] + parts["infrastructure_relieved"]
+        + parts["garrison_relieved"]
         + parts["tribute_gained"] - parts["surcharge_rise"])
     return parts
 
@@ -3228,6 +3242,8 @@ def province_price_line(parts: dict, vassal_the: str = "the client") -> str:
     if int(parts.get("infrastructure_relieved", 0) or 0):
         bits.append(f"{int(parts['infrastructure_relieved'])}g of upkeep on its works "
                     f"relieved")
+    if int(parts.get("garrison_relieved", 0) or 0):
+        bits.append(f"{int(parts['garrison_relieved'])}g of its garrison's pay relieved")
     if parts.get("remission_standing"):
         bits.append(f"no tribute returned while {vassal_the}'s remission stands")
     else:

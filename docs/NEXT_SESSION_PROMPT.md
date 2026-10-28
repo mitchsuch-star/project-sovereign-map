@@ -18,6 +18,14 @@
 > delegation stand for your review: D4 read between neighbours, D10(ii) the war's credit folded with its total kept
 > (measured against the settlement table), D10(iv) a held province priced at half its fresh cession.**
 >
+> **Landed after S14i, October 27, 2026 — S14j, the economy rebalance, by the user's word ("lets actually fix this economy
+> before build … it shouldnt run away like this")** (`SYSTEMS_REFERENCE.md` §159; the record
+> `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`): a corps detached into a garrison keeps its pay; conquered soil costs 0.15
+> more of its base in every stability tier; the Charges' crown term 30 → 250 with the AI's purse reading the Net before the
+> Charges. The opening is untouched (France's turn-1 bill 2,834). France's chest now levels off at 16–40k and the courts'
+> purses at 146–193k together on the commanded arms (were 43–75k and 380–453k); `BASELINE_SERIES` re-pinned (J3 alone at
+> [12]); the census still 0 / 0. **Nothing in it holds S15** — the crown's level (250, measured band 200–250) is yours to move.
+>
 > **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
 > fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives
 > both readings; the caret is released on every Esc road and every key pointer says the typing form; the Admiralty says

@@ -119,7 +119,11 @@ class TestTheCeilingIsTheFixedPoint:
         # a 40,000 chest sits ABOVE it and the last line below — the chest
         # can still climb to the ceiling — would be false by construction.
         # 20,000 still bites (576 a turn) and is still below the ceiling.
-        world.nation_gold["France"] = 20_000
+        # S14j (October 27, 2026): 20,000 -> 6,000. The crown term at 250
+        # brings France's boot fixed point to 8,720 (at war, rate 308), so a
+        # 20,000 chest sits ABOVE it; 6,000 still bites (492 a turn) and is
+        # still below it.
+        world.nation_gold["France"] = 6_000
         econ = _build_economy(world, "France")
         rate = sum(int(t.get("amount", 0))
                    for t in econ.get("state_charges_terms", []))

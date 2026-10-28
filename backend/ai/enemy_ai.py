@@ -7288,7 +7288,14 @@ class EnemyAI:
             return None
         candidates.sort(key=lambda c: (c[0], c[1], c[2]))
         from backend.game_logic.ledger import _build_economy
-        net = int(_build_economy(world, nation).get("net", 0) or 0)
+        from backend.game_logic.reforms import ai_reads_net_before_charges
+        econ = _build_economy(world, nation)
+        net = int(econ.get("net", 0) or 0)
+        if ai_reads_net_before_charges():
+            # S14j: the Charges fall with the chest, so a rich court's
+            # added upkeep is carried by its Net before them (the laws
+            # rung's read, `reforms.ai_reads_net_before_charges`).
+            net += int(econ.get("state_charges", 0) or 0)
         for _base, _strength, _name, m, added in candidates:
             if net - added >= 0:
                 return {"action": "recruit", "marshal": m.name, "target": m.location}

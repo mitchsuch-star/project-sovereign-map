@@ -93,9 +93,14 @@ DRIVER = REPO / "tools" / "playtest_driver.py"
 # 2,000 + 828 x 2,500 // 88 = 25,522 and the lever-down readings move with it
 # (measured, both levers; with campaign pay's lever down it reads 31,318
 # again). Before the gate: {800: 31_318, 5_000: 28_335, 20_000: 13_335, ...}.
-MEASURED_DEFECT = {800: 25_522, 5_000: 22_539, 20_000: 7_539,
+# S14j (the economy rebalance, October 27, 2026) re-seated it consciously:
+# the crown term 30 -> 250 takes France's boot rate 88 -> 308, so the fixed
+# point is 2,000 + 828 x 2,500 // 308 = 8,720, and the post-charge (wrong)
+# reading moves with it: 5,725 at a 5,000 chest, 0 from 20,000 up. Before
+# S14j: {800: 25_522, 5_000: 22_539, 20_000: 7_539, 40_000: 0, ...}.
+MEASURED_DEFECT = {800: 8_677, 5_000: 5_725, 20_000: 0,
                    40_000: 0, 60_000: 0, 88_556: 0}
-TRUE_FIXED_POINT = 25_522
+TRUE_FIXED_POINT = 8_720
 # S13e part 3 (PC-R5, ruling H, October 16, 2026) re-seated the 800 chest
 # consciously: the clock's finance term -- a chest under one turn's upkeep
 # wears +2 (France's boot upkeep is 2,834) -- is levied by the advance's
@@ -104,7 +109,9 @@ TRUE_FIXED_POINT = 25_522
 # that pays its upkeep reads the fixed point; the claim survives -- the
 # ceiling never moves with the chest except through the clock's named term
 # (`coalition.exhaustion_clock_terms`, SYSTEMS_REFERENCE §124.3).
-UNDER_UPKEEP = {800: 25_000}
+# S14j: the same finance term at the crown's 250 reads the rate 310 and the
+# ceiling 2,000 + 828 x 2,500 // 310 = 8,677 (was 25,000).
+UNDER_UPKEEP = {800: 8_677}
 
 
 @pytest.fixture

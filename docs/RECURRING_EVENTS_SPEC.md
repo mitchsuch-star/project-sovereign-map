@@ -3,6 +3,7 @@
 **Status:** ✅ **SPEC AUTHORED and ✅ RULED October 27, 2026.** The user took every recommended default (§0 Q1–Q14), the Edicts in principle; RE stays after S15.
 - **The ruling, in the user's words:** "Take the recurring-events gate's recommended defaults (docs/RECURRING_EVENTS_SPEC.md §0 Q1–Q14), including the Edicts in principle; RE stays after S15."
 - **Nothing is built yet** and no game code changed. Nothing here holds the deploy.
+- **S14j re-measured the economy the same day (`SYSTEMS_REFERENCE.md` §159, `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`):** the Charges' crown term is 250, a detached garrison keeps its pay and conquered soil costs 0.15 more. This spec's measurement (§1) and its "the golden peace is not taxed" / EAD-6 readings predate it. RE-6's head re-sizes the Edicts against S14j's numbers (France levels off at 16–40k, the courts at 146–193k together) before E1–E3 arm.
 - **Owner:** row **RE**, after S15 (§15); about five sessions — the core's three and a half, and the Edicts' one and a half.
 - **The code name is "affairs".** Module `backend/game_logic/affairs.py`; authored deck `moments.affairs`; runtime store `world.moments["affairs"]`; log type `moment`, with the phases `affair` and `court`. "Event" already means `event_log`, and the deck rides S14c's moments engine rather than forking it.
 

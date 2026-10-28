@@ -251,12 +251,26 @@ class TestDoubledEmpire:
         assert 0.70 <= absorption <= 1.30, (
             f"steady-state doubled-army absorption {absorption:.1%} left the "
             f"measured edge-of-sustainability range (drains={drains} gross={gross})")
-        # ...but sustainable: no death-spiral, treasury does not collapse
-        for _ in range(6):
+        # ...but sustainable: no death-spiral, treasury does not collapse.
+        # S14j (the economy rebalance, October 27, 2026 — the user: "in real
+        # life you need to maintain conquests") re-stated consciously: the
+        # doubled MAP now costs a quarter of its base at full stability (the
+        # occupation floor 0.10 -> 0.25), so the doubled army on it runs past
+        # the edge — measured, the chest dips into arrears for one turn at
+        # turns 1, 3 and 6 (-1,242, -281, -49) and the mercy arrests every
+        # dip the next turn (1,395, 2,526, 2,996); the counter never passes 1.
+        # With the occupation shift held down it read 2,878 at turn 6. The
+        # guarantee is the one the docstring states — never the desertion
+        # tier, every dip arrested — not a positive chest on one sampled turn.
+        chests = []
+        for _ in range(7):
             world.advance_turn()
-        assert world.nation_bankruptcy_turns.get("France", 0) < 3, (
-            "doubled-army France death-spiralled under the Grande Armée surcharge")
-        assert world.nation_gold["France"] > 0
+            assert world.nation_bankruptcy_turns.get("France", 0) < 3, (
+                "doubled-army France death-spiralled under the Grande Armée surcharge")
+            chests.append(int(world.nation_gold["France"]))
+        assert all(after > 0 for before, after in zip(chests, chests[1:])
+                   if before < 0), f"a dip was not arrested the next turn: {chests}"
+        assert chests[-1] > 0, chests
         # the stack is genuinely three-drain here
         econ = _build_economy(world, "France")
         assert econ["occupation"] > 0

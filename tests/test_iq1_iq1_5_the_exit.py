@@ -286,14 +286,24 @@ class TestCompletionItemTwo:
         not settle at a handicap, it widens every turn, and the further bleed
         widens it at a stroke. On the ruled board (SR-5a) it no longer
         INVERTS — the beaten France leads from the first tick — so the pin
-        asserts the widening and the step, which is the ratchet itself."""
+        asserts the widening and the step, which is the ratchet itself.
+
+        S14j (the economy rebalance, October 27, 2026) — re-written to the
+        measured shape, consciously: the crown term at 250 takes a tenth of
+        the chest above the floor, and the beaten France's fuller chest pays
+        more of it, so the ratchet is CAPPED. The gap still opens at a stroke
+        at the bleed, peaks, and then CLOSES part of the way (measured:
+        257, 236, 210, 229 | 411, 677, 574, 504, 443). Losing still pays;
+        it no longer pays more every turn."""
         gaps = [b - w for w, b, _, _c in series]
         early, late = gaps[:self.BLEED_TICK], gaps[self.BLEED_TICK:]
         assert all(g > 0 for g in gaps), gaps
         assert min(late) > max(early), (
             f"the further bleed must widen the gap at a stroke: {gaps}")
-        assert early == sorted(early) and late == sorted(late), (
-            f"the gap must be WIDENING, not converging: {gaps}")
+        peak = late.index(max(late))
+        assert late[:peak + 1] == sorted(late[:peak + 1]), gaps
+        assert gaps[-1] < max(late), (
+            f"S14j: the Charges must close part of the gap after its peak: {gaps}")
 
     def test_the_inversion_is_caused_by_losing_more(self, series):
         """Why it is a ratchet and not a one-off: the turn the gap flips is the
@@ -334,7 +344,10 @@ class TestCompletionItemTwo:
         # recovery.
         step = gaps[self.BLEED_TICK] - gaps[self.BLEED_TICK - 1]
         earlier = [gaps[i + 1] - gaps[i] for i in range(self.BLEED_TICK - 1)]
-        assert gaps[self.BLEED_TICK - 1] > 0 and step >= 25_000 * 8 // 1000, gaps
+        # S14j (October 27, 2026): the crown term at 250 takes a tenth of the
+        # gold the internment saves before the tick reads it (measured step
+        # 182 of the corps' 200), so the bound is three-quarters of it.
+        assert gaps[self.BLEED_TICK - 1] > 0 and step >= 25_000 * 8 // 1000 * 3 // 4, gaps
         assert step > max(earlier), gaps
 
     def test_the_engine_names_the_mechanism_internment(self):
@@ -375,11 +388,18 @@ class TestCompletionItemTwo:
             assert world.marshals[name].location in ceded
 
     def test_the_whole_france_decays_while_the_beaten_one_recovers(self, series):
-        """The shape underneath the ratchet, and the reason it never closes."""
+        """The shape underneath the ratchet, and the reason it never closes.
+
+        S14j (October 27, 2026), re-written to the measured shape: the
+        loser's Net still recovers past where it began, at the bleed and the
+        provinces' settling, and then the crown term at 250 draws it back
+        down as its chest fills (measured: -33 … 135 … -162). That fall is
+        why the ratchet now closes part of the way."""
         whole = [w for w, _, _, _c in series]
         beaten = [b for _, b, _, _c in series]
         assert whole[-1] < whole[0], f"the victor's Net decays: {whole}"
-        assert beaten[-1] > beaten[0], f"the loser's Net grows: {beaten}"
+        assert max(beaten) > beaten[0], f"the loser's Net recovers: {beaten}"
+        assert beaten[-1] < max(beaten), f"the Charges draw it back: {beaten}"
 
 
 class TestTheLedgerSaysWhy:
@@ -574,7 +594,9 @@ class TestIq151TheStaleQuote:
 
     def test_the_charge_quoted_is_the_charge_levied(self, one_turn):
         quoted, applied, _, _ = one_turn
-        assert int(quoted["state_charges"]) == int(applied["state_charges"]) == 1337
+        # S14j (October 27, 2026): 1,337 -> 4,681, the crown term at 250 (the
+        # rate 88 -> 308 on the same 40,000 chest). The quote is still the levy.
+        assert int(quoted["state_charges"]) == int(applied["state_charges"]) == 4681
 
     def test_the_forecast_reads_the_ticks_own_arithmetic(self):
         from backend.game_logic.coalition import next_war_exhaustion

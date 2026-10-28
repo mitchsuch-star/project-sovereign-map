@@ -163,7 +163,15 @@ class TestConditionBeatsClock:
 class TestGoldenPeaceMayGrowRich:
     """'The economy shouldn't go crazy UNLESS you are doing very well and
     stable' — the carve-out is implemented literally: golden peace pays
-    only the crown term, ≤ 1.5% of the chest per turn."""
+    only the crown term, ≤ 1.5% of the chest per turn.
+
+    S14j (the economy rebalance, October 27, 2026) — AMENDED by the user's
+    later word: "lets actually fix this economy before build … it shouldnt
+    run away like this". The golden peace still pays only the crown term,
+    but the crown is 250 (was 30): a tenth of the chest above the floor each
+    turn, so a peaceful court's chest levels off near 2,000 + 10 × its
+    surplus within about ten turns instead of near 2,000 + 83 × its surplus,
+    83 turns away (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md`)."""
 
     def test_golden_peace_rate_is_the_crown_alone(self, world):
         _peace_out(world, "France")
@@ -171,15 +179,18 @@ class TestGoldenPeaceMayGrowRich:
         assert {t["key"] for t in rate["terms"]} == {"crown"}
         assert rate["rate"] == CHARGES_CROWN_BASE
 
-    def test_golden_peace_charge_is_at_most_1_5_percent(self, world):
+    def test_golden_peace_charge_is_a_tenth_above_the_floor(self, world):
+        """S14j: was `..._is_at_most_1_5_percent`. The crown at 250 draws a
+        tenth of the chest above the 2,000 floor — and still nothing at or
+        below it, so a poor court pays nothing."""
+        assert CHARGES_CROWN_BASE == 250
         _peace_out(world, "France")
         for treasury in (5_000, 20_000, 60_000):
             world.nation_gold["France"] = treasury
             charge = world.calculate_state_charges("France")
-            assert charge <= int(treasury * 0.015), (
-                f"golden-peace France pays {charge} on {treasury} — the "
-                f"blessing (may grow rich when doing very well and stable) "
-                f"is broken")
+            assert charge == (treasury - CHARGES_HOARD_FLOOR) // 10, (treasury, charge)
+        world.nation_gold["France"] = CHARGES_HOARD_FLOOR
+        assert world.calculate_state_charges("France") == 0
 
     def test_war_consumes_the_hoard_from_turn_one(self, world):
         """The war establishment bites the moment war exists — no WE ramp
@@ -216,7 +227,8 @@ class TestPeacetimeRunawayIsDead:
         """At Prussia's measured net (+298) the peace plateau lands near
         floor + net×2500/30 ≈ 26.8k — finite, where the old system had NO
         peacetime fixed point at all. At war the same nation's plateau
-        drops by the war establishment alone."""
+        drops by the war establishment alone. (S14j: at the crown's 250 the
+        same net levels off near 5k.)"""
         peace_plateau = _fixed_point(298, CHARGES_CROWN_BASE)
         war_plateau = _fixed_point(298, CHARGES_CROWN_BASE + CHARGES_WAR_RATE)
         assert peace_plateau < 30_000

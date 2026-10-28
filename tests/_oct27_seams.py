@@ -107,6 +107,23 @@ S14I_SEAMS_BY_ROW = {
 }
 OCT27_SEAMS_DOWN += [spec for row in S14I_SEAMS_BY_ROW for spec in S14I_SEAMS_BY_ROW[row]]
 
+# S14j — the economy rebalance (the user, October 27, 2026: "lets actually fix
+# this economy before build"), one entry per amount so
+# `tools/_s14j_series_arms.py` attributes each. They join the list above:
+# every recorded board was recorded before them.
+S14J_SEAMS_BY_ROW = {
+    # J1 a detached garrison keeps its pay: a corps detached into a
+    # garrison draws the field rate (the standing capital garrisons do not).
+    "J1": ["backend.models.world_state:garrisons_draw_pay=False"],
+    # J2 conquests cost what they yield: every occupation tier +0.15.
+    "J2": ["backend.models.region:occupation_fraction_for=0.50 if a[0] <= 25 else (0.35 if a[0] <= 50 else (0.20 if a[0] <= 75 else 0.10))"],
+    # J3 the state's running cost: the crown term 30 → 200, and the AI's
+    # purse reads the Net before the Charges (the counsel's rule).
+    "J3": ["backend.models.world_state:charges_crown_rate=30",
+           "backend.game_logic.reforms:ai_reads_net_before_charges=False"],
+}
+OCT27_SEAMS_DOWN += [spec for row in S14J_SEAMS_BY_ROW for spec in S14J_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

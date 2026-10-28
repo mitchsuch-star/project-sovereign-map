@@ -95,6 +95,10 @@ charge = int(max(0, treasury − HOARD_FLOOR) × rate // 2500),   HOARD_FLOOR = 
   (WE ~100 + WAR + UNREST) → **≈ 20k**; collapse (WE 200 + ILL + UNREST + GRIP) →
   **≈ 11k and falling with net**. The July-17 shape (+7,500% while Britain stood in
   Orleanais) now bleeds through UNREST + ILL from the first turn of trouble.
+  **AMENDED October 27, 2026 (Pre-Deploy S14j, `SYSTEMS_REFERENCE.md` §159; the record `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`)** — the user: "lets actually fix this economy before build … it shouldnt run away like this". The golden peace is no longer near-unbounded: the
+  crown term is 250 (outside B1's 20–50, by the user's word), so a peaceful court levels off
+  near 2,000 + 10 × its surplus within about ten turns (France 16–40k, the courts 146–193k
+  together at turn 40 on the commanded arms).
 - **EC-W2 pin re-bless (conscious):** `test_econ_war_coupling.py`'s WE-only formula
   and CurveInverts staging re-pin to the new composition; `WAR_EFFORT_DIVISOR = 2500`
   and the treasury-fraction SHAPE are unchanged.
