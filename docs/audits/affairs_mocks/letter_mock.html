@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Affairs mock — the Haiti letter</title>
+<script src="mock_assets.js"></script>
+<style>
+  :root {
+    --navy: #0b0b14; --panel: #1a1a2e; --gold: #d9c08c; --gold-bright: #f0e0b0;
+    --ink: #2b1d12; --rubric: #6a1410; --sepia: #4e3820; --rule: #8a7a5a;
+  }
+  html, body { margin: 0; height: 100%; background: var(--navy); overflow: hidden; }
+  body { font-family: 'EBGaramond', serif; color: var(--ink); }
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); }
+  #bar { position: fixed; left: 0; right: 0; top: 0; height: 36px; background: #11111c; border-bottom: 1px solid #2a2a3a; }
+  #bar span { position: absolute; top: 9px; font-family: 'Cinzel', serif; font-size: 12px; color: var(--gold); letter-spacing: .06em; }
+  #card {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 720px; max-height: 760px; box-sizing: border-box;
+    padding: 26px 40px 22px 40px;
+    border: 44px solid transparent; border-width: 44px 40px 40px 40px;
+    display: flex; flex-direction: column;
+  }
+  .head { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; column-gap: 12px; margin-bottom: 6px; }
+  .device { width: 44px; height: 44px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #5a4028, #2a1c10 70%);
+    box-shadow: 0 0 0 3px #b08d57, 0 0 0 4px #5a4028, 0 2px 4px rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center; }
+  .device b { font-family: 'Cinzel', serif; font-weight: 700; color: #e8c777; font-size: 22px; text-shadow: 0 1px 1px #000; }
+  .dateline { text-align: center; font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: .12em; color: var(--rubric); text-transform: uppercase; }
+  .well { width: 44px; height: 44px; border-radius: 50%; border: 1.5px dashed rgba(122,31,31,.35); justify-self: end; position: relative; }
+  .well img { position: absolute; left: -4px; top: -4px; width: 52px; height: 52px; transform: rotate(-7deg); filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); }
+  .well b { position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-family: 'Cinzel', serif; font-weight: 700; color: #e8c777; font-size: 19px; transform: rotate(-7deg); text-shadow: 0 1px 1px #3a0a0a; }
+  .title { font-size: 17px; line-height: 1.3; margin: 2px 0 4px 0; }
+  .title b { font-weight: 600; }
+  .divider { height: 10px; margin: 2px 0 6px 0; background-repeat: no-repeat; background-position: center; background-size: 220px 10px; opacity: .55; }
+  .line { font-size: 16.5px; line-height: 1.35; margin: 0 0 6px 0; }
+  .record { font-family: 'IMFellIt', serif; font-size: 15.5px; line-height: 1.35; color: var(--ink); margin: 0 0 6px 0; }
+  .exhibit { font-family: 'IMFell', serif; font-size: 15px; line-height: 1.35; color: var(--sepia); margin: 0 0 8px 14px; padding-left: 10px; border-left: 2px solid var(--rule); }
+  .exhibit .from { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .1em; color: var(--rubric); display: block; margin-bottom: 1px; }
+  .board { margin: 0 0 6px 0; padding: 0; list-style: none; font-size: 15.5px; line-height: 1.35; }
+  .board li { padding-left: 16px; position: relative; }
+  .board li::before { content: ''; position: absolute; left: 0; top: 6px; width: 10px; height: 10px; background-size: contain; background-repeat: no-repeat; opacity: .7; }
+  .answers h4 { font-family: 'Cinzel', serif; font-size: 11.5px; letter-spacing: .1em; color: var(--rubric); margin: 4px 0 2px 0; font-weight: 600; }
+  .answers p { margin: 0 0 3px 0; font-size: 15.5px; line-height: 1.35; }
+  .answers p b { font-weight: 600; }
+  .lapse { font-style: italic; color: var(--rubric); font-size: 15px; margin: 2px 0 0 0; }
+  .wavy { height: 12px; margin: 8px 0 8px 0; background-repeat: no-repeat; background-position: center; background-size: 360px 12px; opacity: .6; }
+  .buttons { display: flex; justify-content: center; gap: 12px; }
+  .btn { background: var(--panel); border: 1.5px solid var(--gold); border-radius: 4px; color: var(--gold); min-width: 190px; padding: 6px 12px; text-align: center; font-family: 'EBGaramond', serif; }
+  .btn .cap { font-size: 16px; display: block; }
+  .btn .price { font-size: 12.5px; display: block; color: var(--gold-bright); opacity: .85; white-space: nowrap; }
+  .caption { text-align: center; font-size: 14px; color: var(--sepia); font-style: italic; margin: 7px 0 0 0; }
+  .caption span { font-style: normal; font-variant: small-caps; letter-spacing: .04em; }
+  .apostille { display: none; font-family: 'IMFellIt', serif; font-size: 18px; color: var(--ink); text-align: right; margin: 4px 0 0 0; }
+  body.sealed .apostille { display: block; }
+  body.sealed .well { border-color: transparent; }
+
+  /* Interface Scale 2.0 — 800×450 logical. Nothing folds: the letterhead, the record, the exhibit,
+     the board and the quotes stand; both prices sit on the buttons; the counsel stays under them. */
+  #body { display: flex; flex-direction: column; min-height: 0; }
+  .fade { display: none; }
+  /* Interface Scale 2.0 — 800×450 logical. Godot has no media queries: every logical size is the
+     same as at 1.0 (body 16, line 2 17, rubric 14, buttons 16/16). The popup is the 394-px clamp;
+     the body scrolls behind the fixed letterhead, buttons and counsel. */
+  @media (max-width: 900px) {
+    #card { width: 680px; height: 394px; max-height: 394px; top: calc(50% + 18px); padding: 12px 24px 8px 24px; border-width: 22px 22px 18px 22px; }
+    #body { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+    .fade { display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 22px; background: linear-gradient(rgba(221,203,167,0), rgba(221,203,167,.95)); pointer-events: none; }
+    .head { grid-template-columns: 30px 1fr 30px; margin-bottom: 2px; column-gap: 8px; }
+    .device, .well { width: 30px; height: 30px; } .device b { font-size: 16px; }
+    .well img { width: 38px; height: 38px; left: -4px; top: -4px; } .well b { font-size: 14px; top: 6px; }
+    .divider { display: none; }
+    .line, .record, .exhibit, .board, .answers p { margin-bottom: 0; }
+    .wavy { margin: 4px 0; height: 6px; background-size: 220px 6px; }
+    .btn { min-width: 150px; padding: 3px 8px; } .btn .cap { font-size: 16px; } .btn .price { font-size: 16px; opacity: .8; }
+    .caption { margin-top: 4px; }
+    .apostille { margin: 0; }
+  }
+</style></head>
+<body>
+<div id="bar"><span style="left:14px">INK &amp; IRON — LATE MARCH 1806 · TURN 13</span><span style="right:14px">ENVOYS (1) · THE DISPATCH (R) · LEDGER (L)</span></div>
+<div id="overlay"></div>
+<div id="card">
+  <div class="head">
+    <div class="device"><b>D</b></div>
+    <div class="dateline">An Affair of State — Late March 1806</div>
+    <div class="well"><img id="seal" alt="" style="display:none"><b id="cipher" style="display:none">N</b></div>
+  </div>
+  <div id="body">
+  <div class="title"><b>The Squadron for Santo Domingo</b> — Decrès, Minister of Marine and the Colonies, lays a letter before the Emperor.</div>
+  <div class="divider" id="div1"></div>
+  <p class="line">Sire, Ferrand wrote last February that he had bread for twenty days and no credit; Your Majesty called it shameful to abandon these brave men. Brest can put five of the line to sea in a month.</p>
+  <p class="record">Historically the law of 20 May 1802 kept slavery in the colonies Amiens returned, and acts of 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence, 1 January 1804. Haiti killed the French who stayed in 1804; Ferrand's decree of 6 January 1805 let his raiders sell the Haitians they took, and Dessalines marched on Santo Domingo, killing civilians at Moca and Santiago on his retreat.</p>
+  <div class="exhibit"><span class="from">From Haiti —</span>"Slavery is forever abolished." — the Constitution of Haiti, 20 May 1805, Article 2: three years to the day after the law.</div>
+  <ul class="board">
+    <li>France blockaded 9 of the last 12 mornings; the Emperor holds court at Paris.</li>
+    <li>Britain's squadrons hold the coast: 100 sail effective against our 22.</li>
+    <li>The passage: 36 in 100 to come home whole.</li>
+  </ul>
+  <div class="answers">
+    <h4>What each answer does</h4>
+    <p><b>Send five of the line</b>: 500 gold (the treasury holds 16,495); 1 administrative action (2 left today); five of the line sail (45 → 40 in port until Late May 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.</p>
+    <p><b>Ferrand must hold alone</b>: your standing 85 → 82; the grip 85 → 82, below the aura's full line (85).</p>
+  </div>
+  <p class="lapse">If unanswered by Early April 1806: Ferrand must hold alone — your standing 85 → 82.</p>
+  <p class="apostille">Send five of the line. — N.</p>
+  <div class="fade"></div>
+  </div>
+  <div class="wavy" id="div2"></div>
+  <div class="buttons">
+    <div class="btn"><span class="cap">Send five of the line</span><span class="price">−500 gold · 1 action · 36 in 100 home</span></div>
+    <div class="btn"><span class="cap">Ferrand must hold alone</span><span class="price">standing 85 → 82</span></div>
+    <div class="btn"><span class="cap">Not Now</span><span class="price">waits on the desk</span></div>
+  </div>
+  <p class="caption"><span>Berthier</span> — Five sail are five sail, Sire; Boulogne counts them too.</p>
+</div>
+<script>
+  const A = window.ASSETS;
+  const st = document.createElement('style');
+  st.textContent = `
+    @font-face { font-family: 'Cinzel'; src: url(${A.font_cinzel}) format('truetype'); }
+    @font-face { font-family: 'EBGaramond'; src: url(${A.font_garamond}) format('truetype'); }
+    @font-face { font-family: 'EBGaramond'; font-style: italic; src: url(${A.font_garamond_it}) format('truetype'); }
+    @font-face { font-family: 'IMFell'; src: url(${A.font_fell}) format('truetype'); }
+    @font-face { font-family: 'IMFellIt'; src: url(${A.font_fell_it}) format('truetype'); }
+    #card { border-image: url(${A.parchment_alpha}) 56 52 52 52 fill / 44px 40px 40px 40px / 10px stretch; }
+    @media (max-width: 900px) { #card { border-image: url(${A.parchment_alpha}) 56 52 52 52 fill / 24px 22px 20px 22px / 6px stretch; } }
+    .divider { background-image: url(${A.flourish_scroll}); }
+    .wavy { background-image: url(${A.divider_wavy}); }
+    .board li::before { background-image: url(${A.fleuron_flowers}); }
+  `;
+  document.head.appendChild(st);
+  const q = new URLSearchParams(location.search);
+  if (q.get('sealed') === '1') {
+    document.body.classList.add('sealed');
+    const s = document.getElementById('seal'); s.src = A.wax_seal; s.style.display = 'block';
+    document.getElementById('cipher').style.display = 'block';
+  }
+</script>
+</body></html>

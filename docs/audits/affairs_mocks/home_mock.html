@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Affairs mock — the home</title>
+<script src="mock_assets.js"></script>
+<style>
+  :root { --navy: #0b0b14; --panel: #1a1a2e; --panel2: #14142a; --gold: #d9c08c; --gold-dim: #9a8a66; --gold-bright: #f0e0b0;
+          --ink: #2b1d0e; --rubric: #6a1410; --sepia: #4e3820; --cream: #e8dcc0; --muted: #9c948a; --amber: #e0a040; }
+  html, body { margin: 0; height: 100%; background: var(--navy); overflow: hidden; }
+  body { font-family: 'EBGaramond', serif; color: var(--cream); font-size: 16px; }
+  #bar { position: fixed; left: 0; right: 0; top: 0; height: 36px; background: #11111c; border-bottom: 1px solid #2a2a3a; }
+  #bar span { position: absolute; top: 9px; font-family: 'Cinzel', serif; font-size: 12px; color: var(--gold); letter-spacing: .06em; white-space: nowrap; }
+  #bar .hot { color: var(--gold-bright); border: 1px solid var(--gold); border-radius: 3px; padding: 1px 6px; position: static; display: inline-block; margin-top: -2px; }
+  #screen { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 1180px; height: 760px; box-sizing: border-box;
+            background: var(--panel); border: 2px solid rgba(217,192,140,.6); border-radius: 8px; padding: 22px 28px; display: flex; flex-direction: column; }
+  .corner { position: absolute; width: 56px; height: 56px; opacity: .55; }
+  .corner.tl { left: 8px; top: 8px; } .corner.tr { right: 8px; top: 8px; transform: scaleX(-1); }
+  h1 { font-family: 'Cinzel', serif; font-weight: 600; font-size: 22px; letter-spacing: .12em; color: var(--gold); margin: 0; text-align: center; }
+  .sub { text-align: center; color: var(--muted); font-style: italic; margin: 4px 0 10px 0; font-size: 15px; }
+  .frame-ledger .tabs, .frame-dispatch .crumb, .frame-papers .ribbon { display: block; }
+  .tabs, .crumb, .ribbon { display: none; }
+  .tabs { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .08em; color: var(--gold-dim); text-align: center; margin: 0 0 10px 0; }
+  .tabs b { color: var(--gold-bright); border-bottom: 2px solid var(--gold); padding-bottom: 2px; }
+  .crumb { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .08em; color: var(--gold-dim); margin: 0 0 10px 0; }
+  .crumb b { color: var(--gold-bright); }
+  .ribbon { display: none; justify-content: center; gap: 10px; margin: 0 0 12px 0; }
+  .frame-papers .ribbon { display: flex; }
+  .ribbon div { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .08em; color: var(--gold-dim); border: 1px solid rgba(217,192,140,.35); padding: 4px 12px; border-radius: 3px; }
+  .ribbon div.on { color: var(--gold-bright); border-color: var(--gold); background: rgba(217,192,140,.08); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; min-height: 0; flex: 1; }
+  h2 { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: .12em; color: var(--gold); margin: 6px 0 8px 0; font-weight: 600; }
+  h2 small { color: var(--muted); letter-spacing: 0; font-family: 'EBGaramond', serif; font-size: 13px; text-transform: none; font-weight: normal; }
+  .slip { position: relative; color: var(--ink); padding: 8px 16px 6px 16px; margin: 0 0 8px 0; border: 20px solid transparent; border-width: 14px 18px 12px 18px; }
+  .slip .top { display: flex; justify-content: space-between; align-items: center; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .1em; color: var(--rubric); }
+  .slip .top .arms { width: 16px; height: 16px; }
+  .slip .apo { font-family: 'IMFellIt', serif; font-size: 17px; margin: 3px 0 1px 0; display: flex; align-items: center; gap: 8px; }
+  .slip .apo img { width: 22px; height: 22px; transform: rotate(-8deg); }
+  .slip .apo.unsealed { color: var(--sepia); font-family: 'IMFell', serif; font-size: 15px; }
+  .slip .did { font-size: 15px; color: var(--ink); }
+  .slip .came { font-size: 15px; color: var(--sepia); font-style: italic; margin-top: 2px; }
+  .slip .came.at-sea { color: #3a4a6a; font-style: normal; }
+  .slip .came.lost { color: var(--rubric); font-style: normal; }
+  .slip .chips { margin-top: 6px; display: flex; gap: 8px; }
+  .chip { font-family: 'EBGaramond', serif; font-size: 13.5px; color: var(--gold); background: var(--panel); border: 1px solid var(--gold); border-radius: 3px; padding: 2px 10px; }
+  .chip.primary { color: var(--gold-bright); border-color: var(--gold-bright); }
+  .watch { color: var(--cream); font-size: 15.5px; margin: 0 0 8px 0; display: flex; gap: 10px; align-items: baseline; }
+  .pips { font-family: monospace; letter-spacing: 2px; color: var(--gold); font-size: 13px; }
+  .pips .off { color: #4a4a5a; }
+  .empty { color: var(--muted); font-style: italic; font-size: 15px; }
+  .foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 13.5px; font-style: italic; padding-top: 8px; border-top: 1px solid rgba(217,192,140,.2); }
+  .firstopen { color: #8fb0d8; font-style: italic; font-size: 15px; text-align: center; margin: 0 0 10px 0; }
+  /* Interface Scale 2.0 — 800×450 logical; sizes are the client's logical sizes (no shrink);
+     the page is one column in a 700-wide, 394-tall clamped panel and scrolls (the capture shows the fold). */
+  @media (max-width: 900px) {
+    #screen { width: 700px; height: 394px; padding: 10px 16px; top: calc(50% + 18px); overflow: hidden; }
+    h1 { font-size: 18px; } .sub { display: none; } .firstopen { margin-bottom: 4px; }
+    .ribbon { margin-bottom: 6px; } .ribbon div { padding: 2px 8px; }
+    .cols { grid-template-columns: 1fr; column-gap: 0; }
+    h2 { margin: 2px 0 4px 0; }
+    .slip { padding: 6px 12px 5px 12px; margin-bottom: 6px; border-width: 12px 14px 10px 14px; }
+    .slip .did { display: inline; } .slip .came { display: inline; margin-left: 6px; }
+    .watch { margin-bottom: 4px; }
+    .foot { display: none; }
+    .corner { width: 32px; height: 32px; }
+  }
+</style></head>
+<body class="frame-papers">
+<div id="bar"><span style="left:14px">INK &amp; IRON — LATE APRIL 1806 · TURN 15</span><span id="barright" style="right:14px"></span></div>
+<div id="screen">
+  <img class="corner tl" id="c1" alt=""><img class="corner tr" id="c2" alt="">
+  <h1 id="title">THE STATE PAPERS</h1>
+  <div class="tabs" id="tabs">FORCES · TERRITORIES · ECONOMY · INTEL · MANPOWER · ORDERS · ADMIRALTY · LAWS · <b>PORTFOLIO (1)</b></div>
+  <div class="crumb" id="crumb">THE DISPATCH ▸ <b>THE CORRESPONDENCE</b> &nbsp;·&nbsp; ◂ back to the Dispatch</div>
+  <div class="ribbon" id="ribbon"><div class="on">ON THE DESK (1)</div><div>ANSWERED (3)</div><div>IN THE OFFING (2)</div></div>
+  <p class="firstopen" id="fo">These are the State Papers, Sire: every letter of state laid before you, the answer you gave, what it did and what came of it. In the Offing are the matters that may yet write to you.</p>
+  <div class="cols">
+    <div>
+      <h2>On the desk <small>— letters that wait for the Emperor</small></h2>
+      <div class="slip" id="s0">
+        <div class="top"><span>SEALED · ANSWER BY LATE MAY 1806</span><img class="arms" id="armsBav" alt=""></div>
+        <div class="apo unsealed">The Host's Claims — Montgelas, for the court of Munich</div>
+        <div class="did">Pay the host's claims: −900 gold &nbsp;·&nbsp; Live off the land: Bavaria's goodwill 46 → 40.</div>
+        <div class="chips"><span class="chip primary">Read the letter ▸</span></div>
+      </div>
+      <h2>In the offing <small>— matters that may yet write; none is promised</small></h2>
+      <div class="watch"><span>The Emperor afield: 4 of 6 mornings — Cambacérès may write.</span></div>
+      <div class="watch"><span>At war 2 of 4 turns, and the chest could found the headquarters — Berthier may write.</span></div>
+    </div>
+    <div>
+      <h2>Answered <small>— newest first</small></h2>
+      <div class="slip">
+        <div class="top"><span>EARLY FEBRUARY 1806 · THE SQUADRON FOR SANTO DOMINGO</span><img class="arms" id="armsFr1" alt=""></div>
+        <div class="apo"><img id="seal1" alt="">Send five of the line. — N.</div>
+        <div class="did">−500 gold · 1 action · five of the line to sea (45 → 40 in port) at 36 in 100.</div>
+        <div class="came at-sea">⧗ At sea — five of the line; word expected about Early April 1806.</div>
+        <div class="chips"><span class="chip">Admiralty ▸</span><span class="chip">Read the letter ▸</span></div>
+      </div>
+      <div class="slip">
+        <div class="top"><span>LATE MARCH 1806 · THE ARCH-CHANCELLOR'S LETTERS</span><img class="arms" id="armsFr2" alt=""></div>
+        <div class="apo"><img id="seal2" alt="">Let the Council act. — N.</div>
+        <div class="did">Your standing 85 → 80; the grip 85 → 80, below the aura's full line.</div>
+        <div class="came">Early April 1806 — the Council of State sat under the Arch-Chancellor, and Paris remarked the Emperor's absence.</div>
+        <div class="chips"><span class="chip">Read the letter ▸</span></div>
+      </div>
+      <div class="slip">
+        <div class="top"><span>EARLY JANUARY 1806 · THE BAVARIAN MATCH</span><img class="arms" id="armsBav2" alt=""></div>
+        <div class="apo"><img id="seal3" alt="">Seal the match. — N.</div>
+        <div class="did">2 diplomatic points; 1,000 gold; Bavaria's goodwill 60 → 80; Europe's alarm 70 → 73.</div>
+        <div class="came">Late January 1806 — Munich gave Augusta to Eugène; Baden was told.</div>
+        <div class="chips"><span class="chip">Bavaria ▸</span><span class="chip">Read the letter ▸</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot" id="foot">Nothing here asks for an order. Letters open from their slip, the rail card, or the envoy badge.</div>
+</div>
+<script>
+  const A = window.ASSETS;
+  const st = document.createElement('style');
+  st.textContent = `
+    @font-face { font-family: 'Cinzel'; src: url(${A.font_cinzel}) format('truetype'); }
+    @font-face { font-family: 'EBGaramond'; src: url(${A.font_garamond}) format('truetype'); }
+    @font-face { font-family: 'EBGaramond'; font-style: italic; src: url(${A.font_garamond_it}) format('truetype'); }
+    @font-face { font-family: 'IMFell'; src: url(${A.font_fell}) format('truetype'); }
+    @font-face { font-family: 'IMFellIt'; src: url(${A.font_fell_it}) format('truetype'); }
+    .slip { border-image: url(${A.parchment_alpha}) 56 52 52 52 fill / 18px 20px 16px 20px / 6px stretch; }
+  `;
+  document.head.appendChild(st);
+  for (const id of ['c1','c2']) document.getElementById(id).src = A.corner_floral_01;
+  for (const id of ['seal1','seal2','seal3']) document.getElementById(id).src = A.wax_seal;
+  document.getElementById('armsBav').src = A.arms_Bavaria; document.getElementById('armsBav2').src = A.arms_Bavaria;
+  document.getElementById('armsFr1').src = A.arms_France; document.getElementById('armsFr2').src = A.arms_France;
+  const q = new URLSearchParams(location.search); const home = q.get('home') || 'papers';
+  document.body.className = 'frame-' + home;
+  const titles = { papers: 'THE STATE PAPERS', portfolio: 'THE PORTFOLIO', correspondence: 'THE CORRESPONDENCE' };
+  document.getElementById('title').textContent = titles[home] || titles.papers;
+  const fos = {
+    papers: 'These are the State Papers, Sire: every letter of state laid before you, the answer you gave, what it did and what came of it. In the Offing are the matters that may yet write to you.',
+    portfolio: "The ministers' papers, Sire: the letters that wait, those you have answered and what each answer did, and what a minister may soon lay before you. Nothing here asks for an order.",
+    correspondence: 'The Correspondence, Sire: each letter of state laid before you, the answer you gave, what it did and what came of it; below, the matters that may yet write to you. Nothing here asks for an order.'
+  };
+  document.getElementById('fo').textContent = fos[home];
+  const bars = { papers: 'ENVOYS (1) · DISPATCH · LEDGER · <span class="hot">STATE PAPERS (P)</span>', portfolio: 'ENVOYS (1) · DISPATCH · <span class="hot">LEDGER (L)</span>', correspondence: 'ENVOYS (1) · <span class="hot">THE DISPATCH (R)</span> · LEDGER (L)' };
+  document.getElementById('barright').innerHTML = bars[home];
+  document.getElementById('foot').textContent = home === 'correspondence'
+    ? 'Nothing here asks for an order. A letter opens from its slip, the rail card or the envoy badge; ◂ The Dispatch returns.'
+    : document.getElementById('foot').textContent;
+</script>
+</body></html>
