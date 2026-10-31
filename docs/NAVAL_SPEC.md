@@ -1,6 +1,7 @@
 # NAVAL_SPEC.md — "The Wooden Wall": the naval abstraction, the blockade war, and the liberation of Ireland (DEF-5)
 
 > **v1.0 — AUTHORED August 1, 2026. STATUS: DRAFT FOR USER GATE (§12).**
+> **v1.0.5 — October 30, 2026, NV-D5 AMENDED (the user's ruling of `RECURRING_EVENTS_SPEC.md` §0b P5, "Take the defaults"):** the §10 row's "no colonial strings on any v1 surface" becomes an **allow-list** — the affairs' authored copy (the Haiti letter, `RECURRING_EVENTS_SPEC.md` §6.5), the Net line, the ledger's "Overseas trade" row and the Admiralty's squadron line; no colonial *mechanic* enters (EB-2's `test_france_authors_no_overseas_pool` stands). The copy-scan pin v1.0.4 credited to NV-0 was found never written; it lands at RE-H as `tests/test_nv_d5_colonial_copy.py`. Nothing else in this spec moves.
 > **v1.0.1 — August 2, 2026, pre-gate Q&A amendments (user questions):** the §3.2 admiral-talent
 > ruling (structural, not a stat — with the one-number option recorded), the §4.4 trigger
 > enumeration (battles fire in exactly two situations, never ordered), the §9 **Crossings
@@ -537,7 +538,7 @@ a falsifiable test.
 | NV-D2 | Copenhagen 1807 — Britain's pre-emptive fleet seizure of a neutral | Same NA follow-on gate (it is an agenda behavior, not a naval one) | seizure event pins |
 | ~~NV-D3~~ | ~~Privateers / commerce-raid posture~~ | **STRUCK September 28, 2026 by the user's ruling** ("we can strike privateer", SR-5b). No player-facing surface ever promised it. Re-open only on a played campaign where the blockade layer measures thin — the SR-5b arms did not (Britain sued on turn 8 on six of six). | none — the row is closed |
 | ~~NV-D4~~ | ~~Naval battle presentation (diorama-class)~~ | **✅ CLOSED — re-opened and BUILT at the August 2, 2026 user gate ("a battle screen like for battles?"); landing record §15.5** | `test_naval_diorama.py` (22) + `docs/audits/NV7_NAVAL_DIORAMA_TRAFALGAR_2026_08_02.png` |
-| NV-D5 | Colonies / Egypt / the wider world — referenced NOWHERE in v1 copy | Post-EA expansion table (ROADMAP) — its own future gate defines scope + completion | copy-scan pin at NV-0: no colonial strings ship on any v1 surface |
+| NV-D5 | Colonies / Egypt / the wider world — no colonial **mechanic** in v1 (no overseas pool for France, `test_france_authors_no_overseas_pool`; no colonial map; no colonial trade term). **Amended October 30, 2026 by the user's ruling of `RECURRING_EVENTS_SPEC.md` §0b P5:** colonial **strings** may ship on four surfaces only — the affairs' authored copy (§6.5 the Haiti letter), the Net line (`economy_executor.py:1236`), the ledger's "Overseas trade" row and the Admiralty's squadron line (its destination read from the fleet record, frozen at the sailing; `naval.py` never imports the deck) | Post-EA expansion table (ROADMAP) — its own future gate defines scope + completion for any colonial mechanic; the strings' allow-list is this row's | **the copy-scan pin named at NV-0 was never written** (found October 30, 2026 — `AFFAIRS_DESIGN_PASS_2026_10_30.md` §A.5); it is written at RE-H (`RECURRING_EVENTS_SPEC.md` §16b) as an allow-list, `tests/test_nv_d5_colonial_copy.py`: a colonial string on any surface outside the four fails |
 | NV-D6 | DEF-8 full `is_coastal` re-derivation | Stays at DEF-8, **not triggered** (§3.4 — v1 reads authored data only) | DEF-8's own row |
 | NV-D7 | Weather/season on expeditions (Bantry's gale) | NV-V verdict decides if the odds curve needs it | curve re-bless |
 | NV-D8 | Ambient AI expeditions/diversions (an AI France invading Ireland unprompted) | The first post-naval AI review (AI-V cadence) | predicate → ambient pins |
@@ -679,7 +680,7 @@ slices' measured-table discipline.
 "stays", "owned", "may slip") was swept: each resolves to an owned §10 row or an explicit
 §12 gate option (Q2's slip clause writes its owner row at decision time; Q7's texture
 options re-open only at NV-V). All nine §10 rows now carry owner + landing + a
-falsifiable test — NV-D5, the one bare row, gained the copy-scan pin. The standing rule
+falsifiable test — NV-D5, the one bare row, gained the copy-scan pin (named here, never written — found October 30, 2026 and re-homed to RE-H as an allow-list; see the row). The standing rule
 is stated in the §10 preamble: **nothing deferred appears in v1 player-facing copy** — no
 disabled affordances, no "coming soon" strings; refusals name present-tense facts (a
 crossing is refused because "the Royal Navy commands the Strait — 100 sail against 31",

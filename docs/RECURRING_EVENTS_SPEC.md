@@ -1,11 +1,11 @@
 # Recurring era events — "Affairs of State": the gate
 
-**Status:** ✅ **SPEC AUTHORED and ✅ RULED October 27, 2026.** The user took every recommended default (§0 Q1–Q14), the Edicts in principle; RE stays after S15.
-- **▶ October 30, 2026 — a design pass awaits your ruling.** The user: *"i want the events to be good, maybe a haiti one, this should be icing on cake and have good and creative navigation and interface and reaction etc. make sure design is top notch."* A second gate ran (three researchers, three designers on Opus, three judges, the orchestrator's synthesis, two rendered mocks, three critics — the record `docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md`). Its product is **five PROPOSED sections beside the ruled contract, never inside it: §0b the questions, §6.5 the Haiti letter, §12b the home and the letter's dress, §12c the reaction layer, §16b the slices re-sized.** §5–§16 stand as ruled until §0b is answered; a ruling folds each PROPOSED section into its place.
-- **The ruling, in the user's words:** "Take the recurring-events gate's recommended defaults (docs/RECURRING_EVENTS_SPEC.md §0 Q1–Q14), including the Edicts in principle; RE stays after S15."
+**Status:** ✅ **SPEC AUTHORED and ✅ RULED October 27, 2026.** The user took every recommended default (§0 Q1–Q14), the Edicts in principle; RE stays after S15. **✅ The October 30 design pass RULED October 30, 2026 — every recommended default (§0b P1–P20) taken; the user: "Take the defaults".**
+- **▶ October 30, 2026 — the design pass, ✅ RULED the same day.** The user: *"i want the events to be good, maybe a haiti one, this should be icing on cake and have good and creative navigation and interface and reaction etc. make sure design is top notch."* A second gate ran (three researchers, three designers on Opus, three judges, the orchestrator's synthesis, two rendered mocks, three critics — the record `docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md`). Its product — **§0b the questions, §6.5 the Haiti letter, §12b the home and the letter's dress, §12c the reaction layer, §16b the slices re-sized, §17b what it struck — was written beside the ruled contract and is now part of it: the user took every recommended default ("Take the defaults"), so each section is ruled where it stands and §5–§16 read with §6.5, §12b, §12c and §16b.** Where an October 27 line and an October 30 line differ (the Host's Claims at two corps, the look-ahead, the sizing), the October 30 line governs. The ruling's own lines, the same day: `NAVAL_SPEC.md` NV-D5 amended (P5); the errata renamed ERR-1…ERR-4 (their E-names collided with the Edicts' offers E1–E3); the sizing moved in its four places.
+- **The rulings, in the user's words:** October 27 — "Take the recurring-events gate's recommended defaults (docs/RECURRING_EVENTS_SPEC.md §0 Q1–Q14), including the Edicts in principle; RE stays after S15." October 30 — "Take the defaults" (§0b P1–P20).
 - **Nothing is built yet** and no game code changed. Nothing here holds the deploy.
 - **S14j re-measured the economy the same day (`SYSTEMS_REFERENCE.md` §159, `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`):** the Charges' crown term is 250, a detached garrison keeps its pay and conquered soil costs 0.15 more. This spec's measurement (§1) and its "the golden peace is not taxed" / EAD-6 readings predate it. RE-6's head re-sizes the Edicts against S14j's numbers (France levels off at 16–40k, the courts at 146–193k together) before E1–E3 arm.
-- **Owner:** row **RE**, after S15 (§15); about five sessions — the core's three and a half, and the Edicts' one and a half.
+- **Owner:** row **RE**, after S15 (§15); **about ten and a half sessions in four shippable tiers** (§16b, ruled October 30): the letter 5.5 (RE-1, RE-2, RE-3 with H0, RE-5), + the home (RE-C) 6.75, + the reactions (RE-R) 7.5, + the squadron (RE-H in full) 8.75, with the Edicts (RE-6) 10.5 — the October 27 ruling's five, re-sized.
 - **The code name is "affairs".** Module `backend/game_logic/affairs.py`; authored deck `moments.affairs`; runtime store `world.moments["affairs"]`; log type `moment`, with the phases `affair` and `court`. "Event" already means `event_log`, and the deck rides S14c's moments engine rather than forking it.
 
 **The question it answers.** The user asked whether Ink & Iron has recurring events built on blocks of attributes — simpler, repeatable, era-flavoured events that could serve as gold sinks or slow a runaway advance. It has none. S14c (`docs/EVENTS_SPEC.md`) built four one-shot letters for France, each latched forever by its id, and struck the situational class (A1). This spec designs the recurring class against the game as it stands after S14i.
@@ -61,24 +61,24 @@
 
 | Section | What it holds |
 |---|---|
-| §0 | The questions for the user |
+| §0 | The questions for the user (ruled October 27); §0b the October 30 pass's questions (ruled October 30) |
 | §1 | Why, measured |
 | §2 | What the game already has |
 | §3 | What players value and resent |
 | §4 | The record, 1805–1815 |
 | §5 | The attribute block |
-| §6 | The catalogue: §6.1 the three live templates; §6.2 the ten conditional ones; §6.3 the struck; §6.4 the reach table |
+| §6 | The catalogue: §6.1 the three live templates; §6.2 the ten conditional ones; §6.3 the struck; §6.4 the reach table; §6.5 the Haiti letter |
 | §7 | Pacing |
 | §8 | The courts |
 | §9 | The engine |
 | §10 | Seeds |
 | §11 | Saves |
-| §12 | The client |
+| §12 | The client; §12b the Correspondence and the letter's dress; §12c the reaction layer |
 | §13 | Rule 8 |
 | §14 | Sizing |
 | §15 | Placement |
-| §16 | The build |
-| §17 | Rule 9 |
+| §16 | The build; §16b the slices re-sized (the ruled sizing) |
+| §17 | Rule 9; §17b the October 30 pass's strikes and deferrals |
 | §18 | The record |
 
 ---
@@ -122,13 +122,13 @@
 
 ---
 
-## §0b The October 30 pass — the questions (PROPOSED; for the user's ruling)
+## §0b The October 30 pass — ✅ RULED October 30, 2026: every recommended default (◆) taken
 
 **What the pass found, before the questions.** The ruled design is defensive by construction — a quiet card, no reaction beyond the plan's figures, a plain navy text panel — and the catalogue had no Atlantic entry at all. Measured against the six hand-played DD-B runs, **the ruled deck reaches real players almost nowhere**: every run made peace with Britain between turn 6 and turn 19, and only T1 (on one run) meets any of them (the playtester, `AFFAIRS_DESIGN_PASS_2026_10_30.md` §G.1). The four moments do the work the dress, the home and the reactions pay for (the Match arrived on four of six runs). The pass therefore proposes: a Haiti letter that follows the player's own peace (P7), the Host's Claims at two corps (P6), a home, a dress and a reaction layer for every letter of state, and the historically fuller option for Haiti — a squadron with its fate on the naval module's own roll — as the default rather than a tier behind the bill (P2). Three critics then read the synthesis against the code, the record and the rules (§I of the record); every confirmed finding is in the text below, and the questions their findings raised are P18–P20.
 
-**How to rule.** Every ◆ is a recommended default; one line ("take the defaults") rules the table. A shape change named here re-escalates only through this table; numbers marked as bands stay in-band tunable.
+**The ruling.** The user, October 30, 2026: "Take the defaults." Every ◆ below is therefore the ruling, and §6.5, §12b, §12c, §16b and §17b are part of the build contract with §5–§16; the right-hand column is the record of what was not taken. A shape change re-escalates only through this table; numbers marked as bands stay in-band tunable. **What the ruling moved the same day:** `NAVAL_SPEC.md` §10's NV-D5 row amended (P5 — its copy-scan pin, promised at NV-0, was never written; it lands at RE-H as an allow-list); the sizing in its four places (§15, `PRE_DEPLOY_PLAN.md` §2, `ROADMAP.md`, STATUS ▶ NEXT UP); the errata renamed ERR-1…ERR-4 (E1–E4 in the pass's text and in the record's critic quotes — the names collided with the Edicts' offers E1–E3, §6.2). **What it owes to the slices:** ERR-2 at RE-1, ERR-3 at RE-3, the NV-D5 pin at RE-H; the two UNVERIFIED claims (P7's windows, P8's T13) measured where §17b homes them.
 
-| # | Question | ◆ Recommended default | The alternatives, and the historically fuller option with its cost |
+| # | Question | ◆ Ruled — the recommended default, taken October 30, 2026 | The alternatives, and the historically fuller option with its cost |
 |---|---|---|---|
 | **P1** | **The content stance for the Haiti letter** | ◆ As §6.5 writes it: a standing **ground** record on every arrival (the law of 20 May 1802 kept slavery where Amiens returned the colonies; the acts of 16 July and 7 December 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence on 1 January 1804) and a **chapter** keyed by arrival and by the last squadron's fate (the killings of 1804; Ferrand's decree of 6 January 1805 and what it did; Dessalines's march and the civilians killed at Moca and Santiago; Missiessy; Leissègues); **Haiti's own documents** in their own typeface, alternating by arrival (the Constitution's Article 2, three years to the day after the law; the proclamation that opens the Act of 1 January 1804, Boisrond-Tonnerre's draft for Dessalines, in French); no answer restores, reconquers or trades; relief priced in gold and the squadron in ships; the Decline priced as the Emperor's own word to Decrès on 5 August 1805 — "il est honteux d'abandonner ces braves gens" — as standing, where it bites (P16). **The default's cost, said plainly:** it fines a player for refusing the commander whose decree the record names. The colons' memorial struck (the record's answer was relief, never indemnity; its fork stakes the planters' claim). | A free Decline (the playtester's flag). Cost: the Accept becomes a pure gamble, and "each answer the better one somewhere" rests on hulls alone. |
 | **P2** | **The Haiti letter's form** | ◆ The squadron (RE-H): five of the line sail at the naval module's own odds; the men and the stores land either way; the ships are what is risked. When no hunter is at sea the letter arrives in its **bill form** instead (flour and muskets by two frigates), frozen at delivery (P18) — never a sale at 100. | The bill alone (§6.5 H0; 0.25 session). Cost: the letter prices in gold what history priced in ships — six of seven Antilles sailings of 1805–09 were lost or broken. |
@@ -151,7 +151,7 @@
 | **P19** | **The state rows and the log row** | ◆ The state rows carry stored copy beside the ruled ints and short strings — `receipt` ≤ 120, `echo` ≤ 160, `outcome_line` ≤ 160, `remark_by`, `form`, `bind` — because the event log rolls at 500 rows and is full by turn 21; the `moment` log row gains `register: "affair"` and the phase `outcome` in place of the ruled phases `affair` / `court`, and the one-liner gains an `outcome` arm (today the phase would fall to "A moment of history: {title}"). Cost: the row-shape pins; the readers' else arm. | The log rows only. Cost: the home empties by T21. |
 | **P20** | **The Gazette, the economy gate, the alarm pin** | ◆ A per-row predicate in `compose_issue` (an affair's `arrived` row never prints; a squadron letter prints its `outcome` row, not its `answered` row) — in `compose_issue` (70 lines), never `filter_campaign_log` (499 lines against the cap of 500); one `press` COURTS line per affair, best-effort against the column's last-8 cap; §14's economy-gate record gains H1 (500 or 600 gold, at most twice an act — at most 1,200 an act, converting, not draining); the alarm-untouched pin extends to the sailing and its settlement. | No COURTS line for affairs. Cost: the Moniteur silent on the Emperor's own acts. |
 
-**Errata to the ruled text.** (E1, **applied today** — a factual correction, no shape change) §4's table and §6.1 T2's record and source said "to Berthier, 14 July 1810"; the letter of 14 July 1810 (Rambouillet, "que la guerre nourrit la guerre") is to Berthier, for Reynier and Dorsenne, and the Soult attribution rests on Branda — both now read "to Berthier, 14 July 1810". (E2, **at RE-1**) the moments' voice and the mailbox's source "The Cabinet" (`moments.py:91`, `dialogue_manager.py:651`, one pin `test_moments_engine.py:510`, §7's "The Cabinet set aside two matters") collide with the top bar's "The Cabinet (F1)", the diplomacy wizard — a Rule 10 sibling; the voice becomes **"the Secretariat"** ("the Council" would collide with the Council of State — the laws' confirm voice and T1's own caption). (E3) §1's and §6.4's CMD figures came from unarchived October 27 runs; the archived arms (`docs/audits/score_runs/2026_10_21_rr6/slice`) pre-date S14c and S14j, so every reach count is re-measured at RE-3 on the live tree. (E4, **applied today**) §9's "tick at `world_state.py:13336`" is stale — the moments tick sits at `:13336`, after the naval tick at `:13004`.
+**Errata to the ruled text** (ERR-1…ERR-4; E1–E4 in the pass's text and the record's critic quotes — renamed at the ruling because the Edicts' offers are E1–E3)**.** (ERR-1, **applied October 30** — a factual correction, no shape change) §4's table and §6.1 T2's record and source said "to Berthier, 14 July 1810"; the letter of 14 July 1810 (Rambouillet, "que la guerre nourrit la guerre") is to Berthier, for Reynier and Dorsenne, and the Soult attribution rests on Branda — both now read "to Berthier, 14 July 1810". (ERR-2, **at RE-1**) the moments' voice and the mailbox's source "The Cabinet" (`moments.py:91`, `dialogue_manager.py:651`, one pin `test_moments_engine.py:510`, §7's "The Cabinet set aside two matters") collide with the top bar's "The Cabinet (F1)", the diplomacy wizard — a Rule 10 sibling; the voice becomes **"the Secretariat"** ("the Council" would collide with the Council of State — the laws' confirm voice and T1's own caption). (ERR-3, **at RE-3**) §1's and §6.4's CMD figures came from unarchived October 27 runs; the archived arms (`docs/audits/score_runs/2026_10_21_rr6/slice`) pre-date S14c and S14j, so every reach count is re-measured at RE-3 on the live tree. (ERR-4, **applied October 30**) §9's "tick at `world_state.py:13336`" is stale — the moments tick sits at `:13336`, after the naval tick at `:13004`.
 
 ---
 
@@ -411,7 +411,7 @@ The historian judge and the rules-and-history critic rechecked the figures quote
 
 ---
 
-## §6 The catalogue — thirteen templates: three live, ten waiting on a ruling
+## §6 The catalogue — fourteen templates: four live (T1–T3 ruled October 27; H1 the Haiti letter, §6.5, ruled October 30), ten waiting on a ruling
 
 **Shared by every template:**
 - **The letter.** It stands two player turns, with a grace of 2; every quote is `plan()`'s own (shown = applied).
@@ -530,7 +530,7 @@ Each is written to the same block. It is armed only when its ruling lands, and i
 
 ---
 
-### §6.5 The Haiti letter — PROPOSED (the October 30 pass; §0b P1–P5, P7, P13, P15, P16, P18–P20)
+### §6.5 The Haiti letter — ✅ ruled October 30, 2026 (the October 30 pass; §0b P1–P5, P7, P13, P15, P16, P18–P20)
 
 **Why this letter.** R1's rows 1 and 2 (`AFFAIRS_DESIGN_PASS_2026_10_30.md` §E.1): Ferrand's garrison at Santo Domingo, 1803–09, and the seven sailings sent toward it, each a real fork — a true squadron, a half-measure, or nothing — each priced in ships, and six of seven lost or broken. Napoleon's own words carry both answers: to Decrès on 5 August 1805, "Il faut s'empresser de secourir ces braves gens … non-seulement il est important de ne point perdre la partie espagnole, mais il est honteux d'abandonner ces braves gens"; and after the colony fell, on 26 September 1809, "si on y avait envoyé un vaisseau, deux frégates et 600 hommes, on aurait sauvé cette importante colonie". The stake is a flag and a garrison, never plantation yield. Haiti acts in the record and speaks on the page in its own documents. **One template; the two optional slots stay empty** (the colons' memorial is a dominated fork staked on the planters' claim; the fifth dated moment has no French fork — France made no approach to either Haitian state in 1804–13).
 
@@ -545,7 +545,7 @@ Each is written to the same block. It is armed only when its ruling lands, and i
   5. **`bites`, as ruled (P16):** the Decline's −3 would land below 85 and the floor allows it whole.
   **Reach:** none of the 29 boards by the instantaneous read — the five boards where clauses 1–4 hold (fx_agd_tilsit, fx_ge3_pressburg, pc_ulm_t18_paris_fallen, CMD-A t10, CMD-A t40) all sit at authority 100, and pc_ulm's grip of 52 floors the loss to nothing; never the six DD-B saves (at peace or truce with Britain by turn 21) nor CMD-H / CMD-M (the Emperor afield). **The latch and `bites` are read on runs, not saves: the hand-played runs' own windows (blockaded from the opening; peace between turn 6 and turn 19; four of six below authority 100 at turn 21) fall inside T13–T17 — measured at RE-H from `--from-save` starts.** The band is "the early campaign, at war with Britain, the Emperor at home, a standing that is spent".
 - **`scale`** none (five of the line always) · **`cooldown`** 12 · **`cap`** 2 an act · **`ends`** 1808-11-07 (Ferrand's death — T76, validator-checked against `calendar.turn_for_date`; the first `ends` in the deck). **The file closes at T76, or earlier when the cap is spent after a loss** (P13).
-- **Voice** `named`: "Decrès, Minister of Marine and the Colonies" (3 October 1801 – 1 April 1814, every reachable year). **Face:** the monogram locket "D" and France's arms (a portrait on the user's yes, P14). The header band names him.
+- **Voice** `named`: "Decrès, Minister of Marine and the Colonies" (3 October 1801 – 1 April 1814, every reachable year). **Face:** the monogram locket "D" and France's arms (P14 ruled: no portrait in v1; a Commons pass re-opens only by the user's word — §17b). The header band names him.
 - **The writer's line** (`line`, ≤ 200) — squadron form: "Sire, Ferrand wrote last February that he had bread for twenty days and no credit; Your Majesty called it shameful to abandon these brave men. Brest can put five of the line to sea in a month." Bill form: "Sire, Ferrand wrote last February that he had bread for twenty days and no credit from France. The sea is open; two frigates can carry flour and muskets by the spring tide." (The February is 1805, *Clío* pp. 92–93; a letter arriving after T26 says "two years ago".)
 - **The ground** (`record`, every arrival, ≤ 240; "Historically …"): "Historically the law of 20 May 1802 kept slavery in the colonies Amiens returned, and acts of 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence, 1 January 1804."
 - **The chapter** (`variants[]`, ≤ 240 each, keyed by arrival and by the last squadron's fate, frozen at delivery — P18):
@@ -580,7 +580,7 @@ Each is written to the same block. It is armed only when its ruling lands, and i
 11. **The validator** (`_validate_affairs`): the op's bounds; `min_ships ≥ ships + 20`; the `navies` row; both forms authored; `ends` against `calendar.turn_for_date`; the ground and chapter lengths; the exhibit and counsel lengths; the chapter keys named in `affairs.VARIANT_FACTS`; the no-typed-order census over every new field.
 12. **Pins:** `set(MO.OPS)` 9 → 10; `BASELINE_SERIES` byte-identical under the default decline policy (no squadron sails); the accept arm's movers (the port fleet Britain reads; a loss leaves the fleet five short) attributed and re-pinned in RE-H as seams **AFH** (`naval._squadron_tick`) and **AFS** (`_apply_squadron` + `settle_squadrons`); the alarm-untouched pin extended to the sailing and the settlement; `test_france_authors_no_overseas_pool` unchanged; a mid-voyage save round-trips in `world.fleets` (probed: `to_dict` / JSON / `from_dict` and every existing naval reader pass with a nested `squadron` key).
 
-**H0 — the bill alone (if P2 is refused).** The same id, voice, ground, chapters and exhibits; the premise with the latch, the Emperor at home and `bites`; Accept "Send flour and muskets" = `gold` 600 + `admin` 1; Decline as above. Honest and narrow; it ships at RE-3 for 0.25 session.
+**H0 — the bill alone (P2 ruled the squadron; H0 is RE-H's first step and the tier-1 fallback should the squadron ever be cut — Rule 9, §17b).** The same id, voice, ground, chapters and exhibits; the premise with the latch, the Emperor at home and `bites`; Accept "Send flour and muskets" = `gold` 600 + `admin` 1; Decline as above. Honest and narrow; it ships at RE-3 for 0.25 session.
 
 ---
 
@@ -605,7 +605,7 @@ Each is written to the same block. It is armed only when its ruling lands, and i
 
 **Crowded out.**
 - A due affair waits up to `wait` (4) mornings. Still waiting, it writes a `passed(crowded)` occurrence row; that row is not an arrival, so it moves no gap, and it arms the cooldown.
-- If its Watch line had shown, one aggregated dispatch line every six turns at most says so: "The Cabinet set aside two matters".
+- If its Watch line had shown, one aggregated dispatch line every six turns at most says so: "The Secretariat set aside two matters" (ERR-2 — "The Cabinet" until the October 30 ruling).
 - The Watch says "may", never "will" (critic 2), so nothing promised goes unsaid.
 - **A delivered affair that lapses** ends on screen through the existing lapse surfaces, one sentence each.
 
@@ -786,13 +786,13 @@ Every figure is an `int` (GR2).
 
 ---
 
-## §12b The home and the letter's dress — PROPOSED (the October 30 pass; §0b P9, P11, P12, P14)
+## §12b The home and the letter's dress — ✅ ruled October 30, 2026 (the October 30 pass; §0b P9, P11, P12, P14)
 
 **The arrival stays as ruled** (Q8: the NORMAL rail card, the mailbox row, the first affair opening itself once). What changes is the letter's look, the home it goes to, and what follows. Two rendered mocks stand beside this text — `docs/audits/affairs_mocks/letter_1600.png`, `letter_800.png`, `letter_1600_sealed.png`, `home_correspondence_1600.png`, `home_correspondence_800.png` — **as approximations in HTML over the client's own fonts, parchment, arms and seal, not as frames of the client: the IQ-10 frame shot at RE-2 is the floor.** Every `main.gd:NNNN` cite below is a cite of today's file; CODE-6 (S16) splits `main.gd` before RE-2 lands, so the build reads the symbols.
 
 ### 12b.1 The Correspondence — the home
 
-- **What and where.** A page of the Dispatch screen (`dispatch_view.gd`, CanvasLayer 50), opened by a Button in its action row — **"The Correspondence"**, reading "The Correspondence (1 standing)" or "(a squadron at sea)" in amber when it has news, like the Envoys badge — and closed by "◂ The Dispatch". The Dispatch is reachable by the top bar and by R and B, so the home needs no hotkey, no top-bar button and no new endpoint. **The Dispatch is one RichTextLabel in a ScrollContainer today, so the page is a new node subtree with its own page state**: `_on_dispatch_received` and `refresh_pinned` rewrite `content_label` from every GET and must respect the open page; the panel is clamped and gripped (`dispatch_view.gd:34`), and `clamp_ceiling_override` raises its 700 × 500 ceiling for this page as `_raise_letter_ceiling` does for the letter. The name echoes the *Correspondance de Napoléon Ier* and appears nowhere in the code; "the Cabinet" is avoided (E2).
+- **What and where.** A page of the Dispatch screen (`dispatch_view.gd`, CanvasLayer 50), opened by a Button in its action row — **"The Correspondence"**, reading "The Correspondence (1 standing)" or "(a squadron at sea)" in amber when it has news, like the Envoys badge — and closed by "◂ The Dispatch". The Dispatch is reachable by the top bar and by R and B, so the home needs no hotkey, no top-bar button and no new endpoint. **The Dispatch is one RichTextLabel in a ScrollContainer today, so the page is a new node subtree with its own page state**: `_on_dispatch_received` and `refresh_pinned` rewrite `content_label` from every GET and must respect the open page; the panel is clamped and gripped (`dispatch_view.gd:34`), and `clamp_ceiling_override` raises its 700 × 500 ceiling for this page as `_raise_letter_ceiling` does for the letter. The name echoes the *Correspondance de Napoléon Ier* and appears nowhere in the code; "the Cabinet" is avoided (ERR-2).
 - **Payload.** `GET /dispatch` (`main.py:6825`) gains `payload["correspondence"] = moments.correspondence(world)` — a fresh dict with `first_open.attach`; a GET, so the POST rule does not apply; the Side Desk's `refresh_pinned` (`dispatch_view.gd:67`) re-reads it only while the screen is pinned, so "Read the letter ▸" **closes the view first** (`close_view()`, as Open Envoys does) and the next open re-reads; ordered against S17c.
 - **Rows and their source.** Every row reads `world.moments["state"]` plus the deck and the fleet record — **never the event log, which rolls at 500 rows and is already full by turn 21 on three saves** (`world_state.py:3879, 3910-3911`). Four fields are written into the state row at the answer, the lapse or the settlement and frozen there (P19): `receipt` (the plan's short line, ≤ 120), `echo` (the morning's reply, ≤ 160), `outcome_line` (a squadron's fate, ≤ 160) and `remark_by`. A pre-RE save shows its captions only; on an unarmed world the button is hidden.
 - **The sections,** one column, each entry a plain slip in ink (the inner field of `old-parchment_alpha.png` as a `region_rect` — no torn edge inside the page; the mocks' torn slips are illustrative):
@@ -832,7 +832,7 @@ One register for every letter of state — the four moments, the affairs and the
 
 ---
 
-## §12c The reaction layer — PROPOSED (the October 30 pass; §0b P10, P12, P15, P19, P20)
+## §12c The reaction layer — ✅ ruled October 30, 2026 (the October 30 pass; §0b P10, P12, P15, P19, P20)
 
 **The budget, on every template:** at most one line per surface per letter; at most three per letter across all surfaces over three turns; one Gazette COURTS line per letter; no new rail notice beyond the arrival's own; the only sound the seal. **The seams, by tier:**
 
@@ -930,18 +930,19 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 - **◆ After S15**, as a new row **RE**:
   - RE-1 and RE-2 after S16, the `main.gd` split, so RE-2's client edits land in the new scripts;
   - **ordered against S17c**, which moves `main.py`'s routers and with them the safety valve RE-2 edits: before S17c, or after with the valve's new address;
-  - S17a (`world_state.py`) on either side, since RE touches no line of it.
+  - S17a (`world_state.py`) on either side, since RE touches no line of it;
+  - **the October 30 slices:** RE-H after RE-3; RE-C after S16, ordered against S17c like RE-2; RE-R after RE-C (its SITUATION renderers live in the split scripts).
 - **Measured on its own arms.** RE-3 is measured on its own Mode A arms. Round 0 (ROADMAP row 11) carries no economy instrument (its three questions are the launch, the first ten minutes and the typed-transcript misreads), so it is a control only.
 - **Round 1** (row 16) is the deck's first meeting with players.
 - **Size:**
-  - **About five sessions**, as ruled: three and a half for the core (§16) and one and a half for the Edicts (Q2, in principle).
+  - **About ten and a half sessions**, as ruled October 30, 2026 (§16b): the letter 5.5 (RE-1 1.25, RE-2 2.0, RE-3 1.5 with H0 0.25, RE-5 0.5), + the home (RE-C 1.25) 6.75, + the reactions (RE-R 0.75) 7.5, + the squadron (RE-H in full, +1.25) 8.75, with the Edicts (RE-6 1.75) 10.5 — the October 27 ruling's five (three and a half for the core and one and a half for the Edicts), re-sized.
   - A court-run deck is struck by the ruling (Q4).
 - **Brought forward:** only RE-1 (unarmed, byte-identical) could ride before S15.
 - **The gate commit's own lines:** this file, a ROADMAP row, a `PRE_DEPLOY_PLAN.md` row and a STATUS entry. CLAUDE.md's Document Map gains its row at RE-1, paid for by a trim (30 bytes of headroom today).
 
 ---
 
-## §16 The build — five slices, as ruled: RE-1, RE-2, RE-3, RE-6, then RE-5's close
+## §16 The build — eight slices: RE-1, RE-2, RE-3, RE-H, RE-C, RE-R, RE-6, then RE-5's close (the five ruled October 27 are written below; three were added and all eight re-sized October 30 — §16b is the ruled sizing and each slice's added scope)
 
 **The series and the seams.**
 - **The series tool** is `tools/_affairs_series_arms.py`, a child-process tool in the `tools/_s14c_series_arms.py` style, chained from `tools/_s14i_p2_series_arms_final.json`.
@@ -1033,7 +1034,7 @@ Each premise sits behind a per-turn memo keyed `(turn, measure, lord)`. A census
 
 ---
 
-## §16b The slices re-sized — PROPOSED (the October 30 pass; §0b P17)
+## §16b The slices re-sized — ✅ ruled October 30, 2026 (the October 30 pass; §0b P17)
 
 Each added slice behind named seams held down and up in `tools/_affairs_series_arms.py` (§16's rule); arm 0 reproduces the prior record byte for byte; unarmed is byte-identical by construction.
 
@@ -1041,14 +1042,14 @@ Each added slice behind named seams held down and up in `tools/_affairs_series_a
 |---|---|---|---|
 | RE-1 the engine, unarmed | 1.0 | the look-ahead (P8); the latch mask and `grace` (P7); the form frozen in `bind` (P18); the state rows' `receipt` / `echo` / `outcome_line` / `remark_by` (P19); `register` and the `outcome` phase with the one-liner's arm (P19); `ends` in the validator; `mechanical_block` descending into `affairs.deck` to strip display keys — `variants[].text` only, never the keys (`tools/_s14c_sweep_record.py:47-61` hashes `affairs` wholesale today); `DISPLAY_KEYS` + `ANSWER_DISPLAY_KEYS` (`line`, `counsel`, `exhibit`, `ground`, `watch`, `source`, `button_line`; `echo`, `press`, `remember`); the premise memo on the world-attached cache | 1.25 |
 | RE-2 the client | 1.0 | **the dress** (§12b.2) on the ruled ladder: the StyleBoxTexture register, the `INK_*` constants and their census, the letterhead, the two-line buttons and the opaque disabled plaque, the counsel slot, the answer beat on `response.success` with its own slip under an existing layer, the seal re-import, the payload keys; the `affair_letter` and `correspondence` first-open lines; six letters × two scales of frames plus a closed-Accept frame; the parse harness re-run; the UXR-0 census re-shot | 2.0 |
-| RE-3 the three armed | 1.0 | T2 at two corps with the `{host}` / `{seat}` / `{minister}` slots and the tenure guard (P6); the writers' lines, counsel and reaction copy for T1–T3 and the four moments' counsel lines (P12); the reach re-measured on the live tree (E3); the lockstep of `tests/fixtures/moments_block.json` and the frame names | 1.5 |
-| **RE-H the Haiti letter** (new; after RE-3) | — | the premise with the latch and `bites`; the two forms; the squadron op with `to`, the `escort` override on `expedition_slip_odds`, `detach_squadron` / `settle_squadron`, `_squadron_tick` over `iter_fleet_records`, `last_squadron`, the Admiralty line and its renderer, `settle_squadrons`; the ground, chapters and exhibits; `ends`; the validator rules; the trace arm; the half-even rounding pin; the NV-D5 allow-list pin (P5); the alarm pin extended; the accept arm attributed (seams AFH / AFS); the hand-played windows measured from `--from-save` starts. **H0 alone is 0.25 inside RE-3 if P2 is refused.** | 1.5 |
+| RE-3 the three armed | 1.0 | T2 at two corps with the `{host}` / `{seat}` / `{minister}` slots and the tenure guard (P6); the writers' lines, counsel and reaction copy for T1–T3 and the four moments' counsel lines (P12); the reach re-measured on the live tree (ERR-3); the lockstep of `tests/fixtures/moments_block.json` and the frame names | 1.5 |
+| **RE-H the Haiti letter** (new; after RE-3) | — | the premise with the latch and `bites`; the two forms; the squadron op with `to`, the `escort` override on `expedition_slip_odds`, `detach_squadron` / `settle_squadron`, `_squadron_tick` over `iter_fleet_records`, `last_squadron`, the Admiralty line and its renderer, `settle_squadrons`; the ground, chapters and exhibits; `ends`; the validator rules; the trace arm; the half-even rounding pin; the NV-D5 allow-list pin (P5); the alarm pin extended; the accept arm attributed (seams AFH / AFS); the hand-played windows measured from `--from-save` starts. **P2 ruled the squadron: H0 (the bill alone, 0.25) is RE-H's first step and the tier-1 fallback (Rule 9, §17b).** | 1.5 |
 | **RE-C the Correspondence** (new; after S16, ordered against S17c) | — | the builder (`moments.correspondence`), the `GET /dispatch` key, the page subtree and its state in `dispatch_view.gd` with `clamp_ceiling_override`, the slips and `[url]` chips, the court signal, `close_view()` before "Read the letter", the two pointers in, the empty states, the frames at both scales, the pins | 1.25 |
 | **RE-R the reactions** (new) | — | the SITUATION key and both renderers with the two-view pin, the amber fate styling, the COURTS predicate in `compose_issue`, the echo on the response message, `HOST_REMARKS` and `remark_by`, the `remember` line, a noise census (≤ 1 line per surface per letter, ≤ 3 per letter, one COURTS line) | 0.75 |
 | RE-6 the Edicts | 1.5 | the Edicts' offers under the one register: a writer's line, a counsel line, the echo, SITUATION and COURTS lines and the Correspondence row for E1–E3 (P12) | 1.75 |
 | RE-5 the close | 0.5 | the Mode C walk on 8007 adds: a sealed letter, the Correspondence read, a squadron sailed and settled | 0.5 |
 
-**The shippable tiers** (each its own STATUS line and done-when; a tier not ruled in has its player-facing promise removed — Rule 9, §17b): **(1) the letter** — RE-1, RE-2, RE-3 with H0, RE-5: **5.5**; **(2) + the home** — RE-C: **6.75**; **(3) + the reactions** — RE-R: **7.5**; **(4) + the squadron** — RE-H in full: **8.75**; **with the Edicts (RE-6): 10.5 in all, against the ruled 5.** Placement unchanged (§15): after S15; RE-1 and RE-2 after S16; RE-C and the safety-valve edits ordered against S17c.
+**The shippable tiers** (all four ruled in October 30, 2026; each its own STATUS line and done-when; a tier later cut has its player-facing promise removed — Rule 9, §17b): **(1) the letter** — RE-1, RE-2, RE-3 with H0, RE-5: **5.5**; **(2) + the home** — RE-C: **6.75**; **(3) + the reactions** — RE-R: **7.5**; **(4) + the squadron** — RE-H in full: **8.75**; **with the Edicts (RE-6): 10.5 in all, against the October 27 ruling's 5.** Placement unchanged (§15): after S15; RE-1 and RE-2 after S16; RE-C and the safety-valve edits ordered against S17c.
 
 **Pins flipped when built, beyond §16's:** `set(MO.OPS)` 7 → 9 → 10; the deck hash at RE-3 and again at RE-H, re-measured by `tools/_s14c_sweep_record.py`; the state-row shape (`receipt`, `echo`, `outcome_line`, `remark_by`, `form`, `bind`; the squadron fields); `first_open.SCREENS` + `affair_letter` (ruled) + `correspondence`; the IQ-10 frames and `test_moments_client.py` (extended, the 2026-10-22 names kept); `test_first_open.py`'s screen tuple; the trace's `_delivered`; the no-literal census extended to `affairs.py`; the Gazette pin that no affair's arrival reaches COURTS; the two-view SITUATION pin; the `INK_*` census; the UXR-0 census; two new tests (`test_affairs_haiti.py`; `test_nv_d5_colonial_copy.py`). **Unchanged:** the moments' count pin, the road matrix, `test_france_authors_no_overseas_pool`, the voice banks' picks, `to_dict` 497 / 500, levers 231, functions over 500 lines 28 (`filter_campaign_log` at 499 untouched), `CAMPAIGN_LOG_TYPES` 180, the HC-0 importer pin, the Gazette's special ladder, `_set_aside_line = Label.new()`, the `show_proposal` strings the S14h pins read.
 
@@ -1071,18 +1072,19 @@ Each added slice behind named seams held down and up in `tools/_affairs_series_a
 | **Imperial Governance** | stays where `ROADMAP.md` homes it ("Later", behind its own gate) | G1 is written for it, not promised |
 | **The reach review** (RE-5) | owned | RE-5. Done when each core template's reach is recorded and the user has kept or deleted any with zero reach (its count pin in `tests/test_affairs_pacing.py`); STATUS "Affairs: the reach review" |
 | **This gate** | **✅ RULED October 27, 2026** — every default taken | STATUS "Recurring events: the gate ruled — RE after S15". The record lives in §0, not in `BUG_FIXES.md` or `DESIGN_REFINEMENT.md`; the census pin `tests/test_the_plan_homes_every_row.py` forbids an open ledger row homed after the deploy, and none is open. RE's slices are homed by `PRE_DEPLOY_PLAN.md` §2's RE row. |
+| **The October 30 pass** (§0b P1–P20) | **✅ RULED October 30, 2026** — every default taken ("Take the defaults") | STATUS "Recurring events: the October 30 pass ruled — RE about 10.5 in four tiers after S15". The record lives in §0b and `docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md`; no ledger row is opened; the eight slices are homed by `PRE_DEPLOY_PLAN.md` §2's RE row and §16b; the pass's own strikes and deferrals are §17b's |
 
 ---
 
-## §17b Rule 9 — what the pass struck or deferred, and where each lives (PROPOSED)
+## §17b Rule 9 — what the pass struck or deferred, and where each lives (✅ ruled October 30, 2026)
 
 | Item | Disposition | Owner and landing | Done-when | Test |
 |---|---|---|---|---|
 | The colons' memorial (R1 row 3) | **struck** — a fork staked on the planters' claim; the record's answer was relief, never indemnity | none; its one fact (1825) lives in the Correspondence's closing line (§6.5) | the closing line prints when the Haiti file closes | `test_affairs_haiti.py` |
 | The fifth dated moment (T35–41) | **struck** — no French fork; France made no approach to either Haitian state in 1804–13 | none | — | the count pin stays at four (`test_moments_engine.py:142`) |
 | The two optional deck slots | **left empty by design** (the cap, "icing") | §0b; a later template needs its own gate | — | the affair ids pinned in `test_affairs_engine.py` |
-| A sequel letter, `answered{}`, `retires` | **not in v1** (P13); the alternative stands in the table | if ruled: a new RE-H2 slice after RE-H (+0.5) | the sequel fires only after a lost squadron; its own nondominance pin | `test_affairs_haiti.py` |
-| The portraits and a period seal (P14) | **on the user's yes** | RE-2 (+0.25): the Commons pass, the imports, `THIRD_PARTY_LICENSES.md` rows | each named writer's key resolves to a file; the seal reads no legend at 48 px | `test_moments_client.py` (the locket falls back to the monogram when absent) |
+| A sequel letter, `answered{}`, `retires` | **not in v1** (P13, ruled October 30); re-opens only by the user's word | if re-opened: a new RE-H2 slice after RE-H (+0.5) | the sequel fires only after a lost squadron; its own nondominance pin | `test_affairs_haiti.py` |
+| The portraits and a period seal (P14) | **not taken** (P14 ruled the monogram locket and the court's arms, October 30); no player-facing promise; re-opens only by the user's word | if re-opened: RE-2 (+0.25): the Commons pass, the imports, `THIRD_PARTY_LICENSES.md` rows | each named writer's key resolves to a file; the seal reads no legend at 48 px | `test_moments_client.py` (the locket falls back to the monogram when absent) |
 | The four moments' counsel lines (P12) | authored in §12c | RE-3 | the four lines ship with `DISPLAY_KEYS` widened; the Match and the Decree re-shot | `test_moments_client.py` |
 | The Edicts under the one register (P12) | RE-6 re-sized (+0.25) | RE-6 | each offer carries a writer's line, a counsel, the echo and SITUATION lines and a Correspondence row | `test_affairs_edicts.py` |
 | The hand-played reach of H1 (the latch windows T13–T17) | **UNVERIFIED until RE-H** | RE-H's `--from-save` runs | the reach reported per run; a letter with zero reach on the six runs is re-premised or deleted at RE-5's reach review | `test_affairs_reach.py` |
@@ -1176,4 +1178,4 @@ The critics read the first draft, whose twelve templates were numbered T1–T12 
 
 ### 18.4 The October 30 pass — the record
 
-The second gate's record is `docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md`: §A the brief and the rubric (two pass/fail gates — icing inside a noise budget; buildable with a claims ledger), §B–§C the client and backend maps, §D the 29-board fact sheet, §E the research (R1 the Haiti record 1804–1810 with twenty-two sources; R2 how the best games present events), §F the three designs (A history-first, B player-first, C systems-first, each on Opus), §G the three judges (each judging every element of every design, never its own lens; keep / kill / graft per element), §H the synthesis and the mocks, §I the critics' corrections and their disposition. The PROPOSED sections of this spec (§0b, §6.5, §12b, §12c, §16b) are that synthesis; they fold into the ruled contract only on the user's ruling of §0b.
+The second gate's record is `docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md`: §A the brief and the rubric (two pass/fail gates — icing inside a noise budget; buildable with a claims ledger), §B–§C the client and backend maps, §D the 29-board fact sheet, §E the research (R1 the Haiti record 1804–1810 with twenty-two sources; R2 how the best games present events), §F the three designs (A history-first, B player-first, C systems-first, each on Opus), §G the three judges (each judging every element of every design, never its own lens; keep / kill / graft per element), §H the synthesis and the mocks, §I the critics' corrections and their disposition. Those sections (§0b, §6.5, §12b, §12c, §16b, §17b) are that synthesis; **the user ruled §0b on October 30, 2026 — "Take the defaults" — and they are the build contract with §5–§16.** The fold's lines: this spec's header, §0b, the section heads, §6's head, §15's size and placement, §16's head, §17's new row; `NAVAL_SPEC.md` NV-D5; the four sizing sites; the errata renamed ERR-1…ERR-4.
