@@ -48,28 +48,92 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional
 
 ARRIVED = ("fired", "answered", "lapsed")
+# RE-1 (RECURRING_EVENTS_SPEC.md §7, §9): an AFFAIR letter withdrawn free when a
+# moment arrived is an arrival that ended on screen — never "silent".
+ENDED_ON_SCREEN = ARRIVED + ("withdrawn",)
+OCCURRENCE_SEP = "#"
 
 
 class MomentsTrace:
     """The observer (see the module docstring). `world_getter` reads the
-    live world at `summary()` (the driver swaps worlds on a reload)."""
+    live world at `summary()` (the driver swaps worlds on a reload).
+
+    RE-1: the affairs ride the same mornings. `moments._affairs_tick` runs
+    after `_tick`; its frame — the affair premises read (`true` / `false`,
+    template ids), the occurrences delivered, the letters withdrawn, the
+    `passed(crowded)` rows, the due marks standing — joins the morning row as
+    `affairs`, and its deliveries join the morning's `delivered` (an
+    occurrence id carries `#`). `judge` reads both decks: R3, `max_open`
+    (withdrawn letters subtracted) and R1 apply to both; the affairs' floor
+    is their own — a template marked due ends arrived, withdrawn or
+    `passed(crowded)`, or its premise fell (the Watch said "may")."""
 
     def __init__(self, world_getter: Optional[Callable[[], Any]] = None):
         self.mornings: List[Dict[str, Any]] = []
         self.applications: List[Dict[str, Any]] = []
         self.world_getter = world_getter
         self._frame: Optional[Dict[str, Any]] = None
+        self._affairs_frame: Optional[Dict[str, Any]] = None
         self._answering: Optional[Dict[str, Any]] = None
         self._saved: List[tuple] = []
         self.errors: List[str] = []
 
     # -- install ---------------------------------------------------------
     def install(self) -> "MomentsTrace":
+        from backend.game_logic import affairs as AF
         from backend.game_logic import moments as MO
         from backend.game_logic import war_council as WC
         trace = self
         real_tick, real_premise, real_fg = MO._tick, MO.premise, WC.foreground_in_tenure
         real_apply, real_answer = MO._apply, MO.answer
+        real_affairs_tick, real_premise_holds = MO._affairs_tick, AF.premise_holds
+        real_candidates = AF.candidates
+
+        def premise_holds(world, e, lord):
+            result = real_premise_holds(world, e, lord)
+            frame = trace._affairs_frame
+            if frame is not None:
+                key = "true" if (result or {}).get("holds") else "false"
+                mid = str((e or {}).get("id") or "")
+                if mid not in frame[key]:
+                    frame[key].append(mid)
+            return result
+
+        def candidates(world, turn):
+            result = real_candidates(world, turn)
+            frame = trace._affairs_frame
+            if frame is not None:
+                frame["due"] = [f"{c['e']['id']}|{c['subject']}" for c in result]
+            return result
+
+        def _affairs_tick(world, delivered):
+            before = {str(k): dict(v) for k, v in MO._state(world).items() if isinstance(v, dict)}
+            frame = {"true": [], "false": [], "delivered": [], "withdrawn": [], "passed": {}, "due": []}
+            trace._affairs_frame = frame
+            out: List[str] = []
+            try:
+                out = list(real_affairs_tick(world, delivered))
+            finally:
+                trace._affairs_frame = None
+                frame["delivered"] = list(out)
+                for mid, row in MO._state(world).items():
+                    if OCCURRENCE_SEP not in str(mid) or not isinstance(row, dict):
+                        continue
+                    was = before.get(str(mid)) or {}
+                    if row.get("status") == MO.STATUS_WITHDRAWN and was.get("status") != MO.STATUS_WITHDRAWN:
+                        frame["withdrawn"].append(str(mid))
+                    if str(mid) not in before and row.get("status") == MO.STATUS_PASSED:
+                        frame["passed"][str(mid)] = str(row.get("reason") or "")
+                turn = MO._turn(world)
+                morning = trace.mornings[-1] if trace.mornings and trace.mornings[-1].get("turn") == turn else None
+                if morning is None:
+                    morning = {"turn": turn,
+                               "open": sum(1 for r in before.values() if r.get("status") == MO.STATUS_FIRED),
+                               "crisis": None, "true": [], "false": [], "delivered": [], "passed": {}}
+                    trace.mornings.append(morning)
+                morning["affairs"] = frame
+                morning["delivered"] = list(morning.get("delivered") or []) + list(out)
+            return out
 
         def premise(world, e):
             result = real_premise(world, e)
@@ -128,7 +192,10 @@ class MomentsTrace:
 
         for owner, name, new in ((MO, "_tick", _tick), (MO, "premise", premise),
                                  (MO, "_apply", _apply), (MO, "answer", answer),
-                                 (WC, "foreground_in_tenure", foreground_in_tenure)):
+                                 (WC, "foreground_in_tenure", foreground_in_tenure),
+                                 (MO, "_affairs_tick", _affairs_tick),
+                                 (AF, "premise_holds", premise_holds),
+                                 (AF, "candidates", candidates)):
             self._saved.append((owner, name, getattr(owner, name)))
             setattr(owner, name, new)
         return self
@@ -148,7 +215,7 @@ class MomentsTrace:
             kind = "crowded"
         else:
             kind = "lapse"
-        lord = MO.owner(world)
+        lord = str(p.get("lord") or MO.owner(world))   # RE-1: the plan carries its lord
         rows = []
         for row in p.get("rows") or []:
             rows.extend(_delivered(world, lord, row))
@@ -204,6 +271,13 @@ def _delivered(world, lord: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
         law = reforms.find_law(world, lord, str(row["law"]))
         put(f"{row['law']} in force", 1, int(bool(law is not None and reforms.is_in_force(law))))
         put("ports shut", int(row["ports_after"]), _ports(world))
+    # RE-1: the affairs' two ops (RECURRING_EVENTS_SPEC.md §5).
+    elif op == "authority" and not row.get("skip") and "after" in row:
+        tracker = getattr(world, "authority_tracker", None)
+        put("authority", int(row["after"]), int(getattr(tracker, "authority", 0) or 0))
+    elif op == "admin" and not row.get("skip") and "after" in row:
+        put("administrative actions", int(row["after"]),
+            int(getattr(world, "admin_actions_remaining", 0) or 0))
     return out
 
 
@@ -221,32 +295,78 @@ def judge(mornings: List[Dict[str, Any]], applications: List[Dict[str, Any]],
     due: Dict[str, int] = {}
     arrived: Dict[str, int] = {}
     passed: Dict[str, str] = {}
+    affairs_due: Dict[str, Dict[str, Any]] = {}
     for m in mornings:
         turn = int(m.get("turn", 0))
         delivered = [str(x) for x in m.get("delivered") or []]
+        affairs = m.get("affairs") or {}
+        withdrawn = [str(x) for x in affairs.get("withdrawn") or []]
         if len(delivered) > 1:
             ceilings.append({"turn": turn, "rule": "R3", "moments": delivered})
-        if delivered and int(m.get("open", 0)) + len(delivered) > max_open:
+        if delivered and int(m.get("open", 0)) - len(withdrawn) + len(delivered) > max_open:
             ceilings.append({"turn": turn, "rule": "max_open", "moments": delivered})
         if delivered and m.get("crisis"):
             ceilings.append({"turn": turn, "rule": "R1", "moments": delivered})
         for mid in delivered:
-            if mid not in (m.get("true") or []) or mid in (m.get("false") or []):
+            if OCCURRENCE_SEP in mid:
+                template = mid.split(OCCURRENCE_SEP, 1)[0]
+                held = template in (affairs.get("true") or []) and template not in (affairs.get("false") or [])
+            else:
+                held = mid in (m.get("true") or []) and mid not in (m.get("false") or [])
+            if not held:
                 ceilings.append({"turn": turn, "rule": "premise", "moments": [mid]})
             arrived.setdefault(mid, turn)
         for mid in m.get("true") or []:
             due.setdefault(str(mid), turn)
         for mid, reason in (m.get("passed") or {}).items():
             passed[str(mid)] = str(reason)
+        for mid, reason in (affairs.get("passed") or {}).items():
+            passed[str(mid)] = str(reason)
+        # the affairs' due marks: first seen, last seen, and whether the
+        # premise still read true on the morning the mark was gone
+        for key in affairs.get("due") or []:
+            affairs_due.setdefault(str(key), {"first_due": turn, "last_due": turn, "released": False})
+            affairs_due[str(key)]["last_due"] = turn
+        for key, rec in affairs_due.items():
+            if rec["last_due"] < turn and key not in (affairs.get("due") or []) and "gone" not in rec:
+                template = key.split("|", 1)[0]
+                rec["gone"] = turn
+                rec["released"] = template not in (affairs.get("true") or [])
     floors: Dict[str, Dict[str, Any]] = {}
     for mid, first in sorted(due.items()):
         row = state.get(mid) or {}
         status = str(row.get("status") or "")
         verdict = ("pending" if not status else
-                   "ok" if status in ARRIVED or (status == "passed" and row.get("reason") == "crowded")
+                   "ok" if status in ENDED_ON_SCREEN or (status == "passed" and row.get("reason") == "crowded")
                    else "silent")
         floors[mid] = {"first_due": first, "status": status,
                        "reason": str(row.get("reason") or ""), "verdict": verdict}
+    for key, rec in sorted(affairs_due.items()):
+        template = key.split("|", 1)[0]
+        rows = [r for k, r in state.items() if str(k).startswith(template + OCCURRENCE_SEP)
+                and int(r.get("turn", 0) or 0) >= int(rec["first_due"])
+                and (r.get("status") in ENDED_ON_SCREEN
+                     or (r.get("status") == "passed" and r.get("reason") == "crowded"))]
+        if rows:
+            verdict = "ok"
+        elif "gone" not in rec:
+            verdict = "pending"
+        else:
+            # The engine's own exits — the premise fell, a cooldown, a cap,
+            # `bites`, the road, `ends` — are explicit, never silent: a due
+            # matter gone without a row is RELEASED, and said so.
+            verdict = "released"
+        floors[key] = {"first_due": rec["first_due"], "status": str(rows[0].get("status")) if rows else "",
+                       "reason": str(rows[0].get("reason") or "") if rows else "", "verdict": verdict}
+    # The affairs' floor with teeth: an occurrence the morning DELIVERED, or
+    # wrote `passed(crowded)`, must stand in the store — a delivery with no
+    # row is silent.
+    for mid, turn in sorted(arrived.items()):
+        if OCCURRENCE_SEP in mid and mid not in state:
+            floors[mid] = {"first_due": turn, "status": "", "reason": "", "verdict": "silent"}
+    for mid, reason in sorted(passed.items()):
+        if OCCURRENCE_SEP in mid and mid not in state:
+            floors[mid] = {"first_due": 0, "status": "", "reason": reason, "verdict": "silent"}
     mismatches = []
     for a in applications:
         if a.get("kind") == "answer" and a.get("shown") and a["shown"] != a.get("applied"):

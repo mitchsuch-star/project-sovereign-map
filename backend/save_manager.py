@@ -445,6 +445,10 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # authors the moments gains them, resolved with its own seed; a window
     # closed by the save turn is `passed(before_save)` — nothing retroactive.
     _backfill_moments(world)
+    # RE-1 (docs/RECURRING_EVENTS_SPEC.md §11): a pre-RE save whose scenario
+    # NOW authors the recurring deck gains it, every streak at 0, its first
+    # letter no sooner than the save turn + 3 — nothing retroactive.
+    _backfill_affairs(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -789,6 +793,36 @@ def _backfill_moments(world: WorldState) -> None:
         store = backfill_store(world, data, str(getattr(world, "campaign_seed", "") or "historical"))
         if store:
             world.moments = store
+        return
+
+
+def _backfill_affairs(world: WorldState) -> None:
+    """RE-1 (docs/RECURRING_EVENTS_SPEC.md §11): arm a pre-RE save's moments
+    store with the recurring deck its scenario NOW authors
+    (`moments.backfill_affairs`: the deck under `block["affairs"]`, every
+    streak at 0, `not_before` = the save turn + 3). ONLY the 1805 campaign;
+    a store already carrying the deck, or a save with no moments store, is
+    left alone. A no-op while the shipped scenario authors no `affairs` key."""
+    store = getattr(world, "moments", None)
+    if not isinstance(store, dict) or not store.get("block"):
+        return
+    if isinstance(store["block"].get("affairs"), dict) and store["block"]["affairs"].get("deck"):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    from backend.game_logic.moments import backfill_affairs
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        backfill_affairs(world, data)
         return
 
 

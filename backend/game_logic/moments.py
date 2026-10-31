@@ -53,8 +53,20 @@ STATUS_FIRED = "fired"
 STATUS_ANSWERED = "answered"
 STATUS_LAPSED = "lapsed"
 STATUS_PASSED = "passed"
-STATUSES = (STATUS_FIRED, STATUS_ANSWERED, STATUS_LAPSED, STATUS_PASSED)
+# RE-1 (docs/RECURRING_EVENTS_SPEC.md §7): an AFFAIR letter standing when a
+# moment is delivered is withdrawn free — nothing applied, its cooldown
+# re-armed. A moment is never withdrawn.
+STATUS_WITHDRAWN = "withdrawn"
+STATUSES = (STATUS_FIRED, STATUS_ANSWERED, STATUS_LAPSED, STATUS_PASSED, STATUS_WITHDRAWN)
 ARRIVED_STATUSES = (STATUS_FIRED, STATUS_ANSWERED, STATUS_LAPSED)
+
+# RE-1 (docs/RECURRING_EVENTS_SPEC.md §9): the recurring deck's arrivals are
+# OCCURRENCE rows, "<template>#<n>"; `entry()` resolves one to its template,
+# `moment_rows()` is the moments' blindness to them (§7). The register names
+# the deck a letter belongs to.
+OCCURRENCE_SEP = "#"
+REGISTER_MOMENT = "moment"
+REGISTER_AFFAIR = "affair"
 
 PASS_PREMISE = "premise"          # the board contradicted it for its whole window (silent; S14C-X24)
 PASS_FORSWORN = "forsworn"        # another road of the Empire was proclaimed (silent)
@@ -88,7 +100,11 @@ VOICE_ENVOY = "envoy"
 VOICE_NAMED = "named"
 NAMED_VOICE_MAX = 80
 VOICES = (VOICE_CABINET, VOICE_TALLEYRAND, VOICE_ENVOY, VOICE_NAMED)
-CABINET = "The Cabinet"
+# ERR-2 (RECURRING_EVENTS_SPEC.md §0b, RE-1): the letters' own office was
+# named the Cabinet — the top bar's Cabinet (F1) is the diplomacy wizard, so
+# the mailbox source and the voice collided with it. The `cabinet` speaker
+# KEY stays (authored in the scenario); its display is the Secretariat.
+SECRETARIAT = "The Secretariat"
 DISPLAY = "A Moment of History"
 
 # The copy contract (§2) and the in-band tunables (§8), validator-limited.
@@ -163,8 +179,29 @@ def store_from_data(data: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(due, dict) and due:
             store["due"] = {str(k): int(v) for k, v in due.items()
                             if isinstance(v, int) and not isinstance(v, bool)}
+        # RE-1 (RECURRING_EVENTS_SPEC.md §11): the affairs' RUNTIME store —
+        # streaks, latch masks, due marks, the set-aside tally, the backfill's
+        # `not_before` — ints and short strings only. The AUTHORED deck rides
+        # `block["affairs"]` and needs no line here.
+        runtime = raw.get("affairs")
+        if isinstance(runtime, dict) and runtime:
+            store["affairs"] = _clean_runtime(runtime)
         return store
     return from_block(raw)
+
+
+def _clean_runtime(runtime: Dict[str, Any]) -> Dict[str, Any]:
+    """The affairs' runtime store, each value an int or a {str: int} map."""
+    out: Dict[str, Any] = {}
+    for key, value in runtime.items():
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, int):
+            out[str(key)] = int(value)
+        elif isinstance(value, dict):
+            out[str(key)] = {str(k): int(v) for k, v in value.items()
+                             if isinstance(v, int) and not isinstance(v, bool)}
+    return out
 
 
 def _store(world) -> Dict[str, Any]:
@@ -195,8 +232,70 @@ def deck(world) -> List[Dict[str, Any]]:
             if isinstance(e, dict) and e.get("id")]
 
 
+def affairs_block(world) -> Dict[str, Any]:
+    """RE-1: the authored recurring deck, `block["affairs"]` — {} unarmed."""
+    block = (_store(world).get("block") or {}).get("affairs")
+    return block if isinstance(block, dict) else {}
+
+
+def affairs_deck(world) -> List[Dict[str, Any]]:
+    """The affairs' templates. `deck()` stays the dated deck alone: every
+    reader keyed on the moments' ids (the road matrix, the windows, the
+    sweep's fire turns) never sees a template here."""
+    return [e for e in (affairs_block(world).get("deck") or [])
+            if isinstance(e, dict) and e.get("id")]
+
+
+def is_occurrence(moment_id: str) -> bool:
+    return OCCURRENCE_SEP in str(moment_id or "")
+
+
+def template_of(moment_id: str) -> str:
+    """"the_host#2" → "the_host"; a moment's id is its own."""
+    return str(moment_id or "").split(OCCURRENCE_SEP, 1)[0]
+
+
 def entry(world, moment_id: str) -> Optional[Dict[str, Any]]:
-    return next((e for e in deck(world) if e.get("id") == moment_id), None)
+    """The deck entry a letter id names: a moment by its id, else the affairs
+    template an occurrence id ("the_host#2") or a template id resolves to."""
+    found = next((e for e in deck(world) if e.get("id") == moment_id), None)
+    if found is not None:
+        return found
+    template = template_of(moment_id)
+    return next((e for e in affairs_deck(world) if e.get("id") == template), None)
+
+
+def moment_rows(state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """The moments' own rows — every row whose id carries no `#`. The tick's
+    open letters, arrivals and gap read these alone, so an affair never
+    delays, crowds out or shifts a moment (RECURRING_EVENTS_SPEC.md §7)."""
+    return {str(k): v for k, v in (state or {}).items()
+            if isinstance(v, dict) and not is_occurrence(k)}
+
+
+# The ops whose listed amount a tier MULTIPLIES (§5 `scale`, §14: gold 300 ×
+# tier, the host −2 × tier). An administrative action is one; a diplomatic
+# point and a law are not priced by the tier — those ops change only by an
+# authored `tiers` override.
+SCALED_OPS = ("gold", "relation", "loyalty", "authority")
+
+
+def scaled_op(op: Dict[str, Any], tier: int) -> Dict[str, Any]:
+    """An affair's op at its tier (§5 `scale`): a `SCALED_OPS` amount / delta
+    × tier, unless the op authors `tiers` {"2": x, "3": y} (T1's Decline:
+    −5, then −8); any other op takes only the override. Tier 1 is the op."""
+    tier = int(tier or 1)
+    if tier <= 1:
+        return op
+    override = (op.get("tiers") or {}).get(str(tier))
+    has_override = isinstance(override, int) and not isinstance(override, bool)
+    if not has_override and str(op.get("op") or "") not in SCALED_OPS:
+        return op
+    out = dict(op)
+    for key in ("amount", "delta"):
+        if key in op and isinstance(op[key], int) and not isinstance(op[key], bool):
+            out[key] = int(override) if has_override else int(op[key]) * tier
+    return out
 
 
 def pacing(world) -> Dict[str, int]:
@@ -458,9 +557,11 @@ def _plan_gold(world, lord, op) -> Dict[str, Any]:
     # S14E-X196 / S14E-D19: the gold a letter asks is gated against the ONE
     # chest (`instruments.chest_of` - the treasury less the recurring
     # settlement payments still owed); nothing owed, every sentence is the one
-    # it was. The letter is the owner's (the player's) alone.
-    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, chest_of
-    treasury, chest = chest_of(world, lord)
+    # it was. RE-1 (RECURRING_EVENTS_SPEC.md §9): read through `purse_of`,
+    # which IS the chest for the player and a court's raw treasury twice —
+    # byte-identical for the owner, and the one source for any lord (GR5).
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, purse_of
+    treasury, chest = purse_of(world, lord)
     held = f"{chest:,} gold{FREE_OF_OBLIGATIONS}" if chest < treasury else f"{chest:,}"
     # `before`/`after` stay the COFFERS' (what `_apply_gold` leaves); the gate
     # and the words read the chest
@@ -497,7 +598,10 @@ def _apply_dp(world, lord, row) -> None:
 def _plan_relation(world, lord, op) -> Dict[str, Any]:
     court = str(op.get("court") or "")
     delta = int(op.get("delta", 0) or 0)
-    if not _active(world, court) or court == lord:
+    # RE-1 (§6.1 T2): `unless: vassal` — a client host's bill lands on its
+    # loyalty (the `loyalty` op), never on the pair's relation.
+    unless_vassal = op.get("unless") == "vassal" and _vassal_row(world, court, lord) is not None
+    if not _active(world, court) or court == lord or unless_vassal:
         return {"op": "relation", "court": court, "delta": delta, "skip": True,
                 "refusal": "", "line": ""}
     before = _relation(world, lord, court)
@@ -620,6 +724,62 @@ def _apply_enact_law(world, lord, row) -> None:
     world.use_admin_action()
 
 
+# RE-1 (RECURRING_EVENTS_SPEC.md §5, §6.1 "the `authority` op, exactly"): the
+# floor is on the GRIP — what the Charges and the aura read — at 71, so the
+# marshals' calm (`reforms.CALM_ABOVE`, 70) survives every affair's price.
+AUTHORITY_GRIP_FLOOR = 71
+
+
+def _plan_authority(world, lord, op) -> Dict[str, Any]:
+    """The lord's standing, priced by an affair's Decline: the delivered loss
+    is min(|amount|, max(0, grip − 71)) — never more, never a rise; the line
+    is the laws' own (`reforms.authority_line` + the Charges' grip clause).
+    A lord without a tracker (an AI court) is skipped, line ""."""
+    delta = int(op.get("amount", 0) or 0)
+    tracker = (getattr(world, "authority_tracker", None)
+               if lord == getattr(world, "player_nation", None) else None)
+    if tracker is None or delta >= 0:
+        return {"op": "authority", "amount": delta, "skip": True, "refusal": "", "line": ""}
+    from backend.game_logic.ledger import charges_grip_clause
+    from backend.game_logic.reforms import authority_line
+    from backend.models.authority import get_imperial_grip
+    before = int(getattr(tracker, "authority", 0) or 0)
+    grip = int(get_imperial_grip(world, lord))
+    loss = int(min(-delta, max(0, grip - AUTHORITY_GRIP_FLOOR)))
+    after = before - loss
+    line = authority_line(before, after).rstrip(".")
+    clause = str(charges_grip_clause(world, lord, before, after) or "").rstrip(".")
+    if clause:
+        line = f"{line}; {clause}"
+    return {"op": "authority", "amount": delta, "loss": loss, "before": before, "after": after,
+            "grip": grip, "refusal": "", "line": line}
+
+
+def _apply_authority(world, lord, row) -> None:
+    if row.get("skip") or not int(row.get("loss", 0) or 0):
+        return
+    world.authority_tracker.modify_authority(-int(row["loss"]))
+
+
+def _plan_admin(world, lord, op) -> Dict[str, Any]:
+    """One of today's administrative actions (`world.use_admin_action`): the
+    player's budget; an AI lord's is a local of its turn, so a court is
+    skipped. With none left the Accept is closed with its own words."""
+    amount = int(op.get("amount", 1) or 1)
+    if lord != getattr(world, "player_nation", None):
+        return {"op": "admin", "amount": amount, "skip": True, "refusal": "", "line": ""}
+    held = int(getattr(world, "admin_actions_remaining", 0) or 0)
+    plural = "" if amount == 1 else "s"
+    return {"op": "admin", "amount": amount, "before": held, "after": held - amount,
+            "refusal": "" if held >= amount else "the day's administration is already spoken for.",
+            "line": f"{amount} administrative action{plural} ({max(0, held - amount)} left today)"}
+
+
+def _apply_admin(world, lord, row) -> None:
+    if not row.get("skip"):
+        world.use_admin_action(int(row["amount"]))
+
+
 OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "gold": (_plan_gold, _apply_gold),
     "dp": (_plan_dp, _apply_dp),
@@ -628,20 +788,88 @@ OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "loyalty": (_plan_loyalty, _apply_loyalty),
     "autonomy": (_plan_autonomy, _apply_autonomy),
     "enact_law": (_plan_enact_law, _apply_enact_law),
+    "authority": (_plan_authority, _apply_authority),
+    "admin": (_plan_admin, _apply_admin),
 }
 OP_TYPES = tuple(OPS)
 
 
-def plan(world, e: Dict[str, Any], answer: str) -> Dict[str, Any]:
+def _answer_side(e: Dict[str, Any], answer: str, form: Any) -> Dict[str, Any]:
+    """The answer's authored half — the frozen form's (P18) when the entry
+    authors `forms` and the row froze one, else the entry's own."""
+    forms = (e or {}).get("forms")
+    if form and isinstance(forms, dict) and isinstance(forms.get(str(form)), dict):
+        side = forms[str(form)].get(answer)
+        if isinstance(side, dict):
+            return side
+    side = (e or {}).get(answer)
+    return side if isinstance(side, dict) else {}
+
+
+def _bind_op(op: Dict[str, Any], occ: Dict[str, Any]) -> Dict[str, Any]:
+    """An affair op's selector (§5): `$host` is the row's bound host, `$lord`
+    its lord. A moment's ops name their courts and pass through."""
+    court = op.get("court")
+    if court not in ("$host", "$lord"):
+        return op
+    bind = occ.get("bind") if isinstance(occ.get("bind"), dict) else {}
+    out = dict(op)
+    out["court"] = str(bind.get("host") or "") if court == "$host" else str(occ.get("lord") or "")
+    return out
+
+
+class _Figures(dict):
+    def __missing__(self, key):
+        return "?"
+
+
+def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]]) -> str:
+    """P19: the row's frozen short line — the authored `button_line` with the
+    plan's figures inserted (P11), else the first op's line; ≤ 120."""
+    figures = _Figures()
+    for row in rows:
+        op = str(row.get("op") or "")
+        if op == "gold":
+            figures["gold"] = f"{int(row.get('amount', 0) or 0):,}"
+        elif op == "authority":
+            figures["authority_before"] = int(row.get("before", 0) or 0)
+            figures["authority_after"] = int(row.get("after", 0) or 0)
+        elif op == "admin":
+            figures["admin_left"] = max(0, int(row.get("after", 0) or 0))
+        elif op == "relation" and not row.get("skip"):
+            figures["relation_before"] = int(row.get("before", 0) or 0)
+            figures["relation_after"] = int(row.get("after", 0) or 0)
+            figures["host"] = _court(world, str(row.get("court") or ""), capitalize=True)
+        elif op == "loyalty" and row.get("courts"):
+            first = row["courts"][0]
+            figures["loyalty_before"] = int(first.get("before", 0) or 0)
+            figures["loyalty_after"] = int(first.get("after", 0) or 0)
+            figures.setdefault("host", _court(world, str(first.get("court") or ""), capitalize=True))
+    template = str(side.get("button_line") or "")
+    text = template.format_map(figures) if template else next(
+        (str(r["line"]) for r in rows if r.get("line")), "no change")
+    return text[:120]
+
+
+def plan(world, e: Dict[str, Any], answer: str,
+         occ: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """THE plan of one answer (shown = applied): every op's delivered,
     clamped figures, the first refusal and the lines, read once. The letter
-    renders it; `answer` re-derives it and applies exactly it."""
-    side = (e or {}).get(answer) or {}
+    renders it; `answer` re-derives it and applies exactly it.
+
+    RE-1: `occ` is an affair's occurrence row — its `lord`, its bound subject
+    (`$host`), its `tier` and its frozen `form` decide the figures, and the
+    plan's `id` is the occurrence's. A moment passes none and plans for the
+    owner, as before."""
+    occ = occ if isinstance(occ, dict) else {}
+    lord = str(occ.get("lord") or owner(world))
+    tier = int(occ.get("tier") or 1)
+    side = _answer_side(e, answer, occ.get("form"))
     caption = str(side.get("caption") or answer)
-    lord = owner(world)
     rows: List[Dict[str, Any]] = []
     for op in side.get("ops") or []:
-        fns = OPS.get(str((op or {}).get("op") or ""))
+        op = _bind_op(scaled_op(op or {}, tier), occ) if occ else (op or {})
+        fns = OPS.get(str(op.get("op") or ""))
         if fns is None:
             continue
         try:
@@ -653,13 +881,16 @@ def plan(world, e: Dict[str, Any], answer: str) -> Dict[str, Any]:
     refusal = next((str(r["refusal"]) for r in rows if r.get("refusal")), "")
     lines = [str(r["line"]) for r in rows if r.get("line")]
     effect = f"{'; '.join(lines)}." if lines else "no change."
-    return {"id": str((e or {}).get("id") or ""), "answer": answer, "caption": caption,
-            "ok": not refusal, "refusal": refusal, "rows": rows, "lines": lines,
-            "effect": effect, "quote": f"{caption}: {effect}"}
+    out = {"id": str(occ.get("id") or (e or {}).get("id") or ""), "answer": answer,
+           "caption": caption, "ok": not refusal, "refusal": refusal, "rows": rows,
+           "lines": lines, "effect": effect, "quote": f"{caption}: {effect}", "lord": lord}
+    if occ:
+        out["receipt"] = _receipt(world, lord, side, rows)
+    return out
 
 
 def _apply(world, p: Dict[str, Any]) -> None:
-    lord = owner(world)
+    lord = str(p.get("lord") or owner(world))
     for row in p.get("rows") or []:
         fns = OPS.get(str(row.get("op") or ""))
         if fns is None:
@@ -740,15 +971,41 @@ def _dateline(world, turn: int) -> str:
     return calendar_label(getattr(world, "start_date", ""), int(turn)) or f"turn {int(turn)}"
 
 
-def voice_of(world, e: Dict[str, Any]) -> str:
+def voice_of(world, e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None) -> str:
+    """The letter's mouth. RE-1 adds the affairs' speakers: `named` and
+    `office` read the authored name; `host` is the occurrence's bound court
+    (RE-2's display table names its minister by the turn)."""
     voice = e.get("voice") or {}
     speaker = str(voice.get("speaker") or VOICE_CABINET)
     if speaker == VOICE_CABINET:
-        return CABINET
-    if speaker == VOICE_NAMED:
-        return str(voice.get("name") or "").strip() or CABINET
+        return SECRETARIAT
+    if speaker in (VOICE_NAMED, "office"):
+        return str(voice.get("name") or "").strip() or SECRETARIAT
+    if speaker == "host":
+        bind = (occ or {}).get("bind") if isinstance((occ or {}).get("bind"), dict) else {}
+        host = str(bind.get("host") or "")
+        return f"The court of {_court(world, host)}" if host else SECRETARIAT
     from backend.game_logic.diplomatic_templates import resolve_named_diplomat
-    return resolve_named_diplomat(speaker, str(voice.get("nation") or ""), world) or CABINET
+    return resolve_named_diplomat(speaker, str(voice.get("nation") or ""), world) or SECRETARIAT
+
+
+def _affair_fields(mid: str, p: Dict[str, Any]) -> Dict[str, Any]:
+    """The log row's extra fields for an occurrence — {} for a moment, so a
+    moment's rows are the rows they were."""
+    if not is_occurrence(mid):
+        return {}
+    return {"lord": str(p.get("lord") or ""), "register": REGISTER_AFFAIR, "occurrence": mid}
+
+
+def _stamp_receipt(world, e: Dict[str, Any], row: Dict[str, Any], p: Dict[str, Any],
+                   answer_key: str) -> None:
+    """P19: an occurrence row keeps the copy the Correspondence re-reads —
+    the `receipt` (the plan's short line) and the `echo` (the answer's reply),
+    frozen at the answer or the lapse; the 500-row log is never re-read."""
+    from backend.game_logic import affairs
+    row["receipt"] = str(p.get("receipt") or "")[:120]
+    side = _answer_side(e, answer_key, row.get("form"))
+    row["echo"] = affairs.fill_slots(world, str(side.get("echo") or ""), row)[:160]
 
 
 def unanswered_sentence(e: Dict[str, Any], decline_plan: Dict[str, Any]) -> str:
@@ -757,26 +1014,40 @@ def unanswered_sentence(e: Dict[str, Any], decline_plan: Dict[str, Any]) -> str:
     return f"{e.get('title') or 'The letter'} was left unanswered — {decline_plan['quote']}"
 
 
-def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int) -> Dict[str, Any]:
+def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
+                   occ: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """The popup payload, planned afresh at every read (the IGR-2 lesson: no
     baked figure). The copy contract's parts (§2): the dateline, the record,
     the board, the answers, the unanswered line — and the sixth, the
     first-open line (S14d A5), which is NOT built here: `first_open.with_line`
-    attaches it at the response edge, on a copy, on the first letter only."""
-    accept = plan(world, e, ANSWER_ACCEPT)
-    decline = plan(world, e, ANSWER_DECLINE)
-    board = board_lines(world, e)
+    attaches it at the response edge, on a copy, on the first letter only.
+
+    RE-1: an affair passes its occurrence row — the id, the lord, the bound
+    host and the frozen form plan the figures; its record is the ground and
+    the chapter, its board the premise's facts (`affairs`)."""
+    occ = occ if isinstance(occ, dict) else {}
+    affair = bool(occ)
+    accept = plan(world, e, ANSWER_ACCEPT, occ)
+    decline = plan(world, e, ANSWER_DECLINE, occ)
+    if affair:
+        from backend.game_logic import affairs
+        board = affairs.board_lines(world, e, occ)
+        record = affairs.record_text(world, e, occ)
+        title = affairs.title_of(e, occ)
+    else:
+        board = board_lines(world, e)
+        record = str(e.get("record") or "")
+        title = str(e.get("title") or "")
     unanswered = (f"If unanswered by {_dateline(world, answer_by)}: {decline['caption']} — "
                   f"{decline['effect']}")
-    record = str(e.get("record") or "")
-    return {
+    payload = {
         "is_moment": True,
-        "moment_id": str(e.get("id") or ""),
+        "moment_id": str(occ.get("id") or e.get("id") or ""),
         "proposal_type": MOMENT_LETTER_TYPE,
         "proposal_type_display": DISPLAY,
         "from_nation": "",
-        "diplomat_name": voice_of(world, e),
-        "title": str(e.get("title") or ""),
+        "diplomat_name": voice_of(world, e, occ),
+        "title": title,
         "dateline": _dateline(world, issued),
         "record": record,
         "board": board,
@@ -792,6 +1063,10 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int) -> Dic
         "talleyrand_assessment": "",
         "choice_display": {"accept": accept["caption"], "reject": decline["caption"]},
     }
+    if affair:
+        payload["register"] = REGISTER_AFFAIR
+        payload["occurrence"] = str(occ.get("id") or "")
+    return payload
 
 
 def _letter_text(payload: Dict[str, Any]) -> str:
@@ -804,17 +1079,21 @@ def _letter_options(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             for a in payload["answers"]]
 
 
-def build_letter(world, e: Dict[str, Any], issued: int) -> Dict[str, Any]:
+def build_letter(world, e: Dict[str, Any], issued: int,
+                 mid: Optional[str] = None) -> Dict[str, Any]:
     """The letter as an `incoming_proposal` dialogue with no court — the
-    Cabinet speaks; the Accept is stamped from THE verdict
-    (`treaty.can_sign`'s moment arm) at build and at every read."""
+    Secretariat speaks; the Accept is stamped from THE verdict
+    (`treaty.can_sign`'s moment arm) at build and at every read. RE-1: `mid`
+    is an affair's occurrence id — ONE string per arrival, carried by the
+    state row, the context, the payload, the notice and the log row."""
+    mid = str(mid or e.get("id") or "")
     answer_by = int(issued) + ANSWER_TURNS - 1
-    payload = letter_payload(world, e, issued, answer_by)
+    payload = letter_payload(world, e, issued, answer_by, status_row(world, mid))
     dialogue = {
         "type": "incoming_proposal",
         "talleyrand_text": _letter_text(payload),
         "options": _letter_options(payload),
-        "context": {"proposal_type": MOMENT_LETTER_TYPE, "moment_id": str(e.get("id")),
+        "context": {"proposal_type": MOMENT_LETTER_TYPE, "moment_id": mid,
                     "issued_turn": int(issued), "answer_by_turn": answer_by},
         "proposal_terms_summary": str(e.get("title") or ""),
         "turn_created": int(issued),
@@ -832,14 +1111,15 @@ def refresh_letter(world, dialogue: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     dialogue is not a moment letter of this deck."""
     if not is_moment_letter(dialogue):
         return None
-    e = entry(world, moment_id_of(dialogue))
+    mid = moment_id_of(dialogue)
+    e = entry(world, mid)
     if e is None:
         return None
     context = _context(dialogue)
     issued = int(context.get("issued_turn") or dialogue.get("turn_created") or _turn(world))
     answer_by = int(context.get("answer_by_turn") or issued + ANSWER_TURNS - 1)
     old = dialogue.get("popup_payload") if isinstance(dialogue.get("popup_payload"), dict) else {}
-    payload = letter_payload(world, e, issued, answer_by)
+    payload = letter_payload(world, e, issued, answer_by, status_row(world, mid))
     if old.get("dialogue_id") or dialogue.get("dialogue_id"):
         payload["dialogue_id"] = old.get("dialogue_id") or dialogue.get("dialogue_id")
     dialogue["popup_payload"] = payload
@@ -860,7 +1140,7 @@ def answer_verdict(world, letter: Dict[str, Any], action: Optional[str] = None):
     if e is None or status(world, mid) != STATUS_FIRED:
         return _no("moment_passed", "This moment has passed, Sire.")
     answer = ANSWER_DECLINE if action == ANSWER_ACTIONS[ANSWER_DECLINE] else ANSWER_ACCEPT
-    p = plan(world, e, answer)
+    p = plan(world, e, answer, status_row(world, mid))
     return _ok() if p["ok"] else _no("moment_price", p["refusal"])
 
 
@@ -875,8 +1155,13 @@ def _dismiss_notice(world, moment_id: str) -> None:
 
 
 def _log(world, phase: str, e: Dict[str, Any], **fields) -> None:
-    event = {"type": "moment", "phase": phase, "nation": owner(world),
-             "moment": str(e.get("id") or ""), "title": str(e.get("title") or "")}
+    """One `moment` row. RE-1: an affair's row names its lord as the nation,
+    its occurrence id as the moment, and carries `register: "affair"`
+    (`_affair_fields`); a moment's row is the row it was."""
+    lord = fields.pop("lord", None)
+    occurrence = fields.pop("occurrence", None)
+    event = {"type": "moment", "phase": phase, "nation": str(lord or owner(world)),
+             "moment": str(occurrence or e.get("id") or ""), "title": str(e.get("title") or "")}
     event.update({k: v for k, v in fields.items() if v is not None})
     world.log_event(event)
 
@@ -896,7 +1181,7 @@ def answer(world, dialogue: Dict[str, Any], answer_key: str) -> Dict[str, Any]:
             dm.remove_matching(lambda d, _d=dialogue: d is _d)
         _dismiss_notice(world, mid)
         return {"success": False, "message": "This moment has passed, Sire — the letter is withdrawn."}
-    p = plan(world, e, answer_key)
+    p = plan(world, e, answer_key, row)
     if not p["ok"]:
         refresh_letter(world, dialogue)
         return {"success": False,
@@ -905,10 +1190,13 @@ def answer(world, dialogue: Dict[str, Any], answer_key: str) -> Dict[str, Any]:
                 "diplomatic_dialogue": dialogue, "awaiting_diplomatic_response": True}
     _apply(world, p)
     row.update({"status": STATUS_ANSWERED, "answer": answer_key, "answered_turn": _turn(world)})
+    if is_occurrence(mid):
+        _stamp_receipt(world, e, row, p, answer_key)
     if dm is not None:
         dm.remove_matching(lambda d, _d=dialogue: d is _d)
     _dismiss_notice(world, mid)
-    _log(world, "answered", e, answer=answer_key, caption=p["caption"], line=p["quote"])
+    _log(world, "answered", e, answer=answer_key, caption=p["caption"], line=p["quote"],
+         **_affair_fields(mid, p))
     return {"success": True, "message": f"{e.get('title')} — {p['quote']}",
             "decision_reason": "moment_answered", "suppress_proposal_result_popup": True,
             "moment_answered": {"id": mid, "answer": answer_key}}
@@ -948,7 +1236,7 @@ def lapse_gate_rows(world) -> List[Dict[str, Any]]:
         e = entry(world, mid)
         if e is None or status(world, mid) != STATUS_FIRED:
             continue
-        p = plan(world, e, ANSWER_DECLINE)
+        p = plan(world, e, ANSWER_DECLINE, status_row(world, mid))
         rows.append({"moment": mid, "title": str(e.get("title") or ""),
                      "price_line": f"{p['caption']} — {p['effect']}"})
     return rows
@@ -966,10 +1254,12 @@ def lapse_default(world, letter: Dict[str, Any]) -> Dict[str, Any]:
     row = status_row(world, mid)
     if e is None or row.get("status") != STATUS_FIRED:
         return {"moment": {"id": mid, "title": str((e or {}).get("title") or ""), "line": ""}}
-    p = plan(world, e, ANSWER_DECLINE)
+    p = plan(world, e, ANSWER_DECLINE, row)
     if p["ok"]:
         _apply(world, p)
     row.update({"status": STATUS_LAPSED, "answer": ANSWER_DECLINE, "lapsed_turn": _turn(world)})
+    if is_occurrence(mid):
+        _stamp_receipt(world, e, row, p, ANSWER_DECLINE)
     _dismiss_notice(world, mid)
     return {"moment": {"id": mid, "title": str(e.get("title") or ""),
                        "line": unanswered_sentence(e, p)}}
@@ -998,13 +1288,19 @@ def _crowd_out(world, e: Dict[str, Any], turn: int) -> None:
     queue_dispatch_event(world, RECEIPT_EVENT, {"line": line}, "always")
 
 
-def deliver_letter(world, e: Dict[str, Any], turn: int) -> Dict[str, Any]:
+def deliver_letter(world, e: Dict[str, Any], turn: int, mid: Optional[str] = None,
+                   row: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Seam 1: build and push the letter, write `fired`, one `moment` /
     `arrived` row and one rail notice (with the stable `moment_id` detail
-    key). It never uses `deliver_ai_proposal` (court-indexed)."""
-    mid = str(e["id"])
-    _state(world)[mid] = {"status": STATUS_FIRED, "turn": int(turn)}
-    dialogue = build_letter(world, e, turn)
+    key). It never uses `deliver_ai_proposal` (court-indexed). RE-1: an
+    affair passes its occurrence id and the row's frozen `{id, lord, bind,
+    tier, form}` (§5: ints and short strings, written at delivery)."""
+    mid = str(mid or e["id"])
+    state_row: Dict[str, Any] = {"status": STATUS_FIRED, "turn": int(turn)}
+    if row:
+        state_row.update(row)
+    _state(world)[mid] = state_row
+    dialogue = build_letter(world, e, turn, mid)
     dm = world.dialogue_manager
     dm.push(dialogue)
     # `_assign_mailbox_metadata` stamps the dtype's priority at the push; the
@@ -1026,7 +1322,8 @@ def deliver_letter(world, e: Dict[str, Any], turn: int) -> Dict[str, Any]:
         details={"moment_id": mid, "mailbox_id": int(dialogue.get("mailbox_id") or 0),
                  "route_id": str(int(dialogue.get("mailbox_id") or 0)),
                  "review_target": "moment_letter", "review_label": "Read the letter"}))
-    _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]))
+    _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]),
+         **_affair_fields(mid, state_row))
     return dialogue
 
 
@@ -1034,14 +1331,35 @@ def tick(world) -> List[str]:
     """The morning's moments, sited in `_advance_turn_internal` after the
     intent movements (`current_turn` is already the new morning). Unarmed:
     returns [] at once. Returns the ids delivered this morning (at most one,
-    R3). No draw at tick time."""
+    R3). No draw at tick time. RE-1: the affairs' tick follows the moments'
+    (`_affairs_tick`) — [] while the recurring deck is unarmed, so the
+    shipped boot's mornings are the mornings they were."""
     if not armed(world):
         return []
     try:
-        return _tick(world)
+        delivered = _tick(world)
     except Exception as exc:
         report(exc, "moments.tick: the morning's moments")
+        delivered = []
+    try:
+        return list(delivered) + _affairs_tick(world, delivered)
+    except Exception as exc:
+        report(exc, "moments.tick: the morning's affairs")
+        return list(delivered)
+
+
+def _affairs_tick(world, delivered: List[str]) -> List[str]:
+    """RE-1 (RECURRING_EVENTS_SPEC.md §7, §9): after `_tick` returns — a
+    standing affair withdrawn free when a moment arrived this morning, then
+    `affairs.deliver_due`, then the courts' (inert) resolution. [] on a world
+    whose block authors no `affairs` deck."""
+    from backend.game_logic import affairs
+    if not affairs.armed(world):
         return []
+    affairs.withdraw_standing(world, delivered)
+    out = affairs.deliver_due(world, delivered)
+    affairs.resolve_courts(world)
+    return out
 
 
 def _tick(world) -> List[str]:
@@ -1082,7 +1400,9 @@ def _tick(world) -> List[str]:
         return []
     candidates.sort(key=lambda c: (c[0], c[1]))
     rules = pacing(world)
-    rows = [r for r in state.values() if isinstance(r, dict)]
+    # RE-1 (§7): the moments' own rows alone — blind to every affair, so an
+    # affair never delays, crowds out or shifts a moment.
+    rows = list(moment_rows(state).values())
     open_letters = sum(1 for r in rows if r.get("status") == STATUS_FIRED)
     arrivals = [int(r.get("turn", 0) or 0) for r in rows if r.get("status") in ARRIVED_STATUSES]
     gap_ok = not arrivals or turn - max(arrivals) >= int(rules["min_gap"])
@@ -1133,3 +1453,27 @@ def backfill_store(world, data: Dict[str, Any], seed: str) -> Dict[str, Any]:
     finally:
         world.moments = previous
     return store
+
+
+BACKFILL_LEAD = 3    # RE-1 (§11): a backfilled deck's first letter waits three mornings
+
+
+def backfill_affairs(world, data: Dict[str, Any]) -> bool:
+    """RE-1 (RECURRING_EVENTS_SPEC.md §11): a pre-RE save whose scenario NOW
+    authors `moments.affairs` gains the deck — every streak at 0 and the
+    first letter no sooner than the save turn + 3 (`not_before`); nothing
+    fires retroactively. False when the scenario authors none, the save
+    carries no moments store, or the store already carries the deck."""
+    store = _store(world)
+    block = store.get("block") if isinstance(store.get("block"), dict) else None
+    moments = (data or {}).get("moments")
+    authored = moments.get("affairs") if isinstance(moments, dict) else None
+    if block is None or not isinstance(authored, dict) or not authored.get("deck"):
+        return False
+    if isinstance(block.get("affairs"), dict) and block["affairs"].get("deck"):
+        return False
+    block["affairs"] = copy.deepcopy(authored)
+    runtime = store.get("affairs") if isinstance(store.get("affairs"), dict) else {}
+    runtime["not_before"] = _turn(world) + BACKFILL_LEAD
+    store["affairs"] = runtime
+    return True

@@ -19,6 +19,7 @@ Usage:
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Any, Set
@@ -1333,6 +1334,10 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
             result.add_error(f"{path}.id", f"Duplicate moment id '{mid}'")
         if mid in law_ids:
             result.add_error(f"{path}.id", f"Moment id '{mid}' collides with a law id")
+        # RE-1 (RECURRING_EVENTS_SPEC.md §5): an occurrence is "<id>#<n>", so
+        # `#` and `@` are reserved in every letter id, moment or affair.
+        if not _AFFAIR_ID_RE.match(mid):
+            result.add_error(f"{path}.id", "Must match [a-z_]{1,32} ('#' and '@' are reserved)")
         seen.add(mid)
         if e.get("kind") not in MO.KINDS:
             result.add_error(f"{path}.kind", f"Must be one of {list(MO.KINDS)}")
@@ -1440,6 +1445,279 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
         if isinstance(min_gap, int) and hi_a + g_a + int(min_gap) > lo_b:
             result.add_error("moments.deck",
                              f"'{id_a}' and '{id_b}' overlap: {hi_a} + {g_a} + {min_gap} > {lo_b}")
+    _validate_affairs(result, block, owner, seen, law_ids, owner_laws, road_ids, start_date,
+                      known_nations)
+
+
+_AFFAIR_ID_RE = re.compile(r"^[a-z_]{1,32}$")
+
+
+def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids: Set[str],
+                      owner_laws: Set[str], road_ids: Set[str], start_date: str,
+                      known_nations: Set[str]) -> None:
+    """RE-1 (docs/RECURRING_EVENTS_SPEC.md §5, §16): the recurring deck under
+    `moments.affairs` — {pacing {first {value, band}, gap {value, band},
+    cap_act, wait}, deck: [{id, kind "affair", shape, title, source, scope,
+    roads, when {predicate, …}, streak, bites?, cooldown, cap, grace?, scale?,
+    latch?, ends?, forms?, voice, record, variants[]?, watch, accept, decline,
+    the display keys}]}. Every predicate and op is a name the engine holds;
+    the alarm is barred from every affair; a Decline carries only relation,
+    loyalty and a grip-floored authority; an `authority` price requires
+    `bites`; a door's Accept is exactly one `enact_law` and its Decline is
+    empty; an offer's Decline is empty; `watch` says "may", never "will";
+    `ends` checks its ISO date against its turn (validator-side only — HC-0).
+    A template without `source` or `watch` cannot be armed."""
+    if "affairs" not in block:
+        return
+    from backend.game_logic import affairs as AF
+    from backend.game_logic import moments as MO
+    from backend.game_logic.calendar import turn_for_date
+    aff = block.get("affairs")
+    if not isinstance(aff, dict):
+        result.add_error("moments.affairs", f"Must be an object, got {type(aff).__name__}")
+        return
+    known_nations = set(known_nations or ())
+
+    def _int_in(path: str, value, lo: int, hi: int) -> bool:
+        if isinstance(value, bool) or not isinstance(value, int) or not lo <= value <= hi:
+            result.add_error(path, f"Must be an integer in {lo}..{hi}, got {value!r}")
+            return False
+        return True
+
+    def _text(path: str, value, limit: int, required: bool = True) -> None:
+        if value is None and not required:
+            return
+        if not isinstance(value, str) or not value.strip():
+            result.add_error(path, "Must be a non-empty string")
+            return
+        # A `{slot}` renders as a figure or a name; it is measured as four
+        # characters (P11: the button's second line is ≤ 40 RENDERED).
+        rendered = len(re.sub(r"\{[a-z_]+\}", "####", value)) if path.endswith(".button_line") else len(value)
+        if rendered > limit:
+            result.add_error(path, f"At most {limit} characters, got {rendered}")
+
+    def _court(path: str, court) -> None:
+        if not isinstance(court, str) or not court:
+            result.add_error(path, "Must name a court")
+        elif known_nations and court not in known_nations:
+            result.add_error(path, f"Unknown nation '{court}'")
+
+    def _dated(path: str, node) -> None:
+        """{date, turn}: the turn in 1..400 and the ISO date resolving to it."""
+        if not isinstance(node, dict) or not _int_in(f"{path}.turn", node.get("turn"), 1, 400):
+            if isinstance(node, dict):
+                return
+            result.add_error(path, "Must be an object {date, turn}")
+            return
+        date = node.get("date")
+        if not isinstance(date, str) or not date:
+            result.add_error(f"{path}.date", "Must carry its ISO date")
+            return
+        if start_date:
+            dated = turn_for_date(start_date, date)
+            if dated != node.get("turn"):
+                result.add_error(f"{path}.date", f"{date} is turn {dated}, not {node.get('turn')}")
+
+    pacing = aff.get("pacing") if aff.get("pacing") is not None else {}
+    if not isinstance(pacing, dict):
+        result.add_error("moments.affairs.pacing", "Must be an object")
+        pacing = {}
+    gap_value = AF.PACING_DEFAULTS["gap"]
+    for key in ("first", "gap"):
+        if key not in pacing:
+            continue
+        spec = pacing[key]
+        value = spec.get("value") if isinstance(spec, dict) else spec
+        band = spec.get("band") if isinstance(spec, dict) else None
+        lo, hi = AF.PACING_BANDS[key]
+        if not _int_in(f"moments.affairs.pacing.{key}.value", value, lo, hi):
+            continue
+        if key == "gap":
+            gap_value = int(value)
+        if band is not None and (
+                not isinstance(band, (list, tuple)) or len(band) != 2
+                or not all(isinstance(b, int) and not isinstance(b, bool) for b in band)
+                or not lo <= band[0] <= value <= band[1] <= hi):
+            result.add_error(f"moments.affairs.pacing.{key}.band",
+                             f"Must be [lo, hi] within {lo}..{hi} containing the value")
+    for key, (lo, hi) in AF.PACING_BOUNDS.items():
+        if key in pacing:
+            _int_in(f"moments.affairs.pacing.{key}", pacing[key], lo, hi)
+    deck = aff.get("deck")
+    if not isinstance(deck, list) or not deck:
+        result.add_error("moments.affairs.deck", "Must be a non-empty list")
+        return
+    seen: Set[str] = set()
+    for i, e in enumerate(deck):
+        path = f"moments.affairs.deck[{i}]"
+        if not isinstance(e, dict):
+            result.add_error(path, "Must be an object")
+            continue
+        aid = e.get("id")
+        if not isinstance(aid, str) or not _AFFAIR_ID_RE.match(aid):
+            result.add_error(f"{path}.id", "Must match [a-z_]{1,32} ('#' and '@' are reserved)")
+            continue
+        if aid in seen or aid in moment_ids:
+            result.add_error(f"{path}.id", f"Duplicate id '{aid}' (unique across the affairs and the moments)")
+        if aid in law_ids:
+            result.add_error(f"{path}.id", f"Affair id '{aid}' collides with a law id")
+        seen.add(aid)
+        if e.get("kind") != AF.KIND_AFFAIR:
+            result.add_error(f"{path}.kind", f"Must be '{AF.KIND_AFFAIR}'")
+        shape = e.get("shape")
+        if shape not in AF.SHAPES:
+            result.add_error(f"{path}.shape", f"Must be one of {list(AF.SHAPES)}")
+        _text(f"{path}.title", e.get("title"), AF.TEXT_MAX["title"])
+        _text(f"{path}.source", e.get("source"), AF.TEXT_MAX["source"])
+        watch_text = e.get("watch")
+        _text(f"{path}.watch", watch_text, AF.TEXT_MAX["watch"])
+        if isinstance(watch_text, str) and (not re.search(r"\bmay\b", watch_text)
+                                            or re.search(r"\bwill\b", watch_text)):
+            result.add_error(f"{path}.watch", 'Must say "may", never "will"')
+        if e.get("scope", "owner") not in AF.SCOPES:
+            result.add_error(f"{path}.scope", f"Must be one of {list(AF.SCOPES)}")
+        _text(f"{path}.record", e.get("record"), AF.TEXT_MAX["record"])
+        variants = e.get("variants")
+        if variants is not None:
+            if not isinstance(variants, list) or len(variants) > 3:
+                result.add_error(f"{path}.variants", "Must be a list of at most 3 {key, value, text}")
+            else:
+                for k, variant in enumerate(variants):
+                    vpath = f"{path}.variants[{k}]"
+                    if not isinstance(variant, dict) or variant.get("key") not in AF.VARIANT_FACTS:
+                        result.add_error(vpath, f"Must carry a key of {list(AF.VARIANT_FACTS)}")
+                        continue
+                    _text(f"{vpath}.value", variant.get("value"), 32)
+                    _text(f"{vpath}.text", variant.get("text"), AF.TEXT_MAX["variant"])
+        for key in ("line", "counsel", "exhibit"):
+            _text(f"{path}.{key}", e.get(key), AF.TEXT_MAX[key], required=False)
+        roads = e.get("roads", [MO.ROAD_ANY])
+        allowed = {MO.ROAD_ANY, MO.ROAD_NONE} | set(road_ids)
+        if (not isinstance(roads, list) or not roads
+                or any(not isinstance(r, str) or r not in allowed for r in roads)):
+            result.add_error(f"{path}.roads", f"Must be a list of {sorted(allowed)}")
+        when = e.get("when")
+        if not isinstance(when, dict) or when.get("predicate") not in AF.PREDICATES:
+            result.add_error(f"{path}.when", f"Must name a predicate of {sorted(AF.PREDICATES)}")
+            when = {}
+        for param in AF.PREDICATE_PARAMS.get(str(when.get("predicate") or ""), ()):
+            if not when.get(param):
+                result.add_error(f"{path}.when.{param}", "Required by the predicate")
+        if "min_corps" in when:
+            _int_in(f"{path}.when.min_corps", when["min_corps"], 1, 6)
+        if when.get("law") and when["law"] not in owner_laws:
+            result.add_error(f"{path}.when.law", f"'{when['law']}' is no law of the owner's")
+        _int_in(f"{path}.streak", e.get("streak", 1), *AF.STREAK_BOUNDS)
+        cooldown = e.get("cooldown", 12)
+        if _int_in(f"{path}.cooldown", cooldown, *AF.COOLDOWN_BOUNDS) and int(cooldown) < gap_value:
+            result.add_error(f"{path}.cooldown", f"Must be at least the pacing gap ({gap_value})")
+        _int_in(f"{path}.cap", e.get("cap", 2), *AF.CAP_BOUNDS)
+        if "grace" in e:
+            _int_in(f"{path}.grace", e["grace"], *AF.GRACE_BOUNDS)
+        scale = e.get("scale")
+        if scale is not None:
+            if not isinstance(scale, dict) or not isinstance(scale.get("measure"), str) or not scale["measure"]:
+                result.add_error(f"{path}.scale", "Must be {measure, from, step, max} or {measure, at, then}")
+            elif "at" in scale:
+                _int_in(f"{path}.scale.at", scale.get("at"), 1, 400)
+                _int_in(f"{path}.scale.then", scale.get("then", 2), 2, AF.SCALE_MAX_TIER)
+            else:
+                _int_in(f"{path}.scale.from", scale.get("from"), 0, 400)
+                _int_in(f"{path}.scale.step", scale.get("step"), 1, 400)
+                _int_in(f"{path}.scale.max", scale.get("max", AF.SCALE_MAX_TIER), 1, AF.SCALE_MAX_TIER)
+        latch = e.get("latch")
+        if latch is not None:
+            if not isinstance(latch, dict):
+                result.add_error(f"{path}.latch", "Must be {of, at_least}")
+            elif _int_in(f"{path}.latch.of", latch.get("of"), 1, AF.LATCH_OF_MAX):
+                _int_in(f"{path}.latch.at_least", latch.get("at_least"), 1, int(latch["of"]))
+        if e.get("ends") is not None:
+            _dated(f"{path}.ends", e.get("ends"))
+        voice = e.get("voice") or {}
+        if not isinstance(voice, dict) or voice.get("speaker") not in AF.VOICES:
+            result.add_error(f"{path}.voice", f"Must name a speaker of {list(AF.VOICES)}")
+        else:
+            if voice.get("speaker") in ("named", "office"):
+                _text(f"{path}.voice.name", voice.get("name"), MO.NAMED_VOICE_MAX)
+            holders = voice.get("holders")
+            if holders is not None:
+                if not isinstance(holders, list):
+                    result.add_error(f"{path}.voice.holders", "Must be a list of {name, date, turn}")
+                else:
+                    for k, holder in enumerate(holders):
+                        _text(f"{path}.voice.holders[{k}].name", (holder or {}).get("name")
+                              if isinstance(holder, dict) else None, MO.NAMED_VOICE_MAX)
+                        _dated(f"{path}.voice.holders[{k}]", holder)
+        sides = [("", e)]
+        forms = e.get("forms")
+        if forms is not None:
+            if not isinstance(forms, dict) or not forms:
+                result.add_error(f"{path}.forms", "Must be a non-empty object of named forms")
+            else:
+                for fname, form in forms.items():
+                    fpath = f"{path}.forms.{fname}"
+                    if not isinstance(form, dict):
+                        result.add_error(fpath, "Must be an object")
+                        continue
+                    _text(f"{fpath}.title", form.get("title"), AF.TEXT_MAX["title"], required=False)
+                    for key in ("line", "counsel"):
+                        _text(f"{fpath}.{key}", form.get(key), AF.TEXT_MAX[key], required=False)
+                    sides.append((f".forms.{fname}", form))
+        has_authority = False
+        for prefix, holder in sides:
+            for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
+                spath = f"{path}{prefix}.{side}"
+                answer = holder.get(side)
+                if not isinstance(answer, dict):
+                    if prefix == "" or side in holder:
+                        result.add_error(spath, "Must be an object {caption, ops}")
+                    continue
+                _text(f"{spath}.caption", answer.get("caption"), AF.TEXT_MAX["caption"])
+                for key in ("button_line", "echo", "press", "remember"):
+                    _text(f"{spath}.{key}", answer.get(key), AF.TEXT_MAX[key], required=False)
+                ops = answer.get("ops")
+                if not isinstance(ops, list):
+                    result.add_error(f"{spath}.ops", "Must be a list")
+                    continue
+                if shape == "offer" and side == MO.ANSWER_DECLINE and ops:
+                    result.add_error(f"{spath}.ops", "An offer's Decline is empty")
+                if shape == "door":
+                    if side == MO.ANSWER_ACCEPT and not (
+                            len(ops) == 1 and isinstance(ops[0], dict) and ops[0].get("op") == "enact_law"):
+                        result.add_error(f"{spath}.ops", "A door's Accept is exactly one enact_law")
+                    if side == MO.ANSWER_DECLINE and ops:
+                        result.add_error(f"{spath}.ops", "A door's Decline is empty")
+                for k, op in enumerate(ops):
+                    opath = f"{spath}.ops[{k}]"
+                    name = op.get("op") if isinstance(op, dict) else None
+                    if name in AF.BARRED_OPS:
+                        result.add_error(opath, f"'{name}' is barred from every affair")
+                        continue
+                    if name not in AF.AFFAIR_OPS or name not in MO.OPS:
+                        result.add_error(opath, f"Must name an op of {sorted(AF.AFFAIR_OPS)}")
+                        continue
+                    if side == MO.ANSWER_DECLINE and name not in AF.DECLINE_ALLOWED_OPS:
+                        result.add_error(opath, f"A Decline carries only {list(AF.DECLINE_ALLOWED_OPS)}")
+                    if name in ("gold", "dp", "admin", "authority"):
+                        _int_in(f"{opath}.amount", op.get("amount"), *AF.AFFAIR_OP_BOUNDS[name])
+                    if name == "authority":
+                        has_authority = True
+                    if name in ("relation", "loyalty"):
+                        _int_in(f"{opath}.delta", op.get("delta"), *AF.AFFAIR_OP_BOUNDS[name])
+                        if op.get("court") not in ("$host", "$lord"):
+                            _court(f"{opath}.court", op.get("court"))
+                    if name == "enact_law" and op.get("law") not in owner_laws:
+                        result.add_error(f"{opath}.law", f"'{op.get('law')}' is no law of the owner's")
+                    tiers = op.get("tiers")
+                    if tiers is not None:
+                        bounds = AF.AFFAIR_OP_BOUNDS.get(name)
+                        if not isinstance(tiers, dict) or any(t not in ("2", "3") for t in tiers):
+                            result.add_error(f"{opath}.tiers", 'Must map tiers "2" / "3" to amounts')
+                        elif bounds:
+                            for t, amount in tiers.items():
+                                _int_in(f"{opath}.tiers.{t}", amount, *bounds)
+        if has_authority and e.get("bites") is not True:
+            result.add_error(f"{path}.bites", "Required (true) by an `authority` price — the letter arrives only where it bites")
 
 
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:

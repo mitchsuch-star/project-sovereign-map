@@ -507,7 +507,9 @@ class TestTheTransport:
         assert popup["unanswered_line"].startswith("If unanswered by Late January 1806:")
         rows = client.get("/mailbox").json()["items"]
         row = next(r for r in rows if r["proposal_type"] == "moment_letter")
-        assert row["source_nation"] == "The Cabinet"
+        # ERR-2 (RE-1, October 31, 2026): the letters' office is the Secretariat —
+        # "The Cabinet" is the top bar's diplomacy wizard.
+        assert row["source_nation"] == "The Secretariat"
         assert row["summary_text"] == "A Moment of History: The Bavarian Match"
 
     def test_a_closed_accept_keeps_its_stamp_across_every_read(self, armed, client):
@@ -908,7 +910,11 @@ class TestTheAlarmLabels:
         for forbidden in ("proclaim(", "decree(", "stamp_decisive_peace", "_apply_teeth",
                           "imperial_designs.state", "ID._state"):
             assert forbidden not in src, forbidden
-        assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law"}
+        # RE-1 (October 31, 2026): the table grew by `authority` and `admin` —
+        # the affairs' two ops (RECURRING_EVENTS_SPEC.md §5, Q6), 7 → 9,
+        # flipped consciously; neither reaches a VP-1 verb.
+        assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
+                               "authority", "admin"}
 
     def test_no_nation_literal_in_the_engine(self):
         """Q6: the deck is France's content, never the code's."""

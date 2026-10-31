@@ -2007,7 +2007,7 @@ MOMENTS_BLOCK = REPO / "tests" / "fixtures" / "moments_block.json"
 
 def cap_moments():
     """S14c part 2 (docs/EVENTS_SPEC.md §6, §9 Part 2) — the moment letters as
-    the client draws them: the Bavarian Match (the Cabinet, turn 8) and the
+    the client draws them: the Bavarian Match (the Secretariat — ERR-2, RE-1; turn 8) and the
     Decree of Berlin (Talleyrand, turn 29), each delivered by the production
     `moments.tick` off the staged deck tests/fixtures/moments_block.json on a
     booted 1805 world. The popup is what GET /pending_envoy returned,

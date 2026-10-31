@@ -2505,13 +2505,22 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
         # S14c: the authored letters of the record, one line per phase.
         phase = str(ctx.event.get("phase") or "")
         title = str(ctx.event.get("title") or "A letter of the record")
+        # RE-1 (RECURRING_EVENTS_SPEC.md §12c, P19): an affair's row carries
+        # `register: "affair"`; the phases `withdrawn` and `outcome` are the
+        # recurring deck's own. A moment's row reads as it always did.
+        affair = str(ctx.event.get("register") or "") == "affair"
         if phase == "arrived":
-            return f"{title} — a letter of the record is laid before the Emperor"
+            what = "an affair of state" if affair else "a letter of the record"
+            return f"{title} — {what} is laid before the Emperor"
         if phase == "answered":
             return f"{title} — the Emperor answers: {ctx.event.get('caption') or 'answered'}"
         if phase == "passed":
             return str(ctx.event.get("line") or f"{title} passed out of its season")
-        return f"A moment of history: {title}"
+        if phase == "withdrawn":
+            return str(ctx.event.get("line") or f"{title} was set aside — nothing was spent")
+        if phase == "outcome":
+            return str(ctx.event.get("line") or f"{title} — what came of it")
+        return f"An affair of state: {title}" if affair else f"A moment of history: {title}"
 
     if ctx.event_type == "literal_fidelity":
         # W6-5: the beat's message IS the line (composed in marshal_voice).

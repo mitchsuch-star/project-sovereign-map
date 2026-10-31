@@ -1414,8 +1414,8 @@ SHOTS += [
             "must_show": must,
         }
         for mid, label, must in (
-            ("bavarian_match", "The Bavarian Match (the Cabinet)",
-             "the 'A MOMENT OF HISTORY' header with the dateline, the title and the Cabinet, the "
+            ("bavarian_match", "The Bavarian Match (the Secretariat)",
+             "the 'A MOMENT OF HISTORY' header with the dateline, the title and the Secretariat (ERR-2, RE-1), the "
              "record, the board line, 'What each answer does' with BOTH quotes, the buttons 'Seal "
              "the match' and 'Let Baden keep her', the 'If unanswered by …' line; no Counter, no "
              "raw tag, no court, nothing clipped at scale 2.0; S14d A5 (S14D-X5): the letter's "

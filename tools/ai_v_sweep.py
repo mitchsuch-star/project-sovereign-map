@@ -663,6 +663,7 @@ def derive_metrics(digest: dict) -> dict:
     # ones off the final store), the lapses (an unattended France answers none).
     moments_arrived, per_turn_arrivals, during_foreground = 0, [], 0
     fire_turns, crowded_rows, receipts = {}, 0, set()
+    affair_turns = {}
     moments_lapsed = 0
     for row in turns:
         here = 0
@@ -675,8 +676,16 @@ def derive_metrics(digest: dict) -> dict:
             phase = str(event.get("phase", ""))
             if phase == "arrived":
                 here += 1
-                fire_turns.setdefault(str(event.get("moment", "")), []).append(int(row["turn"]))
-            elif phase == "passed" and str(event.get("reason", "")) == "crowded":
+                mid = str(event.get("moment", ""))
+                # RE-1 (RECURRING_EVENTS_SPEC.md §10): an affair's arrival is an
+                # occurrence id "<template>#<n>" — its own series, never the
+                # moments' (`moment_turns` stays the dated deck's alone).
+                if "#" in mid:
+                    affair_turns.setdefault(mid.split("#", 1)[0], []).append(int(row["turn"]))
+                else:
+                    fire_turns.setdefault(mid, []).append(int(row["turn"]))
+            elif phase == "passed" and str(event.get("reason", "")) == "crowded" \
+                    and "#" not in str(event.get("moment", "")):
                 crowded_rows += 1
         for entry in row.get("dispatch_queue") or []:
             if entry.get("type") == "moment_receipt":
@@ -688,7 +697,9 @@ def derive_metrics(digest: dict) -> dict:
             during_foreground += here
     moments_passed = {}
     final_moments = ((digest.get("final") or {}).get("moments") or {}).get("state") or {}
-    for state_row in final_moments.values():
+    for state_key, state_row in final_moments.items():
+        if "#" in str(state_key):
+            continue      # RE-1: an affair's occurrence row is not a moment's pass
         if isinstance(state_row, dict) and state_row.get("status") == "passed":
             reason = str(state_row.get("reason") or "")
             moments_passed[reason] = moments_passed.get(reason, 0) + 1
@@ -730,6 +741,7 @@ def derive_metrics(digest: dict) -> dict:
         "open_letters_max": max([int(row.get("moments_open", 0) or 0) for row in turns] or [0]),
         "letters_during_foreground": during_foreground,
         "fire_turns": fire_turns,
+        "affair_turns": affair_turns,
         # S14c part 4: the trace's verdict — the ceilings, the floors and
         # shown = applied, read where the engine decided ({} on a digest
         # written before the trace).
@@ -1284,6 +1296,10 @@ def _variance_signature(digest: dict) -> dict:
         # moment's arrival turns, RUN-sourced (`fire_turns` off the rows) —
         # never the boot's resolved windows (the graft pin reads the run).
         "moment_turns": derived.get("fire_turns", {}),
+        # RE-1 (RECURRING_EVENTS_SPEC.md §10): the affairs' arrival turns, RUN-sourced
+        # the same way — the same seed twice compares EQUAL; variance forced
+        # off compares EQUAL to `historical`.
+        "affair_turns": derived.get("affair_turns", {}),
     }
 
 

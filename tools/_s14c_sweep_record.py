@@ -45,8 +45,13 @@ ANSWER_DISPLAY_KEYS = ("caption",)
 
 
 def mechanical_block(block: dict) -> dict:
-    """The block with its display copy struck: the measured identity."""
-    out = {k: v for k, v in (block or {}).items() if k != "deck"}
+    """The block with its display copy struck: the measured identity. RE-1
+    (RECURRING_EVENTS_SPEC.md §16b): the recurring deck under `affairs` is
+    descended into the same way — its display keys (`affairs.DISPLAY_KEYS`,
+    the variants' `text`, the answers' and the forms' copy) struck, never
+    the keys that time an arrival or price an answer. A block with no
+    `affairs` key hashes as it did."""
+    out = {k: v for k, v in (block or {}).items() if k not in ("deck", "affairs")}
     deck = []
     for e in (block or {}).get("deck") or []:
         if not isinstance(e, dict):
@@ -58,6 +63,40 @@ def mechanical_block(block: dict) -> dict:
                 m[side] = {k: v for k, v in m[side].items() if k not in ANSWER_DISPLAY_KEYS}
         deck.append(m)
     out["deck"] = deck
+    affairs = (block or {}).get("affairs")
+    if isinstance(affairs, dict):
+        out["affairs"] = _mechanical_affairs(affairs)
+    return out
+
+
+def _mechanical_affairs(affairs: dict) -> dict:
+    from backend.game_logic import affairs as AF
+
+    def strip_side(side):
+        return {k: v for k, v in side.items() if k not in AF.ANSWER_DISPLAY_KEYS} \
+            if isinstance(side, dict) else side
+
+    def strip_entry(e):
+        if not isinstance(e, dict):
+            return e
+        m = {k: v for k, v in e.items() if k not in AF.DISPLAY_KEYS}
+        if isinstance(m.get("variants"), list):
+            m["variants"] = [{k: v for k, v in variant.items() if k not in AF.VARIANT_DISPLAY_KEYS}
+                             if isinstance(variant, dict) else variant for variant in m["variants"]]
+        for side in ("accept", "decline"):
+            if side in m:
+                m[side] = strip_side(m[side])
+        if isinstance(m.get("forms"), dict):
+            m["forms"] = {name: ({**{k: v for k, v in form.items()
+                                      if k not in AF.DISPLAY_KEYS and k not in ("accept", "decline")},
+                                  **{side: strip_side(form[side]) for side in ("accept", "decline")
+                                     if side in form}}
+                                 if isinstance(form, dict) else form)
+                          for name, form in m["forms"].items()}
+        return m
+
+    out = {k: v for k, v in affairs.items() if k != "deck"}
+    out["deck"] = [strip_entry(e) for e in affairs.get("deck") or []]
     return out
 
 

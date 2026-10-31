@@ -646,9 +646,11 @@ class DialogueManager:
                     )
                 ).strip()
             elif ctx.get("proposal_type") == "moment_letter":
-                # S14c (seam 8): a moment letter has no court — the Cabinet
-                # lays it before the Emperor; the row is its title.
-                source = "The Cabinet"
+                # S14c (seam 8): a moment letter has no court — the Secretariat
+                # lays it before the Emperor; the row is its title. ERR-2 (RE-1):
+                # the old source, the Cabinet, collided with the top bar's
+                # Cabinet (F1), the diplomacy wizard; the office is the Secretariat.
+                source = "The Secretariat"
                 ptype = "moment_letter"
                 summary = (f"{self.MAILBOX_SUMMARY_LABELS['moment_letter']}: "
                            f"{d.get('proposal_terms_summary') or ''}").strip()

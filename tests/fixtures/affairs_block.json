@@ -1,0 +1,178 @@
+{
+  "_comment": "RE-1 (docs/RECURRING_EVENTS_SPEC.md §5, §6.1, §16): the S14c moments block (tests/fixtures/moments_block.json, the deck as ruled) with the recurring deck under `affairs` — T1 the Arch-Chancellor's Letters, T2 the Host's Claims at two corps (P6), T3 Berthier's Memorial — exactly as §6.1 authors them, the counsel and echo lines from §12c. The shipped scenario authors no `affairs` key until RE-3 copies this deck into it; the engine pins arm the real booted world with this file.",
+  "owner": "France",
+  "pacing": {"max_open": 1, "min_gap": 3},
+  "deck": [
+    {
+      "id": "bavarian_match",
+      "kind": "letter",
+      "title": "The Bavarian Match",
+      "date": "1806-01-14",
+      "turn": {"value": 8, "band": [8, 10]},
+      "grace": 2,
+      "when": {"predicate": "court_warm", "court": "Bavaria", "min_relation": 30},
+      "roads": ["any"],
+      "voice": {"speaker": "cabinet"},
+      "record": "Eugène, adopted by Napoleon, wed Augusta of Bavaria at Munich (historically 14 January 1806); she had been promised to Baden's heir, and Munich yielded to the Emperor's pressing.",
+      "accept": {
+        "caption": "Seal the match",
+        "ops": [
+          {"op": "dp", "amount": 2},
+          {"op": "gold", "amount": 1000},
+          {"op": "relation", "court": "Bavaria", "delta": 20},
+          {"op": "loyalty", "court": "Bavaria", "delta": 15},
+          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"}
+        ]
+      },
+      "decline": {"caption": "Let Baden keep her", "ops": [{"op": "relation", "court": "Bavaria", "delta": -5}]}
+    },
+    {
+      "id": "throne_of_holland",
+      "kind": "letter",
+      "title": "The Throne of Holland",
+      "date": "1806-06-05",
+      "turn": {"value": 18, "band": [17, 19]},
+      "grace": 2,
+      "when": {"predicate": "vassal_slipping", "court": "Holland", "below_autonomy": 2, "loyalty_at_most": 70},
+      "roads": ["any"],
+      "voice": {"speaker": "named", "name": "Admiral Ver Huell, for the deputation of the States General"},
+      "record": "Historically the Dutch deputation under Admiral Ver Huell asked Napoleon for a king and was given his brother Louis (5 June 1806); Grand Pensionary Schimmelpenninck resigned rather than sign. The alternative was annexation, 1810.",
+      "accept": {"caption": "Crown Louis", "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]},
+      "decline": {"caption": "Keep the Republic", "ops": []}
+    },
+    {
+      "id": "crown_of_the_reich",
+      "kind": "letter",
+      "title": "The Crown of the Reich",
+      "lag": 1,
+      "grace": 2,
+      "when": {"predicate": "design_fulfilled", "design": "rhine.confederation", "court": "Austria"},
+      "roads": ["rhine"],
+      "voice": {"speaker": "cabinet"},
+      "record": "With the Confederation signed, Napoleon told Francis II to lay down the crown of the Holy Roman Empire (historically 22 July 1806); Francis did so on 6 August, and the Reich of a thousand years ended.",
+      "accept": {
+        "caption": "Demand the abdication",
+        "ops": [
+          {"op": "loyalty", "design_courts": "rhine.confederation", "delta": 10},
+          {"op": "relation", "court": "Austria", "delta": -15},
+          {"op": "alarm", "amount": 3, "source": "moment_reich"}
+        ]
+      },
+      "decline": {"caption": "Let Francis keep his crown", "ops": []}
+    },
+    {
+      "id": "decree_of_berlin",
+      "kind": "letter",
+      "title": "The Decree of Berlin",
+      "date": "1806-11-21",
+      "turn": {"value": 29, "band": [28, 30]},
+      "grace": 2,
+      "when": {"predicate": "law_bites", "law": "berlin_decree"},
+      "roads": ["none", "system"],
+      "voice": {"speaker": "talleyrand"},
+      "record": "Historically, from Berlin after Jena (21 November 1806), Napoleon declared the British Isles in a state of blockade and shut every port of his allies to British goods.",
+      "accept": {"caption": "Sign the Decree", "ops": [{"op": "enact_law", "law": "berlin_decree"}]},
+      "decline": {"caption": "Not yet", "ops": []}
+    }
+  ],
+  "affairs": {
+    "pacing": {
+      "first": {"value": 7, "band": [6, 9]},
+      "gap": {"value": 5, "band": [4, 7]},
+      "cap_act": 6,
+      "wait": 4
+    },
+    "deck": [
+      {
+        "id": "chancellors_letters",
+        "kind": "affair",
+        "shape": "bill",
+        "title": "The Arch-Chancellor's Letters",
+        "source": "research #15 — Fondation Napoléon, \"Walcheren et l'affaire Fouché\": the Emperor's rebuke to Cambacérès for making so little use of his powers, August 1809; Malet's forged dispatch took Paris for a morning, 23 October 1812",
+        "scope": "owner",
+        "roads": ["any"],
+        "when": {"predicate": "sovereign_afield"},
+        "streak": 6,
+        "bites": true,
+        "cooldown": 10,
+        "cap": 2,
+        "grace": 4,
+        "scale": {"measure": "afield", "at": 12, "then": 2},
+        "voice": {"speaker": "named", "name": "Cambacérès, Arch-Chancellor of the Empire"},
+        "record": "Historically the Emperor governed from his camp, and in August 1809 he rebuked Cambacérès for making so little use of the powers he had left him.",
+        "watch": "The Emperor afield: {n} of 6 mornings — Cambacérès may write.",
+        "counsel": "Berthier — Every hour you give the Council, Sire, is an hour the army waits for its orders.",
+        "accept": {
+          "caption": "Dictate from the field",
+          "button_line": "1 action ({admin_left} left today)",
+          "ops": [{"op": "admin", "amount": 1}],
+          "echo": "Cambacérès: the Council has registered the decrees Your Majesty dictated from the field."
+        },
+        "decline": {
+          "caption": "Let the Council act",
+          "button_line": "standing {authority_before} → {authority_after}",
+          "ops": [{"op": "authority", "amount": -5, "tiers": {"2": -8}}],
+          "echo": "Cambacérès: the Council has acted in Your Majesty's name; Paris will mark whose hand signed."
+        }
+      },
+      {
+        "id": "the_host",
+        "kind": "affair",
+        "shape": "bill",
+        "title": "The Host's Claims",
+        "source": "research #6 — Napoleon to Berthier, 14 July 1810 (Fondation Napoléon; Branda, Le prix de la gloire): war must feed war; a corps lived on the country it stood in",
+        "scope": "owner",
+        "roads": ["any"],
+        "when": {"predicate": "corps_on_host", "min_corps": 2},
+        "streak": 3,
+        "cooldown": 10,
+        "cap": 2,
+        "grace": 4,
+        "scale": {"measure": "corps", "from": 2, "step": 2, "max": 3},
+        "voice": {"speaker": "host"},
+        "record": "Historically the Emperor's rule was that war must feed war (to Berthier, 14 July 1810): a corps lived on the country it stood in.",
+        "watch": "{n} corps on {host}'s soil: {m} of 3 mornings — its court may present its claims.",
+        "counsel": "Talleyrand — An ally presents his bill once as an account, Sire. The second time, he presents it as a grievance.",
+        "accept": {
+          "caption": "Pay the host's claims",
+          "button_line": "−{gold} gold",
+          "ops": [{"op": "gold", "amount": 300}],
+          "echo": "{minister}: the account between {host} and Paris is square for the season."
+        },
+        "decline": {
+          "caption": "Live off the land",
+          "button_line": "{host} {relation_before} → {relation_after}",
+          "ops": [
+            {"op": "relation", "court": "$host", "delta": -2, "unless": "vassal"},
+            {"op": "loyalty", "court": "$host", "delta": -2}
+          ]
+        }
+      },
+      {
+        "id": "berthiers_memorial",
+        "kind": "affair",
+        "shape": "door",
+        "title": "Berthier's Memorial",
+        "source": "REFORMS_SPEC.md §6 — the law's own record, Berthier's Imperial Headquarters, expanded 1805–07; Berthier Major-General of the Grande Armée from 1805",
+        "scope": "owner",
+        "roads": ["any"],
+        "when": {"predicate": "staff_offered", "law": "grand_quartier_general"},
+        "streak": 4,
+        "cooldown": 14,
+        "cap": 2,
+        "grace": 4,
+        "voice": {"speaker": "named", "name": "Berthier, Major-General of the Grande Armée"},
+        "record": "Historically Berthier's Imperial Headquarters grew with every campaign from 1805 into the staff that carried the Emperor's orders.",
+        "watch": "At war {n} of 4 turns, and the chest could found the headquarters — Berthier may write.",
+        "counsel": "Daru — The Intendance can pay for clerks, Sire. It cannot pay for an order that reaches a corps a day late.",
+        "accept": {
+          "caption": "Found the headquarters",
+          "button_line": "−9,000 gold · 300 a turn · 1 action",
+          "ops": [{"op": "enact_law", "law": "grand_quartier_general"}],
+          "echo": "Berthier: the Imperial Headquarters is founded; the orders of the day go out under his seal."
+        },
+        "decline": {"caption": "Not now", "button_line": "no change", "ops": []}
+      }
+    ]
+  }
+}

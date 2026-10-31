@@ -1,0 +1,630 @@
+{
+ "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
+ "turns": 20,
+ "fixture_sha": "334d45902cc8d1a93c995efc5009f8e357216c4f59a9378b754101eda739e533",
+ "affairs": [
+  "chancellors_letters",
+  "the_host",
+  "berthiers_memorial"
+ ],
+ "seeds": {
+  "historical": {
+   "control": {
+    "seed": "historical",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 18
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "historical",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 18
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "ulm": {
+   "control": {
+    "seed": "ulm",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "ulm",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {
+     "berthiers_memorial#1": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {
+       "law": "grand_quartier_general"
+      },
+      "tier": 1
+     }
+    },
+    "first_affair": {
+     "turn": 19,
+     "id": "berthiers_memorial#1"
+    },
+    "streaks": {
+     "chancellors_letters|": 9,
+     "berthiers_memorial|": 6
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "berthiers_memorial|": {
+       "first_due": 19,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "berthiers_memorial#1": 19
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "austerlitz": {
+   "control": {
+    "seed": "austerlitz",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "austerlitz",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {
+     "berthiers_memorial#1": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {
+       "law": "grand_quartier_general"
+      },
+      "tier": 1
+     }
+    },
+    "first_affair": {
+     "turn": 19,
+     "id": "berthiers_memorial#1"
+    },
+    "streaks": {
+     "chancellors_letters|": 9,
+     "berthiers_memorial|": 6
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "berthiers_memorial|": {
+       "first_due": 19,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "berthiers_memorial#1": 19
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "jena": {
+   "control": {
+    "seed": "jena",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "jena",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {
+     "chancellors_letters|": 8
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "marengo": {
+   "control": {
+    "seed": "marengo",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "marengo",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {
+     "chancellors_letters|": 7
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "eylau": {
+   "control": {
+    "seed": "eylau",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "crowded"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "eylau",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {
+     "chancellors_letters|": 8
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "crowded"
+     }
+    },
+    "errors": []
+   }
+  },
+  "friedland": {
+   "control": {
+    "seed": "friedland",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {
+     "bavarian_match": 9,
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "throne_of_holland": {
+       "first_due": 17,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "bavarian_match": 9,
+      "throne_of_holland": 18
+     },
+     "passed": {}
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "friedland",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {
+     "bavarian_match": 9,
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "throne_of_holland": {
+       "first_due": 17,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "bavarian_match": 9,
+      "throne_of_holland": 18
+     },
+     "passed": {}
+    },
+    "errors": []
+   }
+  },
+  "wagram": {
+   "control": {
+    "seed": "wagram",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 18
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "wagram",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 18
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 18
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "lodi": {
+   "control": {
+    "seed": "lodi",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "lodi",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {},
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {},
+     "shown_equals_applied": true,
+     "arrived": {},
+     "passed": {
+      "bavarian_match": "premise",
+      "throne_of_holland": "premise"
+     }
+    },
+    "errors": []
+   }
+  },
+  "rivoli": {
+   "control": {
+    "seed": "rivoli",
+    "arm": "control",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 20
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {},
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 20,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 20
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "rivoli",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {
+     "throne_of_holland": 20
+    },
+    "affairs": {},
+    "first_affair": null,
+    "streaks": {
+     "chancellors_letters|": 8
+    },
+    "due": {},
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "throne_of_holland": {
+       "first_due": 20,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "throne_of_holland": 20
+     },
+     "passed": {
+      "bavarian_match": "premise"
+     }
+    },
+    "errors": []
+   }
+  }
+ }
+}
