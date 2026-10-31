@@ -1,74 +1,42 @@
-# NEXT SESSION PROMPT — Pre-Deploy S15: the deploy (the build, the clean-machine run, the release record)
+# NEXT SESSION PROMPT — Row RE "Affairs of State": RE-1 the engine, unarmed (the events before the deploy)
 
-> Overwritten each time a session hands off. Current hand-over: **October 26, 2026, after S14h part 2 — S14h COMPLETE**:
-> the third measure's twenty-one P3s S14G-13 … 33 and the instrument row S14G-I1 FIXED, D4 and D5 BUILT as recommended,
-> the five mentions filed and closed (four fixed, the Swiss petition refuted), the sweep's S14G-X56 … X172 fixed or
-> closed, the closing re-play of every sighting from fourteen crafted scenes on the DD-B instrument
-> (`docs/audits/dd_b/replay_2026_10_26/`), `BASELINE_SERIES` byte-identical on every arm, the parse harness green on
-> 80 scripts and 17 scenes, the ratchet held. `SYSTEMS_REFERENCE.md` §155 (part 1) and §156 (part 2);
-> `BUG_FIXES.md` §S14G; `DESIGN_REFINEMENT.md` §S14G; commits through the hook (`git log --format=%h -5`).
-> **The census: 0 open S14G rows — 0 open defect rows. The deploy gate's own condition holds.**
+> Overwritten each time a session hands off. Current hand-over: **October 31, 2026 — the re-route recorded**: the user's
+> word ("NOPE EVENTS FIRST DO IT IN NEW SESSION") moved the whole row RE ahead of S15; S15 the deploy follows RE; S16 (the
+> `main.gd` split) and S17c (the `main.py` router move) stay after the deploy, so every client slice lands on today's unsplit
+> scripts and the safety valve RE-2 edits stays at its address. Recorded in `docs/RECURRING_EVENTS_SPEC.md` §0c (the ruling
+> verbatim; every placement line points there), `docs/PRE_DEPLOY_PLAN.md` §2 (the RE row before S15), `docs/ROADMAP.md`
+> (the row in "Before the deploy"), `docs/STATUS.md` ▶ NEXT UP and CLAUDE.md's Current Phase. **Nothing of RE is built.**
 >
-> **Landed after S14h, October 27, 2026 — the enemy-AI sweep** (`SYSTEMS_REFERENCE.md` §157; `BUG_FIXES.md` §OCT27 — fifty-one
-> rows FIXED at the cause: the enemy diplomacy AI's coalition, intent ladder, AI-to-AI table, proposal rungs, the courts'
-> answers, the other instruments, and twelve classes of AI orders the executor refused; the repeat-ask governor; the
-> ambient series re-recorded and attributed by `tools/_oct27_series_arms.py`). **Its thirteen design questions were
-> taken as recommended and BUILT in S14i (`SYSTEMS_REFERENCE.md` §158 — part 1 D1 … D7, part 2 D8 … D13; S14I-1 … 3
-> fixed beside them); the census reads 0 open defect rows and 0 open design rows. Three choices made under the
-> delegation stand for your review: D4 read between neighbours, D10(ii) the war's credit folded with its total kept
-> (measured against the settlement table), D10(iv) a held province priced at half its fresh cession.**
+> **What RE is:** the build contract is `docs/RECURRING_EVENTS_SPEC.md` §5–§16 read with §6.5 (the Haiti letter), §12b (the
+> Correspondence and the letter's dress), §12c (the reaction layer), §16b (the eight slices and the four tiers) and §17b; the
+> rulings §0 (Q1–Q14, October 27) and §0b (P1–P20, October 30, "Take the defaults"). Eight slices in §16's order, each its own
+> commit through the hook and a pause for the user's review before the next: RE-1 the engine unarmed → RE-2 the client and the
+> dress → RE-3 the three armed with H0 → RE-H the Haiti letter → RE-C the Correspondence → RE-R the reactions → RE-6 the
+> Edicts → RE-5 the close. Four shippable tiers (the letter 5.5; + the home 6.75; + the reactions 7.5; + the squadron 8.75;
+> with the Edicts 10.5), each its own STATUS line and done-when.
 >
-> **Landed after S14i, October 27, 2026 — S14j, the economy rebalance, by the user's word ("lets actually fix this economy
-> before build … it shouldnt run away like this")** (`SYSTEMS_REFERENCE.md` §159; the record
-> `docs/audits/ECONOMY_REBALANCE_2026_10_27.md`): a corps detached into a garrison keeps its pay; conquered soil costs 0.15
-> more of its base in every stability tier; the Charges' crown term 30 → 250 with the AI's purse reading the Net before the
-> Charges. The opening is untouched (France's turn-1 bill 2,834). France's chest now levels off at 16–40k and the courts'
-> purses at 146–193k together on the commanded arms (were 43–75k and 380–453k); `BASELINE_SERIES` re-pinned (J3 alone at
-> [12]); the census still 0 / 0. **Nothing in it holds S15** — the crown's level (250, measured band 200–250) is yours to move.
+> **Traps the row will meet (do not re-discover them):** `set(MO.OPS)` is pinned (`tests/test_moments_engine.py`, 7 → 9 → 10
+> across the slices); the four shipped moment ids are pinned in `tests/test_moments_armed.py`; HC-0 (no calendar reads in
+> mechanics) is pinned; `mechanical_block` in `tools/_s14c_sweep_record.py` hashes every non-`deck` key of the scenario's
+> `moments` block, so arming anything new fails `tests/test_moments_pacing.py` until the S14c sweep is re-recorded (at RE-3 and
+> RE-H) — RE-1 stays unarmed and byte-identical (`historical` reproduces today's boot); `pick_marshal_voice` picks
+> `bank[key % len(bank)]`, so new lines go under a NEW situation key; a seeded outcome's namespace carries the issued turn
+> (`_pct_roll` in `naval.py`); `expedition_slip_odds` is the one naval model (add the `escort` override, never a clone); the
+> event log rolls at 500 rows — anything the Correspondence re-reads lives in the moment's state row; the ratchets
+> (`to_dict` 497 of 500, levers 231, functions over 500 lines 28, `SCRIPT ERROR` 0); every number to Godot an `int`; no
+> per-region scans in hot paths; a new dialogue type needs the `main.gd` dtype whitelist; the first-open line ≤ 220 characters;
+> every answer is a button. Subagents on Sonnet or Haiku; grep-verify any agent's bulk `.gd` edits. Golden Rule 9 and Rule 10.
+> The pre-commit hook runs the full suite (~11 minutes): commit from Bash in the background with
+> `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` and read the log's EXIT line; never edit tracked files while it runs.
 >
-> **Landed after S14j, October 28, 2026 — S14k part 1, the courts take the field, by the user's word ("they should get armies
-> or the ability to make them, we want the game dynamic")** (`SYSTEMS_REFERENCE.md` §160; the record
-> `docs/audits/COURTS_IN_ARMS_2026_10_28.md`): Saxony and Portugal boot with their 1805 field corps; every court that fought
-> in the period has a bench (eleven, twelve Commons portraits on the user's yes); a court with no general is called to arms
-> by a design priced against it; a satellite fights its lord's war by its contingent; the force limit reads the court's
-> tier. Like for like no checklist item flips; `BASELINE_SERIES` re-pinned (K2 + K3 at [11]). **Part 2 landed the same day**
-> (§160.10 on): the courts' goals — Saxony's Wettin Crown and Hesse's Westphalian Duchy on sleepier courts, the neutral
-> postures of Portugal, Hanover and Switzerland, Denmark's Scania and the Porte's Black Sea Shore behind their neutrality —
-> and the Porte's New Order, a one-law deck that lifts its force limit to a great power's. A minor opens a war of its own
-> on 1 of 10 ambient seeds. The user kept Portugal's goal though it re-times the historical seed (CMD-H 23 → 17; nine
-> commanded seeds −1.1 on average, 8 of 9 at 20 or more), and ruled the three armed courts still deckless — Bavaria,
-> Spain, Naples — row S14k-3, the first slice after the deploy. **S14k is COMPLETE; S15 is next.**
->
-> **What the last session delivered, in one breath:** every cause the three fresh players met is closed at the cause, each
-> fixed sentence carried to every surface where its choice is made — the band names the unscouted provinces and gives
-> both readings; the caret is released on every Esc road and every key pointer says the typing form; the Admiralty says
-> why a corps may embark and what every chip costs, and the Emperor's verb refuses him as its counsel always said; the
-> peril clause reads the live field; no corridor opens for a pair never at war and a corridor serves the pair's own
-> stranded corps; a counter-offer marks what the court added or cut and who pays; the truce has one wording with the
-> courtship counted; a send says the courtship pauses; a draft lasts the turn and the war's title is never a raw id; a
-> quiet enemy phase is one line; the expedition's card names the prize and the camp's blockade comes back with its cause;
-> a tie goes to own soil on both sides' roads; the instrument names a glyph link; the fortify reply says the first dawn's
-> front-load, the muster prices a win's alarm and the morning names what moved it, the levy line names the capital's
-> quote and the order, the pooled sail's departure is announced with the window's true need.
->
-> **Traps the last session paid for:**
-> - **`-m "not engine"` filters NOTHING** — "engine" is an xdist group in `tests/conftest.py`, not a registered marker;
->   five builders launched headless Godot by accident. Deselect `ENGINE_GROUP_MODULES` by name (`--deselect` / `-k`).
-> - **A class name with a suffix escapes the renumbering regex** (`TestS14GX28_1TheTruceCure`, `TestS14GX32_6b`) —
->   normalise names before the merge; `rowI1` has no digits to sort by.
-> - **The machine ran out of memory at 8 pytest workers once** (2.4 GB free): 4 workers then.
-> - **A builder's own-file sibling goes back to the builder**; a sibling in another builder's file waits for the next wave.
-> - The series tool chains from the prior record's arm "0" (the shipped tree); the Godot exe sits inside a folder of the
->   same name; the Bash heredoc eats quotes; `ruff` / `python` are not on the Bash PATH (`.venv\Scripts\python.exe -m ruff`).
->
-> **For the user:** the certificate (not on this machine — the build is unsigned until it arrives); S14d's A1 as applied,
-> AO's three questions (`REFORMS_SPEC.md` §5a), SF-NAV-1-D1.
+> **For the user:** the review after each slice; the certificate (the build is unsigned until it arrives); S14d's A1 as
+> applied, AO's three questions (`REFORMS_SPEC.md` §5a), SF-NAV-1-D1.
 > Paste everything below the line as the opening message of a fresh session.
 
 ---
 
-Pre-Deploy S15 — the deploy — on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log --format=%h -5` for the head).
+Row RE "Affairs of State" — **RE-1 the engine, unarmed** — on master in the shared checkout `C:\Users\User\PycharmProjects\project-sovereign-map` (read `git log --format=%h -5` for the head). Plan Mode first; build on approval; land green through the hook; commit; a STATUS session entry; this prompt rewritten for RE-2; then STOP for the user's review before RE-2.
 
-Read first: `docs/STATUS.md` ▶ NEXT UP; `SYSTEMS_REFERENCE.md` §153 (the walk, the certificate's absence §153.3, the build and the clean run HELD §153.4) and §152.11 (the signing seam in `deploy\build.bat`: `INK_IRON_SIGNTOOL_ARGS` / `SIGNTOOL`, `release_smoke.py --expect-signed`); `docs/UX_UI_REVIEW_PLAN.md` §UXR-4 (the landing); `docs/PRE_DEPLOY_PLAN.md` §2 S15 (the deploy gate: 0 open defect rows — it holds, read `.venv/Scripts/python.exe tools/defect_census.py --open`); `docs/audits/RELEASE_TEMPLATE.md` (the record's shape); `tools/clean_env_run.ps1` (the clean-environment instrument, PREPARED and untested); `docs/PLAYTESTING.md` Mode C; CLAUDE.md's Golden Rules.
+Read first: `docs/STATUS.md` ▶ NEXT UP; `docs/RECURRING_EVENTS_SPEC.md` §0c (the re-route), §16 "RE-1 — the engine, unarmed" with §16b's RE-1 row (the look-ahead P8, the latch mask and `grace` P7, the form frozen in `bind` P18, the state rows' `receipt` / `echo` / `outcome_line` / `remark_by` P19, `register` and the `outcome` phase, `ends` in the validator, `mechanical_block` descending into `affairs.deck`, `DISPLAY_KEYS` + `ANSWER_DISPLAY_KEYS`, the premise memo) and "Pins flipped when built", §5 (the attribute block), §7 (pacing — the moments blind to affairs), §8 (one function, France's content), §9 (the engine extended, not forked; the trace), §10 (seeds — timing only), §11 (saves), §13 (Rule 8), §0b P7 / P8 / P18 / P19; `docs/EVENTS_SPEC.md` (S14c's engine); `backend/game_logic/moments.py` (the store `world.moments = {block, state, due}`, `plan` / `answer` / `_tick`, `OPS`, `PREDICATES`, `ANCHORS`); `backend/modding/validator.py` (the moments rules: dated windows, the decline's barred ops, the alarm sources); the scenario's `moments` block in `godot-client/project-sovereign/assets/maps/europe_1805.json`; `tests/test_moments_engine.py` (`set(MO.OPS)` pinned; HC-0), `tests/test_moments_armed.py`, `tests/test_moments_pacing.py` and `tools/_s14c_sweep_record.py` (the deck hash); CLAUDE.md's Golden Rules.
 
-Scope: **S15's deploy.** (1) **The build:** `deploy\build.bat` on the head — UNSIGNED unless the certificate has arrived (check the two variables and the stores first; if present, the signed road and `--expect-signed`); the export, the smoke (`release_smoke.py`), the stamp. (2) **The clean-environment run** (`tools/clean_env_run.ps1`: the build unpacked outside the repo, a system-only PATH, no `.env`, its own `APPDATA`, `launch.bat` the one door, the window read by PrintWindow and driven by messages to its own handle) — the first time it runs: expect the instrument itself to need fixes; fix them in the tool, never in the game, and record each. (3) **The walk on the built client** (not the editor's): the DD-B instrument's stops (§153's list: the School of War end to end, the Generals and Settings on the lesson board, a battle at Swabia with the muster at its head, the enemy phase, the dispatch, the peace table through the war HUD, the Generals on the campaign board) — 0 script errors; any new row is filed and fixed before the record is written (the gate is 0 open rows). (4) **The release record** `docs/audits/RELEASE_<version>.md` from the template: the stamp, the signing found or absent, the smoke, the export, the clean run, the walk, what the build waits on. Done when the record is written, the census reads 0 open defect rows, and `docs/STATUS.md`, `SYSTEMS_REFERENCE.md` §157, `PRE_DEPLOY_PLAN.md` §2 (S15 LANDED), `UX_UI_REVIEW_PLAN.md` and this prompt (for what follows the deploy — the user's call) are written; the full suite green through the hook. **No fourth measure** unless the user calls one (S14G-D7).
+Scope: **RE-1 as §16 and §16b write it** — `moments.py`: occurrence ids and their rows, the moments' blindness to `#` rows and the free withdrawal, `deliver_due` from `tick`, the lord in the plan, `purse_of`, the `authority` and `admin` ops with the grip floor and `bites`, the look-ahead, the latch mask and `grace`, the form frozen in `bind`, the state rows' `receipt` / `echo` / `outcome_line` / `remark_by`, `register` and the `outcome` phase with the one-liner's arm; `affairs.py`: the premises and their memos, the pulse, the Watch reader, a `resolve_courts` that does nothing; the runtime store and its `store_from_data` line; `_validate_affairs` and `backfill_affairs` (with `ends`); the trace extended (§9); `mechanical_block` descending into `affairs.deck` to strip display keys; **ERR-2:** "The Cabinet" → "the Secretariat" at `moments.py:91` and `dialogue_manager.py:651`, re-pinned at `tests/test_moments_engine.py:510` (the top bar's "The Cabinet (F1)" is the diplomacy wizard); CLAUDE.md's Document Map row, paid for by a trim (the cap 62,000 LF bytes, `tests/test_code_health_ratchet.py`). **The seams** named in `tests/_affairs_seams.py` (AF0, AFB, AFP, AFN, AFA); the series tool `tools/_affairs_series_arms.py` chained from the prior record. Done when: the shipped boot is unarmed; `BASELINE_SERIES` is byte-identical with every reach counted at 0; the ratchet is unchanged (`to_dict` 497, levers 231, functions over 500 lines 28); the conscious flips are named (`set(MO.OPS)` 7 → 9, the store's key-set pins); the pins of `tests/test_affairs_engine.py` (§16's list: ids, rows and their frozen `{lord, bind, tier}`; derived cooldowns and caps; the pulse on `historical` and ten seeds, no `random` / `ai_rng`; shown = applied for both ops on three boards including the grip floor on a war-score −35 board; `bites`; the moments' arrival turns invariant armed against unarmed, and the free withdrawal; a save round trip and the backfill; at least 25 validator refusals; the Rule 8 census; the alarm-untouched pin; the trace's teeth) and `tests/test_affairs_pacing.py`'s look-ahead measure on the ten `SWEEP_SEEDS` (§17b's "the first affair about T13", UNVERIFIED until RE-1); the full suite green through the hook. Then the STATUS entry (archive the oldest entry to `docs/archive/STATUS_2026_Q4.md` if the seven-entry cap bites), `SYSTEMS_REFERENCE.md`'s rules section, this prompt rewritten for RE-2, and the review pause.
