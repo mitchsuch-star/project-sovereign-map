@@ -2003,6 +2003,8 @@ def cap_side_desk():
 
 
 MOMENTS_BLOCK = REPO / "tests" / "fixtures" / "moments_block.json"
+# RE-2: the staged recurring deck (the S14c deck plus T1–T3 as §6.1 authors them)
+AFFAIRS_BLOCK = REPO / "tests" / "fixtures" / "affairs_block.json"
 
 
 def cap_moments():
@@ -2061,6 +2063,88 @@ def cap_moments():
                     "_stage_decree_board); gold, DP, admin WRITTEN; current_turn 29; the production "
                     "moments.tick delivered it"),
            facts=facts(popup))
+
+    # ── RE-2 (RECURRING_EVENTS_SPEC.md §12b.2 "The frames"): the affairs ──
+    # The staged recurring deck (tests/fixtures/affairs_block.json — the S14c
+    # deck plus T1 the Arch-Chancellor's Letters, T2 the Host's Claims, T3
+    # Berthier's Memorial, as §6.1 authors them) armed on a booted 1805 world,
+    # the four moments marked passed so the affairs stand alone, each letter
+    # delivered by the production `moments.tick` on its own morning, the
+    # popup what GET /pending_envoy returned.
+    A = test_module("test_affairs_engine")
+
+    def stage_affair(occurrence, turns, prep):
+        world, c = fresh()
+        clear_dialogues(world)
+        world.moments = MO.from_block(json.loads(AFFAIRS_BLOCK.read_text(encoding="utf-8")))
+        A._no_moments(world)
+        T._rich(world)
+        prep(world)
+        delivered = A._run(world, turns)
+        if occurrence not in [m for ids in delivered.values() for m in ids]:
+            raise RuntimeError(f"{occurrence} did not arrive over {list(turns)}: {delivered}")
+        A._make_current(world, A._letter(world, occurrence))
+        popup = get(c, "/pending_envoy").get("incoming_proposal")
+        if (popup or {}).get("register") != "affair":
+            raise RuntimeError("the pending envoy is not an affair: " + str(popup)[:200])
+        return world, c, popup
+
+    def affair_facts(popup):
+        out = facts(popup)
+        out.update({"register": popup.get("register"), "header": popup.get("header"),
+                    "device": popup.get("device"), "writer": popup.get("writer"),
+                    "office": popup.get("office"), "line": popup.get("line"),
+                    "counsel": popup.get("counsel"),
+                    "button_accept": popup.get("button_accept"),
+                    "button_decline": popup.get("button_decline")})
+        return out
+
+    # the Host's Claims at tier 2: four corps on Bavaria's soil (Swabia) —
+    # Montgelas writes for the court of Munich; the bill doubled. The chest
+    # at 5,000 keeps Berthier's door (the Staff's bar) out of the morning.
+    def host_board(w):
+        A._quarter(w, ("Ney", "Davout", "Lannes"))
+        w.nation_gold["France"] = 5_000
+
+    world, c, popup = stage_affair("the_host#1", range(1, 8), host_board)
+    record("affair_letter_the_host", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck (tests/fixtures/affairs_block.json) armed on "
+                    "world.moments, the four moments marked passed (state write); Ney, Davout and "
+                    "Lannes quartered on Swabia beside Bernadotte at Franconia — four corps on "
+                    "Bavaria's soil, tier 2 (state writes); France's gold 5000, DP 7, admin 2 "
+                    "WRITTEN; the production moments.tick delivered it on the pulse's first "
+                    "morning, turn 7"),
+           facts=affair_facts(popup))
+
+    # Berthier's door: at war four turns running with the chest above the bar
+    def door_board(w):
+        w.nation_gold["France"] = 20_000
+
+    world, c, popup = stage_affair("berthiers_memorial#1", range(1, 12), door_board)
+    record("affair_letter_berthiers_memorial", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; "
+                    "France's gold 20000 (the chest above the Staff's bar), DP 7, admin 2 WRITTEN; "
+                    "at war with Austria four turns running by the pulse's first morning, when the "
+                    "production moments.tick delivered the door"),
+           facts=affair_facts(popup))
+
+    # the Arch-Chancellor's Letters with no administrative action left: the
+    # Accept closed on its opaque plaque, its reason on the second line (the
+    # chest at 800 keeps the door out of the morning)
+    def closed_board(w):
+        A._afield(w, authority=80)
+        w.nation_gold["France"] = 800
+
+    world, c, popup = stage_affair("chancellors_letters#1", range(1, 8), closed_board)
+    world.admin_actions_remaining = 0
+    popup = get(c, "/pending_envoy").get("incoming_proposal")
+    record("affair_letter_closed_accept", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; "
+                    "the Emperor afield at Swabia from the opening at standing 80 (state writes); "
+                    "gold 800, DP 7 WRITTEN; the production moments.tick delivered the bill on "
+                    "turn 7; then admin_actions_remaining WRITTEN to 0 and the letter re-read "
+                    "(moments.refresh_letter re-planned it: the Accept closed)"),
+           facts=affair_facts(popup))
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 

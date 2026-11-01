@@ -202,6 +202,11 @@ func _build_item_row(item: Dictionary) -> PanelContainer:
 	var type_label = Label.new()
 	var _type_key = "moment_letter" if str(item.get("proposal_type", "")) == "moment_letter" else item_type
 	type_label.text = ITEM_TYPE_DISPLAY.get(_type_key, item_type.replace("_", " ").capitalize())
+	# RE-2 (RECURRING_EVENTS_SPEC.md §12): an affair of state rides the moment
+	# letter's transport and carries its own register on the row — the tag
+	# says which (a moment's row carries no register key and reads as before).
+	if str(item.get("register", "")) == "affair":
+		type_label.text = "Affair"
 	type_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	type_label.theme_type_variation = &"Caption"
 	type_label.add_theme_color_override("font_color", Color(0.74, 0.78, 0.86, 1.0))

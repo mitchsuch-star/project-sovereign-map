@@ -1,0 +1,484 @@
+{
+ "date": "2026_10_31",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\18ec629b-6a72-401e-b597-fabb0f3a25b2\\scratchpad\\iq10\\phys\\index.json",
+ "surfaces": {
+  "moment_letter_bavarian_match": {
+   "surface": "A Moment of History — The Bavarian Match (the Secretariat) (incoming_proposal_popup.tscn, is_moment)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "moment_letter_decree_of_berlin": {
+   "surface": "A Moment of History — The Decree of Berlin (Talleyrand) (incoming_proposal_popup.tscn, is_moment)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 5,
+      "red": 0,
+      "p1": 0,
+      "ok": 5,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "affair_letter_the_host": {
+   "surface": "An Affair of State — The Host's Claims at tier 2 (Montgelas, for the court of Munich) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "affair_letter_berthiers_memorial": {
+   "surface": "An Affair of State — Berthier's Memorial — the door (Berthier, Major-General) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "affair_letter_closed_accept": {
+   "surface": "An Affair of State — The Arch-Chancellor's Letters with the Accept closed (no action left) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "5ca1ae56",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

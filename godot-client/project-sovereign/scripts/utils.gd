@@ -183,6 +183,18 @@ static var COLOR_GREY := "808080"         # Same as COLOR_DIMMED — semantic al
 static var COLOR_DIM := "666670"
 const COLOR_HEADER = "B8860B"       # Same as COLOR_BERTHIER — semantic alias for ledger headers
 
+# === The letter's INK (RE-2, docs/RECURRING_EVENTS_SPEC.md §12b.2) ===
+# Ink on parchment — never gold on paper. Hex strings for BBCode and
+# Color.html, constants (never retoned: the ink IS the contrast; High
+# contrast swaps the sheet for a flat cream and keeps the ink). Pinned by
+# tests/test_affairs_client.py's ink census: every inline colour the letter
+# register emits is one of these.
+const INK_BODY := "2B1D12"      # the body, 8.8 : 1 on the sheet's measured tone
+const INK_RUBRIC := "6A1410"    # the rubric: the dateline, the headings, the lapse line (6.6 : 1)
+const INK_SEPIA := "4E3820"     # the counsel and the first-open line (5.9 : 1)
+const INK_RULE := "8A7A5A"      # the seal well's ring, the exhibit's rule
+const INK_SHEET_HC := "EFE3C6"  # the flat cream sheet under High contrast
+
 # === Nation Colors (Color objects for UI elements) ===
 # Single source of truth for nation colors (SCALE_READINESS_PLAN §3.3).
 # Any script needing a nation color reads Utils.NATION_COLORS — do NOT

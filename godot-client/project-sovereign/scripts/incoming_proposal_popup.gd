@@ -95,6 +95,10 @@ func show_proposal(data: Dictionary):
 	# of the record with no court; the Cabinet (or Talleyrand) lays it before
 	# the Emperor. Two answers, each saying what it does; no Counter.
 	var is_moment = data.get("is_moment", false)
+	# RE-2 (§12b.2): a letter of state carries its counsel under the buttons
+	# (`_dress_letter`); the grey assessment slot is skipped for this register.
+	if is_moment:
+		assessment = ""
 	# OCT27-D9 (S14i): an allied court asks for its home province back —
 	# Return or Keep, never bargained (the Counter rides hidden).
 	var is_province_letter = data.get("is_province_letter", false)
@@ -120,7 +124,17 @@ func show_proposal(data: Dictionary):
 	elif is_moment:
 		# The dateline is the in-game calendar label, never a historical date.
 		bbcode += "[center][color=#e0c060][b]A MOMENT OF HISTORY — " + _moment_text(data.get("dateline", "")) + "[/b][/color][/center]\n"
-		bbcode += "[b]" + _moment_text(data.get("title", "")) + "[/b] — " + _moment_text(diplomat_name) + " lays a letter before the Emperor.\n"
+		# RE-2 (RECURRING_EVENTS_SPEC.md §12b.2, line 2): the writer and the
+		# office, named — "The Host's Claims — Montgelas, for the court of
+		# Munich"; a payload without a writer reads as S14c wrote it. The
+		# header line above is lifted into the letterhead by `_dress_letter`,
+		# which reads the letter's own `header` (an affair's says so).
+		var writer := _moment_text(data.get("writer", ""))
+		if writer != "":
+			var office := _moment_text(data.get("office", ""))
+			bbcode += "[b]" + _moment_text(data.get("title", "")) + "[/b] — " + writer + ((", " + office) if office != "" else "") + "\n"
+		else:
+			bbcode += "[b]" + _moment_text(data.get("title", "")) + "[/b] — " + _moment_text(diplomat_name) + " lays a letter before the Emperor.\n"
 		panel_style.border_color = _default_border_color
 	elif is_petition:
 		# Petition: the client's own header; the clauses ARE the petition
@@ -367,6 +381,10 @@ func show_proposal(data: Dictionary):
 	else:
 		accept_btn.text = "Accept Terms" if is_counter else "Accept"
 		reject_btn.text = "Reject Terms" if is_counter else "Reject"
+	# RE-2 (RECURRING_EVENTS_SPEC.md §12b.2): the letter's dress — the sheet,
+	# the ink, the letterhead, the two-line buttons, the counsel — over the
+	# composed letter; every override removed again for any other register.
+	_dress_letter(data, is_moment, grant_enabled, grant_reason)
 	show()
 	# July 18, 2026 viewport sweep: fit to the CURRENT logical viewport.
 	# Interface Scale (content_scale_factor, up to 2.0) divides the logical
@@ -433,24 +451,43 @@ func _moment_quote(data: Dictionary, action: String) -> String:
 func _build_moment_body(data: Dictionary) -> String:
 	"""S14c (docs/EVENTS_SPEC.md §2's copy contract): the record, the board
 	(derived lines), then what each answer does — the plan's own quotes, the
-	caption in bold. The unanswered line is the footer."""
+	caption in bold. The unanswered line is the footer.
+
+	RE-2 (RECURRING_EVENTS_SPEC.md §12b.2): the first-open line in sepia;
+	the writer's own line (`line`) before the record; the ground and the
+	chapter in IM Fell italic — history's voice, set apart from the writer's
+	(`[font=…]` parses; the file name carries no bracket; IM Fell has no
+	arrow or minus glyph, so it is scoped to the record and the exhibit);
+	the exhibit (RE-H's) in IM Fell roman under a run-in in the rubric; the
+	board led by a fleuron; the heading in the rubric. The body ink is laid
+	over the whole by `_dress_letter`."""
 	var out := ""
 	# S14d: the sixth part of the copy contract (EVENTS_SPEC §2, A5) — the
 	# first letter's line, before the record, in the R159 register.
 	var fo = data.get("first_open")
 	if fo is Dictionary and str(fo.get("line", "")) != "":
-		out += "[color=#" + Utils.COLOR_INFO + "]" + _moment_text(fo.get("line", "")) + "[/color]\n"
+		out += "[color=#" + Utils.INK_SEPIA + "]" + _moment_text(fo.get("line", "")) + "[/color]\n"
 		first_open_seen.emit(str(fo.get("screen", "moment_letter")))
+	var writer_line := _moment_text(data.get("line", ""))
+	if writer_line != "":
+		out += writer_line + "\n"
 	var record := _moment_text(data.get("record", ""))
 	if record != "":
-		out += "[i]" + record + "[/i]\n"
+		out += "[font=" + LETTER_FELL_ITALIC + "]" + record + "[/font]\n"
+	var exhibit := _moment_text(data.get("exhibit", ""))
+	if exhibit != "":
+		var exhibit_from := _moment_text(data.get("exhibit_from", EXHIBIT_FROM_DEFAULT))
+		out += "[color=#" + Utils.INK_RUBRIC + "]" + exhibit_from.to_upper() + "[/color]\n"
+		out += "[font=" + LETTER_FELL_ROMAN + "]" + exhibit + "[/font]\n"
 	var board = data.get("board", [])
 	if board is Array:
 		for line in board:
-			out += "  - " + _moment_text(line) + "\n"
+			# the hedera (U+2767) — EB Garamond's own fleuron, in the rubric;
+			# a glyph scales with the type where a 10-px image aliased
+			out += "[color=#" + Utils.INK_RUBRIC + "]" + LETTER_FLEURON + "[/color] " + _moment_text(line) + "\n"
 	var answers = data.get("answers", [])
 	if answers is Array and answers.size() > 0:
-		out += "[b]What each answer does[/b]\n"
+		out += "[color=#" + Utils.INK_RUBRIC + "][b]" + "What each answer does".to_upper() + "[/b][/color]\n"
 		for a in answers:
 			if not (a is Dictionary):
 				continue
@@ -463,6 +500,8 @@ func _build_moment_body(data: Dictionary) -> String:
 
 
 func _on_accept():
+	# RE-2: the beat draws at the pressed button's rect once the popup is gone
+	_pressed_rect = accept_btn.get_global_rect()
 	_disable_buttons()
 	hide()
 	choice_made.emit("accept", current_data)
@@ -473,6 +512,7 @@ func _on_counter():
 	choice_made.emit("counter", current_data)
 
 func _on_reject():
+	_pressed_rect = reject_btn.get_global_rect()
 	_disable_buttons()
 	hide()
 	choice_made.emit("reject", current_data)
@@ -716,3 +756,314 @@ func _build_annotated_terms_section(annotated: Array) -> String:
 
 func _term_label(term: Dictionary) -> String:
 	return str(term.get("display_label", term.get("display", "?")))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# RE-2 (docs/RECURRING_EVENTS_SPEC.md §12b.2, October 31, 2026): THE LETTER'S
+# DRESS — one register for every letter of state (`is_moment`: the four
+# moments, the affairs, the Edicts' offers), gated in `show_proposal`; every
+# other letter keeps the flat navy panel. Built in code (the .tscn is
+# untouched): the parchment sheet, the ink, the letterhead row at the VBox's
+# head (the device · the dateline · the seal well), the two-line buttons, the
+# opaque disabled plaque, the counsel under the buttons, and the answer beat's
+# own slip. The quote is never traded for ornament: every part the S14c
+# register wrote is still written, in ink.
+#
+# The type stays on the ruled ladder (tests/test_uxr2_override_diet.py): no
+# `[font_size=]`, no size override — the body 16, the dateline Caption, the
+# apostille Lead; a bbcode `[font=…]` is allowed (IM Fell for history's
+# voice). Every inline colour this register emits is a `Utils.INK_*`.
+# ═══════════════════════════════════════════════════════════════════════════
+const LETTER_SHEET := "res://assets/textures/old-parchment_alpha.png"
+const LETTER_SEAL := "res://assets/ui/ornaments/wax_seal.png"
+const LETTER_FLEURON := "❧"       # the hedera, U+2767 — EB Garamond carries it (the body face)
+const LETTER_FELL_ITALIC := "res://assets/fonts/IMFeENit28P.ttf"
+const LETTER_FELL_ROMAN := "res://assets/fonts/IMFeENrm28P.ttf"
+const LETTER_CINZEL := "res://assets/fonts/Cinzel[wght].ttf"
+const LETTER_DEVICE_PX := 44.0
+const LETTER_BUTTON_MIN_HEIGHT := 56.0
+const LETTER_BUTTON_LINE_MAX := 40
+const LETTER_BEAT_SECONDS := 0.8
+const LETTER_SEAL_PX := 48.0
+const NOT_NOW_DESK_LINE := "waits on the desk"
+const EXHIBIT_FROM_DEFAULT := "FROM HAITI —"
+
+# Instance-held Resources (never a `static var`: S14E-X207 — a static holding
+# a Resource outlives the engine's teardown check).
+var _sheet: StyleBoxTexture = null
+var _sheet_hc: StyleBoxFlat = null
+var _closed_plaque: StyleBoxFlat = null
+var _fell_italic: Font = null
+var _cinzel: Font = null
+var _letterhead: HBoxContainer = null
+var _device_slot: CenterContainer = null
+var _dateline_label: Label = null
+var _seal_well: Panel = null
+var _pressed_rect := Rect2()
+var _dressed := false
+
+
+func _ensure_letter_dress() -> void:
+	"""The dress's nodes and resources, built once on the first letter of state."""
+	if _letterhead != null:
+		return
+	_sheet = StyleBoxTexture.new()
+	_sheet.texture = load(LETTER_SHEET)
+	# the torn rim drawn OUTSIDE the box (expand), the inner field stretched
+	# (texture margins), the content margin kept at the flat box's 24
+	for side in ["left", "right"]:
+		_sheet.set("texture_margin_" + side, 48.0)
+		_sheet.set("expand_margin_" + side, 12.0)
+		_sheet.set("content_margin_" + side, 24.0)
+	for side in ["top", "bottom"]:
+		_sheet.set("texture_margin_" + side, 40.0)
+		_sheet.set("expand_margin_" + side, 12.0)
+		_sheet.set("content_margin_" + side, 24.0)
+	# High contrast: a flat cream sheet under the same ink (the ink IS the
+	# contrast; `Utils.contrast_node` raises mid greys only, never ink)
+	_sheet_hc = StyleBoxFlat.new()
+	_sheet_hc.bg_color = Color.html(Utils.INK_SHEET_HC)
+	_sheet_hc.border_color = Color.html(Utils.INK_RULE)
+	_sheet_hc.set_border_width_all(2)
+	_sheet_hc.set_corner_radius_all(4)
+	_sheet_hc.set_content_margin_all(24.0)
+	# the opaque plaque under a closed Accept (the theme's translucent one
+	# reads 1.7 : 1 on paper)
+	_closed_plaque = StyleBoxFlat.new()
+	_closed_plaque.bg_color = Color(Utils.UI_POPUP_BG.r, Utils.UI_POPUP_BG.g, Utils.UI_POPUP_BG.b, 1.0)
+	_closed_plaque.border_color = Utils.UI_FAINT_BORDER
+	_closed_plaque.set_border_width_all(1)
+	_closed_plaque.set_corner_radius_all(4)
+	_closed_plaque.set_content_margin_all(6.0)
+	_fell_italic = load(LETTER_FELL_ITALIC)
+	var cinzel_file: Font = load(LETTER_CINZEL)
+	var spaced := FontVariation.new()
+	spaced.base_font = cinzel_file
+	spaced.set_spacing(TextServer.SPACING_GLYPH, 1)
+	_cinzel = spaced
+	# the letterhead: device · dateline · seal well, at the VBox's head
+	_letterhead = HBoxContainer.new()
+	_letterhead.name = "Letterhead"
+	_letterhead.add_theme_constant_override("separation", 12)
+	_letterhead.visible = false
+	_device_slot = CenterContainer.new()
+	_device_slot.custom_minimum_size = Vector2(LETTER_DEVICE_PX, LETTER_DEVICE_PX)
+	_device_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_letterhead.add_child(_device_slot)
+	_dateline_label = Label.new()
+	_dateline_label.theme_type_variation = &"Caption"
+	_dateline_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_dateline_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_dateline_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_dateline_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dateline_label.add_theme_font_override("font", _cinzel)
+	_dateline_label.add_theme_color_override("font_color", Color.html(Utils.INK_RUBRIC))
+	_letterhead.add_child(_dateline_label)
+	# the seal well: a faint wax-red ring (a bordered round Panel)
+	_seal_well = Panel.new()
+	_seal_well.custom_minimum_size = Vector2(LETTER_DEVICE_PX, LETTER_DEVICE_PX)
+	_seal_well.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ring := StyleBoxFlat.new()
+	ring.bg_color = Color(0, 0, 0, 0)
+	ring.border_color = Color(Color.html(Utils.INK_RUBRIC), 0.35)
+	ring.set_border_width_all(1)
+	ring.set_corner_radius_all(int(LETTER_DEVICE_PX / 2.0))
+	_seal_well.add_theme_stylebox_override("panel", ring)
+	_letterhead.add_child(_seal_well)
+	var vbox := $PanelContainer/VBoxContainer
+	vbox.add_child(_letterhead)
+	vbox.move_child(_letterhead, 0)
+
+
+func _set_letter_device(device: Dictionary) -> void:
+	"""The letterhead's device: the court's arms (`Utils.nation_flag_path`),
+	the owner's sheet for the Secretariat, a gold monogram on leather for an
+	office (`PortraitLocket`'s own fallback — never a portrait)."""
+	for child in _device_slot.get_children():
+		child.queue_free()
+	var kind := str(device.get("kind", ""))
+	var nation := str(device.get("nation", ""))
+	var flag := Utils.nation_flag_path(nation) if nation != "" else ""
+	if kind in ["arms", "sheet"] and flag != "":
+		var arms := TextureRect.new()
+		arms.texture = load(flag)
+		arms.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		arms.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		arms.custom_minimum_size = Vector2(LETTER_DEVICE_PX, LETTER_DEVICE_PX)
+		arms.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_device_slot.add_child(arms)
+		return
+	var letter := str(device.get("letter", ""))
+	if letter == "":
+		letter = "N"
+	var locket := PortraitLocket.new()
+	# the letter itself is the name key: no portrait file carries it, so the
+	# locket draws its gold monogram on leather (its own fallback)
+	locket.setup(letter, LETTER_DEVICE_PX, false)
+	_device_slot.add_child(locket)
+
+
+func _letter_header_text(data: Dictionary) -> String:
+	var header := str(data.get("header", ""))
+	if header != "":
+		return header
+	return "A MOMENT OF HISTORY — " + str(data.get("dateline", "")).to_upper()
+
+
+func _ink(text: String) -> String:
+	"""Every inline colour the register wrote, remapped to ink: the first-open
+	line's grey to sepia; the closed-Accept line, the gold header line and the
+	unanswered line to the rubric; the grey assessment slot is skipped for
+	this register (the counsel rides under the buttons)."""
+	var out := text
+	out = out.replace("[color=#" + Utils.COLOR_INFO + "]", "[color=#" + Utils.INK_SEPIA + "]")
+	out = out.replace("[color=#" + Utils.COLOR_ERROR + "]", "[color=#" + Utils.INK_RUBRIC + "]")
+	out = out.replace("[color=#e0c060]", "[color=#" + Utils.INK_RUBRIC + "]")
+	out = out.replace("[color=#" + Utils.COLOR_WARNING + "]", "[color=#" + Utils.INK_RUBRIC + "]")
+	out = out.replace("[color=#" + Utils.COLOR_GOLD + "]", "[color=#" + Utils.INK_RUBRIC + "]")
+	out = out.replace("[color=gray]", "[color=#" + Utils.INK_SEPIA + "]")
+	return out
+
+
+func _button_second_line(data: Dictionary, key: String, fallback: String) -> String:
+	var line := str(data.get(key, "")).strip_edges()
+	if line == "":
+		line = fallback
+	if line.length() > LETTER_BUTTON_LINE_MAX:
+		line = line.substr(0, LETTER_BUTTON_LINE_MAX - 1).strip_edges() + "…"
+	return line
+
+
+func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_reason: String) -> void:
+	"""The dress, applied after the body is composed and the buttons are
+	captioned; every override removed again for any other register."""
+	var panel := $PanelContainer
+	var buttons := [accept_btn, counter_btn, reject_btn, dismiss_btn]
+	if not is_letter:
+		_dressed = false
+		if _letterhead != null:
+			_letterhead.visible = false
+		panel.add_theme_stylebox_override("panel", panel_style)
+		accept_btn.remove_theme_stylebox_override("disabled")
+		for b in buttons:
+			b.custom_minimum_size = Vector2(140, 45)
+		_set_aside_line.remove_theme_font_override("font")
+		return
+	_ensure_letter_dress()
+	_dressed = true
+	panel.add_theme_stylebox_override("panel", _sheet_hc if UiSettings.get_high_contrast() else _sheet)
+	_letterhead.visible = true
+	_set_letter_device(data.get("device", {}))
+	_dateline_label.text = _letter_header_text(data)
+	# the header line leaves the body for the letterhead; the rest is inked
+	var body: String = content_label.text
+	if body.begins_with("[center]"):
+		var head_end := body.find("\n")
+		body = body.substr(head_end + 1) if head_end >= 0 else ""
+	content_label.text = "[color=#" + Utils.INK_BODY + "]" + _ink(body) + "[/color]"
+	# the two-line buttons: the caption, then the price (the plan's receipt)
+	for b in buttons:
+		b.custom_minimum_size = Vector2(140, LETTER_BUTTON_MIN_HEIGHT)
+	var accept_line := _button_second_line(data, "button_accept", "no change")
+	if not accept_open:
+		# a closed Accept says why on an opaque plaque (the reason when it
+		# fits the line, else its price; the body's line carries the whole)
+		var reason := accept_reason.strip_edges().rstrip(".")
+		if reason != "" and reason.length() <= LETTER_BUTTON_LINE_MAX:
+			accept_line = reason
+		accept_btn.add_theme_stylebox_override("disabled", _closed_plaque)
+	else:
+		accept_btn.remove_theme_stylebox_override("disabled")
+	accept_btn.text = accept_btn.text + "\n" + accept_line
+	reject_btn.text = reject_btn.text + "\n" + _button_second_line(data, "button_decline", "no change")
+	dismiss_btn.text = dismiss_btn.text + "\n" + NOT_NOW_DESK_LINE
+	# the counsel under the buttons: Caption italic in sepia, never a body line
+	var counsel := _moment_text(data.get("counsel", ""))
+	if counsel != "":
+		_set_aside_line.text = counsel
+		_set_aside_line.add_theme_font_override("font", _fell_italic)
+		_set_aside_line.add_theme_color_override("font_color", Color.html(Utils.INK_SEPIA))
+		_set_aside_line.visible = true
+	else:
+		_set_aside_line.remove_theme_font_override("font")
+		_set_aside_line.visible = false
+
+
+func play_answer_beat(answer_key: String, parent: Node) -> void:
+	"""RE-2 (§12b.2) — the answer's beat, under 0.8 s, on the backend's own
+	word that the letter was answered (`moment_answered`; a refusal carries
+	`diplomatic_dialogue` instead and never reaches here): the popup is
+	already hidden, so the apostille and the seal draw on a parchment slip of
+	their own, parented under an existing layer (the top bar's — never a
+	`CanvasLayer.new()`), at the pressed button's rect: the apostille fades in
+	("{caption}. — N."), the seal presses with a 6° settle under a gold N
+	cipher, the `wax_seal` cue plays once; then the slip frees itself. Not
+	Now never reaches here (no slip, no seal, no sound)."""
+	if parent == null or not is_instance_valid(parent) or not (parent is Node):
+		return
+	if not bool(current_data.get("is_moment", false)):
+		return
+	var action := "accept_ai_proposal" if answer_key == "accept" else "reject_ai_proposal"
+	var caption := _moment_caption(current_data, action, "")
+	if caption == "":
+		return
+	_ensure_letter_dress()
+	var slip := PanelContainer.new()
+	slip.name = "AnswerBeatSlip"
+	slip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slip.add_theme_stylebox_override("panel", _sheet_hc if UiSettings.get_high_contrast() else _sheet)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slip.add_child(row)
+	var apostille := Label.new()
+	apostille.theme_type_variation = &"Lead"
+	apostille.text = caption + ". — N."
+	apostille.add_theme_font_override("font", _fell_italic)
+	apostille.add_theme_color_override("font_color", Color.html(Utils.INK_BODY))
+	apostille.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	apostille.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(apostille)
+	var seal_box := Control.new()
+	seal_box.custom_minimum_size = Vector2(LETTER_SEAL_PX, LETTER_SEAL_PX)
+	seal_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(seal_box)
+	var seal := TextureRect.new()
+	seal.texture = load(LETTER_SEAL)
+	seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	seal.set_anchors_preset(Control.PRESET_FULL_RECT)
+	seal.pivot_offset = Vector2(LETTER_SEAL_PX / 2.0, LETTER_SEAL_PX / 2.0)
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seal_box.add_child(seal)
+	var cipher := Label.new()
+	cipher.theme_type_variation = &"Lead"
+	cipher.text = "N"
+	cipher.add_theme_font_override("font", _cinzel)
+	cipher.add_theme_color_override("font_color", Utils.UI_GOLD_BRIGHT)
+	cipher.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cipher.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cipher.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cipher.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	seal.add_child(cipher)
+	parent.add_child(slip)
+	# at the pressed button, kept inside the window
+	var view := get_viewport().get_visible_rect().size
+	slip.reset_size()
+	var at := _pressed_rect.position + Vector2(0, -8.0)
+	if _pressed_rect.size == Vector2.ZERO:
+		at = (view - slip.size) / 2.0
+	at.x = clampf(at.x, 8.0, maxf(8.0, view.x - slip.size.x - 8.0))
+	at.y = clampf(at.y, 8.0, maxf(8.0, view.y - slip.size.y - 8.0))
+	slip.position = at
+	slip.modulate.a = 0.0
+	seal.rotation_degrees = -6.0
+	seal.scale = Vector2(1.3, 1.3)
+	AudioManager.play("wax_seal", 1.4)
+	var tw := slip.create_tween()
+	tw.tween_property(slip, "modulate:a", 1.0, 0.15)
+	tw.parallel().tween_property(seal, "rotation_degrees", 0.0, 0.25)
+	tw.parallel().tween_property(seal, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(LETTER_BEAT_SECONDS - 0.4)
+	tw.tween_property(slip, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(slip.queue_free)

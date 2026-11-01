@@ -183,3 +183,28 @@ class TestTheFrames:
             png = AUDITS / f"IQ10_MOMENT_LETTER_{mid}{tail}_2026_10_22.png"
             assert png.exists(), png
             assert png.stat().st_size > 8000, png
+
+
+class TestRE2TheDress:
+    """RE-2 (October 31, 2026; `docs/RECURRING_EVENTS_SPEC.md` §12b.2): the
+    letter's dress — one register for every letter of state. The S14c frames
+    above stay as the record; the two moments are re-shot in the dress as
+    `_2026_10_31`, beside the affairs (`tests/test_affairs_client.py` part 2
+    carries the census)."""
+
+    @pytest.mark.parametrize("mid", ["BAVARIAN_MATCH", "DECREE_OF_BERLIN"])
+    def test_the_moments_are_re_shot_in_the_dress(self, mid):
+        for tail in ("", "_X2"):
+            png = AUDITS / f"IQ10_MOMENT_LETTER_{mid}{tail}_2026_10_31.png"
+            assert png.exists(), png
+            assert png.stat().st_size > 8000, png
+
+    def test_the_register_keeps_its_s14c_parts_under_the_dress(self):
+        src = _gd("incoming_proposal_popup.gd")
+        show = _func(src, "show_proposal")
+        # the S14c header literal stays (the dress lifts it into the letterhead)
+        assert "A MOMENT OF HISTORY — " in show
+        assert "_dress_letter(data, is_moment, grant_enabled, grant_reason)" in show
+        body = _func(src, "_build_moment_body")
+        assert 'data.get("record", "")' in body and 'data.get("board", [])' in body
+        assert '"What each answer does".to_upper()' in body

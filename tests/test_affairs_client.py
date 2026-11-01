@@ -474,6 +474,13 @@ class TestTheDerivedButtonLines:
             "−9,000 gold · 300 a turn · 1 action"
         assert MO._derived_button_line(armed, "France", [
             {"op": "enact_law", "law": "grand_quartier_general", "refusal": "closed"}]) == "no change"
+        # a decree priced in authority says so in the button's own word — and
+        # the full line (41) is cut at the token boundary: the action drops
+        standing = int(armed.authority_tracker.authority)
+        decree = MO._derived_button_line(armed, "France", [
+            {"op": "enact_law", "law": "berlin_decree", "refusal": ""}])
+        assert decree == f"standing {standing} → {standing - 15} · 150 a turn"
+        assert len(decree) <= MO.BUTTON_LINE_MAX
         long = MO._derived_button_line(armed, "France", [
             {"op": "relation", "court": "A" * 60, "before": 1, "after": 2}])
         assert len(long) == MO.BUTTON_LINE_MAX and long.endswith("…")
@@ -559,3 +566,224 @@ class TestTheFirstOpenLine:
             assert not _TYPED.search(text), (template, key, text)
             plain = re.sub(r"\{[a-z_]+\}", "", text)            # the slots are the author's
             assert "_" not in plain, (template, key, text)      # no internal key leaks
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PART 2 — THE CLIENT HALF (commit B): the dress (§12b.2), the beat, the readers
+# ═══════════════════════════════════════════════════════════════════════════
+
+GODOT = REPO / "godot-client" / "project-sovereign"
+SCRIPTS = GODOT / "scripts"
+AUDITS = REPO / "docs" / "audits"
+INK = {"INK_BODY": "2B1D12", "INK_RUBRIC": "6A1410", "INK_SEPIA": "4E3820",
+       "INK_RULE": "8A7A5A", "INK_SHEET_HC": "EFE3C6"}
+FRAME_DATE = "2026_10_31"
+AFFAIR_STEMS = ("THE_HOST", "BERTHIERS_MEMORIAL", "CLOSED_ACCEPT")
+
+
+def _gd(name):
+    return (SCRIPTS / name).read_text(encoding="utf-8")
+
+
+def _func(src, name):
+    start = src.index(f"func {name}(")
+    nxt = src.find("\nfunc ", start + 5)
+    return src[start:nxt if nxt > 0 else len(src)]
+
+
+def _code(src):
+    """The source without comments and docstrings (a census reads code)."""
+    src = re.sub(r'"""(.*?)"""', '""', src, flags=re.S)
+    return "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith("#"))
+
+
+class TestTheInk:
+    def test_the_five_inks_are_hex_tokens_in_utils(self):
+        src = _gd("utils.gd")
+        for name, hexval in INK.items():
+            assert f'const {name} := "{hexval}"' in src, name
+
+    def test_every_inline_colour_the_register_emits_is_an_ink(self):
+        """§12b.2 — no gold on paper: the dress's own code paths name only
+        `Utils.INK_*` tokens, and the remap covers every token the S14c
+        register wrote (the grey first-open line, the closed-Accept red, the
+        gold header and lapse lines, the grey assessment slot)."""
+        src = _gd("incoming_proposal_popup.gd")
+        for name in ("_build_moment_body", "_dress_letter", "_ensure_letter_dress",
+                     "play_answer_beat", "_set_letter_device"):
+            body = _code(_func(src, name))
+            for tok in re.findall(r'\[color=#" \+ Utils\.([A-Z_]+)', body):
+                assert tok.startswith("INK_"), (name, tok)
+            assert not re.search(r'\[color=#[0-9a-fA-F]{6}\]', body), name
+            for m in re.finditer(r'Color\.html\(Utils\.([A-Z_]+)\)', body):
+                assert m.group(1).startswith("INK_"), (name, m.group(1))
+        # the remap: every S14c token the register still writes lands on an ink
+        ink = _code(_func(src, "_ink"))
+        remaps = re.findall(r'\.replace\((.+?), "\[color=#" \+ Utils\.([A-Z_]+) \+ "\]"\)', ink)
+        assert remaps, "the remap is gone"
+        for _source, target in remaps:
+            assert target.startswith("INK_"), (_source, target)
+        for source in ('Utils.COLOR_INFO', 'Utils.COLOR_ERROR', '"[color=#e0c060]"',
+                       'Utils.COLOR_WARNING', 'Utils.COLOR_GOLD', '"[color=gray]"'):
+            assert source in ink, source
+        # the body is inked whole, under the one wrapper
+        assert '"[color=#" + Utils.INK_BODY + "]" + _ink(body) + "[/color]"' in _func(src, "_dress_letter")
+
+    def test_the_type_stays_on_the_ladder(self):
+        src = _code(_gd("incoming_proposal_popup.gd"))
+        assert "add_theme_font_size_override(" not in src
+        assert "[font_size=" not in src
+        assert "CanvasLayer.new()" not in src                  # the beat rides an existing layer
+        assert "_set_aside_line = Label.new()" in _func(_gd("incoming_proposal_popup.gd"), "_ready")
+
+
+class TestTheDress:
+    def test_the_sheet_the_letterhead_and_the_device(self):
+        src = _gd("incoming_proposal_popup.gd")
+        build = _func(src, "_ensure_letter_dress")
+        assert 'const LETTER_SHEET := "res://assets/textures/old-parchment_alpha.png"' in src
+        assert "StyleBoxTexture.new()" in build and "load(LETTER_SHEET)" in build
+        assert "vbox.move_child(_letterhead, 0)" in build         # the VBox's head, no new sibling
+        assert "Color.html(Utils.INK_SHEET_HC)" in build           # High contrast: the cream sheet
+        dress = _func(src, "_dress_letter")
+        assert "UiSettings.get_high_contrast()" in dress
+        assert 'add_theme_stylebox_override("panel", panel_style)' in dress   # restored otherwise
+        device = _func(src, "_set_letter_device")
+        assert "PortraitLocket.new()" in device and "Utils.nation_flag_path(" in device
+        assert "Napoleon" not in device                            # never his portrait
+        for name in ("_sheet", "_sheet_hc", "_closed_plaque", "_fell_italic", "_cinzel"):
+            assert re.search(rf"(?m)^var {name}\b", src), name
+            assert not re.search(rf"(?m)^static var {name}\b", src), name   # S14E-X207
+
+    def test_the_two_line_buttons_and_the_opaque_plaque(self):
+        src = _gd("incoming_proposal_popup.gd")
+        dress = _func(src, "_dress_letter")
+        assert "const LETTER_BUTTON_MIN_HEIGHT := 56.0" in src
+        assert "const LETTER_BUTTON_LINE_MAX := 40" in src
+        assert 'const NOT_NOW_DESK_LINE := "waits on the desk"' in src
+        assert 'accept_btn.text = accept_btn.text + "\\n" + accept_line' in dress
+        assert '_button_second_line(data, "button_decline"' in dress
+        assert 'dismiss_btn.text = dismiss_btn.text + "\\n" + NOT_NOW_DESK_LINE' in dress
+        assert 'accept_btn.add_theme_stylebox_override("disabled", _closed_plaque)' in dress
+        assert 'accept_btn.remove_theme_stylebox_override("disabled")' in dress
+        assert "Vector2(140, 45)" in dress                        # the scene's size, restored
+
+    def test_the_counsel_rides_under_the_buttons_and_the_grey_slot_is_skipped(self):
+        src = _gd("incoming_proposal_popup.gd")
+        dress = _func(src, "_dress_letter")
+        assert '_moment_text(data.get("counsel", ""))' in dress
+        assert '_set_aside_line.add_theme_font_override("font", _fell_italic)' in dress
+        assert 'Color.html(Utils.INK_SEPIA)' in dress
+        show = _func(src, "show_proposal")
+        assert "if is_moment:\n\t\tassessment = \"\"" in show
+        # the dress is applied after the body and the captions, before show()
+        assert show.index("_dress_letter(data, is_moment, grant_enabled, grant_reason)") < show.index("\tshow()")
+        # the pinned S14c strings are where they were
+        assert "A MOMENT OF HISTORY — " in show and 'data.get("unanswered_line", "")' in show
+
+    def test_the_body_writes_history_in_fell_italic_and_the_board_with_fleurons(self):
+        body = _func(_gd("incoming_proposal_popup.gd"), "_build_moment_body")
+        assert '"[font=" + LETTER_FELL_ITALIC + "]"' in body
+        src = _gd("incoming_proposal_popup.gd")
+        assert 'const LETTER_FLEURON := "❧"' in src                # EB Garamond's hedera, a glyph
+        assert '"]" + LETTER_FLEURON + "[/color] "' in body and "[img" not in body
+        assert '"What each answer does".to_upper()' in body     # the S14c literal, in the rubric
+        assert 'data.get("line", "")' in body and 'data.get("exhibit", "")' in body
+        assert body.index('data.get("first_open")') < body.index('data.get("line", "")') < body.index('data.get("record", "")')
+
+
+class TestTheBeat:
+    def test_the_beat_plays_on_the_backends_own_word(self):
+        popup = _gd("incoming_proposal_popup.gd")
+        beat = _func(popup, "play_answer_beat")
+        assert 'AudioManager.play("wax_seal", 1.4)' in beat
+        assert "const LETTER_BEAT_SECONDS := 0.8" in popup
+        assert "tw.tween_callback(slip.queue_free)" in beat
+        assert "parent.add_child(slip)" in beat                   # under the given layer
+        assert "rotation_degrees" in beat and '"N"' in beat        # the settle and the cipher
+        for handler in ("_on_accept", "_on_reject"):
+            assert "_pressed_rect = " in _func(popup, handler), handler
+        assert "_pressed_rect" not in _func(popup, "_on_dismiss")  # Not Now: no slip
+        main = _func(_gd("main.gd"), "_on_command_result")
+        assert 'response.get("moment_answered", null)' in main
+        assert "incoming_proposal_popup.play_answer_beat(" in main and "top_bar)" in main
+
+    def test_the_seal_is_imported_with_mipmaps(self):
+        imp = (GODOT / "assets" / "ui" / "ornaments" / "wax_seal.png.import").read_text(encoding="utf-8")
+        assert "mipmaps/generate=true" in imp
+
+
+class TestTheReaders:
+    def test_the_mailbox_tags_an_affair_and_keeps_the_moment_tag(self):
+        src = _gd("mailbox_panel.gd")
+        assert '"moment_letter": "Moment"' in src
+        row = _func(src, "_build_item_row")
+        assert 'str(item.get("proposal_type", "")) == "moment_letter"' in row
+        assert 'str(item.get("register", "")) == "affair"' in row and '"Affair"' in row
+
+    def test_the_dispatch_view_renders_the_watch(self):
+        src = _gd("dispatch_view.gd")
+        assert 'situation.get("affairs_watch", null)' in src
+        assert "IN THE OFFING: " in src
+
+
+class TestTheFrames:
+    def _runner(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_iq10_runner_re2", REPO / "tools" / "iq10_run_captures.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_the_affair_shots_are_registered_beside_the_moments(self):
+        shots = {s["id"]: s for s in self._runner().SHOTS}
+        for aid, needles in (("the_host", ("Pay the host's claims", "Live off the land", "parchment", "counsel")),
+                             ("berthiers_memorial", ("Found the headquarters", "monogram", "counsel")),
+                             ("closed_accept", ("OPAQUE", "spoken for", "standing 80 → 75"))):
+            row = shots[f"affair_letter_{aid}"]
+            assert row["scene"] == "res://scenes/incoming_proposal_popup.tscn"
+            assert row["method"] == "show_proposal"
+            for needle in needles:
+                assert needle in row["must_show"], (aid, needle)
+        for mid in ("bavarian_match", "decree_of_berlin"):
+            assert "two-line" in shots[f"moment_letter_{mid}"]["must_show"]
+        cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")
+        for name in ("affair_letter_the_host", "affair_letter_berthiers_memorial", "affair_letter_closed_accept"):
+            assert f'record("{name}"' in cap, name
+
+    @pytest.mark.parametrize("stem", [f"AFFAIR_LETTER_{s}" for s in AFFAIR_STEMS]
+                             + ["MOMENT_LETTER_BAVARIAN_MATCH", "MOMENT_LETTER_DECREE_OF_BERLIN"])
+    def test_the_frames_are_committed_at_both_scales(self, stem):
+        for tail in ("", "_X2"):
+            png = AUDITS / f"IQ10_{stem}{tail}_{FRAME_DATE}.png"
+            assert png.exists(), png
+            assert png.stat().st_size > 8000, png
+
+    def test_the_review_plan_names_the_new_stems(self):
+        plan = (REPO / "docs" / "UX_UI_REVIEW_PLAN.md").read_text(encoding="utf-8")
+        for stem in AFFAIR_STEMS:
+            assert f"IQ10_AFFAIR_LETTER_{stem}" in plan, stem
+
+
+class TestTheReadabilityRecord:
+    RECORD = REPO / "docs" / "audits" / "uxr0" / f"readability_affairs_{FRAME_DATE}.json"
+
+    def test_the_record_covers_the_letters_at_every_resolution_with_no_red(self):
+        import sys
+        sys.path.insert(0, str(REPO / "tools"))
+        from uxr0_readability_report import PHYSICAL_RESOLUTIONS, totals
+        record = json.loads(self.RECORD.read_text(encoding="utf-8"))
+        surfaces = record["surfaces"]
+        for sid in ("moment_letter_bavarian_match", "affair_letter_the_host",
+                    "affair_letter_berthiers_memorial", "affair_letter_closed_accept"):
+            surf = surfaces.get(sid)
+            assert surf is not None, sid
+            keys = set(surf["readings"])
+            for (w, h) in PHYSICAL_RESOLUTIONS:
+                assert any(k.startswith(f"{w}x{h}@") for k in keys), (sid, w, h, keys)
+            for key, r in surf["readings"].items():
+                assert r["ok"], (sid, key)
+                assert r["counts"]["rows"] > 0, (sid, key)
+                assert r["counts"]["red"] == 0 and r["counts"]["p1"] == 0, (sid, key, r["flagged"][:3])
+        t = totals(record)
+        assert t["red"] == 0 and t["p1"] == 0, t

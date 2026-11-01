@@ -366,7 +366,7 @@ Two adversarial critics — one against the repo (probes on the booted world), o
 
 ## §14 Part 2, first landing — the client and the instruments (October 22, 2026)
 
-**✅ LANDED October 22, 2026** — the client, the instruments and the part's seven siblings, with three letters still unarmed (the shipped scenario authors no `moments` block until the second landing). Rules `SYSTEMS_REFERENCE.md` §147.7–§147.9; rows `BUG_FIXES.md` §S14C; pins `tests/test_moments_transport.py`, `tests/test_moments_letters.py`, `tests/test_moments_client.py`, `tests/test_moments_pacing.py`; frames `docs/audits/IQ10_MOMENT_LETTER_{BAVARIAN_MATCH,DECREE_OF_BERLIN}{,_X2}_2026_10_22.png`.
+**✅ LANDED October 22, 2026** — the client, the instruments and the part's seven siblings, with three letters still unarmed (the shipped scenario authors no `moments` block until the second landing). Rules `SYSTEMS_REFERENCE.md` §147.7–§147.9; rows `BUG_FIXES.md` §S14C; pins `tests/test_moments_transport.py`, `tests/test_moments_letters.py`, `tests/test_moments_client.py`, `tests/test_moments_pacing.py`; frames `docs/audits/IQ10_MOMENT_LETTER_{BAVARIAN_MATCH,DECREE_OF_BERLIN}{,_X2}_2026_10_22.png` (re-shot in the letter's dress at RE-2, October 31, 2026, as `_2026_10_31` — `RECURRING_EVENTS_SPEC.md` §12b.2, §20; the S14c frames stay as this record's).
 
 ### 14.1 Reproduced first
 

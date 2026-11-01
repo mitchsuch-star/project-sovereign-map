@@ -1420,12 +1420,61 @@ SHOTS += [
              "the match' and 'Let Baden keep her', the 'If unanswered by …' line; no Counter, no "
              "raw tag, no court, nothing clipped at scale 2.0; S14d A5 (S14D-X5): the letter's "
              "SIXTH part — the first-open line ('A moment of history, Sire…') before the record — "
-             "and the first answer's button above the fold at BOTH scales"),
+             "and the first answer's button above the fold at BOTH scales; RE-2 (the dress, "
+             "RECURRING_EVENTS_SPEC.md §12b.2): the parchment sheet, the letterhead with France's "
+             "arms, the dateline in the rubric and the seal well, the record in IM Fell italic, "
+             "the fleuron-led board line, the heading in the rubric, the two-line buttons with the "
+             "derived prices ('−2 DP · −1,000 gold · Bavaria …'), no gold on paper"),
             ("decree_of_berlin", "The Decree of Berlin (Talleyrand)",
              "the same parts under Talleyrand's name — the ports-shut board and the Decree's terms "
              "with its administrative action, the buttons 'Sign the Decree' and 'Not yet', the "
              "unanswered line; nothing clipped at scale 2.0; S14d A5 (S14D-X5): the first-open "
-             "line before the record and the first answer's button above the fold at BOTH scales"),
+             "line before the record and the first answer's button above the fold at BOTH scales; "
+             "RE-2: the dress under Talleyrand's monogram 'T', the two-line buttons ('standing "
+             "100 → 85 · 150 a turn' — the Decree is priced in authority; the action token is cut "
+             "at the 40-character boundary and read in the quote — / 'no change')"),
+        )
+    ],
+]
+
+# ═══ RE-2 (docs/RECURRING_EVENTS_SPEC.md §12b.2 "The frames"): the affairs of
+# state in the letter's dress — the Host's Claims at tier 2, Berthier's door and
+# a closed Accept, through the same show_proposal (`is_moment`, register
+# "affair"); the Match and the Decree above are re-shot in the dress too.
+SHOTS += [
+    *[
+        {
+            "id": f"affair_letter_{aid}",
+            "surface": f"An Affair of State — {label} (incoming_proposal_popup.tscn, is_moment, register affair)",
+            "payload": f"affair_letter_{aid}",
+            "scene": "res://scenes/incoming_proposal_popup.tscn",
+            "mode": "call", "method": "show_proposal",
+            "must_show": must,
+        }
+        for aid, label, must in (
+            ("the_host", "The Host's Claims at tier 2 (Montgelas, for the court of Munich)",
+             "the parchment sheet; the letterhead — Bavaria's arms at the left, 'AN AFFAIR OF "
+             "STATE — <dateline>' in the rubric, the seal well at the right; line 2 'The Host's "
+             "Claims — Montgelas, for the court of Munich'; the first-open line ('An affair of "
+             "state, Sire…') in sepia before the record on the campaign's first letter; the ground "
+             "in IM Fell italic; the fleuron-led board line (four corps, tier 2); 'WHAT EACH ANSWER "
+             "DOES' in the rubric with BOTH quotes; the two-line buttons 'Pay the host's claims / "
+             "−600 gold' and 'Live off the land / Bavaria N → N−4' and 'Not Now / waits on the "
+             "desk'; Talleyrand's counsel under the buttons; no Counter, no grey slot, no gold on "
+             "paper, no raw tag; both answers above the fold at BOTH scales"),
+            ("berthiers_memorial", "Berthier's Memorial — the door (Berthier, Major-General)",
+             "the same dress under Berthier's monogram 'B'; line 2 'Berthier's Memorial — Berthier, "
+             "Major-General of the Grande Armée'; the board line (at war, the chest against the "
+             "Staff's price); the buttons 'Found the headquarters / −9,000 gold · 300 a turn · 1 "
+             "action' and 'Not now / no change'; Daru's counsel under the buttons; both answers "
+             "above the fold at BOTH scales"),
+            ("closed_accept", "The Arch-Chancellor's Letters with the Accept closed (no action left)",
+             "Cambacérès's monogram 'C'; line 2 'The Arch-Chancellor's Letters — Cambacérès, "
+             "Arch-Chancellor of the Empire'; the closed-Accept line in the rubric under the "
+             "letterhead ('Dictate from the field unavailable: the day's administration is spoken "
+             "for.'); the Accept on an OPAQUE disabled plaque with its reason as the second line; "
+             "'Let the Council act / standing 80 → 75' live; Berthier's counsel; nothing clipped at "
+             "scale 2.0"),
         )
     ],
 ]

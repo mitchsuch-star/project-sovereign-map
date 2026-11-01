@@ -180,6 +180,14 @@ func _on_dispatch_received(response):
 	var law_forecast = situation.get("law_forecast", null)
 	if law_forecast is Dictionary and not law_forecast.is_empty():
 		bbcode += "[color=#" + Utils.COLOR_WARNING + "]  THE LAWS: " + str(law_forecast.get("line", "")) + "[/color]\n"
+	# RE-2 (docs/RECURRING_EVENTS_SPEC.md §12 — the Watch): at most two "may"
+	# lines a morning — the nearest-due affairs of state over the premise's
+	# own measures. The key rides only when the recurring deck is armed, so an
+	# unarmed board prints nothing here.
+	var affairs_watch = situation.get("affairs_watch", null)
+	if affairs_watch is Array:
+		for watch_line in affairs_watch:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  IN THE OFFING: " + str(watch_line) + "[/color]\n"
 
 	if bankrupt:
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"

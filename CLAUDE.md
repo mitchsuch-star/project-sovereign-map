@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1 landed Oct 31; §0c, §19); S15 after RE**.
+> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1, RE-2 landed Oct 31; §19, §20); S15 after RE**.
 
 **▶ LIVE STATE (October 31, 2026).** The three most recent rows:
-- **RE-1 (Oct 31) — the affairs engine, unarmed; RE-2 the client NEXT** (`RECURRING_EVENTS_SPEC.md` §19).
+- **RE-2 (Oct 31) — the letter's dress, the quiet arrival; RE-3 arms the deck NEXT** (spec §20).
 - **S14k (Oct 28) — courts' corps, benches, call-up, tiered limit, goals, the Porte's New Order** (§160).
-- **S14j (Oct 27) — economy: detached garrisons paid, conquests +0.15, crown 30→250** (§159).
+- **RE-1 (Oct 31) — the affairs engine, unarmed** (spec §19).
 
 **Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS`, §153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

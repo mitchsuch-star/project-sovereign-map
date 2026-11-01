@@ -4441,6 +4441,16 @@ func _on_command_result(response):
 		var _reward_for = response.get("open_reward_for", null)
 		if _reward_for is String and _reward_for != "":
 			call_deferred("_open_reward_for_marshal", _reward_for)
+		# RE-2 (docs/RECURRING_EVENTS_SPEC.md §12b.2): the answer beat — the
+		# seal presses on the backend's OWN word that a letter of state was
+		# answered (`moment_answered`, written by `moments.answer` on success
+		# alone; a refusal carries `diplomatic_dialogue` instead and never
+		# reaches this key), on a slip under the top bar's layer. Not Now
+		# writes no such key: no slip, no seal, no sound.
+		var _sealed = response.get("moment_answered", null)
+		if _sealed is Dictionary and incoming_proposal_popup != null \
+				and incoming_proposal_popup.has_method("play_answer_beat"):
+			incoming_proposal_popup.play_answer_beat(str(_sealed.get("answer", "")), top_bar)
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry

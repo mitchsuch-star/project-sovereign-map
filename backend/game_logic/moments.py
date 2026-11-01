@@ -868,9 +868,23 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
                          f"{AUTONOMY_NAMES.get(int(row.get('level', 0) or 0), '')}")
         elif op == "enact_law" and not row.get("refusal"):
             from backend.game_logic import reforms
-            law = reforms.find_law(world, lord, str(row.get("law") or "")) or {}
-            parts.append(f"−{int(law.get('price', 0) or 0):,} gold · "
-                         f"{int(law.get('upkeep', 0) or 0)} a turn · 1 action")
+            law = reforms.find_law(world, lord, str(row.get("law") or ""))
+            if law is None:
+                continue
+            # the law's ONE price (`restoration_price`: gold, or standing for
+            # a decree priced in authority — the Berlin Decree's 15)
+            quote = reforms.restoration_price(world, lord, law)
+            price = int(quote.get("price", 0) or 0)
+            if str(quote.get("currency") or "gold") == "authority":
+                before = int(reforms._court_authority(world, lord))
+                tokens = [f"standing {before} → {before - price}"]
+            else:
+                tokens = [f"−{price:,} gold"]
+            upkeep = int(law.get("upkeep", 0) or 0)
+            if upkeep:
+                tokens.append(f"{upkeep} a turn")
+            tokens.append("1 action")
+            parts.append(" · ".join(tokens))
     text = " · ".join(parts) if parts else "no change"
     while len(text) > BUTTON_LINE_MAX and " · " in text:
         text = text.rsplit(" · ", 1)[0]
