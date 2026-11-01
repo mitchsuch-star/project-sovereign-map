@@ -618,6 +618,9 @@ INK = {"INK_BODY": "2B1D12", "INK_RUBRIC": "6A1410", "INK_SEPIA": "4E3820",
        "INK_RULE": "8A7A5A", "INK_SHEET_HC": "EFE3C6"}
 FRAME_DATE = "2026_10_31"
 AFFAIR_STEMS = ("THE_HOST", "BERTHIERS_MEMORIAL", "CLOSED_ACCEPT")
+# RE-H H0 (November 1, 2026): the Haiti letter's bill form, shot under its own date
+FRAME_DATE_H = "2026_11_01"
+AFFAIR_STEMS_H = ("SANTO_DOMINGO_BILL",)
 
 
 def _gd(name):
@@ -778,7 +781,10 @@ class TestTheFrames:
         shots = {s["id"]: s for s in self._runner().SHOTS}
         for aid, needles in (("the_host", ("Pay the host's claims", "Live off the land", "parchment", "counsel")),
                              ("berthiers_memorial", ("Found the headquarters", "monogram", "counsel")),
-                             ("closed_accept", ("OPAQUE", "spoken for", "standing 80 → 75"))):
+                             ("closed_accept", ("OPAQUE", "spoken for", "standing 80 → 75")),
+                             # RE-H H0: the Haiti letter's bill form
+                             ("santo_domingo_bill", ("Send flour and muskets", "Ferrand must hold alone",
+                                                     "FROM HAITI", "monogram 'D'", "IM Fell roman"))):
             row = shots[f"affair_letter_{aid}"]
             assert row["scene"] == "res://scenes/incoming_proposal_popup.tscn"
             assert row["method"] == "show_proposal"
@@ -787,34 +793,42 @@ class TestTheFrames:
         for mid in ("bavarian_match", "decree_of_berlin"):
             assert "two-line" in shots[f"moment_letter_{mid}"]["must_show"]
         cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")
-        for name in ("affair_letter_the_host", "affair_letter_berthiers_memorial", "affair_letter_closed_accept"):
+        for name in ("affair_letter_the_host", "affair_letter_berthiers_memorial", "affair_letter_closed_accept",
+                     "affair_letter_santo_domingo_bill"):
             assert f'record("{name}"' in cap, name
 
-    @pytest.mark.parametrize("stem", [f"AFFAIR_LETTER_{s}" for s in AFFAIR_STEMS]
-                             + ["MOMENT_LETTER_BAVARIAN_MATCH", "MOMENT_LETTER_DECREE_OF_BERLIN"])
-    def test_the_frames_are_committed_at_both_scales(self, stem):
+    @pytest.mark.parametrize("stem, date", [(f"AFFAIR_LETTER_{s}", FRAME_DATE) for s in AFFAIR_STEMS]
+                             + [("MOMENT_LETTER_BAVARIAN_MATCH", FRAME_DATE), ("MOMENT_LETTER_DECREE_OF_BERLIN", FRAME_DATE)]
+                             + [(f"AFFAIR_LETTER_{s}", FRAME_DATE_H) for s in AFFAIR_STEMS_H])
+    def test_the_frames_are_committed_at_both_scales(self, stem, date):
         for tail in ("", "_X2"):
-            png = AUDITS / f"IQ10_{stem}{tail}_{FRAME_DATE}.png"
+            png = AUDITS / f"IQ10_{stem}{tail}_{date}.png"
             assert png.exists(), png
             assert png.stat().st_size > 8000, png
 
     def test_the_review_plan_names_the_new_stems(self):
         plan = (REPO / "docs" / "UX_UI_REVIEW_PLAN.md").read_text(encoding="utf-8")
-        for stem in AFFAIR_STEMS:
+        for stem in AFFAIR_STEMS + AFFAIR_STEMS_H:
             assert f"IQ10_AFFAIR_LETTER_{stem}" in plan, stem
 
 
 class TestTheReadabilityRecord:
     RECORD = REPO / "docs" / "audits" / "uxr0" / f"readability_affairs_{FRAME_DATE}.json"
+    RECORD_H = REPO / "docs" / "audits" / "uxr0" / f"readability_affairs_{FRAME_DATE_H}.json"
 
-    def test_the_record_covers_the_letters_at_every_resolution_with_no_red(self):
+    @pytest.mark.parametrize("record_path, surface_ids", [
+        (RECORD, ("moment_letter_bavarian_match", "affair_letter_the_host",
+                  "affair_letter_berthiers_memorial", "affair_letter_closed_accept")),
+        # RE-H H0: the Haiti letter's bill form, shot into its own record
+        (RECORD_H, ("affair_letter_santo_domingo_bill",)),
+    ], ids=["re2", "re_h"])
+    def test_the_record_covers_the_letters_at_every_resolution_with_no_red(self, record_path, surface_ids):
         import sys
         sys.path.insert(0, str(REPO / "tools"))
         from uxr0_readability_report import PHYSICAL_RESOLUTIONS, totals
-        record = json.loads(self.RECORD.read_text(encoding="utf-8"))
+        record = json.loads(record_path.read_text(encoding="utf-8"))
         surfaces = record["surfaces"]
-        for sid in ("moment_letter_bavarian_match", "affair_letter_the_host",
-                    "affair_letter_berthiers_memorial", "affair_letter_closed_accept"):
+        for sid in surface_ids:
             surf = surfaces.get(sid)
             assert surf is not None, sid
             keys = set(surf["readings"])

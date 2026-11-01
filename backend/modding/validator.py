@@ -22,7 +22,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Optional, Set
 
 from backend.game_logic.agendas import AGENDA_TYPES
 from backend.models.personality import IMPLEMENTED_PERSONALITIES
@@ -1459,7 +1459,7 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
             result.add_error("moments.deck",
                              f"'{id_a}' and '{id_b}' overlap: {hi_a} + {g_a} + {min_gap} > {lo_b}")
     _validate_affairs(result, block, owner, seen, law_ids, owner_laws, road_ids, start_date,
-                      known_nations)
+                      known_nations, navies=data.get("navies"))
 
 
 _AFFAIR_ID_RE = re.compile(r"^[a-z_]{1,32}$")
@@ -1467,7 +1467,7 @@ _AFFAIR_ID_RE = re.compile(r"^[a-z_]{1,32}$")
 
 def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids: Set[str],
                       owner_laws: Set[str], road_ids: Set[str], start_date: str,
-                      known_nations: Set[str]) -> None:
+                      known_nations: Set[str], navies: Optional[dict] = None) -> None:
     """RE-1 (docs/RECURRING_EVENTS_SPEC.md §5, §16): the recurring deck under
     `moments.affairs` — {pacing {first {value, band}, gap {value, band},
     cap_act, wait}, deck: [{id, kind "affair", shape, title, source, scope,
@@ -1592,18 +1592,76 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
         _text(f"{path}.record", e.get("record"), AF.TEXT_MAX["record"])
         variants = e.get("variants")
         if variants is not None:
-            if not isinstance(variants, list) or len(variants) > 3:
-                result.add_error(f"{path}.variants", "Must be a list of at most 3 {key, value, text}")
+            # RE-H (P18): up to four chapters, keyed `arrival` first | later and
+            # `last_fate` home | caught — the fate chapters before the later one
+            if not isinstance(variants, list) or len(variants) > AF.VARIANTS_MAX:
+                result.add_error(f"{path}.variants",
+                                 f"Must be a list of at most {AF.VARIANTS_MAX} {{key, value, text}}")
             else:
                 for k, variant in enumerate(variants):
                     vpath = f"{path}.variants[{k}]"
                     if not isinstance(variant, dict) or variant.get("key") not in AF.VARIANT_FACTS:
                         result.add_error(vpath, f"Must carry a key of {list(AF.VARIANT_FACTS)}")
                         continue
-                    _text(f"{vpath}.value", variant.get("value"), 32)
+                    allowed_values = AF.VARIANT_VALUES.get(str(variant.get("key")), ())
+                    if variant.get("value") not in allowed_values:
+                        result.add_error(f"{vpath}.value", f"Must be one of {list(allowed_values)}")
                     _text(f"{vpath}.text", variant.get("text"), AF.TEXT_MAX["variant"])
-        for key in ("line", "counsel", "exhibit"):
+        for key in ("line", "counsel"):
             _text(f"{path}.{key}", e.get(key), AF.TEXT_MAX[key], required=False)
+        # RE-H (§6.5): the exhibit — one string, or up to EXHIBITS_MAX the
+        # arrivals alternate — under its own authored run-in (`exhibit_from`;
+        # the engine holds no literal for it)
+        exhibit = e.get("exhibit")
+        if isinstance(exhibit, list):
+            if not exhibit or len(exhibit) > AF.EXHIBITS_MAX:
+                result.add_error(f"{path}.exhibit", f"Must be a string or a list of 1..{AF.EXHIBITS_MAX} strings")
+            for k, text_k in enumerate(exhibit):
+                _text(f"{path}.exhibit[{k}]", text_k, AF.TEXT_MAX["exhibit"])
+        else:
+            _text(f"{path}.exhibit", exhibit, AF.TEXT_MAX["exhibit"], required=False)
+        if exhibit:
+            _text(f"{path}.exhibit_from", e.get("exhibit_from"), AF.TEXT_MAX["exhibit_from"])
+        elif e.get("exhibit_from") is not None:
+            result.add_error(f"{path}.exhibit_from", "Carries a run-in but no exhibit")
+        closing = e.get("closing")
+        if closing is not None:
+            if not isinstance(closing, list) or not closing or len(closing) > AF.CLOSING_MAX:
+                result.add_error(f"{path}.closing", f"Must be a list of 1..{AF.CLOSING_MAX} strings")
+            else:
+                for k, text_k in enumerate(closing):
+                    _text(f"{path}.closing[{k}]", text_k, AF.TEXT_MAX["closing"])
+        # RE-H: the authored slot table {name: [{until: {date, turn}, text}, …,
+        # {text}]} — every `until` dated and in order, the last entry open
+        slots_table = e.get("slots")
+        if slots_table is not None:
+            if not isinstance(slots_table, dict) or not slots_table:
+                result.add_error(f"{path}.slots", "Must be an object {name: [{until?, text}]}")
+            else:
+                for name, entries in slots_table.items():
+                    tpath = f"{path}.slots.{name}"
+                    if not isinstance(name, str) or not re.match(r"^[a-z_]{1,24}$", name):
+                        result.add_error(tpath, "A slot's name is [a-z_]{1,24}")
+                    if not isinstance(entries, list) or not entries:
+                        result.add_error(tpath, "Must be a non-empty list of {until?, text}")
+                        continue
+                    last_turn = 0
+                    for k, entry in enumerate(entries):
+                        epath = f"{tpath}[{k}]"
+                        if not isinstance(entry, dict):
+                            result.add_error(epath, "Must be an object {until?, text}")
+                            continue
+                        _text(f"{epath}.text", entry.get("text"), AF.TEXT_MAX["slot"])
+                        if k == len(entries) - 1:
+                            if entry.get("until") is not None:
+                                result.add_error(f"{epath}.until", "The last entry is open (no `until`)")
+                            continue
+                        _dated(f"{epath}.until", entry.get("until"))
+                        until_turn = (entry.get("until") or {}).get("turn") if isinstance(entry.get("until"), dict) else None
+                        if isinstance(until_turn, int) and not isinstance(until_turn, bool):
+                            if until_turn <= last_turn:
+                                result.add_error(f"{epath}.until", "Must come after the entry before it")
+                            last_turn = until_turn
         roads = e.get("roads", [MO.ROAD_ANY])
         allowed = {MO.ROAD_ANY, MO.ROAD_NONE} | set(road_ids)
         if (not isinstance(roads, list) or not roads
@@ -1620,6 +1678,17 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
             _int_in(f"{path}.when.min_corps", when["min_corps"], 1, 6)
         if when.get("law") and when["law"] not in owner_laws:
             result.add_error(f"{path}.when.law", f"'{when['law']}' is no law of the owner's")
+        if when.get("predicate") == "colony_cut_off":
+            # RE-H (§6.5): the Marine's letter needs a fleet to write about —
+            # the owner's `navies` row with ships; the thresholds in band
+            if "min_ships" in when:
+                _int_in(f"{path}.when.min_ships", when["min_ships"], 1, 200)
+            if "min_purse" in when:
+                _int_in(f"{path}.when.min_purse", when["min_purse"], 0, 5000)
+            navy = (navies or {}).get(str(owner or "")) if isinstance(navies, dict) else None
+            if not isinstance(navy, dict) or int(navy.get("ships", 0) or 0) <= 0:
+                result.add_error(f"{path}.when.predicate",
+                                 "colony_cut_off needs the owner's `navies` row with ships")
         _int_in(f"{path}.streak", e.get("streak", 1), *AF.STREAK_BOUNDS)
         cooldown = e.get("cooldown", 12)
         if _int_in(f"{path}.cooldown", cooldown, *AF.COOLDOWN_BOUNDS) and int(cooldown) < gap_value:
@@ -1757,8 +1826,13 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         elif bounds:
                             for t, amount in tiers.items():
                                 _int_in(f"{opath}.tiers.{t}", amount, *bounds)
-        if has_authority and e.get("bites") is not True:
-            result.add_error(f"{path}.bites", "Required (true) by an `authority` price — the letter arrives only where it bites")
+        bites_value = e.get("bites")
+        if has_authority and bites_value not in AF.BITES_MODES:
+            result.add_error(f"{path}.bites",
+                             'Required by an `authority` price — `true` (both halves) or "floor" (the floor '
+                             'half alone, RE-H): the letter arrives only where it bites')
+        elif bites_value is not None and bites_value not in AF.BITES_MODES:
+            result.add_error(f"{path}.bites", 'Must be `true` or "floor"')
 
 
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:

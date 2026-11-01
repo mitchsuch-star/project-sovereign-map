@@ -1199,7 +1199,9 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
         writer_line = affairs.fill_slots(world, str(side_form.get("line") or e.get("line") or ""), occ, e)
         ground = affairs.fill_slots(world, str(e.get("record") or ""), occ, e)
         chapter = affairs.fill_slots(world, affairs.chapter_of(e, occ), occ, e)
-        exhibit = affairs.fill_slots(world, str(e.get("exhibit") or ""), occ, e)
+        # RE-H: the exhibits alternate by arrival; their run-in ("FROM HAITI —")
+        # is the template's own, never the engine's
+        exhibit = affairs.fill_slots(world, affairs.exhibit_of(e, occ), occ, e)
         counsel = affairs.fill_slots(world, str(side_form.get("counsel") or e.get("counsel") or ""), occ, e)
     else:
         board = board_lines(world, e)
@@ -1261,6 +1263,8 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
     payload["monogram"] = str(device["letter"])
     if affair:
         payload["occurrence"] = str(occ.get("id") or "")
+        if exhibit and e.get("exhibit_from"):
+            payload["exhibit_from"] = str(e["exhibit_from"])
     return payload
 
 

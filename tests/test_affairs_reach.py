@@ -10,6 +10,12 @@ run on the same commit (`road_control`). Seeded paths, not laws: each
 template's reach is reported per arm, and the record says why where it did
 not arrive. A deck whose MECHANICS change reds the hash pin until the
 measure is run again.
+
+RE-H H0 (November 1, 2026; `RECURRING_EVENTS_SPEC.md` §22.1): the fourth
+letter, the Haiti letter, joins the record — re-measured on the same 52 runs
+with the control held unarmed through the driver's own seam; the standing
+figures read for the first time (REH-1 — the record tool read the button's
+word "standing" while the Decline's quote says "Authority").
 """
 import json
 from pathlib import Path
@@ -21,7 +27,8 @@ RECORD = REPO / "tools" / "_s14c_sweep_final.json"
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
 FAMILIES = ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves")
 SCRIPTED = ("commanded", "accept", "road", "road_accept", "reach_aar")
-TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial")
+TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo")
+H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
 
 
@@ -115,6 +122,45 @@ class TestEachTemplatesReach:
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
         assert count("berthiers_memorial", ("sweep",)) >= 9
 
+    def test_the_haiti_letter_appears_where_the_emperor_holds_court_at_war_with_britain(self, record):
+        """RE-H H0 (the user's word of November 1, 2026 — "conditions that make
+        them appear"): with `bites` on the floor half the Haiti letter reaches
+        the passive board — 15 of the 21 sweep runs, the campaign's first
+        affair at T6–T9 — and the treaty road REACH-AAR twice (T23 and T38,
+        the cooldown of twelve between); never a commanded arm whose Emperor
+        marches with the army (the Arch-Chancellor writes then), never the six
+        hand-played turn-21 starts (peace with Britain by turn 19, the latch
+        empty), and the record says which clause held it back on each. Floors,
+        not laws — the counts may only RISE without a re-measure."""
+        def verdict(family, name):
+            return record[family][name]["affairs_reach"][H1]["verdict"]
+        sweep = [n for n in record["sweep"] if verdict("sweep", n) == "arrived"]
+        assert len(sweep) >= 15, sweep
+        aar = record["reach_aar"]["REACH-AAR"]["affairs_reach"][H1]
+        assert aar["verdict"] == "arrived" and len(aar["occurrences"]) == 2
+        turns = _arrivals(aar)
+        assert turns[1] - turns[0] >= 12, turns                      # the cooldown
+        for family in ("commanded", "accept", "saves", "road", "road_accept"):
+            for name in record[family]:
+                v = verdict(family, name)
+                assert v.startswith(("premise never held", "never due", "due,")), (family, name, v)
+        # the passive France's first affair is the Marine's letter, on the pulse's first morning
+        firsts = {}
+        for name, row in record["sweep"].items():
+            for template in TEMPLATES:
+                for turn in _arrivals(row["affairs_reach"][template]):
+                    if turn < firsts.get(name, (99, ""))[0]:
+                        firsts[name] = (turn, template)
+        # on 13 of the 15 runs it reaches it is the campaign's FIRST affair; on
+        # the two scripted-France austerlitz runs the Memorial comes first
+        first_is_haiti = [n for n, (t, template) in firsts.items() if template == H1]
+        assert len(first_is_haiti) >= 13, firsts
+        # at most two an act, twelve apart, on every run
+        for family, name, row in _rows(record):
+            turns = _arrivals(row["affairs_reach"][H1])
+            assert all(b - a >= 12 for a, b in zip(turns, turns[1:])), (family, name, turns)
+            assert len([t for t in turns if t <= ACT]) <= 2, (family, name, turns)
+
     def test_the_host_s_claims_stay_an_event(self, record):
         """P6 (§0b): at two corps the Host's Claims reaches more boards (17 of
         the 25 scripted arms, beside the gate's 9 of 12 at three), and stays
@@ -152,11 +198,16 @@ class TestTheBrakesAndTheRoad:
     def test_the_e1_band_is_untouched(self, record):
         """§14: the Edicts' E1 band (T1–T5) stays empty — no affair before the
         pulse's first morning (`first` ≥ 6) on any arm; the earliest arrival
-        on the live tree is the Memorial at T7 (the pulse's own value)."""
+        on the live tree is the Haiti letter at T6 (the band's low, drawn on
+        jena and lodi; RE-3's earliest was the Memorial at T7, the authored
+        value on `historical`)."""
         earliest = min(t for _f, _n, row in _rows(record) for reach in row["affairs_reach"].values()
                        for t in _arrivals(reach))
         assert earliest >= 6
-        assert earliest == 7
+        assert earliest == 6
+        historical = min(t for template in TEMPLATES
+                         for t in _arrivals(record["sweep"]["armA_historical_run1"]["affairs_reach"][template]))
+        assert historical == 7                                     # the authored `first`
 
     def test_the_gold_and_the_standing_sit_inside_the_band(self, record):
         """§14: the Host's Claims at most 900 a letter and 1,800 a host an act
@@ -174,6 +225,16 @@ class TestTheBrakesAndTheRoad:
                 assert 0 <= a["standing"] <= 8, (family, name, a)
                 standing[(a["turn"] - 1) // ACT] = standing.get((a["turn"] - 1) // ACT, 0) + a["standing"]
             assert all(total <= 16 for total in standing.values()), (family, name, standing)
+            # RE-H: the Haiti letter's Decline is −3, grip-floored — at most 6 an act
+            haiti = {}
+            for a in row["affairs_reach"][H1]["answers"]:
+                assert 0 <= a["standing"] <= 3, (family, name, a)
+                haiti[(a["turn"] - 1) // ACT] = haiti.get((a["turn"] - 1) // ACT, 0) + a["standing"]
+            assert all(total <= 6 for total in haiti.values()), (family, name, haiti)
+        # REH-1: the figures are READ (the record tool once saw 0 everywhere)
+        costs = [a["standing"] for _f, _n, row in _rows(record)
+                 for template in ("chancellors_letters", H1) for a in row["affairs_reach"][template]["answers"]]
+        assert costs and max(costs) > 0, costs
 
     def test_the_decline_and_the_lapse_touch_no_purse(self, record):
         """The Decline is free of every purse (§5; `test_affairs_nondominance`):
@@ -185,6 +246,9 @@ class TestTheBrakesAndTheRoad:
                     assert a["gold"] == 0, (family, name, a)
             for a in row["affairs_reach"]["berthiers_memorial"]["answers"]:
                 assert a["gold"] == 0 and a["standing"] == 0, (family, name, a)
+            for a in row["affairs_reach"][H1]["answers"]:
+                if a["answer"] == "decline":
+                    assert a["gold"] == 0, (family, name, a)          # the Decline is standing alone
 
 
 class TestTheRecordToolReadsTheTrace:

@@ -2145,6 +2145,30 @@ def cap_moments():
                     "turn 7; then admin_actions_remaining WRITTEN to 0 and the letter re-read "
                     "(moments.refresh_letter re-planned it: the Accept closed)"),
            facts=affair_facts(popup))
+
+    # ── RE-H H0 (RECURRING_EVENTS_SPEC.md §6.5, §16 "RE-H"): the Haiti letter in
+    # its BILL form — the Emperor holding court at Lorraine (the boot), France
+    # blockaded by Britain from the opening (the latch fills from turn 1), 45
+    # sail in port, the chest at 5,000 (above the Marine's bar, under the
+    # Staff's so Berthier's door stays out of the morning), standing 100 (the
+    # user's word of November 1, 2026: the letter appears at full standing).
+    # Decrès's monogram, the writer's line, the ground and the first chapter
+    # in IM Fell italic, the Constitution of 1805 under "FROM HAITI —".
+    def haiti_board(w):
+        w.nation_gold["France"] = 5_000
+        w.authority_tracker.authority = 100
+
+    world, c, popup = stage_affair("santo_domingo#1", range(1, 8), haiti_board)
+    haiti_facts = affair_facts(popup)
+    haiti_facts.update({"ground": popup.get("ground"), "chapter": popup.get("chapter"),
+                        "exhibit": popup.get("exhibit"), "exhibit_from": popup.get("exhibit_from")})
+    record("affair_letter_santo_domingo_bill", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; the "
+                    "Emperor at Lorraine and Britain's blockade from the opening (the boot, unchanged); "
+                    "France's gold 5000 (above the Marine's bar of 1,500, under the Staff's), standing "
+                    "100, DP 7, admin 2 WRITTEN; the production moments.tick delivered the bill on the "
+                    "pulse's first morning, turn 7, the latch full since turn 4"),
+           facts=haiti_facts)
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 

@@ -145,10 +145,13 @@ def cmd_run(args) -> int:
 ROAD_CONTROL_NOTE = (
     "RE-3 (RECURRING_EVENTS_SPEC.md §14 'the brakes', §16 'RE-3'): the road arms' end turns and "
     "stamp turns on the ARMED tree (`--affair lapse`, every letter left in the mailbox to lapse on "
-    "its answer-by turn) beside the UNARMED control — the same commit, a scratch clone without the "
-    "scenario's `affairs` key, the same driver flags. `unmoved` = the end turn and the stamp turn "
-    "agree. The committed `tools/_vp1_road_arms_final.json` is October 22's measure and is not "
-    "re-recorded here; the control is today's tree.")
+    "its answer-by turn) beside the UNARMED control — the same commit, the same driver flags. "
+    "RE-3's control was a scratch clone without the scenario's `affairs` key; from RE-H the control "
+    "is the same tree with the engine held unarmed through the driver's own seam flag "
+    "(`--seam backend.game_logic.affairs:armed=False` — every affairs function returns at once, as on "
+    "a world whose block authors no deck). `unmoved` = the end turn and the stamp turn agree. The "
+    "committed `tools/_vp1_road_arms_final.json` is October 22's measure and is not re-recorded here; "
+    "the control is today's tree.")
 
 
 def road_control(armed_record: Path, control_records: list) -> dict:

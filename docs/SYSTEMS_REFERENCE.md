@@ -12923,3 +12923,35 @@ The "unarmed" pins → armed (`test_affairs_engine.py`, `test_affairs_client.py`
 
 ### 163.7 Pins
 `tests/test_affairs_reach.py` (new — the record carries the armed deck; ceilings, floors, shown = applied; each template's reach and the floors of the counts; the Host stays an event; the tiers; the road control; the E1 band; §14's band; the Decline and the lapse free of purses; the record tool on a synthetic trace); `tests/test_affairs_nondominance.py` (part 1); `tests/test_affairs_engine.py` (the tenure, the slots, the copy, the lockstep, the validator; the armed pin); `tests/test_affairs_client.py` (the lapse dial's mailbox; the counsel); `tests/test_moments_pacing.py` (the context drift; the Crown reported); `tests/test_affairs_pacing.py` (re-run, unchanged).
+
+## §164 Row RE — RE-H, the Haiti letter (November 1, 2026; `RECURRING_EVENTS_SPEC.md` §22)
+
+**The ask.** Row RE's fourth slice: the Haiti letter (§6.5) in two landings — H0 the bill alone (tier 1 "the letter" closes with it), then the squadron (tier 4) — with RE3-8 at its head. The user's word at the plan's review, November 1, 2026: "we want to make sure these events are good, have conditions that make them appear and don't make the game repetitive … fun factor high."
+
+### 164.1 H0 — the bill alone (✅ November 1, 2026)
+
+**When the letter comes — the conditions, each where it reads.**
+
+| Clause | Where it reads | What it means for the player |
+|---|---|---|
+| Britain's blockade on 4 of the last 12 mornings (the latch) | `naval.blockader_against` against `naval.trade_dominance_nation`, a 12-bit mask shifted every morning (`affairs.update_morning`; `latch_count`) | at war with Britain, blockaded — the first winter of almost every campaign; peace empties the latch in twelve mornings |
+| The Emperor holds court at home | `fall.sovereign_of`, located in `nation_starting_regions[lord]`, not a captive | while Napoleon marches with the army the Arch-Chancellor writes instead — the two never compete |
+| 25 sail in port | `naval.get_fleet(...)["ships"]` | a fleet worth a squadron (the boot's 45) |
+| 1,500 in the chest | `instruments.purse_of` ≥ `min_purse` 500 + `AI_PURSE_RESERVE` 1,000 | the passive board clears it by turn 5 |
+| `bites: "floor"` | `affairs.bites` — the −3 must land whole above the grip floor 71 | the letter comes at any standing from 74 up (P16 amended by the user's word; T1 keeps both halves) |
+| The pulse | `first` 7 (band 6–9), `gap` 5, `cap_act` 6, `wait` 4 | never before T6; never two letters of state within five mornings |
+| `cooldown` 12, `cap` 2, `ends` T76 | derived from the occurrence rows; `candidates` and `watch` go silent past the end | twice an act at most, twelve apart; the file closes at Ferrand's death (7 November 1808) |
+
+**The brakes against repetition, beside them:** four chapters that never repeat in a row (`arrival` first / later, `last_fate` home / caught — the fate chapters authored first), two exhibits alternating by arrival, two forms by the sea's state (the squadron landing), the `{wrote}` slot by the issued turn, and the pulse's gap shared with every other letter of state.
+
+**What each answer does.** Accept "Send flour and muskets": 600 gold through `moments._apply_gold` (shown as Spent) and one administrative action; the echo "Decrès: two frigates clear Brest with flour and muskets for Santo Domingo." Decline "Ferrand must hold alone": `authority` −3 on the grip floor (never a rise, never a purse); the echo "Decrès files Ferrand's letter; the garrison of Santo Domingo holds alone." The lapse is the Decline. No answer touches the alarm (pinned).
+
+**The copy's shape (new keys, all display — struck from the measured identity):** `exhibit` as a list with `exhibit_from` (the run-in; the engine holds no literal), `closing` (two lines RE-C prints when the file closes), `slots` (a phrase by the issued turn; the validator checks the dates, the engine reads turns — HC-0), `variants` up to four.
+
+**Measured (§22.1):** on 52 runs the letter arrives on 16 — 15 of the 21 passive sweep runs (the campaign's first affair on 13, T6–T9) and the treaty road twice (T23, T38) — and on none of the commanded arms (the Emperor afield) nor the six hand-played turn-21 starts (peace with Britain by T19); ceilings 0, floors 0, shown = applied; the roads unmoved against the control. The passive board's series moved and was attributed (`BASELINE_SERIES` re-pinned): the lapse's −3 at T9 (75 → 72) brings Holland's rebellion one turn forward through `authority_vassal_drift`, and the unattended France falls at T38 instead of T40.
+
+**The instruments.** RE3-8: the reply to `/respond_to_objection` carries `objection_kept` and `choices`; `Answerer.scan` answers the first open road when the policy's cannot be paid (VP1-CS austerlitz T4 → T24). REH-1: `tools/_s14c_sweep_record.py` reads the standing figure from "Authority N → M" (the Decline's quote) as well as "standing N → M" (the button). The road control is the same tree with `--seam backend.game_logic.affairs:armed=False`. NV-D5's allow-list pin `tests/test_nv_d5_colonial_copy.py` (P5, written at last).
+
+**Pins.** `tests/test_affairs_haiti.py` (new — RE3-8, the premise clause by clause, the latch and the arrival, `bites` on the floor half, the answers through the endpoint, the copy and the dress, the validator's sixteen refusals, the nondominance of the fourth letter); `tests/test_nv_d5_colonial_copy.py` (new); `tests/test_affairs_reach.py` (the fourth template; the earliest arrival T6; the standing band with teeth; the Haiti reach per family); `tests/test_affairs_pacing.py` (the first affair per seed); `tests/test_affairs_engine.py` (the armed ids; five variants refused; the door's pin reads the door alone); `tests/test_affairs_nondominance.py` (the fourth template); `tests/test_affairs_client.py` (the frames and the readability record under `2026_11_01`); `tests/test_ai_intent_threat_migration.py` (`BASELINE_SERIES` re-pinned, `SERIES_BEFORE_RE_H` kept). **Unchanged:** `set(MO.OPS)` 9 (the squadron flips it), `to_dict` 497, levers 231, functions over 500 lines 28, the moments' count pin, the road matrix.
+
+### 164.2 The squadron — in build

@@ -1664,7 +1664,29 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 #        never proclaimed on this board) held down alone are byte-identical.
 # Part 1's series: SERIES_BEFORE_S14K_PART_2 below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by RE-H H0 (the Haiti letter, November 1, 2026 — the user: "we
+# want to make sure these events … have conditions that make them appear";
+# `RECURRING_EVENTS_SPEC.md` §22.1, `SYSTEMS_REFERENCE.md` §164). The fourth
+# recurring letter PREMISES on the passive board — the Emperor at home,
+# Britain's blockade from the opening, 45 sail, the chest past the Marine's
+# bar by turn 5 — and `bites: "floor"` lets it through at any standing, so
+# the unattended France now meets Decrès at turn 7 and LAPSES the letter at
+# turn 9 (the lapse is the Decline: standing 75 → 72 on this board, against
+# the Secretariat's 75). `authority_vassal_drift` — the one-way coupling of
+# the Emperor's faltering grip to his clients' loyalty — then takes Holland
+# into rebellion at turn 19 instead of 20: the alarm's −10 lands at [18] (0,
+# was 3), the hegemony's passive +3 shows as 2 at [25], and the unattended
+# France falls at turn 38 instead of 40 (the rig counts 37 armed ticks, not
+# 39). The attribution: `tools/_affairs_series_arms.py` →
+# `tools/_affairs_series_arms_final.json` — arm 0 (every seam down) and AF0
+# (`deliver_due` down) reproduce RE-3's series byte for byte; every arm with
+# the delivery up diverges at [18] with exactly one occurrence delivered.
+# RE-3's series: SERIES_BEFORE_RE_H below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-3's series (RE-H's prior; S14k part 2's ALL):
+SERIES_BEFORE_RE_H = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14k part 1's series (part 2's prior; part 1's ALL):
 SERIES_BEFORE_S14K_PART_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 24, 21, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14j's series (S14k's prior; S14j's ALL):

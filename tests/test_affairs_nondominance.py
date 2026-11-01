@@ -26,6 +26,12 @@ from tests import _chip_census as C
 REPO = Path(__file__).resolve().parents[1]
 FIXTURE = REPO / "tests" / "fixtures" / "affairs_block.json"
 T1, T2, T3 = "chancellors_letters", "the_host", "berthiers_memorial"
+# RE-H (November 1, 2026): the fourth letter — the Haiti letter (§6.5), whose
+# premise holds only with the Emperor at home, so it is measured on the hoarder
+# (the two boards that send him to Swabia skip it, as the Arch-Chancellor's
+# letter skips the hoarder).
+H1 = "santo_domingo"
+TEMPLATES = (T1, T2, T3, H1)
 PURSES = ("gold", "dp", "admin")
 
 
@@ -99,6 +105,8 @@ OCC = {
     T1: {"id": "chancellors_letters#1", "lord": "France", "bind": {"region": "Swabia"}, "tier": 1},
     T2: {"id": "the_host#1", "lord": "France", "bind": {"host": "Bavaria"}, "tier": 1},
     T3: {"id": "berthiers_memorial#1", "lord": "France", "bind": {"law": "grand_quartier_general"}, "tier": 1},
+    H1: {"id": "santo_domingo#1", "lord": "France", "bind": {"region": "Lorraine", "sovereign": "Napoleon"},
+         "tier": 1, "turn": 7},
 }
 
 
@@ -157,7 +165,7 @@ MEASURED = set()        # (template, board) pairs the pin above read — a pin t
 
 class TestEachAnswerIsTheBetterOneSomewhere:
     @pytest.mark.parametrize("board", sorted(BOARDS))
-    @pytest.mark.parametrize("template", [T1, T2, T3])
+    @pytest.mark.parametrize("template", TEMPLATES)
     def test_on_every_board_where_the_letter_can_arrive(self, armed, board, template):
         BOARDS[board](armed)
         _quarter(armed)
@@ -170,7 +178,7 @@ class TestEachAnswerIsTheBetterOneSomewhere:
         assert _better_somewhere(a, d), (template, board, a, d)
         assert _better_somewhere(d, a), (template, board, a, d)
 
-    @pytest.mark.parametrize("template", [T1, T2, T3])
+    @pytest.mark.parametrize("template", TEMPLATES)
     def test_the_letter_is_measured_on_at_least_one_board(self, template):
         """Read after the boards above (one module, one worker, file order):
         each template was measured on at least one of the three — the
@@ -185,7 +193,7 @@ class TestEachAnswerIsTheBetterOneSomewhere:
 
 class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:
     @pytest.mark.parametrize("board", sorted(BOARDS))
-    @pytest.mark.parametrize("template", [T1, T2, T3])
+    @pytest.mark.parametrize("template", TEMPLATES)
     def test_the_decline_touches_no_purse(self, armed, board, template):
         BOARDS[board](armed)
         _quarter(armed)
@@ -193,7 +201,7 @@ class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:
         assert not [r for r in decline["rows"] if r.get("op") in PURSES], (template, board)
         assert "alarm" not in {r.get("op") for r in decline["rows"]}
 
-    @pytest.mark.parametrize("template", [T1, T2, T3])
+    @pytest.mark.parametrize("template", TEMPLATES)
     def test_no_answer_carries_the_alarm_and_the_threat_is_byte_identical(self, armed, template):
         _expander(armed)
         _quarter(armed)

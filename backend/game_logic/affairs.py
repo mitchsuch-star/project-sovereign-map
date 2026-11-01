@@ -83,19 +83,34 @@ BARRED_OPS = ("alarm", "autonomy")
 
 # The display copy (§16b): what a letter SAYS, never when it arrives or what
 # its answers do — struck from the measured identity (`_s14c_sweep_record`).
-DISPLAY_KEYS = ("title", "voice", "record", "line", "counsel", "exhibit", "ground", "watch",
-                "source", "button_line")
+DISPLAY_KEYS = ("title", "voice", "record", "line", "counsel", "exhibit", "exhibit_from", "ground",
+                "watch", "source", "button_line", "closing", "slots")
 VARIANT_DISPLAY_KEYS = ("text",)
 # RE-3 (P12, §12c): `situation` is the morning-after SITUATION line an answer
 # authors (RE-R renders it); `echo` the response's reply, `press` the Gazette's
 # COURTS line, `remember` the board line on the template's next occurrence.
 ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember", "situation")
 TEXT_MAX = {"title": 40, "record": 240, "variant": 240, "line": 200, "counsel": 160,
-            "exhibit": 160, "watch": 120, "button_line": 40, "echo": 160, "press": 160,
-            "remember": 160, "situation": 160, "caption": 36, "source": 400}
-VARIANT_FACTS = ("arrival",)        # P18: `last_fate` joins at RE-H with the fleet record
+            "exhibit": 160, "exhibit_from": 40, "watch": 120, "button_line": 40, "echo": 160,
+            "press": 160, "remember": 160, "situation": 160, "caption": 36, "source": 400,
+            "closing": 240, "slot": 60}
+# RE-H (§6.5, P18): the chapter is keyed by the arrival (first / later) and by
+# the last squadron's fate (home / caught — the row's frozen `last_fate`, from
+# the fleet record at delivery); the fate chapters are authored BEFORE the
+# later-arrival chapter, so a letter that remembers a sailing says so first.
+VARIANT_FACTS = ("arrival", "last_fate")
+VARIANT_VALUES = {"arrival": ("first", "later"), "last_fate": ("home", "caught")}
+VARIANTS_MAX = 4
+EXHIBITS_MAX = 2          # the exhibits alternate by arrival
+CLOSING_MAX = 2           # the closing record and the 1825 line (RE-C renders them)
 ARRIVAL_FIRST = "first"
 ARRIVAL_LATER = "later"
+# RE-H (the user's word, November 1, 2026 — §0b P16 amended for the Haiti
+# letter): `bites: true` asks both halves (the Decline's loss lands below the
+# aura's full line AND the floor allows it whole); `bites: "floor"` the floor
+# half alone, so the letter arrives at full standing too.
+BITES_FLOOR = "floor"
+BITES_MODES = (True, BITES_FLOOR)
 
 # The dispatch row an affair's set-aside and withdrawal lines ride — the
 # moments' own receipt type (`moments.RECEIPT_EVENT`), named by its literal so
@@ -300,17 +315,59 @@ def _staff_offered(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"holds": True, "bind": {"law": law_id}, "measure": None, "latch": False}
 
 
+def _colony_cut_off(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """H1 the Haiti letter (§6.5, P7): the LATCH bit first — the lord
+    blockaded this morning by the trade-dominant power (`naval.is_blockaded`
+    against `naval.trade_dominance_nation`), returned whether or not the rest
+    holds so `update_morning` shifts the 12-bit mask — then the sovereign
+    standing, not a captive, AT HOME (the Marine's portfolio comes before the
+    Council when the Emperor holds court; afield the Arch-Chancellor writes
+    instead, so T1 and H1 never compete), at least `min_ships` sail in port
+    and the purse at or above `min_purse` + the AI's own reserve. No region
+    scan (Rule 8): one marshal, one fleet record, one purse read."""
+    from backend.game_logic import naval
+    from backend.game_logic.fall import sovereign_of
+    from backend.game_logic.instruments import purse_of
+    from backend.game_logic.reforms import AI_PURSE_RESERVE
+    out = _no()
+    if not naval.has_naval_layer(world):
+        return out
+    dominant = naval.trade_dominance_nation(world)
+    blockader, _coverage = naval.blockader_against(world, lord)
+    out["latch"] = bool(dominant) and blockader == dominant
+    sovereign = sovereign_of(world, lord)
+    if sovereign is None or getattr(sovereign, "captured_by", ""):
+        return out
+    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(lord, []) or [])
+    location = str(getattr(sovereign, "location", "") or "")
+    if not location or location not in home:
+        return out
+    rec = naval.get_fleet(world, lord) or {}
+    if int(rec.get("ships", 0) or 0) < int(params.get("min_ships", 25) or 25):
+        return out
+    if int(purse_of(world, lord)[1]) < int(params.get("min_purse", 500) or 500) + int(AI_PURSE_RESERVE):
+        return out
+    out.update({"holds": True, "bind": {"region": location, "sovereign": str(sovereign.name)},
+                "measure": None})
+    return out
+
+
 PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "sovereign_afield": _sovereign_afield,
     "corps_on_host": _corps_on_host,
     "staff_offered": _staff_offered,
+    "colony_cut_off": _colony_cut_off,
 }
 # The parameters each predicate requires (the validator reads them).
 PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
     "sovereign_afield": (),
     "corps_on_host": (),
     "staff_offered": ("law",),
+    "colony_cut_off": (),
 }
+# The predicates whose `watch` and board count a LATCH (`{n}` = the set bits
+# of the mask) rather than a streak or a corps count.
+LATCHED_PREDICATES = ("colony_cut_off",)
 
 
 def _lord_of(world, e: Dict[str, Any]) -> str:
@@ -393,14 +450,31 @@ def streak_of(world, e: Dict[str, Any], subject: str) -> int:
     return int((runtime(world).get("streaks") or {}).get(_streak_key(str(e["id"]), subject), 0))
 
 
+def latch_count(world, e: Dict[str, Any]) -> int:
+    """P7: the set bits of the template's mask — the mornings of the last
+    `of` the latch read true (the Haiti letter's "blockaded {n} of the last
+    12 mornings")."""
+    if not isinstance(e.get("latch"), dict):
+        return 0
+    mask = int((runtime(world).get("masks") or {}).get(str(e["id"]), 0))
+    return bin(mask).count("1")
+
+
 def latch_ok(world, e: Dict[str, Any]) -> bool:
     """P7: a template with a `latch` arrives only while its mask carries at
     least `at_least` set bits of the last `of` mornings."""
     latch = e.get("latch")
     if not isinstance(latch, dict):
         return True
-    mask = int((runtime(world).get("masks") or {}).get(str(e["id"]), 0))
-    return bin(mask).count("1") >= int(latch.get("at_least", 1) or 1)
+    return latch_count(world, e) >= int(latch.get("at_least", 1) or 1)
+
+
+def latch_distance(world, e: Dict[str, Any]) -> int:
+    """How many more mornings the latch needs — 0 for a template without one."""
+    latch = e.get("latch")
+    if not isinstance(latch, dict):
+        return 0
+    return max(0, int(latch.get("at_least", 1) or 1) - latch_count(world, e))
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -427,7 +501,12 @@ def bites(world, lord: str, e: Dict[str, Any], tier: int) -> bool:
     """§6.1: an `authority`-priced template arrives only where the price
     BITES — the Decline's tiered loss lands below the aura's full line (85)
     on the grip, and the floor (71) allows it whole. A template priced in no
-    authority always bites; a lord without a tracker never does."""
+    authority always bites; a lord without a tracker never does.
+
+    RE-H (the user's word of November 1, 2026; §0b P16 amended): a template
+    authored `bites: "floor"` asks the floor half alone — the loss must land
+    whole above the floor — so the Haiti letter arrives at full standing,
+    where the Decline is a dent and the squadron the stake."""
     ops = [MO.scaled_op(op, tier) for op in ((e.get("decline") or {}).get("ops") or [])
            if isinstance(op, dict) and op.get("op") == "authority"]
     if not ops:
@@ -435,10 +514,11 @@ def bites(world, lord: str, e: Dict[str, Any], tier: int) -> bool:
     if lord != getattr(world, "player_nation", None) or getattr(world, "authority_tracker", None) is None:
         return False
     from backend.models.authority import AURA_GRIP_FULL, get_imperial_grip
+    floor_only = e.get("bites") == BITES_FLOOR
     grip = int(get_imperial_grip(world, lord))
     for op in ops:
         after = grip + int(op.get("amount", 0) or 0)
-        if after < MO.AUTHORITY_GRIP_FLOOR or after >= AURA_GRIP_FULL:
+        if after < MO.AUTHORITY_GRIP_FLOOR or (after >= AURA_GRIP_FULL and not floor_only):
             return False
     return True
 
@@ -844,10 +924,43 @@ def fill_slots(world, text: str, row: Dict[str, Any], e: Optional[Dict[str, Any]
     when = row.get("answered_turn") or row.get("lapsed_turn") or row.get("turn")
     if isinstance(when, int) and not isinstance(when, bool):
         slots.setdefault("month", MO._dateline(world, int(when)))
+    # RE-H: `{date}` is the squadron's expected return (the row's `home_by`,
+    # written at the answer); the template's authored `slots` table gives a
+    # phrase by the ISSUED turn ("last February" until T26, "two years ago"
+    # after — the engine reads turns alone, HC-0).
+    home_by = row.get("home_by")
+    if isinstance(home_by, int) and not isinstance(home_by, bool):
+        slots.setdefault("date", MO._dateline(world, int(home_by)))
+    issued = row.get("turn")
+    for name, phrase in authored_slots(e, issued if isinstance(issued, int) else None).items():
+        slots.setdefault(name, phrase)
     try:
         return str(text).format_map(slots)
     except (ValueError, IndexError):
         return str(text)
+
+
+def authored_slots(e: Optional[Dict[str, Any]], issued: Optional[int]) -> Dict[str, str]:
+    """The template's `slots` {name: [{until: {turn}, text}, …, {text}]} read
+    at the issued turn: the first entry whose `until` turn is still ahead,
+    else the last (the entry without `until`). Display only."""
+    table = (e or {}).get("slots") if isinstance(e, dict) else None
+    if not isinstance(table, dict):
+        return {}
+    out: Dict[str, str] = {}
+    for name, entries in table.items():
+        if not isinstance(entries, list) or not entries:
+            continue
+        chosen = ""
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            until = (entry.get("until") or {}).get("turn") if isinstance(entry.get("until"), dict) else None
+            chosen = str(entry.get("text") or "")
+            if until is None or issued is None or int(issued) < int(until):
+                break
+        out[str(name)] = chosen
+    return out
 
 
 def form_block(e: Dict[str, Any], occ: Dict[str, Any]) -> Dict[str, Any]:
@@ -881,9 +994,13 @@ def _arrival_of(occ: Dict[str, Any]) -> str:
 
 
 def chapter_of(e: Dict[str, Any], occ: Dict[str, Any]) -> str:
-    """P18: the variant keyed by the occurrence's facts (`arrival`: first /
-    later; `last_fate` joins at RE-H) — "" when none matches."""
+    """P18: the variant keyed by the occurrence's facts — `arrival` (first /
+    later) and `last_fate` (home / caught, the row's frozen reading of the
+    fleet record at delivery) — in authored order, "" when none matches."""
     facts = {"arrival": _arrival_of(occ)}
+    fate = str((occ or {}).get("last_fate") or "")
+    if fate:
+        facts["last_fate"] = fate
     for variant in (e or {}).get("variants") or []:
         if not isinstance(variant, dict):
             continue
@@ -893,11 +1010,28 @@ def chapter_of(e: Dict[str, Any], occ: Dict[str, Any]) -> str:
     return ""
 
 
+def _arrival_index(occ: Dict[str, Any]) -> int:
+    try:
+        return int(str((occ or {}).get("id") or "").split(MO.OCCURRENCE_SEP, 1)[1])
+    except (IndexError, ValueError):
+        return 1
+
+
+def exhibit_of(e: Dict[str, Any], occ: Dict[str, Any]) -> str:
+    """§6.5: the exhibit — one authored string, or a list the arrivals walk
+    in turn (odd arrivals the first, even the second); "" when none."""
+    exhibit = (e or {}).get("exhibit")
+    if isinstance(exhibit, list):
+        texts = [str(x) for x in exhibit if isinstance(x, str) and x]
+        return texts[(_arrival_index(occ) - 1) % len(texts)] if texts else ""
+    return str(exhibit or "")
+
+
 def record_text(world, e: Dict[str, Any], occ: Dict[str, Any]) -> str:
     """The ground (every arrival) and the chapter (by the occurrence's facts),
     in the moments' "Historically …" frame."""
-    ground = fill_slots(world, str((e or {}).get("record") or ""), occ)
-    chapter = fill_slots(world, chapter_of(e, occ), occ)
+    ground = fill_slots(world, str((e or {}).get("record") or ""), occ, e)
+    chapter = fill_slots(world, chapter_of(e, occ), occ, e)
     return f"{ground} {chapter}".strip() if chapter else ground
 
 
@@ -947,7 +1081,31 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
         upkeep = int((row or {}).get("upkeep", 0) or 0)
         return [f"At war {streak} turns running; the Staff is not in force; the chest holds "
                 f"{int(purse_of(world, lord)[1]):,} gold against {price:,} now and {upkeep:,} a turn."]
+    if predicate == "colony_cut_off":
+        return _board_colony_cut_off(world, e, occ, lord, bind, read)
     return []
+
+
+def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
+                          read: Dict[str, Any]) -> List[str]:
+    """§6.5's board: the latch's count and the Emperor's seat; the hunter's
+    sail against ours (ints, as the crossing refusal casts them); in the
+    squadron form the passage's odds; from the second arrival the last
+    squadron's fate (RE-H's second landing writes `last_sailed`)."""
+    from backend.game_logic import naval
+    of = int(((e.get("latch") or {}).get("of", 12)) or 12) if isinstance(e.get("latch"), dict) else 12
+    region = str(bind.get("region") or (read.get("bind") or {}).get("region") or "")
+    lines = [f"{MO._court(world, lord, capitalize=True)} blockaded {latch_count(world, e)} of the last "
+             f"{of} mornings; the Emperor holds court at {region or 'home'}."]
+    rec = naval.get_fleet(world, lord) or {}
+    ours = int(naval.effective_strength(rec))
+    hunter, coverage = naval.blockader_against(world, lord)
+    if hunter:
+        lines.append(f"{MO._court(world, hunter, capitalize=True)}'s squadrons hold the coast: "
+                     f"{int(coverage)} sail effective against our {ours}.")
+    else:
+        lines.append(f"No enemy squadron holds the coast this morning; {ours} sail effective in port.")
+    return lines
 
 
 def watch(world) -> List[str]:
@@ -971,12 +1129,19 @@ def watch(world) -> List[str]:
             continue
         if on_cooldown(world, e, subject, turn) or not under_cap(world, e, subject, turn):
             continue
+        ends = e.get("ends")
+        if isinstance(ends, dict) and turn > int(ends.get("turn", 10 ** 6) or 10 ** 6):
+            continue                # the file is closed (RE-H; `candidates` says the same)
         streak = streak_of(world, e, subject)
         measure = read.get("measure")
         measure = streak if measure is None else int(measure)
+        latched = str((e.get("when") or {}).get("predicate") or "") in LATCHED_PREDICATES
+        if latched:
+            measure = latch_count(world, e)      # "blockaded {n} of the last 12 mornings"
         text = fill_slots(world, str(e.get("watch") or ""),
-                          {"bind": read.get("bind") or {}, "lord": lord}, n=measure, m=streak)
-        rows.append((max(0, int(e.get("streak", 1) or 1) - streak), index, template, text))
+                          {"bind": read.get("bind") or {}, "lord": lord}, e, n=measure, m=streak)
+        distance = max(max(0, int(e.get("streak", 1) or 1) - streak), latch_distance(world, e))
+        rows.append((distance, index, template, text))
     rows.sort()
     out: List[str] = []
     shown = [template for _distance, _index, template, text in rows[:2] if text]

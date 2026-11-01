@@ -1,0 +1,104 @@
+{
+ "date": "2026_11_01",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\claude\\C--Users-User-PycharmProjects-project-sovereign-map\\887277d6-3dd6-4871-8e51-478768645cef\\scratchpad\\iq10\\physical\\index.json",
+ "surfaces": {
+  "affair_letter_santo_domingo_bill": {
+   "surface": "An Affair of State — The Relief of Santo Domingo — the Haiti letter's bill form (Decrès, Minister of Marine) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "a8f4399f",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

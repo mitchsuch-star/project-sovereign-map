@@ -145,7 +145,11 @@ def reach(trace: dict, deck_ids: list) -> dict:
 # holds 11,649)", the receipt's "standing 100 → 92"); a law's price in a
 # quote ("9,000 gold now, then 300 gold a turn") is the law's, not an op's.
 _GOLD_LUMP = re.compile(r"(\d[\d,]*) gold \(the treasury holds")
-_STANDING = re.compile(r"standing (\d+) → (\d+)")
+# RE-H (BUG_FIXES REH-1): the Decline's quote is `reforms.authority_line`'s —
+# "Authority 100 → 97" — while the button line says "standing 100 → 97"; the
+# regex read the button's word alone, so every standing figure of RE-3's
+# record was 0 and the band pin passed on nothing. Both words, either case.
+_STANDING = re.compile(r"(?:standing|authority) (\d+) → (\d+)", re.I)
 
 
 def answered_figures(application: dict) -> dict:

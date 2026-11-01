@@ -184,7 +184,9 @@ class TestUnarmed:
         tutorial scenarios stay unarmed by design (one card at a time)."""
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert block["affairs"] == _block()["affairs"]
-        assert [e["id"] for e in block["affairs"]["deck"]] == ["chancellors_letters", "the_host", "berthiers_memorial"]
+        # RE-H (November 1, 2026): the fourth letter, the Haiti letter (§6.5)
+        assert [e["id"] for e in block["affairs"]["deck"]] == ["chancellors_letters", "the_host",
+                                                                "berthiers_memorial", "santo_domingo"]
         from tools._s14c_sweep_record import mechanical_block
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
         for name in ("tutorial_1805.json", "tutorial_table_1805.json"):
@@ -209,7 +211,7 @@ class TestTheStoreAndTheIds:
         assert AF.armed(armed)
         assert [e["id"] for e in MO.deck(armed)] == ["bavarian_match", "throne_of_holland",
                                                       "crown_of_the_reich", "decree_of_berlin"]
-        assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3]
+        assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo"]   # RE-H: the fourth
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2
@@ -598,6 +600,12 @@ class TestBites:
 
     def test_the_door_arrives_at_war_with_the_chest_above_the_bar(self, armed):
         _no_moments(armed)
+        # RE-H: the fourth letter (the Emperor at home, blockaded, the chest
+        # above the Marine's bar) would take the morning the chest clears —
+        # the fleet under 25 sail keeps the Marine silent, so this pin reads
+        # the door alone
+        from backend.game_logic import naval
+        naval.get_fleet(armed, "France")["ships"] = 20
         assert _run(armed, range(1, 8)) == {}                 # the chest holds 800
         armed.nation_gold["France"] = 20_000
         assert _run(armed, range(8, 11)) == {}                # at war 4 turns running: the streak
@@ -817,7 +825,8 @@ class TestTheValidator:
          "moments.affairs.deck[2].decline.ops"),
         ("a title past 40", lambda b: _aff(b).update(title="T" * 41), "moments.affairs.deck[0].title"),
         ("a record past 240", lambda b: _aff(b).update(record="R" * 241), "moments.affairs.deck[0].record"),
-        ("four variants", lambda b: _aff(b).update(variants=[{"key": "arrival", "value": "first", "text": "x"}] * 4),
+        # RE-H (P18): four chapters are allowed (the Haiti letter's); five are not
+        ("five variants", lambda b: _aff(b).update(variants=[{"key": "arrival", "value": "first", "text": "x"}] * 5),
          "moments.affairs.deck[0].variants"),
         ("a variant keyed to no fact", lambda b: _aff(b).update(variants=[{"key": "weather", "value": "rain", "text": "x"}]),
          "moments.affairs.deck[0].variants[0]"),

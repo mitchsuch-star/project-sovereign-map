@@ -213,7 +213,6 @@
     12,
     9,
     6,
-    3,
     0,
     0,
     0,
@@ -221,6 +220,7 @@
     0,
     0,
     0,
+    2,
     0,
     0,
     0,
@@ -237,15 +237,15 @@
     0,
     0
    ],
-   "first_divergence_vs_prior": null,
+   "first_divergence_vs_prior": 18,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 39,
-     "affairs_delivered": 0,
-     "blind_rows_dropped": 0,
-     "pulse_draws": 62,
+     "affairs_armed_ticks": 37,
+     "affairs_delivered": 1,
+     "blind_rows_dropped": 1,
+     "pulse_draws": 68,
      "affairs_receipts": 0,
-     "court_resolutions": 39
+     "court_resolutions": 37
     }
    }
   },
@@ -272,7 +272,6 @@
     12,
     9,
     6,
-    3,
     0,
     0,
     0,
@@ -280,6 +279,7 @@
     0,
     0,
     0,
+    2,
     0,
     0,
     0,
@@ -296,15 +296,15 @@
     0,
     0
    ],
-   "first_divergence_vs_prior": null,
+   "first_divergence_vs_prior": 18,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 39,
-     "affairs_delivered": 0,
-     "blind_rows_dropped": 0,
-     "pulse_draws": 62,
+     "affairs_armed_ticks": 37,
+     "affairs_delivered": 1,
+     "blind_rows_dropped": 1,
+     "pulse_draws": 68,
      "affairs_receipts": 0,
-     "court_resolutions": 39
+     "court_resolutions": 37
     }
    }
   },
@@ -331,7 +331,6 @@
     12,
     9,
     6,
-    3,
     0,
     0,
     0,
@@ -339,6 +338,7 @@
     0,
     0,
     0,
+    2,
     0,
     0,
     0,
@@ -355,15 +355,15 @@
     0,
     0
    ],
-   "first_divergence_vs_prior": null,
+   "first_divergence_vs_prior": 18,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 39,
-     "affairs_delivered": 0,
-     "blind_rows_dropped": 0,
-     "pulse_draws": 62,
+     "affairs_armed_ticks": 37,
+     "affairs_delivered": 1,
+     "blind_rows_dropped": 1,
+     "pulse_draws": 68,
      "affairs_receipts": 0,
-     "court_resolutions": 39
+     "court_resolutions": 37
     }
    }
   },
@@ -390,7 +390,6 @@
     12,
     9,
     6,
-    3,
     0,
     0,
     0,
@@ -398,6 +397,7 @@
     0,
     0,
     0,
+    2,
     0,
     0,
     0,
@@ -414,15 +414,15 @@
     0,
     0
    ],
-   "first_divergence_vs_prior": null,
+   "first_divergence_vs_prior": 18,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 39,
-     "affairs_delivered": 0,
-     "blind_rows_dropped": 0,
-     "pulse_draws": 62,
+     "affairs_armed_ticks": 37,
+     "affairs_delivered": 1,
+     "blind_rows_dropped": 1,
+     "pulse_draws": 68,
      "affairs_receipts": 0,
-     "court_resolutions": 39
+     "court_resolutions": 37
     }
    }
   },
@@ -447,7 +447,6 @@
     12,
     9,
     6,
-    3,
     0,
     0,
     0,
@@ -455,6 +454,7 @@
     0,
     0,
     0,
+    2,
     0,
     0,
     0,
@@ -471,15 +471,15 @@
     0,
     0
    ],
-   "first_divergence_vs_prior": null,
+   "first_divergence_vs_prior": 18,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 39,
-     "affairs_delivered": 0,
-     "blind_rows_dropped": 0,
-     "pulse_draws": 62,
+     "affairs_armed_ticks": 37,
+     "affairs_delivered": 1,
+     "blind_rows_dropped": 1,
+     "pulse_draws": 68,
      "affairs_receipts": 0,
-     "court_resolutions": 39
+     "court_resolutions": 37
     }
    }
   }

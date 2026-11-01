@@ -3244,11 +3244,33 @@ class Answerer:
                     or "auto-resolved battle (report discarded — WO-33)")})
 
         # 1. Marshal objection ------------------------------------------------
-        if response.get("pending_objection"):
-            payload = _as_dict(response["pending_objection"])
+        # RE3-8 (RE-H, November 1, 2026): an answer the pool cannot pay is
+        # refused by the backend in its own words (ACH-X10 — the objection
+        # KEPT, the roads still open in `choices`), and the objection stands.
+        # The refusal's reply carries no `pending_objection` key (that key
+        # rides the /command road alone), so a driver that read only it never
+        # answered again: `end turn` was refused and the run stopped at the
+        # first unpayable insist (VP1-CS austerlitz at T4 — Lannes's fortify
+        # from NEUTRAL costs two actions with one left). Read the refusal's
+        # own keys too, and answer the first open road the policy would take —
+        # trust, then compromise, then cancel — saying so once.
+        open_roads = response.get("choices") if response.get("objection_kept") else None
+        kept = isinstance(open_roads, list) and bool(open_roads)
+        if response.get("pending_objection") or kept:
+            payload = _as_dict(response.get("pending_objection"))
             if not payload:
                 payload = _as_dict(response.get("objection"))
+            payload = payload or {}
             choice = self.policy["objection"]
+            if kept and choice not in open_roads:
+                fallback = next((c for c in ("trust", "compromise", "cancel")
+                                 if c in open_roads), str(open_roads[0]))
+                # the refusal names its marshal ("Lannes's objection stands")
+                named = re.search(r"(\w[\w' -]*?)'s objection stands", str(response.get("message") or ""))
+                who = payload.get("marshal") or (named.group(1) if named else "the marshal")
+                self.d.note(f"⚠ '{choice}' cannot be paid — {who}'s objection answered "
+                            f"'{fallback}' instead (RE3-8)")
+                choice = fallback
             self.d.popup("objection",
                          _summ(payload or response.get("message"),
                                "marshal", "objection_text", "message"),

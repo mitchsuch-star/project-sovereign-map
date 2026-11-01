@@ -5513,6 +5513,12 @@ def _respond_to_objection_sync(choice: str, carried_relay: Optional[dict] = None
             response["battle_report"] = result["battle_report"]
         # SF-CL-1: the muster and the massed strength ride this road too.
         _copy_truthy_result_fields(response, result, ("muster_preview", "massed_strength"))
+        # RE3-8 (RE-H, November 1, 2026): an answer the pool cannot pay is
+        # refused with the objection KEPT and the roads still open named
+        # (ACH-X10, `unpayable_answer_refusal`) — the message said them, the
+        # reply dropped the keys, so a reader could not tell the refusal from
+        # any other failed answer. Shown = offered: the two keys ride the reply.
+        _copy_truthy_result_fields(response, result, ("objection_kept", "choices"))
 
         # CA8-25 sibling (Aug 2026 health-check audit): the insist path
         # re-enters _execute_attack, which can produce a diorama and a

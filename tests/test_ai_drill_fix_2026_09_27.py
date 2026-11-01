@@ -518,4 +518,16 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert s14k2["prior"] == s14k["arms"]["ALL"]["series"]
         assert s14k2["arms"]["0"]["series"] == s14k2["prior"]
-        assert BASELINE_SERIES == s14k2["arms"]["ALL"]["series"]
+        # RE-H H0 (the Haiti letter, November 1, 2026): part 2's ALL is the
+        # prior the affairs rig's arm 0 (every seam down) and its AF0 arm
+        # (`deliver_due` down) reproduce byte for byte, and its ALL arm (the
+        # fourth letter delivered on the passive board, lapsing at T9 —
+        # Holland's rebellion a turn forward) is the standing series
+        # (`tools/_affairs_series_arms_final.json`; `SERIES_BEFORE_RE_H`).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_RE_H
+        assert SERIES_BEFORE_RE_H == s14k2["arms"]["ALL"]["series"]
+        reh = json.loads((ROOT / "tools" / "_affairs_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert reh["prior"] == s14k2["arms"]["ALL"]["series"]
+        assert reh["arms"]["0"]["series"] == reh["prior"] == reh["arms"]["AF0"]["series"]
+        assert BASELINE_SERIES == reh["arms"]["ALL"]["series"]

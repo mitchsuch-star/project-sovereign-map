@@ -35,9 +35,9 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1, RE-2 landed Oct 31; §19, §20); S15 after RE**.
 
 **▶ LIVE STATE (November 1, 2026).** The three most recent rows:
-- **RE-3 (Nov 1) — the deck ARMED, reach measured on 52 runs; RE-H NEXT** (spec §21).
+- **RE-H H0 (Nov 1) — the Haiti letter, the bill alone, on 16 of 52 runs; the squadron NEXT** (spec §22).
+- **RE-3 (Nov 1) — the deck ARMED, reach measured on 52 runs** (spec §21).
 - **RE-2 (Oct 31) — the letter's dress, the quiet arrival** (spec §20).
-- **S14k (Oct 28) — courts' corps, benches, call-up, goals, the Porte's New Order** (§160).
 
 **Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS`, §153.3), the build (unsigned) and the clean run, RE3-6/7/9 (`BUG_FIXES.md` §RE3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

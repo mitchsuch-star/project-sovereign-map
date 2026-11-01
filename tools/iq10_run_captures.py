@@ -1477,6 +1477,17 @@ SHOTS += [
              "for.'); the Accept on an OPAQUE disabled plaque with its reason as the second line; "
              "'Let the Council act / standing 80 → 75' live; Berthier's counsel; nothing clipped at "
              "scale 2.0"),
+            # RE-H H0 (November 1, 2026; RECURRING_EVENTS_SPEC.md §6.5): the Haiti letter, the bill form
+            ("santo_domingo_bill", "The Relief of Santo Domingo — the Haiti letter's bill form (Decrès, Minister of Marine)",
+             "the same dress under Decrès's monogram 'D'; line 2 'The Relief of Santo Domingo — Decrès, "
+             "Minister of Marine and the Colonies'; the writer's own line ('Sire, Ferrand wrote last "
+             "February…'); the ground and the first chapter (the killings of 1804, Ferrand's decree, Moca "
+             "and Santiago) in IM Fell italic; 'FROM HAITI —' in the rubric over the Constitution of "
+             "1805's Article 2 in IM Fell roman; the fleuron-led board (blockaded N of the last 12 "
+             "mornings, the Emperor at Lorraine; Britain's 100 sail against our 31); the buttons 'Send "
+             "flour and muskets / −600 gold · 1 action' and 'Ferrand must hold alone / standing 100 → 97' "
+             "and 'Not Now / waits on the desk'; Berthier's counsel under the buttons; both answers above "
+             "the fold at BOTH scales"),
         )
     ],
 ]

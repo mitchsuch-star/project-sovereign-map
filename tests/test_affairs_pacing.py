@@ -35,7 +35,8 @@ class TestTheRecordMeasuredTheStagedDeck:
         assert record["fixture_sha"] == deck_sha(fixture), (
             "the staged deck's mechanics changed since the probe ran — re-run "
             "tools/_affairs_first_arrival_probe.py")
-        assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial"]
+        # RE-H (November 1, 2026): the fourth letter, the Haiti letter
+        assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo"]
 
     def test_every_seed_was_played_on_both_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20
@@ -64,20 +65,37 @@ class TestTheMomentsAreBlindOnEverySeed:
 class TestTheFirstArrivalIsReportedPerSeed:
     """Seeded paths, not laws (§10). The passive board keeps the Emperor at home
     and no second corps on an ally's soil, so T1 and T2 never premise there;
-    the door opens where the hoard clears the Staff's bar."""
+    the door opens where the hoard clears the Staff's bar. RE-H (November 1,
+    2026 — the user's word, "conditions that make them appear"): the Haiti
+    letter premises on that board — the Emperor at home, Britain's blockade
+    from the opening, 45 sail, the chest past the Marine's bar by turn 5 —
+    and with `bites: "floor"` it is the campaign's FIRST affair on nine of
+    the ten seeds, on the pulse's first morning (T6–T9, the band); on wagram
+    the premise fell before the pulse opened (the Emperor driven from home)."""
 
     def test_the_first_affair_per_seed(self, record):
         firsts = {seed: arms["armed"]["first_affair"] for seed, arms in record["seeds"].items()}
         reached = {seed: f for seed, f in firsts.items() if f}
-        assert set(reached) == {"ulm", "austerlitz"}, reached
-        assert all(f["id"] == "berthiers_memorial#1" and f["turn"] == 19 for f in reached.values())
+        assert set(reached) == set(SWEEP_SEEDS) - {"wagram"}, reached
+        assert all(f["id"] == "santo_domingo#1" and 6 <= f["turn"] <= 9 for f in reached.values()), reached
+        assert reached["historical"]["turn"] == 7                  # the authored `first`
 
-    def test_every_occurrence_is_the_doors_and_lapsed_on_a_passive_france(self, record):
+    def test_every_occurrence_is_lapsed_on_a_passive_france(self, record):
+        """The unattended France answers nothing: every letter lapses to its
+        Decline — the Haiti letter's rows bind the Emperor's seat, the door's
+        bind the Staff; both at tier 1."""
         for seed, arms in record["seeds"].items():
-            for mid, row in arms["armed"]["affairs"].items():
-                assert mid.startswith("berthiers_memorial#"), (seed, mid)
-                assert row["status"] == "lapsed" and row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
-                assert row["tier"] == 1
+            rows = arms["armed"]["affairs"]
+            assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#")) for mid in rows), (seed, list(rows))
+            for mid, row in rows.items():
+                assert row["status"] == "lapsed" and row["tier"] == 1, (seed, row)
+                if mid.startswith("berthiers_memorial#"):
+                    assert row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
+                else:
+                    assert set(row["bind"]) == {"region", "sovereign"} and row["bind"]["sovereign"] == "Napoleon", (seed, row)
+        with_door = {seed for seed, arms in record["seeds"].items()
+                     if any(m.startswith("berthiers_memorial#") for m in arms["armed"]["affairs"])}
+        assert with_door == {"ulm", "austerlitz"}, with_door             # as at RE-1, the door's seeds
 
     def test_the_streaks_build_where_the_premise_holds_and_nothing_is_due_at_the_end(self, record):
         for seed, arms in record["seeds"].items():

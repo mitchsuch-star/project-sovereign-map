@@ -1,5 +1,5 @@
 {
-  "_comment": "RE-1 (docs/RECURRING_EVENTS_SPEC.md §5, §6.1, §16): the S14c moments block (tests/fixtures/moments_block.json, the deck as ruled) with the recurring deck under `affairs` — T1 the Arch-Chancellor's Letters, T2 the Host's Claims at two corps (P6), T3 Berthier's Memorial — exactly as §6.1 authors them, the counsel and echo lines from §12c. The shipped scenario authors no `affairs` key until RE-3 copies this deck into it; the engine pins arm the real booted world with this file.",
+  "_comment": "RE-1 (docs/RECURRING_EVENTS_SPEC.md §5, §6.1, §16): the S14c moments block (tests/fixtures/moments_block.json, the deck as ruled) with the recurring deck under `affairs` — T1 the Arch-Chancellor's Letters, T2 the Host's Claims at two corps (P6), T3 Berthier's Memorial — exactly as §6.1 authors them, the counsel and echo lines from §12c; RE-H adds H1 the Haiti letter (§6.5) — H0 the bill alone first, `bites` on the floor half by the user's word of November 1, 2026. The shipped scenario carries this `affairs` block verbatim from RE-3 (the lockstep is pinned); the engine pins arm the real booted world with this file.",
   "owner": "France",
   "pacing": {"max_open": 1, "min_gap": 3},
   "deck": [
@@ -205,6 +205,67 @@
           "button_line": "no change",
           "ops": [],
           "remember": "In {month} Berthier's memorial waited; he writes again."
+        }
+      },
+      {
+        "id": "santo_domingo",
+        "kind": "affair",
+        "shape": "bill",
+        "title": "The Relief of Santo Domingo",
+        "source": "R1 rows 1, 2, 7 (docs/audits/AFFAIRS_DESIGN_PASS_2026_10_30.md §E.1) — S1 Reyes Sánchez 2022 (Ferrand's decree of 16 Nivôse XIII); S2 the Correspondance, 29 September 1804, 5 August 1805, 26 September 1809; S4 Leissègues at San Domingo, 6 February 1806; S15 the law of 20 May 1802 and the consular acts of 16 July and 7 December 1802",
+        "scope": "owner",
+        "roads": ["any"],
+        "when": {"predicate": "colony_cut_off", "min_ships": 25, "min_purse": 500},
+        "streak": 1,
+        "latch": {"of": 12, "at_least": 4},
+        "bites": "floor",
+        "cooldown": 12,
+        "cap": 2,
+        "grace": 4,
+        "ends": {"date": "1808-11-07", "turn": 76},
+        "voice": {"speaker": "named", "name": "Decrès, Minister of Marine and the Colonies"},
+        "record": "Historically the law of 20 May 1802 kept slavery in the colonies Amiens returned, and acts of 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence, 1 January 1804.",
+        "variants": [
+          {"key": "last_fate", "value": "home", "text": "Historically Missiessy's squadron reached Santo Domingo on 27 March 1805 and Dessalines raised his siege the next day; it came home whole, and the Emperor thought it home too soon."},
+          {"key": "last_fate", "value": "caught", "text": "Historically Leissègues landed a thousand men at Santo Domingo and was caught at anchor on 6 February 1806: five of the line lost, 1,510 killed or wounded, 1,156 taken. The Moniteur printed a doctored account."},
+          {"key": "arrival", "value": "first", "text": "Historically Haiti killed the French who stayed in 1804; Ferrand's decree of 6 January 1805 let his raiders sell the Haitians they took, and Dessalines marched on Santo Domingo, killing civilians at Moca and Santiago on his retreat."},
+          {"key": "arrival", "value": "later", "text": "Historically Ferrand could buy twenty days' bread in February 1805 and his credit from France had not come; the Emperor ordered flour bought in America and small expeditions of muskets and men (5 August 1805)."}
+        ],
+        "exhibit": [
+          "‘Slavery is forever abolished.’ — the Constitution of Haiti, 20 May 1805, Article 2: three years to the day after the law.",
+          "‘Nous avons osé être libres, osons l'être par nous-mêmes et pour nous-mêmes…’ — the Act of Independence, 1 January 1804, Boisrond-Tonnerre's draft."
+        ],
+        "exhibit_from": "FROM HAITI —",
+        "slots": {
+          "wrote": [
+            {"until": {"date": "1806-10-16", "turn": 27}, "text": "last February"},
+            {"text": "two years ago"}
+          ]
+        },
+        "line": "Sire, Ferrand wrote {wrote} that he had bread for twenty days and no credit from France. The sea is open; two frigates can carry flour and muskets by the spring tide.",
+        "watch": "Blockaded {n} of the last 12 mornings, the Emperor at home — Decrès may write of Santo Domingo.",
+        "counsel": "Berthier — Two frigates and flour, Sire: the garrison thanks you in the spring and writes again in the autumn.",
+        "closing": [
+          "Historically the Spanish colonists rose in 1808, armed by Pétion and Christophe; Ferrand killed himself after Palo Hincado on 7 November 1808, and the garrison surrendered to the British in July 1809.",
+          "Historically France recognised Haiti only in 1825, for 150 million francs paid to the former colonists; Mackau's squadron carried the ordinance, and Boyer accepted it on 11 July 1825."
+        ],
+        "accept": {
+          "caption": "Send flour and muskets",
+          "button_line": "−600 gold · 1 action",
+          "ops": [{"op": "gold", "amount": 600}, {"op": "admin", "amount": 1}],
+          "echo": "Decrès: two frigates clear Brest with flour and muskets for Santo Domingo.",
+          "situation": "Two frigates are at sea for Santo Domingo with flour and muskets; the garrison is provisioned by the spring.",
+          "press": "SANTO DOMINGO — Two frigates have carried His Majesty's flour and muskets to General Ferrand.",
+          "remember": "In {month} you sent flour and muskets; Decrès writes again of Santo Domingo."
+        },
+        "decline": {
+          "caption": "Ferrand must hold alone",
+          "button_line": "standing {authority_before} → {authority_after}",
+          "ops": [{"op": "authority", "amount": -3}],
+          "echo": "Decrès files Ferrand's letter; the garrison of Santo Domingo holds alone.",
+          "situation": "Ferrand's letter is filed at the Marine; the garrison of Santo Domingo holds alone.",
+          "press": "SANTO DOMINGO — General Ferrand holds the city for His Majesty.",
+          "remember": "In {month} you left Ferrand to hold alone; Decrès writes again of Santo Domingo."
         }
       }
     ]
