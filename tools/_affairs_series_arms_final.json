@@ -122,12 +122,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
      "pulse_draws": 0,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -181,12 +181,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
      "pulse_draws": 0,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -240,12 +240,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
-     "pulse_draws": 0,
+     "pulse_draws": 62,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -299,12 +299,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
-     "pulse_draws": 0,
+     "pulse_draws": 62,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -358,12 +358,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
-     "pulse_draws": 0,
+     "pulse_draws": 62,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -417,12 +417,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
-     "pulse_draws": 0,
+     "pulse_draws": 62,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   },
@@ -474,12 +474,12 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "affairs_armed_ticks": 0,
+     "affairs_armed_ticks": 39,
      "affairs_delivered": 0,
      "blind_rows_dropped": 0,
-     "pulse_draws": 0,
+     "pulse_draws": 62,
      "affairs_receipts": 0,
-     "court_resolutions": 0
+     "court_resolutions": 39
     }
    }
   }

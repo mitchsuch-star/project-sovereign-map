@@ -1310,3 +1310,84 @@ The quiet arrival (`deliver_letter` still writes the popup slot and a HIGH notic
 ### 20.7 What RE-3 inherits
 
 The deck's arming (the scenario's `affairs` key copied from the fixture; the S14c sweep re-recorded; the suite-reach head of §19.5 re-seated); the writers' lines and the four moments' counsel lines (P12 — the dress draws `line` and `counsel` today; both "" on the shipped moments); the moments' authored `button_line`s where the derived ones fall short; `exhibit_from` for RE-H; the Correspondence's `correspondence` first-open line (RE-C).
+
+---
+
+## §21 RE-3 — the three armed — the landing record (✅ November 1, 2026)
+
+*The third slice; the plan approved in Plan Mode; two commits in one session — part 1 the copy, the instruments and the arming-independent re-seats with the deck STILL UNARMED (`b0c05642`), part 2 the arming, the measure, the records and the pins that read them; the review pause taken before RE-H. From this commit the shipped 1805 scenario carries the recurring deck — `moments.affairs`, the fixture `tests/fixtures/affairs_block.json`'s block verbatim (the lockstep pinned) — and every player meets the Arch-Chancellor's Letters, the Host's Claims and Berthier's Memorial where their premises hold. The tutorial scenarios stay unarmed by design. H0 (the Haiti bill alone) is RE-H's first step, not this slice's (§16b's later, specific text): tier 1 "the letter" closes with RE-H's first step.*
+
+### 21.1 Built — part 1, the deck unarmed (`b0c05642`)
+
+- **The copy (P12).** The writers' lines for T1–T3 (`line`, ≤ 200, each in the writer's own voice — Cambacérès, the host's minister, Berthier); the reaction copy of §12c's table — `echo`, `situation` (a NEW authored answer key, ≤ 160, that RE-R renders), `press` and `remember` — on the fixture's deck; the four moments' counsel lines (Talleyrand on the Match, Holland and the Reich; Decrès on the Decree) and the Reich's authored `button_line` ("Austria {relation_before} → {relation_after} · the princes +10") on the scenario's dated deck, `tests/fixtures/moments_block.json` and the fixture's own copy of it, in lockstep (pinned). The dated deck's MECHANICAL hash is unchanged by copy: the sweep record strikes `counsel` and `button_line` with the display keys.
+- **The tenure guard (P6) as authored data on the host voice** — `voice.tenure` {court: [{from: {date, turn}, to?: {date, turn}}]}: Hardenberg out 14 January 1806 (T8) to 30 April 1807 (T39); Schimmelpenninck gone from 5 June 1806 (T18); Cevallos gone from Bayonne, 6 May 1808 (T64 by the calendar — §12c's "after T60" was a round figure; the date is the authored fact). The validator checks each date against its turn (HC-0); the engine reads turns. `affairs.minister_of` (the cast's envoy through `resolve_named_diplomat`, "" inside a gap or where the cast names a chancery), `chancery_of` ("the chancery of the Kingdom of Italy" — the display name with its own article, never "the The"), the slots `{host}` / `{Host}`, `{seat}` / `{SEAT}`, `{minister}` / `{Minister}` and `{month}` (the previous occurrence's answered dateline) in `fill_slots`; every host of the 1805 roster renders clean (pinned).
+- **The validator:** `situation`; `tenure`'s shape; a moment's `counsel` (≤ 160) and `button_line` (≤ 40 rendered, a slot counting four).
+- **The instruments.** `--affair lapse` on the driver (the letter left standing to lapse on its answer-by turn — the lapse default the Rhine road is measured against); `tools/_s14c_sweep_record.py` reports the recurring deck's reach per arm (`affairs_reach` — each occurrence's fate, what each answer took, the mornings the premise held, the first due mark, ONE verdict word), carries the families `reach_aar` and `saves`, writes `deck_sha_note` itself; `tools/ai_v_sweep.py` no longer counts an affair's set-aside receipt as a moment crowded out (BUG_FIXES RE3-1); `tools/_vp1_road_arms.py --driver-flags`; the probe's control arm strips the deck and its armed arm reads the shipped block; `tools/_affairs_measure.py` (new) runs the nine commanded arms, the three accept arms, REACH-AAR and the six hand-played DD-B starts (`--from-save`, twenty turns on) with the trace, and composes the record. Smoked unarmed (every family runs; every reach 0).
+- **The arming-independent re-seats:** the "unarmed" pins read an explicitly unarmed world; the save-manager backfill's no-op half reads a scenario without the key; `TestThePassiveBoard` holds the affairs' delivery down beside the sweep's seams; the accept arms' pin reads the dated deck's answers with the `#` rows apart. `tests/test_affairs_nondominance.py` (new, per §16 and the critics): three boards per template — a hoarder at the golden peace (40,000 gold, at peace, standing 100), an expander at war (the boot, Napoleon afield at Swabia, standing 85), a France that has spent its standing (72) — where the letter can arrive each answer is strictly better than the other on at least one delivered axis, the Decline touches no purse, no answer carries `alarm`, the letter is absent where `bites` fails.
+
+### 21.2 Built — part 2, the arming and the measure (this commit)
+
+- **The arming.** `godot-client/project-sovereign/assets/maps/europe_1805.json` gains `moments.affairs` — the fixture's block verbatim (227 lines, a text insertion keeping the file's own formatting); the three scenarios validate (the tutorials carry no `moments` key at all); `TestUnarmed::test_the_shipped_scenario_authors_no_affairs_key` flipped to `test_the_shipped_scenario_is_armed_as_ruled` (the lockstep, the mechanical keys `{owner, pacing, deck, affairs}`, the tutorials unarmed).
+- **The kill switches first.** The series rig (`tools/_affairs_series_arms.py --jobs 4`, the record re-committed): every arm byte-identical to the prior `BASELINE_SERIES`, the reach now COUNTED — 39 armed ticks, 62 pulse draws, 0 delivered on the runner's passive board (the Emperor home, no corps quartered, the chest under the Staff's bar on `historical`), so `BASELINE_SERIES` is left alone with the reach recorded (reading 7). The unarmed CONTROL: the nine road arms on a scratch clone of the same commit without the key (`--affair lapse`), then the armed nine — **every arm UNMOVED to the turn** after RE3-2 (below): the Rhine road ends T34 / T40 / T28 and stamps T12 / T13 / never on historical / austerlitz / marengo, armed and control alike (`tools/_s14c_sweep_final.json` `road_control`).
+- **The suite-reach head** (a scratch clone, armed; `-n 8 --dist loadgroup`): 35 assertion reds and 600-odd fixture errors. The errors were the clone's — every Godot-driven module (the clone has no import cache; the same modules pass on this tree) — and the bytecode-purge pins (`PYTHONDONTWRITEBYTECODE` in the shell). The reds that were the arming's, re-seated consciously: (a) five engine pins and one Watch pin whose crafted boards built at turn 1 read the BOOT's morning memo of the premises (the shipped boot is armed and reads its first morning before the test re-arms the board) — the `armed` fixture pops `_affairs_memo` (the nondominance pins had paid for the same trap); (b) the two "unarmed" pins flipped; (c) the deck hash and the record (re-measured); (d) the seal's `.import` file, untracked (RE3-3). No conftest pin was needed: nothing stays dormant.
+- **The measure (ERR-3)** — 52 runs with the trace on the armed tree: the nine commanded arms and the three accept arms (`tools/_affairs_measure.py run`), the nine road arms (lapse) and Road I answered (accept), the 21 sweep runs (`ai_v_sweep.py --all`), REACH-AAR, the six hand-played DD-B starts; the first-arrival probe re-run (identical to the committed record on all ten seeds: Berthier at T19 on ulm and austerlitz, the moments' arrival turns identical armed against unarmed, 0 breaches). `tools/_s14c_sweep_final.json` re-recorded (the hash now `f5e50492…`, the deck note the tool's own; `affairs_reach` on every row; `road_control`; `context_drift`).
+- **The driver's lapse mode (RE3-2)**, the judge's purse-in-passing (RE3-5) and the Watch's empty map (RE3-10, found by the hook: the boot briefing's Watch created `moments.affairs = {"watched": {}}` on the armed boot, and EP-F1's pin — a new world differs from a fresh one only by its briefing — caught it; the Watch writes on a shown line alone) — §21.4, §21.6.
+
+### 21.3 The reach, re-measured (the done-when's table; seeded paths, not laws)
+
+| Arm | T1 the Arch-Chancellor | T2 the Host's Claims | T3 Berthier's Memorial |
+|---|---|---|---|
+| CMD-A (hoarder) | never due (standing 100 all 40 mornings) | T15, T30 (declined / accepted on the accept arm) | T26 |
+| CMD-H (conqueror) | T13, T28 on the accept arm | T23, T33 | T38 |
+| CMD-M (middle) | never due (standing 100, then home) | T14, T26 | due, released (the chest never held the Staff's price on a free morning) |
+| FC / DL / FLD / LAW / OP (the short arms) | OP at T13 | due, pending at the last morning (FLD, LAW, OP) | premise never held |
+| VOLTE | T13 | T23, T33 | T39 |
+| VP1-RH historical / austerlitz / marengo (lapse) | released / T26 / never due (held 19 mornings) | T13 / T14 / T14 and T27 — every one lapsed to its decline the next morning | T23 / never due (6 mornings) / T22 |
+| Road I answered (accept) | — / T26 / — | T13 / T14 / T14 and T24 — 900, 600, 900 and 600 gold (the tiers) | T23 / released / never due |
+| VP1-CS (three seeds) | never due | historical: T13, withdrawn T20 (free — the Act closed the host's matter); marengo: released; austerlitz: the run stops at T4 (RE3-8) | premise never held |
+| VP1-TH (three seeds) | T21 / released / T14 | never due / T14 and T24 / T24 | T16 and T30 / never due / released |
+| REACH-AAR (the treaty road) | released | T15, T25 | T32 |
+| Hand-played Oct 24 — conquest / diplomacy / sea | — / — / — | — / — / — | — / T31 / T33 |
+| Hand-played Oct 25 — conquest / diplomacy / sea | — / T29, T39 / — | — / T24, T34 / — | — / — / — |
+| The 21 passive sweep runs | 7 (armB austerlitz and ulm, three scripted-France runs, armC ulm, austerlitz, marengo) | 3 (armB austerlitz, armC eylau, lodi) | 9 (six scripted-France runs, armB austerlitz and ulm, armC marengo) — the earliest letter of the tree, T7 on the scripted historical runs |
+
+- **Totals:** T1 arrives on 16 of 52 runs (8 of the 25 scripted arms), T2 on 21 (17 of 25), T3 on 21 (10 of 25). The gate's §6.4 table was read at three corps and streaks ignored; at two corps (P6) the Host's Claims reaches more boards and **stays an event** — 17 of 25 scripted arms, never a passive France whose corps are home (the fraction recorded beside P6's 9 of 12).
+- **Ceilings 0, floors 0 on every run; none fires with its premise false; shown = applied on every run** (the one context drift recorded apart, RE3-5).
+- **The band (§14):** every Host's letter 300 × tier ≤ 900, every host's act ≤ 1,800; the Arch-Chancellor's standing ≤ 8 a letter, ≤ 16 an act; the Decline and the lapse touch no purse; the E1 band untouched — the earliest arrival on the tree is T7, the pulse's own first (`first ≥ 6`).
+- **The Rhine road's end turns unmoved** with the lapse default on every seed, against the unarmed control (above). **ERR-3 is closed.**
+- **The dated deck on today's tree** (the same control, not RE-3's): the Crown of the Reich fires on no measured arm (RE3-6 — M3's rule asks no vassal court for the crown and today's Pressburg subjugates Austria; marengo falls at T28); the Throne of Naples road never stamps and the Rhine road falls on marengo (RE3-7). Both for the user's ruling; the October 22 road record and its pins stand.
+
+### 21.4 The readings taken (each flagged in the approved plan or found while building; each reversible by a line)
+
+1. **The tenure guard is authored data on the host template**, never a table in the engine (RE-1's census forbids a nation literal in `affairs.py`); Cevallos at T64 by the date, the spec's "after T60" a round figure.
+2. **A host whose cast minister is inside a gap, or whom the cast does not name, writes as its chancery** — "the chancery of the Kingdom of Italy"; a cast name containing "chancery" counts as one (no office line). The cast wins where §12c guessed.
+3. **`situation` is an authored answer key** (≤ 160): §12c's SITUATION column has its own sentences; RE-R renders a key that exists. `{n}` is not used in the letter's copy (the row freezes host and tier; a count would drift on a standing letter).
+4. **The moments gain `counsel` and ONE authored `button_line` (M3)**; nothing else on the dated deck; both struck from the measured identity.
+5. **The lapse default is `--affair lapse`** — the letter left IN THE MAILBOX, unopened, to lapse on its answer-by turn; `decline` (answered on arrival) stays the driver's default, `accept` the accept arms'. A driver that opened the letter each turn moved the Rhine road for a reason that was never the letter's (RE3-2).
+6. **One record, not two:** `affairs_reach`, `road_control` and `context_drift` live in `tools/_s14c_sweep_final.json`; the nine commanded arms stay exactly nine; the October 22 road record is not re-recorded.
+7. **`BASELINE_SERIES` is left alone with the reach recorded** — the runner's passive board delivers nothing; the seams count 39 ticks and 62 draws.
+8. **The suite-reach head ran on a scratch clone**, classifying only; a fixture that builds a crafted board on the armed boot pops the morning's memo (the memo is the morning's reading, by design; a test that mutates the board inside the same turn must drop it).
+9. **A quote that differs only in the purse it names in passing is context drift, not a mismatch** (`strip_context`); a figure off its quote is still seen.
+10. **The Crown's reach is reported, not forced:** the floors pin and the accepted-set pin ask for the Match and Holland, and for the Crown where it fires, with its fate per arm (RE3-6 for the user).
+11. **The five letters were re-shot under their RE-2 names** (`_2026_10_31`) in part 1 — the writers' lines and the counsel change every frame.
+
+### 21.5 The done-when, item by item
+
+- every template's reach reported per seed and per save ✓ (21.3; `tests/test_affairs_reach.py`);
+- none fires with its premise false ✓ (0 premise ceilings, 0 silent floors on 52 runs);
+- the ceilings hold ✓ (0 on 52 runs; the sweep's own ceilings on all 21);
+- the Rhine road's end turns unmoved with the lapse default ✓ (against the unarmed control, every road and seed);
+- the totals sit in §14's band ✓ (21.3);
+- the full suite green through the hook ✓.
+
+### 21.6 The sibling sweep (Rule 10)
+
+- **RE3-2's class** (an instrument that opens what a player would leave shut): the letter-book pass answers only its own rows (an affair never rides it); the first affair that opens itself on its morning is left standing by the dial, not re-activated; the sweep's passive France never opens the mailbox. One site, fixed.
+- **RE3-3's class** (a tracked asset's untracked `.import`): 190 more under the same ignore line — RE3-9, for the user at S15's head.
+- **RE3-5's class** (a context figure compared as a promise): one site, the judge; the receipt's "(the treasury holds N)" and "(you hold N)" are the two phrases.
+- **The memo's class** (a crafted board read through the boot's morning): the `armed` fixtures of the engine and the client pins, the Watch pin; the nondominance pins had already popped it.
+- **RE3-10's class** (a read that creates the runtime key): `runtime()` creates the key on an armed world for any caller; the Watch now writes on a shown line alone (the boot briefing on a passive opening shows none, so `moments` is born equal to a fresh boot — EP-F1's rule); the tick, the receipts and the answers write only what happened.
+
+### 21.7 What RE-H inherits
+
+H0 the Haiti bill alone, then the squadron (§6.5, §16b); `exhibit_from`; RE3-8 at its head (the driver answers the objection it can afford); the reach review of RE-5 reads §21.3 — no template has zero reach across the arms and the hand-played starts, so none is up for deletion by that rule; the user's rulings on RE3-6 and RE3-7 before S15.

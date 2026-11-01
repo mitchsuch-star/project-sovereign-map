@@ -31,9 +31,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))   # RE-3: the armed block's hash reads the engine's display keys
 SCENARIO = ROOT / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
 OUT = ROOT / "tools" / "_s14c_sweep_final.json"
 
@@ -138,13 +141,35 @@ def reach(trace: dict, deck_ids: list) -> dict:
     return out
 
 
+# The deck's own figure lines (`moments._op_gold`'s "900 gold (the treasury
+# holds 11,649)", the receipt's "standing 100 → 92"); a law's price in a
+# quote ("9,000 gold now, then 300 gold a turn") is the law's, not an op's.
+_GOLD_LUMP = re.compile(r"(\d[\d,]*) gold \(the treasury holds")
+_STANDING = re.compile(r"standing (\d+) → (\d+)")
+
+
+def answered_figures(application: dict) -> dict:
+    """RE-3 (§14 the brakes): what ONE answered or lapsed letter of state
+    took, read off its application — the deck's gold lump and the standing
+    it cost (its quote's own figure lines), beside every figure row the
+    trace delivered."""
+    quote = str(application.get("shown") or application.get("applied") or "")
+    gold = sum(int(m.replace(",", "")) for m in _GOLD_LUMP.findall(quote))
+    standing = sum(int(a) - int(b) for a, b in _STANDING.findall(quote))
+    return {"occ": str(application.get("moment") or ""), "turn": int(application.get("turn", 0) or 0),
+            "kind": str(application.get("kind") or ""), "answer": str(application.get("answer") or ""),
+            "gold": gold, "standing": standing, "quote": quote,
+            "figures": [{"op": r.get("op"), "figure": r.get("figure"), "quoted": r.get("quoted"),
+                         "delivered": r.get("delivered")} for r in (application.get("rows") or [])]}
+
+
 def affairs_reach(trace: dict, templates: list) -> dict:
     """RE-3 (ERR-3): each recurring template's fate on one arm, read off the
     trace alone — its occurrences (arrived Tn and answered / lapsed /
-    withdrawn / standing), the rows crowded out, the mornings its premise
-    held, its first due mark and the floor's verdict; and ONE word for the
-    arm: arrived | crowded | due (released | pending) | never due (held n) |
-    premise never held."""
+    withdrawn / standing), what each answer took (`answers`, §14's band),
+    the rows crowded out, the mornings its premise held, its first due mark
+    and the floor's verdict; and ONE word for the arm: arrived | crowded |
+    due (released | pending) | never due (held n) | premise never held."""
     mornings = trace.get("mornings") or []
     judged = trace.get("judged") or {}
     applications = trace.get("applications") or []
@@ -163,9 +188,12 @@ def affairs_reach(trace: dict, templates: list) -> dict:
                 if str(occ).startswith(prefix):
                     withdrawn[str(occ)] = int(m.get("turn", 0))
         lines = []
+        answers = []
         for occ, turn in sorted(arrived.items(), key=lambda kv: kv[1]):
             answer = next((a for a in applications if a.get("moment") == occ
                            and a.get("kind") in ("answer", "lapse")), None)
+            if answer is not None:
+                answers.append(answered_figures(answer))
             if occ in withdrawn:
                 lines.append(f"{occ} arrived T{turn}, withdrawn T{withdrawn[occ]} (free)")
             elif answer is None:
@@ -190,7 +218,7 @@ def affairs_reach(trace: dict, templates: list) -> dict:
             word = f"never due (premise held {held} morning{'' if held == 1 else 's'})"
         else:
             word = "premise never held"
-        out[template] = {"verdict": word, "occurrences": lines, "crowded": crowded,
+        out[template] = {"verdict": word, "occurrences": lines, "answers": answers, "crowded": crowded,
                          "premise_mornings": held, "first_due": first_due, "last_morning": last}
     return out
 
@@ -203,6 +231,7 @@ def row(trace: dict, deck_ids: list, templates: list = (), **extra) -> dict:
            "floors": judged.get("floors") or {},
            "shown_equals_applied": bool(judged.get("shown_equals_applied", True)),
            "mismatches": judged.get("mismatches") or [],
+           "context_drift": judged.get("context_drift") or [],
            "answers": judged.get("answers") or [],
            "reach": reach(trace, deck_ids),
            "affairs_reach": affairs_reach(trace, list(templates)),

@@ -3087,6 +3087,9 @@ class Answerer:
         self.strict = strict
         # VP1-CS (S14b part 3): `--decline-until-latch` — sticky once read.
         self._design_latched = False
+        # RE-3: the quiet letters `--affair lapse` left in the mailbox, each
+        # said once (the mailbox lists a standing letter every turn).
+        self._affairs_left_in_the_mailbox = set()
         # W6-0 dialogue identities already answered during the CURRENT
         # answer chain (reset by drain()). See begin_post().
         self._answered_dialogue_ids = set()
@@ -3691,13 +3694,13 @@ class Answerer:
             return []
         replies = []
         skip = set(int(i) for i in answered_ids)
+        leave_affairs = affair_mode(self.policy) == "lapse"
         for row in mailbox_payload.get("items") or []:
             if not isinstance(row, dict) or row.get("mailbox_id") is None:
                 continue
             mid = int(row["mailbox_id"])
             if mid in skip:
                 continue
-            reply = self.t.post("/mailbox/activate", {"mailbox_id": mid})
             court = row.get("source_nation") or row.get("from_nation") or "?"
             kind = (row.get("item_type") or row.get("proposal_type")
                     or row.get("type") or "?")
@@ -3705,6 +3708,23 @@ class Answerer:
             # Borders Agreement") beside the transport type.
             label = str(row.get("summary") or "").strip()
             kind = f"{kind}: {label}" if label else kind
+            # RE-3 (RECURRING_EVENTS_SPEC.md §16 "RE-3", the lapse default):
+            # under `--affair lapse` a quiet letter of state is LEFT IN THE
+            # MAILBOX, unopened — a player who lets a letter lapse never
+            # opens it, and the engine lapses it in the queue on its
+            # answer-by turn (`moments.lapse_gate_rows` reads the queue).
+            # Activating it every turn put it in the active slot and
+            # displaced the dialogue standing there (a client's petition,
+            # which then lapsed unanswered) — the Rhine road moved on two
+            # seeds for that, not for the letter (the attribution: the
+            # same move with the Host's decline billing nothing).
+            if leave_affairs and str(row.get("register") or "") == "affair":
+                if mid not in self._affairs_left_in_the_mailbox:
+                    self._affairs_left_in_the_mailbox.add(mid)
+                    self.d.note(f"MAILBOX #{mid} {court} {kind} → left in the mailbox "
+                                f"({AFFAIR_LAPSE_REASON})")
+                continue
+            reply = self.t.post("/mailbox/activate", {"mailbox_id": mid})
             self.d.note(f"MAILBOX #{mid} {court} {kind} → "
                         + ("activated" if reply.get("success") is not False
                            else f"refused: {first_line(reply.get('message'), 80)}"))

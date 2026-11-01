@@ -45,6 +45,7 @@ the application (`delivered`).
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Callable, Dict, List, Optional
 
 ARRIVED = ("fired", "answered", "lapsed")
@@ -368,10 +369,21 @@ def judge(mornings: List[Dict[str, Any]], applications: List[Dict[str, Any]],
         if OCCURRENCE_SEP in mid and mid not in state:
             floors[mid] = {"first_due": 0, "status": "", "reason": reason, "verdict": "silent"}
     mismatches = []
+    context_drift = []
     for a in applications:
         if a.get("kind") == "answer" and a.get("shown") and a["shown"] != a.get("applied"):
-            mismatches.append({"turn": a.get("turn"), "moment": a.get("moment"), "figure": "quote",
-                               "quoted": a["shown"], "delivered": a.get("applied")})
+            row = {"turn": a.get("turn"), "moment": a.get("moment"), "figure": "quote",
+                   "quoted": a["shown"], "delivered": a.get("applied")}
+            # RE-3 (November 1, 2026): a quote that differs ONLY in the purse
+            # it names in passing — "1 diplomatic point (you hold 7)" shown,
+            # "(you hold 6)" applied, the point spent by the player on another
+            # matter between the letter's rendering and its answer — delivers
+            # exactly its figures. That is context drift, recorded apart; a
+            # figure off its quote is still a mismatch.
+            if strip_context(a["shown"]) == strip_context(str(a.get("applied") or "")):
+                context_drift.append(row)
+            else:
+                mismatches.append(row)
         for r in a.get("rows") or []:
             if int(r.get("quoted", 0)) != int(r.get("delivered", 0)):
                 mismatches.append(dict(r, turn=a.get("turn"), moment=a.get("moment")))
@@ -381,7 +393,18 @@ def judge(mornings: List[Dict[str, Any]], applications: List[Dict[str, Any]],
             "answers": [{"turn": a.get("turn"), "moment": a.get("moment"), "kind": a.get("kind"),
                          "answer": a.get("answer"), "figures": len(a.get("rows") or [])}
                         for a in applications],
-            "shown_equals_applied": not mismatches, "mismatches": mismatches}
+            "shown_equals_applied": not mismatches, "mismatches": mismatches,
+            "context_drift": context_drift}
+
+
+# The purse a quote names in passing (`moments._op_dp` / `_op_gold`'s "(you
+# hold 7)" / "(the treasury holds 12,356)"), struck when two quotes are
+# compared for their FIGURES.
+_CONTEXT = re.compile(r"\((?:you hold|the treasury holds) [\d,]+\)")
+
+
+def strip_context(quote: str) -> str:
+    return _CONTEXT.sub("(…)", str(quote or ""))
 
 
 def unmeasured(reason: str) -> Dict[str, Any]:

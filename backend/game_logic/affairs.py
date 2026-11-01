@@ -21,8 +21,10 @@ Each arrival is an OCCURRENCE row of `world.moments["state"]`,
 "<template>#<n>", frozen at delivery with {id, lord, bind, tier, form} (§5),
 so "the_host#2 = Bavaria, tier 2" survives a save, a premise that changes and
 the lapse two turns later. A world whose block authors no `affairs` deck is
-UNARMED: every function here returns at once and writes nothing — the shipped
-1805 boot, until RE-3 arms the deck.
+UNARMED: every function here returns at once and writes nothing — the
+tutorials and the bare flag world. The shipped 1805 boot is ARMED from RE-3
+(November 1, 2026): `moments.affairs` is `tests/fixtures/affairs_block.json`'s
+block verbatim, its reach measured (`tools/_affairs_measure.py`).
 
 The rules:
 
@@ -957,7 +959,6 @@ def watch(world) -> List[str]:
     if not armed(world):
         return []
     turn = MO._turn(world)
-    rt = runtime(world)
     rows: List[Tuple[int, int, str, str]] = []
     for index, e in enumerate(deck(world)):
         template = str(e["id"])
@@ -977,8 +978,15 @@ def watch(world) -> List[str]:
                           {"bind": read.get("bind") or {}, "lord": lord}, n=measure, m=streak)
         rows.append((max(0, int(e.get("streak", 1) or 1) - streak), index, template, text))
     rows.sort()
-    watched = rt.setdefault("watched", {})
     out: List[str] = []
+    shown = [template for _distance, _index, template, text in rows[:2] if text]
+    if not shown:
+        # RE3-10: a Watch that shows nothing writes nothing — the runtime
+        # key is created on the first WRITE of an armed world, never by a
+        # read (the boot briefing's Watch wrote an empty `watched` map and
+        # the new world differed from a fresh one by it; EP-F1's rule).
+        return out
+    watched = runtime(world).setdefault("watched", {})
     for _distance, _index, template, text in rows[:2]:
         if text:
             out.append(text)

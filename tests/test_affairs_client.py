@@ -74,6 +74,11 @@ def world(monkeypatch):
 @pytest.fixture
 def armed(world):
     world.moments = MO.from_block(_block())
+    # RE-3: the shipped boot is ARMED and read its first morning's premises
+    # before the test re-arms the board, so the memo of that morning is the
+    # boot's (the Emperor at home, no corps quartered); a board built at
+    # turn 1 must read its own morning.
+    world.__dict__.pop("_affairs_memo", None)
     return world
 
 
@@ -432,6 +437,7 @@ class TestTheWatch:
             unarmed = DP._build_situation(world, "France")
         assert "affairs_watch" not in unarmed
         world.moments = MO.from_block(_block())
+        world.__dict__.pop("_affairs_memo", None)               # the boot's morning, not this board's
         _quarter(world, ("Ney", "Davout"))
         world.nation_gold["France"] = 20_000
         _run(world, [1, 2])
@@ -539,6 +545,35 @@ class TestTheDriverDial:
         assert D._is_affair_surface({"moment_id": "the_host#1"})
         assert not D._is_affair_surface({"moment_id": MATCH})
         assert D._is_affair_surface({"context": {"proposal_type": "moment_letter", "moment_id": "the_host#1"}})
+
+    def test_the_lapse_dial_leaves_the_quiet_letter_in_the_mailbox_unopened(self):
+        """RE-3 (§16 "RE-3", the lapse default): under `--affair lapse` the
+        mailbox pass never activates an affair's row — a player who lets a
+        letter lapse never opens it, and the engine lapses it in the queue
+        on its answer-by turn (`lapse_gate_rows` reads the queue). Opening it
+        every turn put it in the active slot and displaced the dialogue
+        standing there (a client's petition, which lapsed unanswered): the
+        Rhine road moved on two seeds for that, not for the letter — the
+        attribution ran the same arm with the Host's decline billing nothing
+        and moved the same way. Under `decline` and `accept` the row is
+        activated and answered on arrival, as before."""
+        from tests.test_fa_slice17_f_the_instrument_answers_2026_09_11 import make_answerer
+        mailbox = {"items": [
+            {"mailbox_id": 15, "source_nation": "The Secretariat", "item_type": "incoming_proposal",
+             "summary": "The Secretariat — An Affair of State", "register": "affair"},
+            {"mailbox_id": 16, "source_nation": "Bavaria", "item_type": "incoming_proposal",
+             "summary": "Bavaria — Client's Petition"},
+        ]}
+        for mode in ("decline", "accept"):
+            a, t, d = make_answerer(gets={"/mailbox": mailbox}, policy_overrides={"affair": mode})
+            a.answer_mailbox_items(mailbox)
+            assert [p[1]["mailbox_id"] for p in t.posts if p[0] == "/mailbox/activate"] == [15, 16], mode
+        a, t, d = make_answerer(gets={"/mailbox": mailbox}, policy_overrides={"affair": "lapse"})
+        a.answer_mailbox_items(mailbox)
+        a.answer_mailbox_items(mailbox)                     # the next turn lists it again
+        assert [p[1]["mailbox_id"] for p in t.posts if p[0] == "/mailbox/activate"] == [16, 16]
+        left = [n for n in d.notes if "left in the mailbox" in str(n)]
+        assert len(left) == 1 and "#15" in str(left[0]) and "--affair lapse" in str(left[0]), d.notes
 
 
 # ═══════════════════════════════════════════════════════════════════════════

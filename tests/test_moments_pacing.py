@@ -204,6 +204,27 @@ class TestTheTraceHasTeeth:
         judged = self._judge([], [app])
         assert judged["shown_equals_applied"] is False
         assert [m["figure"] for m in judged["mismatches"]] == ["quote", "treasury"]
+        assert judged["context_drift"] == []
+
+    def test_a_purse_named_in_passing_is_context_drift_not_a_mismatch(self):
+        """RE-3 (November 1, 2026; Road I answered, austerlitz T19): the Throne
+        of Holland quoted "1 diplomatic point (you hold 7)" when it was
+        rendered; the player granted a petition (1 DP) before answering it,
+        and the answer applied "(you hold 6)" — the same figure, a different
+        purse in passing. Recorded as context drift, apart from the
+        mismatches; a figure off its quote is still seen."""
+        from tools._moments_trace import strip_context
+        drift = {"turn": 19, "moment": "throne_of_holland", "kind": "answer", "answer": "accept",
+                 "shown": "Crown Louis: loyalty 76 → 86; 1 diplomatic point (you hold 7).",
+                 "applied": "Crown Louis: loyalty 76 → 86; 1 diplomatic point (you hold 6).",
+                 "rows": [{"op": "dp", "figure": "diplomatic points", "quoted": 6, "delivered": 6}]}
+        judged = self._judge([], [drift])
+        assert judged["shown_equals_applied"] is True and judged["mismatches"] == []
+        assert [(d["turn"], d["moment"], d["figure"]) for d in judged["context_drift"]] == [(19, "throne_of_holland", "quote")]
+        assert strip_context("900 gold (the treasury holds 11,649).") == "900 gold (…)."
+        moved = dict(drift, applied="Crown Louis: loyalty 76 → 86; 2 diplomatic points (you hold 6).")
+        judged = self._judge([], [moved])
+        assert judged["shown_equals_applied"] is False and judged["context_drift"] == []
 
 
 class TestTheTraceOnTheX24Board:
@@ -324,7 +345,20 @@ class TestTheMeasuredArms:
             assert row["floor_breaches"] == [], (family, name)
         fired = {mid for _f, _n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))
                  for mid, floor in row["floors"].items() if floor["verdict"] == "ok"}
-        assert {"bavarian_match", "throne_of_holland", "crown_of_the_reich"} <= fired
+        assert {"bavarian_match", "throne_of_holland"} <= fired
+        # RE-3's re-measure (November 1, 2026): the Crown of the Reich fired on
+        # NO measured arm of today's tree — the Rhine road's Pressburg now
+        # subjugates Austria on historical and austerlitz, and M3's rule asks
+        # no vassal court for the crown (`moments._design_fulfilled`); on
+        # marengo the Emperor falls at T28 before any Pressburg (S14k's
+        # courts' corps). October 22's record had it on marengo alone. Its
+        # fate is reported per arm with the reason (BUG_FIXES RE3-4 holds the
+        # row, open with the user); a Crown that fired would satisfy this too.
+        crown = {f"{f}/{n}": row["reach"]["crown_of_the_reich"]
+                 for f, n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))}
+        assert all(v.startswith(("arrived", "passed", "pending", "crowded")) for v in crown.values()), crown
+        assert "crown_of_the_reich" in fired or all(
+            "(premise)" in v or "(forsworn)" in v or v.startswith("pending") for v in crown.values()), crown
 
     def test_each_moment_s_reach_is_reported_per_arm(self, record):
         for family, name, row in self._rows(record):
@@ -339,6 +373,9 @@ class TestTheMeasuredArms:
         answered = [a for _f, _n, row in self._rows(record, ("accept", "road_accept"))
                     for a in row["answers"] if a["kind"] == "answer" and a["answer"] == "accept" and a["figures"]]
         accepted = {a["moment"] for a in answered if "#" not in str(a["moment"])}
-        assert accepted == {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}
+        # RE-3's re-measure: the Crown fires on no measured arm of today's tree
+        # (BUG_FIXES RE3-6, the floors pin above says why); the accepted set
+        # is the Match and Holland, and the Crown with them where it fires.
+        assert {"bavarian_match", "throne_of_holland"} <= accepted <= {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}
         affairs_accepted = {str(a["moment"]).split("#", 1)[0] for a in answered if "#" in str(a["moment"])}
         assert affairs_accepted <= set(record.get("affairs_deck") or [])

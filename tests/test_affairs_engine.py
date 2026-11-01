@@ -69,6 +69,11 @@ def world(monkeypatch):
 @pytest.fixture
 def armed(world):
     world.moments = MO.from_block(_block())
+    # RE-3: the shipped boot is ARMED and read its first morning's premises
+    # before the test re-arms the board, so the memo of that morning is the
+    # boot's (the Emperor at home, no corps quartered); a board built at
+    # turn 1 must read its own morning.
+    world.__dict__.pop("_affairs_memo", None)
     return world
 
 
@@ -172,11 +177,19 @@ class TestUnarmed:
         assert AF.watch(world) == [] and AF.deliver_due(world) == []
         assert AF.runtime(world) == {} and "affairs" not in world.moments
 
-    def test_the_shipped_scenario_authors_no_affairs_key(self):
+    def test_the_shipped_scenario_is_armed_as_ruled(self):
+        """RE-3 (§16 "RE-3", §0c): the shipped 1805 scenario carries the
+        recurring deck — the fixture's `affairs` block verbatim (the
+        lockstep) — and the measured identity descends into it; the
+        tutorial scenarios stay unarmed by design (one card at a time)."""
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
-        assert "affairs" not in block
+        assert block["affairs"] == _block()["affairs"]
+        assert [e["id"] for e in block["affairs"]["deck"]] == ["chancellors_letters", "the_host", "berthiers_memorial"]
         from tools._s14c_sweep_record import mechanical_block
-        assert set(mechanical_block(block)) == {"owner", "pacing", "deck"}
+        assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
+        for name in ("tutorial_1805.json", "tutorial_table_1805.json"):
+            tutorial = json.loads((SCENARIO.parent / name).read_text(encoding="utf-8"))
+            assert "affairs" not in (tutorial.get("moments") or {}), name
 
     def test_every_affairs_reader_answers_nothing_on_an_unarmed_world(self, world):
         world.moments["block"].pop("affairs", None)
@@ -706,7 +719,7 @@ class TestSavesAndTheBackfill:
         assert restored.moments == armed.moments
         assert restored.moments["state"]["the_host#1"]["tier"] == 2
         assert restored.moments["affairs"]["streaks"] == {"the_host|Bavaria": 7}
-        assert restored.moments["affairs"]["watched"] == {}   # the letter stood: nothing to watch
+        assert "watched" not in restored.moments["affairs"]    # the letter stood: nothing watched, nothing written (RE3-10)
         assert "_affairs_memo" not in restored.to_dict()
 
     def test_the_backfill_arms_a_pre_re_store_three_mornings_out(self, armed):
@@ -948,6 +961,23 @@ class TestTheWatchAndTheTrace:
         _run(armed, range(1, 8))
         assert MO.status(armed, "the_host#1") == "fired"
         assert AF.watch(armed) == []
+
+    def test_a_watch_that_shows_nothing_writes_nothing(self, armed):
+        """RE3-10 (found by the hook, EP-F1's rule — a new world differs from a
+        fresh one only by its briefing): the boot briefing's Watch created
+        `moments.affairs = {"watched": {}}` on the armed boot. The runtime key
+        is created on the first WRITE of an armed world, never by a read: a
+        Watch with nothing to show leaves the store byte-identical; one that
+        shows a line writes `watched` for that line alone."""
+        _no_moments(armed)
+        assert "affairs" not in armed.moments
+        assert AF.watch(armed) == []                         # the boot: the Emperor home, no corps quartered
+        assert "affairs" not in armed.moments
+        armed.__dict__.pop("_affairs_memo", None)            # that read was this morning's; the board changes
+        _quarter(armed, ("Ney", "Davout"))
+        _run(armed, [1])
+        lines = AF.watch(armed)
+        assert lines and set(armed.moments["affairs"]["watched"]) == {T2}
 
     def test_the_trace_reads_an_affairs_morning_and_judges_it_whole(self, armed):
         from tools._moments_trace import MomentsTrace

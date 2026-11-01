@@ -8,6 +8,7 @@ hand-played DD-B saves as `--from-save` starts):
         [--families commanded,accept,reach_aar,saves] [--affair decline]
     .venv/Scripts/python.exe tools/_affairs_measure.py record --out DIR
         --sweep DIR --road DIR --road-accept DIR [--record tools/_s14c_sweep_final.json]
+        [--road-record FILE --road-control FILE[,FILE]]
 
 `run` writes DIR/<family>/arms/<ARM>/{meta.json, digest.md, …} — the layout
 `tools/_s14c_sweep_record.py` reads (`arms/*/meta.json`, the trace in
@@ -20,7 +21,11 @@ machine without them records none). `record` composes the sweep record from
 this directory and the sweep's and the road arms' (run by their own tools:
 `tools/ai_v_sweep.py --all --out DIR`, `tools/_vp1_road_arms.py --out DIR
 --driver-flags "--affair lapse"`, and again with `--driver-flags "--moment
-accept --affair accept"` for Road I answered).
+accept --affair accept"` for Road I answered); with `--road-record` (the armed
+road arms' `--record` JSON) and `--road-control` (the UNARMED controls' —
+the same commit on a scratch clone without the scenario's `affairs` key)
+it writes `road_control`: each road arm's end turn and stamp turn beside
+its control's (§14: the Rhine road unmoved with the lapse default).
 
 A 40-turn arm takes about half a minute; the whole run is minutes. Seeded
 paths, not laws: every reach is reported per arm.
@@ -137,16 +142,58 @@ def cmd_run(args) -> int:
     return 1 if bad else 0
 
 
+ROAD_CONTROL_NOTE = (
+    "RE-3 (RECURRING_EVENTS_SPEC.md §14 'the brakes', §16 'RE-3'): the road arms' end turns and "
+    "stamp turns on the ARMED tree (`--affair lapse`, every letter left in the mailbox to lapse on "
+    "its answer-by turn) beside the UNARMED control — the same commit, a scratch clone without the "
+    "scenario's `affairs` key, the same driver flags. `unmoved` = the end turn and the stamp turn "
+    "agree. The committed `tools/_vp1_road_arms_final.json` is October 22's measure and is not "
+    "re-recorded here; the control is today's tree.")
+
+
+def road_control(armed_record: Path, control_records: list) -> dict:
+    """The armed road arms against their unarmed controls, per arm and seed."""
+    armed = json.loads(Path(armed_record).read_text(encoding="utf-8"))
+    control = {}
+    for path in control_records:
+        rec = json.loads(Path(path).read_text(encoding="utf-8"))
+        for r in rec.get("results") or []:
+            control[(r["arm"], r["seed"])] = r
+    keep = ("end_turns", "stamped_turn", "fulfilled", "exit", "reason")
+    arms = {}
+    for r in sorted(armed.get("results") or [], key=lambda r: (r["arm"], r["seed"])):
+        c = control.get((r["arm"], r["seed"]))
+        row = {"armed": {k: r.get(k) for k in keep}}
+        if c is not None:
+            row["control"] = {k: c.get(k) for k in keep}
+            row["unmoved"] = (r.get("end_turns"), r.get("stamped_turn")) == (c.get("end_turns"), c.get("stamped_turn"))
+        arms[f"{r['arm']}-{r['seed']}"] = row
+    return {"_note": ROAD_CONTROL_NOTE, "arms": arms}
+
+
 def cmd_record(args) -> int:
     out = Path(args.out).resolve()
     cmd = [PY, str(ROOT / "tools" / "_s14c_sweep_record.py"),
            "--sweep", args.sweep, "--commanded", str(out / "commanded"),
            "--accept", str(out / "accept"), "--road", args.road, "--road-accept", args.road_accept,
            "--reach-aar", str(out / "reach_aar"), "--saves", str(out / "saves")]
-    if args.record:
-        cmd += ["--out", args.record]
+    record_path = Path(args.record) if args.record else ROOT / "tools" / "_s14c_sweep_final.json"
+    cmd += ["--out", str(record_path)]
     print(" ".join(cmd[2:]))
-    return subprocess.run(cmd, cwd=str(ROOT), env=_env(out)).returncode
+    code = subprocess.run(cmd, cwd=str(ROOT), env=_env(out)).returncode
+    if code:
+        return code
+    if args.road_record:
+        controls = [p.strip() for p in str(args.road_control or "").split(",") if p.strip()]
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        record["road_control"] = road_control(Path(args.road_record), controls)
+        record_path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        for name, row in record["road_control"]["arms"].items():
+            c = row.get("control") or {}
+            print(f"{name:20s} armed end {row['armed']['end_turns']:>2} stamped {row['armed']['stamped_turn']:>3}"
+                  + (f" | control end {c['end_turns']:>2} stamped {c['stamped_turn']:>3} -> "
+                     f"{'UNMOVED' if row['unmoved'] else 'MOVED'}" if c else " | no control"))
+    return 0
 
 
 def main() -> int:
@@ -165,6 +212,10 @@ def main() -> int:
     c.add_argument("--road-accept", required=True,
                    help="`tools/_vp1_road_arms.py --arms RH --out DIR --driver-flags \"--moment accept --affair accept\"`")
     c.add_argument("--record", default="")
+    c.add_argument("--road-record", default="",
+                   help="the armed road arms' `--record` JSON (tools/_vp1_road_arms.py), for `road_control`")
+    c.add_argument("--road-control", default="",
+                   help="the UNARMED controls' `--record` JSONs, comma-separated (a scratch clone without the key)")
     args = ap.parse_args()
     return cmd_run(args) if args.cmd == "run" else cmd_record(args)
 
