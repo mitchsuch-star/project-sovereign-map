@@ -14,6 +14,7 @@
       "roads": ["any"],
       "voice": {"speaker": "cabinet"},
       "record": "Eugène, adopted by Napoleon, wed Augusta of Bavaria at Munich (historically 14 January 1806); she had been promised to Baden's heir, and Munich yielded to the Emperor's pressing.",
+      "counsel": "Talleyrand — A match binds Munich to the family, Sire; Baden will remember who was passed over.",
       "accept": {
         "caption": "Seal the match",
         "ops": [
@@ -40,6 +41,7 @@
       "roads": ["any"],
       "voice": {"speaker": "named", "name": "Admiral Ver Huell, for the deputation of the States General"},
       "record": "Historically the Dutch deputation under Admiral Ver Huell asked Napoleon for a king and was given his brother Louis (5 June 1806); Grand Pensionary Schimmelpenninck resigned rather than sign. The alternative was annexation, 1810.",
+      "counsel": "Talleyrand — A king of your blood in Amsterdam is a king with his own treasury, Sire.",
       "accept": {
         "caption": "Crown Louis",
         "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]
@@ -56,8 +58,10 @@
       "roads": ["rhine"],
       "voice": {"speaker": "cabinet"},
       "record": "With the Confederation signed, Napoleon told Francis II to lay down the crown of the Holy Roman Empire (historically 22 July 1806); Francis did so on 6 August, and the Reich of a thousand years ended.",
+      "counsel": "Talleyrand — The crown is a word, Sire; but the princes read words.",
       "accept": {
         "caption": "Demand the abdication",
+        "button_line": "Austria {relation_before} → {relation_after} · the princes +10",
         "ops": [
           {"op": "loyalty", "design_courts": "rhine.confederation", "delta": 10},
           {"op": "relation", "court": "Austria", "delta": -15},
@@ -77,6 +81,7 @@
       "roads": ["none", "system"],
       "voice": {"speaker": "talleyrand"},
       "record": "Historically, from Berlin after Jena (21 November 1806), Napoleon declared the British Isles in a state of blockade and shut every port of his allies to British goods.",
+      "counsel": "Decrès — The Decree shuts their ports, Sire. It does not open ours.",
       "accept": {
         "caption": "Sign the Decree",
         "ops": [{"op": "enact_law", "law": "berlin_decree"}]

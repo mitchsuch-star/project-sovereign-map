@@ -39,9 +39,13 @@ OUT = ROOT / "tools" / "_s14c_sweep_final.json"
 
 
 # The deck's display copy — what the letter SAYS, never when it arrives or what
-# its answers do. Excluded from the measured identity (S14D-X42).
-DISPLAY_KEYS = ("title", "voice", "record")
-ANSWER_DISPLAY_KEYS = ("caption",)
+# its answers do. Excluded from the measured identity (S14D-X42). RE-3 (P12):
+# a moment's counsel line and an authored button line are copy too.
+DISPLAY_KEYS = ("title", "voice", "record", "counsel")
+ANSWER_DISPLAY_KEYS = ("caption", "button_line")
+DECK_SHA_NOTE = ("S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy "
+                 "struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the "
+                 "recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too")
 
 
 def mechanical_block(block: dict) -> dict:
@@ -134,7 +138,64 @@ def reach(trace: dict, deck_ids: list) -> dict:
     return out
 
 
-def row(trace: dict, deck_ids: list, **extra) -> dict:
+def affairs_reach(trace: dict, templates: list) -> dict:
+    """RE-3 (ERR-3): each recurring template's fate on one arm, read off the
+    trace alone — its occurrences (arrived Tn and answered / lapsed /
+    withdrawn / standing), the rows crowded out, the mornings its premise
+    held, its first due mark and the floor's verdict; and ONE word for the
+    arm: arrived | crowded | due (released | pending) | never due (held n) |
+    premise never held."""
+    mornings = trace.get("mornings") or []
+    judged = trace.get("judged") or {}
+    applications = trace.get("applications") or []
+    last = max([int(m.get("turn", 0)) for m in mornings] or [0])
+    out = {}
+    for template in templates:
+        prefix = f"{template}#"
+        arrived = {k: int(v) for k, v in (judged.get("arrived") or {}).items() if str(k).startswith(prefix)}
+        withdrawn = {}
+        held = 0
+        for m in mornings:
+            frame = m.get("affairs") or {}
+            if template in (frame.get("true") or []):
+                held += 1
+            for occ in frame.get("withdrawn") or []:
+                if str(occ).startswith(prefix):
+                    withdrawn[str(occ)] = int(m.get("turn", 0))
+        lines = []
+        for occ, turn in sorted(arrived.items(), key=lambda kv: kv[1]):
+            answer = next((a for a in applications if a.get("moment") == occ
+                           and a.get("kind") in ("answer", "lapse")), None)
+            if occ in withdrawn:
+                lines.append(f"{occ} arrived T{turn}, withdrawn T{withdrawn[occ]} (free)")
+            elif answer is None:
+                lines.append(f"{occ} arrived T{turn}, standing at the last morning T{last}")
+            elif answer.get("kind") == "lapse":
+                lines.append(f"{occ} arrived T{turn}, lapsed T{answer.get('turn')} (its decline)")
+            else:
+                lines.append(f"{occ} arrived T{turn}, answered {answer.get('answer')} T{answer.get('turn')}")
+        crowded = [f"{occ} crowded out ({reason})" for occ, reason in (judged.get("passed") or {}).items()
+                   if str(occ).startswith(prefix)]
+        floors = {k: v for k, v in (judged.get("floors") or {}).items() if str(k).startswith(template)}
+        first_due = min([int(v.get("first_due", 0) or 0) for v in floors.values()
+                         if int(v.get("first_due", 0) or 0) > 0] or [0]) or None
+        verdicts = sorted({str(v.get("verdict") or "") for v in floors.values()})
+        if lines:
+            word = "arrived"
+        elif crowded:
+            word = "crowded"
+        elif first_due:
+            word = "due, " + ("released" if verdicts == ["released"] else "pending")
+        elif held:
+            word = f"never due (premise held {held} morning{'' if held == 1 else 's'})"
+        else:
+            word = "premise never held"
+        out[template] = {"verdict": word, "occurrences": lines, "crowded": crowded,
+                         "premise_mornings": held, "first_due": first_due, "last_morning": last}
+    return out
+
+
+def row(trace: dict, deck_ids: list, templates: list = (), **extra) -> dict:
     judged = trace.get("judged") or {}
     out = {"measured": bool(trace.get("measured")), "mornings": int(judged.get("mornings", 0) or 0),
            "ceiling_breaches": judged.get("ceiling_breaches") or [],
@@ -144,34 +205,36 @@ def row(trace: dict, deck_ids: list, **extra) -> dict:
            "mismatches": judged.get("mismatches") or [],
            "answers": judged.get("answers") or [],
            "reach": reach(trace, deck_ids),
+           "affairs_reach": affairs_reach(trace, list(templates)),
            "errors": trace.get("errors") or []}
     out.update(extra)
     return out
 
 
-def _sweep(root: Path, deck_ids: list) -> dict:
+def _sweep(root: Path, deck_ids: list, templates: list = ()) -> dict:
     out = {}
     for path in sorted(root.glob("arm*.json")):
         digest = json.loads(path.read_text(encoding="utf-8"))
         trace = (digest.get("final") or {}).get("moments_trace") or {}
         derived = digest.get("derived") or {}
         meta = digest.get("meta") or {}
-        out[path.stem] = row(trace, deck_ids, seed=meta.get("seed"), ambient_base=meta.get("ambient_base"),
-                             script=meta.get("script"),
+        out[path.stem] = row(trace, deck_ids, templates, seed=meta.get("seed"),
+                             ambient_base=meta.get("ambient_base"), script=meta.get("script"),
                              metrics={"max_per_turn": derived.get("moments_max_per_producing_turn", 0),
                                       "open_max": derived.get("open_letters_max", 0),
                                       "during_foreground": derived.get("letters_during_foreground", 0),
-                                      "fire_turns": derived.get("fire_turns", {})})
+                                      "fire_turns": derived.get("fire_turns", {}),
+                                      "affair_turns": derived.get("affair_turns", {})})
     return out
 
 
-def _driver_arms(root: Path, deck_ids: list) -> dict:
+def _driver_arms(root: Path, deck_ids: list, templates: list = ()) -> dict:
     out = {}
     for meta_path in sorted(root.glob("arms/*/meta.json")):
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         trace = meta.get("moments_trace") or {}
         if trace:
-            out[meta_path.parent.name] = row(trace, deck_ids, status=meta.get("status"))
+            out[meta_path.parent.name] = row(trace, deck_ids, templates, status=meta.get("status"))
     return out
 
 
@@ -182,27 +245,44 @@ def main() -> int:
     ap.add_argument("--accept", required=True)
     ap.add_argument("--road", required=True, help="the road arms' --out directory")
     ap.add_argument("--road-accept", required=True, help="Road I answered: its --out directory")
+    # RE-3 (ERR-3): the treaty road and the six hand-played starts — their
+    # own families, so the nine commanded arms stay the nine the pin names
+    ap.add_argument("--reach-aar", default="", help="REACH-AAR's --out directory (RE-3)")
+    ap.add_argument("--saves", default="", help="the hand-played starts' --out directory (RE-3)")
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()
     block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
     deck_ids = [e["id"] for e in block["deck"]]
+    templates = [str(e.get("id")) for e in ((block.get("affairs") or {}).get("deck") or [])
+                 if isinstance(e, dict)]
     record = {
         "_part": ("S14c part 4 — the moments over the 10-seed sweep and the arms, each run "
-                  "carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17)"),
-        "deck_sha": deck_sha(block), "pacing": block.get("pacing") or {}, "deck": deck_ids,
-        "sweep": _sweep(Path(args.sweep), deck_ids),
-        "commanded": _driver_arms(Path(args.commanded), deck_ids),
-        "accept": _driver_arms(Path(args.accept), deck_ids),
-        "road": _driver_arms(Path(args.road), deck_ids),
-        "road_accept": _driver_arms(Path(args.road_accept), deck_ids),
+                  "carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the "
+                  "recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)"),
+        "deck_sha": deck_sha(block), "deck_sha_note": DECK_SHA_NOTE,
+        "pacing": block.get("pacing") or {}, "deck": deck_ids, "affairs_deck": templates,
+        "sweep": _sweep(Path(args.sweep), deck_ids, templates),
+        "commanded": _driver_arms(Path(args.commanded), deck_ids, templates),
+        "accept": _driver_arms(Path(args.accept), deck_ids, templates),
+        "road": _driver_arms(Path(args.road), deck_ids, templates),
+        "road_accept": _driver_arms(Path(args.road_accept), deck_ids, templates),
+        "reach_aar": _driver_arms(Path(args.reach_aar), deck_ids, templates) if args.reach_aar else {},
+        "saves": _driver_arms(Path(args.saves), deck_ids, templates) if args.saves else {},
     }
     Path(args.out).write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    for family in ("sweep", "commanded", "accept", "road", "road_accept"):
+    for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves"):
         rows = record[family]
         print(f"{family:12s} arms {len(rows):2d}  ceiling breaches "
               f"{sum(len(r['ceiling_breaches']) for r in rows.values())}  floor breaches "
               f"{sum(len(r['floor_breaches']) for r in rows.values())}  shown=applied "
               f"{all(r['shown_equals_applied'] for r in rows.values())}")
+    for template in templates:
+        words = {}
+        for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves"):
+            for name, r in record[family].items():
+                words[f"{family}/{name}"] = (r.get("affairs_reach") or {}).get(template, {}).get("verdict", "")
+        arrived = sum(1 for w in words.values() if w == "arrived")
+        print(f"{template:22s} arrived on {arrived} of {len(words)} arms")
     print("wrote", args.out)
     return 0
 

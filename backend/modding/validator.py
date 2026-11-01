@@ -1343,6 +1343,19 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
             result.add_error(f"{path}.kind", f"Must be one of {list(MO.KINDS)}")
         _text(f"{path}.title", e.get("title"), MO.TITLE_MAX)
         _text(f"{path}.record", e.get("record"), MO.RECORD_MAX)
+        # RE-3 (RECURRING_EVENTS_SPEC.md §12c, P12): a moment's counsel line
+        # under the buttons and an authored button line — display copy, the
+        # affairs' limits (a `{slot}` on the button counts four, P11).
+        if e.get("counsel") is not None:
+            _text(f"{path}.counsel", e.get("counsel"), 160)
+        for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
+            answer = e.get(side)
+            if isinstance(answer, dict) and answer.get("button_line") is not None:
+                line = answer.get("button_line")
+                if not isinstance(line, str) or not line.strip():
+                    result.add_error(f"{path}.{side}.button_line", "Must be a non-empty string")
+                elif len(re.sub(r"\{[a-z_]+\}", "####", line)) > 40:
+                    result.add_error(f"{path}.{side}.button_line", "At most 40 characters rendered")
         grace = e.get("grace")
         _int_in(f"{path}.grace", grace, *MO.GRACE_BOUNDS)
         when = e.get("when")
@@ -1648,6 +1661,34 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         _text(f"{path}.voice.holders[{k}].name", (holder or {}).get("name")
                               if isinstance(holder, dict) else None, MO.NAMED_VOICE_MAX)
                         _dated(f"{path}.voice.holders[{k}]", holder)
+            # RE-3 (P6, §12c): a host voice's tenure guard — per court, the
+            # gaps when the cast's minister is out of office, each
+            # {from: {date, turn}, to?: {date, turn}}; the dates checked
+            # against their turns here alone (HC-0), the engine reads turns.
+            tenure = voice.get("tenure")
+            if tenure is not None:
+                if voice.get("speaker") != "host":
+                    result.add_error(f"{path}.voice.tenure", "Only a host voice carries a tenure guard")
+                elif not isinstance(tenure, dict):
+                    result.add_error(f"{path}.voice.tenure", "Must be an object {court: [gaps]}")
+                else:
+                    for court, gaps in tenure.items():
+                        tpath = f"{path}.voice.tenure.{court}"
+                        _court(tpath, court)
+                        if not isinstance(gaps, list) or not gaps:
+                            result.add_error(tpath, "Must be a non-empty list of {from, to?}")
+                            continue
+                        for k, gap in enumerate(gaps):
+                            if not isinstance(gap, dict) or "from" not in gap:
+                                result.add_error(f"{tpath}[{k}]", "Must be an object {from: {date, turn}, to?: {date, turn}}")
+                                continue
+                            _dated(f"{tpath}[{k}].from", gap.get("from"))
+                            if gap.get("to") is not None:
+                                _dated(f"{tpath}[{k}].to", gap.get("to"))
+                                start = (gap.get("from") or {}).get("turn")
+                                end = (gap.get("to") or {}).get("turn")
+                                if isinstance(start, int) and isinstance(end, int) and end <= start:
+                                    result.add_error(f"{tpath}[{k}].to", "Must end after it begins")
         sides = [("", e)]
         forms = e.get("forms")
         if forms is not None:
@@ -1673,7 +1714,7 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         result.add_error(spath, "Must be an object {caption, ops}")
                     continue
                 _text(f"{spath}.caption", answer.get("caption"), AF.TEXT_MAX["caption"])
-                for key in ("button_line", "echo", "press", "remember"):
+                for key in ("button_line", "echo", "press", "remember", "situation"):
                     _text(f"{spath}.{key}", answer.get(key), AF.TEXT_MAX[key], required=False)
                 ops = answer.get("ops")
                 if not isinstance(ops, list):

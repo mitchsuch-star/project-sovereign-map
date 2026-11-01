@@ -689,6 +689,11 @@ def derive_metrics(digest: dict) -> dict:
                 crowded_rows += 1
         for entry in row.get("dispatch_queue") or []:
             if entry.get("type") == "moment_receipt":
+                # RE-3 (BUG_FIXES RE3-1): an affair's set-aside tally or
+                # withdrawal rides the same receipt row, named by its
+                # register — never a moment crowded out.
+                if str((entry.get("vars") or {}).get("register") or "") == "affair":
+                    continue
                 receipts.add((entry.get("queued_turn"),
                                json.dumps(entry.get("vars"), sort_keys=True, default=str)))
         moments_arrived += here

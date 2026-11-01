@@ -3843,6 +3843,10 @@ class Answerer:
             # absent = decline — the letter's lapse); never the moment dial.
             mode = (affair_mode(self.policy) if _is_affair_surface(dialogue)
                     else moment_mode(self.policy))
+            if mode == "lapse":
+                # RE-3: the letter stands and lapses on its own day
+                self.last_standing_reason = AFFAIR_LAPSE_REASON
+                return None
             wanted = MOMENT_ACTIONS[mode]
             for option in all_options:
                 if str(_option_id(option) or "") != wanted:
@@ -5134,8 +5138,12 @@ def _is_moment_surface(dialogue) -> bool:
 
 
 # RE-2 (RECURRING_EVENTS_SPEC.md §12): the affair's own dial — `accept` or
-# `decline`, absent = decline (the letter's lapse takes the second answer).
-AFFAIR_MODES = MOMENT_MODES
+# `decline`, absent = decline (answered on arrival). RE-3: `lapse` leaves the
+# letter STANDING, unanswered, so it lapses on its answer-by turn through the
+# real lapse (`lapse_pending_offers` → `moments.lapse_default`) — the lapse
+# default §16 measures the Rhine road against.
+AFFAIR_MODES = MOMENT_MODES + ("lapse",)
+AFFAIR_LAPSE_REASON = "left to lapse (--affair lapse)"
 
 
 def affair_mode(policy) -> str:
@@ -5586,8 +5594,9 @@ def main():
                          "mirrors --diplomacy). Absent = every arm unchanged")
     ap.add_argument("--affair", dest="affair", default="", choices=["", *AFFAIR_MODES],
                     help="RE-2: how an affair of state is answered — accept or decline "
-                         "(absent = decline, the letter's own lapse; never mirrors "
-                         "--moment or --diplomacy). Absent = every arm unchanged")
+                         "(absent = decline, answered on arrival; never mirrors --moment or "
+                         "--diplomacy); RE-3: lapse = the letter left standing to lapse on "
+                         "its answer-by turn. Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")

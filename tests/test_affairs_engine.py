@@ -153,7 +153,13 @@ def _receipts(world):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestUnarmed:
-    def test_the_shipped_boot_is_unarmed_and_the_tick_writes_nothing(self, world):
+    """An UNARMED world — the key popped from the booted block, so these pins
+    describe the unarmed behaviour whether or not the shipped scenario arms
+    the deck (RE-3 arms it; `test_the_shipped_scenario_*` below says which)."""
+
+    def test_an_unarmed_boot_ticks_without_writing(self, world):
+        world.moments["block"].pop("affairs", None)
+        world.moments.pop("affairs", None)
         assert "affairs" not in world.moments["block"]
         assert AF.armed(world) is False and MO.armed(world) is True
         before = copy.deepcopy(world.moments)
@@ -173,6 +179,8 @@ class TestUnarmed:
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck"}
 
     def test_every_affairs_reader_answers_nothing_on_an_unarmed_world(self, world):
+        world.moments["block"].pop("affairs", None)
+        world.moments.pop("affairs", None)
         assert AF.deck(world) == [] and AF.block(world) == {}
         assert MO.affairs_deck(world) == [] and MO.entry(world, "the_host#1") is None
         assert AF.withdraw_standing(world, ["bavarian_match"]) == []
@@ -330,7 +338,8 @@ class TestTheArrival:
         assert armed.nation_gold["France"] == gold - 300 and _rel(armed, "Bavaria") == rel
         row = MO.status_row(armed, "the_host#1")
         assert row["status"] == "answered" and row["answer"] == "accept" and row["receipt"] == "−300 gold"
-        assert row["echo"] == "the Bavaria chancery: the account between Bavaria and Paris is square for the season."
+        # RE-3 (P6, §12c): the `{Minister}` slot names the cast's minister
+        assert row["echo"] == "Montgelas: the account between Bavaria and Paris is square for the season."
         assert _letter(armed, "the_host#1") is None
         assert [e["phase"] for e in _moment_rows(armed)] == ["arrived", "answered"]
         assert _moment_rows(armed)[-1]["register"] == "affair"
@@ -712,16 +721,21 @@ class TestSavesAndTheBackfill:
         assert _run(armed, range(9, 12)) == {}
         assert _run(armed, [12]) == {12: ["the_host#1"]}
 
-    def test_the_save_manager_backfills_from_the_scenario_and_is_a_no_op_today(self, armed, tmp_path, monkeypatch):
+    def test_the_save_manager_backfills_from_the_scenario_and_is_a_no_op_for_an_unarmed_one(self, armed, tmp_path, monkeypatch):
         from backend import save_manager as SM
         del armed.moments["block"]["affairs"]
-        SM._backfill_affairs(armed)                            # the shipped scenario authors none
-        assert not AF.armed(armed)
+        # an unarmed scenario arms nothing (RE-3: the shipped one arms, so the
+        # no-op half reads a scenario of its own without the key)
+        bare = dict(_block())
+        bare.pop("affairs", None)
         scenario = tmp_path / "scenario.json"
-        scenario.write_text(json.dumps({"moments": _block()}), encoding="utf-8")
+        scenario.write_text(json.dumps({"moments": bare}), encoding="utf-8")
         monkeypatch.setattr(SM, "_BACKFILL_SCENARIOS",
                             {str(armed.scenario_name): (str(tmp_path), "scenario.json")})
         monkeypatch.setattr(SM.Path, "parents", property(lambda self: [Path("/"), Path("/")]), raising=False)
+        SM._backfill_affairs(armed)
+        assert not AF.armed(armed)
+        scenario.write_text(json.dumps({"moments": _block()}), encoding="utf-8")
         SM._backfill_affairs(armed)
         assert AF.armed(armed) and armed.moments["affairs"]["not_before"] == armed.current_turn + 3
 
@@ -904,7 +918,7 @@ class TestTheCensuses:
         # RE-2: the host speaks through its minister from the cast (Montgelas);
         # a court the cast does not name writes as its chancery.
         assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Bavaria"}}) == "Montgelas"
-        assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Ruritania"}}) == "The Chancery of Ruritania"
+        assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Ruritania"}}) == "The chancery of Ruritania"
         src = (BACKEND / "game_logic" / "moments.py").read_text(encoding="utf-8")
         assert '"The Cabinet"' not in src
         assert '"The Cabinet"' not in (BACKEND / "models" / "dialogue_manager.py").read_text(encoding="utf-8")
@@ -989,3 +1003,196 @@ class TestTheWatchAndTheTrace:
         judged = trace.summary(armed)["judged"]
         assert judged["floors"]["the_host|Bavaria"]["verdict"] == "released"
         assert judged["floor_breaches"] == []
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# RE-3 — the copy (P12), the slots and the tenure guard (P6), the lockstep,
+# the validator's new refusals (RECURRING_EVENTS_SPEC.md §12c, §16 "RE-3")
+# ═══════════════════════════════════════════════════════════════════════════
+
+MOMENTS_SCENARIO_ROSTER_HOSTS = ("Bavaria", "KingdomOfItaly", "Prussia", "Spain", "Holland",
+                                 "Saxony", "Switzerland", "Hesse", "Naples", "Austria")
+
+
+def _occ_host(host, turn, answered=None):
+    row = {"id": "the_host#1", "lord": "France", "bind": {"host": host}, "tier": 1, "turn": int(turn)}
+    if answered is not None:
+        row["answered_turn"] = int(answered)
+    return row
+
+
+class TestTheMinisterAndTheSlots:
+    """RE-3 (P6, §12c): `{host}` / `{Host}`, `{seat}` / `{SEAT}`, `{minister}` /
+    `{Minister}` and `{month}` over every host the 1805 roster can bind; the
+    cast's minister on the issued turn, the chancery inside an authored
+    tenure gap or where the cast names none; never "the The …", never a raw
+    key; the dates behind the gaps resolve to the turns authored (HC-0)."""
+
+    def test_the_cast_s_minister_and_the_chancery_fallback(self, armed):
+        e = MO.entry(armed, T2)
+        assert AF.minister_of(armed, e, "Bavaria", 10) == "Montgelas"
+        assert AF.minister_of(armed, e, "KingdomOfItaly", 10) == "Marescalchi"   # the cast wins (§12c guessed "its chancery")
+        assert AF.minister_of(armed, e, "Switzerland", 10) == ""                  # the cast names a chancery
+        assert AF.minister_of(armed, e, "Ruritania", 10) == ""
+        assert AF.chancery_of(armed, "KingdomOfItaly") == "the chancery of the Kingdom of Italy"
+        assert AF.chancery_of(armed, "Bavaria", capitalize=True) == "The chancery of Bavaria"
+        assert AF._is_chancery("The Chancery of Prussia") and AF._is_chancery("Chancery of Helvetia")
+        assert not AF._is_chancery("Montgelas")
+
+    def test_the_tenure_guard_by_the_turn(self, armed):
+        e = MO.entry(armed, T2)
+        # Hardenberg out from 14 January 1806 (T8) to 30 April 1807 (T39)
+        assert AF.minister_of(armed, e, "Prussia", 7) == "Hardenberg"
+        assert AF.minister_of(armed, e, "Prussia", 8) == ""
+        assert AF.minister_of(armed, e, "Prussia", 38) == ""
+        assert AF.minister_of(armed, e, "Prussia", 39) == "Hardenberg"
+        # Schimmelpenninck gone from 5 June 1806 (T18); Cevallos from Bayonne (T64)
+        assert AF.minister_of(armed, e, "Holland", 17) == "Schimmelpenninck"
+        assert AF.minister_of(armed, e, "Holland", 18) == ""
+        assert AF.minister_of(armed, e, "Spain", 63) == "Cevallos"
+        assert AF.minister_of(armed, e, "Spain", 64) == ""
+        assert AF.minister_of(armed, e, "Spain", None) == "Cevallos"             # no turn: the cast's name
+        assert MO.voice_of(armed, e, _occ_host("Prussia", 10), 10) == "The chancery of Prussia"
+        assert MO.voice_of(armed, e, _occ_host("Prussia", 40), 40) == "Hardenberg"
+
+    def test_the_gaps_dates_resolve_to_their_turns(self, armed):
+        """HC-0: the engine reads turns; the dates are the authored fact and
+        the validator's check — pinned here so the authored turn is the
+        calendar's (the spec's "Cevallos after T60" is a round figure; the
+        date gives T64, the deviation recorded in §21)."""
+        from backend.game_logic.calendar import turn_for_date
+        start = str(armed.start_date)
+        tenure = MO.entry(armed, T2)["voice"]["tenure"]
+        for court, gaps in tenure.items():
+            for gap in gaps:
+                for end in ("from", "to"):
+                    if gap.get(end):
+                        assert turn_for_date(start, gap[end]["date"]) == gap[end]["turn"], (court, end)
+        assert tenure["Spain"][0]["from"]["turn"] == 64
+
+    @pytest.mark.parametrize("host", MOMENTS_SCENARIO_ROSTER_HOSTS)
+    def test_every_string_renders_clean_on_every_host(self, armed, host):
+        e = MO.entry(armed, T2)
+        strings = [e["line"], e["watch"], e["accept"]["echo"], e["accept"]["situation"],
+                   e["accept"]["press"], e["accept"]["remember"], e["decline"]["situation"],
+                   e["decline"]["press"], e["decline"]["remember"]]
+        for turn in (5, 20, 40, 70):
+            row = _occ_host(host, turn, answered=turn)
+            for text in strings:
+                out = AF.fill_slots(armed, text, row, e, n=3, m=2)
+                assert "{" not in out and "}" not in out and "?" not in out, (host, text, out)
+                assert "the The " not in out and " The the " not in out, (host, out)
+                assert "KingdomOfItaly" not in out and "PapalStates" not in out, out   # no raw key
+            assert MO.voice_of(armed, e, row, turn)[0].isupper()
+
+    def test_the_slots_cases(self, armed):
+        e = MO.entry(armed, T2)
+        row = _occ_host("KingdomOfItaly", 12, answered=14)
+        assert AF.fill_slots(armed, "{Host} / {host} / {seat} / {SEAT} / {minister} / {Minister} / {month}", row, e) == \
+            "The Kingdom of Italy / the Kingdom of Italy / Milan / MILAN / Marescalchi / Marescalchi / " + MO._dateline(armed, 14)
+        row = _occ_host("Switzerland", 12)
+        assert AF.fill_slots(armed, "{Minister}: {host}", row, e) == "The chancery of Switzerland: Switzerland"
+        p = MO.plan(armed, e, MO.ANSWER_DECLINE, _occ_host("KingdomOfItaly", 12))
+        assert p["receipt"].startswith("The Kingdom of Italy ") or p["receipt"] == "no change"
+
+
+class TestTheCopyAuthored:
+    """P12: the writers' lines, the counsel, the reaction copy and the moments'
+    counsel lines, as §12c authors them; every line inside its limit."""
+
+    def test_the_three_templates_carry_their_lines_and_reactions(self, armed):
+        for template in (T1, T2, T3):
+            e = MO.entry(armed, template)
+            assert e["line"].startswith("Sire, ") and len(e["line"]) <= AF.TEXT_MAX["line"]
+            assert e["counsel"] and len(e["counsel"]) <= AF.TEXT_MAX["counsel"]
+            assert e["accept"]["echo"]
+        t1, t2, t3 = (MO.entry(armed, t) for t in (T1, T2, T3))
+        assert t1["accept"]["situation"].startswith("The estafette carried")
+        assert t1["decline"]["press"] == "PARIS — The Arch-Chancellor presides at the Council in His Majesty's absence."
+        assert "{month}" in t1["decline"]["remember"]
+        assert t2["decline"]["situation"] == "The army lives on the country of {host}; {seat} keeps the account."
+        assert t2["decline"]["press"] == "{SEAT} — The Grand Army is quartered upon the country of {host}."
+        assert "echo" not in t2["decline"]                 # the marshal's remark is RE-R's HOST_REMARKS
+        assert t3["accept"]["echo"].startswith("Berthier: the Imperial Headquarters is founded")
+        assert "situation" not in t3["accept"]             # the existing staff_arrived line, free
+        assert t3["decline"] == {"caption": "Not now", "button_line": "no change", "ops": [],
+                                 "remember": "In {month} Berthier's memorial waited; he writes again."}
+        for e in (t1, t2, t3):
+            for side in ("accept", "decline"):
+                for key in ("echo", "press", "remember", "situation", "button_line"):
+                    if key in e[side]:
+                        text = e[side][key]
+                        if key == "button_line":
+                            text = re.sub(r"\{[a-z_]+\}", "####", text)   # a slot counts four (P11)
+                        assert len(text) <= AF.TEXT_MAX[key], (e["id"], side, key)
+
+    def test_the_four_moments_counsel_and_m3_s_button_line(self, armed):
+        counsel = {e["id"]: e.get("counsel") for e in MO.deck(armed)}
+        assert counsel == {
+            "bavarian_match": "Talleyrand — A match binds Munich to the family, Sire; Baden will remember who was passed over.",
+            "throne_of_holland": "Talleyrand — A king of your blood in Amsterdam is a king with his own treasury, Sire.",
+            "crown_of_the_reich": "Talleyrand — The crown is a word, Sire; but the princes read words.",
+            "decree_of_berlin": "Decrès — The Decree shuts their ports, Sire. It does not open ours.",
+        }
+        reich = MO.entry(armed, "crown_of_the_reich")
+        assert reich["accept"]["button_line"] == "Austria {relation_before} → {relation_after} · the princes +10"
+        assert "button_line" not in MO.entry(armed, "bavarian_match")["accept"]     # derived (RE-2 reading 3)
+        p = MO.plan(armed, reich, MO.ANSWER_ACCEPT)
+        assert p["receipt"].startswith("Austria ") and p["receipt"].endswith(" · the princes +10")
+        assert len(p["receipt"]) <= MO.BUTTON_LINE_MAX
+        payload = MO.letter_payload(armed, reich, 20, 21, MO.status_row(armed, "crown_of_the_reich"))
+        assert payload["counsel"] == counsel["crown_of_the_reich"] == payload["talleyrand_assessment"]
+
+    def test_the_lockstep_of_the_three_decks(self):
+        """The scenario's dated deck, `moments_block.json` and the fixture's
+        own copy of it are ONE deck (the frames and the pins read the fixtures)."""
+        scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
+        fixture = json.loads(MOMENTS_FIXTURE.read_text(encoding="utf-8"))
+        assert scenario["deck"] == fixture["deck"] == _block()["deck"]
+        assert scenario["pacing"] == fixture["pacing"] == _block()["pacing"]
+        if "affairs" in scenario:
+            assert scenario["affairs"] == _block()["affairs"]      # armed (RE-3): the fixture verbatim
+
+    def test_the_moments_copy_keys_are_struck_from_the_measured_identity(self):
+        import copy
+        from tools._s14c_sweep_record import deck_sha
+        block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
+        reworded = copy.deepcopy(block)
+        for e in reworded["deck"]:
+            e["counsel"] = "another counsel"
+            e["accept"]["button_line"] = "another line"
+        assert deck_sha(reworded) == deck_sha(block)
+        bare = copy.deepcopy(block)
+        for e in bare["deck"]:
+            e.pop("counsel", None)
+            e["accept"].pop("button_line", None)
+        assert deck_sha(bare) == deck_sha(block)
+
+
+RE3_BAD = [
+    ("tenure on a named voice", lambda b: _aff(b, 0)["voice"].update({"tenure": {"Prussia": [{"from": {"date": "1806-01-14", "turn": 8}}]}}),
+     "moments.affairs.deck[0].voice.tenure"),
+    ("a tenure gap that ends before it begins", lambda b: _aff(b, 1)["voice"]["tenure"].update(
+        {"Prussia": [{"from": {"date": "1806-06-05", "turn": 18}, "to": {"date": "1806-01-14", "turn": 8}}]}),
+     "moments.affairs.deck[1].voice.tenure.Prussia[0].to"),
+    ("a tenure date off its turn", lambda b: _aff(b, 1)["voice"]["tenure"].update(
+        {"Holland": [{"from": {"date": "1806-06-05", "turn": 20}}]}),
+     "moments.affairs.deck[1].voice.tenure.Holland[0].from.date"),
+    ("a tenure on an unknown court", lambda b: _aff(b, 1)["voice"]["tenure"].update({"Ruritania": [{"from": {"date": "1806-06-05", "turn": 18}}]}),
+     "moments.affairs.deck[1].voice.tenure.Ruritania"),
+    ("a situation line past 160", lambda b: _aff(b, 0)["accept"].update({"situation": "x" * 161}),
+     "moments.affairs.deck[0].accept.situation"),
+    ("a moment's counsel past 160", lambda b: b["deck"][0].update({"counsel": "x" * 161}),
+     "moments.deck[0].counsel"),
+    ("a moment's button line past 40 rendered", lambda b: b["deck"][0]["accept"].update({"button_line": "{relation_before} " + "x" * 40}),
+     "moments.deck[0].accept.button_line"),
+]
+
+
+class TestTheValidatorRE3:
+    @pytest.mark.parametrize("label, mutate, path", RE3_BAD, ids=[row[0] for row in RE3_BAD])
+    def test_each_bad_block_is_refused(self, label, mutate, path):
+        assert path in _bad(mutate), label
+
+    def test_the_fixture_still_validates_with_the_copy(self):
+        assert _errors(_block()) == []

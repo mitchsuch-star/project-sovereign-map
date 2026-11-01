@@ -907,12 +907,16 @@ def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]])
         elif op == "relation" and not row.get("skip"):
             figures["relation_before"] = int(row.get("before", 0) or 0)
             figures["relation_after"] = int(row.get("after", 0) or 0)
-            figures["host"] = _court(world, str(row.get("court") or ""), capitalize=True)
+            # RE-3: `{host}` mid-line, `{Host}` at the line's head (the Kingdom
+            # of Italy carries its own article)
+            figures["host"] = _court(world, str(row.get("court") or ""))
+            figures["Host"] = _court(world, str(row.get("court") or ""), capitalize=True)
         elif op == "loyalty" and row.get("courts"):
             first = row["courts"][0]
             figures["loyalty_before"] = int(first.get("before", 0) or 0)
             figures["loyalty_after"] = int(first.get("after", 0) or 0)
-            figures.setdefault("host", _court(world, str(first.get("court") or ""), capitalize=True))
+            figures.setdefault("host", _court(world, str(first.get("court") or "")))
+            figures.setdefault("Host", _court(world, str(first.get("court") or ""), capitalize=True))
     template = str(side.get("button_line") or "")
     text = template.format_map(figures) if template else _derived_button_line(world, lord, rows)
     return text[:120]
@@ -1066,20 +1070,15 @@ def _holder_at(voice: Dict[str, Any], issued: Optional[int]) -> str:
     return name
 
 
-CHANCERY_PREFIX = "the chancery"
-
-
-def _host_minister(world, host: str) -> str:
+def _host_minister(world, host: str, issued: Optional[int] = None,
+                   e: Optional[Dict[str, Any]] = None) -> str:
     """The host court's minister by the cast (`resolve_named_diplomat`'s
-    envoy arm — Montgelas for Bavaria); "" where the cast names none, so the
-    caller writes the chancery itself (the Voice Bible's fallback)."""
-    from backend.game_logic.diplomatic_templates import resolve_named_diplomat
-    try:
-        name = str(resolve_named_diplomat("envoy", host, world) or "").strip()
-    except Exception as exc:
-        report(exc, "moments._host_minister: resolve_named_diplomat")
-        return ""
-    return "" if name.lower().startswith(CHANCERY_PREFIX) else name
+    envoy arm — Montgelas for Bavaria); "" where the cast names only a
+    chancery or its name is out of office on the issued turn (RE-3: the
+    template's authored `voice.tenure`), so the caller writes the chancery
+    itself (the Voice Bible's fallback)."""
+    from backend.game_logic import affairs
+    return affairs.minister_of(world, e, host, issued)
 
 
 def voice_of(world, e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None,
@@ -1099,7 +1098,8 @@ def voice_of(world, e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None,
         host = str(bind.get("host") or "")
         if not host:
             return SECRETARIAT
-        return _host_minister(world, host) or f"The Chancery of {_court(world, host, capitalize=True)}"
+        from backend.game_logic import affairs
+        return _host_minister(world, host, issued, e) or affairs.chancery_of(world, host, capitalize=True)
     from backend.game_logic.diplomatic_templates import resolve_named_diplomat
     return resolve_named_diplomat(speaker, str(voice.get("nation") or ""), world) or SECRETARIAT
 
@@ -1112,7 +1112,8 @@ def _writer_and_office(world, e: Dict[str, Any], occ: Dict[str, Any], name: str)
     if speaker == "host":
         bind = occ.get("bind") if isinstance(occ.get("bind"), dict) else {}
         host = str(bind.get("host") or "")
-        if name.lower().startswith(CHANCERY_PREFIX):
+        from backend.game_logic import affairs
+        if affairs._is_chancery(name):
             return name, ""            # the chancery IS the office
         from backend.game_logic import affairs
         seat = affairs.seat_of(world, host) if host else ""
@@ -1195,11 +1196,11 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
         record = affairs.record_text(world, e, occ)
         title = affairs.title_of(e, occ)
         side_form = affairs.form_block(e, occ)
-        writer_line = affairs.fill_slots(world, str(side_form.get("line") or e.get("line") or ""), occ)
-        ground = affairs.fill_slots(world, str(e.get("record") or ""), occ)
-        chapter = affairs.fill_slots(world, affairs.chapter_of(e, occ), occ)
-        exhibit = affairs.fill_slots(world, str(e.get("exhibit") or ""), occ)
-        counsel = affairs.fill_slots(world, str(side_form.get("counsel") or e.get("counsel") or ""), occ)
+        writer_line = affairs.fill_slots(world, str(side_form.get("line") or e.get("line") or ""), occ, e)
+        ground = affairs.fill_slots(world, str(e.get("record") or ""), occ, e)
+        chapter = affairs.fill_slots(world, affairs.chapter_of(e, occ), occ, e)
+        exhibit = affairs.fill_slots(world, str(e.get("exhibit") or ""), occ, e)
+        counsel = affairs.fill_slots(world, str(side_form.get("counsel") or e.get("counsel") or ""), occ, e)
     else:
         board = board_lines(world, e)
         record = str(e.get("record") or "")

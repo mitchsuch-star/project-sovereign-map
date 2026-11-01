@@ -205,6 +205,14 @@ class TestThePassiveBoard:
         from tests._oct27_seams import hold_down as _hold_sweep_down
         _sweep = pytest.MonkeyPatch()
         _hold_sweep_down(_sweep)
+        # RE-3 (RECURRING_EVENTS_SPEC.md §16 "the suite-reach head"): this
+        # class measures the DATED deck's floors on the recorded board; the
+        # recurring deck's delivery is held down beside the sweep's seams
+        # (`tests/_affairs_seams.py`), so an affair's arrival or crowd-out
+        # never joins the rows the pins below read. The affairs' own reach on
+        # this board is `tools/_affairs_first_arrival.json`'s.
+        from tests._affairs_seams import hold_down as _hold_affairs_down
+        _hold_affairs_down(_sweep)
         with _quiet():
             world = WorldState.from_scenario(str(SCENARIO))
             executor = CommandExecutor()

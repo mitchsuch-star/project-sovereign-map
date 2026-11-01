@@ -46,8 +46,15 @@ SCENARIO = r"{scenario}"
 fixture = json.loads(open(r"{fixture}", encoding="utf-8").read())
 with contextlib.redirect_stdout(io.StringIO()):
     world = WorldState.from_scenario(SCENARIO, seed=SEED)
+    # RE-3: once the scenario carries the deck, the ARMED arm is the shipped
+    # block itself and the CONTROL strips it — the graft is for an unarmed tree
     if ARM == "armed":
-        world.moments["block"]["affairs"] = copy.deepcopy(fixture["affairs"])
+        if "affairs" not in world.moments["block"]:
+            world.moments["block"]["affairs"] = copy.deepcopy(fixture["affairs"])
+    else:
+        world.moments["block"].pop("affairs", None)
+        if isinstance(world.moments, dict):
+            world.moments.pop("affairs", None)
     executor = CommandExecutor()
     tm = TurnManager(world, executor=executor)
     game_state = {{"world": world, "executor": executor}}

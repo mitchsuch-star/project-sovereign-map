@@ -75,15 +75,17 @@ runpy.run_path({driver!r}, run_name="__main__")
 """
 
 
-def run_one(arm: str, seed: str, out: Path) -> dict:
+def run_one(arm: str, seed: str, out: Path, driver_flags: tuple = ()) -> dict:
     spec = ARMS[arm]
     name = f"VP1-{arm}-{seed}"
     probe = out / f"{name}.probe.jsonl"
     if probe.exists():
         probe.unlink()
+    # RE-3: `driver_flags` ride every arm (`--affair lapse` for the lapse
+    # default; `--moment accept --affair accept` for Road I answered).
     argv = ["--name", name, "--fresh", "--out", str(out / "arms"), "--llm", "mock",
             "--script", str(SCRIPTS / spec["script"]), "--seed", seed,
-            "--moments-trace"] + spec["argv"]   # S14c part 4: the moments' verdict, meta.json only
+            "--moments-trace"] + spec["argv"] + list(driver_flags)   # S14c part 4: the moments' verdict, meta.json only
     child = CHILD.format(root=str(ROOT), out=str(probe),
                          driver=str(ROOT / "tools" / "playtest_driver.py"), argv=argv)
     env = dict(os.environ)
@@ -148,12 +150,16 @@ def main() -> int:
     ap.add_argument("--jobs", type=int, default=3)
     ap.add_argument("--out", default=str(ROOT / "tools" / "playtest_runs" / "vp1_road_arms"))
     ap.add_argument("--record", default="")
+    ap.add_argument("--driver-flags", default="",
+                    help="RE-3: extra driver flags for every arm, space-separated "
+                         "(e.g. \"--affair lapse\" or \"--moment accept --affair accept\")")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    flags = tuple(f for f in str(args.driver_flags).split() if f)
     jobs = [(a, s) for a in args.arms.split(",") if a for s in args.seeds.split(",") if s]
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        results = list(pool.map(lambda j: run_one(j[0], j[1], out), jobs))
+        results = list(pool.map(lambda j: run_one(j[0], j[1], out, flags), jobs))
     for r in results:
         print(f"{r['arm']:7s} {r['seed']:10s} stamped={r['stamped_turn']:>3}  {r['reason'][:200]}")
     if args.record:

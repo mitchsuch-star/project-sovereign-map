@@ -334,7 +334,9 @@ class TestTheRegister:
         assert (m["writer"], m["office"]) == ("The Secretariat", "")
         assert m["line"] == "" and m["chapter"] == "" and m["exhibit"] == ""
         assert m["ground"] == m["record"]
-        assert m["counsel"] == "" and m["talleyrand_assessment"] == ""   # RE-3 authors the moments' counsel
+        # RE-3 (P12) authored the four moments' counsel lines — under the buttons
+        assert m["counsel"].startswith("Talleyrand — A match binds Munich to the family")
+        assert m["talleyrand_assessment"] == m["counsel"]
         assert m["button_accept"] == f"−2 DP · −1,000 gold · Bavaria {rel} → {min(100, rel + 20)}"
         assert len(m["button_accept"]) <= MO.BUTTON_LINE_MAX
         assert m["button_decline"] == f"Bavaria {rel} → {rel - 5}"
@@ -424,6 +426,8 @@ class TestTheRegister:
 
 class TestTheWatch:
     def test_the_watch_rides_the_situation_only_when_armed(self, world):
+        world.moments["block"].pop("affairs", None)              # an unarmed world, explicitly (RE-3)
+        world.moments.pop("affairs", None)
         with _quiet():
             unarmed = DP._build_situation(world, "France")
         assert "affairs_watch" not in unarmed

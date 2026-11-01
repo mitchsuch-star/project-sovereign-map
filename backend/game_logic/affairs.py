@@ -84,10 +84,13 @@ BARRED_OPS = ("alarm", "autonomy")
 DISPLAY_KEYS = ("title", "voice", "record", "line", "counsel", "exhibit", "ground", "watch",
                 "source", "button_line")
 VARIANT_DISPLAY_KEYS = ("text",)
-ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember")
+# RE-3 (P12, §12c): `situation` is the morning-after SITUATION line an answer
+# authors (RE-R renders it); `echo` the response's reply, `press` the Gazette's
+# COURTS line, `remember` the board line on the template's next occurrence.
+ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember", "situation")
 TEXT_MAX = {"title": 40, "record": 240, "variant": 240, "line": 200, "counsel": 160,
             "exhibit": 160, "watch": 120, "button_line": 40, "echo": 160, "press": 160,
-            "remember": 160, "caption": 36, "source": 400}
+            "remember": 160, "situation": 160, "caption": 36, "source": 400}
 VARIANT_FACTS = ("arrival",)        # P18: `last_fate` joins at RE-H with the fleet record
 ARRIVAL_FIRST = "first"
 ARRIVAL_LATER = "later"
@@ -614,9 +617,11 @@ def _deliver(world, cand: Dict[str, Any], turn: int) -> str:
 
 def write_receipt(world, line: str) -> None:
     """Seam AFN — the rows and notices: one `moment_receipt` dispatch line
-    (the set-aside tally, a withdrawal)."""
+    (the set-aside tally, a withdrawal). RE-3 (BUG_FIXES RE3-1): the row
+    names its register, so the sweep never counts an affair's receipt as a
+    moment crowded out."""
     from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, RECEIPT_EVENT, {"line": str(line)}, "always")
+    queue_dispatch_event(world, RECEIPT_EVENT, {"line": str(line), "register": KIND_AFFAIR}, "always")
 
 
 def _crowd_out(world, cand: Dict[str, Any], turn: int) -> str:
@@ -754,23 +759,89 @@ def _seat_of(world, host: str) -> str:
         return str(host)
 
 
-def fill_slots(world, text: str, row: Dict[str, Any], **extra: Any) -> str:
-    """The copy's slots over an occurrence row: `{host}`, `{seat}`,
-    `{minister}` (the chancery fallback until RE-R names the ministers),
-    `{region}`, `{lord}`, and the caller's figures (`n`, `m`)."""
+def _is_chancery(name: str) -> bool:
+    """The cast's own fallback ("The Chancery of X") or an authored chancery
+    name ("Chancery of Helvetia") — never a minister, never an office line."""
+    return "chancery" in str(name or "").lower()
+
+
+def chancery_of(world, host: str, capitalize: bool = False) -> str:
+    """The chancery's name as a phrase: "the chancery of Bavaria", "the chancery
+    of the Kingdom of Italy" — the court's display form carries its own
+    article, so it is never "the The …"."""
+    phrase = f"the chancery of {MO._court(world, host)}"
+    return phrase[0].upper() + phrase[1:] if capitalize else phrase
+
+
+def in_tenure_gap(e: Optional[Dict[str, Any]], host: str, turn: Optional[int]) -> bool:
+    """RE-3 (P6, §12c): the host's cast minister is OUT of office on `turn`
+    when the template's authored `voice.tenure[host]` holds a gap
+    [{from: {turn}, to?: {turn}}] that covers it (an open gap has no `to`).
+    Turns only — the validator checked each date against its turn (HC-0)."""
+    if turn is None or not isinstance(e, dict):
+        return False
+    tenure = ((e.get("voice") or {}).get("tenure") or {}) if isinstance(e.get("voice"), dict) else {}
+    for gap in tenure.get(host) or []:
+        if not isinstance(gap, dict):
+            continue
+        start = (gap.get("from") or {}).get("turn") if isinstance(gap.get("from"), dict) else None
+        end = (gap.get("to") or {}).get("turn") if isinstance(gap.get("to"), dict) else None
+        if isinstance(start, int) and not isinstance(start, bool) and int(turn) >= int(start):
+            if end is None or int(turn) < int(end):
+                return True
+    return False
+
+
+def minister_of(world, e: Optional[Dict[str, Any]], host: str, turn: Optional[int] = None) -> str:
+    """The host court's minister by the cast (`resolve_named_diplomat`'s
+    envoy arm — Montgelas for Bavaria, Hardenberg for Prussia), or "" where
+    the cast names only a chancery, or the cast's name is out of office on
+    the issued turn (the template's `voice.tenure`). The caller writes the
+    chancery itself (`chancery_of`)."""
+    if not host:
+        return ""
+    if in_tenure_gap(e, host, turn):
+        return ""
+    from backend.game_logic.diplomatic_templates import resolve_named_diplomat
+    try:
+        name = str(resolve_named_diplomat("envoy", host, world) or "").strip()
+    except Exception as exc:
+        report(exc, "affairs.minister_of: resolve_named_diplomat")
+        return ""
+    return "" if _is_chancery(name) else name
+
+
+def fill_slots(world, text: str, row: Dict[str, Any], e: Optional[Dict[str, Any]] = None,
+               **extra: Any) -> str:
+    """The copy's slots over an occurrence row: `{host}`, `{seat}`, `{SEAT}`,
+    `{minister}` (the cast's minister on the row's turn, else the chancery —
+    RE-3), `{month}` (the row's answered or issued dateline — the `remember`
+    line on the next occurrence), `{region}`, `{lord}`, and the caller's
+    figures (`n`, `m`)."""
     if not text:
         return ""
     bind = row.get("bind") if isinstance(row.get("bind"), dict) else {}
     slots = _Slots(extra)
     host = str(bind.get("host") or "")
     if host:
-        display = MO._court(world, host, capitalize=True)
-        slots.setdefault("host", display)
-        slots.setdefault("seat", _seat_of(world, host))
-        slots.setdefault("minister", f"the {display} chancery")
+        # `{host}` mid-sentence ("the court of the Kingdom of Italy"; "Bavaria"),
+        # `{Host}` at a sentence's head; `{minister}` / `{Minister}` the same way
+        seat = _seat_of(world, host)
+        slots.setdefault("host", MO._court(world, host))
+        slots.setdefault("Host", MO._court(world, host, capitalize=True))
+        slots.setdefault("seat", seat)
+        slots.setdefault("SEAT", seat.upper())
+        turn = row.get("turn")
+        minister = (minister_of(world, e, host, turn if isinstance(turn, int) else None)
+                    or chancery_of(world, host))
+        slots.setdefault("minister", minister)
+        slots.setdefault("Minister", minister[0].upper() + minister[1:] if minister else "")
     slots.setdefault("region", str(bind.get("region") or ""))
     if row.get("lord"):
         slots.setdefault("lord", MO._court(world, str(row["lord"]), capitalize=True))
+    when = row.get("answered_turn") or row.get("lapsed_turn") or row.get("turn")
+    if isinstance(when, int) and not isinstance(when, bool):
+        slots.setdefault("month", MO._dateline(world, int(when)))
     try:
         return str(text).format_map(slots)
     except (ValueError, IndexError):

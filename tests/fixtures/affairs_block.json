@@ -14,6 +14,7 @@
       "roads": ["any"],
       "voice": {"speaker": "cabinet"},
       "record": "Eugène, adopted by Napoleon, wed Augusta of Bavaria at Munich (historically 14 January 1806); she had been promised to Baden's heir, and Munich yielded to the Emperor's pressing.",
+      "counsel": "Talleyrand — A match binds Munich to the family, Sire; Baden will remember who was passed over.",
       "accept": {
         "caption": "Seal the match",
         "ops": [
@@ -37,6 +38,7 @@
       "roads": ["any"],
       "voice": {"speaker": "named", "name": "Admiral Ver Huell, for the deputation of the States General"},
       "record": "Historically the Dutch deputation under Admiral Ver Huell asked Napoleon for a king and was given his brother Louis (5 June 1806); Grand Pensionary Schimmelpenninck resigned rather than sign. The alternative was annexation, 1810.",
+      "counsel": "Talleyrand — A king of your blood in Amsterdam is a king with his own treasury, Sire.",
       "accept": {"caption": "Crown Louis", "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]},
       "decline": {"caption": "Keep the Republic", "ops": []}
     },
@@ -50,8 +52,10 @@
       "roads": ["rhine"],
       "voice": {"speaker": "cabinet"},
       "record": "With the Confederation signed, Napoleon told Francis II to lay down the crown of the Holy Roman Empire (historically 22 July 1806); Francis did so on 6 August, and the Reich of a thousand years ended.",
+      "counsel": "Talleyrand — The crown is a word, Sire; but the princes read words.",
       "accept": {
         "caption": "Demand the abdication",
+        "button_line": "Austria {relation_before} → {relation_after} · the princes +10",
         "ops": [
           {"op": "loyalty", "design_courts": "rhine.confederation", "delta": 10},
           {"op": "relation", "court": "Austria", "delta": -15},
@@ -71,6 +75,7 @@
       "roads": ["none", "system"],
       "voice": {"speaker": "talleyrand"},
       "record": "Historically, from Berlin after Jena (21 November 1806), Napoleon declared the British Isles in a state of blockade and shut every port of his allies to British goods.",
+      "counsel": "Decrès — The Decree shuts their ports, Sire. It does not open ours.",
       "accept": {"caption": "Sign the Decree", "ops": [{"op": "enact_law", "law": "berlin_decree"}]},
       "decline": {"caption": "Not yet", "ops": []}
     }
@@ -100,19 +105,26 @@
         "scale": {"measure": "afield", "at": 12, "then": 2},
         "voice": {"speaker": "named", "name": "Cambacérès, Arch-Chancellor of the Empire"},
         "record": "Historically the Emperor governed from his camp, and in August 1809 he rebuked Cambacérès for making so little use of the powers he had left him.",
+        "line": "Sire, the Council sits with your orders a week on the road; the clerks ask whose hand may sign what cannot wait.",
         "watch": "The Emperor afield: {n} of 6 mornings — Cambacérès may write.",
         "counsel": "Berthier — Every hour you give the Council, Sire, is an hour the army waits for its orders.",
         "accept": {
           "caption": "Dictate from the field",
           "button_line": "1 action ({admin_left} left today)",
           "ops": [{"op": "admin", "amount": 1}],
-          "echo": "Cambacérès: the Council has registered the decrees Your Majesty dictated from the field."
+          "echo": "Cambacérès: the Council has registered the decrees Your Majesty dictated from the field.",
+          "situation": "The estafette carried the Emperor's dictation to Paris; the Council sits on his orders.",
+          "press": "PARIS — The Council of State registers the decrees His Majesty sends from headquarters.",
+          "remember": "In {month} you dictated from the field; Cambacérès writes again."
         },
         "decline": {
           "caption": "Let the Council act",
           "button_line": "standing {authority_before} → {authority_after}",
           "ops": [{"op": "authority", "amount": -5, "tiers": {"2": -8}}],
-          "echo": "Cambacérès: the Council has acted in Your Majesty's name; Paris will mark whose hand signed."
+          "echo": "Cambacérès: the Council has acted in Your Majesty's name; Paris will mark whose hand signed.",
+          "situation": "The Council of State sat under the Arch-Chancellor; Paris remarked the Emperor's absence.",
+          "press": "PARIS — The Arch-Chancellor presides at the Council in His Majesty's absence.",
+          "remember": "In {month} you let the Council act; Cambacérès writes again."
         }
       },
       {
@@ -129,23 +141,38 @@
         "cap": 2,
         "grace": 4,
         "scale": {"measure": "corps", "from": 2, "step": 2, "max": 3},
-        "voice": {"speaker": "host"},
+        "voice": {
+          "speaker": "host",
+          "_tenure_comment": "RE-3 (RECURRING_EVENTS_SPEC.md §12c, P6): the host's minister from the cast, unless the cast's name is out of office on the issued turn — then the chancery writes. Each gap's dates are checked against its turns by the validator alone (HC-0); the engine reads turns. Hardenberg dismissed after Schönbrunn (January 1806) and recalled April 1807; Schimmelpenninck resigned when Louis was crowned (June 1806); Cevallos lost at Bayonne (May 1808).",
+          "tenure": {
+            "Prussia": [{"from": {"date": "1806-01-14", "turn": 8}, "to": {"date": "1807-04-30", "turn": 39}}],
+            "Holland": [{"from": {"date": "1806-06-05", "turn": 18}}],
+            "Spain": [{"from": {"date": "1808-05-06", "turn": 64}}]
+          }
+        },
         "record": "Historically the Emperor's rule was that war must feed war (to Berthier, 14 July 1810): a corps lived on the country it stood in.",
+        "line": "Sire, {seat} has quartered and fed your corps this season; the court of {host} lays its account before you.",
         "watch": "{n} corps on {host}'s soil: {m} of 3 mornings — its court may present its claims.",
         "counsel": "Talleyrand — An ally presents his bill once as an account, Sire. The second time, he presents it as a grievance.",
         "accept": {
           "caption": "Pay the host's claims",
           "button_line": "−{gold} gold",
           "ops": [{"op": "gold", "amount": 300}],
-          "echo": "{minister}: the account between {host} and Paris is square for the season."
+          "echo": "{Minister}: the account between {host} and Paris is square for the season.",
+          "situation": "{seat} acknowledges the payment for the army's quarters.",
+          "press": "{SEAT} — The court of {host} acknowledges the scrupulous payment of the army's quarters.",
+          "remember": "In {month} {seat} presented its account; the court of {host} writes again."
         },
         "decline": {
           "caption": "Live off the land",
-          "button_line": "{host} {relation_before} → {relation_after}",
+          "button_line": "{Host} {relation_before} → {relation_after}",
           "ops": [
             {"op": "relation", "court": "$host", "delta": -2, "unless": "vassal"},
             {"op": "loyalty", "court": "$host", "delta": -2}
-          ]
+          ],
+          "situation": "The army lives on the country of {host}; {seat} keeps the account.",
+          "press": "{SEAT} — The Grand Army is quartered upon the country of {host}.",
+          "remember": "In {month} the army lived on the country of {host}; its court writes again."
         }
       },
       {
@@ -163,15 +190,22 @@
         "grace": 4,
         "voice": {"speaker": "named", "name": "Berthier, Major-General of the Grande Armée"},
         "record": "Historically Berthier's Imperial Headquarters grew with every campaign from 1805 into the staff that carried the Emperor's orders.",
+        "line": "Sire, the orders of the day leave my tent by courier; a headquarters of the Empire would carry them under its own seal.",
         "watch": "At war {n} of 4 turns, and the chest could found the headquarters — Berthier may write.",
         "counsel": "Daru — The Intendance can pay for clerks, Sire. It cannot pay for an order that reaches a corps a day late.",
         "accept": {
           "caption": "Found the headquarters",
           "button_line": "−9,000 gold · 300 a turn · 1 action",
           "ops": [{"op": "enact_law", "law": "grand_quartier_general"}],
-          "echo": "Berthier: the Imperial Headquarters is founded; the orders of the day go out under his seal."
+          "echo": "Berthier: the Imperial Headquarters is founded; the orders of the day go out under his seal.",
+          "press": "HEADQUARTERS — Marshal Berthier's staff becomes the Imperial Headquarters of the Grand Army."
         },
-        "decline": {"caption": "Not now", "button_line": "no change", "ops": []}
+        "decline": {
+          "caption": "Not now",
+          "button_line": "no change",
+          "ops": [],
+          "remember": "In {month} Berthier's memorial waited; he writes again."
+        }
       }
     ]
   }

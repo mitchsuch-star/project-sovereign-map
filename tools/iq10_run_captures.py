@@ -1424,7 +1424,8 @@ SHOTS += [
              "RECURRING_EVENTS_SPEC.md §12b.2): the parchment sheet, the letterhead with France's "
              "arms, the dateline in the rubric and the seal well, the record in IM Fell italic, "
              "the fleuron-led board line, the heading in the rubric, the two-line buttons with the "
-             "derived prices ('−2 DP · −1,000 gold · Bavaria …'), no gold on paper"),
+             "derived prices ('−2 DP · −1,000 gold · Bavaria …'), no gold on paper; RE-3 (P12): "
+             "Talleyrand's counsel under the buttons ('A match binds Munich to the family…')"),
             ("decree_of_berlin", "The Decree of Berlin (Talleyrand)",
              "the same parts under Talleyrand's name — the ports-shut board and the Decree's terms "
              "with its administrative action, the buttons 'Sign the Decree' and 'Not yet', the "
@@ -1432,7 +1433,8 @@ SHOTS += [
              "line before the record and the first answer's button above the fold at BOTH scales; "
              "RE-2: the dress under Talleyrand's monogram 'T', the two-line buttons ('standing "
              "100 → 85 · 150 a turn' — the Decree is priced in authority; the action token is cut "
-             "at the 40-character boundary and read in the quote — / 'no change')"),
+             "at the 40-character boundary and read in the quote — / 'no change'); RE-3 (P12): "
+             "Decrès's counsel under the buttons ('The Decree shuts their ports, Sire…')"),
         )
     ],
 ]

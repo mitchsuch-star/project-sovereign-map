@@ -333,6 +333,12 @@ class TestTheMeasuredArms:
     def test_every_delivered_figure_equals_its_quote(self, record):
         for family, name, row in self._rows(record):
             assert row["shown_equals_applied"] and row["mismatches"] == [], (family, name)
-        accepted = {a["moment"] for _f, _n, row in self._rows(record, ("accept", "road_accept"))
-                    for a in row["answers"] if a["kind"] == "answer" and a["answer"] == "accept" and a["figures"]}
+        # RE-3: the accept arms answer the affairs too (`--affair accept`); the
+        # dated deck's accepted set is read with the occurrence rows (`#`)
+        # set apart, and the affairs' beside it (empty until the deck arms)
+        answered = [a for _f, _n, row in self._rows(record, ("accept", "road_accept"))
+                    for a in row["answers"] if a["kind"] == "answer" and a["answer"] == "accept" and a["figures"]]
+        accepted = {a["moment"] for a in answered if "#" not in str(a["moment"])}
         assert accepted == {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}
+        affairs_accepted = {str(a["moment"]).split("#", 1)[0] for a in answered if "#" in str(a["moment"])}
+        assert affairs_accepted <= set(record.get("affairs_deck") or [])
