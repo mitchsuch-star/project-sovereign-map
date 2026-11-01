@@ -5450,6 +5450,11 @@ def _join_marshal_names(names) -> str:
     return f"{', '.join(clean[:-1])} and {clean[-1]}"
 
 
+def _affair_display() -> str:
+    from backend.game_logic.moments import AFFAIR_DISPLAY
+    return AFFAIR_DISPLAY
+
+
 def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
     """One LAPSED ENVOYS row. IQ-7 review R8(b): a client's petition that
     lapsed carries the priced result the lapse hook now keeps
@@ -5481,6 +5486,13 @@ def _lapsed_offer_row(offer: Dict) -> Dict[str, Any]:
         line = str(moment.get("line") or "").strip()
         if line:
             row["line"] = line
+        # RE-2 (RECURRING_EVENTS_SPEC.md §12): an affair's lapse row carries
+        # its register and reads "An Affair of State" — the id is an
+        # occurrence (`template#n`), the one discriminator the engine keeps.
+        from backend.game_logic.moments import AFFAIR_DISPLAY, is_occurrence
+        if is_occurrence(str(moment.get("id") or "")):
+            row["register"] = "affair"
+            row["proposal_type_display"] = AFFAIR_DISPLAY
     # S14D-X45 (October 23, 2026, the class sweep): a lapsed CALL TO ARMS is
     # refused at its price (`call_to_arms.refuse_lapsed_letter`) and the turn
     # manager stamps `call_to_arms` on the lapse row — but this row copied
@@ -5715,6 +5727,11 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None,
             "proposal_type": str(item.get("proposal_type", "proposal")).replace("_", " "),
             "proposal_type_display": _ptd(str(item.get("proposal_type") or "proposal")),
             "state": item.get("state", "WAITING"),
+            # RE-2 (§12): a mailbox row that carries a register (an affair of
+            # state) names itself by it; every other row is byte-unchanged
+            **({"register": str(item["register"]),
+                "proposal_type_display": _affair_display()}
+               if item.get("register") == "affair" else {}),
         }
         for item in world.dialogue_manager.get_mailbox_items()
     ]
@@ -6073,6 +6090,15 @@ def _build_situation(world, player_nation: str,
         _act_sink = act_sink_line(world, player_nation)
         if _act_sink:
             situation["act_sink"] = _act_sink
+    # RE-2 (RECURRING_EVENTS_SPEC.md §12 — the Watch): at most two "may"
+    # lines a morning, the nearest-due affairs over the premise's own
+    # measures; only when the deck is ARMED (absent otherwise — every older
+    # reader and the unarmed dispatch byte-unchanged). The dispatch is built
+    # once a morning (`build_morning_dispatch`), so a line shown is
+    # remembered once for the set-aside tally (§7).
+    from backend.game_logic import affairs as _affairs
+    if _affairs.armed(world):
+        situation["affairs_watch"] = [str(x) for x in _affairs.watch(world)]
     if grip_fields:
         # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
         situation["imperial_grip"] = int(grip_fields["grip"])

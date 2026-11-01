@@ -321,15 +321,30 @@ class DialogueManager:
         return int(did)
 
     def push(self, dialogue: dict) -> None:
-        """Add dialogue. If current slot is empty, set it; otherwise queue."""
+        """Add dialogue. If current slot is empty, set it; otherwise queue.
+
+        RE-2 (RECURRING_EVENTS_SPEC.md §12, Q8): a QUIET letter — an affair,
+        `moments.is_quiet_letter` — never holds the head against real mail:
+        a non-quiet dialogue arriving behind it takes the slot and the affair
+        returns to the queue (where its rank already puts it last). Else a
+        court's letter behind a standing affair got no popup for two turns:
+        the AI producers write the slot only for the letter at the head, and
+        the safety valve never re-sends an affair.
+        """
         self._assign_mailbox_metadata(dialogue)
         self._assign_dialogue_id(dialogue)
         if self._current is None:
             self._current = dialogue
-        else:
-            if (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX
-                    or len(self._queue) < self.QUEUE_CAP):
-                self._queue.append(dialogue)
+            return
+        from backend.game_logic.moments import is_quiet_letter
+        if is_quiet_letter(self._current) and not is_quiet_letter(dialogue):
+            quiet = self._current
+            self._current = dialogue
+            self._queue.append(quiet)
+            return
+        if (THE_QUEUE_OVERFLOWS_INTO_THE_MAILBOX
+                or len(self._queue) < self.QUEUE_CAP):
+            self._queue.append(dialogue)
 
     def replace(self, dialogue: dict) -> None:
         """Overwrite current dialogue regardless of state.
@@ -607,6 +622,8 @@ class DialogueManager:
             dtype = d.get("type", "unknown")
             turn = d.get("turn_created", 0)
             _offices = ""  # SR-2d (SR-2-X5): set by the settlement arm
+            register = ""  # RE-2: set by the moment-letter arm ("affair")
+            _display_override = ""
             # Settlement offers store the proposer at top level (not in
             # `context.source`) because they are produced outside the
             # ordinary AI-proposal pipeline.
@@ -650,10 +667,19 @@ class DialogueManager:
                 # lays it before the Emperor; the row is its title. ERR-2 (RE-1):
                 # the old source, the Cabinet, collided with the top bar's
                 # Cabinet (F1), the diplomacy wizard; the office is the Secretariat.
+                # RE-2 (§12): an AFFAIR's row reads its own register and carries
+                # it, so the mailbox tags it "Affair" and the dispatch's envoy
+                # list names it "An Affair of State".
+                from backend.game_logic.moments import AFFAIR_DISPLAY, register_of
                 source = "The Secretariat"
                 ptype = "moment_letter"
-                summary = (f"{self.MAILBOX_SUMMARY_LABELS['moment_letter']}: "
-                           f"{d.get('proposal_terms_summary') or ''}").strip()
+                # (a moment's row carries no key — byte-unchanged for every
+                # older reader; only the affair names its register)
+                register = "affair" if register_of(d) == "affair" else ""
+                label = AFFAIR_DISPLAY if register else self.MAILBOX_SUMMARY_LABELS['moment_letter']
+                summary = (f"{label}: {d.get('proposal_terms_summary') or ''}").strip()
+                if register:
+                    _display_override = AFFAIR_DISPLAY
             else:
                 # S14C-X9: the dead `context.source` fallback named a court
                 # called "Unknown"; every builder writes `source_nation`.
@@ -674,7 +700,7 @@ class DialogueManager:
             from backend.game_logic.envoy_digest import (
                 mailbox_row_reason, mailbox_row_terms,
             )
-            return {
+            row = {
                 "mailbox_id": d.get("mailbox_id", 0),
                 "state": "ACTIVE" if d is self._current else "WAITING",
                 "source_nation": source,
@@ -697,9 +723,13 @@ class DialogueManager:
                 # SR-2d (SR-2-X5): "Britain — Settlement Offer, under Russia's
                 # good offices" — the source stays the belligerent, the
                 # mediation rides the label.
-                "summary": (f"{_nation_display(source)} — {_proposal_display(ptype)}"
+                "summary": (f"{_nation_display(source)} — "
+                            f"{_display_override or _proposal_display(ptype)}"
                             + (f", {_offices}" if _offices else "")),
             }
+            if register:
+                row["register"] = register
+            return row
 
         # Active mailbox item first
         if self._current and self._current.get("type", "") in self.SOFT_STOP_MAILBOX_TYPES:

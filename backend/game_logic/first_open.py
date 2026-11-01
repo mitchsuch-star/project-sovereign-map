@@ -13,6 +13,9 @@ one short line, once per campaign, latched in the save:
     laws             the Strategic Ledger's eighth book
     admiralty_camp   the Admiralty's fleet block, only where camp provinces are authored
     moment_letter    the moment letter (`incoming_proposal` with `is_moment`)
+    affair_letter    the affair of state (RE-2, `docs/RECURRING_EVENTS_SPEC.md`
+                     §12b.1 — the same transport, its own register, its own
+                     first line: the price on the button, the lapse's answer)
 
 The muster is not here: `what_if_line` rides every muster road (S14D-X4).
 
@@ -38,7 +41,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 SCREENS: Tuple[str, ...] = (
     "cabinet", "designs", "formables", "settlement", "separate_peace",
-    "laws", "admiralty_camp", "moment_letter",
+    "laws", "admiralty_camp", "moment_letter", "affair_letter",
 )
 LINE_CAP = 220
 KEY = "first_open"
@@ -143,6 +146,15 @@ def _line_moment_letter(world, ctx: Optional[Mapping[str, Any]]) -> str:
             "for you.")
 
 
+def _line_affair_letter(world, ctx: Optional[Mapping[str, Any]]) -> str:
+    # RE-2 (RECURRING_EVENTS_SPEC.md §12b.1): the line as ruled — the bill of
+    # the Emperor's own acts, the price on the button, the lapse's answer.
+    return ("An affair of state, Sire: a bill of your own acts, laid before you by "
+            "the office it touches. Each answer is priced on its button; Not Now "
+            "sets it aside; left unanswered by the date, it takes the second answer "
+            "for you.")
+
+
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
@@ -152,6 +164,7 @@ LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "laws": _line_laws,
     "admiralty_camp": _line_admiralty_camp,
     "moment_letter": _line_moment_letter,
+    "affair_letter": _line_affair_letter,
 }
 
 
@@ -211,7 +224,11 @@ def dialogue_screen(dialogue: Mapping[str, Any]) -> Tuple[Optional[str], Dict[st
     is_moment = bool(dialogue.get("is_moment")) or (
         isinstance(payload, Mapping) and bool(payload.get("is_moment")))
     if is_moment and dtype in ("", "incoming_proposal"):
-        return "moment_letter", {}
+        # RE-2: the letter's own register (the payload's `register`, written
+        # by `moments.letter_payload`) — an affair has its own first line.
+        register = str(dialogue.get("register") or (
+            payload.get("register") if isinstance(payload, Mapping) else "") or "")
+        return ("affair_letter" if register == "affair" else "moment_letter"), {}
     return None, {}
 
 

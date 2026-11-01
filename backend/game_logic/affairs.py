@@ -777,14 +777,25 @@ def fill_slots(world, text: str, row: Dict[str, Any], **extra: Any) -> str:
         return str(text)
 
 
-def title_of(e: Dict[str, Any], occ: Dict[str, Any]) -> str:
-    """The letter's title — the frozen form's when the entry authors forms."""
+def form_block(e: Dict[str, Any], occ: Dict[str, Any]) -> Dict[str, Any]:
+    """The frozen form's authored block (P18) — {} for an entry with none."""
     forms = (e or {}).get("forms")
     form = (occ or {}).get("form")
     if form and isinstance(forms, dict) and isinstance(forms.get(str(form)), dict):
-        title = forms[str(form)].get("title")
-        if title:
-            return str(title)
+        return forms[str(form)]
+    return {}
+
+
+def seat_of(world, host: str) -> str:
+    """The host's seat (its capital region), for "for the court of Munich"."""
+    return _seat_of(world, host) if host else ""
+
+
+def title_of(e: Dict[str, Any], occ: Dict[str, Any]) -> str:
+    """The letter's title — the frozen form's when the entry authors forms."""
+    title = form_block(e, occ).get("title")
+    if title:
+        return str(title)
     return str((e or {}).get("title") or "")
 
 

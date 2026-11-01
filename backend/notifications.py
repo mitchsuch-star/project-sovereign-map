@@ -454,6 +454,13 @@ class NotificationCollector:
             priority = int(n.get("priority", 0))
             if priority >= int(NotificationPriority.CRITICAL):
                 continue
+            # RE-2 (RECURRING_EVENTS_SPEC.md §12, Q8): an affair's NORMAL card
+            # is spared while its letter stands — the letter's own dismissal
+            # retires it (the answer, the lapse, the withdrawal), and its
+            # `expires_after_turn` is the backstop; the tray overflows rather
+            # than lose the one road to a quiet letter.
+            if (n.get("details") or {}).get("standing_letter"):
+                continue
             is_high = priority >= int(NotificationPriority.HIGH)
             currency = self._currency(n)
             if is_high and newest - currency < HIGH_EVICTION_WINDOW_TURNS:

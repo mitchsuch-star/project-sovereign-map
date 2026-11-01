@@ -247,6 +247,10 @@ ROW_REASON_TREATY = "A treaty is answered in full — open to accept, haggle or 
 ROW_REASON_PETITION = "A client's petition is granted or refused in full — open to decide."
 ROW_REASON_CALL_TO_ARMS = "An ally's call to arms is joined or refused in full — open to answer."
 ROW_REASON_MOMENT = "A moment of history is answered in full — open the letter to choose."
+# RE-2 (RECURRING_EVENTS_SPEC.md §12): an affair's row says what its lapse
+# does — the second answer, by its date — where a moment's does not need to.
+ROW_REASON_AFFAIR = ("An affair of state is answered in full — open the letter to choose; "
+                     "left unanswered by its date, it takes the second answer.")
 ROW_REASON_ULTIMATUM = "An ultimatum is yielded to or defied in full — open to answer."
 ROW_REASON_COUNTER = ("A counter-offer is accepted or rejected in full "
                       "— open to read the revised terms.")
@@ -292,10 +296,10 @@ def mailbox_row_reason(dialogue: Optional[Dict], world) -> str:
     if dtype != DIGEST_DIALOGUE_TYPE:
         return ""
     from backend.game_logic.call_to_arms import is_call_to_arms
-    from backend.game_logic.moments import is_moment_letter
+    from backend.game_logic.moments import is_moment_letter, is_quiet_letter
     from backend.game_logic.vassal import is_client_petition
     if is_moment_letter(dialogue):
-        return ROW_REASON_MOMENT
+        return ROW_REASON_AFFAIR if is_quiet_letter(dialogue) else ROW_REASON_MOMENT
     if is_client_petition(dialogue):
         return ROW_REASON_PETITION
     if is_call_to_arms(dialogue):

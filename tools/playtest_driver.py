@@ -3839,7 +3839,11 @@ class Answerer:
         # pressed: the letter stands, the digest says why — it used to fall
         # through to the first enabled option, the Decline, silently.
         if _is_moment_surface(dialogue):
-            wanted = MOMENT_ACTIONS[moment_mode(self.policy)]
+            # RE-2: an AFFAIR of state answers from ITS OWN dial (`--affair`,
+            # absent = decline — the letter's lapse); never the moment dial.
+            mode = (affair_mode(self.policy) if _is_affair_surface(dialogue)
+                    else moment_mode(self.policy))
+            wanted = MOMENT_ACTIONS[mode]
             for option in all_options:
                 if str(_option_id(option) or "") != wanted:
                     continue
@@ -5129,6 +5133,30 @@ def _is_moment_surface(dialogue) -> bool:
     return bool(is_moment_letter(dialogue))
 
 
+# RE-2 (RECURRING_EVENTS_SPEC.md §12): the affair's own dial — `accept` or
+# `decline`, absent = decline (the letter's lapse takes the second answer).
+AFFAIR_MODES = MOMENT_MODES
+
+
+def affair_mode(policy) -> str:
+    mode = str((policy or {}).get("affair") or "")
+    return mode if mode in AFFAIR_MODES else "decline"
+
+
+def _is_affair_surface(dialogue) -> bool:
+    """An AFFAIR on either shape: the payload's `register` ("affair") or an
+    occurrence id (`template#n`), or the dialogue dict by the engine's own
+    predicate (`moments.is_quiet_letter`)."""
+    if not isinstance(dialogue, dict):
+        return False
+    from backend.game_logic.moments import is_occurrence, is_quiet_letter
+    if str(dialogue.get("register") or "") == "affair":
+        return True
+    if is_occurrence(str(dialogue.get("moment_id") or "")):
+        return True
+    return bool(is_quiet_letter(dialogue))
+
+
 def _is_client_petition_surface(dialogue) -> bool:
     """A client petition on EITHER shape the driver sees: the dialogue dict
     (the producer's own predicate, `vassal.is_client_petition`, reads
@@ -5448,7 +5476,8 @@ class MissionAdvisor:
 POLICY_FLAG_KEYS = ("redemption", "petition", "audience", "paradox", "rebellion",
                     "sabotage", "reward", "last_stand", "contact",
                     "declare_war", "missions", "client_petition",
-                    "settlement", "decline_from", "decline_until_latch", "moment")
+                    "settlement", "decline_from", "decline_until_latch", "moment",
+                    "affair")
 
 
 def resolve_policy(args, script: dict) -> dict:
@@ -5555,6 +5584,10 @@ def main():
                     help="S14c: how a moment letter of the record is answered — accept "
                          "or decline (absent = decline, the letter's own lapse; never "
                          "mirrors --diplomacy). Absent = every arm unchanged")
+    ap.add_argument("--affair", dest="affair", default="", choices=["", *AFFAIR_MODES],
+                    help="RE-2: how an affair of state is answered — accept or decline "
+                         "(absent = decline, the letter's own lapse; never mirrors "
+                         "--moment or --diplomacy). Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")

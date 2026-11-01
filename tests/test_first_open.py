@@ -136,9 +136,12 @@ class TestTheLines:
     def test_the_screens_and_every_line_under_the_cap(self, world):
         # Eight since part 1's second landing: `formables`, the class sweep's one
         # new id (TABLE_LESSON_SPEC §0 Q3 — the page named its requirements and
-        # not what forming does).
+        # not what forming does). Nine since RE-2 (October 31, 2026): the
+        # affair of state has its own register on the moments' transport and
+        # its own first line (RECURRING_EVENTS_SPEC §12b.1); `correspondence`
+        # joins at RE-C with its screen.
         assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
-                              "laws", "admiralty_camp", "moment_letter")
+                              "laws", "admiralty_camp", "moment_letter", "affair_letter")
         for screen, line in _every_line(world):
             assert line, screen
             assert len(line) <= FO.LINE_CAP, (screen, len(line), line)
@@ -223,6 +226,12 @@ class TestTheTurnRule:
         assert FO.with_line(world, letter)["first_open"]["screen"] == "moment_letter"
         dialogue = {"type": "incoming_proposal", "popup_payload": {"is_moment": True}}
         assert FO.with_line(world, dialogue)["first_open"]["screen"] == "moment_letter"
+        # RE-2: the affair's register picks its own line, on either shape
+        affair = {"type": "incoming_proposal",
+                  "popup_payload": {"is_moment": True, "register": "affair"}}
+        assert FO.with_line(world, affair)["first_open"]["screen"] == "affair_letter"
+        bare = {"is_moment": True, "register": "affair", "title": "The Chancellor's Letters"}
+        assert FO.with_line(world, bare)["first_open"]["screen"] == "affair_letter"
         envoy = {"type": "incoming_proposal", "popup_payload": {"from_nation": "Austria"}}
         assert FO.with_line(world, envoy) is envoy
 

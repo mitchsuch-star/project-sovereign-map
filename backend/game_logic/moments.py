@@ -87,6 +87,12 @@ GATE_FORSWORN = "forsworn"
 
 ANSWER_TURNS = 2          # §0 Q2: a letter stands two player turns
 MAILBOX_PRIORITY = 2      # ahead of routine small-court letters (incoming_proposal = 3)
+# RE-2 (RECURRING_EVENTS_SPEC.md §12, Q8): an affair arrives QUIETLY — its
+# mailbox row ranks below the courts' mail, its rail card is NORMAL and spared
+# the tray's eviction while the letter stands, the popup slot is never written
+# for it (the campaign's first affair excepted, once), and the safety valve
+# never re-sends it.
+AFFAIR_MAILBOX_PRIORITY = 5
 
 VOICE_CABINET = "cabinet"
 VOICE_TALLEYRAND = "talleyrand"
@@ -106,6 +112,7 @@ VOICES = (VOICE_CABINET, VOICE_TALLEYRAND, VOICE_ENVOY, VOICE_NAMED)
 # KEY stays (authored in the scenario); its display is the Secretariat.
 SECRETARIAT = "The Secretariat"
 DISPLAY = "A Moment of History"
+AFFAIR_DISPLAY = "An Affair of State"
 
 # The copy contract (§2) and the in-band tunables (§8), validator-limited.
 TITLE_MAX = 40
@@ -771,7 +778,9 @@ def _plan_admin(world, lord, op) -> Dict[str, Any]:
     held = int(getattr(world, "admin_actions_remaining", 0) or 0)
     plural = "" if amount == 1 else "s"
     return {"op": "admin", "amount": amount, "before": held, "after": held - amount,
-            "refusal": "" if held >= amount else "the day's administration is already spoken for.",
+            # RE-2 (§12b.2): the refusal is the closed button's second line —
+            # ≤ BUTTON_LINE_MAX, the spec's own words
+            "refusal": "" if held >= amount else "the day's administration is spoken for.",
             "line": f"{amount} administrative action{plural} ({max(0, held - amount)} left today)"}
 
 
@@ -823,9 +832,54 @@ class _Figures(dict):
         return "?"
 
 
+BUTTON_LINE_MAX = 40      # P11: the button's second line, rendered
+
+
+def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
+    """The second line of a button no author wrote (P11): the plan's figures
+    as short tokens — "−1,000 gold · −2 DP · Bavaria 46 → 66" — cut to
+    `BUTTON_LINE_MAX` at a token boundary. An authored `button_line` wins."""
+    parts: List[str] = []
+    for row in rows:
+        op = str(row.get("op") or "")
+        if row.get("skip"):
+            continue
+        if op == "gold":
+            parts.append(f"−{int(row.get('amount', 0) or 0):,} gold")
+        elif op == "dp":
+            parts.append(f"−{int(row.get('amount', 0) or 0)} DP")
+        elif op == "admin":
+            n = int(row.get("amount", 1) or 1)
+            parts.append(f"{n} action{'' if n == 1 else 's'}")
+        elif op == "authority" and "after" in row:
+            parts.append(f"standing {int(row['before'])} → {int(row['after'])}")
+        elif op == "relation" and "after" in row:
+            parts.append(f"{_court(world, str(row.get('court') or ''), capitalize=True)} "
+                         f"{int(row['before'])} → {int(row['after'])}")
+        elif op == "loyalty" and row.get("courts"):
+            first = row["courts"][0]
+            parts.append(f"{_court(world, str(first.get('court') or ''), capitalize=True)} loyalty "
+                         f"{int(first.get('before', 0) or 0)} → {int(first.get('after', 0) or 0)}")
+        elif op == "alarm" and "after" in row:
+            parts.append(f"alarm {int(row['before'])} → {int(row['after'])}")
+        elif op == "autonomy" and "loyalty_after" in row:
+            from backend.game_logic.vassal import AUTONOMY_NAMES
+            parts.append(f"{_court(world, str(row.get('court') or ''), capitalize=True)}: "
+                         f"{AUTONOMY_NAMES.get(int(row.get('level', 0) or 0), '')}")
+        elif op == "enact_law" and not row.get("refusal"):
+            from backend.game_logic import reforms
+            law = reforms.find_law(world, lord, str(row.get("law") or "")) or {}
+            parts.append(f"−{int(law.get('price', 0) or 0):,} gold · "
+                         f"{int(law.get('upkeep', 0) or 0)} a turn · 1 action")
+    text = " · ".join(parts) if parts else "no change"
+    while len(text) > BUTTON_LINE_MAX and " · " in text:
+        text = text.rsplit(" · ", 1)[0]
+    return text if len(text) <= BUTTON_LINE_MAX else text[:BUTTON_LINE_MAX - 1].rstrip() + "…"
+
+
 def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]]) -> str:
     """P19: the row's frozen short line — the authored `button_line` with the
-    plan's figures inserted (P11), else the first op's line; ≤ 120."""
+    plan's figures inserted (P11), else the derived figures; ≤ 120."""
     figures = _Figures()
     for row in rows:
         op = str(row.get("op") or "")
@@ -846,8 +900,7 @@ def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]])
             figures["loyalty_after"] = int(first.get("after", 0) or 0)
             figures.setdefault("host", _court(world, str(first.get("court") or ""), capitalize=True))
     template = str(side.get("button_line") or "")
-    text = template.format_map(figures) if template else next(
-        (str(r["line"]) for r in rows if r.get("line")), "no change")
+    text = template.format_map(figures) if template else _derived_button_line(world, lord, rows)
     return text[:120]
 
 
@@ -883,9 +936,9 @@ def plan(world, e: Dict[str, Any], answer: str,
     effect = f"{'; '.join(lines)}." if lines else "no change."
     out = {"id": str(occ.get("id") or (e or {}).get("id") or ""), "answer": answer,
            "caption": caption, "ok": not refusal, "refusal": refusal, "rows": rows,
-           "lines": lines, "effect": effect, "quote": f"{caption}: {effect}", "lord": lord}
-    if occ:
-        out["receipt"] = _receipt(world, lord, side, rows)
+           "lines": lines, "effect": effect, "quote": f"{caption}: {effect}", "lord": lord,
+           # RE-2 (P11): the button's second line for every letter of state
+           "receipt": _receipt(world, lord, side, rows)}
     return out
 
 
@@ -961,6 +1014,17 @@ def moment_id_of(letter: Dict[str, Any]) -> str:
     return str((context or {}).get("moment_id") or letter.get("moment_id") or "")
 
 
+def is_quiet_letter(letter: Any) -> bool:
+    """RE-2: an AFFAIR letter (a moment letter whose id is an occurrence) —
+    the one that arrives quietly, ranks below the courts' mail and is never
+    re-sent by the safety valve. A moment letter is loud, as before."""
+    return is_moment_letter(letter) and is_occurrence(moment_id_of(letter))
+
+
+def register_of(letter: Any) -> str:
+    return REGISTER_AFFAIR if is_quiet_letter(letter) else REGISTER_MOMENT
+
+
 def _context(letter: Dict[str, Any]) -> Dict[str, Any]:
     context = letter.get("context")
     return context if isinstance(context, dict) else {}
@@ -971,22 +1035,98 @@ def _dateline(world, turn: int) -> str:
     return calendar_label(getattr(world, "start_date", ""), int(turn)) or f"turn {int(turn)}"
 
 
-def voice_of(world, e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None) -> str:
-    """The letter's mouth. RE-1 adds the affairs' speakers: `named` and
-    `office` read the authored name; `host` is the occurrence's bound court
-    (RE-2's display table names its minister by the turn)."""
+def _holder_at(voice: Dict[str, Any], issued: Optional[int]) -> str:
+    """§12 the voices by year: `holders` [{name, date, turn}] in order, each
+    the office's holder UNTIL its turn; after the last, the authored `name`.
+    Display only — the validator checked each date against its turn."""
+    name = str(voice.get("name") or "").strip()
+    holders = voice.get("holders")
+    if issued is None or not isinstance(holders, list):
+        return name
+    for holder in holders:
+        if not isinstance(holder, dict):
+            continue
+        until = holder.get("turn")
+        if isinstance(until, int) and not isinstance(until, bool) and int(issued) < int(until):
+            return str(holder.get("name") or "").strip() or name
+    return name
+
+
+CHANCERY_PREFIX = "the chancery"
+
+
+def _host_minister(world, host: str) -> str:
+    """The host court's minister by the cast (`resolve_named_diplomat`'s
+    envoy arm — Montgelas for Bavaria); "" where the cast names none, so the
+    caller writes the chancery itself (the Voice Bible's fallback)."""
+    from backend.game_logic.diplomatic_templates import resolve_named_diplomat
+    try:
+        name = str(resolve_named_diplomat("envoy", host, world) or "").strip()
+    except Exception as exc:
+        report(exc, "moments._host_minister: resolve_named_diplomat")
+        return ""
+    return "" if name.lower().startswith(CHANCERY_PREFIX) else name
+
+
+def voice_of(world, e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None,
+             issued: Optional[int] = None) -> str:
+    """The letter's mouth. The affairs' speakers: `named` and `office` read
+    the authored name — or the office's holder on the issued turn (§12's
+    display table, `holders`); `host` is the bound court's minister by the
+    cast, the chancery as the fallback."""
     voice = e.get("voice") or {}
     speaker = str(voice.get("speaker") or VOICE_CABINET)
     if speaker == VOICE_CABINET:
         return SECRETARIAT
     if speaker in (VOICE_NAMED, "office"):
-        return str(voice.get("name") or "").strip() or SECRETARIAT
+        return _holder_at(voice, issued) or SECRETARIAT
     if speaker == "host":
         bind = (occ or {}).get("bind") if isinstance((occ or {}).get("bind"), dict) else {}
         host = str(bind.get("host") or "")
-        return f"The court of {_court(world, host)}" if host else SECRETARIAT
+        if not host:
+            return SECRETARIAT
+        return _host_minister(world, host) or f"The Chancery of {_court(world, host, capitalize=True)}"
     from backend.game_logic.diplomatic_templates import resolve_named_diplomat
     return resolve_named_diplomat(speaker, str(voice.get("nation") or ""), world) or SECRETARIAT
+
+
+def _writer_and_office(world, e: Dict[str, Any], occ: Dict[str, Any], name: str) -> Tuple[str, str]:
+    """Line 2's two halves (§12b.2): the writer and the office — "Cambacérès"
+    / "Arch-Chancellor of the Empire" from an authored "Name, office"; a
+    host's minister / "for the court of {seat}"; the Secretariat alone."""
+    speaker = str((e.get("voice") or {}).get("speaker") or VOICE_CABINET)
+    if speaker == "host":
+        bind = occ.get("bind") if isinstance(occ.get("bind"), dict) else {}
+        host = str(bind.get("host") or "")
+        if name.lower().startswith(CHANCERY_PREFIX):
+            return name, ""            # the chancery IS the office
+        from backend.game_logic import affairs
+        seat = affairs.seat_of(world, host) if host else ""
+        return name, f"for the court of {seat}" if seat else ""
+    if "," in name:
+        writer, office = name.split(",", 1)
+        return writer.strip(), office.strip()
+    return name, ""
+
+
+def device_of(world, e: Dict[str, Any], occ: Dict[str, Any], writer: str) -> Dict[str, str]:
+    """The letterhead's device (§12b.2, P14): the court's arms for a host or
+    a court's deputation, a gold monogram for an office (C, B, D, T), the
+    owner's sheet for the Secretariat — never a portrait."""
+    voice = e.get("voice") or {}
+    speaker = str(voice.get("speaker") or VOICE_CABINET)
+    when = e.get("when") or {}
+    bind = occ.get("bind") if isinstance(occ.get("bind"), dict) else {}
+    if speaker == "host" and bind.get("host"):
+        return {"kind": "arms", "nation": str(bind["host"]), "letter": ""}
+    if speaker == VOICE_ENVOY and voice.get("nation"):
+        return {"kind": "arms", "nation": str(voice["nation"]), "letter": ""}
+    if speaker == VOICE_NAMED and when.get("court") and not occ:
+        return {"kind": "arms", "nation": str(when["court"]), "letter": ""}
+    if speaker == VOICE_CABINET:
+        return {"kind": "sheet", "nation": owner(world), "letter": ""}
+    initial = next((ch for ch in str(writer or "") if ch.isalpha()), "")
+    return {"kind": "monogram", "nation": "", "letter": initial.upper()}
 
 
 def _affair_fields(mid: str, p: Dict[str, Any]) -> Dict[str, Any]:
@@ -1026,31 +1166,67 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
     host and the frozen form plan the figures; its record is the ground and
     the chapter, its board the premise's facts (`affairs`)."""
     occ = occ if isinstance(occ, dict) else {}
-    affair = bool(occ)
+    # RE-2 (BUG_FIXES RE2-1): the register is the OCCURRENCE ID's — `build_
+    # letter` and `refresh_letter` pass every letter's status row, so RE-1's
+    # `bool(occ)` dressed every delivered MOMENT as an affair (register
+    # "affair", the premise board of a predicate the affairs do not read:
+    # empty). The id is the one discriminator the engine keeps everywhere else.
+    affair = is_occurrence(str(occ.get("id") or ""))
     accept = plan(world, e, ANSWER_ACCEPT, occ)
     decline = plan(world, e, ANSWER_DECLINE, occ)
+    writer_line = ground = chapter = exhibit = counsel = ""
     if affair:
         from backend.game_logic import affairs
         board = affairs.board_lines(world, e, occ)
         record = affairs.record_text(world, e, occ)
         title = affairs.title_of(e, occ)
+        side_form = affairs.form_block(e, occ)
+        writer_line = affairs.fill_slots(world, str(side_form.get("line") or e.get("line") or ""), occ)
+        ground = affairs.fill_slots(world, str(e.get("record") or ""), occ)
+        chapter = affairs.fill_slots(world, affairs.chapter_of(e, occ), occ)
+        exhibit = affairs.fill_slots(world, str(e.get("exhibit") or ""), occ)
+        counsel = affairs.fill_slots(world, str(side_form.get("counsel") or e.get("counsel") or ""), occ)
     else:
         board = board_lines(world, e)
         record = str(e.get("record") or "")
         title = str(e.get("title") or "")
+        ground = record
+        counsel = str(e.get("counsel") or "")       # the four moments' lines are RE-3's
     unanswered = (f"If unanswered by {_dateline(world, answer_by)}: {decline['caption']} — "
                   f"{decline['effect']}")
+    dateline = _dateline(world, issued)
+    name = voice_of(world, e, occ, int(issued))
+    writer, office = _writer_and_office(world, e, occ, name)
+    display = AFFAIR_DISPLAY if affair else DISPLAY
     payload = {
         "is_moment": True,
         "moment_id": str(occ.get("id") or e.get("id") or ""),
         "proposal_type": MOMENT_LETTER_TYPE,
-        "proposal_type_display": DISPLAY,
+        "proposal_type_display": display,
         "from_nation": "",
-        "diplomat_name": voice_of(world, e, occ),
+        "diplomat_name": name,
         "title": title,
-        "dateline": _dateline(world, issued),
+        "dateline": dateline,
         "record": record,
         "board": board,
+        # RE-2 (RECURRING_EVENTS_SPEC.md §12b.2): the dress — one register for
+        # every letter of state; every figure an int (GR2).
+        "register": REGISTER_AFFAIR if affair else REGISTER_MOMENT,
+        "header": f"{display.upper()} — {dateline.upper()}",
+        "device": device_of(world, e, occ, writer),
+        # the spec's flat names beside the one device dict (§12b.2 "arms", "monogram")
+        "arms": "",
+        "monogram": "",
+        "writer": writer,
+        "office": office,
+        "line": writer_line,
+        "ground": ground,
+        "chapter": chapter,
+        "exhibit": exhibit,
+        "counsel": counsel,
+        "button_accept": str(accept.get("receipt") or ""),
+        "button_decline": str(decline.get("receipt") or ""),
+        "odds": 0,
         "answers": [{"action": ANSWER_ACTIONS[ANSWER_ACCEPT], "caption": accept["caption"],
                      "quote": accept["quote"]},
                     {"action": ANSWER_ACTIONS[ANSWER_DECLINE], "caption": decline["caption"],
@@ -1060,11 +1236,15 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
         "answer_by_turn": int(answer_by),
         "clauses": [record] + board + ["What each answer does:", accept["quote"],
                                        decline["quote"], unanswered],
-        "talleyrand_assessment": "",
+        # the counsel rides the assessment slot too (§12b.2); the dress draws
+        # it under the buttons and skips the grey slot for this register
+        "talleyrand_assessment": counsel,
         "choice_display": {"accept": accept["caption"], "reject": decline["caption"]},
     }
+    device = payload["device"]
+    payload["arms"] = str(device["nation"]) if device["kind"] == "arms" else ""
+    payload["monogram"] = str(device["letter"])
     if affair:
-        payload["register"] = REGISTER_AFFAIR
         payload["occurrence"] = str(occ.get("id") or "")
     return payload
 
@@ -1302,26 +1482,42 @@ def deliver_letter(world, e: Dict[str, Any], turn: int, mid: Optional[str] = Non
     _state(world)[mid] = state_row
     dialogue = build_letter(world, e, turn, mid)
     dm = world.dialogue_manager
+    affair = is_occurrence(mid)
     dm.push(dialogue)
-    # `_assign_mailbox_metadata` stamps the dtype's priority at the push; the
-    # letter sorts ahead of routine small-court mail.
-    dialogue["mailbox_priority"] = MAILBOX_PRIORITY
-    if dm.peek() is dialogue:
+    # `_assign_mailbox_metadata` stamps the dtype's priority at the push; a
+    # moment letter sorts ahead of routine small-court mail, an affair below
+    # the courts' mail (RE-2, Q8).
+    dialogue["mailbox_priority"] = AFFAIR_MAILBOX_PRIORITY if affair else MAILBOX_PRIORITY
+    # RE-2 (§12): the popup slot is a moment's; an affair arrives quietly — its
+    # card and its mailbox row open it — but the campaign's FIRST affair opens
+    # itself once (the one occurrence row in the store), when it heads the queue.
+    first_affair = affair and sum(1 for k in _state(world) if is_occurrence(k)) == 1
+    if dm.peek() is dialogue and (not affair or first_affair):
         world.incoming_proposal_popup = copy.deepcopy(dialogue["popup_payload"])
     payload = dialogue["popup_payload"]
     from backend.notifications import DIPLOMATIC_PROPOSAL, NotificationPriority, create_notification
-    world.notifications.add(create_notification(
-        DIPLOMATIC_PROPOSAL, NotificationPriority.HIGH,
-        f"{DISPLAY}: {e.get('title')}",
+    details = {"moment_id": mid, "mailbox_id": int(dialogue.get("mailbox_id") or 0),
+               "route_id": str(int(dialogue.get("mailbox_id") or 0)),
+               "review_target": "moment_letter", "review_label": "Read the letter"}
+    if affair:
+        # the card is NORMAL and spared the tray's eviction while the letter
+        # stands (`notifications._eviction_candidate`); its own dismissal
+        # retires it at the answer, the lapse or the withdrawal, and the
+        # answer-by turn is the backstop
+        details["standing_letter"] = True
+    notice = create_notification(
+        DIPLOMATIC_PROPOSAL, NotificationPriority.NORMAL if affair else NotificationPriority.HIGH,
+        f"{AFFAIR_DISPLAY}: {payload['title']}" if affair else f"{DISPLAY}: {e.get('title')}",
         (f"{payload['diplomat_name']} lays a letter before the Emperor — answer by "
          f"{_dateline(world, payload['answer_by_turn'])}."),
         int(turn),
         # S14C-X14: the button opens THIS letter (`/mailbox/activate` with its
         # mailbox id — main.gd's `moment_letter` review target), one click
         # beside a standing settlement offer.
-        details={"moment_id": mid, "mailbox_id": int(dialogue.get("mailbox_id") or 0),
-                 "route_id": str(int(dialogue.get("mailbox_id") or 0)),
-                 "review_target": "moment_letter", "review_label": "Read the letter"}))
+        details=details)
+    if affair:
+        notice["expires_after_turn"] = int(payload["answer_by_turn"])
+    world.notifications.add(notice)
     _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]),
          **_affair_fields(mid, state_row))
     return dialogue

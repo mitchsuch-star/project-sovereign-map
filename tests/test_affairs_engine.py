@@ -285,7 +285,11 @@ class TestTheArrival:
         payload = letter["popup_payload"]
         assert payload["moment_id"] == "the_host#1" and payload["register"] == "affair"
         assert payload["occurrence"] == "the_host#1" and payload["title"] == "The Host's Claims"
-        assert payload["diplomat_name"] == "The court of Bavaria"
+        # RE-2 (§12b.2 line 2): the host's letter is signed by its minister
+        # from the cast (Montgelas), "for the court of Munich" — RE-1's
+        # placeholder "The court of Bavaria" retired with the dress.
+        assert payload["diplomat_name"] == "Montgelas"
+        assert (payload["writer"], payload["office"]) == ("Montgelas", "for the court of Munich")
         assert payload["board"][0].startswith("3 of your corps stand on Bavaria's soil")
         assert "Pay the host's claims: 300 gold" in payload["answers"][0]["quote"]
         assert "Live off the land: Bavaria's goodwill" in payload["answers"][1]["quote"]
@@ -506,7 +510,9 @@ class TestTheTwoOps:
         assert armed.admin_actions_remaining == 1
         armed.admin_actions_remaining = 0
         p = MO.plan(armed, e, "accept", OCC_T1)
-        assert not p["ok"] and p["refusal"] == "the day's administration is already spoken for."
+        # RE-2: the refusal is the closed button's second line (≤ 40, §12b.2)
+        assert not p["ok"] and p["refusal"] == "the day's administration is spoken for."
+        assert len(p["refusal"]) <= MO.BUTTON_LINE_MAX
 
     def test_a_closed_accept_leaves_the_letter_standing(self, armed):
         _no_moments(armed)
@@ -895,7 +901,10 @@ class TestTheCensuses:
         assert MO.voice_of(armed, {"voice": {"speaker": "cabinet"}}) == "The Secretariat"
         assert MO.voice_of(armed, {"voice": {"speaker": "named", "name": ""}}) == "The Secretariat"
         assert MO.voice_of(armed, {"voice": {"speaker": "office", "name": "The Treasury"}}) == "The Treasury"
-        assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Bavaria"}}) == "The court of Bavaria"
+        # RE-2: the host speaks through its minister from the cast (Montgelas);
+        # a court the cast does not name writes as its chancery.
+        assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Bavaria"}}) == "Montgelas"
+        assert MO.voice_of(armed, {"voice": {"speaker": "host"}}, {"bind": {"host": "Ruritania"}}) == "The Chancery of Ruritania"
         src = (BACKEND / "game_logic" / "moments.py").read_text(encoding="utf-8")
         assert '"The Cabinet"' not in src
         assert '"The Cabinet"' not in (BACKEND / "models" / "dialogue_manager.py").read_text(encoding="utf-8")

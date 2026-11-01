@@ -2689,6 +2689,17 @@ def _digest_owns(dialogue, world) -> bool:
     return is_routine_small_court(dialogue, world)
 
 
+def _quiet_letter(dialogue) -> bool:
+    """RE-2 (RECURRING_EVENTS_SPEC.md §12, Q8): an AFFAIR OF STATE arrives
+    quietly — its rail card and its mailbox row open it, and the campaign's
+    first one opens itself once at delivery. The valve below must never
+    re-derive a modal from a standing affair, or every response cycle would
+    re-mount a letter that was built to wait."""
+    from backend.game_logic.moments import is_quiet_letter
+
+    return is_quiet_letter(dialogue)
+
+
 # ══════════════════════════════════════════════════════════════════════
 # FA-N5 / FA-N37 — A BLOCKING MODAL MUST ANSWER ITS OWN DIALOGUE
 #
@@ -2991,7 +3002,8 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     and world.pending_diplomatic_dialogue.get("type")
                     in SAFETY_VALVE_DIALOGUE_TYPES
                     and not _digest_owns(world.pending_diplomatic_dialogue,
-                                         world)):
+                                         world)
+                    and not _quiet_letter(world.pending_diplomatic_dialogue)):
                 # BUGFIX: Safety valve — derive clauses from dialogue context
                 # instead of hardcoding []. Empty clauses cause blank popup
                 # in Godot. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
