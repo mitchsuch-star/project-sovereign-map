@@ -19,6 +19,17 @@ UNARMED until RE-3) every seam's reach is 0 and every arm is byte-identical.
                                           dispatch line for a set-aside or a
                                           withdrawal)
     AFA  `affairs.resolve_courts`       — the courts' affairs (inert in v1)
+    AFH  `naval._squadron_tick`         — RE-H: the squadron's voyage (down: no
+                                          squadron drills or settles; the
+                                          sailing's sail stay out)
+    AFS  `affairs.settle_squadrons` +   — RE-H: the sailing and the settlement
+         `naval.detach_squadron`          (down: the Accept detaches nothing
+                                          and no fate reaches the row; the
+                                          seam is `detach_squadron`, the
+                                          setter `moments._apply_squadron`
+                                          calls by name, because the OPS
+                                          table binds the apply function at
+                                          import)
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -33,6 +44,9 @@ AFFAIRS_SEAMS_BY_ROW = {
             "backend.game_logic.affairs:pulse_gap=int(__import__('backend.game_logic.affairs').game_logic.affairs.pacing(a[0])['gap'])"],
     "AFN": ["backend.game_logic.affairs:write_receipt=None"],
     "AFA": ["backend.game_logic.affairs:resolve_courts=[]"],
+    "AFH": ["backend.game_logic.naval:_squadron_tick=[]"],
+    "AFS": ["backend.game_logic.affairs:settle_squadrons=[]",
+            "backend.game_logic.naval:detach_squadron={}"],
 }
 AFFAIRS_SEAMS_DOWN = [spec for row in AFFAIRS_SEAMS_BY_ROW for spec in AFFAIRS_SEAMS_BY_ROW[row]]
 

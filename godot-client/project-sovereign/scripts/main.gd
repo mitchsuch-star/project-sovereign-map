@@ -5573,6 +5573,12 @@ func _display_morning_dispatch(data: Dictionary):
 	if staff_arrived is String and staff_arrived != "":
 		add_output("[color=#" + Utils.COLOR_SUCCESS + "]  THE STAFF: " + staff_arrived + " is established — one more order of the day, from today.[/color]")
 	_render_law_forecast(situation.get("law_forecast", null), "  ")
+	# RE-H (docs/RECURRING_EVENTS_SPEC.md §6.5, §22.2): a squadron's fate on
+	# its morning — amber, the same key the Dispatch screen prints.
+	var affair_fate = situation.get("affair_fate", null)
+	if affair_fate is Array:
+		for fate_line in affair_fate:
+			add_output("[color=#" + Utils.COLOR_WARNING + "]  THE SQUADRON: " + str(fate_line) + "[/color]")
 
 	# Enemy regions + estimated strength
 	if bankrupt:

@@ -2495,7 +2495,8 @@ def expedition_coverage(world, mover_nation: str,
 
 def expedition_slip_odds(world, mover_nation: str, target_region: str,
                          troops: int, window: Optional[bool] = None,
-                         escort_extra: float = 0.0) -> Dict:
+                         escort_extra: float = 0.0,
+                         escort: Optional[float] = None) -> Dict:
     """N8 — the quoted-and-applied odds (IGR-E discipline). Scale down with
     size and coverage-vs-escort ratio, up (+25pp) during a window. With no
     hostile fleet at all the sailing is administrative: 100.
@@ -2505,16 +2506,26 @@ def expedition_slip_odds(world, mover_nation: str, target_region: str,
     strength added to our side: more sail, a fitter fleet, an ally's
     squadron). Every live caller passes neither, so the quote, the confirm
     and the resolver read exactly what they always read; a lever is THIS
-    function asked one question, never a second model of the odds."""
+    function asked one question, never a second model of the odds.
+
+    RE-H (RECURRING_EVENTS_SPEC.md §6.5, P4): `escort` is a third override —
+    the sailing force ALONE (ships × readiness / 100), for a squadron that
+    leaves the home fleet in port (the Haiti letter's five of the line on
+    the open-water arm: no target region, so guard fleets are skipped and
+    blockade fleets hunt). Every live caller passes none; a second model of
+    the odds stays barred."""
     troops = int(troops)
     coverer, coverage, mode = expedition_coverage(world, mover_nation,
                                                   target_region, window=window)
     if coverer is None or coverage <= 0:
         return {"odds": 100, "coverer": None, "coverage": 0.0, "ratio": 0.0,
                 "mode": mode, "window": False}
-    escort = max(combined_effective(world, mover_nation, coverer)
-                 + float(escort_extra), 1.0)
-    ratio = coverage / escort
+    if escort is None:
+        escort_eff = max(combined_effective(world, mover_nation, coverer)
+                         + float(escort_extra), 1.0)
+    else:
+        escort_eff = max(float(escort), 1.0)
+    ratio = coverage / escort_eff
     weight = (EXPEDITION_LINK_WEIGHT if mode == "link"
               else EXPEDITION_OPEN_WATER_WEIGHT)
     mover_rec = get_fleet(world, mover_nation)
@@ -2758,6 +2769,169 @@ def resolve_expedition(world, marshal, target_region: str) -> Dict:
 # ═══════════════════════════════════════════════════════════════════════════
 # THE DESCENT (§5.3 — camp, diversion, window)
 # ═══════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SQUADRON (RE-H — RECURRING_EVENTS_SPEC.md §6.5 "the mechanism", P2–P4)
+# ═══════════════════════════════════════════════════════════════════════════
+# A letter of state may send a SQUADRON off the map — five of the line for
+# Santo Domingo — on the one expedition model asked one question
+# (`expedition_slip_odds` with `escort` = the sailing force alone). The ships
+# leave the fleet record (`rec["ships"] -= ships`) and ride `rec["squadron"]`
+# — ints and short strings, frozen at the answer, so shown = applied — until
+# `_squadron_tick` settles them on the morning they are due: home, folding
+# back at the readiness they drilled to at sea; caught, lost whole. The naval
+# module stays pure naval: the letter's row, the morning's line and the log
+# are the affairs' (`affairs.settle_squadrons`), read off `rec["squadron_
+# last"]`. No battle clock, no diorama, no rail notice. The destination is
+# the record's own `to` — the module never imports the deck (NV-D5).
+
+SQUADRON_RESERVE = 20          # sail that must stay in port behind a squadron (§6.5: min_ships ≥ ships + 20)
+SQUADRON_SHIPS_MAX = 8         # the ratio sits on the cap for any squadron of eight or fewer at war
+SQUADRON_AWAY_BOUNDS = (3, 6)  # turns at sea
+
+
+def squadron_at_sea(world, nation: str) -> Optional[dict]:
+    """The nation's squadron away from port, or None."""
+    rec = get_fleet(world, nation) or {}
+    sq = rec.get("squadron")
+    return sq if isinstance(sq, dict) else None
+
+
+def last_squadron(world, nation: str) -> Optional[dict]:
+    """The last squadron's fate record (`squadron_last`), or None."""
+    rec = get_fleet(world, nation) or {}
+    last = rec.get("squadron_last")
+    return last if isinstance(last, dict) else None
+
+
+def squadron_hunter(world, nation: str) -> Optional[str]:
+    """The enemy fleet that would hunt a squadron sailing alone — the
+    coverer on the open-water arm (a blockade-posture fleet at war; guard
+    fleets defend their own coast and never patrol the ocean). None at peace
+    or with every hostile fleet guarding."""
+    if not has_naval_layer(world):
+        return None
+    return expedition_coverage(world, nation, None)[0]
+
+
+def squadron_quote(world, nation: str, ships: int, away: int, to: str, turn: int) -> Dict:
+    """THE quote of a squadron (shown = applied): `before` / `after` sail in
+    port, the `odds` of coming home whole (`expedition_slip_odds`, the
+    sailing force alone — 100 with no hunter), the `hunter`, `home_by`
+    (`turn + away`), and the `refusal` — no fleet; fewer than `ships` +
+    `SQUADRON_RESERVE` in port; a squadron already at sea."""
+    ships, away = int(ships), int(away)
+    rec = get_fleet(world, nation)
+    out: Dict = {"ships": ships, "away": away, "to": str(to or "")[:32], "before": 0, "after": 0,
+                 "odds": 0, "hunter": "", "home_by": int(turn) + away, "refusal": ""}
+    in_port = int((rec or {}).get("ships", 0) or 0)
+    if not rec or in_port <= 0:
+        out["refusal"] = "There is no fleet in commission to find the sail."
+        return out
+    out["before"], out["after"] = in_port, in_port - ships
+    sq = rec.get("squadron")
+    if isinstance(sq, dict):
+        out["refusal"] = (f"A squadron is already at sea for {sq.get('to') or 'its station'}; "
+                          f"the Marine can spare no second until it is home.")
+        return out
+    if in_port < ships + SQUADRON_RESERVE:
+        out["refusal"] = (f"{in_port} sail in port; the Marine will not detach {ships} and leave "
+                          f"fewer than {SQUADRON_RESERVE} at anchor.")
+        return out
+    readiness = int(rec.get("readiness", 0) or 0)
+    quote = expedition_slip_odds(world, nation, None, 0, escort=ships * readiness / 100.0)
+    out["odds"] = int(quote["odds"])
+    out["hunter"] = str(quote.get("coverer") or "")
+    if not out["hunter"]:
+        # P2 / P18: with no hunter at sea a squadron at 100 is a sale — the
+        # stores go by two frigates (the bill); a letter frozen in the
+        # squadron form whose hunter has since left the coast closes its
+        # Accept with these words, never a silent re-plan
+        out["refusal"] = ("No enemy squadron holds the coast: the stores can go by two frigates, "
+                          "and the Marine will not send the line to sea for nothing.")
+    return out
+
+
+def detach_squadron(world, nation: str, ships: int, away: int, to: str, odds: int,
+                    tag: str, issued: int) -> dict:
+    """The sailing (the answer's apply): the ships leave the port count and
+    ride the record as `squadron` — frozen at the answer, ints and short
+    strings only. The caller has quoted and the quote is what is applied."""
+    rec = get_fleet(world, nation)
+    rec["ships"] = int(rec.get("ships", 0) or 0) - int(ships)
+    rec["squadron"] = {"ships": int(ships), "readiness": int(rec.get("readiness", 0) or 0),
+                       "sailed": int(issued), "returns": int(issued) + int(away), "to": str(to or "")[:32],
+                       "odds": int(odds), "tag": str(tag or "")[:40], "issued": int(issued)}
+    return dict(rec["squadron"])
+
+
+def _squadron_tick(world) -> List[Dict]:
+    """The per-turn pass over EVERY fleet record (`iter_fleet_records`, not
+    `iter_fleets` — a squadron outliving a Trafalgar must still settle): a
+    squadron at sea drills (+READINESS_TICK toward READINESS_MAX, the §3.3
+    sea-time rule); on the morning it is due the one seeded draw decides —
+    `seeded_int` on `naval::squadron::{issued}::{nation}::{tag}` (the issued
+    turn in the namespace), `_pct_roll`'s idiom. Home: the ships fold back at
+    the readiness they sailed to (`lay_down_ship`'s weighted fold; a fleet
+    annihilated meanwhile takes them back whole). Caught: lost whole. The
+    fate is written to `squadron_last`; the returned rows are for the trace.
+    Runs in `process_naval_turn` after `_readiness_tick`."""
+    from backend.game_logic.campaign_variance import seeded_int
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    settled: List[Dict] = []
+    for nation, rec in iter_fleet_records(world):
+        sq = rec.get("squadron")
+        if not isinstance(sq, dict):
+            continue
+        sq["readiness"] = int(min(READINESS_MAX, int(sq.get("readiness", 0) or 0) + READINESS_TICK))
+        if turn < int(sq.get("returns", 0) or 0):
+            continue
+        draw = int(seeded_int(_seed(world),
+                              f"naval::squadron::{int(sq.get('issued', 0) or 0)}::{nation}::{sq.get('tag', '')}",
+                              0, 99))
+        home = draw < int(sq.get("odds", 0) or 0)
+        ships = int(sq.get("ships", 0) or 0)
+        if home:
+            in_port = int(rec.get("ships", 0) or 0)
+            if in_port <= 0:
+                rec["ships"] = ships
+                rec["readiness"] = int(sq["readiness"])
+                rec.setdefault("posture", "guard")
+                rec.setdefault("camp_turns", 0)
+                rec.setdefault("diversion_last_turn", -1)
+                rec.setdefault("window_turns", 0)
+            else:
+                folded = int(round((in_port * int(rec.get("readiness", 0) or 0) + ships * int(sq["readiness"]))
+                                   / (in_port + ships)))
+                rec["ships"] = in_port + ships
+                rec["readiness"] = int(max(READINESS_MIN, min(READINESS_MAX, folded)))
+        rec["squadron_last"] = {"tag": str(sq.get("tag") or ""), "sailed": int(sq.get("sailed", 0) or 0),
+                                "returned": turn, "outcome": "home" if home else "caught", "ships": ships,
+                                "lost": 0 if home else ships, "odds": int(sq.get("odds", 0) or 0), "draw": draw,
+                                "readiness": int(sq["readiness"]), "to": str(sq.get("to") or "")}
+        rec.pop("squadron", None)
+        settled.append({"nation": nation, **rec["squadron_last"]})
+    return settled
+
+
+_SAIL_WORDS = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight"}
+
+
+def squadron_line(world, nation: str) -> str:
+    """The Admiralty's line while a squadron is away — its destination and
+    its expected return from the record alone (display; the dateline is
+    the calendar's label, as every other dated surface prints it)."""
+    sq = squadron_at_sea(world, nation)
+    if not sq:
+        return ""
+    from backend.game_logic.calendar import calendar_label
+    n = int(sq.get("ships", 0) or 0)
+    words = _SAIL_WORDS.get(n, str(n))
+    when = calendar_label(getattr(world, "start_date", ""), int(sq.get("returns", 0) or 0)) or \
+        f"turn {int(sq.get('returns', 0) or 0)}"
+    return (f"{words} of the line {'is' if n == 1 else 'are'} at sea for {sq.get('to') or 'their station'}, "
+            f"readiness {int(sq.get('readiness', 0) or 0)}; expected home by {when}.")
+
 
 def camp_strength(world, nation: str) -> int:
     """Total friendly strength standing in the nation's authored camp
@@ -4017,6 +4191,9 @@ def process_naval_turn(world) -> List[Dict]:
 
     # 3. readiness (before the new blockade set is stored — judged live).
     _readiness_tick(world)
+    # 3b. RE-H: the squadrons at sea — drilled a tick, settled on their
+    # morning (the affairs tick reads `squadron_last` later this advance).
+    _squadron_tick(world)
 
     # 4. camp / window / build-rate / diversion resets.
     events.extend(_camp_tick(world))
@@ -4716,6 +4893,8 @@ def build_admiralty_report(world) -> Dict:
             "rot_line": rot_line(world, player),
             # DDB-59: the camp is a STATE, not an order — its count and why.
             "camp_line": camp_line(world, player),
+            # RE-H (§6.5): a squadron at sea, its destination from the record
+            "squadron_line": squadron_line(world, player),
         }
     else:
         report["own_fleet"] = None

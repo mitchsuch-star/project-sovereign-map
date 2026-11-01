@@ -188,6 +188,13 @@ func _on_dispatch_received(response):
 	if affairs_watch is Array:
 		for watch_line in affairs_watch:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  IN THE OFFING: " + str(watch_line) + "[/color]\n"
+	# RE-H (docs/RECURRING_EVENTS_SPEC.md §6.5, §22.2): a squadron's fate on
+	# its morning — amber, the same key the terminal's dispatch prints
+	# (`situation.affair_fate`, absent on every other morning).
+	var affair_fate = situation.get("affair_fate", null)
+	if affair_fate is Array:
+		for fate_line in affair_fate:
+			bbcode += "[color=#" + Utils.COLOR_WARNING + "]  THE SQUADRON: " + str(fate_line) + "[/color]\n"
 
 	if bankrupt:
 		bbcode += "[color=#" + Utils.COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"

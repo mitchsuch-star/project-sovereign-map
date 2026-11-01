@@ -75,9 +75,15 @@ SET_ASIDE_EVERY = 6    # §7: the aggregated "set aside" line, at most once in s
 
 # The op table (§5): the moments' closed table less the alarm (barred from
 # every affair) and the autonomy write, plus `authority` and `admin`.
-AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law")
+AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron")
 AFFAIR_OP_BOUNDS = {"gold": (1, 2000), "authority": (-10, 0), "admin": (1, 1), "dp": (1, 2),
                     "relation": (-20, 20), "loyalty": (-20, 20)}
+# RE-H (§6.5, P4): the squadron op — Accept-only, at most one per entry, an
+# entry carrying it authors a fallback form (the bill) and its owner a navy.
+SQUADRON_BOUNDS = {"ships": (1, 8), "away": (3, 6), "to": 32}
+# P18: a form's `requires` — the first form whose requirement holds is frozen
+# at delivery; a form without one is the fallback.
+FORM_REQUIRES = ("hunter_at_sea",)
 DECLINE_ALLOWED_OPS = ("relation", "loyalty", "authority")
 BARRED_OPS = ("alarm", "autonomy")
 
@@ -89,11 +95,12 @@ VARIANT_DISPLAY_KEYS = ("text",)
 # RE-3 (P12, §12c): `situation` is the morning-after SITUATION line an answer
 # authors (RE-R renders it); `echo` the response's reply, `press` the Gazette's
 # COURTS line, `remember` the board line on the template's next occurrence.
-ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember", "situation")
+ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember", "situation", "outcome")
 TEXT_MAX = {"title": 40, "record": 240, "variant": 240, "line": 200, "counsel": 160,
             "exhibit": 160, "exhibit_from": 40, "watch": 120, "button_line": 40, "echo": 160,
             "press": 160, "remember": 160, "situation": 160, "caption": 36, "source": 400,
-            "closing": 240, "slot": 60}
+            "closing": 240, "slot": 60, "outcome_line": 160}
+OUTCOMES = ("home", "caught")       # RE-H: a squadron's two fates (the Accept's `outcome` copy)
 # RE-H (§6.5, P18): the chapter is keyed by the arrival (first / later) and by
 # the last squadron's fate (home / caught — the row's frozen `last_fate`, from
 # the fleet record at delivery); the fate chapters are authored BEFORE the
@@ -672,13 +679,39 @@ def _short(bind: Dict[str, Any]) -> Dict[str, str]:
     return {str(k)[:32]: str(v)[:40] for k, v in (bind or {}).items() if v not in (None, "")}
 
 
+def requirement_holds(world, lord: str, name: str) -> bool:
+    """A form's `requires`, read live: `hunter_at_sea` — an enemy fleet in
+    blockade posture at war with the lord would hunt a squadron sailing alone
+    (`naval.squadron_hunter`). An unknown name never holds."""
+    if name == "hunter_at_sea":
+        from backend.game_logic import naval
+        try:
+            return bool(naval.squadron_hunter(world, lord))
+        except Exception as exc:
+            report(exc, "affairs.requirement_holds: naval.squadron_hunter")
+            return False
+    return False
+
+
 def form_of(world, e: Dict[str, Any], cand: Dict[str, Any]) -> str:
-    """P18: the form frozen at delivery — the first authored form (RE-H's
-    squadron chooser replaces this); "" for an entry with none."""
+    """P18: the form frozen at delivery — the first authored form whose
+    `requires` holds (the squadron when a hunter is at sea), else the first
+    form without a requirement (the bill); "" for an entry with none. A
+    standing letter never changes form: `refresh_letter` re-plans the frozen
+    form, and a hunter that vanished closes the Accept with the refusal."""
     forms = e.get("forms")
-    if isinstance(forms, dict) and forms:
-        return str(next(iter(forms)))
-    return ""
+    if not isinstance(forms, dict) or not forms:
+        return ""
+    lord = str(cand.get("lord") or _lord_of(world, e))
+    fallback = ""
+    for name, form in forms.items():
+        requires = str((form or {}).get("requires") or "") if isinstance(form, dict) else ""
+        if requires:
+            if requirement_holds(world, lord, requires):
+                return str(name)
+        elif not fallback:
+            fallback = str(name)
+    return fallback or str(next(iter(forms)))
 
 
 def _next_id(world, template: str) -> str:
@@ -693,6 +726,14 @@ def _deliver(world, cand: Dict[str, Any], turn: int) -> str:
     form = form_of(world, e, cand)
     if form:
         row["form"] = form
+    # RE-H (P18): the last squadron's fate, frozen into the row at delivery —
+    # the chapter and the board line read the row, never the live record
+    from backend.game_logic import naval
+    last = naval.last_squadron(world, str(cand["lord"]))
+    if last and str(last.get("outcome") or "") in OUTCOMES:
+        row["last_fate"] = str(last["outcome"])
+        row["last_sailed"] = int(last.get("sailed", 0) or 0)
+        row["last_ships"] = int(last.get("ships", 0) or 0)
     MO.deliver_letter(world, e, turn, mid=mid, row=row)
     return mid
 
@@ -822,6 +863,61 @@ def resolve_courts(world) -> List[str]:
     (Q4); the function stands so a court-run deck (RE-4) lands behind the
     same seam. It does nothing."""
     return []
+
+
+def settle_squadrons(world) -> List[str]:
+    """Seam AFS — the squadrons' fates (RE-H, §6.5 step 7): the affairs tick's
+    first step. For every fleet record whose `squadron_last` returned THIS
+    morning (`naval._squadron_tick` ran earlier in the advance) and whose
+    occurrence row is not yet settled: the row gains `outcome`,
+    `outcome_turn` and the authored `outcome_line` (the Accept's `outcome`
+    copy by fate), its `receipt` the fate's words; one `moment` log row with
+    phase `outcome` carries the line, the Moniteur's `press` and the figures.
+    The naval module stays pure naval."""
+    if not armed(world):
+        return []
+    from backend.game_logic import naval
+    turn = MO._turn(world)
+    state = MO._state(world)
+    out: List[str] = []
+    for lord, rec in naval.iter_fleet_records(world):
+        last = rec.get("squadron_last")
+        if not isinstance(last, dict) or int(last.get("returned", -1) if last.get("returned") is not None else -1) != turn:
+            continue
+        mid = str(last.get("tag") or "")
+        row = state.get(mid)
+        if not isinstance(row, dict) or row.get("outcome"):
+            continue
+        e = MO.entry(world, mid)
+        if e is None:
+            continue
+        outcome = str(last.get("outcome") or "")
+        side = MO._answer_side(e, MO.ANSWER_ACCEPT, row.get("form"))
+        copy_by_fate = side.get("outcome") if isinstance(side.get("outcome"), dict) else {}
+        words = (copy_by_fate.get(outcome) or {}) if isinstance(copy_by_fate, dict) else {}
+        line = fill_slots(world, str(words.get("line") or ""), row, e)[:TEXT_MAX["outcome_line"]]
+        press = fill_slots(world, str(words.get("press") or ""), row, e)[:TEXT_MAX["press"]]
+        lost = int(last.get("lost", 0) or 0)
+        fate = "home whole" if outcome == "home" else f"{MO.sail_words(lost)} lost"
+        row.update({"outcome": outcome, "outcome_turn": int(turn), "outcome_line": line,
+                    "receipt": f"{row.get('receipt') or ''} — {fate}"[:120]})
+        MO._log(world, "outcome", e, outcome=outcome, line=line or f"{title_of(e, row)} — {fate}", press=press,
+                title=title_of(e, row), ships=int(last.get("ships", 0) or 0), lost=lost,
+                odds=int(last.get("odds", 0) or 0), draw=int(last.get("draw", 0) or 0), lord=str(lord),
+                register=MO.REGISTER_AFFAIR, occurrence=mid)
+        out.append(mid)
+    return out
+
+
+def fate_lines(world) -> List[str]:
+    """RE-H (reading 0c): the squadrons' fates on THIS morning — the rows whose
+    `outcome_turn` is the turn — for the morning's SITUATION in both views
+    (amber); RE-R joins the answers' receipts to the same key family."""
+    if not armed(world):
+        return []
+    turn = MO._turn(world)
+    return [str(r.get("outcome_line") or "") for _k, r in all_occurrences(world)
+            if isinstance(r.get("outcome_turn"), int) and int(r["outcome_turn"]) == turn and r.get("outcome_line")]
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1105,6 +1201,21 @@ def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
                      f"{int(coverage)} sail effective against our {ours}.")
     else:
         lines.append(f"No enemy squadron holds the coast this morning; {ours} sail effective in port.")
+    # RE-H: the squadron form's passage, from the one quote the Accept applies;
+    # a hunter that vanished reads as the Accept's own refusal, never silence
+    side = MO._answer_side(e, MO.ANSWER_ACCEPT, (occ or {}).get("form"))
+    sq = next((op for op in side.get("ops") or [] if isinstance(op, dict) and op.get("op") == "squadron"), None)
+    if sq is not None:
+        q = naval.squadron_quote(world, lord, int(sq.get("ships", 5) or 5), int(sq.get("away", 4) or 4),
+                                 str(sq.get("to") or ""), MO._turn(world))
+        lines.append(f"The passage: {int(q['odds'])} in 100 to come home whole." if not q["refusal"]
+                     else f"The passage: {q['refusal']}")
+    # from the second arrival: the last squadron's fate, frozen into the row
+    sailed, fate = (occ or {}).get("last_sailed"), str((occ or {}).get("last_fate") or "")
+    if isinstance(sailed, int) and not isinstance(sailed, bool) and fate in OUTCOMES:
+        lost = int((occ or {}).get("last_ships", 0) or 0)
+        what = "home whole" if fate == "home" else f"{MO.sail_words(lost)} lost"
+        lines.append(f"Your last squadron sailed {MO._dateline(world, int(sailed))}: {what}.")
     return lines
 
 

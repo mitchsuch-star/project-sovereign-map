@@ -941,6 +941,11 @@ func _render_admiralty_block(adm: Dictionary) -> String:
 		var rot = str(fleet.get("rot_line", ""))
 		if rot != "":
 			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + rot + "[/color]\n"
+		# RE-H (docs/RECURRING_EVENTS_SPEC.md §6.5): a squadron at sea — its
+		# destination and its expected return from the fleet record alone.
+		var squadron = str(fleet.get("squadron_line", ""))
+		if squadron != "":
+			bbcode += "  [color=#" + Utils.COLOR_WARNING + "]" + squadron + "[/color]\n"
 		var yards = fleet.get("yards", [])
 		if yards is Array and yards.size() > 0:
 			var laid = int(fleet.get("laid_this_turn", 0))

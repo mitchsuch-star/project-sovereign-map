@@ -1477,17 +1477,28 @@ SHOTS += [
              "for.'); the Accept on an OPAQUE disabled plaque with its reason as the second line; "
              "'Let the Council act / standing 80 → 75' live; Berthier's counsel; nothing clipped at "
              "scale 2.0"),
-            # RE-H H0 (November 1, 2026; RECURRING_EVENTS_SPEC.md §6.5): the Haiti letter, the bill form
+            # RE-H (November 1, 2026; RECURRING_EVENTS_SPEC.md §6.5): the Haiti letter, the bill form —
+            # a peace with Britain leaves no hunter at sea
             ("santo_domingo_bill", "The Relief of Santo Domingo — the Haiti letter's bill form (Decrès, Minister of Marine)",
              "the same dress under Decrès's monogram 'D'; line 2 'The Relief of Santo Domingo — Decrès, "
              "Minister of Marine and the Colonies'; the writer's own line ('Sire, Ferrand wrote last "
              "February…'); the ground and the first chapter (the killings of 1804, Ferrand's decree, Moca "
              "and Santiago) in IM Fell italic; 'FROM HAITI —' in the rubric over the Constitution of "
-             "1805's Article 2 in IM Fell roman; the fleuron-led board (blockaded N of the last 12 "
-             "mornings, the Emperor at Lorraine; Britain's 100 sail against our 31); the buttons 'Send "
+             "1805's Article 2 in IM Fell roman; the fleuron-led board (blockaded 5 of the last 12 "
+             "mornings, the Emperor at Lorraine; no enemy squadron holds the coast); the buttons 'Send "
              "flour and muskets / −600 gold · 1 action' and 'Ferrand must hold alone / standing 100 → 97' "
              "and 'Not Now / waits on the desk'; Berthier's counsel under the buttons; both answers above "
              "the fold at BOTH scales"),
+            # RE-H the squadron (the second landing): Britain's blockade is the hunter at sea
+            ("santo_domingo_squadron", "The Squadron for Santo Domingo — the Haiti letter's squadron form (Decrès, Minister of Marine)",
+             "the same dress under Decrès's monogram 'D'; line 2 'The Squadron for Santo Domingo — Decrès, "
+             "Minister of Marine and the Colonies'; the writer's line ('…Brest can put five of the line to "
+             "sea in a month.'); the ground and the first chapter in IM Fell italic; 'FROM HAITI —' over "
+             "the Constitution of 1805 in IM Fell roman; the fleuron-led board (blockaded 7 of 12; Britain's "
+             "100 sail against our 31; 'The passage: 36 in 100 to come home whole.'); the buttons 'Send five "
+             "of the line / −500 gold · 1 action · 36 in 100 home' and 'Ferrand must hold alone / standing "
+             "100 → 97' and 'Not Now / waits on the desk'; Berthier's counsel ('Five sail are five sail, "
+             "Sire; Boulogne counts them too.'); both answers above the fold at BOTH scales"),
         )
     ],
 ]

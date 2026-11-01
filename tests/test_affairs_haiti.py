@@ -172,7 +172,9 @@ class TestThePremise:
         assert e["bites"] == AF.BITES_FLOOR and e["cooldown"] == 12 and e["cap"] == 2
         assert e["ends"] == {"date": "1808-11-07", "turn": 76}
         assert e["voice"] == {"speaker": "named", "name": "Decrès, Minister of Marine and the Colonies"}
-        assert "forms" not in e                      # H0: the bill alone (the squadron is the second landing)
+        # the second landing: two forms — the squadron behind its requirement, the bill the fallback
+        assert list(e["forms"]) == ["squadron", "bill"]
+        assert e["forms"]["squadron"]["requires"] == "hunter_at_sea" and e["forms"]["bill"] == {}
 
     def test_the_boot_reads_the_latch_but_not_the_purse(self, armed):
         """The 1805 boot: Britain blockades France from the opening, the Emperor
@@ -252,7 +254,7 @@ class TestTheLatchAndTheArrival:
         assert delivered == {7: [f"{H1}#1"]}
         row = MO.status_row(armed, f"{H1}#1")
         assert row == {"status": "fired", "turn": 7, "id": f"{H1}#1", "lord": "France",
-                       "bind": {"region": HOME, "sovereign": "Napoleon"}, "tier": 1}
+                       "bind": {"region": HOME, "sovereign": "Napoleon"}, "tier": 1, "form": "squadron"}
         assert AF.watch(armed) == []                       # silent while the letter stands
         letter = _letter(armed, f"{H1}#1")
         assert letter is not None and MO.is_quiet_letter(letter)
@@ -324,9 +326,18 @@ class TestBitesOnTheFloorHalf:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestTheAnswers:
+    """The bill's answers (the squadron's are below): the letter arrives in
+    its bill form when no hunter is at sea — a peace with Britain on turn 6
+    leaves five blockaded mornings in the latch and no squadron to hunt."""
+
     def _arrive(self, armed, authority=100, gold=5_000):
         _haiti_board(armed, gold=gold, authority=authority)
-        assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
+        _run(armed, range(1, 6))
+        armed.diplomatic_states[armed._make_diplo_key("France", "Britain")] = "PEACE"
+        armed.invalidate_active_nations_cache()
+        armed.__dict__.pop("_affairs_memo", None)
+        assert _run(armed, [6, 7]) == {7: [f"{H1}#1"]}
+        assert MO.status_row(armed, f"{H1}#1")["form"] == "bill"
         letter = _letter(armed, f"{H1}#1")
         _make_current(armed, letter)
         return letter
@@ -427,6 +438,14 @@ class TestTheCopyAndTheDress:
             for key in ("caption", "echo", "press", "remember", "situation"):
                 texts.append((key, e[side][key]))
             texts.append(("button_line", re.sub(r"\{[a-z_]+\}", "####", e[side]["button_line"])))
+        squadron = e["forms"]["squadron"]
+        texts += [("title", squadron["title"]), ("line", squadron["line"]), ("counsel", squadron["counsel"])]
+        sq_accept = squadron["accept"]
+        texts += [("caption", sq_accept["caption"]), ("echo", sq_accept["echo"]),
+                  ("situation", sq_accept["situation"]), ("remember", sq_accept["remember"]),
+                  ("button_line", re.sub(r"\{[a-z_]+\}", "####", sq_accept["button_line"]))]
+        for fate in ("home", "caught"):
+            texts += [("outcome_line", sq_accept["outcome"][fate]["line"]), ("press", sq_accept["outcome"][fate]["press"])]
         for key, text in texts:
             assert text and len(text) <= AF.TEXT_MAX[key], (key, len(text), text)
             assert not _TYPED.search(text), (key, text)
@@ -464,15 +483,18 @@ class TestTheCopyAndTheDress:
         assert "{" not in AF.fill_slots(armed, e["line"], _occ(1, turn=7), e)
 
     def test_the_payload_wears_the_dress_in_the_affairs_register(self, armed):
+        """Under Britain's blockade (the boot) the letter arrives in its
+        squadron form: the form's title, line and counsel, the passage on the
+        board, the odds on the button and in the payload."""
         _haiti_board(armed)
         assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
         letter = _letter(armed, f"{H1}#1")
         payload = MO.refresh_letter(armed, letter)
         assert payload["register"] == "affair" and payload["header"] == "AN AFFAIR OF STATE — LATE DECEMBER 1805"
-        assert payload["title"] == "The Relief of Santo Domingo"
+        assert payload["title"] == "The Squadron for Santo Domingo"
         assert (payload["writer"], payload["office"]) == ("Decrès", "Minister of Marine and the Colonies")
         assert payload["device"] == {"kind": "monogram", "nation": "", "letter": "D"}
-        assert payload["line"].startswith("Sire, Ferrand wrote last February")
+        assert payload["line"].startswith("Sire, Ferrand wrote last February") and "five of the line" in payload["line"]
         assert payload["ground"] == MO.entry(armed, H1)["record"]
         assert payload["chapter"].startswith("Historically Haiti killed the French")
         assert payload["exhibit"].startswith("‘Slavery is forever abolished.’")
@@ -480,10 +502,11 @@ class TestTheCopyAndTheDress:
         assert payload["record"] == f"{payload['ground']} {payload['chapter']}"
         assert payload["board"] == [
             "France blockaded 7 of the last 12 mornings; the Emperor holds court at Lorraine.",
-            "Britain's squadrons hold the coast: 100 sail effective against our 31."]
-        assert payload["counsel"].startswith("Berthier — Two frigates and flour")
+            "Britain's squadrons hold the coast: 100 sail effective against our 31.",
+            "The passage: 36 in 100 to come home whole."]
+        assert payload["counsel"] == "Berthier — Five sail are five sail, Sire; Boulogne counts them too."
         assert payload["counsel"] == payload["talleyrand_assessment"]
-        assert payload["odds"] == 0                          # H0: no squadron
+        assert payload["odds"] == 36 and payload["button_accept"] == "−500 gold · 1 action · 36 in 100 home"
         for key in ("board", "exhibit", "chapter", "exhibit_from"):
             assert "_" not in re.sub(r"\{[a-z_]+\}", "", str(payload[key]))
 
@@ -564,6 +587,27 @@ REH_BAD = [
     ("a bites word the engine lacks", lambda b: _h(b).update(bites="aura"), "moments.affairs.deck[3].bites"),
     ("an ends before the anchor", lambda b: _h(b).update(ends={"date": "1805-01-01", "turn": 1}),
      "moments.affairs.deck[3].ends.date"),
+    # the squadron (the second landing)
+    ("a squadron on a Decline", lambda b: _h(b)["decline"]["ops"].append({"op": "squadron", "ships": 5, "away": 4, "to": "Santo Domingo"}),
+     "moments.affairs.deck[3].decline.ops[1]"),
+    ("two squadrons", lambda b: _h(b)["forms"]["squadron"]["accept"]["ops"].append({"op": "squadron", "ships": 3, "away": 3, "to": "Martinique"}),
+     "moments.affairs.deck[3].forms"),
+    ("nine of the line", lambda b: _h(b)["forms"]["squadron"]["accept"]["ops"][2].update(ships=9),
+     "moments.affairs.deck[3].forms.squadron.accept.ops[2].ships"),
+    ("away two turns", lambda b: _h(b)["forms"]["squadron"]["accept"]["ops"][2].update(away=2),
+     "moments.affairs.deck[3].forms.squadron.accept.ops[2].away"),
+    ("a destination past 32", lambda b: _h(b)["forms"]["squadron"]["accept"]["ops"][2].update(to="S" * 33),
+     "moments.affairs.deck[3].forms.squadron.accept.ops[2].to"),
+    ("a squadron with no fallback form", lambda b: _h(b)["forms"].pop("bill"), "moments.affairs.deck[3].forms"),
+    ("the reserve breached", lambda b: _h(b)["when"].update(min_ships=24), "moments.affairs.deck[3].when.min_ships"),
+    ("an outcome missing a fate", lambda b: _h(b)["forms"]["squadron"]["accept"]["outcome"].pop("caught"),
+     "moments.affairs.deck[3].forms.squadron.accept.outcome"),
+    ("a fate line past 160", lambda b: _h(b)["forms"]["squadron"]["accept"]["outcome"]["home"].update(line="x" * 161),
+     "moments.affairs.deck[3].forms.squadron.accept.outcome.home.line"),
+    ("outcome copy on the bill", lambda b: _h(b)["accept"].update(outcome={"home": {"line": "x", "press": "y"}, "caught": {"line": "x", "press": "y"}}),
+     "moments.affairs.deck[3].accept.outcome"),
+    ("a requirement the engine lacks", lambda b: _h(b)["forms"]["squadron"].update(requires="full_moon"),
+     "moments.affairs.deck[3].forms.squadron.requires"),
 ]
 
 
@@ -606,3 +650,284 @@ class TestEachAnswerIsTheBetterOneSomewhere:
         standing = next(r for r in decline["rows"] if r["op"] == "authority")
         assert (gold["amount"], admin["amount"], standing["loss"]) == (600, 1, 3)
         assert not [r for r in decline["rows"] if r["op"] in ("gold", "dp", "admin")]
+# ═══════════════════════════════════════════════════════════════════════════
+# THE SQUADRON — RE-H's second landing (§6.5 "the mechanism", P2–P4, P18; §22.2)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _peace_with_britain(w):
+    w.diplomatic_states[w._make_diplo_key("France", "Britain")] = "PEACE"
+    w.invalidate_active_nations_cache()
+    w.__dict__.pop("_affairs_memo", None)
+
+
+class TestTheOddsAndTheQuote:
+    def test_the_op_table_grew_to_ten_and_the_dated_deck_cannot_author_it(self, armed):
+        assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
+                               "authority", "admin", "squadron"}
+        assert "squadron" in AF.AFFAIR_OPS and "squadron" in MO.DECLINE_FORBIDDEN_OPS
+        assert "squadron" not in MO.OP_BOUNDS                     # the moments' own vocabulary is closed
+
+    def test_the_escort_override_asks_the_one_model_one_question(self, armed):
+        """P4: the odds are `expedition_slip_odds` with `escort` = the sailing
+        force alone (ships × readiness / 100) — the open-water arm, no troops;
+        every live caller passes none, so the quote is byte-identical."""
+        _haiti_board(armed)
+        rec = naval.get_fleet(armed, "France")
+        whole = naval.expedition_slip_odds(armed, "France", None, 0)
+        alone = naval.expedition_slip_odds(armed, "France", None, 0, escort=5 * 70 / 100.0)
+        assert whole["coverer"] == alone["coverer"] == "Britain" and alone["mode"] == "open_water"
+        assert alone["odds"] == 36 and alone["odds"] < whole["odds"]
+        assert naval.expedition_slip_odds(armed, "France", None, 0, escort=None) == whole
+        assert rec["ships"] == 45
+
+    def test_python_rounds_half_to_even_and_the_pin_says_so(self, armed):
+        """P4, pinned: 95 − 13 × 4.5 = 36.5 → 36 (the ratio on the cap for any
+        squadron of eight or fewer); with a window won, 61.5 → 62 at readiness
+        50, 64 at 70, 71 at 80 — ships move the odds only in a window."""
+        _haiti_board(armed)
+        rec = naval.get_fleet(armed, "France")
+        assert int(round(36.5)) == 36 and int(round(61.5)) == 62
+        for ships in (1, 5, 8):
+            assert naval.expedition_slip_odds(armed, "France", None, 0, escort=ships * 0.7)["odds"] == 36
+        rec["window_turns"] = 2
+        for readiness, odds in ((50, 62), (70, 64), (80, 71)):
+            assert naval.expedition_slip_odds(armed, "France", None, 0, escort=5 * readiness / 100.0)["odds"] == odds, readiness
+        rec["window_turns"] = 0
+        _peace_with_britain(armed)
+        assert naval.expedition_slip_odds(armed, "France", None, 0, escort=3.5)["odds"] == 100
+
+    def test_the_quote_refuses_without_a_fleet_a_reserve_or_with_a_squadron_at_sea(self, armed):
+        _haiti_board(armed)
+        q = naval.squadron_quote(armed, "France", 5, 4, "Santo Domingo", 7)
+        assert (q["before"], q["after"], q["odds"], q["hunter"], q["home_by"], q["refusal"]) == (45, 40, 36, "Britain", 11, "")
+        rec = naval.get_fleet(armed, "France")
+        rec["ships"] = 24
+        assert "24 sail in port" in naval.squadron_quote(armed, "France", 5, 4, "Santo Domingo", 7)["refusal"]
+        rec["ships"] = 45
+        naval.detach_squadron(armed, "France", 5, 4, "Santo Domingo", 36, "santo_domingo#1", 7)
+        assert "already at sea" in naval.squadron_quote(armed, "France", 5, 4, "Santo Domingo", 8)["refusal"]
+        rec.pop("squadron")
+        rec["ships"] = 0
+        assert "no fleet" in naval.squadron_quote(armed, "France", 5, 4, "Santo Domingo", 7)["refusal"]
+
+
+class TestTheFormIsFrozenAtDelivery:
+    def test_the_squadron_form_with_a_hunter_at_sea(self, armed):
+        _haiti_board(armed)
+        assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
+        row = MO.status_row(armed, f"{H1}#1")
+        assert row["form"] == "squadron" and "last_fate" not in row
+        e = MO.entry(armed, H1)
+        assert AF.title_of(e, row) == "The Squadron for Santo Domingo"
+        payload = MO.refresh_letter(armed, _letter(armed, f"{H1}#1"))
+        assert payload["title"] == "The Squadron for Santo Domingo"
+        assert payload["line"].startswith("Sire, Ferrand wrote last February") and "five of the line" in payload["line"]
+        assert payload["counsel"] == "Berthier — Five sail are five sail, Sire; Boulogne counts them too."
+        assert payload["button_accept"] == "−500 gold · 1 action · 36 in 100 home" and payload["odds"] == 36
+        assert payload["board"][2] == "The passage: 36 in 100 to come home whole."
+        accept = payload["answers"][0]["quote"]
+        assert accept.startswith("Send five of the line: 500 gold (the treasury holds 5,000); 1 administrative action (1 left today); "
+                                 "five of the line sail (45 → 40 in port until Late February 1806) — 36 in 100 they come home whole; "
+                                 "caught, the five are lost and the men are ashore.")
+
+    def test_the_bill_form_when_no_hunter_is_at_sea(self, armed):
+        _haiti_board(armed)
+        _run(armed, range(1, 6))
+        _peace_with_britain(armed)                       # the latch still carries five mornings
+        assert _run(armed, [6, 7]) == {7: [f"{H1}#1"]}
+        row = MO.status_row(armed, f"{H1}#1")
+        assert row["form"] == "bill"
+        payload = MO.refresh_letter(armed, _letter(armed, f"{H1}#1"))
+        assert payload["title"] == "The Relief of Santo Domingo" and payload["odds"] == 0
+        assert payload["button_accept"] == "−600 gold · 1 action"
+        assert payload["board"][1].startswith("No enemy squadron holds the coast")
+        assert "squadron" not in {r["op"] for r in MO.plan(armed, MO.entry(armed, H1), "accept", row)["rows"]}
+
+    def test_a_hunter_that_vanishes_closes_the_accept_with_its_text_never_a_silent_re_plan(self, armed):
+        _haiti_board(armed)
+        assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
+        letter = _letter(armed, f"{H1}#1")
+        _make_current(armed, letter)
+        naval.get_fleet(armed, "France")["ships"] = 20          # the fleet sent elsewhere
+        payload = MO.refresh_letter(armed, letter)
+        assert MO.status_row(armed, f"{H1}#1")["form"] == "squadron"
+        accept = next(o for o in payload["options"] if o["action"] == "accept_ai_proposal")
+        assert accept.get("enabled") is False and "20 sail in port" in str(accept.get("reason") or "")
+        with _quiet():
+            result = MO.answer(armed, letter, MO.ANSWER_ACCEPT)
+        assert result["success"] is False and result.get("moment_stands") is True
+
+
+class TestTheSailingAndTheFate:
+    def _sail(self, armed, client):
+        _haiti_board(armed)
+        assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
+        letter = _letter(armed, f"{H1}#1")
+        _make_current(armed, letter)
+        with _quiet():
+            result = client.post("/respond_to_diplomatic_dialogue",
+                                 json={"choice": "accept_ai_proposal", "dialogue_id": letter["dialogue_id"]}).json()
+        assert result["success"] is True, result
+        return MO.status_row(armed, f"{H1}#1")
+
+    def test_shown_equals_applied_for_the_sailing(self, armed, client):
+        row = self._sail(armed, client)
+        rec = naval.get_fleet(armed, "France")
+        assert rec["ships"] == 40 and armed.nation_gold["France"] == 5_000 - 500
+        assert rec["squadron"] == {"ships": 5, "readiness": 70, "sailed": 7, "returns": 11, "to": "Santo Domingo",
+                                   "odds": 36, "tag": f"{H1}#1", "issued": 7}
+        assert row["home_by"] == 11 and row["receipt"] == "−500 gold · 1 action · 36 in 100 home"
+        assert row["echo"] == "Decrès: the squadron slips out of Brest on the night tide."
+        assert naval.squadron_at_sea(armed, "France")["to"] == "Santo Domingo"
+        for value in rec["squadron"].values():
+            assert isinstance(value, (int, str)) and not isinstance(value, bool)
+
+    def test_the_squadron_drills_at_sea_and_folds_home_on_the_seeded_draw(self, armed, client):
+        """The draw on `historical` for a sailing issued T7 tagged #1: the
+        namespace carries the issued turn (the seed trap of the design pass)."""
+        from backend.game_logic.campaign_variance import seeded_int
+        self._sail(armed, client)
+        draw = seeded_int("historical", f"naval::squadron::7::France::{H1}#1", 0, 99)
+        rec = naval.get_fleet(armed, "France")
+        rec["readiness"] = 50                                    # the home fleet rots to the floor
+        for turn in (8, 9, 10):
+            _at(armed, turn)
+            naval._squadron_tick(armed)
+            assert rec["squadron"]["readiness"] == 70 + 5 * (turn - 7)
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        assert "squadron" not in rec
+        last = naval.last_squadron(armed, "France")
+        assert last["draw"] == draw and last["odds"] == 36 and last["returned"] == 11 and last["tag"] == f"{H1}#1"
+        if draw < 36:
+            assert last["outcome"] == "home" and last["lost"] == 0
+            assert rec["ships"] == 45 and rec["readiness"] == int(round((40 * 50 + 5 * 90) / 45))
+        else:
+            assert last["outcome"] == "caught" and last["lost"] == 5 and rec["ships"] == 40 and rec["readiness"] == 50
+
+    def test_both_fates_fold_or_lose_the_five(self, armed, client):
+        self._sail(armed, client)
+        rec = naval.get_fleet(armed, "France")
+        base = {k: v for k, v in rec.items() if k != "squadron"}
+        # home: the odds forced to 100 — five back at their sea readiness
+        rec["squadron"]["odds"] = 100
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        assert rec["ships"] == 45 and rec["squadron_last"]["outcome"] == "home" and rec["squadron_last"]["readiness"] == 75
+        # caught: the odds forced to 0 — the five lost whole (the fleet back
+        # at its 45 before the second sailing)
+        rec.update(base)
+        rec["ships"] = 45
+        rec.pop("squadron_last", None)
+        naval.detach_squadron(armed, "France", 5, 4, "Santo Domingo", 0, f"{H1}#1", 7)
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        assert rec["ships"] == 40 and rec["squadron_last"]["outcome"] == "caught" and rec["squadron_last"]["lost"] == 5
+
+    def test_a_squadron_outliving_an_annihilated_fleet_still_settles(self, armed, client):
+        """`iter_fleet_records`, never `iter_fleets`: a fleet sunk to the last
+        hull while its squadron is away must still see the squadron home."""
+        self._sail(armed, client)
+        rec = naval.get_fleet(armed, "France")
+        rec["ships"] = 0
+        rec["squadron"]["odds"] = 100
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        assert rec["ships"] == 5 and rec["readiness"] == 75 and rec["posture"] in ("guard", "blockade")
+
+    def test_the_settlement_writes_the_row_the_log_and_the_morning_line(self, armed, client):
+        row = self._sail(armed, client)
+        rec = naval.get_fleet(armed, "France")
+        rec["squadron"]["odds"] = 100
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        with _quiet():
+            settled = AF.settle_squadrons(armed)
+        assert settled == [f"{H1}#1"]
+        assert row["outcome"] == "home" and row["outcome_turn"] == 11
+        assert row["outcome_line"] == "The squadron is home from Santo Domingo, all five sail; Ferrand has his men, his flour and his muskets."
+        assert row["receipt"].endswith(" — home whole")
+        last = _moment_rows(armed)[-1]
+        assert last["phase"] == "outcome" and last["register"] == "affair" and last["outcome"] == "home"
+        assert last["press"] == "SANTO DOMINGO — The Emperor's squadron is home; the garrison is relieved."
+        assert AF.fate_lines(armed) == [row["outcome_line"]]
+        _at(armed, 12)
+        assert AF.fate_lines(armed) == []                       # one morning only
+        assert AF.settle_squadrons(armed) == []                  # settled once
+
+    def test_the_caught_squadron_s_line_and_the_moniteur_s_lie(self, armed, client):
+        row = self._sail(armed, client)
+        naval.get_fleet(armed, "France")["squadron"]["odds"] = 0
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        with _quiet():
+            AF.settle_squadrons(armed)
+        assert row["outcome"] == "caught" and row["receipt"].endswith(" — five of the line lost")
+        assert row["outcome_line"].startswith("The British found the squadron at anchor off Santo Domingo")
+        assert _moment_rows(armed)[-1]["press"] == "SAN DOMINGO — Our squadron sustained the honour of the flag against a superior enemy."
+
+    def test_the_next_letter_remembers_the_fate(self, armed, client):
+        row = self._sail(armed, client)
+        naval.get_fleet(armed, "France")["squadron"]["odds"] = 0
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        with _quiet():
+            AF.settle_squadrons(armed)
+        assert row is not None
+        armed.nation_gold["France"] = 5_000
+        delivered = _run(armed, range(12, 21))
+        assert delivered == {19: [f"{H1}#2"]}, delivered
+        second = MO.status_row(armed, f"{H1}#2")
+        assert second["last_fate"] == "caught" and second["last_sailed"] == 7
+        payload = MO.refresh_letter(armed, _letter(armed, f"{H1}#2"))
+        assert payload["chapter"].startswith("Historically Leissègues landed")
+        assert payload["board"][-1] == "Your last squadron sailed Late December 1805: five of the line lost."
+        assert payload["exhibit"].startswith("‘Nous avons osé")
+
+    def test_a_mid_voyage_save_round_trips(self, armed, client):
+        import json as _json
+        from backend.models.world_state import WorldState
+        self._sail(armed, client)
+        data = _json.loads(_json.dumps(armed.to_dict()))
+        back = WorldState.from_dict(data)
+        assert naval.get_fleet(back, "France")["squadron"] == naval.get_fleet(armed, "France")["squadron"]
+        assert MO.status_row(back, f"{H1}#1")["home_by"] == 11
+
+    def test_no_step_touches_the_alarm(self, armed, client):
+        before = (dict(getattr(armed, "threat_by_target", {}) or {}),
+                  dict(getattr(armed, "threat_sources_this_turn", {}) or {}))
+        self._sail(armed, client)
+        naval.get_fleet(armed, "France")["squadron"]["odds"] = 0
+        _at(armed, 11)
+        naval._squadron_tick(armed)
+        with _quiet():
+            AF.settle_squadrons(armed)
+        after = (dict(getattr(armed, "threat_by_target", {}) or {}),
+                 dict(getattr(armed, "threat_sources_this_turn", {}) or {}))
+        assert after == before
+        assert "overseas_income" not in naval.get_fleet(armed, "France")
+
+    def test_the_admiralty_names_the_squadron_while_it_is_away(self, armed, client):
+        self._sail(armed, client)
+        line = naval.build_admiralty_report(armed)["own_fleet"]["squadron_line"]
+        assert line == "Five of the line are at sea for Santo Domingo, readiness 70; expected home by Late February 1806."
+        naval.get_fleet(armed, "France").pop("squadron")
+        assert naval.build_admiralty_report(armed)["own_fleet"]["squadron_line"] == ""
+
+    def test_the_squadron_s_movers_on_britain_s_reads(self, armed, client):
+        """§6.5 "the AI's side": a squadron at sea shrinks the port fleet
+        Britain reads — the blockade verdict, the trade loss and the Diversion
+        odds unchanged; the fleet-action ratio a little worse."""
+        _haiti_board(armed)
+        before = (naval.blockader_against(armed, "France"), naval.blockade_trade_loss(armed).get("France"),
+                  naval.diversion_odds(armed, "France"), naval._fleet_action_odds(armed, "Britain", "France")["ratio"])
+        assert _run(armed, range(1, 8)) == {7: [f"{H1}#1"]}
+        self_letter = _letter(armed, f"{H1}#1")
+        _make_current(armed, self_letter)
+        with _quiet():
+            client.post("/respond_to_diplomatic_dialogue",
+                        json={"choice": "accept_ai_proposal", "dialogue_id": self_letter["dialogue_id"]})
+        after = (naval.blockader_against(armed, "France"), naval.blockade_trade_loss(armed).get("France"),
+                 naval.diversion_odds(armed, "France"), naval._fleet_action_odds(armed, "Britain", "France")["ratio"])
+        assert after[0] == before[0] and after[1] == before[1] and after[2] == before[2]
+        assert before[3] < after[3] <= before[3] * 1.15

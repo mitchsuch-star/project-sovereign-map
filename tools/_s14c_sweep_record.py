@@ -183,6 +183,7 @@ def affairs_reach(trace: dict, templates: list) -> dict:
         prefix = f"{template}#"
         arrived = {k: int(v) for k, v in (judged.get("arrived") or {}).items() if str(k).startswith(prefix)}
         withdrawn = {}
+        fates = {}
         held = 0
         for m in mornings:
             frame = m.get("affairs") or {}
@@ -191,6 +192,10 @@ def affairs_reach(trace: dict, templates: list) -> dict:
             for occ in frame.get("withdrawn") or []:
                 if str(occ).startswith(prefix):
                     withdrawn[str(occ)] = int(m.get("turn", 0))
+            # RE-H: the squadron's fate on its morning (the trace's `fates`)
+            for fate in frame.get("fates") or []:
+                if str(fate.get("occ") or "").startswith(prefix):
+                    fates[str(fate["occ"])] = dict(fate, turn=int(m.get("turn", 0)))
         lines = []
         answers = []
         for occ, turn in sorted(arrived.items(), key=lambda kv: kv[1]):
@@ -206,6 +211,10 @@ def affairs_reach(trace: dict, templates: list) -> dict:
                 lines.append(f"{occ} arrived T{turn}, lapsed T{answer.get('turn')} (its decline)")
             else:
                 lines.append(f"{occ} arrived T{turn}, answered {answer.get('answer')} T{answer.get('turn')}")
+            if occ in fates:
+                f = fates[occ]
+                lines[-1] += (f"; the squadron {f.get('outcome')} T{f.get('turn')} "
+                              f"({f.get('odds')} in 100, drew {f.get('draw')})")
         crowded = [f"{occ} crowded out ({reason})" for occ, reason in (judged.get("passed") or {}).items()
                    if str(occ).startswith(prefix)]
         floors = {k: v for k, v in (judged.get("floors") or {}).items() if str(k).startswith(template)}
@@ -282,6 +291,8 @@ def main() -> int:
     # own families, so the nine commanded arms stay the nine the pin names
     ap.add_argument("--reach-aar", default="", help="REACH-AAR's --out directory (RE-3)")
     ap.add_argument("--saves", default="", help="the hand-played starts' --out directory (RE-3)")
+    # RE-H: the family that sails the squadron (a France at home that accepts the Marine's letter)
+    ap.add_argument("--haiti", default="", help="the HAITI arms' --out directory (RE-H)")
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()
     block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
@@ -301,9 +312,10 @@ def main() -> int:
         "road_accept": _driver_arms(Path(args.road_accept), deck_ids, templates),
         "reach_aar": _driver_arms(Path(args.reach_aar), deck_ids, templates) if args.reach_aar else {},
         "saves": _driver_arms(Path(args.saves), deck_ids, templates) if args.saves else {},
+        "haiti": _driver_arms(Path(args.haiti), deck_ids, templates) if args.haiti else {},
     }
     Path(args.out).write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-    for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves"):
+    for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves", "haiti"):
         rows = record[family]
         print(f"{family:12s} arms {len(rows):2d}  ceiling breaches "
               f"{sum(len(r['ceiling_breaches']) for r in rows.values())}  floor breaches "
@@ -311,7 +323,7 @@ def main() -> int:
               f"{all(r['shown_equals_applied'] for r in rows.values())}")
     for template in templates:
         words = {}
-        for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves"):
+        for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves", "haiti"):
             for name, r in record[family].items():
                 words[f"{family}/{name}"] = (r.get("affairs_reach") or {}).get(template, {}).get("verdict", "")
         arrived = sum(1 for w in words.values() if w == "arrived")

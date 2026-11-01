@@ -119,7 +119,7 @@ TITLE_MAX = 40
 RECORD_MAX = 240
 CAPTION_MAX = 36
 ALARM_SOURCE_PREFIX = "moment_"
-DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law")
+DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron")
 PACING_DEFAULTS = {"max_open": 1, "min_gap": 3}
 PACING_BOUNDS = {"max_open": (1, 1), "min_gap": (2, 5)}
 GRACE_BOUNDS = (1, 3)
@@ -789,6 +789,42 @@ def _apply_admin(world, lord, row) -> None:
         world.use_admin_action(int(row["amount"]))
 
 
+_NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
+
+
+def sail_words(n: int) -> str:
+    """"five of the line" — the squadron's size in words (1–8), else digits."""
+    return f"{_NUMBER_WORDS.get(int(n), str(int(n)))} of the line"
+
+
+def _plan_squadron(world, lord, op) -> Dict[str, Any]:
+    """RE-H (RECURRING_EVENTS_SPEC.md §6.5, P2–P4): the Haiti letter's squadron
+    — `ships` leave port for `away` turns toward `to` at the one expedition
+    model's odds (`naval.squadron_quote`); the refusal (no fleet, no reserve,
+    a squadron already at sea) closes the Accept with its own words. The
+    `tag` is the occurrence id `plan` stamps, so the fate finds its row."""
+    from backend.game_logic import naval
+    ships = int(op.get("ships", 5) or 5)
+    away = int(op.get("away", 4) or 4)
+    to = str(op.get("to") or "")
+    q = naval.squadron_quote(world, lord, ships, away, to, _turn(world))
+    row = {"op": "squadron", "ships": ships, "away": away, "to": q["to"], "before": int(q["before"]),
+           "after": int(q["after"]), "odds": int(q["odds"]), "hunter": str(q["hunter"]),
+           "home_by": int(q["home_by"]), "tag": str(op.get("tag") or ""), "refusal": str(q["refusal"]),
+           "line": ""}
+    if not row["refusal"]:
+        row["line"] = (f"{sail_words(ships)} sail ({row['before']} → {row['after']} in port until "
+                       f"{_dateline(world, row['home_by'])}) — {row['odds']} in 100 they come home whole; "
+                       f"caught, the {_NUMBER_WORDS.get(ships, str(ships))} are lost and the men are ashore")
+    return row
+
+
+def _apply_squadron(world, lord, row) -> None:
+    from backend.game_logic import naval
+    naval.detach_squadron(world, lord, int(row["ships"]), int(row["away"]), str(row["to"]),
+                          int(row["odds"]), str(row.get("tag") or ""), _turn(world))
+
+
 OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "gold": (_plan_gold, _apply_gold),
     "dp": (_plan_dp, _apply_dp),
@@ -799,6 +835,8 @@ OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "enact_law": (_plan_enact_law, _apply_enact_law),
     "authority": (_plan_authority, _apply_authority),
     "admin": (_plan_admin, _apply_admin),
+    # RE-H: the tenth op — 9 → 10, flipped consciously (§6.5 P4)
+    "squadron": (_plan_squadron, _apply_squadron),
 }
 OP_TYPES = tuple(OPS)
 
@@ -866,6 +904,8 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
             from backend.game_logic.vassal import AUTONOMY_NAMES
             parts.append(f"{_court(world, str(row.get('court') or ''), capitalize=True)}: "
                          f"{AUTONOMY_NAMES.get(int(row.get('level', 0) or 0), '')}")
+        elif op == "squadron" and not row.get("refusal"):
+            parts.append(f"{int(row.get('ships', 0) or 0)} sail at {int(row.get('odds', 0) or 0)} in 100")
         elif op == "enact_law" and not row.get("refusal"):
             from backend.game_logic import reforms
             law = reforms.find_law(world, lord, str(row.get("law") or ""))
@@ -917,6 +957,9 @@ def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]])
             figures["loyalty_after"] = int(first.get("after", 0) or 0)
             figures.setdefault("host", _court(world, str(first.get("court") or "")))
             figures.setdefault("Host", _court(world, str(first.get("court") or ""), capitalize=True))
+        elif op == "squadron":
+            figures["odds"] = int(row.get("odds", 0) or 0)
+            figures["ships"] = int(row.get("ships", 0) or 0)
     template = str(side.get("button_line") or "")
     text = template.format_map(figures) if template else _derived_button_line(world, lord, rows)
     return text[:120]
@@ -940,6 +983,8 @@ def plan(world, e: Dict[str, Any], answer: str,
     rows: List[Dict[str, Any]] = []
     for op in side.get("ops") or []:
         op = _bind_op(scaled_op(op or {}, tier), occ) if occ else (op or {})
+        if str(op.get("op") or "") == "squadron" and occ.get("id"):
+            op = dict(op, tag=str(occ["id"]))          # RE-H: the fate finds its row by the tag
         fns = OPS.get(str(op.get("op") or ""))
         if fns is None:
             continue
@@ -1159,14 +1204,31 @@ def _stamp_receipt(world, e: Dict[str, Any], row: Dict[str, Any], p: Dict[str, A
     frozen at the answer or the lapse; the 500-row log is never re-read."""
     from backend.game_logic import affairs
     row["receipt"] = str(p.get("receipt") or "")[:120]
+    # RE-H: the squadron's expected return rides the row (`{date}` in the
+    # reaction copy; the Correspondence's "word expected about …")
+    for op_row in p.get("rows") or []:
+        if str(op_row.get("op") or "") == "squadron" and not op_row.get("refusal"):
+            row["home_by"] = int(op_row.get("home_by", 0) or 0)
     side = _answer_side(e, answer_key, row.get("form"))
-    row["echo"] = affairs.fill_slots(world, str(side.get("echo") or ""), row)[:160]
+    row["echo"] = affairs.fill_slots(world, str(side.get("echo") or ""), row, e)[:160]
 
 
-def unanswered_sentence(e: Dict[str, Any], decline_plan: Dict[str, Any]) -> str:
+def letter_title(e: Dict[str, Any], row: Optional[Dict[str, Any]] = None) -> str:
+    """The letter's title as the player reads it: an occurrence's frozen form
+    (RE-H: "The Squadron for Santo Domingo" over the entry's bill title), a
+    moment's own."""
+    row = row if isinstance(row, dict) else {}
+    if is_occurrence(str(row.get("id") or "")):
+        from backend.game_logic import affairs
+        return affairs.title_of(e, row)
+    return str((e or {}).get("title") or "")
+
+
+def unanswered_sentence(e: Dict[str, Any], decline_plan: Dict[str, Any],
+                        title: Optional[str] = None) -> str:
     """The moment's own lapse line ("The Throne of Holland was left
     unanswered — Keep the Republic: no change.")."""
-    return f"{e.get('title') or 'The letter'} was left unanswered — {decline_plan['quote']}"
+    return f"{title or e.get('title') or 'The letter'} was left unanswered — {decline_plan['quote']}"
 
 
 def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
@@ -1243,7 +1305,9 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
         "counsel": counsel,
         "button_accept": str(accept.get("receipt") or ""),
         "button_decline": str(decline.get("receipt") or ""),
-        "odds": 0,
+        # RE-H: the squadron's odds (an int; 0 for a letter without a sailing)
+        "odds": next((int(r.get("odds", 0) or 0) for r in accept["rows"]
+                      if str(r.get("op") or "") == "squadron" and not r.get("refusal")), 0),
         "answers": [{"action": ANSWER_ACTIONS[ANSWER_ACCEPT], "caption": accept["caption"],
                      "quote": accept["quote"]},
                     {"action": ANSWER_ACTIONS[ANSWER_DECLINE], "caption": decline["caption"],
@@ -1394,9 +1458,10 @@ def answer(world, dialogue: Dict[str, Any], answer_key: str) -> Dict[str, Any]:
     if dm is not None:
         dm.remove_matching(lambda d, _d=dialogue: d is _d)
     _dismiss_notice(world, mid)
-    _log(world, "answered", e, answer=answer_key, caption=p["caption"], line=p["quote"],
+    title = letter_title(e, row)             # RE-H: the frozen form's title, as the letter read
+    _log(world, "answered", e, answer=answer_key, caption=p["caption"], line=p["quote"], title=title,
          **_affair_fields(mid, p))
-    return {"success": True, "message": f"{e.get('title')} — {p['quote']}",
+    return {"success": True, "message": f"{title} — {p['quote']}",
             "decision_reason": "moment_answered", "suppress_proposal_result_popup": True,
             "moment_answered": {"id": mid, "answer": answer_key}}
 
@@ -1436,7 +1501,7 @@ def lapse_gate_rows(world) -> List[Dict[str, Any]]:
         if e is None or status(world, mid) != STATUS_FIRED:
             continue
         p = plan(world, e, ANSWER_DECLINE, status_row(world, mid))
-        rows.append({"moment": mid, "title": str(e.get("title") or ""),
+        rows.append({"moment": mid, "title": letter_title(e, status_row(world, mid)),
                      "price_line": f"{p['caption']} — {p['effect']}"})
     return rows
 
@@ -1460,8 +1525,8 @@ def lapse_default(world, letter: Dict[str, Any]) -> Dict[str, Any]:
     if is_occurrence(mid):
         _stamp_receipt(world, e, row, p, ANSWER_DECLINE)
     _dismiss_notice(world, mid)
-    return {"moment": {"id": mid, "title": str(e.get("title") or ""),
-                       "line": unanswered_sentence(e, p)}}
+    title = letter_title(e, row)
+    return {"moment": {"id": mid, "title": title, "line": unanswered_sentence(e, p, title)}}
 
 
 # ════════════════════════════════════════════════════════════════════════
@@ -1537,7 +1602,7 @@ def deliver_letter(world, e: Dict[str, Any], turn: int, mid: Optional[str] = Non
     if affair:
         notice["expires_after_turn"] = int(payload["answer_by_turn"])
     world.notifications.add(notice)
-    _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]),
+    _log(world, "arrived", e, answer_by_turn=int(payload["answer_by_turn"]), title=str(payload["title"]),
          **_affair_fields(mid, state_row))
     return dialogue
 
@@ -1571,6 +1636,7 @@ def _affairs_tick(world, delivered: List[str]) -> List[str]:
     from backend.game_logic import affairs
     if not affairs.armed(world):
         return []
+    affairs.settle_squadrons(world)          # RE-H: the fates first (the naval tick ran before us)
     affairs.withdraw_standing(world, delivered)
     out = affairs.deliver_due(world, delivered)
     affairs.resolve_courts(world)

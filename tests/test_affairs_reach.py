@@ -25,8 +25,13 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 RECORD = REPO / "tools" / "_s14c_sweep_final.json"
 SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
-FAMILIES = ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves")
+FAMILIES = ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves", "haiti")
 SCRIPTED = ("commanded", "accept", "road", "road_accept", "reach_aar")
+# RE-H (§22.2, reading 7): the family that SAILS the squadron — a passive France
+# at home under Britain's blockade with the accept dial, three seeds; the
+# other 52 runs never sail one (the commanded Emperor is afield, the passive
+# runs lapse every letter, the treaty road declines).
+HAITI_ARMS = ("HAITI-historical", "HAITI-austerlitz", "HAITI-marengo")
 TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo")
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
@@ -59,6 +64,7 @@ class TestTheRecordMeasuredTheArmedDeck:
     def test_every_family_was_measured_with_the_trace(self, record):
         assert set(record["reach_aar"]) == {"REACH-AAR"}
         assert set(record["saves"]) == {f"DDB-{d}-{r}" for d in ("24", "25") for r in ("conquest", "diplomacy", "sea")}
+        assert set(record["haiti"]) == set(HAITI_ARMS)
         for family, name, row in _rows(record):
             assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
             assert list(row["affairs_reach"]) == list(TEMPLATES), (family, name)
@@ -160,6 +166,29 @@ class TestEachTemplatesReach:
             turns = _arrivals(row["affairs_reach"][H1])
             assert all(b - a >= 12 for a, b in zip(turns, turns[1:])), (family, name, turns)
             assert len([t for t in turns if t <= ACT]) <= 2, (family, name, turns)
+
+    def test_the_squadron_sails_and_settles_on_the_haiti_arms_and_nowhere_else(self, record):
+        """RE-H's second landing: on the `haiti` family the Marine's letter
+        arrives in its squadron form under Britain's blockade, the accept dial
+        sends five of the line, and the trace records the fate four turns on
+        (the frozen odds, the draw, home or caught); on every other family no
+        squadron sails — the fate is the one seeded roll per sailing, reported
+        per seed, never a law."""
+        sailed = {}
+        for name in HAITI_ARMS:
+            reach = record["haiti"][name]["affairs_reach"][H1]
+            fates = [line for line in reach["occurrences"] if "; the squadron " in line]
+            sailed[name] = fates
+            for a in reach["answers"]:
+                if a["answer"] == "accept":
+                    assert a["gold"] == 500, (name, a)           # the squadron form's price
+        assert any(sailed.values()), sailed
+        for line in (f for fates in sailed.values() for f in fates):
+            assert " home T" in line or " caught T" in line, line
+            assert "in 100, drew " in line, line
+        for family, name, row in _rows(record, [f for f in FAMILIES if f != "haiti"]):
+            for line in row["affairs_reach"][H1]["occurrences"]:
+                assert "; the squadron " not in line, (family, name, line)
 
     def test_the_host_s_claims_stay_an_event(self, record):
         """P6 (§0b): at two corps the Host's Claims reaches more boards (17 of

@@ -1764,6 +1764,7 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
             if not isinstance(forms, dict) or not forms:
                 result.add_error(f"{path}.forms", "Must be a non-empty object of named forms")
             else:
+                fallback_forms = 0
                 for fname, form in forms.items():
                     fpath = f"{path}.forms.{fname}"
                     if not isinstance(form, dict):
@@ -1772,8 +1773,18 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                     _text(f"{fpath}.title", form.get("title"), AF.TEXT_MAX["title"], required=False)
                     for key in ("line", "counsel"):
                         _text(f"{fpath}.{key}", form.get(key), AF.TEXT_MAX[key], required=False)
+                    # RE-H (P18): a form's `requires` names a requirement the
+                    # engine reads live; a form without one is the fallback
+                    requires = form.get("requires")
+                    if requires is not None and requires not in AF.FORM_REQUIRES:
+                        result.add_error(f"{fpath}.requires", f"Must name a requirement of {list(AF.FORM_REQUIRES)}")
+                    elif requires is None:
+                        fallback_forms += 1
                     sides.append((f".forms.{fname}", form))
+                if forms and fallback_forms == 0:
+                    result.add_error(f"{path}.forms", "One form must carry no `requires` (the fallback)")
         has_authority = False
+        squadron_ops = []
         for prefix, holder in sides:
             for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
                 spath = f"{path}{prefix}.{side}"
@@ -1789,6 +1800,22 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                 if not isinstance(ops, list):
                     result.add_error(f"{spath}.ops", "Must be a list")
                     continue
+                side_squadron = [op for op in ops if isinstance(op, dict) and op.get("op") == "squadron"]
+                # RE-H (§6.5 step 7): an Accept that sails a squadron authors
+                # both fates' copy — the morning line and the Moniteur's line
+                outcome = answer.get("outcome")
+                if side_squadron:
+                    if not isinstance(outcome, dict) or set(outcome) != set(AF.OUTCOMES):
+                        result.add_error(f"{spath}.outcome", f"Must author both fates {list(AF.OUTCOMES)}")
+                    else:
+                        for fate, words in outcome.items():
+                            if not isinstance(words, dict):
+                                result.add_error(f"{spath}.outcome.{fate}", "Must be an object {line, press}")
+                                continue
+                            _text(f"{spath}.outcome.{fate}.line", words.get("line"), AF.TEXT_MAX["outcome_line"])
+                            _text(f"{spath}.outcome.{fate}.press", words.get("press"), AF.TEXT_MAX["press"])
+                elif outcome is not None:
+                    result.add_error(f"{spath}.outcome", "Only an Accept that sails a squadron carries outcome copy")
                 if shape == "offer" and side == MO.ANSWER_DECLINE and ops:
                     result.add_error(f"{spath}.ops", "An offer's Decline is empty")
                 if shape == "door":
@@ -1812,6 +1839,12 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         _int_in(f"{opath}.amount", op.get("amount"), *AF.AFFAIR_OP_BOUNDS[name])
                     if name == "authority":
                         has_authority = True
+                    if name == "squadron":
+                        # RE-H (P4): ships 1–8, away 3–6, a destination ≤ 32
+                        squadron_ops.append(op)
+                        _int_in(f"{opath}.ships", op.get("ships"), *AF.SQUADRON_BOUNDS["ships"])
+                        _int_in(f"{opath}.away", op.get("away"), *AF.SQUADRON_BOUNDS["away"])
+                        _text(f"{opath}.to", op.get("to"), AF.SQUADRON_BOUNDS["to"])
                     if name in ("relation", "loyalty"):
                         _int_in(f"{opath}.delta", op.get("delta"), *AF.AFFAIR_OP_BOUNDS[name])
                         if op.get("court") not in ("$host", "$lord"):
@@ -1826,6 +1859,24 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         elif bounds:
                             for t, amount in tiers.items():
                                 _int_in(f"{opath}.tiers.{t}", amount, *bounds)
+        if squadron_ops:
+            # RE-H (§6.5 step 1): one squadron per entry; a fallback form (the
+            # bill); the owner's navy; the premise keeps `ships` + the reserve
+            if len(squadron_ops) > 1:
+                result.add_error(f"{path}.forms", "At most one squadron op per entry")
+            if not isinstance(forms, dict) or not forms:
+                result.add_error(f"{path}.forms", "An entry that sails a squadron authors a fallback form (the bill)")
+            from backend.game_logic.naval import SQUADRON_RESERVE
+            navy = (navies or {}).get(str(owner or "")) if isinstance(navies, dict) else None
+            if not isinstance(navy, dict) or int(navy.get("ships", 0) or 0) <= 0:
+                result.add_error(f"{path}.forms", "A squadron needs the owner's `navies` row with ships")
+            ships = squadron_ops[0].get("ships") if isinstance(squadron_ops[0], dict) else None
+            min_ships = when.get("min_ships") if isinstance(when, dict) else None
+            if (isinstance(ships, int) and not isinstance(ships, bool)
+                    and (not isinstance(min_ships, int) or isinstance(min_ships, bool)
+                         or int(min_ships) < int(ships) + int(SQUADRON_RESERVE))):
+                result.add_error(f"{path}.when.min_ships",
+                                 f"Must be at least ships + {int(SQUADRON_RESERVE)} (the reserve behind a squadron)")
         bites_value = e.get("bites")
         if has_authority and bites_value not in AF.BITES_MODES:
             result.add_error(f"{path}.bites",

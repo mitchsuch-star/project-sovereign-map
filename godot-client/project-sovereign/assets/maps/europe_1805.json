@@ -2816,6 +2816,48 @@
                     "line": "Sire, Ferrand wrote {wrote} that he had bread for twenty days and no credit from France. The sea is open; two frigates can carry flour and muskets by the spring tide.",
                     "watch": "Blockaded {n} of the last 12 mornings, the Emperor at home — Decrès may write of Santo Domingo.",
                     "counsel": "Berthier — Two frigates and flour, Sire: the garrison thanks you in the spring and writes again in the autumn.",
+                    "forms": {
+                        "squadron": {
+                            "requires": "hunter_at_sea",
+                            "title": "The Squadron for Santo Domingo",
+                            "line": "Sire, Ferrand wrote {wrote} that he had bread for twenty days and no credit; Your Majesty called it shameful to abandon these brave men. Brest can put five of the line to sea in a month.",
+                            "counsel": "Berthier — Five sail are five sail, Sire; Boulogne counts them too.",
+                            "accept": {
+                                "caption": "Send five of the line",
+                                "button_line": "−500 gold · 1 action · {odds} in 100 home",
+                                "ops": [
+                                    {
+                                        "op": "gold",
+                                        "amount": 500
+                                    },
+                                    {
+                                        "op": "admin",
+                                        "amount": 1
+                                    },
+                                    {
+                                        "op": "squadron",
+                                        "ships": 5,
+                                        "away": 4,
+                                        "to": "Santo Domingo"
+                                    }
+                                ],
+                                "echo": "Decrès: the squadron slips out of Brest on the night tide.",
+                                "situation": "Five of the line are at sea for Santo Domingo; Decrès expects them home by {date}.",
+                                "remember": "In {month} you sent five of the line; Decrès writes again of Santo Domingo.",
+                                "outcome": {
+                                    "home": {
+                                        "line": "The squadron is home from Santo Domingo, all five sail; Ferrand has his men, his flour and his muskets.",
+                                        "press": "SANTO DOMINGO — The Emperor's squadron is home; the garrison is relieved."
+                                    },
+                                    "caught": {
+                                        "line": "The British found the squadron at anchor off Santo Domingo: five of the line are lost; the men and the stores were ashore. Decrès asks for an inquiry.",
+                                        "press": "SAN DOMINGO — Our squadron sustained the honour of the flag against a superior enemy."
+                                    }
+                                }
+                            }
+                        },
+                        "bill": {}
+                    },
                     "closing": [
                         "Historically the Spanish colonists rose in 1808, armed by Pétion and Christophe; Ferrand killed himself after Palo Hincado on 7 November 1808, and the garrison surrendered to the British in July 1809.",
                         "Historically France recognised Haiti only in 1825, for 150 million francs paid to the former colonists; Mackau's squadron carried the ordinance, and Boyer accepted it on 11 July 1825."

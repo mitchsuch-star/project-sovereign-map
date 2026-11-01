@@ -913,8 +913,12 @@ class TestTheAlarmLabels:
         # RE-1 (October 31, 2026): the table grew by `authority` and `admin` —
         # the affairs' two ops (RECURRING_EVENTS_SPEC.md §5, Q6), 7 → 9,
         # flipped consciously; neither reaches a VP-1 verb.
+        # RE-H (November 1, 2026): the tenth op, `squadron` — the Haiti letter's
+        # five of the line (RECURRING_EVENTS_SPEC.md §6.5, P4), 9 → 10, flipped
+        # consciously; it writes the fleet record through `naval.detach_squadron`
+        # and reaches no VP-1 verb.
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin"}
+                               "authority", "admin", "squadron"}
 
     def test_no_nation_literal_in_the_engine(self):
         """Q6: the deck is France's content, never the code's."""

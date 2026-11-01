@@ -107,6 +107,25 @@ class MomentsTrace:
                 frame["due"] = [f"{c['e']['id']}|{c['subject']}" for c in result]
             return result
 
+        real_settle = AF.settle_squadrons
+
+        def settle_squadrons(world):
+            # RE-H: the squadrons' fates on their morning — the frozen odds,
+            # the draw and the outcome, read off the fleet record the naval
+            # tick wrote
+            result = real_settle(world)
+            frame = trace._affairs_frame
+            if frame is not None and result:
+                from backend.game_logic import naval
+                fates = frame.setdefault("fates", [])
+                for mid in result:
+                    row = MO._state(world).get(str(mid)) or {}
+                    last = naval.last_squadron(world, str(row.get("lord") or MO.owner(world))) or {}
+                    fates.append({"occ": str(mid), "outcome": str(row.get("outcome") or ""),
+                                  "odds": int(last.get("odds", 0) or 0), "draw": int(last.get("draw", 0) or 0),
+                                  "ships": int(last.get("ships", 0) or 0), "lost": int(last.get("lost", 0) or 0)})
+            return result
+
         def _affairs_tick(world, delivered):
             before = {str(k): dict(v) for k, v in MO._state(world).items() if isinstance(v, dict)}
             frame = {"true": [], "false": [], "delivered": [], "withdrawn": [], "passed": {}, "due": []}
@@ -196,7 +215,8 @@ class MomentsTrace:
                                  (WC, "foreground_in_tenure", foreground_in_tenure),
                                  (MO, "_affairs_tick", _affairs_tick),
                                  (AF, "premise_holds", premise_holds),
-                                 (AF, "candidates", candidates)):
+                                 (AF, "candidates", candidates),
+                                 (AF, "settle_squadrons", settle_squadrons)):
             self._saved.append((owner, name, getattr(owner, name)))
             setattr(owner, name, new)
         return self
@@ -279,6 +299,11 @@ def _delivered(world, lord: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
     elif op == "admin" and not row.get("skip") and "after" in row:
         put("administrative actions", int(row["after"]),
             int(getattr(world, "admin_actions_remaining", 0) or 0))
+    # RE-H: the squadron — the sail left in port after the sailing
+    elif op == "squadron" and not row.get("refusal") and "after" in row:
+        from backend.game_logic import naval
+        rec = naval.get_fleet(world, lord) or {}
+        put("sail in port", int(row["after"]), int(rec.get("ships", 0) or 0))
     return out
 
 

@@ -35,7 +35,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1, RE-2 landed Oct 31; §19, §20); S15 after RE**.
 
 **▶ LIVE STATE (November 1, 2026).** The three most recent rows:
-- **RE-H H0 (Nov 1) — the Haiti letter, the bill alone, on 16 of 52 runs; the squadron NEXT** (spec §22).
+- **RE-H (Nov 1) — the Haiti letter: the bill, then the squadron (OPS 10); RE-C NEXT** (spec §22).
 - **RE-3 (Nov 1) — the deck ARMED, reach measured on 52 runs** (spec §21).
 - **RE-2 (Oct 31) — the letter's dress, the quiet arrival** (spec §20).
 

@@ -93,8 +93,34 @@ def _counted_courts(world):
         return []
     return _courts(world)
 AF.resolve_courts = _counted_courts
+from backend.game_logic import naval as NV
+_sqtick = NV._squadron_tick
+def _counted_sqtick(world):
+    _c["squadron_ticks"] += sum(1 for _n, r in NV.iter_fleet_records(world) if isinstance(r.get("squadron"), dict))
+    if "AFH" in DOWN:
+        return []
+    out = _sqtick(world)
+    _c["squadrons_returned"] += len(out or [])
+    return out
+NV._squadron_tick = _counted_sqtick
+_detach = NV.detach_squadron
+def _counted_detach(world, nation, ships, away, to, odds, tag, issued):
+    _c["squadrons_sailed"] += 1
+    if "AFS" in DOWN:
+        return {{}}
+    return _detach(world, nation, ships, away, to, odds, tag, issued)
+NV.detach_squadron = _counted_detach
+_settle = AF.settle_squadrons
+def _counted_settle(world):
+    if "AFS" in DOWN:
+        return []
+    out = _settle(world)
+    _c["squadrons_settled"] += len(out or [])
+    return out
+AF.settle_squadrons = _counted_settle
 _KEYS = ("affairs_armed_ticks", "affairs_delivered", "blind_rows_dropped", "pulse_draws",
-         "affairs_receipts", "court_resolutions")
+         "affairs_receipts", "court_resolutions", "squadron_ticks", "squadrons_sailed",
+         "squadrons_returned", "squadrons_settled")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

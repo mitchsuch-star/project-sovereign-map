@@ -618,9 +618,9 @@ INK = {"INK_BODY": "2B1D12", "INK_RUBRIC": "6A1410", "INK_SEPIA": "4E3820",
        "INK_RULE": "8A7A5A", "INK_SHEET_HC": "EFE3C6"}
 FRAME_DATE = "2026_10_31"
 AFFAIR_STEMS = ("THE_HOST", "BERTHIERS_MEMORIAL", "CLOSED_ACCEPT")
-# RE-H H0 (November 1, 2026): the Haiti letter's bill form, shot under its own date
+# RE-H (November 1, 2026): the Haiti letter's two forms, shot under their own date
 FRAME_DATE_H = "2026_11_01"
-AFFAIR_STEMS_H = ("SANTO_DOMINGO_BILL",)
+AFFAIR_STEMS_H = ("SANTO_DOMINGO_BILL", "SANTO_DOMINGO_SQUADRON")
 
 
 def _gd(name):
@@ -782,9 +782,11 @@ class TestTheFrames:
         for aid, needles in (("the_host", ("Pay the host's claims", "Live off the land", "parchment", "counsel")),
                              ("berthiers_memorial", ("Found the headquarters", "monogram", "counsel")),
                              ("closed_accept", ("OPAQUE", "spoken for", "standing 80 → 75")),
-                             # RE-H H0: the Haiti letter's bill form
+                             # RE-H: the Haiti letter's two forms
                              ("santo_domingo_bill", ("Send flour and muskets", "Ferrand must hold alone",
-                                                     "FROM HAITI", "monogram 'D'", "IM Fell roman"))):
+                                                     "FROM HAITI", "monogram 'D'", "IM Fell roman")),
+                             ("santo_domingo_squadron", ("Send five of the line", "36 in 100 home",
+                                                         "The passage: 36 in 100", "Boulogne counts them too"))):
             row = shots[f"affair_letter_{aid}"]
             assert row["scene"] == "res://scenes/incoming_proposal_popup.tscn"
             assert row["method"] == "show_proposal"
@@ -794,7 +796,7 @@ class TestTheFrames:
             assert "two-line" in shots[f"moment_letter_{mid}"]["must_show"]
         cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")
         for name in ("affair_letter_the_host", "affair_letter_berthiers_memorial", "affair_letter_closed_accept",
-                     "affair_letter_santo_domingo_bill"):
+                     "affair_letter_santo_domingo_bill", "affair_letter_santo_domingo_squadron"):
             assert f'record("{name}"' in cap, name
 
     @pytest.mark.parametrize("stem, date", [(f"AFFAIR_LETTER_{s}", FRAME_DATE) for s in AFFAIR_STEMS]
@@ -819,8 +821,8 @@ class TestTheReadabilityRecord:
     @pytest.mark.parametrize("record_path, surface_ids", [
         (RECORD, ("moment_letter_bavarian_match", "affair_letter_the_host",
                   "affair_letter_berthiers_memorial", "affair_letter_closed_accept")),
-        # RE-H H0: the Haiti letter's bill form, shot into its own record
-        (RECORD_H, ("affair_letter_santo_domingo_bill",)),
+        # RE-H: the Haiti letter's two forms, shot into their own record
+        (RECORD_H, ("affair_letter_santo_domingo_bill", "affair_letter_santo_domingo_squadron")),
     ], ids=["re2", "re_h"])
     def test_the_record_covers_the_letters_at_every_resolution_with_no_red(self, record_path, surface_ids):
         import sys

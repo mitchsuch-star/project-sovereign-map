@@ -494,7 +494,7 @@ OCC_T1 = {"id": "chancellors_letters#1", "lord": "France", "bind": {}, "tier": 1
 
 class TestTheTwoOps:
     def test_the_op_table_grew_by_two_and_no_affair_reaches_the_alarm(self):
-        assert set(MO.OPS) >= {"authority", "admin"} and len(MO.OPS) == 9
+        assert set(MO.OPS) >= {"authority", "admin", "squadron"} and len(MO.OPS) == 10   # RE-H: the squadron
         assert "alarm" in AF.BARRED_OPS and "alarm" not in AF.AFFAIR_OPS
 
     @pytest.mark.parametrize("authority, loss", [(80, 5), (73, 2), (70, 0)])

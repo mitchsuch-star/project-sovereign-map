@@ -2158,17 +2158,54 @@ def cap_moments():
         w.nation_gold["France"] = 5_000
         w.authority_tracker.authority = 100
 
+    def haiti_facts_of(popup):
+        out = affair_facts(popup)
+        out.update({"ground": popup.get("ground"), "chapter": popup.get("chapter"),
+                    "exhibit": popup.get("exhibit"), "exhibit_from": popup.get("exhibit_from"),
+                    "odds": popup.get("odds")})
+        return out
+
+    # the SQUADRON form (the second landing, P2 / P18): Britain's blockade from
+    # the opening is the hunter at sea — five of the line at 36 in 100
     world, c, popup = stage_affair("santo_domingo#1", range(1, 8), haiti_board)
-    haiti_facts = affair_facts(popup)
-    haiti_facts.update({"ground": popup.get("ground"), "chapter": popup.get("chapter"),
-                        "exhibit": popup.get("exhibit"), "exhibit_from": popup.get("exhibit_from")})
+    record("affair_letter_santo_domingo_squadron", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; the "
+                    "Emperor at Lorraine and Britain's blockade from the opening (the boot, unchanged — the "
+                    "hunter at sea freezes the squadron form); France's gold 5000 (above the Marine's bar "
+                    "of 1,500, under the Staff's), standing 100, DP 7, admin 2 WRITTEN; the production "
+                    "moments.tick delivered the letter on the pulse's first morning, turn 7, the latch "
+                    "full since turn 4"),
+           facts=haiti_facts_of(popup))
+
+    # the BILL form: a peace with Britain on turn 6 leaves five blockaded
+    # mornings in the latch and no hunter at sea — two frigates, 600 gold
+    def haiti_bill_board(w):
+        haiti_board(w)
+
+    world, c = fresh()
+    clear_dialogues(world)
+    world.moments = MO.from_block(json.loads(AFFAIRS_BLOCK.read_text(encoding="utf-8")))
+    A._no_moments(world)
+    T._rich(world)
+    haiti_bill_board(world)
+    A._run(world, range(1, 6))
+    world.diplomatic_states[world._make_diplo_key("France", "Britain")] = "PEACE"
+    world.invalidate_active_nations_cache()
+    world.__dict__.pop("_affairs_memo", None)
+    delivered = A._run(world, [6, 7])
+    if "santo_domingo#1" not in [m for ids in delivered.values() for m in ids]:
+        raise RuntimeError(f"the bill did not arrive on turn 7: {delivered}")
+    A._make_current(world, A._letter(world, "santo_domingo#1"))
+    popup = get(c, "/pending_envoy").get("incoming_proposal")
+    if (popup or {}).get("title") != "The Relief of Santo Domingo":
+        raise RuntimeError("the pending envoy is not the bill form: " + str(popup)[:200])
     record("affair_letter_santo_domingo_bill", popup, source="GET /pending_envoy → incoming_proposal",
            staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; the "
-                    "Emperor at Lorraine and Britain's blockade from the opening (the boot, unchanged); "
-                    "France's gold 5000 (above the Marine's bar of 1,500, under the Staff's), standing "
-                    "100, DP 7, admin 2 WRITTEN; the production moments.tick delivered the bill on the "
-                    "pulse's first morning, turn 7, the latch full since turn 4"),
-           facts=haiti_facts)
+                    "Emperor at Lorraine, Britain's blockade from the opening (the boot); France's gold 5000, "
+                    "standing 100, DP 7, admin 2 WRITTEN; after turn 5 a PEACE with Britain WRITTEN (state "
+                    "write) — five blockaded mornings stay in the latch and no hunter is at sea, so the "
+                    "production moments.tick delivered the BILL form on turn 7"),
+           facts=haiti_facts_of(popup))
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 

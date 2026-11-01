@@ -123,8 +123,15 @@ world.fleets: Dict[str, dict]  # keyed by nation, present only for nations with 
 #   "camp_turns": int,       # §5.3 Descent prep counter (France-side; 0 for everyone else)
 #   "diversion_last_turn": int,  # §5.3 / SR-5c — the turn of the last Grand Diversion this naval war (-1 none; was `diversion_used: bool`, migrated on load)
 #   "window_turns": int,     # §5.3 — turns of open Channel remaining (0 = shut)
+#   "squadron": {...},       # RE-H (November 1, 2026; RECURRING_EVENTS_SPEC.md §6.5) — a letter's squadron at
+#                            #   sea: {ships, readiness, sailed, returns, to, odds, tag, issued}; written by
+#                            #   `detach_squadron`, drilled and settled by `_squadron_tick`; absent otherwise
+#   "squadron_last": {...},  # the last squadron's fate {tag, sailed, returned, outcome home|caught, ships, lost,
+#                            #   odds, draw, readiness, to} — the affairs read it, the module never imports the deck
 # }
 ```
+
+**RE-H's `escort` override (November 1, 2026):** `expedition_slip_odds(world, nation, None, 0, escort=ships × readiness / 100)` quotes a squadron that sails ALONE on the open-water arm (guard fleets skipped, blockade fleets hunt) — the third override beside `window` and `escort_extra`; every live caller passes none, and a second model of the odds stays barred. At war against Britain's 100 sail the ratio sits on the cap for any squadron of eight or fewer: 36 in 100 (36.5 rounded half to even, pinned); 62 / 64 / 71 with a window won at readiness 50 / 70 / 80; with no hunter the quote REFUSES (100 is a sale — the letter's bill form is that road). The squadron drills `READINESS_TICK` a turn at sea toward 100 and folds back at that readiness (the `lay_down_ship` fold); caught, it is lost whole.
 
 **Effective strength** = `ships × readiness/100 × pooling`. Pooling: co-belligerent allies
 and vassals whose fleets share the same mode+target add at **×0.8** each (H6). The pool is

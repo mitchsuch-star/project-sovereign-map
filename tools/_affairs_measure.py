@@ -50,6 +50,14 @@ RUNS = ROOT / "tools" / "playtest_runs"
 
 COMMANDED = ("FC", "OP", "DL", "CMD-H", "CMD-A", "CMD-M", "FLD", "LAW", "VOLTE")
 ACCEPT = ("CMD-H", "CMD-A", "CMD-M")
+# RE-H (§22.2, reading 7): the commanded arms march with the Emperor and the
+# passive runs lapse every letter, so no spec arm ever SAILS the squadron —
+# the `haiti` family is the one that does: a France that keeps the Emperor at
+# home, declines Britain's peace and accepts the Marine's letter, on the
+# three benchmark seeds (the sailing's fate reported per seed).
+HAITI_SEEDS = ("historical", "austerlitz", "marengo")
+HAITI_ARGV = ["--turns", "40", "--moments-trace", "--affair", "accept", "--moment", "decline",
+              "--diplomacy", "decline", "--objection", "trust"]
 # The six hand-played DD-B boards at turn 21 (`docs/RECURRING_EVENTS_SPEC.md`
 # §1 "The hand-played boards"); `--turns 20` carries each to the Verdict's eve.
 SAVES = {f"DDB-{day}-{road}": RUNS / f"dd_b_2026_10_{day}" / road / "saves" / "autosave.json"
@@ -118,6 +126,9 @@ def plan(out: Path, families: list, affair: str) -> list:
             jobs.append((out / "saves" / "arms", name,
                          ["--from-save", str(save), "--turns", str(SAVE_TURNS),
                           "--moments-trace", "--affair", affair]))
+    if "haiti" in families:
+        for seed in HAITI_SEEDS:
+            jobs.append((out / "haiti" / "arms", f"HAITI-{seed}", ["--seed", seed] + list(HAITI_ARGV)))
     return jobs
 
 
@@ -180,6 +191,8 @@ def cmd_record(args) -> int:
            "--sweep", args.sweep, "--commanded", str(out / "commanded"),
            "--accept", str(out / "accept"), "--road", args.road, "--road-accept", args.road_accept,
            "--reach-aar", str(out / "reach_aar"), "--saves", str(out / "saves")]
+    if (out / "haiti").exists():
+        cmd += ["--haiti", str(out / "haiti")]
     record_path = Path(args.record) if args.record else ROOT / "tools" / "_s14c_sweep_final.json"
     cmd += ["--out", str(record_path)]
     print(" ".join(cmd[2:]))
@@ -205,7 +218,7 @@ def main() -> int:
     r = sub.add_parser("run")
     r.add_argument("--out", required=True)
     r.add_argument("--jobs", type=int, default=3)
-    r.add_argument("--families", default="commanded,accept,reach_aar,saves")
+    r.add_argument("--families", default="commanded,accept,reach_aar,saves,haiti")
     r.add_argument("--affair", default="decline", choices=["decline", "lapse"],
                    help="the dial on the non-accept arms (the accept arms always accept)")
     c = sub.add_parser("record")

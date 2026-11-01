@@ -6099,6 +6099,13 @@ def _build_situation(world, player_nation: str,
     from backend.game_logic import affairs as _affairs
     if _affairs.armed(world):
         situation["affairs_watch"] = [str(x) for x in _affairs.watch(world)]
+        # RE-H (RECURRING_EVENTS_SPEC.md §6.5, §22.2 — reading 0c): a squadron's
+        # fate on ITS morning, rendered amber in both views that print the
+        # Staff's line; absent on every other morning (RE-R joins the answers'
+        # receipts to the SITUATION block beside it).
+        _fate = _affairs.fate_lines(world)
+        if _fate:
+            situation["affair_fate"] = [str(x) for x in _fate]
     if grip_fields:
         # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
         situation["imperial_grip"] = int(grip_fields["grip"])

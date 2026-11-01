@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "bc919f82343b5a9d8e4d0a5596ea497bf72a6afcecc88e7218a1e133f080c587",
+ "deck_sha": "a929539dfcf777ad8fa30992acc2f28ec6d812e76e78d80c962a77a0b187c5e4",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -7206,6 +7206,365 @@
      "premise_mornings": 5,
      "first_due": null,
      "last_morning": 36
+    }
+   },
+   "errors": [],
+   "status": "game-over"
+  }
+ },
+ "haiti": {
+  "HAITI-austerlitz": {
+   "measured": true,
+   "mornings": 40,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "santo_domingo|": {
+     "first_due": 9,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_host|Bavaria": {
+     "first_due": 9,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "context_drift": [],
+   "answers": [
+    {
+     "turn": 10,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 14,
+     "moment": "santo_domingo#1",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T10, answered decline T10",
+    "throne_of_holland": "passed T22 (premise)",
+    "crown_of_the_reich": "pending — the last morning T41",
+    "decree_of_berlin": "passed T31 (premise)"
+   },
+   "affairs_reach": {
+    "chancellors_letters": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_host": {
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 9,
+     "first_due": 9,
+     "last_morning": 41
+    },
+    "berthiers_memorial": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "santo_domingo": {
+     "verdict": "arrived",
+     "occurrences": [
+      "santo_domingo#1 arrived T14, answered accept T14; the squadron caught T18 (36 in 100, drew 93)"
+     ],
+     "answers": [
+      {
+       "occ": "santo_domingo#1",
+       "turn": 14,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 500,
+       "standing": 0,
+       "quote": "Send five of the line: 500 gold (the treasury holds 7,248); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Early June 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 6748,
+         "delivered": 6748
+        },
+        {
+         "op": "admin",
+         "figure": "administrative actions",
+         "quoted": 1,
+         "delivered": 1
+        },
+        {
+         "op": "squadron",
+         "figure": "sail in port",
+         "quoted": 40,
+         "delivered": 40
+        }
+       ]
+      }
+     ],
+     "crowded": [],
+     "premise_mornings": 40,
+     "first_due": 9,
+     "last_morning": 41
+    }
+   },
+   "errors": [],
+   "status": "completed"
+  },
+  "HAITI-historical": {
+   "measured": true,
+   "mornings": 38,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "santo_domingo|": {
+     "first_due": 7,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "context_drift": [],
+   "answers": [
+    {
+     "turn": 7,
+     "moment": "santo_domingo#1",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T39",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "affairs_reach": {
+    "chancellors_letters": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
+    "the_host": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
+    "berthiers_memorial": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
+    "santo_domingo": {
+     "verdict": "arrived",
+     "occurrences": [
+      "santo_domingo#1 arrived T7, answered accept T7; the squadron home T11 (36 in 100, drew 18)"
+     ],
+     "answers": [
+      {
+       "occ": "santo_domingo#1",
+       "turn": 7,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 500,
+       "standing": 0,
+       "quote": "Send five of the line: 500 gold (the treasury holds 7,154); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late February 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 6654,
+         "delivered": 6654
+        },
+        {
+         "op": "admin",
+         "figure": "administrative actions",
+         "quoted": 1,
+         "delivered": 1
+        },
+        {
+         "op": "squadron",
+         "figure": "sail in port",
+         "quoted": 40,
+         "delivered": 40
+        }
+       ]
+      }
+     ],
+     "crowded": [],
+     "premise_mornings": 32,
+     "first_due": 7,
+     "last_morning": 39
+    }
+   },
+   "errors": [],
+   "status": "game-over"
+  },
+  "HAITI-marengo": {
+   "measured": true,
+   "mornings": 33,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "bavarian_match": {
+     "first_due": 8,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_host|Bavaria": {
+     "first_due": 6,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "context_drift": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "bavarian_match",
+     "kind": "answer",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 16,
+     "moment": "the_host#1",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 1
+    },
+    {
+     "turn": 26,
+     "moment": "the_host#2",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 1
+    }
+   ],
+   "reach": {
+    "bavarian_match": "arrived T8, answered decline T8",
+    "throne_of_holland": "passed T20 (premise)",
+    "crown_of_the_reich": "pending — the last morning T34",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "affairs_reach": {
+    "chancellors_letters": {
+     "verdict": "never due (premise held 24 mornings)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 24,
+     "first_due": null,
+     "last_morning": 34
+    },
+    "the_host": {
+     "verdict": "arrived",
+     "occurrences": [
+      "the_host#1 arrived T16, answered accept T16",
+      "the_host#2 arrived T26, answered accept T26"
+     ],
+     "answers": [
+      {
+       "occ": "the_host#1",
+       "turn": 16,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 600,
+       "standing": 0,
+       "quote": "Pay the host's claims: 600 gold (the treasury holds 10,576).",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 9976,
+         "delivered": 9976
+        }
+       ]
+      },
+      {
+       "occ": "the_host#2",
+       "turn": 26,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 300,
+       "standing": 0,
+       "quote": "Pay the host's claims: 300 gold (the treasury holds 3,400).",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 3100,
+         "delivered": 3100
+        }
+       ]
+      }
+     ],
+     "crowded": [],
+     "premise_mornings": 25,
+     "first_due": 6,
+     "last_morning": 34
+    },
+    "berthiers_memorial": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 34
+    },
+    "santo_domingo": {
+     "verdict": "never due (premise held 2 mornings)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 2,
+     "first_due": null,
+     "last_morning": 34
     }
    },
    "errors": [],
