@@ -915,8 +915,11 @@ class TestTheCensuses:
         # T3's door never opens here: the two Accepts spent both of the day's
         # administrative actions (no refill in a tick-only run), and the Staff's
         # premise reads `law_refusal` — "no admin action left" — as not offered.
+        # The Marine's letter reaches the Emperor at headquarters since the
+        # user's word of November 1, 2026 (the at-home clause dropped): it
+        # takes the pulse's next free morning after the Host's second bill.
         assert delivered == {7: "chancellors_letters#1", 12: "the_host#1", 17: "chancellors_letters#2",
-                             22: "the_host#2"}
+                             22: "the_host#2", 27: "santo_domingo#1"}
 
     def test_the_one_liner_speaks_the_affairs_phases_and_the_moments_as_before(self):
         from backend import campaign_log as CL

@@ -327,10 +327,12 @@ def _colony_cut_off(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     blockaded this morning by the trade-dominant power (`naval.is_blockaded`
     against `naval.trade_dominance_nation`), returned whether or not the rest
     holds so `update_morning` shifts the 12-bit mask — then the sovereign
-    standing, not a captive, AT HOME (the Marine's portfolio comes before the
-    Council when the Emperor holds court; afield the Arch-Chancellor writes
-    instead, so T1 and H1 never compete), at least `min_ships` sail in port
-    and the purse at or above `min_purse` + the AI's own reserve. No region
+    standing, not a captive, WHEREVER HE IS (the Marine's dispatches reached
+    the Emperor in the field — the user's word of November 1, 2026, "let
+    Decrès write to headquarters"; the October 30 at-home clause is dropped,
+    the pulse's gap keeps H1 and T1 apart, and the board says whether the
+    letter found him at court or at headquarters), at least `min_ships` sail
+    in port and the purse at or above `min_purse` + the AI's own reserve. No region
     scan (Rule 8): one marshal, one fleet record, one purse read."""
     from backend.game_logic import naval
     from backend.game_logic.fall import sovereign_of
@@ -345,10 +347,7 @@ def _colony_cut_off(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     sovereign = sovereign_of(world, lord)
     if sovereign is None or getattr(sovereign, "captured_by", ""):
         return out
-    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(lord, []) or [])
     location = str(getattr(sovereign, "location", "") or "")
-    if not location or location not in home:
-        return out
     rec = naval.get_fleet(world, lord) or {}
     if int(rec.get("ships", 0) or 0) < int(params.get("min_ships", 25) or 25):
         return out
@@ -1184,15 +1183,23 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
 
 def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
                           read: Dict[str, Any]) -> List[str]:
-    """§6.5's board: the latch's count and the Emperor's seat; the hunter's
+    """§6.5's board: the latch's count and where the letter found the Emperor
+    (at court, or at headquarters in the field); the hunter's
     sail against ours (ints, as the crossing refusal casts them); in the
     squadron form the passage's odds; from the second arrival the last
     squadron's fate (RE-H's second landing writes `last_sailed`)."""
     from backend.game_logic import naval
     of = int(((e.get("latch") or {}).get("of", 12)) or 12) if isinstance(e.get("latch"), dict) else 12
     region = str(bind.get("region") or (read.get("bind") or {}).get("region") or "")
+    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(lord, []) or [])
+    if region and region in home:
+        seat = f"the Emperor holds court at {region}"
+    elif region:
+        seat = f"the letter reaches headquarters at {region}"
+    else:
+        seat = "the letter reaches the Emperor"
     lines = [f"{MO._court(world, lord, capitalize=True)} blockaded {latch_count(world, e)} of the last "
-             f"{of} mornings; the Emperor holds court at {region or 'home'}."]
+             f"{of} mornings; {seat}."]
     rec = naval.get_fleet(world, lord) or {}
     ours = int(naval.effective_strength(rec))
     hunter, coverage = naval.blockader_against(world, lord)

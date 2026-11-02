@@ -32,12 +32,12 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1, RE-2 landed Oct 31; §19, §20); S15 after RE**.
+> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1…RE-H landed; §19–§22); AU authority push-and-pull after RE (`AUTHORITY_CURRENCY_SPEC.md`); S15 after AU**.
 
 **▶ LIVE STATE (November 1, 2026).** The three most recent rows:
-- **RE-H (Nov 1) — the Haiti letter: the bill, then the squadron (OPS 10); RE-C NEXT** (spec §22).
-- **RE-3 (Nov 1) — the deck ARMED, reach measured on 52 runs** (spec §21).
-- **RE-2 (Oct 31) — the letter's dress, the quiet arrival** (spec §20).
+- **RE-H (Nov 1) — the Haiti letter: the bill, then the squadron (OPS 10); RE-C NEXT** (§22).
+- **RE-3 (Nov 1) — the deck ARMED, reach on 52 runs** (§21).
+- **RE-2 (Oct 31) — the letter's dress** (§20).
 
 **Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS`, §153.3), the build (unsigned) and the clean run, RE3-6/7/9 (`BUG_FIXES.md` §RE3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 

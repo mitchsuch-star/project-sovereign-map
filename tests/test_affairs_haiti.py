@@ -4,7 +4,7 @@ that make them appear"; the landing record §22).
 
 H0 — the bill alone (the first landing, tier 1 "the letter" closes with it):
 the premise `colony_cut_off` clause by clause on crafted boots (the latch of
-four blockaded mornings in twelve, the Emperor at home, 25 sail in port, the
+four blockaded mornings in twelve, the Emperor at court or at headquarters, 25 sail in port, the
 purse above the Marine's bar); `bites: "floor"` — the floor half alone, so the
 letter arrives at full standing and the Decline is a dent there, a wound
 across the aura's line (§0b P16 amended); the arrival on the pulse's first
@@ -193,11 +193,17 @@ class TestThePremise:
         assert read["holds"] is True and read["bind"] == {"region": HOME, "sovereign": "Napoleon"}
         assert read["measure"] is None and read["latch"] is True
 
-    def test_the_emperor_afield_or_captive_silences_the_marine(self, armed):
-        """Afield the Arch-Chancellor writes instead — T1 and H1 never compete."""
+    def test_the_emperor_afield_still_receives_the_marine_but_a_captive_does_not(self, armed):
+        """The user's word (November 1, 2026): "let Decrès write to headquarters"
+        — the Marine's dispatches reached the Emperor in the field, so the
+        letter finds him at Swabia as at Lorraine (the bind says where); only
+        a captive Emperor silences it. The October 30 at-home clause is
+        dropped (§6.5 clause 2, amended)."""
         _haiti_board(armed)
         armed.marshals["Napoleon"].location = "Swabia"
-        assert _read(armed)["holds"] is False and _read(armed)["latch"] is True
+        read = _read(armed)
+        assert read["holds"] is True and read["latch"] is True
+        assert read["bind"] == {"region": "Swabia", "sovereign": "Napoleon"}
         armed.marshals["Napoleon"].location = HOME
         armed.marshals["Napoleon"].captured_by = "Austria"
         assert _read(armed)["holds"] is False
@@ -217,6 +223,19 @@ class TestThePremise:
         armed.invalidate_active_nations_cache()
         read = _read(armed)
         assert read["latch"] is False and read["holds"] is True
+
+    def test_the_board_says_where_the_letter_found_the_emperor(self, armed):
+        """At court the board reads as before; at headquarters it says so;
+        a bind without a region names neither (the user's word of November 1)."""
+        _haiti_board(armed)
+        e = MO.entry(armed, H1)
+        n = AF.latch_count(armed, e)
+        def first_line(region):
+            bind = {"region": region, "sovereign": "Napoleon"}
+            return AF._board_colony_cut_off(armed, e, _occ(), "France", bind, {})[0]
+        assert first_line(HOME) == f"France blockaded {n} of the last 12 mornings; the Emperor holds court at Lorraine."
+        assert first_line("Swabia") == f"France blockaded {n} of the last 12 mornings; the letter reaches headquarters at Swabia."
+        assert first_line("") == f"France blockaded {n} of the last 12 mornings; the letter reaches the Emperor."
 
     def test_no_region_scan_and_no_nation_literal_in_the_predicate(self):
         src = open(AF.__file__, encoding="utf-8").read()
@@ -240,7 +259,7 @@ class TestTheLatchAndTheArrival:
             _tick(armed)
             assert AF.latch_count(armed, e) == turn
             assert AF.latch_ok(armed, e) is (turn >= 4)
-            assert AF.watch(armed) == [f"Blockaded {turn} of the last 12 mornings, the Emperor at home — "
+            assert AF.watch(armed) == [f"Blockaded {turn} of the last 12 mornings — "
                                        f"Decrès may write of Santo Domingo."]
         assert AF.runtime(armed)["masks"][H1] == 0b111111
 

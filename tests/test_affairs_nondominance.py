@@ -26,10 +26,11 @@ from tests import _chip_census as C
 REPO = Path(__file__).resolve().parents[1]
 FIXTURE = REPO / "tests" / "fixtures" / "affairs_block.json"
 T1, T2, T3 = "chancellors_letters", "the_host", "berthiers_memorial"
-# RE-H (November 1, 2026): the fourth letter — the Haiti letter (§6.5), whose
-# premise holds only with the Emperor at home, so it is measured on the hoarder
-# (the two boards that send him to Swabia skip it, as the Arch-Chancellor's
-# letter skips the hoarder).
+# RE-H (November 1, 2026): the fourth letter — the Haiti letter (§6.5). Its
+# premise held only with the Emperor at home until the user's word of the
+# same day ("let Decrès write to headquarters") dropped that clause, so it is
+# measured on every board whose premise holds (the Arch-Chancellor's letter
+# still skips the hoarder).
 H1 = "santo_domingo"
 TEMPLATES = (T1, T2, T3, H1)
 PURSES = ("gold", "dp", "admin")

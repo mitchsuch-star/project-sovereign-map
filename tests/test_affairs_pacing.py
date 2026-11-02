@@ -82,13 +82,16 @@ class TestTheFirstArrivalIsReportedPerSeed:
 
     def test_every_occurrence_is_lapsed_on_a_passive_france(self, record):
         """The unattended France answers nothing: every letter lapses to its
-        Decline — the Haiti letter's rows bind the Emperor's seat, the door's
-        bind the Staff; both at tier 1."""
+        Decline — the Haiti letter's rows bind where the letter found the
+        Emperor (his seat, or his headquarters since ERR-5: marengo's second
+        reaches him at Bohemia at T20 and still stands within its grace on the
+        probe's last morning), the door's bind the Staff; both at tier 1."""
         for seed, arms in record["seeds"].items():
             rows = arms["armed"]["affairs"]
             assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#")) for mid in rows), (seed, list(rows))
             for mid, row in rows.items():
-                assert row["status"] == "lapsed" and row["tier"] == 1, (seed, row)
+                standing = row["status"] == "fired" and int(row["turn"]) > int(record["turns"]) - 4
+                assert (row["status"] == "lapsed" or standing) and row["tier"] == 1, (seed, row)
                 if mid.startswith("berthiers_memorial#"):
                     assert row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
                 else:
