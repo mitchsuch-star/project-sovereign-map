@@ -2317,6 +2317,80 @@ def cap_moments():
                     "Bavaria; Munich keeps the account.'"),
            facts={"affair_receipt": receipt, "response_lines": str(answered.get("message", "")).splitlines(),
                   "remark_by": world.moments["state"]["the_host#1"].get("remark_by")})
+
+    # ── RE-6 (RECURRING_EVENTS_SPEC.md §6.2 E1–E3, §25): the Edicts' three offers
+    #    under the one register, and the LAWS book with two decrees in force ──
+    from backend.game_logic import affairs as AF
+    from backend.game_logic import naval as NV
+    from backend.models.world_state import MAX_CAVALRY_POOL
+
+    def magazines_board(w):
+        # at war (the boot), Bernadotte on campaign pay at Franconia (the boot);
+        # the chest under the Staff's bar; the fleet under the Marine's bar (no
+        # Haiti letter); the depots full (no Remounts)
+        w.nation_gold["France"] = 5_000
+        NV.get_fleet(w, "France")["ships"] = 20
+        w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL)
+
+    world, c, popup = stage_affair("the_magazines#1", range(1, 8), magazines_board)
+    record("affair_letter_the_magazines", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; "
+                    "France's gold 5000 (under the Staff's bar), the fleet 20 sail (under the Marine's), "
+                    "the cavalry pool at its cap WRITTEN; at war with Bernadotte on campaign pay at "
+                    "Franconia from the boot, so the Magazines' premise stands from turn 1 and the "
+                    "production moments.tick delivered the offer on the pulse's first morning, turn 7"),
+           facts=affair_facts(popup))
+
+    def remounts_board(w):
+        # every corps at home (no campaign pay — no Magazines); the depots at 59 %
+        w.nation_gold["France"] = 5_000
+        NV.get_fleet(w, "France")["ships"] = 20
+        w.marshals["Bernadotte"].location = "Lorraine"
+        w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL) * 59 // 100
+
+    world, c, popup = stage_affair("the_remounts#1", range(1, 8), remounts_board)
+    record("affair_letter_the_remounts", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; "
+                    "gold 5000, the fleet 20 sail, Bernadotte recalled to Lorraine (no corps on campaign "
+                    "pay) and the cavalry pool at 17,700 of 30,000 (59 %) WRITTEN; the production "
+                    "moments.tick delivered the offer on the pulse's first morning, turn 7"),
+           facts=affair_facts(popup))
+
+    def camps_board(w):
+        # the golden peace: at peace with every great power, the Charges on the crown alone
+        w.nation_gold["France"] = 5_000
+        NV.get_fleet(w, "France")["ships"] = 20
+        for court in ("Austria", "Prussia", "Russia", "Britain"):
+            w.diplomatic_states[w._make_diplo_key("France", court)] = "PEACE"
+        w.war_exhaustion["France"] = 0
+        w.invalidate_active_nations_cache()
+        w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL)
+
+    world, c, popup = stage_affair("camps_of_instruction#1", range(1, 8), camps_board)
+    record("affair_letter_camps_of_instruction", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("1805 boot; the staged recurring deck armed, the four moments marked passed; "
+                    "France at PEACE with Austria, Prussia, Russia and Britain (state writes), war "
+                    "exhaustion 0, gold 5000, the fleet 20 sail, the cavalry pool at its cap WRITTEN; "
+                    "six mornings at peace with the Charges on the crown alone by the pulse's first "
+                    "morning, turn 7, when the production moments.tick delivered the offer"),
+           facts=affair_facts(popup))
+
+    # the LAWS book with two edicts in force — THE EDICTS under the laws' rows
+    world, c = fresh()
+    clear_dialogues(world)
+    world.moments = MO.from_block(json.loads(AFFAIRS_BLOCK.read_text(encoding="utf-8")))
+    world.nation_gold["France"] = 20_000
+    for template in ("the_magazines", "camps_of_instruction"):
+        AF.grant_edict(world, "France", AF.template_by_id(world, template))
+    ledger = get(c, "/ledger")
+    laws = (ledger.get("ledger") or {}).get("laws") or {}
+    if not laws.get("edicts"):
+        raise RuntimeError("the LAWS payload carries no edicts: " + str(laws)[:200])
+    record("ledger_laws_edicts", ledger, source="GET /ledger",
+           staging=("1805 boot; the staged recurring deck armed on world.moments; gold 20000 WRITTEN; the "
+                    "Magazines and the Camps of Instruction GRANTED through affairs.grant_edict (the one "
+                    "writer) on turn 1 — each in force until turn 9"),
+           facts={"edicts": laws.get("edicts"), "footer": laws.get("footer")})
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 

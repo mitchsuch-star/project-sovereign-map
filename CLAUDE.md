@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1…RE-R landed; §19–§24); AU authority push-and-pull after RE (`AUTHORITY_CURRENCY_SPEC.md`); S15 after AU**.
+> **S14j (§159); S14k (§160); RE "Affairs of State" IN BUILD before S15 (RE-1…RE-6 landed; §19–§25); AU authority push-and-pull after RE (`AUTHORITY_CURRENCY_SPEC.md`); S15 after AU**.
 
 **▶ LIVE STATE (November 2, 2026).** The three most recent rows:
-- **RE-R (Nov 2) — the reactions: echo, receipt, Moniteur, seal; RE-6 NEXT** (§24).
+- **RE-6 (Nov 2) — the Edicts, a decree for a term; the courts' rung PARKED for the user; RE-5 NEXT** (§25).
+- **RE-R (Nov 2) — the reactions** (§24).
 - **RE-C (Nov 1) — the Correspondence** (§23).
-- **RE-H (Nov 1) — the Haiti letter, two forms, to headquarters** (§22).
 
-**Open with the user:** the certificate (`INK_IRON_SIGNTOOL_ARGS`, §153.3), the build (unsigned) and the clean run, RE3-6/7/9 (`BUG_FIXES.md` §RE3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** the courts' Edicts (§25.3), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (`BUG_FIXES.md` §RE3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the test pins read the archives (`tests/_ledgers.py`), so every count includes them.
 

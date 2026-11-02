@@ -947,7 +947,9 @@ def edicts_payload(world, nation: str) -> List[Dict]:
     for e, until in affairs.edicts_in_force(world, nation):
         row = affairs.edict_row(e, until)
         when = _dateline(world, int(until))
-        rows.append({"id": row["id"], "name": row["name"],
+        name = str(row["name"])
+        rows.append({"id": row["id"], "name": name,
+                     "spoken": (name[0].upper() + name[1:]) if name else name,
                      "effects": [line for line in (effect_line(c) for c in row["effects"]) if line],
                      "until": int(until), "until_words": when,
                      "status_line": f"In force until {when}."})

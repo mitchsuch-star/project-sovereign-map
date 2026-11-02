@@ -1228,6 +1228,22 @@ func _render_laws_tab():
 			bbcode += "  [color=#" + status_color + "]" + str(row.get("status_line", "")) + "[/color]\n"
 		# A blank line first: a chip's pill padding overlaps the line above it.
 		bbcode += "\n" + _chip_row(row.get("chip", {}))
+	# RE-6 (RECURRING_EVENTS_SPEC.md §16 "RE-6", §25; SYSTEMS_REFERENCE §167): THE
+	# EDICTS — the decrees in force (`laws.edicts`, present only where the
+	# recurring deck is armed): what each does, in the laws' own words, and the
+	# morning its term ends. No chip: a decree is bought by letter, never typed.
+	var edicts = laws.get("edicts", null)
+	if edicts is Array:
+		bbcode += "\n[color=#" + Utils.COLOR_HEADER + "][b]THE EDICTS[/b][/color]\n"
+		if edicts.is_empty():
+			bbcode += "  [color=#" + Utils.COLOR_INFO + "]No edict is in force.[/color]\n"
+		for edict in edicts:
+			if not (edict is Dictionary):
+				continue
+			bbcode += "  [color=#" + Utils.COLOR_GOLD + "][b]" + str(edict.get("spoken", edict.get("name", ""))) + "[/b][/color]"
+			bbcode += "  [color=#" + Utils.COLOR_SUCCESS + "]" + str(edict.get("status_line", "")) + "[/color]\n"
+			for line in edict.get("effects", []):
+				bbcode += "    [color=#" + Utils.COLOR_INFO + "]• " + str(line) + "[/color]\n"
 	bbcode += "\n[color=#" + Utils.COLOR_HEADER + "]" + str(laws.get("footer", "")) + "[/color]\n"
 	content_area.text = bbcode
 

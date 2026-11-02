@@ -1058,6 +1058,11 @@ func _corr_body_bbcode(row: Dictionary, kind: String) -> String:
 	elif echo != "":
 		var when := _corr_esc(str(row.get("echo_label", "")))
 		lines.append("[color=#" + Utils.INK_SEPIA + "]" + ((when + " — ") if when != "" else "") + echo + "[/color]")
+	# RE-6: a decree's term — "In force until …" while it stands, "Expired …" after
+	var until_label := _corr_esc(str(row.get("until_label", "")))
+	if until_label != "":
+		var term_line := ("In force until " if bool(row.get("in_force", false)) else "Expired ") + until_label + "."
+		lines.append("[color=#" + Utils.INK_SEPIA + "]" + term_line + "[/color]")
 	if fate is Dictionary and not fate.is_empty():
 		var fate_when := _corr_esc(str(fate.get("label", "")))
 		lines.append("[color=#" + Utils.INK_RUBRIC + "]" + ((fate_when + " — ") if fate_when != "" else "")

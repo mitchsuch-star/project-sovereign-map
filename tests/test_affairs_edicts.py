@@ -375,7 +375,7 @@ class TestTheLifecycle:
         assert abs(cap_after / cap_before - 1.25) < 0.01, (cap_before, cap_after)
         # the LAWS book's EDICTS block, on the payload and on GET /ledger
         edicts = reforms.laws_payload(armed, "France")["edicts"]
-        assert edicts == [{"id": E1, "name": "the Magazines",
+        assert edicts == [{"id": E1, "name": "the Magazines", "spoken": "The Magazines",
                            "effects": ["fed provinces feed 25% more men (×1.25)"],
                            "until": 15, "until_words": MO._dateline(armed, 15),
                            "status_line": f"In force until {MO._dateline(armed, 15)}."}]
@@ -720,6 +720,82 @@ class TestTheRegisterAndTheBudget:
                 and ev.get("moment") == f"{E1}#1"]
         assert [_affair_courts_line(r) for r in rows if _affair_courts_line(r)] == [
             "PARIS — The Intendance contracts for the magazines of the Grande Armée."]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# The client and the frames (the LAWS book's EDICTS block, the slip's term,
+# the three letters in the dress) — the second commit
+# ═══════════════════════════════════════════════════════════════════════════
+
+FRAME_DATE = "2026_11_02"
+AUDITS = REPO / "docs" / "audits"
+SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
+FRAME_STEMS = ("IQ10_AFFAIR_LETTER_THE_MAGAZINES", "IQ10_AFFAIR_LETTER_THE_REMOUNTS",
+               "IQ10_AFFAIR_LETTER_CAMPS_OF_INSTRUCTION", "IQ10_LEDGER_LAWS_EDICTS")
+SHOT_IDS = ("affair_letter_the_magazines", "affair_letter_the_remounts",
+            "affair_letter_camps_of_instruction", "ledger_laws_edicts")
+
+
+class TestTheClientAndTheFrames:
+    def test_the_laws_book_renders_the_edicts_block_without_a_chip(self):
+        src = (SCRIPTS / "strategic_ledger.gd").read_text(encoding="utf-8")
+        body = src[src.index("func _render_laws_tab"):]
+        body = body[:body.index("\nfunc ", 1)]
+        for needle in ('laws.get("edicts", null)', "THE EDICTS", "No edict is in force.", '"spoken"',
+                       '"status_line"', '"effects"'):
+            assert needle in body, needle
+        block = body[body.index('laws.get("edicts", null)'):]
+        assert "_chip_row(" not in block.split('laws.get("footer"')[0]       # a decree is bought by letter
+        assert body.index('laws.get("edicts", null)') < body.index('laws.get("footer"')
+
+    def test_the_slip_prints_the_term(self):
+        src = (SCRIPTS / "dispatch_view.gd").read_text(encoding="utf-8")
+        body = src[src.index("func _corr_body_bbcode"):]
+        body = body[:body.index("\nfunc ", 1)]
+        for needle in ('row.get("until_label", "")', '"In force until "', '"Expired "', 'row.get("in_force", false)'):
+            assert needle in body, needle
+
+    def test_the_four_shots_are_registered_and_staged(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("iq10_run_captures", REPO / "tools" / "iq10_run_captures.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        shots = {s["id"]: s for s in mod.SHOTS}
+        for sid, needles in (("affair_letter_the_magazines", ("Daru, Intendant-General", "Stock the magazines", "−2,500 gold · 1 action · 8 turns")),
+                             ("affair_letter_the_remounts", ("Dejean, Minister of War", "Buy the remounts", "−1,500 gold · 1 action · 8 turns")),
+                             ("affair_letter_camps_of_instruction", ("Berthier, Minister of War", "Form the camps", "−2,000 gold · 1 action · 8 turns")),
+                             ("ledger_laws_edicts", ("THE EDICTS", "In force until", "no chip on either"))):
+            row = shots[sid]
+            assert row["payload"] == sid
+            for needle in needles:
+                assert needle in row["must_show"], (sid, needle)
+        assert shots["ledger_laws_edicts"]["scene"] == "res://scenes/strategic_ledger.tscn" and shots["ledger_laws_edicts"]["tab"] == 7
+        cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")
+        for sid in SHOT_IDS:
+            assert f'record("{sid}"' in cap, sid
+
+    def test_the_frames_are_committed_at_both_scales_and_named_in_the_plan(self):
+        plan = (REPO / "docs" / "UX_UI_REVIEW_PLAN.md").read_text(encoding="utf-8")
+        for stem in FRAME_STEMS:
+            for tail in ("", "_X2"):
+                png = AUDITS / f"{stem}{tail}_{FRAME_DATE}.png"
+                assert png.exists() and png.stat().st_size > 8000, png
+            assert stem in plan, stem
+
+    def test_the_record_covers_the_four_at_every_resolution_with_no_red(self):
+        import sys
+        sys.path.insert(0, str(REPO / "tools"))
+        from uxr0_readability_report import PHYSICAL_RESOLUTIONS, totals
+        record = json.loads((AUDITS / "uxr0" / f"readability_edicts_{FRAME_DATE}.json").read_text(encoding="utf-8"))
+        for sid in SHOT_IDS:
+            surf = record["surfaces"][sid]
+            keys = set(surf["readings"])
+            for (w, h) in PHYSICAL_RESOLUTIONS:
+                assert any(k.startswith(f"{w}x{h}@") for k in keys), (sid, w, h, keys)
+            for key, r in surf["readings"].items():
+                assert r["ok"] and r["counts"]["rows"] > 0 and r["counts"]["red"] == 0 and r["counts"]["p1"] == 0, (sid, key, r)
+        t = totals(record)
+        assert t["red"] == 0 and t["p1"] == 0, t
 
 
 # ═══════════════════════════════════════════════════════════════════════════

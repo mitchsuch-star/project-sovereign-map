@@ -147,6 +147,24 @@ SHOTS: list[dict] = [
              "'repeal X instead' chip; nothing clipped at scale 2.0"),
         ]
     ],
+    # RE-6 (November 2, 2026; RECURRING_EVENTS_SPEC.md §25): THE EDICTS block under
+    # the laws' rows — the decrees in force and the morning each ends; the book
+    # scrolls to the block (it sits below the fold after the laws' rows)
+    {
+        "id": "ledger_laws_edicts",
+        "surface": "Strategic Ledger — Laws (two edicts in force)",
+        "payload": "ledger_laws_edicts",
+        "scene": "res://scenes/strategic_ledger.tscn",
+        "mode": "api_stub",
+        "method": "open",
+        "api_method": "get_ledger",
+        "tab": 7,
+        "steps": [{"scroll_to": {"text": "THE EDICTS"}}],
+        "must_show": ("THE EDICTS under the laws' rows and above the footer: 'The Magazines' in gold with 'In force "
+                      "until <dateline>.' beside it and its effect line ('fed provinces feed 25% more men (×1.25)'); "
+                      "'The Camps of Instruction' the same with '+5 morale from every drill'; no chip on either; "
+                      "nothing clipped at scale 2.0"),
+    },
     {
         "id": "diplo_laws_rival_nations",
         "surface": "Diplomatic Ledger — Nations (a rival's laws)",
@@ -1499,6 +1517,30 @@ SHOTS += [
              "of the line / −500 gold · 1 action · 36 in 100 home' and 'Ferrand must hold alone / standing "
              "100 → 97' and 'Not Now / waits on the desk'; Berthier's counsel ('Five sail are five sail, "
              "Sire; Boulogne counts them too.'); both answers above the fold at BOTH scales"),
+            # RE-6 (November 2, 2026; RECURRING_EVENTS_SPEC.md §6.2 E1–E3, §25): the Edicts' three
+            # offers — a decree for a term, under the one register
+            ("the_magazines", "The Magazines — the Edicts' offer (Daru, Intendant-General)",
+             "the same dress under Daru's monogram 'D'; line 2 'The Magazines — Daru, Intendant-General'; "
+             "the writer's line ('Sire, the magazines of the Rhine hold bread for a fortnight…'); the ground "
+             "in IM Fell italic; the fleuron-led board (one corps on campaign pay; the chest against 2,500); "
+             "'WHAT EACH ANSWER DOES' with the supply figure and the term's last morning; the buttons 'Stock "
+             "the magazines / −2,500 gold · 1 action · 8 turns' and 'Let the army forage / no change' and 'Not "
+             "Now / waits on the desk'; Berthier's counsel under the buttons; both answers above the fold at "
+             "BOTH scales"),
+            ("the_remounts", "The Remounts — the Edicts' offer (Dejean, Minister of War Administration)",
+             "the same dress under Dejean's monogram 'D'; line 2 'The Remounts — Dejean, Minister of War "
+             "Administration'; the writer's line ('Sire, the depots hold more saddles than horses…'); the "
+             "ground in IM Fell italic; the fleuron-led board (the depots at 17,700 of 30,000, the weakest "
+             "squadrons whole; the chest against 1,500); the buttons 'Buy the remounts / −1,500 gold · 1 "
+             "action · 8 turns' and 'Let the depots wait / no change' and 'Not Now / waits on the desk'; "
+             "Berthier's counsel; both answers above the fold at BOTH scales"),
+            ("camps_of_instruction", "The Camps of Instruction — the Edicts' offer (Berthier, Minister of War)",
+             "the same dress under Berthier's monogram 'B'; line 2 'The Camps of Instruction — Berthier, "
+             "Minister of War'; the writer's line ('Sire, the regiments idle in their garrisons…'); the "
+             "ground in IM Fell italic; the fleuron-led board (at peace with every great power six mornings, "
+             "the Charges carrying the crown alone; the chest against 2,000); the buttons 'Form the camps / "
+             "−2,000 gold · 1 action · 8 turns' and 'Let the regiments rest / no change' and 'Not Now / waits "
+             "on the desk'; Talleyrand's counsel; both answers above the fold at BOTH scales"),
         )
     ],
 ]
