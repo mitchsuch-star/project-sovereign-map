@@ -184,6 +184,39 @@ class ReformsExecutor:
         result["new_state"] = game_state
         return result
 
+    def _execute_decree_edict(self, command: Dict, game_state: Dict) -> Dict:
+        """RE-6 (RECURRING_EVENTS_SPEC.md §16 "RE-6", GR5): a court's decree —
+        the AI rung's verb, reached by its structured command only (not in
+        VALID_ACTIONS, not in the parser: the player's road is the letter,
+        whose premise and pulse a typed verb would bypass). The same gate and
+        the same writer as the letter's Accept (`affairs.edict_refusal`,
+        `affairs.grant_edict`); the administrative action is the court's own
+        budget, as the laws rung's is."""
+        world = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+        actor = command.get("_acting_nation")
+        if not actor or actor == getattr(world, "player_nation", None):
+            return {"success": False, "message": "The Edicts come by letter, Sire."}
+        from backend.game_logic import affairs
+        e = affairs.template_by_id(world, str(command.get("target") or ""))
+        if e is None or not affairs.edict_block(e):
+            return {"success": False, "message": "No such decree is in the book."}
+        refusal = affairs.edict_refusal(world, actor, e)
+        if refusal:
+            return {"success": False, "message": refusal}
+        until = affairs.decree_for_court(world, actor, e)
+        from backend.game_logic.moments import _court, _dateline
+        result = {
+            "success": True,
+            "message": (f"{_court(world, actor, capitalize=True)} decrees {affairs.edict_name(e)} "
+                        f"until {_dateline(world, until)}."),
+            "edict": str(e.get("id") or ""),
+            "until": int(until),
+        }
+        result["new_state"] = game_state
+        return result
+
     def _quote(self, world, actor: str, row: Dict, command: Dict) -> Dict:
         """The enactment confirm: the terms first, free (the Admiralty's
         quote-then-confirm). The option reissues the order confirmed."""

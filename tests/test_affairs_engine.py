@@ -31,6 +31,7 @@ from backend.game_logic import affairs as AF
 from backend.game_logic import imperial_designs as ID
 from backend.game_logic import moments as MO
 from tests import _chip_census as C
+from tests._affairs_boards import rest_the_offers
 
 REPO = Path(__file__).resolve().parents[1]
 BACKEND = REPO / "backend"
@@ -184,9 +185,11 @@ class TestUnarmed:
         tutorial scenarios stay unarmed by design (one card at a time)."""
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert block["affairs"] == _block()["affairs"]
-        # RE-H (November 1, 2026): the fourth letter, the Haiti letter (§6.5)
-        assert [e["id"] for e in block["affairs"]["deck"]] == ["chancellors_letters", "the_host",
-                                                                "berthiers_memorial", "santo_domingo"]
+        # RE-H (November 1, 2026): the fourth letter, the Haiti letter (§6.5);
+        # RE-6 (November 2, 2026): the three offers, the Edicts (§6.2 E1–E3)
+        assert [e["id"] for e in block["affairs"]["deck"]] == [
+            "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
+            "the_magazines", "the_remounts", "camps_of_instruction"]
         from tools._s14c_sweep_record import mechanical_block
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
         for name in ("tutorial_1805.json", "tutorial_table_1805.json"):
@@ -211,7 +214,9 @@ class TestTheStoreAndTheIds:
         assert AF.armed(armed)
         assert [e["id"] for e in MO.deck(armed)] == ["bavarian_match", "throne_of_holland",
                                                       "crown_of_the_reich", "decree_of_berlin"]
-        assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo"]   # RE-H: the fourth
+        # RE-H: the fourth; RE-6: the three offers (the Edicts)
+        assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo",
+                                                      "the_magazines", "the_remounts", "camps_of_instruction"]
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2
@@ -497,7 +502,8 @@ OCC_T1 = {"id": "chancellors_letters#1", "lord": "France", "bind": {}, "tier": 1
 
 class TestTheTwoOps:
     def test_the_op_table_grew_by_two_and_no_affair_reaches_the_alarm(self):
-        assert set(MO.OPS) >= {"authority", "admin", "squadron"} and len(MO.OPS) == 10   # RE-H: the squadron
+        # RE-H: the squadron (10); RE-6: the edict (11), flipped consciously
+        assert set(MO.OPS) >= {"authority", "admin", "squadron", "edict"} and len(MO.OPS) == 11
         assert "alarm" in AF.BARRED_OPS and "alarm" not in AF.AFFAIR_OPS
 
     @pytest.mark.parametrize("authority, loss", [(80, 5), (73, 2), (70, 0)])
@@ -609,6 +615,10 @@ class TestBites:
         # the door alone
         from backend.game_logic import naval
         naval.get_fleet(armed, "France")["ships"] = 20
+        # RE-6: the Magazines premise on this board too (Bernadotte on
+        # campaign pay at Franconia) and the Remounts (the pool at 50 %) —
+        # both stood aside past turn 11, so the pin reads the door alone
+        rest_the_offers(armed, turn=4)
         assert _run(armed, range(1, 8)) == {}                 # the chest holds 800
         armed.nation_gold["France"] = 20_000
         assert _run(armed, range(8, 11)) == {}                # at war 4 turns running: the streak
@@ -960,6 +970,10 @@ class TestTheWatchAndTheTrace:
     def test_the_watch_names_the_nearest_due_matters_and_says_may(self, armed):
         _quarter(armed, ("Ney", "Davout"))
         armed.nation_gold["France"] = 20_000
+        # RE-6: the two corps on Bavaria draw campaign pay, so the Magazines
+        # would be the nearest due matter (and the Remounts behind it) — the
+        # offers stood aside, the pin reads the Host and the door
+        rest_the_offers(armed)
         _run(armed, [1, 2])
         lines = AF.watch(armed)
         assert lines == ["3 corps on Bavaria's soil: 2 of 3 mornings — its court may present its claims.",

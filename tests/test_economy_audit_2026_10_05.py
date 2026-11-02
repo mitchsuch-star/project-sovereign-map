@@ -341,9 +341,12 @@ class TestTheAIsPurse:
         # S14k G3 (October 28, 2026): at war on 50,000 the Porte proclaims
         # the New Order first (`under_threat`, the war is the threat) —
         # skipped here too; the pin reads the tower.
+        # RE-6 (November 2, 2026): at war on 50,000 the Porte would decree the
+        # Remounts first (rung 1.79, the Edicts) — skipped here too; the pin
+        # reads the tower.
         with _quiet():
             down = ai._pick_admin_action("Ottoman", w, 2,
-                                         skip_actions={"recruit", "recruit_marshal", "enact_law"})
+                                         skip_actions={"recruit", "recruit_marshal", "enact_law", "decree_edict"})
         assert calls and down and down.get("building_type") == "watchtower"
 
     def test_a_subsidy_pays_a_court_that_fights(self, monkeypatch):
@@ -401,7 +404,7 @@ class TestTheAIsPurse:
     # see it (the sweep found exactly that inert).
     _ALL_BUT_RECRUIT = {"purchase_levy", "grant_dotation", "grant_pension",
                         "invest_vassal", "grant_region_to_vassal", "change_autonomy",
-                        "recruit_marshal", "enact_law", "build_fleet", "build",
+                        "recruit_marshal", "enact_law", "decree_edict", "build_fleet", "build",
                         "naval_expedition", "naval_diversion", "repair"}
 
     @pytest.mark.parametrize("up", [True, False], ids=["lever_up", "lever_down"])

@@ -47,6 +47,13 @@ def _haiti_board(w, gold=5_000, authority=100):
     _no_moments(w)
     w.nation_gold["France"] = int(gold)
     w.authority_tracker.authority = int(authority)
+    # RE-6: the Edicts' offers stand aside by their own premises — every
+    # corps at home (Bernadotte drew campaign pay at Franconia on the boot,
+    # the Magazines' clause) and the cavalry depots full (the Remounts');
+    # the Camps never premise at war
+    from backend.models.world_state import MAX_CAVALRY_POOL
+    w.marshals["Bernadotte"].location = HOME
+    w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL)
     w.__dict__.pop("_affairs_memo", None)
 
 
@@ -559,10 +566,11 @@ class TestTheCopyAndTheDress:
         from tools._s14c_sweep_record import deck_sha
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert scenario["affairs"] == _block()["affairs"]
-        assert [e["id"] for e in scenario["affairs"]["deck"]][-1] == H1
+        # RE-6 (November 2, 2026): the three offers follow the Haiti letter
+        assert [e["id"] for e in scenario["affairs"]["deck"]][3] == H1
         import copy
         reworded = copy.deepcopy(scenario)
-        haiti = reworded["affairs"]["deck"][-1]
+        haiti = reworded["affairs"]["deck"][3]
         haiti["exhibit"] = ["another exhibit"]
         haiti["exhibit_from"] = "FROM ELSEWHERE —"
         haiti["closing"] = ["another closing"]
@@ -570,7 +578,7 @@ class TestTheCopyAndTheDress:
         haiti["variants"][0]["text"] = "another chapter"
         assert deck_sha(reworded) == deck_sha(scenario)
         moved = copy.deepcopy(scenario)
-        moved["affairs"]["deck"][-1]["latch"]["at_least"] = 5
+        moved["affairs"]["deck"][3]["latch"]["at_least"] = 5
         assert deck_sha(moved) != deck_sha(scenario)
 
 
@@ -681,8 +689,9 @@ def _peace_with_britain(w):
 
 class TestTheOddsAndTheQuote:
     def test_the_op_table_grew_to_ten_and_the_dated_deck_cannot_author_it(self, armed):
+        # RE-6 (November 2, 2026): the eleventh, `edict` — flipped consciously
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron"}
+                               "authority", "admin", "squadron", "edict"}
         assert "squadron" in AF.AFFAIR_OPS and "squadron" in MO.DECLINE_FORBIDDEN_OPS
         assert "squadron" not in MO.OP_BOUNDS                     # the moments' own vocabulary is closed
 

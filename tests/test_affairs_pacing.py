@@ -35,8 +35,10 @@ class TestTheRecordMeasuredTheStagedDeck:
         assert record["fixture_sha"] == deck_sha(fixture), (
             "the staged deck's mechanics changed since the probe ran — re-run "
             "tools/_affairs_first_arrival_probe.py")
-        # RE-H (November 1, 2026): the fourth letter, the Haiti letter
-        assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo"]
+        # RE-H (November 1, 2026): the fourth letter, the Haiti letter;
+        # RE-6 (November 2, 2026): the three offers, the Edicts
+        assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
+                                     "the_magazines", "the_remounts", "camps_of_instruction"]
 
     def test_every_seed_was_played_on_both_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20
@@ -76,8 +78,15 @@ class TestTheFirstArrivalIsReportedPerSeed:
     def test_the_first_affair_per_seed(self, record):
         firsts = {seed: arms["armed"]["first_affair"] for seed, arms in record["seeds"].items()}
         reached = {seed: f for seed, f in firsts.items() if f}
-        assert set(reached) == set(SWEEP_SEEDS) - {"wagram"}, reached
-        assert all(f["id"] == "santo_domingo#1" and 6 <= f["turn"] <= 9 for f in reached.values()), reached
+        # RE-6 (November 2, 2026, §25.2): wagram — where the Haiti letter's
+        # premise fell before the pulse opened — now meets the Remounts at
+        # T13, the horse bled under the courts' attacks (the corps clause);
+        # every other seed's first affair is still the Marine's letter on the
+        # pulse's first morning
+        assert set(reached) == set(SWEEP_SEEDS), reached
+        assert all(f["id"] == "santo_domingo#1" and 6 <= f["turn"] <= 9
+                   for seed, f in reached.items() if seed != "wagram"), reached
+        assert reached["wagram"] == {"id": "the_remounts#1", "turn": 13}
         assert reached["historical"]["turn"] == 7                  # the authored `first`
 
     def test_every_occurrence_is_lapsed_on_a_passive_france(self, record):
@@ -86,14 +95,18 @@ class TestTheFirstArrivalIsReportedPerSeed:
         Emperor (his seat, or his headquarters since ERR-5: marengo's second
         reaches him at Bohemia at T20 and still stands within its grace on the
         probe's last morning), the door's bind the Staff; both at tier 1."""
+        # RE-6 (November 2, 2026): the Remounts reach the passive board too —
+        # the horse bleeds under the courts' attacks (the corps clause, §25.2)
         for seed, arms in record["seeds"].items():
             rows = arms["armed"]["affairs"]
-            assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#")) for mid in rows), (seed, list(rows))
+            assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#", "the_remounts#")) for mid in rows), (seed, list(rows))
             for mid, row in rows.items():
                 standing = row["status"] == "fired" and int(row["turn"]) > int(record["turns"]) - 4
                 assert (row["status"] == "lapsed" or standing) and row["tier"] == 1, (seed, row)
                 if mid.startswith("berthiers_memorial#"):
                     assert row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
+                elif mid.startswith("the_remounts#"):
+                    assert row["bind"] == {}, (seed, row)                   # an offer binds nothing
                 else:
                     assert set(row["bind"]) == {"region", "sovereign"} and row["bind"]["sovereign"] == "Napoleon", (seed, row)
         with_door = {seed for seed, arms in record["seeds"].items()

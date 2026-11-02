@@ -917,8 +917,12 @@ class TestTheAlarmLabels:
         # five of the line (RECURRING_EVENTS_SPEC.md §6.5, P4), 9 → 10, flipped
         # consciously; it writes the fleet record through `naval.detach_squadron`
         # and reaches no VP-1 verb.
+        # RE-6 (November 2, 2026): the eleventh op, `edict` — the Edicts' decree
+        # (RECURRING_EVENTS_SPEC.md §0 Q2, §16 "RE-6"), 10 → 11, flipped
+        # consciously; it writes the affairs store through `affairs.grant_edict`
+        # and reaches no VP-1 verb.
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron"}
+                               "authority", "admin", "squadron", "edict"}
 
     def test_no_nation_literal_in_the_engine(self):
         """Q6: the deck is France's content, never the code's."""

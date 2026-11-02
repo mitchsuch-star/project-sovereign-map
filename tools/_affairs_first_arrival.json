@@ -1,12 +1,15 @@
 {
  "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
  "turns": 20,
- "fixture_sha": "89a8f50cc041ce50babf4394af890da078ceb519afe74ee5adcbecd00a198eb8",
+ "fixture_sha": "ab2fa45b7a489b59f9a298462edd166dd0e60385311e72340421ab3d202157e3",
  "affairs": [
   "chancellors_letters",
   "the_host",
   "berthiers_memorial",
-  "santo_domingo"
+  "santo_domingo",
+  "the_magazines",
+  "the_remounts",
+  "camps_of_instruction"
  ],
  "seeds": {
   "historical": {
@@ -59,6 +62,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_remounts#1": {
+      "turn": 13,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -84,11 +94,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 13,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 7,
+      "the_remounts#1": 13,
       "throne_of_holland": 18
      },
      "passed": {
@@ -309,6 +326,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_remounts#1": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -317,7 +341,8 @@
     },
     "streaks": {
      "santo_domingo|": 19,
-     "chancellors_letters|": 8
+     "chancellors_letters|": 8,
+     "the_remounts|": 3
     },
     "due": {},
     "judged": {
@@ -329,11 +354,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 19,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "santo_domingo#1": 6
+      "santo_domingo#1": 6,
+      "the_remounts#1": 19
      },
      "passed": {
       "bavarian_match": "premise"
@@ -398,7 +430,8 @@
     },
     "streaks": {
      "santo_domingo|": 20,
-     "chancellors_letters|": 7
+     "chancellors_letters|": 7,
+     "the_remounts|": 1
     },
     "due": {},
     "judged": {
@@ -410,6 +443,12 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 21,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
       }
      },
      "shown_equals_applied": true,
@@ -598,6 +637,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_magazines|": {
+       "first_due": 6,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
+      },
+      "the_remounts|": {
+       "first_due": 7,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
@@ -651,8 +702,19 @@
     "moments": {
      "throne_of_holland": 18
     },
-    "affairs": {},
-    "first_affair": null,
+    "affairs": {
+     "the_remounts#1": {
+      "turn": 13,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     }
+    },
+    "first_affair": {
+     "turn": 13,
+     "id": "the_remounts#1"
+    },
     "streaks": {
      "santo_domingo|": 19
     },
@@ -666,10 +728,17 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 13,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
+      "the_remounts#1": 13,
       "throne_of_holland": 18
      },
      "passed": {

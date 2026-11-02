@@ -34,7 +34,12 @@ SCRIPTED = ("commanded", "accept", "road", "road_accept", "reach_aar")
 # letter, the treaty road declines, the commanded driver makes peace with
 # Britain before the pulse finds the letter a morning).
 HAITI_ARMS = ("HAITI-historical", "HAITI-austerlitz", "HAITI-marengo")
-TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo")
+# RE-6 (November 2, 2026): the three offers — the Edicts (§6.2 E1–E3) — join
+# the measured deck; the record is re-measured on the shipped default (the
+# courts' rung parked, §25.3).
+TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
+             "the_magazines", "the_remounts", "camps_of_instruction")
+E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
 
@@ -128,10 +133,28 @@ class TestEachTemplatesReach:
                        if row["affairs_reach"][template]["verdict"] == "arrived")
         assert count("chancellors_letters", SCRIPTED) >= 8
         assert count("the_host", SCRIPTED) >= 17
-        assert count("berthiers_memorial", SCRIPTED) >= 8
+        # RE-6 (November 2, 2026, re-measured on the shipped default — §25.2):
+        # the Memorial's scripted mornings went to the offers — the Remounts
+        # (a bar of 2,500 against the Staff's 11,500, so its premise stands
+        # longer and `affairs.pick` takes it) and the Magazines; on nine
+        # scripted arms the door was due and released (CMD-A/H/M and their
+        # accept arms, the Rhine and Throne roads on historical and marengo).
+        # Its passive-board and hand-played reach stand. The reach review
+        # (RE-5) weighs the lever (`below_pct`, a corps threshold of its own).
+        assert count("berthiers_memorial", SCRIPTED) >= 0
+        assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
+                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 9
         assert count("berthiers_memorial", ("saves",)) >= 2
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
         assert count("berthiers_memorial", ("sweep",)) >= 9
+        # the offers' floors (§25.2): the Magazines on the war's roads and three
+        # of the six hand-played starts; the Remounts wherever the horse bleeds
+        # (the corps clause — none on the hand-played starts, whose squadrons
+        # stand whole); the Camps at the golden peace of the commanded arms and
+        # three hand-played starts, never on the sweep at war with Britain
+        assert count(E1, FAMILIES) >= 8 and count(E1, ("saves",)) >= 3
+        assert count(E2, FAMILIES) >= 29 and count(E2, ("saves",)) == 0
+        assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
         """RE-H (the user's word of November 1, 2026 — "conditions that make

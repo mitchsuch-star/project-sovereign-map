@@ -294,6 +294,232 @@
           "press": "SANTO DOMINGO — General Ferrand holds the city for His Majesty.",
           "remember": "In {month} you left Ferrand to hold alone; Decrès writes again of Santo Domingo."
         }
+      },
+      {
+        "id": "the_magazines",
+        "kind": "affair",
+        "shape": "offer",
+        "title": "The Magazines",
+        "source": "the frontier magazines of Strasbourg, Mainz and Ulm and the field magazines of the 1805 campaign (Bertaud, 'L'armée de terre à la veille de la campagne de 1805', napoleon.org; Bergerot, Daru, intendant général de la Grande Armée); Daru Intendant-General from 1805, of the Grande Armée from October 1806 (Britannica)",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "magazines_wanted",
+          "edict": "the_magazines"
+        },
+        "streak": 2,
+        "cooldown": 8,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Daru, Intendant-General"
+        },
+        "record": "Historically the Grande Armée marched from magazines stocked before it moved — Strasbourg, Mainz and the depots raised along the road — and lived on the country only when they ran dry.",
+        "variants": [
+          {
+            "key": "arrival",
+            "value": "later",
+            "text": "The magazines were stocked once before; Daru asks for the convoys again."
+          }
+        ],
+        "line": "Sire, the magazines of the Rhine hold bread for a fortnight. Give me the sum and the convoys, and the corps will march a week without a requisition.",
+        "watch": "The army in the field, or a storm gathering: {m} of 2 mornings — Daru may write of the magazines.",
+        "counsel": "Berthier — A full magazine is a corps that arrives, Sire; an empty one is a corps that forages.",
+        "edict": {
+          "name": "the Magazines",
+          "price": 2500,
+          "term": 8,
+          "rest": 8,
+          "effects": [
+            {
+              "type": "supply_capacity",
+              "value": 1.25
+            }
+          ],
+          "court_press": "{SEAT} — The court of {court} contracts for its magazines."
+        },
+        "accept": {
+          "caption": "Stock the magazines",
+          "button_line": "−{gold} gold · 1 action · {term} turns",
+          "ops": [
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "edict"
+            }
+          ],
+          "echo": "Daru: the contracts are signed; the convoys roll for the Rhine depots tonight.",
+          "situation": "The magazines are stocked; the fed provinces carry a quarter more men until {until}.",
+          "press": "PARIS — The Intendance contracts for the magazines of the Grande Armée.",
+          "remember": "In {month} you stocked the magazines; Daru writes again."
+        },
+        "decline": {
+          "caption": "Let the army forage",
+          "button_line": "no change",
+          "ops": [],
+          "remember": "In {month} the magazines waited; Daru writes again."
+        }
+      },
+      {
+        "id": "the_remounts",
+        "kind": "affair",
+        "shape": "offer",
+        "title": "The Remounts",
+        "source": "the remount service of the War Administration — the Prussian horses of 1806 entrusted to Bourcier and the remount depot at Potsdam (Petre, Napoleon's Campaign in Poland); Dejean Minister of War Administration March 1802 – January 1810, then Lacuée de Cessac (napoleon.org)",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "remounts_wanted",
+          "edict": "the_remounts",
+          "below_pct": 60
+        },
+        "streak": 1,
+        "cooldown": 8,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Lacuée de Cessac, Minister of War Administration",
+          "holders": [
+            {
+              "name": "Dejean, Minister of War Administration",
+              "date": "1810-01-03",
+              "turn": 104
+            }
+          ]
+        },
+        "record": "Historically the cavalry was remounted between campaigns by purchase and requisition — the Prussian studs after Jena, the depots that refilled the squadrons before Friedland.",
+        "variants": [
+          {
+            "key": "arrival",
+            "value": "later",
+            "text": "The depots were filled once before; the War Administration asks for the fairs' credit again."
+          }
+        ],
+        "line": "Sire, the depots hold more saddles than horses. A credit now buys remounts in the country at the spring fairs' price, not the campaign's.",
+        "watch": "The horse at {n}% of its establishment, depots or squadrons — the War Administration may write of remounts.",
+        "counsel": "Berthier — A squadron without horses is infantry that eats oats, Sire.",
+        "edict": {
+          "name": "the Remounts",
+          "price": 1500,
+          "term": 8,
+          "rest": 8,
+          "effects": [
+            {
+              "type": "recruit_price",
+              "arm": "cavalry",
+              "value": 0.8
+            }
+          ],
+          "court_press": "{SEAT} — The court of {court} buys remounts for its horse."
+        },
+        "accept": {
+          "caption": "Buy the remounts",
+          "button_line": "−{gold} gold · 1 action · {term} turns",
+          "ops": [
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "edict"
+            }
+          ],
+          "echo": "The War Administration: the remount agents ride for the fairs; the depots fill by the month's end.",
+          "situation": "The remounts are bought; cavalry levies cost a fifth less until {until}.",
+          "press": "PARIS — The War Administration buys remounts for the cavalry of the Grand Army.",
+          "remember": "In {month} you bought the remounts; the War Administration writes again."
+        },
+        "decline": {
+          "caption": "Let the depots wait",
+          "button_line": "no change",
+          "ops": [],
+          "remember": "In {month} the depots waited; the War Administration writes again."
+        }
+      },
+      {
+        "id": "camps_of_instruction",
+        "kind": "affair",
+        "shape": "offer",
+        "title": "The Camps of Instruction",
+        "source": "the camps of the Army of the Ocean Coasts, 1803–05 — Boulogne and Saint-Omer under Soult, Montreuil under Ney, Bruges under Davout — raised 17 August 1805 (Bertaud, napoleon.org; history-pas-de-calais.com); Berthier Minister of War to 9 August 1807, then Clarke",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "camps_wanted",
+          "edict": "camps_of_instruction"
+        },
+        "streak": 6,
+        "cooldown": 8,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Clarke, Minister of War",
+          "holders": [
+            {
+              "name": "Berthier, Minister of War",
+              "date": "1807-08-09",
+              "turn": 46
+            }
+          ]
+        },
+        "record": "Historically the camps of Boulogne drilled a conscript army through two years of peace into the Grande Armée that marched to Ulm; a peace with camps of instruction was the Empire's habit.",
+        "variants": [
+          {
+            "key": "arrival",
+            "value": "later",
+            "text": "The camps were formed once before; the Minister of War asks for the grounds again."
+          }
+        ],
+        "line": "Sire, the regiments idle in their garrisons. Four months of camps — the Boulogne drill, the divisions manoeuvring together — would give Your Majesty an army, not a muster.",
+        "watch": "At peace {m} of 6 mornings, the chest idle — the Minister of War may write of the camps.",
+        "counsel": "Talleyrand — A camp is a peace that looks like a war, Sire; Europe will read it so.",
+        "edict": {
+          "name": "the Camps of Instruction",
+          "price": 2000,
+          "term": 8,
+          "rest": 8,
+          "effects": [
+            {
+              "type": "drill_morale",
+              "value": 5
+            }
+          ],
+          "court_press": "{SEAT} — The court of {court} forms camps of instruction for its army."
+        },
+        "accept": {
+          "caption": "Form the camps",
+          "button_line": "−{gold} gold · 1 action · {term} turns",
+          "ops": [
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "edict"
+            }
+          ],
+          "echo": "The Minister of War: the camps are ordered; the first divisions march to their grounds within the month.",
+          "situation": "The camps of instruction are formed; every drill yields five more morale until {until}.",
+          "press": "PARIS — The Minister of War forms camps of instruction for the regiments of the line.",
+          "remember": "In {month} you formed the camps; the Minister of War writes again."
+        },
+        "decline": {
+          "caption": "Let the regiments rest",
+          "button_line": "no change",
+          "ops": [],
+          "remember": "In {month} the camps waited; the Minister of War writes again."
+        }
       }
     ]
   }

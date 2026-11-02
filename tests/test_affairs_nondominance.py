@@ -32,7 +32,14 @@ T1, T2, T3 = "chancellors_letters", "the_host", "berthiers_memorial"
 # measured on every board whose premise holds (the Arch-Chancellor's letter
 # still skips the hoarder).
 H1 = "santo_domingo"
-TEMPLATES = (T1, T2, T3, H1)
+# RE-6 (November 2, 2026): the three offers — the Edicts (§6.2 E1–E3). An
+# offer's Accept buys a decree for a term (gold and an action out, the
+# decree in); its Decline is empty, so each answer is the better one
+# somewhere by construction — pinned here on the boards whose premises
+# admit them (E1 at war with corps quartered on Bavaria, E2 while the pool
+# sits at the boot's 50 %, E3 at the hoarder's golden peace).
+E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
+TEMPLATES = (T1, T2, T3, H1, E1, E2, E3)
 PURSES = ("gold", "dp", "admin")
 
 
@@ -108,6 +115,9 @@ OCC = {
     T3: {"id": "berthiers_memorial#1", "lord": "France", "bind": {"law": "grand_quartier_general"}, "tier": 1},
     H1: {"id": "santo_domingo#1", "lord": "France", "bind": {"region": "Lorraine", "sovereign": "Napoleon"},
          "tier": 1, "turn": 7},
+    E1: {"id": "the_magazines#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
+    E2: {"id": "the_remounts#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
+    E3: {"id": "camps_of_instruction#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
 }
 
 
@@ -134,6 +144,10 @@ def _delivered(plan):
             from backend.game_logic import reforms
             law = reforms.find_law(plan.get("_world"), "France", str(row.get("law") or "")) or {}
             axes["gold"] = axes.get("gold", 0) - int(law.get("price", 0) or 0)
+        elif op == "edict":
+            # RE-6: the decree is one unit gained for its term; its price gold lost
+            axes["edict"] = axes.get("edict", 0) + 1
+            axes["gold"] = axes.get("gold", 0) - int(row.get("amount", 0) or 0)
     return axes
 
 

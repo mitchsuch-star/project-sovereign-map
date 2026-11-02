@@ -1431,6 +1431,11 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
                 if name not in MO.OPS:
                     result.add_error(opath, f"Must name an op of {sorted(MO.OPS)}")
                     continue
+                if name == "edict":
+                    # RE-6: a decree is an OFFER's (the recurring deck); a dated
+                    # letter never carries one
+                    result.add_error(opath, "The edict op belongs to the recurring deck's offers alone")
+                    continue
                 if side == MO.ANSWER_DECLINE and name in MO.DECLINE_FORBIDDEN_OPS:
                     result.add_error(opath, "A decline is never priced (the popup greys accept-shaped answers only)")
                 if name in ("gold", "dp", "alarm"):
@@ -1463,6 +1468,52 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
 
 
 _AFFAIR_ID_RE = re.compile(r"^[a-z_]{1,32}$")
+
+
+def _validate_edict(result, path: str, e: dict, shape, when: dict, _text, _int_in) -> None:
+    """RE-6 (RECURRING_EVENTS_SPEC.md §5, §16 "RE-6"): an `offer` carries an
+    `edict` block {name ≤ 40, price, term, rest, effects[1..2], court_press
+    ≤ 160} — the price, term and rest in `affairs.EDICT_BOUNDS`, each clause
+    one of the ruling's three types (`affairs.EDICT_EFFECT_TYPES`) with its
+    parameters checked as a law's are (`_validate_law_clause`); its Accept is
+    exactly `admin` + `edict`; `when.edict` names the entry itself and
+    `when.below_pct` sits in band. A non-offer carries no `edict` block."""
+    from backend.game_logic import affairs as AF
+    from backend.game_logic.reforms import CLAUSE_SHAPES
+    block = e.get("edict")
+    if shape != "offer":
+        if block is not None:
+            result.add_error(f"{path}.edict", "Only an offer carries an edict block")
+        return
+    if not isinstance(block, dict):
+        result.add_error(f"{path}.edict",
+                         "An offer carries an edict block {name, price, term, rest, effects, court_press}")
+        return
+    _text(f"{path}.edict.name", block.get("name"), AF.TEXT_MAX["edict_name"])
+    _text(f"{path}.edict.court_press", block.get("court_press"), AF.TEXT_MAX["court_press"])
+    for key in ("price", "term", "rest"):
+        _int_in(f"{path}.edict.{key}", block.get(key), *AF.EDICT_BOUNDS[key])
+    effects = block.get("effects")
+    limit = int(AF.EDICT_BOUNDS["effects"])
+    if not isinstance(effects, list) or not effects or len(effects) > limit:
+        result.add_error(f"{path}.edict.effects", f"Must be a list of 1..{limit} clauses")
+    else:
+        for j, clause in enumerate(effects):
+            cp = f"{path}.edict.effects[{j}]"
+            etype = clause.get("type") if isinstance(clause, dict) else None
+            if etype not in AF.EDICT_EFFECT_TYPES:
+                result.add_error(cp, f"An edict's effect is one of {list(AF.EDICT_EFFECT_TYPES)}")
+                continue
+            _validate_law_clause(result, cp, etype, clause, CLAUSE_SHAPES.get(etype) or {})
+    accept = e.get("accept") if isinstance(e.get("accept"), dict) else {}
+    names = sorted(str((op or {}).get("op") or "") for op in (accept.get("ops") or [])
+                   if isinstance(op, dict))
+    if names != ["admin", "edict"]:
+        result.add_error(f"{path}.accept.ops", "An offer's Accept is exactly admin + edict")
+    if when.get("edict") is not None and when.get("edict") != e.get("id"):
+        result.add_error(f"{path}.when.edict", "Names the entry itself")
+    if "below_pct" in when:
+        _int_in(f"{path}.when.below_pct", when["below_pct"], *AF.EDICT_BOUNDS["below_pct"])
 
 
 def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids: Set[str],
@@ -1833,6 +1884,8 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                     if name not in AF.AFFAIR_OPS or name not in MO.OPS:
                         result.add_error(opath, f"Must name an op of {sorted(AF.AFFAIR_OPS)}")
                         continue
+                    if name == AF.EDICT_OP and (shape != "offer" or side != MO.ANSWER_ACCEPT):
+                        result.add_error(opath, "The edict op belongs to an offer's Accept alone")
                     if side == MO.ANSWER_DECLINE and name not in AF.DECLINE_ALLOWED_OPS:
                         result.add_error(opath, f"A Decline carries only {list(AF.DECLINE_ALLOWED_OPS)}")
                     if name in ("gold", "dp", "admin", "authority"):
@@ -1859,6 +1912,7 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         elif bounds:
                             for t, amount in tiers.items():
                                 _int_in(f"{opath}.tiers.{t}", amount, *bounds)
+        _validate_edict(result, path, e, shape, when if isinstance(when, dict) else {}, _text, _int_in)
         if squadron_ops:
             # RE-H (§6.5 step 1): one squadron per entry; a fallback form (the
             # bill); the owner's navy; the premise keeps `ships` + the reserve

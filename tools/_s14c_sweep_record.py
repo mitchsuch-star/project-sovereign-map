@@ -93,6 +93,10 @@ def _mechanical_affairs(affairs: dict) -> dict:
         for side in ("accept", "decline"):
             if side in m:
                 m[side] = strip_side(m[side])
+        # RE-6: the edict block's copy (`name`, `court_press`) is display; its
+        # price, term, rest and effect clauses are the identity
+        if isinstance(m.get("edict"), dict):
+            m["edict"] = {k: v for k, v in m["edict"].items() if k not in AF.EDICT_DISPLAY_KEYS}
         if isinstance(m.get("forms"), dict):
             m["forms"] = {name: ({**{k: v for k, v in form.items()
                                       if k not in AF.DISPLAY_KEYS and k not in ("accept", "decline")},
@@ -248,6 +252,9 @@ def row(trace: dict, deck_ids: list, templates: list = (), **extra) -> dict:
            "answers": judged.get("answers") or [],
            "reach": reach(trace, deck_ids),
            "affairs_reach": affairs_reach(trace, list(templates)),
+           # RE-6: the Edicts' tallies — the decrees per lord and template and
+           # the gold converted per lord (the courts' spend per seed, §16 "RE-6")
+           "edicts": trace.get("edicts") or {},
            "errors": trace.get("errors") or []}
     out.update(extra)
     return out
@@ -328,6 +335,18 @@ def main() -> int:
                 words[f"{family}/{name}"] = (r.get("affairs_reach") or {}).get(template, {}).get("verdict", "")
         arrived = sum(1 for w in words.values() if w == "arrived")
         print(f"{template:22s} arrived on {arrived} of {len(words)} arms")
+    # RE-6: the courts' Edicts — the gold converted per lord, summed over each
+    # family's arms, and the arms on which any court decreed
+    for family in ("sweep", "commanded", "accept", "road", "road_accept", "reach_aar", "saves", "haiti"):
+        gold, decreeing = {}, 0
+        for name, r in record[family].items():
+            spent = ((r.get("edicts") or {}).get("gold") or {})
+            decreeing += 1 if spent else 0
+            for court, amount in spent.items():
+                gold[court] = gold.get(court, 0) + int(amount)
+        if gold:
+            print(f"edicts {family:12s} decreed on {decreeing} of {len(record[family])} arms; gold per lord "
+                  + ", ".join(f"{court} {amount:,}" for court, amount in sorted(gold.items())))
     print("wrote", args.out)
     return 0
 

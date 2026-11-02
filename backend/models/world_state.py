@@ -2123,6 +2123,10 @@ class WorldState:
             # action each (ADMIN_ACTIONS); the price is charged in-executor.
             "enact_law": 1,
             "repeal_law": 1,
+            # RE-6 (RECURRING_EVENTS_SPEC §16 "RE-6"): a court's decree — 1 ADMIN
+            # action against the AI's budget; the price is charged in-verb. The
+            # player's road is the letter's Accept (its own `admin` op).
+            "decree_edict": 1,
             # DEF-5 naval (NAVAL_SPEC §9): build_fleet is 1 ADMIN AP
             # (ADMIN_ACTIONS) + 400g in-executor; the posture order is a
             # cheap command; the expedition is a real commitment (the

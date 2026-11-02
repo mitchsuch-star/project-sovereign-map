@@ -119,7 +119,7 @@ TITLE_MAX = 40
 RECORD_MAX = 240
 CAPTION_MAX = 36
 ALARM_SOURCE_PREFIX = "moment_"
-DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron")
+DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron", "edict")
 PACING_DEFAULTS = {"max_open": 1, "min_gap": 3}
 PACING_BOUNDS = {"max_open": (1, 1), "min_gap": (2, 5)}
 GRACE_BOUNDS = (1, 3)
@@ -825,6 +825,41 @@ def _apply_squadron(world, lord, row) -> None:
                           int(row["odds"]), str(row.get("tag") or ""), _turn(world))
 
 
+def _plan_edict(world, lord, op) -> Dict[str, Any]:
+    """RE-6 (RECURRING_EVENTS_SPEC.md §0 Q2): a decree on the laws' effect set
+    for a term — the price, the term and the words from the template's
+    `edict` block (the entry's id rides the op: `plan` stamps it, the
+    squadron's `tag` idiom); the refusal is `affairs.edict_refusal`'s — in
+    force, resting, or the chest short — the one gate the premise and the
+    courts' verb read."""
+    from backend.game_logic import affairs, reforms
+    from backend.game_logic.instruments import FREE_OF_OBLIGATIONS, purse_of
+    template = str(op.get("template") or "")
+    e = affairs.template_by_id(world, template)
+    block = affairs.edict_block(e)
+    if e is None or not block:
+        return {"op": "edict", "template": template, "refusal": "The decree is not in the book, Sire.",
+                "line": ""}
+    price = int(block.get("price", 0) or 0)
+    term = int(block.get("term", 0) or 0)
+    until = _turn(world) + term
+    treasury, chest = purse_of(world, lord)
+    held = f"{chest:,} gold{FREE_OF_OBLIGATIONS}" if chest < treasury else f"{chest:,}"
+    words = "; ".join(line for line in (reforms.effect_line(c) for c in (block.get("effects") or [])) if line)
+    return {"op": "edict", "template": template, "name": affairs.edict_name(e),
+            "amount": price, "term": term, "until": until, "before": treasury, "after": treasury - price,
+            "refusal": str(affairs.edict_refusal(world, lord, e, treasury=chest) or ""),
+            "line": f"{price:,} gold (the treasury holds {held}); {words} until "
+                    f"{_dateline(world, until)}, {term} turns"}
+
+
+def _apply_edict(world, lord, row) -> None:
+    from backend.game_logic import affairs
+    e = affairs.template_by_id(world, str(row.get("template") or ""))
+    if e is not None:
+        affairs.grant_edict(world, lord, e)
+
+
 OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "gold": (_plan_gold, _apply_gold),
     "dp": (_plan_dp, _apply_dp),
@@ -837,6 +872,8 @@ OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "admin": (_plan_admin, _apply_admin),
     # RE-H: the tenth op — 9 → 10, flipped consciously (§6.5 P4)
     "squadron": (_plan_squadron, _apply_squadron),
+    # RE-6: the eleventh — 10 → 11, flipped consciously (§0 Q2, §16 "RE-6")
+    "edict": (_plan_edict, _apply_edict),
 }
 OP_TYPES = tuple(OPS)
 
@@ -906,6 +943,8 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
                          f"{AUTONOMY_NAMES.get(int(row.get('level', 0) or 0), '')}")
         elif op == "squadron" and not row.get("refusal"):
             parts.append(f"{int(row.get('ships', 0) or 0)} sail at {int(row.get('odds', 0) or 0)} in 100")
+        elif op == "edict" and not row.get("refusal"):
+            parts.append(f"−{int(row.get('amount', 0) or 0):,} gold · {int(row.get('term', 0) or 0)} turns")
         elif op == "enact_law" and not row.get("refusal"):
             from backend.game_logic import reforms
             law = reforms.find_law(world, lord, str(row.get("law") or ""))
@@ -960,6 +999,10 @@ def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]])
         elif op == "squadron":
             figures["odds"] = int(row.get("odds", 0) or 0)
             figures["ships"] = int(row.get("ships", 0) or 0)
+        elif op == "edict":
+            # RE-6: one source for the price — the `edict` block's, never a literal
+            figures["gold"] = f"{int(row.get('amount', 0) or 0):,}"
+            figures["term"] = int(row.get("term", 0) or 0)
     template = str(side.get("button_line") or "")
     text = template.format_map(figures) if template else _derived_button_line(world, lord, rows)
     return text[:120]
@@ -985,6 +1028,8 @@ def plan(world, e: Dict[str, Any], answer: str,
         op = _bind_op(scaled_op(op or {}, tier), occ) if occ else (op or {})
         if str(op.get("op") or "") == "squadron" and occ.get("id"):
             op = dict(op, tag=str(occ["id"]))          # RE-H: the fate finds its row by the tag
+        if str(op.get("op") or "") == "edict":
+            op = dict(op, template=str((e or {}).get("id") or ""))   # RE-6: the planner needs the entry
         fns = OPS.get(str(op.get("op") or ""))
         if fns is None:
             continue
@@ -1209,6 +1254,10 @@ def _stamp_receipt(world, e: Dict[str, Any], row: Dict[str, Any], p: Dict[str, A
     for op_row in p.get("rows") or []:
         if str(op_row.get("op") or "") == "squadron" and not op_row.get("refusal"):
             row["home_by"] = int(op_row.get("home_by", 0) or 0)
+        # RE-6: the edict's last turn in force rides the row (`{until}` in the
+        # reaction copy; the Correspondence's "in force until …")
+        if str(op_row.get("op") or "") == "edict" and not op_row.get("refusal") and op_row.get("until"):
+            row["until"] = int(op_row.get("until", 0) or 0)
     side = _answer_side(e, answer_key, row.get("form"))
     row["echo"] = affairs.fill_slots(world, str(side.get("echo") or ""), row, e)[:160]
 
@@ -1839,7 +1888,7 @@ def _chips_of(e: Dict[str, Any], row: Dict[str, Any]) -> List[Dict[str, str]]:
     ops = {str((op or {}).get("op") or "") for op in (side.get("ops") or []) if isinstance(op, dict)}
     if "squadron" in ops:
         chips.append({"kind": "admiralty", "nation": ""})
-    if "enact_law" in ops:
+    if "enact_law" in ops or "edict" in ops:          # RE-6: a decree lives on the LAWS book too
         chips.append({"kind": "laws", "nation": ""})
     return chips
 
@@ -1912,6 +1961,11 @@ def _answered_slip(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> D
                 "echo_label": _dateline(world, answered_turn + 1) if echo else "",
                 "at_sea": _at_sea_of(world, mid, row), "fate": _fate_of(world, row),
                 "chips": _chips_of(e, row)})
+    # RE-6: a decree's term — "in force until …" while it stands, "expired …" after
+    until = row.get("until")
+    if isinstance(until, int) and not isinstance(until, bool) and until > 0:
+        out.update({"until": int(until), "until_label": _dateline(world, int(until)),
+                    "in_force": bool(_turn(world) < int(until))})
     return out
 
 

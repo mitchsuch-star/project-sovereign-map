@@ -75,7 +75,7 @@ SET_ASIDE_EVERY = 6    # §7: the aggregated "set aside" line, at most once in s
 
 # The op table (§5): the moments' closed table less the alarm (barred from
 # every affair) and the autonomy write, plus `authority` and `admin`.
-AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron")
+AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron", "edict")
 AFFAIR_OP_BOUNDS = {"gold": (1, 2000), "authority": (-10, 0), "admin": (1, 1), "dp": (1, 2),
                     "relation": (-20, 20), "loyalty": (-20, 20)}
 # RE-H (§6.5, P4): the squadron op — Accept-only, at most one per entry, an
@@ -86,6 +86,18 @@ SQUADRON_BOUNDS = {"ships": (1, 8), "away": (3, 6), "to": 32}
 FORM_REQUIRES = ("hunter_at_sea",)
 DECLINE_ALLOWED_OPS = ("relation", "loyalty", "authority")
 BARRED_OPS = ("alarm", "autonomy")
+# RE-6 (§0 Q2, §6.2 E1–E3, §16 "RE-6"): the Edicts — an `offer`'s Accept is
+# exactly `admin` + `edict`; the `edict` op's price, term, rest and effect
+# clauses live on the template's `edict` block (the door's `enact_law` idiom:
+# the price is the decree's, outside the gold bound). The effect types are the
+# ruling's three alone — `actions`, `force_limit` and `cures` would grant a
+# Staff order, a force-limit floor or a cure by decree.
+EDICT_OP = "edict"
+EDICT_BOUNDS = {"price": (500, 5000), "term": (4, 16), "rest": (4, 16), "effects": 2,
+                "below_pct": (10, 90)}
+EDICT_EFFECT_TYPES = ("supply_capacity", "recruit_price", "drill_morale")
+EDICT_DISPLAY_KEYS = ("name", "court_press")
+EDICTS_KEY, DECREED_KEY, EDICT_GOLD_KEY = "edicts", "decreed", "edict_gold"
 
 # The display copy (§16b): what a letter SAYS, never when it arrives or what
 # its answers do — struck from the measured identity (`_s14c_sweep_record`).
@@ -99,7 +111,8 @@ ANSWER_DISPLAY_KEYS = ("caption", "button_line", "echo", "press", "remember", "s
 TEXT_MAX = {"title": 40, "record": 240, "variant": 240, "line": 200, "counsel": 160,
             "exhibit": 160, "exhibit_from": 40, "watch": 120, "button_line": 40, "echo": 160,
             "press": 160, "remember": 160, "situation": 160, "caption": 36, "source": 400,
-            "closing": 240, "slot": 60, "outcome_line": 160}
+            "closing": 240, "slot": 60, "outcome_line": 160,
+            "court_press": 160, "edict_name": 40}          # RE-6: the edict block's copy
 OUTCOMES = ("home", "caught")       # RE-H: a squadron's two fates (the Accept's `outcome` copy)
 # RE-H (§6.5, P18): the chapter is keyed by the arrival (first / later) and by
 # the last squadron's fate (home / caught — the row's frozen `last_fate`, from
@@ -358,11 +371,136 @@ def _colony_cut_off(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def _template_by_id(world, template: str) -> Optional[Dict[str, Any]]:
+    """The affairs template with this id, or None (an offer names its own
+    entry in `when.edict`, as the door names its law)."""
+    for e in deck(world):
+        if str(e.get("id") or "") == str(template or ""):
+            return e
+    return None
+
+
+def _offer_entry(world, lord: str, params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """RE-6: the offers' shared clause — the named template with its `edict`
+    block, available (not in force, not resting) and within the purse at
+    the laws rung's own bar — one source with the courts' rung
+    (`edict_refusal`); None when any clause fails."""
+    e = _template_by_id(world, str(params.get("edict") or ""))
+    if e is None or edict_refusal(world, lord, e, with_reserve=True):
+        return None
+    return e
+
+
+def _corps_on_campaign_pay(world, lord: str) -> int:
+    """E1: the lord's corps drawing campaign pay this morning — the bill's
+    own predicate (`campaign_pay_homeland` / `campaign_pay_at`), one pass
+    over the marshal list (Rule 8); 0 at peace (the homeland read is None)."""
+    homeland = world.campaign_pay_homeland(lord) if hasattr(world, "campaign_pay_homeland") else None
+    if homeland is None:
+        return 0
+    count = 0
+    for m in (getattr(world, "marshals", {}) or {}).values():
+        if getattr(m, "nation", "") != lord or getattr(m, "captured_by", ""):
+            continue
+        due = world.campaign_pay_at(lord, str(getattr(m, "location", "") or ""),
+                                    int(getattr(m, "strength", 0) or 0), homeland)
+        if due:
+            count += 1
+    return count
+
+
+def _storm_gathering(world, lord: str) -> bool:
+    """E1's second clause: for the player, a coalition brewing against the
+    lord and not yet formed (the dispatch gauge's "Brewing" tier —
+    `coalition.brewing_gate`); for a court, a war-intent record in tenure
+    whose target is the lord (those records are court-against-court only)."""
+    if lord == getattr(world, "player_nation", None):
+        from backend.game_logic.coalition import brewing_gate
+        formed = getattr(world, "active_coalition", None)
+        if isinstance(formed, dict) and formed.get("target_nation") == lord:
+            return False
+        return int(getattr(world, "threat_level", 0) or 0) >= int(brewing_gate(world, lord))
+    from backend.game_logic.war_council import record_in_tenure
+    turn = MO._turn(world)
+    return any(isinstance(r, dict) and r.get("target") == lord and record_in_tenure(r, turn)
+               for r in (getattr(world, "war_intents", {}) or {}).values())
+
+
+def _magazines_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """E1 the Magazines: at war with a corps drawing campaign pay, or the
+    storm gathering; then the offers' shared clause. The measure is the
+    corps on campaign pay (the streak is the watch's `{m}`)."""
+    if _offer_entry(world, lord, params) is None:
+        return _no()
+    corps = _corps_on_campaign_pay(world, lord)
+    if corps <= 0 and not _storm_gathering(world, lord):
+        return _no()
+    return {"holds": True, "bind": {}, "measure": int(corps), "latch": False}
+
+
+def _weakest_cavalry_corps_pct(world, lord: str) -> int:
+    """E2's second clause: the lord's weakest cavalry corps as a percent of
+    its establishment (`starting_strength`) — the horse lost on campaign;
+    100 when the lord has no cavalry corps. One pass over the marshal list
+    (Rule 8)."""
+    weakest = 100
+    for m in (getattr(world, "marshals", {}) or {}).values():
+        if (getattr(m, "nation", "") != lord or getattr(m, "captured_by", "")
+                or not getattr(m, "cavalry", False)):
+            continue
+        establishment = int(getattr(m, "starting_strength", 0) or 0)
+        if establishment <= 0:
+            continue
+        weakest = min(weakest, int(getattr(m, "strength", 0) or 0) * 100 // establishment)
+    return max(0, weakest)
+
+
+def _remounts_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """E2 the Remounts: the lord's cavalry pool under `below_pct` of the one
+    cap (`MAX_CAVALRY_POOL`, the stables rung's own 60 %), OR a cavalry corps
+    under `below_pct` of its establishment (the measure found the pool alone
+    reached no board — 0 of 55 arms, the six hand-played boards at the cap;
+    the horse is lost on campaign, not in the depots); then the shared
+    clause. The measure is the weaker of the two percents."""
+    if _offer_entry(world, lord, params) is None:
+        return _no()
+    from backend.models.world_state import MAX_CAVALRY_POOL
+    pool = int(((getattr(world, "manpower_pools", {}) or {}).get(lord) or {}).get("cavalry", 0) or 0)
+    cap = max(1, int(MAX_CAVALRY_POOL))
+    below = int(params.get("below_pct", 60) or 60)
+    measure = min(int(pool * 100 // cap), _weakest_cavalry_corps_pct(world, lord))
+    if measure >= below:
+        return _no()
+    return {"holds": True, "bind": {}, "measure": int(measure), "latch": False}
+
+
+def _camps_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """E3 the Camps of Instruction: at peace with every other great power
+    and the Charges' rate carrying the crown term alone (no war
+    establishment, no war exhaustion left, no ill war, no pensions of the
+    fallen — the golden peace); then the shared clause. The measure is the
+    streak (the template's six mornings)."""
+    if _offer_entry(world, lord, params) is None:
+        return _no()
+    from backend.game_logic.reforms import GREAT_POWERS
+    for power in GREAT_POWERS:
+        if power != lord and world.get_diplomatic_state(lord, power) == "WAR":
+            return _no()
+    terms = (world.get_state_charges_rate(lord) or {}).get("terms") or []
+    if {str(t.get("key") or "") for t in terms if isinstance(t, dict)} - {"crown"}:
+        return _no()
+    return {"holds": True, "bind": {}, "measure": None, "latch": False}
+
+
 PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "sovereign_afield": _sovereign_afield,
     "corps_on_host": _corps_on_host,
     "staff_offered": _staff_offered,
     "colony_cut_off": _colony_cut_off,
+    # RE-6: the Edicts' offers (§6.2 E1–E3)
+    "magazines_wanted": _magazines_wanted,
+    "remounts_wanted": _remounts_wanted,
+    "camps_wanted": _camps_wanted,
 }
 # The parameters each predicate requires (the validator reads them).
 PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
@@ -370,7 +508,11 @@ PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
     "corps_on_host": (),
     "staff_offered": ("law",),
     "colony_cut_off": (),
+    "magazines_wanted": ("edict",),
+    "remounts_wanted": ("edict",),
+    "camps_wanted": ("edict",),
 }
+OFFER_PREDICATES = ("magazines_wanted", "remounts_wanted", "camps_wanted")
 # The predicates whose `watch` and board count a LATCH (`{n}` = the set bits
 # of the mask) rather than a streak or a corps count.
 LATCHED_PREDICATES = ("colony_cut_off",)
@@ -1016,6 +1158,18 @@ def fill_slots(world, text: str, row: Dict[str, Any], e: Optional[Dict[str, Any]
     slots.setdefault("region", str(bind.get("region") or ""))
     if row.get("lord"):
         slots.setdefault("lord", MO._court(world, str(row["lord"]), capitalize=True))
+        # RE-6: `{court}` mid-sentence / `{Court}` at the head, and the lord's
+        # own seat when no host is bound (the courts' press lines)
+        slots.setdefault("court", MO._court(world, str(row["lord"])))
+        slots.setdefault("Court", MO._court(world, str(row["lord"]), capitalize=True))
+        if not host:
+            own_seat = _seat_of(world, str(row["lord"]))
+            slots.setdefault("seat", own_seat)
+            slots.setdefault("SEAT", own_seat.upper())
+    # RE-6: `{until}` — the morning an edict's term ends (the row's `until`)
+    until = row.get("until")
+    if isinstance(until, int) and not isinstance(until, bool):
+        slots.setdefault("until", MO._dateline(world, int(until)))
     when = row.get("answered_turn") or row.get("lapsed_turn") or row.get("turn")
     if isinstance(when, int) and not isinstance(when, bool):
         slots.setdefault("month", MO._dateline(world, int(when)))
@@ -1183,7 +1337,31 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
                 f"{int(purse_of(world, lord)[1]):,} gold against {price:,} now and {upkeep:,} a turn."]
     if predicate == "colony_cut_off":
         return _board_colony_cut_off(world, e, occ, lord, bind, read)
+    if predicate in OFFER_PREDICATES:
+        return _board_offer(world, e, lord, read, streak)
     return []
+
+
+def _board_offer(world, e: Dict[str, Any], lord: str, read: Dict[str, Any], streak: int) -> List[str]:
+    """RE-6: an offer's board — the premise's facts and the chest against the
+    decree's price (shown = applied: the price is the `edict` block's)."""
+    from backend.game_logic.instruments import purse_of
+    price = int(edict_block(e).get("price", 0) or 0)
+    purse = f"the chest holds {int(purse_of(world, lord)[1]):,} gold against {price:,}"
+    predicate = str((e.get("when") or {}).get("predicate") or "")
+    if predicate == "magazines_wanted":
+        corps = int(read.get("measure") or 0)
+        fact = (f"{corps} of your corps draw campaign pay on foreign soil" if corps > 0 else
+                f"Europe gathers against you (the alarm at {int(getattr(world, 'threat_level', 0) or 0)})")
+        return [f"{fact}; {purse}."]
+    if predicate == "remounts_wanted":
+        from backend.models.world_state import MAX_CAVALRY_POOL
+        pool = int(((getattr(world, "manpower_pools", {}) or {}).get(lord) or {}).get("cavalry", 0) or 0)
+        cap = int(MAX_CAVALRY_POOL)
+        return [f"The cavalry depots hold {pool:,} of {cap:,} ({int(pool * 100 // max(1, cap))}%); the weakest "
+                f"squadrons stand at {_weakest_cavalry_corps_pct(world, lord)}% of their establishment; {purse}."]
+    return [f"At peace with every great power {streak} mornings running, the Charges carrying "
+            f"the crown alone; {purse}."]
 
 
 def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
@@ -1306,6 +1484,206 @@ def closing_record(world) -> List[Dict[str, Any]]:
                         "label": MO._dateline(world, end_turn),
                         "lines": [str(line) for line in closing if line]})
     return out
+
+
+# ════════════════════════════════════════════════════════════════════════
+# RE-6 — the Edicts (RECURRING_EVENTS_SPEC.md §0 Q2, §6.2 E1–E3, §16 "RE-6"):
+# a fixed-term decree on the laws' closed effect set — `term` turns in force,
+# then `rest` turns before it may be offered again; gold and one
+# administrative action, no upkeep. ONE store entry per lord and template
+# (`{lord|template: until}` in the affairs runtime — a `{str: int}` map the
+# save round-trips), in force while `until > turn`: expiry is DERIVED, never
+# ticked. `reforms.effect_terms` reads the edicts in force as its second
+# source, so every seam that applies a law applies an edict. Every reader
+# here is pure (`_store`, never `runtime()`); `grant_edict` is the one
+# writer, for the letter's Accept and the courts' rung alike (GR5).
+# ════════════════════════════════════════════════════════════════════════
+
+def edict_block(e: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    block = (e or {}).get("edict") if isinstance(e, dict) else None
+    return block if isinstance(block, dict) else {}
+
+
+def edict_name(e: Dict[str, Any]) -> str:
+    return str(edict_block(e).get("name") or e.get("title") or e.get("id") or "the decree")
+
+
+def template_by_id(world, template: str) -> Optional[Dict[str, Any]]:
+    return _template_by_id(world, template)
+
+
+def edict_key(lord: str, template: str) -> str:
+    return f"{lord}{SUBJECT_SEP}{template}"
+
+
+def _edicts_store(world) -> Dict[str, int]:
+    """The `{lord|template: until}` map — a pure read of the store (a GET,
+    the boot briefing and the supply cap all pass here)."""
+    rt = MO._store(world).get("affairs")
+    store = rt.get(EDICTS_KEY) if isinstance(rt, dict) else None
+    return store if isinstance(store, dict) else {}
+
+
+def edict_until(world, lord: str, template: str) -> int:
+    return int(_edicts_store(world).get(edict_key(lord, template), 0) or 0)
+
+
+def edict_state(world, lord: str, e: Dict[str, Any]) -> str:
+    """in_force | resting | available — derived from the turn alone."""
+    until = edict_until(world, lord, str(e.get("id") or ""))
+    if until <= 0:
+        return "available"
+    turn = MO._turn(world)
+    if turn < until:
+        return "in_force"
+    if turn < until + int(edict_block(e).get("rest", 0) or 0):
+        return "resting"
+    return "available"
+
+
+def edicts_in_force(world, lord: str) -> List[Tuple[Dict[str, Any], int]]:
+    """[(template, until)] for the lord's edicts in force this turn — the
+    second source `reforms.effect_terms` reads; [] without a store."""
+    store = _edicts_store(world)
+    if not store or not lord:
+        return []
+    turn = MO._turn(world)
+    prefix = f"{lord}{SUBJECT_SEP}"
+    out: List[Tuple[Dict[str, Any], int]] = []
+    for e in deck(world):
+        until = int(store.get(prefix + str(e.get("id") or ""), 0) or 0)
+        if until > turn and edict_block(e):
+            out.append((e, until))
+    return out
+
+
+def edict_row(e: Dict[str, Any], until: int) -> Dict[str, Any]:
+    """The pseudo-row `effect_terms` yields for an edict — `name` so
+    `reforms.display_name` names it, `effects` its clauses, `until` its end."""
+    block = edict_block(e)
+    return {"id": str(e.get("id") or ""), "name": edict_name(e),
+            "effects": list(block.get("effects") or []), "until": int(until), "edict": True}
+
+
+def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] = None,
+                  with_reserve: bool = False) -> str:
+    """"" when the decree may be taken, else why — ONE gate for the premise
+    and the courts' rung (`with_reserve`: the laws rung's own bar — the
+    price plus the AI's reserve and five turns of the slate's upkeep), and
+    for the letter's plan and the courts' verb (the price alone)."""
+    block = edict_block(e)
+    if not armed(world) or not block:
+        return "the decree is not in the book."
+    state = edict_state(world, lord, e)
+    until = edict_until(world, lord, str(e.get("id") or ""))
+    name = edict_name(e)
+    name = name[0].upper() + name[1:] if name else name
+    if state == "in_force":
+        return f"{name} stands until {MO._dateline(world, until)}."
+    if state == "resting":
+        return f"{name} rests until {MO._dateline(world, until + int(block.get('rest', 0) or 0))}."
+    price = int(block.get("price", 0) or 0)
+    if treasury is None:
+        from backend.game_logic.instruments import purse_of
+        treasury = int(purse_of(world, lord)[1])
+    bar = price
+    if with_reserve:
+        from backend.game_logic.reforms import AI_PURSE_RESERVE, AI_PURSE_UPKEEP_TURNS, law_upkeep_bill
+        bar += int(AI_PURSE_RESERVE) + int(AI_PURSE_UPKEEP_TURNS) * int(law_upkeep_bill(world, lord))
+    if int(treasury) < bar:
+        return f"{price:,} gold is asked; the treasury holds {int(treasury):,}."
+    return ""
+
+
+def grant_edict(world, lord: str, e: Dict[str, Any]) -> int:
+    """THE writer: charge the price through the gold op's own path
+    (`record_gold_spent`), write `until`, tally the decree and the gold for
+    the measure. Returns `until`. The administrative action is the
+    caller's — the letter's `admin` op, or the court's admin budget."""
+    block = edict_block(e)
+    price = int(block.get("price", 0) or 0)
+    until = MO._turn(world) + int(block.get("term", 0) or 0)
+    MO._apply_gold(world, lord, {"amount": price})
+    rt = runtime(world)
+    key = edict_key(lord, str(e.get("id") or ""))
+    rt.setdefault(EDICTS_KEY, {})[key] = int(until)
+    decreed = rt.setdefault(DECREED_KEY, {})
+    decreed[key] = int(decreed.get(key, 0) or 0) + 1
+    spent = rt.setdefault(EDICT_GOLD_KEY, {})
+    spent[lord] = int(spent.get(lord, 0) or 0) + price
+    return until
+
+
+def decree_for_court(world, lord: str, e: Dict[str, Any]) -> int:
+    """A court's decree (the rung's verb): the same grant, then one `moment`
+    / `outcome` row through the moments' own writer — the Moniteur prints its
+    `press`, the campaign log its line; no state row, no notice, no popup."""
+    until = grant_edict(world, lord, e)
+    block = edict_block(e)
+    own_seat = _seat_of(world, lord)
+    press = fill_slots(world, str(block.get("court_press") or ""), {"lord": lord, "until": until}, e,
+                       seat=own_seat, SEAT=own_seat.upper())[:160]
+    line = (f"{MO._court(world, lord, capitalize=True)} decrees {edict_name(e)} for "
+            f"{int(block.get('term', 0) or 0)} turns ({int(block.get('price', 0) or 0):,} gold)")
+    MO._log(world, "outcome", e, lord=lord, register=MO.REGISTER_AFFAIR, line=line,
+            press=press or None, until=int(until))
+    return until
+
+
+def ai_decrees() -> bool:
+    """The courts' Edicts — PARKED pending the user's ruling (RE-6, November 2,
+    2026; `RECURRING_EVENTS_SPEC.md` §25.3). Measured with the rung up on
+    the live tree: the five courts with a laws deck decree two to four
+    edicts a campaign (4–7k gold each, 15–30 % of a T40 chest), the ambient
+    alarm series moves from turn 10 and every road arm's end turn moves
+    against the unarmed control (France falls earlier on three Throne-road
+    arms) while the player's letters alone move nothing — a shape change,
+    which §16 "RE-6" re-escalates. True arms the courts at the player's
+    prices through `find_ai_edict` (GR5); the series rig's AFE arm holds it
+    down (`tests/_affairs_seams.py`)."""
+    return False
+
+
+def last_decree_turn(world, lord: str) -> Optional[int]:
+    """The turn of the court's latest decree, derived from the store (until −
+    term); None when it has decreed nothing."""
+    store = _edicts_store(world)
+    prefix = f"{lord}{SUBJECT_SEP}"
+    turns = []
+    for e in deck(world):
+        until = int(store.get(prefix + str(e.get("id") or ""), 0) or 0)
+        if until > 0:
+            turns.append(until - int(edict_block(e).get("term", 0) or 0))
+    return max(turns) if turns else None
+
+
+def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[Dict[str, Any]]:
+    """The courts' rung (priority 1.79, beside the laws): the first offer in
+    deck order whose premise holds this morning for the court and whose
+    purse passes the laws rung's bar, for the courts that keep a laws deck
+    (`reforms.REFORM_DECKS`), one decree every `AI_ENACTMENT_EVERY_TURNS`,
+    never while a law would lapse, never the player; the instantaneous read
+    (no streak — the streak paces the player's letter). The gate is read
+    fresh, outside the premise memo."""
+    if not ai_decrees() or not armed(world) or not nation or int(admin_ap) < 1:
+        return None
+    if nation == getattr(world, "player_nation", None):
+        return None
+    from backend.game_logic.reforms import AI_ENACTMENT_EVERY_TURNS, REFORM_DECKS, ai_holds_the_purse
+    if nation not in REFORM_DECKS or ai_holds_the_purse(world, nation):
+        return None
+    last = last_decree_turn(world, nation)
+    if last is not None and MO._turn(world) - last < int(AI_ENACTMENT_EVERY_TURNS):
+        return None
+    for e in deck(world):
+        if not edict_block(e):
+            continue
+        if edict_refusal(world, nation, e, treasury=int(treasury), with_reserve=True):
+            continue
+        if not premise_holds(world, e, nation).get("holds"):
+            continue
+        return {"action": "decree_edict", "target": str(e.get("id") or "")}
+    return None
 
 
 # ════════════════════════════════════════════════════════════════════════

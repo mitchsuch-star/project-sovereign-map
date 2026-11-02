@@ -3377,6 +3377,9 @@ class CommandExecutor:
             result = self._reforms._execute_enact_law(command, game_state)
         elif action == "repeal_law":
             result = self._reforms._execute_repeal_law(command, game_state)
+        elif action == "decree_edict":
+            # RE-6: a court's decree — the AI rung's verb (the player's road is the letter)
+            result = self._reforms._execute_decree_edict(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             # ESP-EV-4: the raw text rides on the command dict so the attack

@@ -7036,6 +7036,19 @@ class EnemyAI:
             if enactment:
                 return enactment
 
+        # Priority 1.79: DECREE AN EDICT (RE-6, RECURRING_EVENTS_SPEC.md §0 Q2
+        # / §16 "RE-6" — GR5). The Edicts at the player's prices, for the
+        # courts that keep a laws deck: the first offer whose premise holds
+        # this morning and whose purse clears the laws rung's bar; one decree
+        # every three turns; the same gate and writer as the letter's Accept
+        # (`affairs.edict_refusal` / `grant_edict`) through the `decree_edict`
+        # verb — never a typed order, the player's road is the letter.
+        if "decree_edict" not in skip_actions:
+            from backend.game_logic.affairs import find_ai_edict
+            decree = find_ai_edict(world, nation, treasury, admin_ap)
+            if decree:
+                return decree
+
         # Priority 1.8: LAY DOWN A SHIP (DEF-5 naval §6, the P1.75 idiom).
         # At war + treasury > 2× cost + a live naval want (blockaded, or its
         # own blockade outmatched) — the SAME priced verb the player types;

@@ -118,9 +118,21 @@ def _counted_settle(world):
     _c["squadrons_settled"] += len(out or [])
     return out
 AF.settle_squadrons = _counted_settle
+_decrees = AF.ai_decrees
+def _counted_decrees():
+    _c["decree_reads"] += 1
+    if "AFE" in DOWN:
+        return False
+    return _decrees()
+AF.ai_decrees = _counted_decrees
+_grant = AF.grant_edict
+def _counted_grant(world, lord, e):
+    _c["edicts_granted"] += 1
+    return _grant(world, lord, e)
+AF.grant_edict = _counted_grant
 _KEYS = ("affairs_armed_ticks", "affairs_delivered", "blind_rows_dropped", "pulse_draws",
          "affairs_receipts", "court_resolutions", "squadron_ticks", "squadrons_sailed",
-         "squadrons_returned", "squadrons_settled")
+         "squadrons_returned", "squadrons_settled", "decree_reads", "edicts_granted")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

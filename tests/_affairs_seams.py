@@ -30,6 +30,10 @@ UNARMED until RE-3) every seam's reach is 0 and every arm is byte-identical.
                                           calls by name, because the OPS
                                           table binds the apply function at
                                           import)
+    AFE  `affairs.ai_decrees`           — RE-6: the courts' Edicts (down: no
+                                          court decrees an edict; the
+                                          player's offers and the lifecycle
+                                          stand)
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -47,6 +51,9 @@ AFFAIRS_SEAMS_BY_ROW = {
     "AFH": ["backend.game_logic.naval:_squadron_tick=[]"],
     "AFS": ["backend.game_logic.affairs:settle_squadrons=[]",
             "backend.game_logic.naval:detach_squadron={}"],
+    # RE-6: the courts' Edicts (down: no court decrees; the player's letters
+    # and the lifecycle are untouched — `find_ai_edict` reads the seam)
+    "AFE": ["backend.game_logic.affairs:ai_decrees=False"],
 }
 AFFAIRS_SEAMS_DOWN = [spec for row in AFFAIRS_SEAMS_BY_ROW for spec in AFFAIRS_SEAMS_BY_ROW[row]]
 

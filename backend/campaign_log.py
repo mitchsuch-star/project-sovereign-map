@@ -1201,7 +1201,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           # SR-5r RF-1: a court's laws are court knowledge
                           # across Europe (REFORMS_SPEC §8: "diplomacy
                           # has no fog").
-                          "law_enacted", "law_repealed", "law_lapsed"):
+                          "law_enacted", "law_repealed", "law_lapsed", "moment"):
             filtered.append(event)
             continue
 

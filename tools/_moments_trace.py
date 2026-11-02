@@ -253,10 +253,17 @@ class MomentsTrace:
         state = {str(k): dict(v) for k, v in (MO._state(world).items() if world is not None else [])
                  if isinstance(v, dict)}
         pacing = MO.pacing(world) if world is not None else dict(MO.PACING_DEFAULTS)
+        # RE-6: the Edicts' tallies from the affairs runtime store — the
+        # decrees per lord and template and the gold converted per lord (the
+        # measure's source; the per-turn spend tally is cleared every advance)
+        runtime = (MO._store(world).get("affairs") if world is not None else None) or {}
+        edicts = {"decreed": dict(runtime.get("decreed") or {}),
+                  "gold": dict(runtime.get("edict_gold") or {}),
+                  "in_force": dict(runtime.get("edicts") or {})}
         return {"measured": True,
                 "judged": judge(self.mornings, self.applications, state, pacing),
                 "mornings": self.mornings, "applications": self.applications,
-                "errors": list(self.errors)}
+                "errors": list(self.errors), "edicts": edicts}
 
 
 def _delivered(world, lord: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -304,6 +311,13 @@ def _delivered(world, lord: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
         from backend.game_logic import naval
         rec = naval.get_fleet(world, lord) or {}
         put("sail in port", int(row["after"]), int(rec.get("ships", 0) or 0))
+    # RE-6: the edict — the chest after the price, and the decree in force
+    elif op == "edict" and not row.get("refusal") and "after" in row:
+        from backend.game_logic import affairs
+        put("treasury", int(row["after"]), int((world.nation_gold or {}).get(lord, 0) or 0))
+        e = affairs.template_by_id(world, str(row.get("template") or ""))
+        put(f"{row.get('template')} in force", 1,
+            int(e is not None and affairs.edict_state(world, lord, e) == "in_force"))
     return out
 
 

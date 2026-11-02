@@ -440,6 +440,10 @@ class TestTheWatch:
         world.__dict__.pop("_affairs_memo", None)               # the boot's morning, not this board's
         _quarter(world, ("Ney", "Davout"))
         world.nation_gold["France"] = 20_000
+        # RE-6: the corps on Bavaria draw campaign pay (the Magazines' clause)
+        # and the pool sits at 50 % (the Remounts') — the offers stood aside
+        from tests._affairs_boards import rest_the_offers
+        rest_the_offers(world)
         _run(world, [1, 2])
         with _quiet():
             situation = DP._build_situation(world, "France")

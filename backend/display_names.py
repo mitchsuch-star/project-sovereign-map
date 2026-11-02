@@ -66,6 +66,7 @@ ACTION_DISPLAY = {
     "decree_act": "decrees an Act of the Empire",            # VP-1 (S14b part 3)
     "recognition_sweetener": "lays a sweetener before",     # GE-3 (ENDGAME_PLAN §2.4)
     "enact_law": "enacts",                                  # SR-5r RF-1 (REFORMS_SPEC §2)
+    "decree_edict": "decrees an edict",                     # RE-6 (RECURRING_EVENTS_SPEC §16 "RE-6")
     "repeal_law": "repeals",                                # SR-5r RF-1 (R4)
 }
 
@@ -247,6 +248,7 @@ OBJECTION_DISPLAY = {
     "decree_act": "decreeing an Act of the Empire",        # VP-1 part 3 (a purchase — no objections)
     "recognition_sweetener": "offering a sweetener for recognition",  # GE-3 (no objections)
     "enact_law": "enacting a law",       # SR-5r RF-1 (an act of state — no objections)
+    "decree_edict": "decreeing an edict",  # RE-6 (a purchase — no objections)
     "repeal_law": "repealing a law",     # SR-5r RF-1 (no objections)
 }
 
@@ -307,6 +309,7 @@ DEFIANCE_DISPLAY = {
     "decree_act": "decreed an Act of the Empire",          # VP-1 part 3 (no defiance)
     "recognition_sweetener": "offered a sweetener for recognition",  # GE-3 (no defiance)
     "enact_law": "enacted a law",        # SR-5r RF-1 (no defiance)
+    "decree_edict": "decreed an edict",  # RE-6 (no defiance)
     "repeal_law": "repealed a law",      # SR-5r RF-1 (no defiance)
 }
 

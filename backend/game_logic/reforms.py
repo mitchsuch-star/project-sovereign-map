@@ -144,6 +144,16 @@ def effect_terms(world, nation: str, effect_type: str) -> List[tuple]:
         for clause in row.get("effects") or []:
             if isinstance(clause, dict) and clause.get("type") == effect_type:
                 out.append((row, clause))
+    # RE-6 (RECURRING_EVENTS_SPEC.md §16 "RE-6"): the second source — the
+    # Edicts in force, a source that EXPIRES (derived from the turn, never
+    # ticked); the pseudo-row names the decree, so every seam that applies
+    # and names a law does the same for an edict. A pure read.
+    from backend.game_logic import affairs
+    for e, until in affairs.edicts_in_force(world, nation):
+        row = affairs.edict_row(e, until)
+        for clause in row.get("effects") or []:
+            if isinstance(clause, dict) and clause.get("type") == effect_type:
+                out.append((row, clause))
     return out
 
 
@@ -286,7 +296,12 @@ def blockade_denial_factor(world, blockader: str) -> float:
 def laws_signature(world, nation: str) -> tuple:
     """The laws in force, as a hashable key — for a cache whose figure a law
     can move without moving the chest (an authority-priced law)."""
-    return tuple(sorted(str(r.get("id") or "") for r in laws_in_force(world, nation)))
+    laws = tuple(sorted(str(r.get("id") or "") for r in laws_in_force(world, nation)))
+    # RE-6: an edict in force moves the figures a law moves — it joins the key
+    from backend.game_logic import affairs
+    edicts = tuple(sorted((str(e.get("id") or ""), int(until))
+                          for e, until in affairs.edicts_in_force(world, nation)))
+    return laws + edicts
 
 
 # ════════════════════════════ the price, shown = applied ═════════════════════
@@ -912,8 +927,31 @@ def laws_payload(world, nation: str) -> Optional[Dict]:
     in_force = [e for e in out if e["status"] == "in_force"]
     footer = (f"The laws in force cost {upkeep_total:,} gold a turn."
               if in_force else "No law is in force.")
-    return {"rows": out, "upkeep_total": upkeep_total, "footer": footer,
-            "forecast": lapse_forecast(world, nation)}
+    payload = {"rows": out, "upkeep_total": upkeep_total, "footer": footer,
+               "forecast": lapse_forecast(world, nation)}
+    # RE-6: the EDICTS block — only where the recurring deck is armed, so a
+    # legacy payload stays byte-identical
+    from backend.game_logic import affairs
+    if affairs.armed(world):
+        payload["edicts"] = edicts_payload(world, nation)
+    return payload
+
+
+def edicts_payload(world, nation: str) -> List[Dict]:
+    """RE-6 (RECURRING_EVENTS_SPEC.md §16 "RE-6"): the LAWS book's EDICTS
+    block — one row per decree in force, what it does (the laws' own
+    `effect_line`) and the morning its term ends; [] with none in force."""
+    from backend.game_logic import affairs
+    from backend.game_logic.moments import _dateline
+    rows = []
+    for e, until in affairs.edicts_in_force(world, nation):
+        row = affairs.edict_row(e, until)
+        when = _dateline(world, int(until))
+        rows.append({"id": row["id"], "name": row["name"],
+                     "effects": [line for line in (effect_line(c) for c in row["effects"]) if line],
+                     "until": int(until), "until_words": when,
+                     "status_line": f"In force until {when}."})
+    return rows
 
 
 # ════════════════════════════ the laws everywhere else (RF-4b) ════════════════
