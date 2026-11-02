@@ -900,7 +900,11 @@ class TestTheSailingAndTheFate:
         assert second["last_fate"] == "caught" and second["last_sailed"] == 7
         payload = MO.refresh_letter(armed, _letter(armed, f"{H1}#2"))
         assert payload["chapter"].startswith("Historically Leissègues landed")
-        assert payload["board"][-1] == "Your last squadron sailed Late December 1805: five of the line lost."
+        # RE-R (§12c): the remember line is the board's LAST line; the last
+        # sailing's line stands before it
+        assert payload["board"][-2] == "Your last squadron sailed Late December 1805: five of the line lost."
+        assert payload["board"][-1] == ("In Late December 1805 you sent five of the line; "
+                                        "Decrès writes again of Santo Domingo.")
         assert payload["exhibit"].startswith("‘Nous avons osé")
 
     def test_a_mid_voyage_save_round_trips(self, armed, client):

@@ -1553,6 +1553,22 @@ SHOTS += [
     },
 ]
 
+# ═══ RE-R (docs/RECURRING_EVENTS_SPEC.md §12c, P10): the morning-after receipt
+# in the Dispatch screen's SITUATION block — plain, under the Staff's line.
+SHOTS += [
+    {
+        "id": "dispatch_affair_receipt",
+        "surface": "Dispatch re-read — SITUATION with an affair's receipt the morning after (dispatch_view.tscn)",
+        "payload": "dispatch_affair_receipt",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"scroll_to": {"text": "SITUATION"}, "then_wait": 4}],
+        "must_show": ("the SITUATION block with one plain grey line under the treasury and the Staff's lines — "
+                      "'The army lives on the country of Bavaria; Munich keeps the account.' — no prefix, no amber, "
+                      "no chip; the block otherwise as the boot's; the line present at BOTH scales"),
+    },
+]
+
 # ═══ S14d part 1, second landing (docs/TABLE_LESSON_SPEC.md §13.4): the frames
 # with the first-open line at the head — the two surfaces no row had shot.
 # Capture group `first_open` (tools/iq10_capture_payloads.py `cap_first_open`).

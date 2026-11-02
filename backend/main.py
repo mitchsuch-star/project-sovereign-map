@@ -5682,6 +5682,10 @@ def _respond_to_dialogue_sync(choice, action_params=None, dialogue_id=None,
                             "matter_mismatch", "matter_family"):
             if result.get(failure_key) is not None:
                 response[failure_key] = result[failure_key]
+        # RE-R (BUG_FIXES RER-1): the answer beat's trigger — `moments.answer`
+        # writes `moment_answered` on success alone and the client's seal
+        # reads it off this response; the key never left the backend before.
+        _copy_truthy_result_fields(response, result, ("moment_answered",))
 
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):

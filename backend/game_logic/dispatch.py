@@ -6106,6 +6106,12 @@ def _build_situation(world, player_nation: str,
         _fate = _affairs.fate_lines(world)
         if _fate:
             situation["affair_fate"] = [str(x) for x in _fate]
+        # RE-R (RECURRING_EVENTS_SPEC.md §12c, P10): the answers' receipts the
+        # morning after — plain, in both views beside the fate; absent on
+        # every other morning.
+        _receipts = _affairs.receipt_lines(world)
+        if _receipts:
+            situation["affair_receipt"] = [str(x) for x in _receipts]
     if grip_fields:
         # SR-6a NPC-27 / NPC-D1: the derived figures, int (GR2).
         situation["imperial_grip"] = int(grip_fields["grip"])

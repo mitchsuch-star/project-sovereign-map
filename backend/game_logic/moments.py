@@ -1455,15 +1455,32 @@ def answer(world, dialogue: Dict[str, Any], answer_key: str) -> Dict[str, Any]:
                 "diplomatic_dialogue": dialogue, "awaiting_diplomatic_response": True}
     _apply(world, p)
     row.update({"status": STATUS_ANSWERED, "answer": answer_key, "answered_turn": _turn(world)})
+    press = None
     if is_occurrence(mid):
         _stamp_receipt(world, e, row, p, answer_key)
+        from backend.game_logic import affairs
+        # RE-R (RECURRING_EVENTS_SPEC.md §12c): a side without a minister's
+        # echo — the Host's "Live off the land" — hears the marshal who eats
+        # the harvest, frozen as `remark_by`; the Moniteur's line rides the
+        # log row for THE COURTS (P20)
+        if not row.get("echo"):
+            remark, speaker = affairs.host_remark(world, e, row)
+            if remark:
+                row["echo"], row["remark_by"] = remark, speaker
+        press = affairs.press_of(world, e, row, answer_key) or None
     if dm is not None:
         dm.remove_matching(lambda d, _d=dialogue: d is _d)
     _dismiss_notice(world, mid)
     title = letter_title(e, row)             # RE-H: the frozen form's title, as the letter read
     _log(world, "answered", e, answer=answer_key, caption=p["caption"], line=p["quote"], title=title,
-         **_affair_fields(mid, p))
-    return {"success": True, "message": f"{title} — {p['quote']}",
+         press=press, **_affair_fields(mid, p))
+    # RE-R: the echo rides the answer's own response — the one surface the
+    # player is already reading; a second green line under the quote
+    message = f"{title} — {p['quote']}"
+    echo = str(row.get("echo") or "")
+    if echo:
+        message = f"{message}\n{echo}"
+    return {"success": True, "message": message,
             "decision_reason": "moment_answered", "suppress_proposal_result_popup": True,
             "moment_answered": {"id": mid, "answer": answer_key}}
 

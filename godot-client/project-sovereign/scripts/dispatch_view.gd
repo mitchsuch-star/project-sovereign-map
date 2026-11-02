@@ -248,6 +248,13 @@ func _on_dispatch_received(response):
 	if affairs_watch is Array:
 		for watch_line in affairs_watch:
 			bbcode += "[color=#" + Utils.COLOR_INFO + "]  IN THE OFFING: " + str(watch_line) + "[/color]\n"
+	# RE-R (docs/RECURRING_EVENTS_SPEC.md §12c, P10): the answers' receipts
+	# the morning after — plain, the same key the terminal's dispatch prints
+	# (`situation.affair_receipt`, absent on every other morning).
+	var affair_receipt = situation.get("affair_receipt", null)
+	if affair_receipt is Array:
+		for receipt_line in affair_receipt:
+			bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + str(receipt_line) + "[/color]\n"
 	# RE-H (docs/RECURRING_EVENTS_SPEC.md §6.5, §22.2): a squadron's fate on
 	# its morning — amber, the same key the terminal's dispatch prints
 	# (`situation.affair_fate`, absent on every other morning).

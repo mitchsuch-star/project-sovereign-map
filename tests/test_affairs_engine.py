@@ -371,7 +371,10 @@ class TestTheArrival:
         assert _rel(armed, "Bavaria") == rel - 2 and armed.nation_gold["France"] == gold
         assert {k: v["loyalty"] for k, v in armed.vassals.items()} == {k: v["loyalty"] for k, v in loyalty.items()}
         row = MO.status_row(armed, "the_host#1")
-        assert row["receipt"] == f"Bavaria {rel} → {rel - 2}" and row["echo"] == ""
+        assert row["receipt"] == f"Bavaria {rel} → {rel - 2}"
+        # RE-R (§12c): the Host's Decline has no minister's echo — the largest
+        # corps on Bavaria's soil speaks (Davout's 26,000 over Ney's 24,000)
+        assert row["echo"].startswith("Davout: I will hang the first man") and row["remark_by"] == "Davout"
 
     def test_a_client_host_is_billed_in_loyalty_never_in_goodwill(self, armed):
         _no_moments(armed)

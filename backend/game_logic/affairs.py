@@ -1134,7 +1134,12 @@ def board_lines(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
     """The premise's facts, named — read live at every read (the IGR-2
     lesson), the tier frozen (§5)."""
     try:
-        return [str(x) for x in _board(world, e, occ) if x]
+        lines = [str(x) for x in _board(world, e, occ) if x]
+        # RE-R (§12c): the previous letter's answer, remembered — the last line
+        remembered = remember_line(world, e, occ)
+        if remembered:
+            lines.append(remembered)
+        return lines
     except Exception as exc:
         report(exc, "affairs.board_lines: the board")
         return []
@@ -1301,3 +1306,125 @@ def closing_record(world) -> List[Dict[str, Any]]:
                         "label": MO._dateline(world, end_turn),
                         "lines": [str(line) for line in closing if line]})
     return out
+
+
+# ════════════════════════════════════════════════════════════════════════
+# RE-R — the reactions (RECURRING_EVENTS_SPEC.md §12c): the marshal's remark
+# on "Live off the land", the morning-after receipt, the Moniteur's line and
+# the remember line. Reads only — the answer writes the row (`echo`,
+# `remark_by`) and the log row (`press`); the budget is one line per
+# surface per letter, and nothing here opens a popup or sounds.
+# ════════════════════════════════════════════════════════════════════════
+
+HOST_REMARKS: Dict[str, str] = {
+    "Davout": "I will hang the first man who takes a hen unpaid, Sire — but discipline does not feed a corps.",
+    "Massena": "{Host} is a fat country, Sire. My men will not go hungry, nor will I.",
+    "Ney": "My men will eat, Sire. The minister may send his bill to me.",
+    "Lannes": "They fought beside us, Sire. Eating their harvest is a poor way to say so.",
+    "Murat": "My horses want oats, Sire, and the country grows them.",
+    "Soult": "The quartermasters have their lists, Sire; {seat} shall have its receipts in good time.",
+    "Bernadotte": "I will give receipts, Sire, though no one will ever pay them.",
+}
+HOST_REMARKS_BY_PERSONALITY: Dict[str, str] = {
+    "aggressive": "The country is rich, Sire, and my quartermasters are thorough.",
+    "cautious": "I will have every requisition signed for, Sire. A hungry ally makes a poor neighbour.",
+    "literal": "The order is to live off the land, Sire. The corps lives off the land.",
+}
+HOST_REMARK_DEFAULT = "The corps will take what the country gives, Sire, and sign for it."
+REMARK_BY_MAX = 40
+
+
+def largest_corps_on_host(world, lord: str, host: str) -> str:
+    """The marshal with the most men on the host's soil this morning —
+    `_corps_on_host`'s own filter (the lord's marshals; no sovereign, no
+    captive, no contingent commander), the region's controller the host;
+    "" when none stands there. One pass over the marshal list (Rule 8)."""
+    regions = getattr(world, "regions", {}) or {}
+    contingents = {str(r.get("marshal") or "") for r in
+                   (getattr(world, "vassal_contingents", None) or {}).values() if isinstance(r, dict)}
+    best, best_men = "", -1
+    for m in (getattr(world, "marshals", {}) or {}).values():
+        if (getattr(m, "nation", "") != lord or getattr(m, "is_sovereign", False)
+                or getattr(m, "captured_by", "") or getattr(m, "name", "") in contingents):
+            continue
+        region = regions.get(str(getattr(m, "location", "") or ""))
+        if region is None or str(getattr(region, "controller", "") or "") != str(host):
+            continue
+        men = int(getattr(m, "strength", 0) or 0)
+        if men > best_men:
+            best, best_men = str(getattr(m, "name", "") or ""), men
+    return best
+
+
+def host_remark(world, e: Dict[str, Any], row: Dict[str, Any]) -> Tuple[str, str]:
+    """The marshal's remark (§12c): by name in `HOST_REMARKS`, else by
+    personality, else the default — "{name}: {line}", the `{Host}` / `{seat}`
+    slots filled over the row; ("", "") for a row without a host or with no
+    corps left on its soil at the answer (the response keeps its one line)."""
+    host = row_subject(row)
+    if not host:
+        return "", ""
+    lord = str(row.get("lord") or _lord_of(world, e))
+    name = largest_corps_on_host(world, lord, host)
+    if not name:
+        return "", ""
+    marshal = (getattr(world, "marshals", {}) or {}).get(name)
+    personality = str(getattr(marshal, "personality", "") or "")
+    text = HOST_REMARKS.get(name) or HOST_REMARKS_BY_PERSONALITY.get(personality) or HOST_REMARK_DEFAULT
+    return f"{name}: {fill_slots(world, text, row, e)}"[:TEXT_MAX["echo"]], name[:REMARK_BY_MAX]
+
+
+def press_of(world, e: Dict[str, Any], row: Dict[str, Any], answer_key: str) -> str:
+    """The Moniteur's line for an answer (§12c, P20): the side's authored
+    `press`, filled over the row; "" where none is authored — Berthier's Not
+    now, and the squadron form's Accept, whose paper line is its `outcome`
+    row's."""
+    side = MO._answer_side(e, answer_key, row.get("form"))
+    return fill_slots(world, str(side.get("press") or ""), row, e)[:TEXT_MAX["press"]]
+
+
+def receipt_lines(world) -> List[str]:
+    """The morning-after SITUATION lines (§12c, P10): the occurrence rows
+    answered on the previous turn whose side authors `situation`, filled over
+    the row (`{date}` for a squadron). A lapsed letter prints none here — both
+    views already carry it under LAPSED ENVOYS. A pure read."""
+    if not armed(world):
+        return []
+    turn = MO._turn(world)
+    out: List[str] = []
+    for mid, row in all_occurrences(world):
+        if row.get("status") != MO.STATUS_ANSWERED or int(row.get("answered_turn") or -1) != turn - 1:
+            continue
+        e = MO.entry(world, mid)
+        if e is None:
+            continue
+        side = MO._answer_side(e, str(row.get("answer") or ""), row.get("form"))
+        text = fill_slots(world, str(side.get("situation") or ""), row, e)[:TEXT_MAX["situation"]]
+        if text:
+            out.append(text)
+    return out
+
+
+def remember_line(world, e: Dict[str, Any], occ: Dict[str, Any]) -> str:
+    """The `remember` board line (§12c; authored at RE-3, drawn from RE-R):
+    the previous occurrence's answer side — the same template, the same
+    subject where the template binds one (the Host's Claims: the same host),
+    answered or lapsed — filled over THAT row (its `{month}`, its host); ""
+    for a first letter."""
+    mid = str(occ.get("id") or "")
+    if not MO.is_occurrence(mid):
+        return ""
+    subject = row_subject(occ)
+    previous = None
+    for key, row in occurrences(world, MO.template_of(mid)):
+        if key == mid:
+            break
+        if row.get("status") not in (MO.STATUS_ANSWERED, MO.STATUS_LAPSED):
+            continue
+        if subject and row_subject(row) != subject:
+            continue
+        previous = row
+    if previous is None:
+        return ""
+    side = MO._answer_side(e, str(previous.get("answer") or ""), previous.get("form"))
+    return fill_slots(world, str(side.get("remember") or ""), previous, e)[:TEXT_MAX["remember"]]

@@ -774,6 +774,19 @@ def _bourse_line(world) -> str:
             f"the funds are steady.")
 
 
+def _affair_courts_line(e: Dict) -> Optional[str]:
+    """RE-R (§12c, P20): an affair's line in THE COURTS — the Moniteur's
+    authored `press` on an `answered` or `outcome` row; "" (nothing to
+    print) on its other rows; None for every other event, which the shared
+    one-liner speaks for. The log row carries the press from the answer
+    (`moments.answer`) and the settlement (`affairs.settle_squadrons`)."""
+    if str(e.get("type", "")) != "moment" or str(e.get("register") or "") != "affair":
+        return None
+    if str(e.get("phase") or "") not in ("answered", "outcome"):
+        return ""
+    return str(e.get("press") or "")
+
+
 def compose_issue(world, since_turn: int,
                   special_reason: Optional[str] = None,
                   previous_issue: Optional[Dict] = None) -> Dict:
@@ -792,8 +805,12 @@ def compose_issue(world, since_turn: int,
     _war, _court, _army = (collector_types(_WAR_TYPES), collector_types(_COURT_TYPES),
                            collector_types(_ARMY_TYPES))
     war_rows = [e for e in events if str(e.get("type", "")) in _war]
+    # RE-R (RECURRING_EVENTS_SPEC.md §12c, P20): an affair's row prints its
+    # authored `press` on an `answered` or `outcome` row, and nothing
+    # otherwise — the arrival, a withdrawal, a crowding-out, Berthier's Not
+    # now and the squadron form's Accept (its paper line is its outcome's).
     court_rows = [e for e in events
-                  if str(e.get("type", "")) in _court]
+                  if str(e.get("type", "")) in _court and _affair_courts_line(e) != ""]
     army_rows = [e for e in events if str(e.get("type", "")) in _army]
 
     # Review round [1/4]: the number continues from the last ISSUE, not
@@ -815,8 +832,8 @@ def compose_issue(world, since_turn: int,
         seat = "Imperial Headquarters"
 
     def _section(rows: List[Dict], key: str) -> List[str]:
-        lines = [format_event_oneliner(e, player_nation=world.player_nation,
-                                       world=world)
+        lines = [_affair_courts_line(e) or format_event_oneliner(e, player_nation=world.player_nation,
+                                                                 world=world)
                  for e in rows]
         if previous_issue:
             already = set(previous_issue.get(key) or [])

@@ -2288,6 +2288,35 @@ def cap_moments():
                     "with its receipt (state write); then GET /dispatch read — the squadron's slip carries "
                     "its fate in rubric under the receipt; LEFT UNANSWERED / SET ASIDE one dim line"),
            facts=corr_facts(resp))
+
+    # ── RE-R (RECURRING_EVENTS_SPEC.md §12c, P10): the morning-after SITUATION
+    # receipt on the Dispatch screen — the Host's Claims answered "Live off
+    # the land" on turn 7, the morning of turn 8 built by the production
+    # builder, GET /dispatch recorded (the terminal's twin is pinned by source).
+    from backend.game_logic import dispatch as DSP
+    world, c, popup = stage_affair("the_host#1", range(1, 8), host_board)
+    letter = A._letter(world, "the_host#1")
+    with A._quiet():
+        answered = post(c, "/respond_to_diplomatic_dialogue",
+                        {"choice": "reject_ai_proposal", "dialogue_id": letter["dialogue_id"]})
+    if not answered.get("success"):
+        raise RuntimeError("the Host's letter was not answered: " + str(answered)[:200])
+    A._at(world, 8)
+    world.__dict__.pop("_affairs_memo", None)
+    with A._quiet():
+        DSP.build_morning_dispatch(world)
+    resp = get(c, "/dispatch")
+    receipt = (resp.get("dispatch") or {}).get("situation", {}).get("affair_receipt")
+    if not receipt:
+        raise RuntimeError("no receipt on the morning of turn 8: " + str((resp.get("dispatch") or {}).get("situation"))[:300])
+    record("dispatch_affair_receipt", resp, source="GET /dispatch (the morning of turn 8, built by build_morning_dispatch)",
+           staging=("the affair_letter_the_host staging (the Host's Claims at tier 2 on turn 7); the Decline posted "
+                    "through /respond_to_diplomatic_dialogue (Bavaria's goodwill 60 → 56; Davout's remark on the "
+                    "response); current_turn set to 8 and the production build_morning_dispatch run — SITUATION "
+                    "carries one plain receipt line under the Staff's line: 'The army lives on the country of "
+                    "Bavaria; Munich keeps the account.'"),
+           facts={"affair_receipt": receipt, "response_lines": str(answered.get("message", "")).splitlines(),
+                  "remark_by": world.moments["state"]["the_host#1"].get("remark_by")})
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 
