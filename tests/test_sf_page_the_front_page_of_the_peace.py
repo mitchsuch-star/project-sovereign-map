@@ -819,6 +819,14 @@ SEAMS_DOWN = ["backend.game_logic.garrison_report:detachment_capitulates=False",
 # The October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE §157): every one of its
 # behavioural seams down, so CMD-H-DOWN reproduces the Step 7 page turn for turn.
 SEAMS_DOWN = SEAMS_DOWN + OCT27_SEAMS_DOWN
+# RE-6 the flip (November 2, 2026; `RECURRING_EVENTS_SPEC.md` §25.6): the
+# courts' Edicts ARMED by the user's word — the five courts with a laws deck
+# decree at the player's prices from turn 2 (an admin action at rung 1.79,
+# the draws after it), and CMD-H re-times from turn 6 (Massena broken at
+# Franconia where Paget crossed into Gascony). The rung held down restores the
+# Step 7 page; the letters themselves (armed since RE-3, lapsing on this arm)
+# never moved it.
+SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.affairs:ai_decrees=False"]
 
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

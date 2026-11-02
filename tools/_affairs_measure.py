@@ -203,13 +203,35 @@ def cmd_record(args) -> int:
         controls = [p.strip() for p in str(args.road_control or "").split(",") if p.strip()]
         record = json.loads(record_path.read_text(encoding="utf-8"))
         record["road_control"] = road_control(Path(args.road_record), controls)
+        # RE-6 (the courts' Edicts armed by the user's word, November 2, 2026 —
+        # RECURRING_EVENTS_SPEC.md §25.6): the armed tree now carries the courts'
+        # decrees as well as the letters, so §14's brake — the Rhine road unmoved
+        # with the LETTERS' lapse default — is read off a third run with the
+        # courts' rung held down (`--seam backend.game_logic.affairs:ai_decrees=False`)
+        # beside the same unarmed control; `road_control` keeps the armed tree's
+        # whole move (the courts' decrees attributed per arm).
+        if args.road_letters:
+            record["road_letters"] = road_control(Path(args.road_letters), controls)
+            record["road_letters"]["_note"] = ROAD_LETTERS_NOTE
         record_path.write_text(json.dumps(record, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
-        for name, row in record["road_control"]["arms"].items():
-            c = row.get("control") or {}
-            print(f"{name:20s} armed end {row['armed']['end_turns']:>2} stamped {row['armed']['stamped_turn']:>3}"
-                  + (f" | control end {c['end_turns']:>2} stamped {c['stamped_turn']:>3} -> "
-                     f"{'UNMOVED' if row['unmoved'] else 'MOVED'}" if c else " | no control"))
+        for key in ("road_control", "road_letters"):
+            if key not in record:
+                continue
+            print(f"[{key}]")
+            for name, row in record[key]["arms"].items():
+                c = row.get("control") or {}
+                print(f"{name:20s} armed end {row['armed']['end_turns']:>2} stamped {row['armed']['stamped_turn']:>3}"
+                      + (f" | control end {c['end_turns']:>2} stamped {c['stamped_turn']:>3} -> "
+                         f"{'UNMOVED' if row['unmoved'] else 'MOVED'}" if c else " | no control"))
     return 0
+
+
+ROAD_LETTERS_NOTE = (
+    "RE-6 (RECURRING_EVENTS_SPEC.md §14 'the brakes', §25.6): the road arms with the deck's LETTERS "
+    "armed and the courts' Edicts rung held down (`--seam backend.game_logic.affairs:ai_decrees=False`) "
+    "beside the UNARMED control — the brake §14 names, the letters' lapse default, read apart from the "
+    "courts' decrees; `road_control` holds the armed tree's whole move."
+)
 
 
 def main() -> int:
@@ -232,6 +254,9 @@ def main() -> int:
                    help="the armed road arms' `--record` JSON (tools/_vp1_road_arms.py), for `road_control`")
     c.add_argument("--road-control", default="",
                    help="the UNARMED controls' `--record` JSONs, comma-separated (a scratch clone without the key)")
+    c.add_argument("--road-letters", default="",
+                   help="RE-6: the road arms' `--record` JSON with the letters armed and the courts' rung held down "
+                        "(`--seam backend.game_logic.affairs:ai_decrees=False`), for `road_letters`")
     args = ap.parse_args()
     return cmd_run(args) if args.cmd == "run" else cmd_record(args)
 

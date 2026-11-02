@@ -487,25 +487,25 @@ class TestTheLifecycle:
 
 # ═══════════════════════════════════════════════════════════════════════════
 # The courts — the same prices, the one gate, the one writer (GR5); the rung
-# PARKED behind `affairs.ai_decrees` pending the user's ruling (§25.3)
+# measured first behind `affairs.ai_decrees`, escalated, and ARMED by the
+# user's word of November 2, 2026 — "Flip it on" (§25.3, §25.6)
 # ═══════════════════════════════════════════════════════════════════════════
 
 @pytest.fixture
 def courts_up(monkeypatch):
-    """The user's one-line flip: the courts decree at the player's prices."""
+    """The shipped default since the user's word; held explicitly so the
+    pins below read the same whichever way the seam is later ruled."""
     monkeypatch.setattr(AF, "ai_decrees", lambda: True)
 
 
 class TestTheCourts:
-    def test_the_rung_is_parked_until_the_user_s_word_and_the_seam_holds_it_down(self, armed, monkeypatch):
-        """Shipped: `ai_decrees()` is False — no court decrees, the player's
-        offers and the lifecycle stand; the flip arms the rung; the series
-        rig's AFE arm holds it down again."""
+    def test_the_rung_is_armed_by_the_user_s_word_and_the_seam_holds_it_down(self, armed, monkeypatch):
+        """Shipped: `ai_decrees()` is True — the courts decree at the player's
+        prices; the series rig's AFE arm holds the rung down (the letters and
+        the lifecycle stand), and False parks it again in one line."""
         from tests._affairs_seams import AFFAIRS_SEAMS_BY_ROW, hold_down
         armed.nation_gold["Austria"] = 20_000
-        assert AF.ai_decrees() is False
-        assert AF.find_ai_edict(armed, "Austria", 20_000, 2) is None
-        monkeypatch.setattr(AF, "ai_decrees", lambda: True)
+        assert AF.ai_decrees() is True
         assert AF.find_ai_edict(armed, "Austria", 20_000, 2) is not None
         hold_down(monkeypatch, AFFAIRS_SEAMS_BY_ROW["AFE"])
         assert AF.ai_decrees() is False and AF.find_ai_edict(armed, "Austria", 20_000, 2) is None
@@ -568,17 +568,18 @@ class TestTheCourts:
         assert AF.find_ai_edict(armed, "Austria", 18_500, 2) is None       # a law would lapse: no spend
 
     def test_the_courts_up_series_record_attributes_the_move(self):
-        """The series rig, run with the rung UP before it was parked
+        """The series rig's first run with the rung UP, before the ruling
         (`tools/_affairs_series_arms_re6.json`): the letters alone leave the
-        ambient alarm byte-identical to the baseline (arm AFE); every seam
-        down reproduces the pre-RE-H series (arm 0); the courts' decrees
-        alone move it from turn 10 (arm ALL, 13 edicts granted)."""
-        from tests.test_ai_intent_threat_migration import BASELINE_SERIES, SERIES_BEFORE_RE_H
+        ambient alarm byte-identical to the pre-RE-6 baseline (arm AFE);
+        every seam down reproduces the pre-RE-H series (arm 0); the courts'
+        decrees alone move it from turn 10 (arm ALL, 13 edicts granted) — the
+        move the user read before saying "Flip it on"."""
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_RE_6, SERIES_BEFORE_RE_H
         record = json.loads((REPO / "tools" / "_affairs_series_arms_re6.json").read_text(encoding="utf-8"))
         arms = record["arms"]
-        assert record["prior"] == arms["AFE"]["series"] == BASELINE_SERIES
+        assert record["prior"] == arms["AFE"]["series"] == SERIES_BEFORE_RE_6
         assert arms["0"]["series"] == SERIES_BEFORE_RE_H
-        assert arms["ALL"]["series"] != BASELINE_SERIES and arms["ALL"]["first_divergence_vs_prior"] == 10
+        assert arms["ALL"]["series"] != SERIES_BEFORE_RE_6 and arms["ALL"]["first_divergence_vs_prior"] == 10
         assert arms["ALL"]["reach"]["counts"]["edicts_granted"] == 13
         assert arms["AFE"]["reach"]["counts"]["edicts_granted"] == 0
 

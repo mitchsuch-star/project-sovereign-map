@@ -1,15 +1,17 @@
 """RE-1 — the affairs' pacing, measured and pinned (`docs/RECURRING_EVENTS_SPEC.md`
 §7, §0b P8, §17b "the first affair about T13 — UNVERIFIED until RE-1").
 
-`tools/_affairs_first_arrival_probe.py` grafts the staged deck
-(`tests/fixtures/affairs_block.json`) on the shipped boot and plays the passive
-board (the series harness's own loop) to turn 20 on the ten `SWEEP_SEEDS`,
-twice per seed — the CONTROL (unarmed, as shipped) and the ARMED arm — with the
+`tools/_affairs_first_arrival_probe.py` plays the passive board (the series
+harness's own loop) to turn 20 on the ten `SWEEP_SEEDS`, three times per seed
+— the CONTROL (unarmed), the LETTERS arm (the deck armed, the courts' Edicts
+rung held down — RE-6) and the ARMED arm (the shipped default) — with the
 moments' trace installed. The record `tools/_affairs_first_arrival.json` is
-read here: the moments' arrival turns identical on both arms (§7: the moments
-are blind to affairs); no ceiling or floor breach; the first affair per seed
-reported, never a law. The look-ahead itself (P8) is pinned on a crafted
-morning in `tests/test_affairs_engine.py`.
+read here: the moments' arrival turns identical on the control and the letters
+arms (§7: the moments are blind to affairs — the letters move no dated
+moment; the courts' decrees re-roll a board where they do, and the record
+names the seeds); no ceiling or floor breach; the first affair per seed
+reported on the shipped default, never a law. The look-ahead itself (P8) is
+pinned on a crafted morning in `tests/test_affairs_engine.py`.
 """
 import json
 from pathlib import Path
@@ -40,21 +42,46 @@ class TestTheRecordMeasuredTheStagedDeck:
         assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
                                      "the_magazines", "the_remounts", "camps_of_instruction"]
 
-    def test_every_seed_was_played_on_both_arms_to_turn_twenty(self, record):
+    def test_every_seed_was_played_on_the_three_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20
         assert sorted(record["seeds"]) == sorted(SWEEP_SEEDS)
         for seed, arms in record["seeds"].items():
-            assert set(arms) == {"control", "armed"}, seed
+            # RE-6: the letters arm — the deck armed, the courts' rung held down
+            assert set(arms) == {"control", "letters", "armed"}, seed
             for arm in arms.values():
                 assert arm["last_turn"] == 21 and arm["errors"] == [], (seed, arm["errors"])
 
 
 class TestTheMomentsAreBlindOnEverySeed:
     @pytest.mark.parametrize("seed", SWEEP_SEEDS)
-    def test_the_moments_arrival_turns_are_identical_armed_against_unarmed(self, record, seed):
+    def test_the_moments_arrival_turns_are_identical_with_the_letters_against_unarmed(self, record, seed):
+        """§7: the moments are blind to affairs — read against the LETTERS arm
+        (RE-6, November 2, 2026): the courts' decrees on the shipped default
+        re-roll a board (an admin action taken, the draws after it), which is
+        the courts' doing and not the letters' (the pin below names where)."""
         arms = record["seeds"][seed]
-        assert arms["armed"]["moments"] == arms["control"]["moments"], seed
+        assert arms["letters"]["moments"] == arms["control"]["moments"], seed
         assert arms["control"]["affairs"] == {}                     # unarmed: no occurrence row
+
+    def test_the_courts_decrees_re_roll_the_dated_moments_where_the_record_says(self, record):
+        """Seeded paths, not laws: on the shipped default the courts decree
+        from turn 2 on the passive board, and the dated moments move on four
+        of the ten seeds against the letters arm — the courts' own move,
+        attributed apart from the letters (whose arm is byte-identical to the
+        control on every seed). What moves is the Throne of Holland: with no
+        satellite rebelling in France's web Holland's loyalty holds, so the
+        letter does not fall due within the probe's twenty turns on
+        historical, wagram and rivoli, and comes a morning earlier on
+        friedland (T17 against T18)."""
+        moved = {seed for seed, arms in record["seeds"].items()
+                 if arms["armed"]["moments"] != arms["letters"]["moments"]}
+        assert moved == {"historical", "friedland", "wagram", "rivoli"}, moved
+        for seed in ("historical", "wagram", "rivoli"):
+            arms = record["seeds"][seed]
+            assert "throne_of_holland" in arms["letters"]["moments"] and arms["armed"]["moments"] == {}, (seed, arms["armed"]["moments"])
+        friedland = record["seeds"]["friedland"]
+        assert (friedland["letters"]["moments"]["throne_of_holland"], friedland["armed"]["moments"]["throne_of_holland"]) == (18, 17)
+        assert friedland["armed"]["moments"]["bavarian_match"] == friedland["letters"]["moments"]["bavarian_match"] == 9
 
     @pytest.mark.parametrize("seed", SWEEP_SEEDS)
     def test_the_ceilings_and_the_floors_hold_on_the_armed_arm(self, record, seed):
@@ -111,10 +138,17 @@ class TestTheFirstArrivalIsReportedPerSeed:
                     assert set(row["bind"]) == {"region", "sovereign"} and row["bind"]["sovereign"] == "Napoleon", (seed, row)
         with_door = {seed for seed, arms in record["seeds"].items()
                      if any(m.startswith("berthiers_memorial#") for m in arms["armed"]["affairs"])}
-        assert with_door == {"ulm", "austerlitz"}, with_door             # as at RE-1, the door's seeds
+        # RE-6 (the courts' Edicts armed, November 2, 2026): the door's seeds
+        # were ulm and austerlitz from RE-1; on the shipped default ulm's
+        # board is re-rolled by the courts' decrees and its second letter is
+        # the Marine's again — the door opens on austerlitz alone
+        assert with_door == {"austerlitz"}, with_door
 
     def test_the_streaks_build_where_the_premise_holds_and_nothing_is_due_at_the_end(self, record):
+        # RE-6: on austerlitz the Haiti letter's second is due on the probe's
+        # last morning (its first lapsed at T11, the cooldown of twelve run)
+        due_at_the_end = {"austerlitz": {"santo_domingo|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
-            assert armed["due"] == {}, seed
+            assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])
             assert all(isinstance(v, int) and v >= 1 for v in armed["streaks"].values()), seed

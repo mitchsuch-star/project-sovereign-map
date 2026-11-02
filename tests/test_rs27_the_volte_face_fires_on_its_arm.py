@@ -133,10 +133,21 @@ class TestTheVolteFaceFiresOnItsArm:
         board re-times from there — 0 beats in forty turns. With the Old
         Alliance held down alone the beat returns at turn 27 (G1's other
         entries, G2 and G3 held down alone: 0). The arm keeps its purpose
-        with that one entry down (`SYSTEMS_REFERENCE.md` §160.13)."""
+        with that one entry down (`SYSTEMS_REFERENCE.md` §160.13).
+
+        RE-SEATED by RE-6 the flip — the courts' Edicts ARMED by the user's
+        word (November 2, 2026; `RECURRING_EVENTS_SPEC.md` §25.6): the five
+        courts with a laws deck decree at the player's prices from turn 2
+        (an admin action taken at rung 1.79, the draws after it), the
+        historical board re-times from there and the beat never fires in
+        forty turns; with the courts' rung held down (the AFE seam,
+        `affairs.ai_decrees=False`) beside the two seams above it returns at
+        turn 27 (measured on this drive). The arm keeps its purpose with the
+        rung down too — the Edicts stage the war, they are not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
-                      "(a[1] or {}).get('id') != 'the_old_alliance'")
+                      "(a[1] or {}).get('id') != 'the_old_alliance'",
+                      "--seam", "backend.game_logic.affairs:ai_decrees=False")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

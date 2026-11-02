@@ -1,8 +1,8 @@
-# NEXT SESSION PROMPT — Row RE "Affairs of State": RE-6 LANDED (the user's review and the courts' ruling first), then RE-5 the close; row AU after RE
+# NEXT SESSION PROMPT — Row RE "Affairs of State": RE-6 LANDED and the courts' Edicts ARMED (the user's review first), then RE-5 the close; row AU after RE
 
-> Overwritten each time a session hands off. Current hand-over: **November 2, 2026 — RE-6 the Edicts LANDED in two
-> commits** (`bb9b89d7` the lifecycle, the three offers, the courts' rung and the measure; then the LAWS book's EDICTS
-> block, the frames and the records; rules `SYSTEMS_REFERENCE.md` §167; the record `RECURRING_EVENTS_SPEC.md` §25),
+> Overwritten each time a session hands off. Current hand-over: **November 2, 2026 — RE-6 the Edicts LANDED in three
+> commits** (`bb9b89d7` the lifecycle, the three offers, the courts' rung and the measure; `f967ca07` the LAWS book's EDICTS
+> block, the frames and the records; then the flip — the courts' Edicts ARMED by the user's word, §25.6; rules `SYSTEMS_REFERENCE.md` §167; the record `RECURRING_EVENTS_SPEC.md` §25),
 > after RE-R the reactions (`ed28edf4`, §24 / §166), RE-C the Correspondence (`009eae6e`, §23 / §165) and RE-H the
 > Haiti letter (`247e4e27`, `2b47a93a`, `98bb5910`; §22 / §164); the row before S15 by the user's ruling of October 31
 > (§0c). **All four tiers of §16b have their content:** the letter, the home, the reactions, the squadron — and the
@@ -10,24 +10,24 @@
 > turn), three offers under the one register — the Magazines (Daru), the Remounts (Dejean → Lacuée de Cessac), the
 > Camps of Instruction (Berthier → Clarke) — the LAWS book's EDICTS block, the slip's "In force until …", and the
 > courts' rung at the same prices (`affairs.find_ai_edict`, the `decree_edict` verb), **built, measured with the rung
-> up, then PARKED behind `affairs.ai_decrees()` (False) because the measure found a shape change** (§25.3): the five
-> courts with a laws deck decree two to four edicts a campaign, the ambient series moves from turn 10 and every road
-> arm's end turn moves against the unarmed control — France falls earlier on all three Throne-road arms — while the
-> letters alone move none.
+> up, PARKED for the ruling because the measure found a shape change (§25.3) — and ARMED the same evening by the
+> user's word, "Flip it on" (§25.6)**: the five courts with a laws deck decree two to four edicts a campaign, the
+> ambient series moves from turn 10 and every road arm's end turn moves against the unarmed control — France falls
+> earlier on all three Throne-road arms — while the letters alone move none; the reach, the roads, the probe and the
+> series re-measured and re-pinned, RE6-4 (the judge's stale board) fixed in the measure.
 >
 > **FIRST — the user's review and rulings, before any code:**
-> 1. **The courts' Edicts (§25.3):** flip `affairs.ai_decrees()` to True (recommended — history with teeth, the
->    courts spending their hoards on the instruments of the era, the underdog stories of S14k), hold it parked, or
->    arm it narrower (at war only; the great powers without the Porte). A flip re-runs the chain
->    (`tools/playtest_runs/re6_2026_11_02/chain.sh` — six minutes), re-seats the reach floors
->    (`tests/test_affairs_reach.py`), the road-control pin and `BASELINE_SERIES` with the attribution, and records
->    the move in §25; `tools/_affairs_series_arms_re6.json` holds the courts-up series already.
+> 1. **The courts' Edicts are ARMED (§25.6) — the user's word of November 2, "Flip it on".** Nothing is owed here;
+>    to park them again is one line (`affairs.ai_decrees()` → False) and the chain. What the flip moved: the Marine's
+>    letter leaves the treaty road and the Rhine road's `historical` arm to the offers (the Remounts' and the
+>    Magazines' premises stand longer) — RE-5's reach review weighs it with RE3-6 / RE3-7.
 > 2. **The readings:** RE-H (§22.1, §22.2, §22.4), RE-C (§23.2), RE-R (§24.2), RE-6 (§25.4 — the store and its
 >    derived expiry; one gate with two bars; the Remounts' corps clause; Berthier writing twice; the prices as
 >    drafted; the `later` chapters).
-> 3. **The reach the measure found (§25.2):** the Memorial's scripted mornings went to the offers (the Remounts' bar
->    of 2,500 against the Staff's 11,500 — the longer-standing premise picks); the Remounts on 29 of 55 arms through
->    the corps clause, none on the six hand-played boards; the Camps on 6; the Magazines on 8. The levers are
+> 3. **The reach the measure found (§25.2, §25.6):** the Memorial's scripted mornings went to the offers (the Remounts'
+>    bar of 2,500 against the Staff's 11,500 — the longer-standing premise picks); with the courts armed the Remounts
+>    on 31 of 55 arms through the corps clause, none on the six hand-played boards; the Camps on 7; the Magazines on
+>    15; the Host 20, the Memorial 13, the Haiti letter 22. The levers are
 >    in-band (`below_pct`, a corps threshold of its own, the prices) — RE-5's reach review is the venue, with
 >    RE3-6 (the Crown fires nowhere since S14k) and RE3-7 (the roads since S14j/k), and RE3-9 (the untracked
 >    `.import` files). **Build nothing on RE3-6 / RE3-7 / RE3-9 without the user's word.**
@@ -41,7 +41,7 @@
 > blockade, 45 sail, the chest past 1,500), an edict decreed and seen on the LAWS book and in the recruit quote,
 > the Watch naming the next letter; every frame read at both scales. (b) **The reach review** — each template's reach
 > recorded (§21.3, §22.1, §22.4, §25.2) and the user keeping, re-premising or deleting any letter the review judges
-> (the count pin in `tests/test_affairs_pacing.py`), the courts' rung per ruling 1. (c) **`tools/_affairs_lapse_share.py`**
+> (the count pin in `tests/test_affairs_pacing.py`), the courts' rung armed by the user's word (§25.6). (c) **`tools/_affairs_lapse_share.py`**
 > (§17's dial instrument: the share of affairs lapsing, read from the testers' saves' occurrence rows — written at
 > RE-5, the dial itself struck from v1). (d) STATUS's four tier lines closed; `PRE_DEPLOY_PLAN.md` §2's RE row ✅ and
 > S15 next after AU. Then **AU's gate** in its own session.
@@ -80,3 +80,12 @@
 >
 > **Open with the user, unchanged:** RE3-6, RE3-7, RE3-9 (above); the certificate (`INK_IRON_SIGNTOOL_ARGS`); S14d's A1
 > as applied; AO's three questions (`REFORMS_SPEC.md` §5a); SF-NAV-1-D1.
+
+> **Traps the flip paid for (November 2, 2026):** the series rig's `prior` is HEAD's `BASELINE_SERIES` (`git show`),
+> so a flip's committed rig record carries the OLD series as its prior and the pin reads it so (`test_ai_drill_fix`);
+> keep the previous rig record under its own name (`_affairs_series_arms_reh.json`) before re-recording `_final`;
+> attribute a series move by event on the ambient board (the `tools/_rf3_board_events.py` loop with the seam up and
+> down), never by guess — the courts' decrees re-roll the turn's draws (an admin action at 1.79) and a satellite's exit
+> can change KIND (a bribe for a rebellion) as well as turn; the moments' blindness pin needs a letters-only arm once
+> the courts act on the armed tree; the judge's `shown` is the driver's copy of the board, not the client's re-read —
+> compare against a re-plan at the answer before calling a quote false.

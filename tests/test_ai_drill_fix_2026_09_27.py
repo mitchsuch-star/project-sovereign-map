@@ -527,11 +527,32 @@ class TestTheMeasuredArms:
         # arm (`deliver_due` down — no letter) and its arm 0 (every seam down)
         # reproduce RE-3's series byte for byte — the letter's own
         # attribution; its AFH / AFS arms (the squadron's seams down) and its
-        # ALL arm are the standing series (`tools/_affairs_series_arms_final.json`).
-        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_RE_H
+        # ALL arm are RE-H's standing series. The record is kept at
+        # `tools/_affairs_series_arms_reh.json` since RE-6 re-recorded the
+        # standing `_final` (below).
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_RE_6, SERIES_BEFORE_RE_H
         assert SERIES_BEFORE_RE_H == s14k2["arms"]["ALL"]["series"]
-        reh = json.loads((ROOT / "tools" / "_affairs_series_arms_final.json").read_text(
+        reh = json.loads((ROOT / "tools" / "_affairs_series_arms_reh.json").read_text(
             encoding="utf-8"))
         assert reh["arms"]["AF0"]["series"] == reh["arms"]["0"]["series"] == SERIES_BEFORE_RE_H
-        assert reh["prior"] == reh["arms"]["ALL"]["series"] == BASELINE_SERIES
-        assert reh["arms"]["AFH"]["series"] == reh["arms"]["AFS"]["series"] == BASELINE_SERIES
+        assert reh["prior"] == reh["arms"]["ALL"]["series"] == SERIES_BEFORE_RE_6
+        assert reh["arms"]["AFH"]["series"] == reh["arms"]["AFS"]["series"] == SERIES_BEFORE_RE_6
+        # RE-6 (the Edicts, November 2, 2026 — the courts' rung ARMED by the
+        # user's word, "Flip it on"; `RECURRING_EVENTS_SPEC.md` §25.6): RE-H's
+        # series is RE-6's prior. The rig's committed record is the flip's:
+        # its AFE arm (the courts' rung down — the letters alone) reproduces
+        # the prior byte for byte; its arm 0 (every seam down) RE-3's series;
+        # its AF0 arm (no letter delivered, the courts decreeing) and its ALL
+        # arm are the standing series, diverging at [10] — the courts'
+        # decrees alone move the ambient board (the attribution block in
+        # test_ai_intent_threat_migration.py); the squadron's seams down
+        # (AFH / AFS) change nothing on a passive France.
+        re6 = json.loads((ROOT / "tools" / "_affairs_series_arms_final.json").read_text(
+            encoding="utf-8"))
+        assert re6["prior"] == re6["arms"]["AFE"]["series"] == SERIES_BEFORE_RE_6
+        assert re6["arms"]["0"]["series"] == SERIES_BEFORE_RE_H
+        assert re6["arms"]["AF0"]["series"] == re6["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert re6["arms"]["AFH"]["series"] == re6["arms"]["AFS"]["series"] == BASELINE_SERIES
+        assert re6["arms"]["ALL"]["first_divergence_vs_prior"] == 10
+        assert re6["arms"]["ALL"]["reach"]["counts"]["edicts_granted"] > 0
+        assert re6["arms"]["AFE"]["reach"]["counts"]["edicts_granted"] == 0

@@ -1096,7 +1096,20 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # as the series does at [11]. With part 2's seams held down in the
         # child it reads 12 verbatim; G1 (the decks) held down alone 12; G2
         # and G3 held down alone 14.
-        assert capped == 14, capped
+        # Re-measured by RE-6 the flip — the courts' Edicts ARMED by the
+        # user's word (November 2, 2026; `RECURRING_EVENTS_SPEC.md` §25.6,
+        # the BASELINE_SERIES attribution block): capped 11 — the courts'
+        # decrees are admin actions taken at rung 1.79 (Britain the Remounts
+        # on turn 2 first), the board's draws differ from there, and
+        # Switzerland leaves France's web at turn 10 by Britain's VS-6 bribe
+        # (`vassal_defected`, VASSAL -> PEACE), not by its own rebellion:
+        # `_rebellion_turn` reads the turn it stops being a VASSAL, which
+        # covers both, as the Phase 3 correction records. With the courts'
+        # rung held down (the AFE seam, `affairs.ai_decrees=False`) the
+        # rebellion of turn 14 reads verbatim (`vassal_broke_free`,
+        # exit=vassal_rebellion; the trace in the attribution block). The
+        # contract — the cap DELAYS, it does not save — stands.
+        assert capped == 11, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.

@@ -225,6 +225,35 @@ class TestTheTraceHasTeeth:
         moved = dict(drift, applied="Crown Louis: loyalty 76 → 86; 2 diplomatic points (you hold 6).")
         judged = self._judge([], [moved])
         assert judged["shown_equals_applied"] is False and judged["context_drift"] == []
+        assert [d.get("kind") for d in self._judge([], [drift])["context_drift"]] == ["purse"]
+
+    def test_a_board_read_before_the_player_s_own_acts_is_drift_when_a_re_read_shows_the_applied_figures(self):
+        """RE-6 (November 2, 2026; the courts' Edicts armed — CMD-A-ACCEPT,
+        T19): the Throne of Holland was READ at loyalty 87 ("87 → 97") and
+        answered after the player's own investment had taken Holland to 97,
+        so the Crown's +10 met the cap ("97 → 100") and the tribute's delta
+        fell away. The client re-plans a standing letter at every read (seam
+        4), so a re-read at the answer shows the applied figures — the trace
+        now carries that re-read (`fresh`) and the judge records the stale
+        board as context drift of kind "re-read"; without the re-read, or
+        with a re-read that differs from the applied line, the quote is still
+        a mismatch, and a figure off its quote is seen row by row."""
+        shown = ("Crown Louis: Holland becomes Autonomous: loyalty 87 → 97; tribute 75% → 50% "
+                 "(-112 gold a turn); 1 diplomatic point (you hold 7).")
+        applied = "Crown Louis: Holland becomes Autonomous: loyalty 97 → 100; tribute 75% → 50%; 1 diplomatic point (you hold 6)."
+        app = {"turn": 19, "moment": "throne_of_holland", "kind": "answer", "answer": "accept",
+               "shown": shown, "applied": applied, "fresh": applied,
+               "rows": [{"op": "autonomy", "figure": "Holland loyalty", "quoted": 100, "delivered": 100}]}
+        judged = self._judge([], [app])
+        assert judged["shown_equals_applied"] is True and judged["mismatches"] == []
+        assert [(d["figure"], d["kind"], d["fresh"]) for d in judged["context_drift"]] == [("quote", "re-read", applied)]
+        no_reread = dict(app, fresh="")
+        assert self._judge([], [no_reread])["shown_equals_applied"] is False
+        other_reread = dict(app, fresh=shown)
+        judged = self._judge([], [other_reread])
+        assert judged["shown_equals_applied"] is False and judged["context_drift"] == []
+        off = dict(app, rows=[{"op": "autonomy", "figure": "Holland loyalty", "quoted": 100, "delivered": 97}])
+        assert [m["figure"] for m in self._judge([], [off])["mismatches"]] == ["Holland loyalty"]
 
 
 class TestTheTraceOnTheX24Board:

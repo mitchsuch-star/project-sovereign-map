@@ -1684,7 +1684,45 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # the delivery up diverges at [18] with exactly one occurrence delivered.
 # RE-3's series: SERIES_BEFORE_RE_H below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by RE-6 (the Edicts, November 2, 2026 — the courts' rung ARMED
+# by the user's word, "Flip it on"; `RECURRING_EVENTS_SPEC.md` §25.6,
+# `SYSTEMS_REFERENCE.md` §167). The five courts with a laws deck now decree
+# the Edicts at the player's prices on the passive board — Britain the
+# Remounts on turn 2, Russia and the Porte on 3, the Porte the Camps on 6,
+# Austria and Prussia the Remounts on 7 and 8, Russia and Britain the
+# Magazines on 9 and 10 — fifteen decrees and 29,500 gold over the forty
+# turns (Britain 4 / 8,000, Russia 3 / 6,500, the Porte 3 / 5,500, Prussia
+# 3 / 5,500, Austria 2 / 4,000); each is an admin action taken at rung 1.79,
+# so the board's draws differ from turn 2. Traced on the ambient board's own
+# events (the `tools/_rf3_board_events.py` loop, the courts up against the
+# rung held down — the AFE seam):
+#   - the Kingdom of Italy still leaves France's web at turn 8 ([7] → [8],
+#     56 → 43: −3 decay − 10 relief);
+#   - Switzerland leaves the web at turn 10 by Britain's VS-6 bribe
+#     (`vassal_defected`, the transfer) instead of its own rebellion at turn
+#     14 (`vassal_broke_free`): the −13 moves from [12] → [13] (31 → 18) to
+#     [9] → [10] (40 → 27) — the first divergence, at [10];
+#   - with no rebellion in the web Holland's loyalty holds (74–92 from turn
+#     11, where it drained to 2 by turn 18 before): Holland never rebels,
+#     RE-H's −10 at [18] is gone (11 → 8 by decay) and the +2 at [25] with
+#     it; Britain storms Amsterdam and Holland is eliminated at turn 25, the
+#     alarm already at 0;
+#   - at turn 16 a jealous Ney attacks Mack on his own authority
+#     (`jealousy_autonomous`) and the decisive victory alarms +3 +5 against
+#     the day's −3: 12 → 17 at [16];
+#   - the alarm reaches 0 at [23] (turn 24), five turns later than before;
+#     the unattended France falls at turn 37 (the rig counts 36 armed ticks).
+# The attribution: `tools/_affairs_series_arms.py` →
+# `tools/_affairs_series_arms_final.json` — arm AFE (the courts' rung down,
+# the letters delivered) reproduces RE-H's series byte for byte; arm 0
+# (every seam down) RE-3's; AF0 (no letter delivered, the courts decreeing)
+# and ALL are this series: the courts' decrees alone move the board, the
+# letters still move nothing. RE-H's series: SERIES_BEFORE_RE_6 below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-H's series (RE-6's prior; the RE-H rig's ALL, the RE-6 rig's AFE arm):
+SERIES_BEFORE_RE_6 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-3's series (RE-H's prior; S14k part 2's ALL):
 SERIES_BEFORE_RE_H = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # S14k part 1's series (part 2's prior; part 1's ALL):

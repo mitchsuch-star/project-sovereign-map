@@ -1631,17 +1631,17 @@ def decree_for_court(world, lord: str, e: Dict[str, Any]) -> int:
 
 
 def ai_decrees() -> bool:
-    """The courts' Edicts — PARKED pending the user's ruling (RE-6, November 2,
-    2026; `RECURRING_EVENTS_SPEC.md` §25.3). Measured with the rung up on
-    the live tree: the five courts with a laws deck decree two to four
-    edicts a campaign (4–7k gold each, 15–30 % of a T40 chest), the ambient
-    alarm series moves from turn 10 and every road arm's end turn moves
-    against the unarmed control (France falls earlier on three Throne-road
-    arms) while the player's letters alone move nothing — a shape change,
-    which §16 "RE-6" re-escalates. True arms the courts at the player's
-    prices through `find_ai_edict` (GR5); the series rig's AFE arm holds it
-    down (`tests/_affairs_seams.py`)."""
-    return False
+    """The courts' Edicts — ARMED by the user's word (RE-6, November 2, 2026:
+    "Flip it on"; `RECURRING_EVENTS_SPEC.md` §25.3, §25.6). Measured first
+    with the rung up on the live tree and escalated: the five courts with a
+    laws deck decree two to four edicts a campaign (4–7k gold each, 15–30 %
+    of a T40 chest), the ambient alarm series moves from turn 10 and every
+    road arm's end turn moves against the unarmed control while the player's
+    letters alone move nothing — history with teeth, the brake on France the
+    gate's Q5 foresaw. True arms the courts at the player's prices through
+    `find_ai_edict` (GR5); the series rig's AFE arm holds it down
+    (`tests/_affairs_seams.py`), and False parks it again in one line."""
+    return True
 
 
 def last_decree_turn(world, lord: str) -> Optional[int]:

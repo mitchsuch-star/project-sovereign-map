@@ -2,15 +2,17 @@
 T13 — UNVERIFIED until RE-1") — the look-ahead and the first arrival, measured
 on the ten `SWEEP_SEEDS`.
 
-Each seed boots the shipped 1805 campaign twice in a child process — the
-CONTROL (the deck unarmed, as shipped) and the ARMED arm (the staged fixture
-`tests/fixtures/affairs_block.json`'s `affairs` deck grafted onto the booted
-block; the moments as shipped) — and plays the passive board
+Each seed boots the shipped 1805 campaign three times in a child process — the
+CONTROL (the deck unarmed), the LETTERS arm (the deck armed, the courts'
+Edicts rung held down — RE-6) and the ARMED arm (the shipped default; before
+RE-3 the staged fixture `tests/fixtures/affairs_block.json`'s `affairs` deck
+grafted onto the booted block) — and plays the passive board
 (`random.seed(10_000 + turn)` before each end turn, the series harness's own
 loop) to turn TURNS with the moments' trace installed. Per seed the record
-carries the moments' arrival turns on both arms (they must be identical — §7:
-the moments are blind to affairs), the first affair delivered and its morning,
-every occurrence row at the end, and the trace's verdict.
+carries the moments' arrival turns on every arm (control and letters must be
+identical — §7: the moments are blind to affairs; the armed arm names where
+the courts' decrees re-roll a board), the first affair delivered and its
+morning, every occurrence row at the end, and the trace's verdict.
 
     .venv/Scripts/python.exe tools/_affairs_first_arrival_probe.py [--turns 20] [--jobs 4]
 
@@ -47,10 +49,18 @@ fixture = json.loads(open(r"{fixture}", encoding="utf-8").read())
 with contextlib.redirect_stdout(io.StringIO()):
     world = WorldState.from_scenario(SCENARIO, seed=SEED)
     # RE-3: once the scenario carries the deck, the ARMED arm is the shipped
-    # block itself and the CONTROL strips it — the graft is for an unarmed tree
-    if ARM == "armed":
+    # block itself and the CONTROL strips it — the graft is for an unarmed tree.
+    # RE-6 (November 2, 2026, the courts' Edicts armed by the user's word): the
+    # LETTERS arm is the armed deck with the courts' rung held down
+    # (`affairs.ai_decrees` — the series rig's AFE seam), so the moments'
+    # blindness is read against the letters alone; the ARMED arm is the
+    # shipped default, the courts decreeing.
+    if ARM in ("armed", "letters"):
         if "affairs" not in world.moments["block"]:
             world.moments["block"]["affairs"] = copy.deepcopy(fixture["affairs"])
+        if ARM == "letters":
+            from backend.game_logic import affairs as AF
+            AF.ai_decrees = lambda: False
     else:
         world.moments["block"].pop("affairs", None)
         if isinstance(world.moments, dict):
@@ -112,7 +122,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()
     seeds = [s.strip() for s in args.seeds.split(",") if s.strip()]
-    jobs = [(seed, arm) for seed in seeds for arm in ("control", "armed")]
+    jobs = [(seed, arm) for seed in seeds for arm in ("control", "letters", "armed")]
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         results = list(pool.map(lambda j: run_child(j[0], j[1], args.turns), jobs))
     from tools._s14c_sweep_record import deck_sha
@@ -129,10 +139,11 @@ def main() -> int:
     for (seed, arm), payload in zip(jobs, results):
         record["seeds"].setdefault(seed, {})[arm] = payload
     for seed, arms in record["seeds"].items():
-        control, armed = arms["control"], arms["armed"]
-        same = control["moments"] == armed["moments"]
+        control, letters, armed = arms["control"], arms["letters"], arms["armed"]
+        same = control["moments"] == letters["moments"]
+        courts = "moved" if armed["moments"] != letters["moments"] else "same"
         first = armed.get("first_affair")
-        print(f"{seed:>11}: moments identical {str(same):5}  first affair "
+        print(f"{seed:>11}: moments identical (letters) {str(same):5}  courts' decrees {courts:5}  first affair "
               f"{(first or {}).get('id')} T{(first or {}).get('turn')}  rows {len(armed['affairs'])}"
               f"  breaches {len(armed['judged']['ceiling_breaches'])}/{len(armed['judged']['floor_breaches'])}",
               flush=True)

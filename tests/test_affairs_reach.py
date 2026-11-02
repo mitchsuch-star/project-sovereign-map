@@ -35,8 +35,11 @@ SCRIPTED = ("commanded", "accept", "road", "road_accept", "reach_aar")
 # Britain before the pulse finds the letter a morning).
 HAITI_ARMS = ("HAITI-historical", "HAITI-austerlitz", "HAITI-marengo")
 # RE-6 (November 2, 2026): the three offers — the Edicts (§6.2 E1–E3) — join
-# the measured deck; the record is re-measured on the shipped default (the
-# courts' rung parked, §25.3).
+# the measured deck; the record is re-measured on the shipped default — the
+# courts' rung ARMED by the user's word, "Flip it on" (§25.3, §25.6): the five
+# courts with a laws deck decree the Edicts at the player's prices on every
+# measured arm, and the roads' moves are attributed to them apart from the
+# letters (`road_control` the shipped default, `road_letters` the letters alone).
 TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
              "the_magazines", "the_remounts", "camps_of_instruction")
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
@@ -131,59 +134,70 @@ class TestEachTemplatesReach:
         def count(template, families):
             return sum(1 for _f, _n, row in _rows(record, families)
                        if row["affairs_reach"][template]["verdict"] == "arrived")
-        assert count("chancellors_letters", SCRIPTED) >= 8
-        assert count("the_host", SCRIPTED) >= 17
-        # RE-6 (November 2, 2026, re-measured on the shipped default — §25.2):
-        # the Memorial's scripted mornings went to the offers — the Remounts
-        # (a bar of 2,500 against the Staff's 11,500, so its premise stands
-        # longer and `affairs.pick` takes it) and the Magazines; on nine
-        # scripted arms the door was due and released (CMD-A/H/M and their
-        # accept arms, the Rhine and Throne roads on historical and marengo).
-        # Its passive-board and hand-played reach stand. The reach review
-        # (RE-5) weighs the lever (`below_pct`, a corps threshold of its own).
-        assert count("berthiers_memorial", SCRIPTED) >= 0
+        # RE-6 (November 2, 2026, re-measured on the shipped default with the
+        # courts' Edicts ARMED by the user's word — §25.2, §25.6): the courts'
+        # decrees re-roll every measured board (an admin action taken at rung
+        # 1.79, the draws after it), so the older letters' counts moved both
+        # ways — the Arch-Chancellor 9 scripted (8 with the rung parked), the
+        # Host 16 (17), the Memorial 3 (0) with the door due and released on
+        # thirteen scripted arms (nine): its scripted mornings go to the
+        # offers — the Remounts (a bar of 2,500 against the Staff's 11,500,
+        # so its premise stands longer and `affairs.pick` takes it) and the
+        # Magazines. The reach review (RE-5) weighs the lever (`below_pct`, a
+        # corps threshold of its own).
+        assert count("chancellors_letters", SCRIPTED) >= 9
+        assert count("the_host", SCRIPTED) >= 16
+        assert count("berthiers_memorial", SCRIPTED) >= 3
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
-                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 9
+                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 13
         assert count("berthiers_memorial", ("saves",)) >= 2
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
-        assert count("berthiers_memorial", ("sweep",)) >= 9
-        # the offers' floors (§25.2): the Magazines on the war's roads and three
-        # of the six hand-played starts; the Remounts wherever the horse bleeds
-        # (the corps clause — none on the hand-played starts, whose squadrons
-        # stand whole); the Camps at the golden peace of the commanded arms and
-        # three hand-played starts, never on the sweep at war with Britain
-        assert count(E1, FAMILIES) >= 8 and count(E1, ("saves",)) >= 3
-        assert count(E2, FAMILIES) >= 29 and count(E2, ("saves",)) == 0
-        assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
+        assert count("berthiers_memorial", ("sweep",)) >= 8
+        # the offers' floors (§25.6): the Magazines on the war's roads — more of
+        # them with the courts in arms (15 of 55; 8 with the rung parked) — and
+        # three of the six hand-played starts; the Remounts wherever the horse
+        # bleeds (31; the corps clause — none on the hand-played starts, whose
+        # squadrons stand whole); the Camps at the golden peace of the
+        # commanded arms and three hand-played starts (7), never on the sweep
+        # at war with Britain
+        assert count(E1, FAMILIES) >= 15 and count(E1, ("saves",)) >= 3
+        assert count(E2, FAMILIES) >= 31 and count(E2, ("saves",)) == 0
+        assert count(E3, FAMILIES) >= 7 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
         """RE-H (the user's word of November 1, 2026 — "conditions that make
         them appear"; then, the same evening, "let Decrès write to
         headquarters" — ERR-5, §22.4): with `bites` on the floor half and the
         at-home clause dropped, the Haiti letter reaches the passive board (17
-        of the 21 sweep runs — the campaign's first affair at T6–T9 on most),
-        the treaty road REACH-AAR twice (T23 and T38, the cooldown of twelve
-        between), and the roads whose marching Emperor keeps the war with
-        Britain (VP1-TH-historical at T13 and T28, VP1-RH-historical at T23).
-        It never reaches the six hand-played turn-21 starts (peace with Britain
-        by turn 19, the latch empty) nor the commanded arms — due there at
-        T6–T9, but the driver's `diplomacy: accept` makes peace with Britain by
-        T10–T19, the latch empties within twelve mornings, and the one free
-        morning went to the Host's Claims, whose premise had stood longer
-        (`affairs.pick`) — and the record says which clause held it back on
-        each. Floors, not laws — the counts may only RISE without a re-measure."""
+        of the 21 sweep runs — the campaign's first affair at T6–T9 on
+        fifteen) and the roads whose marching Emperor keeps the war with
+        Britain. RE-6 (November 2, 2026, the courts' Edicts armed — §25.6):
+        the courts' decrees re-roll every board, and the offers' premises
+        stand longer than the Marine's on the war's roads — the treaty road
+        REACH-AAR, which met the letter twice with the rung parked (T23 and
+        T38), now meets the Magazines, the Remounts and the Camps and the
+        Marine's letter is due and released; the Rhine road on `historical`
+        (and its accept arm) the same; the Throne road on `historical` (T13)
+        and the Confederation road on `austerlitz` keep it. It never reaches
+        the six hand-played turn-21 starts (peace with Britain by turn 19, the
+        latch empty) nor the commanded arms — due there at T6–T9, but the
+        driver's `diplomacy: accept` makes peace with Britain by T10–T19, the
+        latch empties within twelve mornings, and the one free morning went
+        to the Host's Claims, whose premise had stood longer (`affairs.pick`)
+        — and the record says which clause held it back on each. Floors, not
+        laws — the counts may only RISE without a re-measure; the reach
+        review (RE-5) weighs the roads' loss with RE3-6 / RE3-7."""
         def verdict(family, name):
             return record[family][name]["affairs_reach"][H1]["verdict"]
         sweep = [n for n in record["sweep"] if verdict("sweep", n) == "arrived"]
         assert len(sweep) >= 17, sweep
-        aar = record["reach_aar"]["REACH-AAR"]["affairs_reach"][H1]
-        assert aar["verdict"] == "arrived" and len(aar["occurrences"]) == 2
-        turns = _arrivals(aar)
-        assert turns[1] - turns[0] >= 12, turns                      # the cooldown
-        # the marching Emperor, the war with Britain kept: the roads
-        assert verdict("road", "VP1-TH-historical") == "arrived"
-        assert verdict("road", "VP1-RH-historical") == "arrived"
-        assert verdict("road_accept", "VP1-RH-historical") == "arrived"
+        aar = record["reach_aar"]["REACH-AAR"]["affairs_reach"]
+        assert aar[H1]["verdict"].startswith("due,"), aar[H1]["verdict"]
+        assert all(aar[t]["verdict"] == "arrived" for t in (E1, E2, E3)), {t: aar[t]["verdict"] for t in (E1, E2, E3)}
+        # the marching Emperor, the war with Britain kept: the roads that keep the letter
+        kept = {f"{family}/{name}" for family in ("road", "road_accept") for name in record[family]
+                if verdict(family, name) == "arrived"}
+        assert kept == {"road/VP1-TH-historical", "road/VP1-CS-austerlitz"}, kept
         for family in ("commanded", "accept", "saves"):
             for name in record[family]:
                 v = verdict(family, name)
@@ -200,7 +214,7 @@ class TestEachTemplatesReach:
                     if turn < firsts.get(name, (99, ""))[0]:
                         firsts[name] = (turn, template)
         first_is_haiti = [n for n, (t, template) in firsts.items() if template == H1]
-        assert len(first_is_haiti) >= 13, firsts
+        assert len(first_is_haiti) >= 15, firsts
         # at most two an act, twelve apart, on every run
         for family, name, row in _rows(record):
             turns = _arrivals(row["affairs_reach"][H1])
@@ -208,14 +222,17 @@ class TestEachTemplatesReach:
             assert len([t for t in turns if t <= ACT]) <= 2, (family, name, turns)
 
     def test_the_squadron_sails_and_settles_where_the_letter_is_accepted_under_the_blockade(self, record):
-        """RE-H's second landing, re-measured after ERR-5: on the `haiti`
-        family the Marine's letter arrives in its squadron form under
-        Britain's blockade and the accept dial sends five of the line on all
-        three seeds; on the Rhine road's accept arm (`VP1-RH-historical`) the
-        marching Emperor accepts it at T23 and the squadron is caught at T27;
-        the trace records the fate four turns on (the frozen odds, the draw,
-        home or caught). On every other arm no squadron sails — the fate is
-        the one seeded roll per sailing, reported per seed, never a law."""
+        """RE-H's second landing, re-measured after ERR-5 and again at RE-6
+        (the courts' Edicts armed): on the `haiti` family the Marine's letter
+        arrives in its squadron form under Britain's blockade and the accept
+        dial sends five of the line on all three seeds (home on `historical`
+        at T11; caught on `austerlitz` at T18 and `marengo` at T20); the trace
+        records the fate four turns on (the frozen odds, the draw, home or
+        caught). The Rhine road's accept arm, which sailed one with the rung
+        parked (accepted T23, caught T27), no longer meets the letter — its
+        mornings go to the offers (§25.6). On every other arm no squadron
+        sails — the fate is the one seeded roll per sailing, reported per
+        seed, never a law."""
         sailed = {}
         for name in HAITI_ARMS:
             reach = record["haiti"][name]["affairs_reach"][H1]
@@ -225,16 +242,12 @@ class TestEachTemplatesReach:
                 if a["answer"] == "accept":
                     assert a["gold"] == 500, (name, a)           # the squadron form's price
         assert all(sailed.values()), sailed
-        road = record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]
-        road_fates = [line for line in road["occurrences"] if "; the squadron " in line]
-        assert road_fates, road
-        for line in [f for fates in sailed.values() for f in fates] + road_fates:
+        for line in [f for fates in sailed.values() for f in fates]:
             assert " home T" in line or " caught T" in line, line
             assert "in 100, drew " in line, line
+        assert any(" home T" in f for f in sailed["HAITI-historical"]), sailed
         for family, name, row in _rows(record, [f for f in FAMILIES if f != "haiti"]):
             for line in row["affairs_reach"][H1]["occurrences"]:
-                if (family, name) == ("road_accept", "VP1-RH-historical"):
-                    continue
                 assert "; the squadron " not in line, (family, name, line)
 
     def test_the_host_s_claims_stay_an_event(self, record):
@@ -258,18 +271,49 @@ class TestEachTemplatesReach:
 
 
 class TestTheBrakesAndTheRoad:
-    def test_the_rhine_road_s_end_turns_and_stamp_are_the_control_s(self, record):
+    def test_the_rhine_road_s_end_turns_and_stamp_are_the_control_s_with_the_letters_alone(self, record):
         """§14: the Rhine road's end turns stand unmoved with the lapse default
-        — the armed road arms against the UNARMED control measured on the
-        same commit (a scratch clone without the scenario's `affairs` key),
-        per seed; the Confederation and the Throne roads alike."""
+        — the road arms with the LETTERS armed and the courts' rung held down
+        (`road_letters`, RE-6) against the UNARMED control measured on the
+        same commit (the driver's own seam without the scenario's `affairs`
+        key), per seed; the Confederation and the Throne roads alike. The
+        letters move no road."""
+        letters = record["road_letters"]["arms"]
+        assert {n.rsplit("-", 1)[0] for n in letters} == {"VP1-RH", "VP1-CS", "VP1-TH"}
+        for name, row in letters.items():
+            assert "control" in row, name
+            assert row["unmoved"], (name, row["armed"], row["control"])
+        rhine = {n: row for n, row in letters.items() if n.startswith("VP1-RH")}
+        assert {(row["armed"]["end_turns"], row["armed"]["stamped_turn"]) for row in rhine.values()} == {(34, 12), (40, 13), (28, -1)}
+        assert "ai_decrees=False" in record["road_letters"]["_note"]
+
+    def test_the_courts_decrees_move_every_road_and_the_record_attributes_them(self, record):
+        """RE-6 (November 2, 2026; the courts' Edicts ARMED by the user's word
+        — §25.3, §25.6): on the shipped default (`road_control`) every road
+        arm's end turn moves against the unarmed control — the courts' decrees
+        alone, since the letters alone move none (the pin above). Measured per
+        seed, never a law: the Confederation road austerlitz 24 → 38,
+        historical 30 → 35, marengo 27 → 24; the Rhine road austerlitz
+        40 → 36, historical 34 → 40, marengo 28 unstamped → 40 sealed on turn
+        13; the Throne road austerlitz 40 → 28, historical 40 → 33, marengo
+        40 → 21 — France falls earlier on all three Throne-road arms: ×1.25
+        supply for the corps that march on France, cheaper horse, +5 morale
+        on every drill. The brake on France Q5 foresaw, taken by the user's
+        word ("Flip it on")."""
         control = record["road_control"]["arms"]
         assert {n.rsplit("-", 1)[0] for n in control} == {"VP1-RH", "VP1-CS", "VP1-TH"}
         for name, row in control.items():
-            assert "control" in row, name
-            assert row["unmoved"], (name, row["armed"], row["control"])
-        rhine = {n: row for n, row in control.items() if n.startswith("VP1-RH")}
-        assert {(row["armed"]["end_turns"], row["armed"]["stamped_turn"]) for row in rhine.values()} == {(34, 12), (40, 13), (28, -1)}
+            assert "control" in row and not row["unmoved"], (name, row["armed"], row["control"])
+        ends = {n: (row["control"]["end_turns"], row["armed"]["end_turns"], row["armed"]["stamped_turn"])
+                for n, row in control.items()}
+        assert ends == {
+            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (30, 35, -1), "VP1-CS-marengo": (27, 24, -1),
+            "VP1-RH-austerlitz": (40, 36, 13), "VP1-RH-historical": (34, 40, 12), "VP1-RH-marengo": (28, 40, 13),
+            "VP1-TH-austerlitz": (40, 28, -1), "VP1-TH-historical": (40, 33, -1), "VP1-TH-marengo": (40, 21, -1),
+        }, ends
+        # the control of each road arm is the letters arm's control: one unarmed run per seed
+        letters = record["road_letters"]["arms"]
+        assert {n: row["control"] for n, row in control.items()} == {n: row["control"] for n, row in letters.items()}
 
     def test_the_e1_band_is_untouched(self, record):
         """§14: the Edicts' E1 band (T1–T5) stays empty — no affair before the

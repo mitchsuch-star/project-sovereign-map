@@ -189,15 +189,20 @@ class MomentsTrace:
             return delivered
 
         def answer(world, dialogue, answer_key):
-            shown = ""
+            shown = fresh = ""
             try:
                 action = MO.ANSWER_ACTIONS.get(str(answer_key), "")
                 for a in ((dialogue or {}).get("popup_payload") or {}).get("answers") or []:
                     if a.get("action") == action:
                         shown = str(a.get("quote") or "")
+                # RE-6 (November 2, 2026): the quote a RE-READ at the answer
+                # shows — the letter planned afresh on the client's own read
+                # path (seam 4, `refresh_letter`), computed apart so the
+                # trace writes nothing into the dialogue.
+                fresh = fresh_quote(world, dialogue, action)
             except Exception as exc:  # observability must not kill the run
                 trace.errors.append(f"answer: {exc!r}")
-            trace._answering = {"answer": str(answer_key), "shown": shown}
+            trace._answering = {"answer": str(answer_key), "shown": shown, "fresh": fresh}
             try:
                 return real_answer(world, dialogue, answer_key)
             finally:
@@ -244,6 +249,7 @@ class MomentsTrace:
             "turn": MO._turn(world), "moment": str(p.get("id") or ""), "kind": kind,
             "answer": str(p.get("answer") or ""),
             "shown": (answering or {}).get("shown", ""), "applied": str(p.get("quote") or ""),
+            "fresh": (answering or {}).get("fresh", ""),
             "rows": rows})
 
     # -- the verdict -------------------------------------------------------
@@ -419,8 +425,22 @@ def judge(mornings: List[Dict[str, Any]], applications: List[Dict[str, Any]],
             # matter between the letter's rendering and its answer — delivers
             # exactly its figures. That is context drift, recorded apart; a
             # figure off its quote is still a mismatch.
-            if strip_context(a["shown"]) == strip_context(str(a.get("applied") or "")):
-                context_drift.append(row)
+            applied = str(a.get("applied") or "")
+            if strip_context(a["shown"]) == strip_context(applied):
+                context_drift.append(dict(row, kind="purse"))
+            elif a.get("fresh") and str(a.get("fresh")) == applied:
+                # RE-6 (November 2, 2026; the courts' Edicts armed — the
+                # commanded accept arm CMD-A-ACCEPT, T19): the Throne of
+                # Holland was READ at loyalty 87 ("87 → 97") and answered
+                # after the player's own investment had taken Holland to 97,
+                # so the Crown's +10 met the cap ("97 → 100") and the tribute's
+                # delta fell away. The board the player read stood before
+                # their own acts; the client re-plans a standing letter at
+                # every read (seam 4), so a re-read at the answer shows the
+                # applied figures, and the figures themselves are checked row
+                # by row below. Stale, never false: context drift, recorded
+                # with the re-read beside the quote.
+                context_drift.append(dict(row, kind="re-read", fresh=str(a.get("fresh"))))
             else:
                 mismatches.append(row)
         for r in a.get("rows") or []:
@@ -444,6 +464,28 @@ _CONTEXT = re.compile(r"\((?:you hold|the treasury holds) [\d,]+\)")
 
 def strip_context(quote: str) -> str:
     return _CONTEXT.sub("(…)", str(quote or ""))
+
+
+def fresh_quote(world, dialogue, action: str) -> str:
+    """RE-6: the quote the chosen answer would carry on a RE-READ now — the
+    letter planned afresh exactly as the client's read path plans it
+    (`moments.refresh_letter`, seam 4), without writing the payload back into
+    the dialogue. "" when the dialogue is not a moment letter of the deck."""
+    from backend.game_logic import moments as MO
+    if not MO.is_moment_letter(dialogue):
+        return ""
+    mid = MO.moment_id_of(dialogue)
+    e = MO.entry(world, mid)
+    if e is None:
+        return ""
+    context = MO._context(dialogue)
+    issued = int(context.get("issued_turn") or dialogue.get("turn_created") or MO._turn(world))
+    answer_by = int(context.get("answer_by_turn") or issued + MO.ANSWER_TURNS - 1)
+    payload = MO.letter_payload(world, e, issued, answer_by, MO.status_row(world, mid))
+    for a in payload.get("answers") or []:
+        if a.get("action") == action:
+            return str(a.get("quote") or "")
+    return ""
 
 
 def unmeasured(reason: str) -> Dict[str, Any]:

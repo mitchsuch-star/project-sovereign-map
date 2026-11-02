@@ -720,10 +720,20 @@ class TestTheDrivenBoard:
         # against the Hanover Prussia has beaten, at coerce on turn 18; it is
         # a war Hesse could declare (it declares one on marengo in the
         # ten-seed sweep). Every other seed opens Prussia's alone.
+        # RE-6 the flip (November 2, 2026; the courts' Edicts ARMED by the
+        # user's word, `RECURRING_EVENTS_SPEC.md` §25.6): the five courts with
+        # a laws deck decree at the player's prices from turn 2 (an admin
+        # action at rung 1.79, the draws after it) and the eylau board
+        # re-times — Prussia's crisis still opens at coerce on turn 13 and its
+        # war is declared at 15, but Hesse's Westphalian Duchy no longer opens
+        # inside forty turns there. With the courts' rung held down in the
+        # probe (the AFE seam, `affairs.ai_decrees=False`) eylau reads Prussia
+        # at 13 and Hesse at 18 verbatim — the decrees are the mover. Every
+        # driven seed now opens Prussia's alone; the addendum (only a prize
+        # opens) stands.
         for seed, rec in records.items():
             coveters = {c["coveter"] for c in rec["crises_opened"]}
-            expected = {"Prussia", "Hesse"} if seed == "eylau" else {"Prussia"}
-            assert coveters == expected, (seed, rec["crises_opened"])
+            assert coveters == {"Prussia"}, (seed, rec["crises_opened"])
             assert all(c["target"] == "Hanover" for c in rec["crises_opened"]), seed
 
     def test_the_restraints_held_at_the_opening(self, records):
