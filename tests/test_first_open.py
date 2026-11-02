@@ -138,10 +138,12 @@ class TestTheLines:
         # new id (TABLE_LESSON_SPEC §0 Q3 — the page named its requirements and
         # not what forming does). Nine since RE-2 (October 31, 2026): the
         # affair of state has its own register on the moments' transport and
-        # its own first line (RECURRING_EVENTS_SPEC §12b.1); `correspondence`
-        # joins at RE-C with its screen.
+        # its own first line (RECURRING_EVENTS_SPEC §12b.1). Ten since RE-C
+        # (November 2, 2026): the Correspondence page of the Dispatch has its
+        # own line (§12b.1), attached to the page's dict on `GET /dispatch`.
         assert FO.SCREENS == ("cabinet", "designs", "formables", "settlement", "separate_peace",
-                              "laws", "admiralty_camp", "moment_letter", "affair_letter")
+                              "laws", "admiralty_camp", "moment_letter", "affair_letter",
+                              "correspondence")
         for screen, line in _every_line(world):
             assert line, screen
             assert len(line) <= FO.LINE_CAP, (screen, len(line), line)

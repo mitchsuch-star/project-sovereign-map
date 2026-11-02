@@ -1,109 +1,95 @@
-# NEXT SESSION PROMPT — Row RE "Affairs of State": RE-H LANDED in full (the user's review first), then RE-C the Correspondence; row AU queued after RE
+# NEXT SESSION PROMPT — Row RE "Affairs of State": RE-C LANDED (the user's review first), then RE-R the reactions; row AU queued after RE
 
-> Overwritten each time a session hands off. Current hand-over: **November 1, 2026 — RE-H the Haiti letter LANDED in three
-> commits: H0 the bill alone (`247e4e27`), the squadron (`2b47a93a`), then the user's word "let Decrès write to headquarters"
-> (ERR-5 — the at-home clause dropped, re-measured)** (rules `SYSTEMS_REFERENCE.md` §164.1 / §164.2 / §164.3; the records
-> `RECURRING_EVENTS_SPEC.md` §22.1 / §22.2 / §22.4; each its own commit through the hook; the row before S15 by the user's
-> ruling of October 31 — §0c). **The deck carries four letters:** the Arch-Chancellor's Letters, the Host's Claims, Berthier's
-> Memorial and the Haiti letter — Decrès writing when Britain has had France blockaded four of the last twelve mornings, 25
-> sail lie in port and the chest holds 1,500, **wherever the Emperor stands** (the board says court or headquarters). **The
-> Haiti letter wears two forms, frozen at delivery:** the bill (600 gold and the day's action: flour and muskets by two
-> frigates) when no British hunter is at sea, the squadron under the blockade (500 gold, the action and five of the line at
-> the odds printed on the button — 36 in 100 at war against Britain's 100 sail, 62 with a Grand Diversion's window); against
-> either, "Ferrand must hold alone" at standing 100 → 97. Accepted, five sail leave port (the Admiralty names them at sea),
-> drill at sea while the home fleet rots, and four turns later ONE amber line lands on the morning's dispatch in both views —
-> home whole with the men, or five of the line lost; the next letter remembers which. **The user's word at the plan's
-> review** ("we want to make sure these events are good, have conditions that make them appear and don't make the game
-> repetitive … fun factor high") amended P16 for this letter: `bites: "floor"` — the letter arrives at full standing.
-> **Measured after ERR-5 (55 runs):** the letter on 24 — 17 of the 21 passive runs (the campaign's FIRST affair at T6–T9 on
-> most), the roads whose marching Emperor keeps the war with Britain (`VP1-TH-historical` T13 and T28, `VP1-RH-historical`
-> T23 — accepted on the accept arm, the squadron CAUGHT at T27), the treaty road twice, the `haiti` family on all three seeds
-> (historical HOME T11, austerlitz CAUGHT T18, marengo CAUGHT T20); never a France at peace with Britain — the six T21 saves,
-> and the commanded arms whose driver accepts Britain's peace by T10–T19 (due at T6–T9, released; the one free morning went
-> to the Host's Claims, whose premise had stood longer — `affairs.pick`). **The letters traded places and the total barely
-> moved** (the Arch-Chancellor 16 → 12 runs, the Memorial 21 → 19, the Host 21 → 22; the passive sweep 2.19 → 2.24 affairs a
-> run): the pulse's gap and the cooldowns, not the deck's size, set how many letters a campaign sees. The brakes against
-> repetition are authored: cap 2 an act, cooldown 12, the pulse's gap of five mornings from any letter of state, four
-> chapters that never repeat in a row, two exhibits alternating, the two forms by the sea's state, the file closing at
-> Ferrand's death (T76). The roads unmoved against the control; `BASELINE_SERIES` unmoved; the probe identical.
+> Overwritten each time a session hands off. Current hand-over: **November 1, 2026 — RE-C the Correspondence LANDED**
+> (rules `SYSTEMS_REFERENCE.md` §165; the record `RECURRING_EVENTS_SPEC.md` §23; one commit through the hook), after
+> RE-H the Haiti letter in three commits the same day (`247e4e27` H0 the bill alone, `2b47a93a` the squadron,
+> `98bb5910` Decrès to headquarters — §22, §164); the row before S15 by the user's ruling of October 31 (§0c). **The
+> deck carries four letters** (the Arch-Chancellor's Letters, the Host's Claims, Berthier's Memorial, the Haiti letter in
+> its two forms) **and now a home:** a page of the Morning Dispatch, "The Correspondence (1 standing)" in the action row
+> (amber with news, "(a squadron at sea)" while five of the line are out, absent on a world without a deck), one column of
+> parchment slips — ON THE DESK (the letters that wait, their answer-by date, both priced answers, Read the letter ▸),
+> IN THE OFFING (the Watch's lines), ANSWERED newest first (the apostille "{caption}. — N." with the seal, the receipt,
+> the echo dated the next morning or "At sea — five of the line; word expected about {date}." and then the fate in
+> rubric, the chips Bavaria ▸ / Admiralty ▸ / Laws ▸), LEFT UNANSWERED / SET ASIDE (one dim line each), the closing record
+> when the Haiti file closes; "◂ The Dispatch" turns back. Read-only but for Read the letter ▸; no badge, no sound, no
+> hotkey, no new endpoint. **Measured at RE-H (55 runs, unchanged by RE-C — the page stores nothing):** the Haiti letter
+> on 24 runs; the letters traded places and the total per campaign barely moved (the pulse's gap and the cooldowns set
+> the volume, not the deck's size).
 >
-> **FIRST — the user's review of RE-H, before any code:** the readings of §22.1 (ten), §22.2 (eight) and §22.4 (ERR-5 and
-> the trade of mornings), each a line to reverse — P16 amended for this letter alone; the squadron drills at sea; the fate's
-> morning line pulled forward from RE-R; "no hunter at sea" REFUSES the squadron's quote (a squadron at 100 is a sale; the
-> bill is that road); the fallback form `{}`; the `haiti` measure family; the at-home clause dropped — and the rulings on
-> RE3-6 (the Crown fires nowhere since S14k), RE3-7 (the roads since S14j / S14k), RE3-9 (190 untracked `.import` files).
-> Build nothing on those three rows. **The user also ruled a row AFTER RE and before S15: AU — authority as a currency, the
-> push and the pull** (`docs/AUTHORITY_CURRENCY_SPEC.md`: the brief, the survey of today's sinks and sources, the gate's six
-> questions, the done-when; the gate runs first, in its own session, after RE-5). Do not start AU before RE-5 closes.
+> **FIRST — the user's review, before any code:** RE-H's readings (§22.1 ten, §22.2 eight, §22.4 ERR-5 and the trade of
+> mornings) and RE-C's twelve (§23.2: Not Now is the client's; the caption derived; the Watch read pure; Read the letter ▸
+> on the desk only; the closing record from the morning after `ends` — P13's earlier close is not built; the set-aside
+> section's three kinds; a slip is a node subtree; the ceiling is the letter's; the device at 24 px; the pointer clause;
+> the Strategic Ledger's first-open road; the at-sea line in the echo's place), and the rulings on RE3-6, RE3-7, RE3-9.
+> Build nothing on those three rows. **Row AU — authority as a currency, the push and the pull — is queued AFTER RE and
+> before S15** (`docs/AUTHORITY_CURRENCY_SPEC.md`; the gate first, in its own session, after RE-5). Do not start AU
+> before RE-5 closes.
 >
-> **THEN — RE-C the Correspondence (§12b.1 the contract; §16b 1.25 sessions; §22.3 what it inherits), the home of the
-> letters, on today's unsplit `dispatch_view.gd` (§0c); its own commit, records §23 / `SYSTEMS_REFERENCE.md` §165 / finds
-> `BUG_FIXES.md` §REC with the census's pillars.** The goal line: a page the player WANTS to re-read, not a loop — every
-> letter of state laid before him, the answer he gave, what it did and what came of it; read-only but for "Read the
-> letter ▸". The list, from §12b.1: the builder `moments.correspondence(world)` — a fresh dict read from
-> `world.moments["state"]` plus the deck and the fleet record, NEVER the event log (it rolls at 500 rows and is full by
-> T21 on three saves); `GET /dispatch` gains `payload["correspondence"]` with `first_open.attach` (a GET — the POST rule
-> does not apply); the page as a new node subtree with its own page state in `dispatch_view.gd` (`_on_dispatch_received`
-> and `refresh_pinned` rewrite `content_label` from every GET and must respect the open page; `clamp_ceiling_override`
-> raises the 700 × 500 ceiling as `_raise_letter_ceiling` does; at 2.0 the clamp gives the page 394 px — the buttons stand
-> outside the scroll); the Button in the Dispatch's action row — "The Correspondence (1 standing)" / "(a squadron at sea)"
-> in amber when it has news, like the Envoys badge — and "◂ The Dispatch" to close; the sections, one column, each entry a
-> plain slip in ink (the inner field of `old-parchment_alpha.png` as a `region_rect`): **ON THE DESK (n)** — "SEALED ·
-> answer by {date}" with the arms or the monogram, the title and the writer, the two `button_line`s, "Read the letter ▸"
-> (`POST /mailbox/activate` after `close_view()`, as Open Envoys does); **ANSWERED** (newest first) — "{DATELINE} ·
-> {TITLE}" with the device right-aligned, the apostille in IM Fell italic with the seal glyph at 18 px "{caption}. — N."
-> (lapsed: "Filed unanswered — {caption}", sepia, no seal; withdrawn: "Set aside for {moment} — nothing was spent"), then
-> the `receipt`, then the `echo` dated the answered turn + 1 or "At sea — five of the line; word expected about {date}"
-> (from the row's `home_by`; no hourglass glyph) and then the fate from `outcome_line` in rubric, the chips as `[url]`
-> links (the court's Cabinet page by a new signal into the wizard's `open_for_nation`, ADMIRALTY ▸ / LAWS ▸ on the
-> existing `ledger:6` / `ledger:7` doors, Read the letter ▸; repeated chips told apart by `click#N` for the DD-B
-> instrument); **IN THE OFFING** — the Watch's at most two "may" lines (`affairs.watch`), text only, no pips; **LEFT
-> UNANSWERED / SET ASIDE** — one dim line each (rows passed for premise, forsworn, verdict or before_save never show);
-> **the closing record and the 1825 line** from the Haiti template's `closing` when the file closes (§6.5); the empty
-> states ("No letter of state lies on the desk, Sire." / "Nothing has yet been answered." / "Nothing is gathering,
-> Sire."); the two pointers in ("No pending envoys at this time." gains ", and the Correspondence (the Dispatch) keeps
-> every letter answered."; the mailbox panel's footer button); `first_open.SCREENS` gains `correspondence` with the line
-> §12b.1 authors (≤ 220); every row named by `moments.letter_title` / `affairs.title_of(e, row)` — the frozen FORM's title
-> (REH-2's sibling, noted in §22.2's sweep); a pre-RE save shows its captions only; on an unarmed world the button is
-> hidden; no badge beyond the button's count, no sound, no hotkey, no new endpoint. **DD-B:** `click Dispatch` (or `key
-> Alt+R` — a bare `key R` types into a caret-holding line), then `click Correspondence`. **Pins:** the builder on crafted
-> rows (standing, Not Now, answered, lapsed, withdrawn, a squadron at sea and then its fate, the closing record on a closed
-> file), the pre-RE save, the unarmed world, the page state surviving a GET and a `refresh_pinned`, the ceiling, the
-> first-open line, the pointers; **the frames** at both scales through the IQ10 pipeline and the readability record. Then
-> RE-R the reactions (its SITUATION renderers in today's scripts; the fate line already landed — §16b's RE-R row), RE-6 the
-> Edicts, RE-5 the close (its reach review takes RE3-6 / RE3-7 and the pulse-vs-deck reading of §22.4) — then AU.
+> **THEN — RE-R the reactions (§12c the contract; §16b 0.75 sessions), its own commit; records §24 /
+> `SYSTEMS_REFERENCE.md` §166 / finds `BUG_FIXES.md` §RER.** The budget on every template: at most one line per surface
+> per letter, at most three per letter across all surfaces over three turns, one Gazette COURTS line per letter, no new
+> rail notice beyond the arrival's own, the only sound the seal. The list, from §12c and §16b's row: **the SITUATION
+> key** `situation["affair_receipt"]` in `dispatch._build_situation` beside `law_sink` / `act_sink` — the answers'
+> receipts the morning after (the squadron's FATE line `affair_fate` already landed at RE-H, amber in both views;
+> the receipt line is plain), rendered in BOTH views that print the Staff's line (`dispatch_view.gd`'s dispatch page
+> and the terminal's morning dispatch in `main.gd`), with a two-view pin like `test_rf4b_the_laws_everywhere.py`'s;
+> **the COURTS predicate in `compose_issue`** (`gazette.py`) — one line per letter from the answered row's `press`
+> through the shared one-liner (`campaign_log.py`), gated per row (an affair's `arrived` row never prints; a squadron
+> letter prints its `outcome` row, not its `answered` row), never in `filter_campaign_log` (499 lines against the cap
+> of 500); **the echo on the answer's own response message** (`moments.answer` — already the court's reply or the
+> minister's acknowledgement; confirm every template's `echo` reaches it and the Haiti letter's two forms read right);
+> **`HOST_REMARKS` and `remark_by`** — the host court's remark on the player's answer, written into the row at the
+> answer (`remark_by` ≤ 40, the state row's field §12b.1 names; RE-C reads none today and tolerates its absence — once
+> written, the Correspondence's answered slip may print it after the echo, one line, inside the budget); **the
+> `remember` board line** on the next occurrence of the same template, read from the previous occurrence's row (RE-3
+> authored the copy; confirm it renders on the second letter of each template and on the Haiti letter's second form);
+> **the noise census** as a pin (≤ 1 line per surface per letter, ≤ 3 per letter, one COURTS line, measured on the
+> `tools/_affairs_measure.py` arms through the trace — the record tool prints the surfaces per occurrence). Nothing
+> here adds a popup, a sound or a rail notice. **Pins:** the SITUATION key on the morning after an answer and never
+> twice; the two renderers; the COURTS line once per letter and never for an arrival; the echo on the response; the
+> remark in its slot; the remember line on the second letter; the census on the measured arms; the frames of the
+> dispatch's SITUATION block with a receipt (both scales). **Then RE-6 the Edicts** (E1–E3 as offers under the one
+> register; §6.2's citations owed before arming; RE-6's head re-sizes against S14j's economy), **then RE-5 the close**
+> (the Mode C walk on 8007: a sealed letter, the Correspondence read, a squadron sailed and settled; the reach review
+> with RE3-6 / RE3-7 and §22.4's pulse-versus-deck reading) — then AU.
 >
-> **Traps the row has paid for (do not re-discover):** the spec and `SYSTEMS_REFERENCE.md` are CRLF files — append
-> through Python in the file's own endings, never `cat >>`; the shell heredoc eats a long block (a hundred lines died with
-> "unexpected EOF" twice tonight — write it with the Write tool and run it by path), and builds strings with `chr(13)` /
-> `chr(10)` rather than escapes; the OPS table binds each apply function at import, so a seam on `moments._apply_squadron`
-> does not bite — seam `naval.detach_squadron` (AFS); a Decline is forbidden the `squadron` op; `refresh_letter` re-plans
-> the FROZEN form (a hunter gone closes the Accept with the refusal, never a silent re-plan); the morning's pick is the
-> premise that has stood LONGEST (`affairs.pick`), ties seeded — a new letter loses a busy morning to an older matter; the
-> commanded driver's `diplomacy: accept` makes peace with Britain by T10–T19, which empties the Haiti latch — measure a
-> marching France at war with `--diplomacy decline` (the `haiti` family's dial); a crafted board built at turn 1 on the
-> ARMED boot reads the boot's morning memo — pop `world.__dict__["_affairs_memo"]`; the Haiti letter premises on the boot
-> board (blockaded, 45 sail) once the chest passes 1,500 — a pin that wants another letter's morning keeps the fleet under
-> 25 sail (the Emperor afield no longer silences it); the reply to `/respond_to_objection` carries NO `pending_objection`
-> key (the driver reads `objection_kept` + `choices`); the record tool's standing figure reads "Authority N → M" (REH-1);
-> `--affair lapse` leaves the letter IN THE MAILBOX; the judge files a purse named in passing as `context_drift`; the
-> sweep tool must NOT be launched with `-X utf8`; the bytecode pins need `PYTHONDONTWRITEBYTECODE` unset; the road
-> control is the in-tree seam (`--seam backend.game_logic.affairs:armed=False`), no clone; the series rig's committed
-> record is the squadron landing's — its `prior` is H0's standing series and its arms 0 / AF0 reproduce RE-3's (the chain
-> pin in `tests/test_ai_drill_fix_2026_09_27.py` reads it that way; re-running the rig rewrites the record identically
-> while the series stands); RAM is the limit at 16 GB (the suite's eight workers beside no driver; the whole measure
-> chain — the families at three jobs beside the sweep, then the roads armed and control, then the accept road and the
-> probe, then the series rig, then `record` — ran in six minutes as `tools/playtest_runs/reh3_2026_11_01/chain.sh`); the
-> deck hash reds `test_moments_pacing.py` AND `test_affairs_reach.py` until the measure is run again; the frames:
-> `tools/iq10_capture_payloads.py --only moments`, then `tools/iq10_run_captures.py --only affair_letter_santo_domingo
-> --date …` at both scales and once `--physical --physical-scale auto`, then `tools/uxr0_readability_report.py
-> <index> --record docs/audits/uxr0/readability_affairs_<date>.json`; `build_letter` / `refresh_letter` pass a STATUS
-> ROW as `occ` (RE2-1); the Decree is priced in AUTHORITY; HC-0 (no calendar read in mechanics — `calendar_label` is
-> display only); no seed read in `moments.py`; every number to Godot an `int`; every answer a button; `ruff` is not on
-> the Bash PATH (`.venv\Scripts\python.exe -m ruff check backend/`); the hook runs the full suite in parallel (~10 min) —
-> commit from Bash in the background with `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` and edit no tracked file
-> while it runs; CLAUDE.md sits at its byte cap (61,994 of 62,000 — every added line is paid for by a trim; measure with
-> `tr -d '\r' < CLAUDE.md | wc -c`).
+> **Traps the row has paid for (do not re-discover):** the spec, `SYSTEMS_REFERENCE.md`, `BUG_FIXES.md`,
+> `MODDING_FORMAT.md`, `first_open.py`, `iq10_run_captures.py` and CLAUDE.md are CRLF files — edit through Python with
+> the file's own endings, never `cat >>`; a write by a RELATIVE path raised `Errno 22` on `moments.py` tonight — write
+> by the absolute path; the shell heredoc eats a long block or its backslashes (write scripts with the Write tool and
+> run them by path; build strings with `chr(13)` / `chr(10)`); `GET /dispatch` must not mutate
+> (`tests/test_ux23b_the_desk_is_quiet.py`) — a builder that reads the Watch passes `record=False`; the OPS table binds
+> each apply function at import (seam `naval.detach_squadron`, not `moments._apply_squadron`); a Decline is forbidden
+> the `squadron` op; `refresh_letter` re-plans the FROZEN form; the morning's pick is the premise that has stood LONGEST
+> (`affairs.pick`); the commanded driver's `diplomacy: accept` makes peace with Britain by T10–T19 (the Haiti latch
+> empties) — measure a marching France at war with `--diplomacy decline`; a crafted board built at turn 1 on the ARMED
+> boot reads the boot's morning memo — pop `world.__dict__["_affairs_memo"]`; the Haiti letter premises on the boot
+> board (blockaded, 45 sail) once the chest passes 1,500 — a pin that wants another letter's morning keeps the fleet
+> under 25 sail; a `fit_content` RichTextLabel built in a `.gd` must be added, in the SAME function, to a local
+> container that is added to an `@onready` node under the scene's ScrollContainer (`tests/test_uxr2_scroll_where_unbounded.py`
+> follows `add_child` chains four hops deep), and setting `fit_content = true` on a label the function did not build
+> counts as a toggle; a scene-authored ScrollContainer needs a `custom_minimum_size` (the floorless-scroll ratchet sits
+> at 8); sizes only by `theme_type_variation` (`Caption`, `Lead`, `BodyLarge`), never `[font_size]`; every
+> `Utils.bb_button_chip(` url expression needs a REVIEWED row in `tests/test_cn4_the_chip_honesty_census.py` keyed by
+> (file, expression); `refresh_pinned` / `_on_pinned_dispatch` carry pinned literals (`tests/test_uxr_d4_the_side_desk.py`)
+> and `main.gd` may gain no new `top_bar.close_all_screens()` site unclassified in its `CLOSE_SITES`; the IQ10 harness's
+> `press` matches a Button's text EXACTLY (a button whose text carries a count is driven with `{"call": method}`); the
+> parse harness is run by `Start-Process` from PowerShell (`Godot_v4.4.1-stable_win64.exe --headless --quit --path
+> godot-client/project-sovereign --script ../../tools/godot_parse_check.gd`) and its report's 24-hour guard reads the
+> scripts' mtimes; the frames: `tools/iq10_capture_payloads.py --out <dir> --only moments`, then
+> `tools/iq10_run_captures.py --payload-dir <dir> --only correspondence --date … --out-dir …` at both scales and once
+> `--physical --physical-scale auto`, then `tools/uxr0_readability_report.py <physical>/index.json --record
+> docs/audits/uxr0/readability_<label>_<date>.json --surfaces a,b,c`; the reply to `/respond_to_objection` carries NO
+> `pending_objection` key; the record tool's standing figure reads "Authority N → M"; `--affair lapse` leaves the letter
+> IN THE MAILBOX; the sweep tool must NOT be launched with `-X utf8`; the bytecode pins need `PYTHONDONTWRITEBYTECODE`
+> unset; the road control is the in-tree seam (`--seam backend.game_logic.affairs:armed=False`); the series rig's
+> committed record is the squadron landing's; RAM is the limit at 16 GB; the deck hash reds `test_moments_pacing.py`
+> and `test_affairs_reach.py` until the measure is run again (the chain `tools/playtest_runs/reh3_2026_11_01/chain.sh`
+> ran in six minutes); `ruff` is not on the Bash PATH (`.venv\Scripts\python.exe -m ruff check backend/`); the hook
+> runs the full suite in parallel (~10 min) — commit from Bash in the background with
+> `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` and edit no tracked file while it runs; STATUS keeps at most
+> seven session entries (archive the oldest to `docs/archive/STATUS_2026_Q4.md`, newest first); CLAUDE.md sits at its
+> byte cap (every added line is paid for by a trim; `tr -d '\r' < CLAUDE.md | wc -c` against 62,000).
 >
 > **Open with the user, unchanged:** RE3-6, RE3-7, RE3-9 (above); the certificate (`INK_IRON_SIGNTOOL_ARGS`); S14d's A1
 > as applied; AO's three questions (`REFORMS_SPEC.md` §5a); SF-NAV-1-D1.

@@ -1226,12 +1226,14 @@ def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
     return lines
 
 
-def watch(world) -> List[str]:
+def watch(world, record: bool = True) -> List[str]:
     """§12 — the Watch: at most two "may" lines a morning, the nearest-due
     templates' `watch` strings over the premise's own measures (`{n}` the
     measure, `{m}` the streak, `{host}`); nothing standing, on cooldown or
     capped. RE-2 renders them; a line shown is remembered (`watched`) for
-    the set-aside tally (§7)."""
+    the set-aside tally (§7). RE-C: `record=False` is the Correspondence's
+    pure read — IN THE OFFING shows the same lines and writes nothing (a GET
+    never mutates)."""
     if not armed(world):
         return []
     turn = MO._turn(world)
@@ -1269,9 +1271,33 @@ def watch(world) -> List[str]:
         # read (the boot briefing's Watch wrote an empty `watched` map and
         # the new world differed from a fresh one by it; EP-F1's rule).
         return out
+    if not record:
+        return [text for _distance, _index, _template, text in rows[:2] if text]
     watched = runtime(world).setdefault("watched", {})
     for _distance, _index, template, text in rows[:2]:
         if text:
             out.append(text)
             watched[template] = int(turn)
+    return out
+
+
+def closing_record(world) -> List[Dict[str, Any]]:
+    """RE-C (§6.5, §12b.1): the closing record and the 1825 line of a FILE
+    THAT HAS CLOSED — a template with authored `closing` whose `ends.turn`
+    lies behind this morning (the engine's own test in `candidates` and
+    `watch`). P13's earlier close (the cap spent after a loss) is built
+    nowhere, so the page never claims it. A pure read."""
+    if not armed(world):
+        return []
+    turn = MO._turn(world)
+    out: List[Dict[str, Any]] = []
+    for e in deck(world):
+        closing, ends = e.get("closing"), e.get("ends")
+        if not isinstance(closing, list) or not isinstance(ends, dict):
+            continue
+        end_turn = int(ends.get("turn", 10 ** 6) or 10 ** 6)
+        if turn > end_turn:
+            out.append({"id": str(e["id"]), "title": str(e.get("title") or ""), "turn": end_turn,
+                        "label": MO._dateline(world, end_turn),
+                        "lines": [str(line) for line in closing if line]})
     return out

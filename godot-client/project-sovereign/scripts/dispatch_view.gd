@@ -16,6 +16,12 @@ signal open_envoys_requested
 signal order_typed(command: String)
 # S14D-X3: the law line's door — main.gd opens the ledger on the book named.
 signal ledger_tab_requested(tab: int)
+# RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the Correspondence page's roads —
+# the desk's "Read the letter ▸" takes the rail card's (POST /mailbox/activate,
+# main's handler); a court chip opens its Cabinet page through main's guarded
+# route (`_on_ledger_open_diplomacy_for`). Both close the view first.
+signal read_letter_requested(mailbox_id: int)
+signal open_diplomacy_for(nation: String)
 
 # UI References
 @onready var background_overlay = $BackgroundOverlay
@@ -23,6 +29,12 @@ signal ledger_tab_requested(tab: int)
 @onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
 @onready var content_label = $PanelContainer/VBoxContainer/ScrollContainer/ContentLabel
 @onready var open_envoys_button: Button = $PanelContainer/VBoxContainer/ActionRow/OpenEnvoysButton
+# RE-C: the page's nodes (the scene authors them; the slips are built here)
+@onready var title_label: Label = $PanelContainer/VBoxContainer/HeaderRow/TitleLabel
+@onready var corr_scroll: ScrollContainer = $PanelContainer/VBoxContainer/CorrespondenceScroll
+@onready var corr_box: VBoxContainer = $PanelContainer/VBoxContainer/CorrespondenceScroll/CorrespondenceBox
+@onready var correspondence_button: Button = $PanelContainer/VBoxContainer/ActionRow/CorrespondenceButton
+@onready var back_to_dispatch_button: Button = $PanelContainer/VBoxContainer/ActionRow/BackToDispatchButton
 
 func _ready():
 	# UXR3-F3: the reading scroll comes to rest on whole lines.
@@ -33,6 +45,9 @@ func _ready():
 	# UXR-2: clamped AND gripped — the player's size is remembered.
 	ResizeGrip.attach_centered($PanelContainer, "dispatch")
 	open_envoys_button.pressed.connect(_on_open_envoys_pressed)
+	# RE-C: the page turns on its button and back on "◂ The Dispatch".
+	correspondence_button.pressed.connect(open_correspondence)
+	back_to_dispatch_button.pressed.connect(_show_dispatch_page)
 	# PC15-18 (NV-P1 family census): a fit_content RichTextLabel inside a
 	# ScrollContainer defaults to MOUSE_FILTER_STOP and eats the wheel
 	# before its parent can scroll. PASS still delivers _gui_input.
@@ -54,6 +69,42 @@ func _on_meta_clicked(meta) -> void:
 
 var _api_client_ref = null
 
+# ═══════════════════════════════════════════════════════════════════════════
+# RE-C — THE CORRESPONDENCE (RECURRING_EVENTS_SPEC.md §12b.1): a page of this
+# screen — one column of parchment slips read from `GET /dispatch`'s
+# `correspondence` dict (ON THE DESK, IN THE OFFING, ANSWERED, LEFT UNANSWERED
+# / SET ASIDE, the closing record), turned by a button in the action row and
+# back by "◂ The Dispatch". Read-only but for "Read the letter ▸". The slips
+# wear the letter's parchment (its un-torn inner field) and its ink; the type
+# sits on the theme ladder (Caption / Lead), never a raw size.
+# ═══════════════════════════════════════════════════════════════════════════
+const CORR_TITLE := "THE CORRESPONDENCE"
+const DISPATCH_TITLE := "MORNING DISPATCH"
+const CORR_SCREEN := "correspondence"
+const CORR_SHEET := "res://assets/textures/old-parchment_alpha.png"
+const CORR_SEAL := "res://assets/ui/ornaments/wax_seal.png"
+const CORR_FELL_ITALIC := "res://assets/fonts/IMFeENit28P.ttf"
+const CORR_CINZEL := "res://assets/fonts/Cinzel[wght].ttf"
+const CORR_SHEET_FIELD := Rect2(72, 64, 496, 352)   # the sheet's un-torn inner field (640 × 480 art)
+const CORR_DEVICE_PX := 24.0
+const CORR_SEAL_PX := 18.0
+const CORR_CHIP_BG := "1A1A2E"                       # the theme's navy plaque under a gold chip
+# the page's ceiling grows with the window as the letter's (`_raise_letter_ceiling`)
+const CORR_HEIGHT_FRACTION := 0.8
+const CORR_WIDTH_FRACTION := 0.45
+const CORR_MIN_WIDTH := 680.0
+const CORR_MIN_HEIGHT := 440.0
+const CORR_MAX_WIDTH := 860.0
+
+var _corr: Dictionary = {}
+var _corr_open := false
+var _corr_pending_open := false
+var _corr_scroll_hold := 0
+var _corr_sheet: StyleBoxTexture = null
+var _corr_sheet_hc: StyleBoxFlat = null
+var _corr_fell_italic: Font = null
+var _corr_cinzel: Font = null
+
 
 func open(api_client):
 	"""Fetch dispatch from backend and display it."""
@@ -70,18 +121,23 @@ func refresh_pinned() -> void:
 	reader left it."""
 	if not visible or _api_client_ref == null:
 		return
+	# RE-C: the page's own scroll is held too, and restored below when open
+	_corr_scroll_hold = corr_scroll.scroll_vertical
 	_api_client_ref.get_dispatch(_on_pinned_dispatch.bind(scroll_container.scroll_vertical))
 
 
 func _on_pinned_dispatch(response, held_scroll: int) -> void:
 	_on_dispatch_received(response)
 	Utils.restore_scroll(scroll_container, held_scroll)
+	if _corr_open:
+		Utils.restore_scroll(corr_scroll, _corr_scroll_hold)
 
 
 func close_view():
 	"""Hide the overlay and emit closed signal."""
 	if visible:
 		AudioManager.play("parchment_close")
+	_reset_correspondence_page()
 	hide()
 	closed.emit()
 
@@ -90,6 +146,10 @@ func _on_dispatch_received(response):
 	# Guard: screen was closed while fetching
 	if not visible:
 		return
+
+	# RE-C: the page's dict rides every GET — absent on an unarmed world and
+	# in the driven harnesses' hand-built responses, when the button hides.
+	_take_correspondence(response)
 
 	if not response.get("success", false):
 		content_label.text = "[color=#" + Utils.COLOR_ERROR + "]Failed to load dispatch.[/color]"
@@ -708,3 +768,402 @@ func _on_overlay_input(event):
 func _on_open_envoys_pressed():
 	close_view()
 	open_envoys_requested.emit()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# RE-C — the Correspondence page
+# ═══════════════════════════════════════════════════════════════════════════
+
+func has_correspondence() -> bool:
+	"""main's pointer lines: the client has seen the page's dict (an armed world)."""
+	return not _corr.is_empty()
+
+
+func open_correspondence() -> void:
+	"""Turn the page — now when the dict is in hand, else as soon as the GET
+	lands (the letter-book's footer opens the screen and asks in one breath)."""
+	if _corr.is_empty():
+		_corr_pending_open = true
+		return
+	_show_correspondence_page()
+
+
+func refit() -> void:
+	"""The live-refit road's hook (`Utils.refit_surface`): the page's raised
+	ceiling follows the window as the letter's does; the dispatch page keeps
+	the plain clamp. A docked panel (the Side Desk) keeps its dock."""
+	if _corr_open:
+		_raise_page_ceiling()
+	if not $PanelContainer.has_meta("side_desk_docked"):
+		Utils.clamp_centered_panel($PanelContainer)
+
+
+func _take_correspondence(response) -> void:
+	var corr = response.get("correspondence", {}) if response is Dictionary else {}
+	_corr = corr if corr is Dictionary else {}
+	_refresh_correspondence_button()
+	if _corr_open or _corr_pending_open:
+		if _corr.is_empty():
+			_show_dispatch_page()
+		else:
+			_show_correspondence_page()
+
+
+func _refresh_correspondence_button() -> void:
+	"""The button's text is the backend's ("The Correspondence (1 standing)" /
+	"(a squadron at sea)" / plain), amber when it has news — the Envoys
+	badge's idiom; hidden on an unarmed world and while the page is open."""
+	correspondence_button.visible = not _corr.is_empty() and not _corr_open
+	if _corr.is_empty():
+		return
+	correspondence_button.text = str(_corr.get("button", "The Correspondence"))
+	var counts = _corr.get("counts", {})
+	var standing := int(counts.get("standing", 0)) if counts is Dictionary else 0
+	if standing > 0 or bool(_corr.get("at_sea", false)):
+		correspondence_button.add_theme_color_override("font_color", Utils.UI_WARNING)
+	else:
+		correspondence_button.remove_theme_color_override("font_color")
+
+
+func _show_correspondence_page() -> void:
+	_corr_pending_open = false
+	_corr_open = true
+	scroll_container.visible = false
+	corr_scroll.visible = true
+	back_to_dispatch_button.visible = true
+	correspondence_button.visible = false
+	title_label.text = CORR_TITLE
+	_render_correspondence(_corr)
+	_raise_page_ceiling()
+	if not $PanelContainer.has_meta("side_desk_docked"):
+		Utils.clamp_centered_panel($PanelContainer)
+
+
+func _show_dispatch_page() -> void:
+	_reset_correspondence_page()
+	_refresh_correspondence_button()
+	if visible and not $PanelContainer.has_meta("side_desk_docked"):
+		Utils.clamp_centered_panel($PanelContainer)
+
+
+func _reset_correspondence_page() -> void:
+	"""The page state and its ceiling, cleared on back and on close."""
+	_corr_open = false
+	_corr_pending_open = false
+	if $PanelContainer.has_meta("clamp_ceiling_override"):
+		$PanelContainer.remove_meta("clamp_ceiling_override")
+	if corr_scroll != null:
+		corr_scroll.visible = false
+	if scroll_container != null:
+		scroll_container.visible = true
+	if back_to_dispatch_button != null:
+		back_to_dispatch_button.visible = false
+	if title_label != null:
+		title_label.text = DISPATCH_TITLE
+
+
+func _raise_page_ceiling() -> void:
+	"""The page's ceiling grows with the window as the letter's does (the
+	same fractions; the authored 700 × 500 stays the floor); removed when
+	the page turns back."""
+	var view := get_viewport().get_visible_rect().size
+	$PanelContainer.set_meta("clamp_ceiling_override", Vector2(
+			clampf(view.x * CORR_WIDTH_FRACTION, CORR_MIN_WIDTH, CORR_MAX_WIDTH),
+			maxf(view.y * CORR_HEIGHT_FRACTION, CORR_MIN_HEIGHT)))
+
+
+func _render_correspondence(data: Dictionary) -> void:
+	"""The one column: the first-open line (once), ON THE DESK, IN THE
+	OFFING, ANSWERED newest first, LEFT UNANSWERED / SET ASIDE, the closing
+	record of a closed file. Every row is the backend's; nothing is derived here."""
+	for child in corr_box.get_children():
+		corr_box.remove_child(child)
+		child.queue_free()
+	var empty = data.get("empty", {})
+	if not (empty is Dictionary):
+		empty = {}
+	var fo = data.get("first_open")
+	if fo is Dictionary and str(fo.get("screen", "")) == CORR_SCREEN and str(fo.get("line", "")) != "":
+		_add_corr_note(str(fo.get("line", "")), Utils.COLOR_INFO)
+		if _api_client_ref != null and _api_client_ref.has_method("note_first_open"):
+			_api_client_ref.note_first_open(CORR_SCREEN)
+	var standing = data.get("standing", [])
+	if not (standing is Array):
+		standing = []
+	_add_corr_head("ON THE DESK (%d)" % standing.size(), "letters that wait for the Emperor")
+	if standing.is_empty():
+		_add_corr_note(str(empty.get("desk", "")), Utils.COLOR_INFO)
+	for row in standing:
+		if row is Dictionary:
+			_add_slip(row, "standing")
+	var offing = data.get("offing", [])
+	if not (offing is Array):
+		offing = []
+	_add_corr_head("IN THE OFFING", "matters that may yet write; none is promised")
+	if offing.is_empty():
+		_add_corr_note(str(empty.get("offing", "")), Utils.COLOR_INFO)
+	for line in offing:
+		_add_corr_note(str(line), Utils.COLOR_INFO)
+	var answered = data.get("answered", [])
+	if not (answered is Array):
+		answered = []
+	_add_corr_head("ANSWERED (%d)" % answered.size(), "newest first")
+	if answered.is_empty():
+		_add_corr_note(str(empty.get("answered", "")), Utils.COLOR_INFO)
+	for row in answered:
+		if row is Dictionary:
+			_add_slip(row, "answered")
+	var aside = data.get("set_aside", [])
+	if aside is Array and not aside.is_empty():
+		_add_corr_head("LEFT UNANSWERED / SET ASIDE", "")
+		for row in aside:
+			if row is Dictionary:
+				_add_corr_note(str(row.get("label", "")).to_upper() + " · " + str(row.get("title", "")).to_upper()
+						+ " — " + str(row.get("line", "")), Utils.COLOR_INFO)
+	var closing = data.get("closing", [])
+	if closing is Array:
+		for rec in closing:
+			if rec is Dictionary:
+				_add_slip(rec, "closing")
+
+
+func _add_corr_head(text: String, sub: String) -> void:
+	var head := RichTextLabel.new()
+	head.bbcode_enabled = true
+	head.fit_content = true
+	head.scroll_active = false
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.mouse_filter = Control.MOUSE_FILTER_PASS
+	var bb := "[color=#" + Utils.COLOR_BERTHIER + "]" + text + "[/color]"
+	if sub != "":
+		bb += "  [color=#" + Utils.COLOR_INFO + "]— " + sub + "[/color]"
+	head.text = bb
+	corr_box.add_child(head)
+
+
+func _add_corr_note(text: String, hex: String) -> void:
+	if text == "":
+		return
+	var note := RichTextLabel.new()
+	note.bbcode_enabled = true
+	note.fit_content = true
+	note.scroll_active = false
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	note.mouse_filter = Control.MOUSE_FILTER_PASS
+	note.text = "[color=#" + hex + "]" + _corr_esc(text) + "[/color]"
+	corr_box.add_child(note)
+
+
+func _add_slip(row: Dictionary, kind: String) -> void:
+	"""One parchment slip (§12b.1): the rubric row — the dateline · the
+	title in rubric with the device at the right — the apostille on an
+	answered letter (the seal and the Emperor's word in IM Fell italic), the
+	body in ink with its chips as `[url]` metas."""
+	_ensure_corr_dress()
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_stylebox_override("panel", _corr_sheet_hc if UiSettings.get_high_contrast() else _corr_sheet)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	var head := HBoxContainer.new()
+	var rubric := Label.new()
+	rubric.theme_type_variation = &"Caption"
+	rubric.add_theme_font_override("font", _corr_cinzel)
+	rubric.add_theme_color_override("font_color", Color.html(Utils.INK_RUBRIC))
+	rubric.text = _corr_rubric(row, kind)
+	rubric.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rubric.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(rubric)
+	var dev = row.get("device", {})
+	var device := _corr_device(dev if dev is Dictionary else {})
+	if device != null:
+		head.add_child(device)
+	box.add_child(head)
+	if kind == "answered":
+		box.add_child(_corr_apostille(str(row.get("caption", ""))))
+	var body := RichTextLabel.new()
+	body.bbcode_enabled = true
+	body.fit_content = true
+	body.scroll_active = false
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.mouse_filter = Control.MOUSE_FILTER_PASS
+	body.text = _corr_body_bbcode(row, kind)
+	body.meta_clicked.connect(_on_corr_meta)
+	box.add_child(body)
+	panel.add_child(box)
+	corr_box.add_child(panel)
+
+
+func _corr_rubric(row: Dictionary, kind: String) -> String:
+	var title := str(row.get("title", "")).to_upper()
+	if kind == "standing":
+		return "SEALED · ANSWER BY " + str(row.get("answer_by_label", "")).to_upper()
+	if kind == "closing":
+		return str(row.get("label", "")).to_upper() + " · " + title + " — THE FILE CLOSED"
+	return str(row.get("dateline", "")).to_upper() + " · " + title
+
+
+func _corr_body_bbcode(row: Dictionary, kind: String) -> String:
+	"""The slip's body: every inline colour an `INK_*` (the ink census); the
+	chips are the theme's gold-on-navy plaques, `[url]` metas the DD-B
+	instrument presses (`click Read the letter`, `click#2 Read the letter`)."""
+	var lines: Array[String] = []
+	if kind == "closing":
+		var rec_lines = row.get("lines", [])
+		if rec_lines is Array:
+			for i in range(rec_lines.size()):
+				var rec_text := _corr_esc(str(rec_lines[i]))
+				if i == 0:
+					lines.append("[color=#" + Utils.INK_BODY + "]" + rec_text + "[/color]")
+				else:
+					lines.append("[color=#" + Utils.INK_SEPIA + "][font=" + CORR_FELL_ITALIC + "]" + rec_text + "[/font][/color]")
+		return "\n".join(lines)
+	if kind == "standing":
+		var who := _corr_esc(str(row.get("writer", "")))
+		var office := _corr_esc(str(row.get("office", "")))
+		var line1 := "[color=#" + Utils.INK_BODY + "][b]" + _corr_esc(str(row.get("title", ""))) + "[/b]"
+		if who != "":
+			line1 += " — " + who + ((", " + office) if office != "" else "")
+		lines.append(line1 + "[/color]")
+		var parts: Array[String] = []
+		var answers = row.get("answers", [])
+		if answers is Array:
+			for a in answers:
+				if a is Dictionary:
+					var cap := _corr_esc(str(a.get("caption", "")))
+					var rec := _corr_esc(str(a.get("receipt", "")))
+					parts.append(cap + ((": " + rec) if rec != "" else ""))
+		if not parts.is_empty():
+			lines.append("[color=#" + Utils.INK_BODY + "]" + "  ·  ".join(parts) + "[/color]")
+		var mailbox_id := int(row.get("mailbox_id", 0))
+		if mailbox_id > 0:
+			lines.append(Utils.bb_button_chip("corr:read:" + str(mailbox_id), "Read the letter ▸", Utils.COLOR_GOLD, CORR_CHIP_BG))
+		return "\n".join(lines)
+	# answered: what it did, what came of it (at sea, or the echo), the fate, the chips
+	var receipt := _corr_esc(str(row.get("receipt", "")))
+	if receipt != "":
+		lines.append("[color=#" + Utils.INK_BODY + "]" + receipt + "[/color]")
+	var echo := _corr_esc(str(row.get("echo", "")))
+	var at_sea = row.get("at_sea", {})
+	var fate = row.get("fate", {})
+	if at_sea is Dictionary and not at_sea.is_empty():
+		lines.append("[color=#" + Utils.INK_SEPIA + "]" + _corr_esc(str(at_sea.get("line", ""))) + "[/color]")
+	elif echo != "":
+		var when := _corr_esc(str(row.get("echo_label", "")))
+		lines.append("[color=#" + Utils.INK_SEPIA + "]" + ((when + " — ") if when != "" else "") + echo + "[/color]")
+	if fate is Dictionary and not fate.is_empty():
+		var fate_when := _corr_esc(str(fate.get("label", "")))
+		lines.append("[color=#" + Utils.INK_RUBRIC + "]" + ((fate_when + " — ") if fate_when != "" else "")
+				+ _corr_esc(str(fate.get("line", ""))) + "[/color]")
+	var chips: Array[String] = []
+	var chip_rows = row.get("chips", [])
+	if chip_rows is Array:
+		for chip in chip_rows:
+			if not (chip is Dictionary):
+				continue
+			var ck := str(chip.get("kind", ""))
+			var nation := str(chip.get("nation", ""))
+			if ck == "court" and nation != "":
+				chips.append(Utils.bb_button_chip("corr:court:" + nation, Utils.display_nation_name(nation) + " ▸", Utils.COLOR_GOLD, CORR_CHIP_BG))
+			elif ck == "admiralty":
+				chips.append(Utils.bb_button_chip("ledger:6", "Admiralty ▸", Utils.COLOR_GOLD, CORR_CHIP_BG))
+			elif ck == "laws":
+				chips.append(Utils.bb_button_chip("ledger:7", "Laws ▸", Utils.COLOR_GOLD, CORR_CHIP_BG))
+	if not chips.is_empty():
+		lines.append(" ".join(chips))
+	return "\n".join(lines)
+
+
+func _corr_apostille(caption: String) -> Control:
+	"""The Emperor's word on an answered slip: an 18-px wax seal and
+	"{caption}. — N." in IM Fell italic at Lead."""
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var seal := TextureRect.new()
+	seal.texture = load(CORR_SEAL)
+	seal.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	seal.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	seal.custom_minimum_size = Vector2(CORR_SEAL_PX, CORR_SEAL_PX)
+	seal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(seal)
+	var word := Label.new()
+	word.theme_type_variation = &"Lead"
+	word.add_theme_font_override("font", _corr_fell_italic)
+	word.add_theme_color_override("font_color", Color.html(Utils.INK_BODY))
+	word.text = (caption if caption != "" else "Answered") + ". — N."
+	word.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	word.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(word)
+	return row
+
+
+func _corr_device(device: Dictionary) -> Control:
+	"""The slip's device, the letter's rule in small: the court's arms (or the
+	owner's sheet) as a 24-px flag, an office's gold monogram on leather; null
+	when the letter carries none."""
+	var kind := str(device.get("kind", ""))
+	var nation := str(device.get("nation", ""))
+	var flag := Utils.nation_flag_path(nation) if nation != "" else ""
+	if kind in ["arms", "sheet"] and flag != "":
+		var arms := TextureRect.new()
+		arms.texture = load(flag)
+		arms.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		arms.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		arms.custom_minimum_size = Vector2(CORR_DEVICE_PX * 1.5, CORR_DEVICE_PX)
+		arms.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return arms
+	var letter := str(device.get("letter", ""))
+	if letter == "":
+		return null
+	var locket := PortraitLocket.new()
+	locket.setup(letter, CORR_DEVICE_PX, false)
+	return locket
+
+
+func _ensure_corr_dress() -> void:
+	"""The slips' sheet and fonts, built once: the parchment's un-torn inner
+	field as the box (no torn edge inside the page); a flat cream under High
+	contrast; IM Fell italic for the apostille, Cinzel for the rubric."""
+	if _corr_sheet != null:
+		return
+	_corr_sheet = StyleBoxTexture.new()
+	_corr_sheet.texture = load(CORR_SHEET)
+	_corr_sheet.region_rect = CORR_SHEET_FIELD
+	for side in ["left", "right"]:
+		_corr_sheet.set("texture_margin_" + side, 16.0)
+		_corr_sheet.set("content_margin_" + side, 14.0)
+	for side in ["top", "bottom"]:
+		_corr_sheet.set("texture_margin_" + side, 12.0)
+		_corr_sheet.set("content_margin_" + side, 10.0)
+	_corr_sheet_hc = StyleBoxFlat.new()
+	_corr_sheet_hc.bg_color = Color.html(Utils.INK_SHEET_HC)
+	_corr_sheet_hc.border_color = Color.html(Utils.INK_RULE)
+	_corr_sheet_hc.set_border_width_all(2)
+	_corr_sheet_hc.set_corner_radius_all(4)
+	_corr_sheet_hc.set_content_margin_all(12.0)
+	_corr_fell_italic = load(CORR_FELL_ITALIC)
+	_corr_cinzel = load(CORR_CINZEL)
+
+
+func _corr_esc(text: String) -> String:
+	return text.replace("[", "[lb]")
+
+
+func _on_corr_meta(meta) -> void:
+	"""The chips: "Read the letter ▸" closes the page and takes the rail
+	card's road; a court chip closes it and asks main for that court's Cabinet
+	page; the Admiralty and the Laws take the dispatch's own ledger doors."""
+	var m := str(meta)
+	if m.begins_with("corr:read:"):
+		var mailbox_id := int(m.substr("corr:read:".length()))
+		close_view()
+		if mailbox_id > 0:
+			read_letter_requested.emit(mailbox_id)
+		return
+	if m.begins_with("corr:court:"):
+		var nation := m.substr("corr:court:".length())
+		close_view()
+		if nation != "":
+			open_diplomacy_for.emit(nation)
+		return
+	_on_meta_clicked(meta)

@@ -2206,6 +2206,88 @@ def cap_moments():
                     "write) — five blockaded mornings stay in the latch and no hunter is at sea, so the "
                     "production moments.tick delivered the BILL form on turn 7"),
            facts=haiti_facts_of(popup))
+
+    # ── RE-C (RECURRING_EVENTS_SPEC.md §12b.1 "The frames", §12b.2): the
+    # Correspondence — the page's dict rides GET /dispatch beside the stored
+    # briefing; three states, each on a world the production engine drove:
+    # the desk (a letter standing, the Watch below), the answered page (a
+    # squadron at sea beside an answered moment), the fate (the squadron
+    # settled, a lapsed letter set aside).
+    from backend.game_logic import affairs as AFF
+    from backend.game_logic import naval as NAV
+
+    def corr_facts(resp):
+        page = resp.get("correspondence") or {}
+        return {"button": page.get("button"), "counts": page.get("counts"), "at_sea": page.get("at_sea"),
+                "first_open": (page.get("first_open") or {}).get("line"),
+                "standing": [(r.get("title"), r.get("answer_by_label"), r.get("mailbox_id"),
+                              [(a.get("caption"), a.get("receipt")) for a in r.get("answers") or []])
+                             for r in page.get("standing") or []],
+                "offing": page.get("offing"),
+                "answered": [(r.get("title"), r.get("caption"), r.get("receipt"), r.get("echo_label"),
+                              r.get("echo"), (r.get("at_sea") or {}).get("line"),
+                              (r.get("fate") or {}).get("line"),
+                              [c_.get("kind") for c_ in r.get("chips") or []])
+                             for r in page.get("answered") or []],
+                "set_aside": [(r.get("title"), r.get("kind"), r.get("line")) for r in page.get("set_aside") or []],
+                "closing": page.get("closing")}
+
+    world, c, popup = stage_affair("the_host#1", range(1, 8), host_board)
+    resp = get(c, "/dispatch")
+    if not (resp.get("correspondence") or {}).get("standing"):
+        raise RuntimeError("the desk is empty: " + str(resp.get("correspondence"))[:200])
+    record("correspondence_desk", resp, source="GET /dispatch → correspondence (the page's dict beside the stored briefing)",
+           staging=("the affair_letter_the_host staging — the Host's Claims standing at tier 2 on turn 7 (Ney, "
+                    "Davout, Lannes quartered on Swabia beside Bernadotte; gold 5000, DP 7, admin 2 WRITTEN; the "
+                    "production moments.tick delivered it); then GET /dispatch read — ON THE DESK one slip "
+                    "(its answer-by date, both priced answers, Read the letter ▸ on the letter's mailbox id), "
+                    "IN THE OFFING the Watch's lines, ANSWERED its empty state; the page's first-open line on "
+                    "the dict"),
+           facts=corr_facts(resp))
+
+    world, c, popup = stage_affair("santo_domingo#1", range(1, 8), haiti_board)
+    letter = A._letter(world, "santo_domingo#1")
+    with A._quiet():
+        answered = post(c, "/respond_to_diplomatic_dialogue",
+                        {"choice": "accept_ai_proposal", "dialogue_id": letter["dialogue_id"]})
+    if not answered.get("success"):
+        raise RuntimeError("the squadron was not sent: " + str(answered)[:200])
+    world.moments["state"]["bavarian_match"] = {"status": "answered", "turn": 5, "answer": "accept",
+                                                "answered_turn": 5}
+    world.__dict__.pop("_affairs_memo", None)
+    resp = get(c, "/dispatch")
+    if not (resp.get("correspondence") or {}).get("at_sea"):
+        raise RuntimeError("no squadron at sea on the page: " + str(resp.get("correspondence"))[:200])
+    record("correspondence_answered", resp, source="GET /dispatch → correspondence",
+           staging=("the affair_letter_santo_domingo_squadron staging (the Haiti letter in its squadron form "
+                    "on turn 7); the Accept posted through /respond_to_diplomatic_dialogue (five of the line "
+                    "at sea until turn 11, 500 gold and the action spent); the Bavarian Match's row WRITTEN "
+                    "answered on turn 5 (state write — an answered moment beside the affair); then GET "
+                    "/dispatch read — ANSWERED newest first: the squadron's slip (the apostille, the receipt, "
+                    "'At sea — five of the line; word expected about Late February 1806.', Admiralty ▸) over "
+                    "the Match's (the caption alone — a moment's row carries no receipt — and Bavaria ▸)"),
+           facts=corr_facts(resp))
+
+    for turn in range(8, 12):
+        A._at(world, turn)
+        NAV._squadron_tick(world)
+    AFF.settle_squadrons(world)
+    world.moments["state"]["chancellors_letters#1"] = {
+        "id": "chancellors_letters#1", "status": "lapsed", "turn": 8, "answer": "decline", "lapsed_turn": 9,
+        "lord": "France", "bind": {"region": "Swabia"}, "tier": 1, "receipt": "standing 100 → 95",
+        "echo": "Cambacérès: the Council has acted in Your Majesty's name; Paris will mark whose hand signed."}
+    world.__dict__.pop("_affairs_memo", None)
+    resp = get(c, "/dispatch")
+    page = resp.get("correspondence") or {}
+    if page.get("at_sea") or not page.get("set_aside"):
+        raise RuntimeError("the fate did not land or nothing is set aside: " + str(page)[:200])
+    record("correspondence_fate", resp, source="GET /dispatch → correspondence",
+           staging=("the correspondence_answered world ticked to turn 11 (naval._squadron_tick each morning — "
+                    "the one seeded draw on turn 11 — then affairs.settle_squadrons: the row's outcome, its "
+                    "line and the receipt's suffix); the Arch-Chancellor's letter WRITTEN lapsed on turn 9 "
+                    "with its receipt (state write); then GET /dispatch read — the squadron's slip carries "
+                    "its fate in rubric under the receipt; LEFT UNANSWERED / SET ASIDE one dim line"),
+           facts=corr_facts(resp))
     fresh()  # leave the backend on a clean 1805 world for the next group
 
 

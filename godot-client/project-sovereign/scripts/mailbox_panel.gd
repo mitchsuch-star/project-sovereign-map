@@ -11,6 +11,9 @@ extends CanvasLayer
 signal item_selected(mailbox_id: int, is_active: bool, item_type: String)
 signal row_action(mailbox_id: int, action: String)
 signal panel_closed
+# RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the footer's second pointer into the
+# home — the Correspondence page of the Dispatch (main opens it).
+signal correspondence_requested
 
 const ITEM_TYPE_DISPLAY = {
 	"incoming_proposal": "Proposal",
@@ -412,3 +415,27 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_close():
 	hide()
 	panel_closed.emit()
+
+
+func _ensure_correspondence_button() -> void:
+	"""RE-C: "The Correspondence ▸" beside Close, built once (the scene file
+	stays as authored); it hides the panel and asks main for the page."""
+	if close_btn == null or close_btn.get_parent() == null:
+		return
+	var row := close_btn.get_parent()
+	if row.has_node("CorrespondenceButton"):
+		return
+	var btn := Button.new()
+	btn.name = "CorrespondenceButton"
+	btn.text = "The Correspondence ▸"
+	btn.theme_type_variation = &"CaptionButton"
+	btn.custom_minimum_size = Vector2(200, 40)
+	btn.tooltip_text = "Every letter of state laid before you, the answer you gave, what it did and what came of it."
+	btn.pressed.connect(_on_correspondence_pressed)
+	row.add_child(btn)
+	row.move_child(btn, 0)
+
+
+func _on_correspondence_pressed() -> void:
+	hide()
+	correspondence_requested.emit()

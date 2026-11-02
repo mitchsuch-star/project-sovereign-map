@@ -688,6 +688,9 @@ func _ready():
 		mailbox_panel.item_selected.connect(_on_mailbox_item_selected)
 		mailbox_panel.row_action.connect(_on_mailbox_row_action)
 		mailbox_panel.panel_closed.connect(_on_mailbox_panel_closed)
+		# RE-C: the letter-book's footer opens the Dispatch on the Correspondence.
+		if mailbox_panel.has_signal("correspondence_requested"):
+			mailbox_panel.correspondence_requested.connect(_on_mailbox_correspondence_requested)
 
 	# Pause menu (layer 120, always on top)
 	pause_menu = dialog_manager.register("pause_menu", "res://scenes/pause_menu.tscn")
@@ -757,6 +760,13 @@ func _ready():
 				# S14D-X3: the re-read screen's LAWS door opens the eighth book.
 				if dispatch_view.has_signal("ledger_tab_requested"):
 					dispatch_view.ledger_tab_requested.connect(_on_tutorial_open_ledger)
+				# RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the Correspondence's two
+				# roads — the desk's "Read the letter ▸" takes the rail card's
+				# (POST /mailbox/activate); a court chip the ledger's guarded one.
+				if dispatch_view.has_signal("read_letter_requested"):
+					dispatch_view.read_letter_requested.connect(_on_correspondence_read_letter)
+				if dispatch_view.has_signal("open_diplomacy_for"):
+					dispatch_view.open_diplomacy_for.connect(_on_ledger_open_diplomacy_for)
 			elif config[0] == "generals":
 				# ES-7 second pass (§0.6.8): the card's [Reward…] link
 				if instance.has_signal("reward_requested"):
@@ -8283,7 +8293,7 @@ func _on_mailbox_list_result(response: Dictionary):
 		top_bar.update_mailbox_count(count)
 	_set_pending_envoy_count(count)
 	if count == 0:
-		add_output("[color=#" + Utils.COLOR_GOLD + "]No pending envoys at this time.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + _no_envoys_line() + "[/color]")
 		_return_control_to_player()  # PC15-10 B4b: the one tail
 		return
 	# IGR-F: a letter-book row is answered IN the panel, so the count==1
@@ -8325,7 +8335,7 @@ func _on_pending_envoy_result(response: Dictionary):
 		))
 		return
 	if not response.get("has_pending", false):
-		add_output("[color=#" + Utils.COLOR_GOLD + "]No pending envoys at this time.[/color]")
+		add_output("[color=#" + Utils.COLOR_GOLD + "]" + _no_envoys_line() + "[/color]")
 		return
 	var dtype = response.get("dialogue_type", "")
 	if dtype in ["incoming_proposal", "counter_offer", "counter_offer_response", "incoming_ultimatum"]:
@@ -8715,6 +8725,36 @@ func _on_naval_command_result(response):
 		var ledger_screen = top_bar.screens["ledger"]
 		if ledger_screen and ledger_screen.has_method("refresh_if_open"):
 			ledger_screen.refresh_if_open()
+
+
+func _no_envoys_line() -> String:
+	"""RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the one pointer into the home —
+	the clause joins only once the client has seen the page's dict (an armed
+	world); a world without a deck keeps the old sentence."""
+	if dispatch_view != null and dispatch_view.has_method("has_correspondence") and dispatch_view.has_correspondence():
+		return "No pending envoys at this time, and the Correspondence (the Dispatch) keeps every letter answered."
+	return "No pending envoys at this time."
+
+
+func _on_correspondence_read_letter(mailbox_id: int) -> void:
+	"""RE-C: the Correspondence's "Read the letter ▸" — the rail card's road
+	(`POST /mailbox/activate`); the view closed itself before emitting."""
+	if mailbox_id <= 0 or api_client == null:
+		return
+	api_client.activate_mailbox_item(mailbox_id, _on_mailbox_activate_result)
+
+
+func _on_mailbox_correspondence_requested() -> void:
+	"""RE-C: the letter-book's footer — the panel hid itself; control returns
+	through the one tail, the Dispatch opens and turns to the page (now, or
+	as soon as its GET lands)."""
+	_return_control_to_player()
+	if top_bar == null or dispatch_view == null:
+		return
+	if top_bar.has_method("toggle_screen") and str(top_bar.get("active_screen")) != "dispatch":
+		top_bar.toggle_screen("dispatch")
+	if dispatch_view.has_method("open_correspondence"):
+		dispatch_view.open_correspondence()
 
 
 func _on_ledger_open_diplomacy_for(nation: String):

@@ -41,7 +41,7 @@ from typing import Any, Callable, Dict, Mapping, Optional, Tuple
 
 SCREENS: Tuple[str, ...] = (
     "cabinet", "designs", "formables", "settlement", "separate_peace",
-    "laws", "admiralty_camp", "moment_letter", "affair_letter",
+    "laws", "admiralty_camp", "moment_letter", "affair_letter", "correspondence",
 )
 LINE_CAP = 220
 KEY = "first_open"
@@ -155,6 +155,15 @@ def _line_affair_letter(world, ctx: Optional[Mapping[str, Any]]) -> str:
             "for you.")
 
 
+def _line_correspondence(world, ctx: Optional[Mapping[str, Any]] = None) -> str:
+    # RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the page's line as ruled — the
+    # letters, the answers, what they did and what came of them; the Watch
+    # below; nothing to order.
+    return ("The Correspondence, Sire: each letter of state laid before you, the "
+            "answer you gave, what it did and what came of it; below, the matters "
+            "that may yet write to you. Nothing here asks for an order.")
+
+
 LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "cabinet": _line_cabinet,
     "designs": _line_designs,
@@ -165,6 +174,7 @@ LINES: Dict[str, Callable[[Any, Optional[Mapping[str, Any]]], str]] = {
     "admiralty_camp": _line_admiralty_camp,
     "moment_letter": _line_moment_letter,
     "affair_letter": _line_affair_letter,
+    "correspondence": _line_correspondence,
 }
 
 

@@ -1358,7 +1358,9 @@ def build_letter(world, e: Dict[str, Any], issued: int,
         "options": _letter_options(payload),
         "context": {"proposal_type": MOMENT_LETTER_TYPE, "moment_id": mid,
                     "issued_turn": int(issued), "answer_by_turn": answer_by},
-        "proposal_terms_summary": str(e.get("title") or ""),
+        # REC-1 (RE-C's sweep of REH-2's class): the letter-book's row reads the
+        # frozen form's title too, as the letter and the log rows do
+        "proposal_terms_summary": str(payload.get("title") or e.get("title") or ""),
         "turn_created": int(issued),
         "blocking": False,
         "popup_payload": payload,
@@ -1758,3 +1760,218 @@ def backfill_affairs(world, data: Dict[str, Any]) -> bool:
     runtime["not_before"] = _turn(world) + BACKFILL_LEAD
     store["affairs"] = runtime
     return True
+
+
+# ════════════════════════════════════════════════════════════════════════
+# The Correspondence — the home of the letters (RE-C; RECURRING_EVENTS_SPEC
+# §12b.1): the page's rows, read fresh from the state rows, the deck and the
+# fleet record — never the event log (it rolls at 500 rows). A pure read.
+# ════════════════════════════════════════════════════════════════════════
+
+CORRESPONDENCE_TITLE = "The Correspondence"
+CORRESPONDENCE_SCREEN = "correspondence"
+CORRESPONDENCE_EMPTY = {
+    "desk": "No letter of state lies on the desk, Sire.",
+    "answered": "Nothing has yet been answered.",
+    "offing": "Nothing is gathering, Sire.",
+}
+SET_ASIDE_LAPSED = "lapsed"
+SET_ASIDE_WITHDRAWN = "withdrawn"
+SET_ASIDE_CROWDED = "crowded"
+
+
+def mailbox_id_of(world, mid: str) -> int:
+    """The mailbox id of a STANDING letter's dialogue — the rail card's road
+    (`POST /mailbox/activate`); 0 when none stands. The scan `lapse_gate_rows`
+    runs: the active slot, then the queue."""
+    dm = getattr(world, "dialogue_manager", None)
+    if dm is None:
+        return 0
+    current = dm.peek()
+    for letter in ([current] if current else []) + list(dm.iter_queue()):
+        if is_moment_letter(letter) and moment_id_of(letter) == str(mid):
+            try:
+                return int(letter.get("mailbox_id", 0) or 0)
+            except (TypeError, ValueError):
+                return 0
+    return 0
+
+
+def _court_of(e: Dict[str, Any], row: Dict[str, Any]) -> str:
+    """The court a letter concerns — the Host's bound court, an envoy's, a
+    moment's `when.court`; "" for an office's letter."""
+    bind = row.get("bind") if isinstance(row.get("bind"), dict) else {}
+    if bind.get("host"):
+        return str(bind["host"])
+    voice = e.get("voice") or {}
+    if voice.get("nation"):
+        return str(voice["nation"])
+    when = e.get("when") or {}
+    return str(when.get("court") or "")
+
+
+def _chips_of(e: Dict[str, Any], row: Dict[str, Any]) -> List[Dict[str, str]]:
+    """The slip's chips — from the consequence to its remedy: the court's
+    Cabinet page, the Admiralty for a squadron, the Laws for a law (the
+    Accept's own ops say what the letter was about)."""
+    chips: List[Dict[str, str]] = []
+    court = _court_of(e, row)
+    if court:
+        chips.append({"kind": "court", "nation": court})
+    side = _answer_side(e, ANSWER_ACCEPT, row.get("form"))
+    ops = {str((op or {}).get("op") or "") for op in (side.get("ops") or []) if isinstance(op, dict)}
+    if "squadron" in ops:
+        chips.append({"kind": "admiralty", "nation": ""})
+    if "enact_law" in ops:
+        chips.append({"kind": "laws", "nation": ""})
+    return chips
+
+
+def _caption_of(e: Dict[str, Any], row: Dict[str, Any]) -> str:
+    """The answer's caption, derived from the authored side — no row stores it."""
+    answer = str(row.get("answer") or "")
+    if not answer:
+        return ""
+    return str(_answer_side(e, answer, row.get("form")).get("caption") or answer)
+
+
+def _slip_head(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    """What every slip shares: the id, the title (the frozen form's), the
+    writer and the office, the device, the issued dateline, the register —
+    the same calls the letter's own payload makes."""
+    issued = int(row.get("turn", 0) or 0)
+    name = voice_of(world, e, row, issued)
+    writer, office = _writer_and_office(world, e, row, name)
+    return {"id": str(mid), "title": letter_title(e, dict(row, id=str(mid))), "writer": writer,
+            "office": office, "device": device_of(world, e, row, writer), "turn": issued,
+            "dateline": _dateline(world, issued),
+            "register": REGISTER_AFFAIR if is_occurrence(str(mid)) else REGISTER_MOMENT}
+
+
+def _standing_slip(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    out = _slip_head(world, e, mid, row)
+    accept = plan(world, e, ANSWER_ACCEPT, row)
+    decline = plan(world, e, ANSWER_DECLINE, row)
+    answer_by = int(row.get("turn", 0) or 0) + ANSWER_TURNS - 1
+    out.update({"answer_by": answer_by, "answer_by_label": _dateline(world, answer_by),
+                "answers": [{"caption": str(accept["caption"]), "receipt": str(accept.get("receipt") or "")},
+                            {"caption": str(decline["caption"]), "receipt": str(decline.get("receipt") or "")}],
+                "mailbox_id": mailbox_id_of(world, mid)})
+    return out
+
+
+def _at_sea_of(world, mid: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    """A squadron still out for this letter: the fleet record's `squadron`
+    tagged with the row's id and no fate yet."""
+    if row.get("outcome"):
+        return {}
+    from backend.game_logic import naval
+    sq = naval.squadron_at_sea(world, str(row.get("lord") or owner(world)))
+    if not sq or str(sq.get("tag") or "") != str(mid):
+        return {}
+    returns = int(sq.get("returns", 0) or 0)
+    words = sail_words(int(sq.get("ships", 0) or 0))
+    label = _dateline(world, returns)
+    return {"words": words, "expected": returns, "expected_label": label,
+            "line": f"At sea — {words}; word expected about {label}."}
+
+
+def _fate_of(world, row: Dict[str, Any]) -> Dict[str, Any]:
+    outcome = str(row.get("outcome") or "")
+    if not outcome:
+        return {}
+    turn = int(row.get("outcome_turn", 0) or 0)
+    return {"outcome": outcome, "turn": turn, "label": _dateline(world, turn),
+            "line": str(row.get("outcome_line") or "")}
+
+
+def _answered_slip(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    out = _slip_head(world, e, mid, row)
+    answered_turn = int(row.get("answered_turn", 0) or 0)
+    echo = str(row.get("echo") or "")
+    out.update({"answer": str(row.get("answer") or ""), "caption": _caption_of(e, row),
+                "answered_turn": answered_turn, "answered_label": _dateline(world, answered_turn),
+                "receipt": str(row.get("receipt") or ""), "echo": echo,
+                "echo_label": _dateline(world, answered_turn + 1) if echo else "",
+                "at_sea": _at_sea_of(world, mid, row), "fate": _fate_of(world, row),
+                "chips": _chips_of(e, row)})
+    return out
+
+
+def _set_aside_slip(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> Dict[str, Any]:
+    """One dim line: lapsed (its second answer and the price it took),
+    withdrawn for a moment (nothing spent), crowded out on a busy desk."""
+    out = _slip_head(world, e, mid, row)
+    status = str(row.get("status") or "")
+    if status == STATUS_LAPSED:
+        receipt = str(row.get("receipt") or "")
+        kind, when = SET_ASIDE_LAPSED, int(row.get("lapsed_turn", 0) or 0)
+        line = f"Filed unanswered — {_caption_of(e, row)}" + (f" · {receipt}" if receipt else "")
+    elif status == STATUS_WITHDRAWN:
+        moment = entry(world, str(row.get("set_aside_for") or ""))
+        for_title = letter_title(moment) if moment else "a moment of history"
+        kind, when = SET_ASIDE_WITHDRAWN, int(row.get("withdrawn_turn", 0) or 0)
+        line = f"Set aside for {for_title} — nothing was spent"
+    else:
+        kind, when = SET_ASIDE_CROWDED, int(row.get("turn", 0) or 0)
+        line = "Set aside on a busy desk — its second answer taken"
+    when = when or int(out["turn"])
+    out.update({"kind": kind, "when": when, "label": _dateline(world, when), "line": line})
+    return out
+
+
+def _is_set_aside(row: Dict[str, Any]) -> bool:
+    status = str(row.get("status") or "")
+    return status in (STATUS_LAPSED, STATUS_WITHDRAWN) or (
+        status == STATUS_PASSED and str(row.get("reason") or "") == PASS_CROWDED)
+
+
+def correspondence(world) -> Dict[str, Any]:
+    """RE-C — the Correspondence (RECURRING_EVENTS_SPEC.md §12b.1): ON THE
+    DESK (every `fired` row — Not Now is the client's, the letter stands),
+    ANSWERED newest first (the caption, the receipt, the echo, a squadron at
+    sea and then its fate, the chips), IN THE OFFING (the Watch, read pure),
+    LEFT UNANSWERED / SET ASIDE (lapsed with its price, withdrawn, crowded
+    out — the silent passes never show), the closing record of a closed
+    file, the empty states and the button's text. `{}` on an unarmed world
+    (the client hides the button). Rebuilt on every `GET /dispatch`; writes
+    nothing; every figure an int."""
+    if not armed(world):
+        return {}
+    from backend.game_logic import affairs
+    standing: List[Dict[str, Any]] = []
+    answered: List[Dict[str, Any]] = []
+    aside: List[Dict[str, Any]] = []
+    for mid, row in list(_state(world).items()):
+        if not isinstance(row, dict):
+            continue
+        e = entry(world, str(mid))
+        if e is None:
+            continue
+        status = str(row.get("status") or "")
+        try:
+            if status == STATUS_FIRED:
+                standing.append(_standing_slip(world, e, str(mid), row))
+            elif status == STATUS_ANSWERED:
+                answered.append(_answered_slip(world, e, str(mid), row))
+            elif _is_set_aside(row):
+                aside.append(_set_aside_slip(world, e, str(mid), row))
+        except Exception as exc:
+            report(exc, "moments.correspondence: a letter's slip")
+    answered.sort(key=lambda r: -int(r.get("answered_turn") or 0))
+    aside.sort(key=lambda r: -int(r.get("when") or 0))
+    at_sea = any(r.get("at_sea") for r in answered)
+    n = len(standing)
+    if n:
+        button = f"{CORRESPONDENCE_TITLE} ({n} standing)"
+    elif at_sea:
+        button = f"{CORRESPONDENCE_TITLE} (a squadron at sea)"
+    else:
+        button = CORRESPONDENCE_TITLE
+    turn = _turn(world)
+    return {"title": CORRESPONDENCE_TITLE, "turn": turn, "dateline": _dateline(world, turn),
+            "button": button, "at_sea": bool(at_sea),
+            "counts": {"standing": n, "answered": len(answered), "set_aside": len(aside)},
+            "standing": standing, "answered": answered, "offing": affairs.watch(world, record=False),
+            "set_aside": aside, "closing": affairs.closing_record(world),
+            "empty": dict(CORRESPONDENCE_EMPTY)}

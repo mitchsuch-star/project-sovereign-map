@@ -1203,6 +1203,11 @@ REVIEWED = {
     # both dispatch renderers — the same ledger opener T then 8 uses
     # (main.gd's _on_tutorial_open_ledger); neither sends.
     ("dispatch_view.gd", '"ledger:7"'): "opens the Strategic Ledger on THE LAWS through main.gd's _on_tutorial_open_ledger (ledger_tab_requested); never sends",
+    # RE-C (RECURRING_EVENTS_SPEC.md §12b.1, November 2, 2026): the Correspondence
+    # page's chips — from the consequence to its remedy; none sends an order.
+    ("dispatch_view.gd", '"corr:read:" + str(mailbox_id)'): "the desk's Read the letter ▸ — closes the view and takes the rail card's road (POST /mailbox/activate through main.gd's _on_correspondence_read_letter); never sends",
+    ("dispatch_view.gd", '"corr:court:" + nation'): "the court chip — closes the view and opens that court's Cabinet page through main.gd's guarded _on_ledger_open_diplomacy_for; never sends",
+    ("dispatch_view.gd", '"ledger:6"'): "the Admiralty chip — the Strategic Ledger on THE ADMIRALTY through _on_tutorial_open_ledger (ledger_tab_requested); never sends",
     ("main.gd", '"ledger:7"'): "the terminal dispatch's twin of the LAWS door — _on_output_meta_clicked → _on_tutorial_open_ledger; never sends",
 }
 

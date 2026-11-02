@@ -3131,6 +3131,14 @@ The player still has no clean restart path from the running build. Starting fres
 |---|---|---|---|
 | **RE2-1** | P2 | ✅ FIXED October 31, 2026 — RE-2 part A (`5ca1ae56`; `SYSTEMS_REFERENCE.md` §162.9): `moments.letter_payload` reads the register off the occurrence id (`is_occurrence(occ["id"])`), the one discriminator the engine keeps everywhere else; test `tests/test_affairs_client.py::TestTheRegister::test_the_moment_s_payload_carries_the_same_dress_in_its_own_register` ⟨SF step=RE · RE-2 · pillar=events⟩ | **Every delivered MOMENT letter was dressed as an affair with an EMPTY board.** `build_letter` and `refresh_letter` pass every letter's status row as the `occ` argument, and RE-1's `letter_payload` read `bool(occ)` as "this is an affair" — so a moment's `register` read "affair" and its board came from `affairs.board_lines`, which knows no moment predicate and returned `[]`; no S14c pin read the Match's `board`. Unarmed boards were not spared: the four shipped moments ride the same code. **Decided fix:** the register is the id's; the Match's board is the moments' own (`moments.board_lines`) again and pinned non-empty; the sweep of the class (`bool(occ)` / `if occ` as a register test) found `plan()`'s selector binding only, harmless on a status row. |
 
+## REC — RE-C's finds (November 1, 2026; row RE "Affairs of State", RE-C the Correspondence; rules `SYSTEMS_REFERENCE.md` §165; the record `RECURRING_EVENTS_SPEC.md` §23; **1 row, FIXED in the slice**)
+
+> Found by RE-C's sibling sweep of REH-2's class (a letter named by its entry where its form has a name): the letter-book's own row.
+
+| ID | Sev | Status | Bug |
+|---|---|---|---|
+| **REC-1** | P3 | ✅ FIXED November 1, 2026 — RE-C: `moments.build_letter` writes `proposal_terms_summary` from the payload's title (the frozen form's), so the letter-book's row reads "An Affair of State: The Squadron for Santo Domingo" as the letter does; test `tests/test_correspondence.py::TestTheDesk::test_the_mailbox_row_names_the_form` ⟨SF step=RE · RE-C · pillar=narration⟩ | **The letter-book's row named the Haiti letter by its entry, not by the form it wore.** The dialogue's `proposal_terms_summary` was the entry's title, so the mailbox listed "The Relief of Santo Domingo" under a letter that read "The Squadron for Santo Domingo"; REH-2 fixed the reply and the log rows and missed this reader. |
+
 ## REH — RE-H's finds (November 1, 2026; row RE "Affairs of State", RE-H the Haiti letter; rules `SYSTEMS_REFERENCE.md` §164; the record `RECURRING_EVENTS_SPEC.md` §22; **2 rows, both FIXED in the slice**)
 
 > Found by RE-H's measure of the fourth letter and by the squadron's smoke: the record tool's standing figure had been reading 0 since RE-3 (the band pin passed on nothing); the answer's reply and the log rows named a letter by its entry, not by the form it wore. RE3-8, the instrument row at this slice's head, is closed in §RE3 above.

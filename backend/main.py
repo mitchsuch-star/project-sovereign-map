@@ -6849,6 +6849,15 @@ def get_dispatch():
     # `_readable_dispatch`) — the Dispatch screen and the world-swap
     # responses that render it must never show two different copies.
     payload = {"success": True, "dispatch": _readable_dispatch(world)}
+    # RE-C (RECURRING_EVENTS_SPEC.md §12b.1): the Correspondence rides the same
+    # GET — the page's rows rebuilt per call from the state rows, with its
+    # first-open line on this fresh dict; absent on an unarmed world (the
+    # client hides the button).
+    from backend.game_logic import first_open, moments
+    _correspondence = moments.correspondence(world)
+    if _correspondence:
+        first_open.attach(_correspondence, world, "correspondence")
+        payload["correspondence"] = _correspondence
     _attach_nation_identity_overrides(payload, world)   # NA-6 §11.8 stage 3
     return payload
 

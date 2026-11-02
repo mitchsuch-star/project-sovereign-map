@@ -1503,6 +1503,56 @@ SHOTS += [
     ],
 ]
 
+# ═══ RE-C (docs/RECURRING_EVENTS_SPEC.md §12b.1, §12b.2 "The frames"): the
+# Correspondence — a page of the Dispatch screen turned by `open_correspondence`
+# (the button's text carries the amber count, so the step calls the method the
+# button calls); the page's dict rides the stubbed GET /dispatch.
+SHOTS += [
+    {
+        "id": "correspondence_desk",
+        "surface": "The Correspondence — ON THE DESK (a letter standing, the Watch below; dispatch_view.tscn)",
+        "payload": "correspondence_desk",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"call": "open_correspondence", "then_wait": 6}],
+        "must_show": ("the title THE CORRESPONDENCE; the first-open line in grey at the head; ON THE DESK (1) — "
+                      "one parchment slip: 'SEALED · ANSWER BY LATE DECEMBER 1805' in rubric with Bavaria's arms "
+                      "at the right, 'The Host's Claims — Montgelas, for the court of Munich' in ink, both answers "
+                      "with their prices on one line, the chip 'Read the letter ▸'; IN THE OFFING the Watch's "
+                      "lines in grey; ANSWERED (0) with 'Nothing has yet been answered.'; '◂ The Dispatch' in the "
+                      "action row and no 'The Correspondence' button while the page is open; the page scrolls "
+                      "and the buttons stand outside the scroll at BOTH scales; no raw tag, no gold on paper"),
+    },
+    {
+        "id": "correspondence_answered",
+        "surface": "The Correspondence — ANSWERED (a squadron at sea beside an answered moment)",
+        "payload": "correspondence_answered",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"call": "open_correspondence", "then_wait": 6}],
+        "must_show": ("ANSWERED (2), newest first: 'LATE DECEMBER 1805 · THE SQUADRON FOR SANTO DOMINGO' in rubric "
+                      "with Decrès's monogram 'D' at the right; the apostille — the small wax seal and 'Send five of "
+                      "the line. — N.' in IM Fell italic; the receipt '−500 gold · 1 action · 36 in 100 home' in "
+                      "ink; 'At sea — five of the line; word expected about Late February 1806.' in sepia; the "
+                      "chip 'Admiralty ▸'; under it the Bavarian Match's slip with 'Seal the match. — N.' and the "
+                      "chip 'Bavaria ▸' (a moment's row carries no receipt); ON THE DESK empty ('No letter of "
+                      "state lies on the desk, Sire.'); nothing clipped at scale 2.0"),
+    },
+    {
+        "id": "correspondence_fate",
+        "surface": "The Correspondence — the squadron's fate, a letter set aside",
+        "payload": "correspondence_fate",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"call": "open_correspondence", "then_wait": 6}],
+        "must_show": ("the squadron's slip carries its fate in rubric under the receipt ('Late February 1806 — …', "
+                      "home whole or five of the line lost) and no 'At sea' line; LEFT UNANSWERED / SET ASIDE with "
+                      "one dim line — 'EARLY JANUARY 1806 · THE ARCH-CHANCELLOR'S LETTERS — Filed unanswered — Let "
+                      "the Council act · standing 100 → 95'; the button would read plain 'The Correspondence' "
+                      "(no letter standing, no squadron at sea); both scales"),
+    },
+]
+
 # ═══ S14d part 1, second landing (docs/TABLE_LESSON_SPEC.md §13.4): the frames
 # with the first-open line at the head — the two surfaces no row had shot.
 # Capture group `first_open` (tools/iq10_capture_payloads.py `cap_first_open`).
