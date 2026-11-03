@@ -1,0 +1,296 @@
+{
+  "backend": "http://127.0.0.1:8007",
+  "boot_turn": 1,
+  "booted": true,
+  "chapter_a_loaded_turn": 6,
+  "errors": [],
+  "final_turn": 8,
+  "first_letter": {
+    "accept": "Send five of the line / −500 gold · 1 action · 36 in 100 home",
+    "body": "The Squadron for Santo Domingo — Decrès, Minister of Marine and the Colonies\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, Ferrand wrote last February that he had bread for twenty days and no credit; Your Majesty called it shameful to abandon these brave men. Brest can put five of the line to sea in a month.\nHistorically the law of 20 May 1802 kept slavery in the colonies Amiens returned, and acts of 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence, 1 January 1804. Historically Haiti killed the French who stayed in 1804; Ferrand's decree of 6 January 1805 let his raiders sell the Haitians they took, and Dessalines marched on Santo Domingo, killing civilians at Moca and Santiago on his retreat.\nFROM HAITI —\n‘Slavery is forever abolished.’ — the Constitution of Haiti, 20 May 1805, Article 2: three years to the day after the law.\n❧ France blockaded 6 of the last 12 mornings; the Emperor holds court at Lorraine.\n❧ Britain's squadrons hold the coast: 100 sail effective against our 22.\n❧ The passage: 36 in 100 to come home whole.\nWHAT EACH ANSWER DOES\n  Send five of the line: 500 gold (the treasury holds 6,716); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late February 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\n  Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.\nIf unanswered by Early January 1806: Ferrand must hold alone — Authority 100 → 97 — the marshals' calm holds above 70.",
+    "counsel": "Berthier — Five sail are five sail, Sire; Boulogne counts them too.",
+    "decline": "Ferrand must hold alone / standing 100 → 97",
+    "register": "affair",
+    "title": "The Squadron for Santo Domingo",
+    "writer": "Decrès"
+  },
+  "lapse_loaded_turn": 7,
+  "loaded_turn": 7,
+  "ms": 53060,
+  "offer_letter": {
+    "accept": "Buy the remounts / −1,500 gold · 1 action · 8 turns",
+    "body": "The Remounts — Dejean, Minister of War Administration\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, the depots hold more saddles than horses. A credit now buys remounts in the country at the spring fairs' price, not the campaign's.\nHistorically the cavalry was remounted between campaigns by purchase and requisition — the Prussian studs after Jena, the depots that refilled the squadrons before Friedland.\n❧ The cavalry depots hold 17,700 of 30,000 (59%); the weakest squadrons stand at 100% of their establishment; the chest holds 5,000 gold against 1,500.\nWHAT EACH ANSWER DOES\n  Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\n  Let the depots wait: no change.\nIf unanswered by Early January 1806: Let the depots wait — no change.",
+    "counsel": "Berthier — A squadron without horses is infantry that eats oats, Sire.",
+    "decline": "Let the depots wait / no change",
+    "register": "affair",
+    "title": "The Remounts",
+    "writer": "Dejean"
+  },
+  "offer_loaded_turn": 7,
+  "offer_offing": [
+    "Nothing is gathering, Sire."
+  ],
+  "offer_turn": 7,
+  "overlays": [
+    {
+      "kind": "interrupt",
+      "marshal": "Teulie",
+      "took": "Fight to the Last",
+      "turn": 8
+    },
+    {
+      "kind": "interrupt",
+      "marshal": "Massena",
+      "took": "Fight to the Last",
+      "turn": 10
+    }
+  ],
+  "steps": [
+    {
+      "frame": "RE5_01_rail_2026_11_02.jpg",
+      "ms": 15597,
+      "note": "the morning the letter came: the rail card, the map, the terminal",
+      "saved": true,
+      "step": "rail",
+      "terminal": "sion Pact\n    - The Secretariat — An Affair of State\n  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"\n\nTHE CONGRESS OF PARIS\n  THE CONGRESS OF PARIS — 34 of 45 titled · summon from the Cabinet (F1)\n\nWAR PURPOSE\n  War Purpose: Defense vs Britain (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (-2)\n  War Purpose: Defense vs Austria (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): Favorable Terms — theirs to impose (-27)\n  War Purpose: Defense vs Russia (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n\nCOALITION THREAT\n  Threat: 58/100 [Formed]\n  ACTIVE: Third Coalition — Leader: Britain\n\n  Berthier: \"I have ordered the remnants collected, Sire. Do not commit them until they reform.\"\n════════════════════════════════════\n\n",
+      "turn": 7
+    },
+    {
+      "desk": "Nothing has yet been answered.\nANSWERED (0)  — newest first\nNothing is gathering, Sire.\nIN THE OFFING  — matters that may yet write; none is promised\nThe Squadron for Santo Domingo — Decrès, Minister of Marine and the Colonies\nSend five of the line: −500 gold · 1 action · 36 in 100 home  ·  Ferrand must hold alone: standing 100 → 97\n  Read the letter ▸  \nSEALED · ANSWER BY EARLY JANUARY 1806\nON THE DESK (1)  — letters that wait for the Emperor",
+      "frame": "RE5_02_arrival_2026_11_02.jpg",
+      "ms": 16408,
+      "note": "the Correspondence's desk: the letter standing, 'Read the letter ▸'",
+      "saved": true,
+      "step": "arrival",
+      "turn": 7
+    },
+    {
+      "accept": "Send five of the line / −500 gold · 1 action · 36 in 100 home",
+      "body": "The Squadron for Santo Domingo — Decrès, Minister of Marine and the Colonies\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, Ferrand wrote last February that he had bread for twenty days and no credit; Your Majesty called it shameful to abandon these brave men. Brest can put five of the line to sea in a month.\nHistorically the law of 20 May 1802 kept slavery in the colonies Amiens returned, and acts of 1802 restored it in Guadeloupe and Guiana; the expedition sent to break Toussaint Louverture's rule ended in Haiti's independence, 1 January 1804. Historically Haiti killed the French who stayed in 1804; Ferrand's decree of 6 January 1805 let his raiders sell the Haitians they took, and Dessalines marched on Santo Domingo, killing civilians at Moca and Santiago on his retreat.\nFROM HAITI —\n‘Slavery is forever abolished.’ — the Constitution of Haiti, 20 May 1805, Article 2: three years to the day after the law.\n❧ France blockaded 6 of the last 12 mornings; the Emperor holds court at Lorraine.\n❧ Britain's squadrons hold the coast: 100 sail effective against our 22.\n❧ The passage: 36 in 100 to come home whole.\nWHAT EACH ANSWER DOES\n  Send five of the line: 500 gold (the treasury holds 6,716); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late February 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\n  Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.\nIf unanswered by Early January 1806: Ferrand must hold alone — Authority 100 → 97 — the marshals' calm holds above 70.",
+      "counsel": "Berthier — Five sail are five sail, Sire; Boulogne counts them too.",
+      "decline": "Ferrand must hold alone / standing 100 → 97",
+      "frame": "RE5_03_letter_2026_11_02.jpg",
+      "ms": 17005,
+      "note": "the letter opened from the desk: the dress",
+      "register": "affair",
+      "saved": true,
+      "step": "letter",
+      "title": "The Squadron for Santo Domingo",
+      "turn": 7,
+      "writer": "Decrès"
+    },
+    {
+      "frame": "RE5_04_accept_seal_2026_11_02.jpg",
+      "ms": 17582,
+      "note": "the response landed: the answer beat — the apostille and the seal",
+      "saved": true,
+      "step": "accept_seal",
+      "turn": 7
+    },
+    {
+      "before": "at: 58/100 [Formed]\n  ACTIVE: Third Coalition — Leader: Britain\n\n  Berthier: \"I have ordered the remnants collected, Sire. Do not commit them until they reform.\"\n════════════════════════════════════\n\n",
+      "frame": "RE5_05_accept_echo_2026_11_02.jpg",
+      "ms": 18523,
+      "note": "the response: the apply line and the echo",
+      "saved": true,
+      "step": "accept_echo",
+      "terminal": " State\n  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"\n\nTHE CONGRESS OF PARIS\n  THE CONGRESS OF PARIS — 34 of 45 titled · summon from the Cabinet (F1)\n\nWAR PURPOSE\n  War Purpose: Defense vs Britain (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (-2)\n  War Purpose: Defense vs Austria (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): Favorable Terms — theirs to impose (-27)\n  War Purpose: Defense vs Russia (War for Milan) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n\nCOALITION THREAT\n  Threat: 58/100 [Formed]\n  ACTIVE: Third Coalition — Leader: Britain\n\n  Berthier: \"I have ordered the remnants collected, Sire. Do not commit them until they reform.\"\n════════════════════════════════════\n\nAnswering The Squadron for Santo Domingo: Send five of the line\nThe Squadron for Santo Domingo — Send five of the line: 500 gold (the treasury holds 6,716); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late February 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\nDecrès: the squadron slips out of Brest on the night tide.\n\nSetting aside Hesse's proposal — it waits in the mailbox until the turn ends, and the Cabinet stays open. Click the envoy badge to revisit.\n",
+      "turn": 7
+    },
+    {
+      "frame": "RE5_06_receipt_2026_11_02.jpg",
+      "ms": 21566,
+      "note": "the morning after: SITUATION's receipt",
+      "receipt_lines": [
+        "Five of the line are at sea for Santo Domingo; Decrès expects them home by Late February 1806."
+      ],
+      "saved": true,
+      "step": "receipt",
+      "turn": 8
+    },
+    {
+      "frame": "RE5_07_correspondence_2026_11_02.jpg",
+      "ms": 21937,
+      "note": "the page: the desk, the offing, the answered slip",
+      "page": "−500 gold · 1 action · 36 in 100 home\nAt sea — five of the line; word expected about Late February 1806.\n  Admiralty ▸  \nSend five of the line. — N.\nLATE DECEMBER 1805 · THE SQUADRON FOR SANTO DOMINGO\nANSWERED (1)  — newest first\nNothing is gathering, Sire.\nIN THE OFFING  — matters that may yet write; none is promised\nNo letter of state lies on the desk, Sire.\nON THE DESK (0)  — letters that wait for the Emperor",
+      "saved": true,
+      "step": "correspondence",
+      "turn": 8
+    },
+    {
+      "fate": "−500 gold · 1 action · 36 in 100 home — home whole",
+      "frame": "RE5_08_home_2026_11_02.jpg",
+      "morning_lines": [
+        "Sire — Savoy has fallen to Britain. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces a battle.",
+        "• Sire — Berry has fallen to Austria. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~27,500 stands there. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing there forces a battle.",
+        "THE SQUADRON: The squadron is home from Santo Domingo, all five sail; Ferrand has his men, his flour and his muskets.",
+        "War Purpose: Defense vs Britain (War for Berry) — the homeland — 22 of 28 provinces held (ticking: +1, +1/turn)  |  Settlement (this pair): White Peace (-14)",
+        "War Purpose: Defense vs Austria (War for Berry) — the homeland — 22 of 28 provinces held (ticking: +11, +1/turn)  |  Settlement (this pair): Dictated Terms — theirs to impose (-54)",
+        "War Purpose: Defense vs Russia (War for Berry) — the homeland — 22 of 28 provinces held  |  Settlement (this pair): White Peace (+0)"
+      ],
+      "ms": 32225,
+      "note": "the squadron's fate",
+      "page": "−500 gold · 1 action · 36 in 100 home — home whole\nEarly January 1806 — Decrès: the squadron slips out of Brest on the night tide.\nLate February 1806 — The squadron is home from Santo Domingo, all five sail; Ferrand has his men, his flour and his muskets.\n  Admiralty ▸  \nSend five of the line. — N.\nLATE DECEMBER 1805 · THE SQUADRON FOR SANTO DOMINGO\nANSWERED (1)  — newest first\nNothing is gathering, Sire.\nIN THE OFFING  — matters that may yet write; none is promised\nNo letter of state lies on the desk, Sire.\nON THE DESK (0)  — letters that wait for the Emperor",
+      "saved": true,
+      "step": "home",
+      "turn": 11
+    },
+    {
+      "accept": "Buy the remounts / −1,500 gold · 1 action · 8 turns",
+      "body": "The Remounts — Dejean, Minister of War Administration\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, the depots hold more saddles than horses. A credit now buys remounts in the country at the spring fairs' price, not the campaign's.\nHistorically the cavalry was remounted between campaigns by purchase and requisition — the Prussian studs after Jena, the depots that refilled the squadrons before Friedland.\n❧ The cavalry depots hold 17,700 of 30,000 (59%); the weakest squadrons stand at 100% of their establishment; the chest holds 5,000 gold against 1,500.\nWHAT EACH ANSWER DOES\n  Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\n  Let the depots wait: no change.\nIf unanswered by Early January 1806: Let the depots wait — no change.",
+      "counsel": "Berthier — A squadron without horses is infantry that eats oats, Sire.",
+      "decline": "Let the depots wait / no change",
+      "frame": "RE5_09_offer_2026_11_02.jpg",
+      "ms": 34483,
+      "note": "the offer in the dress: the two priced buttons",
+      "register": "affair",
+      "saved": true,
+      "step": "offer",
+      "title": "The Remounts",
+      "turn": 7,
+      "writer": "Dejean"
+    },
+    {
+      "frame": "RE5_10_offer_seal_2026_11_02.jpg",
+      "ms": 35107,
+      "note": "the response landed: the answer beat — the apostille and the seal",
+      "saved": true,
+      "step": "offer_seal",
+      "turn": 7
+    },
+    {
+      "before": "or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\n",
+      "frame": "RE5_11_offer_echo_2026_11_02.jpg",
+      "ms": 36071,
+      "note": "the response: the apply line and the echo",
+      "saved": true,
+      "step": "offer_echo",
+      "terminal": ") or \"end turn\"\n  • Ask Berthier: \"who am I fighting\", \"is Paris safe\", \"what happened last turn\" — an answer costs no action\n  • Diplomacy: click [Diplomacy] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight\n  • Generals: press G (Alt+G while you type) to review your marshals — their loyalty, rewards (duchies & rentes), and grievances\n  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever the line is empty and you are not typing — Alt+key while you type\n  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nAnswering The Remounts: Buy the remounts\nThe Remounts — Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\nThe War Administration: the remount agents ride for the fairs; the depots fill by the month's end.\n\n",
+      "turn": 7
+    },
+    {
+      "edicts_lines": [
+        "THE EDICTS",
+        "The Remounts  In force until Late April 1806."
+      ],
+      "frame": "RE5_12_laws_edicts_2026_11_02.jpg",
+      "laws": "THE LAWS OF STATE\nLate December 1805\nThe laws of the Empire — what each does, its price, its upkeep, and whether we may enact it now. Keys 1–8 turn the ledger's books (Alt+1–8 while you type).\nLaws are acts of state, Sire: bought once, then paid in gold every turn. When the chest cannot pay, the heaviest upkeep lapses first; a lapsed law returns within 10 turns at half its price plus the arrears.\n\nThe Grand Quartier Général  Berthier's Imperial Headquarters, expanded 1805–07\n  Berthier's headquarters grown into a true general staff: one more order carried each day.\n  • +1 order of the day, from the next refill\n  9,000 gold to enact · 300 gold a turn\n\n    Enact    (1 Admin AP) · The Grand Quartier Général costs 9,000 gold; the treasury holds 3,500.\n\nThe Train des Équipages  decree of 26 March 1807\n  A military train of the state's own wagons, decreed after the Polish winter: a French army in poor or stripped country draws its full supply again - while the Grand Quartier Général stands to run it.\n  • cures Living off the land — the court's doctrine flaw — while its Staff stands\n  • Cures Living off the land — no corps drawing 80% now; needs the Grand Quartier Général in force\n  3,500 gold to enact · 200 gold a turn\n  Not in force.\n\n    Enact    (1 Admin AP) · 3,500 gold now, then 200 gold a turn\n\nThe Artillery Reserve  the Guard's reserve batteries, 1806–09\n  The Guard's reserve batteries and a standard gun park: artillery levies cost 15% less.\n  • artillery levies cost 15% less (×0.85)\n  3,000 gold to enact · 150 gold a turn\n  Not in force.\n\n    Enact    (1 Admin AP) · 3,000 gold now, then 150 gold a turn\n\nThe Anticipated Class  the senatus-consultes calling the class early, 1806–07\n  The Senate calls each year's conscripts before their time: infantry manpower returns 25% faster.\n  • infantry manpower returns 25% faster\n  15 authority to enact · 150 gold a turn\n  Not in force.\n\n    Enact    (1 Admin AP) · 15 authority now, then 150 gold a turn. Authority 100 → 85 — the marshals' calm holds above 70\n\nThe Berlin Decree  21 November 1806\n  Every client of the Empire shuts its ports to British goods, whatever its autonomy.\n  • every client shuts its ports to Britain at war, whatever its autonomy\n  15 authority to enact · 150 gold a turn\n  Not in force.\n\n    Enact    (1 Admin AP) · 15 authority now, then 150 gold a turn. Authority 100 → 85 — the marshals' calm hol …",
+      "ms": 37040,
+      "note": "THE LAWS — THE EDICTS block",
+      "saved": true,
+      "step": "laws_edicts",
+      "turn": 7
+    },
+    {
+      "frame": "RE5_13_recruit_quote_2026_11_02.jpg",
+      "ms": 38047,
+      "note": "`recruit cavalry`: the quote",
+      "quote_lines": [
+        "Answering The Remounts: Buy the remounts",
+        "The Remounts — Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.",
+        "► recruit cavalry",
+        "Berthier checks the order of battle. 'No marshal of cavalry can reach Paris, Sire — none of ours stands within reach.' Murat commands our horse at Franche-Comte — march him within reach, or give him the order yourself: 'Murat, recruit cavalry'. Nothing was spent.",
+        "► Murat, recruit cavalry",
+        "+ Murat recruits 3,000 cavalry at Franche-Comte (field levy — no depot; capped at 3,000) - Cost: 1203 gold (×3 at war) (×1.45 over the ordinance) (×0.8 by the Remounts) (Murat's intendance: +15%). Morale: 100% -> 92%",
+        "Cavalry pool: 17,700 -> 14,700"
+      ],
+      "saved": true,
+      "step": "recruit_quote",
+      "terminal": "ile you type\n  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nAnswering The Remounts: Buy the remounts\nThe Remounts — Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\nThe War Administration: the remount agents ride for the fairs; the depots fill by the month's end.\n\n\n► recruit cavalry\nBerthier checks the order of battle. 'No marshal of cavalry can reach Paris, Sire — none of ours stands within reach.' Murat commands our horse at Franche-Comte — march him within reach, or give him the order yourself: 'Murat, recruit cavalry'. Nothing was spent.\n\n\n► Murat, recruit cavalry\n+ Murat recruits 3,000 cavalry at Franche-Comte (field levy — no depot; capped at 3,000) - Cost: 1203 gold (×3 at war) (×1.45 over the ordinance) (×0.8 by the Remounts) (Murat's intendance: +15%). Morale: 100% -> 92%\nCavalry pool: 17,700 -> 14,700\n   [4/4 actions remaining]\n\n",
+      "turn": 7
+    },
+    {
+      "chip": "corr:read:1",
+      "desk": "Nothing has yet been answered.\nANSWERED (0)  — newest first\nThe army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines.\nBlockaded 7 of the last 12 mornings — Decrès may write of Santo Domingo.\nIN THE OFFING  — matters that may yet write; none is promised\nThe Host's Claims — Montgelas, for the court of Munich\nPay the host's claims: −600 gold  ·  Live off the land: Bavaria 60 → 56\n  Read the letter ▸  \nSEALED · ANSWER BY EARLY JANUARY 1806\nON THE DESK (1)  — letters that wait for the Emperor\nThe Correspondence, Sire: each letter of state laid before you, the answer you gave, what it did and what came of it; below, the matters that may yet write to you. Nothing here asks for an order.",
+      "frame": "RE5_14_left_2026_11_02.jpg",
+      "left_id": "the_host#1",
+      "ms": 40595,
+      "note": "a letter of state left on the desk, unopened",
+      "saved": true,
+      "step": "left",
+      "turn": 7
+    },
+    {
+      "frame": "RE5_15_lapsed_2026_11_02.jpg",
+      "lapsed": {
+        "id": "the_host#1",
+        "label": "Early January 1806",
+        "line": "Filed unanswered — Live off the land · Bavaria 59 → 55"
+      },
+      "left_id": "the_host#1",
+      "morning_lines": [
+        "LAPSED ENVOYS",
+        "Prussia's Open Borders Agreement offer lapsed unanswered",
+        "The Host's Claims was left unanswered — Live off the land: Bavaria's goodwill 59 → 55.",
+        "Ottoman Empire's Gift of Friendship offer lapsed unanswered",
+        "Portugal's Gift of Friendship offer lapsed unanswered",
+        "Switzerland's petition for relief went unanswered and lapses as a refusal: loyalty −10 (98 → 88); bond 0 → -20 (-1 a turn). Nothing is charged."
+      ],
+      "ms": 47121,
+      "note": "the letter lapsed: the set-aside slip",
+      "page": "EARLY JANUARY 1806 · THE HOST'S CLAIMS — Filed unanswered — Live off the land · Bavaria 59 → 55\nLEFT UNANSWERED / SET ASIDE\nNothing has yet been answered.\nANSWERED (0)  — newest first\nThe army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines.\nBlockaded 9 of the last 12 mornings — Decrès may write of Santo Domingo.\nIN THE OFFING  — matters that may yet write; none is promised\nNo letter of state lies on the desk, Sire.\nON THE DESK (0)  — letters that wait for the Emperor",
+      "saved": true,
+      "step": "lapsed",
+      "turn": 9
+    },
+    {
+      "chip": "corr:read:1",
+      "desk": "Nothing has yet been answered.\nANSWERED (0)  — newest first\nThe army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines.\nBlockaded 7 of the last 12 mornings — Decrès may write of Santo Domingo.\nIN THE OFFING  — matters that may yet write; none is promised\nThe Host's Claims — Montgelas, for the court of Munich\nPay the host's claims: −600 gold  ·  Live off the land: Bavaria 60 → 56\n  Read the letter ▸  \nSEALED · ANSWER BY EARLY JANUARY 1806\nON THE DESK (1)  — letters that wait for the Emperor\nThe Correspondence, Sire: each letter of state laid before you, the answer you gave, what it did and what came of it; below, the matters that may yet write to you. Nothing here asks for an order.",
+      "frame": "RE5_16_standing_2026_11_02.jpg",
+      "ms": 48897,
+      "note": "the crafted save: the Host's Claims standing on the desk",
+      "saved": true,
+      "step": "standing",
+      "turn": 7
+    },
+    {
+      "frame": "RE5_17_watch_2026_11_02.jpg",
+      "ms": 49548,
+      "note": "the Watch: the matters that may yet write",
+      "offing": [
+        "The army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines.",
+        "Blockaded 7 of the last 12 mornings — Decrès may write of Santo Domingo."
+      ],
+      "saved": true,
+      "step": "watch",
+      "turn": 7,
+      "watch_lines": [
+        "IN THE OFFING: Blockaded 7 of the last 12 mornings — Decrès may write of Santo Domingo.",
+        "IN THE OFFING: The army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines."
+      ]
+    },
+    {
+      "frame": "RE5_18_withdrawn_2026_11_02.jpg",
+      "morning_lines": [
+        "Holland sends 6,500 men under Dumonceau to the colours at Amsterdam — they await the orders of France. The nearest host is Napoleon at Lorraine. Holland pays them; their dead will be its grief.",
+        "The Host's Claims was set aside for The Bavarian Match"
+      ],
+      "ms": 52657,
+      "note": "the morning after: the letter set aside for the Match",
+      "saved": true,
+      "step": "withdrawn",
+      "terminal": "CONGRESS OF PARIS — 35 of 45 titled · summon from the Cabinet (F1)\n\nWAR PURPOSE\n  War Purpose: Defense vs Britain (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n  War Purpose: Defense vs Austria (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n  War Purpose: Defense vs Russia (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n\nCOALITION THREAT\n  Threat: 68/100 [Formed] — down 2 since yesterday (Natural threat decay -3, The weight of the hegemon +1)\n  ACTIVE: Third Coalition — Leader: Britain\n\n  Berthier: \"Gold buys a design's sleep, Sire, not a court's goodwill — a court bought off still counts toward the league while its relations stand under −10.\"\n════════════════════════════════════\n\n",
+      "turn": 8
+    },
+    {
+      "frame": "RE5_19_set_aside_2026_11_02.jpg",
+      "ms": 53060,
+      "note": "the Correspondence's set-aside slip",
+      "page": "EARLY JANUARY 1806 · THE HOST'S CLAIMS — Set aside for The Bavarian Match — nothing was spent\nLEFT UNANSWERED / SET ASIDE\nNothing has yet been answered.\nANSWERED (0)  — newest first\nThe army in the field, or a storm gathering: 2 of 2 mornings — Daru may write of the magazines.\nBlockaded 8 of the last 12 mornings — Decrès may write of Santo Domingo.\nIN THE OFFING  — matters that may yet write; none is promised\nThe Bavarian Match — The Secretariat\nSeal the match: −2 DP · −1,000 gold · Bavaria 59 → 79  ·  Let Baden keep her: Bavaria 59 → 54\n  Read the letter ▸  \nSEALED · ANSWER BY LATE JANUARY 1806\nON THE DESK (1)  — letters that wait for the Emperor",
+      "popup": {
+
+      },
+      "popup_open": false,
+      "saved": true,
+      "step": "set_aside",
+      "turn": 8
+    }
+  ],
+  "turns": {
+    "10": 27867,
+    "11": 31344,
+    "7": 14484,
+    "8": 51996,
+    "9": 46223
+  }
+}

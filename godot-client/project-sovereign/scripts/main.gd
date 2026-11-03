@@ -4460,7 +4460,17 @@ func _on_command_result(response):
 		var _sealed = response.get("moment_answered", null)
 		if _sealed is Dictionary and incoming_proposal_popup != null \
 				and incoming_proposal_popup.has_method("play_answer_beat"):
-			incoming_proposal_popup.play_answer_beat(str(_sealed.get("answer", "")), top_bar)
+			# RE5-3 (RE-5's Mode C walk, November 2, 2026): the slip under the
+			# top bar's layer (75) sat BENEATH the dialog layers (101–123), so
+			# a court's envoy promoted into the popup on the same response
+			# covered the seal (Hesse's pact over the Marine's apostille). The
+			# slip rides the scale card's EXISTING layer (125 — above every
+			# dialog, always visible; only the card inside it hides); the top
+			# bar stays the fallback. Never a CanvasLayer.new() for the beat.
+			var _beat_parent = _scale_card_layer
+			if _beat_parent == null or not is_instance_valid(_beat_parent):
+				_beat_parent = top_bar
+			incoming_proposal_popup.play_answer_beat(str(_sealed.get("answer", "")), _beat_parent)
 		# POSITION 7: observe-only — the School of War reads every response
 		# ahead of routing so an early-returning route (objection, capture)
 		# still reaches the tutor. NEVER a _post_hud_response_routes entry

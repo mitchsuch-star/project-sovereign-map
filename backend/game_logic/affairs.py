@@ -1438,11 +1438,24 @@ def watch(world, record: bool = True) -> List[str]:
         streak = streak_of(world, e, subject)
         measure = read.get("measure")
         measure = streak if measure is None else int(measure)
+        # RE5-2 (the Mode C walk, November 2, 2026): a letter the standing
+        # closes is not in the offing — `candidates` asks `bites` and the
+        # Watch must ask the same, or it promises for twelve mornings what
+        # the floor forbids (the live board at standing 70: "Decrès may
+        # write" while the Marine's Decline could not land above 71).
+        if not bites(world, lord, e, tier_of(e, measure)):
+            continue
         latched = str((e.get("when") or {}).get("predicate") or "") in LATCHED_PREDICATES
         if latched:
             measure = latch_count(world, e)      # "blockaded {n} of the last 12 mornings"
+        # RE5-1 (the Mode C walk, November 2, 2026): `{m}` is read against the
+        # authored need ("{m} of 2 mornings") — a matter held past its need
+        # by a busy desk or the pulse keeps counting, and the line read
+        # "7 of 2 mornings"; the slot is capped at the need, the streak itself
+        # untouched (the measure and the distance read it whole).
+        need = max(1, int(e.get("streak", 1) or 1))
         text = fill_slots(world, str(e.get("watch") or ""),
-                          {"bind": read.get("bind") or {}, "lord": lord}, e, n=measure, m=streak)
+                          {"bind": read.get("bind") or {}, "lord": lord}, e, n=measure, m=min(streak, need))
         distance = max(max(0, int(e.get("streak", 1) or 1) - streak), latch_distance(world, e))
         rows.append((distance, index, template, text))
     rows.sort()

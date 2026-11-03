@@ -752,7 +752,11 @@ class TestTheBeat:
         assert "_pressed_rect" not in _func(popup, "_on_dismiss")  # Not Now: no slip
         main = _func(_gd("main.gd"), "_on_command_result")
         assert 'response.get("moment_answered", null)' in main
-        assert "incoming_proposal_popup.play_answer_beat(" in main and "top_bar)" in main
+        assert "incoming_proposal_popup.play_answer_beat(" in main and "_beat_parent)" in main
+        # RE5-3 (RE-5): the slip rides the scale card's existing layer 125, above
+        # every dialog (the top bar's 75 sat beneath a promoted envoy); the top bar
+        # stays the fallback
+        assert "var _beat_parent = _scale_card_layer" in main and "_beat_parent = top_bar" in main
 
     def test_the_seal_is_imported_with_mipmaps(self):
         imp = (GODOT / "assets" / "ui" / "ornaments" / "wax_seal.png.import").read_text(encoding="utf-8")

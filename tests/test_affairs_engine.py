@@ -459,7 +459,11 @@ class TestCooldownsAndCaps:
         _no_moments(armed)
         AF.runtime(armed)["due"].clear()
         _at(armed, 12)
-        assert AF.watch(armed) == ["3 corps on Bavaria's soil: 11 of 3 mornings — its court may present its claims."]
+        # RE5-1 (November 2, 2026): the Watch's `{m}` is capped at the need —
+        # the streak stands at 11 (held eleven mornings on a busy desk), the
+        # line says "3 of 3" and "may", never "11 of 3"
+        assert AF.streak_of(armed, MO.entry(armed, T2), "Bavaria") == 11
+        assert AF.watch(armed) == ["3 corps on Bavaria's soil: 3 of 3 mornings — its court may present its claims."]
         _run(armed, range(12, 18))                            # five busy mornings, 12–16: crowded at 17
         assert MO.status_row(armed, "the_host#1")["reason"] == "crowded"
         assert _receipts(armed) == ["The Secretariat set aside 1 matter"]

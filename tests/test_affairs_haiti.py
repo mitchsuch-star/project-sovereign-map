@@ -270,6 +270,27 @@ class TestTheLatchAndTheArrival:
                                        f"Decrès may write of Santo Domingo."]
         assert AF.runtime(armed)["masks"][H1] == 0b111111
 
+    def test_the_watch_says_nothing_of_a_letter_the_standing_closes(self, armed):
+        """RE5-2 (RE-5's Mode C walk, November 2, 2026): on the live board the
+        Emperor's standing had fallen to 70 by turn 7 with nothing done, so
+        the Marine's Decline (−3) could not land above the floor (71) and the
+        letter never came — while IN THE OFFING promised "Decrès may write"
+        for twelve mornings. The Watch asks `bites` as `candidates` does: at
+        70 it says nothing of the letter, the mask still counting; at 80 the
+        line returns."""
+        _haiti_board(armed, authority=70)
+        e = MO.entry(armed, H1)
+        for turn in range(1, 7):
+            _at(armed, turn)
+            _tick(armed)
+            assert AF.latch_count(armed, e) == turn                   # the mask counts regardless
+            assert AF.watch(armed) == []
+        assert AF.candidates(armed, 6) == []                          # closed by the floor, not by the pulse
+        armed.authority_tracker.authority = 80
+        armed.__dict__.pop("_affairs_memo", None)
+        assert AF.watch(armed) == ["Blockaded 6 of the last 12 mornings — Decrès may write of Santo Domingo."]
+        assert [c["e"]["id"] for c in AF.candidates(armed, 6)] == [H1]
+
     def test_the_letter_arrives_on_the_pulse_s_first_morning_at_full_standing(self, armed):
         """The user's word: the letter APPEARS. At standing 100 (every scripted
         board) `bites: "floor"` lets it through — the pulse's first morning,

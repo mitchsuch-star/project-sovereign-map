@@ -994,8 +994,11 @@ func play_answer_beat(answer_key: String, parent: Node) -> void:
 	word that the letter was answered (`moment_answered`; a refusal carries
 	`diplomatic_dialogue` instead and never reaches here): the popup is
 	already hidden, so the apostille and the seal draw on a parchment slip of
-	their own, parented under an existing layer (the top bar's — never a
-	`CanvasLayer.new()`), at the pressed button's rect: the apostille fades in
+	their own, parented under an existing layer the caller hands in (main.gd's
+	scale card layer 125, above every dialog — RE5-3: under the top bar's 75 a
+	court's envoy promoted into this popup on the same response covered the
+	seal; the top bar is the fallback; never a `CanvasLayer.new()`), at the
+	pressed button's rect: the apostille fades in
 	("{caption}. — N."), the seal presses with a 6° settle under a gold N
 	cipher, the `wax_seal` cue plays once; then the slip frees itself. Not
 	Now never reaches here (no slip, no seal, no sound)."""
