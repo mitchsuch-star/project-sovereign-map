@@ -2636,7 +2636,45 @@ def cap_pc_layout():
     fresh()
 
 
+def cap_authority():
+    """AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip beside DP
+    and the dent clause under SITUATION the morning after two moves — the
+    frames `docs/audits/IQ10_AUTHORITY_*`. Two dents booked through the one
+    writer (the field under the Emperor's own hand, an overruled objection
+    lost), then one real end turn: the morning's line names them."""
+    from backend.game_logic import standing
+    world, c = fresh()
+    with _quiet():
+        standing.move(world, "France", -5, "own_hand_lost", battle="Elchingen")
+        standing.move(world, "France", -5, "insisted_lost", party="Ney", marshal="Ney")
+    end_turn(c)
+    dispatch = get(c, "/dispatch")
+    situation = ((dispatch.get("dispatch") or {}).get("situation") or {})
+    record("dispatch_authority_dent", dispatch, source="GET /dispatch after the end turn",
+           staging="1805 boot; two dents of −5 booked through standing.move, then one end turn",
+           facts={"authority": situation.get("authority"),
+                  "authority_label": situation.get("authority_label")})
+    test = get(c, "/test")
+    record("top_bar_fields_authority", {
+        "diplomatic_points": test.get("diplomatic_points"),
+        "max_diplomatic_points": test.get("max_diplomatic_points"),
+        "threat_level": test.get("threat_level"),
+        "coalition_brewing": test.get("coalition_brewing"),
+        "talleyrand_mission_summary": test.get("talleyrand_mission_summary"),
+        "pending_envoy_count": test.get("pending_envoy_count"),
+        "pending_lapsing_count": test.get("pending_lapsing_count"),
+        "pending_lapsing_petitions": test.get("pending_lapsing_petitions"),
+        "pending_marshal_decisions": test.get("pending_marshal_decisions"),
+        "authority": test.get("authority"),
+        "turn": test.get("turn"),
+        "calendar_label": (test.get("action_summary") or {}).get("calendar_label", ""),
+    }, source="GET /test, the keys main.gd `_update_diplomatic_top_bar` copies (+ `authority`)",
+        staging="1805 boot; two dents of −5, one end turn",
+        facts={"authority": test.get("authority")})
+
+
 CAPTURES = {
+    "authority": cap_authority,
     "pc_layout": cap_pc_layout,
     "first_open": cap_first_open,
     "popups_s12": cap_popups_s12,

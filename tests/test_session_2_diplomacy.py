@@ -946,16 +946,16 @@ class TestNationAuthority:
     def test_modify_authority(self):
         from backend.game_logic.diplomacy import modify_nation_authority
         world = make_world()
-        result = modify_nation_authority(world, "Prussia", -10)
+        result = modify_nation_authority(world, "Prussia", -10, "debug_set")
         assert result == 50
         assert world.nation_authority["Prussia"] == 50
 
     def test_authority_clamped(self):
         from backend.game_logic.diplomacy import modify_nation_authority
         world = make_world()
-        modify_nation_authority(world, "Prussia", -200)
+        modify_nation_authority(world, "Prussia", -200, "debug_set")
         assert world.nation_authority["Prussia"] == 0
-        modify_nation_authority(world, "Prussia", 200)
+        modify_nation_authority(world, "Prussia", 200, "debug_set")
         assert world.nation_authority["Prussia"] == 100
 
 

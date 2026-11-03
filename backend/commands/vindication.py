@@ -322,9 +322,17 @@ class VindicationTracker:
         else:
             actual_trust_change = 0
 
-        # Apply authority change
+        # Apply authority change — AU-1: through the one writer, the answered
+        # objection's own battle as the cause (the four branches)
         if authority and authority_change != 0:
-            authority.authority = max(0, min(100, authority.authority + authority_change))
+            from backend.game_logic import standing as _standing
+            if choice == 'insist':
+                key = "insisted_won" if authority_change > 0 else "insisted_lost"
+            else:
+                key = "compromise_won" if authority_change > 0 else "compromise_lost"
+            world = game_state.world if hasattr(game_state, 'world') else game_state
+            _standing.move(world, str(getattr(world, 'player_nation', '') or ''), authority_change, key,
+                           party=marshal_name, marshal=marshal_name)
 
         # Record battle result
         if hasattr(marshal, 'recent_battles'):

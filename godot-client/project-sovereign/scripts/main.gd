@@ -4820,6 +4820,13 @@ func _display_result(response):
 	if response.has("battle_report"):
 		_display_berthier_report(response.battle_report)
 
+	# AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): a line of authority crossed
+	# by ANY write — a battle at night, a letter declined, a law — rides the
+	# base response (drained from the tracker's queue); the objection handler
+	# prints its own from the objection endpoint.
+	if response.has("authority_event") and response.authority_event is Dictionary:
+		_display_authority_event(response.authority_event)
+
 	# First-time coordination tutorial (Session 66)
 	if response.has("coordination_tutorial"):
 		_display_coordination_tutorial(response.coordination_tutorial)
@@ -5359,6 +5366,10 @@ func _display_authority_event(authority_event: Dictionary):
 	add_output("[color=#" + Utils.COLOR_GOLD + "]  " + title + "[/color]")
 	if message != "":
 		add_output("[color=#" + Utils.COLOR_DISPATCH + "]  " + message + "[/color]")
+	# AU-1: the move that crossed the line, in the creditor's voice.
+	var cause = str(authority_event.get("cause", ""))
+	if cause != "" and cause != "null":
+		add_output("[color=#" + Utils.COLOR_DISPATCH + "]  " + Utils.humanize_nation_keys_in_text(cause) + "[/color]")
 	add_output("[color=#" + Utils.COLOR_INFO + "]  Authority: " + str(authority) + "[/color]")
 	add_output("[color=#" + Utils.COLOR_GOLD + "]└─────────────────┘[/color]")
 	add_output("")
@@ -6253,6 +6264,9 @@ func _update_diplomatic_top_bar(response: Dictionary):
 		# FA-16 review round: the same join, for the marshal's question.
 		diplo_data["pending_marshal_decisions"] = response.get(
 			"pending_marshal_decisions", [])
+		# AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the same join, for the
+		# Authority chip — the one key `authority` of every base response.
+		diplo_data["authority"] = response.get("authority", {})
 	if not diplo_data.is_empty():
 		_set_pending_envoy_count(int(diplo_data.get("pending_envoy_count", 0)))
 		_current_lapsing_count = int(diplo_data.get("pending_lapsing_count", 0))

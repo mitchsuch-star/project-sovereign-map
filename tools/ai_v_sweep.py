@@ -299,6 +299,7 @@ class RunCapture:
         active = [n for n in world.get_active_nations() if n != self.player]
         from backend.game_logic.intent import get_france_perceived_intent
         from backend.game_logic.war_council import _standing_strength, foreground_in_tenure
+        from backend.models.authority import get_imperial_grip
 
         wars_now = getattr(world, "war_instances", None) or {}
         opened = []
@@ -355,6 +356,12 @@ class RunCapture:
         return _jsonify({
             "turn": int(world.current_turn),
             "threat": int(world.threat_level),
+            # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.8): the lord's authority, the
+            # grip the game acts on, and the courts' table, every turn.
+            "authority": int(getattr(getattr(world, "authority_tracker", None), "authority", 0) or 0),
+            "grip": int(get_imperial_grip(world, self.player)),
+            "nation_authority": {n: int(v or 0) for n, v in
+                                 (getattr(world, "nation_authority", {}) or {}).items()},
             "intents": self._intent_snapshot(active),
             "mirror": [mirror_price, int(mirror_weight), mirror_target],
             "war_intents": war_intents,
@@ -1132,6 +1139,10 @@ def run_one(seed: str, ambient_base: int, turns: int,
     # it calls through and evaluates nothing the engine does not.
     from tools._moments_trace import MomentsTrace
     trace = MomentsTrace(lambda: world).install()
+    # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.8): the standing's trace — calls
+    # through, writes nothing the engine does not.
+    from tools._standing_trace import StandingTrace
+    standing_trace = StandingTrace(lambda: world).install()
     if script not in SCRIPT_ARMS:
         _die(f"unknown --script {script!r}; one of {sorted(SCRIPT_ARMS)}")
     france_script = (FranceScript(stage_soil=(script == "france_soil"))
@@ -1160,6 +1171,8 @@ def run_one(seed: str, ambient_base: int, turns: int,
     digest["final"] = capture.capture_final()
     digest["final"]["moments_trace"] = _jsonify(trace.summary())
     trace.uninstall()
+    digest["final"]["standing_trace"] = _jsonify(standing_trace.summary())
+    standing_trace.uninstall()
     digest["derived"] = derive_metrics(digest)
     if france_script is not None:
         digest["script_log"] = france_script.log

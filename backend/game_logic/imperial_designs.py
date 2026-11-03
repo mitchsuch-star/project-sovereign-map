@@ -834,9 +834,9 @@ def _pay_one_shot(world, d: Dict[str, Any]) -> None:
     state = _state(world)
     if reward.get("type") != "authority" or d.get("id") in state["rewarded"]:
         return
-    tracker = getattr(world, "authority_tracker", None)
-    if tracker is not None:
-        tracker.modify_authority(int(reward.get("amount", NAPLES_AUTHORITY) or NAPLES_AUTHORITY))
+    from backend.game_logic import standing as _standing
+    _standing.move(world, owner(world), int(reward.get("amount", NAPLES_AUTHORITY) or NAPLES_AUTHORITY),
+                   "design_reward", design=str(d.get("name") or d.get("id") or "the design"))
     state["rewarded"].append(d.get("id"))
 
 
@@ -1301,9 +1301,8 @@ def decree(world, act_id: str) -> Dict[str, Any]:
             continue
         kind, amount = e.get("type"), int(e.get("amount", 0) or 0)
         if kind == "authority":
-            tracker = getattr(world, "authority_tracker", None)
-            if tracker is not None:
-                tracker.modify_authority(amount)
+            from backend.game_logic import standing as _standing
+            _standing.move(world, lord, amount, "act", act=str(a.get("name") or act_id))
         elif kind == "relation":
             courts = [beaten] if e.get("pick") == "beaten" else [str(c) for c in (e.get("courts") or [])]
             for court in courts:

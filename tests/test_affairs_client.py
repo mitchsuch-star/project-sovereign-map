@@ -478,7 +478,7 @@ class TestTheDerivedButtonLines:
         assert MO._derived_button_line(armed, "France", [
             {"op": "relation", "skip": True}, {"op": "authority", "skip": True}]) == "no change"
         assert MO._derived_button_line(armed, "France", [
-            {"op": "authority", "before": 85, "after": 80}]) == "standing 85 → 80"
+            {"op": "authority", "before": 85, "after": 80}]) == "authority 85 → 80"
         assert MO._derived_button_line(armed, "France", [{"op": "admin", "amount": 1}]) == "1 action"
         assert MO._derived_button_line(armed, "France", [
             {"op": "loyalty", "courts": [{"court": "Bavaria", "before": 60, "after": 75}]}]) == \
@@ -493,7 +493,7 @@ class TestTheDerivedButtonLines:
         standing = int(armed.authority_tracker.authority)
         decree = MO._derived_button_line(armed, "France", [
             {"op": "enact_law", "law": "berlin_decree", "refusal": ""}])
-        assert decree == f"standing {standing} → {standing - 15} · 150 a turn"
+        assert decree == f"authority {standing} → {standing - 15} · 150 a turn"
         assert len(decree) <= MO.BUTTON_LINE_MAX
         long = MO._derived_button_line(armed, "France", [
             {"op": "relation", "court": "A" * 60, "before": 1, "after": 2}])
@@ -789,7 +789,7 @@ class TestTheFrames:
         shots = {s["id"]: s for s in self._runner().SHOTS}
         for aid, needles in (("the_host", ("Pay the host's claims", "Live off the land", "parchment", "counsel")),
                              ("berthiers_memorial", ("Found the headquarters", "monogram", "counsel")),
-                             ("closed_accept", ("OPAQUE", "spoken for", "standing 80 → 75")),
+                             ("closed_accept", ("OPAQUE", "spoken for", "authority 80 → 75")),
                              # RE-H: the Haiti letter's two forms
                              ("santo_domingo_bill", ("Send flour and muskets", "Ferrand must hold alone",
                                                      "FROM HAITI", "monogram 'D'", "IM Fell roman")),

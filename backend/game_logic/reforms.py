@@ -516,15 +516,11 @@ def deck_listing(world, nation: str) -> str:
 
 # ════════════════════════════ the lifecycle (RF-1) ════════════════════════════
 
-def _spend_authority(world, nation: str, amount: int) -> None:
-    if nation == getattr(world, "player_nation", None):
-        tracker = getattr(world, "authority_tracker", None)
-        if tracker is not None:
-            tracker.modify_authority(-int(amount))
-        return
-    table = getattr(world, "nation_authority", None)
-    if isinstance(table, dict):
-        table[nation] = max(0, int(table.get(nation, 0) or 0) - int(amount))
+def _spend_authority(world, nation: str, amount: int, law: str = "") -> None:
+    """AU-1: through the one writer (`standing.move`) — the player's tracker
+    books the law as its cause; a court's table is clamped the same way."""
+    from backend.game_logic import standing
+    standing.move(world, nation, -int(amount), "law", law=law or "a political act")
 
 
 def enact_law(world, nation: str, row: Dict) -> Dict:
@@ -543,7 +539,7 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
         world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) - gold
         world.record_gold_spent(nation, gold)
     if authority:
-        _spend_authority(world, nation, authority)
+        _spend_authority(world, nation, authority, law=display_name(row))
     row["enacted_turn"] = int(getattr(world, "current_turn", 0) or 0)
     row.pop("lapsed_turn", None)
     world.log_event({
@@ -822,15 +818,11 @@ def terms_line(world, nation: str, row: Dict) -> str:
     if is_staff(row):
         line += "; one more order each day from the next refill"
     if quote["currency"] == "authority":
-        before = _court_authority(world, nation)
-        after = before - int(quote["price"])
-        line += ". " + authority_line(before, after).rstrip(".")
-        # EAD-2: the grip line the Charges of Empire read, named when the
-        # act crosses it (`ledger.charges_grip_clause`).
-        from backend.game_logic.ledger import charges_grip_clause
-        grip = charges_grip_clause(world, nation, before, after)
-        if grip:
-            line += "; " + grip
+        # AU-1: the one quote (`standing.quote`) — `authority_line` + the
+        # Charges' grip clause (EAD-2) + the Presence clause when the aura
+        # would change; shown = applied.
+        from backend.game_logic import standing
+        line += ". " + standing.quote(world, nation, -int(quote["price"]))["line"].rstrip(".")
     return line
 
 
@@ -1254,13 +1246,11 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     if net - upkeep < 0:
         return f"the forecast Net ({net}) cannot carry {upkeep} a turn"
     if quote["currency"] == "authority":
-        authority = _court_authority(world, nation)
-        after = authority - int(quote["price"])
-        if after < AI_AUTHORITY_FLOOR:
-            return f"authority {authority} → {after} is under {AI_AUTHORITY_FLOOR}"
-        if _court_dp_after(world, nation, after) < AI_DIPLOMACY_FLOOR:
-            return (f"authority {after} would leave fewer than "
-                    f"{AI_DIPLOMACY_FLOOR} diplomatic points a turn")
+        # AU-1: the courts' floors read through ONE gate (`standing.ai_refusal`)
+        from backend.game_logic import standing
+        reason = standing.ai_refusal(world, nation, int(quote["price"]))
+        if reason:
+            return reason
     return ""
 
 

@@ -1493,7 +1493,7 @@ SHOTS += [
              "Arch-Chancellor of the Empire'; the closed-Accept line in the rubric under the "
              "letterhead ('Dictate from the field unavailable: the day's administration is spoken "
              "for.'); the Accept on an OPAQUE disabled plaque with its reason as the second line; "
-             "'Let the Council act / standing 80 → 75' live; Berthier's counsel; nothing clipped at "
+             "'Let the Council act / authority 80 → 75' live; Berthier's counsel; nothing clipped at "
              "scale 2.0"),
             # RE-H (November 1, 2026; RECURRING_EVENTS_SPEC.md §6.5): the Haiti letter, the bill form —
             # a peace with Britain leaves no hunter at sea
@@ -1504,7 +1504,7 @@ SHOTS += [
              "and Santiago) in IM Fell italic; 'FROM HAITI —' in the rubric over the Constitution of "
              "1805's Article 2 in IM Fell roman; the fleuron-led board (blockaded 5 of the last 12 "
              "mornings, the Emperor at Lorraine; no enemy squadron holds the coast); the buttons 'Send "
-             "flour and muskets / −600 gold · 1 action' and 'Ferrand must hold alone / standing 100 → 97' "
+             "flour and muskets / −600 gold · 1 action' and 'Ferrand must hold alone / authority 100 → 97' "
              "and 'Not Now / waits on the desk'; Berthier's counsel under the buttons; both answers above "
              "the fold at BOTH scales"),
             # RE-H the squadron (the second landing): Britain's blockade is the hunter at sea
@@ -1590,8 +1590,35 @@ SHOTS += [
         "must_show": ("the squadron's slip carries its fate in rubric under the receipt ('Late February 1806 — …', "
                       "home whole or five of the line lost) and no 'At sea' line; LEFT UNANSWERED / SET ASIDE with "
                       "one dim line — 'EARLY JANUARY 1806 · THE ARCH-CHANCELLOR'S LETTERS — Filed unanswered — Let "
-                      "the Council act · standing 100 → 95'; the button would read plain 'The Correspondence' "
+                      "the Council act · authority 100 → 95'; the button would read plain 'The Correspondence' "
                       "(no letter standing, no squadron at sea); both scales"),
+    },
+]
+
+# ═══ AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip and the
+# dent clause. Capture group `authority` (`cap_authority`).
+SHOTS += [
+    {
+        "id": "authority_chip",
+        "surface": "Top bar — the Authority chip beside DP (AU-1)",
+        "payload": "top_bar_fields_authority",
+        "scene": "res://scenes/top_bar.tscn",
+        "mode": "call", "method": "update_diplomatic_fields",
+        "place": {"position": [0, 0], "height": 64},
+        "must_show": "'Authority 90' beside 'DP: …' in the right cluster, in the DP label's gold "
+                     "(71–84 credit; bright gold from 85, amber under 71, red under 50); 'Auth 90' in "
+                     "the compact bar at 2.0; no button off the logical viewport",
+    },
+    {
+        "id": "authority_dent",
+        "surface": "Dispatch re-read — SITUATION with the dent clause the morning after two moves (AU-1)",
+        "payload": "dispatch_authority_dent",
+        "scene": "res://scenes/dispatch_view.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
+        "steps": [{"scroll_to": {"text": "SITUATION"}, "then_wait": 4}],
+        "must_show": "'Your authority: 90 (Strong) — down 10 since yesterday: the field at Elchingen under "
+                     "your own hand (−5), Ney's objection overruled, and the field lost (−5)' under "
+                     "SITUATION, the figure in green (80 and above); the line whole at BOTH scales",
     },
 ]
 

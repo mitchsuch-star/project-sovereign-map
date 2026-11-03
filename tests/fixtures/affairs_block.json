@@ -119,7 +119,7 @@
         },
         "decline": {
           "caption": "Let the Council act",
-          "button_line": "standing {authority_before} → {authority_after}",
+          "button_line": "authority {authority_before} → {authority_after}",
           "ops": [{"op": "authority", "amount": -5, "tiers": {"2": -8}}],
           "echo": "Cambacérès: the Council has acted in Your Majesty's name; Paris will mark whose hand signed.",
           "situation": "The Council of State sat under the Arch-Chancellor; Paris remarked the Emperor's absence.",
@@ -287,7 +287,7 @@
         },
         "decline": {
           "caption": "Ferrand must hold alone",
-          "button_line": "standing {authority_before} → {authority_after}",
+          "button_line": "authority {authority_before} → {authority_after}",
           "ops": [{"op": "authority", "amount": -3}],
           "echo": "Decrès files Ferrand's letter; the garrison of Santo Domingo holds alone.",
           "situation": "Ferrand's letter is filed at the Marine; the garrison of Santo Domingo holds alone.",

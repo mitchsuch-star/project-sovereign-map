@@ -26,8 +26,10 @@ from tools import defect_census as census  # noqa: E402
 # & Command") and S13d (row PC, the peace report's fixes) joined the table on
 # October 15, 2026; S13e (row PC part 2, the peace research's defects) on October 16.
 # S13f (AO "the army order", from the command-feel review's CF rows) joined on
-# October 17, 2026.
-SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-i]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b")
+# October 17, 2026. Row AU (authority as a currency — the seven slices AU-1 …
+# AU-4, all before S15 by the user's ruling of November 3, 2026) joined with its
+# gate; AU-1's two courts' rows are homed to the AU-4 slice (the courts' flip).
+SESSION = re.compile(r"\bS13[b-f]\b|\bS14[b-i]?\b|\bSF-RR[1-7]\b|\bUXR-4\b|\bS15\b|\bAU-[1-4][abc]?\b")
 
 
 def _open_rows():

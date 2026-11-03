@@ -6014,6 +6014,12 @@ def _build_situation(world, player_nation: str,
     grip_fields = _grip_fields(world, player_nation, authority) if THE_BRIEFING_SHOWS_THE_GRIP else {}
     if grip_fields.get("label_tail"):
         authority_label = f"{authority_label}{grip_fields['label_tail']}"
+    # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): the dent the morning it lands —
+    # what moved the figure since yesterday, with its causes, on the SAME label
+    # both views print; "" on a quiet morning (the line byte-identical); stamped
+    # at build, because the stored dispatch is frozen and a re-read serves it.
+    from backend.game_logic import standing as _standing
+    authority_label = f"{authority_label}{_standing.dent_clause(world, player_nation)}"
 
     # SR-5r RF-4b (REFORMS_SPEC §8): the forecast, the one source the LAWS
     # tab and the end-turn banner read too; and the Staff's first refill,

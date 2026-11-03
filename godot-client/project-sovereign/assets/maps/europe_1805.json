@@ -2581,7 +2581,7 @@
                     },
                     "decline": {
                         "caption": "Let the Council act",
-                        "button_line": "standing {authority_before} → {authority_after}",
+                        "button_line": "authority {authority_before} → {authority_after}",
                         "ops": [
                             {
                                 "op": "authority",
@@ -2882,7 +2882,7 @@
                     },
                     "decline": {
                         "caption": "Ferrand must hold alone",
-                        "button_line": "standing {authority_before} → {authority_after}",
+                        "button_line": "authority {authority_before} → {authority_after}",
                         "ops": [
                             {
                                 "op": "authority",

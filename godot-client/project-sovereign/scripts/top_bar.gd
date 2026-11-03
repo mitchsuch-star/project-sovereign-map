@@ -222,6 +222,9 @@ func _ready():
 
 	# Initialize diplomatic fields (Session 8B)
 	dp_label.text = "DP: 0/3"
+	# AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip beside DP —
+	# code-built (the Pin chip's precedent, no .tscn edit).
+	_build_authority_chip()
 	threat_label.text = ""
 	threat_label.visible = false
 	_set_talleyrand_summary("Idle")
@@ -677,6 +680,10 @@ func update_diplomatic_fields(data: Dictionary):
 	var dp_max = int(data.get("max_diplomatic_points", 3))
 	dp_label.text = "DP: " + str(dp) + "/" + str(dp_max)
 
+	# AU-1: the Authority chip, from the one key every base response carries.
+	if data.has("authority"):
+		update_authority_chip(data.get("authority"))
+
 	# Threat indicator
 	var threat = int(data.get("threat_level", 0))
 	var brewing = data.get("coalition_brewing", false)
@@ -720,6 +727,92 @@ func update_diplomatic_fields(data: Dictionary):
 		_cabinet_locked_until = int(data.get("cabinet_locked_until", 0))
 
 	update_mailbox_count(int(data.get("pending_envoy_count", 0)))
+
+
+# ═══ AU-1 (docs/AUTHORITY_CURRENCY_SPEC.md §5.6): the Authority chip ═══
+# One figure beside DP ("Authority 87"; "Auth 87" in the compact bar), fed by
+# the one key `authority` of every base response — {value, label, grip,
+# presence, moves[≤5]}, every number an int — and tinted by the lines the
+# price is read against: bright gold at 85 and above (the Presence full),
+# the DP label's gold from 71 (credit), amber under 71 (the calm and the
+# Charges lost), red under 50. The tooltip names the last moves with their
+# causes and the five lines; the grip and the Presence when they differ.
+const AUTHORITY_LINES_TOOLTIP := "The lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral."
+var authority_chip: Label = null
+var _authority_payload: Dictionary = {}
+
+
+func _build_authority_chip() -> void:
+	if dp_label == null or authority_chip != null:
+		return
+	var chip := Label.new()
+	chip.name = "AuthorityChip"
+	chip.theme_type_variation = &"Caption"
+	# a Label ignores the mouse by default — no tooltip without this
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.text = "Authority —"
+	chip.tooltip_text = AUTHORITY_LINES_TOOLTIP
+	chip.add_theme_color_override("font_color", Utils.UI_GOLD)
+	var row := dp_label.get_parent()
+	row.add_child(chip)
+	row.move_child(chip, dp_label.get_index() + 1)
+	authority_chip = chip
+
+
+func update_authority_chip(payload) -> void:
+	"""The figure as the backend says it (`standing.payload`): {value, label,
+	grip, presence, moves[≤5]}. Tint by line; the tooltip from the moves."""
+	if authority_chip == null:
+		_build_authority_chip()
+	if authority_chip == null or not (payload is Dictionary) or payload.is_empty():
+		return
+	_authority_payload = payload
+	var value := int(payload.get("value", 100))
+	var colour: Color = Utils.UI_GOLD_BRIGHT
+	if value < 50:
+		colour = Utils.UI_ALERT
+	elif value < 71:
+		colour = Utils.UI_WARNING
+	elif value < 85:
+		colour = Utils.UI_GOLD
+	authority_chip.add_theme_color_override("font_color", colour)
+	authority_chip.tooltip_text = _authority_tooltip(payload)
+	_refresh_authority_text()
+
+
+func _authority_tooltip(payload: Dictionary) -> String:
+	var value := int(payload.get("value", 0))
+	var label := str(payload.get("label", ""))
+	var grip := int(payload.get("grip", value))
+	var presence := int(payload.get("presence", -1))
+	var lines: Array = ["Authority %d (%s)" % [value, label]]
+	if grip != value:
+		lines.append("The Empire's grip %d — the number the game acts on (a lost capital, a losing war)." % grip)
+	if presence >= 0 and presence < 10:
+		lines.append("The Presence at +%d%% on the field." % presence)
+	var moves = payload.get("moves", [])
+	if moves is Array and moves.size() > 0:
+		lines.append("Last moves:")
+		for m in moves:
+			if m is Dictionary:
+				var delta := int(m.get("delta", 0))
+				var sign := "+" if delta > 0 else "−"
+				var cause := Utils.humanize_nation_keys_in_text(str(m.get("cause", "")))
+				lines.append("  T%d  %s (%s%d)" % [int(m.get("turn", 0)), cause, sign, abs(delta)])
+	else:
+		lines.append("No move yet this campaign.")
+	lines.append(AUTHORITY_LINES_TOOLTIP)
+	return "\n".join(lines)
+
+
+func _refresh_authority_text() -> void:
+	if authority_chip == null:
+		return
+	if _authority_payload.is_empty():
+		authority_chip.text = "Auth —" if _compact else "Authority —"
+		return
+	var value := int(_authority_payload.get("value", 0))
+	authority_chip.text = ("Auth %d" if _compact else "Authority %d") % value
 
 
 var _current_envoy_count: int = 0
@@ -1019,6 +1112,7 @@ func _fit_bar():
 	if talleyrand_label:
 		talleyrand_label.visible = not compact
 	_refresh_admiralty_text()
+	_refresh_authority_text()
 
 
 var _fit_applied := false

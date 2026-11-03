@@ -1310,7 +1310,7 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
         tracker = getattr(world, "authority_tracker", None)
         standing = int(getattr(tracker, "authority", 0) or 0) if tracker is not None else 0
         region = str(bind.get("region") or (read.get("bind") or {}).get("region") or "the field")
-        return [f"The Emperor is afield at {region}, {streak} mornings running; his standing is {standing}."]
+        return [f"The Emperor is afield at {region}, {streak} mornings running; his authority is {standing}."]
     if predicate == "corps_on_host":
         host = str(bind.get("host") or "")
         if not host:

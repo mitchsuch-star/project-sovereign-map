@@ -4238,7 +4238,8 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
                 elif roll < 0.60:
                     outcome = "They ignore you. Nothing changes."
                 else:
-                    world.authority_tracker.modify_authority(-3)
+                    from backend.game_logic import standing as _standing
+                    _standing.move(world, world.player_nation, -3, "mediation_ignored", party=marshal.name)
                     outcome = ("They ignore you PUBLICLY — the court "
                                "noticed (authority -3).")
         else:  # reprimand
@@ -4284,7 +4285,8 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
                 elif roll < 0.80:
                     outcome = "Neither yields. The breach stands."
                 else:
-                    world.authority_tracker.modify_authority(-3)
+                    from backend.game_logic import standing as _standing
+                    _standing.move(world, world.player_nation, -3, "reconciliation_failed", party=marshal.name)
                     outcome = "The failure was public (authority -3)."
             else:
                 if roll < 0.10:
@@ -4294,7 +4296,8 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
                 elif roll < 0.40:
                     outcome = "Neither yields. The breach stands."
                 else:
-                    world.authority_tracker.modify_authority(-5)
+                    from backend.game_logic import standing as _standing
+                    _standing.move(world, world.player_nation, -5, "reconciliation_failed", party=marshal.name)
                     outcome = ("The Emperor begged, and they refused "
                                "(authority -5).")
         else:  # separate
@@ -4380,7 +4383,8 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
         for marshal in marshals:
             marshal.expectation_grace_turn = int(world.current_turn) \
                 + FONTAINEBLEAU_PROMISE_GRACE
-        world.authority_tracker.modify_authority(FONTAINEBLEAU_PROMISE_AUTHORITY)
+        from backend.game_logic import standing as _standing
+        _standing.move(world, world.player_nation, FONTAINEBLEAU_PROMISE_AUTHORITY, "fontainebleau_promise")
         message = ("\"The next conquest is yours.\" Their patience extends "
                    f"{_promise_window_quote()} turns — but the court "
                    "heard you buy time with words.")

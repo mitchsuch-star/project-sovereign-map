@@ -309,7 +309,8 @@ def apply_defiance_outcome(marshal, outcome, world):
         old_v = marshal.vindication_score
         marshal.vindication_score = max(-5, min(5, old_v + 1))
         result["vindication_change"] = marshal.vindication_score - old_v
-        world.authority_tracker.modify_authority(-5)
+        from backend.game_logic import standing as _standing
+        _standing.move(world, marshal.nation, -5, "marshal_right", party=marshal.name, marshal=marshal.name)
         marshal.defiance_cooldown_until = world.current_turn + 3
         # 6C-2: Reset vindication decay timer
         world.vindication_tracker.last_change_turn[marshal.name] = world.current_turn
@@ -325,7 +326,8 @@ def apply_defiance_outcome(marshal, outcome, world):
         old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
         result["vindication_change"] = marshal.vindication_score - old_v
-        world.authority_tracker.modify_authority(+3)
+        from backend.game_logic import standing as _standing
+        _standing.move(world, marshal.nation, +3, "marshal_wrong", party=marshal.name, marshal=marshal.name)
         marshal.defiance_cooldown_until = world.current_turn + 3
         # 6C-2: Reset vindication decay timer
         world.vindication_tracker.last_change_turn[marshal.name] = world.current_turn

@@ -10913,13 +10913,12 @@ def get_dp_cost(action_type: str, diplomat_skill: int = 10, transition_base: int
 # NATION AUTHORITY (AI nations)
 # ═══════════════════════════════════════════════════════
 
-def modify_nation_authority(world, nation: str, delta: int) -> int:
-    """Modify a nation's authority. Clamped 0-100."""
-    auth = getattr(world, 'nation_authority', {})
-    current = auth.get(nation, 60)
-    new_val = max(0, min(100, current + delta))
-    auth[nation] = new_val
-    return new_val
+def modify_nation_authority(world, nation: str, delta: int, cause: str, party: str = "") -> int:
+    """Modify a nation's authority. Clamped 0-100 — AU-1: through the one
+    writer (`standing.move`), a cause named (`display_names.AUTHORITY_CAUSES`)."""
+    from backend.game_logic import standing
+    standing.move(world, nation, int(delta), cause, party=party)
+    return standing.standing_of(world, nation)
 
 
 def _get_call_to_arms_override(

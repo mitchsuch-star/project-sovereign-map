@@ -6561,14 +6561,12 @@ class WorldState:
         GR5 symmetric); the Captive Eagle war-score component is derived
         LIVE from captured_by (diplomacy.calculate_war_score), so nothing
         is written here and release clears it automatically."""
-        if marshal.nation == self.player_nation:
-            if hasattr(self, "authority_tracker"):
-                self.authority_tracker.modify_authority(
-                    -self.SOVEREIGN_CAPTURE_AUTHORITY_SHOCK)
-        else:
-            current = int(self.nation_authority.get(marshal.nation, 75))
-            self.nation_authority[marshal.nation] = max(
-                0, current - self.SOVEREIGN_CAPTURE_AUTHORITY_SHOCK)
+        # AU-1: one writer for both lords (`standing.move`: the player's tracker
+        # books the shock with its cause; a court's table is clamped the same way)
+        from backend.game_logic import standing as _standing
+        _standing.move(self, marshal.nation, -self.SOVEREIGN_CAPTURE_AUTHORITY_SHOCK,
+                       "sovereign_captured", party=str(captor_nation or ""),
+                       sovereign=marshal.name, region=str(getattr(marshal, "location", "") or ""))
 
     def _sovereign_captor_fallback(self, marshal) -> str:
         """NP-4 §7.1: no live captor on the field (pure attrition, nation
@@ -17057,11 +17055,16 @@ class WorldState:
                             if cr and getattr(cr, 'is_capital', False):
                                 capital_captured = True
                         if outnumbered or capital_captured:
-                            self.authority_tracker.modify_authority(+5)
+                            from backend.game_logic import standing as _standing
+                            _standing.move(self, player_nation, +5,
+                                           "capital_taken" if capital_captured else "field_won",
+                                           battle=auto_charge_battle_region)
                     elif p_lost:
                         outnumbering = pre_battle_atk > pre_battle_def if player_is_atk else pre_battle_def > pre_battle_atk
                         if outnumbering:
-                            self.authority_tracker.modify_authority(-5)
+                            from backend.game_logic import standing as _standing
+                            _standing.move(self, player_nation, -5, "field_lost",
+                                           battle=auto_charge_battle_region)
 
                 # ── Coalition: Threat + war exhaustion ──
                 from backend.game_logic.coalition import (

@@ -7094,7 +7094,8 @@ class DiplomaticExecutor:
             context["objection_resolved"] = True
             context["pushback_accepted"] = False  # Player insisted, still skip §3a
 
-            ctx.world.authority_tracker.modify_authority(-3)
+            from backend.game_logic import standing as _standing
+            _standing.move(ctx.world, ctx.world.player_nation, -3, "talleyrand_overruled", party="Talleyrand")
 
             original_terms = ctx.selected.get("terms", context.get("original_terms", {}))
             proposal_type = original_terms.get("proposal_type", context.get("proposal_type", "peace"))

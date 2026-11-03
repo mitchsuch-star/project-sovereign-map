@@ -2961,6 +2961,12 @@ class Digest:
         if trace is not None:
             self.meta["moments_trace"] = trace.summary()
             trace.uninstall()
+        # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.8): the standing's trace, when the
+        # run carried one — its verdict in meta.json ONLY, the digest unchanged.
+        standing = getattr(self, "standing_trace", None)
+        if standing is not None:
+            self.meta["standing_trace"] = standing.summary()
+            standing.uninstall()
         self._md(f"\n---\nfinished: **{status}** · commands "
                  f"{self.counters['commands']} · popups {self.counters['popups']}"
                  f" · battles {self.counters['battles']}")
@@ -4572,6 +4578,17 @@ def run(args):
         else:
             digest.moments_trace = MomentsTrace(
                 lambda: transport.backend_main.world).install()
+    # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.8): the standing's trace (opt-in), in
+    # process only — the books' writer, the direct writers and every morning,
+    # read through and called through; `residual` is what no book recorded.
+    if getattr(args, "standing_trace", False):
+        from tools._standing_trace import StandingTrace, unmeasured as _st_unmeasured
+        if args.http:
+            digest.meta["standing_trace"] = _st_unmeasured(
+                "--http: the trace reads the in-process store")
+        else:
+            digest.standing_trace = StandingTrace(
+                lambda: transport.backend_main.world).install()
 
     # Boot ------------------------------------------------------------------
     if not args.http:
@@ -5683,6 +5700,10 @@ def main():
     ap.add_argument("--moments-trace", dest="moments_trace", action="store_true",
                     help="trace the moments' mornings and answers on an in-process "
                          "run (tools/_moments_trace.py); the verdict lands in meta.json")
+    ap.add_argument("--standing-trace", dest="standing_trace", action="store_true",
+                    help="trace the lord's authority on an in-process run — a morning row "
+                         "per turn, a move row per write, the residual no book recorded "
+                         "(tools/_standing_trace.py); the verdict lands in meta.json")
     ap.add_argument("--fresh", action="store_true",
                     help="delete the run directory first")
     ap.add_argument("--archive", action="store_true",

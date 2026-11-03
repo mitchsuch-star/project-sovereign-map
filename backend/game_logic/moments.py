@@ -747,25 +747,30 @@ def _plan_authority(world, lord, op) -> Dict[str, Any]:
                if lord == getattr(world, "player_nation", None) else None)
     if tracker is None or delta >= 0:
         return {"op": "authority", "amount": delta, "skip": True, "refusal": "", "line": ""}
-    from backend.game_logic.ledger import charges_grip_clause
-    from backend.game_logic.reforms import authority_line
-    from backend.models.authority import get_imperial_grip
+    from backend.game_logic import standing
     before = int(getattr(tracker, "authority", 0) or 0)
-    grip = int(get_imperial_grip(world, lord))
+    grip = standing.grip_of(world, lord)
     loss = int(min(-delta, max(0, grip - AUTHORITY_GRIP_FLOOR)))
     after = before - loss
-    line = authority_line(before, after).rstrip(".")
-    clause = str(charges_grip_clause(world, lord, before, after) or "").rstrip(".")
-    if clause:
-        line = f"{line}; {clause}"
+    if loss:
+        # AU-1: the one quote (`authority_line` + the Charges' clause + the Presence)
+        line = standing.quote(world, lord, -loss)["line"].rstrip(".")
+    else:
+        # AU-3 (BUG_FIXES.md §AU): the clamp SAID — at the floor the Decline
+        # takes nothing, and the quote says so instead of "Authority 71 → 71"
+        line = (f"Authority {before} → {before} — nothing is taken: the floor holds at "
+                f"{AUTHORITY_GRIP_FLOOR} on the Emperor's grip ({grip})")
     return {"op": "authority", "amount": delta, "loss": loss, "before": before, "after": after,
-            "grip": grip, "refusal": "", "line": line}
+            "grip": grip, "floor": loss < -delta, "refusal": "", "line": line}
 
 
 def _apply_authority(world, lord, row) -> None:
     if row.get("skip") or not int(row.get("loss", 0) or 0):
         return
-    world.authority_tracker.modify_authority(-int(row["loss"]))
+    # AU-1: through the one writer, the letter and its writer as the cause
+    from backend.game_logic import standing
+    standing.move(world, lord, -int(row["loss"]), "letter_declined",
+                  party=str(row.get("party") or ""), letter=str(row.get("letter") or "the letter"))
 
 
 def _plan_admin(world, lord, op) -> Dict[str, Any]:
@@ -927,7 +932,7 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
             n = int(row.get("amount", 1) or 1)
             parts.append(f"{n} action{'' if n == 1 else 's'}")
         elif op == "authority" and "after" in row:
-            parts.append(f"standing {int(row['before'])} → {int(row['after'])}")
+            parts.append(f"authority {int(row['before'])} → {int(row['after'])}")   # AU-1: the word
         elif op == "relation" and "after" in row:
             parts.append(f"{_court(world, str(row.get('court') or ''), capitalize=True)} "
                          f"{int(row['before'])} → {int(row['after'])}")
@@ -956,7 +961,7 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
             price = int(quote.get("price", 0) or 0)
             if str(quote.get("currency") or "gold") == "authority":
                 before = int(reforms._court_authority(world, lord))
-                tokens = [f"standing {before} → {before - price}"]
+                tokens = [f"authority {before} → {before - price}"]   # AU-1: the word
             else:
                 tokens = [f"−{price:,} gold"]
             upkeep = int(law.get("upkeep", 0) or 0)
@@ -1034,7 +1039,17 @@ def plan(world, e: Dict[str, Any], answer: str,
         if fns is None:
             continue
         try:
-            rows.append(fns[0](world, lord, op))
+            row = fns[0](world, lord, op)
+            if str(row.get("op") or "") == "authority":
+                # AU-1: the letter and its writer ride the row — the books' cause
+                row["letter"] = str((e or {}).get("title") or "the letter")
+                try:
+                    name = voice_of(world, e or {}, occ, int(getattr(world, "current_turn", 0) or 0))
+                    row["party"] = _writer_and_office(world, e or {}, occ, name)[0]
+                except Exception as exc:
+                    report(exc, "moments.plan: the writer of an authority row")
+                    row["party"] = ""
+            rows.append(row)
         except Exception as exc:
             report(exc, "moments.plan: an op's plan")
             rows.append({"op": str(op.get("op")), "line": "",

@@ -110,7 +110,7 @@ class TestTheDesk:
         assert slip["answer_by"] == 8 and slip["answer_by_label"] == MO._dateline(armed, 8)
         assert slip["answers"] == [
             {"caption": "Send five of the line", "receipt": "−500 gold · 1 action · 36 in 100 home"},
-            {"caption": "Ferrand must hold alone", "receipt": "standing 100 → 97"}]
+            {"caption": "Ferrand must hold alone", "receipt": "authority 100 → 97"}]
         letter = _letter(armed, f"{H1}#1")
         assert slip["mailbox_id"] == int(letter["mailbox_id"]) > 0
         assert MO.mailbox_id_of(armed, f"{H1}#1") == slip["mailbox_id"]
@@ -223,7 +223,7 @@ class TestSetAside:
         state = armed.moments["state"]
         state[f"{T1}#1"] = {"id": f"{T1}#1", "status": "lapsed", "turn": 7, "answer": "decline", "lapsed_turn": 8,
                             "lord": "France", "bind": {"region": "Swabia"}, "tier": 1,
-                            "receipt": "standing 100 → 95", "echo": "Cambacérès: the Council has acted."}
+                            "receipt": "authority 100 → 95", "echo": "Cambacérès: the Council has acted."}
         state[f"{T2}#2"] = {"id": f"{T2}#2", "status": "withdrawn", "turn": 13, "withdrawn_turn": 13,
                             "set_aside_for": "bavarian_match", "lord": "France", "bind": {"host": "Bavaria"},
                             "tier": 1, "receipt": "The Host's Claims was set aside for The Bavarian Match"}
@@ -243,7 +243,7 @@ class TestSetAside:
             (f"{T3}#1", "crowded", 15), (f"{T2}#2", "withdrawn", 13), (f"{T1}#1", "lapsed", 8)]
         assert rows[0]["line"] == "Set aside on a busy desk — its second answer taken"
         assert rows[1]["line"] == "Set aside for The Bavarian Match — nothing was spent"
-        assert rows[2]["line"] == "Filed unanswered — Let the Council act · standing 100 → 95"
+        assert rows[2]["line"] == "Filed unanswered — Let the Council act · authority 100 → 95"
         assert [r["label"] for r in rows] == [MO._dateline(armed, t) for t in (15, 13, 8)]
         assert rows[2]["title"] == "The Arch-Chancellor's Letters"
         shown = _ids(page)

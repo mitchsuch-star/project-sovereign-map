@@ -1,0 +1,4367 @@
+{
+ "_what": "AU-1 — the standing's trace over the measured arms (AUTHORITY_CURRENCY_SPEC.md §5.8): per arm the start / min / max / end of the lord's authority, the moves by cause (by site on the tree before the books), the residual (the morning's change the books did not record) with the direct writers it names, the lines crossed downward, the courts' end figures. Seeded paths, not laws.",
+ "commit": "8e7f4004 + the instrument (tools/_standing_trace.py, before any mechanic)",
+ "date": "2026-11-03",
+ "note": "AU-1 step 1: the HEAD record - the books not yet open; residual names the direct writers the arms and the probe reach",
+ "arms": 59,
+ "measured": 59,
+ "residual_total": -35,
+ "residual_unexplained": 0,
+ "residual_sites": {
+  "authority.py:record_response": {
+   "arms": 1,
+   "sum": -18
+  },
+  "vindication.py:resolve_battle": {
+   "arms": 2,
+   "sum": -10
+  },
+  "meta_executor.py:_execute_debug": {
+   "arms": 1,
+   "sum": -7
+  }
+ },
+ "arms_with_residual": [
+  "probe/direct_writers",
+  "road/VP1-CS-austerlitz"
+ ],
+ "unmeasured": [],
+ "rows": [
+  {
+   "family": "probe",
+   "arm": "direct_writers",
+   "measured": true,
+   "mornings": 1,
+   "start": 100,
+   "min": 70,
+   "max": 100,
+   "end": 70,
+   "moves": 0,
+   "by_cause": {},
+   "residual_total": -30,
+   "residual_unexplained": 0,
+   "residual_sites": {
+    "authority.py:record_response": -18,
+    "vindication.py:resolve_battle": -5,
+    "meta_executor.py:_execute_debug": -7
+   },
+   "residual_turns": [
+    2
+   ],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 60,
+    "Russia": 60,
+    "Austria": 60,
+    "Prussia": 60,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": [],
+   "direct": [
+    {
+     "turn": 1,
+     "delta": -3,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -3,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -3,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -3,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -3,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -2,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -2,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": 1,
+     "site": "authority.py:record_response"
+    },
+    {
+     "turn": 1,
+     "delta": -5,
+     "site": "vindication.py:resolve_battle"
+    },
+    {
+     "turn": 1,
+     "delta": -7,
+     "site": "meta_executor.py:_execute_debug"
+    }
+   ],
+   "not_driven": [
+    "disobedience.py:handle_redemption_response (a whole redemption arc to stage)",
+    "strategic_executor.py:_handle_strategic_objection_from_endpoint (the RS-5 refused Trust)",
+    "main.py:debug_set_authority (the HTTP route keeps its own handler object; the console verb `_execute_debug` is the same write, driven)"
+   ]
+  },
+  {
+   "family": "accept",
+   "arm": "CMD-A-ACCEPT",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 100,
+   "max": 100,
+   "end": 100,
+   "moves": 12,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": 0,
+     "asked": 25
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "accept",
+   "arm": "CMD-H-ACCEPT",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 55,
+   "max": 100,
+   "end": 55,
+   "moves": 17,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -45,
+     "asked": -40
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "accept",
+   "arm": "CMD-M-ACCEPT",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 55,
+   "max": 100,
+   "end": 55,
+   "moves": 11,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 3,
+     "sum": -5,
+     "asked": 5
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "CMD-A",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 100,
+   "max": 100,
+   "end": 100,
+   "moves": 12,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": 0,
+     "asked": 25
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "CMD-H",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 47,
+   "max": 100,
+   "end": 47,
+   "moves": 18,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -45,
+     "asked": -40
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "CMD-M",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 55,
+   "max": 100,
+   "end": 55,
+   "moves": 11,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 3,
+     "sum": -5,
+     "asked": 5
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "DL",
+   "measured": true,
+   "mornings": 3,
+   "start": 100,
+   "min": 100,
+   "max": 100,
+   "end": 100,
+   "moves": 4,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 2,
+     "sum": 0,
+     "asked": 10
+    },
+    "Britain:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 45,
+    "Russia": 45,
+    "Austria": 60,
+    "Prussia": 60,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "FC",
+   "measured": true,
+   "mornings": 2,
+   "start": 100,
+   "min": 95,
+   "max": 100,
+   "end": 95,
+   "moves": 4,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 2,
+     "sum": -5,
+     "asked": 0
+    },
+    "Britain:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 45,
+    "Russia": 45,
+    "Austria": 60,
+    "Prussia": 60,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "FLD",
+   "measured": true,
+   "mornings": 10,
+   "start": 100,
+   "min": 100,
+   "max": 100,
+   "end": 100,
+   "moves": 11,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 4,
+     "sum": 0,
+     "asked": 17
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "LAW",
+   "measured": true,
+   "mornings": 10,
+   "start": 100,
+   "min": 40,
+   "max": 100,
+   "end": 40,
+   "moves": 15,
+   "by_cause": {
+    "reforms.py:_spend_authority": {
+     "n": 3,
+     "sum": -45,
+     "asked": -45
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": -15,
+     "asked": -15
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "OP",
+   "measured": true,
+   "mornings": 18,
+   "start": 100,
+   "min": 82,
+   "max": 100,
+   "end": 82,
+   "moves": 13,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": -10,
+     "asked": 2
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "commanded",
+   "arm": "VOLTE",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 72,
+   "max": 100,
+   "end": 72,
+   "moves": 13,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": -20,
+     "asked": -15
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "haiti",
+   "arm": "HAITI-austerlitz",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 85,
+   "max": 100,
+   "end": 85,
+   "moves": 18,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 11,
+     "sum": -15,
+     "asked": 5
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "haiti",
+   "arm": "HAITI-historical",
+   "measured": true,
+   "mornings": 30,
+   "start": 100,
+   "min": 25,
+   "max": 100,
+   "end": 25,
+   "moves": 15,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 7,
+     "sum": -35,
+     "asked": -35
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "haiti",
+   "arm": "HAITI-marengo",
+   "measured": true,
+   "mornings": 34,
+   "start": 100,
+   "min": 55,
+   "max": 100,
+   "end": 55,
+   "moves": 18,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -5,
+     "asked": 27
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "reach_aar",
+   "arm": "REACH-AAR",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 75,
+   "max": 100,
+   "end": 75,
+   "moves": 15,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 8,
+     "sum": -25,
+     "asked": -13
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-24-conquest",
+   "measured": true,
+   "mornings": 11,
+   "start": 95,
+   "min": 50,
+   "max": 95,
+   "end": 50,
+   "moves": 6,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": -5,
+     "asked": -5
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 2
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 45,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-24-diplomacy",
+   "measured": true,
+   "mornings": 20,
+   "start": 85,
+   "min": 85,
+   "max": 85,
+   "end": 85,
+   "moves": 0,
+   "by_cause": {},
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-24-sea",
+   "measured": true,
+   "mornings": 20,
+   "start": 100,
+   "min": 85,
+   "max": 100,
+   "end": 85,
+   "moves": 3,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 3,
+     "sum": -15,
+     "asked": -15
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-25-conquest",
+   "measured": true,
+   "mornings": 20,
+   "start": 100,
+   "min": 100,
+   "max": 100,
+   "end": 100,
+   "moves": 0,
+   "by_cause": {},
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 45,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-25-diplomacy",
+   "measured": true,
+   "mornings": 20,
+   "start": 85,
+   "min": 72,
+   "max": 85,
+   "end": 72,
+   "moves": 3,
+   "by_cause": {
+    "Austria:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -13,
+     "asked": -13
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "saves",
+   "arm": "DDB-25-sea",
+   "measured": true,
+   "mornings": 15,
+   "start": 85,
+   "min": 40,
+   "max": 85,
+   "end": 40,
+   "moves": 3,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
+    },
+    "Austria:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-CS-austerlitz",
+   "measured": true,
+   "mornings": 39,
+   "start": 100,
+   "min": 27,
+   "max": 100,
+   "end": 27,
+   "moves": 27,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 11,
+     "sum": -20,
+     "asked": -5
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 6,
+     "sum": -10,
+     "asked": -10
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "diplomatic_defiance.py:resolve_confrontation": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": -5,
+   "residual_unexplained": 0,
+   "residual_sites": {
+    "vindication.py:resolve_battle": -5
+   },
+   "residual_turns": [
+    8
+   ],
+   "crossings_down": {
+    "85": 3,
+    "80": 3,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-CS-historical",
+   "measured": true,
+   "mornings": 36,
+   "start": 100,
+   "min": 0,
+   "max": 100,
+   "end": 0,
+   "moves": 33,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 19,
+     "sum": -75,
+     "asked": -65
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 5,
+     "sum": -5,
+     "asked": -5
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "diplomatic_defiance.py:resolve_confrontation": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -25,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 2,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-CS-marengo",
+   "measured": true,
+   "mornings": 25,
+   "start": 100,
+   "min": 0,
+   "max": 100,
+   "end": 0,
+   "moves": 30,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 17,
+     "sum": -65,
+     "asked": -55
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 5,
+     "sum": -5,
+     "asked": -5
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -30,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 2,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-RH-austerlitz",
+   "measured": true,
+   "mornings": 37,
+   "start": 100,
+   "min": 29,
+   "max": 100,
+   "end": 29,
+   "moves": 22,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 12,
+     "sum": -28,
+     "asked": -13
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "diplomatic_defiance.py:resolve_confrontation": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-RH-historical",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 22,
+   "max": 100,
+   "end": 22,
+   "moves": 20,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -25,
+     "asked": -10
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-RH-marengo",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 35,
+   "max": 100,
+   "end": 35,
+   "moves": 28,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -25,
+     "asked": 10
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 3
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-TH-austerlitz",
+   "measured": true,
+   "mornings": 29,
+   "start": 100,
+   "min": 15,
+   "max": 100,
+   "end": 15,
+   "moves": 30,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -35,
+     "asked": -10
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 2,
+     "sum": -10,
+     "asked": -10
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-TH-historical",
+   "measured": true,
+   "mornings": 34,
+   "start": 100,
+   "min": 37,
+   "max": 100,
+   "end": 37,
+   "moves": 21,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -7,
+     "asked": 20
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -11,
+     "asked": -11
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road",
+   "arm": "VP1-TH-marengo",
+   "measured": true,
+   "mornings": 22,
+   "start": 100,
+   "min": 50,
+   "max": 100,
+   "end": 50,
+   "moves": 21,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 11,
+     "sum": 0,
+     "asked": 35
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 2,
+     "sum": -10,
+     "asked": -10
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road_accept",
+   "arm": "VP1-RH-austerlitz",
+   "measured": true,
+   "mornings": 37,
+   "start": 100,
+   "min": 37,
+   "max": 100,
+   "end": 37,
+   "moves": 21,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 12,
+     "sum": -28,
+     "asked": -13
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "diplomatic_defiance.py:resolve_confrontation": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road_accept",
+   "arm": "VP1-RH-historical",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 30,
+   "max": 100,
+   "end": 30,
+   "moves": 19,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -25,
+     "asked": -10
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_resolve_garrison_combat": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "road_accept",
+   "arm": "VP1-RH-marengo",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 35,
+   "max": 100,
+   "end": 35,
+   "moves": 28,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -25,
+     "asked": 10
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 3
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "enacts",
+   "arm": "ENACTS-austerlitz",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 74,
+   "max": 100,
+   "end": 74,
+   "moves": 16,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": 20,
+     "asked": 25
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "reforms.py:_spend_authority": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -16,
+     "asked": -16
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "enacts",
+   "arm": "ENACTS-historical",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 45,
+   "max": 100,
+   "end": 45,
+   "moves": 17,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 8,
+     "sum": -25,
+     "asked": -20
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "reforms.py:_spend_authority": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "enacts",
+   "arm": "ENACTS-ulm",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 67,
+   "max": 100,
+   "end": 67,
+   "moves": 15,
+   "by_cause": {
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 5,
+     "sum": 0,
+     "asked": 5
+    },
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "reforms.py:_spend_authority": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 2,
+    "70": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armA_historical_run1",
+   "measured": true,
+   "mornings": 36,
+   "start": 100,
+   "min": 35,
+   "max": 100,
+   "end": 35,
+   "moves": 29,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -22,
+     "asked": -20
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 2,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armA_historical_run2",
+   "measured": true,
+   "mornings": 36,
+   "start": 100,
+   "min": 35,
+   "max": 100,
+   "end": 35,
+   "moves": 29,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -22,
+     "asked": -20
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 2,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armB_austerlitz",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 40,
+   "max": 100,
+   "end": 40,
+   "moves": 23,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 13,
+     "sum": -14,
+     "asked": 25
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armB_jena",
+   "measured": true,
+   "mornings": 39,
+   "start": 100,
+   "min": 77,
+   "max": 100,
+   "end": 100,
+   "moves": 20,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 12,
+     "sum": 3,
+     "asked": 10
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_austerlitz",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 82,
+   "max": 100,
+   "end": 89,
+   "moves": 23,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 15,
+     "sum": -8,
+     "asked": 2
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_austerlitz_soil",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 82,
+   "max": 100,
+   "end": 100,
+   "moves": 22,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 13,
+     "sum": 6,
+     "asked": 25
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_historical",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 40,
+   "max": 100,
+   "end": 40,
+   "moves": 26,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 18,
+     "sum": -20,
+     "asked": -20
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 4,
+    "80": 3,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_historical_soil",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 40,
+   "max": 100,
+   "end": 40,
+   "moves": 26,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 18,
+     "sum": -20,
+     "asked": -20
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 4,
+    "80": 3,
+    "70": 1,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_ulm",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 12,
+   "max": 100,
+   "end": 12,
+   "moves": 29,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 19,
+     "sum": -42,
+     "asked": -25
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armb_scripted_ulm_soil",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 85,
+   "max": 100,
+   "end": 85,
+   "moves": 19,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -9,
+     "asked": 10
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armB_ulm",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 85,
+   "max": 100,
+   "end": 85,
+   "moves": 26,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 17,
+     "sum": -9,
+     "asked": 25
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_00_historical",
+   "measured": true,
+   "mornings": 36,
+   "start": 100,
+   "min": 35,
+   "max": 100,
+   "end": 35,
+   "moves": 29,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -22,
+     "asked": -20
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 2,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_01_ulm",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 90,
+   "max": 100,
+   "end": 100,
+   "moves": 21,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Austria:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 13,
+     "sum": 6,
+     "asked": 25
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 45,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_02_austerlitz",
+   "measured": true,
+   "mornings": 34,
+   "start": 100,
+   "min": 0,
+   "max": 100,
+   "end": 0,
+   "moves": 25,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 16,
+     "sum": -60,
+     "asked": -60
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -37,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_03_jena",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 62,
+   "max": 100,
+   "end": 67,
+   "moves": 18,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 10,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_04_marengo",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 7,
+   "max": 100,
+   "end": 7,
+   "moves": 27,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 17,
+     "sum": -47,
+     "asked": -28
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_05_eylau",
+   "measured": true,
+   "mornings": 31,
+   "start": 100,
+   "min": 27,
+   "max": 100,
+   "end": 27,
+   "moves": 23,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 14,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 2,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 2
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_06_friedland",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 10,
+   "max": 100,
+   "end": 10,
+   "moves": 22,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 14,
+     "sum": -50,
+     "asked": -50
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 2,
+    "70": 1,
+    "60": 1,
+    "50": 1,
+    "30": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_07_wagram",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 45,
+   "max": 100,
+   "end": 45,
+   "moves": 28,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 20,
+     "sum": -15,
+     "asked": -13
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "world_state.py:_apply_sovereign_capture_consequences": {
+     "n": 1,
+     "sum": -40,
+     "asked": -40
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 2,
+    "80": 2,
+    "70": 2,
+    "60": 1,
+    "50": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_08_lodi",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 85,
+   "max": 100,
+   "end": 100,
+   "moves": 23,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 14,
+     "sum": 6,
+     "asked": 17
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {},
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  },
+  {
+   "family": "sweep",
+   "arm": "armC_09_rivoli",
+   "measured": true,
+   "mornings": 40,
+   "start": 100,
+   "min": 74,
+   "max": 100,
+   "end": 90,
+   "moves": 32,
+   "by_cause": {
+    "Britain:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Russia:law": {
+     "n": 1,
+     "sum": -15,
+     "asked": -15
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 23,
+     "sum": -6,
+     "asked": 26
+    },
+    "Austria:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "Prussia:law": {
+     "n": 2,
+     "sum": -30,
+     "asked": -30
+    },
+    "moments.py:_apply_authority": {
+     "n": 2,
+     "sum": -4,
+     "asked": -4
+    }
+   },
+   "residual_total": 0,
+   "residual_unexplained": 0,
+   "residual_sites": {},
+   "residual_turns": [],
+   "crossings_down": {
+    "85": 1,
+    "80": 1
+   },
+   "courts_end": {
+    "Britain": 30,
+    "Russia": 45,
+    "Austria": 30,
+    "Prussia": 30,
+    "Spain": 60,
+    "Ottoman": 60,
+    "Sweden": 60,
+    "Naples": 60,
+    "Portugal": 60,
+    "Denmark": 60,
+    "Bavaria": 60,
+    "Saxony": 60,
+    "Hanover": 60,
+    "Hesse": 60,
+    "PapalStates": 60,
+    "Sardinia": 60,
+    "Holland": 60,
+    "KingdomOfItaly": 60,
+    "Switzerland": 60
+   },
+   "errors": []
+  }
+ ]
+}

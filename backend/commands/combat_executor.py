@@ -5608,10 +5608,14 @@ class CombatExecutor:
                         cap_reg = world.get_region(battle_region)
                         if cap_reg and getattr(cap_reg, 'is_capital', False):
                             capital_captured = True
+                    # AU-1: through the one writer, the field named as the cause
+                    from backend.game_logic import standing as _standing
                     if outnumbered or capital_captured:
-                        world.authority_tracker.modify_authority(+5)
+                        _standing.move(world, player_nation, +5,
+                                       "capital_taken" if capital_captured else "field_won",
+                                       battle=battle_region)
                     if _emperor_led:
-                        world.authority_tracker.modify_authority(+2)
+                        _standing.move(world, player_nation, +2, "own_hand_won", battle=battle_region)
                         # NP-V: the prestige was moving silently. A
                         # battle under the Emperor's own hand read
                         # exactly like one of Ney's — "mechanically yes,
@@ -5628,10 +5632,13 @@ class CombatExecutor:
                     if cap_reg and getattr(cap_reg, 'is_capital', False):
                         if cap_reg.controller != player_nation:
                             capital_lost = True
+                    from backend.game_logic import standing as _standing
                     if outnumbering or capital_lost:
-                        world.authority_tracker.modify_authority(-5)
+                        _standing.move(world, player_nation, -5,
+                                       "capital_lost" if capital_lost else "field_lost",
+                                       battle=battle_region)
                     if _emperor_led:
-                        world.authority_tracker.modify_authority(-5)
+                        _standing.move(world, player_nation, -5, "own_hand_lost", battle=battle_region)
                         # NP-V: and the defeat is the half that had to be
                         # felt — this is the sentence that makes the
                         # cracking aura legible as a CONSEQUENCE.
@@ -6107,10 +6114,11 @@ class CombatExecutor:
             if marshal.nation == world.player_nation:
                 garrison_effective = _garrison_report.garrison_effective(
                     target_region, old_garrison)
+                from backend.game_logic import standing as _standing
                 if pre_battle_atk_strength < garrison_effective:
-                    world.authority_tracker.modify_authority(+5)
+                    _standing.move(world, marshal.nation, +5, "garrison_stormed", region=target_region.name)
                 if getattr(target_region, 'is_capital', False):
-                    world.authority_tracker.modify_authority(+5)
+                    _standing.move(world, marshal.nation, +5, "capital_stormed", region=target_region.name)
 
             # Move attacker into region
             marshal.move_to(target_region.name)
@@ -6261,7 +6269,8 @@ class CombatExecutor:
                 garrison_effective = _garrison_report.garrison_effective(
                     target_region, old_garrison)
                 if pre_battle_atk_strength > garrison_effective:
-                    world.authority_tracker.modify_authority(-5)
+                    from backend.game_logic import standing as _standing
+                    _standing.move(world, marshal.nation, -5, "assault_repulsed", region=target_region.name)
 
             return {
                 "success": True,

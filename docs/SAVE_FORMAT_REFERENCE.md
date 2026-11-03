@@ -932,7 +932,12 @@ Reserved future `event_log` payloads:
     {"choice": "insist", "turn": 2},
     {"choice": "compromise", "turn": 3}
   ],
-  "_crossed_thresholds": [70]
+  "_crossed_thresholds": [70],
+  "moves": [
+    {"seq": 1, "turn": 4, "delta": -5, "key": "own_hand_lost",
+     "cause": "the field at Elchingen under your own hand", "party": ""}
+  ],
+  "held": {"seq": 1, "turn": 4, "told": 1}
 }
 ```
 
@@ -942,7 +947,9 @@ Reserved future `event_log` payloads:
 |-------|------|-------------|
 | `authority` | int | 0-100, Napoleon's authority |
 | `recent_responses` | list | Last 10 enriched responses. Each entry: `{"choice": str, "turn": int}`. V2b format — backward-compatible from_dict accepts bare strings. |
-| `_crossed_thresholds` | list | Threshold events already triggered (70, 50, 30) |
+| `_crossed_thresholds` | list | Threshold events already triggered (70, 50, 30) — AU-1: re-armed when the figure climbs back above a line |
+| `moves` | list | **AU-1 (`AUTHORITY_CURRENCY_SPEC.md` §5.2)** — the ring of the last 24 moves, oldest first: `{"seq": int, "turn": int, "delta": int, "key": str, "cause": str, "party": str}` (`key` a `display_names.AUTHORITY_CAUSES` key, `cause` its text in the creditor's voice, `party` the creditor — a marshal, a court, a minister). Written by `AuthorityTracker.move` alone; a zero move (the clamp) is no row; `from_dict` assigns the figure directly, so a load books no phantom move. |
+| `held` | dict | **AU-1** — the keyed rule state: `seq` (the ring's counter), `turn` (the last move's turn), `told` (the last `seq` the morning's dent clause told — `standing.dent_clause` stamps it at build), `events` (the threshold crossings queued for the next response, at most 3; absent when none), `last:<key>` (a regrowth's last turn, `standing.regrow`'s cooldown — AU-2b's). The later slices add their keys here, never on `WorldState` (`to_dict` is at its 500-line ratchet). `restore(snapshot)` puts the whole store back (the RS-5 rollback). |
 
 ---
 

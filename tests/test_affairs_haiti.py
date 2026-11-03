@@ -412,7 +412,7 @@ class TestTheAnswers:
         letter = self._arrive(armed, authority=100)
         gold, admin = armed.nation_gold["France"], armed.admin_actions_remaining
         payload = MO.refresh_letter(armed, letter)
-        assert payload["button_decline"] == "standing 100 → 97"
+        assert payload["button_decline"] == "authority 100 → 97"
         with _quiet():
             result = client.post("/respond_to_diplomatic_dialogue",
                                  json={"choice": "reject_ai_proposal", "dialogue_id": letter["dialogue_id"]}).json()
@@ -420,7 +420,7 @@ class TestTheAnswers:
         assert armed.authority_tracker.authority == 97
         assert armed.nation_gold["France"] == gold and armed.admin_actions_remaining == admin
         row = MO.status_row(armed, f"{H1}#1")
-        assert row["answer"] == "decline" and row["receipt"] == "standing 100 → 97"
+        assert row["answer"] == "decline" and row["receipt"] == "authority 100 → 97"
         assert row["echo"] == "Decrès files Ferrand's letter; the garrison of Santo Domingo holds alone."
 
     def test_the_decline_is_grip_floored_and_never_a_rise(self, armed):
@@ -441,7 +441,7 @@ class TestTheAnswers:
         assert "Ferrand must hold alone" in out["moment"]["line"]
         assert armed.authority_tracker.authority == 97
         row = MO.status_row(armed, f"{H1}#1")
-        assert row["status"] == "lapsed" and row["receipt"] == "standing 100 → 97"
+        assert row["status"] == "lapsed" and row["receipt"] == "authority 100 → 97"
 
     def test_the_accept_closes_with_no_action_left_and_the_letter_stands(self, armed):
         letter = self._arrive(armed)

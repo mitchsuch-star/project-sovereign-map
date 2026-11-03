@@ -595,7 +595,7 @@ class TestBites:
         payload = _letter(armed, "chancellors_letters#1")["popup_payload"]
         assert payload["diplomat_name"] == "Cambacérès, Arch-Chancellor of the Empire"
         assert "Authority 80 → 75" in payload["answers"][1]["quote"]
-        assert payload["board"] == ["The Emperor is afield at Swabia, 7 mornings running; his standing is 80."]
+        assert payload["board"] == ["The Emperor is afield at Swabia, 7 mornings running; his authority is 80."]
 
     def test_twelve_mornings_afield_raise_the_price_to_eight(self, armed):
         _no_moments(armed)

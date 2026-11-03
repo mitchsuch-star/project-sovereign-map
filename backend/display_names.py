@@ -3030,3 +3030,82 @@ def display(category: str, internal_name: str, fallback: str = None) -> str:
     if fallback:
         return fallback
     return internal_name.replace("_", " ").title()
+
+
+# ============================================================================
+# AU-1 — THE CAUSES OF AUTHORITY (docs/AUTHORITY_CURRENCY_SPEC.md §5.2)
+# The closed table of what moves the lord's authority, in the creditor's
+# voice — the text the ring keeps, the chip's tooltip and the morning's dent
+# clause print ("down 10 since yesterday: the field at Elchingen under your
+# own hand (−5), Ney's objection overruled, and the field lost (−5)"). A write
+# site names a KEY; the census (`tests/test_standing_books.py`) forbids a
+# production write with a key the table lacks. The fields: {battle},
+# {marshal}, {region}, {letter}, {law}, {design}, {act}, {sovereign}.
+# ============================================================================
+AUTHORITY_CAUSES = {
+    # the field (combat_executor step 12, the garrison seam, the auto-charge mirror)
+    "field_won": "the field at {battle}, won against the odds",
+    "capital_taken": "the capital at {battle}, taken",
+    "own_hand_won": "the field at {battle} under your own hand",
+    "field_lost": "the field at {battle}, lost with the numbers",
+    "capital_lost": "the capital at {battle}, lost",
+    "own_hand_lost": "the field at {battle} under your own hand",
+    "garrison_stormed": "{region} stormed against its garrison",
+    "capital_stormed": "the capital at {region}, stormed",
+    "assault_repulsed": "the assault on {region}, repulsed",
+    # the objection answers (the tracker's own pattern)
+    "trust_pattern": "the marshals trusted too often",
+    "balanced_hand": "a balanced hand with the marshals",
+    "insisting_hand": "the Emperor's insistence",
+    # the vindication (an answered objection's own battle)
+    "insisted_won": "{marshal}'s objection overruled, and the field won",
+    "insisted_lost": "{marshal}'s objection overruled, and the field lost",
+    "compromise_won": "the compromise with {marshal}, and the field won",
+    "compromise_lost": "the compromise with {marshal}, and the field lost",
+    # defiance
+    "marshal_right": "{marshal} defied you and was right",
+    "marshal_wrong": "{marshal} defied you and was wrong",
+    # the marshals' quarrels (jealousy)
+    "mediation_ignored": "the Emperor's mediation ignored in public",
+    "reconciliation_failed": "the reconciliation forced, and refused",
+    "fontainebleau_promise": "the promise of Fontainebleau",
+    # Talleyrand
+    "sabotage_confronted": "Talleyrand confronted",
+    "sabotage_overlooked": "Talleyrand's sabotage overlooked",
+    "talleyrand_overruled": "Talleyrand overruled on the terms",
+    # the marshals' arcs
+    "redemption_dismissal": "{marshal} dismissed at the redemption's end",
+    "spectacular_return": "{marshal}'s spectacular return",
+    # the sovereign
+    "sovereign_captured": "{sovereign} taken at {region}",
+    # the designs and the Acts of the Empire
+    "design_reward": "{design} fulfilled",
+    "act": "the Act: {act}",
+    # the letters of state and the laws
+    "letter_declined": "{letter} declined",
+    "law": "the law enacted: {law}",
+    # the console
+    "debug_set": "set by the debug console",
+    # the setter's fallback — a direct assignment (the test files); never a production cause
+    "unattributed": "unattributed",
+}
+
+
+class _CauseFields(dict):
+    """A missing field reads as its own name in braces — never a KeyError on a
+    live write."""
+
+    def __missing__(self, name):
+        return "{" + str(name) + "}"
+
+
+def authority_cause(key: str, **fields) -> str:
+    """The cause's text for the books: the table's entry for `key`, every
+    {field} filled (a nation key among the fields is shown by its name); an
+    unknown key reads as itself, so a write is never lost to its wording."""
+    template = AUTHORITY_CAUSES.get(str(key or ""), "")
+    if not template:
+        return str(key or "unattributed")
+    shown = {k: (display_nation(v) if isinstance(v, str) and v in NATION_DISPLAY else v)
+             for k, v in fields.items()}
+    return template.format_map(_CauseFields(shown))

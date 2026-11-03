@@ -136,6 +136,8 @@ def cmd_run(args) -> int:
     out = Path(args.out).resolve()
     families = [f.strip() for f in args.families.split(",") if f.strip()]
     jobs = plan(out, families, args.affair)
+    # AU-1: `--driver-flags` ride every arm (e.g. `--standing-trace`).
+    jobs = [(d, n, list(a) + [f for f in args.driver_flags.split() if f not in a]) for d, n, a in jobs]
     # the long arms first, so the pool's tail is short
     jobs.sort(key=lambda j: ("--turns" not in j[2] or int(j[2][j[2].index("--turns") + 1]) < 30, j[1]))
     record = {"started": time.strftime("%Y-%m-%dT%H:%M"), "jobs": args.jobs, "affair": args.affair,
@@ -241,6 +243,8 @@ def main() -> int:
     r.add_argument("--out", required=True)
     r.add_argument("--jobs", type=int, default=3)
     r.add_argument("--families", default="commanded,accept,reach_aar,saves,haiti")
+    r.add_argument("--driver-flags", default="",
+                   help="extra driver flags on every arm (AU-1: --standing-trace)")
     r.add_argument("--affair", default="decline", choices=["decline", "lapse"],
                    help="the dial on the non-accept arms (the accept arms always accept)")
     c = sub.add_parser("record")

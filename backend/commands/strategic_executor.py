@@ -3854,8 +3854,7 @@ class StrategicExecutor:
 
         # RS-5 backstop: snapshot the tracker so a REFUSED Trust can put it
         # back exactly (record_response moves authority and the window).
-        _tracker_before = (int(world.authority_tracker.authority),
-                           list(world.authority_tracker.recent_responses))
+        _tracker_before = world.authority_tracker.snapshot()   # AU-1: the whole store, the ring with it
 
         # Record response in authority tracker (V2b: enriched with turn)
         authority_event = world.authority_tracker.record_response(choice, world.current_turn)
@@ -4082,8 +4081,7 @@ class StrategicExecutor:
                 and not result.get("pending_objection")
                 and world.pending_strategic_objection is None):
             world.pending_strategic_objection = objection
-            world.authority_tracker.authority = _tracker_before[0]
-            world.authority_tracker.recent_responses = _tracker_before[1]
+            world.authority_tracker.restore(_tracker_before)   # AU-1: no phantom move, the ring as it was
             result["objection_kept"] = True
             result["pending_strategic_objection"] = objection
             result["message"] = (

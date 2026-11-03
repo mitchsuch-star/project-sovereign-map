@@ -1806,7 +1806,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
             except ValueError:
                 return {"success": False, "message": "Authority must be a number 0-100"}
             old = int(world.authority_tracker.authority)
-            world.authority_tracker.authority = value
+            from backend.game_logic import standing as _standing
+            _standing.move(world, world.player_nation, value - old, "debug_set")
             label = world.authority_tracker.get_authority_label()
             return {"success": True, "message": f"DEBUG: Authority: {old} -> {value} ({label})"}
 

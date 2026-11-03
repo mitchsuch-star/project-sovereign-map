@@ -8,9 +8,29 @@ V2b additions:
 - Enriched recent_responses format: List[Dict] with {"choice": str, "turn": int}
 - check_excessive_trust(): Ratio-based penalty replacing old count-based system
 - modify_authority(): Clamped 0-100 setter for external callers
+
+AU-1 "the books" (docs/AUTHORITY_CURRENCY_SPEC.md §5.2, §7; the rules
+SYSTEMS_REFERENCE.md §169): the figure is a PROPERTY over `_authority`;
+every write is a MOVE the ring `moves` records with its cause (the last
+MOVES_KEPT), the keyed `held` dict keeps the rule state (the seq counter,
+the morning's turn, the dent's `told` mark, the queued threshold events,
+the cooldowns), the threshold events fire on EVERY crossing and re-arm on
+the way up, and `snapshot()` / `restore()` serve the strategic rollback.
+Production writes through ONE door, `backend/game_logic/standing.py`.
 """
 
+import copy
 from typing import Optional, Dict, List
+
+# AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.2): the ring keeps the last 24 moves; the
+# queued threshold events the next responses carry, at most 3.
+MOVES_KEPT = 24
+EVENTS_KEPT = 3
+
+
+def _cause(key: str) -> str:
+    from backend.display_names import authority_cause   # function-local: the store stays a leaf
+    return authority_cause(key)
 
 
 class AuthorityTracker:
@@ -55,11 +75,106 @@ class AuthorityTracker:
 
     def __init__(self):
         """Initialize authority tracker."""
-        self.authority: int = 100  # Napoleon starts fully authoritative
+        # AU-1: the figure lives behind the property `authority` — every write
+        # is a MOVE the ring records (`standing.move` is production's one door)
+        self._authority: int = 100  # Napoleon starts fully authoritative
         # V2b: Enriched format — List[Dict] with {"choice": str, "turn": int}
         # Backward compat: from_dict handles bare strings (legacy saves)
         self.recent_responses: List[Dict] = []
-        self._crossed_thresholds: List[int] = []  # Track which events have triggered
+        self._crossed_thresholds: List[int] = []  # Track which events have triggered; re-armed on the way up (AU-1)
+        # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.2): the books — the ring of the last
+        # MOVES_KEPT moves {seq, turn, delta, key, cause, party} and the keyed rule
+        # state `held` (the seq counter, the morning's turn, the dent's `told`
+        # mark, the queued threshold events, the cooldowns `last:<key>`)
+        self.moves: List[Dict] = []
+        self.held: Dict = {}
+
+    # ── AU-1: the property, the writer, the events, the rollback ──
+    @property
+    def authority(self) -> int:
+        return int(self._authority)
+
+    @authority.setter
+    def authority(self, value) -> None:
+        """A direct assignment is a move with no cause — booked "unattributed".
+        Production never assigns (the AST census); the test files do."""
+        self.move(int(value) - int(self._authority), "unattributed", "unattributed")
+
+    def move(self, delta: int, key: str = "unattributed", cause: str = "",
+             party: str = "", turn: Optional[int] = None, book: bool = True) -> int:
+        """THE write (AU-1): clamp 0–100, book the applied delta in the ring with
+        its cause, fire the threshold events on every crossing (re-armed on the
+        way up). Returns the delta applied. `book=False` is the series rig's
+        AUB seam — the clamp alone, the store as it stood before the books."""
+        before = int(self._authority)
+        after = max(0, min(100, before + int(delta)))
+        self._authority = after
+        applied = after - before
+        if not book:
+            return applied
+        if turn is not None:
+            self.held["turn"] = int(turn)
+        if applied:
+            seq = int(self.held.get("seq", 0) or 0) + 1
+            self.held["seq"] = seq
+            self.moves.append({
+                "seq": seq, "turn": int(self.held.get("turn", 0) or 0), "delta": applied,
+                "key": str(key or "unattributed"), "cause": str(cause or key or "unattributed"),
+                "party": str(party or "")})
+            if len(self.moves) > MOVES_KEPT:
+                del self.moves[:-MOVES_KEPT]
+            self._cross(before, after, str(cause or key or "unattributed"))
+        return applied
+
+    def _cross(self, before: int, after: int, cause: str) -> None:
+        """The threshold events on every crossing: a line crossed DOWN fires
+        (the deepest of one move), a line climbed back above is re-armed."""
+        self._crossed_thresholds = [t for t in self._crossed_thresholds if after <= int(t)]
+        deepest = None
+        for threshold in sorted(self.THRESHOLD_EVENTS, reverse=True):
+            if after <= threshold and threshold not in self._crossed_thresholds:
+                self._crossed_thresholds.append(threshold)
+                deepest = threshold
+        if deepest is None:
+            return
+        event = self.THRESHOLD_EVENTS[deepest]
+        self._queue_event({'type': 'authority_event', 'threshold': int(deepest),
+                           'authority': int(after), **event,
+                           'title': event['name'], 'message': event['description'],
+                           'cause': cause})
+
+    def _queue_event(self, event: Dict) -> None:
+        events = self.held.setdefault("events", [])
+        events.append(dict(event))
+        if len(events) > EVENTS_KEPT:
+            del events[:-EVENTS_KEPT]
+
+    def pop_event(self) -> Optional[Dict]:
+        """The oldest queued threshold event, or None (read, then cleared)."""
+        events = self.held.get("events") or []
+        if not events:
+            self.held.pop("events", None)
+            return None
+        event = events.pop(0)
+        if not events:
+            self.held.pop("events", None)
+        return event
+
+    def snapshot(self) -> dict:
+        """The whole store, for a rollback (`restore`)."""
+        return self.to_dict()
+
+    def restore(self, snapshot: dict) -> None:
+        """Put the store back EXACTLY as `snapshot` had it — the figure, the
+        window, the crossings, the ring and `held` (the RS-5 refused Trust;
+        no phantom move is booked)."""
+        self._authority = int(snapshot.get("authority", 100))
+        self.recent_responses = [
+            r if isinstance(r, dict) else {"choice": r, "turn": 0}
+            for r in snapshot.get("recent_responses", [])]
+        self._crossed_thresholds = list(snapshot.get("_crossed_thresholds", []))
+        self.moves = [dict(m) for m in snapshot.get("moves", [])]
+        self.held = copy.deepcopy(snapshot.get("held", {}) or {})
 
     def record_response(self, choice: str, current_turn: int = 0) -> Optional[Dict]:
         """
@@ -85,13 +200,15 @@ class AuthorityTracker:
         # Apply excessive trust penalty (V2b, replaces old trust-ratio branch)
         penalty = check_excessive_trust(self, current_turn)
         if penalty != 0:
-            self.authority = max(0, min(100, self.authority + penalty))
+            self.move(penalty, "trust_pattern", _cause("trust_pattern"), turn=int(current_turn))
 
-        self._evaluate_authority()
+        self._evaluate_authority(int(current_turn))
 
-        return self._check_events()
+        # AU-1: the crossing (if any) the answer's own moves queued — popped
+        # here so the objection paths keep their contract (`result["authority_event"]`)
+        return self.pop_event()
 
-    def _evaluate_authority(self) -> None:
+    def _evaluate_authority(self, current_turn: int = 0) -> None:
         """
         Evaluate authority based on recent response pattern.
 
@@ -113,22 +230,21 @@ class AuthorityTracker:
         # Always insisting = tyrant (but maintains authority)
         if insist_ratio > 0.80:
             # Authority stays high but trust suffers (handled elsewhere)
-            self.authority = min(100, self.authority + 1)
+            self.move(+1, "insisting_hand", _cause("insisting_hand"), turn=current_turn)
 
         # Balanced approach = healthy leadership
         elif 0.30 <= trust_ratio <= 0.60:
-            self.authority = min(100, self.authority + 1)
+            self.move(+1, "balanced_hand", _cause("balanced_hand"), turn=current_turn)
 
     def modify_authority(self, delta: int) -> None:
         """
         Modify authority by delta, clamped 0-100.
 
-        Used by external callers (defiance outcomes, major victory/defeat).
-
-        Args:
-            delta: Amount to change (+/-)
+        AU-1: kept for the test files; production writes through
+        `standing.move` with a cause (the census forbids this name there).
+        A move with no cause is booked "unattributed".
         """
-        self.authority = max(0, min(100, self.authority + delta))
+        self.move(int(delta), "unattributed", "unattributed")
 
     def get_trust_gain_modifier(self) -> float:
         """
@@ -203,24 +319,6 @@ class AuthorityTracker:
         else:
             return 1.25  # Much more severe objections
 
-    def _check_events(self) -> Optional[Dict]:
-        """
-        Check for authority threshold events.
-
-        Returns:
-            Event dict if threshold crossed, None otherwise
-        """
-        for threshold, event in sorted(self.THRESHOLD_EVENTS.items(), reverse=True):
-            if self.authority <= threshold and threshold not in self._crossed_thresholds:
-                self._crossed_thresholds.append(threshold)
-                return {
-                    'type': 'authority_event',
-                    'threshold': int(threshold),
-                    'authority': int(self.authority),
-                    **event
-                }
-        return None
-
     def reset_threshold_tracking(self) -> None:
         """Reset threshold tracking (useful for testing or game reset)."""
         self._crossed_thresholds = []
@@ -266,7 +364,10 @@ class AuthorityTracker:
                 r if isinstance(r, dict) else {"choice": r, "turn": 0}
                 for r in self.recent_responses
             ],
-            "_crossed_thresholds": self._crossed_thresholds.copy()
+            "_crossed_thresholds": self._crossed_thresholds.copy(),
+            # AU-1 (SAVE_FORMAT_REFERENCE.md): the ring and the keyed rule state
+            "moves": [dict(m) for m in self.moves],
+            "held": copy.deepcopy(self.held),
         }
 
     @classmethod
@@ -276,7 +377,9 @@ class AuthorityTracker:
         V2b: Backward compatible — bare strings treated as legacy format.
         """
         tracker = cls()
-        tracker.authority = data.get("authority", 100)
+        tracker._authority = int(data.get("authority", 100))   # AU-1: no phantom move on load
+        tracker.moves = [dict(m) for m in (data.get("moves", []) or [])]
+        tracker.held = copy.deepcopy(data.get("held", {}) or {})
         raw = data.get("recent_responses", [])
         tracker.recent_responses = [
             r if isinstance(r, dict) else {"choice": r, "turn": 0}

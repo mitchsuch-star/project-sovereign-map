@@ -732,6 +732,7 @@ def build_base_response(world, success: bool = True, message: str = "",
 
     Endpoint-specific fields passed as **extra.
     """
+    from backend.game_logic import standing as _standing
     from backend.game_logic.envoy_digest import build_envoy_digest
     from backend.game_logic.war_status import build_active_wars
 
@@ -756,6 +757,9 @@ def build_base_response(world, success: bool = True, message: str = "",
         "game_state": world.get_filtered_game_state_summary(),
         "action_summary": world.get_action_summary(),
         "active_wars": build_active_wars(world),
+        # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): the lord's authority — the
+        # chip's ONE key: {value, label, grip, presence, moves[≤5]}, ints.
+        "authority": _standing.payload(world, world.player_nation),
         # Diplomatic top-bar fields — present in EVERY gameplay response
         "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
         "max_diplomatic_points": _dp_ceiling(world),
@@ -816,6 +820,14 @@ def build_base_response(world, success: bool = True, message: str = "",
         "end_turn_peril_warning": _end_turn_peril_warning(world),
     }
     response.update(extra)
+    # AU-1 (AUTHORITY_CURRENCY_SPEC.md §5.6): a line of authority crossed by ANY
+    # write since the last response rides this one (the tracker's queue, read
+    # then cleared — Golden Rule 4); an executor result that carries its own
+    # (the objection paths) is not overwritten.
+    if "authority_event" not in response:
+        _crossing = _standing.pop_event(world)
+        if _crossing is not None:
+            response["authority_event"] = _crossing
     # S14d (docs/TABLE_LESSON_SPEC.md §3): every dialogue-borne payload leaves
     # the envelope with its first-open line on a COPY — the one chokepoint for
     # the executor's forwarded results (`_build_result_response` forwards every
@@ -3220,6 +3232,10 @@ def test_connection():
         "talleyrand_state": _get_talleyrand_state_label(world),
         "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
         "threat_level": _displayed_threat(world),
+        # AU-1: the chip's key at boot too (the connection test feeds the top bar
+        # before the first command; this GET does not pass build_base_response)
+        "authority": __import__("backend.game_logic.standing", fromlist=["payload"]).payload(
+            world, world.player_nation),
         "coalition_brewing": _player_coalition_brewing(world) is not None,
         "coalition_brewing_turns": int(_player_coalition_brewing(world).get("turns_remaining", 0)) if _player_coalition_brewing(world) else None,
         # Session 2 follow-up: Single source of truth for mailbox badge
@@ -8340,7 +8356,9 @@ async def debug_set_authority(request: Request):
         return {"success": False, "message": "Required: authority"}
 
     old_authority = int(world.authority_tracker.authority)
-    world.authority_tracker.authority = max(0, min(100, int(authority_value)))
+    from backend.game_logic import standing as _standing
+    _standing.move(world, world.player_nation,
+                   max(0, min(100, int(authority_value))) - old_authority, "debug_set")
 
     print(f"[DEBUG] Set authority: {old_authority} -> {world.authority_tracker.authority}")
 

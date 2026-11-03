@@ -2092,7 +2092,9 @@ class DisobedienceSystem:
             # Grant authority bonus for difficult command decision
             authority_bonus = 10
             if hasattr(world, 'authority_tracker'):
-                world.authority_tracker.authority = min(100, world.authority_tracker.authority + authority_bonus)
+                from backend.game_logic import standing as _standing
+                _standing.move(world, str(getattr(world, 'player_nation', '') or ''), authority_bonus,
+                               "redemption_dismissal", party=marshal_name, marshal=marshal_name)
                 print(f"  [REDEMPTION] Authority +{authority_bonus} (now {world.authority_tracker.authority})")
 
             return {

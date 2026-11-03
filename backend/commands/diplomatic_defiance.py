@@ -535,7 +535,8 @@ def resolve_confrontation(choice: str, talleyrand, world) -> Dict:
 
     if choice == "confront_sabotage":
         # PL-23: Authority +5, cooldown 5 turns (trust removed)
-        world.authority_tracker.modify_authority(+5)
+        from backend.game_logic import standing as _standing
+        _standing.move(world, world.player_nation, +5, "sabotage_confronted", party="Talleyrand")
         result["authority_change"] = +5
 
         world.talleyrand_defiance_cooldown = 5
@@ -547,7 +548,8 @@ def resolve_confrontation(choice: str, talleyrand, world) -> Dict:
         )
     elif choice == "overlook_sabotage":
         # PL-23: Authority -3 (trust removed, mild authority cost for letting it slide)
-        world.authority_tracker.modify_authority(-3)
+        from backend.game_logic import standing as _standing
+        _standing.move(world, world.player_nation, -3, "sabotage_overlooked", party="Talleyrand")
         result["authority_change"] = -3
 
         result["message"] = (
