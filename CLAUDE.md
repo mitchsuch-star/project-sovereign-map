@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2, 2026 (§19–§26); AU authority push-and-pull NEXT, its gate first (`AUTHORITY_CURRENCY_SPEC.md` §4); S15 after AU**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2 (§19–§26); AU GATE ✅ RULED Nov 3, 2026 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7) — AU-1 the books NEXT, seven slices before S15**.
 
-**▶ LIVE STATE (Nov 2, 2026).** The three most recent rows:
-- **RE-5 (Nov 2) — the close: the walk, the review (keep all seven), the dial's instrument; ROW RE COMPLETE; AU's gate NEXT** (§26).
-- **RE-6 (Nov 2) — the Edicts; the courts' rung ARMED by the user's word** (§25).
-- **RE-R (Nov 2) — the reactions** (§24).
+**▶ LIVE STATE (Nov 3, 2026).** The three most recent rows:
+- **AU gate (Nov 3) — RULED: the fuller option on band, pushes, pulls, regrowth; the chip; courts parked; seven slices before S15; AU-1 NEXT** (spec §4–§7).
+- **RE-5 (Nov 2) — the close; ROW RE COMPLETE** (§26).
+- **RE-6 (Nov 2) — the Edicts; the courts' rung ARMED** (§25).
 
-**Open with the user:** the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7 (S15's head) and RE3-9 (`BUG_FIXES.md` §RE3), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** AU's eighteen readings (spec §4.1), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 
