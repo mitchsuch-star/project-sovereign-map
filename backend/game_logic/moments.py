@@ -248,9 +248,12 @@ def affairs_block(world) -> Dict[str, Any]:
 def affairs_deck(world) -> List[Dict[str, Any]]:
     """The affairs' templates. `deck()` stays the dated deck alone: every
     reader keyed on the moments' ids (the road matrix, the windows, the
-    sweep's fire turns) never sees a template here."""
+    sweep's fire turns) never sees a template here. AU-2c: a template
+    authored `since` an unarmed row is held out WHOLE (`affairs.entry_armed`),
+    so every reader sees the deck before that row."""
+    from backend.game_logic.affairs import entry_armed
     return [e for e in (affairs_block(world).get("deck") or [])
-            if isinstance(e, dict) and e.get("id")]
+            if isinstance(e, dict) and e.get("id") and entry_armed(e)]
 
 
 def is_occurrence(moment_id: str) -> bool:
@@ -614,9 +617,13 @@ def _plan_relation(world, lord, op) -> Dict[str, Any]:
     before = _relation(world, lord, court)
     after = max(-100, min(100, before + delta))
     unchanged = " (unchanged)" if after == before else ""
+    # AU-10: a row's line sits mid-quote ("Occupy the ports: …; the Papal
+    # States' goodwill -10 → -20") — the article lower-case, the possessive
+    # SRX-22's ("The Papal States's goodwill" before)
+    from backend.display_names import possessive
     return {"op": "relation", "court": court, "delta": delta, "before": before, "after": after,
             "refusal": "",
-            "line": f"{_court(world, court, capitalize=True)}'s goodwill {before} → {after}{unchanged}"}
+            "line": f"{possessive(_court(world, court))} goodwill {before} → {after}{unchanged}"}
 
 
 def _apply_relation(world, lord, row) -> None:
@@ -667,7 +674,9 @@ def _plan_loyalty(world, lord, op) -> Dict[str, Any]:
         before = int(vrow.get("loyalty", 0) or 0)
         after = int(max(LOYALTY_MIN, min(LOYALTY_MAX, before + delta)))
         rows.append({"court": court, "before": before, "after": after})
-        parts.append(f"{_court(world, court, capitalize=True)}'s loyalty as your vassal "
+        # AU-10's sibling: mid-quote, so the article lower-case and SRX-22's possessive
+        from backend.display_names import possessive
+        parts.append(f"{possessive(_court(world, court))} loyalty as your vassal "
                      f"{before} → {after}")
     return {"op": "loyalty", "delta": delta, "courts": rows, "refusal": "",
             "line": "; ".join(parts)}

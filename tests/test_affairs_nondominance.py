@@ -39,7 +39,13 @@ H1 = "santo_domingo"
 # admit them (E1 at war with corps quartered on Bavaria, E2 while the pool
 # sits at the boot's 50 %, E3 at the hoarder's golden peace).
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
-TEMPLATES = (T1, T2, T3, H1, E1, E2, E3)
+# AU-2c (November 4, 2026; AUTHORITY_CURRENCY_SPEC.md §5.4): the two letters
+# whose refusal is priced in authority alone — the Bank's Panic (a war that
+# outruns the chest) and the Pope's Refusal (the war with Britain, the user's
+# word). Authored and held out of the deck until armed (`standing.letters_armed`
+# down); the `armed` fixture below measures them UP, as the review record does.
+B1, P1 = "the_bank", "the_popes_ports"
+TEMPLATES = (T1, T2, T3, H1, E1, E2, E3, B1, P1)
 PURSES = ("gold", "dp", "admin")
 
 
@@ -59,6 +65,8 @@ def _restore_active_world():
 @pytest.fixture
 def armed(monkeypatch):
     C.board_env(monkeypatch)
+    from backend.game_logic import standing
+    monkeypatch.setattr(standing, "letters_armed", lambda *a, **k: True)   # AU-2c measured up
     world = M.world
     world.moments = MO.from_block(json.loads(FIXTURE.read_text(encoding="utf-8")))
     return world
@@ -98,7 +106,21 @@ def _spent(world):
     world.authority_tracker.authority = 72
 
 
-BOARDS = {"hoarder": _hoarder, "expander": _expander, "spent": _spent}
+def _strained(world):
+    """AU-2c: a France whose war outruns its chest — the 1805 boot's wars, the
+    corps raised 15 % over their muster (the upkeep's surcharge bites), 6,000
+    in the chest: the ledger's own forecast Net about −500, the chest gone in
+    eleven turns (the Bank's premise, genuinely). Standing 85."""
+    world.nation_gold["France"] = 6_000
+    world.diplomatic_points = 4
+    world.admin_actions_remaining = 2
+    for m in world.marshals.values():
+        if m.nation == "France" and not getattr(m, "is_sovereign", False):
+            m.strength = int(m.strength * 1.15)
+    world.authority_tracker.authority = 85
+
+
+BOARDS = {"hoarder": _hoarder, "expander": _expander, "spent": _spent, "strained": _strained}
 
 
 def _quarter(world, names=("Ney", "Davout"), region="Swabia"):
@@ -118,6 +140,8 @@ OCC = {
     E1: {"id": "the_magazines#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
     E2: {"id": "the_remounts#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
     E3: {"id": "camps_of_instruction#1", "lord": "France", "bind": {}, "tier": 1, "turn": 7},
+    B1: {"id": "the_bank#1", "lord": "France", "bind": {}, "tier": 1, "turn": 16},
+    P1: {"id": "the_popes_ports#1", "lord": "France", "bind": {}, "tier": 1, "turn": 12},
 }
 
 
@@ -207,10 +231,20 @@ class TestEachAnswerIsTheBetterOneSomewhere:
         above the bar."""
         boards = sorted(b for t, b in MEASURED if t == template)
         assert boards, template
+        # AU-2c adds the strained board (a genuine war-time deficit): the Host
+        # meets it too (the corps quartered on Bavaria, the clamp at any standing)
         if template == T2:
-            assert boards == ["expander", "hoarder", "spent"]
+            assert boards == ["expander", "hoarder", "spent", "strained"]
         if template == T1:
             assert boards == ["expander"]
+        # AU-2c: the Bank only where the war outruns the chest — the expander's
+        # corps on campaign pay in Swabia (the forecast Net −1,124 on 12,000:
+        # ten turns) and the strained board; the Pope on every board at war
+        # with Britain above the floor's room for a −5
+        if template == B1:
+            assert boards == ["expander", "strained"]
+        if template == P1:
+            assert boards == ["expander", "strained"]
 
 
 class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:

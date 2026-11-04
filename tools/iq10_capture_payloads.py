@@ -2131,6 +2131,54 @@ def cap_moments():
                     "on turn 7 — under AU-2a's floor clause it would not have arrived"),
            facts=affair_facts(popup))
 
+    # AU-2c (AUTHORITY_CURRENCY_SPEC.md §5.4, §6.4): the Bank's Panic and the
+    # Pope's Refusal, measured UP for the user's review before arming —
+    # `standing.letters_armed` held up in this staging alone (the shipped deck
+    # holds them out); each letter alone in the deck, so the pulse's first
+    # morning that finds it due delivers it.
+    from backend.game_logic import standing as _ST
+    _letters_armed = _ST.letters_armed
+    _ST.letters_armed = lambda *a, **k: True
+    try:
+        def _alone(w, template):
+            aff = w.moments["block"]["affairs"]
+            aff["deck"] = [e for e in aff["deck"] if e["id"] == template]
+
+        # the war outruns the chest: the corps raised 15 % over their muster on
+        # 6,000 — the ledger's own forecast Net runs the chest dry in eleven turns
+        def bank_board(w):
+            _alone(w, "the_bank")
+            w.nation_gold["France"] = 6_000
+            for m in w.marshals.values():
+                if m.nation == "France" and not getattr(m, "is_sovereign", False):
+                    m.strength = int(m.strength * 1.15)
+            w.authority_tracker.authority = 90
+
+        world, c, popup = stage_affair("the_bank#1", range(1, 8), bank_board)
+        record("affair_letter_the_bank", popup, source="GET /pending_envoy → incoming_proposal",
+               staging=("1805 boot; the staged recurring deck with the Bank's Panic alone in it and "
+                        "`standing.letters_armed` held UP (the review's arm); France's corps raised 15% "
+                        "over their muster and the chest WRITTEN to 6000 (a genuine forecast deficit), "
+                        "authority 90; the production moments.tick delivered it on the pulse's first "
+                        "morning"),
+               facts=affair_facts(popup))
+
+        # at war with Britain twelve mornings, the Papal court standing outside the System
+        def pope_board(w):
+            _alone(w, "the_popes_ports")
+            w.nation_gold["France"] = 5_000
+            w.authority_tracker.authority = 90
+
+        world, c, popup = stage_affair("the_popes_ports#1", range(1, 13), pope_board)
+        record("affair_letter_the_popes_ports", popup, source="GET /pending_envoy → incoming_proposal",
+               staging=("1805 boot; the staged recurring deck with the Pope's Refusal alone in it and "
+                        "`standing.letters_armed` held UP (the review's arm); France at war with Britain "
+                        "from the boot, the chest WRITTEN to 5000, authority 90; the production "
+                        "moments.tick delivered it on the first pulse after twelve mornings"),
+               facts=affair_facts(popup))
+    finally:
+        _ST.letters_armed = _letters_armed
+
     # Berthier's door: at war four turns running with the chest above the bar
     def door_board(w):
         w.nation_gold["France"] = 20_000

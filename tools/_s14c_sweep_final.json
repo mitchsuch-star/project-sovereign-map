@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "419bf4ecc992987508c2ebb2ac0f941440951214549ccfa61fbc0daaa08f7dfb",
+ "deck_sha": "ad6142bedadbc1221cf38e82c82d5d44cea0e1ad47e7b298781657dbbf5e1f13",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -19,7 +19,9 @@
   "santo_domingo",
   "the_magazines",
   "the_remounts",
-  "camps_of_instruction"
+  "camps_of_instruction",
+  "the_bank",
+  "the_popes_ports"
  ],
  "sweep": {
   "armA_historical_run1": {
@@ -174,6 +176,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -387,6 +407,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -657,6 +695,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -888,6 +944,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -1128,6 +1202,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -1402,6 +1494,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -1625,6 +1735,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -1856,6 +1984,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -2121,6 +2267,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -2406,6 +2570,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -2666,6 +2848,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -2872,6 +3072,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -3157,6 +3375,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -3415,6 +3651,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 35
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
     }
    },
    "edicts": {
@@ -3582,6 +3836,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -3867,6 +4139,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -4080,6 +4370,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 40
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 40
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -4305,6 +4613,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 37
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
     }
    },
    "edicts": {
@@ -4463,6 +4789,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -4710,6 +5054,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -4950,6 +5312,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -5279,6 +5659,24 @@
      "premise_mornings": 18,
      "first_due": 29,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -5597,6 +5995,24 @@
      "premise_mornings": 19,
      "first_due": 22,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -5794,7 +6210,7 @@
        "answer": "decline",
        "gold": 0,
        "standing": 0,
-       "quote": "Live off the land: Authority 52 → 52 — nothing is taken: the Emperor's grip (52) is under the floor of 71; The Kingdom of Italy's loyalty as your vassal 100 → 98.",
+       "quote": "Live off the land: Authority 52 → 52 — nothing is taken: the Emperor's grip (52) is under the floor of 71; the Kingdom of Italy's loyalty as your vassal 100 → 98.",
        "figures": [
         {
          "op": "authority",
@@ -5882,6 +6298,24 @@
      "answers": [],
      "crowded": [],
      "premise_mornings": 2,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
     }
@@ -6001,6 +6435,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 4
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 4
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 4
     }
    },
    "edicts": {
@@ -6096,6 +6548,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 3
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 3
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6242,6 +6712,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 11
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
     }
    },
    "edicts": {
@@ -6368,6 +6856,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6562,6 +7068,24 @@
      "answers": [],
      "crowded": [],
      "premise_mornings": 4,
+     "first_due": null,
+     "last_morning": 19
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 19
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
      "first_due": null,
      "last_morning": 19
     }
@@ -6874,6 +7398,24 @@
      "premise_mornings": 25,
      "first_due": 22,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -7180,6 +7722,24 @@
      "crowded": [],
      "premise_mornings": 18,
      "first_due": 29,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
      "last_morning": 41
     }
    },
@@ -7511,6 +8071,24 @@
      "premise_mornings": 19,
      "first_due": 22,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -7797,6 +8375,24 @@
      "premise_mornings": 2,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -8043,6 +8639,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 40
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 40
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 40
     }
    },
    "edicts": {
@@ -8197,6 +8811,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -8386,6 +9018,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 26
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 26
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -8642,6 +9292,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 38
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
     }
    },
    "edicts": {
@@ -8875,6 +9543,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9179,6 +9865,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -9408,6 +10112,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 30
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 30
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9710,6 +10432,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 35
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
     }
    },
    "edicts": {
@@ -9902,6 +10642,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 23
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 23
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -10168,6 +10926,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -10480,6 +11256,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -10819,6 +11613,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -11131,6 +11943,24 @@
      "premise_mornings": 12,
      "first_due": 35,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -11277,6 +12107,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 32
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 32
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -11466,6 +12314,24 @@
      "premise_mornings": 6,
      "first_due": 27,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -11624,6 +12490,24 @@
      "premise_mornings": 8,
      "first_due": 27,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -11776,6 +12660,24 @@
      "crowded": [],
      "premise_mornings": 20,
      "first_due": 27,
+     "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
      "last_morning": 41
     }
    },
@@ -12031,6 +12933,24 @@
      "premise_mornings": 8,
      "first_due": 27,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -12169,6 +13089,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 36
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 36
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12442,6 +13380,24 @@
      "premise_mornings": 0,
      "first_due": null,
      "last_morning": 41
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -12619,6 +13575,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 31
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 31
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12847,6 +13821,24 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
+    "the_bank": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
+    "the_popes_ports": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],

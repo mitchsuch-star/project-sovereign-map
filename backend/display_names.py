@@ -1751,6 +1751,14 @@ def with_definite_article(name: str, capitalize: bool = False) -> str:
     return f"{'The' if capitalize else 'the'} {clean}"
 
 
+def possessive(name: str) -> str:
+    """"Bavaria's", "the Kingdom of Italy's", "the Papal States'" — SRX-22's
+    rule, one source for the letters (AU-10: the moments' lines wrote "The
+    Papal States's goodwill")."""
+    name = str(name or "")
+    return f"{name}'" if name.endswith("s") else f"{name}'s"
+
+
 # LV-9 (row EP F2, Sept 25 2026): "1 unanswered envoy(s)", "1 turns left",
 # "1 more port(s)". The `(s)` hedge was a hand-rolled literal at fourteen
 # client sites and two private backend helpers (`emergent_designs._turns`,

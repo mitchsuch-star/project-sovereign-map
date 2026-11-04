@@ -42,6 +42,12 @@ HAITI_ARMS = ("HAITI-historical", "HAITI-austerlitz", "HAITI-marengo")
 # letters (`road_control` the shipped default, `road_letters` the letters alone).
 TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
              "the_magazines", "the_remounts", "camps_of_instruction")
+# AU-2c (November 4, 2026; AUTHORITY_CURRENCY_SPEC.md §6.4): the Bank's Panic and
+# the Pope's Refusal, authored in the deck and HELD OUT until the user's word arms
+# them — the record lists them and reads "not in the deck (held out)" on every
+# run of the shipped tree; their armed reach is the review record's
+# (`tools/_affairs_au2c_letters.json`)
+HELD_OUT = ("the_bank", "the_popes_ports")
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
@@ -69,7 +75,7 @@ class TestTheRecordMeasuredTheArmedDeck:
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert "affairs" in block, "the deck is not armed"
         assert record["deck_sha"] == deck_sha(block), "the deck changed: re-measure (tools/_affairs_measure.py)"
-        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(TEMPLATES)
+        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(TEMPLATES + HELD_OUT)
 
     def test_every_family_was_measured_with_the_trace(self, record):
         assert set(record["reach_aar"]) == {"REACH-AAR"}
@@ -77,7 +83,9 @@ class TestTheRecordMeasuredTheArmedDeck:
         assert set(record["haiti"]) == set(HAITI_ARMS)
         for family, name, row in _rows(record):
             assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
-            assert list(row["affairs_reach"]) == list(TEMPLATES), (family, name)
+            assert list(row["affairs_reach"]) == list(TEMPLATES + HELD_OUT), (family, name)
+            for template in HELD_OUT:
+                assert row["affairs_reach"][template]["verdict"] == "not in the deck (held out)", (family, name)
 
 
 class TestTheCeilingsAndTheFloorsHoldArmed:
@@ -458,7 +466,14 @@ class TestTheRecordToolReadsTheTrace:
         assert out["chancellors_letters"]["occurrences"] == ["chancellors_letters#1 arrived T15, lapsed T16 (its decline)"]
         assert out["berthiers_memorial"]["verdict"] == "crowded"
         assert out["berthiers_memorial"]["crowded"] == ["berthiers_memorial#1 crowded out (crowded)"]
-        assert out["haiti"]["verdict"] == "premise never held" and out["haiti"]["occurrences"] == []
+        # AU-2c (November 4, 2026): a template no morning READ (neither `true` nor
+        # `false`) was not in the deck — the synthetic trace reads "haiti" nowhere;
+        # read false every morning, it is the premise that never held
+        assert out["haiti"]["verdict"] == "not in the deck (held out)" and out["haiti"]["occurrences"] == []
+        trace = self._trace()
+        for m in trace["mornings"]:
+            m["affairs"]["false"] = ["haiti"]
+        assert affairs_reach(trace, ["haiti"])["haiti"]["verdict"] == "premise never held"
         assert out["the_host"]["premise_mornings"] == 20 and out["chancellors_letters"]["premise_mornings"] == 6
         assert out["the_host"]["first_due"] == 13 and out["berthiers_memorial"]["first_due"] == 16
 

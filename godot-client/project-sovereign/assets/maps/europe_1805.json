@@ -3183,6 +3183,143 @@
                         "ops": [],
                         "remember": "In {month} the camps waited; the Minister of War writes again."
                     }
+                },
+                {
+                    "id": "the_bank",
+                    "kind": "affair",
+                    "shape": "bill",
+                    "title": "The Bank's Panic",
+                    "source": "research — the Banque de France in the autumn of 1805: the run on its notes in Paris and its payments in specie rationed while the Treasury's cash went to the army; the Emperor back in Paris on 26 January 1806, Barbé-Marbois dismissed the next day and Mollien named to the Treasury (Mollien, Mémoires d'un ministre du Trésor public; Fondation Napoléon)",
+                    "scope": "owner",
+                    "roads": [
+                        "any"
+                    ],
+                    "when": {
+                        "predicate": "chest_strained",
+                        "within": 20,
+                        "min_purse": 1000
+                    },
+                    "streak": 3,
+                    "latch": {
+                        "of": 12,
+                        "at_least": 4
+                    },
+                    "bites": "floor",
+                    "since": "AU-2c",
+                    "cooldown": 12,
+                    "cap": 2,
+                    "grace": 4,
+                    "voice": {
+                        "speaker": "named",
+                        "name": "Regents of the Bank of France"
+                    },
+                    "record": "Historically the Bank's notes ran in Paris through the autumn of 1805 while the Treasury's cash went to the army; back from Austerlitz on 26 January 1806, the Emperor dismissed Barbé-Marbois and gave the Treasury to Mollien.",
+                    "line": "Sire, the Bank's notes come back faster than its cellars can pay them; the Treasury owes the Bank in paper, and the regents ask to be repaid in coin.",
+                    "watch": "The chest ran short at war {n} of the last 12 mornings — the Bank's regents may write.",
+                    "counsel": "Gaudin — The Bank lives on the confidence it lends, Sire; repay it in coin and its notes pass at par by the spring.",
+                    "accept": {
+                        "caption": "Pay the Bank in coin",
+                        "button_line": "−{gold} gold · 1 action ({admin_left} left)",
+                        "ops": [
+                            {
+                                "op": "gold",
+                                "amount": 1000
+                            },
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            }
+                        ],
+                        "echo": "The regents: the Treasury's coin is in the Bank's cellars; its notes pass at par on the exchange.",
+                        "situation": "The Treasury has repaid the Bank in coin; its notes pass at par again.",
+                        "press": "PARIS — The Bank of France resumes its payments in specie; its notes pass at par.",
+                        "remember": "In {month} you repaid the Bank in coin; its regents write again."
+                    },
+                    "decline": {
+                        "caption": "Let the notes fall",
+                        "button_line": "authority {authority_before} → {authority_after}",
+                        "ops": [
+                            {
+                                "op": "authority",
+                                "amount": -4
+                            }
+                        ],
+                        "echo": "The regents: the Bank pays a part of its notes in coin; the exchange discounts the rest.",
+                        "situation": "The Bank's notes are discounted on the Paris exchange; Paris remarks that the Treasury could not pay.",
+                        "press": "PARIS — The Bank of France limits its payments in specie; its notes are discounted.",
+                        "remember": "In {month} you let the Bank's notes fall; its regents write again."
+                    }
+                },
+                {
+                    "id": "the_popes_ports",
+                    "kind": "affair",
+                    "shape": "bill",
+                    "title": "The Pope's Refusal",
+                    "source": "research #16 (RECURRING_EVENTS_SPEC.md §6.2) — French troops in Ancona from November 1805; Napoleon to Pius VII, 13 February 1806, \"You are sovereign in Rome, but I am its Emperor\" (napoleon.org's wording); the Pope's refusal of March 1806 to shut his ports to the British; the Papal States annexed by the decree of 17 May 1809",
+                    "scope": "owner",
+                    "roads": [
+                        "any"
+                    ],
+                    "when": {
+                        "predicate": "ports_defied",
+                        "court": "PapalStates",
+                        "min_purse": 800
+                    },
+                    "streak": 12,
+                    "bites": "floor",
+                    "since": "AU-2c",
+                    "cooldown": 30,
+                    "cap": 2,
+                    "grace": 4,
+                    "ends": {
+                        "date": "1809-05-17",
+                        "turn": 89
+                    },
+                    "voice": {
+                        "speaker": "named",
+                        "name": "Caprara, Cardinal Legate"
+                    },
+                    "record": "Historically French troops held Ancona from November 1805; on 13 February 1806 the Emperor wrote to Pius VII, \"You are sovereign in Rome, but I am its Emperor,\" and in March the Pope refused to shut his ports.",
+                    "line": "Sire, His Holiness answers that the common father of the faithful has no enemies: the ports of the Church stay open to every flag, the English among them.",
+                    "watch": "At war with Britain: {m} of 12 mornings — Caprara may write of the Pope's ports.",
+                    "counsel": "Talleyrand — Ancona costs a battalion and the Pope's goodwill, Sire; a refusal left standing costs the Emperor's word in every port.",
+                    "accept": {
+                        "caption": "Occupy the ports",
+                        "button_line": "−{gold} gold · 1 action · Rome {relation_before} → {relation_after}",
+                        "ops": [
+                            {
+                                "op": "gold",
+                                "amount": 800
+                            },
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            },
+                            {
+                                "op": "relation",
+                                "court": "PapalStates",
+                                "delta": -10
+                            }
+                        ],
+                        "echo": "Caprara: the Holy Father protests the occupation of his ports to every court of Europe.",
+                        "situation": "French troops hold Ancona and Civitavecchia; the Pope's ports are shut to the English.",
+                        "press": "ROME — French troops garrison the ports of the Papal States.",
+                        "remember": "In {month} you occupied the Pope's ports; Caprara writes again."
+                    },
+                    "decline": {
+                        "caption": "Let the Pope refuse",
+                        "button_line": "authority {authority_before} → {authority_after}",
+                        "ops": [
+                            {
+                                "op": "authority",
+                                "amount": -5
+                            }
+                        ],
+                        "echo": "Caprara: the Holy Father thanks Your Majesty; the ports of the Church stay open to every flag.",
+                        "situation": "English goods land at Civitavecchia; the courts remark that the Pope refused the Emperor.",
+                        "press": "ROME — English ships are seen again at Civitavecchia.",
+                        "remember": "In {month} you let the Pope refuse; Caprara writes again."
+                    }
                 }
             ]
         }

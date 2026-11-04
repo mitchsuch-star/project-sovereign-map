@@ -141,20 +141,34 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4, §5.8): deck content a slice added that
 # a series arm may hold down to the tree before it — an op's `since`, an
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
-SINCE_ROWS = ("AU-2a", "AU-2b")
+# AU-2c: an ENTRY's own `since` holds the whole template out of the deck
+# (`moments.affairs_deck`) while its row is unarmed.
+SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c")
 
 
 def row_armed(row: str) -> bool:
     """The seam behind a row's deck content: AU-2a's is `standing.hits_armed`
     (the Chancellor's floor clause, the Host's authority op); AU-2b's is
-    `standing.sources_armed` (the ceremonies' op, the Show's two Acts)."""
+    `standing.sources_armed` (the ceremonies' op, the Show's two Acts);
+    AU-2c's is `standing.letters_armed` (the Bank's and the Pope's letters,
+    authored and held out until the user's word arms them)."""
     if row == "AU-2a":
         from backend.game_logic import standing
         return bool(standing.hits_armed())
     if row == "AU-2b":
         from backend.game_logic import standing
         return bool(standing.sources_armed())
+    if row == "AU-2c":
+        from backend.game_logic import standing
+        return bool(standing.letters_armed())
     return True
+
+
+def entry_armed(e: Dict[str, Any]) -> bool:
+    """AU-2c: a template authored `since` a row is in the deck only while
+    that row is armed (the whole entry, not a clause of it)."""
+    since = str((e or {}).get("since") or "")
+    return not since or row_armed(since)
 
 
 def op_armed(op: Dict[str, Any]) -> bool:
@@ -537,6 +551,73 @@ def _camps_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"holds": True, "bind": {}, "measure": None, "latch": False}
 
 
+def _at_war(world, lord: str, where: str) -> bool:
+    try:
+        return bool(world.get_nations_at_war_with(lord))
+    except Exception as exc:
+        report(exc, f"affairs.{where}: world.get_nations_at_war_with")
+        return False
+
+
+def _chest_strained(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """AU-2c the Bank's Panic (AUTHORITY_CURRENCY_SPEC.md §5.4): the chest
+    strained at war. The LATCH bit first — at war, the ledger's forecast Net
+    (`ledger.chest_forecast`, THE one projection of the chest after this
+    turn) in deficit deep enough to empty the chest within `within` turns —
+    returned whether or not the rest holds, so `update_morning` shifts the
+    12-bit mask (the Haiti letter's idiom: a strain that eases for a morning
+    keeps its count, where a premise of the deficit itself reset its streak
+    and lost every pulse to the older matters — 0 arrivals on 55 runs, §6.4);
+    then the premise proper: at war, the purse at or above `min_purse` + the
+    AI's own reserve (the Accept payable). A rich chest in deficit does not
+    strain — the Charges draw more from a fuller chest by design (EB-1). The
+    forecast walks the lord's own provinces only, as the ledger does each
+    morning (Rule 8)."""
+    from backend.game_logic.instruments import purse_of
+    from backend.game_logic.reforms import AI_PURSE_RESERVE
+    out = _no()
+    if not _at_war(world, lord, "_chest_strained"):
+        return out
+    from backend.game_logic.ledger import chest_forecast
+    forecast = chest_forecast(world, lord)
+    chest, net = int(forecast.get("chest", 0) or 0), int(forecast.get("net", 0) or 0)
+    out["latch"] = net < 0 and chest + int(params.get("within", 20) or 20) * net < 0
+    if int(purse_of(world, lord)[1]) < int(params.get("min_purse", 1000) or 1000) + int(AI_PURSE_RESERVE):
+        return out
+    out.update({"holds": True, "measure": None})
+    return out
+
+
+def _ports_defied(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """AU-2c the Pope's Refusal (§5.4; the user's word of November 4, 2026,
+    "War with Britain" — the Berlin Decree's premise never held on a measured
+    run): the lord at war with the trade-dominant power
+    (`naval.trade_dominance_nation`, the Haiti letter's own read), the named
+    `court` standing — active, neither the lord's client nor at war with him,
+    outside the System (`continental_system_members`) — and the purse at or
+    above `min_purse` + the AI's own reserve. The measure is the streak. A
+    handful of state lookups, no region scan (Rule 8)."""
+    from backend.game_logic import naval
+    from backend.game_logic.instruments import purse_of
+    from backend.game_logic.reforms import AI_PURSE_RESERVE
+    court = str(params.get("court") or "")
+    target = naval.trade_dominance_nation(world)
+    if not court or court == lord or not target or not world.is_at_war(lord, target):
+        return _no()
+    if court not in world.get_active_nations():
+        return _no()
+    row = (getattr(world, "vassals", {}) or {}).get(court)
+    if isinstance(row, dict) and row.get("lord") == lord:
+        return _no()
+    if world.get_diplomatic_state(lord, court) == "WAR":
+        return _no()
+    if court in (getattr(world, "continental_system_members", None) or []):
+        return _no()
+    if int(purse_of(world, lord)[1]) < int(params.get("min_purse", 800) or 800) + int(AI_PURSE_RESERVE):
+        return _no()
+    return {"holds": True, "bind": {}, "measure": None, "latch": False}
+
+
 PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "sovereign_afield": _sovereign_afield,
     "corps_on_host": _corps_on_host,
@@ -546,6 +627,9 @@ PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "magazines_wanted": _magazines_wanted,
     "remounts_wanted": _remounts_wanted,
     "camps_wanted": _camps_wanted,
+    # AU-2c: the Bank's Panic and the Pope's Refusal (AUTHORITY_CURRENCY_SPEC.md §5.4)
+    "chest_strained": _chest_strained,
+    "ports_defied": _ports_defied,
 }
 # The parameters each predicate requires (the validator reads them).
 PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
@@ -556,11 +640,13 @@ PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
     "magazines_wanted": ("edict",),
     "remounts_wanted": ("edict",),
     "camps_wanted": ("edict",),
+    "chest_strained": ("within", "min_purse"),
+    "ports_defied": ("court", "min_purse"),
 }
 OFFER_PREDICATES = ("magazines_wanted", "remounts_wanted", "camps_wanted")
 # The predicates whose `watch` and board count a LATCH (`{n}` = the set bits
 # of the mask) rather than a streak or a corps count.
-LATCHED_PREDICATES = ("colony_cut_off",)
+LATCHED_PREDICATES = ("colony_cut_off", "chest_strained")
 
 
 def _lord_of(world, e: Dict[str, Any]) -> str:
@@ -1366,11 +1452,14 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
         host = str(bind.get("host") or "")
         if not host:
             return []
+        from backend.display_names import possessive
         from backend.game_logic.diplomacy import STATE_RELATION_THRESHOLDS
         corps = int(read.get("measure") or 0) if (read.get("bind") or {}).get("host") == host else 0
         state = world.get_diplomatic_state(lord, host)
-        display = MO._court(world, host, capitalize=True)
-        lines = [f"{corps} of your corps stand on {display}'s soil ({MO._standing(world, lord, host)}, "
+        # AU-10's sibling: the host sits mid-sentence ("stand on the Kingdom of
+        # Italy's soil", never "on The Kingdom of Italy's")
+        display = possessive(MO._court(world, host))
+        lines = [f"{corps} of your corps stand on {display} soil ({MO._standing(world, lord, host)}, "
                  f"goodwill {MO._relation(world, lord, host)}); tier {int(occ.get('tier') or 1)}."]
         threshold = STATE_RELATION_THRESHOLDS.get(state)
         if threshold is not None and MO._vassal_row(world, host, lord) is None:
@@ -1390,6 +1479,29 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
         return _board_colony_cut_off(world, e, occ, lord, bind, read)
     if predicate in OFFER_PREDICATES:
         return _board_offer(world, e, lord, read, streak)
+    if predicate == "chest_strained":
+        # AU-2c the Bank: the latch's count, then this morning's figures — the one forecast
+        from backend.game_logic.ledger import chest_forecast
+        of = int((e.get("latch") or {}).get("of", 12) or 12)
+        lines = [f"At war, the chest ran short {latch_count(world, e)} of the last {of} mornings."]
+        forecast = chest_forecast(world, lord)
+        chest, net = int(forecast.get("chest", 0) or 0), int(forecast.get("net", 0) or 0)
+        if net >= 0:
+            lines.append(f"This morning the chest holds {chest:,} gold and the forecast Net is "
+                         f"+{net:,} a turn.")
+        else:
+            lines.append(f"This morning the chest holds {chest:,} gold against a deficit of {-net:,} "
+                         f"a turn: at this rate it runs dry in {chest // -net} turns.")
+        return lines
+    if predicate == "ports_defied":
+        # AU-2c the Pope: the war with the trade-dominant power, the court's ports open
+        from backend.game_logic import naval
+        court = str(when.get("court") or "")
+        target = naval.trade_dominance_nation(world)
+        war = (f"At war with {MO._court(world, target)} {streak} mornings running"
+               if target and streak else "The war with the sea's master")
+        return [f"{war}; the ports of {MO._court(world, court)} stay open outside the System "
+                f"({MO._standing(world, lord, court)}, goodwill {MO._relation(world, lord, court)})."]
     return []
 
 
@@ -1438,7 +1550,8 @@ def _board_colony_cut_off(world, e, occ, lord: str, bind: Dict[str, Any],
     ours = int(naval.effective_strength(rec))
     hunter, coverage = naval.blockader_against(world, lord)
     if hunter:
-        lines.append(f"{MO._court(world, hunter, capitalize=True)}'s squadrons hold the coast: "
+        from backend.display_names import possessive
+        lines.append(f"{possessive(MO._court(world, hunter, capitalize=True))} squadrons hold the coast: "
                      f"{int(coverage)} sail effective against our {ours}.")
     else:
         lines.append(f"No enemy squadron holds the coast this morning; {ours} sail effective in port.")

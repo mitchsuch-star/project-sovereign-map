@@ -38,6 +38,10 @@ from tests._standing_seams import STANDING_SEAMS_BY_ROW  # noqa: E402
 
 SEAMS = tuple(STANDING_SEAMS_BY_ROW)
 ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
+# AU-2c: a seam DOWN by default (`standing.letters_armed`, the letters authored
+# and not armed) is measured UP on its own arm — every other seam as shipped
+ARMS["AUL+"] = set()
+UP_ARMS = {"AUL+": {"AUL"}}
 
 CHILD = r"""
 import sys, runpy, atexit, collections
@@ -141,11 +145,30 @@ def _counted_regrow(world, lord, amount, cause, key, *a, **k):
     return out
 ST.te_deum_on_peace, ST.bulletin, ST.the_return, ST.honour_repaid, ST.regrow = (
     _counted_te, _counted_bul, _counted_ret, _counted_hon, _counted_regrow)
+# AU-2c the Bank and the Pope: the seam AUL — DOWN by default (authored, not
+# armed); the AUL+ arm forces it UP; its reach counted
+UP = set({up!r})
+_letters = ST.letters_armed
+def _counted_letters():
+    _c["letters_reads"] += 1
+    if "AUL" in DOWN:
+        return False
+    return True if "AUL" in UP else _letters()
+ST.letters_armed = _counted_letters
+_deliver = AF._deliver
+def _counted_deliver(world, cand, turn):
+    out = _deliver(world, cand, turn)
+    tid = str(((cand or {{}}).get("e") or {{}}).get("id") or "")
+    if tid in ("the_bank", "the_popes_ports"):
+        _c[tid + "_delivered"] += 1
+    return out
+AF._deliver = _counted_deliver
 _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "hits_reads", "claims_reads", "breach_reads", "claims_billed", "breaches_booked", "amends_repaid",
          "host_ops_planned", "host_ops_held",
          "sources_reads", "te_deums", "bulletins", "points_repaid", "returns", "paybacks",
-         "ceremonies", "acts_shown", "au2b_content_armed", "au2b_content_held")
+         "ceremonies", "acts_shown", "au2b_content_armed", "au2b_content_held",
+         "letters_reads", "the_bank_delivered", "the_popes_ports_delivered")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)
@@ -154,7 +177,7 @@ runpy.run_path(r"{runner}", run_name="__main__")
 """
 
 
-def run_arm(down: set) -> dict:
+def run_arm(down: set, up: set = frozenset()) -> dict:
     env = dict(os.environ)
     env["PYTHONHASHSEED"] = "0"
     env["PYTHONPATH"] = str(ROOT)
@@ -162,7 +185,7 @@ def run_arm(down: set) -> dict:
     env["LLM_MODE"] = "mock"
     for k in ("SOVEREIGN_SCENARIO", "SOVEREIGN_MAP", "PYTHONIOENCODING", "PYTHONDONTWRITEBYTECODE"):
         env.pop(k, None)
-    code = CHILD.format(down=sorted(down), runner=str(RUNNER))
+    code = CHILD.format(down=sorted(down), up=sorted(up), runner=str(RUNNER))
     proc = subprocess.run([sys.executable, "-c", code], env=env, cwd=str(ROOT),
                           capture_output=True, timeout=3600)
     stdout = proc.stdout.decode("utf-8", errors="replace")
@@ -201,13 +224,14 @@ def main() -> int:
     args = ap.parse_args()
     prior = prior_series()
     names = [x.strip() for x in args.arms.split(",") if x.strip()]
-    out = {"prior": prior, "seams_down": {k: sorted(ARMS[k]) for k in names}, "arms": {}}
+    out = {"prior": prior, "seams_down": {k: sorted(ARMS[k]) for k in names},
+           "seams_up": {k: sorted(UP_ARMS.get(k, ())) for k in names if UP_ARMS.get(k)}, "arms": {}}
     with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        results = dict(zip(names, pool.map(lambda a: run_arm(ARMS[a]), names)))
+        results = dict(zip(names, pool.map(lambda a: run_arm(ARMS[a], UP_ARMS.get(a, frozenset())), names)))
     for arm in names:
         payload = results[arm]
         series = payload["series"]
-        out["arms"][arm] = {"down": sorted(ARMS[arm]), "series": series,
+        out["arms"][arm] = {"down": sorted(ARMS[arm]), "up": sorted(UP_ARMS.get(arm, ())), "series": series,
                             "first_divergence_vs_prior": first_divergence(series, prior),
                             "reach": payload.get("reach")}
         print(f"arm {arm:>4}: divergence vs prior {out['arms'][arm]['first_divergence_vs_prior']}"

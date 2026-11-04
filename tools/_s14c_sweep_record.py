@@ -189,10 +189,13 @@ def affairs_reach(trace: dict, templates: list) -> dict:
         withdrawn = {}
         fates = {}
         held = 0
+        read = 0          # AU-2c: the mornings the engine READ the premise (true or false)
         for m in mornings:
             frame = m.get("affairs") or {}
             if template in (frame.get("true") or []):
                 held += 1
+            if template in (frame.get("true") or []) or template in (frame.get("false") or []):
+                read += 1
             for occ in frame.get("withdrawn") or []:
                 if str(occ).startswith(prefix):
                     withdrawn[str(occ)] = int(m.get("turn", 0))
@@ -233,6 +236,11 @@ def affairs_reach(trace: dict, templates: list) -> dict:
             word = "due, " + ("released" if verdicts == ["released"] else "pending")
         elif held:
             word = f"never due (premise held {held} morning{'' if held == 1 else 's'})"
+        elif mornings and not read:
+            # AU-2c: a template authored `since` an unarmed row is held out of the
+            # deck WHOLE — no morning read it, so it is "not in the deck", never
+            # a premise that failed (the Bank's and the Pope's letters, unarmed)
+            word = "not in the deck (held out)"
         else:
             word = "premise never held"
         out[template] = {"verdict": word, "occurrences": lines, "answers": answers, "crowded": crowded,

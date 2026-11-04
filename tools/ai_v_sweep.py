@@ -1463,6 +1463,10 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.run:
+        # AU-2c: a seam held down by default is measured up through the
+        # environment the children inherit (`tools/_seams_env.py`)
+        from tools._seams_env import apply_from_env
+        apply_from_env()
         digest = run_one(args.seed, args.ambient_base, args.turns,
                          script=args.script)
         if args.json_out:

@@ -1761,6 +1761,22 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
             if not isinstance(navy, dict) or int(navy.get("ships", 0) or 0) <= 0:
                 result.add_error(f"{path}.when.predicate",
                                  "colony_cut_off needs the owner's `navies` row with ships")
+        # AU-2c (AUTHORITY_CURRENCY_SPEC.md §5.4): the Bank's horizon and purse,
+        # the Pope's court and purse, in band
+        if when.get("predicate") in ("chest_strained", "ports_defied") and "min_purse" in when:
+            _int_in(f"{path}.when.min_purse", when["min_purse"], 1, AF.AFFAIR_OP_BOUNDS["gold"][1])
+        if when.get("predicate") == "chest_strained" and "within" in when:
+            _int_in(f"{path}.when.within", when["within"], 4, 40)
+        if when.get("predicate") == "ports_defied" and when.get("court"):
+            if when["court"] == owner:
+                result.add_error(f"{path}.when.court", "Must name a court other than the owner")
+            else:
+                _court(f"{path}.when.court", when["court"])
+        # AU-2c: an entry's own `since` holds the whole template out of the
+        # deck while its row is unarmed (`affairs.entry_armed`)
+        if e.get("since") is not None and e.get("since") not in AF.SINCE_ROWS:
+            result.add_error(f"{path}.since",
+                             f"Must name a row of {list(AF.SINCE_ROWS)} (the slice whose seam arms the template)")
         _int_in(f"{path}.streak", e.get("streak", 1), *AF.STREAK_BOUNDS)
         cooldown = e.get("cooldown", 12)
         if _int_in(f"{path}.cooldown", cooldown, *AF.COOLDOWN_BOUNDS) and int(cooldown) < gap_value:

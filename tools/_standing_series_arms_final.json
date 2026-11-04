@@ -46,6 +46,7 @@
   "0": [
    "AUB",
    "AUK",
+   "AUL",
    "AUP",
    "AUS",
    "AUW"
@@ -65,17 +66,28 @@
   "AUS": [
    "AUS"
   ],
-  "ALL": []
+  "AUL": [
+   "AUL"
+  ],
+  "ALL": [],
+  "AUL+": []
+ },
+ "seams_up": {
+  "AUL+": [
+   "AUL"
+  ]
  },
  "arms": {
   "0": {
    "down": [
     "AUB",
     "AUK",
+    "AUL",
     "AUP",
     "AUS",
     "AUW"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -143,7 +155,10 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31526,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
@@ -151,6 +166,7 @@
    "down": [
     "AUB"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -218,7 +234,10 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
@@ -226,6 +245,7 @@
    "down": [
     "AUP"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -293,7 +313,10 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
@@ -301,6 +324,7 @@
    "down": [
     "AUK"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -368,7 +392,10 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
@@ -376,6 +403,7 @@
    "down": [
     "AUW"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -443,7 +471,10 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
@@ -451,6 +482,7 @@
    "down": [
     "AUS"
    ],
+   "up": [],
    "series": [
     70,
     68,
@@ -518,12 +550,18 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31526,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   },
-  "ALL": {
-   "down": [],
+  "AUL": {
+   "down": [
+    "AUL"
+   ],
+   "up": [],
    "series": [
     70,
     68,
@@ -591,7 +629,166 @@
      "ceremonies": 0,
      "acts_shown": 0,
      "au2b_content_armed": 0,
-     "au2b_content_held": 0
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
+    }
+   }
+  },
+  "ALL": {
+   "down": [],
+   "up": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 31554,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
+    }
+   }
+  },
+  "AUL+": {
+   "down": [],
+   "up": [
+    "AUL"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 32710,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0
     }
    }
   }

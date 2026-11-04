@@ -1490,6 +1490,22 @@ SHOTS += [
              "inside the sheet, and the unanswered line saying the same; at 2.0 the body scrolls (the "
              "quote below its fold, as the Host's own frame); the button 'Live off the land / auth N "
              "→ N · Bavaria N → N−4'; the three buttons in view at BOTH scales"),
+            # AU-2c (November 4, 2026): the two letters priced in authority alone, shot UP
+            # for the user's review before arming
+            ("the_bank", "The Bank's Panic (the Regents of the Bank of France)",
+             "the same dress under the monogram 'R'; line 2 'The Bank's Panic — Regents of the Bank "
+             "of France'; the record (the autumn of 1805, Barbé-Marbois and Mollien) in IM Fell "
+             "italic; the writer's line ('Sire, the Bank's notes come back faster…'); the buttons "
+             "'Pay the Bank in coin / −1,000 gold · 1 action (N left)' and 'Let the notes fall / "
+             "authority 90 → 86' and 'Not Now / waits on the desk'; Gaudin's counsel under the "
+             "buttons; both answers above the fold at BOTH scales"),
+            ("the_popes_ports", "The Pope's Refusal (Caprara, Cardinal Legate)",
+             "the same dress under Caprara's monogram 'C'; line 2 'The Pope's Refusal — Caprara, "
+             "Cardinal Legate'; the record (Ancona, 13 February 1806, March) in IM Fell italic; the "
+             "writer's line ('Sire, His Holiness answers…'); the buttons 'Occupy the ports / −800 "
+             "gold · 1 action · Rome -10 → -20' and 'Let the Pope refuse / authority 90 → 85' and "
+             "'Not Now / waits on the desk'; Talleyrand's counsel under the buttons; both answers "
+             "above the fold at BOTH scales"),
             ("berthiers_memorial", "Berthier's Memorial — the door (Berthier, Major-General)",
              "the same dress under Berthier's monogram 'B'; line 2 'Berthier's Memorial — Berthier, "
              "Major-General of the Grande Armée'; the board line (at war, the chest against the "

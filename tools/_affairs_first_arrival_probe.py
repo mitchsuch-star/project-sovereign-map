@@ -43,6 +43,8 @@ from backend.game_logic import moments as MO
 from backend.game_logic.turn_manager import TurnManager
 from backend.models.world_state import WorldState
 from tools._moments_trace import MomentsTrace
+from tools._seams_env import apply_from_env
+apply_from_env()      # AU-2c: an armed measure of a seam held down by default
 SEED, ARM, TURNS = {seed!r}, {arm!r}, {turns}
 SCENARIO = r"{scenario}"
 fixture = json.loads(open(r"{fixture}", encoding="utf-8").read())

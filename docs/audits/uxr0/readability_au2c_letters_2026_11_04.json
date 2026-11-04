@@ -1,0 +1,199 @@
+{
+ "date": "2026_11_04",
+ "source": "C:\\Users\\User\\AppData\\Local\\Temp\\iq10_client_pass\\run_au2c_physical\\index.json",
+ "surfaces": {
+  "affair_letter_the_bank": {
+   "surface": "An Affair of State — The Bank's Panic (the Regents of the Bank of France) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "affair_letter_the_popes_ports": {
+   "surface": "An Affair of State — The Pope's Refusal (Caprara, Cardinal Legate) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 6,
+      "red": 0,
+      "p1": 0,
+      "ok": 6,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "ca6dec23",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

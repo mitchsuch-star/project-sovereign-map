@@ -247,7 +247,10 @@ class TestTheDeck:
     def test_the_lockstep_of_fixture_and_scenario(self):
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert scenario["affairs"] == _block()["affairs"]
-        assert [e["id"] for e in scenario["affairs"]["deck"]][-3:] == list(OFFERS)
+        # AU-2c (November 4, 2026) appends the Bank's and the Pope's letters
+        # after the offers — two bills, held out of the deck until armed
+        assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == list(OFFERS)
+        assert [e["id"] for e in scenario["affairs"]["deck"]][-2:] == ["the_bank", "the_popes_ports"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
