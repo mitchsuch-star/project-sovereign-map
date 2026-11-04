@@ -98,7 +98,8 @@
         "roads": ["any"],
         "when": {"predicate": "sovereign_afield"},
         "streak": 6,
-        "bites": true,
+        "bites": "floor",
+        "bites_since": "AU-2a",
         "cooldown": 10,
         "cap": 2,
         "grace": 4,
@@ -137,6 +138,8 @@
         "roads": ["any"],
         "when": {"predicate": "corps_on_host", "min_corps": 2},
         "streak": 3,
+        "bites": "floor",
+        "bites_since": "AU-2a",
         "cooldown": 10,
         "cap": 2,
         "grace": 4,
@@ -165,8 +168,9 @@
         },
         "decline": {
           "caption": "Live off the land",
-          "button_line": "{Host} {relation_before} → {relation_after}",
+          "button_line": "auth {authority_before} → {authority_after} · {Host} {relation_before} → {relation_after}",
           "ops": [
+            {"op": "authority", "amount": -2, "tiers": {"2": -3, "3": -4}, "since": "AU-2a"},
             {"op": "relation", "court": "$host", "delta": -2, "unless": "vassal"},
             {"op": "loyalty", "court": "$host", "delta": -2}
           ],

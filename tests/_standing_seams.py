@@ -15,10 +15,19 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
     AUB  `standing.keeps_books`   — down: the writer passes the clamped figure
                                     through and books nothing (no ring row, no
                                     threshold event, no dent) — HEAD's store
+    AUP  `standing.hits_armed`    — AU-2a: the Chancellor's and the Host's floor
+                                    clause (`bites_since`) and the Host's authority
+                                    op (`since`) — down: the deck reads as before
+                                    AU-2a (the Chancellor `bites: true`, the Host's
+                                    Decline unpriced in authority)
+    AUK  `standing.claims_armed`  — AU-2a: the Claims of the Army on the dotation
+                                    tick — down: no claim is billed
+    AUW  `standing.breach_armed`  — AU-2a: the word broken (a breach's strikes) and
+                                    Make Amends' repayment — down: no dent, no
+                                    repayment, no quote on the confirm
 
-The later slices add their seams here as they land: AUP the Chancellor's
-floor (AU-2a), AUK the Claims (AU-2a), AUW the breach (AU-2a), AUS the
-sources (AU-2b), AUC the courts (AU-4).
+The later slices add their seams here as they land: AUS the sources (AU-2b),
+AUC the courts (AU-4).
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -28,6 +37,9 @@ import importlib
 
 STANDING_SEAMS_BY_ROW = {
     "AUB": ["backend.game_logic.standing:keeps_books=False"],
+    "AUP": ["backend.game_logic.standing:hits_armed=False"],
+    "AUK": ["backend.game_logic.standing:claims_armed=False"],
+    "AUW": ["backend.game_logic.standing:breach_armed=False"],
 }
 STANDING_SEAMS_DOWN = [spec for row in STANDING_SEAMS_BY_ROW for spec in STANDING_SEAMS_BY_ROW[row]]
 

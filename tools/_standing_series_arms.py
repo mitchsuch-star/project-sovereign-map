@@ -66,7 +66,46 @@ def _counted_tmove(self, *a, **k):
     _c["events_queued"] += max(0, len((self.held or {{}}).get("events") or []) - events)
     return out
 AU.AuthorityTracker.move = _counted_tmove
-_KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued")
+# AU-2a the hits: the three seams, each held down on its arm, its reach counted
+_hits, _claims, _breach = ST.hits_armed, ST.claims_armed, ST.breach_armed
+def _counted_hits():
+    _c["hits_reads"] += 1
+    return False if "AUP" in DOWN else _hits()
+def _counted_claims():
+    _c["claims_reads"] += 1
+    return False if "AUK" in DOWN else _claims()
+def _counted_breach():
+    _c["breach_reads"] += 1
+    return False if "AUW" in DOWN else _breach()
+ST.hits_armed, ST.claims_armed, ST.breach_armed = _counted_hits, _counted_claims, _counted_breach
+_claim_fn, _breach_fn, _amends_fn = ST.claims_of_the_army, ST.breach, ST.amends
+def _counted_claim(world, marshal, elapsed):
+    out = _claim_fn(world, marshal, elapsed)
+    if out:
+        _c["claims_billed"] += 1
+    return out
+def _counted_breach_fn(world, preview):
+    out = _breach_fn(world, preview)
+    if out:
+        _c["breaches_booked"] += 1
+    return out
+def _counted_amends(world, lord, court):
+    out = _amends_fn(world, lord, court)
+    if out:
+        _c["amends_repaid"] += 1
+    return out
+ST.claims_of_the_army, ST.breach, ST.amends = _counted_claim, _counted_breach_fn, _counted_amends
+from backend.game_logic import affairs as AF
+_op_armed = AF.op_armed
+def _counted_op_armed(op):
+    out = _op_armed(op)
+    if (op or {{}}).get("since"):
+        _c["host_ops_planned" if out else "host_ops_held"] += 1
+    return out
+AF.op_armed = _counted_op_armed
+_KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
+         "hits_reads", "claims_reads", "breach_reads", "claims_billed", "breaches_booked", "amends_repaid",
+         "host_ops_planned", "host_ops_held")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

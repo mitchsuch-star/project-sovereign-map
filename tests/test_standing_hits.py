@@ -1,0 +1,293 @@
+"""AU-2a "the hits" — the pins (`docs/AUTHORITY_CURRENCY_SPEC.md` §5.4, §6 the
+AU-2a row; the rules `SYSTEMS_REFERENCE.md` §170).
+
+The bills offered in every campaign, never forced — each through AU-1's one
+writer with its cause: the Chancellor's letter at any standing and the Host's
+Complaint at the floor (`tests/test_affairs_nondominance.py` pins the two
+letters' floors; here the deck's two authoring keys and the validator), the
+Claims of the Army on the dotation tick (Berthier presenting), the word
+broken in `_record_treaty_breach` (−3 a strike, −6 an episode) and Make
+Amends repaying it (never beyond the debt, never above the ceiling), the
+stakes told in figures on the objection dialog and the vindication's own
+sentences; and the three seams a series arm holds down (AUP / AUK / AUW)
+reproducing the tree before the slice.
+"""
+from __future__ import annotations
+
+import contextlib
+import copy
+import io
+import json
+import os
+import types
+from pathlib import Path
+
+import pytest
+
+REPO = Path(__file__).resolve().parents[1]
+BACKEND = REPO / "backend"
+SCRIPTS = REPO / "godot-client" / "project-sovereign" / "scripts"
+SCENARIO = REPO / "godot-client" / "project-sovereign" / "assets" / "maps" / "europe_1805.json"
+FIXTURE = REPO / "tests" / "fixtures" / "affairs_block.json"
+
+
+def _quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+@pytest.fixture(scope="module")
+def world():
+    os.environ.setdefault("LLM_MODE", "mock")
+    from backend.models.world_state import WorldState
+    with _quiet():
+        return WorldState.from_scenario(str(SCENARIO))
+
+
+@pytest.fixture
+def w(world):
+    return copy.deepcopy(world)
+
+
+def _stage_claim(w, name="Lannes", opened=6, now=20, steps=2):
+    """A marshal's claim fourteen turns unpaid at `now`, the chest able."""
+    from backend.game_logic.dotation import compute_rente_face, get_rente_cost
+    m = w.marshals[name]
+    m.expectation_steps = steps
+    w.current_turn = now
+    m.expectation_grace_turn = opened
+    rente = int(get_rente_cost(compute_rente_face(m, w), w, "France"))
+    assert rente > 0
+    w.nation_gold["France"] = 20 * rente + 100
+    return m, rente
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The two letters at the floor — the deck's keys and the validator
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheDeckAtTheFloor:
+    def test_the_deck_and_the_fixture_carry_the_floor_and_the_rows_keys(self):
+        for path in (SCENARIO, FIXTURE):
+            block = json.loads(path.read_text(encoding="utf-8"))
+            deck = (block.get("moments") or block).get("affairs", block.get("affairs") or {}).get("deck") \
+                if "moments" in block or "affairs" in block else None
+            if deck is None:
+                deck = block["deck"]
+            by_id = {e["id"]: e for e in deck}
+            chancellor, host = by_id["chancellors_letters"], by_id["the_host"]
+            assert chancellor["bites"] == "floor" and chancellor["bites_since"] == "AU-2a"
+            assert host["bites"] == "floor" and host["bites_since"] == "AU-2a"
+            op = host["decline"]["ops"][0]
+            assert op == {"op": "authority", "amount": -2, "tiers": {"2": -3, "3": -4}, "since": "AU-2a"}
+            assert host["decline"]["button_line"].startswith("auth {authority_before} → {authority_after} · ")
+
+    def test_the_validator_accepts_the_shipped_deck_and_refuses_a_stray_row(self, world):
+        from backend.modding import validator as V
+        data = json.loads(SCENARIO.read_text(encoding="utf-8"))
+        with _quiet():
+            result = V.validate_scenario(data)
+        assert not [e for e in result.errors if "since" in str(e) or "button_line" in str(e)], result.errors[:5]
+        bad = copy.deepcopy(data)
+        deck = bad["moments"]["affairs"]["deck"]
+        host = next(e for e in deck if e["id"] == "the_host")
+        host["decline"]["ops"][0]["since"] = "AU-9"
+        host["bites_since"] = "AU-9"
+        with _quiet():
+            result = V.validate_scenario(bad)
+        errors = [str(e) for e in result.errors]
+        assert any("since" in e and "AU-2a" in e for e in errors), errors[:5]
+        assert any("bites_since" in e for e in errors), errors[:5]
+
+    def test_the_seams_are_named_functions(self):
+        from backend.game_logic import standing
+        assert standing.hits_armed() is True and standing.claims_armed() is True and standing.breach_armed() is True
+        from tests._standing_seams import STANDING_SEAMS_BY_ROW
+        assert set(STANDING_SEAMS_BY_ROW) == {"AUB", "AUP", "AUK", "AUW"}
+
+    def test_the_host_decline_names_the_authority_first_and_its_minister(self, w):
+        from backend.game_logic import affairs, moments as MO
+        e = affairs.template_by_id(w, "the_host")
+        occ = {"id": "the_host#1", "lord": "France", "bind": {"host": "Bavaria"}, "tier": 1}
+        p = MO.plan(w, e, MO.ANSWER_DECLINE, occ)
+        rows = p["rows"]
+        assert [r["op"] for r in rows] == ["authority", "relation", "loyalty"]
+        assert (rows[0]["before"], rows[0]["after"], rows[0]["loss"]) == (100, 98, 2)
+        assert p["receipt"].startswith("auth 100 → 98 · ")
+        assert rows[0]["letter"] == e["title"] and rows[0]["party"]      # the host's minister
+        occ2 = dict(occ, tier=2)
+        assert next(r for r in MO.plan(w, e, MO.ANSWER_DECLINE, occ2)["rows"] if r["op"] == "authority")["loss"] == 3
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The Claims of the Army
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheClaimsOfTheArmy:
+    def test_a_claim_is_billed_once_at_fourteen_turns_with_berthier_presenting(self, w):
+        from backend.game_logic import standing
+        m, rente = _stage_claim(w)
+        assert standing.claims_of_the_army(w, m, 13) == 0
+        assert standing.claims_of_the_army(w, m, 14) == -3
+        assert w.authority_tracker.authority == 97
+        move = w.authority_tracker.moves[-1]
+        assert (move["key"], move["party"], move["cause"]) == ("claims", "Lannes", "Lannes's claim, fourteen turns unpaid")
+        assert w.authority_tracker.held["claims"] == ["Lannes:6"]
+        assert standing.claims_of_the_army(w, m, 14) == 0           # once per claim
+        assert standing.claims_of_the_army(w, m, 15) == 0
+        line = [e for e in w.pending_dispatch_events if e.get("type") == "moment_receipt"][-1]["template_vars"]
+        assert line["register"] == "claims"
+        assert line["line"] == ("Berthier presents the claims of the army: Lannes, fourteen turns unpaid "
+                                "while the chest could pay his rente — authority 100 → 97.")
+
+    def test_a_re_opened_claim_is_a_new_claim(self, w):
+        from backend.game_logic import standing
+        m, _ = _stage_claim(w)
+        assert standing.claims_of_the_army(w, m, 14) == -3
+        m.expectation_grace_turn = 9                                  # the claim re-opened later
+        assert standing.claims_of_the_army(w, m, 14) == -3
+        assert w.authority_tracker.held["claims"] == ["Lannes:6", "Lannes:9"]
+
+    def test_not_when_the_chest_is_short_nor_under_the_floor_nor_for_a_court(self, w):
+        from backend.game_logic import standing
+        m, rente = _stage_claim(w)
+        w.nation_gold["France"] = 20 * rente - 1
+        assert standing.claims_of_the_army(w, m, 14) == 0
+        w.nation_gold["France"] = 20 * rente + 100
+        w.authority_tracker.authority = 82                           # 82 − 3 = 79, under the floor 80
+        assert standing.claims_of_the_army(w, m, 14) == 0
+        w.authority_tracker.authority = 83
+        assert standing.claims_of_the_army(w, m, 14) == -3            # 83 − 3 = 80 lands whole
+        court = next(x for x in w.marshals.values() if x.nation == "Austria")
+        court.expectation_steps = 2
+        court.expectation_grace_turn = 6
+        w.nation_gold["Austria"] = 10 ** 6
+        assert standing.claims_of_the_army(w, court, 14) == 0         # the courts' books are AU-4's
+
+    def test_the_tick_bills_it_and_the_morning_says_it(self, w):
+        from backend.game_logic import dispatch
+        m, _ = _stage_claim(w)
+        with _quiet():
+            w._process_dotation_state()
+            d = dispatch.build_morning_dispatch(w)
+        assert any(mv["key"] == "claims" and mv["party"] == "Lannes" for mv in w.authority_tracker.moves)
+        events = [e for e in d.get("diplomatic_events") or [] if e.get("type") == "moment_receipt"]
+        assert [e["text"] for e in events] == [
+            "Berthier presents the claims of the army: Lannes, fourteen turns unpaid while the chest "
+            "could pay his rente — authority 100 → 97."]
+        assert events[0]["priority"] == "HIGH"
+        assert d["situation"]["authority_label"] == \
+            "Strong — down 3 since yesterday: Lannes's claim, fourteen turns unpaid (−3)"
+
+    def test_the_seam_down_bills_nothing(self, w, monkeypatch):
+        from backend.game_logic import standing
+        monkeypatch.setattr(standing, "claims_armed", lambda *a, **k: False)
+        m, _ = _stage_claim(w)
+        assert standing.claims_of_the_army(w, m, 14) == 0 and not w.authority_tracker.moves
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The word broken, and Make Amends
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheWordBroken:
+    PREVIEW = {"fault_nation": "France", "injured_party": "Prussia", "episode_id": "ep-1"}
+
+    def test_three_a_strike_six_an_episode_with_the_court_as_party(self, w):
+        from backend.game_logic import standing
+        assert standing.breach(w, self.PREVIEW) == -3
+        assert standing.breach(w, self.PREVIEW) == -3
+        assert standing.breach(w, self.PREVIEW) == 0
+        assert w.authority_tracker.authority == 94
+        move = w.authority_tracker.moves[-1]
+        assert (move["key"], move["party"], move["cause"]) == ("breach", "Prussia", "the word broken to Prussia")
+        assert w.authority_tracker.held["breach:ep-1"] == 6 and w.authority_tracker.held["owed:Prussia"] == 6
+        assert standing.breach(w, dict(self.PREVIEW, episode_id="ep-2")) == -3   # a new episode
+
+    def test_a_courts_breach_moves_nothing(self, w):
+        from backend.game_logic import standing
+        assert standing.breach(w, {"fault_nation": "Prussia", "injured_party": "France", "episode_id": "x"}) == 0
+        assert w.nation_authority["Prussia"] == 60 and not w.authority_tracker.moves
+
+    def test_make_amends_repays_the_debt_under_the_ceiling(self, w):
+        from backend.game_logic import standing
+        w.authority_tracker.authority = 90
+        standing.breach(w, self.PREVIEW)                                # 87, owed 3
+        assert standing.amends(w, "France", "Prussia") == 2             # 89
+        assert standing.amends(w, "France", "Prussia") == 1             # 90, the debt repaid
+        assert standing.amends(w, "France", "Prussia") == 0             # nothing owed
+        assert "owed:Prussia" not in w.authority_tracker.held
+        assert w.authority_tracker.moves[-1]["cause"] == "amends made to Prussia"
+        assert standing.amends(w, "France", "Austria") == 0             # no debt to that court
+
+    def test_the_ceiling_holds_a_repayment(self, w):
+        from backend.game_logic import standing
+        standing.breach(w, self.PREVIEW)
+        standing.breach(w, self.PREVIEW)                                   # 100 → 94, owed 6
+        assert standing.amends(w, "France", "Prussia") == 1                    # 95: the ceiling
+        assert standing.amends(w, "France", "Prussia") == 0
+        assert w.authority_tracker.held["owed:Prussia"] == 5
+
+    def test_the_breach_recorder_and_both_amends_call_the_writer(self):
+        src = (BACKEND / "game_logic" / "diplomacy.py").read_text(encoding="utf-8")
+        body = src[src.index("def _record_treaty_breach("):src.index("# CENTRALIZED DIPLOMATIC STATE SETTER")]
+        assert "_standing.breach(world, breach_preview)" in body
+        ex = (BACKEND / "commands" / "diplomatic_executor.py").read_text(encoding="utf-8")
+        assert ex.count("_standing.amends(world, player, target_nation)") == 2
+        confirm = ex[ex.index('"type": "force_declare_war_confirmation"') - 2000:ex.index('"type": "force_declare_war_confirmation"')]
+        assert "warning_text += _standing.breach_confirm_clause(world, player)" in confirm
+
+    def test_the_confirms_quote_is_the_first_strike(self, w):
+        from backend.game_logic import standing
+        assert standing.quote(w, "France", -standing.BREACH_STRIKE)["line"] == \
+            "Authority 100 → 97 — the marshals' calm holds above 70."
+
+    def test_the_seam_down_books_nothing(self, w, monkeypatch):
+        from backend.game_logic import standing
+        monkeypatch.setattr(standing, "breach_armed", lambda *a, **k: False)
+        assert standing.breach(w, self.PREVIEW) == 0 and standing.amends(w, "France", "Prussia") == 0
+        assert not w.authority_tracker.moves
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# The stakes told in figures
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestTheStakesTold:
+    def test_the_stake_line_names_the_vindications_figures(self):
+        from backend.game_logic import standing
+        assert standing.insist_stake_line() == (
+            "If the field is lost under your insistence: trust −5, authority −5; won: authority +5. "
+            "A compromise: authority +2 won, trust −2 and authority −2 lost.")
+
+    def test_both_objection_paths_stamp_it_and_the_dialog_prints_it(self):
+        ex = (BACKEND / "commands" / "executor.py").read_text(encoding="utf-8")
+        assert 'objection["stake_line"] = _standing.insist_stake_line()' in ex
+        st = (BACKEND / "commands" / "strategic_executor.py").read_text(encoding="utf-8")
+        assert '"stake_line": __import__("backend.game_logic.standing",' in st
+        gd = (SCRIPTS / "objection_dialog.gd").read_text(encoding="utf-8")
+        assert '"stake_line": objection.get("stake_line", response.get("stake_line", ""))' in gd   # the join
+        assert 'message_label.text += "\\n\\n" + stake_line' in gd
+
+    def test_the_vindication_applies_its_constants_and_says_them(self, w):
+        from backend.commands import vindication as VI
+        assert (VI.INSIST_WIN_AUTHORITY, VI.INSIST_LOSS_AUTHORITY, VI.INSIST_LOSS_TRUST) == (5, -5, -5)
+        w.vindication_tracker.record_choice("Ney", "insist", {"action": "attack", "marshal": "Ney"})
+        result = w.vindication_tracker.resolve_battle("Ney", "defeat", types.SimpleNamespace(world=w))
+        assert result["message"].endswith("(trust −5, authority −5).")
+        assert w.authority_tracker.authority == 95 and w.authority_tracker.moves[-1]["key"] == "insisted_lost"
+        w.vindication_tracker.record_choice("Ney", "compromise", {"action": "attack", "marshal": "Ney"})
+        result = w.vindication_tracker.resolve_battle("Ney", "victory", types.SimpleNamespace(world=w))
+        assert result["message"].endswith("(authority +2).") and w.authority_tracker.authority == 97
+
+
+class TestTheCausesAndTheCensuses:
+    def test_the_three_new_keys_have_their_fields(self):
+        from backend.display_names import AUTHORITY_CAUSES, authority_cause
+        assert authority_cause("claims", marshal="Lannes") == "Lannes's claim, fourteen turns unpaid"
+        assert authority_cause("breach", court="Prussia") == "the word broken to Prussia"
+        assert authority_cause("amends", court="KingdomOfItaly") == "amends made to Kingdom of Italy"
+        assert {"claims", "breach", "amends"} <= set(AUTHORITY_CAUSES)
+
+    def test_the_modding_doc_names_the_keys(self):
+        doc = (REPO / "docs" / "MODDING_FORMAT.md").read_text(encoding="utf-8")
+        assert "`bites_since`" in doc and "`since`" in doc and "the Host's Complaint" in doc

@@ -131,6 +131,34 @@ ARRIVAL_LATER = "later"
 # half alone, so the letter arrives at full standing too.
 BITES_FLOOR = "floor"
 BITES_MODES = (True, BITES_FLOOR)
+# AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4, §5.8): deck content a slice added that
+# a series arm may hold down to the tree before it — an op's `since`, an
+# entry's `bites_since` — each naming a row whose seam `row_armed` reads.
+SINCE_ROWS = ("AU-2a",)
+
+
+def row_armed(row: str) -> bool:
+    """The seam behind a row's deck content: AU-2a's is `standing.hits_armed`
+    (the Chancellor's and the Host's floor clause, the Host's authority op)."""
+    if row == "AU-2a":
+        from backend.game_logic import standing
+        return bool(standing.hits_armed())
+    return True
+
+
+def op_armed(op: Dict[str, Any]) -> bool:
+    """An op authored `since` a row is planned only while that row is armed."""
+    since = str((op or {}).get("since") or "")
+    return not since or row_armed(since)
+
+
+def floor_mode(e: Dict[str, Any]) -> bool:
+    """`bites` reads "floor" — the floor half alone — unless the clause is a
+    row's (`bites_since`) held down, when it reads `true` (both halves)."""
+    if (e or {}).get("bites") != BITES_FLOOR:
+        return False
+    since = str(e.get("bites_since") or "")
+    return not since or row_armed(since)
 
 # The dispatch row an affair's set-aside and withdrawal lines ride — the
 # moments' own receipt type (`moments.RECEIPT_EVENT`), named by its literal so
@@ -656,13 +684,13 @@ def bites(world, lord: str, e: Dict[str, Any], tier: int) -> bool:
     whole above the floor — so the Haiti letter arrives at full standing,
     where the Decline is a dent and the squadron the stake."""
     ops = [MO.scaled_op(op, tier) for op in ((e.get("decline") or {}).get("ops") or [])
-           if isinstance(op, dict) and op.get("op") == "authority"]
+           if isinstance(op, dict) and op.get("op") == "authority" and op_armed(op)]
     if not ops:
         return True
     if lord != getattr(world, "player_nation", None) or getattr(world, "authority_tracker", None) is None:
         return False
     from backend.models.authority import AURA_GRIP_FULL, get_imperial_grip
-    floor_only = e.get("bites") == BITES_FLOOR
+    floor_only = floor_mode(e)
     grip = int(get_imperial_grip(world, lord))
     for op in ops:
         after = grip + int(op.get("amount", 0) or 0)

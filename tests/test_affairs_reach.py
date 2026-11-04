@@ -145,14 +145,26 @@ class TestEachTemplatesReach:
         # so its premise stands longer and `affairs.pick` takes it) and the
         # Magazines. The reach review (RE-5) weighs the lever (`below_pct`, a
         # corps threshold of its own).
-        assert count("chancellors_letters", SCRIPTED) >= 9
-        assert count("the_host", SCRIPTED) >= 16
+        # AU-2a (November 3, 2026; AUTHORITY_CURRENCY_SPEC.md §5.4, the record
+        # §6.2): the hits, re-measured. The Arch-Chancellor writes at ANY
+        # standing (`bites: "floor"`) — the hoarder CMD-A and CMD-M and their
+        # accept arms now meet him at full standing: 9 → 15 scripted. The
+        # Host's Complaint prices the Host's Decline −2 / −3 / −4 at the floor,
+        # so on a board under 73 on the grip the letter no longer comes — the
+        # bled war roads (CMD-H, CMD-M, VOLTE, CMD-M-ACCEPT, the Confederation
+        # road on historical, the Rhine road on marengo and its accept arm, the
+        # Throne road on historical): 16 → 8 scripted, the ruling's cost (§4.1
+        # reading 13, §6.2.3). The Memorial's sweep mornings 8 → 7 (the
+        # Chancellor takes one), the Remounts 31 → 30 and the Camps 7 → 6 (the
+        # pulse's picks re-rolled where a hit landed first).
+        assert count("chancellors_letters", SCRIPTED) >= 15
+        assert count("the_host", SCRIPTED) >= 8
         assert count("berthiers_memorial", SCRIPTED) >= 3
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
                    if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 13
         assert count("berthiers_memorial", ("saves",)) >= 2
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
-        assert count("berthiers_memorial", ("sweep",)) >= 8
+        assert count("berthiers_memorial", ("sweep",)) >= 7
         # the offers' floors (§25.6): the Magazines on the war's roads — more of
         # them with the courts in arms (15 of 55; 8 with the rung parked) — and
         # three of the six hand-played starts; the Remounts wherever the horse
@@ -161,8 +173,8 @@ class TestEachTemplatesReach:
         # commanded arms and three hand-played starts (7), never on the sweep
         # at war with Britain
         assert count(E1, FAMILIES) >= 15 and count(E1, ("saves",)) >= 3
-        assert count(E2, FAMILIES) >= 31 and count(E2, ("saves",)) == 0
-        assert count(E3, FAMILIES) >= 7 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
+        assert count(E2, FAMILIES) >= 30 and count(E2, ("saves",)) == 0
+        assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
         """RE-H (the user's word of November 1, 2026 — "conditions that make
@@ -197,10 +209,20 @@ class TestEachTemplatesReach:
         # the marching Emperor, the war with Britain kept: the roads that keep the letter
         kept = {f"{family}/{name}" for family in ("road", "road_accept") for name in record[family]
                 if verdict(family, name) == "arrived"}
-        assert kept == {"road/VP1-TH-historical", "road/VP1-CS-austerlitz"}, kept
+        # AU-2a (§6.2): the Rhine road on austerlitz keeps it too — the Host's
+        # Complaint (−2 at T15) left the Chancellor's tier-two −8 no room above
+        # the floor at T26, and the Marine's −3 took the morning
+        assert kept == {"road/VP1-TH-historical", "road/VP1-CS-austerlitz", "road/VP1-RH-austerlitz"}, kept
+        # … and so does the October 25 diplomacy start (DDB-25-diplomacy, T39): the
+        # Host's two −2s (T24, T34) leave the Chancellor's second letter (−8) no
+        # room above the floor, and the Marine's −3 takes the morning
+        reached_start = {"saves/DDB-25-diplomacy"}
         for family in ("commanded", "accept", "saves"):
             for name in record[family]:
                 v = verdict(family, name)
+                if f"{family}/{name}" in reached_start:
+                    assert v == "arrived", (family, name, v)
+                    continue
                 assert v.startswith(("premise never held", "never due", "due,")), (family, name, v)
         for family in ("road", "road_accept"):
             for name in record[family]:

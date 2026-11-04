@@ -133,7 +133,9 @@ class TestTheMarshalsRemark:
         assert AF.largest_corps_on_host(armed, "France", "Bavaria") == "Davout"
         result = _answer(armed, client, f"{T2}#1", "decline")
         lines = result["message"].split("\n")
-        assert lines[0] == "The Host's Claims — Live off the land: Bavaria's goodwill 60 → 56."
+        # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the Host's Complaint priced first
+        assert lines[0] == ("The Host's Claims — Live off the land: Authority 100 → 97 — the marshals' "
+                            "calm holds above 70; Bavaria's goodwill 60 → 56.")
         assert lines[1] == ("Davout: I will hang the first man who takes a hen unpaid, Sire — "
                             "but discipline does not feed a corps.")
         row = MO.status_row(armed, f"{T2}#1")

@@ -79,6 +79,17 @@ def battle_answers_order(order, defender_name=None, battle_region=None) -> bool:
     return target in ({_squash(defender_name), _squash(battle_region)} - {""})
 
 
+# AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the stakes of an answered objection's
+# own battle, in one place — `resolve_battle` applies them and the objection
+# dialog tells them (`standing.insist_stake_line`).
+INSIST_WIN_AUTHORITY = 5
+INSIST_LOSS_AUTHORITY = -5
+INSIST_LOSS_TRUST = -5
+COMPROMISE_WIN_AUTHORITY = 2
+COMPROMISE_LOSS_AUTHORITY = -2
+COMPROMISE_LOSS_TRUST = -2
+
+
 class VindicationTracker:
     """
     Tracks objection outcomes for marshal credibility.
@@ -263,14 +274,16 @@ class VindicationTracker:
             if result == 'victory':
                 # Player was right to insist!
                 vindication_change = -1  # Marshal was wrong to object
-                authority_change = +5
-                message = f"Your insistence paid off! {marshal_name} must acknowledge your strategic vision."
+                authority_change = INSIST_WIN_AUTHORITY
+                message = (f"Your insistence paid off! {marshal_name} must acknowledge your strategic vision "
+                           f"(authority +{INSIST_WIN_AUTHORITY}).")
             elif result == 'defeat':
                 # Marshal was right to object!
                 vindication_change = +1  # Marshal was right
-                trust_change = -5
-                authority_change = -5
-                message = f"{marshal_name}'s concerns were justified. The defeat could have been avoided."
+                trust_change = INSIST_LOSS_TRUST
+                authority_change = INSIST_LOSS_AUTHORITY
+                message = (f"{marshal_name}'s concerns were justified. The defeat could have been avoided "
+                           f"(trust −{abs(INSIST_LOSS_TRUST)}, authority −{abs(INSIST_LOSS_AUTHORITY)}).")
             else:  # draw
                 vindication_change = 0
                 trust_change = -1
@@ -281,13 +294,15 @@ class VindicationTracker:
             if result == 'victory':
                 vindication_change = 0  # Shared credit
                 trust_change = +3
-                authority_change = +2
-                message = f"The compromise worked! Both you and {marshal_name} can claim credit."
+                authority_change = COMPROMISE_WIN_AUTHORITY
+                message = (f"The compromise worked! Both you and {marshal_name} can claim credit "
+                           f"(authority +{COMPROMISE_WIN_AUTHORITY}).")
             elif result == 'defeat':
                 vindication_change = 0  # Shared blame
-                trust_change = -2
-                authority_change = -2
-                message = f"The compromise failed. The blame is shared between you and {marshal_name}."
+                trust_change = COMPROMISE_LOSS_TRUST
+                authority_change = COMPROMISE_LOSS_AUTHORITY
+                message = (f"The compromise failed. The blame is shared between you and {marshal_name} "
+                           f"(trust −{abs(COMPROMISE_LOSS_TRUST)}, authority −{abs(COMPROMISE_LOSS_AUTHORITY)}).")
             else:  # draw
                 vindication_change = 0
                 trust_change = +2

@@ -126,7 +126,12 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # the horse bleeds under the courts' attacks (the corps clause, §25.2)
         for seed, arms in record["seeds"].items():
             rows = arms["armed"]["affairs"]
-            assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#", "the_remounts#")) for mid in rows), (seed, list(rows))
+            # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the Chancellor writes at any
+            # standing — on ulm and austerlitz his letter takes the pulse's T21
+            # morning (the Emperor afield since the opening), binding where it
+            # finds him, as the Marine's does
+            assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#", "the_remounts#",
+                                       "chancellors_letters#")) for mid in rows), (seed, list(rows))
             for mid, row in rows.items():
                 standing = row["status"] == "fired" and int(row["turn"]) > int(record["turns"]) - 4
                 assert (row["status"] == "lapsed" or standing) and row["tier"] == 1, (seed, row)
@@ -141,13 +146,18 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # RE-6 (the courts' Edicts armed, November 2, 2026): the door's seeds
         # were ulm and austerlitz from RE-1; on the shipped default ulm's
         # board is re-rolled by the courts' decrees and its second letter is
-        # the Marine's again — the door opens on austerlitz alone
-        assert with_door == {"austerlitz"}, with_door
+        # the Marine's again — the door opens on austerlitz alone.
+        # AU-2a (§5.4): the Chancellor at any standing takes austerlitz's T21
+        # morning too; the door stands due past the probe's last morning
+        assert with_door == set(), with_door
 
     def test_the_streaks_build_where_the_premise_holds_and_nothing_is_due_at_the_end(self, record):
         # RE-6: on austerlitz the Haiti letter's second is due on the probe's
         # last morning (its first lapsed at T11, the cooldown of twelve run)
-        due_at_the_end = {"austerlitz": {"santo_domingo|": 1}}
+        # AU-2a: the Chancellor's T21 letter on ulm and austerlitz leaves the
+        # Marine's second (and, on austerlitz, the door) due on the last morning
+        due_at_the_end = {"ulm": {"santo_domingo|": 1},
+                          "austerlitz": {"berthiers_memorial|": 1, "santo_domingo|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
             assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])

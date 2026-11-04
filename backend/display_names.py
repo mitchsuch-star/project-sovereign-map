@@ -3084,6 +3084,10 @@ AUTHORITY_CAUSES = {
     # the letters of state and the laws
     "letter_declined": "{letter} declined",
     "law": "the law enacted: {law}",
+    # AU-2a the hits: the Claims of the Army, the word broken, Make Amends
+    "claims": "{marshal}'s claim, fourteen turns unpaid",
+    "breach": "the word broken to {court}",
+    "amends": "amends made to {court}",
     # the console
     "debug_set": "set by the debug console",
     # the setter's fallback — a direct assignment (the test files); never a production cause

@@ -197,13 +197,19 @@ class TestEachAnswerIsTheBetterOneSomewhere:
     def test_the_letter_is_measured_on_at_least_one_board(self, template):
         """Read after the boards above (one module, one worker, file order):
         each template was measured on at least one of the three — the
-        Arch-Chancellor on the expander (the one board where `bites` lets a
-        −5 land whole below the aura), the host on every board, the door
-        where France is at war with the chest above the bar."""
+        Arch-Chancellor on the expander alone (AU-2a: `bites: "floor"`, the
+        letter at any standing — but the hoarder keeps the Emperor at home, the
+        letter's premise, and the spent board at 72 is under the floor's room
+        for a −5), the host on the hoarder and the expander (AU-2a: the
+        Host's Complaint prices the Decline −2 at the floor, and 72 − 2 would land
+        under 71 — the ruling's cost, `AUTHORITY_CURRENCY_SPEC.md` §4.1 reading
+        13), the door where France is at war with the chest above the bar."""
         boards = sorted(b for t, b in MEASURED if t == template)
         assert boards, template
         if template == T2:
-            assert boards == sorted(BOARDS)
+            assert boards == ["expander", "hoarder"]
+        if template == T1:
+            assert boards == ["expander"]
 
 
 class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:
@@ -235,19 +241,47 @@ class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:
 
 
 class TestTheLetterIsAbsentWhereBitesFails:
-    def test_the_arch_chancellor_never_writes_at_full_standing_or_under_the_floor(self, armed):
+    def test_the_arch_chancellor_writes_at_any_standing_but_under_the_floor(self, armed):
+        """AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4, the user's Q3 ruling): the
+        Chancellor's letter is authored `bites: "floor"` — it arrives at full
+        standing too (the hoarder's bill), and only the floor closes it: the
+        Decline's −5 must land whole at or above 71 on the grip."""
         _quarter(armed)
         armed.marshals["Napoleon"].location = "Swabia"
         e = MO.entry(armed, T1)
-        for authority in (100, 99, 71, 60):
+        assert e.get("bites") == "floor" and e.get("bites_since") == "AU-2a"
+        for authority in (100, 99, 80, 76):
             armed.authority_tracker.authority = authority
             assert AF.premise_holds(armed, e, "France")["holds"]
+            assert AF.bites(armed, "France", e, 1) is True, authority
+        for authority in (75, 71, 60):
+            armed.authority_tracker.authority = authority
             assert AF.bites(armed, "France", e, 1) is False, authority
-        armed.authority_tracker.authority = 80
-        assert AF.bites(armed, "France", e, 1) is True
 
-    def test_the_host_and_the_door_carry_no_bites_clause(self, armed):
-        for template in (T2, T3):
-            e = MO.entry(armed, template)
-            assert not e.get("bites")
-            assert AF.bites(armed, "France", e, 1) is True
+    def test_the_host_carries_the_floor_clause_and_the_door_none(self, armed):
+        """AU-2a: the Host's Complaint prices the Host's Decline (−2 / −3 / −4 by
+        tier) with `bites: "floor"` — the letter arrives wherever the Decline's
+        loss lands whole at or above 71; the Memorial carries no clause."""
+        e = MO.entry(armed, T2)
+        assert e.get("bites") == "floor" and e.get("bites_since") == "AU-2a"
+        for authority, expected in ((100, True), (80, True), (73, True), (72, False), (60, False)):
+            armed.authority_tracker.authority = authority
+            assert AF.bites(armed, "France", e, 1) is expected, authority
+        armed.authority_tracker.authority = 100
+        door = MO.entry(armed, T3)
+        assert not door.get("bites")
+        assert AF.bites(armed, "France", door, 1) is True
+
+    def test_the_seam_down_reads_the_deck_as_before_au_2a(self, armed, monkeypatch):
+        """Arm AUP (`tests/_standing_seams.py`): with `standing.hits_armed` held down
+        the Chancellor reads `bites: true` (never at 100) and the Host's Decline
+        carries no authority op (the letter always bites)."""
+        from backend.game_logic import standing
+        monkeypatch.setattr(standing, "hits_armed", lambda *a, **k: False)
+        _quarter(armed)
+        armed.marshals["Napoleon"].location = "Swabia"
+        armed.authority_tracker.authority = 100
+        assert AF.bites(armed, "France", MO.entry(armed, T1), 1) is False
+        assert AF.bites(armed, "France", MO.entry(armed, T2), 1) is True
+        rows = MO.plan(armed, MO.entry(armed, T2), MO.ANSWER_DECLINE, OCC[T2])["rows"]
+        assert [r["op"] for r in rows] == ["relation", "loyalty"]

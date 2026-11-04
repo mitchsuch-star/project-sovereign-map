@@ -2042,6 +2042,9 @@ class StrategicExecutor:
                             "insist_penalty": insist_penalty,
                             "trust_gain": trust_gain,
                             "compromise_gain": COMPROMISE_TRUST_GAIN,
+                            # AU-2a: the stakes told in figures (see executor.py)
+                            "stake_line": __import__("backend.game_logic.standing",
+                                                     fromlist=["insist_stake_line"]).insist_stake_line(),
                             # WO-D12 — see executor.py. Display-only.
                             "trust_gain_modifier": (
                                 objection_trust_modifier(ctx.world)),

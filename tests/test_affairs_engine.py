@@ -320,7 +320,9 @@ class TestTheArrival:
         assert (payload["writer"], payload["office"]) == ("Montgelas", "for the court of Munich")
         assert payload["board"][0].startswith("3 of your corps stand on Bavaria's soil")
         assert "Pay the host's claims: 300 gold" in payload["answers"][0]["quote"]
-        assert "Live off the land: Bavaria's goodwill" in payload["answers"][1]["quote"]
+        # AU-2a: the Host's Complaint — the Decline priced in authority first, then the goodwill
+        assert payload["answers"][1]["quote"].startswith("Live off the land: Authority 100 → 98")
+        assert "Bavaria's goodwill" in payload["answers"][1]["quote"]
         notices = [n for n in armed.notifications.get_pending()
                    if (n.get("details") or {}).get("moment_id") == "the_host#1"]
         assert len(notices) == 1
@@ -339,8 +341,9 @@ class TestTheArrival:
         assert plan["rows"][0]["amount"] == 600 and plan["id"] == "the_host#1" and plan["lord"] == "France"
         assert plan["receipt"] == "−600 gold"
         decline = MO.plan(armed, MO.entry(armed, "the_host#1"), "decline", row)
-        assert [r["op"] for r in decline["rows"]] == ["relation", "loyalty"]
-        assert decline["rows"][0]["delta"] == -4 and decline["rows"][1].get("courts") == []
+        assert [r["op"] for r in decline["rows"]] == ["authority", "relation", "loyalty"]   # AU-2a: the Complaint first
+        assert decline["rows"][0]["loss"] == 3                                       # AU-2a: tier 2 takes −3
+        assert decline["rows"][1]["delta"] == -4 and decline["rows"][2].get("courts") == []
 
     def test_the_accept_applies_its_quote_through_the_endpoint(self, armed, client):
         _no_moments(armed)
@@ -376,7 +379,7 @@ class TestTheArrival:
         assert _rel(armed, "Bavaria") == rel - 2 and armed.nation_gold["France"] == gold
         assert {k: v["loyalty"] for k, v in armed.vassals.items()} == {k: v["loyalty"] for k, v in loyalty.items()}
         row = MO.status_row(armed, "the_host#1")
-        assert row["receipt"] == f"Bavaria {rel} → {rel - 2}"
+        assert row["receipt"] == f"auth 100 → 98 · Bavaria {rel} → {rel - 2}"   # AU-2a: the Host's Complaint priced first
         # RE-R (§12c): the Host's Decline has no minister's echo — the largest
         # corps on Bavaria's soil speaks (Davout's 26,000 over Ney's 24,000)
         assert row["echo"].startswith("Davout: I will hang the first man") and row["remark_by"] == "Davout"
@@ -578,11 +581,12 @@ class TestTheTwoOps:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestBites:
-    def test_no_letter_at_full_standing_and_none_under_the_floor(self, armed):
+    def test_the_letter_at_full_standing_and_none_under_the_floor(self, armed):
+        """AU-2a (`AUTHORITY_CURRENCY_SPEC.md` §5.4): the Chancellor writes at any
+        standing — the hoarder's bill at 100 — and only the floor closes him."""
         _no_moments(armed)
         _afield(armed, authority=100)
-        assert _run(armed, range(1, 14)) == {}
-        assert AF.streak_of(armed, MO.entry(armed, T1), "") == 13     # the premise held throughout
+        assert _run(armed, range(1, 14)) == {7: ["chancellors_letters#1"]}
         armed.authority_tracker.authority = 71
         assert _run(armed, range(14, 20)) == {}
 
@@ -822,10 +826,11 @@ class TestTheValidator:
          "moments.affairs.deck[1].accept.ops[1]"),
         ("autonomy, barred", lambda b: _aff(b, 1)["accept"]["ops"].append({"op": "autonomy", "court": "Holland", "level": 2}),
          "moments.affairs.deck[1].accept.ops[1]"),
+        # AU-2a: the Host's Decline carries its authority op first (three ops)
         ("a priced decline", lambda b: _aff(b, 1)["decline"]["ops"].append({"op": "gold", "amount": 100}),
-         "moments.affairs.deck[1].decline.ops[2]"),
+         "moments.affairs.deck[1].decline.ops[3]"),
         ("admin on a decline", lambda b: _aff(b, 1)["decline"]["ops"].append({"op": "admin", "amount": 1}),
-         "moments.affairs.deck[1].decline.ops[2]"),
+         "moments.affairs.deck[1].decline.ops[3]"),
         ("no source", lambda b: _aff(b).pop("source"), "moments.affairs.deck[0].source"),
         ("no watch", lambda b: _aff(b).pop("watch"), "moments.affairs.deck[0].watch"),
         ("a watch that promises", lambda b: _aff(b).update(watch="Cambacérès will write."), "moments.affairs.deck[0].watch"),
@@ -874,8 +879,8 @@ class TestTheValidator:
         ("a caption past 36", lambda b: _aff(b)["accept"].update(caption="C" * 37), "moments.affairs.deck[0].accept.caption"),
         ("a button line past 40 rendered", lambda b: _aff(b)["accept"].update(button_line="B" * 41),
          "moments.affairs.deck[0].accept.button_line"),
-        ("a relation op on an unknown court", lambda b: _aff(b, 1)["decline"]["ops"][0].update(court="Atlantis"),
-         "moments.affairs.deck[1].decline.ops[0].court"),
+        ("a relation op on an unknown court", lambda b: _aff(b, 1)["decline"]["ops"][1].update(court="Atlantis"),
+         "moments.affairs.deck[1].decline.ops[1].court"),
         ("a min_corps of nine", lambda b: _aff(b, 1)["when"].update(min_corps=9), "moments.affairs.deck[1].when.min_corps"),
     ])
     def test_each_bad_block_is_refused(self, label, mutate, path):
@@ -935,7 +940,11 @@ class TestTheCensuses:
         # The Marine's letter reaches the Emperor at headquarters since the
         # user's word of November 1, 2026 (the at-home clause dropped): it
         # takes the pulse's next free morning after the Host's second bill.
-        assert delivered == {7: "chancellors_letters#1", 12: "the_host#1", 17: "chancellors_letters#2",
+        # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the Host's Complaint — the
+        # Decline at T12 takes −2 and leaves the board at 78, under the
+        # Chancellor's tier-two floor (his −8 must land at or above 71), so
+        # the Memorial's door takes T17 instead of the Chancellor's second letter.
+        assert delivered == {7: "chancellors_letters#1", 12: "the_host#1", 17: "berthiers_memorial#1",
                              22: "the_host#2", 27: "santo_domingo#1"}
 
     def test_the_one_liner_speaks_the_affairs_phases_and_the_moments_as_before(self):
@@ -1156,7 +1165,7 @@ class TestTheMinisterAndTheSlots:
         row = _occ_host("Switzerland", 12)
         assert AF.fill_slots(armed, "{Minister}: {host}", row, e) == "The chancery of Switzerland: Switzerland"
         p = MO.plan(armed, e, MO.ANSWER_DECLINE, _occ_host("KingdomOfItaly", 12))
-        assert p["receipt"].startswith("The Kingdom of Italy ") or p["receipt"] == "no change"
+        assert p["receipt"].startswith("auth 100 → 98 · The Kingdom of Italy ") or p["receipt"] == "no change"   # AU-2a: the authority first
 
 
 class TestTheCopyAuthored:

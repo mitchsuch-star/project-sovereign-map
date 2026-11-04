@@ -13078,3 +13078,20 @@ The at-home clause of §164.1's table is dropped: the Marine's letter reaches th
 | the courts | `standing.courts_move()` False | the courts' new sources and battle writes parked; their laws and the capture shock keep writing through `move`; AU-4 flips it on the user's word with `BASELINE_SERIES` re-pinned |
 
 **Pins.** `tests/test_standing_books.py`; `test_serialization_enforcement.py`, `test_serialization.py`, `test_serialization_played_world_census.py` (unchanged, green); the affairs', moments' and correspondence pins re-seated to the word. **Finds:** AU-1 … AU-5 — `BUG_FIXES.md` §AU (three fixed, two owned by the AU-4 slice).
+
+## 170. THE HITS — THE BILLS OFFERED IN EVERY CAMPAIGN (AU-2a, November 4, 2026; `AUTHORITY_CURRENCY_SPEC.md` §5.4, the record §6.2)
+
+| Hit | Where | The rule |
+|---|---|---|
+| the Arch-Chancellor | `chancellors_letters` (`"bites": "floor"`, `"bites_since": "AU-2a"`) | arrives at any standing; the floor alone closes it (the Decline's −5 / −8 must land at or above 71 on the grip) |
+| the Host's Complaint | the Host's Decline, first op `authority` −2 / −3 / −4 by tier (`"since": "AU-2a"`), the template `"bites": "floor"` | "Live off the land" costs authority at the floor, the host's minister the creditor; on a board under 73 the letter does not come (§6.2.3 reading 1) |
+| a slice's deck content | `affairs.SINCE_ROWS` (`AU-2a`), `row_armed`, `op_armed` (an op with `since` is planned only while its row is armed — `moments.plan` skips the rest), `floor_mode` (`bites: "floor"` with `bites_since` reads `true` while the row is held down); the validator accepts `since` / `bites_since` from the set alone | the series rig holds a slice's content down to the tree before it |
+| the Claims of the Army | `standing.claims_of_the_army` on `WorldState._process_dotation_state` (after the grace clock) | `elapsed == 14`, the chest ≥ 20 × his rente (`dotation.get_rente_cost`), the grip after ≥ 80, once per claim (`held["claims"]`: `"<marshal>:<opening turn>"`); −3, the marshal the party; Berthier's HIGH `moment_receipt` line in the morning's events; the player's marshals alone |
+| the word broken | `standing.breach` at the end of `diplomacy._record_treaty_breach` | the player at fault: −3 a strike, ≤ −6 an episode (`held["breach:<episode>"]`), the debt `held["owed:<court>"]`; a court's breach parked (AU-4) |
+| Make Amends | `standing.amends` in both amends variants | `regrow(+min(2, debt))` toward that court, the ceiling 95, the debt reduced by what was applied |
+| the confirm | `standing.breach_confirm_clause` on `force_declare_war_confirmation` | the first strike's `standing.quote` appended to Talleyrand's warning |
+| the stakes told | `standing.insist_stake_line` → `stake_line` on both objection paths → `objection_dialog.gd` (the join; under the marshal's words); `vindication.py` `INSIST_*` / `COMPROMISE_*` constants | the dialog says what insisting and compromising risk and win; the vindication's four priced sentences end in their figures (AU-6) |
+| the causes | `display_names.AUTHORITY_CAUSES` | `claims` "{marshal}'s claim, fourteen turns unpaid", `breach` "the word broken to {court}", `amends` "amends made to {court}" |
+| the seams | `standing.hits_armed` (AUP), `claims_armed` (AUK), `breach_armed` (AUW) — `tests/_standing_seams.py` | `tools/_standing_series_arms.py` arms 0 / AUB / AUP / AUK / AUW / ALL, each byte-identical to HEAD's `BASELINE_SERIES` |
+
+**The measure (§6.2.2):** the Chancellor 11 → 21 of the 58 runs, the Host 20 → 9 (the floor), the Claims 22 bills on 13 runs, no measured breach; the hoarder CMD-A ends at 72 (100 before). **Pins.** `tests/test_standing_hits.py`; `tests/test_affairs_nondominance.py` (the two floors, the seam down); `tests/test_affairs_reach.py` and `tests/test_affairs_pacing.py` re-pinned with the attribution. **Finds:** AU-6 — `BUG_FIXES.md` §AU, fixed.

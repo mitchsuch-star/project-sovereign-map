@@ -1912,6 +1912,12 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         elif bounds:
                             for t, amount in tiers.items():
                                 _int_in(f"{opath}.tiers.{t}", amount, *bounds)
+                    # AU-2a: an op a slice added names its row, so a series arm can
+                    # hold it down to the tree before it (`affairs.op_armed`)
+                    since = op.get("since")
+                    if since is not None and since not in AF.SINCE_ROWS:
+                        result.add_error(f"{opath}.since",
+                                         f"Must name a row of {list(AF.SINCE_ROWS)} (the slice whose content a series arm may hold down)")
         _validate_edict(result, path, e, shape, when if isinstance(when, dict) else {}, _text, _int_in)
         if squadron_ops:
             # RE-H (§6.5 step 1): one squadron per entry; a fallback form (the
@@ -1938,6 +1944,11 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                              'half alone, RE-H): the letter arrives only where it bites')
         elif bites_value is not None and bites_value not in AF.BITES_MODES:
             result.add_error(f"{path}.bites", 'Must be `true` or "floor"')
+        # AU-2a: a floor clause a slice added names its row beside `"floor"`
+        bites_since = e.get("bites_since")
+        if bites_since is not None and (bites_since not in AF.SINCE_ROWS or bites_value != AF.BITES_FLOOR):
+            result.add_error(f"{path}.bites_since",
+                             f'Must name a row of {list(AF.SINCE_ROWS)} beside `"bites": "floor"`')
 
 
 def _validate_doctrines(result, data: dict, known_nations: Set[str]) -> None:

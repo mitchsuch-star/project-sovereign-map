@@ -129,6 +129,8 @@ static func data_from_response(response: Dictionary) -> Dictionary:
 		"trust_note": objection.get("trust_note", response.get("trust_note", "")),
 		"compromise_ap_cost": objection.get("compromise_ap_cost", response.get("compromise_ap_cost", 0)),
 		"compromise_note": objection.get("compromise_note", response.get("compromise_note", "")),
+		# AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the stakes told in figures.
+		"stake_line": objection.get("stake_line", response.get("stake_line", "")),
 	}
 
 func show_from_response(response: Dictionary):
@@ -147,6 +149,11 @@ func show_objection(objection_data: Dictionary):
 	# Set objection message
 	var message = objection_data.get("message", "I have concerns about this order, Sire.")
 	message_label.text = '"%s"' % message
+	# AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the stakes told in figures — what
+	# insisting risks and wins when the field judges the order, under his words.
+	var stake_line = str(objection_data.get("stake_line", ""))
+	if stake_line != "" and stake_line != "null":
+		message_label.text += "\n\n" + stake_line
 
 	# Get marshal stats
 	var personality = objection_data.get("personality", "unknown")

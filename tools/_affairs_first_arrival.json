@@ -1,7 +1,7 @@
 {
  "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
  "turns": 20,
- "fixture_sha": "ab2fa45b7a489b59f9a298462edd166dd0e60385311e72340421ab3d202157e3",
+ "fixture_sha": "8628fdec0e3ea92e8fd73ec01e886aef684163ee1881097d2da45e113770698b",
  "affairs": [
   "chancellors_letters",
   "the_host",
@@ -223,12 +223,13 @@
       },
       "tier": 1
      },
-     "berthiers_memorial#1": {
-      "turn": 19,
+     "chancellors_letters#1": {
+      "turn": 18,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "law": "grand_quartier_general"
+       "region": "Tyrol",
+       "sovereign": "Napoleon"
       },
       "tier": 1
      }
@@ -249,6 +250,12 @@
      "floors": {
       "berthiers_memorial|": {
        "first_due": 19,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "chancellors_letters|": {
+       "first_due": 18,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -263,7 +270,7 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "berthiers_memorial#1": 19
+      "chancellors_letters#1": 18
      },
      "passed": {
       "bavarian_match": "premise"
@@ -287,7 +294,7 @@
       },
       "tier": 1
      },
-     "santo_domingo#2": {
+     "chancellors_letters#1": {
       "turn": 21,
       "status": "fired",
       "reason": "",
@@ -307,11 +314,19 @@
      "chancellors_letters|": 6,
      "berthiers_memorial|": 3
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "chancellors_letters|": {
+       "first_due": 21,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 9,
        "status": "lapsed",
@@ -322,7 +337,7 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "santo_domingo#2": 21
+      "chancellors_letters#1": 21
      },
      "passed": {
       "bavarian_match": "premise"
@@ -369,12 +384,13 @@
       },
       "tier": 1
      },
-     "berthiers_memorial#1": {
-      "turn": 19,
+     "chancellors_letters#1": {
+      "turn": 18,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "law": "grand_quartier_general"
+       "region": "Tyrol",
+       "sovereign": "Napoleon"
       },
       "tier": 1
      }
@@ -395,6 +411,12 @@
      "floors": {
       "berthiers_memorial|": {
        "first_due": 19,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "chancellors_letters|": {
+       "first_due": 18,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -409,7 +431,7 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "berthiers_memorial#1": 19
+      "chancellors_letters#1": 18
      },
      "passed": {
       "bavarian_match": "premise"
@@ -433,12 +455,13 @@
       },
       "tier": 1
      },
-     "berthiers_memorial#1": {
+     "chancellors_letters#1": {
       "turn": 21,
       "status": "fired",
       "reason": "",
       "bind": {
-       "law": "grand_quartier_general"
+       "region": "Franconia",
+       "sovereign": "Napoleon"
       },
       "tier": 1
      }
@@ -453,6 +476,7 @@
      "berthiers_memorial|": 4
     },
     "due": {
+     "berthiers_memorial|": 1,
      "santo_domingo|": 1
     },
     "judged": {
@@ -460,6 +484,12 @@
      "floor_breaches": [],
      "floors": {
       "berthiers_memorial|": {
+       "first_due": 21,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "chancellors_letters|": {
        "first_due": 21,
        "status": "fired",
        "reason": "",
@@ -475,7 +505,7 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "berthiers_memorial#1": 21
+      "chancellors_letters#1": 21
      },
      "passed": {
       "bavarian_match": "premise"
@@ -665,7 +695,7 @@
       },
       "tier": 1
      },
-     "santo_domingo#2": {
+     "chancellors_letters#1": {
       "turn": 20,
       "status": "fired",
       "reason": "",
@@ -685,11 +715,19 @@
      "chancellors_letters|": 7,
      "the_remounts|": 1
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 3
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "chancellors_letters|": {
+       "first_due": 20,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",
@@ -706,7 +744,7 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "santo_domingo#2": 20
+      "chancellors_letters#1": 20
      },
      "passed": {
       "bavarian_match": "premise",
@@ -755,6 +793,12 @@
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "chancellors_letters|": {
+       "first_due": 21,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",
@@ -1359,6 +1403,12 @@
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "chancellors_letters|": {
+       "first_due": 21,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",

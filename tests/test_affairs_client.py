@@ -320,7 +320,7 @@ class TestTheRegister:
         assert p["counsel"].startswith("Talleyrand — An ally presents his bill once as an account")
         assert p["talleyrand_assessment"] == p["counsel"]
         assert p["button_accept"] == "−300 gold"
-        assert p["button_decline"] == f"Bavaria {rel} → {rel - 2}"
+        assert p["button_decline"] == f"auth 100 → 98 · Bavaria {rel} → {rel - 2}"   # AU-2a: the Host's Complaint priced first
         assert p["occurrence"] == "the_host#1"
         assert _floats(p) == []                                 # GR2: every figure an int
 

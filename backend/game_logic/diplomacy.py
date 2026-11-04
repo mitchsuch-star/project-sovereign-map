@@ -2861,6 +2861,12 @@ def _record_treaty_breach(
         diplomatic_history[:] = diplomatic_history[-20:]
     world.diplomatic_history = diplomatic_history
 
+    # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the word broken — a breach at the
+    # lord's fault costs standing, per strike, capped an episode (the court's
+    # debt is what Make Amends repays); a court's breach waits on AU-4
+    from backend.game_logic import standing as _standing
+    _standing.breach(world, breach_preview)
+
 
 # ═══════════════════════════════════════════════════════
 # CENTRALIZED DIPLOMATIC STATE SETTER (R2)

@@ -2279,6 +2279,10 @@ class DiplomaticExecutor:
             world, player, target_nation, self._MAKE_AMENDS_RELATION_REWARD,
             "make_amends", player, target_nation,
         )
+        # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): Make Amends repays the breach's
+        # dents owed to this court (+2, never beyond the debt)
+        from backend.game_logic import standing as _standing
+        _standing.amends(world, player, target_nation)
 
         # ── Set cooldown ──
         cooldown = dict(getattr(world, "reparations_cooldown", {}) or {})
@@ -2660,6 +2664,9 @@ class DiplomaticExecutor:
             self._MAKE_AMENDS_GRIEVANCE_RELATION_REWARD,
             "make_amends", player, target_nation,
         )
+        # AU-2a: the same repayment on the grievance variant
+        from backend.game_logic import standing as _standing
+        _standing.amends(world, player, target_nation)
 
         # ── Set cooldown (shared field with standard variant) ──
         cooldown = dict(getattr(world, "reparations_cooldown", {}) or {})
@@ -3262,6 +3269,8 @@ class DiplomaticExecutor:
                 f"longer memory, and will price our next undertaking "
                 f"accordingly. Shall I proceed regardless?"
             )
+            from backend.game_logic import standing as _standing   # AU-2a: the word broken, priced on the confirm
+            warning_text += _standing.breach_confirm_clause(world, player)
             world.dialogue_manager.open_flow({
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,

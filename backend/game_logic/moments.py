@@ -1031,6 +1031,11 @@ def plan(world, e: Dict[str, Any], answer: str,
     rows: List[Dict[str, Any]] = []
     for op in side.get("ops") or []:
         op = _bind_op(scaled_op(op or {}, tier), occ) if occ else (op or {})
+        # AU-2a: an op authored `since` a row is planned only while the row is
+        # armed (`affairs.op_armed`) — the series rig holds a slice's content down
+        from backend.game_logic import affairs as _affairs
+        if not _affairs.op_armed(op):
+            continue
         if str(op.get("op") or "") == "squadron" and occ.get("id"):
             op = dict(op, tag=str(occ["id"]))          # RE-H: the fate finds its row by the tag
         if str(op.get("op") or "") == "edict":

@@ -356,12 +356,15 @@ class TestBitesOnTheFloorHalf:
         assert get_imperial_grip(armed, "France") - 3 < MO.AUTHORITY_GRIP_FLOOR
         assert AF.bites(armed, "France", MO.entry(armed, H1), 1) is False
 
-    def test_the_arch_chancellor_s_both_halves_are_untouched(self, armed):
+    def test_the_arch_chancellor_reads_the_floor_half_since_au_2a(self, armed):
+        """RE-H left the Chancellor's both halves untouched; AU-2a (the user's Q3
+        ruling, `AUTHORITY_CURRENCY_SPEC.md` §5.4) authored it `bites: "floor"` —
+        the letter arrives at full standing too, and only the floor closes it."""
         _no_moments(armed)
         armed.marshals["Napoleon"].location = "Swabia"
         e = MO.entry(armed, T1)
-        assert e["bites"] is True
-        for authority, expected in ((100, False), (85, True), (72, False)):
+        assert e["bites"] == "floor" and e["bites_since"] == "AU-2a"
+        for authority, expected in ((100, True), (85, True), (72, False)):
             armed.authority_tracker.authority = authority
             armed.__dict__.pop("_affairs_memo", None)
             assert AF.bites(armed, "France", e, 1) is expected, authority

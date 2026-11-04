@@ -8600,6 +8600,12 @@ class WorldState:
                 continue
 
             elapsed = self.current_turn - marshal.expectation_grace_turn
+            # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the Claims of the Army —
+            # a claim fourteen turns unpaid while the chest could pay his rente
+            # bills the lord's authority once, Berthier presenting (the
+            # player's marshals; a court's claims are the courts' books, AU-4)
+            from backend.game_logic import standing as _standing
+            _standing.claims_of_the_army(self, marshal, elapsed)
             if elapsed < GRACE_TURNS:
                 # S5-3: still within grace — refresh the rail notice so its
                 # numbers and countdown track the live shortfall.

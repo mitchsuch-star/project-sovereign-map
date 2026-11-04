@@ -44,17 +44,32 @@
  ],
  "seams_down": {
   "0": [
-   "AUB"
+   "AUB",
+   "AUK",
+   "AUP",
+   "AUW"
   ],
   "AUB": [
    "AUB"
+  ],
+  "AUP": [
+   "AUP"
+  ],
+  "AUK": [
+   "AUK"
+  ],
+  "AUW": [
+   "AUW"
   ],
   "ALL": []
  },
  "arms": {
   "0": {
    "down": [
-    "AUB"
+    "AUB",
+    "AUK",
+    "AUP",
+    "AUW"
    ],
    "series": [
     70,
@@ -105,7 +120,15 @@
      "books_reads": 22,
      "writer_calls": 29,
      "rows_booked": 0,
-     "events_queued": 0
+     "events_queued": 0,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
     }
    }
   },
@@ -162,7 +185,210 @@
      "books_reads": 22,
      "writer_calls": 29,
      "rows_booked": 0,
-     "events_queued": 0
+     "events_queued": 0,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
+    }
+   }
+  },
+  "AUP": {
+   "down": [
+    "AUP"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 22,
+     "writer_calls": 29,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
+    }
+   }
+  },
+  "AUK": {
+   "down": [
+    "AUK"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 22,
+     "writer_calls": 29,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
+    }
+   }
+  },
+  "AUW": {
+   "down": [
+    "AUW"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 22,
+     "writer_calls": 29,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
     }
    }
   },
@@ -217,7 +443,15 @@
      "books_reads": 22,
      "writer_calls": 29,
      "rows_booked": 22,
-     "events_queued": 2
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0
     }
    }
   }

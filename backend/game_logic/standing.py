@@ -113,6 +113,23 @@ def keeps_books() -> bool:
     return True
 
 
+# §5.4 the hits (AU-2a) — three named seams, no levers
+def hits_armed() -> bool:
+    """Arm AUP: the Chancellor's and the Host's floor clause (`bites_since`) and
+    the Host's authority op (`since`) — down, the deck reads as before AU-2a."""
+    return True
+
+
+def claims_armed() -> bool:
+    """Arm AUK: the Claims of the Army on the dotation tick."""
+    return True
+
+
+def breach_armed() -> bool:
+    """Arm AUW: the word broken (a treaty breach's strikes) and Make Amends' repayment."""
+    return True
+
+
 def courts_move() -> bool:
     """§5.7: the courts' new sources and battle writes — PARKED until AU-4
     flips it on the user's word (the RE-6 pattern)."""
@@ -300,6 +317,132 @@ def dent_clause(world, lord: str, stamp: bool = True) -> str:
         if isinstance(held, dict):
             held["told"] = int(held.get("seq", 0) or 0)
     return clause
+
+
+# ─────────────────────────────── the hits (AU-2a) ───────────────────────────────
+
+CLAIMS_TURN = 14          # the Claims of the Army: a claim fourteen turns unpaid (the Treasury crisis of January 1806)
+CLAIMS_FLOOR = 80         # … never under 80 on the grip after the bill
+CLAIMS_AMOUNT = 3         # −3 per marshal, once per claim
+CLAIMS_RENTE_TURNS = 20   # … while the chest holds twenty turns of his rente
+BREACH_STRIKE = 3         # the word broken: −3 per at-fault strike
+BREACH_EPISODE_CAP = 6    # at most −6 an episode
+AMENDS_REPAY = 2          # Make Amends repays +2 of the debt owed to that court
+
+
+def claims_of_the_army(world, marshal, elapsed: int) -> int:
+    """§5.4 the Claims of the Army, on the dotation tick: a marshal's claim at
+    `elapsed == CLAIMS_TURN` exactly, while the chest holds CLAIMS_RENTE_TURNS of
+    his rente (`dotation.get_rente_cost`), never under CLAIMS_FLOOR on the grip
+    after, once per claim (the paid marks in `held["claims"]`, keyed by the
+    claim's opening turn — a re-opened claim is a new claim); Berthier presents
+    it on the morning's line. The player's marshals; a court's claims are the
+    courts' books (AU-4). Returns the delta applied."""
+    if not claims_armed() or int(elapsed) != CLAIMS_TURN:
+        return 0
+    lord = str(getattr(marshal, "nation", "") or "")
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if tracker is None:
+        return 0
+    from backend.game_logic.dotation import compute_rente_face, get_rente_cost
+    rente = int(get_rente_cost(compute_rente_face(marshal, world), world, lord))
+    if rente <= 0:
+        return 0
+    chest = int((getattr(world, "nation_gold", {}) or {}).get(lord, 0) or 0)
+    if chest < CLAIMS_RENTE_TURNS * rente:
+        return 0
+    key = f"{marshal.name}:{int(getattr(marshal, 'expectation_grace_turn', -1) or -1)}"
+    paid = list(tracker.held.get("claims") or [])
+    if key in paid:
+        return 0
+    if grip_of(world, lord) - CLAIMS_AMOUNT < CLAIMS_FLOOR:
+        return 0
+    before = standing_of(world, lord)
+    applied = move(world, lord, -CLAIMS_AMOUNT, "claims", party=str(marshal.name), marshal=str(marshal.name))
+    tracker.held["claims"] = paid + [key]
+    if applied:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "moment_receipt", {
+            "line": (f"Berthier presents the claims of the army: {marshal.name}, fourteen turns "
+                     f"unpaid while the chest could pay his rente — authority {before} → {before + applied}."),
+            "register": "claims"}, "always")
+    return applied
+
+
+def breach(world, preview: Dict[str, Any]) -> int:
+    """§5.4 the word broken: a treaty breach at the lord's fault costs
+    BREACH_STRIKE per strike, at most BREACH_EPISODE_CAP an episode (the tally
+    `held["breach:<episode>"]`); the debt owed to the injured court
+    (`held["owed:<court>"]`) is what Make Amends repays. A court's breach is the
+    courts' books (AU-4). Returns the delta applied."""
+    if not breach_armed():
+        return 0
+    lord = str((preview or {}).get("fault_nation") or "")
+    injured = str((preview or {}).get("injured_party") or "")
+    tracker = tracker_of(world, lord) if lord and is_player(world, lord) else None
+    if tracker is None or not injured:
+        return 0
+    key = f"breach:{str((preview or {}).get('episode_id') or '')}"
+    taken = int(tracker.held.get(key, 0) or 0)
+    strike = min(BREACH_STRIKE, BREACH_EPISODE_CAP - taken)
+    if strike <= 0:
+        return 0
+    applied = move(world, lord, -strike, "breach", party=injured, court=injured)
+    if applied:
+        tracker.held[key] = taken - applied
+        owed_key = f"owed:{injured}"
+        tracker.held[owed_key] = int(tracker.held.get(owed_key, 0) or 0) - applied
+    return applied
+
+
+def amends(world, lord: str, court: str) -> int:
+    """§5.4 Make Amends repays AMENDS_REPAY of the breach's dents owed to that
+    court — a repayment, never a price (it cannot net positive); the ceiling 95
+    is `regrow`'s. Returns the delta applied."""
+    if not breach_armed():
+        return 0
+    tracker = tracker_of(world, lord)
+    if tracker is None or not court:
+        return 0
+    owed_key = f"owed:{court}"
+    owed = int(tracker.held.get(owed_key, 0) or 0)
+    if owed <= 0:
+        return 0
+    applied = regrow(world, lord, min(AMENDS_REPAY, owed), "amends", f"amends:{court}",
+                     party=court, court=court)
+    if applied:
+        left = owed - applied
+        if left > 0:
+            tracker.held[owed_key] = left
+        else:
+            tracker.held.pop(owed_key, None)
+    return applied
+
+
+def breach_confirm_clause(world, lord: str) -> str:
+    """§5.4: the word broken, priced on the war-declaration confirm — the
+    first strike's quote, the one every button reads; "" while the breach is
+    held down (arm AUW)."""
+    if not breach_armed():
+        return ""
+    return " And the court keeps its own count: " + quote(world, lord, -BREACH_STRIKE)["line"]
+
+
+def _signed(n: int) -> str:
+    return f"+{int(n)}" if int(n) > 0 else f"−{abs(int(n))}"
+
+
+def insist_stake_line() -> str:
+    """§5.4 the stakes told in figures: what insisting on an order risks and
+    wins when its own battle is judged (`vindication.resolve_battle`'s figures),
+    printed under the marshal's words on the objection dialog."""
+    from backend.commands.vindication import (
+        COMPROMISE_LOSS_AUTHORITY, COMPROMISE_LOSS_TRUST, COMPROMISE_WIN_AUTHORITY,
+        INSIST_LOSS_AUTHORITY, INSIST_LOSS_TRUST, INSIST_WIN_AUTHORITY)
+    return (f"If the field is lost under your insistence: trust {_signed(INSIST_LOSS_TRUST)}, "
+            f"authority {_signed(INSIST_LOSS_AUTHORITY)}; won: authority {_signed(INSIST_WIN_AUTHORITY)}. "
+            f"A compromise: authority {_signed(COMPROMISE_WIN_AUTHORITY)} won, "
+            f"trust {_signed(COMPROMISE_LOSS_TRUST)} and authority {_signed(COMPROMISE_LOSS_AUTHORITY)} lost.")
 
 
 def pop_event(world) -> Optional[Dict[str, Any]]:

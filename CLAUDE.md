@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ LANDED Nov 3 (§6.1) — AU-2a NEXT, six slices before S15**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a ✅ Nov 4 (§6.1–§6.2) — AU-2b NEXT, five slices before S15**.
 
 **▶ LIVE STATE (Nov 3, 2026).** The three most recent rows:
-- **AU-1 (Nov 3) — LANDED: one writer, the ring, the HEAD record's residual, the chip, the dent, the boxes; AU-2a NEXT** (spec §6.1).
-- **AU gate (Nov 3) — RULED: the fuller option on band, pushes, pulls, regrowth; the chip; courts parked; seven slices before S15** (spec §4–§7).
-- **RE-5 (Nov 2) — the close; ROW RE COMPLETE** (§26).
+- **AU-2a (Nov 4) — LANDED: the Chancellor at any standing, the Host's Complaint, the Claims, the breach; AU-2b NEXT** (§6.2).
+- **AU-1 (Nov 3) — LANDED: one writer, the ring, the HEAD record's residual, the chip, the dent, the boxes** (§6.1).
+- **AU gate (Nov 3) — RULED: the fuller option on band, pushes, pulls, regrowth; courts parked; seven slices** (§4–§7).
 
-**Open with the user:** AU-1's landing readings (spec §6.1.3), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** AU-2a's landing readings (spec §6.2.3), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

@@ -3007,6 +3007,10 @@ class CommandExecutor:
                                 if _insist_note:
                                     objection["insist_ap_cost"] = int(_insist_ap)
                                     objection["insist_note"] = _insist_note
+                                # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the stakes
+                                # told in figures — what insisting risks and wins
+                                from backend.game_logic import standing as _standing
+                                objection["stake_line"] = _standing.insist_stake_line()
                                 # SFR-D3: the trust and compromise arms' prices,
                                 # the same shape (absent at face value).
                                 if suggested_alt and _trust_note:
