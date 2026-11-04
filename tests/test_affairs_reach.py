@@ -166,8 +166,13 @@ class TestEachTemplatesReach:
         # Memorial's two on the Rhine road at marengo (3 → 1 scripted; due and
         # released there), the Magazines' on HAITI-marengo and the Confederation
         # road on historical (17 → 15), the Remounts' on VOLTE (30 → 29).
+        # AU-2b the lumps (November 4, 2026, §6.3): the Bulletins raise the bled
+        # roads' standing over the letters' floor, so the Marine's letter takes
+        # the Host's morning on the Confederation road at historical (16 → 15;
+        # due and released there) and the Chancellor gains the Rhine road at
+        # austerlitz (21 → 22 of the 58)
         assert count("chancellors_letters", SCRIPTED) >= 15
-        assert count("the_host", SCRIPTED) >= 16
+        assert count("the_host", SCRIPTED) >= 15
         assert count("berthiers_memorial", SCRIPTED) >= 1
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
                    if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 13
@@ -218,10 +223,16 @@ class TestEachTemplatesReach:
         # the marching Emperor, the war with Britain kept: the roads that keep the letter
         kept = {f"{family}/{name}" for family in ("road", "road_accept") for name in record[family]
                 if verdict(family, name) == "arrived"}
-        # AU-2a (§6.2): the Rhine road on austerlitz keeps it too — the Host's
+        # AU-2a (§6.2): the Rhine road on austerlitz kept it too — the Host's
         # Complaint (−2 at T15) left the Chancellor's tier-two −8 no room above
-        # the floor at T26, and the Marine's −3 took the morning
-        assert kept == {"road/VP1-TH-historical", "road/VP1-CS-austerlitz", "road/VP1-RH-austerlitz"}, kept
+        # the floor at T26, and the Marine's −3 took the morning.
+        # AU-2b the lumps (November 4, 2026, §6.3): a Te Deum and a Bulletin give
+        # that board back its room, the Chancellor takes the morning and the
+        # Marine's letter is due and released there; the Bulletins lift the
+        # Confederation road on historical and the Rhine road's accept arm on
+        # historical over the floor, and the letter arrives on both
+        assert kept == {"road/VP1-TH-historical", "road/VP1-CS-austerlitz", "road/VP1-CS-historical",
+                        "road_accept/VP1-RH-historical"}, kept
         # … and so does the October 25 diplomacy start (DDB-25-diplomacy, T39): the
         # Host's two −2s (T24, T34) leave the Chancellor's second letter (−8) no
         # room above the floor, and the Marine's −3 takes the morning
@@ -277,9 +288,17 @@ class TestEachTemplatesReach:
             assert " home T" in line or " caught T" in line, line
             assert "in 100, drew " in line, line
         assert any(" home T" in f for f in sailed["HAITI-historical"]), sailed
+        # AU-2b the lumps (November 4, 2026, §6.3): the Bulletins lift the Rhine
+        # road's accept arm on historical over the floor; the Marine's letter
+        # arrives at T28, the arm accepts and five of the line sail — home at T32
+        accepted_roads = {("road_accept", "VP1-RH-historical")}
         for family, name, row in _rows(record, [f for f in FAMILIES if f != "haiti"]):
             for line in row["affairs_reach"][H1]["occurrences"]:
+                if (family, name) in accepted_roads:
+                    continue
                 assert "; the squadron " not in line, (family, name, line)
+        assert any("; the squadron home T32" in line for line in
+                   record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]["occurrences"])
 
     def test_the_host_s_claims_stay_an_event(self, record):
         """P6 (§0b): at two corps the Host's Claims reaches more boards (17 of
@@ -337,8 +356,11 @@ class TestTheBrakesAndTheRoad:
             assert "control" in row and not row["unmoved"], (name, row["armed"], row["control"])
         ends = {n: (row["control"]["end_turns"], row["armed"]["end_turns"], row["armed"]["stamped_turn"])
                 for n, row in control.items()}
+        # AU-2b the lumps (November 4, 2026, §6.3): the Bulletins re-time the
+        # Confederation road on historical on both arms (the control 30 → 32,
+        # the armed 35 → 36); the eight other roads' ends unmoved
         assert ends == {
-            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (30, 35, -1), "VP1-CS-marengo": (27, 24, -1),
+            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (32, 36, -1), "VP1-CS-marengo": (27, 24, -1),
             "VP1-RH-austerlitz": (40, 36, 13), "VP1-RH-historical": (34, 40, 12), "VP1-RH-marengo": (28, 40, 13),
             "VP1-TH-austerlitz": (40, 28, -1), "VP1-TH-historical": (40, 33, -1), "VP1-TH-marengo": (40, 21, -1),
         }, ends

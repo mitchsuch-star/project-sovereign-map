@@ -835,8 +835,10 @@ def _pay_one_shot(world, d: Dict[str, Any]) -> None:
     if reward.get("type") != "authority" or d.get("id") in state["rewarded"]:
         return
     from backend.game_logic import standing as _standing
+    # AU-9 (BUG_FIXES.md §AU): a design carries `title`, never `name` — the
+    # cause read "crowns.naples fulfilled", the raw id
     _standing.move(world, owner(world), int(reward.get("amount", NAPLES_AUTHORITY) or NAPLES_AUTHORITY),
-                   "design_reward", design=str(d.get("name") or d.get("id") or "the design"))
+                   "design_reward", design=str(d.get("title") or d.get("id") or "the design"))
     state["rewarded"].append(d.get("id"))
 
 
@@ -1117,8 +1119,22 @@ ACT_PRECONDITION_TYPES = ("vassal", "great_power_beaten")
 
 
 def acts(world) -> List[Dict[str, Any]]:
+    # AU-2b: an Act a slice added (`since`) stands only while its row is armed
+    # (`affairs.op_armed`) — the series rig holds the Show down with arm AUS
+    from backend.game_logic.affairs import op_armed
     return [a for a in ((_store(world).get("block") or {}).get("acts") or [])
-            if isinstance(a, dict)]
+            if isinstance(a, dict) and op_armed(a)]
+
+
+def act_authority_gain(world, a: Dict[str, Any], amount: int) -> int:
+    """AU-2b (§5.5 the Show): what an Act's authority effect lands — the whole
+    of it (the Temple writes through `move`, to 100), or under an Act's
+    `ceiling` the room left beneath it (`standing.regrow`)."""
+    if a.get("ceiling") is None:
+        return int(amount)
+    from backend.game_logic import standing
+    return int(max(0, min(int(amount), min(int(a["ceiling"]), standing.CEILING)
+                          - standing.standing_of(world, owner(world)))))
 
 
 def act(world, act_id: str) -> Optional[Dict[str, Any]]:
@@ -1242,6 +1258,14 @@ def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Opti
     reason = act_precondition_reason(world, a)
     if reason:
         return reason
+    # AU-2b (§5.5 the Show): an Act that buys standing alone is refused when
+    # nothing would land beneath its ceiling — a purchase never buys nothing
+    effects = [e for e in (a.get("effects") or []) if isinstance(e, dict)]
+    if (a.get("ceiling") is not None and effects and all(e.get("type") == "authority" for e in effects)
+            and not any(act_authority_gain(world, a, int(e.get("amount", 0) or 0)) for e in effects)):
+        from backend.game_logic import standing
+        return (f"{title} adds nothing at authority {standing.standing_of(world, owner(world))}: "
+                f"new gains stop at {int(a['ceiling'])}, Sire.")
     price = act_price(world, a)
     # S14E-X196 / S14E-D19: ONE chest - the treasury less the recurring
     # settlement payments still owed (`instruments.chest_of`); nothing owed,
@@ -1265,7 +1289,9 @@ def act_effect_lines(world, a: Dict[str, Any]) -> List[str]:
             continue
         kind, amount = e.get("type"), int(e.get("amount", 0) or 0)
         if kind == "authority":
-            out.append(f"authority +{amount}")
+            gain = act_authority_gain(world, a, amount)
+            out.append(f"authority +{gain}" if gain == amount
+                       else f"authority +{gain} — the ceiling {int(a['ceiling'])} holds")
         elif kind == "relation":
             if e.get("pick") == "beaten":
                 court = act_beaten_court(world, a)
@@ -1302,7 +1328,14 @@ def decree(world, act_id: str) -> Dict[str, Any]:
         kind, amount = e.get("type"), int(e.get("amount", 0) or 0)
         if kind == "authority":
             from backend.game_logic import standing as _standing
-            _standing.move(world, lord, amount, "act", act=str(a.get("name") or act_id))
+            if a.get("ceiling") is not None:
+                # AU-2b the Show: a gain beneath the Act's ceiling, through `regrow`
+                _standing.regrow(world, lord, amount, "act", f"act:{act_id}", ceiling=int(a["ceiling"]),
+                                 act=str(a.get("title") or act_id))
+            else:
+                # AU-9 (BUG_FIXES.md §AU): an Act carries `title`, never `name` —
+                # the cause read "the Act: temple_of_glory", the raw id
+                _standing.move(world, lord, amount, "act", act=str(a.get("title") or act_id))
         elif kind == "relation":
             courts = [beaten] if e.get("pick") == "beaten" else [str(c) for c in (e.get("courts") or [])]
             for court in courts:

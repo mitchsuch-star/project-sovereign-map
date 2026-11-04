@@ -245,8 +245,10 @@ class TestTheValidator:
 
     @pytest.mark.parametrize("label, mutate, path", [
         ("unknown predicate", lambda b: b["deck"][0]["when"].update(predicate="omen"), "moments.deck[0].when"),
+        # AU-2b: the Match's Accept carries the ceremony's +2 as its sixth op, so
+        # an appended op is the seventh
         ("unknown op", lambda b: b["deck"][0]["accept"]["ops"].append({"op": "glory", "amount": 1}),
-         "moments.deck[0].accept.ops[5]"),
+         "moments.deck[0].accept.ops[6]"),
         ("a priced decline", lambda b: b["deck"][0]["decline"]["ops"].append({"op": "gold", "amount": 100}),
          "moments.deck[0].decline.ops[1]"),
         ("a VP-1 source", lambda b: b["deck"][0]["accept"]["ops"][4].update(source="act_of_confederation"),

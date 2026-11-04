@@ -3088,6 +3088,13 @@ AUTHORITY_CAUSES = {
     "claims": "{marshal}'s claim, fourteen turns unpaid",
     "breach": "the word broken to {court}",
     "amends": "amends made to {court}",
+    # AU-2b the lumps: the Te Deum, the Bulletin, the Return, the honour, the ceremonies
+    "te_deum": "the Te Deum for the peace with {court}",
+    "bulletin": "the Bulletin of the field at {battle}",
+    "bulletin_repaid": "the field's dents repaid by the Bulletin of {battle}",
+    "return": "the Emperor's return to {capital}, the Council's account settled",
+    "honour_repaid": "{marshal} honoured, and the field won",
+    "ceremony": "{letter} celebrated",
     # the console
     "debug_set": "set by the debug console",
     # the setter's fallback — a direct assignment (the test files); never a production cause

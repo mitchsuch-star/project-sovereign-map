@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "f8d68f51b8a390a97d96555f4a545ebf57c56e6f11e36114d9c457b1bf893252",
+ "deck_sha": "419bf4ecc992987508c2ebb2ac0f941440951214549ccfa61fbc0daaa08f7dfb",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -209,7 +209,7 @@
      "Ottoman|camps_of_instruction": 30,
      "Austria|the_remounts": 15,
      "Prussia|the_remounts": 16,
-     "Russia|the_magazines": 33,
+     "Russia|the_magazines": 34,
      "Britain|the_magazines": 39,
      "Prussia|camps_of_instruction": 44,
      "Austria|the_magazines": 34
@@ -422,7 +422,7 @@
      "Ottoman|camps_of_instruction": 30,
      "Austria|the_remounts": 15,
      "Prussia|the_remounts": 16,
-     "Russia|the_magazines": 33,
+     "Russia|the_magazines": 34,
      "Britain|the_magazines": 39,
      "Prussia|camps_of_instruction": 44,
      "Austria|the_magazines": 34
@@ -713,7 +713,7 @@
   },
   "armB_jena": {
    "measured": true,
-   "mornings": 39,
+   "mornings": 40,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
@@ -766,18 +766,18 @@
    "reach": {
     "bavarian_match": "passed T12 (premise)",
     "throne_of_holland": "passed T22 (premise)",
-    "crown_of_the_reich": "pending — the last morning T40",
+    "crown_of_the_reich": "pending — the last morning T41",
     "decree_of_berlin": "passed T31 (premise)"
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "never due (premise held 11 mornings)",
+     "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 11,
+     "premise_mornings": 8,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 41
     },
     "the_host": {
      "verdict": "premise never held",
@@ -786,7 +786,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 41
     },
     "berthiers_memorial": {
      "verdict": "premise never held",
@@ -795,7 +795,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 41
     },
     "santo_domingo": {
      "verdict": "arrived",
@@ -827,22 +827,22 @@
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
-       "standing": 0,
-       "quote": "Ferrand must hold alone: Authority 92 → 92 — nothing is taken: the Emperor's grip (67) is under the floor of 71.",
+       "standing": 3,
+       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 92,
-         "delivered": 92
+         "quoted": 97,
+         "delivered": 97
         }
        ]
       }
      ],
      "crowded": [],
-     "premise_mornings": 37,
+     "premise_mornings": 39,
      "first_due": 6,
-     "last_morning": 40
+     "last_morning": 41
     },
     "the_magazines": {
      "verdict": "premise never held",
@@ -851,7 +851,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 41
     },
     "the_remounts": {
      "verdict": "arrived",
@@ -882,9 +882,9 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 12,
+     "premise_mornings": 17,
      "first_due": 22,
-     "last_morning": 40
+     "last_morning": 41
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -893,7 +893,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 41
     }
    },
    "edicts": {
@@ -901,7 +901,7 @@
      "Britain|the_remounts": 1,
      "Russia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
-     "Russia|the_magazines": 2,
+     "Russia|the_magazines": 3,
      "Ottoman|camps_of_instruction": 3,
      "Austria|the_remounts": 1,
      "Prussia|the_remounts": 1,
@@ -911,7 +911,7 @@
     },
     "gold": {
      "Britain": 4000,
-     "Russia": 6500,
+     "Russia": 9000,
      "Ottoman": 7500,
      "Austria": 4000,
      "Prussia": 5500
@@ -920,7 +920,7 @@
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
-     "Russia|the_magazines": 31,
+     "Russia|the_magazines": 48,
      "Ottoman|camps_of_instruction": 46,
      "Austria|the_remounts": 16,
      "Prussia|the_remounts": 16,
@@ -1347,13 +1347,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 97 → 94 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 94,
-         "delivered": 94
+         "quoted": 97,
+         "delivered": 97
         }
        ]
       }
@@ -1458,264 +1458,10 @@
   },
   "armb_scripted_historical": {
    "measured": true,
-   "mornings": 40,
+   "mornings": 38,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
-    "throne_of_holland": {
-     "first_due": 18,
-     "status": "lapsed",
-     "reason": "",
-     "verdict": "ok"
-    },
-    "berthiers_memorial|": {
-     "first_due": 7,
-     "status": "lapsed",
-     "reason": "",
-     "verdict": "ok"
-    },
-    "santo_domingo|": {
-     "first_due": 7,
-     "status": "",
-     "reason": "",
-     "verdict": "released"
-    },
-    "the_remounts|": {
-     "first_due": 12,
-     "status": "lapsed",
-     "reason": "",
-     "verdict": "ok"
-    }
-   },
-   "shown_equals_applied": true,
-   "mismatches": [],
-   "context_drift": [],
-   "answers": [
-    {
-     "turn": 8,
-     "moment": "berthiers_memorial#1",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
-    },
-    {
-     "turn": 13,
-     "moment": "the_remounts#1",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
-    },
-    {
-     "turn": 20,
-     "moment": "throne_of_holland",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
-    },
-    {
-     "turn": 25,
-     "moment": "berthiers_memorial#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
-    },
-    {
-     "turn": 32,
-     "moment": "the_remounts#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
-    }
-   ],
-   "reach": {
-    "bavarian_match": "passed T11 (premise)",
-    "throne_of_holland": "arrived T19, lapsed T20 (its decline)",
-    "crown_of_the_reich": "pending — the last morning T41",
-    "decree_of_berlin": "passed T32 (premise)"
-   },
-   "affairs_reach": {
-    "chancellors_letters": {
-     "verdict": "never due (premise held 15 mornings)",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 15,
-     "first_due": null,
-     "last_morning": 41
-    },
-    "the_host": {
-     "verdict": "premise never held",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
-     "last_morning": 41
-    },
-    "berthiers_memorial": {
-     "verdict": "arrived",
-     "occurrences": [
-      "berthiers_memorial#1 arrived T7, lapsed T8 (its decline)",
-      "berthiers_memorial#2 arrived T24, lapsed T25 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "berthiers_memorial#1",
-       "turn": 8,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Not now: no change.",
-       "figures": []
-      },
-      {
-       "occ": "berthiers_memorial#2",
-       "turn": 25,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Not now: no change.",
-       "figures": []
-      }
-     ],
-     "crowded": [],
-     "premise_mornings": 40,
-     "first_due": 7,
-     "last_morning": 41
-    },
-    "santo_domingo": {
-     "verdict": "due, released",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 35,
-     "first_due": 7,
-     "last_morning": 41
-    },
-    "the_magazines": {
-     "verdict": "never due (premise held 3 mornings)",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 3,
-     "first_due": null,
-     "last_morning": 41
-    },
-    "the_remounts": {
-     "verdict": "arrived",
-     "occurrences": [
-      "the_remounts#1 arrived T12, lapsed T13 (its decline)",
-      "the_remounts#2 arrived T31, lapsed T32 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "the_remounts#1",
-       "turn": 13,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the depots wait: no change.",
-       "figures": []
-      },
-      {
-       "occ": "the_remounts#2",
-       "turn": 32,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the depots wait: no change.",
-       "figures": []
-      }
-     ],
-     "crowded": [],
-     "premise_mornings": 25,
-     "first_due": 12,
-     "last_morning": 41
-    },
-    "camps_of_instruction": {
-     "verdict": "premise never held",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
-     "last_morning": 41
-    }
-   },
-   "edicts": {
-    "decreed": {
-     "Britain|the_remounts": 3,
-     "Russia|the_remounts": 1,
-     "Prussia|the_remounts": 1,
-     "Ottoman|the_remounts": 1,
-     "Ottoman|camps_of_instruction": 3,
-     "Austria|the_remounts": 1,
-     "Britain|the_magazines": 2,
-     "Austria|the_magazines": 1,
-     "Russia|camps_of_instruction": 1,
-     "Russia|the_magazines": 1
-    },
-    "gold": {
-     "Britain": 9500,
-     "Russia": 6000,
-     "Prussia": 1500,
-     "Ottoman": 7500,
-     "Austria": 4000
-    },
-    "in_force": {
-     "Britain|the_remounts": 48,
-     "Russia|the_remounts": 11,
-     "Prussia|the_remounts": 11,
-     "Ottoman|the_remounts": 11,
-     "Ottoman|camps_of_instruction": 46,
-     "Austria|the_remounts": 15,
-     "Britain|the_magazines": 38,
-     "Austria|the_magazines": 29,
-     "Russia|camps_of_instruction": 36,
-     "Russia|the_magazines": 39
-    }
-   },
-   "errors": [],
-   "seed": "historical",
-   "ambient_base": 10000,
-   "script": "france",
-   "metrics": {
-    "max_per_turn": 1,
-    "open_max": 1,
-    "during_foreground": 0,
-    "fire_turns": {
-     "throne_of_holland": [
-      19
-     ]
-    },
-    "affair_turns": {
-     "berthiers_memorial": [
-      7,
-      24
-     ],
-     "the_remounts": [
-      12,
-      31
-     ]
-    }
-   }
-  },
-  "armb_scripted_historical_soil": {
-   "measured": true,
-   "mornings": 40,
-   "ceiling_breaches": [],
-   "floor_breaches": [],
-   "floors": {
-    "throne_of_holland": {
-     "first_due": 18,
-     "status": "lapsed",
-     "reason": "",
-     "verdict": "ok"
-    },
     "berthiers_memorial|": {
      "first_due": 7,
      "status": "lapsed",
@@ -1755,7 +1501,7 @@
     },
     {
      "turn": 21,
-     "moment": "throne_of_holland",
+     "moment": "the_remounts#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
@@ -1766,30 +1512,23 @@
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
-    },
-    {
-     "turn": 33,
-     "moment": "the_remounts#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
     }
    ],
    "reach": {
     "bavarian_match": "passed T11 (premise)",
-    "throne_of_holland": "arrived T20, lapsed T21 (its decline)",
-    "crown_of_the_reich": "pending — the last morning T41",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T39",
     "decree_of_berlin": "passed T32 (premise)"
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "never due (premise held 15 mornings)",
+     "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 15,
+     "premise_mornings": 8,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 39
     },
     "the_host": {
      "verdict": "premise never held",
@@ -1798,7 +1537,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 39
     },
     "berthiers_memorial": {
      "verdict": "arrived",
@@ -1829,18 +1568,18 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 40,
+     "premise_mornings": 38,
      "first_due": 7,
-     "last_morning": 41
+     "last_morning": 39
     },
     "santo_domingo": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 35,
+     "premise_mornings": 28,
      "first_due": 7,
-     "last_morning": 41
+     "last_morning": 39
     },
     "the_magazines": {
      "verdict": "never due (premise held 3 mornings)",
@@ -1849,13 +1588,13 @@
      "crowded": [],
      "premise_mornings": 3,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 39
     },
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
       "the_remounts#1 arrived T12, lapsed T13 (its decline)",
-      "the_remounts#2 arrived T32, lapsed T33 (its decline)"
+      "the_remounts#2 arrived T20, lapsed T21 (its decline)"
      ],
      "answers": [
       {
@@ -1870,7 +1609,7 @@
       },
       {
        "occ": "the_remounts#2",
-       "turn": 33,
+       "turn": 21,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -1880,9 +1619,9 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 25,
+     "premise_mornings": 20,
      "first_due": 12,
-     "last_morning": 41
+     "last_morning": 39
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -1891,12 +1630,12 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 39
     }
    },
    "edicts": {
     "decreed": {
-     "Britain|the_remounts": 3,
+     "Britain|the_remounts": 2,
      "Russia|the_remounts": 1,
      "Prussia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
@@ -1908,18 +1647,249 @@
      "Russia|the_magazines": 1
     },
     "gold": {
-     "Britain": 9500,
+     "Britain": 8000,
      "Russia": 6000,
      "Prussia": 1500,
      "Ottoman": 7500,
      "Austria": 4000
     },
     "in_force": {
-     "Britain|the_remounts": 48,
+     "Britain|the_remounts": 31,
      "Russia|the_remounts": 11,
      "Prussia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
      "Ottoman|camps_of_instruction": 46,
+     "Austria|the_remounts": 15,
+     "Britain|the_magazines": 37,
+     "Austria|the_magazines": 29,
+     "Russia|camps_of_instruction": 36,
+     "Russia|the_magazines": 39
+    }
+   },
+   "errors": [],
+   "seed": "historical",
+   "ambient_base": 10000,
+   "script": "france",
+   "metrics": {
+    "max_per_turn": 1,
+    "open_max": 1,
+    "during_foreground": 0,
+    "fire_turns": {},
+    "affair_turns": {
+     "berthiers_memorial": [
+      7,
+      25
+     ],
+     "the_remounts": [
+      12,
+      20
+     ]
+    }
+   }
+  },
+  "armb_scripted_historical_soil": {
+   "measured": true,
+   "mornings": 37,
+   "ceiling_breaches": [],
+   "floor_breaches": [],
+   "floors": {
+    "berthiers_memorial|": {
+     "first_due": 7,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "santo_domingo|": {
+     "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_remounts|": {
+     "first_due": 12,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    }
+   },
+   "shown_equals_applied": true,
+   "mismatches": [],
+   "context_drift": [],
+   "answers": [
+    {
+     "turn": 8,
+     "moment": "berthiers_memorial#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    },
+    {
+     "turn": 13,
+     "moment": "the_remounts#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    },
+    {
+     "turn": 21,
+     "moment": "the_remounts#2",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    },
+    {
+     "turn": 26,
+     "moment": "berthiers_memorial#2",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
+    }
+   ],
+   "reach": {
+    "bavarian_match": "passed T11 (premise)",
+    "throne_of_holland": "passed T21 (premise)",
+    "crown_of_the_reich": "pending — the last morning T38",
+    "decree_of_berlin": "passed T32 (premise)"
+   },
+   "affairs_reach": {
+    "chancellors_letters": {
+     "verdict": "never due (premise held 11 mornings)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 11,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_host": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "berthiers_memorial": {
+     "verdict": "arrived",
+     "occurrences": [
+      "berthiers_memorial#1 arrived T7, lapsed T8 (its decline)",
+      "berthiers_memorial#2 arrived T25, lapsed T26 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "berthiers_memorial#1",
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Not now: no change.",
+       "figures": []
+      },
+      {
+       "occ": "berthiers_memorial#2",
+       "turn": 26,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Not now: no change.",
+       "figures": []
+      }
+     ],
+     "crowded": [],
+     "premise_mornings": 37,
+     "first_due": 7,
+     "last_morning": 38
+    },
+    "santo_domingo": {
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 31,
+     "first_due": 7,
+     "last_morning": 38
+    },
+    "the_magazines": {
+     "verdict": "never due (premise held 3 mornings)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 3,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_remounts": {
+     "verdict": "arrived",
+     "occurrences": [
+      "the_remounts#1 arrived T12, lapsed T13 (its decline)",
+      "the_remounts#2 arrived T20, lapsed T21 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_remounts#1",
+       "turn": 13,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Let the depots wait: no change.",
+       "figures": []
+      },
+      {
+       "occ": "the_remounts#2",
+       "turn": 21,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Let the depots wait: no change.",
+       "figures": []
+      }
+     ],
+     "crowded": [],
+     "premise_mornings": 20,
+     "first_due": 12,
+     "last_morning": 38
+    },
+    "camps_of_instruction": {
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    }
+   },
+   "edicts": {
+    "decreed": {
+     "Britain|the_remounts": 2,
+     "Russia|the_remounts": 1,
+     "Prussia|the_remounts": 1,
+     "Ottoman|the_remounts": 1,
+     "Ottoman|camps_of_instruction": 2,
+     "Austria|the_remounts": 1,
+     "Britain|the_magazines": 2,
+     "Austria|the_magazines": 1,
+     "Russia|camps_of_instruction": 1,
+     "Russia|the_magazines": 1
+    },
+    "gold": {
+     "Britain": 8000,
+     "Russia": 6000,
+     "Prussia": 1500,
+     "Ottoman": 5500,
+     "Austria": 4000
+    },
+    "in_force": {
+     "Britain|the_remounts": 31,
+     "Russia|the_remounts": 11,
+     "Prussia|the_remounts": 11,
+     "Ottoman|the_remounts": 11,
+     "Ottoman|camps_of_instruction": 30,
      "Austria|the_remounts": 15,
      "Britain|the_magazines": 38,
      "Austria|the_magazines": 29,
@@ -1935,11 +1905,7 @@
     "max_per_turn": 1,
     "open_max": 1,
     "during_foreground": 0,
-    "fire_turns": {
-     "throne_of_holland": [
-      20
-     ]
-    },
+    "fire_turns": {},
     "affair_turns": {
      "berthiers_memorial": [
       7,
@@ -1947,7 +1913,7 @@
      ],
      "the_remounts": [
       12,
-      32
+      20
      ]
     }
    }
@@ -2309,13 +2275,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 5,
-       "quote": "Let the Council act: Authority 89 → 84 — the marshals' calm holds above 70.",
+       "quote": "Let the Council act: Authority 95 → 90 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 84,
-         "delivered": 84
+         "quoted": 90,
+         "delivered": 90
         }
        ]
       }
@@ -2410,7 +2376,7 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 39,
+     "premise_mornings": 40,
      "first_due": 9,
      "last_morning": 41
     },
@@ -2428,7 +2394,7 @@
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 8,
+     "premise_mornings": 12,
      "first_due": 29,
      "last_morning": 41
     },
@@ -2941,7 +2907,7 @@
      "Ottoman|camps_of_instruction": 30,
      "Austria|the_remounts": 15,
      "Prussia|the_remounts": 16,
-     "Russia|the_magazines": 33,
+     "Russia|the_magazines": 34,
      "Britain|the_magazines": 39,
      "Prussia|camps_of_instruction": 44,
      "Austria|the_magazines": 34
@@ -3845,13 +3811,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 90 → 87 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 87,
-         "delivered": 87
+         "quoted": 89,
+         "delivered": 89
         }
        ]
       }
@@ -3964,7 +3930,7 @@
   },
   "armC_05_eylau": {
    "measured": true,
-   "mornings": 31,
+   "mornings": 39,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
@@ -3998,23 +3964,30 @@
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
+    },
+    {
+     "turn": 28,
+     "moment": "the_remounts#2",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
     }
    ],
    "reach": {
     "bavarian_match": "passed T12 (premise)",
     "throne_of_holland": "passed T20 (premise)",
-    "crown_of_the_reich": "pending — the last morning T32",
+    "crown_of_the_reich": "pending — the last morning T40",
     "decree_of_berlin": "passed T31 (premise)"
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "premise never held",
+     "verdict": "never due (premise held 11 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 11,
      "first_due": null,
-     "last_morning": 32
+     "last_morning": 40
     },
     "the_host": {
      "verdict": "premise never held",
@@ -4023,7 +3996,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 32
+     "last_morning": 40
     },
     "berthiers_memorial": {
      "verdict": "premise never held",
@@ -4032,7 +4005,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 32
+     "last_morning": 40
     },
     "santo_domingo": {
      "verdict": "arrived",
@@ -4059,9 +4032,9 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 20,
+     "premise_mornings": 34,
      "first_due": 7,
-     "last_morning": 32
+     "last_morning": 40
     },
     "the_magazines": {
      "verdict": "premise never held",
@@ -4070,12 +4043,13 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 32
+     "last_morning": 40
     },
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T19, lapsed T20 (its decline)"
+      "the_remounts#1 arrived T19, lapsed T20 (its decline)",
+      "the_remounts#2 arrived T27, lapsed T28 (its decline)"
      ],
      "answers": [
       {
@@ -4087,12 +4061,22 @@
        "standing": 0,
        "quote": "Let the depots wait: no change.",
        "figures": []
+      },
+      {
+       "occ": "the_remounts#2",
+       "turn": 28,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Let the depots wait: no change.",
+       "figures": []
       }
      ],
      "crowded": [],
-     "premise_mornings": 4,
+     "premise_mornings": 14,
      "first_due": 18,
-     "last_morning": 32
+     "last_morning": 40
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -4101,7 +4085,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 32
+     "last_morning": 40
     }
    },
    "edicts": {
@@ -4109,18 +4093,18 @@
      "Britain|the_remounts": 1,
      "Russia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
-     "Ottoman|camps_of_instruction": 2,
+     "Ottoman|camps_of_instruction": 3,
      "Prussia|the_remounts": 1,
      "Austria|the_remounts": 1,
      "Russia|the_magazines": 2,
      "Prussia|camps_of_instruction": 2,
-     "Britain|the_magazines": 1,
+     "Britain|the_magazines": 2,
      "Austria|the_magazines": 1
     },
     "gold": {
-     "Britain": 4000,
+     "Britain": 6500,
      "Russia": 6500,
-     "Ottoman": 5500,
+     "Ottoman": 7500,
      "Prussia": 5500,
      "Austria": 4000
     },
@@ -4128,12 +4112,12 @@
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
-     "Ottoman|camps_of_instruction": 30,
+     "Ottoman|camps_of_instruction": 46,
      "Prussia|the_remounts": 15,
      "Austria|the_remounts": 16,
      "Russia|the_magazines": 33,
      "Prussia|camps_of_instruction": 36,
-     "Britain|the_magazines": 21,
+     "Britain|the_magazines": 37,
      "Austria|the_magazines": 26
     }
    },
@@ -4151,25 +4135,20 @@
       7
      ],
      "the_remounts": [
-      19
+      19,
+      27
      ]
     }
    }
   },
   "armC_06_friedland": {
    "measured": true,
-   "mornings": 40,
+   "mornings": 36,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
     "throne_of_holland": {
      "first_due": 17,
-     "status": "lapsed",
-     "reason": "",
-     "verdict": "ok"
-    },
-    "the_host|Holland": {
-     "first_due": 30,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -4218,19 +4197,12 @@
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
-    },
-    {
-     "turn": 31,
-     "moment": "the_host#1",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 2
     }
    ],
    "reach": {
     "bavarian_match": "passed T12 (premise)",
     "throne_of_holland": "arrived T17, lapsed T18 (its decline)",
-    "crown_of_the_reich": "pending — the last morning T41",
+    "crown_of_the_reich": "pending — the last morning T37",
     "decree_of_berlin": "passed T32 (premise)"
    },
    "affairs_reach": {
@@ -4241,42 +4213,16 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 37
     },
     "the_host": {
-     "verdict": "arrived",
-     "occurrences": [
-      "the_host#1 arrived T30, lapsed T31 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "the_host#1",
-       "turn": 31,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Live off the land: Authority 65 → 65 — nothing is taken: the Emperor's grip (32) is under the floor of 71; Holland's loyalty as your vassal 73 → 71.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 65,
-         "delivered": 65
-        },
-        {
-         "op": "loyalty",
-         "figure": "Holland loyalty",
-         "quoted": 71,
-         "delivered": 71
-        }
-       ]
-      }
-     ],
+     "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
-     "premise_mornings": 12,
-     "first_due": 30,
-     "last_morning": 41
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
     },
     "berthiers_memorial": {
      "verdict": "premise never held",
@@ -4285,7 +4231,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 37
     },
     "santo_domingo": {
      "verdict": "never due (premise held 30 mornings)",
@@ -4294,7 +4240,7 @@
      "crowded": [],
      "premise_mornings": 30,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 37
     },
     "the_magazines": {
      "verdict": "arrived",
@@ -4316,7 +4262,7 @@
      "crowded": [],
      "premise_mornings": 2,
      "first_due": 6,
-     "last_morning": 41
+     "last_morning": 37
     },
     "the_remounts": {
      "verdict": "arrived",
@@ -4347,9 +4293,9 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 22,
+     "premise_mornings": 23,
      "first_due": 6,
-     "last_morning": 41
+     "last_morning": 37
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -4358,7 +4304,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 37
     }
    },
    "edicts": {
@@ -4366,32 +4312,30 @@
      "Britain|the_remounts": 1,
      "Russia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
-     "Ottoman|camps_of_instruction": 3,
+     "Ottoman|camps_of_instruction": 2,
      "Austria|the_remounts": 1,
-     "Russia|the_magazines": 3,
+     "Russia|the_magazines": 2,
      "Prussia|the_remounts": 1,
      "Britain|the_magazines": 2,
-     "Prussia|camps_of_instruction": 2,
-     "Austria|the_magazines": 1
+     "Prussia|camps_of_instruction": 1
     },
     "gold": {
      "Britain": 6500,
-     "Russia": 9000,
-     "Ottoman": 7500,
-     "Austria": 4000,
-     "Prussia": 5500
+     "Russia": 6500,
+     "Ottoman": 5500,
+     "Austria": 1500,
+     "Prussia": 3500
     },
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
-     "Ottoman|camps_of_instruction": 46,
+     "Ottoman|camps_of_instruction": 30,
      "Austria|the_remounts": 15,
-     "Russia|the_magazines": 48,
+     "Russia|the_magazines": 32,
      "Prussia|the_remounts": 16,
-     "Britain|the_magazines": 45,
-     "Prussia|camps_of_instruction": 46,
-     "Austria|the_magazines": 36
+     "Britain|the_magazines": 44,
+     "Prussia|camps_of_instruction": 30
     }
    },
    "errors": [],
@@ -4414,9 +4358,6 @@
      "the_remounts": [
       11,
       22
-     ],
-     "the_host": [
-      30
      ]
     }
    }
@@ -5511,13 +5452,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 8,
-       "quote": "Let the Council act: Authority 80 → 72 — the marshals' calm holds above 70; the Presence +9% → +8%.",
+       "quote": "Let the Council act: Authority 92 → 84 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 72,
-         "delivered": 72
+         "quoted": 84,
+         "delivered": 84
         }
        ]
       }
@@ -5540,14 +5481,14 @@
        "kind": "answer",
        "answer": "decline",
        "gold": 0,
-       "standing": 1,
-       "quote": "Live off the land: Authority 72 → 71 — the marshals' calm holds above 70; the Presence +8% → +7%; the floor holds at 71 on the Emperor's grip (72): only 1 of the 4 is taken; Bavaria's goodwill 15 → 9.",
+       "standing": 4,
+       "quote": "Live off the land: Authority 81 → 77 — the marshals' calm holds above 70; Bavaria's goodwill 15 → 9.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 71,
-         "delivered": 71
+         "quoted": 77,
+         "delivered": 77
         },
         {
          "op": "relation",
@@ -5563,14 +5504,14 @@
        "kind": "answer",
        "answer": "decline",
        "gold": 0,
-       "standing": 0,
-       "quote": "Live off the land: Authority 71 → 71 — nothing is taken: the floor holds at 71 on the Emperor's grip (71); Bavaria's goodwill 1 → -5.",
+       "standing": 4,
+       "quote": "Live off the land: Authority 77 → 73 — the marshals' calm holds above 70; the Presence +9% → +8%; Bavaria's goodwill 1 → -5.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 71,
-         "delivered": 71
+         "quoted": 73,
+         "delivered": 73
         },
         {
          "op": "relation",
@@ -5853,13 +5794,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 0,
-       "quote": "Live off the land: Authority 47 → 47 — nothing is taken: the Emperor's grip (47) is under the floor of 71; The Kingdom of Italy's loyalty as your vassal 100 → 98.",
+       "quote": "Live off the land: Authority 52 → 52 — nothing is taken: the Emperor's grip (52) is under the floor of 71; The Kingdom of Italy's loyalty as your vassal 100 → 98.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 47,
-         "delivered": 47
+         "quoted": 52,
+         "delivered": 52
         },
         {
          "op": "loyalty",
@@ -6554,13 +6495,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 8,
-       "quote": "Let the Council act: Authority 90 → 82 — the marshals' calm holds above 70; the Presence +10% → +9%.",
+       "quote": "Let the Council act: Authority 94 → 86 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 82,
-         "delivered": 82
+         "quoted": 86,
+         "delivered": 86
         }
        ]
       }
@@ -6790,13 +6731,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 8,
-       "quote": "Let the Council act: Authority 80 → 72 — the marshals' calm holds above 70; the Presence +9% → +8%.",
+       "quote": "Let the Council act: Authority 92 → 84 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 72,
-         "delivered": 72
+         "quoted": 84,
+         "delivered": 84
         }
        ]
       }
@@ -6819,14 +6760,14 @@
        "kind": "answer",
        "answer": "decline",
        "gold": 0,
-       "standing": 1,
-       "quote": "Live off the land: Authority 72 → 71 — the marshals' calm holds above 70; the Presence +8% → +7%; the floor holds at 71 on the Emperor's grip (72): only 1 of the 4 is taken; Bavaria's goodwill 15 → 9.",
+       "standing": 4,
+       "quote": "Live off the land: Authority 81 → 77 — the marshals' calm holds above 70; Bavaria's goodwill 15 → 9.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 71,
-         "delivered": 71
+         "quoted": 77,
+         "delivered": 77
         },
         {
          "op": "relation",
@@ -6842,14 +6783,14 @@
        "kind": "answer",
        "answer": "decline",
        "gold": 0,
-       "standing": 0,
-       "quote": "Live off the land: Authority 71 → 71 — nothing is taken: the floor holds at 71 on the Emperor's grip (71); Bavaria's goodwill 1 → -5.",
+       "standing": 4,
+       "quote": "Live off the land: Authority 77 → 73 — the marshals' calm holds above 70; the Presence +9% → +8%; Bavaria's goodwill 1 → -5.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 71,
-         "delivered": 71
+         "quoted": 73,
+         "delivered": 73
         },
         {
          "op": "relation",
@@ -7043,10 +6984,10 @@
      "turn": 19,
      "moment": "throne_of_holland",
      "figure": "quote",
-     "quoted": "Crown Louis: Holland becomes Autonomous: loyalty 87 → 97; its autonomy drift -2 → +1 a turn; tribute 75% → 50% (-112 gold a turn); the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 7).",
-     "delivered": "Crown Louis: Holland becomes Autonomous: loyalty 97 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6).",
+     "quoted": "Crown Louis: Holland becomes Autonomous: loyalty 87 → 97; its autonomy drift -2 → +1 a turn; tribute 75% → 50% (-112 gold a turn); the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 7); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
+     "delivered": "Crown Louis: Holland becomes Autonomous: loyalty 97 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
      "kind": "re-read",
-     "fresh": "Crown Louis: Holland becomes Autonomous: loyalty 97 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6)."
+     "fresh": "Crown Louis: Holland becomes Autonomous: loyalty 97 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6); Authority 100 → 100 — nothing is gained: the ceiling 95 holds."
     }
    ],
    "answers": [
@@ -7055,7 +6996,7 @@
      "moment": "bavarian_match",
      "kind": "answer",
      "answer": "accept",
-     "figures": 4
+     "figures": 5
     },
     {
      "turn": 15,
@@ -7069,7 +7010,7 @@
      "moment": "throne_of_holland",
      "kind": "answer",
      "answer": "accept",
-     "figures": 3
+     "figures": 4
     },
     {
      "turn": 26,
@@ -7348,7 +7289,7 @@
      "moment": "bavarian_match",
      "kind": "answer",
      "answer": "accept",
-     "figures": 4
+     "figures": 5
     },
     {
      "turn": 13,
@@ -7362,7 +7303,7 @@
      "moment": "throne_of_holland",
      "kind": "answer",
      "answer": "accept",
-     "figures": 3
+     "figures": 4
     },
     {
      "turn": 23,
@@ -7683,7 +7624,7 @@
      "moment": "bavarian_match",
      "kind": "answer",
      "answer": "accept",
-     "figures": 4
+     "figures": 5
     },
     {
      "turn": 14,
@@ -7697,7 +7638,7 @@
      "moment": "throne_of_holland",
      "kind": "answer",
      "answer": "accept",
-     "figures": 3
+     "figures": 4
     },
     {
      "turn": 26,
@@ -8036,13 +7977,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 80 → 77 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 95 → 92 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 77,
-         "delivered": 77
+         "quoted": 92,
+         "delivered": 92
         }
        ]
       }
@@ -8144,7 +8085,7 @@
   },
   "VP1-CS-historical": {
    "measured": true,
-   "mornings": 36,
+   "mornings": 37,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
@@ -8156,15 +8097,15 @@
     },
     "santo_domingo|": {
      "first_due": 7,
-     "status": "",
-     "reason": "",
-     "verdict": "released"
-    },
-    "the_host|Bavaria": {
-     "first_due": 7,
      "status": "fired",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_host|Bavaria": {
+     "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_magazines|": {
      "first_due": 7,
@@ -8205,18 +8146,16 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 37
+     "last_morning": 38
     },
     "the_host": {
-     "verdict": "arrived",
-     "occurrences": [
-      "the_host#1 arrived T13, standing at the last morning T37"
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
      "answers": [],
      "crowded": [],
      "premise_mornings": 16,
      "first_due": 7,
-     "last_morning": 37
+     "last_morning": 38
     },
     "berthiers_memorial": {
      "verdict": "premise never held",
@@ -8225,25 +8164,27 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 37
+     "last_morning": 38
     },
     "santo_domingo": {
-     "verdict": "due, released",
-     "occurrences": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "santo_domingo#1 arrived T13, standing at the last morning T38"
+     ],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 26,
+     "premise_mornings": 32,
      "first_due": 7,
-     "last_morning": 37
+     "last_morning": 38
     },
     "the_magazines": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 17,
+     "premise_mornings": 15,
      "first_due": 7,
-     "last_morning": 37
+     "last_morning": 38
     },
     "the_remounts": {
      "verdict": "due, released",
@@ -8252,7 +8193,7 @@
      "crowded": [],
      "premise_mornings": 10,
      "first_due": 7,
-     "last_morning": 37
+     "last_morning": 38
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -8261,12 +8202,12 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 37
+     "last_morning": 38
     }
    },
    "edicts": {
     "decreed": {
-     "Britain|the_remounts": 2,
+     "Britain|the_remounts": 3,
      "Russia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
      "Russia|the_magazines": 2,
@@ -8274,27 +8215,27 @@
      "Prussia|the_remounts": 1,
      "Austria|the_remounts": 1,
      "Britain|the_magazines": 2,
-     "Austria|camps_of_instruction": 1,
-     "Prussia|camps_of_instruction": 1
+     "Austria|camps_of_instruction": 2,
+     "Prussia|camps_of_instruction": 2
     },
     "gold": {
-     "Britain": 8000,
+     "Britain": 9500,
      "Russia": 6500,
      "Ottoman": 5500,
-     "Prussia": 3500,
-     "Austria": 3500
+     "Prussia": 5500,
+     "Austria": 5500
     },
     "in_force": {
-     "Britain|the_remounts": 26,
+     "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
      "Russia|the_magazines": 30,
      "Ottoman|camps_of_instruction": 30,
      "Prussia|the_remounts": 16,
      "Austria|the_remounts": 17,
-     "Britain|the_magazines": 42,
-     "Austria|camps_of_instruction": 29,
-     "Prussia|camps_of_instruction": 29
+     "Britain|the_magazines": 39,
+     "Austria|camps_of_instruction": 45,
+     "Prussia|camps_of_instruction": 45
     }
    },
    "errors": [],
@@ -8510,15 +8451,15 @@
     },
     "chancellors_letters|": {
      "first_due": 9,
-     "status": "",
-     "reason": "",
-     "verdict": "released"
-    },
-    "santo_domingo|": {
-     "first_due": 9,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "santo_domingo|": {
+     "first_due": 9,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_host|Bavaria": {
      "first_due": 9,
@@ -8560,7 +8501,7 @@
     },
     {
      "turn": 27,
-     "moment": "santo_domingo#1",
+     "moment": "chancellors_letters#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
@@ -8581,9 +8522,29 @@
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "due, released",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "chancellors_letters#1 arrived T26, lapsed T27 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "chancellors_letters#1",
+       "turn": 27,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 8,
+       "quote": "Let the Council act: Authority 100 → 92 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 92,
+         "delivered": 92
+        }
+       ]
+      }
+     ],
      "crowded": [],
      "premise_mornings": 27,
      "first_due": 9,
@@ -8602,13 +8563,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Live off the land: Authority 85 → 82 — the marshals' calm holds above 70; the Presence +10% → +9%; Bavaria's loyalty as your vassal 100 → 96.",
+       "quote": "Live off the land: Authority 89 → 86 — the marshals' calm holds above 70; Bavaria's loyalty as your vassal 100 → 96.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 82,
-         "delivered": 82
+         "quoted": 86,
+         "delivered": 86
         },
         {
          "op": "loyalty",
@@ -8629,34 +8590,14 @@
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 9,
+     "premise_mornings": 10,
      "first_due": 27,
      "last_morning": 38
     },
     "santo_domingo": {
-     "verdict": "arrived",
-     "occurrences": [
-      "santo_domingo#1 arrived T26, lapsed T27 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "santo_domingo#1",
-       "turn": 27,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 84 → 81 — the marshals' calm holds above 70; the Presence +10% → +9%.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 81,
-         "delivered": 81
-        }
-       ]
-      }
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 26,
      "first_due": 9,
@@ -8778,8 +8719,8 @@
      "verdict": "ok"
     },
     "the_magazines|": {
-     "first_due": 39,
-     "status": "lapsed",
+     "first_due": 40,
+     "status": "fired",
      "reason": "",
      "verdict": "ok"
     },
@@ -8821,13 +8762,6 @@
      "kind": "lapse",
      "answer": "decline",
      "figures": 2
-    },
-    {
-     "turn": 40,
-     "moment": "the_magazines#1",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
     }
    ],
    "reach": {
@@ -8850,19 +8784,19 @@
        "answer": "decline",
        "gold": 0,
        "standing": 8,
-       "quote": "Let the Council act: Authority 90 → 82 — the marshals' calm holds above 70; the Presence +10% → +9%.",
+       "quote": "Let the Council act: Authority 94 → 86 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 82,
-         "delivered": 82
+         "quoted": 86,
+         "delivered": 86
         }
        ]
       }
      ],
      "crowded": [],
-     "premise_mornings": 37,
+     "premise_mornings": 38,
      "first_due": 7,
      "last_morning": 41
     },
@@ -8879,13 +8813,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 2,
-       "quote": "Live off the land: Authority 82 → 80 — the marshals' calm holds above 70; Bavaria's loyalty as your vassal 98 → 96.",
+       "quote": "Live off the land: Authority 84 → 82 — the marshals' calm holds above 70; the Presence +10% → +9%; Bavaria's loyalty as your vassal 98 → 96.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 80,
-         "delivered": 80
+         "quoted": 82,
+         "delivered": 82
         },
         {
          "op": "loyalty",
@@ -8915,30 +8849,19 @@
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 36,
+     "premise_mornings": 37,
      "first_due": 7,
      "last_morning": 41
     },
     "the_magazines": {
      "verdict": "arrived",
      "occurrences": [
-      "the_magazines#1 arrived T39, lapsed T40 (its decline)"
+      "the_magazines#1 arrived T40, standing at the last morning T41"
      ],
-     "answers": [
-      {
-       "occ": "the_magazines#1",
-       "turn": 40,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the army forage: no change.",
-       "figures": []
-      }
-     ],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 2,
-     "first_due": 39,
+     "first_due": 40,
      "last_morning": 41
     },
     "the_remounts": {
@@ -9164,13 +9087,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 0,
-       "quote": "Live off the land: Authority 34 → 34 — nothing is taken: the Emperor's grip (34) is under the floor of 71; Bavaria's loyalty as your vassal 95 → 91.",
+       "quote": "Live off the land: Authority 42 → 42 — nothing is taken: the Emperor's grip (42) is under the floor of 71; Bavaria's loyalty as your vassal 95 → 91.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 34,
-         "delivered": 34
+         "quoted": 42,
+         "delivered": 42
         },
         {
          "op": "loyalty",
@@ -9191,7 +9114,7 @@
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 21,
+     "premise_mornings": 22,
      "first_due": 19,
      "last_morning": 41
     },
@@ -9601,24 +9524,24 @@
     },
     {
      "turn": 24,
+     "moment": "chancellors_letters#2",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 29,
      "moment": "the_magazines#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
     },
     {
-     "turn": 29,
+     "turn": 34,
      "moment": "the_host#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 2
-    },
-    {
-     "turn": 34,
-     "moment": "the_magazines#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
     }
    ],
    "reach": {
@@ -9631,7 +9554,8 @@
     "chancellors_letters": {
      "verdict": "arrived",
      "occurrences": [
-      "chancellors_letters#1 arrived T13, lapsed T14 (its decline)"
+      "chancellors_letters#1 arrived T13, lapsed T14 (its decline)",
+      "chancellors_letters#2 arrived T23, lapsed T24 (its decline)"
      ],
      "answers": [
       {
@@ -9650,6 +9574,23 @@
          "delivered": 87
         }
        ]
+      },
+      {
+       "occ": "chancellors_letters#2",
+       "turn": 24,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 8,
+       "quote": "Let the Council act: Authority 87 → 79 — the marshals' calm holds above 70; the Presence +9% → +7%.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 79,
+         "delivered": 79
+        }
+       ]
       }
      ],
      "crowded": [],
@@ -9660,29 +9601,29 @@
     "the_host": {
      "verdict": "arrived",
      "occurrences": [
-      "the_host#1 arrived T28, lapsed T29 (its decline)"
+      "the_host#1 arrived T33, lapsed T34 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_host#1",
-       "turn": 29,
+       "turn": 34,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
        "standing": 0,
-       "quote": "Live off the land: Authority 39 → 39 — nothing is taken: the Emperor's grip (31) is under the floor of 71; Bavaria's goodwill 12 → 10.",
+       "quote": "Live off the land: Authority 34 → 34 — nothing is taken: the Emperor's grip (26) is under the floor of 71; Bavaria's goodwill 10 → 8.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 39,
-         "delivered": 39
+         "quoted": 34,
+         "delivered": 34
         },
         {
          "op": "relation",
          "figure": "Bavaria goodwill",
-         "quoted": 10,
-         "delivered": 10
+         "quoted": 8,
+         "delivered": 8
         }
        ]
       }
@@ -9714,13 +9655,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 95 → 92 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 89,
-         "delivered": 89
+         "quoted": 92,
+         "delivered": 92
         }
        ]
       }
@@ -9733,23 +9674,12 @@
     "the_magazines": {
      "verdict": "arrived",
      "occurrences": [
-      "the_magazines#1 arrived T23, lapsed T24 (its decline)",
-      "the_magazines#2 arrived T33, lapsed T34 (its decline)"
+      "the_magazines#1 arrived T28, lapsed T29 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_magazines#1",
-       "turn": 24,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the army forage: no change.",
-       "figures": []
-      },
-      {
-       "occ": "the_magazines#2",
-       "turn": 34,
+       "turn": 29,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -10208,7 +10138,7 @@
        "answer": "accept",
        "gold": 1500,
        "standing": 0,
-       "quote": "Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 11,320); cavalry levies cost 20% less (×0.8) until Early April 1807, 8 turns.",
+       "quote": "Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 11,315); cavalry levies cost 20% less (×0.8) until Early April 1807, 8 turns.",
        "figures": [
         {
          "op": "admin",
@@ -10219,8 +10149,8 @@
         {
          "op": "edict",
          "figure": "treasury",
-         "quoted": 9820,
-         "delivered": 9820
+         "quoted": 9815,
+         "delivered": 9815
         },
         {
          "op": "edict",
@@ -10313,9 +10243,9 @@
     },
     "santo_domingo|": {
      "first_due": 7,
-     "status": "",
+     "status": "answered",
      "reason": "",
-     "verdict": "released"
+     "verdict": "ok"
     },
     "the_host|Bavaria": {
      "first_due": 7,
@@ -10324,7 +10254,7 @@
      "verdict": "ok"
     },
     "the_magazines|": {
-     "first_due": 39,
+     "first_due": 40,
      "status": "answered",
      "reason": "",
      "verdict": "ok"
@@ -10369,7 +10299,14 @@
      "figures": 1
     },
     {
-     "turn": 39,
+     "turn": 28,
+     "moment": "santo_domingo#1",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 3
+    },
+    {
+     "turn": 40,
      "moment": "the_magazines#1",
      "kind": "answer",
      "answer": "accept",
@@ -10408,7 +10345,7 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 37,
+     "premise_mornings": 38,
      "first_due": 7,
      "last_morning": 41
     },
@@ -10451,28 +10388,60 @@
      "last_morning": 41
     },
     "santo_domingo": {
-     "verdict": "due, released",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "santo_domingo#1 arrived T28, answered accept T28; the squadron home T32 (36 in 100, drew 25)"
+     ],
+     "answers": [
+      {
+       "occ": "santo_domingo#1",
+       "turn": 28,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 500,
+       "standing": 0,
+       "quote": "Send five of the line: 500 gold (the treasury holds 9,562); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Early January 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 9062,
+         "delivered": 9062
+        },
+        {
+         "op": "admin",
+         "figure": "administrative actions",
+         "quoted": 1,
+         "delivered": 1
+        },
+        {
+         "op": "squadron",
+         "figure": "sail in port",
+         "quoted": 40,
+         "delivered": 40
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 36,
+     "premise_mornings": 37,
      "first_due": 7,
      "last_morning": 41
     },
     "the_magazines": {
      "verdict": "arrived",
      "occurrences": [
-      "the_magazines#1 arrived T39, answered accept T39"
+      "the_magazines#1 arrived T40, answered accept T40"
      ],
      "answers": [
       {
        "occ": "the_magazines#1",
-       "turn": 39,
+       "turn": 40,
        "kind": "answer",
        "answer": "accept",
        "gold": 2500,
        "standing": 0,
-       "quote": "Stock the magazines: 1 administrative action (1 left today); 2,500 gold (the treasury holds 7,086); fed provinces feed 25% more men (×1.25) until Late August 1807, 8 turns.",
+       "quote": "Stock the magazines: 1 administrative action (1 left today); 2,500 gold (the treasury holds 7,236); fed provinces feed 25% more men (×1.25) until Early September 1807, 8 turns.",
        "figures": [
         {
          "op": "admin",
@@ -10483,8 +10452,8 @@
         {
          "op": "edict",
          "figure": "treasury",
-         "quoted": 4586,
-         "delivered": 4586
+         "quoted": 4736,
+         "delivered": 4736
         },
         {
          "op": "edict",
@@ -10497,7 +10466,7 @@
      ],
      "crowded": [],
      "premise_mornings": 2,
-     "first_due": 39,
+     "first_due": 40,
      "last_morning": 41
     },
     "the_remounts": {
@@ -10556,7 +10525,7 @@
      "Britain|camps_of_instruction": 28,
      "Russia|the_magazines": 48,
      "Ottoman|the_magazines": 38,
-     "France|the_magazines": 47
+     "France|the_magazines": 48
     }
    },
    "errors": [],
@@ -10773,7 +10742,7 @@
        "answer": "accept",
        "gold": 2500,
        "standing": 0,
-       "quote": "Stock the magazines: 1 administrative action (1 left today); 2,500 gold (the treasury holds 12,356); fed provinces feed 25% more men (×1.25) until Late June 1807, 8 turns.",
+       "quote": "Stock the magazines: 1 administrative action (1 left today); 2,500 gold (the treasury holds 12,414); fed provinces feed 25% more men (×1.25) until Late June 1807, 8 turns.",
        "figures": [
         {
          "op": "admin",
@@ -10784,8 +10753,8 @@
         {
          "op": "edict",
          "figure": "treasury",
-         "quoted": 9856,
-         "delivered": 9856
+         "quoted": 9914,
+         "delivered": 9914
         },
         {
          "op": "edict",
@@ -11034,13 +11003,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Live off the land: Authority 90 → 87 — the marshals' calm holds above 70; Bavaria's goodwill 23 → 19.",
+       "quote": "Live off the land: Authority 94 → 91 — the marshals' calm holds above 70; Bavaria's goodwill 23 → 19.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 87,
-         "delivered": 87
+         "quoted": 91,
+         "delivered": 91
         },
         {
          "op": "relation",
@@ -11056,14 +11025,14 @@
        "kind": "answer",
        "answer": "decline",
        "gold": 0,
-       "standing": 1,
-       "quote": "Live off the land: Authority 72 → 71 — the marshals' calm holds above 70; the Presence +8% → +7%; the floor holds at 71 on the Emperor's grip (72): only 1 of the 4 is taken; Bavaria's goodwill 2 → -4.",
+       "standing": 4,
+       "quote": "Live off the land: Authority 76 → 72 — the marshals' calm holds above 70; Bavaria's goodwill 2 → -4.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 71,
-         "delivered": 71
+         "quoted": 72,
+         "delivered": 72
         },
         {
          "op": "relation",
@@ -12945,18 +12914,18 @@
    },
    "VP1-CS-historical": {
     "armed": {
-     "end_turns": 35,
+     "end_turns": 36,
      "stamped_turn": -1,
      "fulfilled": {},
      "exit": 0,
-     "reason": "never stamped — the conditions false at the most end turns: both_latched (35), construction_holds (35), sealing_court_at_peace (35), homeland_whole (25); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
+     "reason": "never stamped — the conditions false at the most end turns: both_latched (36), construction_holds (36), sealing_court_at_peace (36), homeland_whole (26); ENDING — THE FALL OF THE EMPIRE: The Empire is reduced to Corsica alone, and no sword remains to hold it. [THE ECLIPSE]"
     },
     "control": {
-     "end_turns": 30,
+     "end_turns": 32,
      "stamped_turn": -1,
      "fulfilled": {},
      "exit": 0,
-     "reason": "never stamped — the conditions false at the most end turns: both_latched (30), construction_holds (30), sealing_court_at_peace (30), homeland_whole (22); ENDING — THE FALL OF THE EMPIRE: No sword remains to the Emperor — no corps stands, and none can be raised. [THE ECLIPSE]"
+     "reason": "never stamped — the conditions false at the most end turns: both_latched (32), construction_holds (32), sealing_court_at_peace (32), homeland_whole (24); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
     },
     "unmoved": false
    },
@@ -13120,18 +13089,18 @@
    },
    "VP1-CS-historical": {
     "armed": {
-     "end_turns": 30,
+     "end_turns": 32,
      "stamped_turn": -1,
      "fulfilled": {},
      "exit": 0,
-     "reason": "never stamped — the conditions false at the most end turns: both_latched (30), construction_holds (30), sealing_court_at_peace (30), homeland_whole (22); ENDING — THE FALL OF THE EMPIRE: No sword remains to the Emperor — no corps stands, and none can be raised. [THE ECLIPSE]"
+     "reason": "never stamped — the conditions false at the most end turns: both_latched (32), construction_holds (32), sealing_court_at_peace (32), homeland_whole (24); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
     },
     "control": {
-     "end_turns": 30,
+     "end_turns": 32,
      "stamped_turn": -1,
      "fulfilled": {},
      "exit": 0,
-     "reason": "never stamped — the conditions false at the most end turns: both_latched (30), construction_holds (30), sealing_court_at_peace (30), homeland_whole (22); ENDING — THE FALL OF THE EMPIRE: No sword remains to the Emperor — no corps stands, and none can be raised. [THE ECLIPSE]"
+     "reason": "never stamped — the conditions false at the most end turns: both_latched (32), construction_holds (32), sealing_court_at_peace (32), homeland_whole (24); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
     },
     "unmoved": true
    },

@@ -300,6 +300,48 @@
     "the Raft",
     "the Raft of Tilsit"
    ]
+  },
+  {
+   "id": "feast_of_saint_napoleon",
+   "title": "The Feast of Saint Napoleon",
+   "date": "the decree of 19 February 1806",
+   "road": "any",
+   "price": 2500,
+   "alarm": 0,
+   "ceiling": 95,
+   "since": "AU-2b",
+   "says": "The fifteenth of August made the Empire's feast — the Emperor's birthday, a saint found for the calendar, a Te Deum in every church and the nation in the streets.",
+   "effects": [
+    {
+     "type": "authority",
+     "amount": 5
+    }
+   ],
+   "aliases": [
+    "the Feast",
+    "Saint Napoleon"
+   ]
+  },
+  {
+   "id": "arc_de_triomphe",
+   "title": "The Arc de Triomphe",
+   "date": "the decree of 18 February 1806",
+   "road": "any",
+   "price": 5000,
+   "alarm": 0,
+   "ceiling": 95,
+   "since": "AU-2b",
+   "says": "An arch on the Étoile to the glory of the Grand Army — its victories carved in the stone, its generals' names beneath them.",
+   "effects": [
+    {
+     "type": "authority",
+     "amount": 8
+    }
+   ],
+   "aliases": [
+    "the Arc",
+    "the Arch of Triumph"
+   ]
   }
  ]
 }

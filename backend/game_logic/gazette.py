@@ -65,6 +65,8 @@ _WAR_TYPES = {
     "trafalgar", "blockade_begins", "blockade_broken", "cs_tier_shift",
 }
 _COURT_TYPES = {
+    # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.6): the Moniteur's line for a Te Deum
+    "te_deum",
     "war_declaration", "diplomatic_war_declared", "peace_ratified",
     "third_party_peace", "diplomatic_treaty_signed", "nation_formed",
     # FA-N52 (slice 17): the types the log actually carries. ⛔ The first

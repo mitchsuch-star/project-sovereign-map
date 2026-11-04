@@ -130,7 +130,7 @@ class TestTheDeckAtTheFloor:
         from backend.game_logic import standing
         assert standing.hits_armed() is True and standing.claims_armed() is True and standing.breach_armed() is True
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
-        assert set(STANDING_SEAMS_BY_ROW) == {"AUB", "AUP", "AUK", "AUW"}
+        assert {"AUB", "AUP", "AUK", "AUW"} <= set(STANDING_SEAMS_BY_ROW)   # AU-2b adds AUS
 
     def test_the_host_decline_names_the_authority_first_and_its_minister(self, w):
         from backend.game_logic import affairs, moments as MO

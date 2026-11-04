@@ -22,7 +22,8 @@
           {"op": "gold", "amount": 1000},
           {"op": "relation", "court": "Bavaria", "delta": 20},
           {"op": "loyalty", "court": "Bavaria", "delta": 15},
-          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"}
+          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"},
+          {"op": "authority", "amount": 2, "since": "AU-2b"}
         ]
       },
       "decline": {"caption": "Let Baden keep her", "ops": [{"op": "relation", "court": "Bavaria", "delta": -5}]}
@@ -39,7 +40,7 @@
       "voice": {"speaker": "named", "name": "Admiral Ver Huell, for the deputation of the States General"},
       "record": "Historically the Dutch deputation under Admiral Ver Huell asked Napoleon for a king and was given his brother Louis (5 June 1806); Grand Pensionary Schimmelpenninck resigned rather than sign. The alternative was annexation, 1810.",
       "counsel": "Talleyrand — A king of your blood in Amsterdam is a king with his own treasury, Sire.",
-      "accept": {"caption": "Crown Louis", "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]},
+      "accept": {"caption": "Crown Louis", "ops": [{"op": "autonomy", "court": "Holland", "level": 2}, {"op": "authority", "amount": 2, "since": "AU-2b"}]},
       "decline": {"caption": "Keep the Republic", "ops": []}
     },
     {

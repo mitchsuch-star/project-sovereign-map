@@ -1,7 +1,7 @@
 {
  "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
  "turns": 20,
- "fixture_sha": "49776c0c75817ba700cc7422ab5dea701fea5beef602c006437795867dbe9205",
+ "fixture_sha": "a4be1f64c26354a5f470cd83b064aac59caa9c58e9578685a39c397dc83318e5",
  "affairs": [
   "chancellors_letters",
   "the_host",
@@ -1533,13 +1533,6 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
-     },
-     "the_remounts#1": {
-      "turn": 18,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
      }
     },
     "first_affair": {
@@ -1547,8 +1540,7 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19,
-     "the_remounts|": 4
+     "santo_domingo|": 19
     },
     "due": {},
     "judged": {
@@ -1560,18 +1552,11 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
-      },
-      "the_remounts|": {
-       "first_due": 18,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "santo_domingo#1": 7,
-      "the_remounts#1": 18
+      "santo_domingo#1": 7
      },
      "passed": {
       "bavarian_match": "premise",

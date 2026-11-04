@@ -25,9 +25,12 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
     AUW  `standing.breach_armed`  — AU-2a: the word broken (a breach's strikes) and
                                     Make Amends' repayment — down: no dent, no
                                     repayment, no quote on the confirm
+    AUS  `standing.sources_armed` — AU-2b: the lumps — the Te Deum, the Bulletin,
+                                    the Return, the honour's payback, the
+                                    ceremonies' op and the Show's two Acts
+                                    (`since: "AU-2b"`) — down: the tree before AU-2b
 
-The later slices add their seams here as they land: AUS the sources (AU-2b),
-AUC the courts (AU-4).
+The last slice adds its seam here as it lands: AUC the courts (AU-4).
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -40,6 +43,7 @@ STANDING_SEAMS_BY_ROW = {
     "AUP": ["backend.game_logic.standing:hits_armed=False"],
     "AUK": ["backend.game_logic.standing:claims_armed=False"],
     "AUW": ["backend.game_logic.standing:breach_armed=False"],
+    "AUS": ["backend.game_logic.standing:sources_armed=False"],
 }
 STANDING_SEAMS_DOWN = [spec for row in STANDING_SEAMS_BY_ROW for spec in STANDING_SEAMS_BY_ROW[row]]
 

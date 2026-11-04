@@ -1207,6 +1207,16 @@ def _validate_imperial_acts(result, block: dict, known_nations: Set[str],
         if aliases is not None and (not isinstance(aliases, list)
                                     or not all(isinstance(a, str) and a for a in aliases)):
             result.add_error(f"{path}.aliases", "Must be a list of non-empty strings")
+        # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5 the Show): an Act's authority
+        # may stop beneath a `ceiling` (`standing.regrow`, never above the 95 of
+        # new gains); an Act a slice added names its row (`since`)
+        ceiling = act.get("ceiling")
+        if ceiling is not None and (isinstance(ceiling, bool) or not isinstance(ceiling, int)
+                                    or not 71 <= ceiling <= 95):
+            result.add_error(f"{path}.ceiling", f"Must be an integer in 71..95, got {ceiling!r}")
+        from backend.game_logic import affairs as _AF
+        if act.get("since") is not None and act.get("since") not in _AF.SINCE_ROWS:
+            result.add_error(f"{path}.since", f"Must name a row of {list(_AF.SINCE_ROWS)}")
         effects = act.get("effects")
         if not isinstance(effects, list) or not effects:
             result.add_error(f"{path}.effects", "Must be a non-empty list")
@@ -1440,6 +1450,17 @@ def _validate_moments(result, data: dict, known_nations: Set[str]) -> None:
                     result.add_error(opath, "A decline is never priced (the popup greys accept-shaped answers only)")
                 if name in ("gold", "dp", "alarm"):
                     _int_in(f"{opath}.amount", op.get("amount"), *MO.OP_BOUNDS[name])
+                if name == "authority":
+                    # AU-2b the ceremonies (§5.5): a dated letter's authority is a
+                    # GAIN on its Accept alone, 1..5 (the ceiling 95 its plan's)
+                    if side == MO.ANSWER_DECLINE:
+                        result.add_error(opath, "A dated letter's authority rides its Accept alone (a gain)")
+                    else:
+                        _int_in(f"{opath}.amount", op.get("amount"), 1, 5)
+                if op.get("since") is not None:
+                    from backend.game_logic import affairs as _AF
+                    if op.get("since") not in _AF.SINCE_ROWS:
+                        result.add_error(f"{opath}.since", f"Must name a row of {list(_AF.SINCE_ROWS)}")
                 if name in ("relation", "loyalty"):
                     _int_in(f"{opath}.delta", op.get("delta"), *MO.OP_BOUNDS[name])
                 if name in ("relation", "autonomy") or (name == "loyalty" and not op.get("design_courts")):

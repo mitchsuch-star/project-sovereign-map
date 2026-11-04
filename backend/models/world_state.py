@@ -13130,6 +13130,10 @@ class WorldState:
         _erosion_events = self._process_dotation_state()
         if _erosion_events:
             tactical_events.extend(_erosion_events)
+        # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5): the Return — the sovereign's
+        # seat read each morning (eight turns away, then the Council repaid)
+        from backend.game_logic import standing as _standing
+        _standing.the_return(self, self.player_nation)
 
         # ════════════════════════════════════════════════════════════
         # BANKRUPTCY CHECK — AFTER all income sources
@@ -17065,6 +17069,14 @@ class WorldState:
                             _standing.move(self, player_nation, +5,
                                            "capital_taken" if capital_captured else "field_won",
                                            battle=auto_charge_battle_region)
+                        # AU-2b (§5.5): the charge's laurel reads its Bulletin too
+                        # (the morning's dent tells it — this mirror has no report line)
+                        from backend.game_logic import standing as _standing
+                        _ac_cas = {side: int((combat_result.get(side) or {}).get("casualties", 0) or 0)
+                                   for side in ("attacker", "defender")}
+                        _standing.bulletin(self, player_nation, auto_charge_battle_region,
+                                           _ac_cas["attacker" if player_is_atk else "defender"],
+                                           _ac_cas["defender" if player_is_atk else "attacker"])
                     elif p_lost:
                         outnumbering = pre_battle_atk > pre_battle_def if player_is_atk else pre_battle_def > pre_battle_atk
                         if outnumbering:

@@ -232,6 +232,12 @@ CAMPAIGN_LOG_TYPES = {
     # key carries the sentence). 179 -> 180 flipped consciously; no inert type
     # retired.
     "moment",
+    # AU-2b "the lumps and the Show" (AUTHORITY_CURRENCY_SPEC.md §5.5, §5.6):
+    # the Te Deum sung for a war won (war score +25 or better at its end) —
+    # `standing.te_deum_on_peace` writes it with the owner's `nation`; Le
+    # Moniteur prints it in THE COURTS. 180 -> 181 flipped consciously; no
+    # inert type retired.
+    "te_deum",
     # WIN-D3 "The Road Home": the evacuation corridor a peace grants, and
     # the countdown when a corps dawdles on soil that is no longer its own.
     # (Internment itself rides PC15-1's `marshal_destroyed` with
@@ -551,6 +557,7 @@ CATEGORY_MAP = {
     "congress": "diplomacy",
     "imperial_design": "diplomacy",
     "moment": "diplomacy",
+    "te_deum": "diplomacy",
     "evacuation_granted": "diplomacy",
     # The clock is the treaty's, but the decision it demands is an order to a
     # marshal — so it files with the command traffic the player must answer.
@@ -768,7 +775,7 @@ LOG_TIER_NOTABLE = frozenset({
     "marshal_released", "marshal_wounded", "moment", "offensive_cascade",
     "proposal_arrived", "region_captured", "retreat",
     "rivalry_confrontation", "settlement_summary", "strait_open",
-    "strait_shut", "third_party_peace", "ultimatum_accepted",
+    "strait_shut", "te_deum", "third_party_peace", "ultimatum_accepted",
     "ultimatum_rejected", "vassal_contingent", "vassal_refuses_call",
     "vassal_transferred",
 })
@@ -2500,6 +2507,13 @@ def _oneliner_orders_and_fates(ctx: OnelinerContext):
             price = int(ctx.event.get("price", 0) or 0)
             return f"{title} — an Act of the Empire is decreed ({price:,} gold)"
         return f"The Emperor's designs: {title or phase}"
+
+    if ctx.event_type == "te_deum":
+        # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5; §4.1 reading 4): the Te Deum
+        # for a war won — the line stays generic (the Austerlitz standards at
+        # Notre-Dame are documented; a Te Deum "for Pressburg" is not); the
+        # books name the court ("the Te Deum for the peace with Austria")
+        return "PARIS — A Te Deum is sung at Notre-Dame for the peace"
 
     if ctx.event_type == "moment":
         # S14c: the authored letters of the record, one line per phase.

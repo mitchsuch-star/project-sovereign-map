@@ -39,7 +39,7 @@ rule here scans the regions (Golden Rule 8).
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # §5.1 the band and the floors (in-band tunable; the shapes are §4's rulings)
 PURCHASE_FLOOR = 60     # the grip after a purchase's price must stay at 60 or above
@@ -127,6 +127,13 @@ def claims_armed() -> bool:
 
 def breach_armed() -> bool:
     """Arm AUW: the word broken (a treaty breach's strikes) and Make Amends' repayment."""
+    return True
+
+
+def sources_armed() -> bool:
+    """Arm AUS (AU-2b, §5.5): the lumps — the Te Deum, the Bulletin, the Return,
+    the honour's payback, the ceremonies' op and the Show's Acts (`since:
+    "AU-2b"`); down, the tree reads as before AU-2b."""
     return True
 
 
@@ -220,11 +227,12 @@ def spend(world, lord: str, amount: int, cause: str, party: str = "", **fmt) -> 
 
 
 def regrow(world, lord: str, amount: int, cause: str, key: str, every: int = 0,
-           party: str = "", **fmt) -> int:
+           party: str = "", ceiling: int = CEILING, **fmt) -> int:
     """A lump of regrowth (the Te Deum, the Bulletin, the Return — AU-2b's
-    callers): +amount up to CEILING, once per `every` turns per `key` (the
-    cooldown kept in the tracker's `held`). Returns what was applied. A
-    court's regrowth is parked behind `courts_move()`."""
+    callers): +amount up to `ceiling` (CEILING, or an Act's own `ceiling` —
+    never above it), once per `every` turns per `key` (the cooldown kept in
+    the tracker's `held`). Returns what was applied. A court's regrowth is
+    parked behind `courts_move()`."""
     amount = abs(int(amount))
     if not amount:
         return 0
@@ -237,7 +245,7 @@ def regrow(world, lord: str, amount: int, cause: str, key: str, every: int = 0,
         last = held.get(f"last:{key}")
         if last is not None and turn - int(last) < int(every):
             return 0
-    room = CEILING - standing_of(world, lord)
+    room = min(int(ceiling), CEILING) - standing_of(world, lord)
     if room <= 0:
         return 0
     applied = move(world, lord, min(amount, room), cause, party, **fmt)
@@ -458,6 +466,191 @@ def insist_stake_line() -> str:
             f"authority {_signed(INSIST_LOSS_AUTHORITY)}; won: authority {_signed(INSIST_WIN_AUTHORITY)}. "
             f"A compromise: authority {_signed(COMPROMISE_WIN_AUTHORITY)} won, "
             f"trust {_signed(COMPROMISE_LOSS_TRUST)} and authority {_signed(COMPROMISE_LOSS_AUTHORITY)} lost.")
+
+
+# ─────────────────────────────── the lumps (AU-2b) ───────────────────────────────
+# §5.5: standing comes back by play, never by waiting — each lump through
+# `regrow` (the ceiling 95, a keyed cooldown), a court's parked (AU-4).
+
+TE_DEUM_SCORE = 25        # a war ENDED with the lord's war score at +25 or better …
+TE_DEUM_AMOUNT = 4        # … sings a Te Deum: +4, …
+TE_DEUM_EVERY = 12        # … once per twelve turns per lord (a three-pair settlement pays once)
+BULLETIN_AMOUNT = 4       # a laurel victory is read in every church: +4, …
+BULLETIN_EVERY = 3        # … one bulletin per three turns, …
+BULLETIN_WINDOW = 10      # … and the field's dents of the last ten turns …
+BULLETIN_REPAY_MAX = 8    # … repaid +1 a point up to +8, each point once, never a price
+LAUREL_RATIO = 2          # a laurel: France's dead at most half the enemy's (a flawless win counts)
+RETURN_AFIELD = 8         # the Return: back on his own seat after eight turns away …
+RETURN_MAX = 5            # … repays the Council's dents, up to 5
+HONOUR_WINDOW = 8         # the honour pays back when the man honoured wins within eight turns …
+HONOUR_REPAID = 2         # … +2, once per honour (the mark is AU-3a's to write)
+# §4.1 reading 5: the field's dents — the defeats, the failed mediations, the
+# stakes — and never a price (a letter, a law, a claim, a breach, an Act)
+FIELD_DENT_KEYS = ("field_lost", "capital_lost", "own_hand_lost", "assault_repulsed",
+                   "mediation_ignored", "reconciliation_failed", "insisted_lost", "compromise_lost")
+COUNCIL_LETTER = "chancellors_letters"   # the Council's dents: the Arch-Chancellor's Declines
+
+
+def te_deum_on_peace(world, diplo_key: str) -> int:
+    """§5.5 the Te Deum, read by `diplomacy.cleanup_war_end` when a war ENDS
+    (never a truce), before the pair's war score is popped: the player's stored
+    war score (`diplomacy.get_war_score_for`) at TE_DEUM_SCORE or better sings
+    one — +TE_DEUM_AMOUNT through `regrow`, once per TE_DEUM_EVERY turns per
+    lord — and Le Moniteur prints it (the campaign log's `te_deum`). A level
+    peace sings nothing; a court's Te Deum is parked. Returns what was applied."""
+    if not sources_armed():
+        return 0
+    parts = str(diplo_key or "").split("|")
+    if len(parts) != 2:
+        return 0
+    from backend.game_logic.diplomacy import get_war_score_for
+    applied = 0
+    for lord, court in ((parts[0], parts[1]), (parts[1], parts[0])):
+        if not is_player(world, lord) and not courts_move():
+            continue
+        score = int(get_war_score_for(world, lord, court))
+        if score < TE_DEUM_SCORE:
+            continue
+        got = regrow(world, lord, TE_DEUM_AMOUNT, "te_deum", "te_deum", every=TE_DEUM_EVERY,
+                     party=court, court=court)
+        if got and hasattr(world, "log_event"):
+            world.log_event({"type": "te_deum", "nation": lord, "court": court,
+                             "war_score": score, "authority": int(got)})
+        applied += got
+    return applied
+
+
+def laurel_victory(ours: int, theirs: int) -> bool:
+    """§4.1 reading 5: a laurel victory — an engagement `jealousy.is_laurel`
+    calls a battle (its size), in which France out-bled the enemy two to one
+    (a flawless win counts). Never a garrison or a bombardment: the callers
+    are the field's own (battle step 12, the auto-charge mirror)."""
+    from backend.game_logic.jealousy import is_laurel
+    ours, theirs = max(0, int(ours or 0)), max(0, int(theirs or 0))
+    if not is_laurel(ours, theirs):
+        return False
+    return ours == 0 or theirs >= LAUREL_RATIO * ours
+
+
+def bulletin(world, lord: str, battle: str, ours: int, theirs: int) -> Tuple[int, int]:
+    """§5.5 the Bulletin of the Field: a laurel victory is read in every church
+    — +BULLETIN_AMOUNT through `regrow`, one per BULLETIN_EVERY turns — and
+    repays the field's dents of the last BULLETIN_WINDOW turns (`FIELD_DENT_KEYS`
+    in the ring, oldest first), +1 a point up to BULLETIN_REPAY_MAX, each point
+    once (`held["bulletin_paid"]`, {seq: points}), never a price. Nothing at
+    the ceiling, nothing inside the cooldown. Returns (the bulletin, the repaid)."""
+    if not sources_armed() or not laurel_victory(ours, theirs):
+        return 0, 0
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if tracker is None:
+        return 0, 0                      # a court's Bulletin is parked (AU-4)
+    battle = str(battle or "")
+    base = regrow(world, lord, BULLETIN_AMOUNT, "bulletin", "bulletin", every=BULLETIN_EVERY, battle=battle)
+    if not base:
+        return 0, 0
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    ring = list(getattr(tracker, "moves", None) or [])
+    seqs = {str(int(m.get("seq", 0) or 0)) for m in ring}
+    paid = {k: int(v) for k, v in dict(tracker.held.get("bulletin_paid") or {}).items() if k in seqs}
+    owed = []
+    for m in ring:
+        delta = int(m.get("delta", 0) or 0)
+        if str(m.get("key") or "") not in FIELD_DENT_KEYS or delta >= 0:
+            continue
+        if turn - int(m.get("turn", 0) or 0) >= BULLETIN_WINDOW:
+            continue
+        seq = str(int(m.get("seq", 0) or 0))
+        left = -delta - paid.get(seq, 0)
+        if left > 0:
+            owed.append((seq, left))
+    want = min(BULLETIN_REPAY_MAX, sum(left for _seq, left in owed))
+    repaid = regrow(world, lord, want, "bulletin_repaid", "bulletin_repaid", battle=battle) if want else 0
+    budget = repaid
+    for seq, left in owed:
+        if budget <= 0:
+            break
+        take = min(left, budget)
+        paid[seq] = paid.get(seq, 0) + take
+        budget -= take
+    if paid:
+        tracker.held["bulletin_paid"] = paid
+    else:
+        tracker.held.pop("bulletin_paid", None)
+    return base, repaid
+
+
+def bulletin_line(base: int, repaid: int, battle: str) -> str:
+    """The Bulletin's line on the battle report (the throne's channel,
+    `pipeline_out['sovereign_prestige_msg']`); "" when none was issued."""
+    if not base:
+        return ""
+    where = f"The field at {battle}" if battle else "The field"
+    tail = f", and +{int(repaid)} of the field's dents repaid" if repaid else ""
+    return (f"\n\n[The Bulletin of the Grande Armée] {where} is read in every church in "
+            f"France. (Authority +{int(base)}{tail})")
+
+
+def council_dent(world, lord: str, loss: int) -> None:
+    """The Arch-Chancellor's Decline booked as the Council's dent
+    (`held["council_owed"]`) — what the Return repays. A tally, not a ring
+    scan: the ring keeps 24 moves, and eight turns of war can push it out."""
+    if not sources_armed() or int(loss or 0) <= 0:
+        return
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if tracker is not None:
+        tracker.held["council_owed"] = int(tracker.held.get("council_owed", 0) or 0) + int(loss)
+
+
+def the_return(world, lord: str) -> int:
+    """§5.5 the Return, read each morning: the lord's sovereign away from his
+    own held capital (`diplomacy.sovereign_seat_bonus` 0) starts the clock
+    (`held["away_since"]`); back on the seat after RETURN_AFIELD turns or more,
+    the Council's dents (`held["council_owed"]`) are repaid, up to RETURN_MAX,
+    through `regrow`; a short trip repays nothing. Returns what was applied."""
+    if not sources_armed():
+        return 0
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if tracker is None:
+        return 0
+    from backend.game_logic.diplomacy import sovereign_seat_bonus
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    held = tracker.held
+    if not sovereign_seat_bonus(world, lord):
+        held.setdefault("away_since", turn)
+        return 0
+    since = held.pop("away_since", None)
+    owed = int(held.get("council_owed", 0) or 0)
+    if since is None or turn - int(since) < RETURN_AFIELD or owed <= 0:
+        return 0
+    from backend.game_logic.affairs import seat_of
+    applied = regrow(world, lord, min(RETURN_MAX, owed), "return", "return",
+                     party="Cambacérès", capital=seat_of(world, lord))
+    if applied:
+        left = owed - applied
+        if left > 0:
+            held["council_owed"] = left
+        else:
+            held.pop("council_owed", None)
+    return applied
+
+
+def honour_repaid(world, lord: str, marshal: str) -> int:
+    """§5.5 the honour pays back: the man honoured (AU-3a's mark,
+    `held["honoured:<marshal>"]` = the turn of the honour) wins within
+    HONOUR_WINDOW turns — +HONOUR_REPAID through `regrow`, once per honour (the
+    mark popped; an expired mark popped unpaid). Inert until AU-3a writes it."""
+    if not sources_armed() or not marshal:
+        return 0
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if tracker is None:
+        return 0
+    mark = tracker.held.pop(f"honoured:{marshal}", None)
+    if mark is None:
+        return 0
+    if int(getattr(world, "current_turn", 0) or 0) - int(mark) > HONOUR_WINDOW:
+        return 0
+    return regrow(world, lord, HONOUR_REPAID, "honour_repaid", f"honour:{marshal}",
+                  party=str(marshal), marshal=str(marshal))
 
 
 def pop_event(world) -> Optional[Dict[str, Any]]:

@@ -141,15 +141,19 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4, §5.8): deck content a slice added that
 # a series arm may hold down to the tree before it — an op's `since`, an
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
-SINCE_ROWS = ("AU-2a",)
+SINCE_ROWS = ("AU-2a", "AU-2b")
 
 
 def row_armed(row: str) -> bool:
     """The seam behind a row's deck content: AU-2a's is `standing.hits_armed`
-    (the Chancellor's and the Host's floor clause, the Host's authority op)."""
+    (the Chancellor's floor clause, the Host's authority op); AU-2b's is
+    `standing.sources_armed` (the ceremonies' op, the Show's two Acts)."""
     if row == "AU-2a":
         from backend.game_logic import standing
         return bool(standing.hits_armed())
+    if row == "AU-2b":
+        from backend.game_logic import standing
+        return bool(standing.sources_armed())
     return True
 
 

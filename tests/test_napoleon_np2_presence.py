@@ -404,8 +404,12 @@ class TestEmperorLedAuthority:
         w.authority_tracker.authority = 80
         result = execute_attack(w, "Napoleon", "Mack")
         assert result.get("success") is True
-        # stronger side won: no outnumbered arm, only the emperor-led +2
-        assert w.authority_tracker.authority == 82
+        # stronger side won: no outnumbered arm, only the emperor-led +2 — and,
+        # since AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5), the laurel's Bulletin
+        # (+4, its own move in the books; pinned in test_standing_lumps.py)
+        keys = [m["key"] for m in w.authority_tracker.moves if m["key"] != "unattributed"]
+        assert keys == ["own_hand_won", "bulletin"]
+        assert w.authority_tracker.authority == 86
 
     def test_emperor_led_defeat_minus_five(self, fixed_rng):
         s = make_sovereign(strength=8000)
@@ -426,5 +430,8 @@ class TestEmperorLedAuthority:
         w = make_world(a, e)
         w.authority_tracker.authority = 80
         execute_attack(w, "Ney", "Mack")
-        # stronger side won, not emperor-led: no authority movement at all
-        assert w.authority_tracker.authority == 80
+        # stronger side won, not emperor-led: no field or throne move at all —
+        # the one move is AU-2b's Bulletin on the laurel (+4, test_standing_lumps.py)
+        keys = [m["key"] for m in w.authority_tracker.moves if m["key"] != "unattributed"]
+        assert keys == ["bulletin"]
+        assert w.authority_tracker.authority == 84

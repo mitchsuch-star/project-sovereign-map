@@ -7356,6 +7356,12 @@ def cleanup_war_end(world, diplo_key: str, *,
     war_scores = getattr(world, 'war_scores', {})
     war_score_history = getattr(world, 'war_score_history', {})
 
+    # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5): the Te Deum reads the war's
+    # score before the pop — at the war's actual END, never a truce
+    if conclude_objectives:
+        from backend.game_logic import standing as _standing
+        _standing.te_deum_on_peace(world, diplo_key)
+
     if war_over:
         battle_records.pop(diplo_key, None)
         decisive_battles.pop(diplo_key, None)

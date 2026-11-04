@@ -5623,6 +5623,17 @@ class CombatExecutor:
                         pipeline_out['sovereign_prestige_msg'] = (
                             "\n\n[The Emperor] He commanded in person, "
                             "and Europe saw it. (Authority +2)")
+                    # AU-2b (§5.5): a laurel victory's Bulletin and the honour's
+                    # payback (inert until AU-3a writes the mark), on the throne's line
+                    _ours, _theirs = ((atk_casualties, def_casualties) if player_is_attacker
+                                      else (def_casualties, atk_casualties))
+                    _base, _repaid = _standing.bulletin(world, player_nation, battle_region, _ours, _theirs)
+                    if _base:
+                        pipeline_out['sovereign_prestige_msg'] = (
+                            pipeline_out.get('sovereign_prestige_msg', '')
+                            + _standing.bulletin_line(_base, _repaid, battle_region))
+                    if _player_lead is not None:
+                        _standing.honour_repaid(world, player_nation, str(getattr(_player_lead, 'name', '') or ''))
                 elif player_lost:
                     outnumbering = pre_atk > pre_def
                     if player_is_defender:

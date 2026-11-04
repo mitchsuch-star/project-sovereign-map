@@ -827,6 +827,11 @@ SEAMS_DOWN = SEAMS_DOWN + OCT27_SEAMS_DOWN
 # Step 7 page; the letters themselves (armed since RE-3, lapsing on this arm)
 # never moved it.
 SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.affairs:ai_decrees=False"]
+# AU-2b the lumps (November 4, 2026; `AUTHORITY_CURRENCY_SPEC.md` §5.5): a laurel's
+# Bulletin raises CMD-H's standing, and the Presence line of turn 23 moves with
+# it (+10% → +9% read on another morning); the seam AUS held down restores
+# the Step 7 page (AU-1's books and AU-2a's hits never moved it).
+SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.standing:sources_armed=False"]
 
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

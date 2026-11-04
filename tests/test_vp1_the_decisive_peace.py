@@ -295,8 +295,11 @@ def _decree(client, act_id):
 
 class TestTheActs:
     def test_the_block_authors_four_acts_and_the_validator_reads_them(self, world):
+        # AU-2b (AUTHORITY_CURRENCY_SPEC.md §5.5, the Show): the Feast and the
+        # Arc follow VP-1's four (`since: "AU-2b"`, each with its `ceiling`)
         assert [a["id"] for a in ID.acts(world)] == [
-            "temple_of_glory", "princes_dotations", "abolition_of_feudalism", "raft_on_the_niemen"]
+            "temple_of_glory", "princes_dotations", "abolition_of_feudalism", "raft_on_the_niemen",
+            "feast_of_saint_napoleon", "arc_de_triomphe"]
         from backend.modding.validator import validate_scenario
         data = json.loads((REPO / "godot-client/project-sovereign/assets/maps/europe_1805.json")
                           .read_text(encoding="utf-8"))

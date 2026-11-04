@@ -22,7 +22,8 @@
           {"op": "gold", "amount": 1000},
           {"op": "relation", "court": "Bavaria", "delta": 20},
           {"op": "loyalty", "court": "Bavaria", "delta": 15},
-          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"}
+          {"op": "alarm", "amount": 3, "source": "moment_bavarian_match"},
+          {"op": "authority", "amount": 2, "since": "AU-2b"}
         ]
       },
       "decline": {
@@ -44,7 +45,7 @@
       "counsel": "Talleyrand — A king of your blood in Amsterdam is a king with his own treasury, Sire.",
       "accept": {
         "caption": "Crown Louis",
-        "ops": [{"op": "autonomy", "court": "Holland", "level": 2}]
+        "ops": [{"op": "autonomy", "court": "Holland", "level": 2}, {"op": "authority", "amount": 2, "since": "AU-2b"}]
       },
       "decline": {"caption": "Keep the Republic", "ops": []}
     },

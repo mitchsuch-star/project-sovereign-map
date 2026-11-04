@@ -288,7 +288,12 @@ class TestPipelineAuthority:
                               pre_battle_attacker_strength=30000,
                               pre_battle_defender_strength=50000)
         executor._post_combat_pipeline(ctx, world)
-        assert world.authority_tracker.authority == initial + 5
+        # +5 the field won against the odds — and, since AU-2b
+        # (AUTHORITY_CURRENCY_SPEC.md §5.5), the laurel's Bulletin: 3,000 dead
+        # against 8,000 is a battle out-bled two to one (+4, its own move;
+        # pinned in test_standing_lumps.py)
+        assert [m["key"] for m in world.authority_tracker.moves][-2:] == ["field_won", "bulletin"]
+        assert world.authority_tracker.authority == initial + 5 + 4
 
     def test_outnumbering_loss_costs_authority(self):
         """Player loses while outnumbering → -5 authority."""

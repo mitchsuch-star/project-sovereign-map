@@ -739,16 +739,32 @@ AUTHORITY_GRIP_FLOOR = 71
 
 def _plan_authority(world, lord, op) -> Dict[str, Any]:
     """The lord's standing, priced by an affair's Decline: the delivered loss
-    is min(|amount|, max(0, grip − 71)) — never more, never a rise; the line
-    is the laws' own (`reforms.authority_line` + the Charges' grip clause).
-    A lord without a tracker (an AI court) is skipped, line ""."""
+    is min(|amount|, max(0, grip − 71)) — never more; the line is the laws'
+    own (`reforms.authority_line` + the Charges' grip clause). AU-2b: a dated
+    letter's Accept may carry a GAIN (the ceremonies, 1..5 by the validator),
+    min(amount, 95 − standing). A lord without a tracker (an AI court) is
+    skipped, line ""."""
     delta = int(op.get("amount", 0) or 0)
     tracker = (getattr(world, "authority_tracker", None)
                if lord == getattr(world, "player_nation", None) else None)
-    if tracker is None or delta >= 0:
+    if tracker is None or delta == 0:
         return {"op": "authority", "amount": delta, "skip": True, "refusal": "", "line": ""}
     from backend.game_logic import standing
     before = int(getattr(tracker, "authority", 0) or 0)
+    if delta > 0:
+        # AU-2b the ceremonies (§5.5): a dated letter's Accept may raise the
+        # standing (the validator: 1..5, the Accept alone; an affair's op stays
+        # −10..0) — up to the ceiling 95, which the line names when it holds
+        gain = int(min(delta, max(0, standing.CEILING - before)))
+        if gain:
+            line = standing.quote(world, lord, gain)["line"].rstrip(".")
+            if gain < delta:
+                line = (f"{line}; the ceiling {standing.CEILING} holds: only {gain} of the "
+                        f"{delta} {'is' if gain == 1 else 'are'} gained")
+        else:
+            line = f"Authority {before} → {before} — nothing is gained: the ceiling {standing.CEILING} holds"
+        return {"op": "authority", "amount": delta, "gain": gain, "loss": 0, "before": before,
+                "after": before + gain, "ceiling": gain < delta, "refusal": "", "line": line}
     grip = standing.grip_of(world, lord)
     loss = int(min(-delta, max(0, grip - AUTHORITY_GRIP_FLOOR)))
     after = before - loss
@@ -775,12 +791,24 @@ def _plan_authority(world, lord, op) -> Dict[str, Any]:
 
 
 def _apply_authority(world, lord, row) -> None:
-    if row.get("skip") or not int(row.get("loss", 0) or 0):
+    if row.get("skip"):
+        return
+    from backend.game_logic import standing
+    gain = int(row.get("gain", 0) or 0)
+    if gain:
+        # AU-2b the ceremonies: a gain through `regrow` (the ceiling 95)
+        standing.regrow(world, lord, gain, "ceremony", f"ceremony:{row.get('template') or ''}",
+                        party=str(row.get("party") or ""), letter=str(row.get("letter") or "the letter"))
+        return
+    loss = int(row.get("loss", 0) or 0)
+    if not loss:
         return
     # AU-1: through the one writer, the letter and its writer as the cause
-    from backend.game_logic import standing
-    standing.move(world, lord, -int(row["loss"]), "letter_declined",
+    standing.move(world, lord, -loss, "letter_declined",
                   party=str(row.get("party") or ""), letter=str(row.get("letter") or "the letter"))
+    if str(row.get("template") or "") == standing.COUNCIL_LETTER:
+        # AU-2b: the Council's dent, which the Return repays
+        standing.council_dent(world, lord, loss)
 
 
 def _plan_admin(world, lord, op) -> Dict[str, Any]:
@@ -1058,6 +1086,7 @@ def plan(world, e: Dict[str, Any], answer: str,
             if str(row.get("op") or "") == "authority":
                 # AU-1: the letter and its writer ride the row — the books' cause
                 row["letter"] = str((e or {}).get("title") or "the letter")
+                row["template"] = str((e or {}).get("id") or "")     # AU-2b: the Council's, the ceremony's key
                 try:
                     name = voice_of(world, e or {}, occ, int(getattr(world, "current_turn", 0) or 0))
                     row["party"] = _writer_and_office(world, e or {}, occ, name)[0]

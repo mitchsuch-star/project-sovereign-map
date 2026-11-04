@@ -177,8 +177,10 @@ class TestTheCauseCensus:
                 offenders.append(f"{rel}:{call.lineno} {keys or ast.dump(cause) if cause is not None else 'no cause'}")
         # the survey's 32 sites: 24 `modify_authority` calls (the capture's two branches became one call)
         # and 8 direct writes (three inside the tracker, two the rollback's snapshot / restore),
-        # plus the two wrappers that forward a cause (`_spend_authority`, `modify_nation_authority`)
-        assert seen == 29, seen
+        # plus the two wrappers that forward a cause (`_spend_authority`, `modify_nation_authority`);
+        # AU-2b adds two `regrow` writes — the ceremonies' (`moments._apply_authority`) and the
+        # Show's (`imperial_designs.decree`, an Act with a `ceiling`)
+        assert seen == 31, seen
         assert not offenders, offenders
 
     def test_every_key_used_is_given_its_fields(self):

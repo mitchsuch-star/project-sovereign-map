@@ -99,13 +99,53 @@ from backend.game_logic import affairs as AF
 _op_armed = AF.op_armed
 def _counted_op_armed(op):
     out = _op_armed(op)
-    if (op or {{}}).get("since"):
+    row = (op or {{}}).get("since")
+    if row == "AU-2a":
         _c["host_ops_planned" if out else "host_ops_held"] += 1
+    elif row == "AU-2b":
+        _c["au2b_content_armed" if out else "au2b_content_held"] += 1
     return out
 AF.op_armed = _counted_op_armed
+# AU-2b the lumps: the seam AUS, its reach counted
+_sources = ST.sources_armed
+def _counted_sources():
+    _c["sources_reads"] += 1
+    return False if "AUS" in DOWN else _sources()
+ST.sources_armed = _counted_sources
+_te, _bul, _ret, _hon, _regrow = ST.te_deum_on_peace, ST.bulletin, ST.the_return, ST.honour_repaid, ST.regrow
+def _counted_te(world, key):
+    out = _te(world, key)
+    if out:
+        _c["te_deums"] += 1
+    return out
+def _counted_bul(world, lord, battle, ours, theirs):
+    base, repaid = _bul(world, lord, battle, ours, theirs)
+    if base:
+        _c["bulletins"] += 1
+        _c["points_repaid"] += int(repaid)
+    return base, repaid
+def _counted_ret(world, lord):
+    out = _ret(world, lord)
+    if out:
+        _c["returns"] += 1
+    return out
+def _counted_hon(world, lord, marshal):
+    out = _hon(world, lord, marshal)
+    if out:
+        _c["paybacks"] += 1
+    return out
+def _counted_regrow(world, lord, amount, cause, key, *a, **k):
+    out = _regrow(world, lord, amount, cause, key, *a, **k)
+    if out and cause in ("ceremony", "act"):
+        _c["ceremonies" if cause == "ceremony" else "acts_shown"] += 1
+    return out
+ST.te_deum_on_peace, ST.bulletin, ST.the_return, ST.honour_repaid, ST.regrow = (
+    _counted_te, _counted_bul, _counted_ret, _counted_hon, _counted_regrow)
 _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "hits_reads", "claims_reads", "breach_reads", "claims_billed", "breaches_booked", "amends_repaid",
-         "host_ops_planned", "host_ops_held")
+         "host_ops_planned", "host_ops_held",
+         "sources_reads", "te_deums", "bulletins", "points_repaid", "returns", "paybacks",
+         "ceremonies", "acts_shown", "au2b_content_armed", "au2b_content_held")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)
