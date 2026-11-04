@@ -1,8 +1,8 @@
 {
  "_what": "AU-1 — the standing's trace over the measured arms (AUTHORITY_CURRENCY_SPEC.md §5.8): per arm the start / min / max / end of the lord's authority, the moves by cause (by site on the tree before the books), the residual (the morning's change the books did not record) with the direct writers it names, the lines crossed downward, the courts' end figures. Seeded paths, not laws.",
- "commit": "AU-2a the hits (the working tree of November 3, 2026, before its commit)",
- "date": "2026-11-03",
- "note": "AU-2a: the hits offered in every campaign - the Chancellor at any standing, the Claims, the breach and amends, the Host's Complaint; residual 0",
+ "commit": "AU-2a the clamp (the working tree of November 4, 2026, before its commit)",
+ "date": "2026-11-04",
+ "note": "AU-2a the clamp: the Host's Claims arrive at any standing and clamp at the floor, said; the breach quoted on every choice that breaks a treaty; residual 0",
  "arms": 59,
  "measured": 59,
  "residual_total": 0,
@@ -394,10 +394,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 47,
+   "min": 46,
    "max": 100,
-   "end": 47,
-   "moves": 18,
+   "end": 46,
+   "moves": 19,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -435,9 +435,9 @@
      "asked": -5
     },
     "letter_declined": {
-     "n": 1,
-     "sum": -8,
-     "asked": -8
+     "n": 2,
+     "sum": -9,
+     "asked": -9
     }
    },
    "residual_total": 0,
@@ -909,10 +909,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 72,
+   "min": 71,
    "max": 100,
-   "end": 72,
-   "moves": 13,
+   "end": 71,
+   "moves": 14,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -950,9 +950,9 @@
      "asked": -5
     },
     "letter_declined": {
-     "n": 1,
-     "sum": -8,
-     "asked": -8
+     "n": 2,
+     "sum": -9,
+     "asked": -9
     }
    },
    "residual_total": 0,
@@ -1252,10 +1252,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 72,
+   "min": 71,
    "max": 100,
-   "end": 72,
-   "moves": 16,
+   "end": 71,
+   "moves": 17,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 3,
@@ -1288,9 +1288,9 @@
      "asked": -30
     },
     "letter_declined": {
-     "n": 1,
-     "sum": -3,
-     "asked": -3
+     "n": 2,
+     "sum": -4,
+     "asked": -4
     }
    },
    "residual_total": 0,

@@ -274,7 +274,7 @@ The pre-gate estimate (the gate 0.5, the build 1.5–2.5) is superseded: the jud
 - `tools/_standing_final.json`: residual 0 on all 59 rows.
 
 #### 6.2.3 The readings taken at the landing — FOR THE USER'S CONFIRMATION (each one line to reverse)
-1. **The Host at the floor costs the letter half its reach** (20 → 9 runs): on the bled war roads, under 73 on the grip, the Host's Claims no longer arrive at all. *Alternative:* keep the Host arriving everywhere and let its Decline clamp at the floor and say so (AU-3's way) — a third `bites` mode in the validator and `affairs.bites`, about 20 lines, the reach back to 20.
+1. **The Host at the floor costs the letter half its reach** (20 → 9 runs): on the bled war roads, under 73 on the grip, the Host's Claims no longer arrive at all. *Alternative:* keep the Host arriving everywhere and let its Decline clamp at the floor and say so (AU-3's way) — a third `bites` mode in the validator and `affairs.bites`, about 20 lines, the reach back to 20. **RULED November 4, 2026 — the alternative, by the user's "Clamp it first" (§6.2.5).**
 2. **The Claims' floor reads the grip after the bill** (a board at 82 is not billed; 83 lands at 80).
 3. **A re-opened claim is a new bill** (the key is the claim's opening turn); a claim paid by a rente before its fourteenth turn is never billed.
 4. **Make Amends repays only the breach's debt to that court** (+2 an amends, the debt and the 95 ceiling its bounds) — never a source on its own.
@@ -285,6 +285,36 @@ The pre-gate estimate (the gate 0.5, the build 1.5–2.5) is superseded: the jud
 
 #### 6.2.4 The finds
 `BUG_FIXES.md` §AU: **AU-6** the vindication's stakes were silent in figures (FIXED). AU-4 and AU-5 stand OPEN, owned by the AU-4 slice.
+
+#### 6.2.5 The clamp — the user's "Clamp it first" (November 4, 2026)
+
+**✅ LANDED, one commit on master through the hook.** At AU-2a's review the user took reading 1's alternative: the Host's Claims arrive at any standing, and "Live off the land" clamps at the floor and says so. The floor stays the rule of the letters whose refusal costs authority alone. The sweep that ends the fix found two siblings, both fixed here (AU-7, AU-8).
+
+##### 6.2.5.1 What landed
+| Piece | Where | The rule |
+|---|---|---|
+| the third mode | `affairs.BITES_CLAMP` (`"clamp"`), `affairs.clamp_mode`, `affairs.bites` (asks neither half) | the letter arrives at any standing; `moments._plan_authority` takes what lies above 71 on the grip and says the rest |
+| one rule for every priced letter | the validator: `"clamp"` only beside a Decline priced besides authority (an op without `unless`), else an ERROR; `bites_since` stays the floor's alone | a refusal priced in authority alone keeps `"floor"` (the Chancellor, the Marine) — clamped, it would cost nothing; a refusal with another price arrives everywhere and clamps (the Host); AU-2c's Bank and Pope take the same rule |
+| the Host | `europe_1805.json` and `tests/fixtures/affairs_block.json`: `"bites": "clamp"`, the `bites_since` dropped (the op's `since` holds the price down under arm AUP, and with no authority op the letter always bites) | "Live off the land" takes its −2 / −3 / −4 whole wherever the grip has that room above 71; at 72 it takes 1 and says "only 1 of the 2 is taken"; under 71 it takes nothing and says the grip is under the floor; the relation and the loyalty always paid |
+| the clamp said (AU-7) | `moments._plan_authority` | a partial clamp: "…; the floor holds at 71 on the Emperor's grip (72): only 1 of the 3 is taken"; a grip under the floor: "Authority 60 → 60 — nothing is taken: the Emperor's grip (60) is under the floor of 71"; at exactly 71 AU-3's line kept |
+| the word broken quoted (AU-8) | `standing.breach_quote` (the one quote); `breach_confirm_clause` on the manual break's confirm (`_execute_diplomatic_break`) beside the declaration's; `breach_paradox_clause` on the alliance paradox's message | every choice that breaks a treaty at France's fault names the −3 before it lands; quiet while the breach is held down (arm AUW) |
+| the frames | `docs/audits/IQ10_AFFAIR_LETTER_THE_HOST_CLAMPED{,_X2}_2026_11_04.png` | the Host's Claims at tier 2 on a bled board (authority 64): "Live off the land: Authority 64 → 64 — nothing is taken: the Emperor's grip (64) is under the floor of 71; Bavaria's goodwill 60 → 56.", the unanswered line the same, the button "auth 64 → 64 · Bavaria 60 → 56"; at 2.0 the body scrolls, as the Host's own frame |
+| the pins | `tests/test_standing_hits.py::TestTheClampAndTheBreachAreSaid` and the deck's keys; `tests/test_affairs_nondominance.py` (the Host at every standing, the spent board measured); `tests/test_affairs_reach.py` re-pinned with the attribution | — |
+
+##### 6.2.5.2 The measure (the same chain, `tools/playtest_runs/au2a_clamp_2026_11_04/`)
+- **`BASELINE_SERIES` byte-identical on all six arms** (the rig's record byte-identical to AU-2a's); the standing record's residual 0 on 59 rows.
+- **The reach (58 runs, AU-2a → the clamp):** the Host 9 → 20 (scripted 8 → 16, the sweep 0 → 2: CMD-H, CMD-M, VOLTE, CMD-M-ACCEPT, the Confederation and the Throne roads on historical, the Rhine road on marengo and its accept arm, HAITI-marengo, armC_02_austerlitz, armC_06_friedland). Its mornings come from the pulse's other picks: the Memorial 12 → 10 (the Rhine road on marengo, both arms — due and released), the Magazines 17 → 15 (HAITI-marengo, the Confederation road on historical), the Remounts 30 → 29 (VOLTE). The Chancellor 21, the Marine's letter 24 and the Camps 6 unmoved.
+- **The standing moved on three runs, one point each:** CMD-H 47 → 46, VOLTE 72 → 71, REACH-AAR 72 → 71 — a Host refusal at 72 taking 1 of its 2. On the other runs the letter regained, the grip stood under the floor and the refusal took nothing (the relation and the loyalty paid). Every other end figure is AU-2a's; the hoarder CMD-A ends at 72.
+
+##### 6.2.5.3 The readings taken at the landing — FOR THE USER'S CONFIRMATION (each one line to reverse)
+1. **One rule for priced letters:** a refusal priced in authority alone keeps the floor; one with another price clamps (the validator enforces it).
+2. **Under the floor:** "nothing is taken: the Emperor's grip (60) is under the floor of 71" (AU-3's "the floor holds at 71" kept for exactly 71).
+3. **A partial clamp:** "the floor holds at 71 on the Emperor's grip (72): only 1 of the 3 is taken".
+4. **The button at a full clamp** keeps its authority half with unchanged figures ("auth 64 → 64 · Bavaria 60 → 56") rather than dropping it.
+5. **The paradox's quote** once, "Either way, the court keeps its own count: …" — both answers break a treaty.
+
+##### 6.2.5.4 The finds
+`BUG_FIXES.md` §AU: **AU-7** a price the floor clamped in part said nothing of it, and under the floor the line said the floor "holds" (FIXED); **AU-8** the word broken was priced on three choices and quoted on one (FIXED). The defensive refusal's breach is reached only through the test store `call_to_arms_decisions`, which no production code writes.
 
 ## §7 AU-1 — the first slice's plan (the next prompt's contract)
 

@@ -1482,6 +1482,14 @@ SHOTS += [
              "−600 gold' and 'Live off the land / Bavaria N → N−4' and 'Not Now / waits on the "
              "desk'; Talleyrand's counsel under the buttons; no Counter, no grey slot, no gold on "
              "paper, no raw tag; both answers above the fold at BOTH scales"),
+            # AU-2a's clamp (the user's "Clamp it first", November 4, 2026)
+            ("the_host_clamped", "The Host's Claims on a bled board (the grip under the floor)",
+             "the same letter and dress as the Host's at tier 2; at 1.0 under 'WHAT EACH ANSWER DOES' "
+             "the Decline's quote 'Live off the land: Authority N → N — nothing is taken: the "
+             "Emperor's grip (N) is under the floor of 71; Bavaria's goodwill …' whole and wrapped "
+             "inside the sheet, and the unanswered line saying the same; at 2.0 the body scrolls (the "
+             "quote below its fold, as the Host's own frame); the button 'Live off the land / auth N "
+             "→ N · Bavaria N → N−4'; the three buttons in view at BOTH scales"),
             ("berthiers_memorial", "Berthier's Memorial — the door (Berthier, Major-General)",
              "the same dress under Berthier's monogram 'B'; line 2 'Berthier's Memorial — Berthier, "
              "Major-General of the Grande Armée'; the board line (at war, the chest against the "

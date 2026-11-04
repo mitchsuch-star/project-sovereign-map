@@ -419,13 +419,28 @@ def amends(world, lord: str, court: str) -> int:
     return applied
 
 
-def breach_confirm_clause(world, lord: str) -> str:
-    """§5.4: the word broken, priced on the war-declaration confirm — the
-    first strike's quote, the one every button reads; "" while the breach is
-    held down (arm AUW)."""
+def breach_quote(world, lord: str) -> str:
+    """§5.4: the first strike's quote ("Authority 100 → 97 — …"), the one
+    every choice that breaks a treaty reads; "" while the breach is held down
+    (arm AUW)."""
     if not breach_armed():
         return ""
-    return " And the court keeps its own count: " + quote(world, lord, -BREACH_STRIKE)["line"]
+    return quote(world, lord, -BREACH_STRIKE)["line"]
+
+
+def breach_confirm_clause(world, lord: str) -> str:
+    """§5.4: the word broken, priced on a breach's confirm — the war
+    declaration's and, since AU-8, the manual break's."""
+    line = breach_quote(world, lord)
+    return " And the court keeps its own count: " + line if line else ""
+
+
+def breach_paradox_clause(world, lord: str) -> str:
+    """AU-8 (BUG_FIXES.md §AU): the alliance paradox breaks a treaty on either
+    answer (the war on the attacker, or the defender's alliance set aside), so
+    its message carries the one quote once."""
+    line = breach_quote(world, lord)
+    return "\n\nEither way, the court keeps its own count: " + line if line else ""
 
 
 def _signed(n: int) -> str:

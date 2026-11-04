@@ -755,6 +755,16 @@ def _plan_authority(world, lord, op) -> Dict[str, Any]:
     if loss:
         # AU-1: the one quote (`authority_line` + the Charges' clause + the Presence)
         line = standing.quote(world, lord, -loss)["line"].rstrip(".")
+        if loss < -delta:
+            # AU-7 (BUG_FIXES.md §AU): the partial clamp SAID — the floor takes
+            # what lies above it, and the line says how much of the price it kept
+            line = (f"{line}; the floor holds at {AUTHORITY_GRIP_FLOOR} on the Emperor's grip "
+                    f"({grip}): only {loss} of the {-delta} {'is' if loss == 1 else 'are'} taken")
+    elif grip < AUTHORITY_GRIP_FLOOR:
+        # AU-7: a grip already under the floor — no letter takes authority there,
+        # and the line says so rather than that the floor "holds" above it
+        line = (f"Authority {before} → {before} — nothing is taken: the Emperor's grip ({grip}) "
+                f"is under the floor of {AUTHORITY_GRIP_FLOOR}")
     else:
         # AU-3 (BUG_FIXES.md §AU): the clamp SAID — at the floor the Decline
         # takes nothing, and the quote says so instead of "Authority 71 → 71"

@@ -1915,6 +1915,8 @@ class DiplomaticExecutor:
                 f"without offering release will mark us as oath-breakers. "
                 f"Shall I proceed?"
             )
+            from backend.game_logic import standing as _standing   # AU-8: the word broken, priced here too
+            confirm_text += _standing.breach_confirm_clause(world, player)
             # IGR-A2: `warnings` rides the dialogue and the popup renders it
             # under "Political Context:" — never inline it here as well.
             world.dialogue_manager.open_flow({

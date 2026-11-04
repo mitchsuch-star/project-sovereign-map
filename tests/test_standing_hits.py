@@ -3,8 +3,9 @@ AU-2a row; the rules `SYSTEMS_REFERENCE.md` §170).
 
 The bills offered in every campaign, never forced — each through AU-1's one
 writer with its cause: the Chancellor's letter at any standing and the Host's
-Complaint at the floor (`tests/test_affairs_nondominance.py` pins the two
-letters' floors; here the deck's two authoring keys and the validator), the
+Complaint clamped at the floor and said (the user's "Clamp it first", November
+4, 2026; `tests/test_affairs_nondominance.py` pins the two letters' rules; here
+the deck's authoring keys and the validator), the
 Claims of the Army on the dotation tick (Berthier presenting), the word
 broken in `_record_treaty_breach` (−3 a strike, −6 an episode) and Make
 Amends repaying it (never beyond the debt, never above the ceiling), the
@@ -76,7 +77,8 @@ class TestTheDeckAtTheFloor:
             by_id = {e["id"]: e for e in deck}
             chancellor, host = by_id["chancellors_letters"], by_id["the_host"]
             assert chancellor["bites"] == "floor" and chancellor["bites_since"] == "AU-2a"
-            assert host["bites"] == "floor" and host["bites_since"] == "AU-2a"
+            # the user's "Clamp it first" (November 4, 2026): the Host at any standing
+            assert host["bites"] == "clamp" and "bites_since" not in host
             op = host["decline"]["ops"][0]
             assert op == {"op": "authority", "amount": -2, "tiers": {"2": -3, "3": -4}, "since": "AU-2a"}
             assert host["decline"]["button_line"].startswith("auth {authority_before} → {authority_after} · ")
@@ -97,6 +99,32 @@ class TestTheDeckAtTheFloor:
         errors = [str(e) for e in result.errors]
         assert any("since" in e and "AU-2a" in e for e in errors), errors[:5]
         assert any("bites_since" in e for e in errors), errors[:5]
+
+    def test_a_clamp_needs_a_price_besides_authority(self, world):
+        """The user's "Clamp it first": only a refusal that costs something else
+        may clamp — clamped, the Chancellor's Decline (authority alone) would be
+        free at the floor, so the validator refuses it; a clause `bites_since`
+        stays the floor's alone."""
+        from backend.modding import validator as V
+        data = json.loads(SCENARIO.read_text(encoding="utf-8"))
+        bad = copy.deepcopy(data)
+        deck = bad["moments"]["affairs"]["deck"]
+        chancellor = next(e for e in deck if e["id"] == "chancellors_letters")
+        chancellor["bites"] = "clamp"
+        chancellor.pop("bites_since", None)
+        host = next(e for e in deck if e["id"] == "the_host")
+        host["bites_since"] = "AU-2a"
+        with _quiet():
+            result = V.validate_scenario(bad)
+        errors = [str(e) for e in result.errors]
+        assert any("deck[0].bites:" in e and "priced besides authority" in e for e in errors), errors[:5]
+        assert any("deck[1].bites_since" in e for e in errors), errors[:5]
+        relation_only = copy.deepcopy(data)
+        host = next(e for e in relation_only["moments"]["affairs"]["deck"] if e["id"] == "the_host")
+        host["decline"]["ops"] = [host["decline"]["ops"][0], host["decline"]["ops"][1]]   # relation `unless` vassal
+        with _quiet():
+            result = V.validate_scenario(relation_only)
+        assert any("priced besides authority" in str(e) for e in result.errors), result.errors[:5]
 
     def test_the_seams_are_named_functions(self):
         from backend.game_logic import standing
@@ -278,6 +306,85 @@ class TestTheStakesTold:
         w.vindication_tracker.record_choice("Ney", "compromise", {"action": "attack", "marshal": "Ney"})
         result = w.vindication_tracker.resolve_battle("Ney", "victory", types.SimpleNamespace(world=w))
         assert result["message"].endswith("(authority +2).") and w.authority_tracker.authority == 97
+
+
+class TestTheClampAndTheBreachAreSaid:
+    """The user's "Clamp it first" (November 4, 2026) and its sweep: a price the
+    floor clamps says what it kept (AU-7), and the word broken is quoted on
+    every choice that breaks a treaty, not the declaration's alone (AU-8)."""
+
+    def test_a_partial_clamp_says_how_much_is_taken(self, w):
+        from backend.game_logic import affairs, moments as MO
+        e = affairs.template_by_id(w, "the_host")
+        w.authority_tracker.authority = 72
+        occ = {"id": "the_host#1", "lord": "France", "bind": {"host": "Bavaria"}, "tier": 2}
+        p = MO.plan(w, e, MO.ANSWER_DECLINE, occ)
+        row = next(r for r in p["rows"] if r["op"] == "authority")
+        assert (row["loss"], row["after"], row["floor"]) == (1, 71, True)
+        assert row["line"].endswith("the floor holds at 71 on the Emperor's grip (72): only 1 of the 3 is taken")
+        assert p["receipt"].startswith("auth 72 → 71 · ")
+        w.authority_tracker.authority = 73
+        row = next(r for r in MO.plan(w, e, MO.ANSWER_DECLINE, occ)["rows"] if r["op"] == "authority")
+        assert row["line"].endswith("only 2 of the 3 are taken")
+
+    def test_under_the_floor_the_line_says_the_grip_is_under_it(self, w):
+        from backend.game_logic import affairs, moments as MO
+        e = affairs.template_by_id(w, "the_host")
+        w.authority_tracker.authority = 60
+        occ = {"id": "the_host#1", "lord": "France", "bind": {"host": "Bavaria"}, "tier": 1}
+        p = MO.plan(w, e, MO.ANSWER_DECLINE, occ)
+        row = next(r for r in p["rows"] if r["op"] == "authority")
+        assert row["loss"] == 0 and row["floor"] is True
+        assert row["line"] == ("Authority 60 → 60 — nothing is taken: the Emperor's grip (60) "
+                               "is under the floor of 71")
+        MO._apply(w, p)
+        assert w.authority_tracker.authority == 60
+
+    def test_the_manual_break_quotes_the_word_broken(self):
+        from backend.commands.executor import CommandExecutor
+        from tests.conftest import WorldFactory
+        world = WorldFactory.basic()
+        key = world._make_diplo_key(world.player_nation, "Prussia")
+        world.active_treaties[key] = {"type": "non_aggression",
+                                      "nations": [world.player_nation, "Prussia"], "turn_created": 1}
+        world.diplomatic_states[key] = "NON_AGGRESSION"
+        world.diplomatic_points = 5
+        with _quiet():
+            result = CommandExecutor()._diplomatic._execute_diplomatic_break(
+                {"target_nation": "Prussia", "action": "diplomatic_break"}, world)
+        message = result.get("message", "")
+        assert "Shall I proceed?" in message, message
+        assert "And the court keeps its own count: Authority " in message, message
+
+    def test_the_paradox_quotes_the_word_broken_once(self):
+        from backend.game_logic.diplomacy import declare_war, set_diplomatic_state
+        from backend.models.world_state import WorldState
+        world = WorldState(player_nation="France")
+        set_diplomatic_state(world, "France", "Britain", "ALLIANCE", "test_setup")
+        set_diplomatic_state(world, "France", "Prussia", "ALLIANCE", "test_setup")
+        set_diplomatic_state(world, "Britain", "Prussia", "PEACE", "test_setup")
+        with _quiet():
+            declare_war(world, "Britain", "Prussia")
+        message = (world.commitment_paradox_popup or {}).get("message", "")
+        assert message.count("Either way, the court keeps its own count: Authority ") == 1, message
+
+    def test_the_clamped_letter_is_shot_at_both_scales(self):
+        """The said clamp on the real letter (`tools/iq10_capture_payloads.py`'s bled
+        board, authority 64): the frames at 1.0 and 2.0."""
+        cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")
+        assert 'record("affair_letter_the_host_clamped"' in cap
+        shots = (REPO / "tools" / "iq10_run_captures.py").read_text(encoding="utf-8")
+        assert '("the_host_clamped",' in shots
+        for tail in ("", "_X2"):
+            png = REPO / "docs" / "audits" / f"IQ10_AFFAIR_LETTER_THE_HOST_CLAMPED{tail}_2026_11_04.png"
+            assert png.exists() and png.stat().st_size > 8000, png
+
+    def test_held_down_the_quotes_go_quiet(self, w, monkeypatch):
+        from backend.game_logic import standing
+        assert standing.breach_quote(w, "France").startswith("Authority 100 → 97")
+        monkeypatch.setattr(standing, "breach_armed", lambda *a, **k: False)
+        assert standing.breach_confirm_clause(w, "France") == ""
+        assert standing.breach_paradox_clause(w, "France") == ""
 
 
 class TestTheCausesAndTheCensuses:

@@ -2116,6 +2116,21 @@ def cap_moments():
                     "morning, turn 7"),
            facts=affair_facts(popup))
 
+    # AU-2a's clamp (the user's "Clamp it first", November 4, 2026): the same
+    # letter on a bled board — the grip under the floor of 71, where the AU-2a
+    # floor kept it away; "Live off the land" takes no authority and the
+    # letter's quote says so.
+    def host_board_bled(w):
+        host_board(w)
+        w.authority_tracker.authority = 64
+
+    world, c, popup = stage_affair("the_host#1", range(1, 8), host_board_bled)
+    record("affair_letter_the_host_clamped", popup, source="GET /pending_envoy → incoming_proposal",
+           staging=("the affair_letter_the_host staging with France's authority WRITTEN to 64 (a bled "
+                    "board, the grip under the floor of 71); the production moments.tick delivered it "
+                    "on turn 7 — under AU-2a's floor clause it would not have arrived"),
+           facts=affair_facts(popup))
+
     # Berthier's door: at war four turns running with the chest above the bar
     def door_board(w):
         w.nation_gold["France"] = 20_000

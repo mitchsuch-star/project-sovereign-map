@@ -130,7 +130,14 @@ ARRIVAL_LATER = "later"
 # aura's full line AND the floor allows it whole); `bites: "floor"` the floor
 # half alone, so the letter arrives at full standing too.
 BITES_FLOOR = "floor"
-BITES_MODES = (True, BITES_FLOOR)
+# AU-2a's first reading reversed by the user's word ("Clamp it first",
+# November 4, 2026): `bites: "clamp"` asks neither half — the letter arrives at
+# any standing and its plan takes what the floor allows, saying the rest
+# (`moments._plan_authority`). Only a Decline that carries a price besides
+# authority may clamp (the validator): clamped, a bill in authority alone would
+# cost nothing, and the floor is its only honest rule.
+BITES_CLAMP = "clamp"
+BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4, §5.8): deck content a slice added that
 # a series arm may hold down to the tree before it — an op's `since`, an
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
@@ -159,6 +166,12 @@ def floor_mode(e: Dict[str, Any]) -> bool:
         return False
     since = str(e.get("bites_since") or "")
     return not since or row_armed(since)
+
+
+def clamp_mode(e: Dict[str, Any]) -> bool:
+    """`bites` reads "clamp" — the letter arrives at any standing; the floor
+    is the plan's to keep, and the plan says what it kept."""
+    return (e or {}).get("bites") == BITES_CLAMP
 
 # The dispatch row an affair's set-aside and withdrawal lines ride — the
 # moments' own receipt type (`moments.RECEIPT_EVENT`), named by its literal so
@@ -682,13 +695,19 @@ def bites(world, lord: str, e: Dict[str, Any], tier: int) -> bool:
     RE-H (the user's word of November 1, 2026; §0b P16 amended): a template
     authored `bites: "floor"` asks the floor half alone — the loss must land
     whole above the floor — so the Haiti letter arrives at full standing,
-    where the Decline is a dent and the squadron the stake."""
+    where the Decline is a dent and the squadron the stake.
+
+    AU-2a, the user's "Clamp it first" (November 4, 2026): a template authored
+    `bites: "clamp"` asks neither — the Host's Claims arrive on the bled boards
+    too, and the plan takes what lies above the floor and says the rest."""
     ops = [MO.scaled_op(op, tier) for op in ((e.get("decline") or {}).get("ops") or [])
            if isinstance(op, dict) and op.get("op") == "authority" and op_armed(op)]
     if not ops:
         return True
     if lord != getattr(world, "player_nation", None) or getattr(world, "authority_tracker", None) is None:
         return False
+    if clamp_mode(e):
+        return True
     from backend.models.authority import AURA_GRIP_FULL, get_imperial_grip
     floor_only = floor_mode(e)
     grip = int(get_imperial_grip(world, lord))

@@ -368,7 +368,9 @@ class TestBitesOnTheFloorHalf:
             armed.authority_tracker.authority = authority
             armed.__dict__.pop("_affairs_memo", None)
             assert AF.bites(armed, "France", e, 1) is expected, authority
-        assert AF.BITES_MODES == (True, "floor") and AURA_GRIP_FULL == 85
+        # AU-2a's "Clamp it first" (November 4, 2026) adds the third mode — the
+        # Host's, never a bill priced in authority alone (the validator)
+        assert AF.BITES_MODES == (True, "floor", "clamp") and AURA_GRIP_FULL == 85
 
 
 # ═══════════════════════════════════════════════════════════════════════════

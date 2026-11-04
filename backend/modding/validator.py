@@ -1527,7 +1527,7 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
     the display keys}]}. Every predicate and op is a name the engine holds;
     the alarm is barred from every affair; a Decline carries only relation,
     loyalty and a grip-floored authority; an `authority` price requires
-    `bites`; a door's Accept is exactly one `enact_law` and its Decline is
+    `bites` (`"clamp"` only beside another price on the Decline); a door's Accept is exactly one `enact_law` and its Decline is
     empty; an offer's Decline is empty; `watch` says "may", never "will";
     `ends` checks its ISO date against its turn (validator-side only — HC-0).
     A template without `source` or `watch` cannot be armed."""
@@ -1835,6 +1835,7 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                 if forms and fallback_forms == 0:
                     result.add_error(f"{path}.forms", "One form must carry no `requires` (the fallback)")
         has_authority = False
+        bare_authority_declines = []     # AU-2a: a refusal priced in authority alone
         squadron_ops = []
         for prefix, holder in sides:
             for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
@@ -1851,6 +1852,11 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                 if not isinstance(ops, list):
                     result.add_error(f"{spath}.ops", "Must be a list")
                     continue
+                if side == MO.ANSWER_DECLINE and any(
+                        isinstance(op, dict) and op.get("op") == "authority" for op in ops) and not any(
+                        isinstance(op, dict) and op.get("op") not in (None, "authority") and not op.get("unless")
+                        for op in ops):
+                    bare_authority_declines.append(spath)
                 side_squadron = [op for op in ops if isinstance(op, dict) and op.get("op") == "squadron"]
                 # RE-H (§6.5 step 7): an Accept that sails a squadron authors
                 # both fates' copy — the morning line and the Moniteur's line
@@ -1940,10 +1946,17 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
         bites_value = e.get("bites")
         if has_authority and bites_value not in AF.BITES_MODES:
             result.add_error(f"{path}.bites",
-                             'Required by an `authority` price — `true` (both halves) or "floor" (the floor '
-                             'half alone, RE-H): the letter arrives only where it bites')
+                             'Required by an `authority` price — `true` (both halves), "floor" (the floor '
+                             'half alone, RE-H) or "clamp" (neither: the plan keeps the floor and says '
+                             'so, AU-2a): the letter arrives only where it bites')
         elif bites_value is not None and bites_value not in AF.BITES_MODES:
-            result.add_error(f"{path}.bites", 'Must be `true` or "floor"')
+            result.add_error(f"{path}.bites", 'Must be `true`, "floor" or "clamp"')
+        if bites_value == AF.BITES_CLAMP and bare_authority_declines:
+            # AU-2a ("Clamp it first"): clamped, a refusal priced in authority
+            # alone would cost nothing at the floor — the floor is its rule
+            result.add_error(f"{path}.bites",
+                             '"clamp" needs a Decline priced besides authority (an op without '
+                             '`unless`); a refusal priced in authority alone keeps "floor"')
         # AU-2a: a floor clause a slice added names its row beside `"floor"`
         bites_since = e.get("bites_since")
         if bites_since is not None and (bites_since not in AF.SINCE_ROWS or bites_value != AF.BITES_FLOOR):

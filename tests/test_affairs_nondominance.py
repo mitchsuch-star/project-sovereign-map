@@ -200,14 +200,15 @@ class TestEachAnswerIsTheBetterOneSomewhere:
         Arch-Chancellor on the expander alone (AU-2a: `bites: "floor"`, the
         letter at any standing — but the hoarder keeps the Emperor at home, the
         letter's premise, and the spent board at 72 is under the floor's room
-        for a −5), the host on the hoarder and the expander (AU-2a: the
-        Host's Complaint prices the Decline −2 at the floor, and 72 − 2 would land
-        under 71 — the ruling's cost, `AUTHORITY_CURRENCY_SPEC.md` §4.1 reading
-        13), the door where France is at war with the chest above the bar."""
+        for a −5), the host on all three (AU-2a, the user's "Clamp it first":
+        the Host's Decline −2 clamps at the floor, so the spent board at 72 meets
+        the letter and pays 1 of the 2, the rest said — under the AU-2a floor it
+        did not arrive there), the door where France is at war with the chest
+        above the bar."""
         boards = sorted(b for t, b in MEASURED if t == template)
         assert boards, template
         if template == T2:
-            assert boards == ["expander", "hoarder"]
+            assert boards == ["expander", "hoarder", "spent"]
         if template == T1:
             assert boards == ["expander"]
 
@@ -258,15 +259,28 @@ class TestTheLetterIsAbsentWhereBitesFails:
             armed.authority_tracker.authority = authority
             assert AF.bites(armed, "France", e, 1) is False, authority
 
-    def test_the_host_carries_the_floor_clause_and_the_door_none(self, armed):
-        """AU-2a: the Host's Complaint prices the Host's Decline (−2 / −3 / −4 by
-        tier) with `bites: "floor"` — the letter arrives wherever the Decline's
-        loss lands whole at or above 71; the Memorial carries no clause."""
+    def test_the_host_clamps_at_the_floor_and_the_door_carries_none(self, armed):
+        """AU-2a, the user's "Clamp it first" (November 4, 2026): the Host's
+        Complaint prices the Host's Decline (−2 / −3 / −4 by tier) with
+        `bites: "clamp"` — the letter arrives at every standing, on the bled
+        boards too, and the Decline takes what lies above 71 and says the rest.
+        Clamped, it still costs relation and loyalty, so it is never free (the
+        validator refuses a clamp on a refusal priced in authority alone). The
+        Memorial carries no clause."""
         e = MO.entry(armed, T2)
-        assert e.get("bites") == "floor" and e.get("bites_since") == "AU-2a"
-        for authority, expected in ((100, True), (80, True), (73, True), (72, False), (60, False)):
+        assert e.get("bites") == "clamp" and "bites_since" not in e
+        for authority in (100, 80, 73, 72, 71, 60, 40):
             armed.authority_tracker.authority = authority
-            assert AF.bites(armed, "France", e, 1) is expected, authority
+            assert AF.bites(armed, "France", e, 1) is True, authority
+        for authority, loss, said in ((100, 2, ""), (72, 1, "only 1 of the 2 is taken"),
+                                      (71, 0, "nothing is taken: the floor holds at 71"),
+                                      (60, 0, "is under the floor of 71")):
+            armed.authority_tracker.authority = authority
+            rows = MO.plan(armed, e, MO.ANSWER_DECLINE, OCC[T2])["rows"]
+            assert [r["op"] for r in rows] == ["authority", "relation", "loyalty"], authority
+            assert rows[0]["loss"] == loss and said in rows[0]["line"], (authority, rows[0])
+            assert any(int(r.get("before", 0)) != int(r.get("after", 0)) for r in rows[1:]) \
+                or any(c.get("before") != c.get("after") for r in rows[1:] for c in r.get("courts") or []), authority
         armed.authority_tracker.authority = 100
         door = MO.entry(armed, T3)
         assert not door.get("bites")

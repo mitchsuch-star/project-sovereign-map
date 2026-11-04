@@ -17,8 +17,15 @@
 > floor's cost —, the Claims 22 bills on 13 runs, the hoarder CMD-A ends at 72); `BASELINE_SERIES` byte-identical
 > on six arms (0, AUB, AUP, AUK, AUW, ALL).
 >
-> **FIRST — the user's review of AU-2a** (the landing readings in `AUTHORITY_CURRENCY_SPEC.md` §6.2.3 — each one
-> line to reverse; the Host's floor on the bled boards is the one with teeth). Then AU-2b.
+> **Then the clamp (the user's "Clamp it first", November 4, 2026 — §6.2.5):** the Host's Claims arrive at any
+> standing (`bites: "clamp"`, the third mode — allowed only beside a Decline priced besides authority; the
+> Chancellor and the Marine keep `"floor"`), the plan takes what lies above 71 and says the rest (AU-7: the
+> partial clamp and the grip under the floor said), and the word broken is quoted on every choice that breaks a
+> treaty — the manual break's confirm and the alliance paradox beside the declaration (AU-8). Re-measured on the
+> same chain; `BASELINE_SERIES` byte-identical on six arms.
+>
+> **FIRST — the user's review** of AU-2a's seven remaining readings (§6.2.3, 2–8 — reading 1 ruled by the clamp) and
+> the clamp's readings (§6.2.5.3) — each one line to reverse. Then AU-2b.
 >
 > **THEN — AU-2b the lumps and the Show (§5.5, §6; about 1.1 sessions; one commit through the hook; then stop for
 > the user's review).** Standing comes back by play, never by waiting — every lump through `standing.regrow`

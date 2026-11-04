@@ -11666,6 +11666,8 @@ def declare_war(
                 )
             if preview_lines:
                 paradox_msg += "\n\n" + "\n".join(preview_lines)
+            from backend.game_logic import standing as _standing   # AU-8: either answer breaks a treaty
+            paradox_msg += _standing.breach_paradox_clause(world, player)
             ally_preview = {
                 "honor_defender": attacker_breach_preview,
                 "break_defender_alliance": defender_breach_preview,

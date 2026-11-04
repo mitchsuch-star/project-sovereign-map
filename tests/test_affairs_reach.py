@@ -157,9 +157,18 @@ class TestEachTemplatesReach:
         # reading 13, §6.2.3). The Memorial's sweep mornings 8 → 7 (the
         # Chancellor takes one), the Remounts 31 → 30 and the Camps 7 → 6 (the
         # pulse's picks re-rolled where a hit landed first).
+        # AU-2a's clamp (November 4, 2026 — the user's "Clamp it first", §6.2.5):
+        # the Host's Claims arrive at any standing again (`bites: "clamp"`), so
+        # the bled roads meet the letter as before AU-2a — 8 → 16 scripted (CMD-H,
+        # CMD-M, VOLTE, CMD-M-ACCEPT, the Confederation road and the Throne road
+        # on historical, the Rhine road on marengo and its accept arm), the
+        # sweep 0 → 2. Its mornings come from the pulse's other picks: the
+        # Memorial's two on the Rhine road at marengo (3 → 1 scripted; due and
+        # released there), the Magazines' on HAITI-marengo and the Confederation
+        # road on historical (17 → 15), the Remounts' on VOLTE (30 → 29).
         assert count("chancellors_letters", SCRIPTED) >= 15
-        assert count("the_host", SCRIPTED) >= 8
-        assert count("berthiers_memorial", SCRIPTED) >= 3
+        assert count("the_host", SCRIPTED) >= 16
+        assert count("berthiers_memorial", SCRIPTED) >= 1
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
                    if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 13
         assert count("berthiers_memorial", ("saves",)) >= 2
@@ -173,7 +182,7 @@ class TestEachTemplatesReach:
         # commanded arms and three hand-played starts (7), never on the sweep
         # at war with Britain
         assert count(E1, FAMILIES) >= 15 and count(E1, ("saves",)) >= 3
-        assert count(E2, FAMILIES) >= 30 and count(E2, ("saves",)) == 0
+        assert count(E2, FAMILIES) >= 29 and count(E2, ("saves",)) == 0
         assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
