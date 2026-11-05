@@ -3516,8 +3516,10 @@ class TestR310TheButtonRouteReadsTheCourt:
         r = _respond(client, "accept", top["dialogue_id"])
         assert r.get("success") is True and _state_with(w, "Portugal") == "OPEN_BORDERS"
         popup = (GODOT_SCRIPTS / "incoming_proposal_popup.gd").read_text(encoding="utf-8")
+        # AU-3a (November 5, 2026): an Edict letter's third answer sends the
+        # bare word "decree" from the Counter's slot (`DIALOGUE_ACTION_KEYWORDS`)
         assert set(re.findall(r'choice_made\.emit\("(\w+)"', popup)) == {
-            "accept", "counter", "reject", "dismiss"}
+            "accept", "counter", "reject", "dismiss", "decree"}
 
     def test_a_button_token_carries_no_raw_text(self, board):
         w, _client, top = _portugal_on_top(board)

@@ -6640,6 +6640,9 @@ func _on_objection_choice_made(choice: String):
 			choice_text = "You withdraw the order."
 		"compromise":
 			choice_text = "You seek a middle ground with your marshal."
+		"word":
+			# AU-3a: the order as given, on the Emperor's word (paid in authority)
+			choice_text = "You give your word: the order stands as given."
 
 	add_output("[color=#" + Utils.COLOR_COMMAND + "]► " + choice_text + "[/color]")
 	add_output("")

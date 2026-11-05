@@ -1656,6 +1656,21 @@ class DisobedienceSystem:
                 trust_change = objection.get('compromise_gain', 3)
                 marshal.modify_trust(trust_change)
 
+        elif choice == 'word':
+            # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): "By my word" — the order as
+            # given, paid in authority (his trust tier's price and the recency
+            # rise) where the insistence costs his trust; no defiance roll (the
+            # executor rolls on 'insist' alone), no override recorded (the WO-D9
+            # damper); its stake is the vindication's `word` branch, loss-only
+            final_order = objection['original_order']
+            from backend.game_logic import standing as _standing
+            _world = getattr(game_state, 'world', game_state)
+            paid = _standing.buy(_world, str(getattr(_world, 'player_nation', '') or ''),
+                                 _standing.word_base(marshal), "word_given",
+                                 party=marshal_name, marshal=marshal_name)
+            message = (f"By your word, {marshal_name} carries out the order as given. "
+                       f"{str(paid.get('line') or '').strip()}")
+
         else:
             # Invalid choice, default to insist
             final_order = objection['original_order']

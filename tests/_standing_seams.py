@@ -35,6 +35,12 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
                                     before AU-2c). Up since the user's "Arm both"
                                     (November 5, 2026); the rig's AUL+ arm, which
                                     measured them up while authored, is retired
+    AUY  `standing.buys_armed`    — AU-3a: the buys — the Edict letters' third
+                                    answer (Decree it, `since: "AU-3a"`), the Word
+                                    on an objection, Honour him and By Decree on
+                                    the marshals' cards — down: the tree before
+                                    AU-3a (the courts' Decree is parked with the
+                                    courts' flip, AU-14)
 
 The last slice adds its seam here as it lands: AUC the courts (AU-4).
 
@@ -51,6 +57,7 @@ STANDING_SEAMS_BY_ROW = {
     "AUW": ["backend.game_logic.standing:breach_armed=False"],
     "AUS": ["backend.game_logic.standing:sources_armed=False"],
     "AUL": ["backend.game_logic.standing:letters_armed=False"],
+    "AUY": ["backend.game_logic.standing:buys_armed=False"],
 }
 STANDING_SEAMS_DOWN = [spec for row in STANDING_SEAMS_BY_ROW for spec in STANDING_SEAMS_BY_ROW[row]]
 

@@ -1,61 +1,62 @@
-# NEXT SESSION PROMPT — Row AU "Authority as a currency": AU-3a the three buys (the fifth of seven slices, before S15)
+# NEXT SESSION PROMPT — Row AU "Authority as a currency": AU-3b crowns and offices (the sixth of seven slices, before S15)
 
-> Overwritten each time a session hands off. Current hand-over: **November 5, 2026 — AU-2c the Bank and the Pope ✅ LANDED
-> November 4 and ARMED November 5 by the user's "Arm both"** (`docs/AUTHORITY_CURRENCY_SPEC.md` §6.4 the landing record,
-> §6.4.6 the arming; the rules `SYSTEMS_REFERENCE.md` §172; AU-1 the books ✅ `6b9d61c4` §6.1; AU-2a the hits ✅ `ebf2e393`
-> §6.2 and the clamp ✅ `33d4ac72` §6.2.5; AU-2b the lumps and the Show ✅ `ca6dec23` §6.3; AU-2c ✅ `a9e40e4b` §6.4).
-> `standing.letters_armed` reads True: the Bank's Panic (the Regents write when the war outruns the chest — the forecast
-> Net emptying it within 20 turns, 4 of the last 12 mornings; "Pay the Bank in coin" −1,000 gold · 1 action, or "Let the
-> notes fall" −4) and the Pope's Refusal (Caprara writes after twelve mornings at war with Britain while the Papal States'
-> ports stay open outside the System; "Occupy the ports" −800 gold · 1 action · the Papal States −10, or "Let the Pope
-> refuse" −5) are in the shipped deck. The re-measure reproduced the review's armed record on every run (the Bank 5
-> arrivals on 4 runs, the Pope 13 on 13); `BASELINE_SERIES` byte-identical on eight arms (`AUL+` retired: ALL is that arm).
-> Found and fixed at the arming: **AU-12** a standing letter's board said a premise that had ended (the Pope's "The war with
-> the sea's master" after a peace with Britain; the Chancellor's "0 mornings running", the Staff's "At war 0 turns
-> running"); **AU-13** the Watch named a latched letter at 0 ("The chest ran short at war 0 of the last 12 mornings — the
-> Bank's regents may write"). **Open with the user:** AU-2c's readings 2–7 (§6.4.4 — the Bank's latch 4 of 12 and horizon
-> 20 first), each one line to reverse; they stand as written until the user says otherwise.
+> Overwritten each time a session hands off. Current hand-over: **November 5, 2026 — AU-3a the three buys ✅ LANDED**
+> (`docs/AUTHORITY_CURRENCY_SPEC.md` §6.5 the landing record; the rules `SYSTEMS_REFERENCE.md` §173; AU-1 the books ✅
+> `6b9d61c4` §6.1; AU-2a the hits ✅ `ebf2e393` and the clamp `33d4ac72` §6.2; AU-2b the lumps and the Show ✅ `ca6dec23` §6.3;
+> AU-2c the Bank and the Pope ✅ `a9e40e4b`, armed `7d34b5f6` §6.4). Authority is spent on purpose now: **Decree it** (the
+> Edicts' third answer — the same edict paid in authority, the Magazines 5 / the Remounts 3 / the Camps 4, and an action),
+> **By my word** (a fifth objection answer on both roads — 2 / 3 / 4 / 5 by his trust, no trust lost, no defiance roll; a field
+> of that order lost within three turns −5 trust / −3 authority, won nothing), **Honour him** (4) and **By Decree** (5) on the
+> marshals' cards; each price + 1 for every buy in the turn and the five before (at most + 3), closed with its reason under 60
+> on the grip. Measured: the shipped tree buys nothing (its records reproduced, `BASELINE_SERIES` byte-identical on nine arms
+> with AUY); the spender arm (`tools/_standing_buys.json`) buys in every campaign — Honour him 32, the Word 5, By Decree 3,
+> the Decree 1 — never under 60; the band pin `tests/test_standing_band.py` (§5.8); the Mode C walk
+> `docs/audits/au3a_mode_c_2026_11_05/` (the chip, a word given, a letter decreed, a Te Deum). Found: **AU-14** the courts'
+> Decree was not inert (the courts boot at 60 — parked with the courts' flip, AU-4), **AU-15** the shrink re-centred a tall
+> panel over the bar, **AU-16** the Decree sat second on the letter's row under "it takes the second answer"; **AU-17 OPEN —
+> heads this slice.** **Open with the user:** AU-3a's eight readings (§6.5.3), each one line to reverse; they stand as written
+> until the user says otherwise.
 >
-> **NOW — AU-3a the three buys** (§5.3's first four rows, the §6 AU-3a row, §4.1's readings on the Word; about 1.9 sessions;
-> Plan Mode first; one commit through the hook, then the user's review): **"Decree it"** — a third answer on the three Edict
-> letters, the Edict block taking the laws' `currency` key (5 / 3 / 4 standing and the same administrative action; the
-> payload, the verdict, the three validator loops, the popup's Counter node as the third slot, the driver's answerer, the trace
-> wrapper, the Correspondence slips; the courts' rung `find_ai_edict` at the floors); **"By my word"** — the fifth objection
-> answer on both paths (2 / 3 / 4 / 5 by trust tier, no trust cost, no defiance roll; a commanded battle lost within three turns
-> −5 trust / −3 standing, never the +5: the executors' early branch, the floor gate, the four stamp sites, the typed words, a
-> code-built button, the vindication's `word` branch); **"Honour him" / "By decree"** on the marshals' cards (4 and 5: the
-> option lists, the apply branches, the affordability gate — the honour writes `held["honoured:<marshal>"]` so AU-2b's
-> `standing.honour_repaid` pays back +2); the recency rise (+1 per push of §5.3 in the last six turns, at most +3); every price
-> refused under 60 with its reason (`standing.refusal`). The nondominance pin extended to three answers; the dialog-text pins
-> (`test_v2b_session1.py`, `test_severity_modifiers.py`, `test_disobedience.py`); the frames at both scales; the series unmoved
-> (the passive runner answers nothing). Then the records and the user's review; AU-3b and AU-4 follow.
+> **NOW — AU-3b crowns and offices** (§5.3's last three rows, the §6 AU-3b row; about 1.0 session; Plan Mode first; one commit
+> through the hook, then the user's review). **Step 0 — AU-17** (`BUG_FIXES.md` §AU, Rule 10's next-part head): one vocabulary
+> for the figure — the chip says "Authority 85 (Commanding)" while the morning says "Your authority: 85 (Strong)"; the
+> recommendation is the tracker's five tiers on every surface (`AuthorityTracker.get_authority_label`, which six surfaces
+> already read; `dispatch.py` ~6001 and `ledger.py` ~45 retire their Strong / Normal / Weak), the pins re-seated with the cause
+> written in (the boot line "100 (Strong)" moves; grep the tests for "(Strong" and `authority_label`). Then **"Endow them"** — a
+> fourth answer on the Fontainebleau card (6 + the rise; the marshals' grace eight turns, titles in place of rentes;
+> `jealousy.py`'s Fontainebleau petition, the promise's −2 the precedent; the option LAST — the driver picks the first enabled);
+> **the Titles of the Confederation** — the Princes' Dotations Act takes a standing price beside its gold (the Acts take the
+> laws' `currency` key: `imperial_designs.act_price` / `act_refusal` / `decree` with a `currency` branch and the 60 floor; the
+> validator); **the Proclamation** — a fourth Edict letter, at war (4 standing and an action; four turns in force, rest eight;
+> `drill_morale` +5 through `reforms.effect_terms`; a template in the deck and the fixture in lockstep, authored `since:
+> "AU-3b"` and MEASURED before it is armed — RE's rule, AU-2c's precedent). Each buy books into `held["pushes"]` through
+> `standing.buy`; the spender arm (`tools/_standing_buys.py` — its `BUY_CAUSES`) and the band pin carry the new causes; the
+> series rig takes the slice's seam. Then the records and the user's review; AU-4 the courts' flip follows (it arms the courts'
+> Decree, AU-14, and settles AU-4 / AU-5).
 >
 > **Traps the row has paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are named
-> functions), functions over 500 lines 28 of 28, `WorldState.to_dict` 497 of 500 (every new field in the tracker's `held`),
-> CLAUDE.md within 62,000 LF bytes (pay a row by a trim); every `except Exception` must speak (`backend.errors.report`); the
-> pulse takes the matter whose premise has stood LONGEST (`affairs.pick`) — a premise that blinks for a morning resets its
-> streak and loses every pulse to matters holding from the first mornings: latch the blinking part (the Haiti idiom,
-> `LATCHED_PREDICATES`); a latched letter's Watch line waits for its first counted morning (AU-13); a standing letter's board
-> is read live — say the matter as it stands, never the premise that ended (AU-12); a whole template held out is an entry's
-> `since` (`affairs.entry_armed`), its seam DOWN by default measured up by the rig's `UP_ARMS` (empty now — AU-4's courts are
-> next) and, in the sweep's and the probe's children, by `INK_IRON_SEAMS` (`tools/_seams_env.py`; the driver keeps `--seam`);
-> the Pope's premise is the boot's own war with Britain, so an isolation board that measures one letter takes AU-2c's two out
-> of its deck (`tests/test_affairs_engine.py::_without_au2c_letters`, on the Haiti and the Edicts' boards); NEVER edit backend
-> code or the deck while a measure chain runs (its later phases spawn on the new tree) — and a TaskStop on the wrapper leaves
-> the inner `bash chain.sh` running (it rewrote the committed records from partial data once): check the processes, then
-> re-run; run a measure chain ALONE — on November 5 a background test finishing beside it froze every driver at once (all
-> threads waiting, no CPU): kill the inner bash, then the chain's Python processes by start time, and re-run from scratch; `tools/playtest_runs/` is gitignored — a record worth keeping goes under `tools/`; a deck op or clause a slice adds
-> carries `since` / `bites_since` naming its row; the validator counts a `button_line`'s slots at four and caps it at 40; a
-> dispatch event's payload sits under `template_vars`; a `moment_receipt` lands in `diplomatic_events`;
-> `_affairs_measure.py --driver-flags` must be passed as `--driver-flags="--standing-trace"`; THREE dated decks are locked
-> equal (the scenario, `tests/fixtures/moments_block.json`, the affairs fixture's copy) and the affairs deck is the fixture's
-> verbatim; a new campaign-log type moves FOURTEEN count pins — the census is `test_iq7_satellites_have_a_position.py`; the
-> front page's down arm must hold every behavioural seam that moves it; `test_affairs_nondominance.py` fills a module-level
-> set — run it with `--dist loadgroup`; a shell with `PYTHONDONTWRITEBYTECODE` set fails two bytecode pins the hook passes;
-> the docs are CRLF or LF per file — edit through Python on bytes and assert each replacement matches once; write patch
-> scripts with the Write tool (the heredoc eats `\r` and `\n`); the deck JSON files are hand-formatted — insert text, never
-> re-dump; the series rig's `prior` is HEAD's baseline; attribute a series or reach move by event; commit with
-> `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` from Bash in the background (the hook runs ruff and the full suite,
-> about eleven minutes; never `--no-verify`) and read the log's EXIT line; a cp1252 stdout kills a "→" print — run a probe
-> under `python -X utf8`; read a spec's claim about the map against the boot (the standing trace's `courts` named the Papal
-> States the spec said did not exist).
+> functions), functions over 500 lines 28 of 28 (`handle_objection_response` 489, `_handle_strategic_objection_from_endpoint`
+> 457 — a new branch's body goes in a helper), `WorldState.to_dict` 497 of 500 (every new field in the tracker's `held`),
+> CLAUDE.md within 62,000 LF bytes (44 bytes of headroom: pay a row by a trim); every `except Exception` must speak
+> (`backend.errors.report`); a new card option goes LAST (the driver picks the first enabled, so unattended runs keep their
+> answers); a reused node keeps its scene position — anything positional ("the second answer") is checked on the row (AU-16);
+> a letter's answers are planned at every read, never stored — read them through `moments.refresh_letter`; the courts boot at
+> 60, so `ai_refusal`'s floors pass — anything a court may buy in authority moves the series (AU-14); the pulse takes the matter
+> whose premise has stood LONGEST — latch a blinking premise (`LATCHED_PREDICATES`); a whole template held out is an entry's
+> `since` (`affairs.entry_armed`), measured up by the rig's `UP_ARMS` and, in the sweep's and the probe's children, by
+> `INK_IRON_SEAMS` (`tools/_seams_env.py`); NEVER edit backend code or the deck while a measure chain runs, and run a chain
+> ALONE (on November 5 a background test finishing beside one froze every driver at once — kill the inner bash, then the
+> chain's Python processes by start time, and re-run); a TaskStop on the wrapper leaves the inner `bash chain.sh` running;
+> `tools/playtest_runs/` is gitignored — a record worth keeping goes under `tools/`; Godot: one engine per machine; give
+> `--log-file` and every capture path ABSOLUTE (a relative one is resolved against the project and the engine dies at start,
+> 0xC0000005, no log — the capture manifest stores the payload paths the engine reads); the GUI build loses a redirected stdout,
+> so census the engine's own log and refuse a pass on an empty one; the validator counts a `button_line`'s slots at four and
+> caps it at 40; THREE dated decks are locked equal (the scenario, `tests/fixtures/moments_block.json`, the affairs fixture's
+> copy) and the affairs deck is the fixture's verbatim; a new campaign-log type moves FOURTEEN count pins
+> (`test_iq7_satellites_have_a_position.py`); `test_affairs_nondominance.py` fills a module-level set — run it with `--dist
+> loadgroup`; a shell with `PYTHONDONTWRITEBYTECODE` set fails two bytecode pins the hook passes; the docs are CRLF or LF per
+> file — edit through Python on bytes and assert each replacement matches once; write patch scripts with the Write tool (the
+> heredoc eats `\r` and `\n`); the deck JSON files are hand-formatted — insert text, never re-dump; attribute a series or reach
+> move by event; commit with `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` from Bash in the background (the hook runs
+> ruff and the full suite, about eleven minutes; never `--no-verify`) and read the log's EXIT line; a cp1252 stdout kills a
+> "→" print — run a probe under `python -X utf8`; read a spec's claim about the boot against the boot.

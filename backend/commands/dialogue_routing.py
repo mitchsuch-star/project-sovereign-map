@@ -110,6 +110,9 @@ DIALOGUE_ACTION_KEYWORDS: Dict[str, List[str]] = {
               "execute_proposal"],
     "reject": ["reject_ai_proposal", "reject_ai_ultimatum"],
     "decline": ["reject_ai_proposal", "reject_ai_ultimatum"],
+    # AU-3a: an Edict letter's third answer — only that letter carries it
+    "decree": ["decree_ai_proposal"],
+    "decree it": ["decree_ai_proposal"],
     # NA-5 §8: the ultimatum's own register — typed "yield"/"defy" resolve
     # only on the ultimatum dialogue (no other dialogue carries these).
     "yield": ["accept_ai_ultimatum"],
@@ -1016,6 +1019,7 @@ _OBJECTION_ANSWER_FILLER = frozenset({
     "do", "will", "shall", "be", "judgment", "judgement", "order", "orders",
     "ordered", "given", "plan", "alternative", "instinct", "advice",
     "counsel", "word", "marshal", "middle", "ground", "way",
+    "by", "upon",          # AU-3a: "by my word" stands plain ("insist on my word" still reads Insist)
 })
 
 
@@ -1083,6 +1087,17 @@ def dialogue_options(dialogue: Optional[dict]) -> List[dict]:
     return list(options)
 
 
+ANSWER_WORDS_SHOWN = {"word": "by my word"}     # AU-3a: the Word, as typed
+WORD_TYPED_FORMS = ("word", "by my word", "my word", "upon my word", "on my word")
+
+
+def word_is_open(objection: Optional[dict]) -> bool:
+    """AU-3a: the objection offers the Word and its price may land (the
+    payload's `word` offer, quoted at the objection — the answer re-checks)."""
+    word = objection.get("word") if isinstance(objection, dict) else None
+    return isinstance(word, dict) and bool(word) and not word.get("refusal")
+
+
 def format_answer_words(choices) -> str:
     """CA9-N5: the exact words that clear a block, quoted so the player can
     type them verbatim — ``'trust', 'insist' or 'compromise'``.
@@ -1090,9 +1105,11 @@ def format_answer_words(choices) -> str:
     A blocking state that does not name its own exits is the "the game
     stopped listening" moment. Six of them in the CA9 campaign, and the
     words were already in the payload every time; only the sentence
-    omitted them. One helper, so shown = offered.
+    omitted them. One helper, so shown = offered. AU-3a: the Word's token is
+    shown as the words a player would type, 'by my word'.
     """
-    words = [f"'{str(c).strip()}'" for c in (choices or []) if str(c).strip()]
+    words = [f"'{ANSWER_WORDS_SHOWN.get(str(c).strip(), str(c).strip())}'"
+             for c in (choices or []) if str(c).strip()]
     if not words:
         return ""
     if len(words) == 1:
@@ -1114,7 +1131,24 @@ def tactical_objection_answers(objection: Optional[dict]) -> List[str]:
     choices = ["trust", "insist"]
     if isinstance(objection, dict) and objection.get("compromise"):
         choices.append("compromise")
+    if word_is_open(objection):
+        choices.append("word")              # AU-3a: "By my word", while its price may land
     return choices
+
+
+def word_answer_refusal(world, marshal_name: str, reason: str, open_answers: List[str], *,
+                        lapses: bool = False, **question) -> dict:
+    """AU-3a: the Word refused at the answer — its price would take the grip
+    under the purchases' floor (`standing.refusal`'s reason) — in the
+    objection's own words; the objection stands and nothing is spent."""
+    roads = list(open_answers) + ["cancel"]
+    who = str(marshal_name or "The marshal")
+    message = (f"Your word cannot be given, Sire — {str(reason).rstrip('.')}. {who}'s objection "
+               f"stands — reply {format_answer_words(roads)}"
+               + ("; unanswered, it lapses at the turn's end." if lapses else "."))
+    return {"success": False, "message": message, "objection_kept": True,
+            "objection_resolved": False, "no_action_cost": True,
+            "choices": roads, "action_info": world.get_action_info(0), **question}
 
 
 def unpayable_answer_refusal(world, marshal_name: str, price: int, have: int,

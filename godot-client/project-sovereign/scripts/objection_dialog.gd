@@ -46,12 +46,25 @@ const TONE_HEADERS = {
 # DDB-41 (Pre-Deploy S13b part 2): a plain Cancel — the order withdrawn at
 # no cost (every other answer spends trust or an order).
 var cancel_button: Button = null
+var word_button: Button = null
 
 func _ready():
 	# Connect button signals
 	trust_button.pressed.connect(_on_trust_pressed)
 	insist_button.pressed.connect(_on_insist_pressed)
 	compromise_button.pressed.connect(_on_compromise_pressed)
+	# AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): "By my word" — code-built, as the
+	# Cancel beside it; its price is authority, never trust
+	word_button = Button.new()
+	word_button.name = "WordButton"
+	word_button.text = "By My Word"
+	word_button.theme_type_variation = insist_button.theme_type_variation
+	word_button.custom_minimum_size = insist_button.custom_minimum_size
+	insist_button.get_parent().add_child(word_button)
+	# beside Proceed as Ordered — the two answers that run the order as given
+	insist_button.get_parent().move_child(word_button, insist_button.get_index() + 1)
+	word_button.pressed.connect(_on_word_pressed)
+	word_button.visible = false
 	cancel_button = Button.new()
 	cancel_button.name = "CancelButton"
 	cancel_button.text = "Cancel the Order (no cost)"
@@ -131,6 +144,7 @@ static func data_from_response(response: Dictionary) -> Dictionary:
 		"compromise_note": objection.get("compromise_note", response.get("compromise_note", "")),
 		# AU-2a (AUTHORITY_CURRENCY_SPEC.md §5.4): the stakes told in figures.
 		"stake_line": objection.get("stake_line", response.get("stake_line", "")),
+		"word": objection.get("word", response.get("word", {})),
 	}
 
 func show_from_response(response: Dictionary):
@@ -237,6 +251,8 @@ func show_objection(objection_data: Dictionary):
 			compromise_button.visible = true
 		else:
 			compromise_button.visible = false
+
+	_setup_word_button(objection_data.get("word", {}))
 
 	# Show the dialog
 	show()
@@ -386,3 +402,25 @@ func _on_cancel_pressed():
 	"""DDB-41: the order withdrawn — no trust, no action spent."""
 	hide()
 	choice_made.emit("cancel")
+
+func _setup_word_button(word) -> void:
+	"""AU-3a: the Word's price on its button (the quote in the tooltip),
+	greyed with the floor's reason; hidden when the backend offers none (both
+	roads carry the same `word` key)."""
+	if word_button == null:
+		return
+	if not (word is Dictionary) or word.is_empty():
+		word_button.visible = false
+		return
+	var refusal := str(word.get("refusal", ""))
+	word_button.visible = true
+	word_button.text = "By My Word (%+d authority)" % -int(word.get("price", 0))
+	word_button.disabled = refusal != ""
+	# the quote and the stake in figures (the panel fits at 2.0 without a line more)
+	word_button.tooltip_text = refusal if refusal != "" else \
+		(str(word.get("line", "")) + "\n" + str(word.get("stake", ""))).strip_edges()
+
+func _on_word_pressed():
+	"""AU-3a: the order as given, on the Emperor's word."""
+	hide()
+	choice_made.emit("word")

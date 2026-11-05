@@ -63,8 +63,11 @@ class TestThePopupRegister:
     def test_backend_copy_is_never_parsed_as_a_tag(self):
         src = _gd("incoming_proposal_popup.gd")
         assert '.replace("[", "[lb]")' in _func(src, "_moment_text")
-        # The emits stay the four keywords the router owns (IQ-7's pin).
-        assert set(re.findall(r'choice_made\.emit\("(\w+)"', src)) == {"accept", "counter", "reject", "dismiss"}
+        # The emits stay the keywords the router owns (IQ-7's pin); AU-3a
+        # (November 5, 2026): the Counter's slot answers an Edict letter's
+        # third answer with "decree" (`DIALOGUE_ACTION_KEYWORDS["decree"]`)
+        assert set(re.findall(r'choice_made\.emit\("(\w+)"', src)) == {
+            "accept", "counter", "reject", "dismiss", "decree"}
 
 
 class TestMainRoutesACourtlessLetter:

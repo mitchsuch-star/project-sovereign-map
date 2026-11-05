@@ -168,6 +168,10 @@ def _delivered(plan):
             from backend.game_logic import reforms
             law = reforms.find_law(plan.get("_world"), "France", str(row.get("law") or "")) or {}
             axes["gold"] = axes.get("gold", 0) - int(law.get("price", 0) or 0)
+        elif op == "edict" and row.get("currency") == "authority":
+            # AU-3a: the Decree — the same edict, its price authority lost
+            axes["edict"] = axes.get("edict", 0) + 1
+            axes["authority"] = axes.get("authority", 0) - int(row.get("authority", 0) or 0)
         elif op == "edict":
             # RE-6: the decree is one unit gained for its term; its price gold lost
             axes["edict"] = axes.get("edict", 0) + 1
@@ -245,6 +249,40 @@ class TestEachAnswerIsTheBetterOneSomewhere:
             assert boards == ["expander", "strained"]
         if template == P1:
             assert boards == ["expander", "strained"]
+
+
+class TestTheThirdAnswerIsTheBetterOneSomewhere:
+    """AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the three Edict letters carry a
+    third answer, "Decree it" — the same edict paid in authority. Each of the
+    three answers is strictly better than each other on one delivered axis:
+    the Accept on authority, the Decree on gold, the Decline on both (and the
+    action); the two purchases on the edict over the Decline."""
+
+    @pytest.mark.parametrize("board", sorted(BOARDS))
+    @pytest.mark.parametrize("template", (E1, E2, E3))
+    def test_three_answers_on_every_board_where_the_letter_can_arrive(self, armed, board, template):
+        BOARDS[board](armed)
+        _quarter(armed)
+        if not _can_arrive(armed, template):
+            pytest.skip(f"{template} cannot arrive on the {board} board")
+        e, accept, decline = _plans(armed, template)
+        decree = MO.plan(armed, e, MO.ANSWER_DECREE, OCC[template])
+        decree["_world"] = armed
+        if not decree["ok"]:
+            pytest.skip(f"{template} on the {board} board: the Decree is closed ({decree['refusal']})")
+        MEASURED_DECREE.add((template, board))
+        plans = {"accept": _delivered(accept), "decree": _delivered(decree), "decline": _delivered(decline)}
+        for a in plans:
+            for b in plans:
+                if a != b:
+                    assert _better_somewhere(plans[a], plans[b]), (template, board, a, b, plans)
+        assert not [r for r in decree["rows"] if r.get("op") == "gold"], decree["rows"]
+
+    def test_the_decree_is_measured_on_at_least_one_board(self):
+        assert {t for t, _b in MEASURED_DECREE} == {E1, E2, E3}, sorted(MEASURED_DECREE)
+
+
+MEASURED_DECREE = set()     # read in file order, one worker (`--dist loadgroup`)
 
 
 class TestTheDeclineIsFreeOfEveryPurseAndTheAlarmIsNeverTouched:

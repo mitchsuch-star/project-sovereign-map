@@ -1531,6 +1531,25 @@ def _validate_edict(result, path: str, e: dict, shape, when: dict, _text, _int_i
                    if isinstance(op, dict))
     if names != ["admin", "edict"]:
         result.add_error(f"{path}.accept.ops", "An offer's Accept is exactly admin + edict")
+    if any(isinstance(op, dict) and op.get("op") == "edict" and op.get("currency") not in (None, "gold")
+           for op in (accept.get("ops") or [])):
+        result.add_error(f"{path}.accept.ops", "An offer's Accept pays its edict in gold")
+    # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the Decree — the block's
+    # `authority` price and a third answer `decree`, exactly admin + the edict
+    # paid in authority, authored `since` the row that arms it
+    decree = e.get("decree")
+    if "authority" in block or decree is not None:
+        _int_in(f"{path}.edict.authority", block.get("authority"), *AF.EDICT_AUTHORITY_BOUNDS)
+        if not isinstance(decree, dict):
+            result.add_error(f"{path}.decree", "An edict priced in authority carries its Decree answer")
+        else:
+            ops = [op for op in (decree.get("ops") or []) if isinstance(op, dict)]
+            if (sorted(str(op.get("op") or "") for op in ops) != ["admin", "edict"]
+                    or any(op.get("op") == "edict" and op.get("currency") != "authority" for op in ops)):
+                result.add_error(f"{path}.decree.ops", "An offer's Decree is exactly admin + the edict paid in authority")
+            since = decree.get("since")
+            if since is not None and since not in AF.SINCE_ROWS:
+                result.add_error(f"{path}.decree.since", f"Must name a row of {list(AF.SINCE_ROWS)}")
     if when.get("edict") is not None and when.get("edict") != e.get("id"):
         result.add_error(f"{path}.when.edict", "Names the entry itself")
     if "below_pct" in when:
@@ -1875,9 +1894,12 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
         bare_authority_declines = []     # AU-2a: a refusal priced in authority alone
         squadron_ops = []
         for prefix, holder in sides:
-            for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE):
+            # AU-3a: an offer's third answer, "Decree it", is read as the two are
+            for side in (MO.ANSWER_ACCEPT, MO.ANSWER_DECLINE, MO.ANSWER_DECREE):
                 spath = f"{path}{prefix}.{side}"
                 answer = holder.get(side)
+                if side == MO.ANSWER_DECREE and side not in holder:
+                    continue
                 if not isinstance(answer, dict):
                     if prefix == "" or side in holder:
                         result.add_error(spath, "Must be an object {caption, ops}")
@@ -1927,8 +1949,9 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                     if name not in AF.AFFAIR_OPS or name not in MO.OPS:
                         result.add_error(opath, f"Must name an op of {sorted(AF.AFFAIR_OPS)}")
                         continue
-                    if name == AF.EDICT_OP and (shape != "offer" or side != MO.ANSWER_ACCEPT):
-                        result.add_error(opath, "The edict op belongs to an offer's Accept alone")
+                    if name == AF.EDICT_OP and (shape != "offer"
+                                                or side not in (MO.ANSWER_ACCEPT, MO.ANSWER_DECREE)):
+                        result.add_error(opath, "The edict op belongs to an offer's Accept and Decree alone")
                     if side == MO.ANSWER_DECLINE and name not in AF.DECLINE_ALLOWED_OPS:
                         result.add_error(opath, f"A Decline carries only {list(AF.DECLINE_ALLOWED_OPS)}")
                     if name in ("gold", "dp", "admin", "authority"):

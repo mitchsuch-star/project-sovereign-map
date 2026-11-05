@@ -3011,6 +3011,10 @@ class CommandExecutor:
                                 # told in figures — what insisting risks and wins
                                 from backend.game_logic import standing as _standing
                                 objection["stake_line"] = _standing.insist_stake_line()
+                                # AU-3a: the Word — its price by his trust tier, its stake
+                                _word_offer = _standing.word_offer(world, marshal)
+                                if _word_offer:
+                                    objection["word"] = _word_offer
                                 # SFR-D3: the trust and compromise arms' prices,
                                 # the same shape (absent at face value).
                                 if suggested_alt and _trust_note:

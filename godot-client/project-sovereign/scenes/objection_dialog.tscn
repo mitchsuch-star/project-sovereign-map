@@ -57,7 +57,7 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="MessageLabel" type="Label" parent="PanelContainer/VBoxContainer"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 96)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.933, 0.933, 0.933, 1)
 text = "Marshal's objection message will appear here..."
@@ -114,14 +114,18 @@ horizontal_alignment = 1
 [node name="HSeparator3" type="HSeparator" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
+; AU-3a (November 5, 2026): five answers — "By My Word" beside Proceed as
+; Ordered — wrap to three rows at Interface Scale 2.0; 45-px answers (the
+; letters' own height) and a 4-px row gap keep the panel under the top bar's
+; band (SF-RR5's clamp: 394 px of an 800 x 450 logical window).
 [node name="ButtonContainer" type="HFlowContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 8
+theme_override_constants/v_separation = 4
 
 [node name="TrustButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.933, 0.933, 0.933, 1)
@@ -130,7 +134,7 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 text = "Trust Marshal"
 
 [node name="InsistButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.933, 0.933, 0.933, 1)
@@ -139,7 +143,7 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 text = "Proceed as Ordered"
 
 [node name="CompromiseButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.933, 0.933, 0.933, 1)

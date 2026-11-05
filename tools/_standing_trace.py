@@ -549,6 +549,19 @@ def arm_row(family: str, arm: str, trace: Optional[Dict[str, Any]]) -> Dict[str,
                 "reason": str((trace or {}).get("reason") or "no trace in the run")}
     res = trace.get("residual") or {}
     downs = Counter(c["line"] for c in trace.get("crossings") or [] if c.get("direction") == "down")
+    # AU-3a's band pin (§5.8): per cause, the lowest figure the lord's dents left
+    # and the dents that crossed 85 going down — the floors read on the record
+    lowest: Dict[str, int] = {}
+    crossed: Counter = Counter()
+    for m in trace.get("moves") or []:
+        delta = int(m.get("delta", 0) or 0)
+        if m.get("rolled_back") or delta >= 0 or m.get("lord", "France") != "France":
+            continue
+        key = str(m.get("key") or m.get("cause") or "")
+        after = int(m.get("after", 0) or 0)
+        lowest[key] = min(after, lowest.get(key, after))
+        if int(m.get("before", 0) or 0) >= 85 > after:
+            crossed[key] += 1
     return OrderedDict([
         ("family", family), ("arm", arm), ("measured", True),
         ("mornings", len(trace.get("mornings") or [])),
@@ -560,6 +573,8 @@ def arm_row(family: str, arm: str, trace: Optional[Dict[str, Any]]) -> Dict[str,
         ("residual_sites", res.get("by_site") or {}),
         ("residual_turns", res.get("turns") or []),
         ("crossings_down", {str(line): int(downs.get(line, 0)) for line in LINES if downs.get(line)}),
+        ("lowest_after", dict(sorted(lowest.items()))),
+        ("crossed_85_by", dict(sorted(crossed.items()))),
         ("courts_end", {n: v.get("end") for n, v in (trace.get("courts") or {}).items()}),
         ("errors", trace.get("errors") or []),
     ])

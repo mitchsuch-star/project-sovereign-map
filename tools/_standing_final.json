@@ -1,8 +1,8 @@
 {
  "_what": "AU-1 — the standing's trace over the measured arms (AUTHORITY_CURRENCY_SPEC.md §5.8): per arm the start / min / max / end of the lord's authority, the moves by cause (by site on the tree before the books), the residual (the morning's change the books did not record) with the direct writers it names, the lines crossed downward, the courts' end figures. Seeded paths, not laws.",
- "commit": "AU-2c armed (the working tree of November 5, 2026, before its commit; the Bank and the Pope armed by the user's word)",
+ "commit": "AU-3a the three buys (the working tree of November 5, 2026, before its commit)",
  "date": "2026-11-05",
- "note": "AU-2c armed: the Bank's Panic and the Pope's Refusal in the shipped deck; residual 0",
+ "note": "AU-3a: the buys in the shipped tree (the Decree, the Word, Honour him, By decree); residual 0",
  "arms": 59,
  "measured": 59,
  "residual_total": 0,
@@ -50,6 +50,14 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "debug_set": 70,
+    "insisted_lost": 77,
+    "trust_pattern": 81
+   },
+   "crossed_85_by": {
+    "trust_pattern": 1
    },
    "courts_end": {
     "Britain": 60,
@@ -127,6 +135,10 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "claims": 94
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -225,6 +237,15 @@
     "85": 2,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 70,
+    "claims": 92,
+    "field_lost": 80
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "field_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -305,6 +326,13 @@
     "70": 1,
     "60": 1
    },
+   "lowest_after": {
+    "field_lost": 95,
+    "sovereign_captured": 55
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -382,6 +410,13 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "claims": 86,
+    "letter_declined": 72
+   },
+   "crossed_85_by": {
+    "letter_declined": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -483,6 +518,16 @@
     "70": 1,
     "60": 1
    },
+   "lowest_after": {
+    "capital_lost": 52,
+    "claims": 81,
+    "field_lost": 80,
+    "letter_declined": 73
+   },
+   "crossed_85_by": {
+    "field_lost": 1,
+    "letter_declined": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -574,6 +619,14 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "field_lost": 95,
+    "letter_declined": 87,
+    "sovereign_captured": 47
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -629,6 +682,8 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {},
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 45,
     "Russia": 45,
@@ -689,6 +744,10 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 95
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 45,
     "Russia": 45,
@@ -754,6 +813,8 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {},
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -850,6 +911,14 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 64,
+    "field_lost": 59,
+    "law": 44
+   },
+   "crossed_85_by": {
+    "law": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -935,6 +1004,11 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 90,
+    "letter_declined": 86
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1033,6 +1107,16 @@
     "85": 2,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 85,
+    "claims": 81,
+    "field_lost": 80,
+    "letter_declined": 73
+   },
+   "crossed_85_by": {
+    "field_lost": 1,
+    "letter_declined": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1121,6 +1205,14 @@
     "85": 1,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 84,
+    "claims": 89,
+    "field_lost": 79
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1208,6 +1300,15 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "capital_lost": 75,
+    "field_lost": 70,
+    "own_hand_lost": 65,
+    "sovereign_captured": 25
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1293,6 +1394,13 @@
     "70": 1,
     "60": 1
    },
+   "lowest_after": {
+    "capital_lost": 55,
+    "sovereign_captured": 60
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1376,6 +1484,13 @@
     "85": 1,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 76,
+    "letter_declined": 72
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1451,6 +1566,14 @@
     "70": 1,
     "60": 2
    },
+   "lowest_after": {
+    "capital_lost": 59,
+    "own_hand_lost": 90,
+    "sovereign_captured": 50
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1490,6 +1613,8 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {},
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1535,6 +1660,10 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 85
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1574,6 +1703,8 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {},
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1626,6 +1757,12 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "letter_declined": 73
+   },
+   "crossed_85_by": {
+    "letter_declined": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -1687,6 +1824,13 @@
     "70": 1,
     "60": 1,
     "50": 1
+   },
+   "lowest_after": {
+    "own_hand_lost": 80,
+    "sovereign_captured": 40
+   },
+   "crossed_85_by": {
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -1824,6 +1968,18 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "assault_repulsed": 85,
+    "capital_lost": 36,
+    "claims": 91,
+    "insisted_lost": 90,
+    "letter_declined": 92,
+    "own_hand_lost": 86,
+    "sovereign_captured": 46
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1941,6 +2097,16 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "assault_repulsed": 65,
+    "capital_lost": 54,
+    "field_lost": 64,
+    "own_hand_lost": 34,
+    "sovereign_captured": 0
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -2042,6 +2208,16 @@
     "60": 1,
     "50": 1,
     "30": 1
+   },
+   "lowest_after": {
+    "assault_repulsed": 65,
+    "capital_lost": 40,
+    "field_lost": 35,
+    "own_hand_lost": 30,
+    "sovereign_captured": 0
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2164,6 +2340,16 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 42,
+    "letter_declined": 86,
+    "own_hand_lost": 87,
+    "sovereign_captured": 47
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -2279,6 +2465,16 @@
     "70": 1,
     "60": 1,
     "50": 1
+   },
+   "lowest_after": {
+    "assault_repulsed": 90,
+    "capital_lost": 72,
+    "claims": 83,
+    "letter_declined": 82,
+    "sovereign_captured": 34
+   },
+   "crossed_85_by": {
+    "claims": 2
    },
    "courts_end": {
     "Britain": 30,
@@ -2401,6 +2597,17 @@
     "60": 2,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 56,
+    "claims": 92,
+    "field_lost": 37,
+    "letter_declined": 92,
+    "own_hand_lost": 82,
+    "sovereign_captured": 42
+   },
+   "crossed_85_by": {
+    "own_hand_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -2508,6 +2715,18 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "assault_repulsed": 95,
+    "capital_lost": 7,
+    "field_lost": 95,
+    "letter_declined": 87,
+    "own_hand_lost": 82,
+    "sovereign_captured": 37
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "own_hand_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -2614,6 +2833,16 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "assault_repulsed": 95,
+    "capital_lost": 95,
+    "field_lost": 34,
+    "letter_declined": 79,
+    "sovereign_captured": 39
+   },
+   "crossed_85_by": {
+    "letter_declined": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -2708,6 +2937,15 @@
     "80": 1,
     "70": 1,
     "60": 1
+   },
+   "lowest_after": {
+    "assault_repulsed": 95,
+    "capital_lost": 50,
+    "own_hand_lost": 90,
+    "sovereign_captured": 55
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2818,6 +3056,15 @@
     "80": 2,
     "70": 1,
     "60": 1
+   },
+   "lowest_after": {
+    "capital_lost": 50,
+    "own_hand_lost": 95,
+    "sovereign_captured": 55
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2930,6 +3177,15 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "assault_repulsed": 90,
+    "capital_lost": 79,
+    "claims": 89,
+    "sovereign_captured": 41
+   },
+   "crossed_85_by": {
+    "capital_lost": 2
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3041,6 +3297,16 @@
     "60": 2,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 56,
+    "claims": 97,
+    "field_lost": 42,
+    "own_hand_lost": 87,
+    "sovereign_captured": 47
+   },
+   "crossed_85_by": {
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3133,6 +3399,15 @@
    "crossings_down": {
     "85": 2,
     "80": 2
+   },
+   "lowest_after": {
+    "claims": 84,
+    "law": 79,
+    "letter_declined": 71
+   },
+   "crossed_85_by": {
+    "claims": 1,
+    "law": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -3229,6 +3504,14 @@
     "70": 3,
     "60": 2
    },
+   "lowest_after": {
+    "capital_lost": 50,
+    "field_lost": 59,
+    "law": 65
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3322,6 +3605,14 @@
     "85": 1,
     "80": 2,
     "70": 1
+   },
+   "lowest_after": {
+    "capital_lost": 67,
+    "law": 79,
+    "letter_declined": 72
+   },
+   "crossed_85_by": {
+    "law": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -3434,6 +3725,17 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 35,
+    "field_lost": 67,
+    "letter_declined": 72,
+    "own_hand_lost": 40,
+    "sovereign_captured": 45
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3545,6 +3847,17 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 35,
+    "field_lost": 67,
+    "letter_declined": 72,
+    "own_hand_lost": 40,
+    "sovereign_captured": 45
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3647,6 +3960,16 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "capital_lost": 29,
+    "claims": 84,
+    "letter_declined": 92,
+    "own_hand_lost": 34,
+    "sovereign_captured": 39
+   },
+   "crossed_85_by": {
+    "claims": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3744,6 +4067,14 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "capital_lost": 80,
+    "letter_declined": 77,
+    "own_hand_lost": 95
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -3843,6 +4174,15 @@
     "85": 2,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 80,
+    "field_lost": 80,
+    "letter_declined": 76
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "field_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3940,6 +4280,14 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "capital_lost": 80,
+    "claims": 97,
+    "letter_declined": 76
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4042,6 +4390,16 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 75,
+    "field_lost": 70,
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4142,6 +4500,16 @@
     "70": 1,
     "60": 1,
     "50": 1
+   },
+   "lowest_after": {
+    "capital_lost": 75,
+    "field_lost": 70,
+    "own_hand_lost": 30,
+    "sovereign_captured": 35
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4255,6 +4623,17 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "capital_lost": 15,
+    "claims": 89,
+    "letter_declined": 80,
+    "own_hand_lost": 35,
+    "sovereign_captured": 40
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "letter_declined": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4358,6 +4737,15 @@
     "85": 1,
     "80": 1
    },
+   "lowest_after": {
+    "capital_lost": 92,
+    "claims": 89,
+    "letter_declined": 88,
+    "own_hand_lost": 78
+   },
+   "crossed_85_by": {
+    "own_hand_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4453,6 +4841,13 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 85,
+    "claims": 94,
+    "letter_declined": 92,
+    "own_hand_lost": 90
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4564,6 +4959,17 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 35,
+    "field_lost": 67,
+    "letter_declined": 72,
+    "own_hand_lost": 40,
+    "sovereign_captured": 45
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4659,6 +5065,12 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 90,
+    "claims": 89,
+    "letter_declined": 85
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4750,6 +5162,15 @@
     "60": 1,
     "50": 1,
     "30": 1
+   },
+   "lowest_after": {
+    "capital_lost": 37,
+    "letter_declined": 87,
+    "own_hand_lost": 47,
+    "sovereign_captured": 0
+   },
+   "crossed_85_by": {
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4843,6 +5264,14 @@
    "crossings_down": {
     "85": 1,
     "80": 3
+   },
+   "lowest_after": {
+    "capital_lost": 71,
+    "field_lost": 72,
+    "letter_declined": 77
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4951,6 +5380,16 @@
     "50": 1,
     "30": 1
    },
+   "lowest_after": {
+    "capital_lost": 5,
+    "claims": 93,
+    "letter_declined": 89,
+    "own_hand_lost": 0,
+    "sovereign_captured": 10
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5052,6 +5491,17 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 33,
+    "letter_declined": 72,
+    "own_hand_lost": 48,
+    "sovereign_captured": 53
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "own_hand_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5147,6 +5597,15 @@
     "70": 1,
     "60": 1,
     "50": 1
+   },
+   "lowest_after": {
+    "capital_lost": 70,
+    "own_hand_lost": 38,
+    "sovereign_captured": 43
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -5254,6 +5713,16 @@
     "60": 1,
     "50": 1
    },
+   "lowest_after": {
+    "capital_lost": 60,
+    "field_lost": 70,
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
+   },
+   "crossed_85_by": {
+    "capital_lost": 1,
+    "sovereign_captured": 1
+   },
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5339,6 +5808,11 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
+   "lowest_after": {
+    "capital_lost": 85,
+    "letter_declined": 95
+   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5446,6 +5920,15 @@
    "crossings_down": {
     "85": 1,
     "80": 1
+   },
+   "lowest_after": {
+    "capital_lost": 80,
+    "field_lost": 74,
+    "letter_declined": 79,
+    "own_hand_lost": 90
+   },
+   "crossed_85_by": {
+    "capital_lost": 1
    },
    "courts_end": {
     "Britain": 30,

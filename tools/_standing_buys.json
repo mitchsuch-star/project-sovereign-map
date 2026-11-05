@@ -1,0 +1,350 @@
+{
+ "_what": "AU-3a the buys arm: the nine commanded scripts played by a spender (`--affair decree --objection word --petition buy`), each buy counted by its cause from the standing trace; `shipped_end` the same arm's end on the shipped measure (the default dials buy nothing)",
+ "dials": [
+  "--affair",
+  "decree",
+  "--petition",
+  "buy",
+  "--moments-trace",
+  "--standing-trace",
+  "--objection",
+  "word"
+ ],
+ "runs": {
+  "CMD-A": {
+   "status": "completed",
+   "turns": 40,
+   "buys": {
+    "by_decree": 1,
+    "edict_decreed": 1,
+    "honoured": 5
+   },
+   "paid": {
+    "by_decree": 8,
+    "edict_decreed": 3,
+    "honoured": 27
+   },
+   "lowest_after_a_buy": 70,
+   "a_buy_crossed_85": true,
+   "regrowth": 35,
+   "stakes": 0,
+   "decrees_answered": 1,
+   "answers": {
+    "marshal_audience:acknowledge": 1,
+    "marshal_audience:honour": 3,
+    "marshal_petition:decree": 1,
+    "marshal_petition:honour": 2
+   },
+   "start": 100,
+   "min": 56,
+   "end": 70,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 7,
+   "shipped_end": 72,
+   "shipped_min": 72
+  },
+  "CMD-H": {
+   "status": "completed",
+   "turns": 40,
+   "buys": {
+    "honoured": 6
+   },
+   "paid": {
+    "honoured": 36
+   },
+   "lowest_after_a_buy": 60,
+   "a_buy_crossed_85": true,
+   "regrowth": 18,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:acknowledge": 1,
+    "marshal_audience:detach": 2,
+    "marshal_audience:honour": 4,
+    "marshal_petition:accept_breach": 1,
+    "marshal_petition:acknowledge": 1,
+    "marshal_petition:honour": 2,
+    "objection:trust": 1
+   },
+   "start": 100,
+   "min": 52,
+   "end": 52,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 6,
+   "shipped_end": 64,
+   "shipped_min": 62
+  },
+  "CMD-M": {
+   "status": "completed",
+   "turns": 40,
+   "buys": {
+    "by_decree": 2,
+    "honoured": 2,
+    "word_given": 2
+   },
+   "paid": {
+    "by_decree": 14,
+    "honoured": 10,
+    "word_given": 8
+   },
+   "lowest_after_a_buy": 63,
+   "a_buy_crossed_85": true,
+   "regrowth": 0,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:honour": 1,
+    "marshal_petition:decree": 2,
+    "marshal_petition:honour": 1,
+    "objection:trust": 1,
+    "objection:word": 2
+   },
+   "start": 100,
+   "min": 23,
+   "end": 23,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 6,
+   "shipped_end": 52,
+   "shipped_min": 47
+  },
+  "DL": {
+   "status": "completed",
+   "turns": 3,
+   "buys": {
+    "honoured": 2
+   },
+   "paid": {
+    "honoured": 9
+   },
+   "lowest_after_a_buy": 95,
+   "a_buy_crossed_85": false,
+   "regrowth": 4,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:honour": 2
+   },
+   "start": 100,
+   "min": 95,
+   "end": 95,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 2,
+   "shipped_end": 100,
+   "shipped_min": 100
+  },
+  "FC": {
+   "status": "completed",
+   "turns": 2,
+   "buys": {
+    "honoured": 1
+   },
+   "paid": {
+    "honoured": 4
+   },
+   "lowest_after_a_buy": 96,
+   "a_buy_crossed_85": false,
+   "regrowth": 0,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:honour": 1
+   },
+   "start": 100,
+   "min": 91,
+   "end": 91,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 1,
+   "shipped_end": 95,
+   "shipped_min": 95
+  },
+  "FLD": {
+   "status": "completed",
+   "turns": 10,
+   "buys": {
+    "honoured": 4,
+    "word_given": 1
+   },
+   "paid": {
+    "honoured": 23,
+    "word_given": 4
+   },
+   "lowest_after_a_buy": 69,
+   "a_buy_crossed_85": true,
+   "regrowth": 25,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:honour": 2,
+    "marshal_petition:honour": 2,
+    "objection:word": 1
+   },
+   "start": 100,
+   "min": 76,
+   "end": 88,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 5,
+   "shipped_end": 100,
+   "shipped_min": 100
+  },
+  "LAW": {
+   "status": "completed",
+   "turns": 10,
+   "buys": {
+    "honoured": 1
+   },
+   "paid": {
+    "honoured": 4
+   },
+   "lowest_after_a_buy": 90,
+   "a_buy_crossed_85": false,
+   "regrowth": 23,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:acknowledge": 3,
+    "marshal_audience:detach": 2,
+    "marshal_audience:honour": 1,
+    "marshal_petition:acknowledge": 1
+   },
+   "start": 100,
+   "min": 54,
+   "end": 54,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 1,
+   "shipped_end": 56,
+   "shipped_min": 56
+  },
+  "OP": {
+   "status": "completed",
+   "turns": 18,
+   "buys": {
+    "honoured": 5,
+    "word_given": 2
+   },
+   "paid": {
+    "honoured": 31,
+    "word_given": 10
+   },
+   "lowest_after_a_buy": 60,
+   "a_buy_crossed_85": false,
+   "regrowth": 11,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:acknowledge": 2,
+    "marshal_audience:honour": 3,
+    "marshal_petition:accept_breach": 1,
+    "marshal_petition:honour": 2,
+    "objection:word": 2
+   },
+   "start": 100,
+   "min": 60,
+   "end": 60,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 7,
+   "shipped_end": 91,
+   "shipped_min": 86
+  },
+  "VOLTE": {
+   "status": "completed",
+   "turns": 40,
+   "buys": {
+    "honoured": 6
+   },
+   "paid": {
+    "honoured": 36
+   },
+   "lowest_after_a_buy": 60,
+   "a_buy_crossed_85": true,
+   "regrowth": 18,
+   "stakes": 0,
+   "decrees_answered": 0,
+   "answers": {
+    "marshal_audience:acknowledge": 1,
+    "marshal_audience:detach": 2,
+    "marshal_audience:honour": 4,
+    "marshal_petition:accept_breach": 1,
+    "marshal_petition:acknowledge": 1,
+    "marshal_petition:honour": 2
+   },
+   "start": 100,
+   "min": 55,
+   "end": 62,
+   "residual": {
+    "total": 0,
+    "explained": 0,
+    "unexplained": 0,
+    "turns": [],
+    "by_site": {}
+   },
+   "pushes": 6,
+   "shipped_end": 73,
+   "shipped_min": 73
+  }
+ },
+ "totals": {
+  "by_decree": 3,
+  "edict_decreed": 1,
+  "honoured": 32,
+  "word_given": 5
+ },
+ "runs_with_a_push": [
+  "CMD-A",
+  "CMD-H",
+  "CMD-M",
+  "DL",
+  "FC",
+  "FLD",
+  "LAW",
+  "OP",
+  "VOLTE"
+ ]
+}

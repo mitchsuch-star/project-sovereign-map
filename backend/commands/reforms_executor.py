@@ -202,10 +202,12 @@ class ReformsExecutor:
         e = affairs.template_by_id(world, str(command.get("target") or ""))
         if e is None or not affairs.edict_block(e):
             return {"success": False, "message": "No such decree is in the book."}
-        refusal = affairs.edict_refusal(world, actor, e)
+        # AU-3a (§5.7): the Decree at the court's floors where its gold refused
+        currency = "authority" if str(command.get("currency") or "") == "authority" else "gold"
+        refusal = affairs.edict_refusal(world, actor, e, currency=currency)
         if refusal:
             return {"success": False, "message": refusal}
-        until = affairs.decree_for_court(world, actor, e)
+        until = affairs.decree_for_court(world, actor, e, currency=currency)
         from backend.game_logic.moments import _court, _dateline
         result = {
             "success": True,

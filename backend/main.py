@@ -3806,6 +3806,12 @@ def _command_pending_answers(ctx: CommandContext):
         _ptrace.decide("main", "objection_answer", _pending_answer_token)
         return _respond_to_objection_sync(_pending_answer_token,
                                           carried_relay=ctx._carried_relay)
+    # AU-3a: "By my word" answers by its own exact phrases — never inside the
+    # plain-English match below, where "insist on my word" stays an Insist
+    from backend.commands.dialogue_routing import WORD_TYPED_FORMS
+    if _objection_pending and _pending_answer_token.rstrip(".!") in WORD_TYPED_FORMS:
+        _ptrace.decide("main", "objection_answer", "word")
+        return _respond_to_objection_sync("word", carried_relay=ctx._carried_relay)
     # CA9-N5: the exact-token gate above rejected plain English meaning
     # one of its own words — "I trust him", "insist on it", "trust
     # Davout" all fell through to the parser and then died on the

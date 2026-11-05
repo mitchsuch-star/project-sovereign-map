@@ -755,9 +755,10 @@ class TestConfrontationPetition:
         # the spec had deferred this arm with no owner row while the card's
         # own body asked for it ("He requests a command worthy of his
         # talents"). The `id` is the POST value, so this set equality is
-        # the contract the client answers against.
+        # the contract the client answers against. AU-3a (November 5, 2026):
+        # the fifth, "Honour him", priced in authority (`_honour_option`)
         assert {o["id"] for o in petition["options"]} == \
-            {"acknowledge", "promise", "rebuke", "command"}
+            {"acknowledge", "promise", "rebuke", "command", "honour"}
 
     def test_second_time_no_petition(self, world):
         massena, davout = self._fire_first_time(world)

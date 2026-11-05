@@ -192,6 +192,9 @@ class TestOrderKey:
 # ═══════════════════════════════════════════════════════════════════════
 
 class TestACHX9NoPhantomCompromise:
+    # AU-3a (November 5, 2026): "By my word" joins every open answer list where
+    # its price may land (the boot board's 100 — `dialogue_routing.word_is_open`),
+    # last, typed as 'by my word'; the phantom compromise stays refused
 
     @pytest.mark.parametrize("line", ["Ney, defend", "Ney, defend Rhineland"])
     def test_a_compromise_never_offered_is_refused(self, client, line):
@@ -201,7 +204,7 @@ class TestACHX9NoPhantomCompromise:
         ACH-F1 added the bare defend. Refused now, the objection kept."""
         _aggressive(client, "Ney")
         asked, _, _ = _order(client, line)
-        assert asked.get("choices") == ["trust", "insist"], asked.get("choices")
+        assert asked.get("choices") == ["trust", "insist", "word"], asked.get("choices")
         ney = M.world.get_marshal("Ney")
         trust_before = int(ney.trust.value)
         reply, spent, _ = _order(client, "compromise")
@@ -221,14 +224,14 @@ class TestACHX9NoPhantomCompromise:
         reply, spent, _ = _order(client, line)
         assert reply.get("success") is False and spent == 0
         assert "Ney awaits your answer" in str(reply.get("message")), reply.get("message")
-        assert str(reply.get("message")).endswith("Reply 'trust' or 'insist'.") or \
-            str(reply.get("message")).endswith("reply 'trust' or 'insist'."), reply.get("message")
+        assert str(reply.get("message")).endswith("Reply 'trust', 'insist' or 'by my word'.") or \
+            str(reply.get("message")).endswith("reply 'trust', 'insist' or 'by my word'."), reply.get("message")
 
     def test_a_real_compromise_is_still_taken(self, client):
         """FALSIFIABLE NEGATIVE — from NEUTRAL the compromise exists and the
         word takes it."""
         asked, _, _ = _order(client, "Ney, defend")
-        assert asked.get("choices") == ["trust", "insist", "compromise"]
+        assert asked.get("choices") == ["trust", "insist", "compromise", "word"]
         reply, spent, _ = _post(client, "/respond_to_objection", {"choice": "compromise"})
         assert reply.get("success"), reply.get("message")
         assert M.world.get_marshal("Ney").stance == Stance.AGGRESSIVE
@@ -238,7 +241,7 @@ class TestACHX9NoPhantomCompromise:
         _aggressive(client, "Ney")
         _order(client, "Ney, defend")
         with _quiet_get(client) as data:
-            assert data["choices"] == ["trust", "insist"]
+            assert data["choices"] == ["trust", "insist", "word"]
             assert data["alternative"]["action"] == "attack"
 
 
@@ -488,7 +491,8 @@ class TestACHX10TheTacticalAnswerIsPriced:
         assert reply.get("success") is False
         assert str(reply.get("message")).startswith(
             "Not enough actions! Need 2, have 1 — Ney cannot change stance today."), reply.get("message")
-        assert "reply 'trust', 'insist' or 'cancel'" in str(reply.get("message"))
+        # AU-3a: the Word gives the order as given, at the insistence's actions
+        assert "reply 'trust', 'insist', 'by my word' or 'cancel'" in str(reply.get("message"))
         assert spent == 0 and _tactical_ledger(ney) == before
         assert M.world.pending_objection
 

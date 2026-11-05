@@ -110,7 +110,9 @@ class TestTheChainIsTheOldChain:
         that also answers its articles step (`declare_war_article`,
         `declare_war_articles_done`) — 75 -> 74.
         S14E-3 (S14f part 1, Oct 24 2026) added one arm: `step_back`, the
-        guided wizards' Back (`_wizard_step_back`) — 74 -> 75."""
+        guided wizards' Back (`_wizard_step_back`) — 74 -> 75.
+        AU-3a (November 5, 2026) added one arm: `decree_ai_proposal`, an
+        Edict letter's third answer ("Decree it") — 75 -> 76."""
         seen = []
         arms = 0
         for name in STAGES:
@@ -120,7 +122,7 @@ class TestTheChainIsTheOldChain:
                 assert t.startswith("ctx.action "), (name, t)
                 seen += [c.value for c in ast.walk(ast.parse(t))
                          if isinstance(c, ast.Constant) and isinstance(c.value, str)]
-        assert arms == 75
+        assert arms == 76
         assert len(seen) == len(set(seen)), sorted({s for s in seen if seen.count(s) > 1})
 
 

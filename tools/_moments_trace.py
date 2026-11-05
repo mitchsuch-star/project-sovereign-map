@@ -265,6 +265,7 @@ class MomentsTrace:
         runtime = (MO._store(world).get("affairs") if world is not None else None) or {}
         edicts = {"decreed": dict(runtime.get("decreed") or {}),
                   "gold": dict(runtime.get("edict_gold") or {}),
+                  "authority": dict(runtime.get("edict_authority") or {}),   # AU-3a: the Decree
                   "in_force": dict(runtime.get("edicts") or {})}
         return {"measured": True,
                 "judged": judge(self.mornings, self.applications, state, pacing),
@@ -320,7 +321,12 @@ def _delivered(world, lord: str, row: Dict[str, Any]) -> List[Dict[str, Any]]:
     # RE-6: the edict — the chest after the price, and the decree in force
     elif op == "edict" and not row.get("refusal") and "after" in row:
         from backend.game_logic import affairs
-        put("treasury", int(row["after"]), int((world.nation_gold or {}).get(lord, 0) or 0))
+        if row.get("currency") == "authority":
+            # AU-3a: the Decree — the standing after its price, the chest untouched
+            tracker = getattr(world, "authority_tracker", None)
+            put("authority", int(row["after"]), int(getattr(tracker, "authority", 0) or 0))
+        else:
+            put("treasury", int(row["after"]), int((world.nation_gold or {}).get(lord, 0) or 0))
         e = affairs.template_by_id(world, str(row.get("template") or ""))
         put(f"{row.get('template')} in force", 1,
             int(e is not None and affairs.edict_state(world, lord, e) == "in_force"))

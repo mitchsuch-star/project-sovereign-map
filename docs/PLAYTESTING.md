@@ -56,7 +56,7 @@ before the backend import — `/new_game`'s autosave lands in the run dir).
 ```
 
 Useful flags: `--seed <name>` (campaign seed, default `historical`) ·
-`--objection trust|insist|compromise` · `--diplomacy decline|accept|first|propose` · `--declare-war cancel|proceed`
+`--objection trust|insist|compromise|word` · `--diplomacy decline|accept|first|propose` · `--declare-war cancel|proceed`
 · `--settlement accept|decline` (GE-V, Sept 25 2026: the league's common-peace
 table — `incoming_settlement_offer` + its `settlement_confirm` — on its own
 dial; absent it mirrors `--diplomacy`. An arm that signs the pacts and the
@@ -66,6 +66,7 @@ courts are refused whatever `--diplomacy` says — the arm conquering Hanover
 refuses Hanover's armistice; read off the dialogue's own court fields, so the
 player's own confirms are never touched) · `--decline-until-latch Britain`
 - `--moment accept|decline` (S14c): how a moment letter of the record is answered — by its action, never by position; absent = decline (the letter's own lapse), never the `--diplomacy` dial. A closed Accept is left standing with its reason in the digest.
+- `--affair accept|decline|lapse|decree` (RE-2, RE-3, AU-3a): how an affair of state is answered — absent = decline on arrival; `lapse` leaves it standing to its answer-by turn; `decree` takes the Edicts' third answer, "Decree it", where the letter offers it open, else declines. `--objection word` (AU-3a): "By my word" where the objection offers it open, else trust. `--petition buy` (AU-3a): the card's option priced in authority (Honour him, By Decree) where it is open, else the first enabled. The three are the spender's dials — `tools/_standing_buys.py run --out <dir>` plays the nine commanded scripts with them and `record` composes `tools/_standing_buys.json` (AU-3a's spender arm, read by `tests/test_standing_band.py`).
 (VP-1 S14b part 3, the VP1-CS arm: the court's envoys are refused until the
 Continental System's Blockade latches — read off GET `/imperial_designs`,
 sticky once latched — then its first qualifying offer is answered by

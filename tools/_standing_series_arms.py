@@ -159,6 +159,26 @@ def _counted_letters():
         return False
     return True if "AUL" in UP else _letters()
 ST.letters_armed = _counted_letters
+# AU-3a the buys: the seam AUY, held down on its arm; each landed buy counted by
+# its cause, and a court's Decree in authority (parked with the courts' flip)
+_buys = ST.buys_armed
+def _counted_buys():
+    _c["buys_reads"] += 1
+    return False if "AUY" in DOWN else _buys()
+ST.buys_armed = _counted_buys
+_buy = ST.buy
+def _counted_buy(world, lord, base, cause, party="", **fmt):
+    out = _buy(world, lord, base, cause, party=party, **fmt)
+    if not out.get("refusal"):
+        _c["bought_" + str(cause)] += 1
+    return out
+ST.buy = _counted_buy
+_court_decree = AF.decree_for_court
+def _counted_court_decree(world, lord, e, currency="gold"):
+    if currency == "authority":
+        _c["court_decrees_in_authority"] += 1
+    return _court_decree(world, lord, e, currency=currency)
+AF.decree_for_court = _counted_court_decree
 _deliver = AF._deliver
 def _counted_deliver(world, cand, turn):
     out = _deliver(world, cand, turn)
@@ -172,7 +192,9 @@ _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "host_ops_planned", "host_ops_held",
          "sources_reads", "te_deums", "bulletins", "points_repaid", "returns", "paybacks",
          "ceremonies", "acts_shown", "au2b_content_armed", "au2b_content_held",
-         "letters_reads", "the_bank_delivered", "the_popes_ports_delivered")
+         "letters_reads", "the_bank_delivered", "the_popes_ports_delivered",
+         "buys_reads", "bought_edict_decreed", "bought_word_given", "bought_honoured", "bought_by_decree",
+         "court_decrees_in_authority")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

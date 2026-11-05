@@ -322,6 +322,27 @@ func show_proposal(data: Dictionary):
 	if not counter_enabled and counter_reason != "":
 		# S14E-20: greyed with the reason (the Accept's own tooltip shape).
 		counter_btn.tooltip_text = counter_reason
+	# AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): an Edict letter's third answer,
+	# "Decree it", rides the Counter's slot — a moment letter is answered,
+	# never bargained, so the slot is free there. Captioned, quoted, and closed
+	# with the backend's stamped reason (the Accept's own shape).
+	_is_decree_letter = is_moment and not _moment_answer(data, "decree_ai_proposal").is_empty()
+	if _is_decree_letter:
+		var decree_opt := _decree_option(data)
+		var decree_reason := str(decree_opt.get("reason", ""))
+		counter_btn.visible = true
+		counter_btn.disabled = not bool(decree_opt.get("enabled", true))
+		counter_btn.text = _moment_caption(data, "decree_ai_proposal", "Decree it")
+		counter_btn.tooltip_text = decree_reason if counter_btn.disabled and decree_reason != "" \
+			else _moment_quote(data, "decree_ai_proposal")
+	# AU-16: the third answer sits third on the row, as in the letter's list, so
+	# "its second answer" (the one a lapse takes) is the Decline on the buttons
+	# too; every other register keeps the Counter between Accept and Reject.
+	var answer_row: Node = counter_btn.get_parent()
+	if _is_decree_letter and counter_btn.get_index() < reject_btn.get_index():
+		answer_row.move_child(counter_btn, reject_btn.get_index())
+	elif not _is_decree_letter and counter_btn.get_index() > reject_btn.get_index():
+		answer_row.move_child(counter_btn, reject_btn.get_index())
 	reject_btn.disabled = false
 	dismiss_btn.disabled = false
 	dismiss_btn.text = NOT_NOW_LABEL
@@ -439,6 +460,16 @@ func _moment_answer(data: Dictionary, action: String) -> Dictionary:
 	return {}
 
 
+func _decree_option(data: Dictionary) -> Dictionary:
+	"""AU-3a: the letter's stamped Decree option (`enabled` / `reason`)."""
+	var opts = data.get("options", [])
+	if opts is Array:
+		for opt in opts:
+			if opt is Dictionary and str(opt.get("action", "")) == "decree_ai_proposal":
+				return opt
+	return {}
+
+
 func _moment_caption(data: Dictionary, action: String, fallback: String) -> String:
 	var caption := str(_moment_answer(data, action).get("caption", ""))
 	return caption if caption != "" else fallback
@@ -507,6 +538,13 @@ func _on_accept():
 	choice_made.emit("accept", current_data)
 
 func _on_counter():
+	if _is_decree_letter:
+		# AU-3a: the slot answers the letter with its third answer
+		_pressed_rect = counter_btn.get_global_rect()
+		_disable_buttons()
+		hide()
+		choice_made.emit("decree", current_data)
+		return
 	_disable_buttons()
 	hide()
 	choice_made.emit("counter", current_data)
@@ -801,6 +839,7 @@ var _dateline_label: Label = null
 var _seal_well: Panel = null
 var _pressed_rect := Rect2()
 var _dressed := false
+var _is_decree_letter := false   # AU-3a: the letter's third answer rides the Counter's slot
 
 
 func _ensure_letter_dress() -> void:
@@ -945,6 +984,7 @@ func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_
 			_letterhead.visible = false
 		panel.add_theme_stylebox_override("panel", panel_style)
 		accept_btn.remove_theme_stylebox_override("disabled")
+		counter_btn.remove_theme_stylebox_override("disabled")
 		for b in buttons:
 			b.custom_minimum_size = Vector2(140, 45)
 		_set_aside_line.remove_theme_font_override("font")
@@ -975,6 +1015,19 @@ func _dress_letter(data: Dictionary, is_letter: bool, accept_open: bool, accept_
 	else:
 		accept_btn.remove_theme_stylebox_override("disabled")
 	accept_btn.text = accept_btn.text + "\n" + accept_line
+	if _is_decree_letter:
+		# AU-3a: the Decree's price line; closed, its reason on the opaque plaque
+		var decree_line := _button_second_line(data, "button_decree", "no change")
+		if counter_btn.disabled:
+			var decree_reason := str(_decree_option(data).get("reason", "")).strip_edges().rstrip(".")
+			if decree_reason != "" and decree_reason.length() <= LETTER_BUTTON_LINE_MAX:
+				decree_line = decree_reason
+			counter_btn.add_theme_stylebox_override("disabled", _closed_plaque)
+		else:
+			counter_btn.remove_theme_stylebox_override("disabled")
+		counter_btn.text = counter_btn.text + "\n" + decree_line
+	else:
+		counter_btn.remove_theme_stylebox_override("disabled")
 	reject_btn.text = reject_btn.text + "\n" + _button_second_line(data, "button_decline", "no change")
 	dismiss_btn.text = dismiss_btn.text + "\n" + NOT_NOW_DESK_LINE
 	# the counsel under the buttons: Caption italic in sepia, never a body line
@@ -1007,6 +1060,8 @@ func play_answer_beat(answer_key: String, parent: Node) -> void:
 	if not bool(current_data.get("is_moment", false)):
 		return
 	var action := "accept_ai_proposal" if answer_key == "accept" else "reject_ai_proposal"
+	if answer_key == "decree":
+		action = "decree_ai_proposal"   # AU-3a: the Decree seals as an Accept does
 	var caption := _moment_caption(current_data, action, "")
 	if caption == "":
 		return

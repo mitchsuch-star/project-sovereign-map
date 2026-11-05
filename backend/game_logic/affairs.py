@@ -98,6 +98,8 @@ EDICT_BOUNDS = {"price": (500, 5000), "term": (4, 16), "rest": (4, 16), "effects
 EDICT_EFFECT_TYPES = ("supply_capacity", "recruit_price", "drill_morale")
 EDICT_DISPLAY_KEYS = ("name", "court_press")
 EDICTS_KEY, DECREED_KEY, EDICT_GOLD_KEY = "edicts", "decreed", "edict_gold"
+EDICT_AUTHORITY_KEY = "edict_authority"   # AU-3a: the authority the Decree spent, per lord (the measure)
+EDICT_AUTHORITY_BOUNDS = (1, 10)          # AU-3a: the block's `authority` price (the Decree), the validator's
 
 # The display copy (§16b): what a letter SAYS, never when it arrives or what
 # its answers do — struck from the measured identity (`_s14c_sweep_record`).
@@ -143,7 +145,7 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
 # AU-2c: an ENTRY's own `since` holds the whole template out of the deck
 # (`moments.affairs_deck`) while its row is unarmed.
-SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c")
+SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a")
 
 
 def row_armed(row: str) -> bool:
@@ -151,7 +153,11 @@ def row_armed(row: str) -> bool:
     (the Chancellor's floor clause, the Host's authority op); AU-2b's is
     `standing.sources_armed` (the ceremonies' op, the Show's two Acts);
     AU-2c's is `standing.letters_armed` (the Bank's and the Pope's letters,
-    authored and held out until the user's word arms them)."""
+    armed by the user's word); AU-3a's is `standing.buys_armed` (the Edict
+    letters' third answer, "Decree it")."""
+    if row == "AU-3a":
+        from backend.game_logic import standing
+        return bool(standing.buys_armed())
     if row == "AU-2a":
         from backend.game_logic import standing
         return bool(standing.hits_armed())
@@ -174,6 +180,15 @@ def entry_armed(e: Dict[str, Any]) -> bool:
 def op_armed(op: Dict[str, Any]) -> bool:
     """An op authored `since` a row is planned only while that row is armed."""
     since = str((op or {}).get("since") or "")
+    return not since or row_armed(since)
+
+
+def side_armed(side: Optional[Dict[str, Any]]) -> bool:
+    """AU-3a: an answer authored `since` a row (the Edict letters' `decree`)
+    is offered only while that row is armed — held out whole, as an entry is."""
+    if not isinstance(side, dict) or not side:
+        return False
+    since = str(side.get("since") or "")
     return not since or row_armed(since)
 
 
@@ -445,8 +460,14 @@ def _offer_entry(world, lord: str, params: Dict[str, Any]) -> Optional[Dict[str,
     the laws rung's own bar — one source with the courts' rung
     (`edict_refusal`); None when any clause fails."""
     e = _template_by_id(world, str(params.get("edict") or ""))
-    if e is None or edict_refusal(world, lord, e, with_reserve=True):
+    if e is None:
         return None
+    if edict_refusal(world, lord, e, with_reserve=True):
+        # AU-3a (§5.7): a court may decree at its own floors where the gold
+        # refuses; the player's letter stays gold-gated — it arrives where it
+        # arrived, the Decree a second purse on it (§6.5 reading 1)
+        if lord == getattr(world, "player_nation", None) or edict_refusal(world, lord, e, currency="authority"):
+            return None
     return e
 
 
@@ -1769,11 +1790,14 @@ def edict_row(e: Dict[str, Any], until: int) -> Dict[str, Any]:
 
 
 def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] = None,
-                  with_reserve: bool = False) -> str:
+                  with_reserve: bool = False, currency: str = "gold") -> str:
     """"" when the decree may be taken, else why — ONE gate for the premise
     and the courts' rung (`with_reserve`: the laws rung's own bar — the
     price plus the AI's reserve and five turns of the slate's upkeep), and
-    for the letter's plan and the courts' verb (the price alone)."""
+    for the letter's plan and the courts' verb (the price alone). AU-3a:
+    `currency="authority"` reads the block's `authority` price at the
+    recency rise against the purchases' floor (`standing.refusal` — a
+    court's `ai_refusal`), never the chest."""
     block = edict_block(e)
     if not armed(world) or not block:
         return "the decree is not in the book."
@@ -1785,6 +1809,18 @@ def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] =
         return f"{name} stands until {MO._dateline(world, until)}."
     if state == "resting":
         return f"{name} rests until {MO._dateline(world, until + int(block.get('rest', 0) or 0))}."
+    if currency == "authority":
+        from backend.game_logic import standing
+        base = int(block.get("authority", 0) or 0)
+        if not standing.buys_armed() or base <= 0:
+            return "the decree is not in the book."
+        if lord != getattr(world, "player_nation", None) and not standing.courts_move():
+            # AU-14 (BUG_FIXES.md §AU): measured, not inert — the courts boot at
+            # 60, their floors pass, and a court whose gold refuses decrees in
+            # authority (the alarm series moves at T11); parked with the
+            # courts' flip (AU-4, `courts_move`), measured there
+            return "the courts' Decree waits for the courts' flip."
+        return str(standing.refusal(world, lord, -standing.push_price(world, lord, base)) or "")
     price = int(block.get("price", 0) or 0)
     if treasury is None:
         from backend.game_logic.instruments import purse_of
@@ -1798,36 +1834,50 @@ def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] =
     return ""
 
 
-def grant_edict(world, lord: str, e: Dict[str, Any]) -> int:
+def grant_edict(world, lord: str, e: Dict[str, Any], currency: str = "gold", party: str = "") -> int:
     """THE writer: charge the price through the gold op's own path
     (`record_gold_spent`), write `until`, tally the decree and the gold for
     the measure. Returns `until`. The administrative action is the
-    caller's — the letter's `admin` op, or the court's admin budget."""
+    caller's — the letter's `admin` op, or the court's admin budget. AU-3a:
+    `currency="authority"` — the Decree — spends the block's `authority`
+    price through `standing.buy` (the recency rise, the cause
+    `edict_decreed`, the minister its party) and leaves the chest untouched;
+    the authority tally beside the gold's."""
     block = edict_block(e)
-    price = int(block.get("price", 0) or 0)
     until = MO._turn(world) + int(block.get("term", 0) or 0)
-    MO._apply_gold(world, lord, {"amount": price})
     rt = runtime(world)
+    if currency == "authority":
+        from backend.game_logic import standing
+        paid = standing.buy(world, lord, int(block.get("authority", 0) or 0), "edict_decreed",
+                            party=str(party or ""), edict=edict_name(e))
+        spent = rt.setdefault(EDICT_AUTHORITY_KEY, {})
+        spent[lord] = int(spent.get(lord, 0) or 0) - int(paid.get("applied", 0) or 0)
+    else:
+        price = int(block.get("price", 0) or 0)
+        MO._apply_gold(world, lord, {"amount": price})
+        spent = rt.setdefault(EDICT_GOLD_KEY, {})
+        spent[lord] = int(spent.get(lord, 0) or 0) + price
     key = edict_key(lord, str(e.get("id") or ""))
     rt.setdefault(EDICTS_KEY, {})[key] = int(until)
     decreed = rt.setdefault(DECREED_KEY, {})
     decreed[key] = int(decreed.get(key, 0) or 0) + 1
-    spent = rt.setdefault(EDICT_GOLD_KEY, {})
-    spent[lord] = int(spent.get(lord, 0) or 0) + price
     return until
 
 
-def decree_for_court(world, lord: str, e: Dict[str, Any]) -> int:
+def decree_for_court(world, lord: str, e: Dict[str, Any], currency: str = "gold") -> int:
     """A court's decree (the rung's verb): the same grant, then one `moment`
     / `outcome` row through the moments' own writer — the Moniteur prints its
-    `press`, the campaign log its line; no state row, no notice, no popup."""
-    until = grant_edict(world, lord, e)
+    `press`, the campaign log its line; no state row, no notice, no popup.
+    AU-3a: `currency="authority"` — the Decree at the court's floors."""
+    until = grant_edict(world, lord, e, currency=currency)
     block = edict_block(e)
     own_seat = _seat_of(world, lord)
     press = fill_slots(world, str(block.get("court_press") or ""), {"lord": lord, "until": until}, e,
                        seat=own_seat, SEAT=own_seat.upper())[:160]
+    paid = (f"{int(block.get('authority', 0) or 0)} authority" if currency == "authority"
+            else f"{int(block.get('price', 0) or 0):,} gold")
     line = (f"{MO._court(world, lord, capitalize=True)} decrees {edict_name(e)} for "
-            f"{int(block.get('term', 0) or 0)} turns ({int(block.get('price', 0) or 0):,} gold)")
+            f"{int(block.get('term', 0) or 0)} turns ({paid})")
     MO._log(world, "outcome", e, lord=lord, register=MO.REGISTER_AFFAIR, line=line,
             press=press or None, until=int(until))
     return until
@@ -1867,7 +1917,9 @@ def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[
     (`reforms.REFORM_DECKS`), one decree every `AI_ENACTMENT_EVERY_TURNS`,
     never while a law would lapse, never the player; the instantaneous read
     (no streak — the streak paces the player's letter). The gate is read
-    fresh, outside the premise memo."""
+    fresh, outside the premise memo. AU-3a (§5.7): gold first; where the gold
+    refuses, the Decree at the court's floors (`standing.ai_refusal` — 30,
+    and three diplomatic points a turn), the order carrying its `currency`."""
     if not ai_decrees() or not armed(world) or not nation or int(admin_ap) < 1:
         return None
     if nation == getattr(world, "player_nation", None):
@@ -1881,11 +1933,17 @@ def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[
     for e in deck(world):
         if not edict_block(e):
             continue
+        currency = "gold"
         if edict_refusal(world, nation, e, treasury=int(treasury), with_reserve=True):
-            continue
+            if edict_refusal(world, nation, e, currency="authority"):
+                continue
+            currency = "authority"
         if not premise_holds(world, e, nation).get("holds"):
             continue
-        return {"action": "decree_edict", "target": str(e.get("id") or "")}
+        order = {"action": "decree_edict", "target": str(e.get("id") or "")}
+        if currency == "authority":
+            order["currency"] = currency
+        return order
     return None
 
 

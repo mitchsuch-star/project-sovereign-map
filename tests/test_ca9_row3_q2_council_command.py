@@ -137,7 +137,9 @@ class TestTheCardOffersACommand:
         world, _ = board
         petition = _petition(world)
         ids = {o["id"] for o in petition["options"]}
-        assert ids == {"acknowledge", "promise", "rebuke", "command"}
+        # AU-3a (November 5, 2026): "Honour him", priced in authority, rides last
+        assert ids == {"acknowledge", "promise", "rebuke", "command", "honour"}
+        assert petition["options"][-1]["id"] == "honour"
 
     def test_it_names_the_enemy_and_the_place(self, board):
         world, _ = board

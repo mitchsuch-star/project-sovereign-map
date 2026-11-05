@@ -308,6 +308,30 @@ class VindicationTracker:
                 trust_change = +2
                 message = "The compromise led to stalemate. Cooperation continues."
 
+        elif choice == 'word':
+            # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3, §4.1 reading 3): the Word's
+            # stake is loss-only — a field lost within WORD_WINDOW turns of the
+            # word given costs his trust and the Emperor's authority; won, the
+            # objection is answered and nothing more (never the insistence's +5);
+            # past the window the question is let go unjudged
+            from backend.game_logic import standing as _st
+            _now = (getattr(game_state, 'current_turn', None) if not hasattr(game_state, 'world')
+                    else getattr(game_state.world, 'current_turn', None))
+            _given = pending.get('turn_recorded')
+            if _given is not None and _now is not None and int(_now) - int(_given) > _st.WORD_WINDOW:
+                return None
+            if result == 'victory':
+                vindication_change = -1
+                message = f"Your word held: the field answers {marshal_name}'s objection."
+            elif result == 'defeat':
+                vindication_change = +1
+                trust_change = _st.WORD_LOSS_TRUST
+                authority_change = _st.WORD_LOSS_AUTHORITY
+                message = (f"{marshal_name}'s concerns were justified, and the field was lost on your word "
+                           f"(trust −{abs(_st.WORD_LOSS_TRUST)}, authority −{abs(_st.WORD_LOSS_AUTHORITY)}).")
+            else:  # draw
+                message = f"The battle proved nothing; your word over {marshal_name} stands untested."
+
         # Apply vindication change (capped at -5 to +5)
         if hasattr(marshal, 'vindication_score'):
             old_vindication = marshal.vindication_score
@@ -343,6 +367,8 @@ class VindicationTracker:
             from backend.game_logic import standing as _standing
             if choice == 'insist':
                 key = "insisted_won" if authority_change > 0 else "insisted_lost"
+            elif choice == 'word':
+                key = "word_lost"                    # AU-3a: the Word's stake is loss-only
             else:
                 key = "compromise_won" if authority_change > 0 else "compromise_lost"
             world = game_state.world if hasattr(game_state, 'world') else game_state

@@ -2453,6 +2453,11 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         from backend.commands.dialogue_routing import tactical_objection_answers
         valid_choices = tactical_objection_answers(objection)
         valid_choices.append("cancel")  # DDB-41: handled above
+        if choice == "word" and choice not in valid_choices:
+            # AU-3a: a Word the floor closed is refused with its reason, the objection kept
+            _closed = self._unpayable_tactical_answer(world, objection, choice)
+            if _closed is not None:
+                return _closed
 
         if choice not in valid_choices:
             # CA9-N5: one helper for every surface that names the words
@@ -2880,7 +2885,8 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         orders = {"trust": (objection.get("suggested_alternative")
                             or objection.get("alternative")),
                   "insist": objection.get("original_order"),
-                  "compromise": objection.get("compromise")}
+                  "compromise": objection.get("compromise"),
+                  "word": objection.get("original_order")}    # AU-3a: the Word runs the order given
 
         def _cost(answer):
             order = orders.get(answer) or {}
@@ -2891,6 +2897,18 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
 
         price, have = _cost(choice)
         if price <= have:
+            if choice == "word":
+                # AU-3a: the Word is priced in authority too — re-quoted at the
+                # answer and refused under the purchases' floor, the objection kept
+                from backend.commands.dialogue_routing import word_answer_refusal
+                from backend.game_logic import standing
+                offer = standing.word_offer(world, marshal)
+                if not offer or offer.get("refusal"):
+                    open_answers = [a for a in tactical_objection_answers(objection)
+                                    if a != "word" and _cost(a)[0] <= _cost(a)[1]]
+                    return word_answer_refusal(world, marshal_name,
+                                               str(offer.get("refusal") or "the word is not offered"),
+                                               open_answers, pending_objection=True)
             return None
         open_answers = [a for a in tactical_objection_answers(objection)
                         if _cost(a)[0] <= _cost(a)[1]]

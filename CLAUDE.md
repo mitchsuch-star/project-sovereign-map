@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4 (§6.1–§6.4), 2c armed Nov 5 — AU-3a next; three slices before S15**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a ✅ Nov 5 (§6.1–§6.5) — AU-3b next; two slices before S15**.
 
 **▶ LIVE STATE (Nov 5, 2026).** The three most recent rows:
+- **AU-3a (Nov 5) — LANDED: Decree it, By my word, Honour him, By Decree; the recency rise** (§6.5).
 - **AU-2c (Nov 4) — LANDED, ARMED Nov 5 ("Arm both"): the Bank's Panic and the Pope's Refusal** (§6.4).
 - **AU-2b (Nov 4) — LANDED: the Te Deum, the Bulletin, the Return, the Show, the ceremonies** (§6.3).
-- **AU-2a (Nov 4) — LANDED: the Chancellor at any standing, the Host's Complaint clamped, the Claims, the breach** (§6.2).
 
-**Open with the user:** AU-2c's readings 2–7 (spec §6.4.4), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** AU-3a's readings (spec §6.5.3), AU-17 (heads AU-3b), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

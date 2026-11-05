@@ -686,7 +686,7 @@ class ActionPointMeter:
 
 POLICY_DEFAULTS = {
     # Marshal objection: trust builds goodwill and never dead-ends a run.
-    "objection": "trust",           # trust | insist | compromise
+    "objection": "trust",           # trust | insist | compromise | word (AU-3a: where open, else trust)
     # Incoming proposals / settlement offers / envoy letters: decline —
     # an unattended run must not sign treaties nobody scripted. Override
     # per-run when the playtest IS about diplomacy.
@@ -726,7 +726,7 @@ POLICY_DEFAULTS = {
     # and adversarial arcs get exercised — OPT-IN ONLY (it makes every
     # archived digest non-regenerable and ties the reward economy to
     # petition order), never bundled into the default.
-    "petition": "first_enabled",    # first_enabled | rotate
+    "petition": "first_enabled",    # first_enabled | rotate | buy (AU-3a: the arm priced in authority)
     # PC15-10 B1 (Sept 26, 2026) "The Antechamber": an AUDIENCE-tier
     # petition is no modal — the response names it under
     # `marshal_audience` and the card is fetched on demand. `open` (the
@@ -3268,6 +3268,9 @@ class Answerer:
                 payload = _as_dict(response.get("objection"))
             payload = payload or {}
             choice = self.policy["objection"]
+            _word = payload.get("word")
+            if choice == "word" and not (isinstance(_word, dict) and _word and not _word.get("refusal")):
+                choice = "trust"       # AU-3a: the Word where the objection offers it open, else trust
             if kept and choice not in open_roads:
                 fallback = next((c for c in ("trust", "compromise", "cancel")
                                  if c in open_roads), str(open_roads[0]))
@@ -3430,6 +3433,9 @@ class Answerer:
                 idx = self._petition_rotation.get(kind, 0)
                 choice = _option_id(enabled[idx % len(enabled)])
                 self._petition_rotation[kind] = idx + 1
+            elif enabled and str(self.policy.get("petition", "first_enabled")) == "buy":
+                # AU-3a: the arm priced in authority where it is open, else the first enabled
+                choice = _option_id(([o for o in enabled if o.get("standing_cost") is not None] or enabled)[0])
             elif enabled:
                 choice = _option_id(enabled[0])
             if choice is None and options:
@@ -3465,6 +3471,9 @@ class Answerer:
                     idx = self._petition_rotation.get(kind, 0)
                     choice = _option_id(enabled[idx % len(enabled)])
                     self._petition_rotation[kind] = idx + 1
+                elif enabled and str(self.policy.get("petition", "first_enabled")) == "buy":
+                    choice = _option_id(([o for o in enabled if o.get("standing_cost") is not None]
+                                         or enabled)[0])          # AU-3a
                 elif enabled:
                     choice = _option_id(enabled[0])
                 if choice is None and options:
@@ -3895,7 +3904,10 @@ class Answerer:
                 # RE-3: the letter stands and lapses on its own day
                 self.last_standing_reason = AFFAIR_LAPSE_REASON
                 return None
-            wanted = MOMENT_ACTIONS[mode]
+            if mode == "decree" and not any(str(_option_id(o) or "") == AFFAIR_ACTIONS["decree"]
+                                            for o in all_options):
+                mode = "decline"       # AU-3a: the Decree where the letter offers it, else the default
+            wanted = AFFAIR_ACTIONS[mode]
             for option in all_options:
                 if str(_option_id(option) or "") != wanted:
                     continue
@@ -5201,8 +5213,11 @@ def _is_moment_surface(dialogue) -> bool:
 # letter STANDING, unanswered, so it lapses on its answer-by turn through the
 # real lapse (`lapse_pending_offers` → `moments.lapse_default`) — the lapse
 # default §16 measures the Rhine road against.
-AFFAIR_MODES = MOMENT_MODES + ("lapse",)
+AFFAIR_MODES = MOMENT_MODES + ("lapse", "decree")
 AFFAIR_LAPSE_REASON = "left to lapse (--affair lapse)"
+# AU-3a: `decree` answers an Edict letter by its third answer (paid in
+# authority) and every other letter by the default (decline)
+AFFAIR_ACTIONS = dict(MOMENT_ACTIONS, decree="decree_ai_proposal")
 
 
 def affair_mode(policy) -> str:
@@ -5592,7 +5607,8 @@ def main():
     ap.add_argument("--save-at", default="",
                     help="comma-separated turn numbers to POST /save at")
     ap.add_argument("--objection", default="",
-                    choices=["", "trust", "insist", "compromise"])
+                    choices=["", "trust", "insist", "compromise", "word"],
+                    help="AU-3a: word = 'By my word' where the objection offers it open, else trust")
     ap.add_argument("--diplomacy", default="",
                     choices=["", "decline", "accept", "first", "propose"],
                     help="propose = France actively sues for peace (one "
@@ -5601,8 +5617,9 @@ def main():
     # FA slice 17 part f — the decision dials (see POLICY_DEFAULTS).
     ap.add_argument("--redemption", default="",
                     choices=["", "grant_autonomy", "administrative_role", "dismiss"])
-    ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate"],
-                    help="rotate cycles the enabled arms per petition kind (opt-in)")
+    ap.add_argument("--petition", default="", choices=["", "first_enabled", "rotate", "buy"],
+                    help="rotate cycles the enabled arms per petition kind (opt-in); AU-3a: buy "
+                         "takes the arm priced in authority where it is open")
     ap.add_argument("--audience", default="", choices=["", "open", "ignore"],
                     help="PC15-10 B1: hear an antechamber audience when the "
                          "response names it (open, default) or leave it waiting")
@@ -5655,7 +5672,8 @@ def main():
                     help="RE-2: how an affair of state is answered — accept or decline "
                          "(absent = decline, answered on arrival; never mirrors --moment or "
                          "--diplomacy); RE-3: lapse = the letter left standing to lapse on "
-                         "its answer-by turn. Absent = every arm unchanged")
+                         "its answer-by turn; AU-3a: decree = the Edicts' third answer where the "
+                         "letter offers it open, else decline. Absent = every arm unchanged")
     ap.add_argument("--stop-on-ending", dest="stop_on_ending", action="store_true",
                     help="GE-2: stop the run when a MARKED ending (the Verdict, "
                          "a Humbled Peace) is stamped; a Fall stops it anyway")

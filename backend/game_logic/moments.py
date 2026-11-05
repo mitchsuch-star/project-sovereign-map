@@ -77,7 +77,11 @@ PASS_REASONS = (PASS_PREMISE, PASS_FORSWORN, PASS_CROWDED, PASS_VERDICT, PASS_BE
 
 ANSWER_ACCEPT = "accept"
 ANSWER_DECLINE = "decline"
-ANSWER_ACTIONS = {ANSWER_ACCEPT: "accept_ai_proposal", ANSWER_DECLINE: "reject_ai_proposal"}
+# AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the Edict letters' third answer —
+# "Decree it", the same edict paid in authority (`decree_side`)
+ANSWER_DECREE = "decree"
+ANSWER_ACTIONS = {ANSWER_ACCEPT: "accept_ai_proposal", ANSWER_DECLINE: "reject_ai_proposal",
+                  ANSWER_DECREE: "decree_ai_proposal"}
 
 ROAD_ANY = "any"
 ROAD_NONE = "none"
@@ -895,9 +899,19 @@ def _plan_edict(world, lord, op) -> Dict[str, Any]:
     price = int(block.get("price", 0) or 0)
     term = int(block.get("term", 0) or 0)
     until = _turn(world) + term
+    words = "; ".join(line for line in (reforms.effect_line(c) for c in (block.get("effects") or [])) if line)
+    if str(op.get("currency") or "") == "authority":
+        # AU-3a: the Decree — the block's `authority` price at the recency
+        # rise, the one quote, refused under the purchases' floor; no gold
+        from backend.game_logic import standing
+        offer = standing.offer(world, lord, int(block.get("authority", 0) or 0))
+        return {"op": "edict", "template": template, "name": affairs.edict_name(e), "currency": "authority",
+                "amount": 0, "authority": int(offer["price"]), "term": term, "until": until,
+                "before": int(offer["before"]), "after": int(offer["after"]),
+                "refusal": str(affairs.edict_refusal(world, lord, e, currency="authority") or ""),
+                "line": f"{offer['line'].rstrip('.')}; {words} until {_dateline(world, until)}, {term} turns"}
     treasury, chest = purse_of(world, lord)
     held = f"{chest:,} gold{FREE_OF_OBLIGATIONS}" if chest < treasury else f"{chest:,}"
-    words = "; ".join(line for line in (reforms.effect_line(c) for c in (block.get("effects") or [])) if line)
     return {"op": "edict", "template": template, "name": affairs.edict_name(e),
             "amount": price, "term": term, "until": until, "before": treasury, "after": treasury - price,
             "refusal": str(affairs.edict_refusal(world, lord, e, treasury=chest) or ""),
@@ -909,7 +923,8 @@ def _apply_edict(world, lord, row) -> None:
     from backend.game_logic import affairs
     e = affairs.template_by_id(world, str(row.get("template") or ""))
     if e is not None:
-        affairs.grant_edict(world, lord, e)
+        affairs.grant_edict(world, lord, e, currency=str(row.get("currency") or "gold"),
+                            party=str(row.get("party") or ""))
 
 
 OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
@@ -940,6 +955,15 @@ def _answer_side(e: Dict[str, Any], answer: str, form: Any) -> Dict[str, Any]:
             return side
     side = (e or {}).get(answer)
     return side if isinstance(side, dict) else {}
+
+
+def decree_side(e: Dict[str, Any], occ: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """AU-3a: the letter's third answer ("Decree it") — the entry's `decree`
+    side while its row is armed (`affairs.side_armed`, the seam AUY), else {}
+    (the letter reads its two answers as before)."""
+    from backend.game_logic import affairs
+    side = _answer_side(e, ANSWER_DECREE, (occ or {}).get("form"))
+    return side if affairs.side_armed(side) else {}
 
 
 def _bind_op(op: Dict[str, Any], occ: Dict[str, Any]) -> Dict[str, Any]:
@@ -995,6 +1019,9 @@ def _derived_button_line(world, lord: str, rows: List[Dict[str, Any]]) -> str:
                          f"{AUTONOMY_NAMES.get(int(row.get('level', 0) or 0), '')}")
         elif op == "squadron" and not row.get("refusal"):
             parts.append(f"{int(row.get('ships', 0) or 0)} sail at {int(row.get('odds', 0) or 0)} in 100")
+        elif op == "edict" and not row.get("refusal") and row.get("currency") == "authority":
+            parts.append(f"authority {int(row.get('before', 0) or 0)} → {int(row.get('after', 0) or 0)} · "
+                         f"{int(row.get('term', 0) or 0)} turns")   # AU-3a: the Decree
         elif op == "edict" and not row.get("refusal"):
             parts.append(f"−{int(row.get('amount', 0) or 0):,} gold · {int(row.get('term', 0) or 0)} turns")
         elif op == "enact_law" and not row.get("refusal"):
@@ -1051,6 +1078,11 @@ def _receipt(world, lord: str, side: Dict[str, Any], rows: List[Dict[str, Any]])
         elif op == "squadron":
             figures["odds"] = int(row.get("odds", 0) or 0)
             figures["ships"] = int(row.get("ships", 0) or 0)
+        elif op == "edict" and row.get("currency") == "authority":
+            # AU-3a: the Decree's figures — the one quote's, at the recency rise
+            figures["authority_before"] = int(row.get("before", 0) or 0)
+            figures["authority_after"] = int(row.get("after", 0) or 0)
+            figures["term"] = int(row.get("term", 0) or 0)
         elif op == "edict":
             # RE-6: one source for the price — the `edict` block's, never a literal
             figures["gold"] = f"{int(row.get('amount', 0) or 0):,}"
@@ -1076,6 +1108,11 @@ def plan(world, e: Dict[str, Any], answer: str,
     side = _answer_side(e, answer, occ.get("form"))
     caption = str(side.get("caption") or answer)
     rows: List[Dict[str, Any]] = []
+    if answer == ANSWER_DECREE and not decree_side(e, occ):
+        # AU-3a: a letter with no armed third answer refuses the Decree (a typed
+        # or posted "decree" on any other letter, or the seam AUY held down)
+        rows.append({"op": "edict", "line": "", "refusal": "This letter cannot be decreed, Sire."})
+        side = {}
     for op in side.get("ops") or []:
         op = _bind_op(scaled_op(op or {}, tier), occ) if occ else (op or {})
         # AU-2a: an op authored `since` a row is planned only while the row is
@@ -1092,8 +1129,9 @@ def plan(world, e: Dict[str, Any], answer: str,
             continue
         try:
             row = fns[0](world, lord, op)
-            if str(row.get("op") or "") == "authority":
+            if str(row.get("op") or "") == "authority" or row.get("currency") == "authority":
                 # AU-1: the letter and its writer ride the row — the books' cause
+                # (AU-3a: the Decree's edict row too — the minister its party)
                 row["letter"] = str((e or {}).get("title") or "the letter")
                 row["template"] = str((e or {}).get("id") or "")     # AU-2b: the Council's, the ceremony's key
                 try:
@@ -1368,6 +1406,8 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
     affair = is_occurrence(str(occ.get("id") or ""))
     accept = plan(world, e, ANSWER_ACCEPT, occ)
     decline = plan(world, e, ANSWER_DECLINE, occ)
+    # AU-3a: the third answer where the letter authors one (the Edict letters)
+    decree = plan(world, e, ANSWER_DECREE, occ) if decree_side(e, occ) else None
     writer_line = ground = chapter = exhibit = counsel = ""
     if affair:
         from backend.game_logic import affairs
@@ -1439,6 +1479,14 @@ def letter_payload(world, e: Dict[str, Any], issued: int, answer_by: int,
         "talleyrand_assessment": counsel,
         "choice_display": {"accept": accept["caption"], "reject": decline["caption"]},
     }
+    if decree is not None:
+        # AU-3a: the third answer rides last (the two answers' indices kept);
+        # the client draws it in the Counter's slot (`button_decree`)
+        payload["answers"].append({"action": ANSWER_ACTIONS[ANSWER_DECREE], "caption": decree["caption"],
+                                   "quote": decree["quote"]})
+        payload["button_decree"] = str(decree.get("receipt") or "")
+        payload["clauses"].insert(payload["clauses"].index(decline["quote"]), decree["quote"])
+        payload["choice_display"]["decree"] = decree["caption"]
     device = payload["device"]
     payload["arms"] = str(device["nation"]) if device["kind"] == "arms" else ""
     payload["monogram"] = str(device["letter"])
@@ -1522,6 +1570,8 @@ def answer_verdict(world, letter: Dict[str, Any], action: Optional[str] = None):
     if e is None or status(world, mid) != STATUS_FIRED:
         return _no("moment_passed", "This moment has passed, Sire.")
     answer = ANSWER_DECLINE if action == ANSWER_ACTIONS[ANSWER_DECLINE] else ANSWER_ACCEPT
+    if action == ANSWER_ACTIONS[ANSWER_DECREE]:
+        answer = ANSWER_DECREE                 # AU-3a: the Decree is judged by its own plan
     p = plan(world, e, answer, status_row(world, mid))
     return _ok() if p["ok"] else _no("moment_price", p["refusal"])
 
@@ -1606,7 +1656,7 @@ def counter_refusal(dialogue: Dict[str, Any]) -> Dict[str, Any]:
     """A moment letter is answered, never bargained: the Counter refuses and
     the letter stands (nothing popped, nothing charged)."""
     return {"success": False,
-            "message": "A moment of history is answered, Sire, not bargained — choose one of its two answers.",
+            "message": "A moment of history is answered, Sire, not bargained — choose one of its answers.",
             "decision_reason": "stands", "moment_stands": True}
 
 
@@ -1991,6 +2041,10 @@ def _standing_slip(world, e: Dict[str, Any], mid: str, row: Dict[str, Any]) -> D
                 "answers": [{"caption": str(accept["caption"]), "receipt": str(accept.get("receipt") or "")},
                             {"caption": str(decline["caption"]), "receipt": str(decline.get("receipt") or "")}],
                 "mailbox_id": mailbox_id_of(world, mid)})
+    if decree_side(e, row):
+        # AU-3a: the Edict letter's third answer, last (as the letter lists it)
+        decree = plan(world, e, ANSWER_DECREE, row)
+        out["answers"].append({"caption": str(decree["caption"]), "receipt": str(decree.get("receipt") or "")})
     return out
 
 

@@ -2994,6 +2994,7 @@
                     "edict": {
                         "name": "the Magazines",
                         "price": 2500,
+                        "authority": 5,
                         "term": 8,
                         "rest": 8,
                         "effects": [
@@ -3020,6 +3021,25 @@
                         "situation": "The magazines are stocked; the fed provinces carry a quarter more men until {until}.",
                         "press": "PARIS — The Intendance contracts for the magazines of the Grande Armée.",
                         "remember": "In {month} you stocked the magazines; Daru writes again."
+                    },
+                    "decree": {
+                        "caption": "Decree it",
+                        "since": "AU-3a",
+                        "button_line": "auth {authority_before} → {authority_after} · 1 action · {term} turns",
+                        "ops": [
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            },
+                            {
+                                "op": "edict",
+                                "currency": "authority"
+                            }
+                        ],
+                        "echo": "Daru: the requisitions go out under your decree; the departments fill the depots on the Emperor's word, not the Treasury's.",
+                        "situation": "The magazines are stocked by decree; the fed provinces carry a quarter more men until {until}.",
+                        "press": "PARIS — By imperial decree the departments requisition grain and fodder for the magazines of the Grande Armée.",
+                        "remember": "In {month} you stocked the magazines by decree; Daru writes again."
                     },
                     "decline": {
                         "caption": "Let the army forage",
@@ -3072,6 +3092,7 @@
                     "edict": {
                         "name": "the Remounts",
                         "price": 1500,
+                        "authority": 3,
                         "term": 8,
                         "rest": 8,
                         "effects": [
@@ -3099,6 +3120,25 @@
                         "situation": "The remounts are bought; cavalry levies cost a fifth less until {until}.",
                         "press": "PARIS — The War Administration buys remounts for the cavalry of the Grand Army.",
                         "remember": "In {month} you bought the remounts; the War Administration writes again."
+                    },
+                    "decree": {
+                        "caption": "Decree it",
+                        "since": "AU-3a",
+                        "button_line": "auth {authority_before} → {authority_after} · 1 action · {term} turns",
+                        "ops": [
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            },
+                            {
+                                "op": "edict",
+                                "currency": "authority"
+                            }
+                        ],
+                        "echo": "The War Administration: the departments deliver their horses under your decree; the depots fill without a sou from the Treasury.",
+                        "situation": "The remounts come by decree; cavalry levies cost a fifth less until {until}.",
+                        "press": "PARIS — By imperial decree the departments deliver horses to the depots of the cavalry.",
+                        "remember": "In {month} you filled the depots by decree; the War Administration writes again."
                     },
                     "decline": {
                         "caption": "Let the depots wait",
@@ -3150,6 +3190,7 @@
                     "edict": {
                         "name": "the Camps of Instruction",
                         "price": 2000,
+                        "authority": 4,
                         "term": 8,
                         "rest": 8,
                         "effects": [
@@ -3176,6 +3217,25 @@
                         "situation": "The camps of instruction are formed; every drill yields five more morale until {until}.",
                         "press": "PARIS — The Minister of War forms camps of instruction for the regiments of the line.",
                         "remember": "In {month} you formed the camps; the Minister of War writes again."
+                    },
+                    "decree": {
+                        "caption": "Decree it",
+                        "since": "AU-3a",
+                        "button_line": "auth {authority_before} → {authority_after} · 1 action · {term} turns",
+                        "ops": [
+                            {
+                                "op": "admin",
+                                "amount": 1
+                            },
+                            {
+                                "op": "edict",
+                                "currency": "authority"
+                            }
+                        ],
+                        "echo": "The Minister of War: the camps are formed by your decree; the prefects quarter the divisions at the departments' charge.",
+                        "situation": "The camps of instruction are formed by decree; every drill yields five more morale until {until}.",
+                        "press": "PARIS — By imperial decree camps of instruction are formed for the regiments of the line.",
+                        "remember": "In {month} you formed the camps by decree; the Minister of War writes again."
                     },
                     "decline": {
                         "caption": "Let the regiments rest",

@@ -63,6 +63,9 @@ ACCEPT_ACTIONS = frozenset({
     "accept_ai_proposal", "accept_counter_offer", "accept_ai_ultimatum",
     "accept_settlement_offer", "grant_ally_petition_clause",
     "honor_bargain_in_settlement",
+    # AU-3a: the Edict letters' third answer, "Decree it" — stamped open or
+    # closed with its reason as the Accept is (`moments.answer_verdict`)
+    "decree_ai_proposal",
 })
 # The marker `stamp_option` writes on a closed option; the answer seam
 # (`handle_diplomatic_dialogue_response`) refuses an option that carries it.

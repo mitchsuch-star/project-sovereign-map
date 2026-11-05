@@ -463,10 +463,17 @@ def strategic_answer_price(choice: str, quoted: Dict, order_ap: int) -> int:
     Insist or Compromise is the order's own price."""
     if choice == "trust":
         return int((quoted.get("preferred") or {}).get("ap_cost", 1))
-    if choice in ("insist", "compromise"):
-        key = "proceed" if choice == "insist" else "compromise"
+    if choice in ("insist", "compromise", "word"):
+        # AU-3a: the Word gives the order as given — the insistence's actions
+        key = "compromise" if choice == "compromise" else "proceed"
         return int((quoted.get(key) or {}).get("ap_cost", order_ap))
     return 0
+
+
+# AU-3a: the strategic order's first step as the order a battle can answer
+# (`vindication.order_can_be_judged`) — a pursuit of its marshal, a march on
+# its province; HOLD and SUPPORT are not judged (no battle is theirs to lose)
+_WORD_JUDGED = {"PURSUE": "pursue", "MOVE_TO": "move"}
 
 
 def _defiant_verb(action: str) -> str:
@@ -2064,6 +2071,12 @@ class StrategicExecutor:
                             "target": ctx.target,
                             "marshal_name": ctx.marshal.name,
                         }
+                        # AU-3a: the Word on this road too (its own key — the
+                        # options list keeps its three types)
+                        from backend.game_logic import standing as _standing
+                        _word_offer = _standing.word_offer(ctx.world, ctx.marshal)
+                        if _word_offer:
+                            objection["word"] = _word_offer
 
                         # CRITICAL: Store on world for /respond_to_objection endpoint
                         ctx.world.pending_strategic_objection = objection
@@ -3695,6 +3708,37 @@ class StrategicExecutor:
             stage_redemption(world, marshal, result=_reply)
         return _reply
 
+    @staticmethod
+    def _word_refusal(world, marshal, objection: Dict, choice: str, valid: List[str]) -> Optional[Dict]:
+        """AU-3a: the Word re-quoted at the answer — refused under the
+        purchases' floor with its reason, the objection kept (it lapses at the
+        turn's end, as every strategic objection does); None when it may land."""
+        from backend.game_logic import standing
+        offer = standing.word_offer(world, marshal)
+        if offer and not offer.get("refusal"):
+            return None
+        from backend.commands.dialogue_routing import word_answer_refusal
+        return word_answer_refusal(world, marshal.name, str(offer.get("refusal") or "the word is not offered"),
+                                   [c for c in valid if c != "word"], lapses=True,
+                                   pending_strategic_objection=objection)
+
+    @staticmethod
+    def _give_word(world, marshal, objection: Dict) -> str:
+        """AU-3a: "By my word" on the strategic road — the price paid through
+        `standing.buy` (his trust tier, the recency rise) and the verdict
+        stamped on the order's first step (`_WORD_JUDGED`), the road's first
+        vindication: a field lost within three turns costs trust −5 and
+        authority −3 (§6.5 reading 2). Returns the quote line said."""
+        from backend.game_logic import standing
+        paid = standing.buy(world, str(getattr(world, "player_nation", "") or ""), standing.word_base(marshal),
+                            "word_given", party=marshal.name, marshal=marshal.name)
+        action = _WORD_JUDGED.get(str(objection.get("strategic_type") or ""))
+        order = ({"action": action, "target": objection.get("target"), "marshal": marshal.name}
+                 if action else {"action": "hold", "marshal": marshal.name})
+        world.vindication_tracker.record_choice(marshal.name, "word", dict(objection.get("original_command") or {}),
+                                                None, executed_order=order, turn=world.current_turn)
+        return f"By your word: {str(paid.get('line') or '').strip()}"
+
     def _handle_strategic_objection_from_endpoint(self, choice: str, game_state: Dict) -> Dict:
         """
         Handle strategic objection response from /respond_to_objection endpoint.
@@ -3727,7 +3771,8 @@ class StrategicExecutor:
         choice_mapping = {
             "trust": "preferred",
             "insist": "proceed",
-            "compromise": "compromise"
+            "compromise": "compromise",
+            "word": "proceed",           # AU-3a: "By my word" — the order as given
         }
         strategic_response = choice_mapping.get(choice, "proceed")
 
@@ -3786,6 +3831,13 @@ class StrategicExecutor:
         _valid_choices = ["trust", "insist"]
         if _quoted.get("compromise", {}).get("compromise"):
             _valid_choices.append("compromise")
+        from backend.commands.dialogue_routing import word_is_open
+        if word_is_open(objection):
+            _valid_choices.append("word")      # AU-3a: while its price may land
+        elif choice == "word":
+            _closed = self._word_refusal(world, marshal, objection, choice, _valid_choices)
+            if _closed is not None:
+                return _closed                 # AU-3a: the floor's reason, the objection kept
         if choice not in _valid_choices:
             from backend.commands.dialogue_routing import format_answer_words
             return {
@@ -3823,6 +3875,9 @@ class StrategicExecutor:
                 [c for c in _valid_choices
                  if strategic_answer_price(c, _quoted, _order_ap) <= _have],
                 lapses=True, pending_strategic_objection=objection)
+        _word = self._word_refusal(world, marshal, objection, choice, _valid_choices) if choice == "word" else None
+        if _word is not None:
+            return _word
 
         # Add objection response and preferred/compromise data to command
         original_command["objection_response"] = strategic_response
@@ -3845,9 +3900,9 @@ class StrategicExecutor:
         # truth, which is the only reading under which the quote cannot
         # be wrong.
         # ══════════════════════════════════════════════════════════════
-        original_command["v2_insist_penalty"] = objection.get(
+        original_command["v2_insist_penalty"] = 0 if choice == "word" else objection.get(
             "insist_penalty",
-            _quoted.get("proceed", {}).get("trust_change", -10))
+            _quoted.get("proceed", {}).get("trust_change", -10))     # AU-3a: the Word costs no trust
         original_command["v2_trust_gain"] = objection.get(
             "trust_gain", _quoted.get("preferred", {}).get("trust_change", 3))
         original_command["v2_compromise_gain"] = objection.get("compromise_gain", COMPROMISE_TRUST_GAIN)
@@ -3861,6 +3916,7 @@ class StrategicExecutor:
 
         # Record response in authority tracker (V2b: enriched with turn)
         authority_event = world.authority_tracker.record_response(choice, world.current_turn)
+        _word_line = self._give_word(world, marshal, objection) if choice == "word" else ""
 
         # ════════════════════════════════════════════════════════════
         # C1 fix: V2b STRATEGIC DEFIANCE CHECK
@@ -4095,6 +4151,8 @@ class StrategicExecutor:
         # Append failed-roll Berthier text if defiance roll failed
         if _failed_roll_berthier and result and result.get("message"):
             result["message"] = result["message"] + "\n\n" + _failed_roll_berthier
+        if _word_line and isinstance(result, dict):
+            result["message"] = f"{result.get('message', '')}\n{_word_line}".strip()   # AU-3a: the Word's price said
 
         if not result:
             result = {

@@ -1325,8 +1325,17 @@ static func shrink_centered_panel_to_content(panel: Control) -> void:
 	var have: float = panel.offset_bottom - panel.offset_top
 	var need: float = panel.get_combined_minimum_size().y
 	if need > 0.0 and need < have:
-		panel.offset_top = -need / 2.0
-		panel.offset_bottom = need / 2.0
+		# AU-15 (BUG_FIXES.md §AU): content taller than the centred band keeps
+		# SF-RR5's place BELOW the bar (the clamp's band) — re-centring it ran
+		# its top under the top bar (the objection dialog's five answers at
+		# Interface Scale 2.0: 389 px centred at y 30.5, the bar's 44 over it)
+		var view: Vector2 = panel.get_viewport().get_visible_rect().size
+		if need > view.y - 88.0 - 2.0 * top_bar_growth():
+			panel.offset_top = TOP_BAR_HEIGHT + HUD_MARGIN + top_bar_growth() - view.y / 2.0
+			panel.offset_bottom = panel.offset_top + need
+		else:
+			panel.offset_top = -need / 2.0
+			panel.offset_bottom = need / 2.0
 
 
 # ── UXR3-F3 (Pre-Deploy S12 part 2): whole lines at a scroll's edges ─────

@@ -1141,6 +1141,25 @@ def cap_layout_f3():
                               for o in ((petition or {}).get("options") or [])
                               if isinstance(o, dict)]})
 
+    # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the rivalry card with its fourth
+    # arm, "By decree" (5 authority, the pair a rung up with no roll) — harsh
+    # words between Davout and Lannes, an audience heard on demand
+    world, c = fresh()
+    clear_dialogues(world)
+    world.marshals["Davout"].set_relationship("Lannes", -1)
+    world.marshals["Lannes"].set_relationship("Davout", -1)
+    with _quiet():
+        status = J.queue_rivalry_petition(world, world.marshals["Davout"], world.marshals["Lannes"], -1)
+    rivalry = (get(c, "/marshal_petition") or {}).get("petition")
+    record("petition_rivalry_decree", rivalry,
+           source="GET /marshal_petition → petition (an audience: harsh words wait on the rail)",
+           staging="fresh 1805 boot; dialogue slot emptied; Davout and Lannes WRITTEN to Rival (−1) both "
+                   "ways; `jealousy.queue_rivalry_petition(Davout, Lannes, −1)` — the card ends with "
+                   f"By decree at full authority (push status {status})",
+           facts={"kind": (rivalry or {}).get("kind"),
+                  "options": [(o.get("label"), o.get("cost_note"), o.get("enabled"))
+                              for o in ((rivalry or {}).get("options") or []) if isinstance(o, dict)]})
+
     # LV-15 / LV-20: the wizard's nation list (step 1) and two previews —
     # Austria at war (the Sponsor chip hidden, the buy-off chip's long gate
     # reason) and Prussia at peace (all three instrument chips, the long

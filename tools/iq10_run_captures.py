@@ -659,6 +659,16 @@ SHOTS: list[dict] = [
                      "what each answer does read in the letter",
     },
     {
+        # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the rivalry card's fourth arm
+        "id": "petition_rivalry_decree",
+        "surface": "Marshal petition — the rivalry card with By decree (AU-3a)",
+        "payload": "petition_rivalry_decree",
+        "scene": "res://scenes/marshal_petition_dialog.tscn",
+        "mode": "call", "method": "show_petition",
+        "must_show": "every answer in the row above the fold at BOTH scales, By decree last with its "
+                     "price in authority and what it buys read in the letter",
+    },
+    {
         "id": "wizard_step1",
         "surface": "Diplomacy wizard — step 1, the nation list (LV-20)",
         "payload": "wizard_nations",

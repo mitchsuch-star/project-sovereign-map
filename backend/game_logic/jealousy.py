@@ -1508,7 +1508,67 @@ _COOLING_CAUSE = {
     "the Emperor forced the reconciliation":
         "They shook hands before the staff, and it held.",
     "the Emperor's mediation": "Your word carried between them.",
+    # AU-3a: the two arms priced in authority (`_honour_option`, `_pair_decree_option`)
+    "the Emperor's honour": "The Emperor honoured him before the army.",
+    "the Emperor's decree": "By decree the quarrel is set aside.",
 }
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3) — the cards' arms priced in
+# authority: "Honour him" on the confrontation card, "By decree" on the
+# rivalry card. Appended LAST (the unattended driver answers the first enabled
+# arm, so its runs keep their answers); quoted live at every delivery
+# (`refresh_petition_affordability`) at the recency rise, and closed under the
+# purchases' floor with the reason — the command arm's idiom: a closed arm's
+# detail IS its reason. `standing_cost` is the base price; `does` what it buys.
+# ═══════════════════════════════════════════════════════════════════════
+
+def _priced_in_authority(world, option: Dict) -> Dict:
+    from backend.game_logic import standing
+    option = dict(option)
+    lord = str(getattr(world, "player_nation", "") or "")
+    offer = standing.offer(world, lord, int(option.get("standing_cost") or 0))
+    option["cost_note"] = f"{int(offer['price'])} authority"
+    reason = str(option.get("gate_reason") or "") or str(offer.get("refusal") or "")
+    if reason:
+        option.update(enabled=False, available=False, unavailable_reason=reason, detail=reason)
+    else:
+        option.update(enabled=True, detail=f"{option.get('does') or ''} {offer['line']}".strip())
+        option.pop("unavailable_reason", None)
+        option.pop("available", None)
+    return option
+
+
+def _honour_option(world, marshal, target) -> Optional[Dict]:
+    """Honour him: his grievance ends, trust +2; the colleague the card names —
+    passed over — trust −2; the honour pays back if he wins within eight turns."""
+    from backend.game_logic import standing
+    if not standing.buys_armed():
+        return None
+    does = (f"{marshal.name}'s grievance ends and his trust rises {standing.HONOUR_TRUST}; "
+            f"{target.name}, passed over, loses {standing.HONOUR_TRUST}. A field he wins within "
+            f"{standing.HONOUR_WINDOW} turns repays {standing.HONOUR_REPAID}.")
+    return _priced_in_authority(world, {"id": "honour", "label": "Honour him", "does": does,
+                                        "standing_cost": standing.HONOUR_PRICE})
+
+
+def _pair_decree_option(world, marshal, other, new_value: int) -> Optional[Dict]:
+    """By decree: the pair rises one rung with no roll (−2 → −1, −1 → 0); an
+    entrenched pair cannot be lifted above rivals, so the arm is closed there."""
+    from backend.game_logic import standing
+    if not standing.buys_armed():
+        return None
+    to_value = int(new_value) + 1
+    entrenched = max(get_escalation_level(marshal, other.name),
+                     get_escalation_level(other, marshal.name)) >= ESCALATION_PERMANENT_LEVEL
+    gate = ("Their breach is entrenched: no decree lifts them above rivals." if entrenched and to_value > -1
+            else "")
+    label_of = type(marshal).get_relationship_label
+    does = (f"No roll: {marshal.name} and {other.name} rise from {label_of(int(new_value))} to "
+            f"{label_of(to_value)}, and the grievance between them ends.")
+    return _priced_in_authority(world, {"id": "decree", "label": "By Decree", "does": does,
+                                        "standing_cost": standing.PAIR_DECREE_PRICE, "gate_reason": gate})
 
 
 def _action_resolution_event(record: Dict) -> Dict:
@@ -2994,6 +3054,11 @@ def refresh_petition_affordability(petition: Dict, world) -> Dict:
         if not isinstance(option, dict):
             refreshed.append(option)
             continue
+        if option.get("standing_cost") is not None:
+            # AU-3a: an arm priced in authority, re-quoted live (the recency
+            # rise, the floor's reason; a builder's own gate kept)
+            refreshed.append(_priced_in_authority(world, option))
+            continue
         cost = option.get("ap_cost")
         if cost is None:
             refreshed.append(option)
@@ -3275,6 +3340,8 @@ def queue_confrontation_petition(world, marshal, target, level: int = 0) -> str:
             # hidden timer. Honest availability: when the executor would
             # refuse, the button says so instead of failing after the click.
             _command_option(world, marshal),
+            # AU-3a: Honour him, priced in authority, last
+            *[o for o in (_honour_option(world, marshal, target),) if o],
         ],
         "context": {"marshal": marshal.name, "target": target.name,
                     "escalation_level": int(level)},
@@ -3376,6 +3443,8 @@ def queue_rivalry_petition(world, marshal, other, new_value: int) -> str:
                         "commands stand together."),
              "cost_note": "", "enabled": True},
         ]
+    # AU-3a: By decree, priced in authority, last on either tier
+    options += [o for o in (_pair_decree_option(world, marshal, other, new_value),) if o]
     return _push_petition(world, {
         "kind": "rivalry_confrontation",
         "title": "A rivalry among the marshals",
@@ -4117,6 +4186,30 @@ def _apply_confrontation_choice(world, choice: str, context: Dict,
                            retire_standing_card=False)
         message = (f"{marshal.name} stiffens under the rebuke "
                    f"({CONFRONT_REBUKE_TRUST} trust).")
+    elif choice == "honour":
+        # AU-3a (§5.3): Honour him — paid in authority (the one price rule: it
+        # lands whole or the card stands); his grievance ends, his trust rises,
+        # the colleague passed over loses as much, and the mark lets a field he
+        # wins within eight turns repay the honour (`standing.honour_repaid`)
+        from backend.game_logic import standing as _standing
+        lord = str(getattr(world, "player_nation", "") or "")
+        paid = _standing.buy(world, lord, _standing.HONOUR_PRICE, "honoured", party=marshal.name,
+                             marshal=marshal.name)
+        if paid.get("refusal"):
+            return {"success": False, "message": f"Honour him is closed, Sire — {paid['refusal']}"}
+        _passed_over = world.marshals.get(str(context.get("target") or ""))
+        if marshal.jealous_of:
+            clear_jealousy(world, marshal, resolved_by_action=False, events=_pending_events(world),
+                           reason="the Emperor's honour", retire_standing_card=False)
+        marshal.modify_trust(_standing.HONOUR_TRUST)
+        if _passed_over is not None:
+            _passed_over.modify_trust(-_standing.HONOUR_TRUST)
+        _tracker = _standing.tracker_of(world, lord)
+        if _tracker is not None:
+            _tracker.held[f"honoured:{marshal.name}"] = int(world.current_turn)
+        message = (f"{marshal.name} is honoured before the army (trust +{_standing.HONOUR_TRUST}"
+                   + (f"; {_passed_over.name}, passed over, −{_standing.HONOUR_TRUST}" if _passed_over else "")
+                   + f"). {str(paid.get('line') or '').strip()}")
     else:
         message = f"{marshal.name}'s grievance runs its course."
     world.log_event({
@@ -4185,7 +4278,23 @@ def _apply_rivalry_choice(world, choice: str, context: Dict) -> Dict:
                                retire_standing_card=False)
 
     outcome: str
-    if new_value == -1:
+    if choice == "decree":
+        # AU-3a (§5.3): By decree — the pair one rung up with no roll, paid in
+        # authority; never above rivals for an entrenched pair (the arm closed)
+        from backend.game_logic import standing as _standing
+        if (max(get_escalation_level(marshal, other.name), get_escalation_level(other, marshal.name))
+                >= ESCALATION_PERMANENT_LEVEL and new_value + 1 > -1):
+            return {"success": False,
+                    "message": "By Decree is closed, Sire — their breach is entrenched: no decree lifts them above rivals."}
+        paid = _standing.buy(world, str(getattr(world, "player_nation", "") or ""), _standing.PAIR_DECREE_PRICE,
+                             "by_decree", party=marshal.name, marshal=marshal.name, other=other.name)
+        if paid.get("refusal"):
+            return {"success": False, "message": f"By Decree is closed, Sire — {paid['refusal']}"}
+        _restore(new_value + 1)
+        _mend_grievance("the Emperor's decree")
+        outcome = (f"by your decree they rise to {type(marshal).get_relationship_label(new_value + 1)} — "
+                   f"no roll was asked. {str(paid.get('line') or '').strip()}")
+    elif new_value == -1:
         if choice == "let_be":
             simmer, escalate = (0.80, 0.15) if marshal.personality == "cautious" \
                 else (0.50, 0.40) if marshal.personality == "aggressive" \

@@ -147,6 +147,15 @@ def letters_armed() -> bool:
     return True
 
 
+def buys_armed() -> bool:
+    """Arm AUY (AU-3a, §5.3): the buys — the Decree on the three Edict letters
+    (their `decree` answer, `since: "AU-3a"`), the Word on an objection (both
+    roads), Honour him and By Decree on the marshals' cards; down, the tree
+    reads as AU-2c's. The courts' Decree is parked behind `courts_move()`
+    with the courts' other writes (AU-14 — AU-4 flips it)."""
+    return True
+
+
 def courts_move() -> bool:
     """§5.7: the courts' new sources and battle writes — PARKED until AU-4
     flips it on the user's word (the RE-6 pattern)."""
@@ -497,7 +506,8 @@ HONOUR_REPAID = 2         # … +2, once per honour (the mark is AU-3a's to writ
 # §4.1 reading 5: the field's dents — the defeats, the failed mediations, the
 # stakes — and never a price (a letter, a law, a claim, a breach, an Act)
 FIELD_DENT_KEYS = ("field_lost", "capital_lost", "own_hand_lost", "assault_repulsed",
-                   "mediation_ignored", "reconciliation_failed", "insisted_lost", "compromise_lost")
+                   "mediation_ignored", "reconciliation_failed", "insisted_lost", "compromise_lost",
+                   "word_lost")
 COUNCIL_LETTER = "chancellors_letters"   # the Council's dents: the Arch-Chancellor's Declines
 
 
@@ -661,6 +671,87 @@ def honour_repaid(world, lord: str, marshal: str) -> int:
         return 0
     return regrow(world, lord, HONOUR_REPAID, "honour_repaid", f"honour:{marshal}",
                   party=str(marshal), marshal=str(marshal))
+
+
+# ─────────────────────────────── the buys (AU-3a) ───────────────────────────────
+# §5.3: authority the Emperor spends on purpose — the Decree on the Edict
+# letters, the Word on an objection, the honour and the decree on the
+# marshals' cards. One price rule: a price lands whole or its button is closed
+# with the reason (`refusal`, the grip's 60); each buy raises the next by one
+# for the turn and the five after it, at most three (the recency rise).
+
+PUSH_WINDOW = 6           # the recency rise: the buys of this turn and the five before it …
+PUSH_RISE_MAX = 3         # … each +1 on the next price, at most +3
+WORD_PRICES = {"DEVOTED": 2, "TRUSTING": 3, "WARY": 4, "HOSTILE": 5}   # by the marshal's trust tier
+WORD_WINDOW = 3           # a field lost within three turns of the word given …
+WORD_LOSS_TRUST = -5      # … costs his trust −5 …
+WORD_LOSS_AUTHORITY = -3  # … and authority −3; won, nothing (never the insistence's +5)
+HONOUR_PRICE = 4          # Honour him: his grievance ends, trust +2 …
+HONOUR_TRUST = 2          # … and the colleague passed over loses as much
+PAIR_DECREE_PRICE = 5     # By decree: the quarrelling pair rises a rung with no roll
+
+
+def _push_turns(world, lord: str) -> List[int]:
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    held = getattr(tracker, "held", None) if tracker is not None else None
+    if not isinstance(held, dict):
+        return []
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    return [int(t) for t in (held.get("pushes") or []) if 0 <= turn - int(t) < PUSH_WINDOW]
+
+
+def push_price(world, lord: str, base: int) -> int:
+    """A buy's price: its base plus one per buy of this turn and the five before
+    it, at most PUSH_RISE_MAX (a court keeps no such count)."""
+    return int(base) + min(PUSH_RISE_MAX, len(_push_turns(world, lord)))
+
+
+def offer(world, lord: str, base: int) -> Dict[str, Any]:
+    """What a buy's button shows: {price, before, after, line, refusal} — the
+    quote at the recency price; `buy` reads the same price (shown = applied)."""
+    price = push_price(world, lord, base)
+    q = quote(world, lord, -price)
+    return {"price": int(price), "before": int(q["before"]), "after": int(q["after"]),
+            "line": q["line"], "refusal": q["refusal"]}
+
+
+def buy(world, lord: str, base: int, cause: str, party: str = "", **fmt) -> Dict[str, Any]:
+    """A buy: the recency price spent whole (`spend`: the quote, then the
+    move) — or refused with nothing applied; a buy that lands books its turn,
+    raising the next one's price."""
+    price = push_price(world, lord, base)
+    out = spend(world, lord, price, cause, party, **fmt)
+    out["price"] = int(price)
+    tracker = tracker_of(world, lord) if is_player(world, lord) else None
+    if not out.get("refusal") and tracker is not None:
+        tracker.held["pushes"] = _push_turns(world, lord) + [int(getattr(world, "current_turn", 0) or 0)]
+    return out
+
+
+def word_base(marshal) -> int:
+    """The Word's base price by the objecting marshal's trust tier — a third
+    of the insistence's trust penalty it replaces (§4.1 reading 2)."""
+    from backend.commands.objection_v2 import get_trust_tier
+    trust = getattr(marshal, "trust", None)
+    value = int(getattr(trust, "value", trust if isinstance(trust, int) else 70) or 0)
+    return int(WORD_PRICES.get(get_trust_tier(value).name, WORD_PRICES["TRUSTING"]))
+
+
+def word_stake_line() -> str:
+    """What the Word risks, in figures, beside the insistence's own stake line."""
+    return (f"By your word: no trust or defiance; lost within {WORD_WINDOW} turns, trust "
+            f"{_signed(WORD_LOSS_TRUST)} and authority {_signed(WORD_LOSS_AUTHORITY)}.")
+
+
+def word_offer(world, marshal) -> Dict[str, Any]:
+    """The Word on an objection's payload: {price, before, after, line,
+    refusal, stake}; {} while the buys are held down (arm AUY)."""
+    if not buys_armed() or marshal is None:
+        return {}
+    lord = str(getattr(world, "player_nation", "") or "")
+    out = offer(world, lord, word_base(marshal))
+    out["stake"] = word_stake_line()
+    return out
 
 
 def pop_event(world) -> Optional[Dict[str, Any]]:

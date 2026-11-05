@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "ad6142bedadbc1221cf38e82c82d5d44cea0e1ad47e7b298781657dbbf5e1f13",
+ "deck_sha": "12486592a3aaebf34fbbb9a51dee35cd67484a9e1a6b8bc73b736eb9e6c49e89",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -222,6 +222,7 @@
      "Austria": 4000,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 32,
      "Russia|the_remounts": 11,
@@ -453,6 +454,7 @@
      "Austria": 4000,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 32,
      "Russia|the_remounts": 11,
@@ -762,6 +764,7 @@
      "Prussia": 5500,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -1031,6 +1034,7 @@
      "Austria": 4000,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -1327,6 +1331,7 @@
      "Prussia": 1500,
      "Ottoman": 7500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -1638,6 +1643,7 @@
      "Prussia": 1500,
      "Ottoman": 7500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 43,
      "Russia|the_remounts": 11,
@@ -1903,6 +1909,7 @@
      "Ottoman": 7500,
      "Austria": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 31,
      "Russia|the_remounts": 11,
@@ -2164,6 +2171,7 @@
      "Ottoman": 5500,
      "Austria": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 31,
      "Russia|the_remounts": 11,
@@ -2487,6 +2495,7 @@
      "Ottoman": 7500,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -2834,6 +2843,7 @@
      "Ottoman": 7500,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 45,
      "Russia|the_remounts": 11,
@@ -3152,6 +3162,7 @@
      "Ottoman": 7500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -3387,6 +3398,7 @@
      "Austria": 4000,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 32,
      "Russia|the_remounts": 11,
@@ -3695,6 +3707,7 @@
      "Ottoman": 7500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -3983,6 +3996,7 @@
      "Prussia": 3500,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -4174,6 +4188,7 @@
      "Austria": 1500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 34,
      "Russia|the_remounts": 11,
@@ -4477,6 +4492,7 @@
      "Austria": 1500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -4730,6 +4746,7 @@
      "Prussia": 5500,
      "Austria": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 31,
      "Russia|the_remounts": 11,
@@ -4968,6 +4985,7 @@
      "Austria": 1500,
      "Prussia": 3500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -5151,6 +5169,7 @@
      "Austria": 6500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -5423,6 +5442,7 @@
      "Prussia": 5500,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -5722,6 +5742,7 @@
      "Austria": 1500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -6067,6 +6088,7 @@
      "Prussia": 5500,
      "Austria": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -6404,6 +6426,7 @@
      "Austria": 5500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 45,
      "Russia|the_remounts": 11,
@@ -6708,6 +6731,7 @@
      "Austria": 5500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -6834,6 +6858,7 @@
      "Russia": 1500,
      "Ottoman": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -6949,6 +6974,7 @@
     "gold": {
      "Britain": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10
     }
@@ -7117,6 +7143,7 @@
      "Prussia": 1500,
      "Austria": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -7267,6 +7294,7 @@
      "Austria": 1500,
      "Prussia": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -7478,6 +7506,7 @@
      "Austria": 3500,
      "Prussia": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -7807,6 +7836,7 @@
      "Austria": 5500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 45,
      "Russia|the_remounts": 11,
@@ -8131,6 +8161,7 @@
      "Prussia": 5500,
      "Austria": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -8488,6 +8519,7 @@
      "Prussia": 5500,
      "France": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 45,
      "Russia|the_remounts": 11,
@@ -8791,6 +8823,7 @@
      "Prussia": 5500,
      "France": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -9054,6 +9087,7 @@
      "Austria": 3500,
      "Prussia": 3500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -9231,6 +9265,7 @@
      "Prussia": 5500,
      "Austria": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 42,
      "Russia|the_remounts": 11,
@@ -9435,6 +9470,7 @@
      "Ottoman": 3500,
      "Prussia": 3500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -9710,6 +9746,7 @@
      "Austria": 1500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -9977,6 +10014,7 @@
      "Prussia": 5500,
      "Austria": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -10297,6 +10335,7 @@
      "Prussia": 3500,
      "Austria": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 43,
      "Russia|the_remounts": 11,
@@ -10554,6 +10593,7 @@
      "Austria": 1500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 27,
      "Russia|the_remounts": 11,
@@ -10874,6 +10914,7 @@
      "Ottoman": 5500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -11090,6 +11131,7 @@
      "Prussia": 3500,
      "Austria": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 28,
      "Russia|the_remounts": 11,
@@ -11382,6 +11424,7 @@
      "Prussia": 5500,
      "France": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -11728,6 +11771,7 @@
      "Austria": 1500,
      "France": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -12084,6 +12128,7 @@
      "Austria": 1500,
      "France": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 43,
      "Russia|the_remounts": 11,
@@ -12413,6 +12458,7 @@
      "Austria": 5500,
      "Prussia": 5500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,
@@ -12573,6 +12619,7 @@
      "Prussia": 2000,
      "Russia": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 29,
      "Prussia|camps_of_instruction": 30,
@@ -12775,6 +12822,7 @@
      "Prussia": 4000,
      "Ottoman": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|the_magazines": 45,
      "Austria|camps_of_instruction": 45,
@@ -12953,6 +13001,7 @@
      "Russia": 2000,
      "Prussia": 4000
     },
+    "authority": {},
     "in_force": {
      "Britain|camps_of_instruction": 45,
      "Austria|camps_of_instruction": 45,
@@ -13122,6 +13171,7 @@
      "Prussia": 4000,
      "Russia": 2000
     },
+    "authority": {},
     "in_force": {
      "Britain|camps_of_instruction": 45,
      "Ottoman|camps_of_instruction": 45,
@@ -13397,6 +13447,7 @@
      "Ottoman": 4000,
      "Austria": 2000
     },
+    "authority": {},
     "in_force": {
      "Britain|camps_of_instruction": 29,
      "Russia|camps_of_instruction": 29,
@@ -13559,6 +13610,7 @@
      "Prussia": 2000,
      "Austria": 2500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 29,
      "Russia|the_magazines": 29,
@@ -13853,6 +13905,7 @@
      "Prussia": 3500,
      "France": 1500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 45,
      "Russia|the_remounts": 11,
@@ -14053,6 +14106,7 @@
      "Austria": 4000,
      "Prussia": 3500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 26,
      "Russia|the_remounts": 11,
@@ -14305,6 +14359,7 @@
      "Austria": 4000,
      "Prussia": 3500
     },
+    "authority": {},
     "in_force": {
      "Britain|the_remounts": 10,
      "Russia|the_remounts": 11,

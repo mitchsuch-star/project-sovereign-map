@@ -49,7 +49,8 @@
    "AUL",
    "AUP",
    "AUS",
-   "AUW"
+   "AUW",
+   "AUY"
   ],
   "AUB": [
    "AUB"
@@ -69,6 +70,9 @@
   "AUL": [
    "AUL"
   ],
+  "AUY": [
+   "AUY"
+  ],
   "ALL": []
  },
  "seams_up": {},
@@ -80,7 +84,8 @@
     "AUL",
     "AUP",
     "AUS",
-    "AUW"
+    "AUW",
+    "AUY"
    ],
    "up": [],
    "series": [
@@ -151,9 +156,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 31526,
+     "letters_reads": 32184,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 159,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -230,9 +241,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32710,
+     "letters_reads": 33386,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -309,9 +326,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32710,
+     "letters_reads": 33386,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -388,9 +411,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32710,
+     "letters_reads": 33386,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -467,9 +496,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32710,
+     "letters_reads": 33386,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -546,9 +581,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32682,
+     "letters_reads": 33360,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -625,9 +666,100 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 31554,
+     "letters_reads": 32230,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
+    }
+   }
+  },
+  "AUY": {
+   "down": [
+    "AUY"
+   ],
+   "up": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 33366,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 159,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   },
@@ -702,9 +834,15 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 32710,
+     "letters_reads": 33386,
      "the_bank_delivered": 0,
-     "the_popes_ports_delivered": 0
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0
     }
    }
   }

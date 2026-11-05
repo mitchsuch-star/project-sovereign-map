@@ -1,0 +1,389 @@
+{
+ "date": "2026_11_05",
+ "source": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\au3a_2026_11_05\\frames\\run_physical\\index.json",
+ "surfaces": {
+  "petition_command_closed": {
+   "surface": "Marshal petition — the command arm closed (LV-5)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 9,
+      "red": 0,
+      "p1": 0,
+      "ok": 9,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 9,
+      "red": 0,
+      "p1": 0,
+      "ok": 9,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 9,
+      "red": 0,
+      "p1": 0,
+      "ok": 9,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 9,
+      "red": 0,
+      "p1": 0,
+      "ok": 9,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 9,
+      "red": 0,
+      "p1": 0,
+      "ok": 9,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "petition_rivalry_decree": {
+   "surface": "Marshal petition — the rivalry card with By decree (AU-3a)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "objection_dialog": {
+   "surface": "A marshal's objection to an order (objection_dialog.tscn)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 11,
+      "red": 0,
+      "p1": 0,
+      "ok": 11,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  },
+  "affair_letter_the_magazines": {
+   "surface": "An Affair of State — The Magazines — the Edicts' offer (Daru, Intendant-General) (incoming_proposal_popup.tscn, is_moment, register affair)",
+   "readings": {
+    "1920x1080@1.00": {
+     "window": [
+      1920,
+      1080
+     ],
+     "scale": 1.0,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "2560x1440@1.15": {
+     "window": [
+      2560,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3440x1440@1.15": {
+     "window": [
+      3440,
+      1440
+     ],
+     "scale": 1.15,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "5120x1440@1.40": {
+     "window": [
+      5120,
+      1440
+     ],
+     "scale": 1.4,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    },
+    "3840x2160@1.50": {
+     "window": [
+      3840,
+      2160
+     ],
+     "scale": 1.5,
+     "text_size": 1.0,
+     "ok": true,
+     "counts": {
+      "rows": 7,
+      "red": 0,
+      "p1": 0,
+      "ok": 7,
+      "map": 0,
+      "map_small": 0
+     },
+     "flagged": []
+    }
+   }
+  }
+ },
+ "client_commit": "7d34b5f6",
+ "physical_scale": "auto",
+ "text_size": 1.0
+}

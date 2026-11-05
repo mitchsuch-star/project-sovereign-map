@@ -3103,6 +3103,12 @@ AUTHORITY_CAUSES = {
     "return": "the Emperor's return to {capital}, the Council's account settled",
     "honour_repaid": "{marshal} honoured, and the field won",
     "ceremony": "{letter} celebrated",
+    # AU-3a the buys: the Decree, the Word, the honour and the decree on the cards
+    "edict_decreed": "{edict} decreed on the Emperor's word",
+    "word_given": "your word given over {marshal}'s objection",
+    "word_lost": "{marshal}'s field lost on your word",
+    "honoured": "{marshal} honoured",
+    "by_decree": "{marshal} and {other} reconciled by decree",
     # the console
     "debug_set": "set by the debug console",
     # the setter's fallback — a direct assignment (the test files); never a production cause

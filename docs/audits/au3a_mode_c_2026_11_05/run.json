@@ -1,0 +1,315 @@
+{
+ "port": 8007,
+ "started": "2026-11-05T12:20:05",
+ "staged": {
+  "b": true,
+  "d": true
+ },
+ "engine_exit": 0,
+ "engine_s": 21.0,
+ "engine_log_bytes": 4042,
+ "script_errors": [],
+ "engine_errors": 0,
+ "walk": {
+  "backend": "http://127.0.0.1:8007",
+  "boot_turn": 1,
+  "booted": true,
+  "decree_letter": {
+   "accept": "Buy the remounts / −1,500 gold · 1 action · 8 turns",
+   "answers": [
+    "accept_ai_proposal",
+    "reject_ai_proposal",
+    "decree_ai_proposal"
+   ],
+   "body": "The Remounts — Dejean, Minister of War Administration\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, the depots hold more saddles than horses. A credit now buys remounts in the country at the spring fairs' price, not the campaign's.\nHistorically the cavalry was remounted between campaigns by purchase and requisition — the Prussian studs after Jena, the depots that refilled the squadrons before Friedland.\n❧ The cavalry depots hold 17,700 of 30,000 (59%); the weakest squadrons stand at 100% of their establishment; the chest holds 5,000 gold against 1,500.\nWHAT EACH ANSWER DOES\n  Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\n  Let the depots wait: no change.\n  Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\nIf unanswered by Early January 1806: Let the depots wait — no change.",
+   "button_decree": "auth 90 → 87 · 1 action · 8 turns",
+   "chip": {
+    "present": true,
+    "text": "Authority 90",
+    "tooltip": "Authority 90 (Divine Right)\nLast moves:\n  T0  unattributed (−10)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+    "visible": true
+   },
+   "counsel": "Berthier — A squadron without horses is infantry that eats oats, Sire.",
+   "counter": "Decree it / auth 90 → 87 · 1 action · 8 turns",
+   "counter_disabled": false,
+   "counter_tooltip": "Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.",
+   "counter_visible": true,
+   "decline": "Let the depots wait / no change",
+   "register": "affair",
+   "title": "The Remounts",
+   "writer": "Dejean"
+  },
+  "decree_loaded_turn": 7,
+  "errors": [],
+  "final_turn": 2,
+  "ms": 19570,
+  "objection": {
+   "buttons": {
+    "cancel_button": {
+     "disabled": false,
+     "text": "Cancel the Order (no cost)",
+     "tooltip": "",
+     "visible": true
+    },
+    "compromise_button": {
+     "disabled": false,
+     "text": "Compromise: adopt AGGRESSIVE stance (+3 trust)",
+     "tooltip": "",
+     "visible": true
+    },
+    "insist_button": {
+     "disabled": false,
+     "text": "Proceed as Ordered (-10 trust)",
+     "tooltip": "",
+     "visible": true
+    },
+    "trust_button": {
+     "disabled": false,
+     "text": "Trust Ney: attack Mack at Swabia (+3 trust)",
+     "tooltip": "",
+     "visible": true
+    },
+    "word_button": {
+     "disabled": false,
+     "text": "By My Word (-3 authority)",
+     "tooltip": "Authority 100 → 97 — the marshals' calm holds above 70.\nBy your word: no trust or defiance; lost within 3 turns, trust −5 and authority −3.",
+     "visible": true
+    }
+   },
+   "chip": {
+    "present": true,
+    "text": "Authority 100",
+    "tooltip": "Authority 100 (Divine Right)\nNo move yet this campaign.\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+    "visible": true
+   },
+   "marshal": "Ney",
+   "stats": "Authority: 100\nTrack record: Neutral\nTrust: 75 (Reliable)\nPersonality: Aggressive\n\"Ney firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Mack at Swabia instead.)\"\n\nIf the field is lost under your insistence: trust −5, authority −5; won: authority +5. A compromise: authority +2 won, trust −2 and authority −2 lost.\nNEY'S CONCERN",
+   "terminal": "light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Ney, defend\n\n⚠ Marshal Ney raises concerns...\n\n"
+  },
+  "steps": [
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 100",
+     "tooltip": "Authority 100 (Divine Right)\nNo move yet this campaign.\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "chip_text": "Authority 100",
+    "chip_tooltip": "Authority 100 (Divine Right)\nNo move yet this campaign.\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+    "frame": "AU3A_01_chip_2026_11_05.jpg",
+    "ms": 10880,
+    "note": "the boot: the top bar with the Authority chip beside DP",
+    "saved": true,
+    "step": "chip",
+    "turn": 1
+   },
+   {
+    "buttons": {
+     "cancel_button": {
+      "disabled": false,
+      "text": "Cancel the Order (no cost)",
+      "tooltip": "",
+      "visible": true
+     },
+     "compromise_button": {
+      "disabled": false,
+      "text": "Compromise: adopt AGGRESSIVE stance (+3 trust)",
+      "tooltip": "",
+      "visible": true
+     },
+     "insist_button": {
+      "disabled": false,
+      "text": "Proceed as Ordered (-10 trust)",
+      "tooltip": "",
+      "visible": true
+     },
+     "trust_button": {
+      "disabled": false,
+      "text": "Trust Ney: attack Mack at Swabia (+3 trust)",
+      "tooltip": "",
+      "visible": true
+     },
+     "word_button": {
+      "disabled": false,
+      "text": "By My Word (-3 authority)",
+      "tooltip": "Authority 100 → 97 — the marshals' calm holds above 70.\nBy your word: no trust or defiance; lost within 3 turns, trust −5 and authority −3.",
+      "visible": true
+     }
+    },
+    "chip": {
+     "present": true,
+     "text": "Authority 100",
+     "tooltip": "Authority 100 (Divine Right)\nNo move yet this campaign.\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "frame": "AU3A_02_objection_word_2026_11_05.jpg",
+    "marshal": "Ney",
+    "ms": 11728,
+    "note": "Ney objects: the dialog's five answers, 'By My Word' priced in authority",
+    "saved": true,
+    "stats": "Authority: 100\nTrack record: Neutral\nTrust: 75 (Reliable)\nPersonality: Aggressive\n\"Ney firmly objects: 'I would rather attack than sit idle.' (Trust him and he will attack Mack at Swabia instead.)\"\n\nIf the field is lost under your insistence: trust −5, authority −5; won: authority +5. A compromise: authority +2 won, trust −2 and authority −2 lost.\nNEY'S CONCERN",
+    "step": "objection_word",
+    "terminal": "light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Ney, defend\n\n⚠ Marshal Ney raises concerns...\n\n",
+    "turn": 1
+   },
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 97",
+     "tooltip": "Authority 97 (Divine Right)\nLast moves:\n  T1  your word given over Ney's objection (−3)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "frame": "AU3A_03_word_given_2026_11_05.jpg",
+    "ms": 12732,
+    "note": "By My Word pressed: the order runs as given; the reply and the chip",
+    "reply_lines": [
+     "By your word, Ney carries out the order as given. Authority 100 → 97 — the marshals' calm holds above 70."
+    ],
+    "saved": true,
+    "step": "word_given",
+    "terminal": "h ANY nation — allies, neutrals, or enemies, not only those you fight\n  • Generals: press G (Alt+G while you type) to review your marshals — their loyalty, rewards (duchies & rentes), and grievances\n  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever the line is empty and you are not typing — Alt+key while you type\n  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nBerthier: \"Sire, the staff will read your orders as written. Should you wish the clerks to puzzle out unusual phrasings, see Settings — Smarter Parsing (optional).\"\n\n► Ney, defend\n\n⚠ Marshal Ney raises concerns...\n\n► You give your word: the order stands as given.\n\nBy your word, Ney carries out the order as given. Authority 100 → 97 — the marshals' calm holds above 70.\n\nNey follows your orders.\n\nNey shifts to DEFENSIVE stance at Rhineland. Effect: -10% attack, +15% defense.\n   [3/4 actions remaining]\n\n",
+    "turn": 1
+   },
+   {
+    "accept": "Buy the remounts / −1,500 gold · 1 action · 8 turns",
+    "answers": [
+     "accept_ai_proposal",
+     "reject_ai_proposal",
+     "decree_ai_proposal"
+    ],
+    "body": "The Remounts — Dejean, Minister of War Administration\nAn affair of state, Sire: a bill of your own acts, laid before you by the office it touches. Each answer is priced on its button; Not Now sets it aside; left unanswered by the date, it takes the second answer for you.\nSire, the depots hold more saddles than horses. A credit now buys remounts in the country at the spring fairs' price, not the campaign's.\nHistorically the cavalry was remounted between campaigns by purchase and requisition — the Prussian studs after Jena, the depots that refilled the squadrons before Friedland.\n❧ The cavalry depots hold 17,700 of 30,000 (59%); the weakest squadrons stand at 100% of their establishment; the chest holds 5,000 gold against 1,500.\nWHAT EACH ANSWER DOES\n  Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 5,000); cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\n  Let the depots wait: no change.\n  Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\nIf unanswered by Early January 1806: Let the depots wait — no change.",
+    "button_decree": "auth 90 → 87 · 1 action · 8 turns",
+    "chip": {
+     "present": true,
+     "text": "Authority 90",
+     "tooltip": "Authority 90 (Divine Right)\nLast moves:\n  T0  unattributed (−10)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "counsel": "Berthier — A squadron without horses is infantry that eats oats, Sire.",
+    "counter": "Decree it / auth 90 → 87 · 1 action · 8 turns",
+    "counter_disabled": false,
+    "counter_tooltip": "Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.",
+    "counter_visible": true,
+    "decline": "Let the depots wait / no change",
+    "frame": "AU3A_04_letter_decree_2026_11_05.jpg",
+    "ms": 14919,
+    "note": "the Remounts letter on the desk: the third answer, 'Decree it'",
+    "register": "affair",
+    "saved": true,
+    "step": "letter_decree",
+    "title": "The Remounts",
+    "turn": 7,
+    "writer": "Dejean"
+   },
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 87",
+     "tooltip": "Authority 87 (Commanding)\nLast moves:\n  T7  the Remounts decreed on the Emperor's word (−3)\n  T0  unattributed (−10)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "chip_before": {
+     "present": true,
+     "text": "Authority 90",
+     "tooltip": "Authority 90 (Divine Right)\nLast moves:\n  T0  unattributed (−10)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "frame": "AU3A_05_decreed_2026_11_05.jpg",
+    "ms": 16047,
+    "note": "Decree it pressed: the response lines and the chip",
+    "reply_lines": [
+     "Answering The Remounts: Decree it",
+     "The Remounts — Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.",
+     "The War Administration: the departments deliver their horses under your decree; the depots fill without a sou from the Treasury."
+    ],
+    "saved": true,
+    "step": "decreed",
+    "terminal": ": \"who am I fighting\", \"is Paris safe\", \"what happened last turn\" — an answer costs no action\n  • Diplomacy: click [Diplomacy] (or press F1) to treat with ANY nation — allies, neutrals, or enemies, not only those you fight\n  • Generals: press G (Alt+G while you type) to review your marshals — their loyalty, rewards (duchies & rentes), and grievances\n  • Map: Alt+M cycles view (blended / political / terrain), Alt +/- zoom, Alt+Home recenters; Alt+` hides the terminal — the bare keys work whenever the line is empty and you are not typing — Alt+key while you type\n  • Map orders: with nothing typed, click one of your marshals (or drag his piece) — his roads light up — then a province, an enemy or another marshal: a card shows the exact order before it goes\n  • The war table: every standing order is an arrow on the map — click it to cancel or change it; . (Alt+. while typing) finds the next marshal with nothing to do; Ctrl-click several marshals, then a province, to march them together on one card\n\n─────────────────────────────────────\nAnswering The Remounts: Decree it\nThe Remounts — Decree it: 1 administrative action (1 left today); Authority 90 → 87 — the marshals' calm holds above 70; cavalry levies cost 20% less (×0.8) until Late April 1806, 8 turns.\nThe War Administration: the departments deliver their horses under your decree; the depots fill without a sou from the Treasury.\n\n",
+    "turn": 7
+   },
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 88",
+     "tooltip": "Authority 88 (Commanding)\nLast moves:\n  T0  unattributed (−12)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "frame": "AU3A_06_te_deum_before_2026_11_05.jpg",
+    "ms": 16932,
+    "note": "the truce with Austria on its last turn: the chip before the end turn",
+    "saved": true,
+    "step": "te_deum_before",
+    "turn": 1
+   },
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 92",
+     "tooltip": "Authority 92 (Divine Right)\nLast moves:\n  T2  the Te Deum for the peace with Austria (+4)\n  T0  unattributed (−12)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "chip_before": {
+     "present": true,
+     "text": "Authority 88",
+     "tooltip": "Authority 88 (Commanding)\nLast moves:\n  T0  unattributed (−12)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "frame": "AU3A_07_te_deum_2026_11_05.jpg",
+    "ms": 18390,
+    "note": "the end turn: the truce ripens into peace; the Te Deum lands (+4)",
+    "saved": true,
+    "step": "te_deum",
+    "terminal": "eror has taken the field — Talleyrand holds the portfolio at the capital.\n  Holland sends 6,500 men under Dumonceau to the colours at Amsterdam — they await the orders of France. The nearest host is Davout at Rhineland. Holland pays them; their dead will be its grief.\n  The armistice between Austria and France has concluded. Peace declared.\n  BLOCKADE: Britain closes France's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot.\n  BLOCKADE: Britain closes Holland's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot.\n  BLOCKADE: Britain closes Spain's ports. Trade is cut by 62% (the Orders in Council) and the fleet is pinned at anchor, where crews rot.\n\nENVOYS AWAITING RESPONSE\n  Talleyrand: 3 envoys await your reply this turn. Open Envoys before ending the turn.\n    - Prussia — Open Borders Agreement\n    - Ottoman Empire — Open Borders Agreement\n    - Portugal — Open Borders Agreement\n  Berthier: \"I have placed the diplomatic packet atop the morning dispatch, Sire.\"\n\nTHE CONGRESS OF PARIS\n  THE CONGRESS OF PARIS — 35 of 45 titled · summon from the Cabinet (F1)\n\nWAR PURPOSE\n  War Purpose: Defense vs Britain (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n  War Purpose: Defense vs Russia (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)\n\nCOALITION THREAT\n  Threat: 68/100 [Formed] — down 2 since yesterday (Natural threat decay -3, The weight of the hegemon +1)\n  ACTIVE: Third Coalition — Leader: Britain\n\n  Berthier: \"Ground lost can be retaken, Sire — but the longer they hold it, the harder the taking.\"\n════════════════════════════════════\n\n",
+    "terminal_lines": [
+     "The armistice between Austria and France has concluded. Peace declared.",
+     "War Purpose: Defense vs Britain (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)",
+     "War Purpose: Defense vs Russia (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)"
+    ],
+    "tooltip_has_te_deum": true,
+    "turn": 2
+   },
+   {
+    "chip": {
+     "present": true,
+     "text": "Authority 92",
+     "tooltip": "Authority 92 (Divine Right)\nLast moves:\n  T2  the Te Deum for the peace with Austria (+4)\n  T0  unattributed (−12)\nThe lines: 85 the Presence (the aura full); 80 obedience; 70 the marshals' calm and the Charges of Empire; 60 a diplomatic point a turn; 30 the spiral.",
+     "visible": true
+    },
+    "dispatch_lines": [
+     "Sire — Swabia has been taken by Austria.",
+     "• Sire — peace with Austria is signed. The truce has ripened into peace, signed on the held line.",
+     "• THE SUN OF AUSTERLITZ — Talleyrand: \"Austria has bent, Sire — now say what the Empire is for. The roads wait in the Cabinet (F1 → The Emperor's Designs).\"",
+     "Your authority: 92 (Strong — up 4 since yesterday: the Te Deum for the peace with Austria (+4))",
+     "Swabia passes from Bavaria to Austria.",
+     "Talleyrand reports: 7 diplomatic points available (base 3, +1 skill, +1 authority, +2 carried from last turn).",
+     "The armistice between Austria and France has concluded. Peace declared.",
+     "War Purpose: Defense vs Britain (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)",
+     "War Purpose: Defense vs Russia (War with the Third Coalition) — the homeland — 28 of 28 provinces held  |  Settlement (this pair): White Peace (+0)"
+    ],
+    "frame": "AU3A_08_te_deum_dispatch_2026_11_05.jpg",
+    "ms": 18964,
+    "note": "the morning's Dispatch after the peace",
+    "saved": true,
+    "step": "te_deum_dispatch",
+    "turn": 2
+   },
+   {
+    "frame": "AU3A_09_te_deum_gazette_2026_11_05.jpg",
+    "gazette_lines": [
+     "PARIS — A Te Deum is sung at Notre-Dame for the peace"
+    ],
+    "gazette_open": true,
+    "ms": 19522,
+    "note": "Le Moniteur: the Te Deum's line",
+    "saved": true,
+    "step": "te_deum_gazette",
+    "turn": 2
+   }
+  ],
+  "te_deum_loaded_turn": 1,
+  "turns": {
+   "2": 18253
+  }
+ },
+ "total_s": 26.4
+}

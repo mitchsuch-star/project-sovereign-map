@@ -6885,6 +6885,9 @@ class DiplomaticExecutor:
         elif ctx.action == "reject_ai_proposal":
             return self._handle_reject_ai_proposal(ctx.dialogue, ctx.world)
 
+        elif ctx.action == "decree_ai_proposal":
+            return self._handle_decree_ai_proposal(ctx.dialogue, ctx.world)
+
         elif ctx.action == "counter_ai_proposal":
             return self._handle_counter_ai_proposal(ctx.dialogue, ctx.world)
 
@@ -8888,6 +8891,15 @@ class DiplomaticExecutor:
                 "peace_ratification_summary"
             ]
         return result
+
+    def _handle_decree_ai_proposal(self, dialogue: Dict, world) -> Dict:
+        """AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): "Decree it" — an Edict
+        letter's third answer, the same edict paid in authority; a letter of
+        state alone carries it (no treaty letter does)."""
+        from backend.game_logic import moments
+        if moments.is_moment_letter(dialogue):
+            return moments.answer(world, dialogue, moments.ANSWER_DECREE)
+        return {"success": False, "message": "This letter cannot be decreed, Sire."}
 
     def _handle_reject_ai_proposal(self, dialogue: Dict, world) -> Dict:
         """Reject an incoming AI proposal. Applies cooldowns."""
