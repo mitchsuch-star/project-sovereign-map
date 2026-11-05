@@ -194,8 +194,10 @@ class TestTheScriptArm:
         # consciously at S14b part 3: the Acts block's three (its heading, an
         # Act's row, a refusal's reason) — the same scrolled list. 15 -> 16
         # flipped consciously at S14d part 1 (October 23, 2026): the first-open
-        # line's row (`_add_first_open_line`) — the same scrolled list.
-        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 16
+        # line's row (`_add_first_open_line`) — the same scrolled list. 16 -> 17
+        # flipped consciously at AU-3b (November 5, 2026): the titles' refusal
+        # reason under "Grant the titles" (`_add_titles_button`) — the same list.
+        assert sum(1 for n, _v, _f in resolved if n == "diplomacy_wizard.gd") == 17
         assert any(n == "campaign_log.gd" for n, _v, _f in resolved), "the log's rows"
 
 

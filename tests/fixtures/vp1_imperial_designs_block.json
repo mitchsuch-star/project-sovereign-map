@@ -213,6 +213,10 @@
    "road": "rhine",
    "price": 6000,
    "alarm": 3,
+   "titles": {
+    "name": "The Titles of the Confederation",
+    "authority": 12
+   },
    "says": "Domains and pensions for the German princes who sit in the Confederation — their crowns guaranteed, their loyalty bought.",
    "effects": [
     {

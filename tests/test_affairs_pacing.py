@@ -40,10 +40,12 @@ class TestTheRecordMeasuredTheStagedDeck:
         # RE-H (November 1, 2026): the fourth letter, the Haiti letter;
         # RE-6 (November 2, 2026): the three offers, the Edicts;
         # AU-2c (November 4, 2026): the Bank's and the Pope's letters, authored,
-        # ARMED November 5 by the user's word (the probe's arms read with them)
+        # ARMED November 5 by the user's word (the probe's arms read with them);
+        # AU-3b (November 5, 2026): the Proclamation authored after the offers,
+        # held out until the user's word (the probe reads it held out)
         assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
                                      "the_magazines", "the_remounts", "camps_of_instruction",
-                                     "the_bank", "the_popes_ports"]
+                                     "the_proclamation", "the_bank", "the_popes_ports"]
 
     def test_every_seed_was_played_on_the_three_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20

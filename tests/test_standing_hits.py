@@ -204,7 +204,7 @@ class TestTheClaimsOfTheArmy:
             "could pay his rente — authority 100 → 97."]
         assert events[0]["priority"] == "HIGH"
         assert d["situation"]["authority_label"] == \
-            "Strong — down 3 since yesterday: Lannes's claim, fourteen turns unpaid (−3)"
+            "Divine Right — down 3 since yesterday: Lannes's claim, fourteen turns unpaid (−3)"   # AU-17
 
     def test_the_seam_down_bills_nothing(self, w, monkeypatch):
         from backend.game_logic import standing

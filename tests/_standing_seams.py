@@ -41,6 +41,15 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
                                     the marshals' cards — down: the tree before
                                     AU-3a (the courts' Decree is parked with the
                                     courts' flip, AU-14)
+    AUO  `standing.offices_armed` — AU-3b: the crowns and offices — "Endow them"
+                                    on the Fontainebleau card and the Titles of
+                                    the Confederation (the Princes' Dotations Act
+                                    paid in titles) — down: the tree before AU-3b
+    AUR  `standing.proclamation_armed` — AU-3b: the Proclamation, an Edict
+                                    letter authored `since: "AU-3b"` and HELD OUT
+                                    until the user's word arms it — down by
+                                    default (holding it down is the shipped tree);
+                                    the rig's `AUR+` arm measures it up
 
 The last slice adds its seam here as it lands: AUC the courts (AU-4).
 
@@ -58,6 +67,8 @@ STANDING_SEAMS_BY_ROW = {
     "AUS": ["backend.game_logic.standing:sources_armed=False"],
     "AUL": ["backend.game_logic.standing:letters_armed=False"],
     "AUY": ["backend.game_logic.standing:buys_armed=False"],
+    "AUO": ["backend.game_logic.standing:offices_armed=False"],
+    "AUR": ["backend.game_logic.standing:proclamation_armed=False"],
 }
 STANDING_SEAMS_DOWN = [spec for row in STANDING_SEAMS_BY_ROW for spec in STANDING_SEAMS_BY_ROW[row]]
 

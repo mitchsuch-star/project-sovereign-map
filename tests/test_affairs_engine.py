@@ -205,10 +205,13 @@ class TestUnarmed:
         # RE-H (November 1, 2026): the fourth letter, the Haiti letter (§6.5);
         # RE-6 (November 2, 2026): the three offers, the Edicts (§6.2 E1–E3);
         # AU-2c (November 4, 2026): the Bank's Panic and the Pope's Refusal,
-        # authored `since: "AU-2c"`, armed by the user's word (November 5)
+        # authored `since: "AU-2c"`, armed by the user's word (November 5);
+        # AU-3b (November 5, 2026): the Proclamation after the offers, authored
+        # `since: "AU-3b"` and HELD OUT until the user's word arms it
         assert [e["id"] for e in block["affairs"]["deck"]] == [
             "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
-            "the_magazines", "the_remounts", "camps_of_instruction", "the_bank", "the_popes_ports"]
+            "the_magazines", "the_remounts", "camps_of_instruction", "the_proclamation",
+            "the_bank", "the_popes_ports"]
         from tools._s14c_sweep_record import mechanical_block
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
         for name in ("tutorial_1805.json", "tutorial_table_1805.json"):

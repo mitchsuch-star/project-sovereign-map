@@ -1160,6 +1160,30 @@ def cap_layout_f3():
                   "options": [(o.get("label"), o.get("cost_note"), o.get("enabled"))
                               for o in ((rivalry or {}).get("options") or []) if isinstance(o, dict)]})
 
+    # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): the Fontainebleau card with its
+    # fourth answer, "Endow them" (6 authority: titles in place of rentes, the
+    # petitioners' clocks eight turns ahead) — three marshals eroding on turn 12
+    from backend.game_logic import dotation as _DOT
+    world, c = fresh()
+    clear_dialogues(world)
+    world.current_turn = max(int(world.current_turn), int(J.FONTAINEBLEAU_MIN_TURN))
+    for name in ("Ney", "Murat", "Lannes"):
+        m = world.marshals[name]
+        m.expectation_steps = 3
+        m.expectation_grace_turn = int(world.current_turn) - int(_DOT.GRACE_TURNS)
+    with _quiet():
+        J.check_fontainebleau(world, [])
+    fontainebleau = J.refresh_petition_affordability(dict(world.pending_marshal_petition or {}), world)
+    record("petition_fontainebleau_endow", fontainebleau,
+           source="the pending petition as the end turn delivers it (`deferred_marshal_petition`, "
+                  "`refresh_petition_affordability`)",
+           staging="fresh 1805 boot; dialogue slot emptied; the turn WRITTEN to 12; Ney, Murat and Lannes "
+                   "WRITTEN eroding (three expectation steps, the clock past its grace); "
+                   "`jealousy.check_fontainebleau` — the card ends with Endow them at full authority",
+           facts={"kind": (fontainebleau or {}).get("kind"),
+                  "options": [(o.get("label"), o.get("cost_note"), o.get("enabled"))
+                              for o in ((fontainebleau or {}).get("options") or []) if isinstance(o, dict)]})
+
     # LV-15 / LV-20: the wizard's nation list (step 1) and two previews —
     # Austria at war (the Sponsor chip hidden, the buy-off chip's long gate
     # reason) and Prussia at peace (all three instrument chips, the long
@@ -1711,6 +1735,24 @@ def cap_designs():
            staging="the same boot after the Proclaim button's command and the quote's option (the Crowns of Italy)",
            facts={"road": after.get("road"),
                   "roads": [(r.get("id"), r.get("proclaimed"), r.get("forsworn")) for r in after.get("roads", [])]})
+
+    # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): the road page with the Rhine
+    # proclaimed — the Princes' Dotations with its second purse, the Titles of
+    # the Confederation (12 authority), open where the boot's 800 gold leaves
+    # the gold Decree closed
+    world, c = fresh()
+    page = get(c, "/imperial_designs")
+    rhine = next(r for r in page["roads"] if r["id"] == "rhine")
+    quote = cmd(c, rhine["command"])
+    confirm = next(o["command"] for o in (quote.get("options") or []) if str(o.get("label", "")).startswith("Proclaim"))
+    cmd(c, confirm)
+    titles_page = get(c, "/imperial_designs")
+    record("designs_road_page_titles", titles_page, source="GET /imperial_designs",
+           staging="fresh 1805 boot after the Rhine road's Proclaim command and the quote's option — the "
+                   "Princes' Dotations with its gold Decree closed (800 gold against 6,000) and its titles open",
+           facts={"road": titles_page.get("road"),
+                  "acts": [(a.get("id"), a.get("available"), (a.get("titles") or {}).get("authority"),
+                            (a.get("titles") or {}).get("available")) for a in titles_page.get("acts", [])]})
 
 
 def cap_doctrines():
@@ -2448,6 +2490,29 @@ def cap_moments():
         w.war_exhaustion["France"] = 0
         w.invalidate_active_nations_cache()
         w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL)
+
+    # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3, §6.6): the Proclamation, shot UP for
+    # the user's review before arming — `standing.proclamation_armed` held up in
+    # this staging alone; the letter alone in the deck, the Emperor afield at war
+    from backend.game_logic import standing as _ST3
+    _procl_armed = _ST3.proclamation_armed
+    _ST3.proclamation_armed = lambda *a, **k: True
+    try:
+        def proclamation_board(w):
+            aff = w.moments["block"]["affairs"]
+            aff["deck"] = [e for e in aff["deck"] if e["id"] == "the_proclamation"]
+            w.marshals["Napoleon"].location = "Swabia"
+            w.authority_tracker.authority = 90
+
+        world, c, popup = stage_affair("the_proclamation#1", range(1, 8), proclamation_board)
+        record("affair_letter_the_proclamation", popup, source="GET /pending_envoy → incoming_proposal",
+               staging=("1805 boot; the staged recurring deck with the Proclamation alone in it and "
+                        "`standing.proclamation_armed` held UP (the review's arm); France at war from the "
+                        "boot, the Emperor WRITTEN afield at Swabia, authority 90; the production "
+                        "moments.tick delivered it on the pulse's first morning"),
+               facts=affair_facts(popup))
+    finally:
+        _ST3.proclamation_armed = _procl_armed
 
     world, c, popup = stage_affair("camps_of_instruction#1", range(1, 8), camps_board)
     record("affair_letter_camps_of_instruction", popup, source="GET /pending_envoy → incoming_proposal",

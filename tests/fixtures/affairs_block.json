@@ -586,6 +586,85 @@
         }
       },
       {
+        "id": "the_proclamation",
+        "kind": "affair",
+        "shape": "offer",
+        "title": "The Proclamation",
+        "source": "the proclamation to the Grande Armée of 1 December 1805, read to the regiments on the eve of Austerlitz; Maret Minister Secretary of State to 17 April 1811, then Daru",
+        "since": "AU-3b",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "proclamation_wanted",
+          "edict": "the_proclamation"
+        },
+        "streak": 2,
+        "cooldown": 12,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Daru, Minister Secretary of State",
+          "holders": [
+            {
+              "name": "Maret, Minister Secretary of State",
+              "date": "1811-04-17",
+              "turn": 135
+            }
+          ]
+        },
+        "record": "Historically the Emperor spoke to his army on the eve of its battles: before Austerlitz his proclamation was read at every parade, and that night the regiments lit torches of straw along the line.",
+        "variants": [
+          {
+            "key": "arrival",
+            "value": "later",
+            "text": "The Secretary of State asks again for the Emperor's words to the army."
+          }
+        ],
+        "line": "Sire, the army is in the field and the enemy before it. Words of Your Majesty's own, read at every parade at dawn, are worth a division on the day.",
+        "watch": "At war and afield {m} of 2 mornings — the Secretary of State may ask for a proclamation.",
+        "counsel": "Berthier — Read at the parade, Sire, a proclamation marches with the men.",
+        "edict": {
+          "name": "the Proclamation",
+          "authority": 4,
+          "term": 4,
+          "rest": 8,
+          "effects": [
+            {
+              "type": "drill_morale",
+              "value": 5
+            }
+          ],
+          "court_press": "{SEAT} — The court of {court} issues a proclamation to its army."
+        },
+        "accept": {
+          "caption": "Issue the proclamation",
+          "button_line": "auth {authority_before} → {authority_after} · 1 action · {term} turns",
+          "ops": [
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "edict",
+              "currency": "authority"
+            }
+          ],
+          "echo": "The Secretary of State: the proclamation is printed tonight and read at every parade at dawn.",
+          "situation": "The proclamation is read to the army; every drill yields five more morale until {until}.",
+          "press": "PARIS — The Emperor's proclamation to the Grande Armée is printed in the Moniteur.",
+          "remember": "In {month} you spoke to the army; the Secretary of State asks again."
+        },
+        "decline": {
+          "caption": "Let the army march in silence",
+          "button_line": "no change",
+          "ops": [],
+          "remember": "In {month} the army marched without a proclamation; the Secretary of State asks again."
+        }
+      },
+      {
         "id": "the_bank",
         "kind": "affair",
         "shape": "bill",

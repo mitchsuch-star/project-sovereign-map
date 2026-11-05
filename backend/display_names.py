@@ -3109,6 +3109,9 @@ AUTHORITY_CAUSES = {
     "word_lost": "{marshal}'s field lost on your word",
     "honoured": "{marshal} honoured",
     "by_decree": "{marshal} and {other} reconciled by decree",
+    # AU-3b (§5.3): the crowns and offices
+    "endowed": "titles in place of rentes for the marshals",
+    "titles_granted": "{act} paid in titles",
     # the console
     "debug_set": "set by the debug console",
     # the setter's fallback — a direct assignment (the test files); never a production cause

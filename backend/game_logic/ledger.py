@@ -41,12 +41,12 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
 
     # Authority — global player stat (V2b)
     authority = int(world.authority_tracker.authority) if hasattr(world, 'authority_tracker') else 100
-    if authority >= 80:
-        authority_label = "Strong"
-    elif authority >= 50:
-        authority_label = "Normal"
-    else:
-        authority_label = "Weak"
+    # AU-17 (BUG_FIXES.md §AU): ONE vocabulary for the figure — the tracker's
+    # five tiers, the chip's own word (`AuthorityTracker.get_authority_label`);
+    # the private Strong / Normal / Weak said "Strong" where the chip said
+    # "Commanding" for the same 85
+    authority_label = (str(world.authority_tracker.get_authority_label())
+                       if hasattr(world, 'authority_tracker') else "Divine Right")
 
     # DEF-5 naval §9 — THE ADMIRALTY block (rendered inside the economy
     # tab; {"active": False} on fleet-less worlds and the .gd arm skips).

@@ -41,9 +41,10 @@ ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
 # A seam DOWN by default is measured UP on its own arm, every other seam as
 # shipped (`UP_ARMS`: arm -> the seams forced up). AU-2c's AUL+ arm measured
 # the Bank and the Pope so until the user's "Arm both" (November 5, 2026):
-# AUL is up by default now and ALL is that arm. None stands today; AU-4's
-# courts (`standing.courts_move`, down until the user's word) come next.
-UP_ARMS: dict = {}
+# AUL is up by default now and ALL is that arm. AU-3b's Proclamation
+# (`standing.proclamation_armed`, held out until the user's word) is measured
+# up on AUR+; AU-4's courts (`standing.courts_move`) come next.
+UP_ARMS: dict = {"AUR+": {"AUR"}}
 ARMS.update({arm: set() for arm in UP_ARMS})
 
 CHILD = r"""
@@ -173,6 +174,20 @@ def _counted_buy(world, lord, base, cause, party="", **fmt):
         _c["bought_" + str(cause)] += 1
     return out
 ST.buy = _counted_buy
+# AU-3b the crowns and offices: the seam AUO (Endow them, the Titles), held down
+# on its arm; the Proclamation's seam AUR, down by default, forced up on AUR+
+_offices = ST.offices_armed
+def _counted_offices():
+    _c["offices_reads"] += 1
+    return False if "AUO" in DOWN else _offices()
+ST.offices_armed = _counted_offices
+_procl = ST.proclamation_armed
+def _counted_procl():
+    _c["proclamation_reads"] += 1
+    if "AUR" in DOWN:
+        return False
+    return True if "AUR" in UP else _procl()
+ST.proclamation_armed = _counted_procl
 _court_decree = AF.decree_for_court
 def _counted_court_decree(world, lord, e, currency="gold"):
     if currency == "authority":
@@ -183,7 +198,7 @@ _deliver = AF._deliver
 def _counted_deliver(world, cand, turn):
     out = _deliver(world, cand, turn)
     tid = str(((cand or {{}}).get("e") or {{}}).get("id") or "")
-    if tid in ("the_bank", "the_popes_ports"):
+    if tid in ("the_bank", "the_popes_ports", "the_proclamation"):
         _c[tid + "_delivered"] += 1
     return out
 AF._deliver = _counted_deliver
@@ -194,7 +209,9 @@ _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "ceremonies", "acts_shown", "au2b_content_armed", "au2b_content_held",
          "letters_reads", "the_bank_delivered", "the_popes_ports_delivered",
          "buys_reads", "bought_edict_decreed", "bought_word_given", "bought_honoured", "bought_by_decree",
-         "court_decrees_in_authority")
+         "court_decrees_in_authority",
+         "offices_reads", "bought_endowed", "bought_titles_granted",
+         "proclamation_reads", "the_proclamation_delivered")
 def _dump():
     print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
 atexit.register(_dump)

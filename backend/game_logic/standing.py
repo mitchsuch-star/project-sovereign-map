@@ -156,6 +156,23 @@ def buys_armed() -> bool:
     return True
 
 
+def offices_armed() -> bool:
+    """Arm AUO (AU-3b, §5.3): the crowns and offices bought in authority —
+    "Endow them" on the Fontainebleau card and the Titles of the
+    Confederation (the Princes' Dotations Act paid in titles, `act_titles`);
+    down, the tree reads as AU-3a's."""
+    return True
+
+
+def proclamation_armed() -> bool:
+    """Arm AUR (AU-3b, §5.3): the Proclamation — a fourth Edict letter priced
+    in authority at war, authored `since: "AU-3b"` and HELD OUT until the
+    user's word arms it (RE's rule: a template without a measured premise is
+    not armed — AU-2c's precedent); measured up by the rig's `AUR+` arm and,
+    in the sweep's and the probe's children, by `INK_IRON_SEAMS`."""
+    return False
+
+
 def courts_move() -> bool:
     """§5.7: the courts' new sources and battle writes — PARKED until AU-4
     flips it on the user's word (the RE-6 pattern)."""

@@ -145,7 +145,7 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
 # AU-2c: an ENTRY's own `since` holds the whole template out of the deck
 # (`moments.affairs_deck`) while its row is unarmed.
-SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a")
+SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a", "AU-3b")
 
 
 def row_armed(row: str) -> bool:
@@ -154,7 +154,11 @@ def row_armed(row: str) -> bool:
     `standing.sources_armed` (the ceremonies' op, the Show's two Acts);
     AU-2c's is `standing.letters_armed` (the Bank's and the Pope's letters,
     armed by the user's word); AU-3a's is `standing.buys_armed` (the Edict
-    letters' third answer, "Decree it")."""
+    letters' third answer, "Decree it"); AU-3b's is `standing.proclamation_armed`
+    (the Proclamation, held out until the user's word arms it)."""
+    if row == "AU-3b":
+        from backend.game_logic import standing
+        return bool(standing.proclamation_armed())
     if row == "AU-3a":
         from backend.game_logic import standing
         return bool(standing.buys_armed())
@@ -462,6 +466,11 @@ def _offer_entry(world, lord: str, params: Dict[str, Any]) -> Optional[Dict[str,
     e = _template_by_id(world, str(params.get("edict") or ""))
     if e is None:
         return None
+    if edict_currency(e) == "authority":
+        # AU-3b: an edict priced in authority alone (the Proclamation) arrives
+        # only where its price could land — the purchases' floor at the
+        # recency rise; a court's road is parked with the courts' flip (AU-14)
+        return None if edict_refusal(world, lord, e, currency="authority") else e
     if edict_refusal(world, lord, e, with_reserve=True):
         # AU-3a (§5.7): a court may decree at its own floors where the gold
         # refuses; the player's letter stays gold-gated — it arrives where it
@@ -572,6 +581,22 @@ def _camps_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"holds": True, "bind": {}, "measure": None, "latch": False}
 
 
+def _proclamation_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """AU-3b the Proclamation (AUTHORITY_CURRENCY_SPEC.md §5.3, §4.1 reading
+    15): at war, the Emperor afield with his army — the Chancellor's own fact
+    (`_sovereign_afield`), the eve of Austerlitz (1 December 1805); then the
+    shared clause on the decree's own purse (authority alone: the purchases'
+    floor at the recency rise). It binds nothing — the board reads the
+    Emperor's place live. The measure is the streak."""
+    if _offer_entry(world, lord, params) is None:
+        return _no()
+    if not _at_war(world, lord, "_proclamation_wanted"):
+        return _no()
+    if not _sovereign_afield(world, lord, params).get("holds"):
+        return _no()
+    return {"holds": True, "bind": {}, "measure": None, "latch": False}
+
+
 def _at_war(world, lord: str, where: str) -> bool:
     try:
         return bool(world.get_nations_at_war_with(lord))
@@ -648,6 +673,8 @@ PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "magazines_wanted": _magazines_wanted,
     "remounts_wanted": _remounts_wanted,
     "camps_wanted": _camps_wanted,
+    # AU-3b: the Proclamation, an Edict priced in authority (AUTHORITY_CURRENCY_SPEC.md §5.3)
+    "proclamation_wanted": _proclamation_wanted,
     # AU-2c: the Bank's Panic and the Pope's Refusal (AUTHORITY_CURRENCY_SPEC.md §5.4)
     "chest_strained": _chest_strained,
     "ports_defied": _ports_defied,
@@ -661,10 +688,11 @@ PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
     "magazines_wanted": ("edict",),
     "remounts_wanted": ("edict",),
     "camps_wanted": ("edict",),
+    "proclamation_wanted": ("edict",),
     "chest_strained": ("within", "min_purse"),
     "ports_defied": ("court", "min_purse"),
 }
-OFFER_PREDICATES = ("magazines_wanted", "remounts_wanted", "camps_wanted")
+OFFER_PREDICATES = ("magazines_wanted", "remounts_wanted", "camps_wanted", "proclamation_wanted")
 # The predicates whose `watch` and board count a LATCH (`{n}` = the set bits
 # of the mask) rather than a streak or a corps count.
 LATCHED_PREDICATES = ("colony_cut_off", "chest_strained")
@@ -1550,9 +1578,17 @@ def _board_offer(world, e: Dict[str, Any], lord: str, read: Dict[str, Any], stre
     """RE-6: an offer's board — the premise's facts and the chest against the
     decree's price (shown = applied: the price is the `edict` block's)."""
     from backend.game_logic.instruments import purse_of
+    predicate = str((e.get("when") or {}).get("predicate") or "")
+    if predicate == "proclamation_wanted":
+        # AU-3b: the Proclamation asks authority, never the chest — read live
+        from backend.game_logic import standing
+        here = str((_sovereign_afield(world, lord, {}).get("bind") or {}).get("region") or "")
+        asks = standing.push_price(world, lord, int(edict_block(e).get("authority", 0) or 0))
+        where = f"with the army at {here}" if here else "no longer afield this morning"
+        return [f"At war, the Emperor {where}, {streak} mornings running; his authority stands at "
+                f"{standing.standing_of(world, lord)} against the {asks} the proclamation asks."]
     price = int(edict_block(e).get("price", 0) or 0)
     purse = f"the chest holds {int(purse_of(world, lord)[1]):,} gold against {price:,}"
-    predicate = str((e.get("when") or {}).get("predicate") or "")
     if predicate == "magazines_wanted":
         corps = int(read.get("measure") or 0)
         fact = (f"{corps} of your corps draw campaign pay on foreign soil" if corps > 0 else
@@ -1728,6 +1764,16 @@ def edict_block(e: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     return block if isinstance(block, dict) else {}
 
 
+def edict_currency(e: Optional[Dict[str, Any]]) -> str:
+    """AU-3b: the purse an offer's Accept pays — "authority" for an edict
+    priced in authority alone (the Proclamation: its block carries no gold
+    price, only `authority`), else "gold"."""
+    block = edict_block(e)
+    if block and not int(block.get("price", 0) or 0) and int(block.get("authority", 0) or 0) > 0:
+        return "authority"
+    return "gold"
+
+
 def edict_name(e: Dict[str, Any]) -> str:
     return str(edict_block(e).get("name") or e.get("title") or e.get("id") or "the decree")
 
@@ -1821,6 +1867,10 @@ def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] =
             # courts' flip (AU-4, `courts_move`), measured there
             return "the courts' Decree waits for the courts' flip."
         return str(standing.refusal(world, lord, -standing.push_price(world, lord, base)) or "")
+    if edict_currency(e) == "authority":
+        # AU-3b: an edict priced in authority alone has no gold road — so the
+        # courts' rung never proclaims (its authority road is parked, AU-14)
+        return "the decree is paid in authority alone."
     price = int(block.get("price", 0) or 0)
     if treasury is None:
         from backend.game_logic.instruments import purse_of

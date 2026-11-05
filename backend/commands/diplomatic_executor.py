@@ -1087,25 +1087,33 @@ class DiplomaticExecutor:
             return {"success": False,
                     "message": "There are no Acts of the Empire in this campaign, Sire."}
         words = str(command.get("target") or command.get("raw_input") or "")
+        # AU-3b: "decree <act> by titles" — the Act's second purse, in authority
+        words, by_titles = ID.split_titles(words)
+        currency = "authority" if by_titles else "gold"
         act_id = ID.resolve_act(world, words)
         if not act_id:
             listing = "; ".join(str(a.get("title")) for a in ID.acts(world))
             return {"success": False, "message": (
                 f"Which Act, Sire? The Acts of the Empire are {listing} — each on the "
                 f"road page in the Cabinet ({ID.DESIGNS_CONTROL}).")}
-        refusal = ID.act_refusal(world, act_id)
+        refusal = ID.act_refusal(world, act_id, currency=currency)
         if refusal:
             return {"success": False, "message": refusal}
         row = ID.act(world, act_id) or {}
         from backend.commands.reforms_executor import _confirmed
         if not _confirmed(command):
-            return self._quote_act(world, row, command)
-        outcome = ID.decree(world, act_id)
+            return self._quote_act(world, row, command, currency=currency)
+        outcome = ID.decree(world, act_id, currency=currency)
+        if outcome.get("refusal"):
+            return {"success": False, "message": outcome["refusal"]}
         effects = "; ".join(outcome["lines"])
+        paid = (f"paid in titles, {outcome['authority']} authority" if currency == "authority"
+                else f"{outcome['price']:,} gold paid")
+        line = f" {outcome['line']}." if outcome.get("line") else ""
         result = {
             "success": True,
-            "message": (f"{outcome['title']} is decreed — {outcome['price']:,} gold paid, "
-                        f"once and never again{f': {effects}' if effects else ''}. "
+            "message": (f"{outcome['title']} is decreed — {paid}, "
+                        f"once and never again{f': {effects}' if effects else ''}.{line} "
                         f"The road page: {ID.DESIGNS_CONTROL}."),
             "events": [{"type": "imperial_design", "phase": "decreed",
                         "nation": ID.owner(world), "act": act_id}],
@@ -1113,7 +1121,7 @@ class DiplomaticExecutor:
         result["new_state"] = game_state
         return result
 
-    def _quote_act(self, world, row: Dict, command: Dict) -> Dict:
+    def _quote_act(self, world, row: Dict, command: Dict, currency: str = "gold") -> Dict:
         """The Act's confirm: the terms first, free — the price the charge takes
         (`act_price`), the effects the decree applies (`act_effect_lines`) and
         the Charges of Empire it lifts (`charges_relief`, the ONE source)."""
@@ -1135,6 +1143,20 @@ class DiplomaticExecutor:
                    f"{f' — {effects}' if effects else ''}. The treasury holds {chest:,} gold"
                    f"{owed}{relief_note}. Decree it? (yes / no)")
         command_line = ID.decree_command(row)
+        label = f"Decree {row.get('title')}"
+        if currency == "authority":
+            # AU-3b: the titles' quote — the price in authority at the recency
+            # rise and the one quote's line; the chest untouched
+            from backend.game_logic import standing
+            titles = ID.act_titles(row)
+            offer = standing.offer(world, ID.owner(world), int(titles.get("authority", 0) or 0))
+            message = (f"{titles.get('name') or row.get('title')} — {row.get('title')}"
+                       f"{f' ({date})' if date else ''}: {says} It costs {int(offer['price'])} authority and "
+                       f"{ID.ACT_ADMIN_COST} administrative action, once"
+                       f"{f' — {effects}' if effects else ''}. {offer['line']}. The chest is untouched. "
+                       f"Decree it? (yes / no)")
+            command_line = ID.titles_command(row)
+            label = "Grant the titles"
         return {
             "success": True,
             "free_action": True,
@@ -1145,7 +1167,7 @@ class DiplomaticExecutor:
             "original_command": command.get("raw_command", ""),
             "message": message,
             "options": [
-                {"label": f"Decree {row.get('title')}",
+                {"label": label,
                  "command": f"{command_line} confirmed",
                  "aliases": ["yes", "decree", "confirm"]},
                 {"label": "Not now", "command": "cancel",

@@ -372,13 +372,13 @@ func _render_forces():
 
 	# Authority — global player stat (V2b)
 	var authority = int(cached_data.get("authority", 100))
-	var authority_label = str(cached_data.get("authority_label", "Normal"))
+	var authority_label = str(cached_data.get("authority_label", ""))
 	var auth_color = Utils.COLOR_INFO
 	if authority >= 80:
 		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
 		auth_color = Utils.COLOR_ERROR
-	bbcode += "Authority: [color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n\n"
+	bbcode += "Authority: [color=#" + auth_color + "]" + str(authority) + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n\n"
 
 	if forces.size() == 0:
 		bbcode += "[color=#" + Utils.COLOR_INFO + "]No marshals available.[/color]\n"

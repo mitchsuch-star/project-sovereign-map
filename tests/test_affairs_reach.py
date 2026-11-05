@@ -48,6 +48,12 @@ TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_dom
 # measures them on every run, and reproduces the review record's armed reach
 # (`tools/_affairs_au2c_letters.json`) on every run and template
 LETTERS = ("the_bank", "the_popes_ports")
+# AU-3b (November 5, 2026; AUTHORITY_CURRENCY_SPEC.md §6.6): the Proclamation,
+# authored after the offers and HELD OUT until the user's word — the shipped
+# record reads it "not in the deck (held out)" on every run; its armed reach is
+# the review record's (`tools/_affairs_au3b_proclamation.json`)
+HELD = ("the_proclamation",)
+DECK = TEMPLATES + HELD + LETTERS
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
@@ -75,7 +81,7 @@ class TestTheRecordMeasuredTheArmedDeck:
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert "affairs" in block, "the deck is not armed"
         assert record["deck_sha"] == deck_sha(block), "the deck changed: re-measure (tools/_affairs_measure.py)"
-        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(TEMPLATES + LETTERS)
+        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(DECK)
 
     def test_every_family_was_measured_with_the_trace(self, record):
         assert set(record["reach_aar"]) == {"REACH-AAR"}
@@ -83,9 +89,12 @@ class TestTheRecordMeasuredTheArmedDeck:
         assert set(record["haiti"]) == set(HAITI_ARMS)
         for family, name, row in _rows(record):
             assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
-            assert list(row["affairs_reach"]) == list(TEMPLATES + LETTERS), (family, name)
+            assert list(row["affairs_reach"]) == list(DECK), (family, name)
             for template in LETTERS:               # armed: read on every morning, never held out
                 assert not row["affairs_reach"][template]["verdict"].startswith("not in the deck"), (family, name)
+            for template in HELD:                  # AU-3b: held out until the user's word
+                reach = row["affairs_reach"][template]
+                assert reach["verdict"] == "not in the deck (held out)" and not reach["occurrences"], (family, name)
 
 
 class TestTheCeilingsAndTheFloorsHoldArmed:

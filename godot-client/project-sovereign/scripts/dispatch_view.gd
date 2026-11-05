@@ -282,13 +282,13 @@ func _on_dispatch_received(response):
 
 	# Authority (V2b)
 	var authority = int(situation.get("authority", 100))
-	var authority_label = str(situation.get("authority_label", "Normal"))
+	var authority_label = str(situation.get("authority_label", ""))
 	var auth_color = Utils.COLOR_INFO
 	if authority >= 80:
 		auth_color = Utils.COLOR_SUCCESS
 	elif authority < 50:
 		auth_color = Utils.COLOR_ERROR
-	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
+	bbcode += "[color=#" + Utils.COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + (" (" + authority_label + ")" if authority_label != "" else "") + "[/color]\n"
 
 	# ES-7 second pass (§0.6.8 item 4a): expectation RISES — the briefing
 	# announces WHEN a marshal starts expecting more, not just when he sours.

@@ -47,7 +47,9 @@
    "AUB",
    "AUK",
    "AUL",
+   "AUO",
    "AUP",
+   "AUR",
    "AUS",
    "AUW",
    "AUY"
@@ -73,16 +75,29 @@
   "AUY": [
    "AUY"
   ],
-  "ALL": []
+  "AUO": [
+   "AUO"
+  ],
+  "AUR": [
+   "AUR"
+  ],
+  "ALL": [],
+  "AUR+": []
  },
- "seams_up": {},
+ "seams_up": {
+  "AUR+": [
+   "AUR"
+  ]
+ },
  "arms": {
   "0": {
    "down": [
     "AUB",
     "AUK",
     "AUL",
+    "AUO",
     "AUP",
+    "AUR",
     "AUS",
     "AUW",
     "AUY"
@@ -164,7 +179,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16092,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -249,7 +269,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -334,7 +359,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -419,7 +449,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -504,7 +539,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -589,7 +629,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16680,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -674,7 +719,12 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16115,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -759,7 +809,192 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16683,
+     "the_proclamation_delivered": 0
+    }
+   }
+  },
+  "AUO": {
+   "down": [
+    "AUO"
+   ],
+   "up": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 33386,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
+    }
+   }
+  },
+  "AUR": {
+   "down": [
+    "AUR"
+   ],
+   "up": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 33386,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 167,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
     }
    }
   },
@@ -842,7 +1077,102 @@
      "bought_word_given": 0,
      "bought_honoured": 0,
      "bought_by_decree": 0,
-     "court_decrees_in_authority": 0
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 16693,
+     "the_proclamation_delivered": 0
+    }
+   }
+  },
+  "AUR+": {
+   "down": [],
+   "up": [
+    "AUR"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "books_reads": 24,
+     "writer_calls": 31,
+     "rows_booked": 22,
+     "events_queued": 2,
+     "hits_reads": 0,
+     "claims_reads": 148,
+     "breach_reads": 0,
+     "claims_billed": 0,
+     "breaches_booked": 0,
+     "amends_repaid": 0,
+     "host_ops_planned": 0,
+     "host_ops_held": 0,
+     "sources_reads": 58,
+     "te_deums": 0,
+     "bulletins": 1,
+     "points_repaid": 5,
+     "returns": 0,
+     "paybacks": 0,
+     "ceremonies": 0,
+     "acts_shown": 0,
+     "au2b_content_armed": 0,
+     "au2b_content_held": 0,
+     "letters_reads": 34230,
+     "the_bank_delivered": 0,
+     "the_popes_ports_delivered": 0,
+     "buys_reads": 378,
+     "bought_edict_decreed": 0,
+     "bought_word_given": 0,
+     "bought_honoured": 0,
+     "bought_by_decree": 0,
+     "court_decrees_in_authority": 0,
+     "offices_reads": 0,
+     "bought_endowed": 0,
+     "bought_titles_granted": 0,
+     "proclamation_reads": 17115,
+     "the_proclamation_delivered": 0
     }
    }
   }

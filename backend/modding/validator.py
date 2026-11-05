@@ -1217,6 +1217,19 @@ def _validate_imperial_acts(result, block: dict, known_nations: Set[str],
         from backend.game_logic import affairs as _AF
         if act.get("since") is not None and act.get("since") not in _AF.SINCE_ROWS:
             result.add_error(f"{path}.since", f"Must name a row of {list(_AF.SINCE_ROWS)}")
+        # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): an Act's second purse — the
+        # titles {name ≤ 40, authority 1..15}, paid in authority beside the gold
+        titles = act.get("titles")
+        if titles is not None:
+            if not isinstance(titles, dict):
+                result.add_error(f"{path}.titles", "Must be an object {name, authority}")
+            else:
+                name = titles.get("name")
+                if not isinstance(name, str) or not name.strip() or len(name) > 40:
+                    result.add_error(f"{path}.titles.name", "Must be a non-empty string of at most 40")
+                authority = titles.get("authority")
+                if isinstance(authority, bool) or not isinstance(authority, int) or not 1 <= authority <= 15:
+                    result.add_error(f"{path}.titles.authority", f"Must be an integer in 1..15, got {authority!r}")
         effects = act.get("effects")
         if not isinstance(effects, list) or not effects:
             result.add_error(f"{path}.effects", "Must be a non-empty list")
@@ -1512,7 +1525,11 @@ def _validate_edict(result, path: str, e: dict, shape, when: dict, _text, _int_i
         return
     _text(f"{path}.edict.name", block.get("name"), AF.TEXT_MAX["edict_name"])
     _text(f"{path}.edict.court_press", block.get("court_press"), AF.TEXT_MAX["court_press"])
-    for key in ("price", "term", "rest"):
+    # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): an edict priced in authority
+    # ALONE (the Proclamation) carries no gold `price` — its block's
+    # `authority` is the price, paid on the Accept
+    authority_only = "price" not in block
+    for key in (("term", "rest") if authority_only else ("price", "term", "rest")):
         _int_in(f"{path}.edict.{key}", block.get(key), *AF.EDICT_BOUNDS[key])
     effects = block.get("effects")
     limit = int(AF.EDICT_BOUNDS["effects"])
@@ -1531,14 +1548,24 @@ def _validate_edict(result, path: str, e: dict, shape, when: dict, _text, _int_i
                    if isinstance(op, dict))
     if names != ["admin", "edict"]:
         result.add_error(f"{path}.accept.ops", "An offer's Accept is exactly admin + edict")
-    if any(isinstance(op, dict) and op.get("op") == "edict" and op.get("currency") not in (None, "gold")
-           for op in (accept.get("ops") or [])):
+    paid = [op.get("currency") for op in (accept.get("ops") or [])
+            if isinstance(op, dict) and op.get("op") == "edict"]
+    if authority_only:
+        _int_in(f"{path}.edict.authority", block.get("authority"), *AF.EDICT_AUTHORITY_BOUNDS)
+        if any(c != "authority" for c in paid):
+            result.add_error(f"{path}.accept.ops",
+                             "An edict priced in authority alone is paid so on its Accept")
+        if e.get("decree") is not None:
+            result.add_error(f"{path}.decree", "An edict priced in authority alone carries no Decree answer")
+        if e.get("since") is not None and e.get("since") not in AF.SINCE_ROWS:
+            result.add_error(f"{path}.since", f"Must name a row of {list(AF.SINCE_ROWS)}")
+    elif any(c not in (None, "gold") for c in paid):
         result.add_error(f"{path}.accept.ops", "An offer's Accept pays its edict in gold")
     # AU-3a (AUTHORITY_CURRENCY_SPEC.md §5.3): the Decree — the block's
     # `authority` price and a third answer `decree`, exactly admin + the edict
     # paid in authority, authored `since` the row that arms it
     decree = e.get("decree")
-    if "authority" in block or decree is not None:
+    if not authority_only and ("authority" in block or decree is not None):
         _int_in(f"{path}.edict.authority", block.get("authority"), *AF.EDICT_AUTHORITY_BOUNDS)
         if not isinstance(decree, dict):
             result.add_error(f"{path}.decree", "An edict priced in authority carries its Decree answer")

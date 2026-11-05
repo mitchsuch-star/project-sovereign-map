@@ -32,7 +32,9 @@ REPO = Path(__file__).resolve().parents[1]
 SHIPPED = json.loads((REPO / "tools" / "_standing_final.json").read_text(encoding="utf-8"))
 BUYS = json.loads((REPO / "tools" / "_standing_buys.json").read_text(encoding="utf-8"))
 
-PURCHASES = ("edict_decreed", "word_given", "honoured", "by_decree")    # §5.3, AU-3a's four
+AU3A_BUYS = ("edict_decreed", "word_given", "honoured", "by_decree")    # §5.3, AU-3a's four
+# AU-3b: the crowns and offices — Endow them, the Titles (the Proclamation books `edict_decreed`)
+PURCHASES = AU3A_BUYS + ("endowed", "titles_granted")
 # a price the Emperor chose to pay: the purchases and the priced answers
 CHOICES = PURCHASES + ("letter_declined", "law", "act", "breach", "talleyrand_overruled",
                        "sabotage_confronted", "sabotage_overlooked", "fontainebleau_promise",
@@ -102,7 +104,10 @@ class TestTheSpenderArm:
         assert all(run["pushes"] > 0 for run in BUYS["runs"].values())
 
     def test_each_of_the_four_buys_is_taken_in_play(self):
-        assert {c for c, n in BUYS["totals"].items() if n > 0} == set(PURCHASES), BUYS["totals"]
+        # AU-3a's four are bought in play; AU-3b's two are reached by no measured spender
+        # run (the Fontainebleau card never comes to the nine scripts; no script decrees the
+        # Dotations) — pinned by `tests/test_standing_offices.py`, reported in §6.6
+        assert {c for c, n in BUYS["totals"].items() if n > 0} == set(AU3A_BUYS), BUYS["totals"]
 
     def test_the_class_crosses_85_by_a_buy_and_regrows_by_play(self):
         assert any(run["a_buy_crossed_85"] for run in BUYS["runs"].values())

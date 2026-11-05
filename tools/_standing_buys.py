@@ -25,7 +25,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-BUY_CAUSES = ("edict_decreed", "word_given", "honoured", "by_decree")
+BUY_CAUSES = ("edict_decreed", "word_given", "honoured", "by_decree",
+              "endowed", "titles_granted")          # AU-3b: the crowns and offices
 STAKE_CAUSES = ("word_lost",)
 # AU-2b's lumps — standing coming back by play (§5.5)
 REGROWTH_CAUSES = ("bulletin", "bulletin_repaid", "te_deum", "return", "honour_repaid", "ceremony", "act",

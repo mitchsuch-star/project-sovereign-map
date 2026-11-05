@@ -5999,12 +5999,12 @@ def _build_situation(world, player_nation: str,
 
     # Authority — global player stat (V2b)
     authority = int(world.authority_tracker.authority) if hasattr(world, 'authority_tracker') else 100
-    if authority >= 80:
-        authority_label = "Strong"
-    elif authority >= 50:
-        authority_label = "Normal"
-    else:
-        authority_label = "Weak"
+    # AU-17 (BUG_FIXES.md §AU): ONE vocabulary for the figure — the tracker's
+    # five tiers, the chip's own word (`AuthorityTracker.get_authority_label`);
+    # the private Strong / Normal / Weak said "Strong" where the chip said
+    # "Commanding" for the same 85
+    authority_label = (str(world.authority_tracker.get_authority_label())
+                       if hasattr(world, 'authority_tracker') else "Divine Right")
     # SR-6a NPC-27: the number the game ACTS on beside the number that did
     # not move. `get_imperial_grip` read 52 while the briefing said 100 /
     # Strong over 19 provinces to 107 and the capital lost. The label

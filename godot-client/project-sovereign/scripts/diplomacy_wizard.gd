@@ -839,6 +839,10 @@ func _add_acts_block(acts: Array) -> void:
 			var relief := int(row.get("relief", 0))
 			if relief > 0:
 				bbcode += "; the Charges of Empire fall by " + Utils.format_number(relief) + "g a turn"
+			# AU-3b: the Act's second purse — the titles, paid in authority
+			var titles_row = row.get("titles")
+			if titles_row is Dictionary and not titles_row.is_empty():
+				bbcode += "\n  or " + _bb(titles_row.get("name", "")) + ": " + str(int(titles_row.get("authority", 0))) + " authority and " + str(int(row.get("admin_cost", 1))) + " administrative action, once — the chest untouched"
 		if decreed >= 0:
 			bbcode += "\n  [color=#" + Utils.COLOR_SUCCESS + "]✓ Decreed on turn " + str(decreed) + "[/color]"
 		lbl.text = bbcode
@@ -867,8 +871,42 @@ func _add_acts_block(acts: Array) -> void:
 				why.text = "  [color=#" + Utils.COLOR_INFO + "]" + _bb(reason) + "[/color]"
 				content_list.add_child(btn)
 				content_list.add_child(why)
+				_add_titles_button(row)
 				continue
 		content_list.add_child(btn)
+		_add_titles_button(row)
+
+
+func _add_titles_button(row: Dictionary) -> void:
+	"""AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): the Act's second purse — "Grant
+	the titles (N authority)" under the gold Decree, the payload's own command
+	when open, disabled with the executor's own refusal otherwise
+	(`act_refusal(..., currency="authority")`); nothing when the Act has none."""
+	var titles = row.get("titles")
+	if not (titles is Dictionary) or titles.is_empty():
+		return
+	var open: bool = titles.get("available") is bool and titles.get("available")
+	var tbtn = Button.new()
+	tbtn.text = "Grant the titles (" + str(int(titles.get("authority", 0))) + " authority)"
+	tbtn.custom_minimum_size = Vector2(0, 32)
+	tbtn.theme_type_variation = &"CaptionButton"
+	tbtn.disabled = not open
+	content_list.add_child(tbtn)
+	if open:
+		tbtn.add_theme_color_override("font_color", Color("#" + Utils.COLOR_GOLD))
+		tbtn.pressed.connect(_on_proclaim_pressed.bind(str(titles.get("command", ""))))
+		tbtn.tooltip_text = str(titles.get("line", ""))
+		return
+	var why_not := str(titles.get("disabled_reason", ""))
+	if why_not != "":
+		tbtn.tooltip_text = why_not
+		var note = RichTextLabel.new()
+		note.bbcode_enabled = true
+		note.fit_content = true
+		note.scroll_active = false
+		note.theme_type_variation = &"CaptionRich"
+		note.text = "  [color=#" + Utils.COLOR_INFO + "]" + _bb(why_not) + "[/color]"
+		content_list.add_child(note)
 
 
 func _add_road_block(road: Dictionary) -> void:

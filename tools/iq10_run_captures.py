@@ -669,6 +669,17 @@ SHOTS: list[dict] = [
                      "price in authority and what it buys read in the letter",
     },
     {
+        # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): the Fontainebleau card's fourth answer
+        "id": "petition_fontainebleau_endow",
+        "surface": "Marshal petition — the Fontainebleau card with Endow them (AU-3b)",
+        "payload": "petition_fontainebleau_endow",
+        "scene": "res://scenes/marshal_petition_dialog.tscn",
+        "mode": "call", "method": "show_petition",
+        "must_show": "THE MARSHALS PETITION THE EMPEROR; every answer in the row above the fold at BOTH "
+                     "scales, the fourth quoted answer 'Take titles of the Empire' last with its price in "
+                     "authority, and what it buys (their patience twelve turns) read in the letter",
+    },
+    {
         "id": "wizard_step1",
         "surface": "Diplomacy wizard — step 1, the nation list (LV-20)",
         "payload": "wizard_nations",
@@ -1158,6 +1169,25 @@ SHOTS += [
         ],
         "must_show": "Road II marked proclaimed with no Proclaim button; Roads I and III greyed with their 'Forsworn when the Emperor proclaimed' lines and no buttons; nothing clipped at scale 2.0; S14D-X31: the prompt names the proclaimed road ('The Empire's road is proclaimed, Sire — …'), never 'One proclamation decides it'",
     },
+    {
+        # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3): the Titles of the Confederation
+        "id": "wizard_designs_titles",
+        "surface": "The Cabinet wizard — step 4, the road page with the Rhine proclaimed: the Princes' Dotations' second purse (AU-3b)",
+        "payload": "designs_road_page_titles",
+        "scene": "res://scenes/diplomacy_wizard.tscn",
+        "mode": "call", "method": "show", "args": [],
+        "steps": [
+            {"set_path": "_current_step", "value": 4},
+            {"set_path": "title_label.text", "value": "THE CABINET — THE EMPEROR'S DESIGNS"},
+            {"set_path": "back_button.visible", "value": True},
+            {"call": "_lay_out_prompt", "args": [4]},
+            {"call": "_render_designs", "args": ["$payload"]},
+            {"call": "refit", "args": []},
+            {"wait": 4},
+            {"scroll_to": {"text": "The Princes' Dotations (1806)", "in_content": True, "margin": 8}, "then_wait": 4},
+        ],
+        "must_show": "THE ACTS OF THE EMPIRE with the Princes' Dotations: its gold line, then 'or The Titles of the Confederation: 12 authority and 1 administrative action, once — the chest untouched'; the gold 'Decree The Princes' Dotations' greyed with its reason (the treasury short), then the gold 'Grant the titles (12 authority)' button live; nothing clipped at scale 2.0",
+    },
 ]
 
 # ═══ Score Finish Step 7b "The front page of the peace" (October 5, 2026) ═══
@@ -1575,6 +1605,15 @@ SHOTS += [
              "the Charges carrying the crown alone; the chest against 2,000); the buttons 'Form the camps / "
              "−2,000 gold · 1 action · 8 turns' and 'Let the regiments rest / no change' and 'Not Now / waits "
              "on the desk'; Talleyrand's counsel; both answers above the fold at BOTH scales"),
+            # AU-3b (November 5, 2026): the Proclamation, an Edict priced in authority
+            # alone, shot UP for the user's review before arming
+            ("the_proclamation", "The Proclamation — an Edict priced in authority (Maret, Secretary of State)",
+             "the same dress under Maret's monogram 'M'; line 2 'The Proclamation — Maret, Minister "
+             "Secretary of State'; the writer's line ('Sire, the army is in the field…'); the ground in IM "
+             "Fell italic; the fleuron-led board (at war, the Emperor with the army at Swabia; his authority "
+             "against the 4 the proclamation asks); the buttons 'Issue the proclamation / auth 90 → 86 · 1 "
+             "action · 4 turns' and 'Let the army march in silence / no change' and 'Not Now / waits on the "
+             "desk'; Berthier's counsel; both answers above the fold at BOTH scales"),
         )
     ],
 ]
@@ -1650,7 +1689,7 @@ SHOTS += [
         "scene": "res://scenes/dispatch_view.tscn",
         "mode": "api_stub", "method": "open", "api_method": "get_dispatch",
         "steps": [{"scroll_to": {"text": "SITUATION"}, "then_wait": 4}],
-        "must_show": "'Your authority: 90 (Strong) — down 10 since yesterday: the field at Elchingen under "
+        "must_show": "'Your authority: 90 (Divine Right) — down 10 since yesterday: the field at Elchingen under "
                      "your own hand (−5), Ney's objection overruled, and the field lost (−5)' under "
                      "SITUATION, the figure in green (80 and above); the line whole at BOTH scales",
     },

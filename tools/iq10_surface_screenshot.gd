@@ -846,6 +846,13 @@ func _scroll_to(how) -> void:
 		return
 	var para := parsed.substr(0, at).count("\n")
 	var y := rtl.get_paragraph_offset(clampi(para, 0, maxi(rtl.get_paragraph_count() - 1, 0)))
+	if bool(how.get("in_content", false)):
+		# AU-3b: the label is one of many inside the scroll's content (the road
+		# page's rows) — add its own place in that content; opt-in, so every
+		# frame shot before reads as it did
+		var content := sc.get_child(0) as Control
+		if content != null:
+			y += rtl.global_position.y - content.global_position.y
 	sc.scroll_vertical = maxi(0, int(y) - int(how.get("margin", 24)))
 
 

@@ -152,6 +152,15 @@ FONTAINEBLEAU_PROMISE_WINDOW = dotation.GRACE_TURNS + FONTAINEBLEAU_PROMISE_GRAC
 def _promise_window_quote() -> int:
     return (FONTAINEBLEAU_PROMISE_WINDOW)
 FONTAINEBLEAU_PROMISE_AUTHORITY = -2
+# AU-3b "Endow them" (AUTHORITY_CURRENCY_SPEC.md §5.3, §4.1 reading 15): titles
+# in place of rentes — every petitioner's clock set eight turns ahead (the
+# promise's own mechanism at three), bought in authority at the purchases'
+# floor and the recency rise (`standing.buy`); the window it buys is said in
+# turns, as the promise's is (FA-N53)
+FONTAINEBLEAU_ENDOW_PRICE = 6
+FONTAINEBLEAU_ENDOW_GRACE = 8
+FONTAINEBLEAU_ENDOW_WINDOW = dotation.GRACE_TURNS + FONTAINEBLEAU_ENDOW_GRACE
+FONTAINEBLEAU_ENDOW_LABEL = "\"Take titles of the Empire\""
 
 # ESP-2 war-weary (spec §0.3): fully-met expectation at/above this floor
 # turns a marshal into the peace party on NEW player war declarations.
@@ -1569,6 +1578,19 @@ def _pair_decree_option(world, marshal, other, new_value: int) -> Optional[Dict]
             f"{label_of(to_value)}, and the grievance between them ends.")
     return _priced_in_authority(world, {"id": "decree", "label": "By Decree", "does": does,
                                         "standing_cost": standing.PAIR_DECREE_PRICE, "gate_reason": gate})
+
+
+def _endow_option(world) -> Optional[Dict]:
+    """Endow them (AU-3b): titles in place of rentes — every petitioner's
+    clock set FONTAINEBLEAU_ENDOW_GRACE turns ahead (the promise's mechanism),
+    no rente and no trust; the court hears a title, not a promise."""
+    from backend.game_logic import standing
+    if not standing.offices_armed():
+        return None
+    does = (f"Titles in place of rentes: their patience extends {FONTAINEBLEAU_ENDOW_WINDOW} turns, "
+            f"and the court hears a title, not a promise.")
+    return _priced_in_authority(world, {"id": "endow", "label": FONTAINEBLEAU_ENDOW_LABEL, "does": does,
+                                        "standing_cost": FONTAINEBLEAU_ENDOW_PRICE})
 
 
 def _action_resolution_event(record: Dict) -> Dict:
@@ -3526,6 +3548,9 @@ def queue_fontainebleau_petition(world, eroding: List, reason: str = "") -> str:
                         f"turns; the court hears you buy time with words "
                         f"(authority {FONTAINEBLEAU_PROMISE_AUTHORITY})."),
              "cost_note": "", "enabled": True},
+            # AU-3b: Endow them, priced in authority — LAST, so the driver's
+            # first enabled arm (and every unattended run) keeps its answer
+            *[o for o in (_endow_option(world),) if o],
         ],
         "context": {"marshals": names},
         "turn": int(world.current_turn),
@@ -4488,6 +4513,21 @@ def _apply_fontainebleau_choice(world, choice: str, context: Dict) -> Dict:
         message = ("\"The Empire does not beg.\" The marshals withdraw in "
                    f"silence (trust {FONTAINEBLEAU_REFUSE_TRUST} each). "
                    "The erosion continues.")
+    elif choice == "endow":
+        # AU-3b "Endow them": the price lands whole or the card stands with its
+        # reason (PT-A1's idiom, `standing.buy`); then every petitioner's clock
+        # is set eight turns ahead — the promise's mechanism, no rente, no trust
+        from backend.game_logic import standing as _standing
+        if not _standing.offices_armed():
+            return {"success": False, "message": "Endow them is not in the book, Sire."}
+        paid = _standing.buy(world, world.player_nation, FONTAINEBLEAU_ENDOW_PRICE, "endowed",
+                             party=", ".join(names))
+        if paid.get("refusal"):
+            return {"success": False, "message": f"Endow them is closed, Sire — {paid['refusal']}"}
+        for marshal in marshals:
+            marshal.expectation_grace_turn = int(world.current_turn) + FONTAINEBLEAU_ENDOW_GRACE
+        message = (f"{FONTAINEBLEAU_ENDOW_LABEL[:-1]}.\" Titles in place of rentes: their patience "
+                   f"extends {FONTAINEBLEAU_ENDOW_WINDOW} turns. {paid.get('line') or ''}").strip()
     else:  # promise
         for marshal in marshals:
             marshal.expectation_grace_turn = int(world.current_turn) \

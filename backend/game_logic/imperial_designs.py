@@ -1151,6 +1151,37 @@ def decree_command(a: Dict[str, Any]) -> str:
     return f"decree {a.get('title')}"
 
 
+# AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3, §4.1 reading 15): an Act's second
+# purse — the Titles of the Confederation on the Princes' Dotations — paid in
+# authority through the one writer at the purchases' floor and the recency
+# rise (`standing.buy`); the Act is decreed once whichever purse pays
+TITLES_WORDS = "by titles"
+
+
+def act_titles(a: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """The Act's `titles` block {name, authority}, or {} when it carries none
+    or the seam is down (`standing.offices_armed`, arm AUO)."""
+    from backend.game_logic import standing
+    block = (a or {}).get("titles")
+    if not isinstance(block, dict) or not standing.offices_armed():
+        return {}
+    return block
+
+
+def split_titles(words: str) -> Tuple[str, bool]:
+    """The command's own words with "by titles" taken off, and whether it was said."""
+    text = str(words or "")
+    at = text.lower().rfind(TITLES_WORDS)
+    if at < 0:
+        return text, False
+    return " ".join((text[:at] + " " + text[at + len(TITLES_WORDS):]).split()), True
+
+
+def titles_command(a: Dict[str, Any]) -> str:
+    """The line the road page's titles button sends."""
+    return f"{decree_command(a)} {TITLES_WORDS}"
+
+
 def resolve_act(world, words: str) -> str:
     """The Act a line names — its id, its title or an alias (a leading
     "the", the case, an apostrophe and the confirm marker ignored). "" for
@@ -1227,7 +1258,8 @@ def act_price(world, a: Dict[str, Any]) -> int:
     return int(a.get("price", 0) or 0)
 
 
-def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Optional[str]:
+def act_refusal(world, act_id: str, admin_actions: Optional[int] = None,
+                currency: str = "gold") -> Optional[str]:
     """The Act's WHOLE refusal, in the order the player meets it — the shared
     executor's administrative pre-gate first (`price_refusal`'s idiom), then
     once-only, the road, the board's precondition and the gold. The ONE
@@ -1266,6 +1298,16 @@ def act_refusal(world, act_id: str, admin_actions: Optional[int] = None) -> Opti
         from backend.game_logic import standing
         return (f"{title} adds nothing at authority {standing.standing_of(world, owner(world))}: "
                 f"new gains stop at {int(a['ceiling'])}, Sire.")
+    if currency == "authority":
+        # AU-3b: the titles' purse — the price lands whole above the purchases'
+        # floor (the grip's 60) or the button is closed with the reason
+        titles = act_titles(a)
+        if not titles:
+            return f"{title} is not granted in titles, Sire."
+        from backend.game_logic import standing
+        lord = owner(world)
+        base = int(titles.get("authority", 0) or 0)
+        return standing.refusal(world, lord, -standing.push_price(world, lord, base)) or None
     price = act_price(world, a)
     # S14E-X196 / S14E-D19: ONE chest - the treasury less the recurring
     # settlement payments still owed (`instruments.chest_of`); nothing owed,
@@ -1311,17 +1353,28 @@ def act_effect_lines(world, a: Dict[str, Any]) -> List[str]:
     return out
 
 
-def decree(world, act_id: str) -> Dict[str, Any]:
+def decree(world, act_id: str, currency: str = "gold") -> Dict[str, Any]:
     """The ONE mutation (shown = applied): the gold the quote names leaves the
-    chest, the effects apply, Europe's alarm rises, the turn is recorded."""
+    chest — or, AU-3b, the titles' authority through the one writer — the
+    effects apply, Europe's alarm rises, the turn is recorded."""
     a = act(world, act_id) or {}
     lord = owner(world)
-    price = act_price(world, a)
+    titles = act_titles(a) if currency == "authority" else {}
+    price = 0 if titles else act_price(world, a)
     lines = act_effect_lines(world, a)
     beaten = act_beaten_court(world, a)
-    world.nation_gold[lord] = int(world.nation_gold.get(lord, 0) or 0) - price
-    if hasattr(world, "record_gold_spent"):
-        world.record_gold_spent(lord, price)
+    paid: Dict[str, Any] = {}
+    if titles:
+        from backend.game_logic import standing as _standing
+        paid = _standing.buy(world, lord, int(titles.get("authority", 0) or 0), "titles_granted",
+                             act=str(a.get("title") or act_id))
+        if paid.get("refusal"):
+            return {"price": 0, "lines": [], "title": str(a.get("title") or act_id),
+                    "refusal": str(paid["refusal"])}
+    else:
+        world.nation_gold[lord] = int(world.nation_gold.get(lord, 0) or 0) - price
+        if hasattr(world, "record_gold_spent"):
+            world.record_gold_spent(lord, price)
     for e in a.get("effects") or []:
         if not isinstance(e, dict):
             continue
@@ -1358,8 +1411,10 @@ def decree(world, act_id: str) -> Dict[str, Any]:
         except Exception as exc:
             report(exc, "imperial_designs.decree: coalition.add_threat")
     _state(world)["acts"][act_id] = _turn(world)
-    _log(world, "decreed", act=act_id, title=str(a.get("title") or act_id), price=price)
-    return {"price": price, "lines": lines, "title": str(a.get("title") or act_id)}
+    _log(world, "decreed", act=act_id, title=str(a.get("title") or act_id), price=price,
+         authority=int(paid.get("price") or 0) or None)
+    return {"price": price, "lines": lines, "title": str(a.get("title") or act_id),
+            "authority": int(paid.get("price") or 0), "line": str(paid.get("line") or "")}
 
 
 def act_rows(world) -> List[Dict[str, Any]]:
@@ -1375,7 +1430,7 @@ def act_rows(world) -> List[Dict[str, Any]]:
         refusal = act_refusal(world, aid)
         relief = (int(world.charges_relief(lord, price))
                   if price > 0 and hasattr(world, "charges_relief") else 0)
-        out.append({
+        row = {
             "id": aid, "title": str(a.get("title") or aid), "date": str(a.get("date") or ""),
             "says": str(a.get("says") or ""), "road": want,
             "road_numeral": "" if want == ACT_ANY_ROAD else _ROAD_NUMERALS.get(want, ""),
@@ -1385,7 +1440,18 @@ def act_rows(world) -> List[Dict[str, Any]]:
             "forsworn": want != ACT_ANY_ROAD and road_state(world, want) == ROAD_STATE_FORSWORN,
             "available": refusal is None, "disabled_reason": refusal or "",
             "command": decree_command(a),
-        })
+        }
+        titles = act_titles(a)
+        if titles:
+            # AU-3b: the second purse — its price at the recency rise, the
+            # quote, and its own refusal (shown = applied)
+            from backend.game_logic import standing
+            offer = standing.offer(world, lord, int(titles.get("authority", 0) or 0))
+            closed = act_refusal(world, aid, currency="authority")
+            row["titles"] = {"name": str(titles.get("name") or ""), "authority": int(offer["price"]),
+                             "line": str(offer.get("line") or ""), "available": closed is None,
+                             "disabled_reason": closed or "", "command": titles_command(a)}
+        out.append(row)
     return out
 
 

@@ -21,6 +21,10 @@ moved is attributed by event, never averaged.
         --shipped-standing tools/_standing_final.json \
         --armed-standing tools/playtest_runs/au2c_2026_11_04/armed/standing_armed.json \
         --out tools/_affairs_au2c_letters.json
+
+AU-3b (§6.6): `--letters` names the templates under review (default the
+Bank and the Pope) — the Proclamation's review is
+`--letters the_proclamation --out tools/_affairs_au3b_proclamation.json`.
 """
 from __future__ import annotations
 
@@ -53,9 +57,9 @@ def traces(root: Path) -> Dict[str, List[Dict[str, Any]]]:
     return out
 
 
-def premise_rows(mornings: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+def premise_rows(mornings: List[Dict[str, Any]], letters=LETTERS) -> Dict[str, Dict[str, Any]]:
     rows = {}
-    for letter in LETTERS:
+    for letter in letters:
         held = [int(m["turn"]) for m in mornings if letter in ((m.get("affairs") or {}).get("true") or [])]
         due = [int(m["turn"]) for m in mornings
                if any(str(d).split("|", 1)[0] == letter for d in ((m.get("affairs") or {}).get("due") or []))]
@@ -93,7 +97,10 @@ def main() -> int:
     ap.add_argument("--shipped-standing", required=True)
     ap.add_argument("--armed-standing", required=True)
     ap.add_argument("--out", default=str(ROOT / "tools" / "_affairs_au2c_letters.json"))
+    ap.add_argument("--letters", default=",".join(LETTERS),
+                    help="the templates under review, comma-separated (AU-3b: the_proclamation)")
     args = ap.parse_args()
+    letters = tuple(t.strip() for t in args.letters.split(",") if t.strip())
 
     armed_traces = traces(Path(args.armed))
     shipped_reach = reach_runs(json.loads(Path(args.shipped_reach).read_text(encoding="utf-8")))
@@ -102,15 +109,15 @@ def main() -> int:
     armed_st = standing_rows(json.loads(Path(args.armed_standing).read_text(encoding="utf-8")))
 
     runs: Dict[str, Any] = {}
-    totals = {letter: Counter() for letter in LETTERS}
+    totals = {letter: Counter() for letter in letters}
     displaced = Counter()
     gained = Counter()
     for key in sorted(set(armed_reach) | set(shipped_reach)):
         a_rows, s_rows = armed_reach.get(key) or {}, shipped_reach.get(key) or {}
         a_arr, s_arr = arrivals(a_rows), arrivals(s_rows)
-        prem = premise_rows(armed_traces.get(key) or [])
+        prem = premise_rows(armed_traces.get(key) or [], letters)
         row: Dict[str, Any] = {"letters": {}}
-        for letter in LETTERS:
+        for letter in letters:
             mine = [{"turn": int(a["turn"]), "kind": a["kind"], "answer": a.get("answer")}
                     for a in a_arr if _template(a["moment"]) == letter]
             row["letters"][letter] = {**prem[letter], "arrivals": mine}
@@ -123,8 +130,8 @@ def main() -> int:
             for arrival in mine:
                 t[f"{arrival['kind']}_{arrival['answer']}"] += 1
         # every other template's arrivals, shipped against armed (by template; the turns beside)
-        others_s = Counter(_template(a["moment"]) for a in s_arr if _template(a["moment"]) not in LETTERS)
-        others_a = Counter(_template(a["moment"]) for a in a_arr if _template(a["moment"]) not in LETTERS)
+        others_s = Counter(_template(a["moment"]) for a in s_arr if _template(a["moment"]) not in letters)
+        others_a = Counter(_template(a["moment"]) for a in a_arr if _template(a["moment"]) not in letters)
         moved = {}
         for template in sorted(set(others_s) | set(others_a)):
             if others_s[template] != others_a[template]:
@@ -142,12 +149,14 @@ def main() -> int:
         runs[key] = row
 
     out = {
-        "_what": ("AU-2c — the Bank's Panic and the Pope's Refusal measured UP for the user's review before "
-                  "arming (AUTHORITY_CURRENCY_SPEC.md §6.4): per run each letter's premise mornings, due "
-                  "mornings, arrivals and answers on the ARMED tree; every other template's arrivals shipped "
-                  "against armed; the standing's end on both trees. Seeded paths, not laws."),
+        "_what": (f"{', '.join(letters)} measured UP for the user's review before arming "
+                  "(AUTHORITY_CURRENCY_SPEC.md §6.4 the Bank and the Pope, §6.6 the Proclamation): per run "
+                  "each letter's premise mornings, due mornings, arrivals and answers on the ARMED tree; every "
+                  "other template's arrivals shipped against armed; the standing's end on both trees. Seeded "
+                  "paths, not laws."),
+        "letters": list(letters),
         "runs_measured": len(runs),
-        "totals": {letter: dict(sorted(totals[letter].items())) for letter in LETTERS},
+        "totals": {letter: dict(sorted(totals[letter].items())) for letter in letters},
         "others_displaced": dict(sorted(displaced.items())),
         "others_gained": dict(sorted(gained.items())),
         "runs": runs,

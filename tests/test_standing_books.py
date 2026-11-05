@@ -482,15 +482,15 @@ class TestTheFigure:
         import copy
         w = copy.deepcopy(world)
         quiet = dispatch._build_situation(w, "France")["authority_label"]
-        assert quiet == "Strong"
+        assert quiet == "Divine Right"          # AU-17: the tracker's word, the chip's
         standing.move(w, "France", -5, "own_hand_lost", battle="Elchingen")
         standing.move(w, "France", -5, "insisted_lost", party="Ney", marshal="Ney")
         dispatch.build_morning_dispatch(w)
         label = w.last_morning_dispatch["situation"]["authority_label"]
-        assert label == ("Strong — down 10 since yesterday: the field at Elchingen under your own hand (−5), "
+        assert label == ("Divine Right — down 10 since yesterday: the field at Elchingen under your own hand (−5), "
                          "Ney's objection overruled, and the field lost (−5)")
         assert M._readable_dispatch(w)["situation"]["authority_label"] == label   # the stored dispatch, re-served
-        assert dispatch._build_situation(w, "France")["authority_label"] == "Strong"  # stamped: the next morning is quiet
+        assert dispatch._build_situation(w, "France")["authority_label"] == "Divine Right"  # stamped: quiet
         standing.move(w, "France", -6, "field_lost", battle="Ulm")                   # 84: the aura's line
         assert dispatch._build_situation(w, "France")["authority_label"].endswith("; the Presence falls below 85")
 

@@ -475,7 +475,8 @@ class TestTheBriefingShowsTheGrip:
 
     def test_the_boot_line_is_byte_identical(self, world):
         s = self._situation(world)
-        assert s["authority"] == 100 and s["authority_label"] == "Strong"
+        # AU-17 (BUG_FIXES.md §AU): the tracker's five tiers, the chip's own word
+        assert s["authority"] == 100 and s["authority_label"] == "Divine Right"
         assert s["imperial_grip"] == 100 and s["grip_label"] == "firm"
         assert s["aura_pct"] == 10
 
@@ -489,7 +490,7 @@ class TestTheBriefingShowsTheGrip:
         assert s["authority"] == 100
         assert s["imperial_grip"] == grip
         assert s["authority_label"] == (
-            f"Strong at court; the Empire's grip {grip} ({s['grip_label']}); "
+            f"Divine Right at court; the Empire's grip {grip} ({s['grip_label']}); "
             f"the Presence at +{s['aura_pct']}%"), s["authority_label"]
         assert 0 <= s["aura_pct"] < 10
 
@@ -498,7 +499,7 @@ class TestTheBriefingShowsTheGrip:
         world.regions["Paris"].controller = "Britain"
         world.invalidate_active_nations_cache()
         s = self._situation(world)
-        assert s["authority_label"] == "Strong" and "imperial_grip" not in s
+        assert s["authority_label"] == "Divine Right" and "imperial_grip" not in s   # AU-17
 
     def test_the_aura_beat_fires_on_a_band_crossing_and_once(self, world):
         _headline(world)                       # the first observation records

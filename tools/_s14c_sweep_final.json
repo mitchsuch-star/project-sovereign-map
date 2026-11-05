@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "12486592a3aaebf34fbbb9a51dee35cd67484a9e1a6b8bc73b736eb9e6c49e89",
+ "deck_sha": "e5bdaec8b1b918c00c05119ff2f9c1caa03f3b44baa78f19dac50a74960b02b6",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -20,6 +20,7 @@
   "the_magazines",
   "the_remounts",
   "camps_of_instruction",
+  "the_proclamation",
   "the_bank",
   "the_popes_ports"
  ],
@@ -176,6 +177,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -408,6 +418,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -706,6 +725,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
@@ -968,6 +996,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -1248,6 +1285,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -1566,6 +1612,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "arrived",
      "occurrences": [
@@ -1870,6 +1925,15 @@
      "first_due": null,
      "last_morning": 39
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 39
+    },
     "the_bank": {
      "verdict": "due, released",
      "occurrences": [],
@@ -2125,6 +2189,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -2410,6 +2483,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -2741,6 +2823,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -3106,6 +3197,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "due, released",
      "occurrences": [],
@@ -3352,6 +3452,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -3645,6 +3754,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -3958,6 +4076,15 @@
      "first_due": null,
      "last_morning": 35
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
     "the_bank": {
      "verdict": "never due (premise held 32 mornings)",
      "occurrences": [],
@@ -4143,6 +4270,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -4434,6 +4570,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 37 mornings)",
      "occurrences": [],
@@ -4680,6 +4825,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 32
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -4947,6 +5101,15 @@
      "first_due": null,
      "last_morning": 37
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 37
+    },
     "the_bank": {
      "verdict": "never due (premise held 34 mornings)",
      "occurrences": [],
@@ -5123,6 +5286,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -5377,6 +5549,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -5677,6 +5858,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6049,6 +6239,15 @@
      "first_due": 29,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 11 mornings)",
      "occurrences": [],
@@ -6386,6 +6585,15 @@
      "first_due": 22,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 14 mornings)",
      "occurrences": [],
@@ -6692,6 +6900,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 17 mornings)",
      "occurrences": [],
@@ -6828,6 +7045,15 @@
      "first_due": null,
      "last_morning": 4
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 4
+    },
     "the_bank": {
      "verdict": "premise never held",
      "occurrences": [],
@@ -6941,6 +7167,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 3
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -7107,6 +7342,15 @@
      "first_due": null,
      "last_morning": 11
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
+    },
     "the_bank": {
      "verdict": "never due (premise held 7 mornings)",
      "occurrences": [],
@@ -7251,6 +7495,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 11
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -7464,6 +7717,15 @@
      "answers": [],
      "crowded": [],
      "premise_mornings": 4,
+     "first_due": null,
+     "last_morning": 19
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
      "first_due": null,
      "last_morning": 19
     },
@@ -7796,6 +8058,15 @@
      "first_due": 22,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
@@ -8120,6 +8391,15 @@
      "crowded": [],
      "premise_mornings": 18,
      "first_due": 29,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
      "last_morning": 41
     },
     "the_bank": {
@@ -8477,6 +8757,15 @@
      "first_due": 22,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "due, pending",
      "occurrences": [],
@@ -8782,6 +9071,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 17 mornings)",
      "occurrences": [],
@@ -9047,6 +9345,15 @@
      "first_due": null,
      "last_morning": 40
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 40
+    },
     "the_bank": {
      "verdict": "never due (premise held 37 mornings)",
      "occurrences": [],
@@ -9219,6 +9526,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9427,6 +9743,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 26
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9709,6 +10034,15 @@
      "first_due": null,
      "last_morning": 38
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
     "the_bank": {
      "verdict": "never due (premise held 36 mornings)",
      "occurrences": [],
@@ -9966,6 +10300,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -10296,6 +10639,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
@@ -10549,6 +10901,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 30
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -10877,6 +11238,15 @@
      "first_due": null,
      "last_morning": 35
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
     "the_bank": {
      "verdict": "never due (premise held 32 mornings)",
      "occurrences": [],
@@ -11087,6 +11457,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 23
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -11378,6 +11757,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 38
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -11721,6 +12109,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12086,6 +12483,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
@@ -12417,6 +12823,15 @@
      "first_due": 35,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 16 mornings)",
      "occurrences": [],
@@ -12581,6 +12996,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 32
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12790,6 +13214,15 @@
      "first_due": 27,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 14 mornings)",
      "occurrences": [],
@@ -12967,6 +13400,15 @@
      "first_due": 27,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 12 mornings)",
      "occurrences": [],
@@ -13137,6 +13579,15 @@
      "crowded": [],
      "premise_mornings": 20,
      "first_due": 27,
+     "last_morning": 41
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
      "last_morning": 41
     },
     "the_bank": {
@@ -13412,6 +13863,15 @@
      "first_due": 27,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 12 mornings)",
      "occurrences": [],
@@ -13568,6 +14028,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 36
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -13835,6 +14304,15 @@
      "first_due": null,
      "last_morning": 41
     },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 41
+    },
     "the_bank": {
      "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
@@ -14060,6 +14538,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 31
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -14313,6 +14800,15 @@
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 0,
+     "first_due": null,
+     "last_morning": 35
+    },
+    "the_proclamation": {
+     "verdict": "not in the deck (held out)",
      "occurrences": [],
      "answers": [],
      "crowded": [],

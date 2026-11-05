@@ -252,8 +252,11 @@ class TestTheDeck:
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert scenario["affairs"] == _block()["affairs"]
         # AU-2c (November 4, 2026) appends the Bank's and the Pope's letters
-        # after the offers — two bills, armed by the user's word (November 5)
-        assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == list(OFFERS)
+        # after the offers — two bills, armed by the user's word (November 5);
+        # AU-3b: the fourth offer, the Proclamation (priced in authority alone,
+        # held out until the user's word — `tests/test_standing_offices.py`)
+        assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == [
+            *OFFERS, "the_proclamation"]
         assert [e["id"] for e in scenario["affairs"]["deck"]][-2:] == ["the_bank", "the_popes_ports"]
 
 
