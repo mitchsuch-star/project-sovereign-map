@@ -78,7 +78,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
@@ -153,6 +155,8 @@
     },
     "streaks": {
      "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18,
      "the_remounts|": 10
     },
     "due": {},
@@ -225,8 +229,15 @@
       },
       "tier": 1
      },
+     "the_popes_ports#1": {
+      "turn": 15,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
      "chancellors_letters#1": {
-      "turn": 18,
+      "turn": 19,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -242,10 +253,14 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 9,
      "berthiers_memorial|": 6
     },
-    "due": {},
+    "due": {
+     "berthiers_memorial|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -267,12 +282,19 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "chancellors_letters#1": 18
+      "the_popes_ports#1": 15,
+      "chancellors_letters#1": 19
      },
      "passed": {
       "bavarian_match": "premise"
@@ -296,7 +318,14 @@
       },
       "tier": 1
      },
-     "chancellors_letters#1": {
+     "the_popes_ports#1": {
+      "turn": 15,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
       "turn": 21,
       "status": "fired",
       "reason": "",
@@ -313,11 +342,13 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 6,
      "berthiers_memorial|": 3
     },
     "due": {
-     "santo_domingo|": 1
+     "chancellors_letters|": 1
     },
     "judged": {
      "ceiling_breaches": [],
@@ -325,12 +356,18 @@
      "floors": {
       "chancellors_letters|": {
        "first_due": 21,
-       "status": "fired",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "santo_domingo|": {
        "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -339,7 +376,8 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "chancellors_letters#1": 21
+      "the_popes_ports#1": 15,
+      "santo_domingo#2": 21
      },
      "passed": {
       "bavarian_match": "premise"
@@ -386,9 +424,16 @@
       },
       "tier": 1
      },
-     "chancellors_letters#1": {
-      "turn": 18,
+     "the_popes_ports#1": {
+      "turn": 16,
       "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "chancellors_letters#1": {
+      "turn": 20,
+      "status": "fired",
       "reason": "",
       "bind": {
        "region": "Tyrol",
@@ -403,10 +448,14 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 9,
      "berthiers_memorial|": 6
     },
-    "due": {},
+    "due": {
+     "berthiers_memorial|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -419,7 +468,7 @@
       },
       "chancellors_letters|": {
        "first_due": 18,
-       "status": "lapsed",
+       "status": "fired",
        "reason": "",
        "verdict": "ok"
       },
@@ -428,12 +477,19 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "chancellors_letters#1": 18
+      "the_popes_ports#1": 16,
+      "chancellors_letters#1": 20
      },
      "passed": {
       "bavarian_match": "premise"
@@ -457,7 +513,14 @@
       },
       "tier": 1
      },
-     "chancellors_letters#1": {
+     "the_popes_ports#1": {
+      "turn": 16,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
       "turn": 21,
       "status": "fired",
       "reason": "",
@@ -474,12 +537,14 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 6,
      "berthiers_memorial|": 4
     },
     "due": {
-     "berthiers_memorial|": 1,
-     "santo_domingo|": 1
+     "chancellors_letters|": 1,
+     "berthiers_memorial|": 1
     },
     "judged": {
      "ceiling_breaches": [],
@@ -493,12 +558,18 @@
       },
       "chancellors_letters|": {
        "first_due": 21,
-       "status": "fired",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "santo_domingo|": {
        "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -507,7 +578,8 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 9,
-      "chancellors_letters#1": 21
+      "the_popes_ports#1": 16,
+      "santo_domingo#2": 21
      },
      "passed": {
       "bavarian_match": "premise"
@@ -554,9 +626,16 @@
       },
       "tier": 1
      },
-     "the_remounts#1": {
-      "turn": 19,
+     "the_popes_ports#1": {
+      "turn": 14,
       "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "the_remounts#1": {
+      "turn": 20,
+      "status": "fired",
       "reason": "",
       "bind": {},
       "tier": 1
@@ -568,6 +647,8 @@
     },
     "streaks": {
      "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 8,
      "the_remounts|": 3
     },
@@ -582,9 +663,15 @@
        "reason": "",
        "verdict": "ok"
       },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "the_remounts|": {
        "first_due": 19,
-       "status": "lapsed",
+       "status": "fired",
        "reason": "",
        "verdict": "ok"
       }
@@ -592,7 +679,8 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "the_remounts#1": 19
+      "the_popes_ports#1": 14,
+      "the_remounts#1": 20
      },
      "passed": {
       "bavarian_match": "premise"
@@ -616,14 +704,11 @@
       },
       "tier": 1
      },
-     "santo_domingo#2": {
-      "turn": 18,
+     "the_popes_ports#1": {
+      "turn": 14,
       "status": "lapsed",
       "reason": "",
-      "bind": {
-       "region": "Franche-Comte",
-       "sovereign": "Napoleon"
-      },
+      "bind": {},
       "tier": 1
      }
     },
@@ -632,7 +717,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19
     },
     "due": {},
     "judged": {
@@ -644,12 +731,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "santo_domingo#2": 18
+      "the_popes_ports#1": 14
      },
      "passed": {
       "bavarian_match": "premise"
@@ -697,8 +790,15 @@
       },
       "tier": 1
      },
-     "chancellors_letters#1": {
-      "turn": 20,
+     "the_popes_ports#1": {
+      "turn": 16,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
+      "turn": 21,
       "status": "fired",
       "reason": "",
       "bind": {
@@ -714,11 +814,14 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 7,
      "the_remounts|": 1
     },
     "due": {
-     "santo_domingo|": 3
+     "chancellors_letters|": 1,
+     "the_remounts|": 1
     },
     "judged": {
      "ceiling_breaches": [],
@@ -726,12 +829,18 @@
      "floors": {
       "chancellors_letters|": {
        "first_due": 20,
-       "status": "fired",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "santo_domingo|": {
        "first_due": 6,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -746,7 +855,8 @@
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "chancellors_letters#1": 20
+      "the_popes_ports#1": 16,
+      "santo_domingo#2": 21
      },
      "passed": {
       "bavarian_match": "premise",
@@ -771,12 +881,19 @@
       },
       "tier": 1
      },
+     "the_popes_ports#1": {
+      "turn": 14,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
      "santo_domingo#2": {
-      "turn": 18,
+      "turn": 19,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "region": "Franconia",
+       "region": "Bohemia",
        "sovereign": "Napoleon"
       },
       "tier": 1
@@ -788,6 +905,8 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 6
     },
     "due": {},
@@ -806,12 +925,19 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "santo_domingo#2": 18
+      "the_popes_ports#1": 14,
+      "santo_domingo#2": 19
      },
      "passed": {
       "bavarian_match": "premise",
@@ -866,6 +992,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_popes_ports#1": {
+      "turn": 15,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -874,6 +1007,8 @@
     },
     "streaks": {
      "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 8
     },
     "due": {},
@@ -892,11 +1027,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "santo_domingo#1": 7
+      "santo_domingo#1": 7,
+      "the_popes_ports#1": 15
      },
      "passed": {
       "bavarian_match": "premise",
@@ -921,11 +1063,21 @@
       },
       "tier": 1
      },
-     "the_remounts#1": {
-      "turn": 18,
+     "the_popes_ports#1": {
+      "turn": 15,
       "status": "lapsed",
       "reason": "",
       "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {
+       "region": "Lorraine",
+       "sovereign": "Napoleon"
+      },
       "tier": 1
      }
     },
@@ -935,9 +1087,13 @@
     },
     "streaks": {
      "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "the_remounts|": 4
     },
-    "due": {},
+    "due": {
+     "the_remounts|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -948,17 +1104,24 @@
        "reason": "",
        "verdict": "ok"
       },
-      "the_remounts|": {
-       "first_due": 18,
+      "the_popes_ports|": {
+       "first_due": 14,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 18,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 7,
-      "the_remounts#1": 18
+      "the_popes_ports#1": 15,
+      "santo_domingo#2": 19
      },
      "passed": {
       "bavarian_match": "premise",
@@ -1032,7 +1195,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
@@ -1105,7 +1270,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
@@ -1208,7 +1375,9 @@
      "id": "the_remounts#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
@@ -1258,7 +1427,9 @@
      "id": "the_remounts#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_popes_ports|": 19,
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
@@ -1323,9 +1494,16 @@
       },
       "tier": 1
      },
-     "santo_domingo#2": {
-      "turn": 18,
+     "the_popes_ports#1": {
+      "turn": 14,
       "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
+      "turn": 20,
+      "status": "fired",
       "reason": "",
       "bind": {
        "region": "Lorraine",
@@ -1339,7 +1517,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 20
+     "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19
     },
     "due": {},
     "judged": {
@@ -1351,12 +1531,19 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "santo_domingo#2": 18
+      "the_popes_ports#1": 14,
+      "santo_domingo#2": 20
      },
      "passed": {
       "bavarian_match": "premise",
@@ -1381,12 +1568,19 @@
       },
       "tier": 1
      },
-     "santo_domingo#2": {
-      "turn": 18,
+     "the_popes_ports#1": {
+      "turn": 14,
       "status": "lapsed",
       "reason": "",
+      "bind": {},
+      "tier": 1
+     },
+     "santo_domingo#2": {
+      "turn": 20,
+      "status": "fired",
+      "reason": "",
       "bind": {
-       "region": "Swabia",
+       "region": "Franconia",
        "sovereign": "Napoleon"
       },
       "tier": 1
@@ -1398,6 +1592,8 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 6
     },
     "due": {},
@@ -1416,12 +1612,19 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 6,
-      "santo_domingo#2": 18
+      "the_popes_ports#1": 14,
+      "santo_domingo#2": 20
      },
      "passed": {
       "bavarian_match": "premise",
@@ -1481,6 +1684,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_popes_ports#1": {
+      "turn": 15,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -1489,6 +1699,8 @@
     },
     "streaks": {
      "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
      "chancellors_letters|": 8
     },
     "due": {},
@@ -1507,11 +1719,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "santo_domingo#1": 7,
+      "the_popes_ports#1": 15,
       "throne_of_holland": 20
      },
      "passed": {
@@ -1535,6 +1754,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_popes_ports#1": {
+      "turn": 15,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -1542,7 +1768,9 @@
      "id": "santo_domingo#1"
     },
     "streaks": {
-     "santo_domingo|": 19
+     "santo_domingo|": 19,
+     "the_bank|": 19,
+     "the_popes_ports|": 19
     },
     "due": {},
     "judged": {
@@ -1554,11 +1782,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "santo_domingo#1": 7
+      "santo_domingo#1": 7,
+      "the_popes_ports#1": 15
      },
      "passed": {
       "bavarian_match": "premise",

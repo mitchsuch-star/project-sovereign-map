@@ -184,20 +184,20 @@
      "last_morning": 37
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 34 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 34,
      "first_due": null,
      "last_morning": 37
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 35 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 35,
      "first_due": null,
      "last_morning": 37
     }
@@ -415,20 +415,20 @@
      "last_morning": 37
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 34 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 34,
      "first_due": null,
      "last_morning": 37
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 35 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 35,
      "first_due": null,
      "last_morning": 37
     }
@@ -494,9 +494,9 @@
    "floors": {
     "berthiers_memorial|": {
      "first_due": 21,
-     "status": "",
+     "status": "lapsed",
      "reason": "",
-     "verdict": "released"
+     "verdict": "ok"
     },
     "chancellors_letters|": {
      "first_due": 21,
@@ -506,6 +506,12 @@
     },
     "santo_domingo|": {
      "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -529,25 +535,32 @@
      "figures": 1
     },
     {
-     "turn": 22,
-     "moment": "chancellors_letters#1",
+     "turn": 17,
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 26,
+     "turn": 22,
      "moment": "santo_domingo#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 33,
-     "moment": "chancellors_letters#2",
+     "turn": 29,
+     "moment": "chancellors_letters#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
+    },
+    {
+     "turn": 36,
+     "moment": "berthiers_memorial#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 0
     }
    ],
    "reach": {
@@ -560,41 +573,23 @@
     "chancellors_letters": {
      "verdict": "arrived",
      "occurrences": [
-      "chancellors_letters#1 arrived T21, lapsed T22 (its decline)",
-      "chancellors_letters#2 arrived T32, lapsed T33 (its decline)"
+      "chancellors_letters#1 arrived T28, lapsed T29 (its decline)"
      ],
      "answers": [
       {
        "occ": "chancellors_letters#1",
-       "turn": 22,
+       "turn": 29,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
-       "standing": 5,
-       "quote": "Let the Council act: Authority 97 → 92 — the marshals' calm holds above 70.",
+       "standing": 8,
+       "quote": "Let the Council act: Authority 100 → 92 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
          "quoted": 92,
          "delivered": 92
-        }
-       ]
-      },
-      {
-       "occ": "chancellors_letters#2",
-       "turn": 33,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 8,
-       "quote": "Let the Council act: Authority 87 → 79 — the marshals' calm holds above 70; the Presence +10% → +9%.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 79,
-         "delivered": 79
         }
        ]
       }
@@ -614,9 +609,22 @@
      "last_morning": 41
     },
     "berthiers_memorial": {
-     "verdict": "due, released",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "berthiers_memorial#1 arrived T35, lapsed T36 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "berthiers_memorial#1",
+       "turn": 36,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Not now: no change.",
+       "figures": []
+      }
+     ],
      "crowded": [],
      "premise_mornings": 18,
      "first_due": 21,
@@ -626,7 +634,7 @@
      "verdict": "arrived",
      "occurrences": [
       "santo_domingo#1 arrived T9, lapsed T10 (its decline)",
-      "santo_domingo#2 arrived T25, lapsed T26 (its decline)"
+      "santo_domingo#2 arrived T21, lapsed T22 (its decline)"
      ],
      "answers": [
       {
@@ -648,18 +656,18 @@
       },
       {
        "occ": "santo_domingo#2",
-       "turn": 26,
+       "turn": 22,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 97 → 94 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
+         "quoted": 94,
+         "delivered": 94
         }
        ]
       }
@@ -697,21 +705,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T16, lapsed T17 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 17,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -758,11 +786,16 @@
     "affair_turns": {
      "santo_domingo": [
       9,
-      25
+      21
+     ],
+     "the_popes_ports": [
+      16
      ],
      "chancellors_letters": [
-      21,
-      32
+      28
+     ],
+     "berthiers_memorial": [
+      35
      ]
     }
    }
@@ -775,6 +808,12 @@
    "floors": {
     "santo_domingo|": {
      "first_due": 6,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -798,21 +837,21 @@
      "figures": 1
     },
     {
-     "turn": 19,
-     "moment": "santo_domingo#2",
+     "turn": 15,
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 28,
+     "turn": 23,
      "moment": "the_remounts#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
     },
     {
-     "turn": 36,
+     "turn": 31,
      "moment": "the_remounts#2",
      "kind": "lapse",
      "answer": "decline",
@@ -856,8 +895,7 @@
     "santo_domingo": {
      "verdict": "arrived",
      "occurrences": [
-      "santo_domingo#1 arrived T6, lapsed T7 (its decline)",
-      "santo_domingo#2 arrived T18, lapsed T19 (its decline)"
+      "santo_domingo#1 arrived T6, lapsed T7 (its decline)"
      ],
      "answers": [
       {
@@ -874,23 +912,6 @@
          "figure": "authority",
          "quoted": 77,
          "delivered": 77
-        }
-       ]
-      },
-      {
-       "occ": "santo_domingo#2",
-       "turn": 19,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
         }
        ]
       }
@@ -912,13 +933,13 @@
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T27, lapsed T28 (its decline)",
-      "the_remounts#2 arrived T35, lapsed T36 (its decline)"
+      "the_remounts#1 arrived T22, lapsed T23 (its decline)",
+      "the_remounts#2 arrived T30, lapsed T31 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_remounts#1",
-       "turn": 28,
+       "turn": 23,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -928,7 +949,7 @@
       },
       {
        "occ": "the_remounts#2",
-       "turn": 36,
+       "turn": 31,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -952,21 +973,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T14, lapsed T15 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 15,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -1014,12 +1055,14 @@
     "fire_turns": {},
     "affair_turns": {
      "santo_domingo": [
-      6,
-      18
+      6
+     ],
+     "the_popes_ports": [
+      14
      ],
      "the_remounts": [
-      27,
-      35
+      22,
+      30
      ]
     }
    }
@@ -1038,6 +1081,18 @@
     },
     "santo_domingo|": {
      "first_due": 9,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_bank|": {
+     "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -1062,13 +1117,20 @@
     },
     {
      "turn": 17,
-     "moment": "santo_domingo#1",
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 24,
+     "turn": 21,
+     "moment": "the_bank#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 28,
      "moment": "berthiers_memorial#2",
      "kind": "lapse",
      "answer": "decline",
@@ -1111,7 +1173,7 @@
      "verdict": "arrived",
      "occurrences": [
       "berthiers_memorial#1 arrived T9, lapsed T10 (its decline)",
-      "berthiers_memorial#2 arrived T23, lapsed T24 (its decline)"
+      "berthiers_memorial#2 arrived T27, lapsed T28 (its decline)"
      ],
      "answers": [
       {
@@ -1126,7 +1188,7 @@
       },
       {
        "occ": "berthiers_memorial#2",
-       "turn": 24,
+       "turn": 28,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -1141,29 +1203,9 @@
      "last_morning": 41
     },
     "santo_domingo": {
-     "verdict": "arrived",
-     "occurrences": [
-      "santo_domingo#1 arrived T16, lapsed T17 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "santo_domingo#1",
-       "turn": 17,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
-        }
-       ]
-      }
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 40,
      "first_due": 9,
@@ -1210,21 +1252,61 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_bank#1 arrived T20, lapsed T21 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_bank#1",
+       "turn": 21,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 4,
+       "quote": "Let the notes fall: Authority 80 → 76 — the marshals' calm holds above 70; the Presence +9% → +8%.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 76,
+         "delivered": 76
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 9,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T16, lapsed T17 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 17,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 13,
      "last_morning": 41
     }
    },
@@ -1268,10 +1350,13 @@
     "affair_turns": {
      "berthiers_memorial": [
       9,
-      23
+      27
      ],
-     "santo_domingo": [
+     "the_popes_ports": [
       16
+     ],
+     "the_bank": [
+      20
      ],
      "the_remounts": [
       37
@@ -1303,11 +1388,23 @@
      "reason": "",
      "verdict": "ok"
     },
-    "the_remounts|": {
-     "first_due": 25,
+    "the_bank|": {
+     "first_due": 9,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_remounts|": {
+     "first_due": 25,
+     "status": "",
+     "reason": "",
+     "verdict": "pending"
     }
    },
    "shown_equals_applied": true,
@@ -1323,31 +1420,31 @@
     },
     {
      "turn": 17,
-     "moment": "santo_domingo#1",
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 26,
+     "turn": 21,
+     "moment": "the_bank#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 28,
      "moment": "berthiers_memorial#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
     },
     {
-     "turn": 33,
-     "moment": "santo_domingo#2",
+     "turn": 35,
+     "moment": "santo_domingo#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
-    },
-    {
-     "turn": 40,
-     "moment": "the_remounts#1",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
     }
    ],
    "reach": {
@@ -1379,7 +1476,7 @@
      "verdict": "arrived",
      "occurrences": [
       "berthiers_memorial#1 arrived T9, lapsed T10 (its decline)",
-      "berthiers_memorial#2 arrived T25, lapsed T26 (its decline)"
+      "berthiers_memorial#2 arrived T27, lapsed T28 (its decline)"
      ],
      "answers": [
       {
@@ -1394,7 +1491,7 @@
       },
       {
        "occ": "berthiers_memorial#2",
-       "turn": 26,
+       "turn": 28,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -1411,30 +1508,12 @@
     "santo_domingo": {
      "verdict": "arrived",
      "occurrences": [
-      "santo_domingo#1 arrived T16, lapsed T17 (its decline)",
-      "santo_domingo#2 arrived T32, lapsed T33 (its decline)"
+      "santo_domingo#1 arrived T34, lapsed T35 (its decline)"
      ],
      "answers": [
       {
        "occ": "santo_domingo#1",
-       "turn": 17,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
-        }
-       ]
-      },
-      {
-       "occ": "santo_domingo#2",
-       "turn": 33,
+       "turn": 35,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -1465,22 +1544,9 @@
      "last_morning": 41
     },
     "the_remounts": {
-     "verdict": "arrived",
-     "occurrences": [
-      "the_remounts#1 arrived T39, lapsed T40 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "the_remounts#1",
-       "turn": 40,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the depots wait: no change.",
-       "figures": []
-      }
-     ],
+     "verdict": "due, pending",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 18,
      "first_due": 25,
@@ -1496,21 +1562,62 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_bank#1 arrived T20, lapsed T21 (its decline)",
+      "the_bank#2 arrived T40, standing at the last morning T41"
+     ],
+     "answers": [
+      {
+       "occ": "the_bank#1",
+       "turn": 21,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 4,
+       "quote": "Let the notes fall: Authority 80 → 76 — the marshals' calm holds above 70; the Presence +9% → +8%.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 76,
+         "delivered": 76
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 9,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T16, lapsed T17 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 17,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 13,
      "last_morning": 41
     }
    },
@@ -1554,14 +1661,17 @@
     "affair_turns": {
      "berthiers_memorial": [
       9,
-      25
+      27
+     ],
+     "the_popes_ports": [
+      16
+     ],
+     "the_bank": [
+      20,
+      40
      ],
      "santo_domingo": [
-      16,
-      32
-     ],
-     "the_remounts": [
-      39
+      34
      ]
     }
    }
@@ -1580,6 +1690,18 @@
     },
     "santo_domingo|": {
      "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_bank|": {
+     "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
      "status": "",
      "reason": "",
      "verdict": "released"
@@ -1743,21 +1865,21 @@
      "last_morning": 39
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 38,
+     "first_due": 7,
      "last_morning": 39
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 38,
+     "first_due": 13,
      "last_morning": 39
     }
    },
@@ -1829,6 +1951,18 @@
     },
     "santo_domingo|": {
      "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_bank|": {
+     "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
      "status": "",
      "reason": "",
      "verdict": "released"
@@ -1992,21 +2126,21 @@
      "last_morning": 38
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 37,
+     "first_due": 7,
      "last_morning": 38
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 37,
+     "first_due": 13,
      "last_morning": 38
     }
    },
@@ -2082,6 +2216,18 @@
      "reason": "",
      "verdict": "ok"
     },
+    "the_bank|": {
+     "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
     "the_remounts|": {
      "first_due": 37,
      "status": "lapsed",
@@ -2095,7 +2241,7 @@
    "answers": [
     {
      "turn": 10,
-     "moment": "santo_domingo#1",
+     "moment": "the_bank#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
@@ -2108,21 +2254,28 @@
      "figures": 0
     },
     {
-     "turn": 22,
-     "moment": "santo_domingo#2",
+     "turn": 20,
+     "moment": "santo_domingo#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 30,
+     "turn": 27,
+     "moment": "the_popes_ports#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 33,
      "moment": "berthiers_memorial#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
     },
     {
-     "turn": 38,
+     "turn": 39,
      "moment": "the_remounts#1",
      "kind": "lapse",
      "answer": "decline",
@@ -2158,7 +2311,7 @@
      "verdict": "arrived",
      "occurrences": [
       "berthiers_memorial#1 arrived T15, lapsed T16 (its decline)",
-      "berthiers_memorial#2 arrived T29, lapsed T30 (its decline)"
+      "berthiers_memorial#2 arrived T32, lapsed T33 (its decline)"
      ],
      "answers": [
       {
@@ -2173,7 +2326,7 @@
       },
       {
        "occ": "berthiers_memorial#2",
-       "turn": 30,
+       "turn": 33,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2190,13 +2343,12 @@
     "santo_domingo": {
      "verdict": "arrived",
      "occurrences": [
-      "santo_domingo#1 arrived T9, lapsed T10 (its decline)",
-      "santo_domingo#2 arrived T21, lapsed T22 (its decline)"
+      "santo_domingo#1 arrived T19, lapsed T20 (its decline)"
      ],
      "answers": [
       {
        "occ": "santo_domingo#1",
-       "turn": 10,
+       "turn": 20,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2208,23 +2360,6 @@
          "figure": "authority",
          "quoted": 97,
          "delivered": 97
-        }
-       ]
-      },
-      {
-       "occ": "santo_domingo#2",
-       "turn": 22,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 89,
-         "delivered": 89
         }
        ]
       }
@@ -2246,12 +2381,12 @@
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T37, lapsed T38 (its decline)"
+      "the_remounts#1 arrived T38, lapsed T39 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_remounts#1",
-       "turn": 38,
+       "turn": 39,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2275,21 +2410,61 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_bank#1 arrived T9, lapsed T10 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_bank#1",
+       "turn": 10,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 4,
+       "quote": "Let the notes fall: Authority 100 → 96 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 96,
+         "delivered": 96
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 9,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T26, lapsed T27 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 27,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 85 → 80 — the marshals' calm holds above 70; the Presence +10% → +9%.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 80,
+         "delivered": 80
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 13,
      "last_morning": 41
     }
    },
@@ -2334,16 +2509,21 @@
     "during_foreground": 0,
     "fire_turns": {},
     "affair_turns": {
-     "santo_domingo": [
-      9,
-      21
+     "the_bank": [
+      9
      ],
      "berthiers_memorial": [
       15,
-      29
+      32
+     ],
+     "santo_domingo": [
+      19
+     ],
+     "the_popes_ports": [
+      26
      ],
      "the_remounts": [
-      37
+      38
      ]
     }
    }
@@ -2362,12 +2542,24 @@
     },
     "chancellors_letters|": {
      "first_due": 28,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "santo_domingo|": {
+     "first_due": 9,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
     },
-    "santo_domingo|": {
+    "the_bank|": {
      "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 13,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -2385,7 +2577,7 @@
    "answers": [
     {
      "turn": 10,
-     "moment": "santo_domingo#1",
+     "moment": "the_bank#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
@@ -2398,25 +2590,32 @@
      "figures": 0
     },
     {
-     "turn": 22,
+     "turn": 20,
+     "moment": "santo_domingo#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 27,
+     "moment": "the_popes_ports#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 33,
      "moment": "santo_domingo#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 29,
-     "moment": "chancellors_letters#1",
+     "turn": 39,
+     "moment": "the_bank#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
-    },
-    {
-     "turn": 35,
-     "moment": "berthiers_memorial#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 0
     }
    ],
    "reach": {
@@ -2427,29 +2626,9 @@
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "arrived",
-     "occurrences": [
-      "chancellors_letters#1 arrived T28, lapsed T29 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "chancellors_letters#1",
-       "turn": 29,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 5,
-       "quote": "Let the Council act: Authority 95 → 90 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 90,
-         "delivered": 90
-        }
-       ]
-      }
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 9,
      "first_due": 28,
@@ -2467,23 +2646,12 @@
     "berthiers_memorial": {
      "verdict": "arrived",
      "occurrences": [
-      "berthiers_memorial#1 arrived T15, lapsed T16 (its decline)",
-      "berthiers_memorial#2 arrived T34, lapsed T35 (its decline)"
+      "berthiers_memorial#1 arrived T15, lapsed T16 (its decline)"
      ],
      "answers": [
       {
        "occ": "berthiers_memorial#1",
        "turn": 16,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Not now: no change.",
-       "figures": []
-      },
-      {
-       "occ": "berthiers_memorial#2",
-       "turn": 35,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2500,13 +2668,13 @@
     "santo_domingo": {
      "verdict": "arrived",
      "occurrences": [
-      "santo_domingo#1 arrived T9, lapsed T10 (its decline)",
-      "santo_domingo#2 arrived T21, lapsed T22 (its decline)"
+      "santo_domingo#1 arrived T19, lapsed T20 (its decline)",
+      "santo_domingo#2 arrived T32, lapsed T33 (its decline)"
      ],
      "answers": [
       {
        "occ": "santo_domingo#1",
-       "turn": 10,
+       "turn": 20,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2523,18 +2691,18 @@
       },
       {
        "occ": "santo_domingo#2",
-       "turn": 22,
+       "turn": 33,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 89,
-         "delivered": 89
+         "quoted": 97,
+         "delivered": 97
         }
        ]
       }
@@ -2572,21 +2740,79 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_bank#1 arrived T9, lapsed T10 (its decline)",
+      "the_bank#2 arrived T38, lapsed T39 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_bank#1",
+       "turn": 10,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 4,
+       "quote": "Let the notes fall: Authority 100 → 96 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 96,
+         "delivered": 96
+        }
+       ]
+      },
+      {
+       "occ": "the_bank#2",
+       "turn": 39,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 4,
+       "quote": "Let the notes fall: Authority 92 → 88 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 88,
+         "delivered": 88
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 9,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T26, lapsed T27 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 27,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 95 → 90 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 90,
+         "delivered": 90
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 40,
+     "first_due": 13,
      "last_morning": 41
     }
    },
@@ -2629,16 +2855,19 @@
     "during_foreground": 0,
     "fire_turns": {},
     "affair_turns": {
-     "santo_domingo": [
+     "the_bank": [
       9,
-      21
+      38
      ],
      "berthiers_memorial": [
-      15,
-      34
+      15
      ],
-     "chancellors_letters": [
-      28
+     "santo_domingo": [
+      19,
+      32
+     ],
+     "the_popes_ports": [
+      26
      ]
     }
    }
@@ -2667,6 +2896,18 @@
      "reason": "",
      "verdict": "ok"
     },
+    "the_bank|": {
+     "first_due": 36,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
     "the_remounts|": {
      "first_due": 23,
      "status": "lapsed",
@@ -2686,21 +2927,28 @@
      "figures": 1
     },
     {
-     "turn": 22,
-     "moment": "chancellors_letters#1",
+     "turn": 16,
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 26,
+     "turn": 22,
      "moment": "santo_domingo#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 33,
+     "turn": 29,
+     "moment": "chancellors_letters#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 35,
      "moment": "the_remounts#1",
      "kind": "lapse",
      "answer": "decline",
@@ -2717,17 +2965,17 @@
     "chancellors_letters": {
      "verdict": "arrived",
      "occurrences": [
-      "chancellors_letters#1 arrived T21, lapsed T22 (its decline)"
+      "chancellors_letters#1 arrived T28, lapsed T29 (its decline)"
      ],
      "answers": [
       {
        "occ": "chancellors_letters#1",
-       "turn": 22,
+       "turn": 29,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
-       "standing": 5,
-       "quote": "Let the Council act: Authority 97 → 92 — the marshals' calm holds above 70.",
+       "standing": 8,
+       "quote": "Let the Council act: Authority 100 → 92 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
@@ -2765,7 +3013,7 @@
      "verdict": "arrived",
      "occurrences": [
       "santo_domingo#1 arrived T9, lapsed T10 (its decline)",
-      "santo_domingo#2 arrived T25, lapsed T26 (its decline)"
+      "santo_domingo#2 arrived T21, lapsed T22 (its decline)"
      ],
      "answers": [
       {
@@ -2787,18 +3035,18 @@
       },
       {
        "occ": "santo_domingo#2",
-       "turn": 26,
+       "turn": 22,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 87 → 84 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 97 → 94 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 84,
-         "delivered": 84
+         "quoted": 94,
+         "delivered": 94
         }
        ]
       }
@@ -2820,13 +3068,12 @@
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T32, lapsed T33 (its decline)",
-      "the_remounts#2 arrived T40, standing at the last morning T41"
+      "the_remounts#1 arrived T34, lapsed T35 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_remounts#1",
-       "turn": 33,
+       "turn": 35,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -2850,21 +3097,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 36,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T15, lapsed T16 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 16,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -2893,7 +3160,7 @@
      "Ottoman|camps_of_instruction": 46,
      "Prussia|the_remounts": 16,
      "Prussia|camps_of_instruction": 38,
-     "Britain|the_magazines": 47
+     "Britain|the_magazines": 46
     }
    },
    "errors": [],
@@ -2908,14 +3175,16 @@
     "affair_turns": {
      "santo_domingo": [
       9,
-      25
-     ],
-     "chancellors_letters": [
       21
      ],
+     "the_popes_ports": [
+      15
+     ],
+     "chancellors_letters": [
+      28
+     ],
      "the_remounts": [
-      32,
-      40
+      34
      ]
     }
    }
@@ -3080,20 +3349,20 @@
      "last_morning": 37
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 34 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 34,
      "first_due": null,
      "last_morning": 37
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 35 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 35,
      "first_due": null,
      "last_morning": 37
     }
@@ -3159,7 +3428,7 @@
    "floors": {
     "berthiers_memorial|": {
      "first_due": 39,
-     "status": "lapsed",
+     "status": "fired",
      "reason": "",
      "verdict": "ok"
     },
@@ -3171,6 +3440,12 @@
     },
     "santo_domingo|": {
      "first_due": 9,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -3194,29 +3469,29 @@
      "figures": 1
     },
     {
-     "turn": 22,
-     "moment": "chancellors_letters#1",
+     "turn": 16,
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 26,
+     "turn": 22,
      "moment": "santo_domingo#2",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
     },
     {
-     "turn": 33,
-     "moment": "the_remounts#1",
+     "turn": 29,
+     "moment": "chancellors_letters#1",
      "kind": "lapse",
      "answer": "decline",
-     "figures": 0
+     "figures": 1
     },
     {
-     "turn": 40,
-     "moment": "berthiers_memorial#1",
+     "turn": 35,
+     "moment": "the_remounts#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
@@ -3232,17 +3507,17 @@
     "chancellors_letters": {
      "verdict": "arrived",
      "occurrences": [
-      "chancellors_letters#1 arrived T21, lapsed T22 (its decline)"
+      "chancellors_letters#1 arrived T28, lapsed T29 (its decline)"
      ],
      "answers": [
       {
        "occ": "chancellors_letters#1",
-       "turn": 22,
+       "turn": 29,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
-       "standing": 5,
-       "quote": "Let the Council act: Authority 97 → 92 — the marshals' calm holds above 70.",
+       "standing": 8,
+       "quote": "Let the Council act: Authority 100 → 92 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
@@ -3270,20 +3545,9 @@
     "berthiers_memorial": {
      "verdict": "arrived",
      "occurrences": [
-      "berthiers_memorial#1 arrived T39, lapsed T40 (its decline)"
+      "berthiers_memorial#1 arrived T40, standing at the last morning T41"
      ],
-     "answers": [
-      {
-       "occ": "berthiers_memorial#1",
-       "turn": 40,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Not now: no change.",
-       "figures": []
-      }
-     ],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 6,
      "first_due": 39,
@@ -3293,7 +3557,7 @@
      "verdict": "arrived",
      "occurrences": [
       "santo_domingo#1 arrived T9, lapsed T10 (its decline)",
-      "santo_domingo#2 arrived T25, lapsed T26 (its decline)"
+      "santo_domingo#2 arrived T21, lapsed T22 (its decline)"
      ],
      "answers": [
       {
@@ -3315,18 +3579,18 @@
       },
       {
        "occ": "santo_domingo#2",
-       "turn": 26,
+       "turn": 22,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 97 → 94 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 89,
-         "delivered": 89
+         "quoted": 94,
+         "delivered": 94
         }
        ]
       }
@@ -3348,12 +3612,12 @@
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T32, lapsed T33 (its decline)"
+      "the_remounts#1 arrived T34, lapsed T35 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_remounts#1",
-       "turn": 33,
+       "turn": 35,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -3377,21 +3641,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T15, lapsed T16 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 16,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 90 → 85 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 85,
+         "delivered": 85
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -3433,16 +3717,19 @@
     "affair_turns": {
      "santo_domingo": [
       9,
-      25
-     ],
-     "chancellors_letters": [
       21
      ],
+     "the_popes_ports": [
+      15
+     ],
+     "chancellors_letters": [
+      28
+     ],
      "the_remounts": [
-      32
+      34
      ],
      "berthiers_memorial": [
-      39
+      40
      ]
     }
    }
@@ -3479,6 +3766,12 @@
     },
     "the_magazines|": {
      "first_due": 9,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "",
      "reason": "",
      "verdict": "released"
@@ -3653,21 +3946,21 @@
      "last_morning": 35
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 32 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 32,
      "first_due": null,
      "last_morning": 35
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 33,
+     "first_due": 14,
      "last_morning": 35
     }
    },
@@ -3844,20 +4137,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 16 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 16,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 17 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 17,
      "first_due": null,
      "last_morning": 41
     }
@@ -3929,9 +4222,9 @@
     },
     "chancellors_letters|": {
      "first_due": 9,
-     "status": "lapsed",
+     "status": "",
      "reason": "",
-     "verdict": "ok"
+     "verdict": "released"
     },
     "santo_domingo|": {
      "first_due": 6,
@@ -3946,6 +4239,12 @@
      "verdict": "released"
     },
     "the_magazines|": {
+     "first_due": 14,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
      "first_due": 14,
      "status": "lapsed",
      "reason": "",
@@ -3978,7 +4277,7 @@
     },
     {
      "turn": 22,
-     "moment": "chancellors_letters#1",
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 1
@@ -4006,29 +4305,9 @@
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "arrived",
-     "occurrences": [
-      "chancellors_letters#1 arrived T21, lapsed T22 (its decline)"
-     ],
-     "answers": [
-      {
-       "occ": "chancellors_letters#1",
-       "turn": 22,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 8,
-       "quote": "Let the Council act: Authority 94 → 86 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 86,
-         "delivered": 86
-        }
-       ]
-      }
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
      "premise_mornings": 29,
      "first_due": 9,
@@ -4083,13 +4362,13 @@
        "answer": "decline",
        "gold": 0,
        "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 92 → 89 — the marshals' calm holds above 70.",
+       "quote": "Ferrand must hold alone: Authority 93 → 90 — the marshals' calm holds above 70.",
        "figures": [
         {
          "op": "authority",
          "figure": "authority",
-         "quoted": 89,
-         "delivered": 89
+         "quoted": 90,
+         "delivered": 90
         }
        ]
       }
@@ -4141,21 +4420,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 37 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 37,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T21, lapsed T22 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 22,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 94 → 89 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 89,
+         "delivered": 89
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -4208,7 +4507,7 @@
       14,
       26
      ],
-     "chancellors_letters": [
+     "the_popes_ports": [
       21
      ],
      "the_magazines": [
@@ -4220,12 +4519,18 @@
   },
   "armC_05_eylau": {
    "measured": true,
-   "mornings": 39,
+   "mornings": 31,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
     "santo_domingo|": {
      "first_due": 7,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -4249,15 +4554,15 @@
      "figures": 1
     },
     {
-     "turn": 20,
-     "moment": "the_remounts#1",
+     "turn": 16,
+     "moment": "the_popes_ports#1",
      "kind": "lapse",
      "answer": "decline",
-     "figures": 0
+     "figures": 1
     },
     {
-     "turn": 28,
-     "moment": "the_remounts#2",
+     "turn": 20,
+     "moment": "the_remounts#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
@@ -4266,27 +4571,27 @@
    "reach": {
     "bavarian_match": "passed T12 (premise)",
     "throne_of_holland": "passed T20 (premise)",
-    "crown_of_the_reich": "pending — the last morning T40",
+    "crown_of_the_reich": "pending — the last morning T32",
     "decree_of_berlin": "passed T31 (premise)"
    },
    "affairs_reach": {
     "chancellors_letters": {
-     "verdict": "never due (premise held 11 mornings)",
-     "occurrences": [],
-     "answers": [],
-     "crowded": [],
-     "premise_mornings": 11,
-     "first_due": null,
-     "last_morning": 40
-    },
-    "the_host": {
      "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 32
+    },
+    "the_host": {
+     "verdict": "never due (premise held 2 mornings)",
+     "occurrences": [],
+     "answers": [],
+     "crowded": [],
+     "premise_mornings": 2,
+     "first_due": null,
+     "last_morning": 32
     },
     "berthiers_memorial": {
      "verdict": "premise never held",
@@ -4295,7 +4600,7 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 32
     },
     "santo_domingo": {
      "verdict": "arrived",
@@ -4322,9 +4627,9 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 34,
+     "premise_mornings": 21,
      "first_due": 7,
-     "last_morning": 40
+     "last_morning": 32
     },
     "the_magazines": {
      "verdict": "premise never held",
@@ -4333,13 +4638,12 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 32
     },
     "the_remounts": {
      "verdict": "arrived",
      "occurrences": [
-      "the_remounts#1 arrived T19, lapsed T20 (its decline)",
-      "the_remounts#2 arrived T27, lapsed T28 (its decline)"
+      "the_remounts#1 arrived T19, lapsed T20 (its decline)"
      ],
      "answers": [
       {
@@ -4351,22 +4655,12 @@
        "standing": 0,
        "quote": "Let the depots wait: no change.",
        "figures": []
-      },
-      {
-       "occ": "the_remounts#2",
-       "turn": 28,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 0,
-       "quote": "Let the depots wait: no change.",
-       "figures": []
       }
      ],
      "crowded": [],
-     "premise_mornings": 14,
+     "premise_mornings": 4,
      "first_due": 18,
-     "last_morning": 40
+     "last_morning": 32
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -4375,33 +4669,53 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 32
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 30 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 30,
      "first_due": null,
-     "last_morning": 40
+     "last_morning": 32
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T15, lapsed T16 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 16,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 94 → 89 — the marshals' calm holds above 70; the Presence +10% → +9%.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 89,
+         "delivered": 89
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
-     "last_morning": 40
+     "premise_mornings": 30,
+     "first_due": 14,
+     "last_morning": 32
     }
    },
    "edicts": {
     "decreed": {
-     "Britain|the_remounts": 1,
+     "Britain|the_remounts": 2,
      "Russia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
-     "Ottoman|camps_of_instruction": 3,
+     "Ottoman|camps_of_instruction": 2,
      "Prussia|the_remounts": 1,
      "Austria|the_remounts": 1,
      "Russia|the_magazines": 2,
@@ -4410,17 +4724,17 @@
      "Austria|the_magazines": 1
     },
     "gold": {
-     "Britain": 6500,
+     "Britain": 8000,
      "Russia": 6500,
-     "Ottoman": 7500,
+     "Ottoman": 5500,
      "Prussia": 5500,
      "Austria": 4000
     },
     "in_force": {
-     "Britain|the_remounts": 10,
+     "Britain|the_remounts": 31,
      "Russia|the_remounts": 11,
      "Ottoman|the_remounts": 11,
-     "Ottoman|camps_of_instruction": 46,
+     "Ottoman|camps_of_instruction": 30,
      "Prussia|the_remounts": 15,
      "Austria|the_remounts": 16,
      "Russia|the_magazines": 33,
@@ -4442,9 +4756,11 @@
      "santo_domingo": [
       7
      ],
+     "the_popes_ports": [
+      15
+     ],
      "the_remounts": [
-      19,
-      27
+      19
      ]
     }
    }
@@ -4615,20 +4931,20 @@
      "last_morning": 37
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 34 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 34,
      "first_due": null,
      "last_morning": 37
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 35 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 35,
      "first_due": null,
      "last_morning": 37
     }
@@ -4797,20 +5113,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 38 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 38,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     }
@@ -4882,6 +5198,12 @@
      "reason": "",
      "verdict": "ok"
     },
+    "the_bank|": {
+     "first_due": 23,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
     "the_host|Bavaria": {
      "first_due": 12,
      "status": "",
@@ -4890,6 +5212,12 @@
     },
     "the_magazines|": {
      "first_due": 6,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -4921,17 +5249,17 @@
     },
     {
      "turn": 15,
+     "moment": "the_popes_ports#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 21,
      "moment": "the_magazines#1",
      "kind": "lapse",
      "answer": "decline",
      "figures": 0
-    },
-    {
-     "turn": 21,
-     "moment": "santo_domingo#2",
-     "kind": "lapse",
-     "answer": "decline",
-     "figures": 1
     }
    ],
    "reach": {
@@ -4971,30 +5299,12 @@
     "santo_domingo": {
      "verdict": "arrived",
      "occurrences": [
-      "santo_domingo#1 arrived T6, lapsed T7 (its decline)",
-      "santo_domingo#2 arrived T20, lapsed T21 (its decline)"
+      "santo_domingo#1 arrived T6, lapsed T7 (its decline)"
      ],
      "answers": [
       {
        "occ": "santo_domingo#1",
        "turn": 7,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Ferrand must hold alone: Authority 100 → 97 — the marshals' calm holds above 70.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
-        }
-       ]
-      },
-      {
-       "occ": "santo_domingo#2",
-       "turn": 21,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -5018,12 +5328,12 @@
     "the_magazines": {
      "verdict": "arrived",
      "occurrences": [
-      "the_magazines#1 arrived T14, lapsed T15 (its decline)"
+      "the_magazines#1 arrived T20, lapsed T21 (its decline)"
      ],
      "answers": [
       {
        "occ": "the_magazines#1",
-       "turn": 15,
+       "turn": 21,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -5056,21 +5366,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 21,
+     "first_due": 23,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T14, lapsed T15 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 15,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 22,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -5120,11 +5450,13 @@
     },
     "affair_turns": {
      "santo_domingo": [
-      6,
-      20
+      6
+     ],
+     "the_popes_ports": [
+      14
      ],
      "the_magazines": [
-      14
+      20
      ]
     }
    }
@@ -5143,6 +5475,12 @@
     },
     "santo_domingo|": {
      "first_due": 7,
+     "status": "lapsed",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
@@ -5166,7 +5504,14 @@
      "figures": 1
     },
     {
-     "turn": 20,
+     "turn": 16,
+     "moment": "the_popes_ports#1",
+     "kind": "lapse",
+     "answer": "decline",
+     "figures": 1
+    },
+    {
+     "turn": 23,
      "moment": "santo_domingo#2",
      "kind": "lapse",
      "answer": "decline",
@@ -5225,7 +5570,7 @@
      "verdict": "arrived",
      "occurrences": [
       "santo_domingo#1 arrived T7, lapsed T8 (its decline)",
-      "santo_domingo#2 arrived T19, lapsed T20 (its decline)"
+      "santo_domingo#2 arrived T22, lapsed T23 (its decline)"
      ],
      "answers": [
       {
@@ -5247,7 +5592,7 @@
       },
       {
        "occ": "santo_domingo#2",
-       "turn": 20,
+       "turn": 23,
        "kind": "lapse",
        "answer": "decline",
        "gold": 0,
@@ -5320,21 +5665,41 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T15, lapsed T16 (its decline)"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 16,
+       "kind": "lapse",
+       "answer": "decline",
+       "gold": 0,
+       "standing": 5,
+       "quote": "Let the Pope refuse: Authority 100 → 95 — the marshals' calm holds above 70.",
+       "figures": [
+        {
+         "op": "authority",
+         "figure": "authority",
+         "quoted": 95,
+         "delivered": 95
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -5381,7 +5746,10 @@
     "affair_turns": {
      "santo_domingo": [
       7,
-      19
+      22
+     ],
+     "the_popes_ports": [
+      15
      ],
      "the_remounts": [
       26,
@@ -5661,20 +6029,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 11 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 11,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 6 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 6,
      "first_due": null,
      "last_morning": 41
     }
@@ -5997,20 +6365,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 14 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 14,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 13 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 13,
      "first_due": null,
      "last_morning": 41
     }
@@ -6302,20 +6670,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 17 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 17,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 8,
      "first_due": null,
      "last_morning": 41
     }
@@ -6437,7 +6805,7 @@
      "last_morning": 4
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6446,11 +6814,11 @@
      "last_morning": 4
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 1 morning)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 1,
      "first_due": null,
      "last_morning": 4
     }
@@ -6556,7 +6924,7 @@
      "last_morning": 3
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6565,7 +6933,7 @@
      "last_morning": 3
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -6714,20 +7082,20 @@
      "last_morning": 11
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 7 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 7,
      "first_due": null,
      "last_morning": 11
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 7 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 7,
      "first_due": null,
      "last_morning": 11
     }
@@ -6864,20 +7232,20 @@
      "last_morning": 11
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 5 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 5,
      "first_due": null,
      "last_morning": 11
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 5 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 5,
      "first_due": null,
      "last_morning": 11
     }
@@ -7072,20 +7440,20 @@
      "last_morning": 19
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 6 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 6,
      "first_due": null,
      "last_morning": 19
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 6 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 6,
      "first_due": null,
      "last_morning": 19
     }
@@ -7400,20 +7768,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 8,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 7 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 7,
      "first_due": null,
      "last_morning": 41
     }
@@ -7725,20 +8093,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 11 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 11,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 6 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 6,
      "first_due": null,
      "last_morning": 41
     }
@@ -7820,6 +8188,12 @@
      "status": "",
      "reason": "",
      "verdict": "released"
+    },
+    "the_bank|": {
+     "first_due": 39,
+     "status": "",
+     "reason": "",
+     "verdict": "pending"
     },
     "the_host|Bavaria": {
      "first_due": 7,
@@ -8073,20 +8447,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, pending",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 14,
+     "first_due": 39,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 13 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 13,
      "first_due": null,
      "last_morning": 41
     }
@@ -8377,20 +8751,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 17 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 17,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 8 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 8,
      "first_due": null,
      "last_morning": 41
     }
@@ -8641,16 +9015,16 @@
      "last_morning": 40
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 37 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 37,
      "first_due": null,
      "last_morning": 40
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -8819,16 +9193,16 @@
      "last_morning": 38
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 35 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 35,
      "first_due": null,
      "last_morning": 38
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9026,16 +9400,16 @@
      "last_morning": 26
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 21 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 21,
      "first_due": null,
      "last_morning": 26
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -9116,6 +9490,12 @@
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 28,
@@ -9294,21 +9674,21 @@
      "last_morning": 38
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 36 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 36,
      "first_due": null,
      "last_morning": 38
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 32,
+     "first_due": 14,
      "last_morning": 38
     }
    },
@@ -9391,6 +9771,12 @@
      "status": "fired",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 9,
@@ -9551,21 +9937,21 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 35,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -9662,6 +10048,12 @@
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 19,
@@ -9867,21 +10259,21 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 35,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -9962,6 +10354,12 @@
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 15,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 9,
@@ -10120,21 +10518,21 @@
      "last_morning": 30
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 27 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 27,
      "first_due": null,
      "last_morning": 30
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 23,
+     "first_due": 15,
      "last_morning": 30
     }
    },
@@ -10211,6 +10609,12 @@
      "status": "lapsed",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 15,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 10,
@@ -10434,21 +10838,21 @@
      "last_morning": 35
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 32 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 32,
      "first_due": null,
      "last_morning": 35
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 25,
+     "first_due": 15,
      "last_morning": 35
     }
    },
@@ -10650,20 +11054,20 @@
      "last_morning": 23
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 20 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 20,
      "first_due": null,
      "last_morning": 23
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 16 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 16,
      "first_due": null,
      "last_morning": 23
     }
@@ -10743,6 +11147,12 @@
      "status": "answered",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 28,
@@ -10934,21 +11344,21 @@
      "last_morning": 38
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 36 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 36,
      "first_due": null,
      "last_morning": 38
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 32,
+     "first_due": 14,
      "last_morning": 38
     }
    },
@@ -11023,6 +11433,12 @@
      "reason": "",
      "verdict": "ok"
     },
+    "the_bank|": {
+     "first_due": 28,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
     "the_host|Bavaria": {
      "first_due": 7,
      "status": "answered",
@@ -11034,6 +11450,12 @@
      "status": "answered",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 9,
@@ -11264,21 +11686,21 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 28,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 35,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -11378,6 +11800,12 @@
      "status": "answered",
      "reason": "",
      "verdict": "ok"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
     },
     "the_remounts|": {
      "first_due": 19,
@@ -11615,21 +12043,21 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 35,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -11945,20 +12373,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 16 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 16,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 10 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 10,
      "first_due": null,
      "last_morning": 41
     }
@@ -12115,16 +12543,16 @@
      "last_morning": 32
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 11 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 11,
      "first_due": null,
      "last_morning": 32
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12316,16 +12744,16 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 14 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 14,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12492,16 +12920,16 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 12 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 12,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12663,7 +13091,7 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12672,7 +13100,7 @@
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -12935,20 +13363,20 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 12 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 12,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 12 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 12,
      "first_due": null,
      "last_morning": 41
     }
@@ -13097,16 +13525,16 @@
      "last_morning": 36
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 15 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 15,
      "first_due": null,
      "last_morning": 36
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "premise never held",
      "occurrences": [],
      "answers": [],
      "crowded": [],
@@ -13171,6 +13599,12 @@
     },
     "the_magazines|": {
      "first_due": 9,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "answered",
      "reason": "",
      "verdict": "ok"
@@ -13202,7 +13636,7 @@
     },
     {
      "turn": 21,
-     "moment": "the_magazines#1",
+     "moment": "the_popes_ports#1",
      "kind": "answer",
      "answer": "accept",
      "figures": 3
@@ -13291,43 +13725,11 @@
      "last_morning": 41
     },
     "the_magazines": {
-     "verdict": "arrived",
-     "occurrences": [
-      "the_magazines#1 arrived T21, answered accept T21"
-     ],
-     "answers": [
-      {
-       "occ": "the_magazines#1",
-       "turn": 21,
-       "kind": "answer",
-       "answer": "accept",
-       "gold": 2500,
-       "standing": 0,
-       "quote": "Stock the magazines: 1 administrative action (1 left today); 2,500 gold (the treasury holds 6,031); fed provinces feed 25% more men (×1.25) until Late November 1806, 8 turns.",
-       "figures": [
-        {
-         "op": "admin",
-         "figure": "administrative actions",
-         "quoted": 1,
-         "delivered": 1
-        },
-        {
-         "op": "edict",
-         "figure": "treasury",
-         "quoted": 3531,
-         "delivered": 3531
-        },
-        {
-         "op": "edict",
-         "figure": "the_magazines in force",
-         "quoted": 1,
-         "delivered": 1
-        }
-       ]
-      }
-     ],
+     "verdict": "due, released",
+     "occurrences": [],
+     "answers": [],
      "crowded": [],
-     "premise_mornings": 17,
+     "premise_mornings": 18,
      "first_due": 9,
      "last_morning": 41
     },
@@ -13344,7 +13746,7 @@
        "answer": "accept",
        "gold": 1500,
        "standing": 0,
-       "quote": "Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 3,471); cavalry levies cost 20% less (×0.8) until Late January 1807, 8 turns.",
+       "quote": "Buy the remounts: 1 administrative action (1 left today); 1,500 gold (the treasury holds 3,883); cavalry levies cost 20% less (×0.8) until Late January 1807, 8 turns.",
        "figures": [
         {
          "op": "admin",
@@ -13355,8 +13757,8 @@
         {
          "op": "edict",
          "figure": "treasury",
-         "quoted": 1971,
-         "delivered": 1971
+         "quoted": 2383,
+         "delivered": 2383
         },
         {
          "op": "edict",
@@ -13382,21 +13784,53 @@
      "last_morning": 41
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 39 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 39,
      "first_due": null,
      "last_morning": 41
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "the_popes_ports#1 arrived T21, answered accept T21"
+     ],
+     "answers": [
+      {
+       "occ": "the_popes_ports#1",
+       "turn": 21,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 800,
+       "standing": 0,
+       "quote": "Occupy the ports: 800 gold (the treasury holds 6,031); 1 administrative action (1 left today); the Papal States' goodwill -10 → -20.",
+       "figures": [
+        {
+         "op": "gold",
+         "figure": "treasury",
+         "quoted": 5231,
+         "delivered": 5231
+        },
+        {
+         "op": "admin",
+         "figure": "administrative actions",
+         "quoted": 1,
+         "delivered": 1
+        },
+        {
+         "op": "relation",
+         "figure": "PapalStates goodwill",
+         "quoted": -20,
+         "delivered": -20
+        }
+       ]
+      }
+     ],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 39,
+     "first_due": 14,
      "last_morning": 41
     }
    },
@@ -13409,7 +13843,6 @@
      "Ottoman|camps_of_instruction": 3,
      "Prussia|the_remounts": 1,
      "Britain|the_magazines": 1,
-     "France|the_magazines": 1,
      "France|the_remounts": 1,
      "Prussia|camps_of_instruction": 1
     },
@@ -13418,7 +13851,7 @@
      "Russia": 9000,
      "Ottoman": 7500,
      "Prussia": 3500,
-     "France": 4000
+     "France": 1500
     },
     "in_force": {
      "Britain|the_remounts": 45,
@@ -13428,7 +13861,6 @@
      "Ottoman|camps_of_instruction": 46,
      "Prussia|the_remounts": 16,
      "Britain|the_magazines": 23,
-     "France|the_magazines": 29,
      "France|the_remounts": 33,
      "Prussia|camps_of_instruction": 33
     }
@@ -13583,20 +14015,20 @@
      "last_morning": 31
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 16 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 16,
      "first_due": null,
      "last_morning": 31
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 19 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 19,
      "first_due": null,
      "last_morning": 31
     }
@@ -13669,6 +14101,12 @@
     },
     "the_magazines|": {
      "first_due": 7,
+     "status": "",
+     "reason": "",
+     "verdict": "released"
+    },
+    "the_popes_ports|": {
+     "first_due": 14,
      "status": "",
      "reason": "",
      "verdict": "released"
@@ -13829,21 +14267,21 @@
      "last_morning": 35
     },
     "the_bank": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "never due (premise held 32 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 32,
      "first_due": null,
      "last_morning": 35
     },
     "the_popes_ports": {
-     "verdict": "not in the deck (held out)",
+     "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 33,
+     "first_due": 14,
      "last_morning": 35
     }
    },

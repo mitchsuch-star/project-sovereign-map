@@ -28,6 +28,7 @@ from backend.game_logic import dispatch as DP
 from backend.game_logic import moments as MO
 from backend.game_logic import reforms
 from tests import _chip_census as C
+from tests.test_affairs_engine import _without_au2c_letters
 
 REPO = Path(__file__).resolve().parents[1]
 BACKEND = REPO / "backend"
@@ -152,6 +153,9 @@ def _quiet_board(world, gold=5_000):
     _no_moments(world)
     world.nation_gold["France"] = int(gold)
     naval.get_fleet(world, "France")["ships"] = 20
+    # AU-2c (armed November 5, 2026): the Pope's premise is the boot's war
+    # with Britain — it arrived at T12, inside the Remounts' cooldown; out of the deck
+    _without_au2c_letters(world)
     world.__dict__.pop("_affairs_memo", None)
 
 
@@ -248,7 +252,7 @@ class TestTheDeck:
         scenario = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert scenario["affairs"] == _block()["affairs"]
         # AU-2c (November 4, 2026) appends the Bank's and the Pope's letters
-        # after the offers — two bills, held out of the deck until armed
+        # after the offers — two bills, armed by the user's word (November 5)
         assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == list(OFFERS)
         assert [e["id"] for e in scenario["affairs"]["deck"]][-2:] == ["the_bank", "the_popes_ports"]
 

@@ -43,11 +43,11 @@ HAITI_ARMS = ("HAITI-historical", "HAITI-austerlitz", "HAITI-marengo")
 TEMPLATES = ("chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
              "the_magazines", "the_remounts", "camps_of_instruction")
 # AU-2c (November 4, 2026; AUTHORITY_CURRENCY_SPEC.md §6.4): the Bank's Panic and
-# the Pope's Refusal, authored in the deck and HELD OUT until the user's word arms
-# them — the record lists them and reads "not in the deck (held out)" on every
-# run of the shipped tree; their armed reach is the review record's
-# (`tools/_affairs_au2c_letters.json`)
-HELD_OUT = ("the_bank", "the_popes_ports")
+# the Pope's Refusal, authored in the deck and held out until the user's word —
+# ARMED November 5, 2026 by the user's "Arm both" (§6.4.6): the shipped record
+# measures them on every run, and reproduces the review record's armed reach
+# (`tools/_affairs_au2c_letters.json`) on every run and template
+LETTERS = ("the_bank", "the_popes_ports")
 E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 H1 = "santo_domingo"
 ACT = 20                      # §14: "an act" — twenty turns
@@ -75,7 +75,7 @@ class TestTheRecordMeasuredTheArmedDeck:
         block = json.loads(SCENARIO.read_text(encoding="utf-8"))["moments"]
         assert "affairs" in block, "the deck is not armed"
         assert record["deck_sha"] == deck_sha(block), "the deck changed: re-measure (tools/_affairs_measure.py)"
-        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(TEMPLATES + HELD_OUT)
+        assert record["affairs_deck"] == [e["id"] for e in block["affairs"]["deck"]] == list(TEMPLATES + LETTERS)
 
     def test_every_family_was_measured_with_the_trace(self, record):
         assert set(record["reach_aar"]) == {"REACH-AAR"}
@@ -83,9 +83,9 @@ class TestTheRecordMeasuredTheArmedDeck:
         assert set(record["haiti"]) == set(HAITI_ARMS)
         for family, name, row in _rows(record):
             assert row["measured"] and row["mornings"] > 0 and row["errors"] == [], (family, name)
-            assert list(row["affairs_reach"]) == list(TEMPLATES + HELD_OUT), (family, name)
-            for template in HELD_OUT:
-                assert row["affairs_reach"][template]["verdict"] == "not in the deck (held out)", (family, name)
+            assert list(row["affairs_reach"]) == list(TEMPLATES + LETTERS), (family, name)
+            for template in LETTERS:               # armed: read on every morning, never held out
+                assert not row["affairs_reach"][template]["verdict"].startswith("not in the deck"), (family, name)
 
 
 class TestTheCeilingsAndTheFloorsHoldArmed:
@@ -118,7 +118,7 @@ class TestTheCeilingsAndTheFloorsHoldArmed:
 
 
 class TestEachTemplatesReach:
-    @pytest.mark.parametrize("template", TEMPLATES)
+    @pytest.mark.parametrize("template", TEMPLATES + LETTERS)
     def test_the_template_arrives_somewhere_and_the_record_says_why_elsewhere(self, record, template):
         verdicts = {f"{family}/{name}": row["affairs_reach"][template]["verdict"]
                     for family, name, row in _rows(record)}
@@ -194,8 +194,14 @@ class TestEachTemplatesReach:
         # squadrons stand whole); the Camps at the golden peace of the
         # commanded arms and three hand-played starts (7), never on the sweep
         # at war with Britain
-        assert count(E1, FAMILIES) >= 15 and count(E1, ("saves",)) >= 3
-        assert count(E2, FAMILIES) >= 29 and count(E2, ("saves",)) == 0
+        # AU-2c armed (November 5, 2026, §6.4.6): the Pope's letter takes a
+        # morning from each — the Magazines' T21 on HAITI-austerlitz (the Pope
+        # arrives there at T21 and the accept dial answers it), 15 → 14; the
+        # Remounts' on the scripted austerlitz board with soil (the Pope at
+        # T16, the Bank at T20 and T40: the Remounts due, pending at the last
+        # morning), 29 → 28
+        assert count(E1, FAMILIES) >= 14 and count(E1, ("saves",)) >= 3
+        assert count(E2, FAMILIES) >= 28 and count(E2, ("saves",)) == 0
         assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
@@ -224,7 +230,9 @@ class TestEachTemplatesReach:
         def verdict(family, name):
             return record[family][name]["affairs_reach"][H1]["verdict"]
         sweep = [n for n in record["sweep"] if verdict("sweep", n) == "arrived"]
-        assert len(sweep) >= 17, sweep
+        # AU-2c armed (November 5, 2026, §6.4.6): the Pope's T16 arrival takes the
+        # Marine's morning on the scripted austerlitz board (due, released there), 17 → 16
+        assert len(sweep) >= 16, sweep
         aar = record["reach_aar"]["REACH-AAR"]["affairs_reach"]
         assert aar[H1]["verdict"].startswith("due,"), aar[H1]["verdict"]
         assert all(aar[t]["verdict"] == "arrived" for t in (E1, E2, E3)), {t: aar[t]["verdict"] for t in (E1, E2, E3)}
@@ -257,14 +265,19 @@ class TestEachTemplatesReach:
                 v = verdict(family, name)
                 assert v == "arrived" or v.startswith(("never due", "due,")), (family, name, v)
         # the passive France's first affair is the Marine's letter, on the pulse's first morning
+        # — read over every letter of the deck. AU-2c armed (November 5, 2026, §6.4.6):
+        # on the scripted ulm board, with and without soil, the war outruns the chest
+        # from the opening and the Bank's letter takes the pulse's first morning (T9)
+        # from the Marine's — 15 → 13
         firsts = {}
         for name, row in record["sweep"].items():
-            for template in TEMPLATES:
+            for template in TEMPLATES + LETTERS:
                 for turn in _arrivals(row["affairs_reach"][template]):
                     if turn < firsts.get(name, (99, ""))[0]:
                         firsts[name] = (turn, template)
         first_is_haiti = [n for n, (t, template) in firsts.items() if template == H1]
-        assert len(first_is_haiti) >= 15, firsts
+        assert len(first_is_haiti) >= 13, firsts
+        assert firsts["armb_scripted_ulm"] == firsts["armb_scripted_ulm_soil"] == (9, "the_bank"), firsts
         # at most two an act, twelve apart, on every run
         for family, name, row in _rows(record):
             turns = _arrivals(row["affairs_reach"][H1])
@@ -307,6 +320,42 @@ class TestEachTemplatesReach:
                 assert "; the squadron " not in line, (family, name, line)
         assert any("; the squadron home T32" in line for line in
                    record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]["occurrences"])
+
+    def test_the_bank_and_the_pope_reach_the_boards_their_premises_name(self, record):
+        """AU-2c armed (November 5, 2026; AUTHORITY_CURRENCY_SPEC.md §6.4.3,
+        §6.4.6): the Bank arrives only where the war outruns the chest — the
+        sweep's scripted austerlitz and ulm boards, with and without the soil
+        arm (5 arrivals on 4 runs, each lapsed to its Decline); the Pope from
+        T14 on twelve sweep runs at war with Britain and on HAITI-austerlitz
+        (accepted there at T21, 800 gold), never on the commanded, accept or
+        road arms nor the hand-played starts — their peace with Britain comes
+        first. Both answers priced as authored; at most two an act, spaced by
+        the cooldown. Floors, not laws — the counts may only RISE without a
+        re-measure."""
+        def arrived(template, families=FAMILIES):
+            return {f"{family}/{name}" for family, name, row in _rows(record, families)
+                    if row["affairs_reach"][template]["verdict"] == "arrived"}
+        bank = arrived("the_bank")
+        assert {"sweep/armb_scripted_austerlitz", "sweep/armb_scripted_austerlitz_soil",
+                "sweep/armb_scripted_ulm", "sweep/armb_scripted_ulm_soil"} <= bank, bank
+        assert all(arm.startswith("sweep/armb_scripted_") for arm in bank), bank
+        pope = arrived("the_popes_ports")
+        assert len(pope) >= 13 and "haiti/HAITI-austerlitz" in pope, pope
+        assert not arrived("the_popes_ports", SCRIPTED + ("saves",)), pope
+        cooldown = {"the_bank": 12, "the_popes_ports": 30}
+        for family, name, row in _rows(record):
+            for template in LETTERS:
+                reach = row["affairs_reach"][template]
+                turns = _arrivals(reach)
+                assert all(b - a >= cooldown[template] for a, b in zip(turns, turns[1:])), (family, name, turns)
+                assert len([t for t in turns if t <= ACT]) <= 2, (family, name, turns)
+                if template == "the_popes_ports":
+                    assert all(t >= 13 for t in turns), (family, name, turns)        # twelve mornings first
+                for a in reach["answers"]:
+                    if a["answer"] == "accept":
+                        assert a["gold"] == (1000 if template == "the_bank" else 800), (family, name, a)
+                    else:
+                        assert a["gold"] == 0, (family, name, a)                     # the Decline: authority alone
 
     def test_the_host_s_claims_stay_an_event(self, record):
         """P6 (§0b): at two corps the Host's Claims reaches more boards (17 of

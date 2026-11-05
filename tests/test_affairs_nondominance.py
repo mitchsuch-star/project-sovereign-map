@@ -42,8 +42,8 @@ E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 # AU-2c (November 4, 2026; AUTHORITY_CURRENCY_SPEC.md §5.4): the two letters
 # whose refusal is priced in authority alone — the Bank's Panic (a war that
 # outruns the chest) and the Pope's Refusal (the war with Britain, the user's
-# word). Authored and held out of the deck until armed (`standing.letters_armed`
-# down); the `armed` fixture below measures them UP, as the review record does.
+# word). Armed by the user's "Arm both" (November 5, 2026); the `armed` fixture
+# below holds them up whatever the seam's default, as the review record did.
 B1, P1 = "the_bank", "the_popes_ports"
 TEMPLATES = (T1, T2, T3, H1, E1, E2, E3, B1, P1)
 PURSES = ("gold", "dp", "admin")
@@ -66,7 +66,7 @@ def _restore_active_world():
 def armed(monkeypatch):
     C.board_env(monkeypatch)
     from backend.game_logic import standing
-    monkeypatch.setattr(standing, "letters_armed", lambda *a, **k: True)   # AU-2c measured up
+    monkeypatch.setattr(standing, "letters_armed", lambda *a, **k: True)   # AU-2c, armed Nov 5
     world = M.world
     world.moments = MO.from_block(json.loads(FIXTURE.read_text(encoding="utf-8")))
     return world

@@ -38,10 +38,13 @@ from tests._standing_seams import STANDING_SEAMS_BY_ROW  # noqa: E402
 
 SEAMS = tuple(STANDING_SEAMS_BY_ROW)
 ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
-# AU-2c: a seam DOWN by default (`standing.letters_armed`, the letters authored
-# and not armed) is measured UP on its own arm — every other seam as shipped
-ARMS["AUL+"] = set()
-UP_ARMS = {"AUL+": {"AUL"}}
+# A seam DOWN by default is measured UP on its own arm, every other seam as
+# shipped (`UP_ARMS`: arm -> the seams forced up). AU-2c's AUL+ arm measured
+# the Bank and the Pope so until the user's "Arm both" (November 5, 2026):
+# AUL is up by default now and ALL is that arm. None stands today; AU-4's
+# courts (`standing.courts_move`, down until the user's word) come next.
+UP_ARMS: dict = {}
+ARMS.update({arm: set() for arm in UP_ARMS})
 
 CHILD = r"""
 import sys, runpy, atexit, collections
@@ -145,8 +148,9 @@ def _counted_regrow(world, lord, amount, cause, key, *a, **k):
     return out
 ST.te_deum_on_peace, ST.bulletin, ST.the_return, ST.honour_repaid, ST.regrow = (
     _counted_te, _counted_bul, _counted_ret, _counted_hon, _counted_regrow)
-# AU-2c the Bank and the Pope: the seam AUL — DOWN by default (authored, not
-# armed); the AUL+ arm forces it UP; its reach counted
+# AU-2c the Bank and the Pope: the seam AUL — up since the user's "Arm both"
+# (November 5, 2026), held down on its arm; an UP_ARMS arm forces it up; its
+# reach counted
 UP = set({up!r})
 _letters = ST.letters_armed
 def _counted_letters():

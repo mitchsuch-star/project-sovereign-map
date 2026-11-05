@@ -130,6 +130,23 @@ def _no_moments(world):
         world.moments["state"][str(e["id"])] = {"status": "passed", "turn": 1, "reason": "premise"}
 
 
+AU2C_LETTERS = ("the_bank", "the_popes_ports")
+
+
+def _without_au2c_letters(world):
+    """AU-2c's two letters — ARMED by the user's "Arm both" (November 5, 2026)
+    — out of an isolation board's deck. The Pope's premise is the war with
+    Britain, which the 1805 boot carries (every Haiti board is blockaded BY
+    Britain), so it would take a pulse (T16 on the Haiti board) and a Watch
+    slot from the letter the board measures; the board's other letters stand
+    aside by their own premises (RE-6), but this one's premise is the board's
+    own. Their own pins: `tests/test_affairs_bank_and_pope.py`; their measured
+    interplay: the reach record (`tests/test_affairs_reach.py`)."""
+    aff = world.moments["block"]["affairs"]
+    aff["deck"] = [e for e in aff["deck"] if e.get("id") not in AU2C_LETTERS]
+    world.__dict__.pop("_affairs_memo", None)
+
+
 def _quarter(world, names, region="Swabia"):
     """France's corps `names` quartered on `region` (Swabia is Bavaria's)."""
     for name in names:
@@ -188,7 +205,7 @@ class TestUnarmed:
         # RE-H (November 1, 2026): the fourth letter, the Haiti letter (§6.5);
         # RE-6 (November 2, 2026): the three offers, the Edicts (§6.2 E1–E3);
         # AU-2c (November 4, 2026): the Bank's Panic and the Pope's Refusal,
-        # authored `since: "AU-2c"` and held out of the deck until armed
+        # authored `since: "AU-2c"`, armed by the user's word (November 5)
         assert [e["id"] for e in block["affairs"]["deck"]] == [
             "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
             "the_magazines", "the_remounts", "camps_of_instruction", "the_bank", "the_popes_ports"]
@@ -216,9 +233,11 @@ class TestTheStoreAndTheIds:
         assert AF.armed(armed)
         assert [e["id"] for e in MO.deck(armed)] == ["bavarian_match", "throne_of_holland",
                                                       "crown_of_the_reich", "decree_of_berlin"]
-        # RE-H: the fourth; RE-6: the three offers (the Edicts)
+        # RE-H: the fourth; RE-6: the three offers (the Edicts); AU-2c: the
+        # Bank and the Pope, armed by the user's word (November 5, 2026)
         assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo",
-                                                      "the_magazines", "the_remounts", "camps_of_instruction"]
+                                                      "the_magazines", "the_remounts", "camps_of_instruction",
+                                                      "the_bank", "the_popes_ports"]
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2

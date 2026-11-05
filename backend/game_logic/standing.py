@@ -140,11 +140,11 @@ def sources_armed() -> bool:
 def letters_armed() -> bool:
     """Arm AUL (AU-2c, §5.4): the Bank's Panic and the Pope's Refusal — two
     affairs templates authored `since: "AU-2c"`, held WHOLE out of the deck
-    (`moments.affairs_deck`) while this reads False. AUTHORED, NOT ARMED: RE's
-    rule — a template without a measured premise is not armed — and the
-    user's word at AU-2c's review flip it (the RE-6 pattern); the series rig's
-    AUL+ arm measures them up."""
-    return False
+    (`moments.affairs_deck`) while this reads False. ARMED by the user's word
+    at AU-2c's review ("Arm both", November 5, 2026 — RE's rule kept: both
+    premises measured before the flip, §6.4.3); down, the deck reads as
+    before AU-2c (arm AUL)."""
+    return True
 
 
 def courts_move() -> bool:

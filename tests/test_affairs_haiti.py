@@ -31,7 +31,7 @@ from backend.game_logic import naval
 from backend.models.authority import AURA_GRIP_FULL, get_imperial_grip
 from tests.test_affairs_engine import (  # noqa: F401 — the fixtures ride the import
     FIXTURE, SCENARIO, T1, _aff, _at, _bad, _block, _letter, _make_current, _moment_rows,
-    _no_moments, _quiet, _restore_active_world, _run, _tick, armed, client, world,
+    _no_moments, _quiet, _restore_active_world, _run, _tick, _without_au2c_letters, armed, client, world,
 )
 from tests.test_first_open import _TYPED
 
@@ -54,6 +54,9 @@ def _haiti_board(w, gold=5_000, authority=100):
     from backend.models.world_state import MAX_CAVALRY_POOL
     w.marshals["Bernadotte"].location = HOME
     w.manpower_pools["France"]["cavalry"] = int(MAX_CAVALRY_POOL)
+    # AU-2c (armed November 5, 2026): the Pope's premise is this board's own
+    # war with Britain — the two letters out of the board's deck
+    _without_au2c_letters(w)
     w.__dict__.pop("_affairs_memo", None)
 
 

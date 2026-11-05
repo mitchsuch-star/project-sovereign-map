@@ -5,8 +5,9 @@ the tools that spawn their own children — the passive sweep
 `os.environ`. The driver keeps its own `--seam` flag; this is the same idiom
 (`MODULE:NAME=EXPR` → `lambda *a, **k: EXPR`, the series arms' rule) read from
 `INK_IRON_SEAMS` (specs separated by ";"), so an ARMED measure of a seam held
-down by default (`standing.letters_armed`) reaches every child without a
-backend lever. Unset, it does nothing.
+down by default reaches every child without a backend lever (AU-2c measured
+`standing.letters_armed` so before the user's "Arm both" of November 5, 2026;
+AU-4's `standing.courts_move` is the next). Unset, it does nothing.
 
     INK_IRON_SEAMS="backend.game_logic.standing:letters_armed=True" \
         .venv/Scripts/python.exe tools/ai_v_sweep.py --all --out <dir>

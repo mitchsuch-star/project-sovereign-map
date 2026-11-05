@@ -31,10 +31,10 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
                                     (`since: "AU-2b"`) — down: the tree before AU-2b
     AUL  `standing.letters_armed` — AU-2c: the Bank's Panic and the Pope's Refusal,
                                     two affairs templates authored `since: "AU-2c"`
-                                    and held WHOLE out of the deck — DOWN BY
-                                    DEFAULT (authored, not armed: the user's word
-                                    at AU-2c's review arms them); the rig's AUL+
-                                    arm measures them up
+                                    — down: held WHOLE out of the deck (the deck
+                                    before AU-2c). Up since the user's "Arm both"
+                                    (November 5, 2026); the rig's AUL+ arm, which
+                                    measured them up while authored, is retired
 
 The last slice adds its seam here as it lands: AUC the courts (AU-4).
 

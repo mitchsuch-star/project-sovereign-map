@@ -39,8 +39,8 @@ class TestTheRecordMeasuredTheStagedDeck:
             "tools/_affairs_first_arrival_probe.py")
         # RE-H (November 1, 2026): the fourth letter, the Haiti letter;
         # RE-6 (November 2, 2026): the three offers, the Edicts;
-        # AU-2c (November 4, 2026): the Bank's and the Pope's letters, authored
-        # and held out of the deck until armed (the probe's arms read without them)
+        # AU-2c (November 4, 2026): the Bank's and the Pope's letters, authored,
+        # ARMED November 5 by the user's word (the probe's arms read with them)
         assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
                                      "the_magazines", "the_remounts", "camps_of_instruction",
                                      "the_bank", "the_popes_ports"]
@@ -133,15 +133,17 @@ class TestTheFirstArrivalIsReportedPerSeed:
             # standing — on ulm and austerlitz his letter takes the pulse's T21
             # morning (the Emperor afield since the opening), binding where it
             # finds him, as the Marine's does
+            # AU-2c armed (November 5, 2026, §6.4.6): the Pope's letter at T14–T16 on
+            # seven of the ten seeds, lapsed to its Decline like every other
             assert all(mid.startswith(("santo_domingo#", "berthiers_memorial#", "the_remounts#",
-                                       "chancellors_letters#")) for mid in rows), (seed, list(rows))
+                                       "chancellors_letters#", "the_popes_ports#")) for mid in rows), (seed, list(rows))
             for mid, row in rows.items():
                 standing = row["status"] == "fired" and int(row["turn"]) > int(record["turns"]) - 4
                 assert (row["status"] == "lapsed" or standing) and row["tier"] == 1, (seed, row)
                 if mid.startswith("berthiers_memorial#"):
                     assert row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
-                elif mid.startswith("the_remounts#"):
-                    assert row["bind"] == {}, (seed, row)                   # an offer binds nothing
+                elif mid.startswith(("the_remounts#", "the_popes_ports#")):
+                    assert row["bind"] == {}, (seed, row)                   # an offer, the Pope: nothing bound
                 else:
                     assert set(row["bind"]) == {"region", "sovereign"} and row["bind"]["sovereign"] == "Napoleon", (seed, row)
         with_door = {seed for seed, arms in record["seeds"].items()
@@ -159,8 +161,13 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # last morning (its first lapsed at T11, the cooldown of twelve run)
         # AU-2a: the Chancellor's T21 letter on ulm and austerlitz leaves the
         # Marine's second (and, on austerlitz, the door) due on the last morning
-        due_at_the_end = {"ulm": {"santo_domingo|": 1},
-                          "austerlitz": {"berthiers_memorial|": 1, "santo_domingo|": 1}}
+        # AU-2c armed (November 5, 2026, §6.4.6): the Pope's T15–T16 morning moves
+        # the Marine's second letter to T21 on ulm and austerlitz, so the
+        # Chancellor's letter is the one due on the last morning; on eylau the
+        # Pope at T15 and the Marine's second at T19 leave the Remounts due
+        due_at_the_end = {"ulm": {"chancellors_letters|": 1},
+                          "austerlitz": {"berthiers_memorial|": 1, "chancellors_letters|": 1},
+                          "eylau": {"the_remounts|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
             assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])

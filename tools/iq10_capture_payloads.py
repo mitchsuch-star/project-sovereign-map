@@ -2132,10 +2132,11 @@ def cap_moments():
            facts=affair_facts(popup))
 
     # AU-2c (AUTHORITY_CURRENCY_SPEC.md §5.4, §6.4): the Bank's Panic and the
-    # Pope's Refusal, measured UP for the user's review before arming —
-    # `standing.letters_armed` held up in this staging alone (the shipped deck
-    # holds them out); each letter alone in the deck, so the pulse's first
-    # morning that finds it due delivers it.
+    # Pope's Refusal, shot UP for the user's review before arming —
+    # `standing.letters_armed` held up in this staging (armed by default since
+    # the user's "Arm both", November 5, 2026; the hold kept so the frames of
+    # November 4 re-shoot as recorded); each letter alone in the deck, so the
+    # pulse's first morning that finds it due delivers it.
     from backend.game_logic import standing as _ST
     _letters_armed = _ST.letters_armed
     _ST.letters_armed = lambda *a, **k: True

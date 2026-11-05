@@ -1,12 +1,14 @@
 """AU-2c "the Bank and the Pope" (docs/AUTHORITY_CURRENCY_SPEC.md §5.4, §6.4):
 two affairs letters whose refusal is priced in authority alone — the Bank's
 Panic (the chest strained at war) and the Pope's Refusal (the war with
-Britain, the user's word of November 4, 2026) — authored `since: "AU-2c"`
-and held WHOLE out of the deck until the user's word arms them
-(`standing.letters_armed`, RE's rule: a template without a measured premise
-is not armed). Both take `bites: "floor"` (the clamp's rule: a refusal priced
-in authority alone may not clamp). The Pope's Accept costs the Papal States
-−10 (the user's second answer: the court exists — Rome its one province).
+Britain, the user's word of November 4, 2026) — authored `since: "AU-2c"`,
+held WHOLE out of the deck while `standing.letters_armed` reads False, and
+ARMED by the user's "Arm both" of November 5, 2026 (RE's rule kept: both
+premises measured before the flip, §6.4.3). Both take `bites: "floor"` (the
+clamp's rule: a refusal priced in authority alone may not clamp). The Pope's
+Accept costs the Papal States −10 (the user's second answer: the court
+exists — Rome its one province). AU-12: a standing letter's board says the
+matter as it stands this morning, never the premise that ended.
 """
 import contextlib
 import copy
@@ -53,7 +55,8 @@ def world(monkeypatch):
 
 @pytest.fixture
 def up(world, monkeypatch):
-    """The two letters measured UP (the review record's arm)."""
+    """The two letters up — the shipped default since the user's word, held
+    up here so each test reads the same whatever the seam's default."""
     monkeypatch.setattr(ST, "letters_armed", lambda *a, **k: True)
     world.__dict__.pop("_affairs_memo", None)
     return world
@@ -80,15 +83,23 @@ def _plan(world, template, side, turn):
     return MO.plan(world, MO.entry(world, template), side, occ)
 
 
-class TestTheSeamHoldsThemOut:
-    def test_the_shipped_default_is_down_until_the_user_arms_them(self):
-        """Rule 9's behaviour test: the letters are AUTHORED, NOT ARMED — the
-        owner is AU-2c's review, the landing its flip commit (re-measured),
-        and flipping it re-pins this line consciously."""
-        assert ST.letters_armed() is False
-        assert AF.row_armed("AU-2c") is False and AF.row_armed("AU-2b") is True
+class TestTheUsersWordArmedThem:
+    """The arming (§6.4.4 reading 1): the user's "Arm both" of November 5,
+    2026 flipped the seam — this class re-pinned consciously (it read
+    `TestTheSeamHoldsThemOut` while the letters were authored, not armed).
+    Held down on its arm (AUL), every reader sees AU-2b's deck."""
 
-    def test_down_every_reader_sees_the_deck_before_au_2c(self, world):
+    def test_the_shipped_default_is_up_by_the_users_word(self):
+        assert ST.letters_armed() is True
+        assert AF.row_armed("AU-2c") is True and AF.row_armed("AU-2b") is True
+
+    def test_both_letters_stand_last_in_the_shipped_deck(self, world):
+        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + [BANK, POPE]
+        assert AF.entry_armed(MO.entry(world, BANK)) and AF.entry_armed({"id": "x"})
+
+    def test_held_down_every_reader_sees_the_deck_before_au_2c(self, world, monkeypatch):
+        monkeypatch.setattr(ST, "letters_armed", lambda *a, **k: False)
+        assert AF.row_armed("AU-2c") is False
         assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C
         assert MO.entry(world, BANK) is None and MO.entry(world, POPE) is None
         world.nation_gold["France"] = 20_000
@@ -97,17 +108,15 @@ class TestTheSeamHoldsThemOut:
         assert not [c for c in AF.candidates(world, 30) if c["e"]["id"] in (BANK, POPE)]
         assert not [line for line in AF.watch(world, record=False) if "Caprara" in line or "Bank" in line]
 
-    def test_the_rig_holds_the_seam_and_measures_it_up(self):
-        """Arm AUL (`tests/_standing_seams.py`) is down by default; the series
-        rig's AUL+ arm forces it up, its reach counted (the letters' arrivals)."""
+    def test_the_rig_holds_the_seam_down_on_its_arm(self):
+        """Arm AUL (`tests/_standing_seams.py`) holds the letters down; the
+        series rig's AUL+ arm (the letters forced up while authored) is
+        retired — ALL is that arm now — and the reach is still counted."""
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
         assert STANDING_SEAMS_BY_ROW["AUL"] == ["backend.game_logic.standing:letters_armed=False"]
         rig = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        assert 'UP_ARMS = {"AUL+": {"AUL"}}' in rig and "the_popes_ports_delivered" in rig
-
-    def test_up_both_letters_stand_last(self, up):
-        assert [e["id"] for e in AF.deck(up)] == BEFORE_AU2C + [BANK, POPE]
-        assert AF.entry_armed(MO.entry(up, BANK)) and AF.entry_armed({"id": "x"})
+        assert "UP_ARMS: dict = {}" in rig and "the_popes_ports_delivered" in rig
+        assert 'ARMS["AUL+"]' not in rig
 
 
 class TestTheBanksPremise:
@@ -286,6 +295,103 @@ class TestThePossessiveIsSaidRight:
         lines = AF._board(world, e, occ)
         assert "stand on the Kingdom of Italy's soil" in lines[0], lines
         assert "The Kingdom" not in lines[0], lines
+
+
+class TestTheBoardSaysTheMatterAsItStands:
+    """AU-12 (`BUG_FIXES.md` §AU): a standing letter's board is read live at
+    every read (the IGR-2 lesson), so a premise that ended while the letter
+    stood is said, never the matter it ended — the Pope's board read "The war
+    with the sea's master" after a peace with Britain; its siblings the
+    Chancellor's ("afield at Swabia, 0 mornings running" with the Emperor
+    home) and the Staff's ("At war 0 turns running" at peace, "the Staff is
+    not in force" once decreed)."""
+
+    @staticmethod
+    def _board(world, template, bind=None):
+        world.__dict__.pop("_affairs_memo", None)
+        occ = {"id": f"{template}#1", "lord": "France", "bind": dict(bind or {}), "tier": 1}
+        return AF._board(world, MO.entry(world, template), occ)
+
+    def test_the_popes_board_counts_its_mornings_while_it_holds(self, up):
+        up.gold = 5_000
+        AF.runtime(up).setdefault("streaks", {})[f"{POPE}|"] = 12
+        assert self._board(up, POPE) == [
+            "At war with Britain 12 mornings running; the ports of the Papal States stay open "
+            "outside the System (at peace with you, goodwill -10)."]
+
+    def test_the_popes_board_after_a_peace_or_an_armistice_with_britain(self, up):
+        up.gold = 5_000
+        AF.runtime(up).setdefault("streaks", {})[f"{POPE}|"] = 12
+        _peace_with(up, "Britain")
+        line = self._board(up, POPE)[0]
+        assert line.startswith("Britain is at peace with you this morning; the ports of the Papal States "
+                               "stay open outside the System"), line
+        assert "war" not in line.split(";")[0], line
+        up.diplomatic_states[up._make_diplo_key("France", "Britain")] = "ARMISTICE"
+        assert self._board(up, POPE)[0].startswith("Britain is under an armistice this morning;")
+
+    def test_the_popes_board_once_the_court_closes_its_ports(self, up):
+        up.gold = 5_000
+        up.continental_system_members = ["PapalStates"]
+        line = self._board(up, POPE)[0]
+        assert line.startswith("At war with Britain; the ports of the Papal States are closed under the System"), line
+
+    def test_the_chancellors_board_with_the_emperor_home(self, up):
+        assert _read(up, "chancellors_letters")["holds"] is False          # the boot: the Emperor at home
+        up.authority_tracker.authority = 88
+        assert self._board(up, "chancellors_letters", {"region": "Swabia"}) == [
+            "The Emperor is no longer afield this morning; his authority is 88."]
+
+    def test_the_staffs_board_at_peace_and_once_decreed(self, up, monkeypatch):
+        e = MO.entry(up, "berthiers_memorial")
+        assert (e.get("when") or {}).get("predicate") == "staff_offered"
+        line = self._board(up, "berthiers_memorial")[0]
+        assert line.startswith("At war; the Staff is not in force;"), line
+        from backend.game_logic import reforms
+        monkeypatch.setattr(reforms, "is_in_force", lambda *a, **k: True)
+        assert self._board(up, "berthiers_memorial")[0].startswith("At war; the Staff is in force;")
+        for court in list(up.get_nations_at_war_with("France")):
+            _peace_with(up, court)
+        assert self._board(up, "berthiers_memorial")[0].startswith("At peace this morning; the Staff is in force;")
+
+
+class TestTheWatchWaitsForTheFirstMorning:
+    """AU-13 (`BUG_FIXES.md` §AU): the Watch named the Bank with nothing
+    counted — "The chest ran short at war 0 of the last 12 mornings — the
+    Bank's regents may write" — on any board at war with the purse able to
+    pay (the Haiti pins met it the morning the letters were armed). A latch
+    that has counted no morning is not in the offing; from the first, the
+    line says its count. The Marine's line is the sibling ("Blockaded 0 of
+    the last 12 mornings" — latent while Britain blockades from the boot)."""
+
+    @staticmethod
+    def _alone(world, template):
+        aff = world.moments["block"]["affairs"]
+        aff["deck"] = [e for e in aff["deck"] if e["id"] == template]
+        world.__dict__.pop("_affairs_memo", None)
+
+    def test_the_bank_from_its_first_short_morning(self, up):
+        self._alone(up, BANK)
+        up.gold = 6_000
+        assert _read(up, BANK)["holds"] is True
+        masks = AF.runtime(up).setdefault("masks", {})
+        masks[BANK] = 0
+        assert AF.watch(up, record=False) == []
+        masks[BANK] = 0b1
+        assert AF.watch(up, record=False) == [
+            "The chest ran short at war 1 of the last 12 mornings — the Bank's regents may write."]
+
+    def test_the_marine_the_same(self, up):
+        haiti = "santo_domingo"
+        self._alone(up, haiti)
+        up.gold = 6_000
+        assert _read(up, haiti)["holds"] is True
+        masks = AF.runtime(up).setdefault("masks", {})
+        masks[haiti] = 0
+        assert AF.watch(up, record=False) == []
+        masks[haiti] = 0b11
+        assert AF.watch(up, record=False) == [
+            "Blockaded 2 of the last 12 mornings — Decrès may write of Santo Domingo."]
 
 
 class TestTheFrames:

@@ -1446,6 +1446,9 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
     if predicate == "sovereign_afield":
         tracker = getattr(world, "authority_tracker", None)
         standing = int(getattr(tracker, "authority", 0) or 0) if tracker is not None else 0
+        if not read.get("holds"):
+            # AU-12's sibling: home again while the letter stands — said, never "0 mornings running"
+            return [f"The Emperor is no longer afield this morning; his authority is {standing}."]
         region = str(bind.get("region") or (read.get("bind") or {}).get("region") or "the field")
         return [f"The Emperor is afield at {region}, {streak} mornings running; his authority is {standing}."]
     if predicate == "corps_on_host":
@@ -1473,7 +1476,14 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
         row = reforms.find_law(world, lord, str(bind.get("law") or when.get("law") or ""))
         price = int((row or {}).get("price", 0) or 0)
         upkeep = int((row or {}).get("upkeep", 0) or 0)
-        return [f"At war {streak} turns running; the Staff is not in force; the chest holds "
+        # AU-12's sibling: read live — a peace, or the Staff decreed, while the letter stands is said
+        if streak:
+            war = f"At war {streak} turns running"
+        else:
+            war = "At war" if _at_war(world, lord, "_board") else "At peace this morning"
+        staff = ("the Staff is in force" if row is not None and reforms.is_in_force(row)
+                 else "the Staff is not in force")
+        return [f"{war}; {staff}; the chest holds "
                 f"{int(purse_of(world, lord)[1]):,} gold against {price:,} now and {upkeep:,} a turn."]
     if predicate == "colony_cut_off":
         return _board_colony_cut_off(world, e, occ, lord, bind, read)
@@ -1494,13 +1504,23 @@ def _board(world, e: Dict[str, Any], occ: Dict[str, Any]) -> List[str]:
                          f"a turn: at this rate it runs dry in {chest // -net} turns.")
         return lines
     if predicate == "ports_defied":
-        # AU-2c the Pope: the war with the trade-dominant power, the court's ports open
+        # AU-2c the Pope: the war with the trade-dominant power, the court's ports —
+        # read live (AU-12): a peace, or the System, that came while the letter
+        # stands is said, never the war it ended
         from backend.game_logic import naval
         court = str(when.get("court") or "")
         target = naval.trade_dominance_nation(world)
-        war = (f"At war with {MO._court(world, target)} {streak} mornings running"
-               if target and streak else "The war with the sea's master")
-        return [f"{war}; the ports of {MO._court(world, court)} stay open outside the System "
+        if target and streak:
+            war = f"At war with {MO._court(world, target)} {streak} mornings running"
+        elif target and world.is_at_war(lord, target):
+            war = f"At war with {MO._court(world, target)}"
+        elif target:
+            war = f"{MO._court(world, target, capitalize=True)} is {MO._standing(world, lord, target)} this morning"
+        else:
+            war = "No power is master of the sea this morning"
+        members = getattr(world, "continental_system_members", None) or []
+        ports = "are closed under the System" if court in members else "stay open outside the System"
+        return [f"{war}; the ports of {MO._court(world, court)} {ports} "
                 f"({MO._standing(world, lord, court)}, goodwill {MO._relation(world, lord, court)})."]
     return []
 
@@ -1612,6 +1632,12 @@ def watch(world, record: bool = True) -> List[str]:
         latched = str((e.get("when") or {}).get("predicate") or "") in LATCHED_PREDICATES
         if latched:
             measure = latch_count(world, e)      # "blockaded {n} of the last 12 mornings"
+            # AU-13 (AU-2c's arming, November 5, 2026): a latch that has counted
+            # no morning is not in the offing — "The chest ran short at war 0 of
+            # the last 12 mornings — the Bank's regents may write" promised a
+            # letter no strain had begun (the Marine's line the same at 0)
+            if measure <= 0:
+                continue
         # RE5-1 (the Mode C walk, November 2, 2026): `{m}` is read against the
         # authored need ("{m} of 2 mornings") — a matter held past its need
         # by a busy desk or the pulse keeps counting, and the line read
