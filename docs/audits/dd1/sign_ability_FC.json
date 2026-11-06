@@ -656,7 +656,7 @@
     "France|Ottoman"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Ottoman Empire's proposal. Treaty signed: Peace → Open Borders with the Ottoman Empire. The Ottoman Empire paid 36 gold into the treasury.",
+   "message": "You have accepted the Ottoman Empire's proposal. Treaty signed: Peace → Open Borders with the Ottoman Empire. The Ottoman Empire paid 33 gold into the treasury.",
    "arm": "FC",
    "clause": ""
   },
@@ -728,7 +728,7 @@
     "France|Ottoman"
    ],
    "verdict": "signed",
-   "message": "You have accepted the Ottoman Empire's proposal. Treaty signed: Peace → Open Borders with the Ottoman Empire. The Ottoman Empire paid 36 gold into the treasury.",
+   "message": "You have accepted the Ottoman Empire's proposal. Treaty signed: Peace → Open Borders with the Ottoman Empire. The Ottoman Empire paid 33 gold into the treasury.",
    "arm": "FC",
    "clause": ""
   },
@@ -1445,9 +1445,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 7.48,
+ "clone_ms_mean": 8.12,
  "clones": 47,
- "seconds": 5.0,
+ "seconds": 5.7,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

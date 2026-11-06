@@ -85,13 +85,15 @@ class TestTheMomentsAreBlindOnEverySeed:
         # grip on the web steadies, and Holland's letter moves with it — on wagram
         # it falls due at T18 on both arms, on rivoli on neither within the twenty
         # turns; historical and friedland as before
-        assert moved == {"historical", "friedland"}, moved
-        assert record["seeds"]["wagram"]["armed"]["moments"] == record["seeds"]["wagram"]["letters"]["moments"] == {
-            "throne_of_holland": 18}
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the courts' Decree
+        # paid in authority where their gold refuses (AU-20 fixed) and their fields'
+        # writes take the courts' move off historical — Holland's letter falls due at
+        # T18 on both arms there, as on wagram; friedland as before
+        assert moved == {"friedland"}, moved
+        for seed in ("historical", "wagram"):
+            assert record["seeds"][seed]["armed"]["moments"] == record["seeds"][seed]["letters"]["moments"] == {
+                "throne_of_holland": 18}, seed
         assert record["seeds"]["rivoli"]["letters"]["moments"] == record["seeds"]["rivoli"]["armed"]["moments"] == {}
-        for seed in ("historical",):
-            arms = record["seeds"][seed]
-            assert "throne_of_holland" in arms["letters"]["moments"] and arms["armed"]["moments"] == {}, (seed, arms["armed"]["moments"])
         friedland = record["seeds"]["friedland"]
         assert (friedland["letters"]["moments"]["throne_of_holland"], friedland["armed"]["moments"]["throne_of_holland"]) == (18, 17)
         assert friedland["armed"]["moments"]["bavarian_match"] == friedland["letters"]["moments"]["bavarian_match"] == 9
@@ -194,8 +196,15 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # last morning; on marengo the Marine's letter, put off its T6, takes
         # T13 and the Proclamation's second T18, and the Pope is due; on eylau
         # the Proclamation's second takes the Marine's T19, and the Marine's is due
-        due_at_the_end = {"marengo": {"the_popes_ports|": 1},
-                          "eylau": {"santo_domingo|": 1}}
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the courts' decrees in
+        # authority and their fields re-time the passive boards — on ulm and
+        # austerlitz the Chancellor's letter and the Remounts stand due on the last
+        # morning, on marengo the Chancellor's, the Remounts and the Pope's, on lodi
+        # the Chancellor's and the Memorial; nothing on eylau
+        due_at_the_end = {"ulm": {"chancellors_letters|": 1, "the_remounts|": 1},
+                          "austerlitz": {"chancellors_letters|": 1, "the_remounts|": 1},
+                          "marengo": {"chancellors_letters|": 3, "the_remounts|": 3, "the_popes_ports|": 3},
+                          "lodi": {"chancellors_letters|": 1, "berthiers_memorial|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
             assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])

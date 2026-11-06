@@ -31,8 +31,8 @@ module is the only door to it in production:
     `find_ai_edict`) and their laws read one gate.
   * `keeps_books()` — the series rig's seam (arm AUB: the writer passes the
     clamped figure through and books nothing); `courts_move()` — the courts'
-    new sources and battle writes, PARKED (False) until AU-4 flips it on the
-    user's word.
+    sources and battle writes, flipped up by the user's word at AU-4 ("Flip,
+    flat grip", November 6, 2026; arm AUC holds them down).
 
 Nothing moves by waiting (§5.1): every move sits on an event. No per-turn
 rule here scans the regions (Golden Rule 8).
@@ -151,8 +151,8 @@ def buys_armed() -> bool:
     """Arm AUY (AU-3a, §5.3): the buys — the Decree on the three Edict letters
     (their `decree` answer, `since: "AU-3a"`), the Word on an objection (both
     roads), Honour him and By Decree on the marshals' cards; down, the tree
-    reads as AU-2c's. The courts' Decree is parked behind `courts_move()`
-    with the courts' other writes (AU-14 — AU-4 flips it)."""
+    reads as AU-2c's. The courts' Decree rides `courts_move()` with the
+    courts' other writes (AU-14 — flipped up at AU-4)."""
     return True
 
 
@@ -176,18 +176,12 @@ def proclamation_armed() -> bool:
 def courts_move() -> bool:
     """Arm AUC (§5.7, AU-4): the courts' sources and battle writes — their
     fields, garrisons and charges (`courts_battle`, `courts_garrison`), their
-    Te Deum and Bulletin, their Decree in authority (AU-14) — PARKED until the
-    user's word flips it (the RE-6 pattern); measured up by the rig's AUC+
-    arms and, in the sweep's and the probe's children, by `INK_IRON_SEAMS`."""
-    return False
-
-
-def court_grip_reads_books() -> bool:
-    """Arm AUG (AU-5, BUG_FIXES.md §AU): a court's imperial grip read from its
-    books, relative to the boot (`authority.court_grip_base`: 75 + (standing −
-    60)), instead of the flat `GRIP_ENEMY_COURT_BASE`; down, the flat 75 —
-    decided at the courts' flip on the user's word, measured both ways."""
-    return False
+    Te Deum and Bulletin, their Decree in authority (AU-14) — FLIPPED UP by
+    the user's word at AU-4's review ("Flip, flat grip", November 6, 2026; the
+    RE-6 pattern: built and measured parked at AU-4 part 1, §6.7, then flipped
+    in its own commit with its re-measure, §6.8); down, the courts as AU-4
+    part 1 left them (arm AUC)."""
+    return True
 
 
 # ─────────────────────────────── the writer ───────────────────────────────
@@ -278,8 +272,8 @@ def regrow(world, lord: str, amount: int, cause: str, key: str, every: int = 0,
     """A lump of regrowth (the Te Deum, the Bulletin, the Return — AU-2b's
     callers): +amount up to `ceiling` (CEILING, or an Act's own `ceiling` —
     never above it), once per `every` turns per `key` (the cooldown kept in
-    the tracker's `held`). Returns what was applied. A court's regrowth is
-    parked behind `courts_move()`."""
+    the tracker's `held`). Returns what was applied. A court's regrowth
+    rides `courts_move()` (arm AUC)."""
     amount = abs(int(amount))
     if not amount:
         return 0
@@ -535,7 +529,7 @@ def insist_stake_line() -> str:
 
 # ─────────────────────────────── the lumps (AU-2b) ───────────────────────────────
 # §5.5: standing comes back by play, never by waiting — each lump through
-# `regrow` (the ceiling 95, a keyed cooldown), a court's parked (AU-4).
+# `regrow` (the ceiling 95, a keyed cooldown), a court's behind `courts_move()` (AU-4).
 
 TE_DEUM_SCORE = 25        # a war ENDED with the lord's war score at +25 or better …
 TE_DEUM_AMOUNT = 4        # … sings a Te Deum: +4, …
@@ -563,7 +557,7 @@ def te_deum_on_peace(world, diplo_key: str) -> int:
     war score (`diplomacy.get_war_score_for`) at TE_DEUM_SCORE or better sings
     one — +TE_DEUM_AMOUNT through `regrow`, once per TE_DEUM_EVERY turns per
     lord — and Le Moniteur prints it (the campaign log's `te_deum`). A level
-    peace sings nothing; a court's Te Deum is parked. Returns what was applied."""
+    peace sings nothing; a court's Te Deum rides `courts_move()`. Returns what was applied."""
     if not sources_armed():
         return 0
     parts = str(diplo_key or "").split("|")
@@ -610,7 +604,7 @@ def bulletin(world, lord: str, battle: str, ours: int, theirs: int) -> Tuple[int
     tracker = tracker_of(world, lord) if is_player(world, lord) else None
     if tracker is None:
         if not lord or is_player(world, lord) or not courts_move():
-            return 0, 0                  # a court's Bulletin is parked with the courts' flip (AU-4)
+            return 0, 0                  # a court's Bulletin rides the courts' flip (AU-4, arm AUC)
         # AU-4: a court's Bulletin is the base alone — it keeps no ring, so no
         # dent of the field's to repay (§6.7 reading 3)
         return regrow(world, lord, BULLETIN_AMOUNT, "bulletin", "bulletin", every=BULLETIN_EVERY,
@@ -693,8 +687,8 @@ def courts_battle(world, battle: str, attacker_nation: str, defender_nation: str
     the sovereign's own hand, and the Bulletin on a laurel; lost, −5 when
     outnumbering or a capital lost by its defender (AU-19), −5 under the
     sovereign's own hand. `lost_capitals` False for the auto-charge mirror,
-    whose player arm books no capital lost (each site's own rules). Parked
-    behind `courts_move()`. Returns the total moved."""
+    whose player arm books no capital lost (each site's own rules). Behind
+    `courts_move()` (arm AUC). Returns the total moved."""
     if not courts_move():
         return 0
     region = world.get_region(battle) if hasattr(world, "get_region") else None
@@ -726,7 +720,7 @@ def courts_battle(world, battle: str, attacker_nation: str, defender_nation: str
 def courts_garrison(world, lord: str, region, pre_atk: int, garrison_effective: int, stormed: bool) -> int:
     """AU-4: a court's assault on a garrison, the attacker's side as the
     player's — stormed against the odds +5, a capital stormed +5; repulsed
-    with the numbers −5. Parked behind `courts_move()`; the player's own
+    with the numbers −5. Behind `courts_move()` (arm AUC); the player's own
     writes stay in the garrison path. Returns the total moved."""
     if not courts_move() or not lord or is_player(world, lord):
         return 0

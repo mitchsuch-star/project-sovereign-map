@@ -43,11 +43,12 @@ ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
 # the Bank and the Pope so until the user's "Arm both" (November 5, 2026):
 # AUL is up by default now and ALL is that arm. AU-3b's AUR+ arm measured the
 # Proclamation so until the user's "Arm it" (November 5, 2026): AUR is up by
-# default now and ALL is that arm too. AU-4's courts (`standing.courts_move`,
-# down until the user's word) are measured up on AUC+, with the grip reading
-# their books (AU-5, `standing.court_grip_reads_books`) on AUCG+ and the gate's
-# direct read on AUCGD+ (the rig's alone: `authority.court_grip_base` patched).
-UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}
+# default now and ALL is that arm too. AU-4's courts (`standing.courts_move`)
+# were measured up on AUC+, AUCG+ and AUCGD+ while parked, until the user's
+# "Flip, flat grip" (November 6, 2026): AUC is up by default now, ALL is that
+# arm, and AU-5's grip seam is gone with its decision (the flat 75 kept — the
+# three grips' record is `tools/_standing_courts_au4.json`).
+UP_ARMS: dict = {}
 ARMS.update({arm: set() for arm in UP_ARMS})
 
 CHILD = r"""
@@ -204,9 +205,8 @@ def _counted_procl():
         return False
     return True if "AUR" in UP else _procl()
 ST.proclamation_armed = _counted_procl
-# AU-4 the courts: the seam AUC — DOWN by default (parked until the user's word),
-# forced up on the AUC+ arms; the grip's seam AUG down, forced up on AUCG+; the
-# gate's direct read (a court at 30 reads 30) on AUCGD+, the rig's alone
+# AU-4 the courts: the seam AUC — up since the user's "Flip, flat grip"
+# (November 6, 2026), held down on its arm (the courts as AU-4 part 1 left them)
 _courts = ST.courts_move
 def _counted_courts():
     _c["courts_reads"] += 1
@@ -214,15 +214,16 @@ def _counted_courts():
         return False
     return True if "AUC" in UP else _courts()
 ST.courts_move = _counted_courts
-_grip_books = ST.court_grip_reads_books
-def _counted_grip_books():
-    _c["grip_books_reads"] += 1
-    if "AUG" in DOWN:
-        return False
-    return True if ("AUG" in UP or "AUGD" in UP) else _grip_books()
-ST.court_grip_reads_books = _counted_grip_books
-if "AUGD" in UP:
-    AU.court_grip_base = lambda world, nation: ST.standing_of(world, nation)
+# AU-20 (found at the courts' flip, November 6, 2026): the seam AUD — up, a
+# rung's `currency` rides its order into the executor's command; held down on
+# its arm, the key dropped as before the fix, so AUD reproduces the series the
+# review measured with the courts up (AU-4 part 1's AUC+)
+from backend.ai import enemy_ai as _EA
+_purse = _EA.orders_carry_their_purse
+def _counted_purse():
+    _c["purse_reads"] += 1
+    return False if "AUD" in DOWN else _purse()
+_EA.orders_carry_their_purse = _counted_purse
 # AU-19 (AU-4's head): the seam AUF — a capital lost only by its defender, when it
 # falls; held down on its arm (the old rule: a lost battle at any capital the lord
 # did not control), so arm 0 reproduces the series before AU
@@ -258,7 +259,7 @@ _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "court_decrees_in_authority",
          "offices_reads", "bought_endowed", "bought_titles_granted",
          "proclamation_reads", "the_proclamation_delivered",
-         "courts_reads", "grip_books_reads", "capital_reads")
+         "courts_reads", "capital_reads", "purse_reads")
 def _end_state():
     if not _worlds:
         return {{}}

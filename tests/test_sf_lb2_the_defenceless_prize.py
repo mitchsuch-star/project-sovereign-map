@@ -731,10 +731,18 @@ class TestTheDrivenBoard:
         # at 13 and Hesse at 18 verbatim — the decrees are the mover. Every
         # driven seed now opens Prussia's alone; the addendum (only a prize
         # opens) stands.
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip";
+        # AUTHORITY_CURRENCY_SPEC.md §6.8): the courts take the player's rules and
+        # decree in authority from turn 1, and on historical Hesse's Westphalian
+        # Duchy opens again — at coerce against Hanover on turn 14, the prize of the
+        # same kind S14k's G1 named (Hesse declares it on marengo in the seven-seed
+        # record); Prussia's crisis on every driven seed unchanged. Only a prize
+        # opens: every crisis a court could declare, every target Hanover.
         for seed, rec in records.items():
             coveters = {c["coveter"] for c in rec["crises_opened"]}
-            assert coveters == {"Prussia"}, (seed, rec["crises_opened"])
+            assert "Prussia" in coveters and coveters <= {"Prussia", "Hesse"}, (seed, rec["crises_opened"])
             assert all(c["target"] == "Hanover" for c in rec["crises_opened"]), seed
+            assert all(c["opened_at_price"] in ("coerce", "fight") for c in rec["crises_opened"]), seed
 
     def test_the_restraints_held_at_the_opening(self, records):
         for seed, rec in records.items():
@@ -795,8 +803,20 @@ class TestTheDrivenBoard:
             if len(by_seed) >= 3:
                 assert len(set(by_seed.values())) >= 3, (pair, by_seed)
 
-    def test_the_record_is_seven_seeds_each_opening_once(self):
+    def test_the_record_is_seven_seeds_each_war_two_turns_after_its_opening(self):
         """The record's shape, pinned so a re-run that loses it is noticed.
+
+        RE-SEATED by AU-4 the courts' flip (November 6, 2026 — the user's
+        "Flip, flat grip"; AUTHORITY_CURRENCY_SPEC.md §6.8), consciously — it
+        was `test_the_record_is_seven_seeds_each_opening_once`: on friedland
+        Prussia's war of turn 14 ends in Hanover's peace at turn 16 on both
+        trees, but on the flip's board the peace drops Prussia's article
+        (Hanover keeps its capital and pays 1,720 gold) where, with the courts
+        held down, it ceded Hanover and closed the design — so the Hanoverian
+        prize stays live, the crisis re-opens at 24 (and cools), 32 and 34, and
+        Prussia declares again at 36, two turns after its warning. Every other
+        seed opens Prussia's crisis once and declares two turns later; the
+        first openings and wars are the parked record's on all seven.
 
         RE-SEATED by the October 27, 2026 enemy-AI sweep (SYSTEMS_REFERENCE
         §157.10 / §157.11), consciously — it was
@@ -819,10 +839,14 @@ class TestTheDrivenBoard:
             prussian = [int(c["opened_turn"]) for c in rec["crises_opened"] if c["coveter"] == "Prussia"]
             wars = [int(w["started_turn"]) for w in rec["wars_declared"]
                     if w["attackers"] == ["Prussia"] and w["defenders"] == ["Hanover"]]
-            assert len(prussian) == 1 and len(wars) == 1, (rec["seed"], prussian, wars)
+            if rec["seed"] == "friedland":
+                assert (prussian, wars) == ([12, 24, 32, 34], [14, 36]), (prussian, wars)
+            else:
+                assert len(prussian) == 1 and len(wars) == 1, (rec["seed"], prussian, wars)
+            assert all(w - 2 in prussian for w in wars), (rec["seed"], prussian, wars)
             assert wars[0] == prussian[0] + 2, (rec["seed"], prussian, wars)
             openings.add(prussian[0])
-            war_turns.update(wars)
+            war_turns.add(wars[0])
         assert len(openings) >= 3 and len(war_turns) >= 3, (openings, war_turns)
 
 

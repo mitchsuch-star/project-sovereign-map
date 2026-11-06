@@ -563,9 +563,23 @@ class TestTheMeasuredArms:
         # part 1's: its arm 0 (every AU seam down) and AUF (a capital lost by any
         # loser at it — the old rule) reproduce the prior byte for byte; ALL is the
         # standing series, diverging at [22] (France keeps its standing through the
-        # opening); the courts forced up (AUC+) diverge at [10], parked.
-        au = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        # opening); the courts forced up (AUC+) diverge at [10], parked. That
+        # record is kept beside the flip's: `tools/_standing_series_arms_au4_part1.json`.
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_THE_COURTS
+        au = json.loads((ROOT / "tools" / "_standing_series_arms_au4_part1.json").read_text(encoding="utf-8"))
         assert au["prior"] == au["arms"]["0"]["series"] == au["arms"]["AUF"]["series"] == SERIES_BEFORE_AU
-        assert au["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert au["arms"]["ALL"]["series"] == SERIES_BEFORE_THE_COURTS
         assert au["arms"]["ALL"]["first_divergence_vs_prior"] == 22
         assert au["arms"]["AUC+"]["first_divergence_vs_prior"] == 10
+        # The courts' flip (November 6, 2026 — the user's "Flip, flat grip";
+        # `AUTHORITY_CURRENCY_SPEC.md` §6.8): the committed record is the flip's —
+        # its prior AU-4 part 1's series, which AUC (the courts held down)
+        # reproduces; arm 0 is RE-6's; AUD (AU-20 held down — the courts' Decree
+        # paid in gold) is the series part 1's AUC+ measured; ALL is the shipped
+        # series, at [16]
+        flip = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        assert flip["prior"] == flip["arms"]["AUC"]["series"] == SERIES_BEFORE_THE_COURTS
+        assert flip["arms"]["0"]["series"] == SERIES_BEFORE_AU
+        assert flip["arms"]["AUD"]["series"] == au["arms"]["AUC+"]["series"]
+        assert flip["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert flip["arms"]["ALL"]["first_divergence_vs_prior"] == 16

@@ -1,0 +1,3857 @@
+{
+ "_what": "AU-4 the courts' flip (AUTHORITY_CURRENCY_SPEC.md §6.8): the parked tree, the courts up as the review measured them (AU-20 in the tree — the courts' Decree at their floors paid in gold) and the flip as shipped (AU-20 fixed — paid in authority); per run the player's end and each great power's end, the courts' moves by cause, each letter's arrivals, the series rig's arms. Seeded paths, not laws.",
+ "runs_measured": 59,
+ "courts_mean_end": {
+  "parked": {
+   "Austria": 32.3,
+   "Britain": 31.0,
+   "Ottoman": 60.0,
+   "Prussia": 31.5,
+   "Russia": 45.3,
+   "Spain": 60.0
+  },
+  "reviewed": {
+   "Austria": 33.4,
+   "Britain": 40.4,
+   "Ottoman": 60.0,
+   "Prussia": 37.3,
+   "Russia": 43.2,
+   "Spain": 59.4
+  },
+  "flipped": {
+   "Austria": 34.7,
+   "Britain": 40.7,
+   "Ottoman": 57.4,
+   "Prussia": 34.5,
+   "Russia": 39.5,
+   "Spain": 64.8
+  }
+ },
+ "courts_at_or_under_30": {
+  "parked": {
+   "Austria": 53,
+   "Britain": 56,
+   "Prussia": 56
+  },
+  "reviewed": {
+   "Austria": 20,
+   "Britain": 13,
+   "Prussia": 13,
+   "Russia": 6
+  },
+  "flipped": {
+   "Austria": 21,
+   "Britain": 7,
+   "Prussia": 7,
+   "Russia": 6
+  }
+ },
+ "court_moves_by_cause": {
+  "parked": {
+   "law": 355
+  },
+  "reviewed": {
+   "assault_repulsed": 283,
+   "bulletin": 469,
+   "capital_lost": 4,
+   "capital_stormed": 188,
+   "capital_taken": 5,
+   "field_lost": 374,
+   "field_won": 115,
+   "law": 316,
+   "te_deum": 55
+  },
+  "flipped": {
+   "assault_repulsed": 249,
+   "bulletin": 472,
+   "capital_lost": 5,
+   "capital_stormed": 167,
+   "capital_taken": 3,
+   "edict_decreed": 354,
+   "field_lost": 322,
+   "field_won": 83,
+   "garrison_stormed": 1,
+   "law": 262,
+   "te_deum": 52
+  }
+ },
+ "letters": {
+  "parked": {
+   "berthiers_memorial": 15,
+   "camps_of_instruction": 6,
+   "chancellors_letters": 24,
+   "santo_domingo": 28,
+   "the_bank": 6,
+   "the_host": 26,
+   "the_magazines": 10,
+   "the_popes_ports": 12,
+   "the_proclamation": 28,
+   "the_remounts": 36
+  },
+  "reviewed": {
+   "berthiers_memorial": 20,
+   "camps_of_instruction": 6,
+   "chancellors_letters": 24,
+   "santo_domingo": 25,
+   "the_bank": 5,
+   "the_host": 25,
+   "the_magazines": 7,
+   "the_popes_ports": 13,
+   "the_proclamation": 32,
+   "the_remounts": 24
+  },
+  "flipped": {
+   "berthiers_memorial": 15,
+   "camps_of_instruction": 7,
+   "chancellors_letters": 26,
+   "santo_domingo": 30,
+   "the_bank": 4,
+   "the_host": 30,
+   "the_magazines": 6,
+   "the_popes_ports": 8,
+   "the_proclamation": 34,
+   "the_remounts": 22
+  }
+ },
+ "player_end_moved": [
+  "accept/CMD-A-ACCEPT",
+  "accept/CMD-H-ACCEPT",
+  "accept/CMD-M-ACCEPT",
+  "commanded/CMD-A",
+  "commanded/CMD-H",
+  "commanded/CMD-M",
+  "commanded/FLD",
+  "commanded/LAW",
+  "commanded/OP",
+  "commanded/VOLTE",
+  "enacts/ENACTS-austerlitz",
+  "enacts/ENACTS-historical",
+  "haiti/HAITI-austerlitz",
+  "haiti/HAITI-historical",
+  "haiti/HAITI-marengo",
+  "reach_aar/REACH-AAR",
+  "road/VP1-CS-austerlitz",
+  "road/VP1-CS-historical",
+  "road/VP1-CS-marengo",
+  "road/VP1-RH-austerlitz",
+  "road/VP1-RH-historical",
+  "road/VP1-RH-marengo",
+  "road/VP1-TH-austerlitz",
+  "road/VP1-TH-historical",
+  "road/VP1-TH-marengo",
+  "road_accept/VP1-RH-austerlitz",
+  "road_accept/VP1-RH-historical",
+  "road_accept/VP1-RH-marengo",
+  "sweep/armA_historical_run1",
+  "sweep/armA_historical_run2",
+  "sweep/armB_austerlitz",
+  "sweep/armB_jena",
+  "sweep/armB_ulm",
+  "sweep/armC_00_historical",
+  "sweep/armC_01_ulm",
+  "sweep/armC_02_austerlitz",
+  "sweep/armC_03_jena",
+  "sweep/armC_04_marengo",
+  "sweep/armC_05_eylau",
+  "sweep/armC_06_friedland",
+  "sweep/armC_07_wagram",
+  "sweep/armC_08_lodi",
+  "sweep/armC_09_rivoli",
+  "sweep/armb_scripted_austerlitz",
+  "sweep/armb_scripted_austerlitz_soil",
+  "sweep/armb_scripted_historical",
+  "sweep/armb_scripted_historical_soil",
+  "sweep/armb_scripted_ulm",
+  "sweep/armb_scripted_ulm_soil"
+ ],
+ "rig": {
+  "0": {
+   "first_divergence_vs_prior": 22,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 37,
+    "courts": {
+     "Austria": 30,
+     "Bavaria": 60,
+     "Britain": 30,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 60,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 30,
+     "Russia": 45,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 60,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 1,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 35,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "Britain",
+    "coalition_members": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ]
+   },
+   "court_moves": {
+    "law": 7
+   }
+  },
+  "AUB": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUP": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUK": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUW": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUS": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 27,
+     "Bavaria": 60,
+     "Britain": 42,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 38,
+     "Russia": 27,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 60,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": -1,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": -1,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 4
+   }
+  },
+  "AUL": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUY": {
+   "first_divergence_vs_prior": null,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 37,
+    "courts": {
+     "Austria": 21,
+     "Bavaria": 60,
+     "Britain": 45,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 60,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 38,
+     "Russia": 38,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 68,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": -1,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 1,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 35,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "Britain",
+    "coalition_members": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ]
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 15,
+    "capital_stormed": 5,
+    "field_lost": 7,
+    "field_won": 1,
+    "law": 7
+   }
+  },
+  "AUO": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUR": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  },
+  "AUC": {
+   "first_divergence_vs_prior": null,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    17,
+    14,
+    11,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 37,
+    "courts": {
+     "Austria": 30,
+     "Bavaria": 60,
+     "Britain": 30,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 60,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 30,
+     "Russia": 45,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 60,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 1,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 35,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "Britain",
+    "coalition_members": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ]
+   },
+   "court_moves": {
+    "law": 7
+   }
+  },
+  "AUD": {
+   "first_divergence_vs_prior": 10,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    37,
+    34,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 40,
+    "courts": {
+     "Austria": 28,
+     "Bavaria": 60,
+     "Britain": 51,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 60,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 38,
+     "Russia": 34,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 59,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": -1,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 1,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 0,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "Britain",
+    "coalition_members": [
+     "Austria",
+     "Britain",
+     "Russia"
+    ]
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 14,
+    "capital_stormed": 5,
+    "field_lost": 8,
+    "field_won": 2,
+    "law": 7,
+    "te_deum": 1
+   }
+  },
+  "AUF": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 32,
+    "courts": {
+     "Austria": 28,
+     "Bavaria": 60,
+     "Britain": 39,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 36,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": -1,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 75,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 7,
+    "bulletin": 10,
+    "capital_lost": 1,
+    "capital_stormed": 4,
+    "edict_decreed": 7,
+    "field_lost": 5,
+    "field_won": 2,
+    "law": 6,
+    "te_deum": 1
+   }
+  },
+  "ALL": {
+   "first_divergence_vs_prior": 16,
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    8,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "end_state": {
+    "turn": 27,
+    "courts": {
+     "Austria": 43,
+     "Bavaria": 60,
+     "Britain": 46,
+     "Denmark": 60,
+     "Hanover": 60,
+     "Hesse": 60,
+     "Holland": 60,
+     "KingdomOfItaly": 60,
+     "Naples": 60,
+     "Ottoman": 57,
+     "PapalStates": 60,
+     "Portugal": 60,
+     "Prussia": 31,
+     "Russia": 35,
+     "Sardinia": 60,
+     "Saxony": 60,
+     "Spain": 64,
+     "Sweden": 60,
+     "Switzerland": 60
+    },
+    "dp_term": {
+     "Austria": 0,
+     "Bavaria": 1,
+     "Britain": 0,
+     "Denmark": 1,
+     "Hanover": 1,
+     "Hesse": 1,
+     "Holland": 1,
+     "KingdomOfItaly": 1,
+     "Naples": 1,
+     "Ottoman": 0,
+     "PapalStates": 1,
+     "Portugal": 1,
+     "Prussia": 0,
+     "Russia": 0,
+     "Sardinia": 1,
+     "Saxony": 1,
+     "Spain": 1,
+     "Sweden": 1,
+     "Switzerland": 1
+    },
+    "flipped": {
+     "Austria": 75,
+     "Bavaria": 35,
+     "Britain": 75,
+     "Denmark": 75,
+     "Hanover": 35,
+     "Hesse": 75,
+     "Holland": 20,
+     "KingdomOfItaly": 35,
+     "Naples": 75,
+     "Ottoman": 75,
+     "PapalStates": 75,
+     "Portugal": 75,
+     "Prussia": 75,
+     "Russia": 75,
+     "Sardinia": 75,
+     "Saxony": 75,
+     "Spain": 75,
+     "Sweden": 75,
+     "Switzerland": 75
+    },
+    "coalition_leader": "",
+    "coalition_members": []
+   },
+   "court_moves": {
+    "assault_repulsed": 8,
+    "bulletin": 9,
+    "capital_stormed": 5,
+    "edict_decreed": 7,
+    "field_lost": 3,
+    "field_won": 1,
+    "law": 5,
+    "te_deum": 1
+   }
+  }
+ },
+ "runs": {
+  "accept/CMD-A-ACCEPT": {
+   "player_end": {
+    "parked": 94,
+    "reviewed": 94,
+    "flipped": 60
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 30,
+     "Russia": 44,
+     "Prussia": 38,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 40,
+     "Britain": 24,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 87
+    }
+   }
+  },
+  "accept/CMD-H-ACCEPT": {
+   "player_end": {
+    "parked": 95,
+    "reviewed": 95,
+    "flipped": 97
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 32,
+     "Britain": 43,
+     "Russia": 53,
+     "Prussia": 33,
+     "Spain": 55,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 45,
+     "Britain": 41,
+     "Russia": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "accept/CMD-M-ACCEPT": {
+   "player_end": {
+    "parked": 55,
+    "reviewed": 92,
+    "flipped": 45
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 35,
+     "Russia": 45,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 56,
+     "Britain": 38,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/CMD-A": {
+   "player_end": {
+    "parked": 72,
+    "reviewed": 72,
+    "flipped": 51
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 30,
+     "Russia": 44,
+     "Prussia": 38,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 40,
+     "Britain": 24,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 87
+    }
+   }
+  },
+  "commanded/CMD-H": {
+   "player_end": {
+    "parked": 79,
+    "reviewed": 71,
+    "flipped": 79
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 46,
+     "Britain": 43,
+     "Russia": 53,
+     "Prussia": 41,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 45,
+     "Britain": 41,
+     "Russia": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "commanded/CMD-M": {
+   "player_end": {
+    "parked": 52,
+    "reviewed": 90,
+    "flipped": 50
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 35,
+     "Russia": 45,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 56,
+     "Britain": 38,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/DL": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 100,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 45,
+     "Russia": 45,
+     "Austria": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 49,
+     "Britain": 45,
+     "Russia": 45,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 46,
+     "Britain": 42,
+     "Russia": 42,
+     "Prussia": 57,
+     "Ottoman": 57,
+     "Spain": 60
+    }
+   }
+  },
+  "commanded/FC": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 100,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 45,
+     "Russia": 45,
+     "Austria": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 50,
+     "Britain": 45,
+     "Russia": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 47,
+     "Britain": 42,
+     "Russia": 42,
+     "Prussia": 57,
+     "Ottoman": 57,
+     "Spain": 60
+    }
+   }
+  },
+  "commanded/FLD": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 100,
+    "flipped": 55
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 38,
+     "Britain": 30,
+     "Russia": 49,
+     "Prussia": 34,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 35,
+     "Britain": 42,
+     "Russia": 37,
+     "Prussia": 38,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/LAW": {
+   "player_end": {
+    "parked": 68,
+    "reviewed": 59,
+    "flipped": 68
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 44,
+     "Britain": 43,
+     "Russia": 45,
+     "Prussia": 34,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 45,
+     "Britain": 42,
+     "Russia": 42,
+     "Prussia": 38,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/OP": {
+   "player_end": {
+    "parked": 95,
+    "reviewed": 97,
+    "flipped": 95
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 35,
+     "Britain": 30,
+     "Russia": 49,
+     "Prussia": 38,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 32,
+     "Britain": 42,
+     "Russia": 46,
+     "Prussia": 46,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/VOLTE": {
+   "player_end": {
+    "parked": 71,
+    "reviewed": 71,
+    "flipped": 79
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 44,
+     "Britain": 43,
+     "Russia": 45,
+     "Prussia": 41,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 45,
+     "Britain": 41,
+     "Russia": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "enacts/ENACTS-austerlitz": {
+   "player_end": {
+    "parked": 71,
+    "reviewed": 72,
+    "flipped": 86
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 30,
+     "Russia": 44,
+     "Prussia": 38,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 33,
+     "Britain": 39,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "enacts/ENACTS-historical": {
+   "player_end": {
+    "parked": 79,
+    "reviewed": 69,
+    "flipped": 72
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 46,
+     "Britain": 43,
+     "Russia": 53,
+     "Prussia": 41,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 45,
+     "Britain": 41,
+     "Russia": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "enacts/ENACTS-ulm": {
+   "player_end": {
+    "parked": 74,
+    "reviewed": 74,
+    "flipped": 74
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 41,
+     "Britain": 49,
+     "Russia": 45,
+     "Prussia": 38,
+     "Spain": 49,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 38,
+     "Britain": 37,
+     "Russia": 41,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 62
+    }
+   }
+  },
+  "haiti/HAITI-austerlitz": {
+   "player_end": {
+    "parked": 89,
+    "reviewed": 91,
+    "flipped": 90
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 40,
+     "Austria": 25,
+     "Russia": 49,
+     "Prussia": 33,
+     "Spain": 63,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 39,
+     "Russia": 36,
+     "Austria": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "haiti/HAITI-historical": {
+   "player_end": {
+    "parked": 50,
+    "reviewed": 55,
+    "flipped": 55
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 37,
+     "Russia": 34,
+     "Austria": 30,
+     "Prussia": 42,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 40,
+     "Russia": 26,
+     "Austria": 37,
+     "Prussia": 35,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "haiti/HAITI-marengo": {
+   "player_end": {
+    "parked": 60,
+    "reviewed": 55,
+    "flipped": 50
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 42,
+     "Austria": 41,
+     "Russia": 39,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 41,
+     "Russia": 40,
+     "Austria": 22,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "probe/direct_writers": {
+   "player_end": {
+    "parked": 70,
+    "reviewed": 70,
+    "flipped": 70
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 60,
+     "Russia": 60,
+     "Austria": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 60,
+     "Russia": 60,
+     "Austria": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 60,
+     "Russia": 60,
+     "Austria": 60,
+     "Prussia": 60,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "reach_aar/REACH-AAR": {
+   "player_end": {
+    "parked": 93,
+    "reviewed": 91,
+    "flipped": 76
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 35,
+     "Britain": 35,
+     "Russia": 49,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 32,
+     "Britain": 42,
+     "Russia": 50,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "road/VP1-CS-austerlitz": {
+   "player_end": {
+    "parked": 46,
+    "reviewed": 97,
+    "flipped": 45
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 15,
+     "Austria": 36,
+     "Russia": 49,
+     "Prussia": 43,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 41,
+     "Austria": 43,
+     "Prussia": 38,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "road/VP1-CS-historical": {
+   "player_end": {
+    "parked": 35,
+    "reviewed": 19,
+    "flipped": 35
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 66,
+     "Austria": 50,
+     "Russia": 56,
+     "Prussia": 14,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 35,
+     "Russia": 50,
+     "Austria": 44,
+     "Prussia": 35,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "road/VP1-CS-marengo": {
+   "player_end": {
+    "parked": 10,
+    "reviewed": 50,
+    "flipped": 45
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 43,
+     "Austria": 43,
+     "Russia": 47,
+     "Prussia": 42,
+     "Spain": 55,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 31,
+     "Russia": 53,
+     "Austria": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 74
+    }
+   }
+  },
+  "road/VP1-RH-austerlitz": {
+   "player_end": {
+    "parked": 47,
+    "reviewed": 57,
+    "flipped": 55
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 40,
+     "Britain": 39,
+     "Russia": 45,
+     "Prussia": 47,
+     "Spain": 72,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 36,
+     "Britain": 31,
+     "Russia": 40,
+     "Prussia": 40,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "road/VP1-RH-historical": {
+   "player_end": {
+    "parked": 44,
+    "reviewed": 76,
+    "flipped": 92
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 0,
+     "Britain": 44,
+     "Russia": 53,
+     "Prussia": 38,
+     "Spain": 54,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 30,
+     "Britain": 60,
+     "Russia": 36,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "road/VP1-RH-marengo": {
+   "player_end": {
+    "parked": 83,
+    "reviewed": 56,
+    "flipped": 65
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 40,
+     "Britain": 35,
+     "Russia": 13,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 14,
+     "Britain": 37,
+     "Russia": 54,
+     "Prussia": 32,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "road/VP1-TH-austerlitz": {
+   "player_end": {
+    "parked": 55,
+    "reviewed": 50,
+    "flipped": 60
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 37,
+     "Britain": 35,
+     "Russia": 43,
+     "Prussia": 38,
+     "Spain": 55,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 24,
+     "Britain": 42,
+     "Russia": 49,
+     "Prussia": 35,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "road/VP1-TH-historical": {
+   "player_end": {
+    "parked": 42,
+    "reviewed": 41,
+    "flipped": 41
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 34,
+     "Russia": 52,
+     "Prussia": 38,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 43,
+     "Britain": 46,
+     "Russia": 27,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "road/VP1-TH-marengo": {
+   "player_end": {
+    "parked": 55,
+    "reviewed": 50,
+    "flipped": 47
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 33,
+     "Britain": 59,
+     "Russia": 53,
+     "Prussia": 23,
+     "Spain": 35,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 29,
+     "Britain": 75,
+     "Russia": 54,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 43
+    }
+   }
+  },
+  "road_accept/VP1-RH-austerlitz": {
+   "player_end": {
+    "parked": 55,
+    "reviewed": 79,
+    "flipped": 60
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 33,
+     "Britain": 43,
+     "Russia": 49,
+     "Prussia": 47,
+     "Spain": 72,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 36,
+     "Britain": 31,
+     "Russia": 40,
+     "Prussia": 40,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "road_accept/VP1-RH-historical": {
+   "player_end": {
+    "parked": 91,
+    "reviewed": 84,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 0,
+     "Britain": 44,
+     "Russia": 53,
+     "Prussia": 38,
+     "Spain": 54,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 30,
+     "Britain": 60,
+     "Russia": 36,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 54
+    }
+   }
+  },
+  "road_accept/VP1-RH-marengo": {
+   "player_end": {
+    "parked": 83,
+    "reviewed": 52,
+    "flipped": 68
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 40,
+     "Britain": 35,
+     "Russia": 13,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 14,
+     "Britain": 37,
+     "Russia": 54,
+     "Prussia": 32,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "saves/DDB-24-conquest": {
+   "player_end": {
+    "parked": 69,
+    "reviewed": 69,
+    "flipped": 69
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 45,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 30,
+     "Russia": 44,
+     "Austria": 35,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 30,
+     "Russia": 39,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "saves/DDB-24-diplomacy": {
+   "player_end": {
+    "parked": 85,
+    "reviewed": 85,
+    "flipped": 85
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "saves/DDB-24-sea": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 100,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 30,
+     "Russia": 52,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Russia": 43,
+     "Britain": 30,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 64,
+     "Ottoman": 60
+    }
+   }
+  },
+  "saves/DDB-25-conquest": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 100,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 45,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 45,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Russia": 41,
+     "Austria": 42,
+     "Britain": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "saves/DDB-25-diplomacy": {
+   "player_end": {
+    "parked": 73,
+    "reviewed": 73,
+    "flipped": 73
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 41,
+     "Britain": 30,
+     "Russia": 40,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "saves/DDB-25-sea": {
+   "player_end": {
+    "parked": 40,
+    "reviewed": 40,
+    "flipped": 40
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 37,
+     "Britain": 34,
+     "Russia": 49,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 37,
+     "Britain": 34,
+     "Russia": 49,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    }
+   }
+  },
+  "sweep/armA_historical_run1": {
+   "player_end": {
+    "parked": 45,
+    "reviewed": 45,
+    "flipped": 90
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 51,
+     "Russia": 34,
+     "Austria": 28,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 35,
+     "Austria": 43,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armA_historical_run2": {
+   "player_end": {
+    "parked": 45,
+    "reviewed": 45,
+    "flipped": 90
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 51,
+     "Russia": 34,
+     "Austria": 28,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 35,
+     "Austria": 43,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armB_austerlitz": {
+   "player_end": {
+    "parked": 42,
+    "reviewed": 45,
+    "flipped": 65
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 29,
+     "Austria": 21,
+     "Russia": 9,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 36,
+     "Austria": 39,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armB_jena": {
+   "player_end": {
+    "parked": 30,
+    "reviewed": 40,
+    "flipped": 55
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 40,
+     "Russia": 43,
+     "Austria": 16,
+     "Prussia": 38,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 44,
+     "Russia": 54,
+     "Austria": 7,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armB_ulm": {
+   "player_end": {
+    "parked": 97,
+    "reviewed": 100,
+    "flipped": 70
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 47,
+     "Austria": 16,
+     "Russia": 35,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 36,
+     "Russia": 32,
+     "Austria": 18,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armC_00_historical": {
+   "player_end": {
+    "parked": 45,
+    "reviewed": 45,
+    "flipped": 90
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 51,
+     "Russia": 34,
+     "Austria": 28,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 35,
+     "Austria": 43,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armC_01_ulm": {
+   "player_end": {
+    "parked": 95,
+    "reviewed": 90,
+    "flipped": 75
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 45,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 43,
+     "Austria": 30,
+     "Russia": 29,
+     "Prussia": 38,
+     "Spain": 63,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 35,
+     "Russia": 6,
+     "Austria": 27,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "sweep/armC_02_austerlitz": {
+   "player_end": {
+    "parked": 45,
+    "reviewed": 83,
+    "flipped": 81
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 34,
+     "Austria": 37,
+     "Russia": 10,
+     "Prussia": 38,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 11,
+     "Austria": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "sweep/armC_03_jena": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 25,
+    "flipped": 100
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 62,
+     "Russia": 30,
+     "Austria": 31,
+     "Prussia": 42,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 26,
+     "Austria": 0,
+     "Prussia": 60,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armC_04_marengo": {
+   "player_end": {
+    "parked": 71,
+    "reviewed": 87,
+    "flipped": 75
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 42,
+     "Austria": 35,
+     "Russia": 48,
+     "Prussia": 38,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 17,
+     "Austria": 37,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "sweep/armC_05_eylau": {
+   "player_end": {
+    "parked": 70,
+    "reviewed": 100,
+    "flipped": 35
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 38,
+     "Russia": 43,
+     "Austria": 15,
+     "Prussia": 41,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 44,
+     "Russia": 46,
+     "Austria": 45,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "sweep/armC_06_friedland": {
+   "player_end": {
+    "parked": 37,
+    "reviewed": 40,
+    "flipped": 77
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 47,
+     "Russia": 48,
+     "Austria": 44,
+     "Prussia": 42,
+     "Spain": 54,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 41,
+     "Russia": 45,
+     "Austria": 52,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 68
+    }
+   }
+  },
+  "sweep/armC_07_wagram": {
+   "player_end": {
+    "parked": 85,
+    "reviewed": 80,
+    "flipped": 75
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 47,
+     "Russia": 39,
+     "Austria": 36,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 41,
+     "Russia": 45,
+     "Austria": 22,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armC_08_lodi": {
+   "player_end": {
+    "parked": 100,
+    "reviewed": 86,
+    "flipped": 95
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 44,
+     "Austria": 42,
+     "Russia": 35,
+     "Prussia": 38,
+     "Spain": 45,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 37,
+     "Russia": 46,
+     "Austria": 17,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armC_09_rivoli": {
+   "player_end": {
+    "parked": 85,
+    "reviewed": 30,
+    "flipped": 80
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 29,
+     "Russia": 44,
+     "Austria": 11,
+     "Prussia": 38,
+     "Spain": 64,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 36,
+     "Austria": 23,
+     "Prussia": 41,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armb_scripted_austerlitz": {
+   "player_end": {
+    "parked": 97,
+    "reviewed": 96,
+    "flipped": 42
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 35,
+     "Austria": 18,
+     "Russia": 45,
+     "Prussia": 30,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 37,
+     "Austria": 18,
+     "Prussia": 36,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armb_scripted_austerlitz_soil": {
+   "player_end": {
+    "parked": 97,
+    "reviewed": 83,
+    "flipped": 29
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 39,
+     "Austria": 40,
+     "Russia": 45,
+     "Prussia": 30,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 37,
+     "Austria": 24,
+     "Prussia": 41,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armb_scripted_historical": {
+   "player_end": {
+    "parked": 45,
+    "reviewed": 95,
+    "flipped": 40
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 59,
+     "Russia": 45,
+     "Austria": 9,
+     "Prussia": 30,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 41,
+     "Russia": 41,
+     "Austria": 51,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armb_scripted_historical_soil": {
+   "player_end": {
+    "parked": 30,
+    "reviewed": 95,
+    "flipped": 40
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 59,
+     "Russia": 45,
+     "Austria": 9,
+     "Prussia": 30,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 41,
+     "Russia": 41,
+     "Austria": 36,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "sweep/armb_scripted_ulm": {
+   "player_end": {
+    "parked": 40,
+    "reviewed": 88,
+    "flipped": 23
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 34,
+     "Austria": 40,
+     "Russia": 45,
+     "Prussia": 34,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 46,
+     "Russia": 37,
+     "Austria": 29,
+     "Prussia": 30,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  },
+  "sweep/armb_scripted_ulm_soil": {
+   "player_end": {
+    "parked": 82,
+    "reviewed": 100,
+    "flipped": 82
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Britain": 40,
+     "Austria": 30,
+     "Russia": 54,
+     "Prussia": 19,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Britain": 42,
+     "Russia": 37,
+     "Austria": 10,
+     "Prussia": 41,
+     "Ottoman": 57,
+     "Spain": 72
+    }
+   }
+  }
+ },
+ "court_decrees_in_authority": {
+  "parked": 0,
+  "reviewed": 0,
+  "flipped": 354
+ }
+}

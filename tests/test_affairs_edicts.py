@@ -526,10 +526,18 @@ class TestTheCourts:
         _magazines_board(armed, gold=12_000)
         assert _read(armed, E1)["holds"] is True
 
-    def test_the_rung_decrees_the_first_live_offer_at_the_laws_rung_s_bar(self, armed, courts_up):
+    def test_the_rung_decrees_the_first_live_offer_at_the_laws_rung_s_bar(self, armed, courts_up, monkeypatch):
+        from backend.game_logic import standing as ST
         armed.nation_gold["Austria"] = 20_000
         assert AF.find_ai_edict(armed, "Austria", 20_000, 2) == {"action": "decree_edict", "target": E2}
-        assert AF.find_ai_edict(armed, "Austria", 2_499, 2) is None          # under the bar
+        # under the gold bar: the Decree at the court's floors since the courts' flip
+        # (AU-14, the user's "Flip, flat grip", November 6, 2026 — Austria at 60);
+        # arm AUC holds that road down, the gold bar alone as RE-6 measured it
+        assert AF.find_ai_edict(armed, "Austria", 2_499, 2) == {"action": "decree_edict", "target": E2,
+                                                                 "currency": "authority"}
+        with monkeypatch.context() as held:
+            held.setattr(ST, "courts_move", lambda *a, **k: False)
+            assert AF.find_ai_edict(armed, "Austria", 2_499, 2) is None      # under the bar
         assert AF.find_ai_edict(armed, "Austria", 20_000, 0) is None         # no action left
         assert AF.find_ai_edict(armed, "France", 20_000, 2) is None          # never the player
         armed.nation_gold["Bavaria"] = 20_000

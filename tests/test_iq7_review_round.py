@@ -436,6 +436,13 @@ def turn6_snapshot():
     from tests._oct27_seams import hold_down as _hold_sweep_down
     _sweep = pytest.MonkeyPatch()
     _hold_sweep_down(_sweep)
+    # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip";
+    # AUTHORITY_CURRENCY_SPEC.md §6.8): the courts take the player's rules from
+    # turn 1 and the five staging turns re-time — Kutuzov stands at Swabia at
+    # turn 6 (30,058) where the recorded board has it empty; the courts are held
+    # down (arm AUC) for the staging, as the sweep's seams are, so it stands.
+    from tests._standing_seams import STANDING_SEAMS_BY_ROW as _AU_ROWS, hold_down as _hold_au_down
+    _hold_au_down(_sweep, _AU_ROWS["AUC"])
     try:
         w = _europe()
         M.world, M.parser = w, _PARSER

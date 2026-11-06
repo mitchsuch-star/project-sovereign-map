@@ -7,15 +7,18 @@
 - AU-4 (the row): `group_orders.authority_of` reads the one reader for a
   court — the table's figure, 60 for a court missing from it, never 75.
 - The courts' writes, the player's own rules, built behind
-  `standing.courts_move()` (arm AUC, DOWN until the user's word): a field's
+  `standing.courts_move()` (arm AUC) — FLIPPED UP by the user's "Flip, flat
+  grip" (November 6, 2026; the record §6.8): a field's
   writes for every court in it (AI against AI included, the player's side
   never touched), a garrison stormed or repulsed, the auto-charge mirror's own
   rules, a court's Bulletin (+4, no repayment — a court keeps no ring), the
   courts' cooldowns in the tracker's `held`.
 - A court proclaims only on its own eve of battle: the courts' rung asks a
   latched offer's latch bit, and the march is read from the lord's own sight.
-- AU-5: a court's grip base — the flat 75 down, its books read relative to
-  the boot up (arm AUG).
+- AU-5 DECIDED by the same word: every court's grip keeps the flat 75 — its
+  books are not read; the reason is written beside
+  `authority.GRIP_ENEMY_COURT_BASE` and the measured alternative's seam (AUG)
+  is gone with the decision.
 - The Nations row: the court's figure and its term in the diplomatic points.
 """
 from __future__ import annotations
@@ -162,11 +165,17 @@ def _ai_war_world():
 
 
 class TestTheCourtsField:
-    def test_parked_until_the_users_word(self):
+    def test_the_users_word_flipped_it(self, monkeypatch):
+        """The user's "Flip, flat grip" (November 6, 2026): the courts' writes
+        are up by default, and arm AUC (`courts_move` held down) is the tree AU-4
+        part 1 left — re-pinned consciously from `test_parked_until_the_users_word`."""
+        assert ST.courts_move() is True
         world = _ai_war_world()
-        assert ST.courts_move() is False
+        ST.courts_battle(world, "Vienna", "Prussia", "Austria", True, False, 10000, 30000)
+        assert (world.nation_authority["Prussia"], world.nation_authority["Austria"]) == (55, 45)
+        monkeypatch.setattr(ST, "courts_move", lambda *a, **k: False)        # arm AUC
         assert ST.courts_battle(world, "Vienna", "Prussia", "Austria", True, False, 10000, 30000) == 0
-        assert world.nation_authority["Prussia"] == 50
+        assert (world.nation_authority["Prussia"], world.nation_authority["Austria"]) == (55, 45)
 
     def test_ai_against_ai_both_sides_and_the_player_untouched(self, monkeypatch):
         _courts_up(monkeypatch)
@@ -239,9 +248,10 @@ class TestTheCourtsField:
                    outcome="attacker_victory", attacker_won=True, defender_won=False,
                    attacker_casualties=3000, defender_casualties=4000,
                    pre_battle_attacker_strength=10000, pre_battle_defender_strength=30000, conquered=False)
+        monkeypatch.setattr(ST, "courts_move", lambda *a, **k: False)        # arm AUC: AU-4 part 1's tree
         _pipeline(world, **ctx)
-        assert (world.nation_authority["Prussia"], world.nation_authority["Austria"]) == (50, 50)   # parked
-        _courts_up(monkeypatch)
+        assert (world.nation_authority["Prussia"], world.nation_authority["Austria"]) == (50, 50)
+        monkeypatch.undo()                                                   # the flip: the default
         _pipeline(world, **ctx)
         assert (world.nation_authority["Prussia"], world.nation_authority["Austria"]) == (55, 45)
 
@@ -251,6 +261,70 @@ class TestTheCourtsField:
         assert src.count("_standing.courts_garrison(") == 2
         mirror = (REPO / "backend" / "models" / "world_state.py").read_text(encoding="utf-8")
         assert mirror.count("_court_standing.courts_battle(") == 1 and "lost_capitals=False)" in mirror
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# AU-20 — the courts' Decree is paid in authority (found at the flip)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestAU20TheCourtsDecreePaysInAuthority:
+    """AU-20 (BUG_FIXES.md §AU, found by the flip's suite run, November 6,
+    2026): the rung's order carries `currency: "authority"` where a court's
+    gold refuses its reserve bar; the AI's admin step dropped it, so the
+    executor decreed in gold, under that bar, the court's authority unmoved."""
+
+    def test_the_admin_command_carries_the_rungs_currency(self, w, monkeypatch):
+        from types import SimpleNamespace
+        from backend.ai.enemy_ai import EnemyAI
+        picks = [{"action": "decree_edict", "target": "the_remounts", "currency": "authority"}]
+        monkeypatch.setattr(EnemyAI, "_pick_admin_action",
+                            lambda self, nation, world, ap, skip=None: picks.pop() if picks else None)
+        seen = []
+        ai = EnemyAI(SimpleNamespace(execute=lambda c, g: seen.append(dict(c["command"])) or {"success": True}))
+        with _quiet():
+            ai.execute_admin_phase("Austria", w, {"world": w})
+        assert seen and seen[0]["currency"] == "authority" and seen[0]["_acting_nation"] == "Austria"
+
+    def test_the_court_pays_its_floors_not_its_purse(self, w):
+        from backend.commands.executor import CommandExecutor
+        from backend.game_logic import affairs as AF
+        w.nation_gold["Austria"], w.nation_authority["Austria"] = 2_000, 60
+        assert AF.find_ai_edict(w, "Austria", 2_000, 2) == {"action": "decree_edict", "target": "the_remounts",
+                                                            "currency": "authority"}   # under the gold bar
+        with _quiet():
+            result = CommandExecutor().execute(
+                {"command": {"action": "decree_edict", "target": "the_remounts", "currency": "authority",
+                             "_acting_nation": "Austria", "type": "specific"}}, {"world": w})
+        assert result["success"], result.get("message")
+        assert (w.nation_gold["Austria"], w.nation_authority["Austria"]) == (2_000, 57)
+        row = [ev for ev in w.event_log if ev.get("type") == "moment" and ev.get("nation") == "Austria"][-1]
+        assert row["line"] == "Austria decrees the Remounts for 8 turns (3 authority)"
+
+
+class TestTheFlipsRecord:
+    """The flip's record (`tools/_standing_courts_flip.py` → `tools/_standing_courts_flip.json`,
+    AUTHORITY_CURRENCY_SPEC.md §6.8.2): the parked tree, the courts up as the
+    review measured them (AU-20 in the tree) and the flip as shipped, on the
+    59 measured runs. Seeded paths, not laws — the figures are the record's;
+    the pins read the shape of the difference."""
+
+    def test_the_courts_decree_in_authority_only_on_the_flipped_tree(self):
+        rec = json.loads((REPO / "tools" / "_standing_courts_flip.json").read_text(encoding="utf-8"))
+        assert rec["runs_measured"] >= 55
+        assert rec["court_decrees_in_authority"]["parked"] == rec["court_decrees_in_authority"]["reviewed"] == 0
+        assert rec["court_decrees_in_authority"]["flipped"] > 0
+        moves = rec["court_moves_by_cause"]
+        assert set(moves["parked"]) == {"law"}                         # parked: the courts' laws alone
+        for cause in ("field_won", "field_lost", "bulletin", "capital_stormed", "assault_repulsed", "te_deum"):
+            assert moves["flipped"].get(cause, 0) > 0, cause            # the courts take the player's rules
+        assert moves["flipped"]["law"] < moves["reviewed"]["law"] < moves["parked"]["law"]
+
+    def test_the_rig_carries_the_flip_and_its_find(self):
+        rec = json.loads((REPO / "tools" / "_standing_courts_flip.json").read_text(encoding="utf-8"))
+        rig = rec["rig"]
+        assert rig["AUC"]["first_divergence_vs_prior"] is None          # the courts held down: part 1's tree
+        assert rig["AUD"]["first_divergence_vs_prior"] == 10            # AU-20 held down: the review's tree
+        assert rig["ALL"]["first_divergence_vs_prior"] == 16
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -297,21 +371,30 @@ class TestTheCourtsProclamation:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# AU-5 — the grip, measured both ways
+# AU-5 — the grip: DECIDED, the flat 75 kept with its reason
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestAU5TheGrip:
-    def test_down_the_flat_75_up_the_books_relative_to_the_boot(self, w, monkeypatch):
+    def test_the_flat_75_kept_with_its_reason(self, w):
+        """AU-5 DECIDED by the user's "Flip, flat grip" (November 6, 2026): a
+        court's grip keeps the flat base whatever its books — the reason is
+        written beside `authority.GRIP_ENEMY_COURT_BASE`; the alternative (the
+        books read relative to the boot, seam AUG, and the gate's direct read)
+        is removed with its decision, its measure kept as the record —
+        re-pinned consciously from `test_down_the_flat_75_up_the_books_relative_to_the_boot`."""
         from backend.models import authority as AUTH
-        assert ST.court_grip_reads_books() is False
-        w.nation_authority["Austria"] = 30
-        assert AUTH.court_grip_base(w, "Austria") == AUTH.GRIP_ENEMY_COURT_BASE == 75
-        monkeypatch.setattr(ST, "court_grip_reads_books", lambda *a, **k: True)
-        assert AUTH.court_grip_base(w, "Austria") == 45                    # 75 + (30 − 60)
-        w.nation_authority["Austria"] = 60
-        assert AUTH.court_grip_base(w, "Austria") == 75                    # the boot unmoved
-        w.nation_authority["Austria"] = 95
-        assert AUTH.get_imperial_grip(w, "Austria") <= 100                 # the grip's own clamp
+        assert AUTH.GRIP_ENEMY_COURT_BASE == 75
+        assert not hasattr(AUTH, "court_grip_base") and not hasattr(ST, "court_grip_reads_books")
+        grips = []
+        for figure in (25, 30, 60, 95):
+            w.nation_authority["Austria"] = figure
+            grips.append(AUTH.get_imperial_grip(w, "Austria"))
+        assert len(set(grips)) == 1, grips                                  # the books are not read
+        src = (REPO / "backend" / "models" / "authority.py").read_text(encoding="utf-8")
+        assert 'DECIDED at the courts\' flip by the user\'s "Flip, flat' in src
+        assert "coalition's leadership" in src and "bites nowhere" in src
+        review = json.loads((REPO / "tools" / "_standing_courts_au4.json").read_text(encoding="utf-8"))
+        assert set(review["courts_mean_end"]) == {"shipped", "flat", "grip"}   # the three grips measured
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -339,10 +422,13 @@ class TestTheNationsRowAndTheSeams:
         assert '" (+" + str(auth_dp) + " diplomatic point a turn)"' in src
         assert '" (−" + str(-auth_dp) + " diplomatic point a turn)"' in src
 
-    def test_the_two_seams_and_their_arms(self):
+    def test_the_seam_and_its_arm(self):
+        """The flip (November 6, 2026): AUC holds the courts down on its arm; the
+        rig's AUC+ arms are retired (ALL is that arm) and AU-5's AUG with its
+        decision — re-pinned consciously from `test_the_two_seams_and_their_arms`."""
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
         assert STANDING_SEAMS_BY_ROW["AUC"] == ["backend.game_logic.standing:courts_move=False"]
-        assert STANDING_SEAMS_BY_ROW["AUG"] == ["backend.game_logic.standing:court_grip_reads_books=False"]
-        assert ST.courts_move() is False and ST.court_grip_reads_books() is False
+        assert "AUG" not in STANDING_SEAMS_BY_ROW
+        assert ST.courts_move() is True
         rig = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        assert 'UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}' in rig
+        assert "UP_ARMS: dict = {}" in rig and "court_grip_reads_books" not in rig and "AUGD" not in rig

@@ -259,10 +259,14 @@ class TestShownEqualsAppliedCap:
         monkeypatch.setattr(naval, "find_ai_expedition", fake_find)
         ai = EnemyAI(SimpleNamespace(execute=lambda c, g: {"success": True}))
         # Skip every rung above the expedition so the pick reaches it.
+        # The courts' flip (AU-4, the user's "Flip, flat grip", November 6,
+        # 2026) opened the Edicts rung's authority road: at 0 gold Britain
+        # decrees at its floors (AU-14), a rung above the expedition — skipped
+        # with the others.
         skips = {"recruit", "grant_dotation", "recruit_marshal",
                  "build_fleet", "invest_in_vassal",
                  "grant_region_to_vassal", "change_vassal_autonomy",
-                 "grant_pension"}
+                 "grant_pension", "decree_edict"}
         europe.nation_gold["Britain"] = 0
         picked_at_2 = ai._pick_admin_action("Britain", europe, 2,
                                             set(skips))

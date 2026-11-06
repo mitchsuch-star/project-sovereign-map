@@ -3,7 +3,8 @@
 
 Standing comes back by play, never by waiting — each lump through
 `standing.regrow` (the ceiling 95, a keyed cooldown in the tracker's `held`),
-each parked for the courts: the Te Deum at a war's end (never a truce, once
+each the courts' too since their flip (AU-4, November 6, 2026 — parked
+before it): the Te Deum at a war's end (never a truce, once
 per twelve turns, Le Moniteur's line), the Bulletin of the Field on a laurel
 victory (a battle by `jealousy.is_laurel` and out-bled two to one — the
 plan's reading of §4.1 reading 5) repaying the field's dents of the last ten
@@ -105,11 +106,21 @@ class TestTheTeDeum:
         w.current_turn = 22
         assert ST.te_deum_on_peace(w, _score(w, "France", "Russia", 30)) == 4
 
-    def test_a_court_sings_nothing(self, w):
+    def test_a_court_sings_on_its_own_peace_since_the_flip(self, w, monkeypatch):
+        """The courts' flip (the user's "Flip, flat grip", November 6, 2026): a
+        court's Te Deum by the player's rule — +4 on a war ended at +25 or better,
+        its twelve turns kept under its own key; arm AUC holds it down (AU-2b's
+        "a court sings nothing") — re-pinned consciously from `test_a_court_sings_nothing`."""
         from backend.game_logic import standing as ST
         before = dict(w.nation_authority)
-        assert ST.te_deum_on_peace(w, _score(w, "Austria", "Russia", 60)) == 0
-        assert w.nation_authority == before
+        key = _score(w, "Austria", "Russia", 60)
+        monkeypatch.setattr(ST, "courts_move", lambda *a, **k: False)        # arm AUC
+        assert ST.te_deum_on_peace(w, key) == 0 and w.nation_authority == before
+        monkeypatch.undo()
+        assert ST.te_deum_on_peace(w, key) == 4                              # Austria's, at +60; Russia's −60 sings nothing
+        assert w.nation_authority["Austria"] == before["Austria"] + 4
+        assert w.nation_authority["Russia"] == before["Russia"]
+        assert w.authority_tracker.held["last:Austria|te_deum"] == w.current_turn
 
 
 # ═══════════════════════════════════════════════════════════════════════

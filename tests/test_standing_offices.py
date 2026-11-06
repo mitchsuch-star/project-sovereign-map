@@ -386,12 +386,21 @@ class TestTheProclamation:
         last = board.authority_tracker.moves[-1]
         assert (last["key"], last["cause"]) == ("edict_decreed", "the Proclamation decreed on the Emperor's word")
 
-    def test_a_court_never_proclaims_before_au4(self, board, monkeypatch):
+    def test_a_court_proclaims_only_on_its_own_eve_of_battle(self, board, monkeypatch):
+        """The courts' flip (the user's "Flip, flat grip", November 6, 2026)
+        opens a court's authority road — the gold road still refuses, the
+        Proclamation being paid in authority alone; arm AUC holds the road down;
+        and the courts' rung asks the latch, so on this board, where no court
+        fields a sovereign, none proclaims — re-pinned consciously from
+        `test_a_court_never_proclaims_before_au4`."""
         _armed(monkeypatch)
         e = MO.entry(board, P2)
         assert AF.edict_refusal(board, "Austria", e, with_reserve=True) == "the decree is paid in authority alone."
-        assert AF.edict_refusal(board, "Austria", e, currency="authority") == \
-            "the courts' Decree waits for the courts' flip."
+        assert AF.edict_refusal(board, "Austria", e, currency="authority") == ""
+        with monkeypatch.context() as held:
+            held.setattr(ST, "courts_move", lambda *a, **k: False)           # arm AUC
+            assert AF.edict_refusal(board, "Austria", e, currency="authority") == \
+                "the courts' Decree waits for the courts' flip."
         for court in ("Austria", "Russia", "Prussia", "Britain"):
             board.nation_gold[court] = 50_000                  # a full purse: the gold road is no excuse
             order = AF.find_ai_edict(board, court, 50_000, 3)
@@ -427,8 +436,9 @@ class TestTheSeams:
         assert ST.offices_armed() is True and ST.proclamation_armed() is True
         assert "AU-3b" in AF.SINCE_ROWS and AF.row_armed("AU-3b") is True
         src = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        # the AUR+ arm retired (ALL is that arm); AU-4's courts are the UP arms now
-        assert '"AUR+"' not in src and 'UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}' in src
+        # the AUR+ arm retired (ALL is that arm); AU-4's courts were the UP arms until
+        # the user's "Flip, flat grip" (November 6, 2026) — retired with the flip
+        assert '"AUR+"' not in src and "UP_ARMS: dict = {}" in src
 
 
 # ═══════════════════════════════════════════════════════════════════════════

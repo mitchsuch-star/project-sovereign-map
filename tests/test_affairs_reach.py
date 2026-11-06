@@ -194,11 +194,19 @@ class TestEachTemplatesReach:
         assert count("chancellors_letters", SCRIPTED) >= 15
         assert count("the_host", SCRIPTED) >= 15
         assert count("berthiers_memorial", SCRIPTED) >= 1
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the courts take the
+        # player's rules and decree in authority where their gold refuses — the five
+        # courts with a laws deck decree the Remounts at turn 1 — so every measured
+        # board re-rolls from its first morning and the letters move both ways: the
+        # Chancellor 15 → 18 scripted, the Host 15 → 16, the Memorial 1 → 2 (its door
+        # due on 15 → 11 scripted arms — CMD-H and its accept arm and the Confederation
+        # road at austerlitz no longer meet its premise; its sweep runs 7 → 6). With
+        # the courts held down (arm AUC) the parked record's counts return
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
-                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 13
+                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 11
         assert count("berthiers_memorial", ("saves",)) >= 2
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
-        assert count("berthiers_memorial", ("sweep",)) >= 7
+        assert count("berthiers_memorial", ("sweep",)) >= 6
         # the offers' floors (§25.6): the Magazines on the war's roads — more of
         # them with the courts in arms (15 of 55; 8 with the rung parked) — and
         # three of the six hand-played starts; the Remounts wherever the horse
@@ -225,8 +233,12 @@ class TestEachTemplatesReach:
         # premise never holds there now) — 12 → 9; on CMD-H the
         # Chancellor's second letter (−8) finds room above the floor at T28 (eight
         # "capital lost" gone) and takes the Camps' morning — 6 → 5
-        assert count(E1, FAMILIES) >= 9 and count(E1, ("saves",)) >= 3
-        assert count(E2, FAMILIES) >= 28 and count(E2, ("saves",)) == 0
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the re-rolled boards
+        # bleed the Emperor's horse on fewer runs and draw his corps onto campaign pay
+        # on fewer mornings — the Remounts 28 → 19 runs, the Magazines 9 → 5; the Camps
+        # 5 → 6 (the hand-played starts unmoved: they boot at turn 21)
+        assert count(E1, FAMILIES) >= 5 and count(E1, ("saves",)) >= 3
+        assert count(E2, FAMILIES) >= 19 and count(E2, ("saves",)) == 0
         assert count(E3, FAMILIES) >= 5 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
@@ -267,7 +279,11 @@ class TestEachTemplatesReach:
         assert len(sweep) >= 8, sweep
         aar = record["reach_aar"]["REACH-AAR"]["affairs_reach"]
         assert aar[H1]["verdict"].startswith("due,"), aar[H1]["verdict"]
-        assert all(aar[t]["verdict"] == "arrived" for t in (E1, E2, E3)), {t: aar[t]["verdict"] for t in (E1, E2, E3)}
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): on the re-rolled
+        # treaty road the Remounts keep their morning; the Magazines' (T24) and the
+        # Camps' (T39) go to the board's other matters — due and released, due and pending
+        assert aar[E2]["verdict"] == "arrived", aar[E2]["verdict"]
+        assert all(aar[t]["verdict"].startswith("due,") for t in (E1, E3)), {t: aar[t]["verdict"] for t in (E1, E3)}
         # the marching Emperor, the war with Britain kept: the roads that keep the letter
         kept = {f"{family}/{name}" for family in ("road", "road_accept") for name in record[family]
                 if verdict(family, name) == "arrived"}
@@ -285,12 +301,18 @@ class TestEachTemplatesReach:
         # AU-19 (November 5, 2026, §6.7): the Rhine road at historical no longer
         # bleeds six "capital lost" (its end 34 → 44), and the Marine's Decline (−3)
         # lands above the floor at T38 on the road and its accept arm
-        assert kept == {"road/VP1-CS-austerlitz", "road/VP1-CS-historical", "road/VP1-RH-historical",
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the Confederation
+        # road at austerlitz loses the letter (its T14 the parked tree's — the premise
+        # stands, the letter due and released), the Throne road at historical gains it (T28)
+        assert kept == {"road/VP1-CS-historical", "road/VP1-RH-historical", "road/VP1-TH-historical",
                         "road_accept/VP1-RH-historical"}, kept
         # … and so does the October 25 diplomacy start (DDB-25-diplomacy, T39): the
         # Host's two −2s (T24, T34) leave the Chancellor's second letter (−8) no
-        # room above the floor, and the Marine's −3 takes the morning
-        reached_start = {"saves/DDB-25-diplomacy"}
+        # room above the floor, and the Marine's −3 takes the morning.
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the commanded hoarder
+        # CMD-A and its accept arm meet the letter at T37 — the Host's second letter,
+        # which took that morning on the parked tree, no longer comes there
+        reached_start = {"saves/DDB-25-diplomacy", "commanded/CMD-A", "accept/CMD-A-ACCEPT"}
         for family in ("commanded", "accept", "saves"):
             for name in record[family]:
                 v = verdict(family, name)
@@ -362,12 +384,22 @@ class TestEachTemplatesReach:
         # AU-19 (November 5, 2026, §6.7): the road's standing kept, the Proclamation
         # is issued at T33 and the Marine's letter returns at T38, accepted — its
         # squadron sails past the run's last morning, so no fate is read there
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): outside the `haiti`
+        # family the squadron sails on two accept arms now — the Rhine road's at
+        # historical (the Proclamation issued at T18; the Marine's letter at T25,
+        # accepted, home at T29; its second at T40, past the run's last fate) and
+        # the commanded hoarder's (CMD-A-ACCEPT: accepted at T37, caught at T41)
+        sailing = {}
         for family, name, row in _rows(record, [f for f in FAMILIES if f != "haiti"]):
             for line in row["affairs_reach"][H1]["occurrences"]:
-                assert "; the squadron " not in line, (family, name, line)
+                if "; the squadron " in line:
+                    sailing[f"{family}/{name}"] = line
+                    assert (" home T" in line or " caught T" in line) and "in 100, drew " in line, line
+        assert set(sailing) == {"road_accept/VP1-RH-historical", "accept/CMD-A-ACCEPT"}, sailing
         assert record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]["occurrences"] == [
-            "santo_domingo#1 arrived T38, answered accept T38"]
-        assert any(" arrived T33, answered accept T33" in line for line in
+            "santo_domingo#1 arrived T25, answered accept T25; the squadron home T29 (36 in 100, drew 29)",
+            "santo_domingo#2 arrived T40, answered accept T40"]
+        assert any(" arrived T18, answered accept T18" in line for line in
                    record["road_accept"]["VP1-RH-historical"]["affairs_reach"][P2]["occurrences"])
 
     def test_the_bank_and_the_pope_reach_the_boards_their_premises_name(self, record):
@@ -395,13 +427,17 @@ class TestEachTemplatesReach:
         # finds no morning and the Pope never comes after — 13 → 10; four come
         # later (armB_austerlitz 16 → 20, armB_ulm and armC_01_ulm 15 → 19,
         # armC_09_rivoli 15 → 22)
-        assert len(pope) >= 10 and "haiti/HAITI-austerlitz" in pope, pope
         # AU-19 (November 5, 2026, §6.7): the Rhine road at marengo keeps its
         # standing (its end 68 → 83), the war with Britain outlasts the opening and
         # the Pope's Decline (−5) lands above the floor — T41 on the road and its
-        # accept arm; never on the commanded or accept arms nor the hand-played starts
-        assert arrived("the_popes_ports", SCRIPTED + ("saves",)) == {
-            "road/VP1-RH-marengo", "road_accept/VP1-RH-marengo"}, pope
+        # accept arm; never on the commanded or accept arms nor the hand-played starts.
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the re-rolled boards
+        # move the Pope's letter both ways — on eight sweep runs (12 → 8: it leaves
+        # HAITI-austerlitz, the Rhine road at marengo and its accept arm, armC_04_marengo
+        # and the scripted ulm boards; it comes to armC_02_austerlitz and armC_08_lodi);
+        # on no scripted arm nor hand-played start
+        assert len(pope) >= 8 and all(arm.startswith("sweep/") for arm in pope), pope
+        assert arrived("the_popes_ports", SCRIPTED + ("saves",)) == set(), pope
         cooldown = {"the_bank": 12, "the_popes_ports": 30}
         for family, name, row in _rows(record):
             for template in LETTERS:
@@ -471,7 +507,12 @@ class TestEachTemplatesReach:
         lumps = {a["gold"] for _f, _n, row in _rows(record, ("accept", "road_accept"))
                  for a in row["affairs_reach"]["the_host"]["answers"] if a["answer"] == "accept"}
         assert lumps and lumps <= {300, 600, 900}, lumps
-        assert 900 in lumps
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): no accept arm takes
+        # the third tier now — CMD-H-ACCEPT's letters of T23 and T33 find four or five
+        # corps on the host's soil (600 each) where the parked tree found six (900);
+        # the tier's price is pinned by `tests/test_affairs_engine.py`
+        # (`test_tiers_from_the_two_scale_shapes`, `test_scaled_op_multiplies_the_listed_amounts_unless_a_tier_is_authored`)
+        assert {300, 600} <= lumps
 
 
 class TestTheBrakesAndTheRoad:
@@ -488,7 +529,10 @@ class TestTheBrakesAndTheRoad:
             assert "control" in row, name
             assert row["unmoved"], (name, row["armed"], row["control"])
         rhine = {n: row for n, row in letters.items() if n.startswith("VP1-RH")}
-        assert {(row["armed"]["end_turns"], row["armed"]["stamped_turn"]) for row in rhine.values()} == {(34, 12), (40, 13), (28, -1)}
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the courts' battle
+        # writes ride the letters arm and its control alike — on historical France
+        # holds the Rhine road to the last turn (34 → 40, stamped at 12 on both)
+        assert {(row["armed"]["end_turns"], row["armed"]["stamped_turn"]) for row in rhine.values()} == {(40, 12), (40, 13), (28, -1)}
         assert "ai_decrees=False" in record["road_letters"]["_note"]
 
     def test_the_courts_decrees_move_every_road_and_the_record_attributes_them(self, record):
@@ -506,8 +550,15 @@ class TestTheBrakesAndTheRoad:
         word ("Flip it on")."""
         control = record["road_control"]["arms"]
         assert {n.rsplit("-", 1)[0] for n in control} == {"VP1-RH", "VP1-CS", "VP1-TH"}
-        for name, row in control.items():
-            assert "control" in row and not row["unmoved"], (name, row["armed"], row["control"])
+        # AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip"; §6.8): the courts' battle
+        # writes ride every arm — the control's seam holds the affairs alone — so the
+        # controls re-time too (the Rhine road at historical 34 → 40); the courts'
+        # decrees, paid in authority where their gold refuses, move six of the nine
+        # roads against them, and three end with their control: the Confederation road
+        # at historical (32), the Throne road at austerlitz and at historical (40)
+        assert all("control" in row for row in control.values())
+        assert {n for n, row in control.items() if row["unmoved"]} == {
+            "VP1-CS-historical", "VP1-TH-austerlitz", "VP1-TH-historical"}, {n: row["unmoved"] for n, row in control.items()}
         ends = {n: (row["control"]["end_turns"], row["armed"]["end_turns"], row["armed"]["stamped_turn"])
                 for n, row in control.items()}
         # AU-2b the lumps (November 4, 2026, §6.3): the Bulletins re-time the
@@ -517,9 +568,9 @@ class TestTheBrakesAndTheRoad:
         # "capital lost" re-times the Confederation road's armed arms — historical
         # 36 → 35, marengo 24 → 25; the controls and the seven other roads unmoved
         assert ends == {
-            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (32, 35, -1), "VP1-CS-marengo": (27, 25, -1),
-            "VP1-RH-austerlitz": (40, 36, 13), "VP1-RH-historical": (34, 40, 12), "VP1-RH-marengo": (28, 40, 13),
-            "VP1-TH-austerlitz": (40, 28, -1), "VP1-TH-historical": (40, 33, -1), "VP1-TH-marengo": (40, 21, -1),
+            "VP1-CS-austerlitz": (24, 20, -1), "VP1-CS-historical": (32, 32, -1), "VP1-CS-marengo": (27, 26, -1),
+            "VP1-RH-austerlitz": (40, 39, 13), "VP1-RH-historical": (40, 40, -1), "VP1-RH-marengo": (28, 32, -1),
+            "VP1-TH-austerlitz": (40, 40, -1), "VP1-TH-historical": (40, 40, -1), "VP1-TH-marengo": (40, 26, -1),
         }, ends
         # the control of each road arm is the letters arm's control: one unarmed run per seed
         letters = record["road_letters"]["arms"]

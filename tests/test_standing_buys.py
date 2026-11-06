@@ -196,15 +196,19 @@ class TestDecreeIt:
         assert MO.decree_side(e, occ) == {}
         assert MO.plan(world, e, MO.ANSWER_DECREE, occ)["ok"] is False
 
-    def test_the_courts_decree_is_parked_with_the_courts_flip(self, world, monkeypatch):
+    def test_the_courts_decree_rides_the_courts_flip(self, world, monkeypatch):
         """AU-14: measured, not inert — a court whose gold refuses decrees in
-        authority at its floors (the courts boot at 60), and the alarm series
-        moves at T11; parked behind `courts_move()` until AU-4 flips it."""
+        authority at its floors (the courts boot at 60). Parked behind
+        `courts_move()` until the user's "Flip, flat grip" (November 6, 2026)
+        flipped it with the courts' other writes; arm AUC holds it down —
+        re-pinned consciously from `test_the_courts_decree_is_parked_with_the_courts_flip`."""
         e = MO.entry(world, E2)
+        assert ST.courts_move() is True
+        assert AF.edict_refusal(world, "Austria", e, currency="authority") == ""
+        monkeypatch.setattr(ST, "courts_move", lambda *a, **k: False)        # arm AUC
         assert AF.edict_refusal(world, "Austria", e, currency="authority") == \
             "the courts' Decree waits for the courts' flip."
         monkeypatch.setattr(ST, "courts_move", lambda *a, **k: True)
-        assert AF.edict_refusal(world, "Austria", e, currency="authority") == ""
         before = int(world.nation_authority.get("Austria", 60))
         with _quiet():
             AF.decree_for_court(world, "Austria", e, currency="authority")

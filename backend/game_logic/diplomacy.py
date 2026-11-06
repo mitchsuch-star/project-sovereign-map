@@ -14471,18 +14471,15 @@ def break_treaty(
 
 
 def _process_nation_authority(world) -> None:
-    """Update AI nation authority based on events.
-
-    Authority changes:
-    - Losing battle: -3
-    - Losing region: -5
-    - Breaking treaty: -10
-    - Winning battle: +2
-    - Favorable treaty: +5
-
-    Actual tracking of these events is done at the point they happen
-    (combat resolution, territory changes, etc.) via modify_nation_authority().
-    This function is a placeholder for any per-turn authority processing.
+    """The courts' authority has no per-turn tick (nothing moves by waiting,
+    AUTHORITY_CURRENCY_SPEC.md §5.1): every change happens at event time
+    through the one writer `standing.move` (`modify_nation_authority`
+    delegates to it). Since the courts' flip (AU-4, the user's "Flip, flat
+    grip", November 6, 2026) a court's fields, garrisons and charges book the
+    player's own rules (`standing.courts_battle`, `standing.courts_garrison`),
+    with its Te Deum and Bulletin; the magnitudes this docstring once listed
+    (a lost battle −3, a won one +2, a lost region −5, …) were never built.
+    This function stays the placeholder for any per-turn processing.
     """
     pass  # Authority changes happen at event time, not during turn processing
 

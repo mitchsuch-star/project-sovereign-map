@@ -122,11 +122,30 @@ class TestTheSpenderArm:
         assert BUYS["runs_with_a_push"] == sorted(BUYS["runs"]), BUYS["runs_with_a_push"]
         assert all(run["pushes"] > 0 for run in BUYS["runs"].values())
 
-    def test_each_of_the_four_buys_is_taken_in_play(self):
-        # AU-3a's four are bought in play; AU-3b's two are reached by no measured spender
-        # run (the Fontainebleau card never comes to the nine scripts; no script decrees the
-        # Dotations) — pinned by `tests/test_standing_offices.py`, reported in §6.6
-        assert {c for c, n in BUYS["totals"].items() if n > 0} == set(AU3A_BUYS), BUYS["totals"]
+    def test_each_of_the_four_buys_is_taken_or_offered_in_play(self):
+        """AU-3b's two are reached by no measured spender run (the Fontainebleau
+        card never comes to the nine scripts; no script decrees the Dotations) —
+        pinned by `tests/test_standing_offices.py`, reported in §6.6.
+
+        The courts' flip (November 6, 2026, the spender arm re-run on the final
+        tree; AUTHORITY_CURRENCY_SPEC.md §6.8) — re-pinned consciously from
+        `test_each_of_the_four_buys_is_taken_in_play`: three of AU-3a's four are
+        TAKEN (Honour him, By my word, By Decree) and the fourth is OFFERED — the
+        Remounts reach four of the nine scripts, eight letters, and their Decree
+        stands closed each time at the purchases' floor, the spender's own
+        Honours having spent the grip to 61–62 (18 on CMD-M) first; the driver
+        never presses a closed answer, so the letter lapses. AU-3a's record took
+        it once (CMD-A, turn 38). Seeded paths, not laws: the floor holds."""
+        taken = {c for c, n in BUYS["totals"].items() if n > 0}
+        assert set(AU3A_BUYS) - {"edict_decreed"} <= taken, BUYS["totals"]
+        offered = [o for run in BUYS["runs"].values() for o in run.get("edicts_offered") or []]
+        assert offered, "no Edict letter reached the spender"
+        price = {"the_magazines": 5, "the_remounts": 3, "camps_of_instruction": 4}   # the deck's `authority`
+        for o in offered:                     # a Decree untaken was closed at the floor that morning
+            if o["answer"] != "decree":
+                cost = price[o["letter"].split("#")[0]]
+                assert o["kind"] == "lapse", o                  # the driver never presses a closed answer
+                assert o["grip"] is not None and o["grip"] - cost < standing.PURCHASE_FLOOR, o
 
     def test_the_class_crosses_85_by_a_buy_and_regrows_by_play(self):
         assert any(run["a_buy_crossed_85"] for run in BUYS["runs"].values())

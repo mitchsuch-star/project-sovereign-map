@@ -1742,7 +1742,34 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # AUCGD+) diverge at [10] — their flip waits on the user's word.
 # RE-6's series: SERIES_BEFORE_AU below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by AU-4 the courts' flip (November 6, 2026 — the user's "Flip,
+# flat grip"; `AUTHORITY_CURRENCY_SPEC.md` §6.8, `SYSTEMS_REFERENCE.md` §176),
+# AU-20 fixed at its head: the AI's admin step had dropped the courts'
+# Decree's `currency`, so a court's Decree at its floors was paid in GOLD
+# under its reserve bar — the review's courts-up series (AU-4 part 1's AUC+,
+# [10] 27 → 37) was that gold road; the rig's AUD arm (the fix held down,
+# `enemy_ai.orders_carry_their_purse`) reproduces it byte for byte. The
+# courts take the player's rules (`standing.courts_move`): from turn 1 the
+# five courts with a laws deck decree the Remounts in authority (3 each, at
+# their floors — their boot chests refuse the gold), so Britain buys no
+# second law at turn 4 (42 after the Remounts; a law's 15 would take it under
+# the floor of 30). Traced on the series' own loop with the courts held down
+# beside it: Britain reaches Paris at turn 15 rather than 13, so at turn 13 no
+# member holds the target's capital and the Third Coalition dissolves on the
+# low alarm (18, under 20); on the parked board Britain's hold on Paris keeps
+# it, Hanover falls at turn 15 and the alarm rises at turn 16 — [16] 17 → 9.
+# The attribution: `tools/_standing_series_arms.py` →
+# `tools/_standing_series_arms_final.json` — AUC (the courts held down)
+# reproduces AU-4 part 1's series byte for byte, and so does AUY (the buys
+# held down, the courts' Decree in authority with them): on this board the
+# courts' battle writes alone move nothing, their Decree is the mover; arm 0
+# is RE-6's, AUD the review's courts-up series; every other arm and ALL are
+# this series. AU-4 part 1's series: SERIES_BEFORE_THE_COURTS below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# AU-4 part 1's series (the flip's prior; the AU-4 part 1 rig's ALL, the flip rig's AUC and AUY arms):
+SERIES_BEFORE_THE_COURTS = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-6's series (AU's prior — every AU rig's ALL through AU-3b's arming; AU-4's arms 0 and AUF):
 SERIES_BEFORE_AU = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-H's series (RE-6's prior; the RE-H rig's ALL, the RE-6 rig's AFE arm):

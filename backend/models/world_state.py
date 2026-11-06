@@ -17084,7 +17084,7 @@ class WorldState:
                             _standing.move(self, player_nation, -5, "field_lost",
                                            battle=auto_charge_battle_region)
                 # AU-4 (§5.7): each court's side of the charge — this mirror's own
-                # rules (no sovereign's hand, no capital lost); parked with the flip
+                # rules (no sovereign's hand, no capital lost); behind arm AUC
                 from backend.game_logic import standing as _court_standing
                 if _court_standing.courts_move():
                     _ac_out = str(combat_result.get("raw_outcome", combat_result.get("outcome", "")) or "")

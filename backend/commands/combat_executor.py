@@ -5664,7 +5664,7 @@ class CombatExecutor:
                             "and the field was lost. The court will hear "
                             f"of it. (Authority −5){_tail}")
             # AU-4 (§5.7): each court's side of the field — the player's rules, AI
-            # against AI included; parked behind `standing.courts_move()`
+            # against AI included; behind `standing.courts_move()` (arm AUC)
             from backend.game_logic import standing as _court_standing
             _court_standing.courts_battle(
                 world, battle_region, attacker.nation, defender_nation, attacker_won, defender_won,
@@ -6135,7 +6135,7 @@ class CombatExecutor:
                     _standing.move(world, marshal.nation, +5, "garrison_stormed", region=target_region.name)
                 if getattr(target_region, 'is_capital', False):
                     _standing.move(world, marshal.nation, +5, "capital_stormed", region=target_region.name)
-            else:                                    # AU-4: a court's storm, parked with the courts' flip
+            else:                                    # AU-4: a court's storm (the courts' writes, arm AUC)
                 from backend.game_logic import standing as _standing
                 if _standing.courts_move():
                     _standing.courts_garrison(world, marshal.nation, target_region, pre_battle_atk_strength,
@@ -6292,7 +6292,7 @@ class CombatExecutor:
                 if pre_battle_atk_strength > garrison_effective:
                     from backend.game_logic import standing as _standing
                     _standing.move(world, marshal.nation, -5, "assault_repulsed", region=target_region.name)
-            else:                                    # AU-4: a court's assault repulsed, parked with the flip
+            else:                                    # AU-4: a court's assault repulsed (arm AUC)
                 from backend.game_logic import standing as _standing
                 if _standing.courts_move():
                     _standing.courts_garrison(world, marshal.nation, target_region, pre_battle_atk_strength,

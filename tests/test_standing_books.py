@@ -289,7 +289,8 @@ class TestTheStanding:
     def test_the_gates_are_what_the_rulings_say(self):
         from backend.game_logic import standing
         assert standing.PURCHASE_FLOOR == 60 and standing.CEILING == 95
-        assert standing.keeps_books() is True and standing.courts_move() is False
+        # the courts' flip (the user's "Flip, flat grip", November 6, 2026): up
+        assert standing.keeps_books() is True and standing.courts_move() is True
 
     def test_the_refusal_is_the_sixty_line_on_the_grip(self, world):
         from backend.game_logic import standing
@@ -336,7 +337,10 @@ class TestTheStanding:
         assert standing.move(w, "Prussia", -15, "law", law="the Articles of War") == -15
         assert w.nation_authority["Prussia"] == 45
         assert standing.move(w, "Prussia", -100, "sovereign_captured", sovereign="x", region="y") == -45
-        assert standing.regrow(w, "Prussia", 4, "act", "te_deum", act="x") == 0   # parked behind courts_move()
+        # the courts' flip (November 6, 2026): a court regrows by the player's rule —
+        # re-pinned consciously from "parked behind courts_move()"; arm AUC holds it down
+        assert standing.regrow(w, "Prussia", 4, "act", "te_deum", act="x") == 4
+        assert w.nation_authority["Prussia"] == 4 and "last:Prussia|te_deum" in w.authority_tracker.held
 
     def test_ai_refusal_is_the_reforms_own_floors(self, world):
         from backend.game_logic import standing, reforms
@@ -546,16 +550,22 @@ class TestTheRecords:
 
     def test_the_series_rig_reproduces_the_prior_on_every_arm(self):
         rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
-        assert set(rec["arms"]) >= {"0", "AUB", "ALL"}
-        # AU-4 part 1 (§6.7, the attribution by arm): arm 0 (every seam down) and
-        # AUF (AU-19's old capital rule) reproduce the prior — the series before
-        # AU; every other single-seam arm and ALL carry AU-19's move at [22]; the
-        # courts forced up (AUC+, AUCG+, AUCGD+) diverge at [10], parked until the
-        # user's word
+        assert set(rec["arms"]) >= {"0", "AUB", "AUC", "AUD", "ALL"} and not any(a.endswith("+") for a in rec["arms"])
+        # The courts' flip (November 6, 2026, §6.8 — the attribution by arm; AU-4
+        # part 1's record is kept beside it, `tools/_standing_series_arms_au4_part1.json`,
+        # read by the drill-fix chain pin): the prior is AU-4 part 1's series —
+        # AUC (the courts held down) reproduces it, and so does AUY (the buys held
+        # down, the courts' Decree in authority with them: the courts' battle
+        # writes alone move nothing on this board); arm 0 (every seam down) is
+        # RE-6's, apart at [22]; AUD (AU-20 held down — the Decree paid in gold) the
+        # review's courts-up series, at [10]; every other arm and ALL the shipped
+        # series, at [16]
         moved = {arm: row["first_divergence_vs_prior"] for arm, row in rec["arms"].items()}
-        assert moved.pop("0") is None and moved.pop("AUF") is None, moved
-        courts_up = {arm: moved.pop(arm) for arm in [a for a in moved if a.startswith("AUC") and a.endswith("+")]}
-        assert set(courts_up) == {"AUC+", "AUCG+", "AUCGD+"} and set(courts_up.values()) == {10}, courts_up
-        assert set(moved.values()) == {22}, moved
-        assert rec["arms"]["ALL"]["reach"]["counts"]["rows_booked"] > 0
-        assert rec["arms"]["AUB"]["reach"]["counts"]["rows_booked"] == 0
+        assert moved.pop("AUC") is None and moved.pop("AUY") is None, moved
+        assert moved.pop("0") == 22 and moved.pop("AUD") == 10, moved
+        assert set(moved.values()) == {16}, moved
+        counts = {arm: rec["arms"][arm]["reach"]["counts"] for arm in ("ALL", "AUB", "AUC", "AUD", "AUY")}
+        assert counts["ALL"]["rows_booked"] > 0 and counts["AUB"]["rows_booked"] == 0
+        assert counts["ALL"]["court_decrees_in_authority"] > 0
+        assert counts["AUC"]["court_decrees_in_authority"] == counts["AUD"]["court_decrees_in_authority"] == 0
+        assert counts["AUY"]["court_decrees_in_authority"] == 0 and counts["AUY"]["bulletins"] > 0

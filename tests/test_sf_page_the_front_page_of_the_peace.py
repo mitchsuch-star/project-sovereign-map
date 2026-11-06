@@ -839,6 +839,13 @@ SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.standing:sources_armed=False"]
 # its lambda in `tests/_standing_seams.py`) restores the Step 7 page.
 from tests._standing_seams import STANDING_SEAMS_BY_ROW as _AU_SEAMS  # noqa: E402
 SEAMS_DOWN = SEAMS_DOWN + list(_AU_SEAMS["AUF"])
+# AU-4 the courts' flip (November 6, 2026 — the user's "Flip, flat grip";
+# `AUTHORITY_CURRENCY_SPEC.md` §6.8): the courts take the player's rules and
+# decree in authority where their gold refuses — the five courts with a laws
+# deck decree the Remounts on turn 1 — and CMD-H's page moves with the board
+# (from turn 25 — the Claims of the Army's line on Lannes reads another morning); the seam AUC held down (the courts as AU-4 part 1 left them, AU-20's
+# purse inert with them) restores the Step 7 page.
+SEAMS_DOWN = SEAMS_DOWN + list(_AU_SEAMS["AUC"])
 
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

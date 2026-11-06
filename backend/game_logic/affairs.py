@@ -481,7 +481,7 @@ def _offer_entry(world, lord: str, params: Dict[str, Any]) -> Optional[Dict[str,
     if edict_currency(e) == "authority":
         # AU-3b: an edict priced in authority alone (the Proclamation) arrives
         # only where its price could land — the purchases' floor at the
-        # recency rise; a court's road is parked with the courts' flip (AU-14)
+        # recency rise; a court's road rides the courts' flip (AU-14, arm AUC)
         return None if edict_refusal(world, lord, e, currency="authority") else e
     if edict_refusal(world, lord, e, with_reserve=True):
         # AU-3a (§5.7): a court may decree at its own floors where the gold
@@ -1910,13 +1910,13 @@ def edict_refusal(world, lord: str, e: Dict[str, Any], treasury: Optional[int] =
         if lord != getattr(world, "player_nation", None) and not standing.courts_move():
             # AU-14 (BUG_FIXES.md §AU): measured, not inert — the courts boot at
             # 60, their floors pass, and a court whose gold refuses decrees in
-            # authority (the alarm series moves at T11); parked with the
-            # courts' flip (AU-4, `courts_move`), measured there
+            # authority (AU-20: that T11 move was its gold road); flipped up with the
+            # courts (AU-4, `courts_move` — arm AUC holds it down)
             return "the courts' Decree waits for the courts' flip."
         return str(standing.refusal(world, lord, -standing.push_price(world, lord, base)) or "")
     if edict_currency(e) == "authority":
         # AU-3b: an edict priced in authority alone has no gold road — so the
-        # courts' rung never proclaims (its authority road is parked, AU-14)
+        # courts' rung proclaims on its authority road alone (AU-14, AU-4)
         return "the decree is paid in authority alone."
     price = int(block.get("price", 0) or 0)
     if treasury is None:

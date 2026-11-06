@@ -32,6 +32,10 @@ STAKE_CAUSES = ("word_lost",)
 REGROWTH_CAUSES = ("bulletin", "bulletin_repaid", "te_deum", "return", "honour_repaid", "ceremony", "act",
                    "field_won", "own_hand_won", "capital_taken")
 DIALS = ["--affair", "decree", "--petition", "buy", "--moments-trace", "--standing-trace"]
+# AU-4 the courts' flip (November 6, 2026): the Edict letters the spender is
+# OFFERED — answered, or left standing to lapse because the Decree stood closed
+# (the driver never presses a closed answer) — with the grip on each morning
+EDICTS = ("the_magazines", "the_remounts", "camps_of_instruction")
 
 
 def _measure():
@@ -86,6 +90,12 @@ def _read_run(run_dir: Path) -> dict:
     decrees_answered = sum(1 for a in ((meta.get("moments_trace") or {}).get("applications") or [])
                            if a.get("kind") == "answer" and a.get("answer") == "decree")
     mornings = trace.get("mornings") or []
+    grip_on = {int(m.get("turn", 0) or 0): m.get("grip") for m in mornings}
+    offered = [{"letter": str(a.get("moment") or ""), "turn": int(a.get("turn", 0) or 0),
+                "kind": str(a.get("kind") or ""), "answer": str(a.get("answer") or ""),
+                "grip": grip_on.get(int(a.get("turn", 0) or 0))}
+               for a in ((meta.get("moments_trace") or {}).get("applications") or [])
+               if a.get("kind") in ("answer", "lapse") and str(a.get("moment") or "").split("#")[0] in EDICTS]
     after = [int(m.get("after", 0) or 0) for m in moves if str(m.get("key") or "") in BUY_CAUSES]
     crossed = any(str(m.get("key") or "") in BUY_CAUSES and int(m.get("before", 0) or 0) >= 85
                   > int(m.get("after", 0) or 0) for m in moves)
@@ -97,6 +107,7 @@ def _read_run(run_dir: Path) -> dict:
             "a_buy_crossed_85": bool(crossed), "regrowth": int(regrowth),
             "stakes": sum(-int(m.get("delta", 0) or 0) for m in moves if m.get("key") in STAKE_CAUSES),
             "decrees_answered": int(decrees_answered),
+            "edicts_offered": offered,
             "answers": dict(sorted(answers.items())),
             "start": trace.get("start"), "min": trace.get("min"), "end": trace.get("end"),
             "residual": trace.get("residual"),

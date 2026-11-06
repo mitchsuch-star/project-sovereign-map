@@ -760,6 +760,16 @@ def lawful_distances_to(world, nation: str, target: str,
     return dist
 
 
+def orders_carry_their_purse() -> bool:
+    """Arm AUD (AU-20, BUG_FIXES.md §AU — found at the courts' flip, November
+    6, 2026): an admin rung's `currency` rides its order into the executor's
+    command, so a court's Decree at its floors (AU-3a, `affairs.find_ai_edict`)
+    is paid in authority; down, the key is dropped as it was before the fix —
+    the executor decreed in gold under the rung's reserve bar (the records
+    AU-4 part 1's review measured with the courts up)."""
+    return True
+
+
 class EnemyAI:
     """
     AI decision-making for enemy nations.
@@ -6746,7 +6756,14 @@ class EnemyAI:
             # would be harmless AND silent — and a silently dropped
             # structured field is the exact class of defect this project
             # keeps finding (IGR-E's dead AI plunder branch).
-            for extra_key in ("region", "new_level", "confirmed", "batches"):
+            # AU-20 (AUTHORITY_CURRENCY_SPEC.md §6.8): `currency` joins it —
+            # the courts' Decree at their floors (AU-3a) rides the rung's
+            # order as `currency: "authority"`; dropped here, the executor
+            # decreed in GOLD under the rung's own reserve bar (latent until
+            # the courts' flip opened the authority road).
+            for extra_key in ("region", "new_level", "confirmed", "batches", "currency"):
+                if extra_key == "currency" and not orders_carry_their_purse():
+                    continue
                 if extra_key in action:
                     command["command"][extra_key] = action[extra_key]
 
