@@ -565,7 +565,16 @@ class TestDavoutPursuePreferred:
     """Davout's preferred alternative when objecting to PURSUE."""
 
     def test_davout_pursue_preferred_fortifies(self, world_with_enemies, executor):
-        """Preferred: Fortify current position."""
+        """Preferred: Fortify current position.
+
+        S15H-3 (S15's head, November 6, 2026 — found by the hook, one run in
+        about four hundred): this pin rode TWO rolls — V2's mood variance
+        (the popup at all, ~1 run in 8) and V1's band-level severity (base
+        0.60 ± 0.12 under PARTIAL sight, silent ~1 roll in 12). When V2 raised
+        its popup and V1 stayed silent, the fallback built the aggressive
+        chain for everyone and Davout's popup had no "preferred" at all. The
+        fallback offers a cautious marshal his counsel now (the three pins
+        below force each road); this one keeps its "always"."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
@@ -588,6 +597,66 @@ class TestDavoutPursuePreferred:
 
             assert preferred is not None, "Davout should always have fortify as preferred"
             assert "fortify" in preferred.get("action", "").lower()
+
+
+class TestTheFallbackKeepsHisCounsel:
+    """S15H-3 (S15's head, November 6, 2026): V2 raises the popup, V1's own
+    roll stays silent — the fallback that builds the options offers a cautious
+    marshal his counsel (fortify where he stands) behind
+    `disobedience.fallback_offers_his_counsel`; held down, the aggressive chain
+    alone and every other popup bare, as before."""
+
+    def _force_the_fallback(self, monkeypatch):
+        from backend.commands import disobedience as DIS
+        from backend.commands import strategic_executor as SE
+        from backend.commands.objection_v2 import ConcernLevel
+        monkeypatch.setattr(SE, "apply_mood_variance", lambda concern: ConcernLevel.MODERATE)
+        monkeypatch.setattr(DIS, "check_strategic_objection", lambda *a, **k: None)
+
+    def _pursue(self, world, executor):
+        return executor.execute(
+            make_strategic_command({"marshal": "Davout", "action": "pursue", "target": "Wellington"}, "PURSUE"),
+            make_game_state(world))
+
+    def test_a_cautious_marshal_keeps_fortify_when_v1_is_silent(self, world_with_enemies, executor, monkeypatch):
+        self._force_the_fallback(monkeypatch)
+        world = world_with_enemies
+        world.marshals["Davout"].strength = 30000
+        world.marshals["Davout"].fortified = False
+        world.marshals["Wellington"].strength = 45000
+        result = self._pursue(world, executor)
+        assert result.get("pending_objection"), result.get("message")
+        options = result["objection"]["options"]
+        preferred = next((o for o in options if o.get("type") == "preferred"), None)
+        assert preferred is not None, [o.get("type") for o in options]
+        assert preferred["action"] == "fortify" and preferred["target"] == "Belgium"
+        assert [o.get("type") for o in options] == ["proceed", "preferred", "compromise"]
+
+    def test_the_seam_held_down_leaves_the_popup_bare(self, world_with_enemies, executor, monkeypatch):
+        from backend.commands import disobedience as DIS
+        self._force_the_fallback(monkeypatch)
+        monkeypatch.setattr(DIS, "fallback_offers_his_counsel", lambda: False)
+        world = world_with_enemies
+        world.marshals["Davout"].strength = 30000
+        world.marshals["Wellington"].strength = 45000
+        result = self._pursue(world, executor)
+        assert result.get("pending_objection")
+        assert [o.get("type") for o in result["objection"]["options"]] == ["proceed", "compromise"]
+
+    def test_a_fortified_cautious_marshal_s_chain_is_exhausted(self, world_with_enemies, executor):
+        """The guard, read on the helper: a marshal already in his works has no
+        fortify to offer. Through an order it is unreachable — a fortified
+        marshal cannot be ordered to march at all ("'Davout, unfortify' first",
+        the refusal before any objection)."""
+        from backend.commands.disobedience import _get_cautious_preferred
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.fortified = False
+        assert _get_cautious_preferred(davout, world) == {"action": "fortify", "target": "Belgium"}
+        davout.fortified = True
+        assert _get_cautious_preferred(davout, world) is None
+        result = self._pursue(world, executor)
+        assert not result.get("pending_objection") and "unfortify" in str(result.get("message", ""))
 
 
 class TestDavoutPursueCompromise:

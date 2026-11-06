@@ -424,13 +424,38 @@ class TestACHF3TheShortPoolIsRefused:
         assert spent == 0 and M.world.pending_strategic_objection is None
 
     def test_an_answer_the_pool_can_pay_still_goes(self, client):
-        """FALSIFIABLE NEGATIVE: Trust's 1 at one action."""
-        _davouts_objection(client)
+        """FALSIFIABLE NEGATIVE: Trust's 1 at one action.
+
+        S15H-3 / S15H-4 (S15's head, November 6, 2026): on this board V1 is
+        silent and the popup is the fallback's; Trust used to mean "do not
+        issue" here and is Davout's counsel now — fortify where he stands —
+        and the arm's 1 is all the pool is asked: the fortify from a neutral
+        stance no longer refuses at one action against a button that said 1
+        (`meta_executor.trust_arm_pays_the_fortify`); he shifts to the
+        defensive and the works go up for the arm's one action."""
+        davout = _davouts_objection(client)
         _drain_to(client, 1)
         reply, spent, _ = _post(client, "/respond_to_objection", {"choice": "trust"})
         assert reply.get("success"), reply.get("message")
         assert spent == 1
         _honest(reply, spent)
+        assert davout.stance == Stance.DEFENSIVE and davout.fortified
+        assert M.world.pending_strategic_objection is None
+
+    def test_the_seam_down_asks_the_fortify_s_own_two(self, client, monkeypatch):
+        """S15H-4's seam held down: the fortify's own pre-check asks two from
+        a neutral stance, the Trust arm's one action is refused with that
+        message, the objection stands, nothing is spent."""
+        from backend.commands import meta_executor as ME
+        monkeypatch.setattr(ME, "trust_arm_pays_the_fortify", lambda: False)
+        davout = _davouts_objection(client)
+        _drain_to(client, 1)
+        before = _ledger(davout)
+        reply, spent, _ = _post(client, "/respond_to_objection", {"choice": "trust"})
+        assert reply.get("success") is False
+        assert str(reply.get("message", "")).startswith("Fortifying from neutral stance requires 2 actions")
+        assert spent == 0 and _ledger(davout) == before
+        assert M.world.pending_strategic_objection, "the objection stands"
 
 
 def _drain_to_without_an_objection(client, pool):

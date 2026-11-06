@@ -34,6 +34,15 @@ UNARMED until RE-3) every seam's reach is 0 and every arm is byte-identical.
                                           court decrees an edict; the
                                           player's offers and the lifecycle
                                           stand)
+    AFR  `moments.crown_asks_a_vassal`  — RE3-6 (S15's head, November 6, 2026,
+                                          the user's "Ask him; loyalty pays"):
+                                          the Crown of the Reich asks a
+                                          subjugated Francis too (down: the
+                                          clause before it — the named court
+                                          not the owner's vassal — under which
+                                          the Rhine road's Pressburg by
+                                          subjugation left the letter
+                                          unreachable)
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -54,6 +63,9 @@ AFFAIRS_SEAMS_BY_ROW = {
     # RE-6: the courts' Edicts (down: no court decrees; the player's letters
     # and the lifecycle are untouched — `find_ai_edict` reads the seam)
     "AFE": ["backend.game_logic.affairs:ai_decrees=False"],
+    # RE3-6 (S15's head): the Crown asks a vassal Francis too (down: the clause
+    # before it — `_design_fulfilled` reads the seam)
+    "AFR": ["backend.game_logic.moments:crown_asks_a_vassal=False"],
 }
 AFFAIRS_SEAMS_DOWN = [spec for row in AFFAIRS_SEAMS_BY_ROW for spec in AFFAIRS_SEAMS_BY_ROW[row]]
 

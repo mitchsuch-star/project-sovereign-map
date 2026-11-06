@@ -1,6 +1,6 @@
 {
  "_part": "S14c part 4 — the moments over the 10-seed sweep and the arms, each run carrying the production-time trace (docs/EVENTS_SPEC.md §7, §17); RE-3 — the recurring deck's reach beside them (RECURRING_EVENTS_SPEC.md §16, ERR-3)",
- "deck_sha": "c78b8463c257235cffff50c44118e80d3eb674f712f38cc32486cc8118510776",
+ "deck_sha": "2880673973403770b526f66e8f97ae0e4590ac26c5dd020d323a3e0e4abc26cd",
  "deck_sha_note": "S14D-X42, October 24, 2026: the hash is the deck's MECHANICAL identity (display copy struck — tools/_s14c_sweep_record.py mechanical_block); RE-1 descends into the recurring deck under `affairs`; RE-3 strikes a moment's `counsel` and `button_line` too",
  "pacing": {
   "max_open": 1,
@@ -10270,6 +10270,12 @@
      "reason": "",
      "verdict": "ok"
     },
+    "crown_of_the_reich": {
+     "first_due": 15,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
     "throne_of_holland": {
      "first_due": 19,
      "status": "answered",
@@ -10296,7 +10302,7 @@
     },
     "the_host|Bavaria": {
      "first_due": 9,
-     "status": "lapsed",
+     "status": "withdrawn",
      "reason": "",
      "verdict": "ok"
     },
@@ -10332,10 +10338,10 @@
     },
     {
      "turn": 15,
-     "moment": "the_host#1",
-     "kind": "lapse",
+     "moment": "crown_of_the_reich",
+     "kind": "answer",
      "answer": "decline",
-     "figures": 2
+     "figures": 0
     },
     {
      "turn": 19,
@@ -10362,7 +10368,7 @@
    "reach": {
     "bavarian_match": "arrived T10, answered decline T10",
     "throne_of_holland": "arrived T19, answered decline T19",
-    "crown_of_the_reich": "passed T18 (premise)",
+    "crown_of_the_reich": "arrived T15, answered decline T15",
     "decree_of_berlin": "passed T10 (forsworn)"
    },
    "affairs_reach": {
@@ -10398,33 +10404,10 @@
     "the_host": {
      "verdict": "arrived",
      "occurrences": [
-      "the_host#1 arrived T14, lapsed T15 (its decline)",
+      "the_host#1 arrived T14, withdrawn T15 (free)",
       "the_host#2 arrived T30, lapsed T31 (its decline)"
      ],
      "answers": [
-      {
-       "occ": "the_host#1",
-       "turn": 15,
-       "kind": "lapse",
-       "answer": "decline",
-       "gold": 0,
-       "standing": 3,
-       "quote": "Live off the land: Authority 100 → 97 — the marshals' calm holds above 70; Bavaria's loyalty as your vassal 100 → 96.",
-       "figures": [
-        {
-         "op": "authority",
-         "figure": "authority",
-         "quoted": 97,
-         "delivered": 97
-        },
-        {
-         "op": "loyalty",
-         "figure": "Bavaria loyalty",
-         "quoted": 96,
-         "delivered": 96
-        }
-       ]
-      },
       {
        "occ": "the_host#2",
        "turn": 31,
@@ -12156,12 +12139,18 @@
  "road_accept": {
   "VP1-RH-austerlitz": {
    "measured": true,
-   "mornings": 40,
+   "mornings": 37,
    "ceiling_breaches": [],
    "floor_breaches": [],
    "floors": {
     "bavarian_match": {
      "first_due": 10,
+     "status": "answered",
+     "reason": "",
+     "verdict": "ok"
+    },
+    "crown_of_the_reich": {
+     "first_due": 15,
      "status": "answered",
      "reason": "",
      "verdict": "ok"
@@ -12173,10 +12162,10 @@
      "verdict": "ok"
     },
     "berthiers_memorial|": {
-     "first_due": 11,
-     "status": "",
+     "first_due": 17,
+     "status": "answered",
      "reason": "",
-     "verdict": "released"
+     "verdict": "ok"
     },
     "chancellors_letters|": {
      "first_due": 9,
@@ -12203,13 +12192,13 @@
      "verdict": "released"
     },
     "the_proclamation|": {
-     "first_due": 31,
+     "first_due": 20,
      "status": "",
      "reason": "",
      "verdict": "released"
     },
     "the_remounts|": {
-     "first_due": 25,
+     "first_due": 29,
      "status": "",
      "reason": "",
      "verdict": "released"
@@ -12217,14 +12206,23 @@
    },
    "shown_equals_applied": true,
    "mismatches": [],
-   "context_drift": [],
+   "context_drift": [
+    {
+     "turn": 19,
+     "moment": "throne_of_holland",
+     "figure": "quote",
+     "quoted": "Crown Louis: Holland becomes Autonomous: loyalty 74 → 84; its autonomy drift -2 → +1 a turn; tribute 75% → 50% (-112 gold a turn); the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 7); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
+     "delivered": "Crown Louis: Holland becomes Autonomous: loyalty 74 → 84; its autonomy drift -2 → +1 a turn; tribute 75% → 50% (-112 gold a turn); the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6); Authority 100 → 100 — nothing is gained: the ceiling 95 holds.",
+     "kind": "purse"
+    }
+   ],
    "answers": [
     {
      "turn": 10,
      "moment": "bavarian_match",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 1
+     "answer": "accept",
+     "figures": 6
     },
     {
      "turn": 14,
@@ -12234,11 +12232,18 @@
      "figures": 1
     },
     {
+     "turn": 15,
+     "moment": "crown_of_the_reich",
+     "kind": "answer",
+     "answer": "accept",
+     "figures": 6
+    },
+    {
      "turn": 19,
      "moment": "throne_of_holland",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 0
+     "answer": "accept",
+     "figures": 4
     },
     {
      "turn": 26,
@@ -12249,16 +12254,16 @@
     },
     {
      "turn": 30,
-     "moment": "the_host#2",
+     "moment": "berthiers_memorial#1",
      "kind": "answer",
      "answer": "accept",
-     "figures": 1
+     "figures": 2
     }
    ],
    "reach": {
-    "bavarian_match": "arrived T10, answered decline T10",
-    "throne_of_holland": "arrived T19, answered decline T19",
-    "crown_of_the_reich": "passed T18 (premise)",
+    "bavarian_match": "arrived T10, answered accept T10",
+    "throne_of_holland": "arrived T19, answered accept T19",
+    "crown_of_the_reich": "arrived T15, answered accept T15",
     "decree_of_berlin": "passed T10 (forsworn)"
    },
    "affairs_reach": {
@@ -12287,15 +12292,14 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 30,
+     "premise_mornings": 27,
      "first_due": 9,
-     "last_morning": 41
+     "last_morning": 38
     },
     "the_host": {
      "verdict": "arrived",
      "occurrences": [
-      "the_host#1 arrived T14, answered accept T14",
-      "the_host#2 arrived T30, answered accept T30"
+      "the_host#1 arrived T14, answered accept T14"
      ],
      "answers": [
       {
@@ -12305,74 +12309,83 @@
        "answer": "accept",
        "gold": 600,
        "standing": 0,
-       "quote": "Pay the host's claims: 600 gold (the treasury holds 12,260).",
+       "quote": "Pay the host's claims: 600 gold (the treasury holds 11,826).",
        "figures": [
         {
          "op": "gold",
          "figure": "treasury",
-         "quoted": 11660,
-         "delivered": 11660
-        }
-       ]
-      },
-      {
-       "occ": "the_host#2",
-       "turn": 30,
-       "kind": "answer",
-       "answer": "accept",
-       "gold": 600,
-       "standing": 0,
-       "quote": "Pay the host's claims: 600 gold (the treasury holds 14,524).",
-       "figures": [
-        {
-         "op": "gold",
-         "figure": "treasury",
-         "quoted": 13924,
-         "delivered": 13924
+         "quoted": 11226,
+         "delivered": 11226
         }
        ]
       }
      ],
      "crowded": [],
-     "premise_mornings": 30,
+     "premise_mornings": 27,
      "first_due": 9,
-     "last_morning": 41
+     "last_morning": 38
     },
     "berthiers_memorial": {
-     "verdict": "due, released",
-     "occurrences": [],
-     "answers": [],
+     "verdict": "arrived",
+     "occurrences": [
+      "berthiers_memorial#1 arrived T30, answered accept T30"
+     ],
+     "answers": [
+      {
+       "occ": "berthiers_memorial#1",
+       "turn": 30,
+       "kind": "answer",
+       "answer": "accept",
+       "gold": 0,
+       "standing": 0,
+       "quote": "Found the headquarters: 9,000 gold now, then 300 gold a turn; one more order each day from the next refill; 1 administrative action; ports shut against Britain 7 → 7 of 26.",
+       "figures": [
+        {
+         "op": "enact_law",
+         "figure": "grand_quartier_general in force",
+         "quoted": 1,
+         "delivered": 1
+        },
+        {
+         "op": "enact_law",
+         "figure": "ports shut",
+         "quoted": 7,
+         "delivered": 7
+        }
+       ]
+      }
+     ],
      "crowded": [],
      "premise_mornings": 21,
-     "first_due": 11,
-     "last_morning": 41
+     "first_due": 17,
+     "last_morning": 38
     },
     "santo_domingo": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 29,
+     "premise_mornings": 26,
      "first_due": 9,
-     "last_morning": 41
+     "last_morning": 38
     },
     "the_magazines": {
-     "verdict": "premise never held",
+     "verdict": "never due (premise held 1 morning)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 0,
+     "premise_mornings": 1,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 38
     },
     "the_remounts": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 3,
-     "first_due": 25,
-     "last_morning": 41
+     "premise_mornings": 2,
+     "first_due": 29,
+     "last_morning": 38
     },
     "camps_of_instruction": {
      "verdict": "premise never held",
@@ -12381,34 +12394,34 @@
      "crowded": [],
      "premise_mornings": 0,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 38
     },
     "the_proclamation": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 30,
-     "first_due": 31,
-     "last_morning": 41
+     "premise_mornings": 34,
+     "first_due": 20,
+     "last_morning": 38
     },
     "the_bank": {
-     "verdict": "never due (premise held 39 mornings)",
+     "verdict": "never due (premise held 36 mornings)",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 39,
+     "premise_mornings": 36,
      "first_due": null,
-     "last_morning": 41
+     "last_morning": 38
     },
     "the_popes_ports": {
      "verdict": "due, released",
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 35,
+     "premise_mornings": 32,
      "first_due": 14,
-     "last_morning": 41
+     "last_morning": 38
     }
    },
    "edicts": {
@@ -12419,7 +12432,7 @@
      "Prussia|the_remounts": 1,
      "Ottoman|the_remounts": 1,
      "Britain|the_magazines": 1,
-     "Prussia|camps_of_instruction": 3,
+     "Prussia|camps_of_instruction": 2,
      "Ottoman|camps_of_instruction": 3,
      "Austria|the_magazines": 1,
      "Russia|the_magazines": 1
@@ -12428,7 +12441,7 @@
      "Britain": 5500,
      "Ottoman": 6000,
      "Russia": 2500,
-     "Prussia": 4000
+     "Prussia": 2000
     },
     "authority": {
      "Britain": 3,
@@ -12444,10 +12457,10 @@
      "Prussia|the_remounts": 9,
      "Ottoman|the_remounts": 9,
      "Britain|the_magazines": 12,
-     "Prussia|camps_of_instruction": 48,
+     "Prussia|camps_of_instruction": 32,
      "Ottoman|camps_of_instruction": 44,
      "Austria|the_magazines": 20,
-     "Russia|the_magazines": 31
+     "Russia|the_magazines": 32
     }
    },
    "errors": [],
@@ -12528,14 +12541,24 @@
    },
    "shown_equals_applied": true,
    "mismatches": [],
-   "context_drift": [],
+   "context_drift": [
+    {
+     "turn": 20,
+     "moment": "throne_of_holland",
+     "figure": "quote",
+     "quoted": "Crown Louis: Holland becomes Autonomous: loyalty 83 → 93; its autonomy drift -2 → +1 a turn; tribute 75% → 50% (-112 gold a turn); the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 7); Authority 96 → 96 — nothing is gained: the ceiling 95 holds.",
+     "delivered": "Crown Louis: Holland becomes Autonomous: loyalty 93 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6); Authority 96 → 96 — nothing is gained: the ceiling 95 holds.",
+     "kind": "re-read",
+     "fresh": "Crown Louis: Holland becomes Autonomous: loyalty 93 → 100; its autonomy drift -2 → +1 a turn; tribute 75% → 50%; the ports shut against Britain stay 0 of 26; 1 diplomatic point (you hold 6); Authority 96 → 96 — nothing is gained: the ceiling 95 holds."
+    }
+   ],
    "answers": [
     {
      "turn": 8,
      "moment": "bavarian_match",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 1
+     "answer": "accept",
+     "figures": 6
     },
     {
      "turn": 13,
@@ -12555,8 +12578,8 @@
      "turn": 20,
      "moment": "throne_of_holland",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 0
+     "answer": "accept",
+     "figures": 4
     },
     {
      "turn": 25,
@@ -12588,8 +12611,8 @@
     }
    ],
    "reach": {
-    "bavarian_match": "arrived T8, answered decline T8",
-    "throne_of_holland": "arrived T20, answered decline T20",
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "arrived T20, answered accept T20",
     "crown_of_the_reich": "pending — the last morning T41",
     "decree_of_berlin": "passed T10 (forsworn)"
    },
@@ -12636,13 +12659,13 @@
        "answer": "accept",
        "gold": 300,
        "standing": 0,
-       "quote": "Pay the host's claims: 300 gold (the treasury holds 14,246).",
+       "quote": "Pay the host's claims: 300 gold (the treasury holds 14,310).",
        "figures": [
         {
          "op": "gold",
          "figure": "treasury",
-         "quoted": 13946,
-         "delivered": 13946
+         "quoted": 14010,
+         "delivered": 14010
         }
        ]
       }
@@ -12683,7 +12706,7 @@
       }
      ],
      "crowded": [],
-     "premise_mornings": 24,
+     "premise_mornings": 23,
      "first_due": 14,
      "last_morning": 41
     },
@@ -12701,13 +12724,13 @@
        "answer": "accept",
        "gold": 500,
        "standing": 0,
-       "quote": "Send five of the line: 500 gold (the treasury holds 14,170); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late November 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
+       "quote": "Send five of the line: 500 gold (the treasury holds 15,012); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Late November 1806) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
        "figures": [
         {
          "op": "gold",
          "figure": "treasury",
-         "quoted": 13670,
-         "delivered": 13670
+         "quoted": 14512,
+         "delivered": 14512
         },
         {
          "op": "admin",
@@ -12730,13 +12753,13 @@
        "answer": "accept",
        "gold": 500,
        "standing": 0,
-       "quote": "Send five of the line: 500 gold (the treasury holds 14,103); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Early July 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
+       "quote": "Send five of the line: 500 gold (the treasury holds 13,621); 1 administrative action (1 left today); five of the line sail (45 → 40 in port until Early July 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.",
        "figures": [
         {
          "op": "gold",
          "figure": "treasury",
-         "quoted": 13603,
-         "delivered": 13603
+         "quoted": 13121,
+         "delivered": 13121
         },
         {
          "op": "admin",
@@ -12965,8 +12988,8 @@
      "turn": 8,
      "moment": "bavarian_match",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 1
+     "answer": "accept",
+     "figures": 6
     },
     {
      "turn": 14,
@@ -12979,8 +13002,8 @@
      "turn": 17,
      "moment": "throne_of_holland",
      "kind": "answer",
-     "answer": "decline",
-     "figures": 0
+     "answer": "accept",
+     "figures": 4
     },
     {
      "turn": 25,
@@ -12998,8 +13021,8 @@
     }
    ],
    "reach": {
-    "bavarian_match": "arrived T8, answered decline T8",
-    "throne_of_holland": "arrived T17, answered decline T17",
+    "bavarian_match": "arrived T8, answered accept T8",
+    "throne_of_holland": "arrived T17, answered accept T17",
     "crown_of_the_reich": "pending — the last morning T34",
     "decree_of_berlin": "passed T10 (forsworn)"
    },
@@ -13046,13 +13069,13 @@
        "answer": "accept",
        "gold": 300,
        "standing": 0,
-       "quote": "Pay the host's claims: 300 gold (the treasury holds 12,197).",
+       "quote": "Pay the host's claims: 300 gold (the treasury holds 12,659).",
        "figures": [
         {
          "op": "gold",
          "figure": "treasury",
-         "quoted": 11897,
-         "delivered": 11897
+         "quoted": 12359,
+         "delivered": 12359
         }
        ]
       }
@@ -13067,7 +13090,7 @@
      "occurrences": [],
      "answers": [],
      "crowded": [],
-     "premise_mornings": 21,
+     "premise_mornings": 23,
      "first_due": 11,
      "last_morning": 34
     },

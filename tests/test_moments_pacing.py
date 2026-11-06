@@ -375,19 +375,34 @@ class TestTheMeasuredArms:
         fired = {mid for _f, _n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))
                  for mid, floor in row["floors"].items() if floor["verdict"] == "ok"}
         assert {"bavarian_match", "throne_of_holland"} <= fired
-        # RE-3's re-measure (November 1, 2026): the Crown of the Reich fired on
-        # NO measured arm of today's tree — the Rhine road's Pressburg now
-        # subjugates Austria on historical and austerlitz, and M3's rule asks
-        # no vassal court for the crown (`moments._design_fulfilled`); on
-        # marengo the Emperor falls at T28 before any Pressburg (S14k's
-        # courts' corps). October 22's record had it on marengo alone. Its
-        # fate is reported per arm with the reason (BUG_FIXES RE3-4 holds the
-        # row, open with the user); a Crown that fired would satisfy this too.
+        # RE3-6 (S15's head, November 6, 2026 — the user's "Ask him; loyalty
+        # pays"): the Crown of the Reich asks a subjugated Francis too, so on
+        # the Rhine road at austerlitz — where Pressburg (T13) makes Austria
+        # France's vassal and the Confederation latches the same turn — it
+        # ARRIVES at T15: declined on the lapse arm (`road`, the dated letters'
+        # default), accepted on Road I answered (`road_accept`, the dated
+        # letters answered again since S15H-1). On historical the Confederation
+        # never latches on the shipped tree (the courts' Edicts — with
+        # `ai_decrees` held down it stamps T12) and on marengo the Emperor falls
+        # (S14k's corps), so the Crown stays pending there; the Rhine road is
+        # the only road a measured arm proclaims (the commanded, accept and
+        # sweep boards proclaim none; the Throne and System roads forswear the
+        # letter). RE-3's re-measure (November 1) had it on NO arm: the clause
+        # `moments._design_fulfilled` asked no vassal court. Seeded paths, not
+        # laws: each arm's fate is read with its cause.
         crown = {f"{f}/{n}": row["reach"]["crown_of_the_reich"]
                  for f, n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))}
+        assert "crown_of_the_reich" in fired
+        assert crown["road/VP1-RH-austerlitz"] == "arrived T15, answered decline T15", crown
+        assert crown["road_accept/VP1-RH-austerlitz"] == "arrived T15, answered accept T15", crown
+        for arm in ("road/VP1-RH-historical", "road/VP1-RH-marengo",
+                    "road_accept/VP1-RH-historical", "road_accept/VP1-RH-marengo"):
+            assert crown[arm].startswith("pending"), (arm, crown[arm])
+        assert all(v.startswith("pending") for k, v in crown.items()
+                   if k.split("/")[0] in ("commanded", "accept")), crown
+        assert all("(forsworn)" in crown[f"road/VP1-{r}-{s}"] for r in ("CS", "TH")
+                   for s in ("historical", "austerlitz", "marengo")), crown
         assert all(v.startswith(("arrived", "passed", "pending", "crowded")) for v in crown.values()), crown
-        assert "crown_of_the_reich" in fired or all(
-            "(premise)" in v or "(forsworn)" in v or v.startswith("pending") for v in crown.values()), crown
 
     def test_each_moment_s_reach_is_reported_per_arm(self, record):
         for family, name, row in self._rows(record):
@@ -402,9 +417,10 @@ class TestTheMeasuredArms:
         answered = [a for _f, _n, row in self._rows(record, ("accept", "road_accept"))
                     for a in row["answers"] if a["kind"] == "answer" and a["answer"] == "accept" and a["figures"]]
         accepted = {a["moment"] for a in answered if "#" not in str(a["moment"])}
-        # RE-3's re-measure: the Crown fires on no measured arm of today's tree
-        # (BUG_FIXES RE3-6, the floors pin above says why); the accepted set
-        # is the Match and Holland, and the Crown with them where it fires.
-        assert {"bavarian_match", "throne_of_holland"} <= accepted <= {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}
+        # RE3-6 (S15's head): the Crown fires on the Rhine road at austerlitz and
+        # Road I answered accepts it there ("Demand the abdication" — a vassal
+        # Austria's loyalty −10, goodwill −15, the princes +10, the alarm +3);
+        # the accepted set is the Match, Holland and the Crown
+        assert accepted == {"bavarian_match", "throne_of_holland", "crown_of_the_reich"}, accepted
         affairs_accepted = {str(a["moment"]).split("#", 1)[0] for a in answered if "#" in str(a["moment"])}
         assert affairs_accepted <= set(record.get("affairs_deck") or [])

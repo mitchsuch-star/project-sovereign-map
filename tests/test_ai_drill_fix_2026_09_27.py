@@ -583,3 +583,25 @@ class TestTheMeasuredArms:
         assert flip["arms"]["AUD"]["series"] == au["arms"]["AUC+"]["series"]
         assert flip["arms"]["ALL"]["series"] == BASELINE_SERIES
         assert flip["arms"]["ALL"]["first_divergence_vs_prior"] == 16
+        # S15's head, RE3-6 (November 6, 2026 — the user's "Ask him; loyalty
+        # pays"; `EVENTS_SPEC.md` §18, `SYSTEMS_REFERENCE.md` §177.2): the affairs
+        # rig re-run to its OWN record (RE-6's above stays RE-6's). The Crown's
+        # seam AFR (`moments.crown_asks_a_vassal`) moves nothing on the passive
+        # board — no road is proclaimed, so the Crown's premise is never asked
+        # (`crown_reads` 0) — and ALL, AFR and every arm with the courts' rung up
+        # reproduce the shipped series byte for byte; arm 0 and AFE (the rung
+        # down) diverge at [10], the Edicts' known move. S15H-2 found here: the
+        # rig's `grant_edict` shim had kept a fixed arity since AU-3a gave the
+        # grant its `currency`, the TypeError was swallowed in the courts' admin
+        # step, and the rig's board decreed nothing (`edicts_granted` 0 on every
+        # arm, ALL diverging at [16] from a series the pin itself reproduces) —
+        # every shim passes through whatever the caller passes now.
+        s15 = json.loads((ROOT / "tools" / "_affairs_series_arms_s15_head.json").read_text(encoding="utf-8"))
+        assert s15["prior"] == BASELINE_SERIES
+        for arm in ("ALL", "AFR", "AF0", "AFB", "AFP", "AFN", "AFA", "AFH", "AFS"):
+            assert s15["arms"][arm]["series"] == BASELINE_SERIES, arm
+            assert s15["arms"][arm]["first_divergence_vs_prior"] is None, arm
+        assert s15["arms"]["0"]["first_divergence_vs_prior"] == s15["arms"]["AFE"]["first_divergence_vs_prior"] == 10
+        assert s15["arms"]["ALL"]["reach"]["counts"]["edicts_granted"] > 0
+        assert s15["arms"]["AFE"]["reach"]["counts"]["edicts_granted"] == 0
+        assert all(s15["arms"][a]["reach"]["counts"]["crown_reads"] == 0 for a in s15["arms"])

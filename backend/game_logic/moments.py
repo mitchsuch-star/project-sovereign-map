@@ -403,14 +403,31 @@ def _vassal_slipping(world, lord: str, params: Dict[str, Any]) -> bool:
     return int(forecast_vassal_loyalty(world, lord, court).get("forecast", 0) or 0) < 0
 
 
+def crown_asks_a_vassal() -> bool:
+    """Arm AFR (RE3-6, S15's head — the user's "Ask him; loyalty pays", November 6,
+    2026; `EVENTS_SPEC.md` §2 M3, §18): the Crown of the Reich asks a subjugated
+    Francis too — `design_fulfilled`'s named court need only be active, and the
+    deck prices a VASSAL Austria's Accept in his loyalty (−10, the `loyalty` op
+    on the court, skipped where no vassal row stands). Down: the clause before
+    it — the court not the owner's vassal — under which the Rhine road's
+    Pressburg by subjugation left the letter unreachable (`tests/_affairs_seams.py`,
+    the rig `tools/_affairs_series_arms.py`)."""
+    return True
+
+
 def _design_fulfilled(world, lord: str, params: Dict[str, Any]) -> bool:
     """M3: a design of the Empire stands fulfilled, and the named court is
-    active and not the owner's vassal."""
+    active — a vassal court too (RE3-6, `crown_asks_a_vassal`; held down, not
+    the owner's vassal)."""
     from backend.game_logic import imperial_designs as ID
     if not ID.is_fulfilled(world, str(params.get("design") or "")):
         return False
     court = str(params.get("court") or "")
-    return not court or (_active(world, court) and _vassal_row(world, court, lord) is None)
+    if not court:
+        return True
+    if not _active(world, court):
+        return False
+    return crown_asks_a_vassal() or _vassal_row(world, court, lord) is None
 
 
 def _decree_clients_of(world, lord: str, law: str = "") -> List[str]:

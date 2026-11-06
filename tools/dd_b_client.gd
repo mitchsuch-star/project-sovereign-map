@@ -413,6 +413,18 @@ func _act_key(spec: String, rec: Dictionary) -> void:
 		uni = 32
 	await _push_key(code, alt, ctrl, shift, uni)
 	rec["note"] = "pressed %s" % spec
+	if ctrl and not alt and name.to_lower() == "a":
+		# S15H-5 (November 6, 2026): the select-all a typed line replaces raced
+		# the parked window's editing state (one hook run in three typed "end
+		# turn" beside the stray letter instead of over it). When the keystroke
+		# did not select, the control's own road selects, and the note says so.
+		var main := _main()
+		var input: LineEdit = main.get("command_input") if main != null else null
+		if input != null and input.has_focus() and input.text != "" and not input.has_selection():
+			await _frames(2)
+			if not input.has_selection():
+				input.select_all()
+				rec["note"] = str(rec["note"]) + " (the key did not select — selected by the control's own road)"
 
 
 func _act_scroll(spec: String, rec: Dictionary) -> void:

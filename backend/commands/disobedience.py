@@ -2614,6 +2614,28 @@ def check_strategic_objection(
     return None
 
 
+def fallback_offers_his_counsel() -> bool:
+    """Arm S15H-3 (S15's head, November 6, 2026 — found by the hook as a pin
+    that failed one run in four hundred): when V2 raises its popup and V1's
+    own roll stays silent (the PARTIAL-sight branch's base 0.60 with its ±0.12
+    falls under 0.50 about one roll in twelve), the fallback that builds the
+    options offers a CAUTIOUS marshal his counsel too (`_get_cautious_preferred`
+    — fortify where he stands), where it had built the aggressive chain for
+    everyone and left Davout's popup without its Trust button. Down: the
+    fallback before it (a preferred alternative for the aggressive alone)."""
+    return True
+
+
+def _get_cautious_preferred(marshal, world) -> Optional[Dict]:
+    """The cautious marshal's counsel when V1 did not speak (S15H-3): fortify
+    where he stands — V1's own PURSUE alternative — unless he is fortified
+    already, when the chain is exhausted and the popup keeps Insist and the
+    compromise alone."""
+    if getattr(marshal, "fortified", False):
+        return None
+    return {"action": "fortify", "target": marshal.location}
+
+
 def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
     """
     Find preferred aggressive action for Ney-type marshals.

@@ -35,7 +35,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head in build (§177)**.
 
 **▶ LIVE STATE (Nov 6, 2026).** The three most recent rows:
-- **S15's head (Nov 6) — RE3-9 FIXED: the 188 `.import` sidecars tracked; RE3-6, RE3-7 next** (§177).
+- **S15's head (Nov 6) — RE3-9, RE3-6 FIXED: the sidecars tracked; the Crown asks a vassal Francis; RE3-7 next** (§177).
 - **AU-4 the flip (Nov 6) — LANDED by "Flip, flat grip"; AU-20 fixed (the courts' Decree in authority); ROW AU COMPLETE** (§6.8).
 - **AU-4 part 1 (Nov 5) — LANDED: AU-19 fixed; the courts' writes built and parked** (§6.7).
 

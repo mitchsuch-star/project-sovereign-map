@@ -1,8 +1,8 @@
 {
  "_what": "AU-1 — the standing's trace over the measured arms (AUTHORITY_CURRENCY_SPEC.md §5.8): per arm the start / min / max / end of the lord's authority, the moves by cause (by site on the tree before the books), the residual (the morning's change the books did not record) with the direct writers it names, the lines crossed downward, the courts' end figures. Seeded paths, not laws.",
- "commit": "AU-4 the courts' flip (the working tree of November 6, 2026, after 3d8f22a8; the courts up, the flat grip)",
+ "commit": "S15's head, RE3-6 (the working tree of November 6, 2026, after RE3-9's commit; the Crown asks a vassal Francis, loyalty pays)",
  "date": "2026-11-06",
- "note": "AU-4: the courts flipped up by the user's \"Flip, flat grip\"; residual 0",
+ "note": "RE3-6: the Crown of the Reich asks a vassal Francis (the user's \"Ask him; loyalty pays\"); S15H-1: the road_accept arms answer the dated letters again (--moment accept); residual 0",
  "arms": 59,
  "measured": 59,
  "residual_total": 0,
@@ -3907,12 +3907,12 @@
    "min": 55,
    "max": 100,
    "end": 55,
-   "moves": 59,
+   "moves": 58,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 5,
      "sum": 0,
-     "asked": 20
+     "asked": 25
     },
     "Austria:field_lost": {
      "n": 3,
@@ -3989,20 +3989,10 @@
      "sum": 10,
      "asked": 10
     },
-    "letter_declined": {
-     "n": 2,
-     "sum": -11,
-     "asked": -11
-    },
     "Prussia:bulletin": {
      "n": 2,
      "sum": 8,
      "asked": 8
-    },
-    "field_won": {
-     "n": 1,
-     "sum": 3,
-     "asked": 5
     },
     "Russia:field_lost": {
      "n": 2,
@@ -4048,6 +4038,11 @@
      "n": 2,
      "sum": 8,
      "asked": 8
+    },
+    "letter_declined": {
+     "n": 1,
+     "sum": -8,
+     "asked": -8
     },
     "bulletin": {
      "n": 1,
@@ -5107,12 +5102,12 @@
    "family": "road_accept",
    "arm": "VP1-RH-austerlitz",
    "measured": true,
-   "mornings": 40,
+   "mornings": 37,
    "start": 100,
-   "min": 60,
+   "min": 55,
    "max": 100,
-   "end": 60,
-   "moves": 56,
+   "end": 72,
+   "moves": 60,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 5,
@@ -5120,9 +5115,9 @@
      "asked": 25
     },
     "Austria:field_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
+     "n": 7,
+     "sum": -35,
+     "asked": -35
     },
     "Britain:law": {
      "n": 2,
@@ -5140,9 +5135,9 @@
      "asked": -3
     },
     "Austria:bulletin": {
-     "n": 6,
-     "sum": 24,
-     "asked": 24
+     "n": 5,
+     "sum": 20,
+     "asked": 20
     },
     "Austria:edict_decreed": {
      "n": 2,
@@ -5185,29 +5180,29 @@
      "asked": 4
     },
     "Prussia:assault_repulsed": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
+     "n": 1,
+     "sum": -5,
+     "asked": -5
     },
     "Prussia:capital_stormed": {
-     "n": 2,
-     "sum": 10,
-     "asked": 10
+     "n": 1,
+     "sum": 5,
+     "asked": 5
     },
     "Prussia:bulletin": {
      "n": 2,
      "sum": 8,
      "asked": 8
     },
-    "Russia:field_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
-    },
     "Hanover:capital_stormed": {
      "n": 1,
      "sum": 5,
      "asked": 5
+    },
+    "Russia:bulletin": {
+     "n": 3,
+     "sum": 12,
+     "asked": 12
     },
     "Prussia:capital_taken": {
      "n": 1,
@@ -5230,24 +5225,49 @@
      "asked": 4
     },
     "Austria:assault_repulsed": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     },
     "Austria:capital_stormed": {
-     "n": 4,
-     "sum": 20,
-     "asked": 20
+     "n": 3,
+     "sum": 15,
+     "asked": 15
     },
-    "Russia:bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
+    "own_hand_lost": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
     },
     "sovereign_captured": {
      "n": 1,
      "sum": -40,
      "asked": -40
+    },
+    "field_lost": {
+     "n": 1,
+     "sum": -5,
+     "asked": -5
+    },
+    "Austria:field_won": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "field_won": {
+     "n": 2,
+     "sum": 10,
+     "asked": 10
+    },
+    "bulletin": {
+     "n": 1,
+     "sum": 4,
+     "asked": 4
+    },
+    "bulletin_repaid": {
+     "n": 1,
+     "sum": 8,
+     "asked": 8
     }
    },
    "residual_total": 0,
@@ -5257,18 +5277,21 @@
    "crossings_down": {
     "85": 1,
     "80": 1,
-    "70": 1
+    "70": 1,
+    "60": 1
    },
    "lowest_after": {
-    "sovereign_captured": 60
+    "field_lost": 50,
+    "own_hand_lost": 95,
+    "sovereign_captured": 55
    },
    "crossed_85_by": {
     "sovereign_captured": 1
    },
    "courts_end": {
-    "Austria": 36,
+    "Austria": 22,
     "Britain": 31,
-    "Russia": 40,
+    "Russia": 54,
     "Prussia": 40,
     "Ottoman": 57,
     "Spain": 68,

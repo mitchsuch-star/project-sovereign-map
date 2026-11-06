@@ -1985,8 +1985,14 @@ class StrategicExecutor:
                         # Fallback: If V2 triggered MODERATE+ but V1 produced no options,
                         # build default insist/trust/compromise with aggressive preferred chain
                         if not v1_options and strategic_concern >= ConcernLevel.MODERATE:
-                            from backend.commands.disobedience import _get_aggressive_preferred, _build_strategic_options
-                            preferred = _get_aggressive_preferred(ctx.marshal, ctx.world) if ctx.marshal.personality == 'aggressive' else None
+                            from backend.commands.disobedience import (
+                                _build_strategic_options, _get_aggressive_preferred,
+                                _get_cautious_preferred, fallback_offers_his_counsel)
+                            # S15H-3: the cautious marshal's counsel too (the seam held
+                            # down: the aggressive chain alone, every other popup bare)
+                            preferred = (_get_aggressive_preferred(ctx.marshal, ctx.world) if ctx.marshal.personality == 'aggressive'
+                                         else _get_cautious_preferred(ctx.marshal, ctx.world)
+                                         if ctx.marshal.personality == 'cautious' and fallback_offers_his_counsel() else None)
                             compromise = {"action": ctx.strategic_type.lower(), "max_turns": 3}
                             display_type = get_strategic_display(ctx.strategic_type)
                             v1_options = _build_strategic_options(

@@ -68,6 +68,18 @@ def collapse_turn_end_fields(world) -> Dict:
     }
 
 
+def trust_arm_pays_the_fortify() -> bool:
+    """Arm S15H-4 (S15's head, November 6, 2026 — found by ACH-F3's pin once
+    S15H-3 gave a cautious marshal's fallback popup its "Fortify"): the Trust
+    arm of a strategic objection is priced at 1 on its button and charged 1
+    by its caller (WO-37, `charge_ap=False`), so the preferred action it
+    carries out asks the pool for nothing more — a fortify from a neutral
+    stance no longer refuses at one action "requires 2 actions" against a
+    button that said 1 (the carve-out a standing order's fortify already had,
+    `_strategic_execution`). Down: the action's own pre-check as before."""
+    return True
+
+
 def _filter_tactical_events_by_fog(events: list, world) -> list:
     """Filter tactical events by fog of war (P3-2 consolidated).
 
@@ -2937,6 +2949,10 @@ RETREAT RECOVERY (2-4 turns - command skill drives The Rally):
         world: WorldState = game_state.get("world")
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
+        if not charge_ap and trust_arm_pays_the_fortify():
+            # S15H-4: the arm's 1 is what the pool must cover — the preferred
+            # action's own pre-check (fortify's 2 from neutral) is not asked
+            command["_arm_paid"] = True
 
         # Check action economy
         free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "cheat", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "diplomatic_ask_return", "diplomatic_bid", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal", "grant_region_to_vassal", "make_amends", "propose_common_peace", "propose_white_peace", "request_terms", "sponsor_design", "buy_off_design", "guarantee_nation", "bind_to_war", "recognition_sweetener"]

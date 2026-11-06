@@ -678,7 +678,10 @@ class TacticalExecutor:
         # CC-4 / D7: a fortify a standing order carries out ("march to X then
         # fortify", done on arrival) was paid with the order — the turn's
         # actions are not asked again, and the reply quotes no price.
-        _carried = bool(isinstance(command, dict) and command.get("_strategic_execution"))
+        # S15H-4: a fortify the Trust arm of a strategic objection carries out is
+        # paid by the arm (1, WO-37 — `meta_executor.trust_arm_pays_the_fortify`)
+        _carried = bool(isinstance(command, dict)
+                        and (command.get("_strategic_execution") or command.get("_arm_paid")))
         if current_stance == Stance.NEUTRAL:
             # Auto-transition to defensive (costs 1 extra action)
             stance_transition_cost = 1

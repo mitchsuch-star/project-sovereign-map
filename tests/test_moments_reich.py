@@ -10,6 +10,12 @@ costs Austria 15 goodwill and Europe's alarm 3, and Le Moniteur's next
 issue carries THE EMPIRE IS NO MORE (on that answer only); on Roads II and
 III the letter is forsworn. The windows' clauses A–G hold over the ten
 sweep seeds.
+
+RE3-6 (S15's head, November 6, 2026 — the user's "Ask him; loyalty pays"): a
+subjugated Francis is asked too — the clause "not the owner's vassal" is gone
+behind `moments.crown_asks_a_vassal` (arm AFR) — and the Accept costs a VASSAL
+Austria its loyalty −10 beside the goodwill −15; an un-subjugated Austria's
+letter is unchanged (the loyalty op finds no vassal row and is skipped).
 """
 import contextlib
 import copy
@@ -133,11 +139,71 @@ class TestTheReich:
         _tick(world)
         assert MO.status_row(world, "crown_of_the_reich")["reason"] == "forsworn"
 
-    def test_an_austria_already_the_emperor_s_vassal_is_no_fork(self, client, world):
+    def test_a_vassal_francis_is_asked_too_and_his_loyalty_pays(self, client, world):
+        """RE3-6 (S15's head, November 6, 2026 — the user's "Ask him; loyalty
+        pays"): a subjugated Austria is asked to lay the crown down — the clause
+        "not the owner's vassal" is gone behind `moments.crown_asks_a_vassal` —
+        and the Accept costs him his loyalty −10 beside the goodwill −15, the
+        princes' +10 and the alarm +3; the quote says so before the answer."""
+        from backend.game_logic.gazette import _special_candidates
+        latched = _confederation(client, world)
+        _vassalize(world, "Austria", loyalty=40)
+        _rich(world)
+        _at(world, latched + 2)
+        assert _tick(world) == ["crown_of_the_reich"]
+        letter = _letter(world, "crown_of_the_reich")
+        accept = next(a for a in letter["popup_payload"]["answers"] if a["caption"] == "Demand the abdication")
+        assert "Austria's loyalty as your vassal 40 → 30" in accept["quote"], accept["quote"]
+        assert "Austria's goodwill" in accept["quote"], accept["quote"]
+        _make_current(world, letter)
+        loyalty = {c: int(world.vassals[c]["loyalty"]) for c in MEMBERS}
+        austria = int(world.nation_relations.get(world._make_diplo_key("France", "Austria"), 0))
+        alarm = int(world.threat_by_target.get("France", 0))
+        with _quiet():
+            result = client.post("/respond_to_diplomatic_dialogue", json={
+                "choice": "accept", "dialogue_id": letter["dialogue_id"]}).json()
+        assert result["success"] is True, result
+        assert int(world.vassals["Austria"]["loyalty"]) == 30
+        assert {c: int(world.vassals[c]["loyalty"]) for c in MEMBERS} == {
+            c: min(100, v + 10) for c, v in loyalty.items()}
+        assert int(world.nation_relations.get(world._make_diplo_key("France", "Austria"), 0)) == max(-100, austria - 15)
+        assert int(world.threat_by_target.get("France", 0)) == min(100, alarm + 3)
+        answered = [e for e in world.event_log if e.get("type") == "moment" and e.get("phase") == "answered"]
+        assert "THE EMPIRE IS NO MORE" in [r for _w, r, _k in _special_candidates(world, answered)]
+
+    def test_a_free_francis_pays_no_loyalty(self, client, world):
+        """The un-subjugated peace's letter is unchanged: the loyalty op finds no
+        vassal row for Austria and is skipped — no line in the quote, nothing
+        applied; the princes' loyalty line stands."""
+        latched = _confederation(client, world)
+        assert "Austria" not in world.vassals
+        _at(world, latched + 2)
+        assert _tick(world) == ["crown_of_the_reich"]
+        letter = _letter(world, "crown_of_the_reich")
+        accept = next(a for a in letter["popup_payload"]["answers"] if a["caption"] == "Demand the abdication")
+        assert "Austria's loyalty" not in accept["quote"], accept["quote"]
+        assert "Bavaria's loyalty as your vassal" in accept["quote"], accept["quote"]
+        rows = MO.plan(world, MO.entry(world, "crown_of_the_reich"), "accept")["rows"]
+        skipped = [r for r in rows if r["op"] == "loyalty" and r["courts"] == []]
+        assert len(skipped) == 1 and skipped[0]["line"] == ""
+
+    def test_with_the_clause_held_down_a_vassal_austria_is_no_fork(self, client, world, monkeypatch):
+        """The seam down (arm AFR, `tests/_affairs_seams.py`): the tree before
+        RE3-6 — the premise names Austria not a vassal, so a subjugated Francis
+        is never asked and the letter passes on its premise after its window."""
         latched = _confederation(client, world)
         _vassalize(world, "Austria")
-        _at(world, latched + 2)
-        assert _tick(world) == []                 # the premise names Austria not a vassal
+        monkeypatch.setattr(MO, "crown_asks_a_vassal", lambda: False)
+        for turn in range(latched + 2, latched + 6):     # the window and the morning after
+            _at(world, turn)
+            assert _tick(world) == [], turn
+        assert MO.status_row(world, "crown_of_the_reich")["reason"] == "premise"
+
+    def test_the_deck_prices_a_vassal_francis_s_crown_in_loyalty(self, world):
+        ops = MO.entry(world, "crown_of_the_reich")["accept"]["ops"]
+        assert {"op": "loyalty", "court": "Austria", "delta": -10} in ops
+        assert [o["op"] for o in ops] == ["loyalty", "relation", "loyalty", "alarm"]
+        assert MO.crown_asks_a_vassal() is True
 
 
 class TestTheClauses:

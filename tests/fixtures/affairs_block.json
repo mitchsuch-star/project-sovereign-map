@@ -60,6 +60,7 @@
         "ops": [
           {"op": "loyalty", "design_courts": "rhine.confederation", "delta": 10},
           {"op": "relation", "court": "Austria", "delta": -15},
+          {"op": "loyalty", "court": "Austria", "delta": -10},
           {"op": "alarm", "amount": 3, "source": "moment_reich"}
         ]
       },

@@ -202,8 +202,15 @@ class TestEachTemplatesReach:
         # due on 15 → 11 scripted arms — CMD-H and its accept arm and the Confederation
         # road at austerlitz no longer meet its premise; its sweep runs 7 → 6). With
         # the courts held down (arm AUC) the parked record's counts return
+        # RE3-6 (S15's head, November 6, 2026 — the user's "Ask him; loyalty
+        # pays"): the Crown of the Reich, accepted at T15 on Road I answered at
+        # austerlitz, re-times that board so the Memorial ARRIVES there where it
+        # had been due and released (11 → 10 doors due, the Memorial 2 → 3
+        # scripted); the old flags beside it (S15H-1 — the dated letters
+        # declined) leave the door as the flip measured it
         assert sum(1 for _f, _n, row in _rows(record, SCRIPTED)
-                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 11
+                   if row["affairs_reach"]["berthiers_memorial"]["verdict"].startswith("due")) >= 10
+        assert record["road_accept"]["VP1-RH-austerlitz"]["affairs_reach"]["berthiers_memorial"]["verdict"] == "arrived"
         assert count("berthiers_memorial", ("saves",)) >= 2
         assert count("the_host", ("saves",)) >= 1 and count("chancellors_letters", ("saves",)) >= 1
         assert count("berthiers_memorial", ("sweep",)) >= 6
