@@ -427,7 +427,8 @@ class TestTheSeams:
         assert ST.offices_armed() is True and ST.proclamation_armed() is True
         assert "AU-3b" in AF.SINCE_ROWS and AF.row_armed("AU-3b") is True
         src = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        assert "UP_ARMS: dict = {}" in src                  # the AUR+ arm retired: ALL is that arm
+        # the AUR+ arm retired (ALL is that arm); AU-4's courts are the UP arms now
+        assert '"AUR+"' not in src and 'UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}' in src
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -460,8 +461,10 @@ class TestTheMeasureAndTheFrames:
         the Proclamation down, and the AUR+ arm is retired."""
         rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
         assert {"AUO", "AUR", "ALL"} <= set(rec["arms"]) and "AUR+" not in rec["arms"]
-        for arm in ("AUO", "AUR", "ALL"):
-            assert rec["arms"][arm]["first_divergence_vs_prior"] is None, arm
+        # AU-4 part 1 (§6.7): AU-19 moves the whole board at [22] — AUO and AUR
+        # held down stay on ALL's series, the Proclamation and the offices move nothing
+        for arm in ("AUO", "AUR"):
+            assert rec["arms"][arm]["series"] == rec["arms"]["ALL"]["series"], arm
 
     def test_the_stagings_are_wired(self):
         cap = (REPO / "tools" / "iq10_capture_payloads.py").read_text(encoding="utf-8")

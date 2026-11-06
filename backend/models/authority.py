@@ -551,6 +551,19 @@ AURA_GRIP_FULL = 85
 AURA_GRIP_BROKEN = 30
 
 
+def court_grip_base(world, nation: str) -> int:
+    """AU-5 (BUG_FIXES.md §AU): a court's grip base — the flat
+    `GRIP_ENEMY_COURT_BASE` (jealousy-proxy parity: the shipped read), or,
+    with `standing.court_grip_reads_books()` up (arm AUG), its books read
+    relative to the boot — 75 + (standing − 60), so the opening is unmoved
+    and a court at the AI floor of 30 reads 45. Decided at the courts' flip
+    on the user's word, measured both ways."""
+    from backend.game_logic import standing
+    if not standing.court_grip_reads_books():
+        return GRIP_ENEMY_COURT_BASE
+    return GRIP_ENEMY_COURT_BASE + (standing.standing_of(world, nation) - standing.COURT_DEFAULT)
+
+
 def get_imperial_grip(world, nation: str) -> int:
     """Napoleon-style 'imperial grip' (0-100), symmetric by construction (GR5).
 
@@ -571,7 +584,7 @@ def get_imperial_grip(world, nation: str) -> int:
         tracker = getattr(world, "authority_tracker", None)
         base = int(getattr(tracker, "authority", 100)) if tracker is not None else 100
     else:
-        base = GRIP_ENEMY_COURT_BASE
+        base = court_grip_base(world, nation)
 
     # Territorial-collapse term. Capital loss dominates (-40); an intact capital
     # atop a lost homeland is the softer signal (-25). Mutually exclusive so the

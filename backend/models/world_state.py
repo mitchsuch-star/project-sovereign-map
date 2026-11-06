@@ -17083,6 +17083,18 @@ class WorldState:
                             from backend.game_logic import standing as _standing
                             _standing.move(self, player_nation, -5, "field_lost",
                                            battle=auto_charge_battle_region)
+                # AU-4 (§5.7): each court's side of the charge — this mirror's own
+                # rules (no sovereign's hand, no capital lost); parked with the flip
+                from backend.game_logic import standing as _court_standing
+                if _court_standing.courts_move():
+                    _ac_out = str(combat_result.get("raw_outcome", combat_result.get("outcome", "")) or "")
+                    _court_standing.courts_battle(
+                        self, auto_charge_battle_region, marshal.nation, enemy.nation,
+                        "attacker" in _ac_out and "victory" in _ac_out, "defender" in _ac_out and "victory" in _ac_out,
+                        pre_battle_atk, pre_battle_def, bool(conquered),
+                        atk_cas=int((combat_result.get("attacker") or {}).get("casualties", 0) or 0),
+                        def_cas=int((combat_result.get("defender") or {}).get("casualties", 0) or 0),
+                        lost_capitals=False)
 
                 # ── Coalition: Threat + war exhaustion ──
                 from backend.game_logic.coalition import (

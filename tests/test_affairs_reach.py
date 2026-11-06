@@ -216,9 +216,18 @@ class TestEachTemplatesReach:
         # the Magazines' mornings — the passive friedland board's T6 (the
         # campaign's first affair) and the lodi board's T20 — 14 → 12; and the
         # Chancellor's T14 on the Throne road at austerlitz (scripted 16 → 15)
-        assert count(E1, FAMILIES) >= 12 and count(E1, ("saves",)) >= 3
+        # AU-19 at AU-4's head (November 5, 2026, §6.7): a capital is lost only by
+        # its defender, when it falls — the standing no longer bled by "capital
+        # lost" for the satellites' battles, the letters that bite above the floor
+        # come back to the late mornings and the Magazines lose three runs —
+        # armC_04_marengo (T32 and T40: the Pope arrives at T32), the Rhine road at
+        # historical (T40: the Marine's letter at T38) and its accept arm (the
+        # premise never holds there now) — 12 → 9; on CMD-H the
+        # Chancellor's second letter (−8) finds room above the floor at T28 (eight
+        # "capital lost" gone) and takes the Camps' morning — 6 → 5
+        assert count(E1, FAMILIES) >= 9 and count(E1, ("saves",)) >= 3
         assert count(E2, FAMILIES) >= 28 and count(E2, ("saves",)) == 0
-        assert count(E3, FAMILIES) >= 6 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
+        assert count(E3, FAMILIES) >= 5 and count(E3, ("saves",)) >= 3 and count(E3, ("sweep",)) == 0
 
     def test_the_haiti_letter_appears_at_war_with_britain_wherever_the_emperor_stands(self, record):
         """RE-H (the user's word of November 1, 2026 — "conditions that make
@@ -273,7 +282,11 @@ class TestEachTemplatesReach:
         # AU-3b armed (November 5, 2026, §6.6.6): the Proclamation takes the
         # Marine's morning on the Throne road at historical (T18) and on the Rhine
         # road's accept arm (T28, accepted there) — the two Confederation roads keep it
-        assert kept == {"road/VP1-CS-austerlitz", "road/VP1-CS-historical"}, kept
+        # AU-19 (November 5, 2026, §6.7): the Rhine road at historical no longer
+        # bleeds six "capital lost" (its end 34 → 44), and the Marine's Decline (−3)
+        # lands above the floor at T38 on the road and its accept arm
+        assert kept == {"road/VP1-CS-austerlitz", "road/VP1-CS-historical", "road/VP1-RH-historical",
+                        "road_accept/VP1-RH-historical"}, kept
         # … and so does the October 25 diplomacy start (DDB-25-diplomacy, T39): the
         # Host's two −2s (T24, T34) leave the Chancellor's second letter (−8) no
         # room above the floor, and the Marine's −3 takes the morning
@@ -346,11 +359,15 @@ class TestEachTemplatesReach:
         # AU-3b armed (November 5, 2026, §6.6.6): the Proclamation takes that T28
         # morning and the accept dial issues it (4 authority) — no squadron sails
         # outside the `haiti` family now
+        # AU-19 (November 5, 2026, §6.7): the road's standing kept, the Proclamation
+        # is issued at T33 and the Marine's letter returns at T38, accepted — its
+        # squadron sails past the run's last morning, so no fate is read there
         for family, name, row in _rows(record, [f for f in FAMILIES if f != "haiti"]):
             for line in row["affairs_reach"][H1]["occurrences"]:
                 assert "; the squadron " not in line, (family, name, line)
-        assert record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]["occurrences"] == []
-        assert any(" arrived T28, answered accept T28" in line for line in
+        assert record["road_accept"]["VP1-RH-historical"]["affairs_reach"][H1]["occurrences"] == [
+            "santo_domingo#1 arrived T38, answered accept T38"]
+        assert any(" arrived T33, answered accept T33" in line for line in
                    record["road_accept"]["VP1-RH-historical"]["affairs_reach"][P2]["occurrences"])
 
     def test_the_bank_and_the_pope_reach_the_boards_their_premises_name(self, record):
@@ -379,7 +396,12 @@ class TestEachTemplatesReach:
         # later (armB_austerlitz 16 → 20, armB_ulm and armC_01_ulm 15 → 19,
         # armC_09_rivoli 15 → 22)
         assert len(pope) >= 10 and "haiti/HAITI-austerlitz" in pope, pope
-        assert not arrived("the_popes_ports", SCRIPTED + ("saves",)), pope
+        # AU-19 (November 5, 2026, §6.7): the Rhine road at marengo keeps its
+        # standing (its end 68 → 83), the war with Britain outlasts the opening and
+        # the Pope's Decline (−5) lands above the floor — T41 on the road and its
+        # accept arm; never on the commanded or accept arms nor the hand-played starts
+        assert arrived("the_popes_ports", SCRIPTED + ("saves",)) == {
+            "road/VP1-RH-marengo", "road_accept/VP1-RH-marengo"}, pope
         cooldown = {"the_bank": 12, "the_popes_ports": 30}
         for family, name, row in _rows(record):
             for template in LETTERS:
@@ -491,8 +513,11 @@ class TestTheBrakesAndTheRoad:
         # AU-2b the lumps (November 4, 2026, §6.3): the Bulletins re-time the
         # Confederation road on historical on both arms (the control 30 → 32,
         # the armed 35 → 36); the eight other roads' ends unmoved
+        # AU-19 (November 5, 2026, §6.7): the player's standing no longer bled by
+        # "capital lost" re-times the Confederation road's armed arms — historical
+        # 36 → 35, marengo 24 → 25; the controls and the seven other roads unmoved
         assert ends == {
-            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (32, 36, -1), "VP1-CS-marengo": (27, 24, -1),
+            "VP1-CS-austerlitz": (24, 38, -1), "VP1-CS-historical": (32, 35, -1), "VP1-CS-marengo": (27, 25, -1),
             "VP1-RH-austerlitz": (40, 36, 13), "VP1-RH-historical": (34, 40, 12), "VP1-RH-marengo": (28, 40, 13),
             "VP1-TH-austerlitz": (40, 28, -1), "VP1-TH-historical": (40, 33, -1), "VP1-TH-marengo": (40, 21, -1),
         }, ends

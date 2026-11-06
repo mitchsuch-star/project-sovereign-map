@@ -174,6 +174,16 @@ SHOTS: list[dict] = [
         "must_show": "Britain's card carries its Laws line (the Orders in Council and the Militia "
                      "Transfer, with their cost a turn) within the two-line budget",
     },
+    {
+        "id": "diplo_courts_authority_nations",
+        "surface": "Diplomatic Ledger — Nations (each court's authority, AU-4)",
+        "payload": "diplo_courts_authority",
+        "scene": "res://scenes/diplomatic_ledger.tscn",
+        "mode": "api_stub", "method": "open", "api_method": "get_diplomatic_ledger", "tab": 0,
+        "must_show": "an Authority line under each court's Diplomat line — Britain's 'Authority: 25 "
+                     "(\u22121 diplomatic point a turn)' on the first card, Russia's 'Authority: 60 "
+                     "(+1 diplomatic point a turn)' on the second; nothing clipped at scale 2.0",
+    },
     # ── S10–S12 the Diplomatic Ledger ───────────────────────────────────────
     *[
         {

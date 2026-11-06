@@ -1720,7 +1720,31 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # and ALL are this series: the courts' decrees alone move the board, the
 # letters still move nothing. RE-H's series: SERIES_BEFORE_RE_6 below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by AU-4 part 1 — AU-19 at its head (November 5, 2026, the
+# user's "Fix at AU-4's head"; `AUTHORITY_CURRENCY_SPEC.md` §6.7,
+# `SYSTEMS_REFERENCE.md` §175). A capital is lost only by its defender, when
+# it falls in the battle (`standing.capital_lost_by`): on this board France no
+# longer books "the capital at Milan, lost" for the Kingdom of Italy's field
+# battles — five −5s at turns 2–4, so it holds authority 100 through the
+# opening where it stood at 75 by turn 4. Traced on the series' own loop
+# with HEAD's battle pipeline patched on the class: the two runs fight the
+# same battles through turn 16, where the higher figure meets the ceiling
+# (+3 for a field won where the lower took the Bulletin and its repayment);
+# the Emperor's fields differ from turn 17, the alarm reaches 0 at [22]
+# (turn 22), a turn earlier than before, and Napoleon is captured at turn 32
+# (29 before); France still falls at turn 37. The attribution:
+# `tools/_standing_series_arms.py` → `tools/_standing_series_arms_final.json` —
+# arm 0 (every seam down) and AUF (`standing.capital_lost_by` held down to
+# the old rule) reproduce RE-6's series byte for byte; every other arm and
+# ALL are this series. The courts' writes (AU-4, `standing.courts_move`) are
+# PARKED: AUC and ALL are this series, the courts forced up (AUC+, AUCG+,
+# AUCGD+) diverge at [10] — their flip waits on the user's word.
+# RE-6's series: SERIES_BEFORE_AU below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# RE-6's series (AU's prior — every AU rig's ALL through AU-3b's arming; AU-4's arms 0 and AUF):
+SERIES_BEFORE_AU = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-H's series (RE-6's prior; the RE-H rig's ALL, the RE-6 rig's AFE arm):
 SERIES_BEFORE_RE_6 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 31, 18, 15, 12, 9, 6, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-3's series (RE-H's prior; S14k part 2's ALL):

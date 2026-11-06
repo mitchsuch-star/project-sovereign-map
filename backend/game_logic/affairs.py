@@ -608,7 +608,11 @@ def _enemy_within_a_march(world, lord: str) -> Optional[Tuple[str, str]]:
     if region is None:
         return None
     near = {here, *[str(r) for r in (getattr(region, "adjacent_regions", None) or [])]}
-    for m in world.get_visible_enemies(lord):
+    # AU-4: the lord's own sight — the player's fog for the player; a court's
+    # live sight for a court (`get_visible_enemies` reads the player's intel)
+    seen = (world.get_visible_enemies(lord) if lord == getattr(world, "player_nation", None)
+            else world.get_live_visible_enemies(lord))
+    for m in seen:
         if (int(getattr(m, "strength", 0) or 0) > 0 and not getattr(m, "captured_by", "")
                 and str(getattr(m, "location", "") or "") in near):
             return str(m.name), str(m.location)
@@ -2031,7 +2035,13 @@ def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[
             if edict_refusal(world, nation, e, currency="authority"):
                 continue
             currency = "authority"
-        if not premise_holds(world, e, nation).get("holds"):
+        read = premise_holds(world, e, nation)
+        if not read.get("holds"):
+            continue
+        # AU-4: a latched offer (the Proclamation) asks its latch's bit this
+        # morning — a court proclaims on its own eve of battle, never by the
+        # war alone (the player's letter waits on the latch's window)
+        if str((e.get("when") or {}).get("predicate") or "") in LATCHED_PREDICATES and not read.get("latch"):
             continue
         order = {"action": "decree_edict", "target": str(e.get("id") or "")}
         if currency == "authority":

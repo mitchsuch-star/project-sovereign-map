@@ -551,8 +551,21 @@ class TestTheMeasuredArms:
             encoding="utf-8"))
         assert re6["prior"] == re6["arms"]["AFE"]["series"] == SERIES_BEFORE_RE_6
         assert re6["arms"]["0"]["series"] == SERIES_BEFORE_RE_H
-        assert re6["arms"]["AF0"]["series"] == re6["arms"]["ALL"]["series"] == BASELINE_SERIES
-        assert re6["arms"]["AFH"]["series"] == re6["arms"]["AFS"]["series"] == BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_AU
+        assert re6["arms"]["AF0"]["series"] == re6["arms"]["ALL"]["series"] == SERIES_BEFORE_AU
+        assert re6["arms"]["AFH"]["series"] == re6["arms"]["AFS"]["series"] == SERIES_BEFORE_AU
         assert re6["arms"]["ALL"]["first_divergence_vs_prior"] == 10
         assert re6["arms"]["ALL"]["reach"]["counts"]["edicts_granted"] > 0
         assert re6["arms"]["AFE"]["reach"]["counts"]["edicts_granted"] == 0
+        # AU-4 part 1 (November 5, 2026 — AU-19 at its head, the user's "Fix at
+        # AU-4's head"; `AUTHORITY_CURRENCY_SPEC.md` §6.7): RE-6's series is AU's
+        # prior (`SERIES_BEFORE_AU`). The standing rig's committed record is AU-4
+        # part 1's: its arm 0 (every AU seam down) and AUF (a capital lost by any
+        # loser at it — the old rule) reproduce the prior byte for byte; ALL is the
+        # standing series, diverging at [22] (France keeps its standing through the
+        # opening); the courts forced up (AUC+) diverge at [10], parked.
+        au = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        assert au["prior"] == au["arms"]["0"]["series"] == au["arms"]["AUF"]["series"] == SERIES_BEFORE_AU
+        assert au["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert au["arms"]["ALL"]["first_divergence_vs_prior"] == 22
+        assert au["arms"]["AUC+"]["first_divergence_vs_prior"] == 10

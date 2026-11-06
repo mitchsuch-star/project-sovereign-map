@@ -832,6 +832,13 @@ SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.affairs:ai_decrees=False"]
 # it (+10% → +9% read on another morning); the seam AUS held down restores
 # the Step 7 page (AU-1's books and AU-2a's hits never moved it).
 SEAMS_DOWN = SEAMS_DOWN + ["backend.game_logic.standing:sources_armed=False"]
+# AU-19 at AU-4's head (November 5, 2026; `AUTHORITY_CURRENCY_SPEC.md` §6.7): a capital is
+# lost only by its defender, when it falls — CMD-H no longer books "the capital at X, lost"
+# for every battle lost at a capital it did not hold (eight on that run; its standing ends
+# 79 where it ended 64) and its page moves with the standing; the seam AUF held down (the old rule,
+# its lambda in `tests/_standing_seams.py`) restores the Step 7 page.
+from tests._standing_seams import STANDING_SEAMS_BY_ROW as _AU_SEAMS  # noqa: E402
+SEAMS_DOWN = SEAMS_DOWN + list(_AU_SEAMS["AUF"])
 
 LEVERS_DOWN = ["backend.game_logic.dispatch:EVERY_MORNING_HAS_A_FRONT_PAGE=0",
                "backend.game_logic.coalition:THE_LEAGUE_IS_SEEN=0",

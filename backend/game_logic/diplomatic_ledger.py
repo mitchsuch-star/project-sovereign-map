@@ -637,9 +637,22 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             # beside the laws line — name, strength, flaw and the cure's
             # status. Diplomacy has no fog. None omits.
             "doctrine": _doctrine_line(nation, world),
+            # AU-4 (the gate's Q6): the court's standing — the one reader's
+            # figure and its term in the diplomatic points a turn (the DP rule's
+            # own bands). Diplomacy has no fog.
+            "authority": _authority_row(nation, world),
         })
 
     return nations
+
+
+def _authority_row(nation: str, world) -> Dict[str, int]:
+    """AU-4: {figure, dp} — `standing.standing_of` and its DP term
+    (`diplomacy.authority_dp_bonus`: +1 at 60 or more, −1 under 30, else 0)."""
+    from backend.game_logic import standing
+    from backend.game_logic.diplomacy import authority_dp_bonus
+    figure = int(standing.standing_of(world, nation))
+    return {"figure": figure, "dp": int(authority_dp_bonus(figure))}
 
 
 def _doctrine_line(nation: str, world):
@@ -1643,7 +1656,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     # Components
     dp_base = 3
     dp_skill_bonus = 1 if talleyrand and talleyrand.skill >= 8 else 0
-    dp_authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
+    from backend.game_logic.diplomacy import authority_dp_bonus
+    dp_authority_bonus = authority_dp_bonus(authority)
     dp_capital_penalty = -1 if not controls_capital else 0
     # NP-5 THE SEAT (N11) — the tick's duplicate computation, kept in step
     # (the survey flagged this pair as the seam to update in BOTH places).

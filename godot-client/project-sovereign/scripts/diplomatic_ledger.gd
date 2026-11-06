@@ -514,6 +514,18 @@ func _render_nations():
 			bbcode += "  Diplomat: " + d_name + " (" + d_pers + ") — Skill " + str(d_skill) + "\n"
 		else:
 			bbcode += "  Diplomat: [color=#" + Utils.COLOR_INFO + "]None[/color]\n"
+		# AU-4 (AUTHORITY_CURRENCY_SPEC.md Q6): the court's standing beside its
+		# envoy — both feed its diplomatic points; the term said only when it
+		# is not zero (the DP rule's own bands, backend-composed). Absent omits.
+		var auth_row = n.get("authority")
+		if auth_row is Dictionary and auth_row.has("figure"):
+			var auth_dp = int(auth_row.get("dp", 0))
+			var auth_tail = ""
+			if auth_dp > 0:
+				auth_tail = " (+" + str(auth_dp) + " diplomatic point a turn)"
+			elif auth_dp < 0:
+				auth_tail = " (−" + str(-auth_dp) + " diplomatic point a turn)"
+			bbcode += "  Authority: " + str(int(auth_row.get("figure", 0))) + auth_tail + "\n"
 
 		# Regions + Army
 		var regions = int(n.get("regions_controlled", 0))

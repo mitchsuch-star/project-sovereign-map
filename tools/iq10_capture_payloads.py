@@ -1677,6 +1677,17 @@ def cap_laws():
            staging="1805 boot; Britain's Orders in Council and Militia Transfer in force",
            facts={"britain_laws": britain.get("laws")})
 
+    # AU-4 (AUTHORITY_CURRENCY_SPEC.md §6.7, the gate's Q6): each court's
+    # standing on its card, beside its envoy — Britain's card leads the tab:
+    # at 25 its DP term (−1); the others at 60 (+1) and 45 (no term said)
+    world, c = fresh()
+    world.nation_authority.update({"Britain": 25, "Austria": 60, "Prussia": 45, "Russia": 60})
+    dl = get(c, "/diplomatic_ledger")
+    rows = {n.get("name"): n for n in ((dl.get("ledger") or {}).get("nations") or [])}
+    record("diplo_courts_authority", dl, source="GET /diplomatic_ledger",
+           staging="1805 boot; the courts' authority Britain 25, Austria 60, Prussia 45, Russia 60",
+           facts={k: (rows.get(k) or {}).get("authority") for k in ("Britain", "Austria", "Prussia", "Russia")})
+
 
 def cap_proclamation():
     """SF-M (Score Finish Step 0, Sept 29, 2026) — the two shots the spec's

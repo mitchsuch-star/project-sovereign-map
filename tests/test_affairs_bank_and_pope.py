@@ -118,8 +118,9 @@ class TestTheUsersWordArmedThem:
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
         assert STANDING_SEAMS_BY_ROW["AUL"] == ["backend.game_logic.standing:letters_armed=False"]
         rig = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        # AU-3b: the Proclamation's AUR+ arm retired at its arming (November 5) — none stands
-        assert "UP_ARMS: dict = {}" in rig and "the_popes_ports_delivered" in rig
+        # AU-3b: the Proclamation's AUR+ arm retired at its arming (November 5); AU-4's courts
+        # are measured up on the rig's AUC+ arms while held down
+        assert 'UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}' in rig and "the_popes_ports_delivered" in rig
         assert 'ARMS["AUL+"]' not in rig
 
 

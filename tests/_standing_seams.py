@@ -52,7 +52,21 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
                                     (November 5, 2026); the rig's AUR+ arm, which
                                     measured it up while authored, is retired
 
-The last slice adds its seam here as it lands: AUC the courts (AU-4).
+    AUC  `standing.courts_move`   — AU-4: the courts' sources and battle writes
+                                    (their fields, garrisons and charges, their
+                                    Te Deum and Bulletin, their Decree in
+                                    authority) — down by default until the
+                                    user's word flips it; the rig's AUC+ arms
+                                    measure it up
+    AUF  `standing.capital_lost_by` — AU-19 (AU-4's head): a capital lost only
+                                    by its defender, when it falls — down: the
+                                    old rule, a lost battle at any capital the
+                                    lord did not control (the seam's lambda)
+    AUG  `standing.court_grip_reads_books` — AU-5: a court's imperial grip read
+                                    from its books relative to the boot — down
+                                    by default (the flat 75); measured up with
+                                    the courts on AUCG+, the direct read on the
+                                    rig's AUCGD+ alone
 
 `hold_down(monkeypatch)` applies the same list in-process.
 """
@@ -70,6 +84,9 @@ STANDING_SEAMS_BY_ROW = {
     "AUY": ["backend.game_logic.standing:buys_armed=False"],
     "AUO": ["backend.game_logic.standing:offices_armed=False"],
     "AUR": ["backend.game_logic.standing:proclamation_armed=False"],
+    "AUC": ["backend.game_logic.standing:courts_move=False"],
+    "AUG": ["backend.game_logic.standing:court_grip_reads_books=False"],
+    "AUF": ["backend.game_logic.standing:capital_lost_by=bool(getattr(a[0].get_region(a[2]), 'is_capital', False) and getattr(a[0].get_region(a[2]), 'controller', None) != a[1])"],
 }
 STANDING_SEAMS_DOWN = [spec for row in STANDING_SEAMS_BY_ROW for spec in STANDING_SEAMS_BY_ROW[row]]
 

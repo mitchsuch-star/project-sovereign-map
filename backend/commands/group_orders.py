@@ -180,7 +180,10 @@ def authority_of(world, nation: Optional[str] = None) -> int:
     if nation == world.player_nation:
         tracker = getattr(world, "authority_tracker", None)
         return int(getattr(tracker, "authority", 100) if tracker is not None else 100)
-    return int((getattr(world, "nation_authority", {}) or {}).get(nation, 75))
+    # AU-4 (BUG_FIXES.md §AU): a court reads the one reader — the table's own
+    # figure, 60 for a court missing from it (`standing.COURT_DEFAULT`), never 75
+    from backend.game_logic import standing
+    return int(standing.standing_of(world, nation))
 
 
 def army_order_available(world, nation: Optional[str] = None) -> bool:

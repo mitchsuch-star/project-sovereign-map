@@ -80,8 +80,16 @@ class TestTheMomentsAreBlindOnEverySeed:
         friedland (T17 against T18)."""
         moved = {seed for seed, arms in record["seeds"].items()
                  if arms["armed"]["moments"] != arms["letters"]["moments"]}
-        assert moved == {"historical", "friedland", "wagram", "rivoli"}, moved
-        for seed in ("historical", "wagram", "rivoli"):
+        # AU-19 at AU-4's head (November 5, 2026, §6.7): France keeps its standing
+        # through the opening (no "capital lost" for its satellites' battles), its
+        # grip on the web steadies, and Holland's letter moves with it — on wagram
+        # it falls due at T18 on both arms, on rivoli on neither within the twenty
+        # turns; historical and friedland as before
+        assert moved == {"historical", "friedland"}, moved
+        assert record["seeds"]["wagram"]["armed"]["moments"] == record["seeds"]["wagram"]["letters"]["moments"] == {
+            "throne_of_holland": 18}
+        assert record["seeds"]["rivoli"]["letters"]["moments"] == record["seeds"]["rivoli"]["armed"]["moments"] == {}
+        for seed in ("historical",):
             arms = record["seeds"][seed]
             assert "throne_of_holland" in arms["letters"]["moments"] and arms["armed"]["moments"] == {}, (seed, arms["armed"]["moments"])
         friedland = record["seeds"]["friedland"]

@@ -1,8 +1,8 @@
 {
  "_what": "AU-1 — the standing's trace over the measured arms (AUTHORITY_CURRENCY_SPEC.md §5.8): per arm the start / min / max / end of the lord's authority, the moves by cause (by site on the tree before the books), the residual (the morning's change the books did not record) with the direct writers it names, the lines crossed downward, the courts' end figures. Seeded paths, not laws.",
- "commit": "AU-3b armed (the working tree of November 5, 2026, after 0e508aac; the Proclamation armed by the user's word)",
+ "commit": "AU-4 part 1 (the working tree of November 5, 2026, after 884cddc4; AU-19 fixed, the courts built and parked)",
  "date": "2026-11-05",
- "note": "AU-3b armed: the Proclamation on the eve of battle in the shipped deck; residual 0",
+ "note": "AU-4 part 1: AU-19 a capital lost only by its defender; the courts' writes parked; residual 0",
  "arms": 59,
  "measured": 59,
  "residual_total": 0,
@@ -168,10 +168,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 80,
+   "min": 92,
    "max": 100,
-   "end": 82,
-   "moves": 25,
+   "end": 95,
+   "moves": 11,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -188,11 +188,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -208,44 +203,27 @@
      "sum": -5,
      "asked": -5
     },
-    "ceremony": {
-     "n": 2,
-     "sum": 3,
-     "asked": 3
-    },
-    "bulletin": {
-     "n": 3,
-     "sum": 11,
-     "asked": 11
-    },
-    "bulletin_repaid": {
-     "n": 2,
-     "sum": 16,
-     "asked": 16
-    },
     "claims": {
      "n": 1,
      "sum": -3,
      "asked": -3
+    },
+    "bulletin": {
+     "n": 1,
+     "sum": 3,
+     "asked": 3
     }
    },
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 2,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 70,
     "claims": 92,
-    "field_lost": 80
+    "field_lost": 95
    },
-   "crossed_85_by": {
-    "capital_lost": 1,
-    "field_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -447,10 +425,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 62,
+   "min": 71,
    "max": 100,
-   "end": 64,
-   "moves": 26,
+   "end": 79,
+   "moves": 16,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -467,11 +445,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -487,25 +460,20 @@
      "sum": -5,
      "asked": -5
     },
-    "bulletin": {
-     "n": 3,
-     "sum": 12,
-     "asked": 12
-    },
-    "bulletin_repaid": {
-     "n": 2,
-     "sum": 16,
-     "asked": 16
-    },
     "letter_declined": {
-     "n": 3,
-     "sum": -16,
-     "asked": -16
+     "n": 4,
+     "sum": -21,
+     "asked": -21
     },
     "claims": {
      "n": 1,
      "sum": -3,
      "asked": -3
+    },
+    "bulletin": {
+     "n": 2,
+     "sum": 8,
+     "asked": 8
     }
    },
    "residual_total": 0,
@@ -513,20 +481,16 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 1,
-    "70": 1,
-    "60": 1
+    "85": 1,
+    "80": 1
    },
    "lowest_after": {
-    "capital_lost": 52,
-    "claims": 81,
-    "field_lost": 80,
-    "letter_declined": 73
+    "claims": 84,
+    "field_lost": 95,
+    "letter_declined": 71
    },
    "crossed_85_by": {
-    "field_lost": 1,
-    "letter_declined": 1
+    "claims": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -713,10 +677,10 @@
    "measured": true,
    "mornings": 2,
    "start": 100,
-   "min": 95,
+   "min": 100,
    "max": 100,
-   "end": 95,
-   "moves": 4,
+   "end": 100,
+   "moves": 3,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -732,11 +696,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
     }
    },
    "residual_total": 0,
@@ -744,9 +703,7 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
-   "lowest_after": {
-    "capital_lost": 95
-   },
+   "lowest_after": {},
    "crossed_85_by": {},
    "courts_end": {
     "Britain": 45,
@@ -844,10 +801,10 @@
    "measured": true,
    "mornings": 10,
    "start": 100,
-   "min": 56,
+   "min": 68,
    "max": 100,
-   "end": 56,
-   "moves": 18,
+   "end": 68,
+   "moves": 15,
    "by_cause": {
     "law": {
      "n": 3,
@@ -874,11 +831,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -896,8 +848,8 @@
     },
     "bulletin_repaid": {
      "n": 1,
-     "sum": 8,
-     "asked": 8
+     "sum": 5,
+     "asked": 5
     }
    },
    "residual_total": 0,
@@ -908,13 +860,11 @@
     "85": 1,
     "80": 1,
     "70": 1,
-    "60": 1,
-    "50": 1
+    "60": 1
    },
    "lowest_after": {
-    "capital_lost": 64,
-    "field_lost": 59,
-    "law": 44
+    "field_lost": 74,
+    "law": 59
    },
    "crossed_85_by": {
     "law": 1
@@ -948,10 +898,10 @@
    "measured": true,
    "mornings": 18,
    "start": 100,
-   "min": 86,
+   "min": 92,
    "max": 100,
-   "end": 91,
-   "moves": 15,
+   "end": 95,
+   "moves": 12,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 3,
@@ -962,11 +912,6 @@
      "n": 2,
      "sum": -30,
      "asked": -30
-    },
-    "capital_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
     },
     "Russia:law": {
      "n": 1,
@@ -983,11 +928,6 @@
      "sum": -30,
      "asked": -30
     },
-    "te_deum": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
     "letter_declined": {
      "n": 1,
      "sum": -8,
@@ -995,8 +935,8 @@
     },
     "return": {
      "n": 1,
-     "sum": 5,
-     "asked": 5
+     "sum": 3,
+     "asked": 3
     }
    },
    "residual_total": 0,
@@ -1005,8 +945,7 @@
    "residual_turns": [],
    "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 90,
-    "letter_declined": 86
+    "letter_declined": 92
    },
    "crossed_85_by": {},
    "courts_end": {
@@ -1038,10 +977,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 73,
+   "min": 71,
    "max": 100,
-   "end": 73,
-   "moves": 18,
+   "end": 71,
+   "moves": 14,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -1055,11 +994,6 @@
     },
     "Russia:law": {
      "n": 1,
-     "sum": -15,
-     "asked": -15
-    },
-    "capital_lost": {
-     "n": 3,
      "sum": -15,
      "asked": -15
     },
@@ -1078,20 +1012,10 @@
      "sum": -5,
      "asked": -5
     },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 8,
-     "asked": 8
-    },
     "letter_declined": {
-     "n": 3,
-     "sum": -16,
-     "asked": -16
+     "n": 4,
+     "sum": -21,
+     "asked": -21
     },
     "claims": {
      "n": 1,
@@ -1104,18 +1028,16 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
+    "85": 1,
     "80": 1
    },
    "lowest_after": {
-    "capital_lost": 85,
-    "claims": 81,
-    "field_lost": 80,
-    "letter_declined": 73
+    "claims": 84,
+    "field_lost": 95,
+    "letter_declined": 71
    },
    "crossed_85_by": {
-    "field_lost": 1,
-    "letter_declined": 1
+    "claims": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -1146,10 +1068,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 79,
+   "min": 89,
    "max": 100,
-   "end": 79,
-   "moves": 20,
+   "end": 89,
+   "moves": 16,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -1161,15 +1083,10 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
-    },
-    "field_won": {
-     "n": 2,
-     "sum": 10,
-     "asked": 10
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 6,
+     "sum": 0,
+     "asked": 30
     },
     "Prussia:law": {
      "n": 2,
@@ -1180,11 +1097,6 @@
      "n": 2,
      "sum": -30,
      "asked": -30
-    },
-    "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
-     "sum": 0,
-     "asked": 20
     },
     "claims": {
      "n": 2,
@@ -1201,18 +1113,12 @@
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 1,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 84,
-    "claims": 89,
-    "field_lost": 79
+    "claims": 94,
+    "field_lost": 89
    },
-   "crossed_85_by": {
-    "capital_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1240,12 +1146,12 @@
    "family": "haiti",
    "arm": "HAITI-historical",
    "measured": true,
-   "mornings": 34,
+   "mornings": 36,
    "start": 100,
-   "min": 55,
+   "min": 50,
    "max": 100,
-   "end": 55,
-   "moves": 27,
+   "end": 50,
+   "moves": 13,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -1256,11 +1162,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
     },
     "Austria:law": {
      "n": 2,
@@ -1277,35 +1178,20 @@
      "sum": -4,
      "asked": -4
     },
+    "field_won": {
+     "n": 1,
+     "sum": 4,
+     "asked": 5
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 1,
+     "sum": 0,
+     "asked": 5
+    },
     "field_lost": {
      "n": 1,
      "sum": -5,
      "asked": -5
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 8,
-     "asked": 8
-    },
-    "field_won": {
-     "n": 4,
-     "sum": 16,
-     "asked": 20
-    },
-    "own_hand_won": {
-     "n": 3,
-     "sum": 6,
-     "asked": 6
-    },
-    "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
-     "sum": 0,
-     "asked": 7
     },
     "own_hand_lost": {
      "n": 1,
@@ -1323,20 +1209,18 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
-    "70": 2,
+    "85": 1,
+    "80": 1,
+    "70": 1,
     "60": 1
    },
    "lowest_after": {
-    "capital_lost": 71,
-    "edict_decreed": 81,
-    "field_lost": 66,
-    "own_hand_lost": 95,
-    "sovereign_captured": 55
+    "edict_decreed": 96,
+    "field_lost": 95,
+    "own_hand_lost": 90,
+    "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "edict_decreed": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -1368,10 +1252,10 @@
    "measured": true,
    "mornings": 34,
    "start": 100,
-   "min": 55,
+   "min": 60,
    "max": 100,
-   "end": 55,
-   "moves": 18,
+   "end": 60,
+   "moves": 16,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -1384,19 +1268,9 @@
      "asked": -15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 7,
+     "n": 8,
      "sum": 0,
-     "asked": 32
-    },
-    "capital_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
-    },
-    "field_won": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
+     "asked": 37
     },
     "Prussia:law": {
      "n": 2,
@@ -1421,11 +1295,9 @@
    "crossings_down": {
     "85": 1,
     "80": 1,
-    "70": 1,
-    "60": 1
+    "70": 1
    },
    "lowest_after": {
-    "capital_lost": 55,
     "sovereign_captured": 60
    },
    "crossed_85_by": {
@@ -1460,10 +1332,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 72,
+   "min": 93,
    "max": 100,
-   "end": 72,
-   "moves": 18,
+   "end": 93,
+   "moves": 12,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 3,
@@ -1474,11 +1346,6 @@
      "n": 2,
      "sum": -30,
      "asked": -30
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
     },
     "Russia:law": {
      "n": 1,
@@ -1495,11 +1362,6 @@
      "sum": -30,
      "asked": -30
     },
-    "te_deum": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
     "letter_declined": {
      "n": 2,
      "sum": -7,
@@ -1510,17 +1372,11 @@
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 1,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 76,
-    "letter_declined": 72
+    "letter_declined": 93
    },
-   "crossed_85_by": {
-    "capital_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -1552,8 +1408,8 @@
    "start": 95,
    "min": 50,
    "max": 95,
-   "end": 59,
-   "moves": 8,
+   "end": 69,
+   "moves": 6,
    "by_cause": {
     "own_hand_lost": {
      "n": 1,
@@ -1579,11 +1435,6 @@
      "n": 1,
      "sum": 5,
      "asked": 5
-    },
-    "capital_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
     }
    },
    "residual_total": 0,
@@ -1594,10 +1445,9 @@
     "85": 1,
     "80": 1,
     "70": 1,
-    "60": 2
+    "60": 1
    },
    "lowest_after": {
-    "capital_lost": 59,
     "own_hand_lost": 90,
     "sovereign_captured": 50
    },
@@ -1674,25 +1524,17 @@
    "measured": true,
    "mornings": 20,
    "start": 100,
-   "min": 85,
+   "min": 100,
    "max": 100,
-   "end": 85,
-   "moves": 3,
-   "by_cause": {
-    "capital_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
-    }
-   },
+   "end": 100,
+   "moves": 0,
+   "by_cause": {},
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {},
-   "lowest_after": {
-    "capital_lost": 85
-   },
+   "lowest_after": {},
    "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
@@ -1891,10 +1733,10 @@
    "measured": true,
    "mornings": 39,
    "start": 100,
-   "min": 36,
+   "min": 46,
    "max": 100,
-   "end": 36,
-   "moves": 34,
+   "end": 46,
+   "moves": 28,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -1916,21 +1758,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
-    },
-    "bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
-     "n": 2,
-     "sum": 7,
-     "asked": 7
-    },
     "capital_stormed": {
      "n": 2,
      "sum": 10,
@@ -1950,6 +1777,16 @@
      "n": 1,
      "sum": -5,
      "asked": -5
+    },
+    "bulletin": {
+     "n": 1,
+     "sum": 4,
+     "asked": 4
+    },
+    "bulletin_repaid": {
+     "n": 1,
+     "sum": 1,
+     "asked": 1
     },
     "capital_taken": {
      "n": 1,
@@ -1999,10 +1836,9 @@
     "50": 1
    },
    "lowest_after": {
-    "assault_repulsed": 85,
-    "capital_lost": 36,
+    "assault_repulsed": 90,
     "claims": 91,
-    "insisted_lost": 90,
+    "insisted_lost": 95,
     "letter_declined": 92,
     "own_hand_lost": 86,
     "sovereign_captured": 46
@@ -2037,12 +1873,12 @@
    "family": "road",
    "arm": "VP1-CS-historical",
    "measured": true,
-   "mornings": 37,
+   "mornings": 36,
    "start": 100,
-   "min": 0,
+   "min": 35,
    "max": 100,
-   "end": 0,
-   "moves": 39,
+   "end": 35,
+   "moves": 26,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -2070,9 +1906,9 @@
      "asked": 10
     },
     "capital_lost": {
-     "n": 13,
-     "sum": -65,
-     "asked": -65
+     "n": 1,
+     "sum": -5,
+     "asked": -5
     },
     "Austria:law": {
      "n": 2,
@@ -2091,27 +1927,22 @@
     },
     "bulletin_repaid": {
      "n": 2,
-     "sum": 16,
-     "asked": 16
-    },
-    "sabotage_confronted": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
+     "sum": 2,
+     "asked": 2
     },
     "field_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
+     "n": 2,
+     "sum": -10,
+     "asked": -10
     },
     "own_hand_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
+     "n": 3,
+     "sum": -15,
+     "asked": -15
     },
     "sovereign_captured": {
      "n": 1,
-     "sum": -34,
+     "sum": -40,
      "asked": -40
     }
    },
@@ -2121,21 +1952,20 @@
    "residual_turns": [],
    "crossings_down": {
     "85": 1,
-    "80": 2,
-    "70": 4,
+    "80": 1,
+    "70": 1,
     "60": 1,
-    "50": 1,
-    "30": 1
+    "50": 1
    },
    "lowest_after": {
-    "assault_repulsed": 65,
-    "capital_lost": 54,
-    "field_lost": 64,
-    "own_hand_lost": 34,
-    "sovereign_captured": 0
+    "assault_repulsed": 90,
+    "capital_lost": 95,
+    "field_lost": 90,
+    "own_hand_lost": 75,
+    "sovereign_captured": 35
    },
    "crossed_85_by": {
-    "capital_lost": 1
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2164,12 +1994,12 @@
    "family": "road",
    "arm": "VP1-CS-marengo",
    "measured": true,
-   "mornings": 25,
+   "mornings": 26,
    "start": 100,
-   "min": 0,
+   "min": 10,
    "max": 100,
-   "end": 0,
-   "moves": 30,
+   "end": 10,
+   "moves": 25,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -2177,9 +2007,9 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 3,
      "sum": 0,
-     "asked": 10
+     "asked": 15
     },
     "assault_repulsed": {
      "n": 3,
@@ -2196,11 +2026,6 @@
      "sum": 10,
      "asked": 10
     },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -2212,18 +2037,18 @@
      "asked": -30
     },
     "field_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
+     "n": 6,
+     "sum": -30,
+     "asked": -30
     },
     "own_hand_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
+     "n": 3,
+     "sum": -15,
+     "asked": -15
     },
     "sovereign_captured": {
      "n": 1,
-     "sum": -30,
+     "sum": -40,
      "asked": -40
     }
    },
@@ -2234,20 +2059,19 @@
    "crossings_down": {
     "85": 1,
     "80": 1,
-    "70": 2,
+    "70": 1,
     "60": 1,
     "50": 1,
     "30": 1
    },
    "lowest_after": {
-    "assault_repulsed": 65,
-    "capital_lost": 40,
-    "field_lost": 35,
-    "own_hand_lost": 30,
-    "sovereign_captured": 0
+    "assault_repulsed": 95,
+    "field_lost": 55,
+    "own_hand_lost": 50,
+    "sovereign_captured": 10
    },
    "crossed_85_by": {
-    "capital_lost": 1
+    "field_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2278,15 +2102,15 @@
    "measured": true,
    "mornings": 37,
    "start": 100,
-   "min": 42,
+   "min": 47,
    "max": 100,
-   "end": 42,
-   "moves": 26,
+   "end": 47,
+   "moves": 17,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 3,
+     "n": 5,
      "sum": 0,
-     "asked": 15
+     "asked": 22
     },
     "Britain:law": {
      "n": 2,
@@ -2308,16 +2132,6 @@
      "sum": -30,
      "asked": -30
     },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
-    },
-    "te_deum": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
     "letter_declined": {
      "n": 2,
      "sum": -11,
@@ -2325,28 +2139,8 @@
     },
     "sabotage_confronted": {
      "n": 1,
-     "sum": 5,
+     "sum": 3,
      "asked": 5
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 8,
-     "asked": 8
-    },
-    "field_won": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
-    },
-    "own_hand_won": {
-     "n": 1,
-     "sum": 2,
-     "asked": 2
     },
     "own_hand_lost": {
      "n": 1,
@@ -2364,20 +2158,18 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 42,
-    "letter_declined": 86,
+    "letter_declined": 92,
     "own_hand_lost": 87,
     "sovereign_captured": 47
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -2409,10 +2201,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 34,
+   "min": 44,
    "max": 100,
-   "end": 34,
-   "moves": 27,
+   "end": 44,
+   "moves": 20,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 3,
@@ -2428,11 +2220,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
     },
     "Prussia:law": {
      "n": 2,
@@ -2454,15 +2241,10 @@
      "sum": 5,
      "asked": 5
     },
-    "te_deum": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
     "letter_declined": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
+     "n": 3,
+     "sum": -18,
+     "asked": -18
     },
     "claims": {
      "n": 2,
@@ -2471,11 +2253,6 @@
     },
     "bulletin": {
      "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
-     "n": 1,
      "sum": 8,
      "asked": 8
     },
@@ -2490,21 +2267,20 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "assault_repulsed": 90,
-    "capital_lost": 72,
-    "claims": 83,
-    "letter_declined": 82,
-    "sovereign_captured": 34
+    "assault_repulsed": 95,
+    "claims": 89,
+    "letter_declined": 84,
+    "sovereign_captured": 44
    },
    "crossed_85_by": {
-    "claims": 2
+    "letter_declined": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2535,10 +2311,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 42,
+   "min": 47,
    "max": 100,
-   "end": 68,
-   "moves": 38,
+   "end": 83,
+   "moves": 33,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 7,
@@ -2576,14 +2352,9 @@
      "asked": 15
     },
     "claims": {
-     "n": 1,
-     "sum": -3,
-     "asked": -3
-    },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
+     "n": 3,
+     "sum": -9,
+     "asked": -9
     },
     "own_hand_lost": {
      "n": 1,
@@ -2611,9 +2382,9 @@
      "asked": 20
     },
     "bulletin_repaid": {
-     "n": 3,
-     "sum": 24,
-     "asked": 24
+     "n": 2,
+     "sum": 15,
+     "asked": 15
     }
    },
    "residual_total": 0,
@@ -2621,22 +2392,22 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 1,
+    "85": 2,
     "80": 1,
-    "70": 4,
+    "70": 1,
     "60": 2,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 56,
-    "claims": 92,
-    "field_lost": 37,
+    "claims": 83,
+    "field_lost": 42,
     "letter_declined": 92,
-    "own_hand_lost": 82,
-    "sovereign_captured": 42
+    "own_hand_lost": 87,
+    "sovereign_captured": 47
    },
    "crossed_85_by": {
-    "own_hand_lost": 1
+    "claims": 1,
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2667,10 +2438,10 @@
    "measured": true,
    "mornings": 29,
    "start": 100,
-   "min": 15,
+   "min": 55,
    "max": 100,
-   "end": 15,
-   "moves": 30,
+   "end": 55,
+   "moves": 22,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 5,
@@ -2717,11 +2488,6 @@
      "sum": -10,
      "asked": -10
     },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
-    },
     "sovereign_captured": {
      "n": 1,
      "sum": -40,
@@ -2736,16 +2502,13 @@
     "85": 1,
     "80": 1,
     "70": 1,
-    "60": 1,
-    "50": 1,
-    "30": 1
+    "60": 1
    },
    "lowest_after": {
     "assault_repulsed": 95,
-    "capital_lost": 15,
     "field_lost": 95,
     "own_hand_lost": 90,
-    "sovereign_captured": 45
+    "sovereign_captured": 55
    },
    "crossed_85_by": {
     "sovereign_captured": 1
@@ -2779,10 +2542,10 @@
    "measured": true,
    "mornings": 34,
    "start": 100,
-   "min": 37,
+   "min": 42,
    "max": 100,
-   "end": 37,
-   "moves": 22,
+   "end": 42,
+   "moves": 21,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 5,
@@ -2824,11 +2587,6 @@
      "sum": 3,
      "asked": 3
     },
-    "capital_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -2858,13 +2616,12 @@
    },
    "lowest_after": {
     "assault_repulsed": 95,
-    "capital_lost": 95,
-    "field_lost": 37,
-    "letter_declined": 82,
-    "sovereign_captured": 42
+    "field_lost": 42,
+    "letter_declined": 87,
+    "sovereign_captured": 47
    },
    "crossed_85_by": {
-    "letter_declined": 1
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -2895,10 +2652,10 @@
    "measured": true,
    "mornings": 22,
    "start": 100,
-   "min": 50,
+   "min": 55,
    "max": 100,
-   "end": 50,
-   "moves": 21,
+   "end": 55,
+   "moves": 20,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 7,
@@ -2944,11 +2701,6 @@
      "n": 1,
      "sum": -40,
      "asked": -40
-    },
-    "capital_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
     }
    },
    "residual_total": 0,
@@ -2963,7 +2715,6 @@
    },
    "lowest_after": {
     "assault_repulsed": 95,
-    "capital_lost": 50,
     "own_hand_lost": 90,
     "sovereign_captured": 55
    },
@@ -2999,15 +2750,15 @@
    "measured": true,
    "mornings": 37,
    "start": 100,
-   "min": 50,
+   "min": 55,
    "max": 100,
-   "end": 50,
-   "moves": 24,
+   "end": 55,
+   "moves": 15,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 5,
      "sum": 0,
-     "asked": 17
+     "asked": 22
     },
     "Britain:law": {
      "n": 2,
@@ -3029,34 +2780,9 @@
      "sum": -30,
      "asked": -30
     },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
-    },
-    "te_deum": {
+    "diplomatic_defiance.py:resolve_confrontation": {
      "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "sabotage_confronted": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 7,
-     "asked": 7
-    },
-    "field_won": {
-     "n": 1,
-     "sum": 5,
+     "sum": 0,
      "asked": 5
     },
     "own_hand_lost": {
@@ -3075,18 +2801,16 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1
    },
    "lowest_after": {
-    "capital_lost": 50,
     "own_hand_lost": 95,
     "sovereign_captured": 55
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -3118,10 +2842,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 37,
+   "min": 91,
    "max": 100,
-   "end": 37,
-   "moves": 27,
+   "end": 91,
+   "moves": 17,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 3,
@@ -3137,11 +2861,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
     },
     "Prussia:law": {
      "n": 2,
@@ -3163,59 +2882,33 @@
      "sum": 5,
      "asked": 5
     },
-    "te_deum": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
     "claims": {
      "n": 3,
      "sum": -9,
      "asked": -9
     },
     "bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
      "n": 1,
-     "sum": 8,
-     "asked": 8
+     "sum": 4,
+     "asked": 4
     },
     "edict_decreed": {
      "n": 1,
      "sum": -4,
      "asked": -4
-    },
-    "sovereign_captured": {
-     "n": 1,
-     "sum": -40,
-     "asked": -40
     }
    },
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 2,
-    "80": 2,
-    "70": 1,
-    "60": 1,
-    "50": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "assault_repulsed": 90,
-    "capital_lost": 77,
-    "claims": 89,
-    "edict_decreed": 82,
-    "sovereign_captured": 37
+    "assault_repulsed": 95,
+    "claims": 91,
+    "edict_decreed": 91
    },
-   "crossed_85_by": {
-    "capital_lost": 1,
-    "edict_decreed": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -3245,10 +2938,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 42,
+   "min": 47,
    "max": 100,
-   "end": 68,
-   "moves": 35,
+   "end": 83,
+   "moves": 30,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 7,
@@ -3276,14 +2969,9 @@
      "asked": -30
     },
     "claims": {
-     "n": 1,
-     "sum": -3,
-     "asked": -3
-    },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
+     "n": 3,
+     "sum": -9,
+     "asked": -9
     },
     "own_hand_lost": {
      "n": 1,
@@ -3311,9 +2999,9 @@
      "asked": 12
     },
     "bulletin_repaid": {
-     "n": 3,
-     "sum": 24,
-     "asked": 24
+     "n": 2,
+     "sum": 15,
+     "asked": 15
     }
    },
    "residual_total": 0,
@@ -3321,20 +3009,20 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 1,
+    "85": 2,
     "80": 1,
-    "70": 4,
+    "70": 1,
     "60": 2,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 56,
-    "claims": 97,
-    "field_lost": 42,
-    "own_hand_lost": 87,
-    "sovereign_captured": 47
+    "claims": 83,
+    "field_lost": 47,
+    "own_hand_lost": 92,
+    "sovereign_captured": 52
    },
    "crossed_85_by": {
+    "claims": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -3468,10 +3156,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 59,
+   "min": 69,
    "max": 100,
-   "end": 62,
-   "moves": 26,
+   "end": 79,
+   "moves": 18,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -3493,20 +3181,10 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
-    },
     "bulletin": {
      "n": 4,
      "sum": 16,
      "asked": 16
-    },
-    "bulletin_repaid": {
-     "n": 3,
-     "sum": 21,
-     "asked": 21
     },
     "Austria:law": {
      "n": 2,
@@ -3522,6 +3200,16 @@
      "n": 1,
      "sum": -5,
      "asked": -5
+    },
+    "bulletin_repaid": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
+    "letter_declined": {
+     "n": 2,
+     "sum": -7,
+     "asked": -7
     }
    },
    "residual_total": 0,
@@ -3531,16 +3219,15 @@
    "crossings_down": {
     "85": 1,
     "80": 1,
-    "70": 3,
-    "60": 2
+    "70": 1
    },
    "lowest_after": {
-    "capital_lost": 50,
-    "field_lost": 59,
-    "law": 65
+    "field_lost": 69,
+    "law": 70,
+    "letter_declined": 71
    },
    "crossed_85_by": {
-    "capital_lost": 1
+    "law": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -3571,10 +3258,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 67,
+   "min": 74,
    "max": 100,
-   "end": 67,
-   "moves": 18,
+   "end": 74,
+   "moves": 17,
    "by_cause": {
     "combat_executor.py:_post_combat_pipeline": {
      "n": 1,
@@ -3606,11 +3293,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -3622,9 +3304,9 @@
      "asked": -30
     },
     "letter_declined": {
-     "n": 3,
-     "sum": -7,
-     "asked": -7
+     "n": 4,
+     "sum": -10,
+     "asked": -10
     }
    },
    "residual_total": 0,
@@ -3633,13 +3315,11 @@
    "residual_turns": [],
    "crossings_down": {
     "85": 1,
-    "80": 2,
-    "70": 1
+    "80": 2
    },
    "lowest_after": {
-    "capital_lost": 67,
     "law": 79,
-    "letter_declined": 72
+    "letter_declined": 74
    },
    "crossed_85_by": {
     "law": 1
@@ -3673,10 +3353,10 @@
    "measured": true,
    "mornings": 36,
    "start": 100,
-   "min": 35,
+   "min": 45,
    "max": 100,
-   "end": 35,
-   "moves": 30,
+   "end": 45,
+   "moves": 21,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -3687,11 +3367,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
     },
     "Austria:law": {
      "n": 2,
@@ -3708,30 +3383,25 @@
      "sum": -5,
      "asked": -5
     },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
     "field_won": {
-     "n": 6,
-     "sum": 26,
-     "asked": 30
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
+     "n": 3,
+     "sum": 13,
+     "asked": 15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
+     "n": 4,
      "sum": 0,
-     "asked": 10
+     "asked": 20
     },
     "own_hand_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     },
     "sovereign_captured": {
      "n": 1,
@@ -3744,20 +3414,19 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 35,
-    "field_lost": 70,
-    "own_hand_lost": 40,
-    "sovereign_captured": 45
+    "field_lost": 95,
+    "letter_declined": 92,
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -3789,10 +3458,10 @@
    "measured": true,
    "mornings": 36,
    "start": 100,
-   "min": 35,
+   "min": 45,
    "max": 100,
-   "end": 35,
-   "moves": 30,
+   "end": 45,
+   "moves": 21,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -3803,11 +3472,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
     },
     "Austria:law": {
      "n": 2,
@@ -3824,30 +3488,25 @@
      "sum": -5,
      "asked": -5
     },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
     "field_won": {
-     "n": 6,
-     "sum": 26,
-     "asked": 30
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
+     "n": 3,
+     "sum": 13,
+     "asked": 15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
+     "n": 4,
      "sum": 0,
-     "asked": 10
+     "asked": 20
     },
     "own_hand_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     },
     "sovereign_captured": {
      "n": 1,
@@ -3860,20 +3519,19 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 35,
-    "field_lost": 70,
-    "own_hand_lost": 40,
-    "sovereign_captured": 45
+    "field_lost": 95,
+    "letter_declined": 92,
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -3905,10 +3563,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 37,
+   "min": 42,
    "max": 100,
-   "end": 37,
-   "moves": 26,
+   "end": 42,
+   "moves": 25,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -3959,11 +3617,6 @@
      "n": 1,
      "sum": -40,
      "asked": -40
-    },
-    "capital_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
     }
    },
    "residual_total": 0,
@@ -3978,7 +3631,6 @@
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 37,
     "claims": 92,
     "letter_declined": 95,
     "own_hand_lost": 42,
@@ -4016,10 +3668,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 80,
+   "min": 30,
    "max": 100,
-   "end": 100,
-   "moves": 28,
+   "end": 30,
+   "moves": 23,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4031,11 +3683,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -4046,10 +3693,25 @@
      "sum": -30,
      "asked": -30
     },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 4,
+     "sum": 0,
+     "asked": 20
+    },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
     "field_won": {
-     "n": 6,
-     "sum": 28,
-     "asked": 30
+     "n": 1,
+     "sum": 3,
+     "asked": 5
+    },
+    "field_lost": {
+     "n": 3,
+     "sum": -15,
+     "asked": -15
     },
     "bulletin": {
      "n": 1,
@@ -4061,20 +3723,15 @@
      "sum": 1,
      "asked": 1
     },
-    "letter_declined": {
-     "n": 1,
-     "sum": -3,
-     "asked": -3
-    },
-    "combat_executor.py:_post_combat_pipeline": {
-     "n": 6,
-     "sum": 0,
-     "asked": 30
-    },
     "own_hand_lost": {
+     "n": 4,
+     "sum": -20,
+     "asked": -20
+    },
+    "sovereign_captured": {
      "n": 1,
-     "sum": -5,
-     "asked": -5
+     "sum": -40,
+     "asked": -40
     }
    },
    "residual_total": 0,
@@ -4082,15 +3739,20 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 1
+    "85": 1,
+    "80": 1,
+    "70": 1,
+    "60": 1,
+    "50": 1
    },
    "lowest_after": {
-    "capital_lost": 80,
+    "field_lost": 30,
     "letter_declined": 97,
-    "own_hand_lost": 95
+    "own_hand_lost": 35,
+    "sovereign_captured": 40
    },
    "crossed_85_by": {
-    "capital_lost": 1
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4121,10 +3783,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 76,
+   "min": 88,
    "max": 100,
-   "end": 87,
-   "moves": 25,
+   "end": 97,
+   "moves": 20,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4147,29 +3809,24 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
+     "n": 3,
      "sum": 0,
-     "asked": 10
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
-    },
-    "field_won": {
-     "n": 5,
-     "sum": 25,
-     "asked": 25
+     "asked": 15
     },
     "letter_declined": {
      "n": 2,
      "sum": -9,
      "asked": -9
     },
-    "bulletin": {
+    "claims": {
      "n": 1,
-     "sum": 4,
-     "asked": 4
+     "sum": -3,
+     "asked": -3
+    },
+    "field_won": {
+     "n": 4,
+     "sum": 17,
+     "asked": 20
     },
     "field_lost": {
      "n": 2,
@@ -4186,19 +3843,13 @@
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 2,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 80,
-    "field_lost": 80,
-    "letter_declined": 76
+    "claims": 88,
+    "field_lost": 90,
+    "letter_declined": 91
    },
-   "crossed_85_by": {
-    "capital_lost": 1,
-    "field_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4228,10 +3879,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 76,
+   "min": 88,
    "max": 100,
    "end": 97,
-   "moves": 26,
+   "moves": 22,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4254,57 +3905,41 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 6,
      "sum": 0,
-     "asked": 20
-    },
-    "capital_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
-    },
-    "field_won": {
-     "n": 5,
-     "sum": 20,
-     "asked": 25
+     "asked": 30
     },
     "letter_declined": {
      "n": 3,
      "sum": -12,
      "asked": -12
     },
+    "claims": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "field_won": {
+     "n": 3,
+     "sum": 13,
+     "asked": 15
+    },
     "bulletin": {
      "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 8,
-     "asked": 8
-    },
-    "claims": {
-     "n": 1,
-     "sum": -3,
-     "asked": -3
+     "sum": 2,
+     "asked": 2
     }
    },
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 1,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 80,
-    "claims": 97,
-    "letter_declined": 76
+    "claims": 88,
+    "letter_declined": 91
    },
-   "crossed_85_by": {
-    "capital_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -4337,7 +3972,7 @@
    "min": 45,
    "max": 100,
    "end": 45,
-   "moves": 23,
+   "moves": 16,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4348,11 +3983,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
     },
     "Prussia:law": {
      "n": 2,
@@ -4370,19 +4000,19 @@
      "asked": -10
     },
     "field_won": {
-     "n": 3,
-     "sum": 15,
-     "asked": 15
-    },
-    "bulletin": {
      "n": 2,
-     "sum": 7,
-     "asked": 7
-    },
-    "bulletin_repaid": {
-     "n": 1,
      "sum": 8,
-     "asked": 8
+     "asked": 10
+    },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 1,
+     "sum": 0,
+     "asked": 5
     },
     "own_hand_lost": {
      "n": 2,
@@ -4400,20 +4030,19 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 75,
-    "field_lost": 70,
+    "field_lost": 95,
+    "letter_declined": 97,
     "own_hand_lost": 45,
     "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -4448,7 +4077,7 @@
    "min": 30,
    "max": 100,
    "end": 30,
-   "moves": 26,
+   "moves": 19,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4459,11 +4088,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
     },
     "Prussia:law": {
      "n": 2,
@@ -4481,19 +4105,19 @@
      "asked": -10
     },
     "field_won": {
-     "n": 3,
-     "sum": 15,
-     "asked": 15
-    },
-    "bulletin": {
      "n": 2,
-     "sum": 7,
-     "asked": 7
-    },
-    "bulletin_repaid": {
-     "n": 1,
      "sum": 8,
-     "asked": 8
+     "asked": 10
+    },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 1,
+     "sum": 0,
+     "asked": 5
     },
     "own_hand_lost": {
      "n": 5,
@@ -4511,20 +4135,19 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 75,
-    "field_lost": 70,
+    "field_lost": 95,
+    "letter_declined": 97,
     "own_hand_lost": 30,
     "sovereign_captured": 35
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "own_hand_lost": 1
    },
    "courts_end": {
@@ -4556,10 +4179,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 15,
+   "min": 40,
    "max": 100,
-   "end": 15,
-   "moves": 33,
+   "end": 40,
+   "moves": 23,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4582,19 +4205,14 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 5,
      "sum": 0,
-     "asked": 20
+     "asked": 25
     },
     "letter_declined": {
      "n": 2,
      "sum": -9,
      "asked": -9
-    },
-    "capital_lost": {
-     "n": 10,
-     "sum": -50,
-     "asked": -50
     },
     "claims": {
      "n": 1,
@@ -4603,20 +4221,15 @@
     },
     "field_won": {
      "n": 3,
-     "sum": 15,
+     "sum": 12,
      "asked": 15
     },
-    "bulletin": {
-     "n": 2,
-     "sum": 6,
-     "asked": 6
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 6,
-     "asked": 6
-    },
     "own_hand_lost": {
+     "n": 2,
+     "sum": -10,
+     "asked": -10
+    },
+    "field_lost": {
      "n": 2,
      "sum": -10,
      "asked": -10
@@ -4632,23 +4245,21 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
+    "85": 1,
     "80": 1,
     "70": 1,
     "60": 1,
-    "50": 1,
-    "30": 1
+    "50": 1
    },
    "lowest_after": {
-    "capital_lost": 15,
-    "claims": 88,
-    "letter_declined": 80,
-    "own_hand_lost": 35,
-    "sovereign_captured": 40
+    "claims": 93,
+    "field_lost": 85,
+    "letter_declined": 93,
+    "own_hand_lost": 40,
+    "sovereign_captured": 45
    },
    "crossed_85_by": {
-    "capital_lost": 1,
-    "letter_declined": 1
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -4679,10 +4290,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 77,
+   "min": 82,
    "max": 100,
-   "end": 77,
-   "moves": 24,
+   "end": 82,
+   "moves": 21,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4714,11 +4325,6 @@
      "sum": -13,
      "asked": -13
     },
-    "capital_lost": {
-     "n": 2,
-     "sum": -10,
-     "asked": -10
-    },
     "claims": {
      "n": 2,
      "sum": -6,
@@ -4726,13 +4332,8 @@
     },
     "bulletin": {
      "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 3,
-     "asked": 3
+     "sum": 2,
+     "asked": 2
     },
     "field_won": {
      "n": 2,
@@ -4750,14 +4351,12 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 1,
-    "80": 1
+    "85": 1
    },
    "lowest_after": {
-    "capital_lost": 91,
-    "claims": 88,
-    "letter_declined": 87,
-    "own_hand_lost": 77
+    "claims": 93,
+    "letter_declined": 92,
+    "own_hand_lost": 82
    },
    "crossed_85_by": {
     "own_hand_lost": 1
@@ -4791,10 +4390,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 85,
+   "min": 92,
    "max": 100,
-   "end": 85,
-   "moves": 29,
+   "end": 97,
+   "moves": 24,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4817,34 +4416,24 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 5,
+     "n": 6,
      "sum": 0,
-     "asked": 25
+     "asked": 30
     },
     "letter_declined": {
-     "n": 2,
-     "sum": -8,
-     "asked": -8
+     "n": 3,
+     "sum": -11,
+     "asked": -11
     },
     "field_won": {
-     "n": 6,
-     "sum": 26,
-     "asked": 30
+     "n": 5,
+     "sum": 19,
+     "asked": 25
     },
     "claims": {
      "n": 2,
      "sum": -6,
      "asked": -6
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 3,
-     "asked": 3
     },
     "field_lost": {
      "n": 1,
@@ -4858,7 +4447,6 @@
    "residual_turns": [],
    "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 85,
     "claims": 92,
     "field_lost": 95,
     "letter_declined": 95
@@ -4893,10 +4481,10 @@
    "measured": true,
    "mornings": 36,
    "start": 100,
-   "min": 35,
+   "min": 45,
    "max": 100,
-   "end": 35,
-   "moves": 30,
+   "end": 45,
+   "moves": 21,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -4907,11 +4495,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 8,
-     "sum": -40,
-     "asked": -40
     },
     "Austria:law": {
      "n": 2,
@@ -4928,30 +4511,25 @@
      "sum": -5,
      "asked": -5
     },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
     "field_won": {
-     "n": 6,
-     "sum": 26,
-     "asked": 30
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 5,
-     "asked": 5
+     "n": 3,
+     "sum": 13,
+     "asked": 15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
+     "n": 4,
      "sum": 0,
-     "asked": 10
+     "asked": 20
     },
     "own_hand_lost": {
-     "n": 3,
-     "sum": -15,
-     "asked": -15
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     },
     "sovereign_captured": {
      "n": 1,
@@ -4964,20 +4542,19 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 35,
-    "field_lost": 70,
-    "own_hand_lost": 40,
-    "sovereign_captured": 45
+    "field_lost": 95,
+    "letter_declined": 92,
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "sovereign_captured": 1
    },
    "courts_end": {
@@ -5009,10 +4586,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 87,
+   "min": 91,
    "max": 100,
    "end": 95,
-   "moves": 28,
+   "moves": 22,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5035,39 +4612,29 @@
      "asked": -30
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 6,
      "sum": 0,
-     "asked": 20
-    },
-    "capital_lost": {
-     "n": 4,
-     "sum": -20,
-     "asked": -20
-    },
-    "field_won": {
-     "n": 5,
-     "sum": 23,
-     "asked": 25
+     "asked": 30
     },
     "letter_declined": {
      "n": 3,
      "sum": -11,
      "asked": -11
     },
-    "bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
+    "field_won": {
+     "n": 3,
+     "sum": 11,
+     "asked": 15
     },
     "claims": {
      "n": 3,
      "sum": -9,
      "asked": -9
+    },
+    "bulletin": {
+     "n": 1,
+     "sum": 4,
+     "asked": 4
     }
    },
    "residual_total": 0,
@@ -5076,9 +4643,8 @@
    "residual_turns": [],
    "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 90,
     "claims": 94,
-    "letter_declined": 87
+    "letter_declined": 91
    },
    "crossed_85_by": {},
    "courts_end": {
@@ -5108,12 +4674,12 @@
    "family": "sweep",
    "arm": "armC_02_austerlitz",
    "measured": true,
-   "mornings": 34,
+   "mornings": 35,
    "start": 100,
-   "min": 25,
+   "min": 45,
    "max": 100,
-   "end": 25,
-   "moves": 17,
+   "end": 45,
+   "moves": 15,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5126,14 +4692,9 @@
      "asked": -15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
-     "sum": 0,
-     "asked": 10
-    },
-    "capital_lost": {
      "n": 4,
-     "sum": -20,
-     "asked": -20
+     "sum": 0,
+     "asked": 20
     },
     "Prussia:law": {
      "n": 2,
@@ -5165,16 +4726,14 @@
     "80": 1,
     "70": 1,
     "60": 1,
-    "50": 1,
-    "30": 1
+    "50": 1
    },
    "lowest_after": {
-    "capital_lost": 70,
-    "own_hand_lost": 25,
-    "sovereign_captured": 30
+    "own_hand_lost": 45,
+    "sovereign_captured": 50
    },
    "crossed_85_by": {
-    "own_hand_lost": 1
+    "sovereign_captured": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -5205,10 +4764,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 74,
+   "min": 92,
    "max": 100,
    "end": 100,
-   "moves": 23,
+   "moves": 12,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5219,11 +4778,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 7,
-     "sum": -35,
-     "asked": -35
     },
     "Austria:law": {
      "n": 2,
@@ -5240,37 +4794,32 @@
      "sum": -5,
      "asked": -5
     },
+    "letter_declined": {
+     "n": 1,
+     "sum": -3,
+     "asked": -3
+    },
     "field_won": {
      "n": 2,
-     "sum": 10,
+     "sum": 8,
      "asked": 10
     },
-    "bulletin": {
-     "n": 4,
-     "sum": 15,
-     "asked": 15
-    },
-    "bulletin_repaid": {
-     "n": 2,
-     "sum": 15,
-     "asked": 15
+    "combat_executor.py:_post_combat_pipeline": {
+     "n": 1,
+     "sum": 0,
+     "asked": 5
     }
    },
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 2,
-    "80": 2
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 74,
-    "field_lost": 75
+    "field_lost": 95,
+    "letter_declined": 92
    },
-   "crossed_85_by": {
-    "capital_lost": 2
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5298,12 +4847,12 @@
    "family": "sweep",
    "arm": "armC_04_marengo",
    "measured": true,
-   "mornings": 40,
+   "mornings": 33,
    "start": 100,
-   "min": 4,
+   "min": 71,
    "max": 100,
-   "end": 4,
-   "moves": 29,
+   "end": 71,
+   "moves": 22,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5316,19 +4865,9 @@
      "asked": -15
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 3,
+     "n": 4,
      "sum": 0,
-     "asked": 15
-    },
-    "capital_lost": {
-     "n": 7,
-     "sum": -35,
-     "asked": -35
-    },
-    "field_won": {
-     "n": 2,
-     "sum": 10,
-     "asked": 10
+     "asked": 20
     },
     "Prussia:law": {
      "n": 2,
@@ -5341,14 +4880,19 @@
      "asked": -30
     },
     "letter_declined": {
-     "n": 2,
-     "sum": -6,
-     "asked": -6
+     "n": 3,
+     "sum": -9,
+     "asked": -9
     },
     "claims": {
      "n": 2,
      "sum": -6,
      "asked": -6
+    },
+    "field_won": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
     },
     "own_hand_won": {
      "n": 1,
@@ -5359,11 +4903,6 @@
      "n": 4,
      "sum": -20,
      "asked": -20
-    },
-    "sovereign_captured": {
-     "n": 1,
-     "sum": -40,
-     "asked": -40
     }
    },
    "residual_total": 0,
@@ -5372,21 +4911,15 @@
    "residual_turns": [],
    "crossings_down": {
     "85": 1,
-    "80": 1,
-    "70": 1,
-    "60": 1,
-    "50": 1,
-    "30": 1
+    "80": 1
    },
    "lowest_after": {
-    "capital_lost": 9,
     "claims": 94,
-    "letter_declined": 94,
-    "own_hand_lost": 4,
-    "sovereign_captured": 14
+    "letter_declined": 71,
+    "own_hand_lost": 74
    },
    "crossed_85_by": {
-    "capital_lost": 1
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -5415,12 +4948,12 @@
    "family": "sweep",
    "arm": "armC_05_eylau",
    "measured": true,
-   "mornings": 37,
+   "mornings": 33,
    "start": 100,
-   "min": 24,
+   "min": 70,
    "max": 100,
-   "end": 24,
-   "moves": 29,
+   "end": 70,
+   "moves": 19,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5432,11 +4965,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 10,
-     "sum": -50,
-     "asked": -50
-    },
     "Prussia:law": {
      "n": 2,
      "sum": -30,
@@ -5447,40 +4975,30 @@
      "sum": -30,
      "asked": -30
     },
-    "field_won": {
+    "combat_executor.py:_post_combat_pipeline": {
      "n": 4,
-     "sum": 20,
+     "sum": 0,
      "asked": 20
-    },
-    "bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 6,
-     "asked": 6
     },
     "letter_declined": {
      "n": 1,
      "sum": -5,
      "asked": -5
     },
+    "field_won": {
+     "n": 1,
+     "sum": 5,
+     "asked": 5
+    },
     "field_lost": {
      "n": 2,
      "sum": -10,
      "asked": -10
     },
-    "sovereign_captured": {
-     "n": 1,
-     "sum": -40,
-     "asked": -40
-    },
     "own_hand_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     }
    },
    "residual_total": 0,
@@ -5488,22 +5006,16 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
-    "70": 1,
-    "60": 1,
-    "50": 1,
-    "30": 1
+    "85": 1,
+    "80": 1
    },
    "lowest_after": {
-    "capital_lost": 24,
-    "field_lost": 89,
-    "letter_declined": 90,
-    "own_hand_lost": 34,
-    "sovereign_captured": 39
+    "field_lost": 70,
+    "letter_declined": 95,
+    "own_hand_lost": 75
    },
    "crossed_85_by": {
-    "capital_lost": 2
+    "own_hand_lost": 1
    },
    "courts_end": {
     "Britain": 30,
@@ -5534,10 +5046,10 @@
    "measured": true,
    "mornings": 36,
    "start": 100,
-   "min": 38,
+   "min": 37,
    "max": 100,
-   "end": 38,
-   "moves": 24,
+   "end": 37,
+   "moves": 13,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5549,11 +5061,6 @@
      "sum": -15,
      "asked": -15
     },
-    "capital_lost": {
-     "n": 6,
-     "sum": -30,
-     "asked": -30
-    },
     "Austria:law": {
      "n": 2,
      "sum": -30,
@@ -5564,20 +5071,10 @@
      "sum": -30,
      "asked": -30
     },
-    "field_won": {
-     "n": 3,
-     "sum": 15,
-     "asked": 15
-    },
-    "bulletin": {
-     "n": 2,
-     "sum": 8,
-     "asked": 8
-    },
-    "bulletin_repaid": {
+    "letter_declined": {
      "n": 1,
-     "sum": 5,
-     "asked": 5
+     "sum": -3,
+     "asked": -3
     },
     "own_hand_lost": {
      "n": 4,
@@ -5595,19 +5092,18 @@
    "residual_sites": {},
    "residual_turns": [],
    "crossings_down": {
-    "85": 2,
-    "80": 2,
+    "85": 1,
+    "80": 1,
     "70": 1,
     "60": 1,
     "50": 1
    },
    "lowest_after": {
-    "capital_lost": 70,
-    "own_hand_lost": 38,
-    "sovereign_captured": 43
+    "letter_declined": 97,
+    "own_hand_lost": 37,
+    "sovereign_captured": 42
    },
    "crossed_85_by": {
-    "capital_lost": 1,
     "own_hand_lost": 1
    },
    "courts_end": {
@@ -5639,10 +5135,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 45,
+   "min": 85,
    "max": 100,
-   "end": 45,
-   "moves": 31,
+   "end": 85,
+   "moves": 17,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5653,11 +5149,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 7,
-     "sum": -35,
-     "asked": -35
     },
     "Austria:law": {
      "n": 2,
@@ -5670,62 +5161,36 @@
      "asked": -30
     },
     "field_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
+     "n": 2,
+     "sum": -10,
+     "asked": -10
     },
     "field_won": {
-     "n": 5,
-     "sum": 25,
-     "asked": 25
-    },
-    "bulletin": {
      "n": 2,
-     "sum": 7,
-     "asked": 7
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 8,
-     "asked": 8
+     "sum": 10,
+     "asked": 10
     },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 4,
+     "n": 3,
      "sum": 0,
-     "asked": 17
+     "asked": 15
     },
     "own_hand_lost": {
      "n": 3,
      "sum": -15,
      "asked": -15
-    },
-    "sovereign_captured": {
-     "n": 1,
-     "sum": -40,
-     "asked": -40
     }
    },
    "residual_total": 0,
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 2,
-    "80": 2,
-    "70": 2,
-    "60": 1,
-    "50": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 60,
-    "field_lost": 70,
-    "own_hand_lost": 45,
-    "sovereign_captured": 50
+    "field_lost": 90,
+    "own_hand_lost": 85
    },
-   "crossed_85_by": {
-    "capital_lost": 1,
-    "sovereign_captured": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,
@@ -5755,10 +5220,10 @@
    "measured": true,
    "mornings": 40,
    "start": 100,
-   "min": 85,
+   "min": 97,
    "max": 100,
    "end": 100,
-   "moves": 22,
+   "moves": 15,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5780,30 +5245,20 @@
      "sum": -30,
      "asked": -30
     },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
-    },
-    "field_won": {
-     "n": 6,
-     "sum": 26,
-     "asked": 30
-    },
     "combat_executor.py:_post_combat_pipeline": {
-     "n": 2,
+     "n": 6,
      "sum": 0,
-     "asked": 10
+     "asked": 30
     },
     "letter_declined": {
      "n": 1,
      "sum": -3,
      "asked": -3
     },
-    "own_hand_won": {
+    "field_won": {
      "n": 1,
-     "sum": 2,
-     "asked": 2
+     "sum": 3,
+     "asked": 5
     }
    },
    "residual_total": 0,
@@ -5812,7 +5267,6 @@
    "residual_turns": [],
    "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 85,
     "letter_declined": 97
    },
    "crossed_85_by": {},
@@ -5843,12 +5297,12 @@
    "family": "sweep",
    "arm": "armC_09_rivoli",
    "measured": true,
-   "mornings": 40,
+   "mornings": 38,
    "start": 100,
-   "min": 75,
+   "min": 85,
    "max": 100,
-   "end": 90,
-   "moves": 35,
+   "end": 85,
+   "moves": 26,
    "by_cause": {
     "Britain:law": {
      "n": 2,
@@ -5859,11 +5313,6 @@
      "n": 1,
      "sum": -15,
      "asked": -15
-    },
-    "capital_lost": {
-     "n": 5,
-     "sum": -25,
-     "asked": -25
     },
     "Austria:law": {
      "n": 2,
@@ -5876,39 +5325,29 @@
      "asked": -30
     },
     "field_lost": {
-     "n": 1,
-     "sum": -5,
-     "asked": -5
+     "n": 4,
+     "sum": -20,
+     "asked": -20
     },
     "field_won": {
-     "n": 8,
-     "sum": 34,
-     "asked": 40
-    },
-    "bulletin": {
-     "n": 1,
-     "sum": 4,
-     "asked": 4
-    },
-    "bulletin_repaid": {
-     "n": 1,
-     "sum": 1,
-     "asked": 1
-    },
-    "letter_declined": {
-     "n": 3,
-     "sum": -11,
-     "asked": -11
+     "n": 4,
+     "sum": 18,
+     "asked": 20
     },
     "combat_executor.py:_post_combat_pipeline": {
      "n": 6,
      "sum": 0,
-     "asked": 24
+     "asked": 27
     },
-    "own_hand_won": {
+    "letter_declined": {
+     "n": 2,
+     "sum": -6,
+     "asked": -6
+    },
+    "bulletin": {
      "n": 1,
-     "sum": 2,
-     "asked": 2
+     "sum": 3,
+     "asked": 3
     },
     "own_hand_lost": {
      "n": 2,
@@ -5920,19 +5359,13 @@
    "residual_unexplained": 0,
    "residual_sites": {},
    "residual_turns": [],
-   "crossings_down": {
-    "85": 1,
-    "80": 1
-   },
+   "crossings_down": {},
    "lowest_after": {
-    "capital_lost": 80,
-    "field_lost": 75,
-    "letter_declined": 95,
-    "own_hand_lost": 90
+    "field_lost": 92,
+    "letter_declined": 97,
+    "own_hand_lost": 85
    },
-   "crossed_85_by": {
-    "capital_lost": 1
-   },
+   "crossed_85_by": {},
    "courts_end": {
     "Britain": 30,
     "Russia": 45,

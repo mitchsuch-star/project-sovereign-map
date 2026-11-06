@@ -174,8 +174,19 @@ def proclamation_armed() -> bool:
 
 
 def courts_move() -> bool:
-    """§5.7: the courts' new sources and battle writes — PARKED until AU-4
-    flips it on the user's word (the RE-6 pattern)."""
+    """Arm AUC (§5.7, AU-4): the courts' sources and battle writes — their
+    fields, garrisons and charges (`courts_battle`, `courts_garrison`), their
+    Te Deum and Bulletin, their Decree in authority (AU-14) — PARKED until the
+    user's word flips it (the RE-6 pattern); measured up by the rig's AUC+
+    arms and, in the sweep's and the probe's children, by `INK_IRON_SEAMS`."""
+    return False
+
+
+def court_grip_reads_books() -> bool:
+    """Arm AUG (AU-5, BUG_FIXES.md §AU): a court's imperial grip read from its
+    books, relative to the boot (`authority.court_grip_base`: 75 + (standing −
+    60)), instead of the flat `GRIP_ENEMY_COURT_BASE`; down, the flat 75 —
+    decided at the courts' flip on the user's word, measured both ways."""
     return False
 
 
@@ -275,10 +286,11 @@ def regrow(world, lord: str, amount: int, cause: str, key: str, every: int = 0,
     tracker = tracker_of(world, lord)
     if tracker is None and not courts_move():
         return 0
-    held = getattr(tracker, "held", None) if tracker is not None else None
+    held = _cooldown_store(world)
+    slot = _cooldown_key(world, lord, key)
     turn = int(getattr(world, "current_turn", 0) or 0)
     if every and isinstance(held, dict):
-        last = held.get(f"last:{key}")
+        last = held.get(slot)
         if last is not None and turn - int(last) < int(every):
             return 0
     room = min(int(ceiling), CEILING) - standing_of(world, lord)
@@ -286,8 +298,25 @@ def regrow(world, lord: str, amount: int, cause: str, key: str, every: int = 0,
         return 0
     applied = move(world, lord, min(amount, room), cause, party, **fmt)
     if applied and isinstance(held, dict):
-        held[f"last:{key}"] = turn
+        held[slot] = turn
     return applied
+
+
+def _cooldown_store(world) -> Optional[Dict[str, Any]]:
+    """AU-4: the lumps' cooldowns live in the player's tracker's `held` — the
+    player's keys as AU-2b wrote them, a court's under its own name — so a
+    court's Te Deum keeps its twelve turns and its Bulletin its three without
+    a new field on the world (`WorldState.to_dict` keeps its size)."""
+    tracker = getattr(world, "authority_tracker", None)
+    held = getattr(tracker, "held", None) if tracker is not None else None
+    return held if isinstance(held, dict) else None
+
+
+def _cooldown_key(world, lord: str, key: str) -> str:
+    """`last:<key>` for the player (AU-2b's keys, unchanged); `last:<court>|<key>` for a court."""
+    if not lord or is_player(world, lord):
+        return f"last:{key}"
+    return f"last:{lord}|{key}"
 
 
 def ai_refusal(world, lord: str, price: int) -> str:
@@ -580,7 +609,12 @@ def bulletin(world, lord: str, battle: str, ours: int, theirs: int) -> Tuple[int
         return 0, 0
     tracker = tracker_of(world, lord) if is_player(world, lord) else None
     if tracker is None:
-        return 0, 0                      # a court's Bulletin is parked (AU-4)
+        if not lord or is_player(world, lord) or not courts_move():
+            return 0, 0                  # a court's Bulletin is parked with the courts' flip (AU-4)
+        # AU-4: a court's Bulletin is the base alone — it keeps no ring, so no
+        # dent of the field's to repay (§6.7 reading 3)
+        return regrow(world, lord, BULLETIN_AMOUNT, "bulletin", "bulletin", every=BULLETIN_EVERY,
+                      battle=str(battle or "")), 0
     battle = str(battle or "")
     base = regrow(world, lord, BULLETIN_AMOUNT, "bulletin", "bulletin", every=BULLETIN_EVERY, battle=battle)
     if not base:
@@ -625,6 +659,87 @@ def bulletin_line(base: int, repaid: int, battle: str) -> str:
     tail = f", and +{int(repaid)} of the field's dents repaid" if repaid else ""
     return (f"\n\n[The Bulletin of the Grande Armée] {where} is read in every church in "
             f"France. (Authority +{int(base)}{tail})")
+
+
+# ─────────────────────────────── AU-4 the courts' field ───────────────────────────────
+
+FIELD_WON = 5             # a field won against the odds, or a capital taken (AU-1's battle writes)
+OWN_HAND_WON = 2          # … +2 when the sovereign led it in person (NP-2)
+FIELD_LOST = 5            # a field lost with the numbers, or a capital lost by its defender (AU-19)
+OWN_HAND_LOST = 5         # … −5 when the sovereign led it in person
+GARRISON_STORMED = 5      # a garrison stormed against the odds; a capital stormed; …
+ASSAULT_REPULSED = 5      # … an assault repulsed with the numbers
+
+
+def capital_lost_by(world, lord: str, region_name: str, defender: bool, conquered: bool) -> bool:
+    """AU-19 (BUG_FIXES.md §AU): a lost battle is a capital lost only for its
+    defender, when the capital falls in it — a lost assault on a capital, or a
+    lost field at one that holds, is a field (−5 only when the loser
+    outnumbered). A named function, read by the player's battle step and the
+    courts' field alike, so the front page's replay and the rig's arm AUF can
+    hold the old rule down (a lost battle at any capital the lord did not
+    control — 248 bookings on the measured runs, most of them its satellites')."""
+    region = world.get_region(region_name) if hasattr(world, "get_region") else None
+    return bool(defender and conquered and region is not None and getattr(region, "is_capital", False))
+
+
+def courts_battle(world, battle: str, attacker_nation: str, defender_nation: str,
+                  attacker_won: bool, defender_won: bool, pre_atk: int, pre_def: int,
+                  conquered: bool = False, atk_lead=None, def_lead=None,
+                  atk_cas: int = 0, def_cas: int = 0, lost_capitals: bool = True) -> int:
+    """AU-4 (§5.7, the gate's Q6 "same rules"): a field's writes for each COURT
+    in it — AI against AI included, the player's side never touched — the
+    player's own rules: won, +5 when outnumbered or a capital taken, +2 under
+    the sovereign's own hand, and the Bulletin on a laurel; lost, −5 when
+    outnumbering or a capital lost by its defender (AU-19), −5 under the
+    sovereign's own hand. `lost_capitals` False for the auto-charge mirror,
+    whose player arm books no capital lost (each site's own rules). Parked
+    behind `courts_move()`. Returns the total moved."""
+    if not courts_move():
+        return 0
+    region = world.get_region(battle) if hasattr(world, "get_region") else None
+    is_capital = bool(region is not None and getattr(region, "is_capital", False))
+    moved = 0
+    for side, lord, won, lost, ours, theirs, lead, own_cas, their_cas in (
+            ("attacker", attacker_nation, attacker_won, defender_won, pre_atk, pre_def, atk_lead, atk_cas, def_cas),
+            ("defender", defender_nation, defender_won, attacker_won, pre_def, pre_atk, def_lead, def_cas, atk_cas)):
+        if not lord or is_player(world, lord):
+            continue
+        led = bool(lead is not None and getattr(lead, "is_sovereign", False)
+                   and getattr(lead, "name", None) in (getattr(world, "marshals", {}) or {}))
+        if won:
+            taken = bool(side == "attacker" and conquered and is_capital)
+            if int(ours or 0) < int(theirs or 0) or taken:
+                moved += move(world, lord, FIELD_WON, "capital_taken" if taken else "field_won", battle=battle)
+            if led:
+                moved += move(world, lord, OWN_HAND_WON, "own_hand_won", battle=battle)
+            moved += bulletin(world, lord, battle, int(own_cas or 0), int(their_cas or 0))[0]
+        elif lost:
+            fallen = bool(lost_capitals) and capital_lost_by(world, lord, battle, side == "defender", bool(conquered))
+            if int(ours or 0) > int(theirs or 0) or fallen:
+                moved += move(world, lord, -FIELD_LOST, "capital_lost" if fallen else "field_lost", battle=battle)
+            if led:
+                moved += move(world, lord, -OWN_HAND_LOST, "own_hand_lost", battle=battle)
+    return moved
+
+
+def courts_garrison(world, lord: str, region, pre_atk: int, garrison_effective: int, stormed: bool) -> int:
+    """AU-4: a court's assault on a garrison, the attacker's side as the
+    player's — stormed against the odds +5, a capital stormed +5; repulsed
+    with the numbers −5. Parked behind `courts_move()`; the player's own
+    writes stay in the garrison path. Returns the total moved."""
+    if not courts_move() or not lord or is_player(world, lord):
+        return 0
+    name = str(getattr(region, "name", region) or "")
+    moved = 0
+    if stormed:
+        if int(pre_atk or 0) < int(garrison_effective or 0):
+            moved += move(world, lord, GARRISON_STORMED, "garrison_stormed", region=name)
+        if getattr(region, "is_capital", False):
+            moved += move(world, lord, GARRISON_STORMED, "capital_stormed", region=name)
+    elif int(pre_atk or 0) > int(garrison_effective or 0):
+        moved += move(world, lord, -ASSAULT_REPULSED, "assault_repulsed", region=name)
+    return moved
 
 
 def council_dent(world, lord: str, loss: int) -> None:

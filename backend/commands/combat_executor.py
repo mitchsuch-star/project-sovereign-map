@@ -5638,12 +5638,11 @@ class CombatExecutor:
                     outnumbering = pre_atk > pre_def
                     if player_is_defender:
                         outnumbering = pre_def > pre_atk
-                    capital_lost = False
-                    cap_reg = world.get_region(battle_region)
-                    if cap_reg and getattr(cap_reg, 'is_capital', False):
-                        if cap_reg.controller != player_nation:
-                            capital_lost = True
+                    # AU-19 (BUG_FIXES.md §AU): a capital is lost only by its
+                    # defender, when it falls in this battle (`standing.capital_lost_by`)
                     from backend.game_logic import standing as _standing
+                    capital_lost = _standing.capital_lost_by(world, player_nation, battle_region,
+                                                             player_is_defender, bool(conquered))
                     if outnumbering or capital_lost:
                         _standing.move(world, player_nation, -5,
                                        "capital_lost" if capital_lost else "field_lost",
@@ -5664,6 +5663,12 @@ class CombatExecutor:
                             "\n\n[The Emperor] He commanded in person, "
                             "and the field was lost. The court will hear "
                             f"of it. (Authority −5){_tail}")
+            # AU-4 (§5.7): each court's side of the field — the player's rules, AI
+            # against AI included; parked behind `standing.courts_move()`
+            from backend.game_logic import standing as _court_standing
+            _court_standing.courts_battle(
+                world, battle_region, attacker.nation, defender_nation, attacker_won, defender_won,
+                pre_atk, pre_def, bool(conquered), attacker, defender, atk_casualties, def_casualties)
 
         # ── 13. Coalition: threat + war exhaustion ──
         if not is_bombardment:
@@ -6130,6 +6135,11 @@ class CombatExecutor:
                     _standing.move(world, marshal.nation, +5, "garrison_stormed", region=target_region.name)
                 if getattr(target_region, 'is_capital', False):
                     _standing.move(world, marshal.nation, +5, "capital_stormed", region=target_region.name)
+            else:                                    # AU-4: a court's storm, parked with the courts' flip
+                from backend.game_logic import standing as _standing
+                if _standing.courts_move():
+                    _standing.courts_garrison(world, marshal.nation, target_region, pre_battle_atk_strength,
+                                              _garrison_report.garrison_effective(target_region, old_garrison), True)
 
             # Move attacker into region
             marshal.move_to(target_region.name)
@@ -6282,6 +6292,11 @@ class CombatExecutor:
                 if pre_battle_atk_strength > garrison_effective:
                     from backend.game_logic import standing as _standing
                     _standing.move(world, marshal.nation, -5, "assault_repulsed", region=target_region.name)
+            else:                                    # AU-4: a court's assault repulsed, parked with the flip
+                from backend.game_logic import standing as _standing
+                if _standing.courts_move():
+                    _standing.courts_garrison(world, marshal.nation, target_region, pre_battle_atk_strength,
+                                              _garrison_report.garrison_effective(target_region, old_garrison), False)
 
             return {
                 "success": True,

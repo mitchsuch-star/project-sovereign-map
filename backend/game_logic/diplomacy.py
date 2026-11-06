@@ -10857,9 +10857,17 @@ def calculate_dp(diplomat, authority: int, controls_capital: bool) -> int:
     """
     base = 3
     skill_bonus = 1 if diplomat and diplomat.skill >= 8 else 0
-    authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
+    authority_bonus = authority_dp_bonus(authority)
     capital_penalty = -1 if not controls_capital else 0
     return max(1, min(5, base + skill_bonus + authority_bonus + capital_penalty))
+
+
+def authority_dp_bonus(authority: int) -> int:
+    """The authority's term in the diplomatic points a turn — +1 at 60 or
+    more, −1 under 30, else 0 — ONE source for `calculate_dp`, the Talleyrand
+    tab's breakdown and the Nations row's figure (AU-4)."""
+    authority = int(authority or 0)
+    return 1 if authority >= 60 else (-1 if authority < 30 else 0)
 
 
 _PROPOSAL_STATE_FOR_PRICE = {

@@ -43,9 +43,11 @@ ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
 # the Bank and the Pope so until the user's "Arm both" (November 5, 2026):
 # AUL is up by default now and ALL is that arm. AU-3b's AUR+ arm measured the
 # Proclamation so until the user's "Arm it" (November 5, 2026): AUR is up by
-# default now and ALL is that arm too. None stands today; AU-4's courts
-# (`standing.courts_move`, down until the user's word) come next.
-UP_ARMS: dict = {}
+# default now and ALL is that arm too. AU-4's courts (`standing.courts_move`,
+# down until the user's word) are measured up on AUC+, with the grip reading
+# their books (AU-5, `standing.court_grip_reads_books`) on AUCG+ and the gate's
+# direct read on AUCGD+ (the rig's alone: `authority.court_grip_base` patched).
+UP_ARMS: dict = {"AUC+": {"AUC"}, "AUCG+": {"AUC", "AUG"}, "AUCGD+": {"AUC", "AUGD"}}
 ARMS.update({arm: set() for arm in UP_ARMS})
 
 CHILD = r"""
@@ -54,6 +56,15 @@ DOWN = set({down!r})
 _c = collections.Counter()
 from backend.game_logic import standing as ST
 from backend.models import authority as AU
+from backend.models import world_state as _WS
+# AU-4: the board's own world, for the end-state table (reading 16)
+_worlds = []
+_from_scenario = _WS.WorldState.from_scenario
+def _keeping_from_scenario(cls, *a, **k):
+    w = _from_scenario(*a, **k)
+    _worlds.append(w)
+    return w
+_WS.WorldState.from_scenario = classmethod(_keeping_from_scenario)
 _keeps = ST.keeps_books
 def _counted_keeps():
     _c["books_reads"] += 1
@@ -64,7 +75,10 @@ ST.keeps_books = _counted_keeps
 _move = ST.move
 def _counted_move(world, lord, delta, cause, party="", **fmt):
     _c["writer_calls"] += 1
-    return _move(world, lord, delta, cause, party=party, **fmt)
+    out = _move(world, lord, delta, cause, party=party, **fmt)
+    if lord and not ST.is_player(world, lord) and out:
+        _c["court:" + str(cause)] += 1
+    return out
 ST.move = _counted_move
 _tmove = AU.AuthorityTracker.move
 def _counted_tmove(self, *a, **k):
@@ -190,6 +204,36 @@ def _counted_procl():
         return False
     return True if "AUR" in UP else _procl()
 ST.proclamation_armed = _counted_procl
+# AU-4 the courts: the seam AUC — DOWN by default (parked until the user's word),
+# forced up on the AUC+ arms; the grip's seam AUG down, forced up on AUCG+; the
+# gate's direct read (a court at 30 reads 30) on AUCGD+, the rig's alone
+_courts = ST.courts_move
+def _counted_courts():
+    _c["courts_reads"] += 1
+    if "AUC" in DOWN:
+        return False
+    return True if "AUC" in UP else _courts()
+ST.courts_move = _counted_courts
+_grip_books = ST.court_grip_reads_books
+def _counted_grip_books():
+    _c["grip_books_reads"] += 1
+    if "AUG" in DOWN:
+        return False
+    return True if ("AUG" in UP or "AUGD" in UP) else _grip_books()
+ST.court_grip_reads_books = _counted_grip_books
+if "AUGD" in UP:
+    AU.court_grip_base = lambda world, nation: ST.standing_of(world, nation)
+# AU-19 (AU-4's head): the seam AUF — a capital lost only by its defender, when it
+# falls; held down on its arm (the old rule: a lost battle at any capital the lord
+# did not control), so arm 0 reproduces the series before AU
+_capital_lost_by = ST.capital_lost_by
+def _counted_capital_lost_by(world, lord, region, defender, conquered):
+    _c["capital_reads"] += 1
+    if "AUF" in DOWN:
+        r = world.get_region(region)
+        return bool(getattr(r, "is_capital", False) and getattr(r, "controller", None) != lord)
+    return _capital_lost_by(world, lord, region, defender, conquered)
+ST.capital_lost_by = _counted_capital_lost_by
 _court_decree = AF.decree_for_court
 def _counted_court_decree(world, lord, e, currency="gold"):
     if currency == "authority":
@@ -213,9 +257,24 @@ _KEYS = ("books_reads", "writer_calls", "rows_booked", "events_queued",
          "buys_reads", "bought_edict_decreed", "bought_word_given", "bought_honoured", "bought_by_decree",
          "court_decrees_in_authority",
          "offices_reads", "bought_endowed", "bought_titles_granted",
-         "proclamation_reads", "the_proclamation_delivered")
+         "proclamation_reads", "the_proclamation_delivered",
+         "courts_reads", "grip_books_reads", "capital_reads")
+def _end_state():
+    if not _worlds:
+        return {{}}
+    w = _worlds[-1]
+    from backend.game_logic.diplomacy import authority_dp_bonus
+    table = {{str(n): int(v) for n, v in sorted((getattr(w, "nation_authority", None) or {{}}).items())}}
+    coalition = getattr(w, "active_coalition", None) or {{}}
+    return {{"turn": int(getattr(w, "current_turn", 0) or 0), "courts": table,
+             "dp_term": {{n: int(authority_dp_bonus(v)) for n, v in table.items()}},
+             "grip": {{n: int(AU.get_imperial_grip(w, n)) for n in table}},
+             "coalition_leader": str(coalition.get("leader") or ""),
+             "coalition_members": sorted(str(m) for m in (coalition.get("members") or []))}}
 def _dump():
-    print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}}}}))
+    courts = {{k.split(":", 1)[1]: int(v) for k, v in sorted(_c.items()) if k.startswith("court:")}}
+    print("REACH=" + repr({{"counts": {{k: int(_c.get(k, 0)) for k in _KEYS}},
+                           "courts": courts, "end_state": _end_state()}}))
 atexit.register(_dump)
 sys.argv = [r"{runner}", "--emit-series"]
 runpy.run_path(r"{runner}", run_name="__main__")

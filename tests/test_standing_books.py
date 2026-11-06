@@ -547,7 +547,15 @@ class TestTheRecords:
     def test_the_series_rig_reproduces_the_prior_on_every_arm(self):
         rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
         assert set(rec["arms"]) >= {"0", "AUB", "ALL"}
-        for arm, row in rec["arms"].items():
-            assert row["first_divergence_vs_prior"] is None, arm
+        # AU-4 part 1 (§6.7, the attribution by arm): arm 0 (every seam down) and
+        # AUF (AU-19's old capital rule) reproduce the prior — the series before
+        # AU; every other single-seam arm and ALL carry AU-19's move at [22]; the
+        # courts forced up (AUC+, AUCG+, AUCGD+) diverge at [10], parked until the
+        # user's word
+        moved = {arm: row["first_divergence_vs_prior"] for arm, row in rec["arms"].items()}
+        assert moved.pop("0") is None and moved.pop("AUF") is None, moved
+        courts_up = {arm: moved.pop(arm) for arm in [a for a in moved if a.startswith("AUC") and a.endswith("+")]}
+        assert set(courts_up) == {"AUC+", "AUCG+", "AUCGD+"} and set(courts_up.values()) == {10}, courts_up
+        assert set(moved.values()) == {22}, moved
         assert rec["arms"]["ALL"]["reach"]["counts"]["rows_booked"] > 0
         assert rec["arms"]["AUB"]["reach"]["counts"]["rows_booked"] == 0
