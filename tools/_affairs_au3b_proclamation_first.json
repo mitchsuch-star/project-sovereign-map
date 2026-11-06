@@ -1,0 +1,1145 @@
+{
+ "_what": "the_proclamation measured UP for the user's review before arming (AUTHORITY_CURRENCY_SPEC.md §6.4 the Bank and the Pope, §6.6 the Proclamation): per run each letter's premise mornings, due mornings, arrivals and answers on the ARMED tree; every other template's arrivals shipped against armed; the standing's end on both trees. Seeded paths, not laws.",
+ "letters": [
+  "the_proclamation"
+ ],
+ "runs_measured": 55,
+ "totals": {
+  "the_proclamation": {
+   "answer_accept": 1,
+   "arrivals": 9,
+   "lapse_decline": 8,
+   "premise_mornings": 525,
+   "runs_arrived": 8,
+   "runs_due": 30,
+   "runs_premise": 33
+  }
+ },
+ "others_displaced": {
+  "chancellors_letters": 4,
+  "santo_domingo": 2,
+  "the_remounts": 1
+ },
+ "others_gained": {
+  "berthiers_memorial": 1
+ },
+ "runs": {
+  "accept/CMD-A-ACCEPT": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 14,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 9,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 94,
+    "armed_end": 94,
+    "shipped_min": 94,
+    "armed_min": 94
+   }
+  },
+  "accept/CMD-H-ACCEPT": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 18,
+     "first_held": 2,
+     "due_mornings": 11,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 82,
+    "armed_end": 82,
+    "shipped_min": 80,
+    "armed_min": 80
+   }
+  },
+  "accept/CMD-M-ACCEPT": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 18,
+     "first_held": 2,
+     "due_mornings": 12,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 55,
+    "armed_end": 55,
+    "shipped_min": 55,
+    "armed_min": 55
+   }
+  },
+  "commanded/CMD-A": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 14,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 9,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 72,
+    "armed_end": 72,
+    "shipped_min": 72,
+    "armed_min": 72
+   }
+  },
+  "commanded/CMD-H": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 17,
+     "first_held": 2,
+     "due_mornings": 9,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 64,
+    "armed_end": 64,
+    "shipped_min": 62,
+    "armed_min": 62
+   }
+  },
+  "commanded/CMD-M": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 18,
+     "first_held": 2,
+     "due_mornings": 12,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 52,
+    "armed_end": 52,
+    "shipped_min": 47,
+    "armed_min": 47
+   }
+  },
+  "commanded/DL": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 3,
+     "first_held": 2,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 100,
+    "armed_end": 100,
+    "shipped_min": 100,
+    "armed_min": 100
+   }
+  },
+  "commanded/FC": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 2,
+     "first_held": 2,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 95,
+    "armed_end": 95,
+    "shipped_min": 95,
+    "armed_min": 95
+   }
+  },
+  "commanded/FLD": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 10,
+     "first_held": 2,
+     "due_mornings": 5,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 100,
+    "armed_end": 100,
+    "shipped_min": 100,
+    "armed_min": 100
+   }
+  },
+  "commanded/LAW": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 6,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 56,
+    "armed_end": 56,
+    "shipped_min": 56,
+    "armed_min": 56
+   }
+  },
+  "commanded/OP": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 10,
+     "first_held": 2,
+     "due_mornings": 5,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 91,
+    "armed_end": 91,
+    "shipped_min": 86,
+    "armed_min": 86
+   }
+  },
+  "commanded/VOLTE": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 12,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 73,
+    "armed_end": 73,
+    "shipped_min": 73,
+    "armed_min": 73
+   }
+  },
+  "haiti/HAITI-austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 79,
+    "armed_end": 79,
+    "shipped_min": 79,
+    "armed_min": 79
+   }
+  },
+  "haiti/HAITI-historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 25,
+    "armed_end": 25,
+    "shipped_min": 25,
+    "armed_min": 25
+   }
+  },
+  "haiti/HAITI-marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 16,
+     "first_held": 4,
+     "due_mornings": 14,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 55,
+    "armed_end": 55,
+    "shipped_min": 55,
+    "armed_min": 55
+   }
+  },
+  "reach_aar/REACH-AAR": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 10,
+     "first_held": 2,
+     "due_mornings": 5,
+     "first_due": 7,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 72,
+    "armed_end": 72,
+    "shipped_min": 72,
+    "armed_min": 72
+   }
+  },
+  "road/VP1-CS-austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 36,
+    "armed_end": 36,
+    "shipped_min": 36,
+    "armed_min": 36
+   }
+  },
+  "road/VP1-CS-historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 0,
+    "armed_end": 0,
+    "shipped_min": 0,
+    "armed_min": 0
+   }
+  },
+  "road/VP1-CS-marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 0,
+    "armed_end": 0,
+    "shipped_min": 0,
+    "armed_min": 0
+   }
+  },
+  "road/VP1-RH-austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 27,
+     "first_held": 2,
+     "due_mornings": 20,
+     "first_due": 9,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 42,
+    "armed_end": 42,
+    "shipped_min": 42,
+    "armed_min": 42
+   }
+  },
+  "road/VP1-RH-historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 38,
+     "first_held": 2,
+     "due_mornings": 22,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 29,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 34,
+    "armed_end": 34,
+    "shipped_min": 34,
+    "armed_min": 34
+   }
+  },
+  "road/VP1-RH-marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 21,
+     "first_held": 2,
+     "due_mornings": 17,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 68,
+    "armed_end": 68,
+    "shipped_min": 42,
+    "armed_min": 42
+   }
+  },
+  "road/VP1-TH-austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 19,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 9,
+     "arrivals": [
+      {
+       "turn": 15,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "chancellors_letters": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      15
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 7,
+    "armed_end": 15,
+    "shipped_min": 7,
+    "armed_min": 15
+   }
+  },
+  "road/VP1-TH-historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 24,
+     "first_held": 2,
+     "due_mornings": 12,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 19,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      19
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 34,
+    "armed_end": 37,
+    "shipped_min": 34,
+    "armed_min": 37
+   }
+  },
+  "road/VP1-TH-marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 12,
+     "first_held": 2,
+     "due_mornings": 8,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 50,
+    "armed_end": 50,
+    "shipped_min": 50,
+    "armed_min": 50
+   }
+  },
+  "road_accept/VP1-RH-austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 27,
+     "first_held": 2,
+     "due_mornings": 20,
+     "first_due": 9,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 50,
+    "armed_end": 50,
+    "shipped_min": 50,
+    "armed_min": 50
+   }
+  },
+  "road_accept/VP1-RH-historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 27,
+     "first_held": 2,
+     "due_mornings": 22,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 28,
+       "kind": "answer",
+       "answer": "accept"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      28
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 41,
+    "armed_end": 37,
+    "shipped_min": 41,
+    "armed_min": 37
+   }
+  },
+  "road_accept/VP1-RH-marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 21,
+     "first_held": 2,
+     "due_mornings": 17,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 68,
+    "armed_end": 68,
+    "shipped_min": 42,
+    "armed_min": 42
+   }
+  },
+  "saves/DDB-24-conquest": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 1,
+     "first_held": 22,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 59,
+    "armed_end": 59,
+    "shipped_min": 50,
+    "armed_min": 50
+   }
+  },
+  "saves/DDB-24-diplomacy": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 85,
+    "armed_end": 85,
+    "shipped_min": 85,
+    "armed_min": 85
+   }
+  },
+  "saves/DDB-24-sea": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 85,
+    "armed_end": 85,
+    "shipped_min": 85,
+    "armed_min": 85
+   }
+  },
+  "saves/DDB-25-conquest": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 100,
+    "armed_end": 100,
+    "shipped_min": 100,
+    "armed_min": 100
+   }
+  },
+  "saves/DDB-25-diplomacy": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 12,
+     "first_held": 30,
+     "due_mornings": 11,
+     "first_due": 31,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 73,
+    "armed_end": 73,
+    "shipped_min": 73,
+    "armed_min": 73
+   }
+  },
+  "saves/DDB-25-sea": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 40,
+    "armed_end": 40,
+    "shipped_min": 40,
+    "armed_min": 40
+   }
+  },
+  "sweep/armA_historical_run1": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 35,
+    "armed_end": 35,
+    "shipped_min": 35,
+    "armed_min": 35
+   }
+  },
+  "sweep/armA_historical_run2": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 35,
+    "armed_end": 35,
+    "shipped_min": 35,
+    "armed_min": 35
+   }
+  },
+  "sweep/armB_austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 18,
+     "first_held": 16,
+     "due_mornings": 6,
+     "first_due": 17,
+     "arrivals": [
+      {
+       "turn": 21,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "chancellors_letters": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      29
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 29,
+    "armed_end": 37,
+    "shipped_min": 29,
+    "armed_min": 37
+   }
+  },
+  "sweep/armB_jena": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 100,
+    "armed_end": 100,
+    "shipped_min": 77,
+    "armed_min": 77
+   }
+  },
+  "sweep/armB_ulm": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 24,
+     "first_held": 16,
+     "due_mornings": 5,
+     "first_due": 17,
+     "arrivals": [
+      {
+       "turn": 20,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 33,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "chancellors_letters": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      29
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 85,
+    "armed_end": 85,
+    "shipped_min": 85,
+    "armed_min": 85
+   }
+  },
+  "sweep/armC_00_historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 35,
+    "armed_end": 35,
+    "shipped_min": 35,
+    "armed_min": 35
+   }
+  },
+  "sweep/armC_01_ulm": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 15,
+     "first_held": 16,
+     "due_mornings": 3,
+     "first_due": 17,
+     "arrivals": [
+      {
+       "turn": 20,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "berthiers_memorial": {
+     "shipped": 0,
+     "armed": 1,
+     "turns_shipped": [],
+     "turns_armed": [
+      40
+     ]
+    },
+    "chancellors_letters": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      29
+     ],
+     "turns_armed": []
+    }
+   },
+   "standing": {
+    "shipped_end": 95,
+    "armed_end": 95,
+    "shipped_min": 85,
+    "armed_min": 85
+   }
+  },
+  "sweep/armC_02_austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 15,
+     "first_held": 4,
+     "due_mornings": 10,
+     "first_due": 9,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 0,
+    "armed_end": 0,
+    "shipped_min": 0,
+    "armed_min": 0
+   }
+  },
+  "sweep/armC_03_jena": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 98,
+    "armed_end": 98,
+    "shipped_min": 71,
+    "armed_min": 71
+   }
+  },
+  "sweep/armC_04_marengo": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 27,
+     "first_held": 4,
+     "due_mornings": 25,
+     "first_due": 6,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 0,
+    "armed_end": 0,
+    "shipped_min": 0,
+    "armed_min": 0
+   }
+  },
+  "sweep/armC_05_eylau": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 33,
+    "armed_end": 33,
+    "shipped_min": 33,
+    "armed_min": 33
+   }
+  },
+  "sweep/armC_06_friedland": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 38,
+    "armed_end": 38,
+    "shipped_min": 38,
+    "armed_min": 38
+   }
+  },
+  "sweep/armC_07_wagram": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 45,
+    "armed_end": 45,
+    "shipped_min": 45,
+    "armed_min": 45
+   }
+  },
+  "sweep/armC_08_lodi": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 100,
+    "armed_end": 100,
+    "shipped_min": 85,
+    "armed_min": 85
+   }
+  },
+  "sweep/armC_09_rivoli": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 11,
+     "first_held": 19,
+     "due_mornings": 7,
+     "first_due": 20,
+     "arrivals": [
+      {
+       "turn": 27,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
+    }
+   },
+   "others_moved": {
+    "the_remounts": {
+     "shipped": 2,
+     "armed": 1,
+     "turns_shipped": [
+      27,
+      35
+     ],
+     "turns_armed": [
+      33
+     ]
+    }
+   },
+   "standing": {
+    "shipped_end": 90,
+    "armed_end": 90,
+    "shipped_min": 74,
+    "armed_min": 74
+   }
+  },
+  "sweep/armb_scripted_austerlitz": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 87,
+    "armed_end": 87,
+    "shipped_min": 76,
+    "armed_min": 76
+   }
+  },
+  "sweep/armb_scripted_austerlitz_soil": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 9,
+     "first_held": 29,
+     "due_mornings": 8,
+     "first_due": 30,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 97,
+    "armed_end": 97,
+    "shipped_min": 76,
+    "armed_min": 76
+   }
+  },
+  "sweep/armb_scripted_historical": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 45,
+    "armed_end": 45,
+    "shipped_min": 45,
+    "armed_min": 45
+   }
+  },
+  "sweep/armb_scripted_historical_soil": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 30,
+    "armed_end": 30,
+    "shipped_min": 30,
+    "armed_min": 30
+   }
+  },
+  "sweep/armb_scripted_ulm": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 0,
+     "first_held": null,
+     "due_mornings": 0,
+     "first_due": null,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 15,
+    "armed_end": 15,
+    "shipped_min": 15,
+    "armed_min": 15
+   }
+  },
+  "sweep/armb_scripted_ulm_soil": {
+   "letters": {
+    "the_proclamation": {
+     "premise_mornings": 9,
+     "first_held": 23,
+     "due_mornings": 8,
+     "first_due": 24,
+     "arrivals": []
+    }
+   },
+   "others_moved": {},
+   "standing": {
+    "shipped_end": 78,
+    "armed_end": 78,
+    "shipped_min": 78,
+    "armed_min": 78
+   }
+  }
+ }
+}

@@ -1,6 +1,6 @@
 {
  "date": "2026_11_05",
- "source": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\au3b_2026_11_05\\frames\\run_physical\\index.json",
+ "source": "C:\\Users\\User\\PycharmProjects\\project-sovereign-map\\tools\\playtest_runs\\au3b_repremise_2026_11_05\\frames\\run_physical\\index.json",
  "surfaces": {
   "petition_fontainebleau_endow": {
    "surface": "Marshal petition — the Fontainebleau card with Endow them (AU-3b)",
@@ -383,7 +383,7 @@
    }
   }
  },
- "client_commit": "3567af83",
+ "client_commit": "f7b5abe2",
  "physical_scale": "auto",
  "text_size": 1.0
 }

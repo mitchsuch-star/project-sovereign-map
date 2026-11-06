@@ -6,22 +6,24 @@
  "runs_measured": 55,
  "totals": {
   "the_proclamation": {
-   "answer_accept": 1,
-   "arrivals": 9,
-   "lapse_decline": 8,
-   "premise_mornings": 525,
-   "runs_arrived": 8,
-   "runs_due": 30,
-   "runs_premise": 33
+   "answer_accept": 2,
+   "arrivals": 28,
+   "lapse_decline": 26,
+   "premise_mornings": 986,
+   "runs_arrived": 21,
+   "runs_due": 41,
+   "runs_premise": 53
   }
  },
  "others_displaced": {
   "chancellors_letters": 4,
-  "santo_domingo": 2,
+  "santo_domingo": 12,
+  "the_magazines": 2,
+  "the_popes_ports": 3,
   "the_remounts": 1
  },
  "others_gained": {
-  "berthiers_memorial": 1
+  "the_remounts": 1
  },
  "runs": {
   "accept/CMD-A-ACCEPT": {
@@ -47,8 +49,8 @@
     "the_proclamation": {
      "premise_mornings": 18,
      "first_held": 2,
-     "due_mornings": 11,
-     "first_due": 7,
+     "due_mornings": 3,
+     "first_due": 39,
      "arrivals": []
     }
    },
@@ -65,7 +67,7 @@
     "the_proclamation": {
      "premise_mornings": 18,
      "first_held": 2,
-     "due_mornings": 12,
+     "due_mornings": 6,
      "first_due": 6,
      "arrivals": []
     }
@@ -101,8 +103,8 @@
     "the_proclamation": {
      "premise_mornings": 17,
      "first_held": 2,
-     "due_mornings": 9,
-     "first_due": 7,
+     "due_mornings": 1,
+     "first_due": 41,
      "arrivals": []
     }
    },
@@ -119,7 +121,7 @@
     "the_proclamation": {
      "premise_mornings": 18,
      "first_held": 2,
-     "due_mornings": 12,
+     "due_mornings": 6,
      "first_due": 6,
      "arrivals": []
     }
@@ -191,8 +193,8 @@
     "the_proclamation": {
      "premise_mornings": 6,
      "first_held": 2,
-     "due_mornings": 1,
-     "first_due": 7,
+     "due_mornings": 0,
+     "first_due": null,
      "arrivals": []
     }
    },
@@ -227,8 +229,8 @@
     "the_proclamation": {
      "premise_mornings": 12,
      "first_held": 2,
-     "due_mornings": 6,
-     "first_due": 7,
+     "due_mornings": 0,
+     "first_due": null,
      "arrivals": []
     }
    },
@@ -243,8 +245,8 @@
   "haiti/HAITI-austerlitz": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 21,
+     "first_held": 2,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -261,26 +263,32 @@
   "haiti/HAITI-historical": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 11,
+     "first_held": 2,
+     "due_mornings": 4,
+     "first_due": 9,
+     "arrivals": [
+      {
+       "turn": 12,
+       "kind": "answer",
+       "answer": "accept"
+      }
+     ]
     }
    },
    "others_moved": {},
    "standing": {
     "shipped_end": 25,
-    "armed_end": 25,
+    "armed_end": 55,
     "shipped_min": 25,
-    "armed_min": 25
+    "armed_min": 55
    }
   },
   "haiti/HAITI-marengo": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 16,
-     "first_held": 4,
+     "premise_mornings": 18,
+     "first_held": 2,
      "due_mornings": 14,
      "first_due": 6,
      "arrivals": []
@@ -297,7 +305,7 @@
   "reach_aar/REACH-AAR": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 10,
+     "premise_mornings": 20,
      "first_held": 2,
      "due_mornings": 5,
      "first_due": 7,
@@ -315,10 +323,10 @@
   "road/VP1-CS-austerlitz": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 29,
+     "first_held": 2,
+     "due_mornings": 3,
+     "first_due": 28,
      "arrivals": []
     }
    },
@@ -333,8 +341,8 @@
   "road/VP1-CS-historical": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 13,
+     "first_held": 2,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -351,8 +359,8 @@
   "road/VP1-CS-marengo": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 6,
+     "first_held": 2,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -371,8 +379,8 @@
     "the_proclamation": {
      "premise_mornings": 27,
      "first_held": 2,
-     "due_mornings": 20,
-     "first_due": 9,
+     "due_mornings": 7,
+     "first_due": 22,
      "arrivals": []
     }
    },
@@ -411,7 +419,7 @@
   "road/VP1-RH-marengo": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 21,
+     "premise_mornings": 27,
      "first_held": 2,
      "due_mornings": 17,
      "first_due": 6,
@@ -515,8 +523,8 @@
     "the_proclamation": {
      "premise_mornings": 27,
      "first_held": 2,
-     "due_mornings": 20,
-     "first_due": 9,
+     "due_mornings": 7,
+     "first_due": 22,
      "arrivals": []
     }
    },
@@ -564,7 +572,7 @@
   "road_accept/VP1-RH-marengo": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 21,
+     "premise_mornings": 27,
      "first_held": 2,
      "due_mornings": 17,
      "first_due": 6,
@@ -582,7 +590,7 @@
   "saves/DDB-24-conquest": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 1,
+     "premise_mornings": 3,
      "first_held": 22,
      "due_mornings": 0,
      "first_due": null,
@@ -600,8 +608,8 @@
   "saves/DDB-24-diplomacy": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 14,
+     "first_held": 28,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -618,8 +626,8 @@
   "saves/DDB-24-sea": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 12,
+     "first_held": 30,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -656,8 +664,8 @@
     "the_proclamation": {
      "premise_mornings": 12,
      "first_held": 30,
-     "due_mornings": 11,
-     "first_due": 31,
+     "due_mornings": 0,
+     "first_due": null,
      "arrivals": []
     }
    },
@@ -690,14 +698,29 @@
   "sweep/armA_historical_run1": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 8,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      8
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 35,
     "armed_end": 35,
@@ -708,14 +731,29 @@
   "sweep/armA_historical_run2": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 8,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      8
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 35,
     "armed_end": 35,
@@ -726,13 +764,13 @@
   "sweep/armB_austerlitz": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 18,
-     "first_held": 16,
-     "due_mornings": 6,
-     "first_due": 17,
+     "premise_mornings": 32,
+     "first_held": 2,
+     "due_mornings": 14,
+     "first_due": 9,
      "arrivals": [
       {
-       "turn": 21,
+       "turn": 17,
        "kind": "lapse",
        "answer": "decline"
       }
@@ -759,36 +797,56 @@
   "sweep/armB_jena": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 18,
+     "first_held": 2,
+     "due_mornings": 3,
+     "first_due": 6,
+     "arrivals": [
+      {
+       "turn": 7,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 20,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "the_popes_ports": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      15
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 100,
     "armed_end": 100,
     "shipped_min": 77,
-    "armed_min": 77
+    "armed_min": 80
    }
   },
   "sweep/armB_ulm": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 24,
-     "first_held": 16,
-     "due_mornings": 5,
-     "first_due": 17,
+     "premise_mornings": 38,
+     "first_held": 2,
+     "due_mornings": 7,
+     "first_due": 9,
      "arrivals": [
       {
-       "turn": 20,
+       "turn": 10,
        "kind": "lapse",
        "answer": "decline"
       },
       {
-       "turn": 33,
+       "turn": 27,
        "kind": "lapse",
        "answer": "decline"
       }
@@ -803,6 +861,17 @@
       29
      ],
      "turns_armed": []
+    },
+    "santo_domingo": {
+     "shipped": 2,
+     "armed": 1,
+     "turns_shipped": [
+      10,
+      22
+     ],
+     "turns_armed": [
+      16
+     ]
     }
    },
    "standing": {
@@ -815,14 +884,29 @@
   "sweep/armC_00_historical": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 8,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      8
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 35,
     "armed_end": 35,
@@ -833,13 +917,18 @@
   "sweep/armC_01_ulm": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 15,
-     "first_held": 16,
-     "due_mornings": 3,
-     "first_due": 17,
+     "premise_mornings": 40,
+     "first_held": 2,
+     "due_mornings": 7,
+     "first_due": 9,
      "arrivals": [
       {
-       "turn": 20,
+       "turn": 10,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 27,
        "kind": "lapse",
        "answer": "decline"
       }
@@ -847,14 +936,6 @@
     }
    },
    "others_moved": {
-    "berthiers_memorial": {
-     "shipped": 0,
-     "armed": 1,
-     "turns_shipped": [],
-     "turns_armed": [
-      40
-     ]
-    },
     "chancellors_letters": {
      "shipped": 1,
      "armed": 0,
@@ -868,92 +949,183 @@
     "shipped_end": 95,
     "armed_end": 95,
     "shipped_min": 85,
-    "armed_min": 85
+    "armed_min": 87
    }
   },
   "sweep/armC_02_austerlitz": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 15,
-     "first_held": 4,
-     "due_mornings": 10,
+     "premise_mornings": 17,
+     "first_held": 2,
+     "due_mornings": 6,
      "first_due": 9,
-     "arrivals": []
+     "arrivals": [
+      {
+       "turn": 15,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      15
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 0,
-    "armed_end": 0,
+    "armed_end": 25,
     "shipped_min": 0,
-    "armed_min": 0
+    "armed_min": 25
    }
   },
   "sweep/armC_03_jena": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 11,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 6,
+     "arrivals": [
+      {
+       "turn": 7,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      7
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 98,
-    "armed_end": 98,
+    "armed_end": 100,
     "shipped_min": 71,
-    "armed_min": 71
+    "armed_min": 74
    }
   },
   "sweep/armC_04_marengo": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 27,
-     "first_held": 4,
-     "due_mornings": 25,
+     "premise_mornings": 30,
+     "first_held": 2,
+     "due_mornings": 16,
      "first_due": 6,
-     "arrivals": []
+     "arrivals": [
+      {
+       "turn": 22,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "the_popes_ports": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      22
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 0,
-    "armed_end": 0,
+    "armed_end": 4,
     "shipped_min": 0,
-    "armed_min": 0
+    "armed_min": 4
    }
   },
   "sweep/armC_05_eylau": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 13,
+     "first_held": 2,
+     "due_mornings": 1,
+     "first_due": 7,
+     "arrivals": [
+      {
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      8
+     ],
+     "turns_armed": []
+    },
+    "the_remounts": {
+     "shipped": 1,
+     "armed": 2,
+     "turns_shipped": [
+      20
+     ],
+     "turns_armed": [
+      20,
+      28
+     ]
+    }
+   },
    "standing": {
     "shipped_end": 33,
-    "armed_end": 33,
+    "armed_end": 24,
     "shipped_min": 33,
-    "armed_min": 33
+    "armed_min": 24
    }
   },
   "sweep/armC_06_friedland": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 12,
+     "first_held": 2,
+     "due_mornings": 2,
+     "first_due": 6,
+     "arrivals": [
+      {
+       "turn": 7,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 30,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "the_magazines": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      7
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 38,
     "armed_end": 38,
@@ -964,8 +1136,8 @@
   "sweep/armC_07_wagram": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
+     "premise_mornings": 7,
+     "first_held": 2,
      "due_mornings": 0,
      "first_due": null,
      "arrivals": []
@@ -982,14 +1154,42 @@
   "sweep/armC_08_lodi": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 23,
+     "first_held": 2,
+     "due_mornings": 4,
+     "first_due": 6,
+     "arrivals": [
+      {
+       "turn": 7,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 21,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "the_magazines": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      21
+     ],
+     "turns_armed": []
+    },
+    "the_popes_ports": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      15
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 100,
     "armed_end": 100,
@@ -1000,11 +1200,16 @@
   "sweep/armC_09_rivoli": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 11,
-     "first_held": 19,
-     "due_mornings": 7,
-     "first_due": 20,
+     "premise_mornings": 38,
+     "first_held": 2,
+     "due_mornings": 9,
+     "first_due": 7,
      "arrivals": [
+      {
+       "turn": 8,
+       "kind": "lapse",
+       "answer": "decline"
+      },
       {
        "turn": 27,
        "kind": "lapse",
@@ -1022,7 +1227,7 @@
       35
      ],
      "turns_armed": [
-      33
+      38
      ]
     }
    },
@@ -1030,16 +1235,16 @@
     "shipped_end": 90,
     "armed_end": 90,
     "shipped_min": 74,
-    "armed_min": 74
+    "armed_min": 75
    }
   },
   "sweep/armb_scripted_austerlitz": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 27,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 9,
      "arrivals": []
     }
    },
@@ -1054,10 +1259,10 @@
   "sweep/armb_scripted_austerlitz_soil": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 9,
-     "first_held": 29,
-     "due_mornings": 8,
-     "first_due": 30,
+     "premise_mornings": 40,
+     "first_held": 2,
+     "due_mornings": 24,
+     "first_due": 9,
      "arrivals": []
     }
    },
@@ -1072,10 +1277,10 @@
   "sweep/armb_scripted_historical": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 9,
+     "first_held": 2,
+     "due_mornings": 3,
+     "first_due": 7,
      "arrivals": []
     }
    },
@@ -1090,10 +1295,10 @@
   "sweep/armb_scripted_historical_soil": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
+     "premise_mornings": 9,
+     "first_held": 2,
+     "due_mornings": 3,
+     "first_due": 7,
      "arrivals": []
     }
    },
@@ -1108,14 +1313,29 @@
   "sweep/armb_scripted_ulm": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 0,
-     "first_held": null,
-     "due_mornings": 0,
-     "first_due": null,
-     "arrivals": []
+     "premise_mornings": 29,
+     "first_held": 2,
+     "due_mornings": 5,
+     "first_due": 9,
+     "arrivals": [
+      {
+       "turn": 10,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 1,
+     "armed": 0,
+     "turns_shipped": [
+      20
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 15,
     "armed_end": 15,
@@ -1126,19 +1346,40 @@
   "sweep/armb_scripted_ulm_soil": {
    "letters": {
     "the_proclamation": {
-     "premise_mornings": 9,
-     "first_held": 23,
-     "due_mornings": 8,
-     "first_due": 24,
-     "arrivals": []
+     "premise_mornings": 40,
+     "first_held": 2,
+     "due_mornings": 6,
+     "first_due": 9,
+     "arrivals": [
+      {
+       "turn": 10,
+       "kind": "lapse",
+       "answer": "decline"
+      },
+      {
+       "turn": 27,
+       "kind": "lapse",
+       "answer": "decline"
+      }
+     ]
     }
    },
-   "others_moved": {},
+   "others_moved": {
+    "santo_domingo": {
+     "shipped": 2,
+     "armed": 0,
+     "turns_shipped": [
+      20,
+      33
+     ],
+     "turns_armed": []
+    }
+   },
    "standing": {
     "shipped_end": 78,
-    "armed_end": 78,
+    "armed_end": 77,
     "shipped_min": 78,
-    "armed_min": 78
+    "armed_min": 77
    }
   }
  }

@@ -1137,9 +1137,9 @@
    "first_divergence_vs_prior": null,
    "reach": {
     "counts": {
-     "books_reads": 24,
-     "writer_calls": 31,
-     "rows_booked": 22,
+     "books_reads": 23,
+     "writer_calls": 30,
+     "rows_booked": 21,
      "events_queued": 2,
      "hits_reads": 0,
      "claims_reads": 148,
@@ -1159,10 +1159,10 @@
      "acts_shown": 0,
      "au2b_content_armed": 0,
      "au2b_content_held": 0,
-     "letters_reads": 34230,
+     "letters_reads": 34238,
      "the_bank_delivered": 0,
      "the_popes_ports_delivered": 0,
-     "buys_reads": 378,
+     "buys_reads": 380,
      "bought_edict_decreed": 0,
      "bought_word_given": 0,
      "bought_honoured": 0,
@@ -1171,8 +1171,8 @@
      "offices_reads": 0,
      "bought_endowed": 0,
      "bought_titles_granted": 0,
-     "proclamation_reads": 17115,
-     "the_proclamation_delivered": 0
+     "proclamation_reads": 17119,
+     "the_proclamation_delivered": 1
     }
    }
   }

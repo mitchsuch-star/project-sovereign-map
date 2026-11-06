@@ -581,20 +581,48 @@ def _camps_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"holds": True, "bind": {}, "measure": None, "latch": False}
 
 
+def _enemy_within_a_march(world, lord: str) -> Optional[Tuple[str, str]]:
+    """AU-3b re-premised (the user's "Re-premise it first", November 5, 2026):
+    an enemy army SEEN — PARTIAL or better, `world.get_visible_enemies`, never
+    the omniscient list — in the Emperor's own province or one march from it;
+    (that marshal, his province), or None. One marshal list and one
+    province's neighbours (Rule 8)."""
+    from backend.game_logic.fall import sovereign_of
+    sovereign = sovereign_of(world, lord)
+    if sovereign is None or getattr(sovereign, "captured_by", ""):
+        return None
+    here = str(getattr(sovereign, "location", "") or "")
+    region = (getattr(world, "regions", {}) or {}).get(here)
+    if region is None:
+        return None
+    near = {here, *[str(r) for r in (getattr(region, "adjacent_regions", None) or [])]}
+    for m in world.get_visible_enemies(lord):
+        if (int(getattr(m, "strength", 0) or 0) > 0 and not getattr(m, "captured_by", "")
+                and str(getattr(m, "location", "") or "") in near):
+            return str(m.name), str(m.location)
+    return None
+
+
 def _proclamation_wanted(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    """AU-3b the Proclamation (AUTHORITY_CURRENCY_SPEC.md §5.3, §4.1 reading
-    15): at war, the Emperor afield with his army — the Chancellor's own fact
-    (`_sovereign_afield`), the eve of Austerlitz (1 December 1805); then the
-    shared clause on the decree's own purse (authority alone: the purchases'
-    floor at the recency rise). It binds nothing — the board reads the
-    Emperor's place live. The measure is the streak."""
+    """AU-3b the Proclamation (AUTHORITY_CURRENCY_SPEC.md §5.3, §6.6), re-premised
+    on the eve of battle (the user's "Re-premise it first", November 5, 2026 —
+    on the Emperor afield it lost every pulse to the Chancellor's older letter
+    on the same fact): the LATCH bit first — an enemy army seen within a march
+    of the Emperor this morning (`_enemy_within_a_march`, fog-safe), returned
+    whether or not the rest holds so `update_morning` shifts the mask (the
+    Haiti idiom: an army that slips out of sight for a morning keeps its
+    count); then the premise proper — at war, the price able to land (the
+    shared clause on the decree's own purse: the purchases' floor at the
+    recency rise). It binds nothing — the board reads the field live. The
+    streak counts the war; the latch, the battle's approach."""
+    out = _no()
+    out["latch"] = _enemy_within_a_march(world, lord) is not None
     if _offer_entry(world, lord, params) is None:
-        return _no()
+        return out
     if not _at_war(world, lord, "_proclamation_wanted"):
-        return _no()
-    if not _sovereign_afield(world, lord, params).get("holds"):
-        return _no()
-    return {"holds": True, "bind": {}, "measure": None, "latch": False}
+        return out
+    out.update({"holds": True, "bind": {}, "measure": None})
+    return out
 
 
 def _at_war(world, lord: str, where: str) -> bool:
@@ -695,7 +723,7 @@ PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
 OFFER_PREDICATES = ("magazines_wanted", "remounts_wanted", "camps_wanted", "proclamation_wanted")
 # The predicates whose `watch` and board count a LATCH (`{n}` = the set bits
 # of the mask) rather than a streak or a corps count.
-LATCHED_PREDICATES = ("colony_cut_off", "chest_strained")
+LATCHED_PREDICATES = ("colony_cut_off", "chest_strained", "proclamation_wanted")
 
 
 def _lord_of(world, e: Dict[str, Any]) -> str:
@@ -1580,12 +1608,16 @@ def _board_offer(world, e: Dict[str, Any], lord: str, read: Dict[str, Any], stre
     from backend.game_logic.instruments import purse_of
     predicate = str((e.get("when") or {}).get("predicate") or "")
     if predicate == "proclamation_wanted":
-        # AU-3b: the Proclamation asks authority, never the chest — read live
+        # AU-3b re-premised: the eve of battle — the enemy seen within a march
+        # (fog-safe, read live), the latch's count, the price in authority
+        from backend.display_names import humanize_entity_name
         from backend.game_logic import standing
-        here = str((_sovereign_afield(world, lord, {}).get("bind") or {}).get("region") or "")
+        seen = _enemy_within_a_march(world, lord)
+        of = int((e.get("latch") or {}).get("of", 4) or 4)
+        fact = (f"{humanize_entity_name(seen[0])} stands at {humanize_entity_name(seen[1])}, within a march "
+                f"of the Emperor" if seen else "No enemy army is seen within a march of the Emperor this morning")
         asks = standing.push_price(world, lord, int(edict_block(e).get("authority", 0) or 0))
-        where = f"with the army at {here}" if here else "no longer afield this morning"
-        return [f"At war, the Emperor {where}, {streak} mornings running; his authority stands at "
+        return [f"{fact} ({latch_count(world, e)} of the last {of} mornings); his authority stands at "
                 f"{standing.standing_of(world, lord)} against the {asks} the proclamation asks."]
     price = int(edict_block(e).get("price", 0) or 0)
     purse = f"the chest holds {int(purse_of(world, lord)[1]):,} gold against {price:,}"

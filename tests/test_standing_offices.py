@@ -10,9 +10,11 @@ reading 15, the landing record §6.6) and AU-17 at its head.
 - The Titles of the Confederation: a second purse on the Princes' Dotations
   Act — 12 authority beside the 6,000 gold, decreed once whichever pays.
 - The Proclamation: a fourth Edict letter priced in authority ALONE, at war
-  with the Emperor afield; authored `since: "AU-3b"` and HELD OUT until the
-  user's word arms it (RE's rule, AU-2c's precedent); a court never
-  proclaims before AU-4.
+  on the eve of battle (LATCHED: an enemy army seen within a march of the
+  Emperor — re-premised by the user's "Re-premise it first", §6.6.5; first
+  written at war with the Emperor afield); authored `since: "AU-3b"` and HELD
+  OUT until the user's word arms it (RE's rule, AU-2c's precedent); a court
+  never proclaims before AU-4.
 The seams: `standing.offices_armed` (arm AUO) and `standing.proclamation_armed`
 (arm AUR, down by default).
 """
@@ -298,17 +300,42 @@ class TestTheProclamation:
         assert P2 not in [e["id"] for e in MO.affairs_deck(board)]
         assert MO.entry(board, P2) is None
 
-    def test_the_premise_is_at_war_with_the_emperor_afield(self, board, monkeypatch):
+    def test_the_premise_is_the_war_and_the_latch_the_enemy_within_a_march(self, board, monkeypatch):
+        """Re-premised on the eve of battle (the user's "Re-premise it first",
+        November 5, 2026): the LATCH bit is an enemy army SEEN within a march of
+        the Emperor (fog-safe, `get_visible_enemies`), one of the last four
+        mornings; the premise proper is the war and the price able to land —
+        wherever he stands (afield it lost every pulse to the Chancellor's
+        older letter on the same fact)."""
         _armed(monkeypatch)
-        when = MO.entry(board, P2)["when"]
+        e = MO.entry(board, P2)
+        assert e["latch"] == {"of": 4, "at_least": 1} and "proclamation_wanted" in AF.LATCHED_PREDICATES
         holds = AF.PREDICATES["proclamation_wanted"]
-        _afield(board, "Swabia")
-        assert holds(board, "France", when)["holds"] is True
-        _afield(board, "Paris")
-        assert holds(board, "France", when)["holds"] is False
-        _afield(board, "Swabia")
-        board.authority_tracker.authority = 62                 # 62 − 4 = 58: under the purchases' floor
-        assert holds(board, "France", when)["holds"] is False
+        _afield(board, "Lorraine")             # the boot's own place: Mack seen in Swabia, one march off
+        read = holds(board, "France", e["when"])
+        assert read["holds"] is True and read["latch"] is True
+        assert AF._enemy_within_a_march(board, "France") == ("Mack", "Swabia")
+        _afield(board, "Paris")                # home, the enemy far: the war holds, the latch does not
+        read = holds(board, "France", e["when"])
+        assert read["holds"] is True and read["latch"] is False
+        _afield(board, "Lorraine")
+        board.authority_tracker.authority = 62     # 62 − 4 = 58: under the purchases' floor
+        read = holds(board, "France", e["when"])
+        assert read["holds"] is False and read["latch"] is True     # the latch is read whatever the rest
+
+    def test_a_fogged_enemy_is_never_read(self, board, monkeypatch):
+        _armed(monkeypatch)
+        _afield(board, "Lorraine")
+        monkeypatch.setattr(type(board), "get_visible_enemies", lambda self, nation: [])
+        assert AF._enemy_within_a_march(board, "France") is None
+
+    def test_the_board_names_the_enemy_seen(self, board, monkeypatch):
+        _armed(monkeypatch)
+        _afield(board, "Lorraine")
+        e = MO.entry(board, P2)
+        line = AF._board_offer(board, e, "France", {}, 0)[0]
+        assert line.startswith("Mack stands at Swabia, within a march of the Emperor (")
+        assert line.endswith("against the 4 the proclamation asks.")
 
     def test_the_accept_is_priced_in_authority_and_says_so_on_its_button(self, board, monkeypatch):
         _armed(monkeypatch)
@@ -386,8 +413,18 @@ class TestTheMeasureAndTheFrames:
         rec = json.loads((REPO / "tools" / "_affairs_au3b_proclamation.json").read_text(encoding="utf-8"))
         assert rec["letters"] == [P2] and rec["runs_measured"] >= 55
         totals = rec["totals"][P2]
-        # armed, it arrives somewhere — the figures are §6.6's, per run (seeded paths, not laws)
+        # armed, it arrives somewhere — the figures are §6.6.5's, per run (seeded paths, not laws)
         assert totals["arrivals"] > 0 and totals["runs_arrived"] > 0 and totals["runs_premise"] > 0
+
+    def test_the_first_premises_record_is_kept_beside_the_re_premise(self):
+        """§6.6.5 (the user's "Re-premise it first"): the first premise's armed
+        record is kept as the record (AU-2c's `_first` idiom); the re-premise
+        rewrote the review record — the eve of battle arrives where the
+        Emperor afield lost the pulse to the Chancellor's older letter."""
+        first = json.loads((REPO / "tools" / "_affairs_au3b_proclamation_first.json").read_text(encoding="utf-8"))
+        now = json.loads((REPO / "tools" / "_affairs_au3b_proclamation.json").read_text(encoding="utf-8"))
+        assert first["letters"] == [P2] and first["runs_measured"] == now["runs_measured"]
+        assert now["totals"][P2]["runs_arrived"] > first["totals"][P2]["runs_arrived"]
 
     def test_the_series_holds_on_the_slices_arms_with_the_proclamation_up(self):
         rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))

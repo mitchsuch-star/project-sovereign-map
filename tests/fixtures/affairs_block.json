@@ -604,6 +604,10 @@
         "cooldown": 12,
         "cap": 2,
         "grace": 4,
+        "latch": {
+          "of": 4,
+          "at_least": 1
+        },
         "voice": {
           "speaker": "named",
           "name": "Daru, Minister Secretary of State",
@@ -624,7 +628,7 @@
           }
         ],
         "line": "Sire, the army is in the field and the enemy before it. Words of Your Majesty's own, read at every parade at dawn, are worth a division on the day.",
-        "watch": "At war and afield {m} of 2 mornings — the Secretary of State may ask for a proclamation.",
+        "watch": "An enemy within a march of the Emperor {n} of the last 4 mornings — the Secretary of State may ask for a proclamation.",
         "counsel": "Berthier — Read at the parade, Sire, a proclamation marches with the men.",
         "edict": {
           "name": "the Proclamation",

@@ -255,11 +255,13 @@ class TestEachAnswerIsTheBetterOneSomewhere:
             assert boards == ["expander", "strained"]
         if template == P1:
             assert boards == ["expander", "strained"]
-        # AU-3b: the Proclamation where France is at war with the Emperor afield
-        # and its price lands above the purchases' floor — the expander (85) and
-        # the spent board (72 − 4); the strained board keeps him at home
+        # AU-3b, re-premised on the eve of battle (the user's "Re-premise it
+        # first"): the premise is the war and the price landing above the
+        # purchases' floor, wherever the Emperor stands — the expander (85), the
+        # spent board (72 − 4) and the strained board (85, the Emperor at home);
+        # the hoarder is at peace
         if template == P2:
-            assert boards == ["expander", "spent"]
+            assert boards == ["expander", "spent", "strained"]
 
 
 class TestTheThirdAnswerIsTheBetterOneSomewhere:
