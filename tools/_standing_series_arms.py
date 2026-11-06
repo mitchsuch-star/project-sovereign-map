@@ -41,10 +41,11 @@ ARMS = {"0": set(SEAMS), **{s: {s} for s in SEAMS}, "ALL": set()}
 # A seam DOWN by default is measured UP on its own arm, every other seam as
 # shipped (`UP_ARMS`: arm -> the seams forced up). AU-2c's AUL+ arm measured
 # the Bank and the Pope so until the user's "Arm both" (November 5, 2026):
-# AUL is up by default now and ALL is that arm. AU-3b's Proclamation
-# (`standing.proclamation_armed`, held out until the user's word) is measured
-# up on AUR+; AU-4's courts (`standing.courts_move`) come next.
-UP_ARMS: dict = {"AUR+": {"AUR"}}
+# AUL is up by default now and ALL is that arm. AU-3b's AUR+ arm measured the
+# Proclamation so until the user's "Arm it" (November 5, 2026): AUR is up by
+# default now and ALL is that arm too. None stands today; AU-4's courts
+# (`standing.courts_move`, down until the user's word) come next.
+UP_ARMS: dict = {}
 ARMS.update({arm: set() for arm in UP_ARMS})
 
 CHILD = r"""
@@ -175,7 +176,8 @@ def _counted_buy(world, lord, base, cause, party="", **fmt):
     return out
 ST.buy = _counted_buy
 # AU-3b the crowns and offices: the seam AUO (Endow them, the Titles), held down
-# on its arm; the Proclamation's seam AUR, down by default, forced up on AUR+
+# on its arm; the Proclamation's seam AUR — up since the user's "Arm it"
+# (November 5, 2026), held down on its arm; an UP_ARMS arm forces it up
 _offices = ST.offices_armed
 def _counted_offices():
     _c["offices_reads"] += 1

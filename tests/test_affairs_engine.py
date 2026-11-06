@@ -31,7 +31,7 @@ from backend.game_logic import affairs as AF
 from backend.game_logic import imperial_designs as ID
 from backend.game_logic import moments as MO
 from tests import _chip_census as C
-from tests._affairs_boards import rest_the_offers
+from tests._affairs_boards import rest_the_offers, without_the_proclamation
 
 REPO = Path(__file__).resolve().parents[1]
 BACKEND = REPO / "backend"
@@ -207,7 +207,7 @@ class TestUnarmed:
         # AU-2c (November 4, 2026): the Bank's Panic and the Pope's Refusal,
         # authored `since: "AU-2c"`, armed by the user's word (November 5);
         # AU-3b (November 5, 2026): the Proclamation after the offers, authored
-        # `since: "AU-3b"` and HELD OUT until the user's word arms it
+        # `since: "AU-3b"`, armed by the user's "Arm it" (November 5)
         assert [e["id"] for e in block["affairs"]["deck"]] == [
             "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
             "the_magazines", "the_remounts", "camps_of_instruction", "the_proclamation",
@@ -237,10 +237,11 @@ class TestTheStoreAndTheIds:
         assert [e["id"] for e in MO.deck(armed)] == ["bavarian_match", "throne_of_holland",
                                                       "crown_of_the_reich", "decree_of_berlin"]
         # RE-H: the fourth; RE-6: the three offers (the Edicts); AU-2c: the
-        # Bank and the Pope, armed by the user's word (November 5, 2026)
+        # Bank and the Pope, armed by the user's word (November 5, 2026); AU-3b:
+        # the Proclamation, armed by the user's "Arm it" the same evening
         assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo",
                                                       "the_magazines", "the_remounts", "camps_of_instruction",
-                                                      "the_bank", "the_popes_ports"]
+                                                      "the_proclamation", "the_bank", "the_popes_ports"]
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2
@@ -441,6 +442,7 @@ class TestTheArrival:
 class TestCooldownsAndCaps:
     def test_the_cooldown_is_derived_from_the_rows_and_the_cap_resets_at_the_verdict(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         _run(armed, range(1, 8))
         with _quiet():
@@ -455,6 +457,7 @@ class TestCooldownsAndCaps:
 
     def test_a_crowded_out_affair_writes_its_row_and_arms_the_cooldown(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         armed.war_intents = {"Prussia": {"coveter": "Prussia", "target": "Hanover",
                                          "opened_turn": 7, "foregrounded": True,
@@ -475,6 +478,7 @@ class TestCooldownsAndCaps:
 
     def test_the_set_aside_line_is_aggregated_and_only_for_a_watched_matter(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         armed.war_intents = {"Prussia": {"coveter": "Prussia", "target": "Hanover",
                                          "opened_turn": 1, "foregrounded": True,
@@ -497,6 +501,7 @@ class TestCooldownsAndCaps:
 
     def test_a_due_mark_is_dropped_silently_when_the_premise_falls(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         armed.war_intents = {"Prussia": {"coveter": "Prussia", "target": "Hanover",
                                          "opened_turn": 7, "foregrounded": True,
@@ -511,6 +516,7 @@ class TestCooldownsAndCaps:
     def test_a_matter_held_by_the_pulse_is_not_crowded_out(self, armed):
         """P8's ruled "about T13": the pulse decides when the deck may speak;
         waiting on the gap or the look-ahead is never a busy desk."""
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         _run(armed, range(1, 8))                              # the look-ahead holds 7
         assert AF.runtime(armed).get("due", {}) == {}
@@ -641,6 +647,7 @@ class TestBites:
 
     def test_the_door_arrives_at_war_with_the_chest_above_the_bar(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         # RE-H: the fourth letter (the Emperor at home, blockaded, the chest
         # above the Marine's bar) would take the morning the chest clears —
         # the fleet under 25 sail keeps the Marine silent, so this pin reads
@@ -703,11 +710,18 @@ class TestTheMomentsAreBlind:
         assert _scripted_moments(control) == expected
         assert _scripted_moments(world) == expected
         rows = _rows(world)
-        assert rows["the_host#1"]["turn"] == 13 and rows["the_host#1"]["status"] == "withdrawn"
-        assert rows["the_host#1"]["set_aside_for"] == "throne_of_holland"
+        # AU-3b armed (November 5, 2026): the Proclamation's streak is the war's and
+        # ties the Host's on this board, so the seeded tie-break (`affairs.pick`)
+        # gives one of the two the T13 morning; whichever stands when Holland's
+        # letter arrives is withdrawn free, and the moments' turns are the
+        # unarmed control's with the whole armed deck in play
+        withdrawn = [k for k, r in rows.items() if r["status"] == "withdrawn"]
+        assert len(withdrawn) == 1 and withdrawn[0] in ("the_host#1", "the_proclamation#1"), rows
+        assert rows[withdrawn[0]]["turn"] == 13 and rows[withdrawn[0]]["set_aside_for"] == "throne_of_holland"
 
     def test_a_moment_withdraws_a_standing_affair_free(self, armed, monkeypatch):
         monkeypatch.setattr(AF, "LOOK_AHEAD", 0)             # let the affair land on 7
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         assert _run(armed, range(1, 8)) == {7: ["the_host#1"]}
         rel, gold = _rel(armed, "Bavaria"), armed.nation_gold["France"]
@@ -771,8 +785,12 @@ class TestSavesAndTheBackfill:
         restored = WorldState.from_dict(json.loads(json.dumps(armed.to_dict())))
         assert restored.moments == armed.moments
         assert restored.moments["state"]["the_host#1"]["tier"] == 2
-        assert restored.moments["affairs"]["streaks"] == {"the_host|Bavaria": 7}
-        assert "watched" not in restored.moments["affairs"]    # the letter stood: nothing watched, nothing written (RE3-10)
+        # AU-3b armed (November 5, 2026): the Proclamation's streak (the war's)
+        # rides the store beside the Host's; the Host's letter stands, so its
+        # template is not watched — the Proclamation's line is, and the round
+        # trip carries that record too (RE3-10: a line shown, a line written)
+        assert restored.moments["affairs"]["streaks"] == {"the_host|Bavaria": 7, "the_proclamation|": 7}
+        assert restored.moments["affairs"]["watched"] == {"the_proclamation": 7}
         assert "_affairs_memo" not in restored.to_dict()
 
     def test_the_backfill_arms_a_pre_re_store_three_mornings_out(self, armed):
@@ -1011,6 +1029,7 @@ class TestTheWatchAndTheTrace:
         # would be the nearest due matter (and the Remounts behind it) — the
         # offers stood aside, the pin reads the Host and the door
         rest_the_offers(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _run(armed, [1, 2])
         lines = AF.watch(armed)
         assert lines == ["3 corps on Bavaria's soil: 2 of 3 mornings — its court may present its claims.",
@@ -1023,6 +1042,7 @@ class TestTheWatchAndTheTrace:
 
     def test_the_watch_is_silent_while_a_letter_stands(self, armed):
         _no_moments(armed)
+        without_the_proclamation(armed)          # AU-3b armed: the board measures the older letters
         _quarter(armed, ("Ney", "Davout"))
         _run(armed, range(1, 8))
         assert MO.status(armed, "the_host#1") == "fired"
@@ -1037,13 +1057,22 @@ class TestTheWatchAndTheTrace:
         shows a line writes `watched` for that line alone."""
         _no_moments(armed)
         assert "affairs" not in armed.moments
+        # AU-18 (the Proclamation's arming, November 5, 2026): its premise holds
+        # on this boot (at war, the price able to land), so the Watch reads its
+        # streak and its latch — through `affairs.runtime_read`, which never
+        # creates the store (`runtime` did, and the boot briefing wrote
+        # `moments.affairs = {}`); its latch has counted no morning: no line
         assert AF.watch(armed) == []                         # the boot: the Emperor home, no corps quartered
         assert "affairs" not in armed.moments
         armed.__dict__.pop("_affairs_memo", None)            # that read was this morning's; the board changes
         _quarter(armed, ("Ney", "Davout"))
         _run(armed, [1])
         lines = AF.watch(armed)
-        assert lines and set(armed.moments["affairs"]["watched"]) == {T2}
+        # AU-3b armed (November 5, 2026): the first morning counts the
+        # Proclamation's latch (Mack seen in Swabia, a march from the Emperor),
+        # so the Watch shows its line beside the Host's — and writes the two
+        assert len(lines) == 2
+        assert set(armed.moments["affairs"]["watched"]) == {T2, "the_proclamation"}
 
     def test_the_trace_reads_an_affairs_morning_and_judges_it_whole(self, armed):
         from tools._moments_trace import MomentsTrace

@@ -155,7 +155,7 @@ def row_armed(row: str) -> bool:
     AU-2c's is `standing.letters_armed` (the Bank's and the Pope's letters,
     armed by the user's word); AU-3a's is `standing.buys_armed` (the Edict
     letters' third answer, "Decree it"); AU-3b's is `standing.proclamation_armed`
-    (the Proclamation, held out until the user's word arms it)."""
+    (the Proclamation, armed by the user's word)."""
     if row == "AU-3b":
         from backend.game_logic import standing
         return bool(standing.proclamation_armed())
@@ -239,8 +239,9 @@ def armed(world) -> bool:
 
 
 def runtime(world) -> Dict[str, Any]:
-    """The runtime store — created on first read of an ARMED world only, so
-    an unarmed store (the shipped boot's) is never touched."""
+    """The runtime store for a WRITER — created on first use of an ARMED
+    world only, so an unarmed store is never touched. A pure read passes
+    `runtime_read` (RE3-10's rule, AU-18)."""
     store = MO._store(world)
     rt = store.get("affairs")
     if not isinstance(rt, dict):
@@ -248,6 +249,17 @@ def runtime(world) -> Dict[str, Any]:
         if store and armed(world):
             store["affairs"] = rt
     return rt
+
+
+def runtime_read(world) -> Dict[str, Any]:
+    """The runtime store read PURELY — never created (AU-18, BUG_FIXES.md §AU:
+    the armed Proclamation's premise holds on the 1805 boot, so the boot
+    briefing's Watch read its streak and its latch through `runtime`, which
+    created `moments.affairs = {}` — the new world differed from a fresh one
+    by it, EP-F1's rule; RE3-10 fixed the Watch's own write, these were its
+    readers). A GET, the boot briefing and the Watch pass here."""
+    rt = MO._store(world).get("affairs")
+    return rt if isinstance(rt, dict) else {}
 
 
 def _band(value: Any, default: int, band: Tuple[int, int]) -> Tuple[int, Tuple[int, int]]:
@@ -803,7 +815,7 @@ def update_morning(world) -> None:
 
 
 def streak_of(world, e: Dict[str, Any], subject: str) -> int:
-    return int((runtime(world).get("streaks") or {}).get(_streak_key(str(e["id"]), subject), 0))
+    return int((runtime_read(world).get("streaks") or {}).get(_streak_key(str(e["id"]), subject), 0))
 
 
 def latch_count(world, e: Dict[str, Any]) -> int:
@@ -812,7 +824,7 @@ def latch_count(world, e: Dict[str, Any]) -> int:
     12 mornings")."""
     if not isinstance(e.get("latch"), dict):
         return 0
-    mask = int((runtime(world).get("masks") or {}).get(str(e["id"]), 0))
+    mask = int((runtime_read(world).get("masks") or {}).get(str(e["id"]), 0))
     return bin(mask).count("1")
 
 
@@ -1821,8 +1833,7 @@ def edict_key(lord: str, template: str) -> str:
 def _edicts_store(world) -> Dict[str, int]:
     """The `{lord|template: until}` map — a pure read of the store (a GET,
     the boot briefing and the supply cap all pass here)."""
-    rt = MO._store(world).get("affairs")
-    store = rt.get(EDICTS_KEY) if isinstance(rt, dict) else None
+    store = runtime_read(world).get(EDICTS_KEY)
     return store if isinstance(store, dict) else {}
 
 

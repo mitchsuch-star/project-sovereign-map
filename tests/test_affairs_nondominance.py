@@ -46,8 +46,9 @@ E1, E2, E3 = "the_magazines", "the_remounts", "camps_of_instruction"
 # below holds them up whatever the seam's default, as the review record did.
 B1, P1 = "the_bank", "the_popes_ports"
 # AU-3b (November 5, 2026; §5.3): the Proclamation — an Edict priced in
-# authority ALONE, at war with the Emperor afield; held out until the user's
-# word arms it, so the `armed` fixture holds it up as the review record does
+# authority ALONE, on the eve of battle (re-premised by "Re-premise it first");
+# armed by the user's "Arm it" (November 5, 2026); the `armed` fixture holds it
+# up whatever the seam's default, as the review record did
 P2 = "the_proclamation"
 TEMPLATES = (T1, T2, T3, H1, E1, E2, E3, B1, P1, P2)
 PURSES = ("gold", "dp", "admin")
@@ -71,7 +72,7 @@ def armed(monkeypatch):
     C.board_env(monkeypatch)
     from backend.game_logic import standing
     monkeypatch.setattr(standing, "letters_armed", lambda *a, **k: True)   # AU-2c, armed Nov 5
-    monkeypatch.setattr(standing, "proclamation_armed", lambda *a, **k: True)   # AU-3b, measured up
+    monkeypatch.setattr(standing, "proclamation_armed", lambda *a, **k: True)   # AU-3b, armed Nov 5
     world = M.world
     world.moments = MO.from_block(json.loads(FIXTURE.read_text(encoding="utf-8")))
     return world

@@ -94,13 +94,16 @@ class TestTheUsersWordArmedThem:
         assert AF.row_armed("AU-2c") is True and AF.row_armed("AU-2b") is True
 
     def test_both_letters_stand_last_in_the_shipped_deck(self, world):
-        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + [BANK, POPE]
+        # AU-3b: the Proclamation, armed by the user's "Arm it" (November 5),
+        # stands after the offers and before the two
+        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation", BANK, POPE]
         assert AF.entry_armed(MO.entry(world, BANK)) and AF.entry_armed({"id": "x"})
 
     def test_held_down_every_reader_sees_the_deck_before_au_2c(self, world, monkeypatch):
         monkeypatch.setattr(ST, "letters_armed", lambda *a, **k: False)
         assert AF.row_armed("AU-2c") is False
-        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C
+        # the Proclamation stands on its own seam (AUR), armed November 5
+        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation"]
         assert MO.entry(world, BANK) is None and MO.entry(world, POPE) is None
         world.nation_gold["France"] = 20_000
         world.authority_tracker.authority = 100
@@ -115,8 +118,8 @@ class TestTheUsersWordArmedThem:
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
         assert STANDING_SEAMS_BY_ROW["AUL"] == ["backend.game_logic.standing:letters_armed=False"]
         rig = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        # AU-3b: the rig's one UP arm now measures the Proclamation (AUR+)
-        assert 'UP_ARMS: dict = {"AUR+": {"AUR"}}' in rig and "the_popes_ports_delivered" in rig
+        # AU-3b: the Proclamation's AUR+ arm retired at its arming (November 5) — none stands
+        assert "UP_ARMS: dict = {}" in rig and "the_popes_ports_delivered" in rig
         assert 'ARMS["AUL+"]' not in rig
 
 

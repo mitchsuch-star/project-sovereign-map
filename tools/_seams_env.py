@@ -6,8 +6,9 @@ the tools that spawn their own children — the passive sweep
 (`MODULE:NAME=EXPR` → `lambda *a, **k: EXPR`, the series arms' rule) read from
 `INK_IRON_SEAMS` (specs separated by ";"), so an ARMED measure of a seam held
 down by default reaches every child without a backend lever (AU-2c measured
-`standing.letters_armed` so before the user's "Arm both" of November 5, 2026;
-AU-4's `standing.courts_move` is the next). Unset, it does nothing.
+`standing.letters_armed` so before the user's "Arm both" of November 5, 2026,
+and AU-3b `standing.proclamation_armed` before the user's "Arm it" the same
+day; AU-4's `standing.courts_move` is the next). Unset, it does nothing.
 
     INK_IRON_SEAMS="backend.game_logic.standing:letters_armed=True" \
         .venv/Scripts/python.exe tools/ai_v_sweep.py --all --out <dir>

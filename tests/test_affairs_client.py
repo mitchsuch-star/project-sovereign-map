@@ -442,8 +442,9 @@ class TestTheWatch:
         world.nation_gold["France"] = 20_000
         # RE-6: the corps on Bavaria draw campaign pay (the Magazines' clause)
         # and the pool sits at 50 % (the Remounts') — the offers stood aside
-        from tests._affairs_boards import rest_the_offers
+        from tests._affairs_boards import rest_the_offers, without_the_proclamation
         rest_the_offers(world)
+        without_the_proclamation(world)                       # AU-3b armed: the Host and the door alone
         _run(world, [1, 2])
         with _quiet():
             situation = DP._build_situation(world, "France")
@@ -453,7 +454,9 @@ class TestTheWatch:
         assert all(isinstance(x, str) for x in situation["affairs_watch"])
 
     def test_the_watch_is_empty_not_absent_while_a_letter_stands(self, armed):
+        from tests._affairs_boards import without_the_proclamation
         _no_moments(armed)
+        without_the_proclamation(armed)                       # AU-3b armed: the Host's letter alone
         _quarter(armed, ("Ney", "Davout"))
         _run(armed, range(1, 8))
         assert MO.status(armed, "the_host#1") == "fired"

@@ -29,6 +29,7 @@ from backend.game_logic import moments as MO
 from backend.game_logic import reforms
 from tests import _chip_census as C
 from tests.test_affairs_engine import _without_au2c_letters
+from tests._affairs_boards import without_the_proclamation
 
 REPO = Path(__file__).resolve().parents[1]
 BACKEND = REPO / "backend"
@@ -156,6 +157,9 @@ def _quiet_board(world, gold=5_000):
     # AU-2c (armed November 5, 2026): the Pope's premise is the boot's war
     # with Britain — it arrived at T12, inside the Remounts' cooldown; out of the deck
     _without_au2c_letters(world)
+    # AU-3b (armed November 5, 2026): the Proclamation's premise is the boot's
+    # war with an army seen a march off — it arrived at T12 too; out of the deck
+    without_the_proclamation(world)
     world.__dict__.pop("_affairs_memo", None)
 
 
@@ -254,7 +258,7 @@ class TestTheDeck:
         # AU-2c (November 4, 2026) appends the Bank's and the Pope's letters
         # after the offers — two bills, armed by the user's word (November 5);
         # AU-3b: the fourth offer, the Proclamation (priced in authority alone,
-        # held out until the user's word — `tests/test_standing_offices.py`)
+        # armed by the user's "Arm it" — `tests/test_standing_offices.py`)
         assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == [
             *OFFERS, "the_proclamation"]
         assert [e["id"] for e in scenario["affairs"]["deck"]][-2:] == ["the_bank", "the_popes_ports"]

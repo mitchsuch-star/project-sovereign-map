@@ -2493,7 +2493,9 @@ def cap_moments():
 
     # AU-3b (AUTHORITY_CURRENCY_SPEC.md §5.3, §6.6): the Proclamation, shot UP for
     # the user's review before arming — `standing.proclamation_armed` held up in
-    # this staging alone; the letter alone in the deck, the Emperor afield at war
+    # this staging (armed by default since the user's "Arm it", November 5, 2026;
+    # the hold kept so the frame re-shoots as recorded); the letter alone in the
+    # deck, at war with an enemy seen within a march of the Emperor
     from backend.game_logic import standing as _ST3
     _procl_armed = _ST3.proclamation_armed
     _ST3.proclamation_armed = lambda *a, **k: True

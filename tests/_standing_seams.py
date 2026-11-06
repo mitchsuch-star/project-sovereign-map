@@ -46,10 +46,11 @@ byte-identical to HEAD's `BASELINE_SERIES` — measured, not assumed.
                                     the Confederation (the Princes' Dotations Act
                                     paid in titles) — down: the tree before AU-3b
     AUR  `standing.proclamation_armed` — AU-3b: the Proclamation, an Edict
-                                    letter authored `since: "AU-3b"` and HELD OUT
-                                    until the user's word arms it — down by
-                                    default (holding it down is the shipped tree);
-                                    the rig's `AUR+` arm measures it up
+                                    letter authored `since: "AU-3b"` — down: held
+                                    WHOLE out of the deck (the deck before the
+                                    Proclamation). Up since the user's "Arm it"
+                                    (November 5, 2026); the rig's AUR+ arm, which
+                                    measured it up while authored, is retired
 
 The last slice adds its seam here as it lands: AUC the courts (AU-4).
 

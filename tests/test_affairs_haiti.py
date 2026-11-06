@@ -34,6 +34,7 @@ from tests.test_affairs_engine import (  # noqa: F401 — the fixtures ride the 
     _no_moments, _quiet, _restore_active_world, _run, _tick, _without_au2c_letters, armed, client, world,
 )
 from tests.test_first_open import _TYPED
+from tests._affairs_boards import without_the_proclamation
 
 H1 = "santo_domingo"
 HOME = "Lorraine"             # Napoleon's seat at the 1805 boot (the sovereign holds court here)
@@ -57,6 +58,9 @@ def _haiti_board(w, gold=5_000, authority=100):
     # AU-2c (armed November 5, 2026): the Pope's premise is this board's own
     # war with Britain — the two letters out of the board's deck
     _without_au2c_letters(w)
+    # AU-3b (armed November 5, 2026): the Proclamation's premise is this
+    # board's own war with an army seen a march off — out of the deck
+    without_the_proclamation(w)
     w.__dict__.pop("_affairs_memo", None)
 
 

@@ -87,11 +87,30 @@ class TestTheFirstTwoOnEveryRow:
 
 class TestTheShippedMeasureBuysNothing:
     """The default dials answer no buy, so the shipped records are the unbought
-    baseline the reach and the series pins read; the buys live in the spender arm."""
+    baseline the reach and the series pins read; the buys live in the spender arm.
+
+    AU-3b armed (the user's "Arm it", November 5, 2026; AUTHORITY_CURRENCY_SPEC.md
+    §6.6.6) — one exception, named: the Proclamation's Accept is priced in
+    authority ALONE, so where the accept dial issues it the letter's own answer
+    books `edict_decreed` — HAITI-historical (T12) and the Rhine road's accept
+    arm on historical (T28), 4 authority each, above the purchases' floor (81
+    and 82 after). No other purchase on any shipped row."""
+
+    PROCLAIMED = {("haiti", "HAITI-historical"), ("road_accept", "VP1-RH-historical")}
 
     @pytest.mark.parametrize("row", ROWS, ids=lambda r: f"{r['family']}/{r['arm']}")
     def test_no_purchase_on_a_shipped_row(self, row):
-        assert not set(PURCHASES) & set(row.get("by_cause") or {}), row["by_cause"]
+        bought = set(PURCHASES) & set(row.get("by_cause") or {})
+        if (row["family"], row["arm"]) in self.PROCLAIMED:
+            assert bought == {"edict_decreed"}, row["by_cause"]
+            assert row["by_cause"]["edict_decreed"]["n"] == 1 and row["by_cause"]["edict_decreed"]["sum"] == -4
+            assert row["lowest_after"]["edict_decreed"] >= standing.PURCHASE_FLOOR
+        else:
+            assert not bought, row["by_cause"]
+
+    def test_the_proclaimed_rows_are_the_accept_dials(self):
+        proclaimed = {(r["family"], r["arm"]) for r in ROWS if "edict_decreed" in (r.get("by_cause") or {})}
+        assert proclaimed == self.PROCLAIMED, proclaimed
 
 
 class TestTheSpenderArm:

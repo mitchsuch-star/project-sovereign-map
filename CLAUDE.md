@@ -35,11 +35,11 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5 (§6.1–§6.6) — AU-4 next; one slice before S15**.
 
 **▶ LIVE STATE (Nov 5, 2026).** The three most recent rows:
-- **AU-3b (Nov 5) — LANDED: Endow them, the Titles; the Proclamation held out for the user's word** (§6.6).
+- **AU-3b (Nov 5) — LANDED: Endow them, the Titles; the Proclamation re-premised and ARMED by the user's word** (§6.6).
 - **AU-3a (Nov 5) — LANDED: Decree it, By my word, Honour him, By Decree; the recency rise** (§6.5).
 - **AU-2c (Nov 4) — LANDED, ARMED Nov 5 ("Arm both"): the Bank's Panic and the Pope's Refusal** (§6.4).
 
-**Open with the user:** the Proclamation's arming and AU-3b's readings (spec §6.6.3), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** AU-3b's readings (spec §6.6.3), the certificate (§153.3), the build (unsigned) and the clean run, RE3-6/7/9 (S15's head), S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

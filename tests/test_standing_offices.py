@@ -12,9 +12,9 @@ reading 15, the landing record §6.6) and AU-17 at its head.
 - The Proclamation: a fourth Edict letter priced in authority ALONE, at war
   on the eve of battle (LATCHED: an enemy army seen within a march of the
   Emperor — re-premised by the user's "Re-premise it first", §6.6.5; first
-  written at war with the Emperor afield); authored `since: "AU-3b"` and HELD
-  OUT until the user's word arms it (RE's rule, AU-2c's precedent); a court
-  never proclaims before AU-4.
+  written at war with the Emperor afield); authored `since: "AU-3b"`, held
+  out until measured (RE's rule, AU-2c's precedent) and ARMED by the user's
+  "Arm it" (November 5, 2026, §6.6.6); a court never proclaims before AU-4.
 The seams: `standing.offices_armed` (arm AUO) and `standing.proclamation_armed`
 (arm AUR, down by default).
 """
@@ -269,10 +269,12 @@ class TestTheTitles:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# The Proclamation — an Edict priced in authority alone, held out
+# The Proclamation — an Edict priced in authority alone, armed by the user's word
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _armed(monkeypatch):
+    # armed by default since the user's "Arm it" (November 5, 2026); the hold
+    # kept so these pins read the letter whatever the seam's default
     monkeypatch.setattr(ST, "proclamation_armed", lambda *a, **k: True)
 
 
@@ -295,8 +297,16 @@ class TestTheProclamation:
         assert AF.edict_currency(e) == "authority"
         assert [x["id"] for x in scenario["deck"]][-3:] == [P2, "the_bank", "the_popes_ports"]
 
-    def test_held_out_until_the_users_word(self, board):
-        assert ST.proclamation_armed() is False
+    def test_the_users_word_armed_it(self, board, monkeypatch):
+        """Re-pinned consciously (it read `test_held_out_until_the_users_word`):
+        the user's "Arm it" (November 5, 2026, after "Re-premise it first",
+        §6.6.6) put the Proclamation in the shipped deck for every reader;
+        arm AUR holds it down — the deck before the Proclamation."""
+        assert ST.proclamation_armed() is True
+        assert P2 in [e["id"] for e in MO.affairs_deck(board)]
+        assert MO.entry(board, P2)["id"] == P2
+        monkeypatch.setattr(ST, "proclamation_armed", lambda *a, **k: False)     # arm AUR
+        board.__dict__.pop("_affairs_memo", None)
         assert P2 not in [e["id"] for e in MO.affairs_deck(board)]
         assert MO.entry(board, P2) is None
 
@@ -322,6 +332,24 @@ class TestTheProclamation:
         board.authority_tracker.authority = 62     # 62 − 4 = 58: under the purchases' floor
         read = holds(board, "France", e["when"])
         assert read["holds"] is False and read["latch"] is True     # the latch is read whatever the rest
+
+    def test_au18_a_pure_read_never_creates_the_runtime_store(self, board):
+        """AU-18 (BUG_FIXES.md §AU; found by EP-F1's boot pin at the arming,
+        November 5, 2026): the Proclamation's premise holds on the 1805 boot
+        (the war, the price able to land), so the boot briefing's Watch read
+        its streak and its latch through `affairs.runtime` — which creates the
+        store — and the new world differed from a fresh one by
+        `moments.affairs = {}`. The readers pass `runtime_read`; a writer's
+        `runtime` still creates it."""
+        assert ST.proclamation_armed() is True
+        board.moments.pop("affairs", None)
+        board.__dict__.pop("_affairs_memo", None)
+        e = MO.entry(board, P2)
+        assert AF.premise_holds(board, e, "France")["holds"] is True
+        assert AF.streak_of(board, e, "") == 0 and AF.latch_count(board, e) == 0
+        assert AF.watch(board) == [] and AF.runtime_read(board) == {}
+        assert "affairs" not in board.moments                 # every read above wrote nothing
+        assert AF.runtime(board) == {} and board.moments["affairs"] == {}     # a writer's use creates it
 
     def test_a_fogged_enemy_is_never_read(self, board, monkeypatch):
         _armed(monkeypatch)
@@ -395,10 +423,11 @@ class TestTheSeams:
         from tests._standing_seams import STANDING_SEAMS_BY_ROW
         assert STANDING_SEAMS_BY_ROW["AUO"] == ["backend.game_logic.standing:offices_armed=False"]
         assert STANDING_SEAMS_BY_ROW["AUR"] == ["backend.game_logic.standing:proclamation_armed=False"]
-        assert ST.offices_armed() is True and ST.proclamation_armed() is False
-        assert "AU-3b" in AF.SINCE_ROWS and AF.row_armed("AU-3b") is False
+        # the Proclamation armed by the user's "Arm it" (November 5, 2026): both up
+        assert ST.offices_armed() is True and ST.proclamation_armed() is True
+        assert "AU-3b" in AF.SINCE_ROWS and AF.row_armed("AU-3b") is True
         src = (REPO / "tools" / "_standing_series_arms.py").read_text(encoding="utf-8")
-        assert 'UP_ARMS: dict = {"AUR+": {"AUR"}}' in src
+        assert "UP_ARMS: dict = {}" in src                  # the AUR+ arm retired: ALL is that arm
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -426,10 +455,12 @@ class TestTheMeasureAndTheFrames:
         assert first["letters"] == [P2] and first["runs_measured"] == now["runs_measured"]
         assert now["totals"][P2]["runs_arrived"] > first["totals"][P2]["runs_arrived"]
 
-    def test_the_series_holds_on_the_slices_arms_with_the_proclamation_up(self):
+    def test_the_series_holds_on_the_slices_arms_with_the_proclamation_armed(self):
+        """The arming's re-measure (§6.6.6): ALL is the armed tree now, AUR holds
+        the Proclamation down, and the AUR+ arm is retired."""
         rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
-        assert {"AUO", "AUR", "AUR+"} <= set(rec["arms"])
-        for arm in ("AUO", "AUR", "AUR+"):
+        assert {"AUO", "AUR", "ALL"} <= set(rec["arms"]) and "AUR+" not in rec["arms"]
+        for arm in ("AUO", "AUR", "ALL"):
             assert rec["arms"][arm]["first_divergence_vs_prior"] is None, arm
 
     def test_the_stagings_are_wired(self):

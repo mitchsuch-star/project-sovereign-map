@@ -166,11 +166,11 @@ def offices_armed() -> bool:
 
 def proclamation_armed() -> bool:
     """Arm AUR (AU-3b, §5.3): the Proclamation — a fourth Edict letter priced
-    in authority at war, authored `since: "AU-3b"` and HELD OUT until the
-    user's word arms it (RE's rule: a template without a measured premise is
-    not armed — AU-2c's precedent); measured up by the rig's `AUR+` arm and,
-    in the sweep's and the probe's children, by `INK_IRON_SEAMS`."""
-    return False
+    in authority on the eve of battle, authored `since: "AU-3b"`. ARMED by the
+    user's word at AU-3b's review ("Arm it", November 5, 2026 — RE's rule
+    kept: re-premised by "Re-premise it first" and measured before the flip,
+    §6.6.5); down, the deck reads as before the Proclamation (arm AUR)."""
+    return True
 
 
 def courts_move() -> bool:
