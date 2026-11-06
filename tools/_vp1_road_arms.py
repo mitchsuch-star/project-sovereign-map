@@ -14,6 +14,13 @@ stayed false. Read-only on the tree.
 
     python tools/_vp1_road_arms.py [--arms RH,CS,TH] [--seeds historical,austerlitz,marengo]
                                    [--jobs 3] [--out DIR] [--record tools/_vp1_road_arms_final.json]
+                                   [--driver-flags "..."] [--note "..."]
+
+RE3-7 (S15's head, November 6, 2026 — the user's "Teeth: re-record, re-pin"): the
+committed record is re-recorded on the final tree from the same armed run the reach
+record's `road_control` reads (`--affair lapse --standing-trace`); the record carries
+its `note` and `driver_flags`, so a reader knows which tree and flags it measured;
+October 22's record is kept beside it as `tools/_vp1_road_arms_2026_10_22.json`.
 """
 from __future__ import annotations
 
@@ -153,6 +160,8 @@ def main() -> int:
     ap.add_argument("--driver-flags", default="",
                     help="RE-3: extra driver flags for every arm, space-separated "
                          "(e.g. \"--affair lapse\" or \"--moment accept --affair accept\")")
+    ap.add_argument("--note", default="",
+                    help="RE3-7: a sentence on the tree and the flags, written into the record")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -164,6 +173,8 @@ def main() -> int:
         print(f"{r['arm']:7s} {r['seed']:10s} stamped={r['stamped_turn']:>3}  {r['reason'][:200]}")
     if args.record:
         record = {"_part": "S14b part 3 — VP-1's road arms, per seed (seeded paths, not laws)",
+                  "note": str(args.note or ""),            # RE3-7: the tree and the flags, said
+                  "driver_flags": list(flags),
                   "arms": {k: dict(v, script=f"tools/playtest_scripts/{v['script']}") for k, v in ARMS.items()},
                   "results": results,
                   "done_when": any(r["stamped_turn"] >= 0 for r in results)}

@@ -1359,7 +1359,7 @@ The deck's arming (the scenario's `affairs` key copied from the fixture; the S14
 - **Ceilings 0, floors 0 on every run; none fires with its premise false; shown = applied on every run** (the one context drift recorded apart, RE3-5).
 - **The band (§14):** every Host's letter 300 × tier ≤ 900, every host's act ≤ 1,800; the Arch-Chancellor's standing ≤ 8 a letter, ≤ 16 an act; the Decline and the lapse touch no purse; the E1 band untouched — the earliest arrival on the tree is T7, the pulse's own first (`first ≥ 6`).
 - **The Rhine road's end turns unmoved** with the lapse default on every seed, against the unarmed control (above). **ERR-3 is closed.**
-- **The dated deck on today's tree** (the same control, not RE-3's): the Crown of the Reich fires on no measured arm (RE3-6 — M3's rule asks no vassal court for the crown and today's Pressburg subjugates Austria; marengo falls at T28); the Throne of Naples road never stamps and the Rhine road falls on marengo (RE3-7). Both for the user's ruling; the October 22 road record and its pins stand.
+- **The dated deck on today's tree** (the same control, not RE-3's): the Crown of the Reich fires on no measured arm (RE3-6 — M3's rule asks no vassal court for the crown and today's Pressburg subjugates Austria; marengo falls at T28); the Throne of Naples road never stamps and the Rhine road falls on marengo (RE3-7). Both for the user's ruling; the October 22 road record and its pins stand. **S15's head (November 6, 2026): both FIXED — RE3-6 §177.2, RE3-7 §177.3 (`SYSTEMS_REFERENCE.md`); the October 22 road record kept as `tools/_vp1_road_arms_2026_10_22.json`, the live one re-recorded on the final tree.**
 
 ### 21.4 The readings taken (each flagged in the approved plan or found while building; each reversible by a line)
 
@@ -1368,11 +1368,11 @@ The deck's arming (the scenario's `affairs` key copied from the fixture; the S14
 3. **`situation` is an authored answer key** (≤ 160): §12c's SITUATION column has its own sentences; RE-R renders a key that exists. `{n}` is not used in the letter's copy (the row freezes host and tier; a count would drift on a standing letter).
 4. **The moments gain `counsel` and ONE authored `button_line` (M3)**; nothing else on the dated deck; both struck from the measured identity.
 5. **The lapse default is `--affair lapse`** — the letter left IN THE MAILBOX, unopened, to lapse on its answer-by turn; `decline` (answered on arrival) stays the driver's default, `accept` the accept arms'. A driver that opened the letter each turn moved the Rhine road for a reason that was never the letter's (RE3-2).
-6. **One record, not two:** `affairs_reach`, `road_control` and `context_drift` live in `tools/_s14c_sweep_final.json`; the nine commanded arms stay exactly nine; the October 22 road record is not re-recorded.
+6. **One record, not two:** `affairs_reach`, `road_control` and `context_drift` live in `tools/_s14c_sweep_final.json`; the nine commanded arms stay exactly nine; the October 22 road record is not re-recorded (until S15's head, November 6, 2026 — RE3-7 re-records it on the final tree from the same armed run and keeps October 22's beside it).
 7. **`BASELINE_SERIES` is left alone with the reach recorded** — the runner's passive board delivers nothing; the seams count 39 ticks and 62 draws.
 8. **The suite-reach head ran on a scratch clone**, classifying only; a fixture that builds a crafted board on the armed boot pops the morning's memo (the memo is the morning's reading, by design; a test that mutates the board inside the same turn must drop it).
 9. **A quote that differs only in the purse it names in passing is context drift, not a mismatch** (`strip_context`); a figure off its quote is still seen.
-10. **The Crown's reach is reported, not forced:** the floors pin and the accepted-set pin ask for the Match and Holland, and for the Crown where it fires, with its fate per arm (RE3-6 for the user).
+10. **The Crown's reach is reported, not forced:** the floors pin and the accepted-set pin ask for the Match and Holland, and for the Crown where it fires, with its fate per arm (RE3-6 for the user — ruled and FIXED at S15's head, November 6, 2026: the Crown asks a vassal Francis and fires on the Rhine road at austerlitz).
 11. **The five letters were re-shot under their RE-2 names** (`_2026_10_31`) in part 1 — the writers' lines and the counsel change every frame.
 
 ### 21.5 The done-when, item by item
@@ -1701,7 +1701,7 @@ The one line: `affairs.ai_decrees()` returns True. Everything below is the re-me
 | the Camps of Instruction | 7 | 4 | 0 | 3 | 6 | — | — |
 
 - **None at zero.** The hand-played turn-21 starts: the Haiti letter 0 (peace with Britain by turn 19 — never due; §22.1's "the latch windows T13–T17" measured 0 of the six and the letter kept), the Remounts 0 (the squadrons whole). The levers in band, per letter: the Haiti letter's `latch` (4 of 12) and `bites` floor; the Remounts' `below_pct` 60 (the pool and the weakest corps); the Camps' golden-peace clause (the crown term alone); the Memorial's bar (the Staff's 11,500 against the offers' 2,500–3,500 — `affairs.pick` takes the longer-standing premise); the prices (§14).
-- **The ruling:** all seven kept as they stand; no count pin moves (`tests/test_affairs_pacing.py` `record["affairs"]`, `tests/test_affairs_reach.py::TEMPLATES`). **RE3-6 and RE3-7 — "Fix at S15's head"** (the user, the same hour): both rows stay OPEN in `BUG_FIXES.md` §RE3, routed to the slice before the deploy; nothing built on them here. RE3-9 unchanged (the user's word at S15's head).
+- **The ruling:** all seven kept as they stand; no count pin moves (`tests/test_affairs_pacing.py` `record["affairs"]`, `tests/test_affairs_reach.py::TEMPLATES`). **RE3-6 and RE3-7 — "Fix at S15's head"** (the user, the same hour): both rows stay OPEN in `BUG_FIXES.md` §RE3, routed to the slice before the deploy; nothing built on them here. RE3-9 unchanged (the user's word at S15's head). **All three FIXED at S15's head, November 6, 2026 (`SYSTEMS_REFERENCE.md` §177).**
 
 ### 26.3 The instrument — `tools/_affairs_lapse_share.py` (§17 Q13, the dial's re-open evidence)
 
@@ -1733,4 +1733,4 @@ The one line: `affairs.ai_decrees()` returns True. Everything below is the re-me
 
 - The standing's drain on an idle board (26.5) and the letters' floors that read it (`bites`): Q1 the band and Q3 the pulls already have a measured pull; the push is what is missing.
 - The Round 1 instrument (`tools/_affairs_lapse_share.py`) and the dial's re-open condition (§17 Q13).
-- RE3-6 and RE3-7 at S15's head by the user's word; RE3-9 the same.
+- RE3-6 and RE3-7 at S15's head by the user's word; RE3-9 the same. **Closed there, November 6, 2026 (§177).**

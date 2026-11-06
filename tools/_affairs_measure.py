@@ -163,8 +163,9 @@ ROAD_CONTROL_NOTE = (
     "is the same tree with the engine held unarmed through the driver's own seam flag "
     "(`--seam backend.game_logic.affairs:armed=False` — every affairs function returns at once, as on "
     "a world whose block authors no deck). `unmoved` = the end turn and the stamp turn agree. The "
-    "committed `tools/_vp1_road_arms_final.json` is October 22's measure and is not re-recorded here; "
-    "the control is today's tree.")
+    "committed `tools/_vp1_road_arms_final.json` is re-recorded from this same armed run since S15's head "
+    "(RE3-7, November 6, 2026 — the recorder's `--note` says the tree and the flags; October 22's kept as "
+    "`tools/_vp1_road_arms_2026_10_22.json`); the control is today's tree.")
 
 
 def road_control(armed_record: Path, control_records: list) -> dict:

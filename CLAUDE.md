@@ -32,14 +32,14 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head in build (§177)**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); the deploy next**.
 
 **▶ LIVE STATE (Nov 6, 2026).** The three most recent rows:
-- **S15's head (Nov 6) — RE3-9, RE3-6 FIXED: the sidecars tracked; the Crown asks a vassal Francis; RE3-7 next** (§177).
+- **S15's head (Nov 6) — RE3-9/6/7 FIXED: the sidecars, the Crown's vassal Francis, the roads re-recorded; 0 open rows** (§177).
 - **AU-4 the flip (Nov 6) — LANDED by "Flip, flat grip"; AU-20 fixed (the courts' Decree in authority); ROW AU COMPLETE** (§6.8).
-- **AU-4 part 1 (Nov 5) — LANDED: AU-19 fixed; the courts' writes built and parked** (§6.7).
+- **AU-4 part 1 (Nov 5) — AU-19 fixed; the courts' writes parked** (§6.7).
 
-**Open with the user:** the flip's two readings (spec §6.8.3), the certificate (§153.3), the build (unsigned) and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
+**Open with the user:** the flip's two readings (spec §6.8.3), the certificate (§153.3), the build and the clean run, S14d's A1, AO's three questions (`REFORMS_SPEC.md` §5a).
 
 **The whole 2026 record** is archived verbatim: `docs/archive/CLAUDE_CURRENT_PHASE_2026.md` (this section as it stood), `docs/archive/STATUS_2026_Q*.md`, `docs/archive/BUG_FIXES_2026_Q*.md`, `docs/archive/DESIGN_REFINEMENT_2026_Q*.md`. The census tools and the pins read the archives (`tests/_ledgers.py`); every count includes them.
 

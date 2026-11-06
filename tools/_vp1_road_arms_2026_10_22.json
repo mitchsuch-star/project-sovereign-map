@@ -1,0 +1,192 @@
+{
+ "_part": "S14b part 3 — VP-1's road arms, per seed (seeded paths, not laws)",
+ "arms": {
+  "RH": {
+   "script": "tools/playtest_scripts/sf_vp1_rh.json",
+   "road": "rhine",
+   "argv": [
+    "--turns",
+    "40",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept",
+    "--declare-war",
+    "proceed",
+    "--settlement",
+    "decline",
+    "--client-petition",
+    "grant",
+    "--decline-from",
+    "Austria"
+   ]
+  },
+  "CS": {
+   "script": "tools/playtest_scripts/sf_vp1_cs.json",
+   "road": "system",
+   "argv": [
+    "--turns",
+    "40",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept",
+    "--declare-war",
+    "proceed",
+    "--decline-from",
+    "Portugal,PapalStates,Naples,Austria,Russia",
+    "--decline-until-latch",
+    "Britain"
+   ]
+  },
+  "TH": {
+   "script": "tools/playtest_scripts/sf_vp1_th.json",
+   "road": "crowns",
+   "argv": [
+    "--turns",
+    "40",
+    "--objection",
+    "insist",
+    "--diplomacy",
+    "accept",
+    "--declare-war",
+    "proceed",
+    "--settlement",
+    "decline",
+    "--client-petition",
+    "grant",
+    "--decline-from",
+    "Austria,Naples"
+   ]
+  }
+ },
+ "results": [
+  {
+   "arm": "VP1-RH",
+   "seed": "historical",
+   "exit": 0,
+   "end_turns": 40,
+   "stamped_turn": 13,
+   "fulfilled": {
+    "rhine.german_crown": 12,
+    "rhine.confederation": 13
+   },
+   "terms": {
+    "Hesse": "subjugation",
+    "Saxony": "subjugation",
+    "Austria": "subjugation"
+   },
+   "reason": "stamped on turn 13: The Peace of Pressburg: Austria is brought to terms by subjugation, and the Confederation of the Rhine holds — Road I, the Protector of the Rhine, is sealed."
+  },
+  {
+   "arm": "VP1-RH",
+   "seed": "austerlitz",
+   "exit": 0,
+   "end_turns": 40,
+   "stamped_turn": 13,
+   "fulfilled": {
+    "rhine.german_crown": 12,
+    "rhine.confederation": 13
+   },
+   "terms": {
+    "Hesse": "subjugation",
+    "Saxony": "subjugation",
+    "Austria": "subjugation"
+   },
+   "reason": "stamped on turn 13: The Peace of Pressburg: Austria is brought to terms by subjugation, and the Confederation of the Rhine holds — Road I, the Protector of the Rhine, is sealed."
+  },
+  {
+   "arm": "VP1-RH",
+   "seed": "marengo",
+   "exit": 0,
+   "end_turns": 26,
+   "stamped_turn": 13,
+   "fulfilled": {
+    "rhine.german_crown": 12,
+    "rhine.confederation": 13
+   },
+   "terms": {
+    "Hesse": "subjugation",
+    "Saxony": "subjugation",
+    "Austria": "subjugation"
+   },
+   "reason": "stamped on turn 13: The Peace of Pressburg: Austria is brought to terms by subjugation, and the Confederation of the Rhine holds — Road I, the Protector of the Rhine, is sealed."
+  },
+  {
+   "arm": "VP1-CS",
+   "seed": "historical",
+   "exit": 0,
+   "end_turns": 34,
+   "stamped_turn": -1,
+   "fulfilled": {},
+   "terms": {},
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (34), construction_holds (34), sealing_court_at_peace (34), homeland_whole (26); ENDING — THE FALL OF THE EMPIRE: No sword remains to the Emperor — no corps stands, and none can be raised. [THE ECLIPSE]"
+  },
+  {
+   "arm": "VP1-CS",
+   "seed": "austerlitz",
+   "exit": 0,
+   "end_turns": 31,
+   "stamped_turn": -1,
+   "fulfilled": {},
+   "terms": {},
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (31), construction_holds (31), sealing_court_at_peace (31), homeland_whole (24); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
+  },
+  {
+   "arm": "VP1-CS",
+   "seed": "marengo",
+   "exit": 0,
+   "end_turns": 36,
+   "stamped_turn": -1,
+   "fulfilled": {},
+   "terms": {},
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (36), construction_holds (36), sealing_court_at_peace (36), homeland_whole (19); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]"
+  },
+  {
+   "arm": "VP1-TH",
+   "seed": "historical",
+   "exit": 0,
+   "end_turns": 40,
+   "stamped_turn": 20,
+   "fulfilled": {
+    "crowns.iron_crown": 7,
+    "crowns.naples": 20
+   },
+   "terms": {
+    "Austria": "partition"
+   },
+   "reason": "stamped on turn 20: The Peace of Pressburg: Austria is brought to terms by a partition, and the Throne of Naples holds — Road II, the Crowns of Italy, is sealed."
+  },
+  {
+   "arm": "VP1-TH",
+   "seed": "austerlitz",
+   "exit": 0,
+   "end_turns": 40,
+   "stamped_turn": 20,
+   "fulfilled": {
+    "crowns.iron_crown": 7,
+    "crowns.naples": 20
+   },
+   "terms": {
+    "Austria": "partition"
+   },
+   "reason": "stamped on turn 20: The Peace of Pressburg: Austria is brought to terms by a partition, and the Throne of Naples holds — Road II, the Crowns of Italy, is sealed."
+  },
+  {
+   "arm": "VP1-TH",
+   "seed": "marengo",
+   "exit": 0,
+   "end_turns": 40,
+   "stamped_turn": 20,
+   "fulfilled": {
+    "crowns.iron_crown": 7,
+    "crowns.naples": 20
+   },
+   "terms": {
+    "Austria": "partition"
+   },
+   "reason": "stamped on turn 20: The Peace of Pressburg: Austria is brought to terms by a partition, and the Throne of Naples holds — Road II, the Crowns of Italy, is sealed."
+  }
+ ],
+ "done_when": true
+}

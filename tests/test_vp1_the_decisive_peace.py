@@ -504,11 +504,66 @@ class TestTheRoadArms:
         assert all(r["reason"] for r in rec["results"])
 
     def test_the_decisive_peace_records_on_a_benchmark_seed(self):
+        """§9 Part 3's done-when: the decisive peace records on at least one
+        benchmark seed, every seed reported with its reason. RE3-7 (S15's head,
+        November 6, 2026 — the user's "Teeth: re-record, re-pin"): the record is
+        the final tree's, re-recorded from the same armed run the reach record's
+        `road_control` reads (`--affair lapse --standing-trace`); October 22's,
+        where RH and TH stamped on all three seeds, is kept beside it. Seeded
+        paths, not laws — each arm's end and stamp with its cause: the Rhine
+        road stamps at austerlitz (T13 — Pressburg by subjugation, the
+        Confederation T13); at historical the courts' Edicts take the stamp (the
+        control and the letters-only arm stamp T12; on the shipped tree Saxony
+        never comes to terms and the third satellite is missing); at marengo the
+        Emperor is captured and the Fall ends the run (S14k's corps). The Throne
+        of Naples road stamps nowhere: Britain's sponsorship binds Austria
+        against a separate peace for ten turns (T4), the script's partition is
+        refused at T8 and never asked again, Soult's assault on Naples stalls,
+        and at marengo the courts' Edicts bring the Fall at T26 (the control runs
+        to T40). The System road has never stamped since October 22 (the
+        Blockade never latches); the Edicts bring its Fall earlier at
+        austerlitz (24 → 20) and marengo (27 → 26)."""
         rec = self._record()
         assert rec["done_when"] is True
-        stamped = {(r["arm"], r["seed"]): r["stamped_turn"] for r in rec["results"]}
-        assert all(stamped[("VP1-RH", s)] >= 0 for s in ("historical", "austerlitz", "marengo"))
-        assert all(stamped[("VP1-TH", s)] >= 0 for s in ("historical", "austerlitz", "marengo"))
+        ends = {(r["arm"], r["seed"]): (r["end_turns"], r["stamped_turn"]) for r in rec["results"]}
+        assert ends == {
+            ("VP1-RH", "historical"): (40, -1), ("VP1-RH", "austerlitz"): (39, 13), ("VP1-RH", "marengo"): (32, -1),
+            ("VP1-CS", "historical"): (32, -1), ("VP1-CS", "austerlitz"): (20, -1), ("VP1-CS", "marengo"): (26, -1),
+            ("VP1-TH", "historical"): (40, -1), ("VP1-TH", "austerlitz"): (40, -1), ("VP1-TH", "marengo"): (26, -1),
+        }, ends
+        sealed = next(r for r in rec["results"] if r["arm"] == "VP1-RH" and r["seed"] == "austerlitz")
+        assert sealed["fulfilled"] == {"rhine.german_crown": 12, "rhine.confederation": 13}
+        assert sealed["terms"] == {"Hesse": "subjugation", "Saxony": "subjugation", "Austria": "subjugation"}
+        assert "Peace of Pressburg" in sealed["reason"] and "subjugation" in sealed["reason"]
+        historical = next(r for r in rec["results"] if r["arm"] == "VP1-RH" and r["seed"] == "historical")
+        assert historical["fulfilled"] == {"rhine.german_crown": 12} and "Saxony" not in historical["terms"]
+        assert all(r["fulfilled"] == {} for r in rec["results"] if r["arm"] in ("VP1-TH", "VP1-CS"))
+        assert "--affair lapse" in " ".join(rec["driver_flags"]) and "S15's head" in rec["note"]
+
+    def test_the_record_is_the_reach_record_s_armed_run(self):
+        """One measure, two records (RE3-7): the road record's nine arms equal the
+        reach record's `road_control.*.armed` on end, stamp, fulfilment and
+        reason — the same armed run, read by both."""
+        rec = self._record()
+        reach = json.loads((REPO / "tools" / "_s14c_sweep_final.json").read_text(encoding="utf-8"))
+        armed = reach["road_control"]["arms"]
+        for r in rec["results"]:
+            row = armed[f"{r['arm']}-{r['seed']}"]["armed"]
+            assert (row["end_turns"], row["stamped_turn"], row["fulfilled"], row["reason"]) == (
+                r["end_turns"], r["stamped_turn"], r["fulfilled"], r["reason"]), (r["arm"], r["seed"])
+
+    def test_october_22_s_record_is_kept_unchanged(self):
+        """The prior beside the re-record (the `SERIES_BEFORE` idiom): October
+        22's RH 13 / 13 / 13 and TH 20 / 20 / 20, CS never — six of nine, as
+        §14.2 recorded; its bytes pinned line-ending-blind."""
+        import hashlib
+        kept = REPO / "tools" / "_vp1_road_arms_2026_10_22.json"
+        digest = hashlib.sha256(kept.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        assert digest == "b5b7516911012f504d353e4b8d752af1b2e94ab1ded8c2d73c6416783c33afad", digest
+        old = json.loads(kept.read_text(encoding="utf-8"))
+        stamped = {(r["arm"], r["seed"]): r["stamped_turn"] for r in old["results"]}
+        assert all(stamped[("VP1-RH", s)] == 13 and stamped[("VP1-TH", s)] == 20 and stamped[("VP1-CS", s)] == -1
+                   for s in ("historical", "austerlitz", "marengo"))
 
     def test_each_script_proclaims_with_the_road_pages_own_command(self, world):
         rec = self._record()
