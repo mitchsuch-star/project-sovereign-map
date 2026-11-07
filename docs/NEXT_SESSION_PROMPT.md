@@ -8,7 +8,7 @@
 > the games sections … go off"*, *"i want the game to be dyanamic are you saying its determinsitic?"*, *"do tiered
 > implementation of all of these make this happen after the bugs fixes all these"*, *"code this"* for T0-C, and for T0-D
 > *"do this commit and push"*. The plan was approved in Plan Mode (the user's plan file `functional-growing-whale.md`; its
-> content is mirrored in the S15-R row). **The deploy (S15) follows Tier 0 and Tiers 1–3.**
+> content is mirrored in the S15-R row). **The deploy (S15) follows Tier 0 and the Concert Tiers 1–5 (the dynamism plan RESTRUCTURED November 7, 2026 — "The Concert and the Awakening", plan file `floating-spinning-cat.md`, owning spec `docs/DYNAMISM_SPEC.md`); the Awakening and Crowns & Recognition follow the deploy.**
 >
 > **NOW — Tier 0, slices T0-E, T0-F and T0-G TOGETHER** (ten GR rows, each `OPEN — owner S15-R Tier 0 slice T0-E/F/G` in
 > `BUG_FIXES.md` §GR; these MOVE the series — `BASELINE_SERIES`, the reach, the pacing — so they land in one commit or
@@ -51,14 +51,19 @@
 > pins re-seated. Measured: a passive France, four seeds × 40 turns, world keys against HEAD — `nation_agenda_seen` and
 > `manpower_pools` alone move.
 >
-> **After Tier 0:** Tier 1 the seed rolled and shown at New Game (`NewGameRequest.seed`; `campaign_variance.roll_campaign_seed()`;
-> a `LineEdit` on the menu; the env and the suite's pin untouched) → Tier 2 the bands widened (the story signature FIRST
-> and its baseline archived; peace closes the theatre; Prussia's hook; Russia's two shores and an arbiter that sleeps;
-> Prussia's second design; the measure) → Tier 3 the strategist (the march metric first; `war_council.war_aim`; one leash
-> predicate for the four movement rungs; the home front; the terms; chains C and D) → Tier 4 gated on Tier 2's story-class
-> count → **S15 the deploy, the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS` / `SIGNTOOL` for
+> **After Tier 0 — RESTRUCTURED November 7, 2026 ("The Concert and the Awakening"; owning spec `docs/DYNAMISM_SPEC.md`,
+> the deploy cut RULED "After the Questions"):** Tier 1 the seed rolled and shown at New Game (`NewGameRequest.seed`;
+> `campaign_variance.roll_campaign_seed()`; a `LineEdit` on the menu; the env and the suite's pin untouched) → Tier 2
+> Europe varies (the story signature FIRST carrying DY-0's columns, baseline archived; peace closes the theatre; Prussia's
+> hook; Russia's two shores; Prussia's second design; T2-6 the casting band — the seed casts an understudy minor, its
+> statecraft `weight_mod` banded) → Tier 3 the strategist (the march metric first; `war_council.war_aim`; one leash
+> predicate; the home front; the terms; chains C and D) → Tier 4 the Alarm of Europe + promotion's teeth (DY-1/DY-1b: an
+> AI court's annexation writes threat against the conqueror at the capture chokepoint; the guarantee rung; a minor that
+> wins may rise) → Tier 5 the Questions of Europe (DY-2/DY-3: four authored Questions, the envy term in `_derive_weight`,
+> the beat, the Balance panel, the Congress ruling as cut-first tail) → Tier 7's timing dice only if the story count falls
+> short of 4 → **S15 the deploy, the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS` / `SIGNTOOL` for
 > the session, never in a file — `deploy\build.bat`, `tools/clean_env_run.ps1`, the release record from
-> `docs/audits/RELEASE_TEMPLATE.md`). **After the deploy:** S14k part 3, S16, S17c.
+> `docs/audits/RELEASE_TEMPLATE.md`). **After the deploy:** Tier 6 the Awakening (rising nationalism, DY-4/DY-5), Tier 8 Crowns & Recognition (DY-6/DY-7), then S14k part 3, S16, S17c.
 >
 > **Open with the user (none blocks Tier 0):** the design rows of `DESIGN_REFINEMENT.md` §GRD (each with its default —
 > GRD-16 … GRD-18 are T0-C's three: the roster did-you-mean, the marshals' voices, the headline); the flip's two readings
