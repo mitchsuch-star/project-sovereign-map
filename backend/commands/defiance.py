@@ -118,12 +118,22 @@ def get_defiant_action(marshal, original_action: str) -> Optional[str]:
 
     Args:
         marshal: The defiant marshal
-        original_action: The action the player ordered (lowercase)
+        original_action: The action the player ordered — lowercase from the
+            tactical road ("hold"), UPPERCASE from the strategic road
+            (`strategic_type`, "HOLD"); compared case-blind (COMBAT-2, T0-B)
 
     Returns:
         Action string ("attack", "fortify", "wait") or None if marshal can't defy
     """
     personality = getattr(marshal, 'personality', '')
+    # COMBAT-2 (T0-B, November 6, 2026; GR-57): the tactical road passes the
+    # order lowercase ("hold") and the strategic road passes its type UPPERCASE
+    # ("HOLD", `strategic_type`), so the spec table's HOLD row was unreachable
+    # from a standing order — an aggressive marshal who defied a HOLD sulked
+    # (inconclusive, no vindication, the cooldown). One uppercase table, read
+    # case-blind. PURSUE is in neither row, as the spec's table is written —
+    # GRD-31, for the user.
+    original_action = str(original_action or "").upper()
 
     if personality == 'literal':
         return None  # Literal never defies
@@ -131,7 +141,7 @@ def get_defiant_action(marshal, original_action: str) -> Optional[str]:
     if personality == 'aggressive':
         # Aggressive defiance: attack when ordered to do something defensive/passive
         # Map per fallback table — aggressive wouldn't object to attack
-        if original_action in ("defend", "fortify", "hold", "wait", "retreat",
+        if original_action in ("DEFEND", "FORTIFY", "HOLD", "WAIT", "RETREAT",
                                "SUPPORT", "MOVE_TO"):
             # Artillery routes to bombardment instead of melee attack
             if getattr(marshal, 'artillery', False):
@@ -141,7 +151,7 @@ def get_defiant_action(marshal, original_action: str) -> Optional[str]:
 
     if personality == 'cautious':
         # Cautious defiance: fortify when ordered to attack or advance
-        if original_action in ("attack", "SUPPORT", "MOVE_TO"):
+        if original_action in ("ATTACK", "SUPPORT", "MOVE_TO"):
             return "fortify"
         return None  # Wouldn't object to defend/fortify/hold
 

@@ -2035,6 +2035,14 @@ def _collapse_enemy_move_chains(cleaned_phase: dict, world) -> dict:
                 if ai_action.get("target"):
                     entry += f" → {ai_action.get('target')}"
                 rebuilt_summary.append(entry)
+            elif str(action.get("action") or "") == "error":
+                # T0-A TURN-1 (GR-51; the review of T0-B found this rebuild
+                # overwrote the fog filter's line): the crash row's own line,
+                # the court by its display name.
+                from backend.game_logic.formations import formed_display_name
+                rebuilt_summary.append(
+                    f"{formed_display_name(world, nation)}: did not complete its turn"
+                    " — an error was recorded")
     cleaned_phase["total_actions"] = total
     cleaned_phase["summary"] = rebuilt_summary
     return cleaned_phase
@@ -6719,9 +6727,11 @@ def _check_anthropic_key(key: str) -> str:
     except anthropic.APIError:
         return "unreachable"  # connection, timeout, 5xx — could not confirm
     except Exception as e:  # the Settings click must never 500
-        # TURN-4 (T0-A): counted in the tally — the class alone, as before: the
-        # text of an error from a key check may quote the key.
-        _errors.report(RuntimeError(type(e).__name__), "main._check_anthropic_key: the key check")
+        # TURN-4 (T0-A): counted in the tally — the class and the frames, never
+        # the text: an error from a key check may quote the key (the review of
+        # T0-B: a synthetic exception without the traceback logged no frames).
+        _errors.report(RuntimeError(type(e).__name__).with_traceback(e.__traceback__),
+                       "main._check_anthropic_key: the key check")
         return "unreachable"
 
 
@@ -6780,7 +6790,8 @@ async def set_llm_config(request: LLMConfigRequest):
         _key_status["state"] = state
         return _llm_config_payload()
     except Exception as e:  # a bad key string must never take the server down
-        _errors.report(RuntimeError(type(e).__name__), "main.set_llm_config: the parser's configuration")  # TURN-4 (T0-A): the class alone
+        _errors.report(RuntimeError(type(e).__name__).with_traceback(e.__traceback__),
+                       "main.set_llm_config: the parser's configuration")  # TURN-4 (T0-A): the class and the frames, never the text
         return {"success": False, "message": "Could not configure the parser."}
 
 

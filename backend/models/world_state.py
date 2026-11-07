@@ -1851,13 +1851,20 @@ class WorldState:
         # Serialized to survive save/load.
         self._last_advanced_turn: int = 0
         # TURN-2 (T0-A, November 6, 2026; GR-52): raised by `advance_turn` when
-        # the close failed AFTER Europe had moved — the next End Turn resumes
-        # the close instead of replaying the enemy phase (`turn_manager.
-        # end_turn`). Transient, private: the autosave is written only after a
-        # turn closes, so a reloaded world stands before the failed close and
-        # plays the whole turn again; a manual save taken between the failure
-        # and the retry loses the flag and replays Europe's moves once.
+        # the close failed AFTER Europe had moved — the world is put back as it
+        # stood before the advance (T0-B's residue fix: the snapshot) and the
+        # next End Turn resumes the close instead of replaying the enemy phase
+        # (`turn_manager.end_turn`). Transient, private: the autosave is
+        # written only after a turn closes, so a reloaded world stands before
+        # the failed close and plays the whole turn again; a manual save taken
+        # between the failure and the retry loses the flag and replays
+        # Europe's moves once.
         self._advance_failed: bool = False
+        # TURN-2 (T0-B's residue fix): the first attempt's "before" figures of
+        # a failed End Turn, for the resumed call's banner
+        # (`meta_executor._execute_end_turn`). Transient, private; None after
+        # a close succeeds.
+        self._end_turn_window: Optional[Dict[str, Any]] = None
 
         # C3 fix: Tracks the last turn where end_turn was fully processed
         # (either via auto-advance or explicit "end turn" command).
@@ -12552,20 +12559,56 @@ class WorldState:
         and answered "Turn N is already underway!" with success; the only exit
         was an older save. Now a failed close rolls the stamp back to what it
         was and raises `_advance_failed`, which `turn_manager.end_turn` reads
-        to resume the close without replaying Europe's moves. The stages
-        before the failure run again on the retry (the per-turn clears are
-        idempotent; a tactical tick before the failing stage counts twice) —
-        the stamp guards against a second WHOLE advance, not a partial one.
+        to resume the close without replaying Europe's moves.
+
+        T0-B's residue fix of the same evening: the advance is TRANSACTIONAL.
+        The turn counter increments early in `_advance_turn_internal` (after
+        the construction timers, before some fifty stages), so a failure in a
+        late stage — the income phase, the coalition tick — left the counter
+        at N+1 with the stamp rolled back, and the retry would have run a
+        second whole advance (the counter to N+2, the early stages twice). So
+        the world is snapshotted before the stages (`to_dict`, ~2 ms on the
+        1805 board) and, on an exception, put back as it stood
+        (`_restore_from_snapshot`): the enemy phase's moves are inside the
+        snapshot and kept, the failed advance's partial stages are undone,
+        the stamp returns with them, and the retry is one clean whole
+        advance. The stamp rollback alone is the fallback when the snapshot
+        or the restore itself fails (each reported).
         """
         before = int(self._last_advanced_turn)
+        snapshot = None
+        try:
+            snapshot = self.to_dict()
+        except Exception as exc:
+            report(exc, "world_state.advance_turn: the snapshot before the advance")
         try:
             self._advance_turn_internal()
         except Exception:
-            if int(self._last_advanced_turn) != before:
+            restored = False
+            if snapshot is not None:
+                try:
+                    self._restore_from_snapshot(snapshot)
+                    restored = True
+                except Exception as exc:
+                    report(exc, "world_state.advance_turn: the restore after a failed advance")
+            if not restored and int(self._last_advanced_turn) != before:
                 self._last_advanced_turn = before
             self._advance_failed = True
             raise
         self._advance_failed = False
+
+    def _restore_from_snapshot(self, snapshot: Dict) -> None:
+        """TURN-2 (T0-B's residue fix): put THIS world back as the snapshot
+        has it — a fresh `from_dict` of the snapshot, its attributes swapped
+        into this object, so every holder of the reference (the module's
+        world, the game_state dict, the turn manager) sees the restored
+        state. No model sub-object keeps a back-reference to the world, so
+        nothing is left pointing at the fresh copy. Private transients not in
+        the save (caches, the relay) come back at their defaults, which is
+        what the advance's own start would have given them."""
+        fresh = type(self).from_dict(snapshot)
+        self.__dict__.clear()
+        self.__dict__.update(fresh.__dict__)
 
     def _advance_turn_internal(self) -> None:
         """

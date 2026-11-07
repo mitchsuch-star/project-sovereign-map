@@ -252,9 +252,13 @@ def filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                     entry += f" → {target}"
                 rebuilt_summary.append(entry)
             elif str(action.get("action") or "") == "error":
-                # TURN-1 (T0-A): the crash row's line in the summary too.
+                # TURN-1 (T0-A): the crash row's line in the summary too — the
+                # court by its display name (the response builder's own rebuild
+                # carries the same arm, `main._collapse_enemy_move_chains`).
+                from backend.game_logic.formations import formed_display_name
                 rebuilt_summary.append(
-                    f"{nation}: did not complete its turn — an error was recorded")
+                    f"{formed_display_name(world_state, nation)}: did not complete its turn"
+                    " — an error was recorded")
     filtered_phase["summary"] = rebuilt_summary
 
     # Preserve enemy_victory if present

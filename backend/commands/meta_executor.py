@@ -415,12 +415,36 @@ class MetaExecutor:
         # not in `advance_turn`: the enemy phase runs BEFORE it
         # (`turn_manager.end_turn` :222 vs :292), so resetting there would
         # wipe the very charges this window is meant to name.
-        world.materiel_spent_this_turn = {}
+        # TURN-2 (T0-B's residue fix; the review's F2): on the RESUMED call the
+        # world stands as it did before the failed advance — AFTER the enemy
+        # phase — so the turn's "before" figures must be the FIRST attempt's,
+        # kept on the world in `_end_turn_window` when the close raised, and
+        # the materiel window, already holding the enemy phase's charges, is
+        # not emptied again. Private transients; cleared on a successful close.
+        _window = (getattr(world, "_end_turn_window", None)
+                   if getattr(world, "_advance_failed", False) else None)
+        if isinstance(_window, dict):
+            saved_mild_concerns = _window["mild_concerns"]
+            saved_gold_spent = _window["gold_spent"]
+            treasury_before_turn = _window["treasury_before"]
+        else:
+            world.materiel_spent_this_turn = {}
 
         # Use TurnManager to process everything including ENEMY AI
         from backend.game_logic.turn_manager import TurnManager
         turn_manager = TurnManager(world, executor=self._executor)
-        turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
+        try:
+            turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
+        except Exception:
+            # TURN-2: the close raised (the world already restored inside
+            # `advance_turn`) — keep this attempt's window for the resumed call.
+            world._end_turn_window = {
+                "mild_concerns": saved_mild_concerns,
+                "gold_spent": saved_gold_spent,
+                "treasury_before": treasury_before_turn,
+            }
+            raise
+        world._end_turn_window = None
 
         # RR6-X3: the store learns what the enemy-phase dialog SHOWS — before
         # the morning dispatch and the autosave read it. The dialog's own fog

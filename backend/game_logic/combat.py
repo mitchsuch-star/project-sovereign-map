@@ -159,11 +159,9 @@ def rout_survivors(old_strength: int, survival_rate: float) -> int:
 
 
 def _cancel_drill(defender) -> None:
-    """A corps caught drilling loses all its progress."""
-    defender.drilling = False
-    defender.drilling_locked = False
-    defender.drill_complete_turn = -1
-    defender.shock_bonus = 0  # Clear any pending bonus
+    """A corps caught drilling loses all its progress (the one reset,
+    `Marshal.consume_drill` — T0-B)."""
+    defender.consume_drill()
 
 
 # FA-D29 (slice 17, Phase 2) flip lever: a reinforced side's casualty pool is
@@ -560,11 +558,11 @@ class CombatResolver:
         # atomically (shock_bonus, drilling, drilling_locked, drill_complete_turn).
         # This is a pragmatic exception to Golden Rule #1 — the read-then-clear
         # pattern is correct, just located here for atomicity with the combat flow.
+        # COMBAT-1 (T0-B, November 6, 2026): the four-field reset is
+        # `Marshal.consume_drill()`, the one helper the garrison assault now
+        # shares (GR-56 — it had never spent the drill).
         if attacker_drill_bonus > 0:
-            attacker.shock_bonus = 0
-            attacker.drilling = False
-            attacker.drilling_locked = False
-            attacker.drill_complete_turn = -1
+            attacker.consume_drill()
 
         shock_multiplier = shock_damage_multiplier(attacker_shock)
         # Apply stance modifier to shock

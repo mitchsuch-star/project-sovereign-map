@@ -2164,11 +2164,8 @@ class MovementExecutor:
         marshal.retreat_recovery = 0  # Intentional: retreating again resets recovery progress
         marshal.retreated_this_turn = True  # Mark for ally covering system
 
-        # Clear any offensive states
-        marshal.drilling = False
-        marshal.drilling_locked = False
-        marshal.drill_complete_turn = -1
-        marshal.shock_bonus = 0
+        # Clear any offensive states (the drill's four fields in one reset — T0-B)
+        marshal.consume_drill()
 
         # Reset stance to NEUTRAL on retreat (can't maintain aggressive/defensive while retreating)
         old_stance_value = current_stance.value

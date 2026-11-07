@@ -143,6 +143,136 @@ class TestTheCloseResumes:
         assert "kept, not replayed" in result["message"]
         assert world.current_turn == 2
 
+    # ── T0-B's residue fix: the advance is transactional ──────────────────
+    # The counter increments EARLY in `_advance_turn_internal`; a failure in a
+    # late stage used to leave it at N+1 with the stamp rolled back, and the
+    # retry ran a second whole advance. The snapshot undoes the partial stages.
+
+    @staticmethod
+    def _raise_late_once(monkeypatch, exc=None):
+        """`_process_manpower_regen` sits after the counter's increment AND
+        after the income phase — a failure there is the late case."""
+        exc = exc or RuntimeError("the close failed late: boom")
+        calls = {"n": 0}
+        original = WorldState._process_manpower_regen
+
+        def flaky(self):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise exc
+            return original(self)
+
+        monkeypatch.setattr(WorldState, "_process_manpower_regen", flaky)
+        return calls
+
+    def test_a_late_failure_restores_the_world_whole(self, monkeypatch):
+        world = WorldFactory.basic()
+        gold_before = dict(world.nation_gold)
+        turn_before = world.current_turn
+        self._raise_late_once(monkeypatch)
+        with pytest.raises(RuntimeError, match="late"):
+            world.advance_turn()
+        assert world.current_turn == turn_before, "the counter's early increment is undone"
+        assert world._last_advanced_turn == 0, "the stamp returns with the snapshot"
+        assert world.nation_gold == gold_before, "the income the failed advance applied is undone"
+        assert world._advance_failed is True
+
+    def test_the_retry_after_a_late_failure_is_one_clean_advance(self, monkeypatch):
+        import random
+        control = WorldFactory.basic()
+        random.seed(20261106)
+        control.advance_turn()
+        world = WorldFactory.basic()
+        self._raise_late_once(monkeypatch)
+        random.seed(20261106)
+        with pytest.raises(RuntimeError):
+            world.advance_turn()
+        random.seed(20261106)
+        world.advance_turn()
+        assert world.current_turn == control.current_turn == 2, "advanced ONCE, not to turn 3"
+        assert world.nation_gold == control.nation_gold, "income applied once, as on a clean advance"
+        assert world._last_advanced_turn == 1 and world._advance_failed is False
+
+    def test_the_world_object_keeps_its_identity_through_a_restore(self, monkeypatch):
+        """Every holder of the reference — the game_state dict, the turn
+        manager, the module's world — must see the restored state."""
+        world = WorldFactory.basic()
+        game_state = {"world": world}
+        tm = TurnManager(world, executor=CommandExecutor())
+        self._raise_late_once(monkeypatch)
+        with pytest.raises(RuntimeError):
+            world.advance_turn()
+        assert game_state["world"] is world and tm.world is world
+        assert world.current_turn == 1 and len(world.marshals) > 0
+        world.advance_turn()
+        assert game_state["world"].current_turn == 2
+
+    def test_end_turn_resumes_after_a_late_failure_without_replaying_europe(self, monkeypatch):
+        world = WorldFactory.basic()
+        tm = TurnManager(world, executor=CommandExecutor())
+        game_state = {"world": world}
+        phases = {"n": 0}
+        original = TurnManager._process_enemy_turns
+
+        def counted(self, gs):
+            phases["n"] += 1
+            return original(self, gs)
+
+        monkeypatch.setattr(TurnManager, "_process_enemy_turns", counted)
+        self._raise_late_once(monkeypatch)
+        with pytest.raises(RuntimeError, match="late"):
+            tm.end_turn(game_state)
+        assert phases["n"] == 1 and world.current_turn == 1
+        result = tm.end_turn(game_state)
+        assert result["next_turn"] == 2 and result.get("resumed") is True
+        assert phases["n"] == 1, "Europe moved once"
+
+    def test_a_failed_snapshot_still_falls_back_to_the_stamp(self, monkeypatch):
+        """If `to_dict` itself raises, the advance still runs; on a failure the
+        stamp rollback alone stands, reported, and the resume still holds."""
+        world = WorldFactory.basic()
+
+        def broken(self):
+            raise ValueError("no snapshot tonight")
+
+        monkeypatch.setattr(WorldState, "to_dict", broken)
+        _errors.reset_tally()
+        _raise_once(monkeypatch)
+        with pytest.raises(RuntimeError, match="boom"):
+            world.advance_turn()
+        assert world._last_advanced_turn == 0 and world._advance_failed is True
+        assert any("the snapshot before the advance" in r["site"] for r in _errors.tally())
+        world.advance_turn()
+        assert world.current_turn == 2
+
+    def test_the_resumed_banner_keeps_the_first_attempts_window(self, monkeypatch):
+        """The review's F2: the resumed End Turn's "before" figures are the
+        first attempt's (kept in `_end_turn_window`), so the banner's Net
+        spans the whole turn, enemy phase included; the window is cleared
+        once the close succeeds."""
+        import re
+        world = WorldFactory.basic()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        treasury_before_first = int(world.nation_gold.get(world.player_nation, 0))
+        self._raise_late_once(monkeypatch)
+        command = {"command": {"action": "end_turn", "type": "specific"}}
+        try:
+            executor.execute(command, game_state)
+        except RuntimeError:
+            pass
+        window = getattr(world, "_end_turn_window", None)
+        assert isinstance(window, dict), "the failed attempt keeps its window"
+        assert window["treasury_before"] == treasury_before_first
+        result = executor.execute(command, game_state)
+        assert result["success"] is True and world.current_turn == 2
+        assert getattr(world, "_end_turn_window", None) is None, "cleared on the close"
+        treasury_after = int(world.nation_gold.get(world.player_nation, 0))
+        m = re.search(r"Net: ([+-]?)([\d,]+)g", result["message"])
+        assert m, result["message"]
+        net = int(m.group(2).replace(",", "")) * (-1 if m.group(1) == "-" else 1)
+        assert net == treasury_after - treasury_before_first, (net, treasury_after, treasury_before_first)
+
     def test_a_clean_end_turn_says_nothing_of_it(self):
         world = WorldFactory.basic()
         result = CommandExecutor().execute(

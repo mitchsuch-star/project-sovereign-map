@@ -871,6 +871,26 @@ class Marshal:
             if hasattr(self, attr):
                 setattr(self, attr, 0.0)
 
+    def consume_drill(self) -> int:
+        """COMBAT-1 (T0-B, November 6, 2026; GR-56): the ONE reset of the four
+        interrelated drill fields — `shock_bonus`, `drilling`, `drilling_locked`,
+        `drill_complete_turn` — whether the drill is SPENT by a battle (the field
+        battle in `combat.resolve_combat` and, since T0-B, the garrison assault in
+        `combat_executor._resolve_garrison_combat`: a drilled corps had kept its
+        +20% through every assault), cancelled by a blow while drilling
+        (`combat._cancel_drill`), dropped on a retreat, or cleared with the other
+        combat transients. Golden Rule 4: the caller reads the bonus through
+        `get_attack_modifier()` FIRST, then calls this. Returns the shock bonus
+        that stood (0 when there was none). The turn-1 cancels (a blow, a move or
+        a defence before the lock) reset `drilling` and the timer alone — no lock
+        and no bonus exist yet; reviewed, unchanged."""
+        stood = int(self.shock_bonus or 0)
+        self.shock_bonus = 0
+        self.drilling = False
+        self.drilling_locked = False
+        self.drill_complete_turn = -1
+        return stood
+
     def clear_combat_transient_state(self):
         """Clear all transient combat state. Single source of truth.
 
@@ -879,9 +899,9 @@ class Marshal:
         Any new combat-transient field MUST be added here.
         """
         self.clear_coordination_transients()
-        self.drilling = False
-        self.drilling_locked = False
-        self.shock_bonus = 0
+        # T0-B: the drill's four fields in one reset (the timer had been left
+        # standing here — unread once the lock is down, now tidy).
+        self.consume_drill()
         self.fortified = False
         self.defense_bonus = 0
         self.turns_fortified = 0
@@ -1660,7 +1680,11 @@ class Marshal:
         """
         Get skill value with Precision Execution / Crowned-with-Glory bonuses.
 
-        Precision Execution (literal) adds +1 to all skills, capped at 8.
+        Precision Execution (literal) adds +1 to all skills, capped at 8 — and
+        never LOWERS a skill already above 8 (COMBAT-5, T0-B, November 6, 2026;
+        GR-58: `min(8, base + 1)` had cut Soult's tactical 9 to 8 while he was
+        'buffed' — the reward for crisp orders was −1 to the roster's best
+        literal tactician).
         Crowned with Glory (v3.2) adds +1 to CROWN_SKILLS while the marshal
         tops his nation's glory ladder — applied AFTER Precision's min-8 cap
         and clamped at 10, so the crown never reduces a skill. Neither bonus
@@ -1668,7 +1692,7 @@ class Marshal:
         """
         base = self.skills.get(skill_name, 5)
         if self.precision_execution_active:
-            base = min(8, base + 1)
+            base = max(base, min(8, base + 1))  # COMBAT-5 (T0-B): +1 to 8 at most, never down from 9 or 10
         if self.glory_crowned and skill_name in self.CROWN_SKILLS:
             base = min(10, base + 1)
         return base

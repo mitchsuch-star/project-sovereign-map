@@ -1346,11 +1346,13 @@ class TurnManager:
         error row is surfaced either way. Down: one guard for both, the error
         row replacing everything."""
         def _error_row():
-            # V2-19: Surface error to player instead of swallowing silently
+            # V2-19: Surface error to player instead of swallowing silently.
+            # T0-B's review: the court by its display name, never the key.
+            from backend.game_logic.formations import formed_display_name
             return {
                 "action": "error",
                 "nation": nation,  # TURN-1 (T0-A): the dialog's line names the court
-                "message": f"{nation} encountered an error during their turn",
+                "message": f"{formed_display_name(self.world, nation)} encountered an error during its turn",
                 "battle_message": ""
             }
 

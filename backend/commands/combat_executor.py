@@ -5925,6 +5925,15 @@ class CombatExecutor:
         # Attacker effective strength (uses single-source modifier from marshal.py)
         attacker_modifier = marshal.get_attack_modifier()
         attacker_effective = int(marshal.strength * attacker_modifier)
+        # COMBAT-1 (T0-B, November 6, 2026; GR-56, the review's filed P1): the
+        # drill is SPENT by the assault as by a field battle — read by the
+        # modifier above, cleared here (Golden Rule 4). A drilled corps had kept
+        # its +20% (and the +5% personality synergy) through every garrison
+        # assault until a marshal-vs-marshal battle spent it, and the AI's
+        # P4.25 took this path every campaign.
+        _drill_spent = marshal.consume_drill()
+        drill_note = (f" (drilled troops: +{int(_drill_spent) * 10}% — the drill is spent)"
+                      if _drill_spent > 0 else "")
         # SR-4a (AAR-24): the assault's one-line muster — the resolver's own
         # terms, prepended at both exits; the player's assaults only (GR5:
         # the AI reads no message).
@@ -6158,7 +6167,7 @@ class CombatExecutor:
                          if capitulated else
                          f"Garrison collapses ({old_garrison:,} -> 0).")
             msg = assault_line + (
-                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
+                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note}{drill_note} "
                 f"{_collapse} "
                 f"{marshal.name} loses {attacker_losses:,} troops in the assault. "
                 f"{marshal.name} marches into {target_region.name}!"
@@ -6244,7 +6253,7 @@ class CombatExecutor:
         else:
             # Garrison holds — attacker stays in place
             msg = assault_line + (
-                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note} "
+                f"{marshal.name} assaults the {target_region.name} garrison!{iron_note}{drill_note} "
                 f"Garrison: {old_garrison:,} -> {target_region.garrison_strength:,} "
                 f"(-{garrison_losses:,}). "
                 f"{marshal.name} loses {attacker_losses:,} troops. "

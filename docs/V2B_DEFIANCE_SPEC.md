@@ -98,6 +98,8 @@ Marshals only defy orders they'd object to. Half the cells are naturally empty.
 
 **Aggressive defiance targeting:** Uses `world.find_nearest_enemy()` to resolve target, then calls `_execute_attack()` with the nearest enemy name. **Exception:** If defiant marshal has `artillery=True`, uses bombardment instead (artillery can't melee attack). If no enemy found or attack fails, falls back to `wait` (sulk).
 
+**Case (COMBAT-2, T0-B, November 6, 2026; `SYSTEMS_REFERENCE.md` §179.2):** the tactical road passes the order lowercase ("hold") and the strategic road its type UPPERCASE (`strategic_type`, "HOLD"); `get_defiant_action` reads case-blind against one uppercase table, so the HOLD / SUPPORT / MOVE_TO rows are reached from a standing order (an aggressive marshal who defied a HOLD had sulked). PURSUE is in neither row, as this table is written — GRD-31, for the user.
+
 **If preferred action is blocked** (no enemy to attack, already fortified, etc.): fallback = `wait` (sulk). Still costs AP. Defiance outcome = inconclusive (no vindication change, no authority change, just cooldown).
 
 **AP cost:** The defiant action's AP cost is charged (not the original order's cost). The defiant action is what actually executes, so AP follows what was done. Broken/retreating marshals cannot defy (guard check before defiance roll).
