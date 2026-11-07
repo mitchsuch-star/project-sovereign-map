@@ -1,4 +1,4 @@
-# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-I the benchmark's own arms (T0-A … T0-H ✅ landed), then the Concert Tiers 1–5, then the deploy
+# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-I the benchmark's own arms (T0-A … T0-H ✅ landed), then the Concert Tiers 1–8, then the deploy
 
 > Overwritten each time a session hands off. Current hand-over: **November 7, 2026 — T0-H THE RE-RECORD CHAIN ✅
 > LANDED (`SYSTEMS_REFERENCE.md` §183: one chain alone on 077efb37, 19 minutes; the reach, the probe, the standing
@@ -7,8 +7,10 @@
 > record-value pin re-seated with its cause)**, after T0-E/F/G (§182), T0-D (§181), T0-C (§180), T0-B (§179),
 > T0-A (§178). The user's word for the tier: *"do tiered implementation of all of these — make this happen after
 > the bug fixes"*; T0-E/F/G under *"build it"*, T0-H under *"Yes, run T0-H"*. **The deploy (S15) follows Tier 0 and
-> the Concert Tiers 1–5 ("The Concert and the Awakening", owning spec `docs/DYNAMISM_SPEC.md`, the cut ruled "After
-> the Questions"); the Awakening and Crowns & Recognition follow the deploy.**
+> the Concert Tiers 1–8 ("The Concert and the Awakening", owning spec `docs/DYNAMISM_SPEC.md`): Q1's deploy cut
+> REVERSED November 7, 2026 by the user's word, verbatim — "we should stop being afraid of adding conent to rush
+> deploy cuts keep happening without my consent" — so the Awakening (Tier 6) and Crowns & Recognition (Tier 8)
+> ship BEFORE the deploy; no cuts without consent (`DYNAMISM_SPEC.md` §0, the standing rule).**
 >
 > **NOW — T0-I: the benchmark's own arms** (harness rows; the census's open GR rows are GR-66, GR-2, GR-3 — all
 > T0-I's own; `BUG_FIXES.md` §GR):
@@ -55,12 +57,14 @@
 > (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a); the crown term's level
 > (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1).
 >
-> **After Tier 0 — the Concert ("The Concert and the Awakening", `docs/DYNAMISM_SPEC.md`):** Tier 1 the seed at New
-> Game → Tier 2 Europe varies + T2-6 the casting band (gate §3.8.2 at its head, Plan Mode) → Tier 3 the strategist
-> (gate §13) → Tier 4 the Alarm of Europe + promotion's teeth → Tier 5 the Questions of Europe → **S15 the deploy,
-> the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in
+> **After Tier 0 — the Concert ("The Concert and the Awakening", `docs/DYNAMISM_SPEC.md`; Q1's deploy cut
+> REVERSED November 7, 2026 — no cuts without consent, spec §0):** Tier 1 the seed at New Game → Tier 2 Europe
+> varies + T2-6 the casting band (gate §3.8.2 at its head, Plan Mode) → Tier 3 the strategist (gate §13) → Tier 4
+> the Alarm of Europe + promotion's teeth → Tier 5 the Questions of Europe → Tier 6 the Awakening → Tier 8 Crowns
+> & Recognition (Tier 7's bounded dice only if the story-class count still falls short at the gate) → **S15 the
+> deploy, the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in
 > a file — `deploy\build.bat`, `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`).
-> **After the deploy:** Tier 6 the Awakening, Tier 8 Crowns & Recognition, then S14k part 3, S16, S17c.
+> **After the deploy:** S14k part 3, S16, S17c.
 >
 > **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are
 > named functions; the seven T0-EFG seams are the pattern: zero-arg, in the module they gate), functions over 500

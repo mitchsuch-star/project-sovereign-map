@@ -1,7 +1,8 @@
 # DYNAMISM_SPEC.md — The Concert and the Awakening (v0.1, November 7, 2026)
 
 > **The owning spec of the dynamism arc** — the restructure of `PRE_DEPLOY_PLAN.md` §2 row
-> S15-R's Tiers 1–7 and the two post-deploy arcs, authored November 7, 2026 in Plan Mode
+> S15-R's Tiers 1–8, all pre-deploy since Q1's reversal (§0; Tier 7 gated), authored
+> November 7, 2026 in Plan Mode
 > (the user's plan file `floating-spinning-cat.md`). ROUTING stays with the plan row and
 > `docs/STATUS.md` ▶ NEXT UP; this spec owns the design contracts, the gate record, the
 > numbers and the slices. Tier 0 (the review's defects, T0-E…T0-I) is untouched by this
@@ -15,6 +16,9 @@
 > plan r making game more dyanmic perhaps we incoporate rising nationalism too and dont
 > make rivals an exact copy of euiv? but soemthing for the era other ideas are good too
 > make this good and have its own idea and implemntation even with its inpiriations"*.
+> Later November 7, reversing Q1's deploy cut: *"we should stop being afraid of adding
+> conent to rush deploy cuts keep happening without my consent"* (§0 — the reversal and
+> the standing rule on cuts).
 
 ---
 
@@ -24,6 +28,28 @@
 after Tier 5. The Awakening (Tier 6) is the FIRST post-deploy arc, with its own measure
 chain; Crowns & Recognition follows it. Nothing of Tiers 6+ is player-promised before it
 lands (Rule 9: the rows below are the owners).
+
+**Q1 REVERSED the same day — November 7, 2026, by the user's word, verbatim: "we should
+stop being afraid of adding conent to rush deploy cuts keep happening without my
+consent".** The ruling above is kept as history and stands SUPERSEDED. S15 deploys after
+Tier 8: the Awakening (Tier 6) and Crowns & Recognition (Tier 8) ship BEFORE the deploy,
+each with its measure chain, and Rule 9's ownership is unchanged (the §8 rows). The
+build order: Tier 0's remainder (T0-I) → 1 the seed → 2 Europe varies + the casting →
+3 the strategist → 4 the Alarm + promotion's teeth → 5 the Questions → 6 THE AWAKENING
+(DY-4/DY-5) → 8 CROWNS & RECOGNITION (DY-6/DY-7) → Tier 7's bounded timing dice only if
+the story-class count still falls short at the gate → S15 THE DEPLOY. Sizing, stated
+once as information and not to be re-litigated: the pre-deploy runway is roughly 17–19
+sessions (T0-I ≈ 1 · Tier 1 ≈ 0.5 · Tier 2 ≈ 3 · Tier 3 ≈ 4 · Tier 4 ≈ 2 · Tier 5 ≈ 2 ·
+Tier 6 ≈ 3–4 · Tier 8 ≈ 4) plus S15's own day.
+
+**The standing rule on cuts (November 7, 2026).** Player-facing content is never
+deferred, cut, or moved post-deploy to protect a deploy date without the user's explicit
+word on that specific item; the date yields to the content, never the reverse. Sizing is
+stated as information, never as pressure. A scope fork is presented with the
+content-first option co-equal and no speed option pre-recommended. Rule 9 still applies
+to every piece added — owner row, landing slice, done-when, test: the rule bars silent
+cuts, not discipline. Any future proposal to defer ANY DY slice goes to the user as an
+explicit question with no default. ([[feedback-no-cuts-without-consent]])
 
 **Q2–Q6 stand with defaults** — each is put to the user at its owning tier's head (the
 Plan Mode gate the plan row already requires), and each is one line to reverse:
@@ -62,7 +88,7 @@ instruments, the table, the Gazette; never a tooltip number):
    occupation and humiliation. France exports it (the Code, the client crowns) and can
    ride it with generous autonomy or bleed by it — Westphalia against Spain, in one dial.
 
-**Crowns & Recognition** (§6) ties all three to the map after the deploy: new states
+**Crowns & Recognition** (§6) ties all three to the map at Tier 8, before the deploy: new states
 erected at the peace table, marshals crowned, legitimist courts withholding recognition.
 
 Kept inviolate throughout: D2 (a great power never loses its last capital to an AI war),
@@ -79,16 +105,16 @@ the commanded arms' France band 23–28 as the difficulty guard.
 
 | Tier | Content | Size | Signature change when it lands |
 |---|---|---|---|
-| 0 | The review's defects — unchanged, in flight (T0-E/F/G next, then T0-H, T0-I). T0-F, the eclipse brew, is the first Alarm stone: the league must bite the blob. | ≈2.5–3 left | — |
+| 0 | The review's defects — unchanged, in flight (T0-A … T0-H ✅ landed; T0-I the remainder). T0-F, the eclipse brew, is the first Alarm stone: the league must bite the blob. | ≈1 left | — |
 | 1 | The seed at New Game (unchanged from the old plan). | 0.5 | — |
 | 2 | **Europe varies** (gate `AI_INTENT_SPEC.md` §3.8.2, authored at this tier's head): T2-1 the story signature FIRST and its baseline archived — carrying the NEW columns of §7 from day one; T2-2 peace closes the theatre; T2-3 Prussia's hook; T2-4 Russia's two shores; T2-5 Prussia's second design; **T2-6 the casting band — the seed casts an understudy**: among an authored shortlist (Saxony, Bavaria, Denmark, Naples), the seed boots ONE minor's ambition deck live with a bolder authored statecraft dial. Bands in the scenario, validator-clamped; the scenario's statecraft overlay widens from `wary_of` alone to a banded `weight_mod` (`get_statecraft`, `world_state.py:3702`). The lawful lucky nation. | ≈3 | which minor stirs varies by seed |
 | 3 | **The strategist** (gate §13; unchanged): the march metric first, `war_council.war_aim`, one leash predicate, the home front, terms when the aim is held — AI–AI cessions move provinces ALONG AUTHORED AIMS. | ≈4 | maps diverge in role-true directions |
 | 4 | **The Alarm of Europe** (§3, DY-1) + **promotion's first teeth** (§3b, DY-1b). | ≈2 | eliminations vary; `guarantees_given` > 0; a minor can rise |
 | 5 | **The Questions of Europe** (§4, DY-2). | ≈2 | a second great-power war appears; the war column stops reading Prussia–Hanover alone |
-| — | **S15 THE DEPLOY** (Q1's ruling). Deploy gate: 0 open GR rows, story classes ≥ 4 of 10, `captures_outside_aim` 0, France band 23–28, historian test green on every seed. | — | — |
-| 6 | **The Awakening** (§5, DY-4/DY-5) — the first post-deploy arc. | ≈3–4 | occupiers bleed; a liberation war surges; a client rebellion names its cause |
+| 6 | **The Awakening** (§5, DY-4/DY-5). | ≈3–4 | occupiers bleed; a liberation war surges; a client rebellion names its cause |
 | 7 | **Bounded timing dice** (the old Tier 4) — evaluated at the deploy gate on the story-class count; built only if the count falls short of 4. | gated | — |
-| 8 | **Crowns & Recognition** (§6, DY-6/DY-7) — the post-deploy marquee. | ≈4 | `formations` stops reading "none"; the map gains states history gained |
+| 8 | **Crowns & Recognition** (§6, DY-6/DY-7) — the marquee. | ≈4 | `formations` stops reading "none"; the map gains states history gained |
+| — | **S15 THE DEPLOY** (Q1 as REVERSED November 7, 2026 — after Tier 8; §0). Deploy gate: 0 open GR rows, story classes ≥ 4 of 10 (the raise question sits at Tier 6's head — §7), `captures_outside_aim` 0, France band 23–28, historian test green on every seed. | — | — |
 
 ---
 
@@ -205,7 +231,7 @@ the era's rivalry at the table", with the second-war count per seed.
 
 ---
 
-## §5 The Awakening (DY-4 and DY-5, Tier 6 — post-deploy by Q1's ruling)
+## §5 The Awakening (DY-4 and DY-5, Tier 6 — PRE-deploy by Q1's reversal, §0)
 
 **The era's own force, and the game's answer to "rising nationalism".** A per-court
 scalar 0–100 (Q2 default; no per-region store — regional expression is DERIVED), living
@@ -253,7 +279,7 @@ dial, the measure chain. **STATUS lines** at each landing.
 
 ---
 
-## §6 Crowns & Recognition (DY-6 and DY-7 — the post-deploy marquee, after §5)
+## §6 Crowns & Recognition (DY-6 and DY-7 — Tier 8, the pre-deploy marquee, after §5)
 
 The era's cool maps were NEW states: the Confederation, Warsaw, Westphalia. The table
 machinery half-exists: `CANONICAL_CLAUSE_TYPES` (`settlement_scoring.py:100`) already
@@ -291,13 +317,19 @@ count of distinct signature classes across the ten ambient seeds, computed by th
 signature tool itself; the pre-build baseline is archived
 (`tools/_dy_signature_baseline.json`, written by a chain run that runs ALONE).
 
-**The gates, restated in one place:** the DEPLOY gate (after Tier 5) is unchanged from
-the plan row — 0 open GR rows, story classes ≥ 4 of 10 with the historian test green on
-every seed, `captures_outside_aim` 0, France band 23–28. The post-Awakening aspiration
-(not a gate): ≥ 6 of 10, at least one seed with a minor at secondary rank, the
-eliminations column varying. Tier 7's dice are built only if the deploy-gate count falls
-short of 4 — variance must first be earned by content, dice are the last resort and stay
-bounded by pin 14.
+**The gates, restated in one place:** the DEPLOY gate (after Tier 8 — Q1 as reversed,
+§0) is unchanged in substance — 0 open GR rows, story classes ≥ 4 of 10 with the
+historian test green on every seed, `captures_outside_aim` 0, France band 23–28. Whether
+the story-class GATE should RISE now that the Awakening and the Crowns ship pre-deploy
+is a question for Tier 6's head, put to the user with NO default marked; until the user
+rules, ≥ 4 of 10 stands, and the post-Awakening reading — ≥ 6 of 10, at least one seed
+with a minor at secondary rank, the eliminations column varying — stays an aspiration,
+not a gate. (One line of color, not a gate's evidence: T0-E/F/G's after-sweep
+hand-grouping read 10 of 10 story classes on the war columns alone,
+`SYSTEMS_REFERENCE.md` §182.5 — but DY-0's own signature is the instrument, and it lands
+at Tier 2's head.) Tier 7's dice are built only if the deploy-gate count falls short of
+4 — variance must first be earned by content, dice are the last resort and stay bounded
+by pin 14.
 
 ---
 
@@ -310,7 +342,7 @@ bounded by pin 14.
 | DY-1b | 4 (with DY-1) | promotion's teeth (§3b) | Saxony's promotion on an authored board; demotion; the beat | rides DY-1's file |
 | DY-2 | 5 | the Questions (§4) | the latch, the envy term, the beat, the panel, the validator | `tests/test_dy2_the_questions_of_europe.py` |
 | DY-3 | 5 (cut-first tail) | the Congress rules a Question (§4) | a sitting Congress recognizes the holder; relief and grievance written | rides DY-2's file |
-| DY-4 | 6 (post-deploy) | the store, raises/cools, the ulcer, the letters (§5) | the AI-France march bleeds; the letters appear by condition | `tests/test_dy4_the_awakening.py` |
+| DY-4 | 6 | the store, raises/cools, the ulcer, the letters (§5) | the AI-France march bleeds; the letters appear by condition | `tests/test_dy4_the_awakening.py` |
 | DY-5 | 6 | the levée, the client dial, the measure chain (§5) | 1813 surges; the tiger ridden at autonomy ≥ 2 | `tests/test_dy5_the_tiger_ridden.py` |
 | DY-6 | 8 | the crown erected + the marshal king (§6) | Naples under Murat, end to end, guided UI | `tests/test_dy6_the_crown_erected.py` |
 | DY-7 | 8 | Recognition (§6) | recognition moves acceptance/trade; the Congress grants | `tests/test_dy7_recognition.py` |
