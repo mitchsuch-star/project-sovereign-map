@@ -579,9 +579,12 @@ class TestTheMeasuredArms:
         # series, at [16]
         # (T0-E/F/G, November 7, 2026: the flip's ALL is the live series no
         # longer — the constant moved on, the flip record stays the flip's;
-        # its series is kept as SERIES_BEFORE_T0EFG.)
+        # its series is kept as SERIES_BEFORE_T0EFG. T0-H, the same day: the
+        # chain re-ran the rig on the final tree, so the flip's RECORD is
+        # kept too — `tools/_standing_series_arms_flip.json` — and these
+        # clauses read the kept file; the fresh final closes the chain below.)
         from tests.test_ai_intent_threat_migration import SERIES_BEFORE_T0EFG
-        flip = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        flip = json.loads((ROOT / "tools" / "_standing_series_arms_flip.json").read_text(encoding="utf-8"))
         assert flip["prior"] == flip["arms"]["AUC"]["series"] == SERIES_BEFORE_THE_COURTS
         assert flip["arms"]["0"]["series"] == SERIES_BEFORE_AU
         assert flip["arms"]["AUD"]["series"] == au["arms"]["AUC+"]["series"]
@@ -636,3 +639,17 @@ class TestTheMeasuredArms:
         assert t0["arms"]["T0G-RCH"]["reach"]["counts"]["staff_unreachable"] == 0
         assert s15["arms"]["AFE"]["reach"]["counts"]["edicts_granted"] == 0
         assert all(s15["arms"][a]["reach"]["counts"]["crown_reads"] == 0 for a in s15["arms"])
+        # T0-H (November 7, 2026): the chain's closing self-check — the
+        # standing rig re-run on the FINAL tree. Its prior is HEAD's
+        # re-pinned constant and its ALL arm reproduces it BYTE FOR BYTE
+        # (divergence None): nothing drifted between T0-E/F/G's re-pin and
+        # the re-record. The AU arms carry the final tree's own baselines
+        # now (arm 0 at [22], AUC and AUY at [17], AUD at [10]) — their
+        # flip-era attributions live in the KEPT record above. AUB stays
+        # byte-identical to ALL: the books change no figure on this tree
+        # either, AU-1's law standing.
+        fresh = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        assert fresh["prior"] == BASELINE_SERIES
+        assert fresh["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert fresh["arms"]["ALL"]["first_divergence_vs_prior"] is None
+        assert fresh["arms"]["AUB"]["first_divergence_vs_prior"] is None

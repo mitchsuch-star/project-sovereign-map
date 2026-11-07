@@ -89,13 +89,21 @@ class TestTheMomentsAreBlindOnEverySeed:
         # paid in authority where their gold refuses (AU-20 fixed) and their fields'
         # writes take the courts' move off historical — Holland's letter falls due at
         # T18 on both arms there, as on wagram; friedland as before
-        assert moved == {"friedland"}, moved
+        # T0-H (November 7, 2026 — the re-record on the final tree, §183): the
+        # courts' move widens to FIVE seeds, every one the Throne of Holland's
+        # timing — due on the armed arm and not the letters' (austerlitz T19),
+        # or the letters' and not the armed (historical and wagram T18, lodi
+        # T18, ulm T19): the courts' decrees and fields hold or bleed
+        # Holland's loyalty past the window per seed; friedland's T17/T18
+        # morning-early move is subsumed in the wider set (its two arms agree
+        # within the window now)
+        assert moved == {"austerlitz", "historical", "lodi", "ulm", "wagram"}, moved
         for seed in ("historical", "wagram"):
-            assert record["seeds"][seed]["armed"]["moments"] == record["seeds"][seed]["letters"]["moments"] == {
-                "throne_of_holland": 18}, seed
+            assert record["seeds"][seed]["letters"]["moments"] == {"throne_of_holland": 18}, seed
+            assert record["seeds"][seed]["armed"]["moments"] == {}, seed
         assert record["seeds"]["rivoli"]["letters"]["moments"] == record["seeds"]["rivoli"]["armed"]["moments"] == {}
         friedland = record["seeds"]["friedland"]
-        assert (friedland["letters"]["moments"]["throne_of_holland"], friedland["armed"]["moments"]["throne_of_holland"]) == (18, 17)
+        assert (friedland["letters"]["moments"]["throne_of_holland"], friedland["armed"]["moments"]["throne_of_holland"]) == (17, 17)
         assert friedland["armed"]["moments"]["bavarian_match"] == friedland["letters"]["moments"]["bavarian_match"] == 9
 
     @pytest.mark.parametrize("seed", SWEEP_SEEDS)
@@ -134,10 +142,18 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # first morning on nine seeds (T6–T9 — on wagram at T9, before the
         # Remounts' T13); austerlitz keeps the Marine's letter at T9, and there
         # the Proclamation comes at T16
+        # T0-H (November 7, 2026 — the re-record on the final tree, §183):
+        # ULM joins austerlitz in meeting the Marine's letter first — the
+        # T0-E/F/G world-lines put no enemy within a march of the Emperor
+        # early there, so the Proclamation's eve never opens the pulse
+        # (santo_domingo at T14 on austerlitz, T15 on ulm); the other eight
+        # seeds keep the Proclamation at T6–T9, historical its authored T7
         assert set(reached) == set(SWEEP_SEEDS), reached
         assert all(f["id"] == "the_proclamation#1" and 6 <= f["turn"] <= 9
-                   for seed, f in reached.items() if seed != "austerlitz"), reached
-        assert reached["austerlitz"] == {"id": "santo_domingo#1", "turn": 9}
+                   for seed, f in reached.items()
+                   if seed not in ("austerlitz", "ulm")), reached
+        assert reached["austerlitz"] == {"id": "santo_domingo#1", "turn": 14}
+        assert reached["ulm"] == {"id": "santo_domingo#1", "turn": 15}
         assert reached["historical"]["turn"] == 7                  # the authored `first`
 
     def test_every_occurrence_is_lapsed_on_a_passive_france(self, record):
@@ -201,10 +217,13 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # austerlitz the Chancellor's letter and the Remounts stand due on the last
         # morning, on marengo the Chancellor's, the Remounts and the Pope's, on lodi
         # the Chancellor's and the Memorial; nothing on eylau
-        due_at_the_end = {"ulm": {"chancellors_letters|": 1, "the_remounts|": 1},
-                          "austerlitz": {"chancellors_letters|": 1, "the_remounts|": 1},
-                          "marengo": {"chancellors_letters|": 3, "the_remounts|": 3, "the_popes_ports|": 3},
-                          "lodi": {"chancellors_letters|": 1, "berthiers_memorial|": 1}}
+        # T0-H (November 7, 2026 — the re-record on the final tree, §183): the
+        # T0-E/F/G world-lines clear the last morning on every seed but
+        # marengo, where the Chancellor's letter, the Remounts and the Pope's
+        # stand due (each once — the pulse re-timed under the courts' kept
+        # chests and the later Proclamations)
+        due_at_the_end = {"marengo": {"chancellors_letters|": 1, "the_remounts|": 1,
+                                      "the_popes_ports|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
             assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])

@@ -1,0 +1,110 @@
+{
+ "pillars": {
+  "ai_aliveness": {
+   "open": 22,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GR-9",
+    "GR-10",
+    "GR-17",
+    "GRD-2",
+    "GRD-3",
+    "GRD-4",
+    "GRD-5",
+    "GRD-6",
+    "GRD-7",
+    "GRD-8",
+    "GRD-9",
+    "GRD-10",
+    "GRD-14",
+    "GRD-15",
+    "GRD-23",
+    "GRD-24",
+    "GRD-25",
+    "GRD-26",
+    "GRD-28",
+    "GRD-29",
+    "GRD-30",
+    "GRD-37"
+   ]
+  },
+  "combat_legibility": {
+   "open": 4,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GRD-31",
+    "GRD-32",
+    "GRD-33",
+    "GRD-34"
+   ]
+  },
+  "command": {
+   "open": 3,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GRD-16",
+    "GRD-17",
+    "GRD-18"
+   ]
+  },
+  "diplomacy": {
+   "open": 4,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "GR-14",
+    "GR-65",
+    "GRD-13",
+    "GRD-27"
+   ]
+  },
+  "economy": {
+   "open": 7,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GR-11",
+    "GRD-11",
+    "GRD-12",
+    "GRD-19",
+    "GRD-20",
+    "GRD-21",
+    "GRD-22"
+   ]
+  },
+  "living_balance": {
+   "open": 3,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GR-2",
+    "GR-3",
+    "GRD-1"
+   ]
+  },
+  "naval": {
+   "open": 2,
+   "p1": [],
+   "p2": 1,
+   "rows": [
+    "GR-64",
+    "GR-66"
+   ]
+  },
+  "none": {
+   "open": 2,
+   "p1": [],
+   "p2": 0,
+   "rows": [
+    "GRD-35",
+    "GRD-36"
+   ]
+  }
+ },
+ "untagged": [],
+ "counted_at": "2026-11-07T12:34",
+ "open_total": 47
+}

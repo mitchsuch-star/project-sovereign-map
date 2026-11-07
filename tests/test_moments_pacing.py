@@ -390,13 +390,19 @@ class TestTheMeasuredArms:
         # letter). RE-3's re-measure (November 1) had it on NO arm: the clause
         # `moments._design_fulfilled` asked no vassal court. Seeded paths, not
         # laws: each arm's fate is read with its cause.
+        # T0-H (November 7, 2026 — the re-record on the final tree, §183):
+        # MARENGO joins austerlitz — the Rhine road stamps Pressburg at T13
+        # there too now (the Fall had ended the old run unstamped), so the
+        # Crown arrives at T15 on both seeds, declined on the lapse arm and
+        # accepted on Road I answered; historical alone stays pending (the
+        # Confederation never latches on the shipped tree).
         crown = {f"{f}/{n}": row["reach"]["crown_of_the_reich"]
                  for f, n, row in self._rows(record, ("commanded", "accept", "road", "road_accept"))}
         assert "crown_of_the_reich" in fired
-        assert crown["road/VP1-RH-austerlitz"] == "arrived T15, answered decline T15", crown
-        assert crown["road_accept/VP1-RH-austerlitz"] == "arrived T15, answered accept T15", crown
-        for arm in ("road/VP1-RH-historical", "road/VP1-RH-marengo",
-                    "road_accept/VP1-RH-historical", "road_accept/VP1-RH-marengo"):
+        for seed in ("austerlitz", "marengo"):
+            assert crown[f"road/VP1-RH-{seed}"] == "arrived T15, answered decline T15", crown
+            assert crown[f"road_accept/VP1-RH-{seed}"] == "arrived T15, answered accept T15", crown
+        for arm in ("road/VP1-RH-historical", "road_accept/VP1-RH-historical"):
             assert crown[arm].startswith("pending"), (arm, crown[arm])
         assert all(v.startswith("pending") for k, v in crown.items()
                    if k.split("/")[0] in ("commanded", "accept")), crown

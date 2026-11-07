@@ -96,7 +96,15 @@ class TestTheShippedMeasureBuysNothing:
     arm on historical (T28), 4 authority each, above the purchases' floor (81
     and 82 after). No other purchase on any shipped row."""
 
-    PROCLAIMED = {("haiti", "HAITI-historical"), ("road_accept", "VP1-RH-historical")}
+    # RE-SEATED by T0-H (November 7, 2026 — the re-record chain on the final
+    # tree, `SYSTEMS_REFERENCE.md` §183): the Proclamation's Decree reaches
+    # ALL THREE haiti arms now (it had reached historical alone) — the
+    # T0-E/F/G world-lines bring the eve of battle to the austerlitz and
+    # marengo boards too — each at the same shape: one Decree, −4, the
+    # purchases' floor held (96; 91 on the accept dial). Seeded paths,
+    # not laws.
+    PROCLAIMED = {("haiti", "HAITI-historical"), ("haiti", "HAITI-austerlitz"),
+                  ("haiti", "HAITI-marengo"), ("road_accept", "VP1-RH-historical")}
 
     @pytest.mark.parametrize("row", ROWS, ids=lambda r: f"{r['family']}/{r['arm']}")
     def test_no_purchase_on_a_shipped_row(self, row):

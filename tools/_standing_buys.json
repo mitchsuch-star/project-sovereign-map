@@ -15,20 +15,22 @@
    "status": "completed",
    "turns": 40,
    "buys": {
-    "by_decree": 1,
-    "honoured": 8,
+    "by_decree": 2,
+    "edict_decreed": 1,
+    "honoured": 6,
     "word_given": 1
    },
    "paid": {
-    "by_decree": 8,
-    "honoured": 48,
-    "word_given": 3
+    "by_decree": 16,
+    "edict_decreed": 5,
+    "honoured": 36,
+    "word_given": 5
    },
-   "lowest_after_a_buy": 62,
+   "lowest_after_a_buy": 61,
    "a_buy_crossed_85": true,
-   "regrowth": 31,
+   "regrowth": 23,
    "stakes": 0,
-   "decrees_answered": 0,
+   "decrees_answered": 1,
    "edicts_offered": [
     {
      "letter": "the_remounts#1",
@@ -38,23 +40,24 @@
      "grip": 62
     },
     {
-     "letter": "the_remounts#2",
-     "turn": 33,
-     "kind": "lapse",
-     "answer": "decline",
-     "grip": 62
+     "letter": "the_magazines#1",
+     "turn": 34,
+     "kind": "answer",
+     "answer": "decree",
+     "grip": 66
     }
    ],
    "answers": {
+    "marshal_audience:acknowledge": 2,
     "marshal_audience:honour": 5,
-    "marshal_petition:decree": 1,
-    "marshal_petition:honour": 3,
-    "objection:trust": 1,
+    "marshal_petition:acknowledge": 2,
+    "marshal_petition:decree": 2,
+    "marshal_petition:honour": 1,
     "objection:word": 1
    },
    "start": 100,
-   "min": 62,
-   "end": 71,
+   "min": 21,
+   "end": 21,
    "residual": {
     "total": 0,
     "explained": 0,
@@ -63,50 +66,55 @@
     "by_site": {}
    },
    "pushes": 10,
-   "shipped_end": 51,
-   "shipped_min": 51
+   "shipped_end": 35,
+   "shipped_min": 30
   },
   "CMD-H": {
    "status": "completed",
    "turns": 40,
    "buys": {
-    "honoured": 8
+    "by_decree": 1,
+    "edict_decreed": 1,
+    "honoured": 4,
+    "word_given": 1
    },
    "paid": {
-    "honoured": 49
+    "by_decree": 8,
+    "edict_decreed": 3,
+    "honoured": 22,
+    "word_given": 5
    },
-   "lowest_after_a_buy": 61,
+   "lowest_after_a_buy": 62,
    "a_buy_crossed_85": true,
-   "regrowth": 10,
+   "regrowth": 0,
    "stakes": 0,
-   "decrees_answered": 0,
+   "decrees_answered": 1,
    "edicts_offered": [
     {
      "letter": "the_remounts#1",
-     "turn": 31,
-     "kind": "lapse",
-     "answer": "decline",
-     "grip": 61
+     "turn": 23,
+     "kind": "answer",
+     "answer": "decree",
+     "grip": 65
     },
     {
-     "letter": "the_remounts#2",
-     "turn": 39,
+     "letter": "the_magazines#1",
+     "turn": 36,
      "kind": "lapse",
      "answer": "decline",
-     "grip": 61
+     "grip": 62
     }
    ],
    "answers": {
-    "marshal_audience:acknowledge": 3,
-    "marshal_audience:honour": 5,
-    "marshal_petition:accept_breach": 1,
+    "marshal_audience:honour": 3,
     "marshal_petition:acknowledge": 2,
-    "marshal_petition:honour": 3,
-    "objection:trust": 1
+    "marshal_petition:decree": 1,
+    "marshal_petition:honour": 1,
+    "objection:word": 1
    },
    "start": 100,
-   "min": 61,
-   "end": 61,
+   "min": 62,
+   "end": 62,
    "residual": {
     "total": 0,
     "explained": 0,
@@ -114,9 +122,9 @@
     "turns": [],
     "by_site": {}
    },
-   "pushes": 8,
-   "shipped_end": 79,
-   "shipped_min": 79
+   "pushes": 7,
+   "shipped_end": 71,
+   "shipped_min": 71
   },
   "CMD-M": {
    "status": "completed",
@@ -170,8 +178,8 @@
     "by_site": {}
    },
    "pushes": 6,
-   "shipped_end": 50,
-   "shipped_min": 45
+   "shipped_end": 55,
+   "shipped_min": 50
   },
   "DL": {
    "status": "completed",
@@ -245,12 +253,12 @@
     "word_given": 1
    },
    "paid": {
-    "honoured": 30,
+    "honoured": 31,
     "word_given": 4
    },
    "lowest_after_a_buy": 79,
    "a_buy_crossed_85": true,
-   "regrowth": 21,
+   "regrowth": 32,
    "stakes": 0,
    "decrees_answered": 0,
    "edicts_offered": [],
@@ -261,7 +269,7 @@
    },
    "start": 100,
    "min": 86,
-   "end": 87,
+   "end": 92,
    "residual": {
     "total": 0,
     "explained": 0,
@@ -270,33 +278,34 @@
     "by_site": {}
    },
    "pushes": 6,
-   "shipped_end": 55,
-   "shipped_min": 55
+   "shipped_end": 100,
+   "shipped_min": 100
   },
   "LAW": {
    "status": "completed",
    "turns": 10,
    "buys": {
-    "honoured": 3
+    "honoured": 4
    },
    "paid": {
-    "honoured": 15
+    "honoured": 22
    },
-   "lowest_after_a_buy": 64,
+   "lowest_after_a_buy": 61,
    "a_buy_crossed_85": false,
-   "regrowth": 15,
+   "regrowth": 13,
    "stakes": 0,
    "decrees_answered": 0,
    "edicts_offered": [],
    "answers": {
-    "marshal_audience:acknowledge": 2,
-    "marshal_audience:detach": 1,
+    "marshal_audience:acknowledge": 1,
     "marshal_audience:honour": 3,
-    "marshal_petition:acknowledge": 1
+    "marshal_petition:acknowledge": 2,
+    "marshal_petition:honour": 1,
+    "objection:trust": 1
    },
    "start": 100,
-   "min": 55,
-   "end": 55,
+   "min": 46,
+   "end": 46,
    "residual": {
     "total": 0,
     "explained": 0,
@@ -304,7 +313,7 @@
     "turns": [],
     "by_site": {}
    },
-   "pushes": 3,
+   "pushes": 4,
    "shipped_end": 68,
    "shipped_min": 68
   },
@@ -351,43 +360,48 @@
    "status": "completed",
    "turns": 40,
    "buys": {
-    "honoured": 8
+    "by_decree": 1,
+    "edict_decreed": 1,
+    "honoured": 4,
+    "word_given": 1
    },
    "paid": {
-    "honoured": 49
+    "by_decree": 8,
+    "edict_decreed": 3,
+    "honoured": 22,
+    "word_given": 5
    },
-   "lowest_after_a_buy": 61,
+   "lowest_after_a_buy": 62,
    "a_buy_crossed_85": true,
-   "regrowth": 10,
+   "regrowth": 0,
    "stakes": 0,
-   "decrees_answered": 0,
+   "decrees_answered": 1,
    "edicts_offered": [
     {
      "letter": "the_remounts#1",
-     "turn": 31,
-     "kind": "lapse",
-     "answer": "decline",
-     "grip": 61
+     "turn": 23,
+     "kind": "answer",
+     "answer": "decree",
+     "grip": 65
     },
     {
      "letter": "the_remounts#2",
-     "turn": 39,
+     "turn": 40,
      "kind": "lapse",
      "answer": "decline",
-     "grip": 61
+     "grip": 62
     }
    ],
    "answers": {
-    "marshal_audience:acknowledge": 3,
-    "marshal_audience:honour": 5,
-    "marshal_petition:accept_breach": 1,
+    "marshal_audience:honour": 3,
     "marshal_petition:acknowledge": 2,
-    "marshal_petition:honour": 3,
-    "objection:trust": 1
+    "marshal_petition:decree": 1,
+    "marshal_petition:honour": 1,
+    "objection:word": 1
    },
    "start": 100,
-   "min": 61,
-   "end": 61,
+   "min": 62,
+   "end": 62,
    "residual": {
     "total": 0,
     "explained": 0,
@@ -395,15 +409,16 @@
     "turns": [],
     "by_site": {}
    },
-   "pushes": 8,
-   "shipped_end": 79,
-   "shipped_min": 79
+   "pushes": 7,
+   "shipped_end": 76,
+   "shipped_min": 71
   }
  },
  "totals": {
-  "by_decree": 3,
-  "honoured": 43,
-  "word_given": 6
+  "by_decree": 6,
+  "edict_decreed": 3,
+  "honoured": 34,
+  "word_given": 8
  },
  "runs_with_a_push": [
   "CMD-A",

@@ -19,12 +19,12 @@
    "Spain": 59.4
   },
   "flipped": {
-   "Austria": 34.7,
-   "Britain": 40.7,
+   "Austria": 32.2,
+   "Britain": 35.2,
    "Ottoman": 57.4,
-   "Prussia": 34.5,
-   "Russia": 39.5,
-   "Spain": 64.8
+   "Prussia": 35.5,
+   "Russia": 34.7,
+   "Spain": 63.1
   }
  },
  "courts_at_or_under_30": {
@@ -40,10 +40,11 @@
    "Russia": 6
   },
   "flipped": {
-   "Austria": 21,
-   "Britain": 7,
-   "Prussia": 7,
-   "Russia": 6
+   "Austria": 23,
+   "Britain": 15,
+   "Prussia": 13,
+   "Russia": 15,
+   "Spain": 1
   }
  },
  "court_moves_by_cause": {
@@ -62,17 +63,15 @@
    "te_deum": 55
   },
   "flipped": {
-   "assault_repulsed": 249,
-   "bulletin": 472,
-   "capital_lost": 5,
-   "capital_stormed": 167,
-   "capital_taken": 3,
-   "edict_decreed": 354,
-   "field_lost": 322,
-   "field_won": 83,
-   "garrison_stormed": 1,
+   "assault_repulsed": 287,
+   "bulletin": 516,
+   "capital_stormed": 141,
+   "edict_decreed": 489,
+   "field_lost": 364,
+   "field_won": 104,
+   "garrison_stormed": 2,
    "law": 262,
-   "te_deum": 52
+   "te_deum": 80
   }
  },
  "letters": {
@@ -101,16 +100,16 @@
    "the_remounts": 24
   },
   "flipped": {
-   "berthiers_memorial": 15,
-   "camps_of_instruction": 7,
+   "berthiers_memorial": 16,
+   "camps_of_instruction": 6,
    "chancellors_letters": 26,
    "santo_domingo": 30,
-   "the_bank": 4,
+   "the_bank": 2,
    "the_host": 30,
-   "the_magazines": 6,
-   "the_popes_ports": 8,
-   "the_proclamation": 34,
-   "the_remounts": 22
+   "the_magazines": 9,
+   "the_popes_ports": 5,
+   "the_proclamation": 32,
+   "the_remounts": 23
   }
  },
  "player_end_moved": [
@@ -120,12 +119,12 @@
   "commanded/CMD-A",
   "commanded/CMD-H",
   "commanded/CMD-M",
-  "commanded/FLD",
   "commanded/LAW",
   "commanded/OP",
   "commanded/VOLTE",
   "enacts/ENACTS-austerlitz",
   "enacts/ENACTS-historical",
+  "enacts/ENACTS-ulm",
   "haiti/HAITI-austerlitz",
   "haiti/HAITI-historical",
   "haiti/HAITI-marengo",
@@ -142,6 +141,8 @@
   "road_accept/VP1-RH-austerlitz",
   "road_accept/VP1-RH-historical",
   "road_accept/VP1-RH-marengo",
+  "saves/DDB-24-conquest",
+  "saves/DDB-25-sea",
   "sweep/armA_historical_run1",
   "sweep/armA_historical_run2",
   "sweep/armB_austerlitz",
@@ -1905,7 +1906,7 @@
    "player_end": {
     "parked": 94,
     "reviewed": 94,
-    "flipped": 60
+    "flipped": 49
    },
    "courts_end": {
     "parked": {
@@ -1925,12 +1926,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 40,
-     "Britain": 24,
-     "Russia": 33,
+     "Austria": 44,
+     "Britain": 39,
+     "Russia": 32,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 87
+     "Spain": 64
     }
    }
   },
@@ -1938,7 +1939,7 @@
    "player_end": {
     "parked": 95,
     "reviewed": 95,
-    "flipped": 97
+    "flipped": 94
    },
    "courts_end": {
     "parked": {
@@ -1958,12 +1959,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 45,
-     "Britain": 41,
-     "Russia": 45,
-     "Prussia": 31,
+     "Austria": 52,
+     "Britain": 56,
+     "Russia": 32,
+     "Prussia": 29,
      "Ottoman": 57,
-     "Spain": 54
+     "Spain": 34
     }
    }
   },
@@ -1971,105 +1972,6 @@
    "player_end": {
     "parked": 55,
     "reviewed": 92,
-    "flipped": 45
-   },
-   "courts_end": {
-    "parked": {
-     "Britain": 30,
-     "Russia": 45,
-     "Austria": 30,
-     "Prussia": 30,
-     "Spain": 60,
-     "Ottoman": 60
-    },
-    "reviewed": {
-     "Austria": 39,
-     "Britain": 35,
-     "Russia": 45,
-     "Prussia": 38,
-     "Spain": 59,
-     "Ottoman": 60
-    },
-    "flipped": {
-     "Austria": 56,
-     "Britain": 38,
-     "Russia": 33,
-     "Prussia": 31,
-     "Ottoman": 57,
-     "Spain": 64
-    }
-   }
-  },
-  "commanded/CMD-A": {
-   "player_end": {
-    "parked": 72,
-    "reviewed": 72,
-    "flipped": 51
-   },
-   "courts_end": {
-    "parked": {
-     "Britain": 30,
-     "Russia": 45,
-     "Austria": 30,
-     "Prussia": 30,
-     "Spain": 60,
-     "Ottoman": 60
-    },
-    "reviewed": {
-     "Austria": 39,
-     "Britain": 30,
-     "Russia": 44,
-     "Prussia": 38,
-     "Spain": 60,
-     "Ottoman": 60
-    },
-    "flipped": {
-     "Austria": 40,
-     "Britain": 24,
-     "Russia": 33,
-     "Prussia": 31,
-     "Ottoman": 57,
-     "Spain": 87
-    }
-   }
-  },
-  "commanded/CMD-H": {
-   "player_end": {
-    "parked": 79,
-    "reviewed": 71,
-    "flipped": 79
-   },
-   "courts_end": {
-    "parked": {
-     "Britain": 30,
-     "Russia": 45,
-     "Austria": 30,
-     "Prussia": 30,
-     "Spain": 60,
-     "Ottoman": 60
-    },
-    "reviewed": {
-     "Austria": 46,
-     "Britain": 43,
-     "Russia": 53,
-     "Prussia": 41,
-     "Spain": 60,
-     "Ottoman": 60
-    },
-    "flipped": {
-     "Austria": 45,
-     "Britain": 41,
-     "Russia": 45,
-     "Prussia": 31,
-     "Ottoman": 57,
-     "Spain": 54
-    }
-   }
-  },
-  "commanded/CMD-M": {
-   "player_end": {
-    "parked": 52,
-    "reviewed": 90,
     "flipped": 50
    },
    "courts_end": {
@@ -2090,8 +1992,107 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 56,
-     "Britain": 38,
+     "Austria": 38,
+     "Britain": 33,
+     "Russia": 33,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/CMD-A": {
+   "player_end": {
+    "parked": 72,
+    "reviewed": 72,
+    "flipped": 35
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 30,
+     "Russia": 44,
+     "Prussia": 38,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 44,
+     "Britain": 39,
+     "Russia": 32,
+     "Prussia": 31,
+     "Ottoman": 57,
+     "Spain": 64
+    }
+   }
+  },
+  "commanded/CMD-H": {
+   "player_end": {
+    "parked": 79,
+    "reviewed": 71,
+    "flipped": 71
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 46,
+     "Britain": 43,
+     "Russia": 53,
+     "Prussia": 41,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 47,
+     "Britain": 56,
+     "Russia": 37,
+     "Prussia": 29,
+     "Ottoman": 57,
+     "Spain": 34
+    }
+   }
+  },
+  "commanded/CMD-M": {
+   "player_end": {
+    "parked": 52,
+    "reviewed": 90,
+    "flipped": 55
+   },
+   "courts_end": {
+    "parked": {
+     "Britain": 30,
+     "Russia": 45,
+     "Austria": 30,
+     "Prussia": 30,
+     "Spain": 60,
+     "Ottoman": 60
+    },
+    "reviewed": {
+     "Austria": 39,
+     "Britain": 35,
+     "Russia": 45,
+     "Prussia": 38,
+     "Spain": 59,
+     "Ottoman": 60
+    },
+    "flipped": {
+     "Austria": 38,
+     "Britain": 33,
      "Russia": 33,
      "Prussia": 31,
      "Ottoman": 57,
@@ -2169,7 +2170,7 @@
    "player_end": {
     "parked": 100,
     "reviewed": 100,
-    "flipped": 55
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -2189,8 +2190,8 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 35,
-     "Britain": 42,
+     "Austria": 26,
+     "Britain": 37,
      "Russia": 37,
      "Prussia": 38,
      "Ottoman": 57,
@@ -2222,9 +2223,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 45,
-     "Britain": 42,
-     "Russia": 42,
+     "Austria": 39,
+     "Britain": 37,
+     "Russia": 38,
      "Prussia": 38,
      "Ottoman": 57,
      "Spain": 64
@@ -2256,9 +2257,9 @@
     },
     "flipped": {
      "Austria": 32,
-     "Britain": 42,
-     "Russia": 46,
-     "Prussia": 46,
+     "Britain": 33,
+     "Russia": 42,
+     "Prussia": 31,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -2268,7 +2269,7 @@
    "player_end": {
     "parked": 71,
     "reviewed": 71,
-    "flipped": 79
+    "flipped": 76
    },
    "courts_end": {
     "parked": {
@@ -2288,10 +2289,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 45,
-     "Britain": 41,
-     "Russia": 45,
-     "Prussia": 31,
+     "Austria": 34,
+     "Britain": 36,
+     "Russia": 38,
+     "Prussia": 29,
      "Ottoman": 57,
      "Spain": 54
     }
@@ -2301,7 +2302,7 @@
    "player_end": {
     "parked": 71,
     "reviewed": 72,
-    "flipped": 86
+    "flipped": 40
    },
    "courts_end": {
     "parked": {
@@ -2321,12 +2322,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 33,
+     "Austria": 34,
      "Britain": 39,
-     "Russia": 33,
+     "Russia": 31,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 64
     }
    }
   },
@@ -2334,7 +2335,7 @@
    "player_end": {
     "parked": 79,
     "reviewed": 69,
-    "flipped": 72
+    "flipped": 71
    },
    "courts_end": {
     "parked": {
@@ -2354,12 +2355,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 45,
-     "Britain": 41,
-     "Russia": 45,
-     "Prussia": 31,
+     "Austria": 47,
+     "Britain": 51,
+     "Russia": 37,
+     "Prussia": 29,
      "Ottoman": 57,
-     "Spain": 54
+     "Spain": 39
     }
    }
   },
@@ -2367,7 +2368,7 @@
    "player_end": {
     "parked": 74,
     "reviewed": 74,
-    "flipped": 74
+    "flipped": 88
    },
    "courts_end": {
     "parked": {
@@ -2387,12 +2388,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 38,
-     "Britain": 37,
-     "Russia": 41,
-     "Prussia": 31,
+     "Austria": 29,
+     "Britain": 30,
+     "Russia": 42,
+     "Prussia": 33,
      "Ottoman": 57,
-     "Spain": 62
+     "Spain": 68
     }
    }
   },
@@ -2400,7 +2401,7 @@
    "player_end": {
     "parked": 89,
     "reviewed": 91,
-    "flipped": 90
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -2420,12 +2421,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 39,
-     "Russia": 36,
-     "Austria": 33,
-     "Prussia": 31,
+     "Britain": 37,
+     "Russia": 31,
+     "Austria": 18,
+     "Prussia": 41,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   },
@@ -2433,7 +2434,7 @@
    "player_end": {
     "parked": 50,
     "reviewed": 55,
-    "flipped": 55
+    "flipped": 50
    },
    "courts_end": {
     "parked": {
@@ -2453,12 +2454,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 40,
-     "Russia": 26,
-     "Austria": 37,
+     "Britain": 30,
+     "Russia": 30,
+     "Austria": 22,
      "Prussia": 35,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 68
     }
    }
   },
@@ -2466,7 +2467,7 @@
    "player_end": {
     "parked": 60,
     "reviewed": 55,
-    "flipped": 50
+    "flipped": 55
    },
    "courts_end": {
     "parked": {
@@ -2486,12 +2487,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 41,
-     "Russia": 40,
-     "Austria": 22,
+     "Britain": 17,
+     "Russia": 22,
+     "Austria": 42,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 83
     }
    }
   },
@@ -2532,7 +2533,7 @@
    "player_end": {
     "parked": 93,
     "reviewed": 91,
-    "flipped": 76
+    "flipped": 83
    },
    "courts_end": {
     "parked": {
@@ -2553,11 +2554,11 @@
     },
     "flipped": {
      "Austria": 32,
-     "Britain": 42,
-     "Russia": 50,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 46,
+     "Prussia": 30,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 59
     }
    }
   },
@@ -2565,7 +2566,7 @@
    "player_end": {
     "parked": 46,
     "reviewed": 97,
-    "flipped": 45
+    "flipped": 55
    },
    "courts_end": {
     "parked": {
@@ -2585,9 +2586,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 41,
-     "Austria": 43,
+     "Britain": 36,
+     "Russia": 36,
+     "Austria": 36,
      "Prussia": 38,
      "Ottoman": 57,
      "Spain": 64
@@ -2598,7 +2599,7 @@
    "player_end": {
     "parked": 35,
     "reviewed": 19,
-    "flipped": 35
+    "flipped": 0
    },
    "courts_end": {
     "parked": {
@@ -2618,10 +2619,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 35,
-     "Russia": 50,
-     "Austria": 44,
-     "Prussia": 35,
+     "Britain": 31,
+     "Russia": 34,
+     "Austria": 19,
+     "Prussia": 30,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -2631,7 +2632,7 @@
    "player_end": {
     "parked": 10,
     "reviewed": 50,
-    "flipped": 45
+    "flipped": 29
    },
    "courts_end": {
     "parked": {
@@ -2652,11 +2653,11 @@
     },
     "flipped": {
      "Britain": 31,
-     "Russia": 53,
-     "Austria": 45,
+     "Russia": 37,
+     "Austria": 34,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 74
+     "Spain": 64
     }
    }
   },
@@ -2664,7 +2665,7 @@
    "player_end": {
     "parked": 47,
     "reviewed": 57,
-    "flipped": 55
+    "flipped": 47
    },
    "courts_end": {
     "parked": {
@@ -2684,10 +2685,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 36,
-     "Britain": 31,
-     "Russia": 40,
-     "Prussia": 40,
+     "Austria": 32,
+     "Britain": 33,
+     "Russia": 45,
+     "Prussia": 31,
      "Ottoman": 57,
      "Spain": 68
     }
@@ -2697,7 +2698,7 @@
    "player_end": {
     "parked": 44,
     "reviewed": 76,
-    "flipped": 92
+    "flipped": 88
    },
    "courts_end": {
     "parked": {
@@ -2717,12 +2718,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 30,
-     "Britain": 60,
-     "Russia": 36,
-     "Prussia": 31,
+     "Austria": 31,
+     "Britain": 42,
+     "Russia": 39,
+     "Prussia": 32,
      "Ottoman": 57,
-     "Spain": 54
+     "Spain": 67
     }
    }
   },
@@ -2730,7 +2731,7 @@
    "player_end": {
     "parked": 83,
     "reviewed": 56,
-    "flipped": 65
+    "flipped": 80
    },
    "courts_end": {
     "parked": {
@@ -2750,12 +2751,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 14,
-     "Britain": 37,
-     "Russia": 54,
-     "Prussia": 32,
+     "Austria": 9,
+     "Britain": 32,
+     "Russia": 14,
+     "Prussia": 33,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 77
     }
    }
   },
@@ -2763,7 +2764,7 @@
    "player_end": {
     "parked": 55,
     "reviewed": 50,
-    "flipped": 60
+    "flipped": 10
    },
    "courts_end": {
     "parked": {
@@ -2783,12 +2784,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 24,
-     "Britain": 42,
-     "Russia": 49,
-     "Prussia": 35,
+     "Austria": 43,
+     "Britain": 36,
+     "Russia": 32,
+     "Prussia": 37,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 54
     }
    }
   },
@@ -2796,7 +2797,7 @@
    "player_end": {
     "parked": 42,
     "reviewed": 41,
-    "flipped": 41
+    "flipped": 52
    },
    "courts_end": {
     "parked": {
@@ -2816,12 +2817,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 43,
-     "Britain": 46,
-     "Russia": 27,
-     "Prussia": 31,
+     "Austria": 19,
+     "Britain": 78,
+     "Russia": 36,
+     "Prussia": 37,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 19
     }
    }
   },
@@ -2829,7 +2830,7 @@
    "player_end": {
     "parked": 55,
     "reviewed": 50,
-    "flipped": 47
+    "flipped": 75
    },
    "courts_end": {
     "parked": {
@@ -2849,12 +2850,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 29,
-     "Britain": 75,
-     "Russia": 54,
+     "Austria": 4,
+     "Britain": 30,
+     "Russia": 49,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 43
+     "Spain": 68
     }
    }
   },
@@ -2862,7 +2863,7 @@
    "player_end": {
     "parked": 55,
     "reviewed": 79,
-    "flipped": 60
+    "flipped": 68
    },
    "courts_end": {
     "parked": {
@@ -2882,10 +2883,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 36,
-     "Britain": 31,
-     "Russia": 40,
-     "Prussia": 40,
+     "Austria": 40,
+     "Britain": 33,
+     "Russia": 36,
+     "Prussia": 31,
      "Ottoman": 57,
      "Spain": 68
     }
@@ -2895,7 +2896,7 @@
    "player_end": {
     "parked": 91,
     "reviewed": 84,
-    "flipped": 100
+    "flipped": 95
    },
    "courts_end": {
     "parked": {
@@ -2915,12 +2916,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 30,
-     "Britain": 60,
-     "Russia": 36,
-     "Prussia": 31,
+     "Austria": 31,
+     "Britain": 42,
+     "Russia": 44,
+     "Prussia": 32,
      "Ottoman": 57,
-     "Spain": 54
+     "Spain": 67
     }
    }
   },
@@ -2928,7 +2929,7 @@
    "player_end": {
     "parked": 83,
     "reviewed": 52,
-    "flipped": 68
+    "flipped": 80
    },
    "courts_end": {
     "parked": {
@@ -2948,12 +2949,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 14,
-     "Britain": 37,
-     "Russia": 54,
-     "Prussia": 32,
+     "Austria": 9,
+     "Britain": 32,
+     "Russia": 14,
+     "Prussia": 33,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 77
     }
    }
   },
@@ -2961,7 +2962,7 @@
    "player_end": {
     "parked": 69,
     "reviewed": 69,
-    "flipped": 69
+    "flipped": 64
    },
    "courts_end": {
     "parked": {
@@ -2982,8 +2983,8 @@
     },
     "flipped": {
      "Britain": 30,
-     "Russia": 39,
-     "Austria": 30,
+     "Russia": 30,
+     "Austria": 35,
      "Prussia": 30,
      "Spain": 60,
      "Ottoman": 60
@@ -3047,11 +3048,11 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Russia": 43,
+     "Russia": 47,
      "Britain": 30,
      "Austria": 30,
      "Prussia": 30,
-     "Spain": 64,
+     "Spain": 60,
      "Ottoman": 60
     }
    }
@@ -3126,7 +3127,7 @@
    "player_end": {
     "parked": 40,
     "reviewed": 40,
-    "flipped": 40
+    "flipped": 45
    },
    "courts_end": {
     "parked": {
@@ -3146,9 +3147,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Austria": 37,
-     "Britain": 34,
-     "Russia": 49,
+     "Austria": 28,
+     "Britain": 30,
+     "Russia": 53,
      "Prussia": 30,
      "Spain": 60,
      "Ottoman": 60
@@ -3159,7 +3160,7 @@
    "player_end": {
     "parked": 45,
     "reviewed": 45,
-    "flipped": 90
+    "flipped": 35
    },
    "courts_end": {
     "parked": {
@@ -3179,10 +3180,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 35,
-     "Austria": 43,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 26,
+     "Austria": 26,
+     "Prussia": 37,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -3192,7 +3193,7 @@
    "player_end": {
     "parked": 45,
     "reviewed": 45,
-    "flipped": 90
+    "flipped": 35
    },
    "courts_end": {
     "parked": {
@@ -3212,10 +3213,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 35,
-     "Austria": 43,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 26,
+     "Austria": 26,
+     "Prussia": 37,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -3225,7 +3226,7 @@
    "player_end": {
     "parked": 42,
     "reviewed": 45,
-    "flipped": 65
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3245,12 +3246,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 36,
-     "Austria": 39,
-     "Prussia": 31,
+     "Britain": 34,
+     "Russia": 41,
+     "Austria": 33,
+     "Prussia": 47,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 64
     }
    }
   },
@@ -3258,7 +3259,7 @@
    "player_end": {
     "parked": 30,
     "reviewed": 40,
-    "flipped": 55
+    "flipped": 47
    },
    "courts_end": {
     "parked": {
@@ -3278,12 +3279,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 44,
-     "Russia": 54,
-     "Austria": 7,
-     "Prussia": 31,
+     "Britain": 30,
+     "Russia": 35,
+     "Austria": 16,
+     "Prussia": 37,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 68
     }
    }
   },
@@ -3291,7 +3292,7 @@
    "player_end": {
     "parked": 97,
     "reviewed": 100,
-    "flipped": 70
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3311,12 +3312,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 36,
-     "Russia": 32,
-     "Austria": 18,
+     "Britain": 41,
+     "Russia": 22,
+     "Austria": 50,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   },
@@ -3324,7 +3325,7 @@
    "player_end": {
     "parked": 45,
     "reviewed": 45,
-    "flipped": 90
+    "flipped": 35
    },
    "courts_end": {
     "parked": {
@@ -3344,10 +3345,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 35,
-     "Austria": 43,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 26,
+     "Austria": 26,
+     "Prussia": 37,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -3357,7 +3358,7 @@
    "player_end": {
     "parked": 95,
     "reviewed": 90,
-    "flipped": 75
+    "flipped": 40
    },
    "courts_end": {
     "parked": {
@@ -3377,12 +3378,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 35,
-     "Russia": 6,
-     "Austria": 27,
+     "Britain": 16,
+     "Russia": 25,
+     "Austria": 31,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 78
     }
    }
   },
@@ -3390,7 +3391,7 @@
    "player_end": {
     "parked": 45,
     "reviewed": 83,
-    "flipped": 81
+    "flipped": 29
    },
    "courts_end": {
     "parked": {
@@ -3410,12 +3411,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 11,
-     "Austria": 33,
+     "Britain": 26,
+     "Russia": 31,
+     "Austria": 44,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 64
     }
    }
   },
@@ -3443,10 +3444,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 26,
-     "Austria": 0,
-     "Prussia": 60,
+     "Britain": 31,
+     "Russia": 29,
+     "Austria": 31,
+     "Prussia": 58,
      "Ottoman": 57,
      "Spain": 64
     }
@@ -3456,7 +3457,7 @@
    "player_end": {
     "parked": 71,
     "reviewed": 87,
-    "flipped": 75
+    "flipped": 47
    },
    "courts_end": {
     "parked": {
@@ -3476,12 +3477,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 17,
-     "Austria": 37,
+     "Britain": 32,
+     "Russia": 26,
+     "Austria": 19,
      "Prussia": 31,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 63
     }
    }
   },
@@ -3489,7 +3490,7 @@
    "player_end": {
     "parked": 70,
     "reviewed": 100,
-    "flipped": 35
+    "flipped": 25
    },
    "courts_end": {
     "parked": {
@@ -3509,10 +3510,10 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 44,
-     "Russia": 46,
-     "Austria": 45,
-     "Prussia": 31,
+     "Britain": 32,
+     "Russia": 17,
+     "Austria": 33,
+     "Prussia": 37,
      "Ottoman": 57,
      "Spain": 68
     }
@@ -3522,7 +3523,7 @@
    "player_end": {
     "parked": 37,
     "reviewed": 40,
-    "flipped": 77
+    "flipped": 50
    },
    "courts_end": {
     "parked": {
@@ -3542,12 +3543,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 41,
-     "Russia": 45,
-     "Austria": 52,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 16,
+     "Austria": 36,
+     "Prussia": 41,
      "Ottoman": 57,
-     "Spain": 68
+     "Spain": 72
     }
    }
   },
@@ -3555,7 +3556,7 @@
    "player_end": {
     "parked": 85,
     "reviewed": 80,
-    "flipped": 75
+    "flipped": 45
    },
    "courts_end": {
     "parked": {
@@ -3575,9 +3576,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 41,
-     "Russia": 45,
-     "Austria": 22,
+     "Britain": 37,
+     "Russia": 31,
+     "Austria": 18,
      "Prussia": 31,
      "Ottoman": 57,
      "Spain": 64
@@ -3588,7 +3589,7 @@
    "player_end": {
     "parked": 100,
     "reviewed": 86,
-    "flipped": 95
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3608,9 +3609,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 37,
-     "Russia": 46,
-     "Austria": 17,
+     "Britain": 32,
+     "Russia": 36,
+     "Austria": 26,
      "Prussia": 31,
      "Ottoman": 57,
      "Spain": 72
@@ -3621,7 +3622,7 @@
    "player_end": {
     "parked": 85,
     "reviewed": 30,
-    "flipped": 80
+    "flipped": 37
    },
    "courts_end": {
     "parked": {
@@ -3641,9 +3642,9 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 36,
-     "Austria": 23,
+     "Britain": 37,
+     "Russia": 26,
+     "Austria": 41,
      "Prussia": 41,
      "Ottoman": 57,
      "Spain": 64
@@ -3654,7 +3655,7 @@
    "player_end": {
     "parked": 97,
     "reviewed": 96,
-    "flipped": 42
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3674,12 +3675,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 37,
-     "Austria": 18,
-     "Prussia": 36,
+     "Britain": 43,
+     "Russia": 42,
+     "Austria": 27,
+     "Prussia": 42,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   },
@@ -3687,7 +3688,7 @@
    "player_end": {
     "parked": 97,
     "reviewed": 83,
-    "flipped": 29
+    "flipped": 95
    },
    "courts_end": {
     "parked": {
@@ -3707,12 +3708,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 37,
-     "Austria": 24,
-     "Prussia": 41,
+     "Britain": 31,
+     "Russia": 41,
+     "Austria": 40,
+     "Prussia": 42,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   },
@@ -3720,7 +3721,7 @@
    "player_end": {
     "parked": 45,
     "reviewed": 95,
-    "flipped": 40
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3740,12 +3741,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 41,
-     "Russia": 41,
-     "Austria": 51,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 37,
+     "Austria": 4,
+     "Prussia": 42,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 68
     }
    }
   },
@@ -3753,7 +3754,7 @@
    "player_end": {
     "parked": 30,
     "reviewed": 95,
-    "flipped": 40
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3773,12 +3774,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 41,
-     "Russia": 41,
-     "Austria": 36,
-     "Prussia": 31,
+     "Britain": 31,
+     "Russia": 32,
+     "Austria": 4,
+     "Prussia": 42,
      "Ottoman": 57,
-     "Spain": 64
+     "Spain": 68
     }
    }
   },
@@ -3786,7 +3787,7 @@
    "player_end": {
     "parked": 40,
     "reviewed": 88,
-    "flipped": 23
+    "flipped": 100
    },
    "courts_end": {
     "parked": {
@@ -3806,12 +3807,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 46,
-     "Russia": 37,
+     "Britain": 26,
+     "Russia": 42,
      "Austria": 29,
-     "Prussia": 30,
+     "Prussia": 42,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   },
@@ -3819,7 +3820,7 @@
    "player_end": {
     "parked": 82,
     "reviewed": 100,
-    "flipped": 82
+    "flipped": 85
    },
    "courts_end": {
     "parked": {
@@ -3839,12 +3840,12 @@
      "Ottoman": 60
     },
     "flipped": {
-     "Britain": 42,
-     "Russia": 37,
-     "Austria": 10,
-     "Prussia": 41,
+     "Britain": 30,
+     "Russia": 33,
+     "Austria": 54,
+     "Prussia": 30,
      "Ottoman": 57,
-     "Spain": 72
+     "Spain": 68
     }
    }
   }
@@ -3852,6 +3853,6 @@
  "court_decrees_in_authority": {
   "parked": 0,
   "reviewed": 0,
-  "flipped": 354
+  "flipped": 489
  }
 }

@@ -549,7 +549,11 @@ class TestTheRecords:
         assert all("" not in r["by_cause"] for r in rows.values())
 
     def test_the_series_rig_reproduces_the_prior_on_every_arm(self):
-        rec = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        # T0-H (November 7, 2026): the chain re-ran the rig on the final
+        # tree, so the flip's record — these attributions' subject — is
+        # KEPT as `tools/_standing_series_arms_flip.json` and read from
+        # there; the LIVE record's own truths are pinned below.
+        rec = json.loads((REPO / "tools" / "_standing_series_arms_flip.json").read_text(encoding="utf-8"))
         assert set(rec["arms"]) >= {"0", "AUB", "AUC", "AUD", "ALL"} and not any(a.endswith("+") for a in rec["arms"])
         # The courts' flip (November 6, 2026, §6.8 — the attribution by arm; AU-4
         # part 1's record is kept beside it, `tools/_standing_series_arms_au4_part1.json`,
@@ -569,3 +573,18 @@ class TestTheRecords:
         assert counts["ALL"]["court_decrees_in_authority"] > 0
         assert counts["AUC"]["court_decrees_in_authority"] == counts["AUD"]["court_decrees_in_authority"] == 0
         assert counts["AUY"]["court_decrees_in_authority"] == 0 and counts["AUY"]["bulletins"] > 0
+        # The LIVE record (T0-H, the final tree): ALL reproduces HEAD's
+        # re-pinned series byte for byte — and AUB with it, the books
+        # changing no figure on this tree either (AU-1's law standing);
+        # the courts' and the buys' arms sit at [17] here, AUD at [10],
+        # arm 0 at [22] — the final tree's own baselines, not the flip's
+        # (the kept record above holds those).
+        live = json.loads((REPO / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
+        assert set(live["arms"]) >= {"0", "AUB", "AUC", "AUD", "ALL"} and not any(a.endswith("+") for a in live["arms"])
+        moved_live = {arm: row["first_divergence_vs_prior"] for arm, row in live["arms"].items()}
+        assert moved_live["ALL"] is None and moved_live["AUB"] is None, moved_live
+        assert moved_live["AUC"] == moved_live["AUY"] == 17, moved_live
+        assert moved_live["AUD"] == 10 and moved_live["0"] == 22, moved_live
+        live_counts = live["arms"]["ALL"]["reach"]["counts"]
+        assert live_counts["rows_booked"] > 0 and live_counts["court_decrees_in_authority"] > 0
+        assert live["arms"]["AUB"]["reach"]["counts"]["rows_booked"] == 0

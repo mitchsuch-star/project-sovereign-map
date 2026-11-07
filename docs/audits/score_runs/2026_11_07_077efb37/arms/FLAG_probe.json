@@ -1,0 +1,225 @@
+{
+ "exit": 0,
+ "rows": [
+  {
+   "turn": 1,
+   "kind": "jealousy_confrontation",
+   "speaker": "Murat",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 2,
+   "opened": true
+  },
+  {
+   "turn": 1,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "audience",
+   "level": 0,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 3,
+   "kind": "jealousy_confrontation",
+   "speaker": "Soult",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 4,
+   "opened": true
+  },
+  {
+   "turn": 4,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 5,
+   "opened": true
+  },
+  {
+   "turn": 6,
+   "kind": "jealousy_confrontation",
+   "speaker": "Massena",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 7,
+   "opened": true
+  },
+  {
+   "turn": 7,
+   "kind": "jealousy_confrontation",
+   "speaker": "Lannes",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 8,
+   "opened": true
+  },
+  {
+   "turn": 8,
+   "kind": "rivalry_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:accept_breach",
+   "fate_turn": 9,
+   "opened": true
+  },
+  {
+   "turn": 8,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 2,
+   "status": "blocked",
+   "fate": "blocked",
+   "fate_turn": null,
+   "opened": false
+  },
+  {
+   "turn": 10,
+   "kind": "jealousy_confrontation",
+   "speaker": "Bernadotte",
+   "tier": "crisis",
+   "level": 3,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 11,
+   "opened": true
+  },
+  {
+   "turn": 12,
+   "kind": "shadow_command",
+   "speaker": "Soult",
+   "tier": "audience",
+   "level": 0,
+   "status": "queued",
+   "fate": "answered:detach",
+   "fate_turn": 13,
+   "opened": true
+  },
+  {
+   "turn": 13,
+   "kind": "jealousy_confrontation",
+   "speaker": "Soult",
+   "tier": "audience",
+   "level": 1,
+   "status": "queued",
+   "fate": "answered:acknowledge",
+   "fate_turn": 14,
+   "opened": true
+  }
+ ],
+ "silent": [],
+ "fire_lines": [
+  [
+   1,
+   "Murat",
+   "Ney",
+   "kept"
+  ],
+  [
+   1,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   3,
+   "Soult",
+   "Ney",
+   "kept"
+  ],
+  [
+   4,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   5,
+   "Ney",
+   "Murat",
+   "kept"
+  ],
+  [
+   6,
+   "Massena",
+   "Ney",
+   "kept"
+  ],
+  [
+   7,
+   "Lannes",
+   "Murat",
+   "kept"
+  ],
+  [
+   8,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   10,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ],
+  [
+   10,
+   "Ney",
+   "Bernadotte",
+   "kept"
+  ],
+  [
+   10,
+   "Ney",
+   "Murat",
+   "kept"
+  ],
+  [
+   11,
+   "Massena",
+   "Ney",
+   "kept"
+  ],
+  [
+   13,
+   "Soult",
+   "Ney",
+   "kept"
+  ],
+  [
+   14,
+   "Murat",
+   "Lannes",
+   "kept"
+  ],
+  [
+   14,
+   "Soult",
+   "Lannes",
+   "kept"
+  ],
+  [
+   15,
+   "Bernadotte",
+   "Ney",
+   "kept"
+  ]
+ ]
+}
