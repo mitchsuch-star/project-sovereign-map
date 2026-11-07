@@ -58,6 +58,14 @@ def filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     for nation, nation_data in enemy_phase.get("nations", {}).items():
         filtered_actions = []
         for action in nation_data.get("actions", []):
+            # TURN-1 (T0-A, November 6, 2026; GR-51): a court's crash row
+            # (`turn_manager._run_ai_phases._error_row`, V2-19) has no marshal
+            # and no region, so it fell to the region gate below and was
+            # suppressed — the player was never told a court skipped its turn.
+            # It carries no intelligence (no place, no man): it passes whole.
+            if str(action.get("action") or "") == "error":
+                filtered_actions.append(action)
+                continue
             # Check 1: Does this action involve a player marshal? (battle)
             involves_player = False
 
@@ -243,6 +251,10 @@ def filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                 if target:
                     entry += f" → {target}"
                 rebuilt_summary.append(entry)
+            elif str(action.get("action") or "") == "error":
+                # TURN-1 (T0-A): the crash row's line in the summary too.
+                rebuilt_summary.append(
+                    f"{nation}: did not complete its turn — an error was recorded")
     filtered_phase["summary"] = rebuilt_summary
 
     # Preserve enemy_victory if present

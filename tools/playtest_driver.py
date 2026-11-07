@@ -1176,6 +1176,8 @@ ENEMY_VERB_PHRASES = {
     "break_square": ("breaks from square", None),
     "garrison": ("detaches a garrison at {t}", "detaches a garrison"),
     "naval_expedition": ("embarks an expedition for {t}", "embarks an expedition"),
+    # T0-A TURN-1 (November 6, 2026; GR-51): a court's crash row — the dialog's own arm.
+    "error": ("did not complete its turn — an error was recorded", None),
 }
 
 
@@ -1206,6 +1208,8 @@ def rendered_enemy_line(action):
     actor = _humanized(ai.get("marshal", ""))
     verb = str(ai.get("action") or "")
     target = _humanized(ai.get("target", ""))
+    if not verb and str(action.get("action") or "") == "error":
+        verb = "error"  # T0-A TURN-1 (GR-51): the court's crash row, as the dialog reads it
     if not verb:
         # UXR3-F9: a battle handed on as-is names its mover and its foe.
         battle = next((e for e in _events_of(action) if e.get("type") == "battle"), None)
@@ -1685,9 +1689,14 @@ def reload_round_trip(transport, digest, answerer, name, turn, strict):
     drain answers them.
 
     Contract (re-stated from the row, which promised more than the seam can
-    give): byte-identical to the no-reload run MODULO the load lines AND any
-    answer the load re-raises — Mode A only (`seed_module_rng` is skipped
-    under --http, and any POST inside a turn shifts that turn's draws)."""
+    give): identical to the no-reload run MODULO the load lines, any answer
+    the load re-raises, AND Berthier's display-only after-battle observation
+    — its per-pair rotation restarts on load (`battle_report.reset_
+    observation_rotation`, run by `WorldState.__init__`; TURN-3, T0-A,
+    November 6, 2026: the review's reload arm differed from its control in
+    two such lines and nothing else) — Mode A only (`seed_module_rng` is
+    skipped under --http, and any POST inside a turn shifts that turn's
+    draws)."""
     filename = f"{name}_reload_t{turn}"
     saved = transport.post("/save", {"save_name": filename})
     loaded = transport.post("/load", {"filename": f"{filename}.json"})

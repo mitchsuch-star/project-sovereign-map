@@ -164,6 +164,10 @@ VINDICATION_EXPIRED = "vindication_expired"          # NORMAL: window passed
 # lifts, a diversion window opens or shuts — each with its cause and the
 # Admiralty line that explains it. Producer: `naval._naval_notice`.
 NAVAL_STATE_CHANGED = "naval_state_changed"          # HIGH: the sea changed
+# TURN-1 (T0-A, November 6, 2026; GR-51): a court's AI turn raised — the
+# phase's own guard kept its moves and reported the trace (`errors.report`);
+# the player is told on the rail. Producer: `turn_manager.note_court_turn_failed`.
+COURT_TURN_FAILED = "court_turn_failed"              # HIGH: a court skipped its turn
 
 
 # ── The rail-exempt set (REV-V3) ────────────────────────────────────────────
@@ -212,6 +216,7 @@ EVENT_NOTICE_TYPES = frozenset({
     CALL_TO_ARMS_HONORED_COSTLY,      # commitments routing
     BALANCE_OF_EUROPE_SHIFTED,        # commitments routing (a band crossed)
     NAVAL_STATE_CHANGED,              # DDB-X6: the sea changed (HIGH)
+    COURT_TURN_FAILED,                # T0-A TURN-1: "<court> did not complete its turn" (HIGH)
 })
 
 

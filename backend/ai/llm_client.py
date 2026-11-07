@@ -2360,8 +2360,7 @@ class LLMClient:
         except Exception as e:
             # API error, timeout, malformed JSON, etc.
             # Log and return fast result - never crash
-            print(f"LLM provider error: {e}")
-            print("Falling back to fast parser result")
+            report(e, "llm_client._parse_with_live_provider: the provider")  # TURN-4 (T0-A): the fast result stands in
             fast_result.llm_error = True  # CR-3(c): see matched=False branch
             return fast_result
 
@@ -2445,7 +2444,7 @@ class LLMClient:
             # client redirects, is replaced by an order the board takes.
             return self.sanitise_berthier_reply(response_text, game_state)
         except Exception as e:
-            print(f"[BERTHIER] Exception in LLM recovery: {e}")
+            report(e, "llm_client.generate_berthier_recovery: the live model")  # TURN-4 (T0-A)
             return self._berthier_mock_response(raw_command, game_state, partial_parse)
 
     # AAR-29 (Score Mandate Chunk 3, SR-3a part (ii), Sept 26 2026): the live

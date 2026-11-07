@@ -299,6 +299,31 @@ def letter_counted(result) -> bool:
     return result is not None
 
 
+def note_court_turn_failed(world, nation: str) -> None:
+    """TURN-1 (T0-A, November 6, 2026; GR-51): the rail row for a court whose
+    AI turn raised — HIGH, a one-shot event that ages out after its turn
+    (DDB-46). The phase's own guard kept the court's moves and reported the
+    trace (`errors.report`); `/debug errors` counts it. Never raises."""
+    try:
+        from backend.display_names import with_definite_article
+        from backend.game_logic.formations import formed_display_name
+        from backend.notifications import (
+            COURT_TURN_FAILED, NotificationPriority, create_notification,
+        )
+        name = with_definite_article(formed_display_name(world, nation), capitalize=True)
+        world.notifications.add(create_notification(
+            notification_type=COURT_TURN_FAILED,
+            priority=NotificationPriority.HIGH,
+            title=f"{name} did not complete its turn",
+            message=(f"An error interrupted {name}'s turn: the moves it had made"
+                     " stand and the rest were skipped. The server log holds the cause."),
+            turn_created=int(world.current_turn),
+            details={"nation": nation},
+        ))
+    except Exception as exc:
+        _errors.report(exc, "turn_manager.note_court_turn_failed: the rail row")
+
+
 class TurnManager:
     """
     Manages turn progression and game state updates.
@@ -330,12 +355,20 @@ class TurnManager:
             game_state: Game state dict for executor (required for enemy AI)
         """
         old_turn = self.world.current_turn
+        # TURN-2 (T0-A, November 6, 2026; GR-52): the last End Turn's close
+        # failed AFTER Europe moved (`WorldState.advance_turn` rolled the R20
+        # stamp back and raised `_advance_failed`). Resume the close alone: no
+        # second signing, lapse, glory attack, enemy phase, AI letter, standing
+        # march or grievance pass — each ran once already. The reply says so
+        # (`resumed`, read by `meta_executor._execute_end_turn`).
+        _resuming = bool(getattr(self.world, "_advance_failed", False))
         # GE-3: every recognition the player won at the Congress's table this
         # turn is signed BEFORE the enemy phase and the advance move relations
         # (a signature holds for the sitting — `congress.take_the_signatures`;
         # nothing while no Congress sits).
         from backend.game_logic import congress as _congress
-        _congress.take_the_signatures(self.world)
+        if not _resuming:
+            _congress.take_the_signatures(self.world)
 
         # DDB-R4: no order auto-advances the turn, so C3's duplicate-end
         # guard is retired (`auto_advanced_to_turn` stays in the save, unread).
@@ -371,11 +404,11 @@ class TurnManager:
         # answered after a load with the lever down.
         from backend.game_logic.vassal import is_client_petition
         _dm = self.world.dialogue_manager
-        pending_petitions = [
+        pending_petitions = [] if _resuming else [
             d for d in ([_dm.peek()] + list(_dm.iter_queue()))
             if isinstance(d, dict) and is_client_petition(d)
         ]
-        lapsed_offers = self.world.dialogue_manager.lapse_pending_offers(
+        lapsed_offers = [] if _resuming else self.world.dialogue_manager.lapse_pending_offers(
             current_turn=int(self.world.current_turn), world=self.world)
         # IQ-7 review R8(b): the lapse hook KEEPS each `refuse_petition`
         # result — the message already holds the lever-aware applied figures
@@ -506,7 +539,7 @@ class TurnManager:
         # warning (executor hook).
         # ════════════════════════════════════════════════════════════
         jealousy_attack_results = []
-        if game_state and hasattr(self, 'executor'):
+        if game_state and hasattr(self, 'executor') and not _resuming:
             from backend.game_logic import jealousy as _jealousy
             jealousy_attack_results = _jealousy.process_autonomous_attacks(
                 self.world, self.executor, game_state)
@@ -544,7 +577,7 @@ class TurnManager:
         # ENEMY AI TURN PHASE: All enemy nations take their turns
         # ════════════════════════════════════════════════════════════
         enemy_phase_results = None
-        if game_state:
+        if game_state and not _resuming:
             enemy_phase_results = self._process_enemy_turns(game_state)
 
             # BUG #2 FIX: Check if enemy achieved victory during their turn
@@ -583,7 +616,7 @@ class TurnManager:
         # Max 1 proposal delivered per turn (rest queued).
         # ════════════════════════════════════════════════════════════
         ai_proposal_delivered = None
-        if game_state and not self.world.game_over:
+        if game_state and not self.world.game_over and not _resuming:
             # PC-F5: the phase reads this turn's war, not the last advance's.
             ai_phase_reads_the_field(self.world)
             ai_proposal_delivered = self._process_ai_diplomatic_phase()
@@ -600,7 +633,7 @@ class TurnManager:
         # standing order marches, no grievance is aired, no autonomous
         # marshal acts; each could add a question nobody can answer.
         _fallen = _game_end.terminal_ending(self.world) is not None
-        if game_state and hasattr(self, 'executor') and not _fallen:
+        if game_state and hasattr(self, 'executor') and not _fallen and not _resuming:
             strategic_exec = StrategicOrderProcessor(self.executor)
             strategic_reports = strategic_exec.process_strategic_orders(
                 self.world, game_state)
@@ -617,7 +650,7 @@ class TurnManager:
         # Re-read (verification round): the Emperor can fall in his OWN
         # standing order in the pass above, not only in the enemy phase.
         _fallen = _game_end.terminal_ending(self.world) is not None
-        if not _fallen:
+        if not _fallen and not _resuming:
             _jealousy_pass.process_turn(self.world)
 
         # ════════════════════════════════════════════════════════════
@@ -706,6 +739,9 @@ class TurnManager:
             "message": f"Turn {old_turn} complete",
             "lapsed_offers": lapsed_offers or [],
         }
+        if _resuming:
+            # TURN-2 (T0-A): the reply says the close was finished, not replayed.
+            result["resumed"] = True
 
         # Combine all events
         all_events = []
@@ -1313,6 +1349,7 @@ class TurnManager:
             # V2-19: Surface error to player instead of swallowing silently
             return {
                 "action": "error",
+                "nation": nation,  # TURN-1 (T0-A): the dialog's line names the court
                 "message": f"{nation} encountered an error during their turn",
                 "battle_message": ""
             }
@@ -1465,6 +1502,13 @@ class TurnManager:
             # Process this nation's turn (wrapped for resilience — each phase
             # in its own guard, OCT27-D13(d))
             nation_results, admin_results = self._run_ai_phases(ai, nation, game_state)
+            # TURN-1 (T0-A, November 6, 2026; GR-51): a court whose turn crashed
+            # is said on the notice rail too — once per court per turn,
+            # whichever phase failed (the dialog's row now passes the fog; the
+            # rail row outlives the dialog's dismissal).
+            if any(isinstance(r, dict) and r.get("action") == "error"
+                   for r in nation_results):
+                note_court_turn_failed(self.world, nation)
 
             results["nations"][nation] = {
                 "actions": nation_results,

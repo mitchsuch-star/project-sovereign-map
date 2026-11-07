@@ -166,6 +166,9 @@ const TYPE_ICONS = {
 	# DDB-X6 (Pre-Deploy S13b part 4): the sea's state changes — a blockade
 	# on France begins or lifts, a diversion window opens or shuts.
 	"naval_state_changed": "SEA",
+
+	# T0-A TURN-1 (November 6, 2026): a court's AI turn raised — said, not fogged.
+	"court_turn_failed": "ERR",
 }
 
 # UI-6: real glyphs for the rail (phosphor white silhouettes on the priority-
@@ -276,6 +279,9 @@ const TYPE_ICON_SVGS = {
 
 	# DDB-X6: the sea — the map of its crossings.
 	"naval_state_changed": "map-trifold",
+
+	# T0-A TURN-1: the court's turn broke.
+	"court_turn_failed": "warning-circle",
 }
 
 const ROUTE_ICON_SVGS = {

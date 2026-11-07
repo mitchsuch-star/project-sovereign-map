@@ -174,4 +174,5 @@ def append_transcript(world: Any, order: str, response: Any,
         with open(_log_dir / TRANSCRIPT, "a", encoding="utf-8", errors="replace") as fh:
             fh.write(json.dumps(line, ensure_ascii=False) + "\n")
     except Exception as exc:  # the transcript must never cost a turn
-        print(f"[WARN] transcript line not written: {exc}")
+        from backend.errors import report  # TURN-4 (T0-A): counted in the tally, not printed
+        report(exc, "runtime_log.append_transcript: the transcript line")

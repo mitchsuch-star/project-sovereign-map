@@ -3989,7 +3989,9 @@ def _command_parse(ctx: CommandContext):
                         world, success=False, message=_premise_block,
                         refusal="premise", free_action=True)
     except Exception as _exc:
-        print(f"[PREMISE] {_exc}")
+        # TURN-4 (T0-A): the premise split must never cost the command — and a
+        # recurring failure here was a stdout line nobody read.
+        _errors.report(_exc, "main._command_parse: the premise split")
     ctx.parsed = parser.parse(ctx.command_text, ctx.llm_game_state, world=world)
     # FA-39: record the PLAYER's own parse. Deliberately NOT the CR-5
     # delegation re-issues further down — those re-parse a sentence the
@@ -6323,7 +6325,7 @@ def _get_fortify_state_safe(marshal) -> dict:
     try:
         return _get_fortify_state(marshal)
     except Exception as e:
-        print(f"[FORTIFY_STATE_ERROR] Exception for {getattr(marshal, 'name', 'unknown')}: {e}")
+        _errors.report(e, "main._get_fortify_state_safe: _get_fortify_state")  # TURN-4 (T0-A)
         return {
             "direction": "error",
             "floor": 0,
@@ -6717,7 +6719,9 @@ def _check_anthropic_key(key: str) -> str:
     except anthropic.APIError:
         return "unreachable"  # connection, timeout, 5xx — could not confirm
     except Exception as e:  # the Settings click must never 500
-        print(f"[WARN] key check failed unexpectedly: {type(e).__name__}")
+        # TURN-4 (T0-A): counted in the tally — the class alone, as before: the
+        # text of an error from a key check may quote the key.
+        _errors.report(RuntimeError(type(e).__name__), "main._check_anthropic_key: the key check")
         return "unreachable"
 
 
@@ -6776,7 +6780,7 @@ async def set_llm_config(request: LLMConfigRequest):
         _key_status["state"] = state
         return _llm_config_payload()
     except Exception as e:  # a bad key string must never take the server down
-        print(f"[ERROR] /config/llm: {type(e).__name__}")
+        _errors.report(RuntimeError(type(e).__name__), "main.set_llm_config: the parser's configuration")  # TURN-4 (T0-A): the class alone
         return {"success": False, "message": "Could not configure the parser."}
 
 

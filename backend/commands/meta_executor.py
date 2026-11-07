@@ -445,6 +445,11 @@ class MetaExecutor:
         # Build message — enemy phase text and turn events removed from terminal
         # (enemy phase shown in popup dialog, turn events absorbed into Morning Dispatch)
         message = f"Turn {turn_result['turn_ended']} ended.{ap_warning} Turn {turn_result['next_turn']} begins!"
+        if turn_result.get("resumed"):
+            # TURN-2 (T0-A, November 6, 2026): the close had failed after Europe
+            # moved; this End Turn finished it without replaying the enemy phase.
+            message += (" (The turn's close had failed last time; it has been"
+                        " finished now — Europe's moves were kept, not replayed.)")
 
         enemy_phase = turn_result.get("enemy_phase")
         tactical_events = turn_result.get("tactical_events", [])

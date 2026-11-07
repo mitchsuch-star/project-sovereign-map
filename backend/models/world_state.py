@@ -1850,6 +1850,14 @@ class WorldState:
         # Prevents double-processing (double income, double treaty costs) on retry.
         # Serialized to survive save/load.
         self._last_advanced_turn: int = 0
+        # TURN-2 (T0-A, November 6, 2026; GR-52): raised by `advance_turn` when
+        # the close failed AFTER Europe had moved — the next End Turn resumes
+        # the close instead of replaying the enemy phase (`turn_manager.
+        # end_turn`). Transient, private: the autosave is written only after a
+        # turn closes, so a reloaded world stands before the failed close and
+        # plays the whole turn again; a manual save taken between the failure
+        # and the retry loses the flag and replays Europe's moves once.
+        self._advance_failed: bool = False
 
         # C3 fix: Tracks the last turn where end_turn was fully processed
         # (either via auto-advance or explicit "end turn" command).
@@ -12536,8 +12544,28 @@ class WorldState:
         """
         Public method to advance turn counter.
         Used by TurnManager after processing tactical states.
+
+        TURN-2 (T0-A, November 6, 2026; GR-52, the review's P2): the R20 stamp
+        is written at the START of `_advance_turn_internal`, so an exception
+        inside it left `_last_advanced_turn == current_turn` — every later End
+        Turn hit the guard, skipped the advance, REPLAYED the whole enemy phase
+        and answered "Turn N is already underway!" with success; the only exit
+        was an older save. Now a failed close rolls the stamp back to what it
+        was and raises `_advance_failed`, which `turn_manager.end_turn` reads
+        to resume the close without replaying Europe's moves. The stages
+        before the failure run again on the retry (the per-turn clears are
+        idempotent; a tactical tick before the failing stage counts twice) —
+        the stamp guards against a second WHOLE advance, not a partial one.
         """
-        self._advance_turn_internal()
+        before = int(self._last_advanced_turn)
+        try:
+            self._advance_turn_internal()
+        except Exception:
+            if int(self._last_advanced_turn) != before:
+                self._last_advanced_turn = before
+            self._advance_failed = True
+            raise
+        self._advance_failed = False
 
     def _advance_turn_internal(self) -> None:
         """
@@ -13163,10 +13191,9 @@ class WorldState:
                 restate_mission_notice,
             )
             restate_mission_notice(self)
-        except Exception:
-            import logging
-            logging.getLogger(__name__).warning(
-                "IQ-4: the mission rail restate failed", exc_info=True)
+        except Exception as exc:
+            # TURN-4 (T0-A): counted in the tally, not only logged.
+            report(exc, "world_state._advance_turn_internal: the mission rail restate")
 
         # ════════════════════════════════════════════════════════════
         # PT-J4 "The Bench Speaks" — the FIRST time the treasury covers a

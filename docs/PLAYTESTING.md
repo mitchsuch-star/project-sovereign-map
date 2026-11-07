@@ -362,8 +362,12 @@ for a reader of digests:
 * **`--reward pay`** types the reward rail's own `action_command` once per
   notification (off by default: it spends the admin AP scripts budget).
 * **`--reload-every N`** saves and loads at the turn boundary and writes the
-  questions the load RE-RAISED into the digest. Contract: byte-identical to
-  the no-reload run MODULO the load lines and any re-raised answer, Mode A
+  questions the load RE-RAISED into the digest. Contract: identical to the
+  no-reload run MODULO the load lines, any re-raised answer, AND Berthier's
+  display-only after-battle observation, whose per-pair rotation restarts on
+  load (`battle_report.reset_observation_rotation`, run by
+  `WorldState.__init__` — TURN-3, T0-A, November 6, 2026: the review's reload
+  arm differed from its control in two such lines and nothing else); Mode A
   only.
 * **`SCHOOL step N (title) — approximate`** on the tutorial scenario, from a
   display-only backend `tutorial_step` key: the latest step whose turn gate

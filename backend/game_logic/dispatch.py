@@ -7607,9 +7607,8 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                         "elaborate_type": "proposal_options",
                     })
                     _set_cooldown(nation, "acceptance_crossed", 10)
-            except Exception:
-                import logging
-                logging.getLogger(__name__).exception("Error in acceptance trigger for %s", nation)
+            except Exception as exc:
+                report(exc, "dispatch._build_talleyrand_report: the acceptance trigger")  # TURN-4 (T0-A)
 
         # ── Trigger 2: War score shift ≥15 (per-turn delta) ──
         if not _on_cooldown(nation, "war_score_shift") and state == "WAR":

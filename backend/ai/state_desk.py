@@ -4163,6 +4163,6 @@ def answer_state_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "readiness":
             return _answer_readiness(world)
     except Exception as exc:  # the desk must never break the status verb
-        print(f"[STATE DESK] could not answer {question!r}: {exc}")
+        report(exc, "state_desk.answer_state_question: the desk")  # TURN-4 (T0-A)
         return None
     return None

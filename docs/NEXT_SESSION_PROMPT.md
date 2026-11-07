@@ -1,33 +1,41 @@
-# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-A "the turn's recovery", then T0-B … T0-I, then the dynamism tiers, then the deploy
+# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-B "Rule 4 and the drill" (T0-A ✅ landed), then T0-C … T0-I, then the dynamism tiers, then the deploy
 
 > Overwritten each time a session hands off. Current hand-over: **November 6, 2026 — the whole-game review ✅ LANDED
-> and its Step 0 committed** (`docs/audits/GAME_REVIEW_2026_11_06.md`; the rows `BUG_FIXES.md` §GR and
+> (Step 0 committed `75d66cd4`) and T0-A "the turn's recovery" ✅ LANDED (the commit after `75d66cd4`; `SYSTEMS_REFERENCE.md` §178)**
+> (`docs/audits/GAME_REVIEW_2026_11_06.md`; the rows `BUG_FIXES.md` §GR and
 > `DESIGN_REFINEMENT.md` §GRD; the plan `PRE_DEPLOY_PLAN.md` §2 row S15-R). The user's words, in order: *"send out sub
 > agents (sonet) and lets do a review of the games sections … go off"*, *"i want the game to be dyanamic are you saying
 > its determinsitic?"*, *"do tiered implementation of all of these make this happen after the bugs fixes all these"*.
 > The plan was approved in Plan Mode (the user's plan file `functional-growing-whale.md`; its content is mirrored in the
 > S15-R row). **The deploy (S15) now follows Tier 0 and Tiers 1–3.**
 >
-> **NOW — Tier 0, slice T0-A "the turn's recovery"** (no measured series moves; one commit through the hook): (1) **TURN-2**
-> `backend/models/world_state.py:12555` `_advance_turn_internal` — the R20 stamp is written before the stages, so an
-> exception leaves `_last_advanced_turn == current_turn`, every retry skips the advance and REPLAYS the enemy phase,
-> answering "Turn N is already underway!" with success: wrap the body after the stamp, on exception roll the stamp back,
-> set a transient `_advance_failed`, re-raise; in `turn_manager.end_turn` a set `_advance_failed` skips the enemy phase
-> and retries the close only, saying so; pin by injecting one exception (`process_construction_timers` raising once) —
-> End Turn 1 errors, End Turn 2 advances, the enemy marshals moved once. (2) **TURN-1** `enemy_phase_fog.py`
-> `filter_enemy_phase_by_visibility` drops a court's `{"action": "error"}` row (no region): pass error rows through and
-> add a notice-rail row; pin it. (3) **TURN-4 + AIDIP-6** the 14 console-only broad excepts (`main.py:3991, 6325, 6719,
-> 6778`, `world_state.py:13166`, the desks, `llm_client`) → `errors.report(exc, site)`; relabel and split the 180-line try
-> at `ai_diplomacy.py:2871-3053`; the code-health census's "logs" count → 0. (4) Docs TURN-3 (the reload contract names
-> the Berthier flavour lines: `tools/playtest_driver.py:1692`, `docs/PLAYTESTING.md:364-367`) and TURN-5
-> (SYSTEMS_REFERENCE "Turn Resolution Order" re-titled as the economy summary with a pointer to the stage comments). Then
-> the GR rows TURN-1 … 5 and AIDIP-6 struck FIXED, SYSTEMS_REFERENCE's new section, STATUS, this prompt. **Then T0-B**
-> (COMBAT-1 `marshal.consume_drill()` shared by the field battle and the garrison assault; COMBAT-2 the uppercase table;
-> COMBAT-5 the clamp; COMBAT-3/4/6/7 as design rows), **T0-C** (the command road's silences), **T0-D** (small fixes and the
-> books), **T0-E/F/G together** (the sibling sweep of FA-N72, the eclipse brew, the Staff and the Edicts — these MOVE the
-> series), **T0-H** one re-record chain run alone, **T0-I** the benchmark's own arms (SEA's commission at loop 7; VOLTE's
-> defeat re-staged; `commanded_provoke40.json`; the digest rows). Each slice its own commit and the user's review; Plan
-> Mode for each tier's gate (Tier 2 → `AI_INTENT_SPEC.md` §3.8.2, Tier 3 → §13).
+> **NOW — Tier 0, slice T0-B "Rule 4 and the drill"** (no measured series expected to move; measured all the same;
+> one commit through the hook): (1) **COMBAT-1** (filed P1, verified P2): one helper `Marshal.consume_drill()` that
+> resets `shock_bonus`, `drilling`, `drilling_locked`, `drill_complete_turn`, called by `combat.py` (the inline clear at
+> the field battle, ~564-568, replaced) AND by `combat_executor._resolve_garrison_combat` right after its
+> `get_attack_modifier()` (~5926) when the drill was read — a drilled corps kept its +20% through every garrison
+> assault (Golden Rule 4: read, use, THEN clear). Pin: a drilled Mack assaults Paris → `shock_bonus` 0 after; the
+> muster preview (`consume=False`) leaves it; the field-battle path unchanged (existing pins). (2) **COMBAT-2**
+> `defiance.py:134` / `strategic_executor.py:3963`: the fallback table is keyed lowercase and the strategic road passes
+> the type UPPERCASE ("HOLD") — compare `.upper()` against an uppercase table; keep `literal → None`. Pins:
+> `get_defiant_action(aggressive, "HOLD") == "attack"`; the end-to-end strategic defiance of HOLD attacks.
+> (3) **COMBAT-5** `marshal.py:1670`: `base = min(8, base + 1)` LOWERS a 9 — `base = max(base, min(8, base + 1))`;
+> pin: Soult's tactical 9 stays 9 under Precision Execution. (4) COMBAT-3 (PURSUE in neither defiance table),
+> COMBAT-4 (literal/loyalist/dove popups without a Trust arm), COMBAT-6 (the Grouchy buff never expires), COMBAT-7
+> (the Rule 1 residue) STAY design rows for the user (`DESIGN_REFINEMENT.md` §GRD GRD-31 … GRD-34 carry the defaults).
+> Then the GR rows COMBAT-1/2/5 struck FIXED, SYSTEMS_REFERENCE §179, STATUS, this prompt. **Then T0-C** (the
+> command road's silences: CMDFEEL-1/2/3/4/5/9/10/15, CMDFEEL-13/14 harness), **T0-D** (small fixes and the books),
+> **T0-E/F/G together** (the sibling sweep of FA-N72, the eclipse brew, the Staff and the Edicts — these MOVE the
+> series), **T0-H** one re-record chain run alone, **T0-I** the benchmark's own arms (SEA's commission at loop 7;
+> VOLTE's defeat re-staged; `commanded_provoke40.json`; the digest rows). Each slice its own commit and the user's
+> review; Plan Mode for each tier's gate (Tier 2 → `AI_INTENT_SPEC.md` §3.8.2, Tier 3 → §13).
+>
+> **T0-A, landed (for the record):** TURN-2 `WorldState.advance_turn` rolls the R20 stamp back on an exception and
+> raises the transient `_advance_failed`; `turn_manager.end_turn` resumes the close alone (`_resuming` guards the
+> signing, the lapse, the glory attacks, the enemy phase, the AI letter, the standing orders and the grievance pass)
+> and the reply says so; TURN-1 the crash row passes the fog, names its court, has its dialog arm and its rail type
+> `court_turn_failed` (the two `.gd` maps; the parse report regenerated); TURN-4 the fourteen handlers report (the
+> ratchet caps `logs` at 0); AIDIP-6 `_hegemony_reading` + the honest labels; TURN-3/5 the two docs.
 >
 > **After Tier 0:** Tier 1 the seed rolled and shown at New Game (`NewGameRequest.seed`; `campaign_variance.roll_campaign_seed()`;
 > a `LineEdit` on the menu; the env and the suite's pin untouched) → Tier 2 the bands widened (the story signature FIRST

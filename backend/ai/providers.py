@@ -78,6 +78,7 @@ import anthropic
 
 from .schemas import ParseResult, ProviderConfig
 from .prompt_builder import addressed_marshal, build_parse_prompt, build_system_prompt
+from backend.errors import report  # TURN-4 (T0-A): the unexpected arm is counted
 
 
 # =============================================================================
@@ -785,7 +786,7 @@ class AnthropicProvider(BaseProvider):
             # A parse failure degrades to the fast parser; an exception here
             # would 500 the player's whole command.
             _record_api_outcome("other")
-            print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
+            report(e, "providers.AnthropicProvider._post_messages: an unexpected error")  # TURN-4 (T0-A)
             return None, f"Unexpected error: {type(e).__name__}"
 
         # Downstream (_make_api_request / _make_parse_request) reads the plain

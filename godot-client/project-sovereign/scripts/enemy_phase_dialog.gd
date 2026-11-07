@@ -179,6 +179,10 @@ func _format_action(action: Dictionary) -> String:
 	# result handed on as-is) printed "- unknown". The battle names the mover
 	# and the verb; with no battle either, the nation acts.
 	if not (ai_action is Dictionary) or not ai_action.has("action"):
+		# T0-A TURN-1 (November 6, 2026; GR-51): a court's crash row — `action`
+		# is "error" and the row carries no move; its own arm below says so.
+		if str(action.get("action", "")) == "error":
+			action_type = "error"
 		for ev in action.get("events", []):
 			if ev is Dictionary and str(ev.get("type", "")) == "battle":
 				var att = ev.get("attacker", {})
@@ -295,6 +299,11 @@ func _format_action(action: Dictionary) -> String:
 			var dnote = action.get("doctrine_note", "")
 			if dnote is String and dnote != "":
 				action_str += " (" + dnote + ")"
+		"error":
+			# T0-A TURN-1 (GR-51): the court's turn raised; what it had done
+			# stands, the rest was skipped; the rail carries the same notice.
+			action_str += "did not complete its turn — an error was recorded"
+			line_color = COLOR_ERROR
 		"scout":
 			action_str += "scouts " + target
 		"build":

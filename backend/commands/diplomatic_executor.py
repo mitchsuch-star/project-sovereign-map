@@ -7066,9 +7066,8 @@ class DiplomaticExecutor:
                 return {"success": False, "message": "No diplomat available."}
             try:
                 result = resolve_confrontation(ctx.action, talleyrand, ctx.world)
-            except Exception:
-                import logging
-                logging.getLogger(__name__).exception("Error in sabotage confrontation")
+            except Exception as exc:
+                report(exc, "diplomatic_executor._choice_counsel: resolve_confrontation")  # TURN-4 (T0-A)
                 ctx.world.dialogue_manager.pop()
                 return {"success": False, "message": "An error occurred resolving the confrontation."}
             ctx.world.dialogue_manager.pop()

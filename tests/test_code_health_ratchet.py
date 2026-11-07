@@ -31,6 +31,7 @@ from tools import _code_health_census as census_tool  # noqa: E402
 LEVERS_CAP = 231
 FUNCTIONS_OVER_500_CAP = 28
 SILENT_HANDLERS_CAP = 6
+LOGGING_ONLY_HANDLERS_CAP = 0  # T0-A TURN-4 (November 6, 2026): a broad except that only printed or logged now reports
 CLAUDE_MD_BYTES_CAP = 62_000
 STATUS_MD_BYTES_CAP = 200_000
 
@@ -60,6 +61,16 @@ class TestTheRatchet:
             f"{n} `except Exception` handlers that neither log nor re-raise, "
             f"cap {SILENT_HANDLERS_CAP} (CODE-3): " + str(reading["silent_by_file"].most_common(5)))
 
+    def test_logging_only_handlers_do_not_return(self, reading):
+        """T0-A TURN-4 (GR-54, the November 6, 2026 review): a broad except that
+        only printed or logged counted as spoken but never reached
+        `errors.report` or the `/debug errors` tally — fourteen sites, four in
+        main.py. All speak now; the cap is 0 and only ever stays there."""
+        n = reading["except"]["logs"]
+        assert n <= LOGGING_ONLY_HANDLERS_CAP, (
+            f"{n} `except Exception` handlers that print or log without reporting, "
+            f"cap {LOGGING_ONLY_HANDLERS_CAP} (T0-A): route each through errors.report")
+
     def test_claude_md_stays_on_its_diet(self, reading):
         assert reading["claude_md_bytes"] <= CLAUDE_MD_BYTES_CAP, (
             f"CLAUDE.md is {reading['claude_md_bytes']} bytes, cap {CLAUDE_MD_BYTES_CAP}: "
@@ -80,6 +91,7 @@ class TestTheCapsAreRealReadings:
         assert LEVERS_CAP - levers <= 10, (levers, LEVERS_CAP)
         assert FUNCTIONS_OVER_500_CAP - funcs <= 2, (funcs, FUNCTIONS_OVER_500_CAP)
         assert SILENT_HANDLERS_CAP - silent <= 10, (silent, SILENT_HANDLERS_CAP)
+        assert LOGGING_ONLY_HANDLERS_CAP - reading["except"]["logs"] <= 2
         assert CLAUDE_MD_BYTES_CAP - reading["claude_md_bytes"] <= 8_000
 
 

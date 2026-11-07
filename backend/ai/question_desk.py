@@ -526,7 +526,7 @@ def answer_question(world, question: Optional[Dict]) -> Optional[str]:
         if subject_type == "enemy":
             return _answer_enemy(world, kind, subject)
     except Exception as exc:  # the desk must never break the status verb
-        print(f"[QUESTION DESK] could not answer {question!r}: {exc}")
+        report(exc, "question_desk.answer_question: the desk")  # TURN-4 (T0-A)
         return None
     return None
 
@@ -3239,6 +3239,6 @@ def answer_board_question(world, question: Optional[Dict]) -> Optional[str]:
         if kind == "news":
             return _answer_news(world, player)
     except Exception as exc:  # the desk must never break the status verb
-        print(f"[QUESTION DESK] could not answer {question!r}: {exc}")
+        report(exc, "question_desk.answer_board_question: the desk")  # TURN-4 (T0-A)
         return None
     return None

@@ -2659,18 +2659,37 @@ effective_income = int(income_value * stability_modifier * (1.0 - war_damage))
 
 Example: Paris (300 base), Unrest (50 stability = 0.25 mod), 0.10 damage → `int(300 * 0.25 * 0.90)` = 67 gold.
 
-### Turn Resolution Order
+### Turn Resolution Order — the economy's summary, and where the whole order lives
+
+**The authority is the code's own stage banners** — one `# ═══` rule and a titled comment per stage in
+`WorldState._advance_turn_internal` (`backend/models/world_state.py`), about sixty of them; read them, not a
+list here, for an ordering constraint (TURN-5, T0-A of the November 6, 2026 review: this section had been an
+eight-step Phase 6.2 summary read as the whole order). The eight economy stages, in their places among the
+rest — grouped from the banners as they stand on November 6, 2026:
 
 ```
-1. Clear per-turn flags
-2. Process tactical states (fortify, drill)
-3. Turn counter increment
-4. Stability growth (all regions)     ← Phase 6.2.C
-5. War damage recovery (all regions)  ← Phase 6.2.C
-6. Bankruptcy desertion (all nations) ← Phase 6.2.B
-7. Income phase (all nations)         ← Phase 6.2.A+B
-8. Reset actions, cavalry limits, trust warnings, reckless cavalry
+ 1. Clear per-turn flags; discard unratified settlement drafts (a notice per war); the dispatch's narration queue
+ 2. Tactical states (fortify, drill, retreat recovery); the stale strategic objection lapses; vindication decay
+ 3. Construction timers · turn counter increment
+ 4. Stability growth & war-damage recovery (all regions)               ← Phase 6.2.C
+ 5. Supply attrition; the literal-fidelity beat; capital garrison regeneration
+ 6. Bankruptcy desertion (the previous turn's counter)                  ← Phase 6.2.B
+ 7. Diplomacy (DP regen, war scores); proposals in transit; the centralized cooldown tick (R6)
+ 8. Vassal processing; the turn's battles cleared; coalition processing (the subsidy engines' record)
+ 9. AI–AI diplomacy; the war council (AI-3); third-party settlements (AI-4b); stale dialogues cleared
+10. The Admiralty tick (DEF-5)
+11. Income phase (all nations); trade income; the Continental System's penalties   ← Phase 6.2.A+B
+12. Nation actions reset (plus the Staff); treaty per-turn clauses; vassal tribute; recurring settlement gold;
+    the D5 instruments; dotation reconciliation; the laws' lapse
+13. Bankruptcy check (after every income source); manpower regen
+14. The mission rail restate (IQ-4); the Bench speaks (PT-J4); AI futility decay
+15. Cavalry limits; trust trajectory warnings; reckless cavalry auto-charge (turn start)
+16. The Road Home corridors tick; the nation agendas' shift poll (NA-1)
+17. Fog of war recalculated; Le Moniteur's publication check; war scores snapshotted; the diplomatic helpers
 ```
+
+The advance is one call guarded by the R20 stamp; since T0-A (§178.1) a stage that raises rolls the stamp back and
+the next End Turn resumes the close alone — the stages BEFORE the failure run again on that retry.
 
 ### Serialization
 
@@ -13218,3 +13237,46 @@ The at-home clause of §164.1's table is dropped: the Marine's letter reaches th
 | the note | `tools/_affairs_measure.py` `ROAD_CONTROL_NOTE` | "the committed `tools/_vp1_road_arms_final.json` is re-recorded from this same armed run since S15's head" — the sentence that said it was October 22's, retired |
 
 **The measure** (`tools/playtest_runs/s15_head_2026_11_06/re3_7/`, the road arms run again alone on the final tree — armed, control, letters-only and Road I answered — the reach and standing records re-written over RE3-6's measure and sweep): the nine arms reproduce RE3-6's chain's whole; the reach record changes in its two notes alone and the standing record in its commit and note. **What is not measured:** S14j's and S14k's part in the Throne road's fall (both measured on the Rhine road alone); the record attributes only what the control and the letters-only arm show — the Edicts' hand — and what the digests read — the scripts' limits. **Record:** `BUG_FIXES.md` §RE3 RE3-7 FIXED; the section reads ALL 10 FIXED, and `tools/defect_census.py --open` reads 0 open defect rows — the deploy gate's condition holds.
+
+## 178. T0-A — THE TURN'S RECOVERY (Tier 0 of the November 6, 2026 whole-game review, the first slice; `PRE_DEPLOY_PLAN.md` §2 row S15-R; the rows `BUG_FIXES.md` §GR GR-52, GR-51, GR-54, GR-44, GR-53, GR-55; one commit through the hook; the pins `tests/test_t0a_the_turns_recovery.py` and the ratchet's new cap)
+
+The review's one P2 and the three rows beside it: a transient fault inside the advance wedged the campaign; a court's crash was fogged out of the only screen that reports what Europe did; fourteen broad excepts spoke to the console alone; two documents described a contract and an order the code did not keep. Nothing here moves a measured series — no board, deck or rule of play changed; `BASELINE_SERIES` and every committed record stand as RE3-7 left them.
+
+### 178.1 TURN-2 — one exception inside the advance no longer wedges the campaign (GR-52)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the failure, before | `WorldState._advance_turn_internal` writes the R20 stamp (`_last_advanced_turn = current_turn`) at its START | an exception in any of the sixty-odd stages left the stamp equal to the turn, so every later End Turn hit the guard, skipped the advance, REPLAYED the whole enemy phase (Europe marched again each click) and answered "Turn N is already underway!" with success — the only exit an older save |
+| the wrapper | `WorldState.advance_turn` | remembers the stamp, runs the stages; on an exception rolls the stamp back to what it was, raises the transient private `_advance_failed`, re-raises (the `/command` road still answers "Error: <text>" the first time); on success lowers the flag |
+| the resume | `turn_manager.end_turn` (`_resuming`) | with the flag up the close is resumed ALONE: no second Congress signing, offer lapse, glory attack, enemy phase, AI letter, standing-order march or grievance pass — each ran once already; the advance and everything after it (the autonomous marshals, the endings, the victory check) run as usual; the result carries `resumed` |
+| the reply | `meta_executor._execute_end_turn` | "Turn N ended. Turn N+1 begins! (The turn's close had failed last time; it has been finished now — Europe's moves were kept, not replayed.)" — never "already underway" |
+| what the retry re-runs | the stages BEFORE the failing one | the per-turn clears are idempotent; a tactical tick (fortify, drill, retreat recovery) before the failing stage counts twice on that one turn — the stamp guards against a second WHOLE advance, not a partial one; a per-stage checkpoint would be the stricter cure and is not built: the path exists for a fault that should never fire |
+| the flag's life | transient, private (`_advance_failed`; the serialization pin exempts privates) | the autosave is written only after a close succeeds, so a reload stands before the failed close and plays the whole turn again; a MANUAL save taken between the failure and the retry loses the flag and replays Europe's moves once on load — recorded, not cured |
+| the pins | `tests/test_t0a_the_turns_recovery.py::TestTheCloseResumes` | `process_construction_timers` raising once: the stamp rolled back and the flag up; the next advance runs and lowers it; End Turn 1 errors and End Turn 2 advances with the enemy phase counted ONCE; through the executor the second reply names the new turn and the kept moves; a clean advance and R20's own refusal unchanged |
+
+### 178.2 TURN-1 — a court's crash row reaches the player (GR-51)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the row | `turn_manager._run_ai_phases._error_row` (V2-19) — now `{"action": "error", "nation": …, "message": …, "battle_message": ""}` | the phase's guard keeps the court's moves so far, reports the trace (`errors.report`) and appends the row; it names its court |
+| the fog | `enemy_phase_fog.filter_enemy_phase_by_visibility` | the row has no marshal and no region, so it fell to the region gate and was suppressed on every court; it carries no intelligence (no place, no man) and passes whole; the rebuilt summary carries "<court>: did not complete its turn — an error was recorded" |
+| the dialog | `enemy_phase_dialog.gd` `_format_action` | an `action == "error"` row renders its own line, in the error colour: "<Court> did not complete its turn — an error was recorded" (the UXR3-F9 fallback had read it as "<Court> acts") |
+| the digest | `tools/playtest_driver.py` `ENEMY_VERB_PHRASES` / `rendered_enemy_line` | the Mode A digest quotes the dialog's own line for the row ("Austria did not complete its turn — an error was recorded") — SF-RI2's drift pin in `tests/test_sf_rr6_the_instrument.py` holds the dialog's arms and the driver's table together, and caught the arm's first landing without its mirror |
+| the rail | `turn_manager.note_court_turn_failed` → `notifications.COURT_TURN_FAILED` (HIGH, a one-shot event — `EVENT_NOTICE_TYPES`, it ages out after its turn) | once per court per turn whichever phase failed; title "<The court> did not complete its turn", the body says the moves made stand and the server log holds the cause; `notification_bar.gd` carries its label (`ERR`) and glyph (`warning-circle`) — the REV-V3 census reads both |
+| the pins | `::TestTheCourtsCrashIsSaid` | the row passes the fog and the summary names it; an ordinary fogged march is still dropped; a court whose BOTH phases raise gets one row per phase and ONE rail notice; one phase alone — one notice; a quiet phase none; the type is a one-shot event with its two map entries |
+
+### 178.3 TURN-4 and AIDIP-6 — every broad except speaks (GR-54, GR-44)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the fourteen | `main.py` (the premise split, `_get_fortify_state_safe`, the key check, `/config/llm`), `world_state.py` (the IQ-4 restate), `llm_client.py` (the provider, Berthier's recovery), `providers.py` (the unexpected arm), `question_desk.py` ×2, `state_desk.py`, `diplomatic_executor.py` (the confrontation), `dispatch.py` (the acceptance trigger), `runtime_log.py` (the transcript line) | each handler reports through `errors.report(exc, site)` — the first report from a site logs with the stack, later ones count, `/debug errors` lists them; the two key endpoints report the exception's CLASS alone (`RuntimeError(type(e).__name__)`), as they had printed it: the text of a key-check error may quote the key |
+| the census | `tools/_code_health_census.py` "logs" (a broad except that prints or logs and neither reports nor re-raises) | 14 → 0; `tests/test_code_health_ratchet.py` caps it at 0 (`LOGGING_ONLY_HANDLERS_CAP`) beside the silent handlers' 6 |
+| the bandwagon block | `ai_diplomacy.process_diplomatic_phase` — the 180-line try that closed the hegemony reading AND the four rungs (P-Bandwagon toward the player-hegemon, the vassal on-ramp, both AI-hegemon mirrors) under the label "import backend.game_logic.coalition" | two guards: `_hegemony_reading(world, nation)` (the hegemon and share, the tier, the bloc membership, the rival lock — the old statements in their order) reported as "the hegemony reading", and the four rungs reported as "P-Bandwagon and the vassal on-ramp"; a failed reading skips the rungs; the rungs' text is unchanged |
+| the pins | `::TestEveryBroadExceptSpeaks`, the ratchet | the census reads 0; the two new site literals present and the old one gone (the census's own `report_calls`); the reading is one call; a reading that raises is reported and the phase goes on |
+
+### 178.4 TURN-3 and TURN-5 — two documents made true (GR-53, GR-55)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the reload contract | `tools/playtest_driver.py` `reload_round_trip`, `docs/PLAYTESTING.md` | identical to the no-reload run MODULO the load lines, any re-raised answer, AND Berthier's display-only after-battle observation, whose per-pair rotation restarts on load (`battle_report.reset_observation_rotation`, run by `WorldState.__init__`; the review's reload arm differed from its control in two such lines and nothing else) |
+| the order | this document's "Turn Resolution Order" | re-titled as the economy's summary; the whole order is the advance's stage banners, grouped above as they stand |

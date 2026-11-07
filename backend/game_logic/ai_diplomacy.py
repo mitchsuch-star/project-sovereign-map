@@ -2493,6 +2493,40 @@ def _covered_members_envoy_pending(world, war: Dict, *, player: str) -> bool:
     return False
 
 
+def _hegemony_reading(world, nation: str):
+    """AIDIP-6 (T0-A, November 6, 2026; GR-44): what P-Bandwagon and the vassal
+    on-ramp read before they decide — the hegemon and its bloc share
+    (`coalition`), the court's tier, whether it already stands in the hegemon's
+    bloc, and whether a rival major's alliance locks it. Returns (hegemon,
+    share, is_minor_or_secondary, already_in_hegemon_bloc, locked_in_rival_bloc);
+    the statements are the ones the old one-guard block ran, in their order."""
+    from backend.game_logic.coalition import _identify_max_bloc_share
+    from backend.nation_config import _POWER_TIER_DEFAULT
+    hegemon, share = _identify_max_bloc_share(world)
+    # In v0.1, AI proposals flow to the player. Bandwagon only fires
+    # when the PLAYER is the hegemon AND share >= 50% AND this
+    # nation is a non-bloc minor/secondary AND not hostile AND not
+    # already allied with a non-hegemon major.
+    self_tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
+    is_minor_or_secondary = self_tier in ("minor", "secondary")
+    bloc_members = world.get_bloc_members(hegemon) if hegemon else []
+    already_in_hegemon_bloc = nation in bloc_members
+    # Already in rival deep bloc? Any non-hegemon major we have
+    # ALLIANCE/DEFENSIVE_ALLIANCE with counts as a "rival deep bloc".
+    locked_in_rival_bloc = False
+    if hegemon:
+        for other in world.get_active_nations():
+            if other == nation or other == hegemon:
+                continue
+            other_tier = world.get_power_tier(other) or _POWER_TIER_DEFAULT
+            if other_tier != "major":
+                continue
+            if world.get_diplomatic_state(nation, other) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                locked_in_rival_bloc = True
+                break
+    return hegemon, share, is_minor_or_secondary, already_in_hegemon_bloc, locked_in_rival_bloc
+
+
 def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     """Evaluate whether an AI nation should make a diplomatic proposal to France.
 
@@ -2867,34 +2901,21 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # proposer is not already locked into a rival deep bloc, (c) relations
     # are not hostile. This is the canonical escape valve that keeps
     # hegemony from reading as a hard ban on growth.
+    # AIDIP-6 (T0-A, November 6, 2026; GR-44): the reading and the decision are
+    # two guards with honest labels — the one try that closed both (180 lines)
+    # was labelled "import backend.game_logic.coalition", so a failure anywhere
+    # in the four rungs below was reported as an import, once.
+    _hegemony = None
     if proposal is None and not is_at_war:
         try:
-            from backend.game_logic.coalition import (
-                _identify_max_bloc_share, _hegemony_signal_band,
-            )
-            hegemon, share = _identify_max_bloc_share(world)
-            # In v0.1, AI proposals flow to the player. Bandwagon only fires
-            # when the PLAYER is the hegemon AND share >= 50% AND this
-            # nation is a non-bloc minor/secondary AND not hostile AND not
-            # already allied with a non-hegemon major.
-            from backend.nation_config import _POWER_TIER_DEFAULT
-            self_tier = world.get_power_tier(nation) or _POWER_TIER_DEFAULT
-            is_minor_or_secondary = self_tier in ("minor", "secondary")
-            bloc_members = world.get_bloc_members(hegemon) if hegemon else []
-            already_in_hegemon_bloc = nation in bloc_members
-            # Already in rival deep bloc? Any non-hegemon major we have
-            # ALLIANCE/DEFENSIVE_ALLIANCE with counts as a "rival deep bloc".
-            locked_in_rival_bloc = False
-            if hegemon:
-                for other in world.get_active_nations():
-                    if other == nation or other == hegemon:
-                        continue
-                    other_tier = world.get_power_tier(other) or _POWER_TIER_DEFAULT
-                    if other_tier != "major":
-                        continue
-                    if world.get_diplomatic_state(nation, other) in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-                        locked_in_rival_bloc = True
-                        break
+            _hegemony = _hegemony_reading(world, nation)
+        except Exception as exc:
+            report(exc, "ai_diplomacy.process_diplomatic_phase: the hegemony reading")
+    if proposal is None and not is_at_war and _hegemony is not None:
+        try:
+            from backend.game_logic.coalition import _hegemony_signal_band
+            (hegemon, share, is_minor_or_secondary,
+             already_in_hegemon_bloc, locked_in_rival_bloc) = _hegemony
             if (
                 hegemon == player
                 and _hegemony_signal_band(share) >= 2
@@ -3049,7 +3070,7 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                             if onramp_assimilates():
                                 assimilate_vassal_marshals(world, nation)
         except Exception as exc:
-            report(exc, "ai_diplomacy.process_diplomatic_phase: import backend.game_logic.coalition")
+            report(exc, "ai_diplomacy.process_diplomatic_phase: P-Bandwagon and the vassal on-ramp")
             from backend.utils.debug import debug_print
             debug_print(
                 f"[HEGEMONY] bandwagon evaluation failed for {nation} on "
