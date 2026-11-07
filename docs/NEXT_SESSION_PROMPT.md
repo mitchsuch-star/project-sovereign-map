@@ -1,76 +1,55 @@
-# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-D "small fixes and the books" (T0-A, T0-B, T0-C ✅ landed), then T0-E … T0-I, then the dynamism tiers, then the deploy
+# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-E/F/G together (T0-A, T0-B, T0-C, T0-D ✅ landed), then T0-H, T0-I, then the dynamism tiers, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 6, 2026 — the whole-game review ✅ LANDED
-> (Step 0 committed `75d66cd4`); T0-A "the turn's recovery" ✅ LANDED (`SYSTEMS_REFERENCE.md` §178); T0-B "Rule 4 and
-> the drill" ✅ LANDED (§179); T0-C "the command road's silences" ✅ LANDED (§180)**
-> (`docs/audits/GAME_REVIEW_2026_11_06.md`; the rows `BUG_FIXES.md` §GR and
-> `DESIGN_REFINEMENT.md` §GRD; the plan `PRE_DEPLOY_PLAN.md` §2 row S15-R). The user's words, in order: *"send out sub
-> agents (sonet) and lets do a review of the games sections … go off"*, *"i want the game to be dyanamic are you saying
-> its determinsitic?"*, *"do tiered implementation of all of these make this happen after the bugs fixes all these"*,
-> then *"code this"* for T0-C. The plan was approved in Plan Mode (the user's plan file `functional-growing-whale.md`;
-> its content is mirrored in the S15-R row). **The deploy (S15) now follows Tier 0 and Tiers 1–3.**
+> Overwritten each time a session hands off. Current hand-over: **November 7, 2026 — the whole-game review ✅ LANDED
+> (Step 0 `75d66cd4`); T0-A "the turn's recovery" ✅ (`SYSTEMS_REFERENCE.md` §178); T0-B "Rule 4 and the drill" ✅ (§179);
+> T0-C "the command road's silences" ✅ (§180); T0-D "small fixes and the books" ✅ LANDED (§181)**
+> (`docs/audits/GAME_REVIEW_2026_11_06.md`; the rows `BUG_FIXES.md` §GR and `DESIGN_REFINEMENT.md` §GRD; the plan
+> `PRE_DEPLOY_PLAN.md` §2 row S15-R). The user's words, in order: *"send out sub agents (sonet) and lets do a review of
+> the games sections … go off"*, *"i want the game to be dyanamic are you saying its determinsitic?"*, *"do tiered
+> implementation of all of these make this happen after the bugs fixes all these"*, *"code this"* for T0-C, and for T0-D
+> *"do this commit and push"*. The plan was approved in Plan Mode (the user's plan file `functional-growing-whale.md`; its
+> content is mirrored in the S15-R row). **The deploy (S15) follows Tier 0 and Tiers 1–3.**
 >
-> **NOW — Tier 0, slice T0-D "small fixes and the books"** (twenty-three GR rows, each `OPEN — owner S15-R Tier 0
-> slice T0-D` in `BUG_FIXES.md` §GR; one commit through the hook, or two if the books' half runs long — the user's
-> review between). Grouped by seam: **(1) the books (Golden Rule 8)** — GR-33 `ledger._build_economy` scans every
-> region twice per call and is called 17–22 times a turn (cache the per-turn reading, invalidate with the active-nations
-> cache); GR-59 the AI chest forecast runs the whole economy builder per nation, several times a turn (read the cached
-> figure); GR-60 law and edict effect reads rebuild the affairs deck on every call, once per region in the supply cap
-> (`reforms.py` effect reader — memoise the deck per turn); GR-62 the API summary scans every marshal once per province
-> and every refresh rebuilds the marshal index; GR-61 `war_instances[*].offer_history` is an unbounded append (cap it,
-> keep the last N, say so in `SAVE_FORMAT_REFERENCE.md`). Measure before and after with the G4 tripwires
-> (`tests/test_scale_readiness_phase2.py`) and a timed 1805 turn; a read-only cache moves no series. **(2) the quotes
-> that disagree with the applied value (ACH-1's class)** — GR-20 the grant-autonomy reply prints the nominal loyalty
-> change, not the applied one, and buys nothing at the cap without a word (`vassal.py` ~2557); GR-40 the AI's
-> settlement letter quotes an indemnity the payer cannot pay (the comment and docstring still say a bankrupt payer pays
-> nothing); GR-42 `sell_neutrality` offers a token lump — all of a poor court's gold — because it lacks `friendly_gift`'s
-> minimum (`ai_diplomacy._build_proposal_terms`); GR-13 the white-peace summary says "takes nothing and gives nothing"
-> one line above the dispatch that lists the provinces conceded (the Talleyrand template predates S14E-10's
-> titled-status-quo rule); GR-19 "the 1792 frontiers's terms" (`DICTATED_TIER_LABELS[3]` + an apostrophe-s on a plural,
-> `ai_diplomacy.py` ~1628). **(3) the courts** — GR-18 (**P2**) Britain's turn-8 sue-path no longer fires on the
-> shut-out arm (no offer by T12 on two seeds at war exhaustion above 90; VP-1's "Britain sues turn 8 on every seed" is
-> stale — find the cause before the fix, and if the fix MOVES `BASELINE_SERIES`, hold it for T0-E/F/G's chain and say
-> so); GR-12 Austria ends turn 1 with a negative treasury on every historical run and the digest never says "bankrupt"
-> (the turn-1 spend gate, `enemy_ai._court_arms_with_its_purse`); GR-5 a court re-adopts the same design with the same
-> `agenda_shift` beat twice (`agendas.py`'s emit — AMB-5); GR-34 a treaty manpower transfer bypasses the pool cap and
-> the next regen silently deletes the surplus (`world_state.py` ~15383, `diplomatic_executor.py` ~4634); GR-38 the
-> hard-coded `"France"` fallback in the counter-offer relation check (`ai_diplomacy.py` ~3891 — `player_nation` is in
-> hand); GR-45 `statecraft._ASK_FAMILY` has no ask-ordering effect for "reaches_first: sponsor" and Prussia's "folds,
-> then resents" (make the two traits bite, or strike the docstring claims — the user's call if it is a design); GR-7
-> an AI-driven France issues attacks refused for third-party soil it is at peace with (the steward arm — not a planned
-> mode; the honest fix is the AI's candidate filter reading `pursuit_capture_block` for the PLAYER's France only, or the
-> row disposed as "AI France is not a mode" with the memo's §6 — the user's call). **(4) the narration** — GR-63 the
-> `home_captured` headline repeats its garrison lecture (6 of 10 mornings on CMD-H; say the lecture once, the fact every
-> time — `dispatch.py`'s class). **(5) the docs and the dead code** — GR-16 / GR-48 the docs and a comment say the AI
-> never repeals (SFR-B14's repeal rung; `REFORMS_SPEC.md` §7, `ENEMY_AI_REFERENCE.md` row 1.78, `enemy_ai.py` ~7048);
-> GR-43 the post-break-states comment contradicts the map and the spec (`diplomacy.py` ~14386 vs `DIPLOMACY_SPEC.md`
-> ~1370 — one truth, three places); GR-49 `reforms.recruit_morale_bonus` is dead code (tests only); GR-50 `naval.py`
-> recomputes the blockade cut inline instead of calling `blockade_cut_percent`. Then the GR rows struck FIXED,
-> SYSTEMS_REFERENCE §181, STATUS (archive the oldest ▶ ▶ ▶ entry — seven stand), this prompt for T0-E/F/G.
-> **Then T0-E/F/G together** (the sibling sweep of FA-N72 through `_engageable_enemies` — P3.9, P4.25, the surrounded
-> arm; the eclipse brew reading the league's own formation gate; the Staff's save gated on reachability and the gold
-> edicts held while saving — these MOVE the series), **T0-H** one re-record chain run alone on the final tree
-> (`BASELINE_SERIES` by event, the reach, the probe, the standing and road records, the rig, the flip record, the
-> benchmark compared), **T0-I** the benchmark's own arms (SEA's commission re-staged at loop 7; VOLTE's Austrian defeat
-> re-staged; `commanded_provoke40.json`; the digest rows DIP-3 and AIF-10; ECON-1 play, LAW-5 play, AIF-9). Each slice
-> its own commit and the user's review; Plan Mode for each tier's gate (Tier 2 → `AI_INTENT_SPEC.md` §3.8.2, Tier 3 →
-> §13).
+> **NOW — Tier 0, slices T0-E, T0-F and T0-G TOGETHER** (ten GR rows, each `OPEN — owner S15-R Tier 0 slice T0-E/F/G` in
+> `BUG_FIXES.md` §GR; these MOVE the series — `BASELINE_SERIES`, the reach, the pacing — so they land in one commit or
+> three back to back with ONE re-measure, and T0-H re-records the chain on the final tree after them). **T0-E the
+> sibling sweep of FA-N72 through `_engageable_enemies`** — GR-35 (**P2**) P3.9's jealousy glory attack reads neither the
+> pair brake nor the futility counter (one corps on the same man twice a phase, every phase); GR-36 P4.25's garrison
+> assault likewise (the same garrison stormed 2–3 times a phase); GR-1 the stagnation breaker's surrounded arm likewise
+> (it reads T0-D's `_lead_barred_from_field` already — the brake and the futility go beside it); GR-37 `_muster_price`
+> swallows a failure into 0 after one report (price the friends honestly, or say so on the order). **T0-F the eclipse
+> brew** — GR-4 / GR-39 a coalition against Austria "brews" with ONE qualifying court, cannot form, and is re-announced
+> every 3 turns forever (the brew reads the league's own formation gate — no brew a formation cannot follow); GR-41
+> AI-vs-AI refused design asks recur on a fixed 6-turn cadence with no escalation (the ordered-pair cooldown a refusal
+> writes has no reader on that path). **T0-G the Staff and the Edicts** — GR-47 the save-for-the-Staff rule has no
+> reachability guard (it blocks every cheaper law forever while the Staff is unaffordable); GR-15 the AI's edict rung
+> ignores the save and spends the chest the Staff needs; GR-46 (**P2**) `DOCTRINES_SPEC` T8 now missed — a cure in force by
+> T30 on historical for 1 court of 4 (was 2 of 4 at T20–24): measure T8 again after GR-47/GR-15, and if it is still
+> missed, say why per court. Measure each fix before and after (the series pin, the doctrine census, the ambient
+> sweep's story classes) and attribute every move with a second run with the one fix held down. Then the rows struck,
+> `SYSTEMS_REFERENCE.md` §182, STATUS (archive the oldest ▶ ▶ ▶ entry — seven stand), this prompt for T0-H.
+> **Then T0-H** one re-record chain run alone on the final tree (`BASELINE_SERIES` by event, the reach, the probe, the
+> standing and road records, the rig, the flip record, the benchmark compared), **T0-I** the benchmark's own arms (SEA's
+> commission re-staged at loop 7; VOLTE's Austrian defeat re-staged; **the shut-out arm's Paget battle re-staged — GR-66,
+> found by T0-D**; `commanded_provoke40.json`; the digest rows DIP-3 and AIF-10; ECON-1 play, LAW-5 play, AIF-9). Each
+> slice its own commit and the user's review; Plan Mode for each tier's gate (Tier 2 → `AI_INTENT_SPEC.md` §3.8.2,
+> Tier 3 → §13).
 >
-> **T0-C, landed (for the record; `SYSTEMS_REFERENCE.md` §180):** the objection's alternative asks the executor's own
-> peace-soil predicate (`disobedience.field_is_barred` → `combat_executor.field_on_peace_soil(None, …)`;
-> `pursuit_capture_block` module-level); a march to the province the corps stands in WITH an attack leg is refused free
-> and the leg handed back as `remedy_command` ('Lannes, pursue Mack'), a real march's reply names its second leg;
-> `stance_change` joins the stationary arms; on `move`/`scout` a province named before a commander keeps the slot
-> (`_match_known_name_at`); the army named after the verb fans out and "everybody at <place>" goes to the corps there
-> (`group_orders.collective_head` with `places`); the send-marshal rewrite carries its tail; "hold ney" is Ney's hold;
-> the Emperor in subject position; "bring the Army of Italy to Piedmont and hold the passes" is a march with an arrival
-> hold and a terrain noun is never fuzzed; `war_purpose_bar` read before any War Purpose card (the attack site and the
-> three pursuit-capture sites through `_stage_or_bar_war_purpose`); `unbound_levy_recipient` names the levy's man;
-> "probe" → scout, the bare "appoint" → the Marshalate (`routed_order_words.py` regenerated); the driver refuses a
-> script with an unknown top-level key (`unknown_script_keys`, exit 2) and prints a MARSHALS row a turn
-> (`THE_DIGEST_SEES_THE_MARSHALS`). Twelve GR rows FIXED (GR-21 … GR-32, CMDFEEL-6 and -7 among them by their owner
-> line); 85 pins in `tests/test_t0c_the_command_roads_silences.py`; twelve corpus rows `t0c-*`; five pins re-seated (the hook found the third "probe routes nowhere" pin and an unseeded battle pin that asserted the win — SYSTEMS_REFERENCE §180.7).
-> CMDFEEL-8/11/12 stay GRD-16 … GRD-18 for the user.
+> **T0-D, landed (for the record; `SYSTEMS_REFERENCE.md` §181):** the purse read `_build_economy(…, rows=False)` (every
+> Net figure, no tab rows) for `chest_forecast`, the courts' recruit and law reads and the dispatch's applied Net; the
+> edicts store read before the deck; the API summary's one bucket and `refresh_marshal_indexes` rebuilding only on a
+> changed `_marshal_layout`; `OFFER_HISTORY_CAP` 24 with `trim_offer_history`; the applied loyalty in the autonomy and
+> invest replies; `indemnity_chest_note` on the settlement popup (PC-R3's war price kept); no neutrality offer under 250;
+> the white peace "writes no clause"; `display_names.possessive` for the tier labels; `agendas.DORMANT_DESIGN_MARK`;
+> `world_state.regen_toward_cap` and no transfer to a court with no pool; `player_nation` in the counter-offer; the
+> statecraft traits' code paths named; `EnemyAI._lead_barred_from_field` in P4, the counter-punch, the ally-support and the
+> surrounded strikes; the driver's `purses` record names the bankrupt (`THE_PURSES_NAME_THE_BANKRUPT`); the garrison
+> counter said once (`garrison_counter_said` in `headline_lead_memory`); the repeal rung documented; one truth for the
+> post-break states; `recruit_morale_bonus` gone; one source for the blockade's cut. Two causes found: GR-12 is the
+> Butcher's Bill, not the spend gate; GR-18 is the shut-out arm's drifted staging (Paget's capture carried Britain's
+> turn-8 offer), not the courts — re-stage GR-66 for T0-I. 53 pins in `tests/test_t0d_small_fixes_and_the_books.py`; nine
+> pins re-seated. Measured: a passive France, four seeds × 40 turns, world keys against HEAD — `nation_agenda_seen` and
+> `manpower_pools` alone move.
 >
 > **After Tier 0:** Tier 1 the seed rolled and shown at New Game (`NewGameRequest.seed`; `campaign_variance.roll_campaign_seed()`;
 > a `LineEdit` on the menu; the env and the suite's pin untouched) → Tier 2 the bands widened (the story signature FIRST
@@ -86,7 +65,7 @@
 > (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18); the road record's readings
 > (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a); the crown term's level
 > (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1);
-> GR-45 and GR-7 if T0-D reads them as design.
+> (GR-45 and GR-7 were read as defects and fixed by T0-D, §181.3.)
 >
 > **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are
 > named functions), functions over 500 lines 28 of 28 (T0-C's third war-purpose site pushed `_execute_glorious_charge`
@@ -119,4 +98,4 @@
 > parse it, never read 700 KB raw; `get_visible_enemies` is the PLAYER's fog (a court's sight is
 > `get_live_visible_enemies`); `field_on_peace_soil` is the PLAYER's rule (the AI keeps PT-F1); a rung's structured
 > field reaches the executor only through `enemy_ai.execute_admin_phase`'s whitelist; the AI's law and edict rungs, the
-> shore-up rung and `process_diplomatic_phase` are France-literal by design (an AI France is not a mode).
+> shore-up rung and `process_diplomatic_phase` are France-literal by design (an AI France is not a mode). T0-D's: `_build_economy` takes a keyword now (`rows`) — every shim that patches it must take `**k` (seven lambdas in `test_rf3`/`test_rf4b`/`test_rf4c` rejected it); a doc may be cp1252 with mixed line endings (`docs/audits/SR5B_SHUT_OUT_ARM_2026_09_28.md`) — patch it at the byte level, never decode-and-rewrite; an UNQUOTED Bash heredoc runs every backticked name in its body as a command (T0-D ran a memo as a shell script that way, harmlessly) — write scripts with the Write tool or quote the delimiter; an AI rung pin on France's lead needs `world.calculate_visibility()` after staging, or the contacts are empty and the pin is vacuous — give every "never picks it" pin a control with the rule held down; a regex pin that parses a doc line also reads that line's own history note (write "sent a broken PEACE to WAR", not the arrow form); the cheapest proof that a change moves nothing is the keyed world probe — `to_dict` per turn, one hash per top-level key, against a `git archive HEAD backend godot-client/project-sovereign/assets/maps` copy, the notifications' random ids stripped, `PYTHONHASHSEED=0` — it names the keys that move and the turn they first do.

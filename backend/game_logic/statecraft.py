@@ -29,6 +29,22 @@ from typing import Dict, List
 # decision seam AFTER the ordinary acceptance score.
 COERCION_HARDENS_DELTA = -15   # Austria: coercion confirms the grievance
 COERCION_FOLDS_DELTA = 10      # Prussia: folds, then resents (§3.3)
+# T0-D (GR-45): every character claim of `NATION_STATECRAFT` names its code
+# path (the table's comments in `nation_config.py` point here):
+#   coercion "folds"   — +10 on a coercive demand (`coercion_acceptance_delta`)
+#                        and the holder BUYS a design off in an AI-AI crisis
+#                        (`war_council` — the holder-folds arm); "then resents"
+#                        is the bought-off bargain itself: a compensation
+#                        bargain (`instruments.create_compensation_bargain`)
+#                        whose breach is the strongest casus belli
+#                        (`instruments._renege` → `has_renege_grievance`).
+#   coercion "hardens" / "honour" / "subsidy" — `coercion_acceptance_delta`.
+#   reaches_first "sponsor" — a BRANCH, not an ask: only a sponsor court funds
+#                        another's war (`ai_diplomacy` — the directed-
+#                        sponsorship producer) and a sponsor or align court
+#                        pledges a guarantee in a crisis (`war_council`).
+#   reaches_first "align" / "buy" / "bandwagon" / "ask" — `_ASK_FAMILY` below
+#                        reorders the court's ask candidates.
 COERCION_HONOUR_DELTA = -10    # Russia: escalates on honour
 COERCION_SUBSIDY_WALL = -40    # Britain, while home soil is clear
 
@@ -43,7 +59,8 @@ _ASK_FAMILY = {
     "buy": ("friendly_gift", "open_borders"),
     "bandwagon": ("open_borders", "non_aggression"),
     "ask": ("open_borders",),
-    # "sponsor" is a branch, not an ask — it never reorders candidates.
+    # "sponsor" is a branch, not an ask — it never reorders candidates; it
+    # gates the sponsorship producer and the crisis guarantee (above).
 }
 
 

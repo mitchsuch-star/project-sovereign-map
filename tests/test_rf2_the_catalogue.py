@@ -388,9 +388,12 @@ class TestRecruitMorale:
         assert substitute_arrival_morale(ex(), region, None) == before
 
     def test_the_bonus_reader_by_arm(self, world):
+        # T0-D (GR-49): the levy's own reader (`recruit_morale_terms`, which
+        # `economy_executor` sums and names) — the unread wrapper is gone.
         enact(world, "Russia", "extraordinary_levy")
-        assert R.recruit_morale_bonus(world, "Russia", "infantry") == -10
-        assert R.recruit_morale_bonus(world, "Russia", "cavalry") == 0
+        assert sum(v for _n, v in R.recruit_morale_terms(world, "Russia", "infantry")) == -10
+        assert sum(v for _n, v in R.recruit_morale_terms(world, "Russia", "cavalry")) == 0
+        assert not hasattr(R, "recruit_morale_bonus")
 
 
 # ═══════════════════════════════ 4. DRILL MORALE ══════════════════════════════

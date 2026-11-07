@@ -1135,7 +1135,12 @@ def _build_proposal_terms(
                     int(treasury * SELL_NEUTRALITY_TREASURY_FRACTION
                         * pay_mult))
         offer = min(offer, treasury)
-        if offer > 0:
+        # T0-D (GR-42): a real offer, not a token — `friendly_gift` had its
+        # minimum (`gift >= 25`) and this arm had none, so a court holding 7
+        # gold offered all 7 for a compact that binds France (a renege is the
+        # strongest casus belli). A chest under the floor sells nothing; the
+        # arm's gate (`terms["sweeteners"]`) then sends no letter.
+        if offer >= SELL_NEUTRALITY_BASE:
             terms["sweeteners"].append(
                 {"type": "gold_lump", "value": int(offer)})
         terms["compact"] = "sell_neutrality"
@@ -1507,8 +1512,51 @@ def record_dictated_offer(world, nation: str, recipient: str, *, channel: str,
              "recipient": recipient, "channel": str(channel), "tier": int(tier),
              "label": DICTATED_TIER_LABELS.get(int(tier), ""), "summary": str(summary or ""),
              "ask_gold": int(ask_gold), "outcome": "sent"}
-    instance.setdefault("offer_history", []).append(entry)
+    history = instance.setdefault("offer_history", [])
+    history.append(entry)
+    if len(history) > OFFER_HISTORY_CAP:
+        instance["offer_history"] = trim_offer_history(history)
     return entry
+
+
+# T0-D (GR-61): the per-war history was an unbounded append — one entry a turn
+# for every live dictated-peace war (89 entries, 23 KB in a 120-turn run),
+# rewritten into every autosave. It is capped as `event_log` and
+# `command_history` are; the trim keeps every entry the three readers need.
+OFFER_HISTORY_CAP = 24
+
+
+def trim_offer_history(history: List[Dict]) -> List[Dict]:
+    """The last `OFFER_HISTORY_CAP` entries, plus — wherever older — each
+    ordered pair's latest `DICTATED_RATCHET_CAP` refused/lapsed letters (the
+    ratchet counts them up to its cap; `refused_peace_standing` reads the
+    latest) and each (pair, channel)'s latest unanswered letter
+    (`note_dictated_refusal` closes it). Order kept; pure."""
+    keep = set(range(max(0, len(history) - OFFER_HISTORY_CAP), len(history)))
+    refused_seen: Dict[tuple, int] = {}
+    latest_answer: Dict[tuple, tuple] = {}
+    sent_seen: set = set()
+    for i in range(len(history) - 1, -1, -1):
+        e = history[i]
+        if not isinstance(e, dict):
+            continue
+        pair = (e.get("proposer"), e.get("recipient"))
+        if e.get("outcome") in ("refused", "lapsed"):
+            if refused_seen.get(pair, 0) < int(DICTATED_RATCHET_CAP):
+                refused_seen[pair] = refused_seen.get(pair, 0) + 1
+                keep.add(i)
+            # and the pair's latest ANSWER by turn (two channels may answer
+            # out of their sending order) — the standing refusal's read
+            when = int(e.get("answered_turn", e.get("turn", 0)) or 0)
+            if pair not in latest_answer or when > latest_answer[pair][0]:
+                latest_answer[pair] = (when, i)
+        elif e.get("outcome") == "sent":
+            key = pair + (e.get("channel"),)
+            if key not in sent_seen:
+                sent_seen.add(key)
+                keep.add(i)
+    keep.update(i for _when, i in latest_answer.values())
+    return [history[i] for i in sorted(keep)]
 
 
 def note_dictated_refusal(world, nation: str, recipient: str, *, channel: str,
@@ -1590,12 +1638,13 @@ def next_dictated_letter(world, nation: str, recipient: str) -> Optional[Dict]:
     gold_mult = float(_get_personality_modifiers(nation, world)["gold_demand_mult"])
     demands = dictated_demands(world, nation, recipient, tier["tier"], score, gold_mult)
     from backend.game_logic.formations import formed_display_name as _fdn
+    from backend.display_names import possessive
     words = dictated_letter_words(world, demands)
     return {"tier": int(tier["tier"]), "label": tier["label"], "asks": tier["asks"],
             "ratchet": int(tier["ratchet"]), "capital_held": bool(tier["capital_held"]),
             "words": words,
-            "display": (f"{_fdn(world, nation)}'s next letter would dictate {tier['label']}'s "
-                        f"terms: {words}.")}
+            "display": (f"{possessive(_fdn(world, nation))} next letter would dictate "
+                        f"{possessive(tier['label'])} terms: {words}.")}
 
 
 def successor_peace(world, player: str) -> Optional[Dict]:
@@ -1624,9 +1673,12 @@ def successor_peace(world, player: str) -> Optional[Dict]:
                                max(score, int(P8_DOMINANCE_SCORE) + 1), gold_mult)
     words = dictated_letter_words(world, demands)
     court = _fdn(world, best)
+    # T0-D (GR-19): "the 1792 frontiers's terms" — the plural takes the
+    # bare apostrophe (`display_names.possessive`, SRX-22's one rule).
+    from backend.display_names import possessive
     line = (f"The successor government signs the peace with {court} at "
-            f"{DICTATED_TIER_LABELS[tier]}'s terms — {words} — recognition of the new "
-            f"government the term that bought the leniency ({full['label']}'s terms were "
+            f"{possessive(DICTATED_TIER_LABELS[tier])} terms — {words} — recognition of the new "
+            f"government the term that bought the leniency ({possessive(full['label'])} terms were "
             f"the Emperor's to refuse).")
     return {"court": best, "tier": tier, "label": DICTATED_TIER_LABELS[tier],
             "refused_label": full["label"], "terms": demands, "words": words,
@@ -3909,8 +3961,9 @@ def generate_counter_offer(
         }
         _target_state = _state_for_type.get(str(terms.get("type", "")))
         if _target_state:
+            # T0-D (GR-38): the player in hand, never the literal "France".
             _pair_key = world._make_diplo_key(
-                terms.get("proposer_nation", "") or "France", _counter_target
+                terms.get("proposer_nation", "") or player_nation, _counter_target
             )
             _relation = getattr(world, 'nation_relations', {}).get(_pair_key, 0)
             _current = world.diplomatic_states.get(_pair_key, "PEACE")
@@ -5996,12 +6049,13 @@ def _settlement_offer_build_terms(
     - inside the band → a white peace: the `peace` clause with no indemnity.
     The player can still reject or counter through the editor.
 
-    EC-W4: the AMOUNT prices to the payer's purse (memo §3) — base + war-age
-    + |war_score|×PER_SCORE + treasury×FRACTION, capped at treasury×
-    MAX_FRACTION so a court is never dunned past what it can plausibly pay
-    (a bankrupt payer → white peace). GR5: both directions read the actual
-    payer's treasury through the same math. Without `world` (legacy direct
-    calls) the pre-EC-W4 flat sizing is preserved.
+    PC-R3 (ruling I item 3) supersedes EC-W4's purse pricing: the AMOUNT is
+    priced to the WAR (`war_priced_indemnity` — base + war-age +
+    |war_score|×PER_SCORE, no treasury term, no purse cap), so a bankrupt
+    payer is quoted the war's price, not a white peace. The ratifier moves
+    `min(amount, chest)` at signing, and the letter says so wherever the
+    chest is short (`settlement_offers.indemnity_chest_note`, T0-D GR-40).
+    Without `world` (legacy direct calls) the purse-scaled sizing stands.
     """
     if accepter_war_score >= SETTLEMENT_OFFER_DECISIVE_WAR_SCORE:
         payer, payee = proposer_nation, accepter
@@ -6042,9 +6096,11 @@ def _settlement_offer_build_terms(
             if carve is not None:
                 terms.append(carve)
         return terms
-    # A payer with an empty (or negative) chest cannot be squeezed, so the
-    # INDEMNITY is dropped — but control must fall through to the carve gate
-    # below rather than returning. Returning here coupled a TERRITORIAL
+    # The indemnity is the war's price whatever the payer's chest (PC-R3; the
+    # EC-W4 rule that dropped it for an empty chest is retired — T0-D GR-40
+    # corrected this comment, and the letter now names a short chest). The
+    # history below is why control falls through to the carve gate rather
+    # than returning. Returning here coupled a TERRITORIAL
     # clause to the payer's coin balance: the most decisively beaten France,
     # exactly the state §11.4 models with the Duchy of Normandy, was the one
     # state immune to being carved, and was offered gentler terms than a

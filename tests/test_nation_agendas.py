@@ -814,7 +814,9 @@ class TestShiftBeat:
             _conquer(world, region, "Britain")  # low_countries satisfied
         events = process_agenda_shifts(world)
         assert not [e for e in events if e["nation"] == "Britain"]
-        assert world.nation_agenda_seen["Britain"] == ""
+        # T0-D (GR-5): the sleeping design is remembered (its id behind the
+        # dormant mark), so waking the same design is never a new design.
+        assert world.nation_agenda_seen["Britain"] == "~low_countries"
 
     def test_advance_turn_runs_the_poll(self, world):
         world.advance_turn()

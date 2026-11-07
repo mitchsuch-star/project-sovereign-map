@@ -2225,7 +2225,7 @@ def invest_quote_words(world, plan: dict) -> str:
         owed = FREE_OF_OBLIGATIONS
     return (
         f"Invest in {court}: {int(plan['gold']):,} gold and {plural(plan['dp'], 'diplomatic point')}. "
-        f"Her loyalty rises +{int(plan['gain'])} ({int(plan['old'])} → {int(plan['new'])}){blunted}, and "
+        f"Her loyalty rises +{int(plan['new']) - int(plan['old'])} ({int(plan['old'])} → {int(plan['new'])}){blunted}, and "
         f"{court} cannot be invested in again for {plural(plan['cooldown'], 'turn')}. "
         f"The treasury holds {chest:,} gold{owed} and would hold "
         f"{chest - int(plan['gold']):,} after. Invest? (yes / no)")
@@ -2356,7 +2356,7 @@ def invest_in_vassal(world, vassal_name: str, actor: str = None, *, quote_only: 
     return {
         "success": True,
         "message": (
-            f"Invested in {client}: +{gain} loyalty "
+            f"Invested in {client}: +{int(state['loyalty']) - int(old_loyalty)} loyalty "
             f"({old_loyalty} → {state['loyalty']}){blunted}. "
             f"Cost: {INVEST_DP_COST} DP + {INVEST_GOLD_COST}g. "
             f"Cooldown: {INVEST_COOLDOWN} turns."
@@ -2548,15 +2548,28 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int,
     state["tribute_rate"] = TRIBUTE_RATES[new_level]
     state["loyalty"] = int(plan["loyalty_after"])
 
-    # Loyalty adjustment, in words
+    # Loyalty adjustment, in words — T0-D (GR-20, ACH-1's class): the APPLIED
+    # change (`loyalty_after - loyalty_before`, clamped at 0 and 100), never
+    # the nominal +10 / -15; at full loyalty the grant buys none, and the
+    # reply says so beside what it does buy (the drift) and what it costs.
+    before, after = int(plan["loyalty_before"]), int(plan["loyalty_after"])
+    applied = after - before
     if new_level > old_level:
         # C2 (playtest): name the cause when the gesture is blunted, matching
         # invest_in_vassal — otherwise the player who followed the "grant
         # autonomy" hint hits an unexplained reduced value.
         blunted = " - the Emperor's faltering grip blunts the gesture" if plan["blunted"] else ""
-        loyalty_msg = f"+{plan['gain']} loyalty (increased autonomy){blunted}"
+        if applied <= 0:
+            loyalty_msg = (f"Loyalty stays {after} (already full - the grant buys no "
+                           f"loyalty; its drift {plan['drift_before']:+d} → "
+                           f"{plan['drift_after']:+d} a turn)")
+        else:
+            loyalty_msg = (f"+{applied} loyalty ({before} → {after}, increased "
+                           f"autonomy){blunted}")
+    elif applied == 0:
+        loyalty_msg = f"Loyalty stays {after} (already at the floor)"
     else:
-        loyalty_msg = "-15 loyalty (decreased autonomy)"
+        loyalty_msg = f"{applied:+d} loyalty ({before} → {after}, decreased autonomy)"
 
     # VP-D5 (Sweep 4): surface the tribute TRADE-OFF, not just the new rate.
     # Granting autonomy is a PERMANENT income cut (Satellite 75% -> Autonomous

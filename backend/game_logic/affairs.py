@@ -1866,6 +1866,14 @@ def edicts_in_force(world, lord: str) -> List[Tuple[Dict[str, Any], int]]:
         return []
     turn = MO._turn(world)
     prefix = f"{lord}{SUBJECT_SEP}"
+    # T0-D (GR-60, Golden Rule 8): the store is read FIRST — a court with no
+    # decree running past this turn has none in force, and the deck (rebuilt
+    # and filtered on every read) is never walked. Every law and edict read
+    # comes here, once per province in the supply cap; the store holds one
+    # key per decree taken. When one runs, the deck's order is kept below.
+    if not any(str(k).startswith(prefix) and int(v or 0) > turn
+               for k, v in store.items()):
+        return []
     out: List[Tuple[Dict[str, Any], int]] = []
     for e in deck(world):
         until = int(store.get(prefix + str(e.get("id") or ""), 0) or 0)

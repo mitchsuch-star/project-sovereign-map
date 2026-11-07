@@ -1616,6 +1616,11 @@ def build_agenda_payload(nation: str, world) -> Optional[dict]:
 
 # ═══════════════════════ THE SHIFT BEAT (NA-1) ════════════════════════════
 
+# T0-D (GR-5): the mark a sleeping design wears in `nation_agenda_seen`
+# ("~scourge_of_the_usurper") — no design id begins with it.
+DORMANT_DESIGN_MARK = "~"
+
+
 def process_agenda_shifts(world) -> List[Dict]:
     """Once-per-turn poll (called from _advance_turn_internal): compare each
     nation's active agenda against world.nation_agenda_seen; on change queue
@@ -1638,8 +1643,19 @@ def process_agenda_shifts(world) -> List[Dict]:
         if previous == current_id:
             continue
         first_observation = previous is None
+        if view is None:
+            # T0-D (GR-5, AMB-5): the design SLEEPS — remembered silently
+            # (`DORMANT_DESIGN_MARK` + its id, in the same store), so the
+            # court waking the same design is no new design to announce.
+            # Measured: Sweden, whose deck is one design, "takes up a new
+            # design: Scourge of the Usurper" at T22 and again at T28.
+            if previous and not str(previous).startswith(DORMANT_DESIGN_MARK):
+                seen[nation] = DORMANT_DESIGN_MARK + str(previous)
+            elif previous is None:
+                seen[nation] = ""
+            continue
         seen[nation] = current_id
-        if first_observation or view is None:
+        if first_observation or previous == DORMANT_DESIGN_MARK + current_id:
             continue
 
         focus = view.title if not view.survival else "its own survival"

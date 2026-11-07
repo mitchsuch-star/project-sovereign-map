@@ -225,7 +225,7 @@ class TestT7TheArrears:
 
     def test_the_ai_rung_prices_the_same_restoration(self, world, monkeypatch):
         import backend.game_logic.ledger as L
-        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None: {"net": 5000})
+        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None, **k: {"net": 5000})
         staff = R.find_law(world, "Austria", "corps_d_armee")
         staff["lapsed_turn"] = int(world.current_turn) - 2      # three turns dead
         quote = R.restoration_price(world, "Austria", staff)

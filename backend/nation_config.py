@@ -187,13 +187,13 @@ NATION_STATECRAFT: Dict[str, Dict] = {
     "Prussia": {
         "style": "the hesitant opportunist",
         "reaches_first": ("buy", "bandwagon"),  # sells neutrality, takes gold
-        "coercion": "folds",              # then resents (§3.3 owns the resentment)
+        "coercion": "folds",              # then resents (§3.3: the bought-off bargain; code paths in statecraft.py)
         "weight_mod": 0,
         "haggles": True,
     },
     "Russia": {
         "style": "the distant arbiter",
-        "reaches_first": ("sponsor",),    # leads or funds coalitions
+        "reaches_first": ("sponsor",),    # leads or funds coalitions (the sponsorship + guarantee branches, statecraft.py)
         "coercion": "honour",             # escalates on honour, then reverses hard
         "weight_mod": 0,
         "haggles": False,                 # Alexander does not bargain in kopecks

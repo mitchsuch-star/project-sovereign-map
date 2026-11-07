@@ -390,6 +390,12 @@ LEVY_MAX_BATCH = 3             # batches of INFANTRY_RECRUIT_AMOUNT per admin ac
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
 MAX_ARTILLERY_POOL = 20000             # Pool cap
+
+
+def regen_toward_cap(current: int, regen: int, cap: int) -> int:
+    """T0-D (GR-34): a pool's regen — up to the cap, and a pool already over
+    it (a treaty's transfer, a contingent home) keeps its men and gains none."""
+    return max(int(current), min(int(current) + int(regen), int(cap)))
 VICTORY_REGION_FRACTION = 0.75         # Fraction of regions needed for victory (Session 12)
 
 # ES-3 (Economy Revisit S5, blessed E3): super-linear army upkeep with a
@@ -4843,11 +4849,33 @@ class WorldState:
         self._marshals_by_region = {}
         for m in self.marshals.values():
             self._marshals_by_region.setdefault(m.location, []).append(m)
+        self._marshal_index_layout = (id(self._marshals_by_region),
+                                      self._marshal_layout())
         self._live_visible_regions_cache = {}
         self._live_visible_regions_cache_turn = getattr(self, "current_turn", None)
 
+    def _marshal_layout(self) -> tuple:
+        """T0-D (GR-62): what the region index is built from — every marshal
+        object (its identity: a restored world swaps in new objects under the
+        same names) and where it stands, in the roster's order."""
+        return tuple((id(m), m.location) for m in self.marshals.values())
+
     def refresh_marshal_indexes(self) -> None:
-        """Rebuild transient marshal indexes for AI and other hot-path queries."""
+        """Rebuild transient marshal indexes for AI and other hot-path queries.
+
+        T0-D (GR-62, Golden Rule 8): the AI refreshes before nearly every
+        order (about 200 times a turn); the index is rebuilt only when a
+        marshal moved, joined or left the roster since the last build (or the
+        index itself was replaced), so an unchanged board keeps the very same
+        lists. The live-visibility cache is cleared on every refresh as
+        before — it reads province control and strength beside location."""
+        layout = getattr(self, "_marshal_index_layout", None)
+        if (layout is not None
+                and layout[0] == id(getattr(self, "_marshals_by_region", None))
+                and layout[1] == self._marshal_layout()):
+            self._live_visible_regions_cache = {}
+            self._live_visible_regions_cache_turn = getattr(self, "current_turn", None)
+            return
         self._build_marshal_index()
 
     def _get_live_visible_regions_cached(self, nation: str) -> Set[str]:
@@ -8199,9 +8227,14 @@ class WorldState:
                 for pool_type in ("infantry", "cavalry", "artillery"):
                     was_depleted[pool_type] = pool.get(pool_type, 0) == 0
 
-            pool["infantry"] = min(pool["infantry"] + inf_regen, MAX_INFANTRY_POOL)
-            pool["cavalry"] = min(pool["cavalry"] + cav_regen, MAX_CAVALRY_POOL)
-            pool["artillery"] = min(pool.get("artillery", 0) + art_regen, MAX_ARTILLERY_POOL)
+            # T0-D (GR-34): the regen fills TOWARD the cap and never lowers a
+            # pool already over it — men a treaty transferred, a contingent
+            # brought home or a captured corps sent back were silently deleted
+            # by the next `min(pool + regen, cap)`.
+            pool["infantry"] = regen_toward_cap(pool["infantry"], inf_regen, MAX_INFANTRY_POOL)
+            pool["cavalry"] = regen_toward_cap(pool["cavalry"], cav_regen, MAX_CAVALRY_POOL)
+            pool["artillery"] = regen_toward_cap(pool.get("artillery", 0), art_regen,
+                                                 MAX_ARTILLERY_POOL)
 
             # Trigger 6b: Manpower pool replenished notification
             if nation == self.player_nation:
@@ -11708,9 +11741,15 @@ class WorldState:
         # byte-identical.
         from backend.game_logic.naval import camp_map_payload
         _camp_on_map = camp_map_payload(self, self.player_nation)
+        # T0-D (GR-62, Golden Rule 8): the roster bucketed by province in ONE
+        # pass — the linear `get_marshals_in_region` per province was regions
+        # x marshals on every API response. Same live read, same order.
+        _marshals_by_place: Dict[str, List[Marshal]] = {}
+        for _m in self.marshals.values():
+            _marshals_by_place.setdefault(_m.location, []).append(_m)
         for region_name, region in self.regions.items():
             # Get all alive marshals in this region
-            marshals_here = self.get_marshals_in_region(region_name)
+            marshals_here = _marshals_by_place.get(region_name, [])
             alive_marshals = [m for m in marshals_here if m.strength > 0]
 
             marshals_data = []
@@ -15449,6 +15488,11 @@ class WorldState:
                     from_pool = self.manpower_pools.get(from_nation, {})
                     to_pool = self.manpower_pools.get(to_nation, {})
                     transfer = min(int(amount), from_pool.get("infantry", 0))
+                    # T0-D (GR-34): men leave only for a pool that receives
+                    # them (the source was debited while the credit was
+                    # guarded, so men vanished for a receiver with no row).
+                    if to_nation not in self.manpower_pools:
+                        transfer = 0
                     if from_nation in self.manpower_pools:
                         self.manpower_pools[from_nation]["infantry"] = max(
                             0, from_pool.get("infantry", 0) - transfer)

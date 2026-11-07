@@ -1675,10 +1675,14 @@ SETTLEMENT_VOICE_TEMPLATES: Dict[str, str] = {
     # S14E-10 (S14f part 1): a white peace has no term to be the "largest
     # political cost" - the line states what it DID cost (the allies left
     # out, priced) or that it cost none; it never names the ratification
-    # itself as a blocker.
+    # itself as a blocker. T0-D (GR-13): since SR-1a a status quo is a
+    # cession in BOTH directions (each bloc's holdings titled to it), so the
+    # line says what the peace does — no clause, the lines titled — never
+    # "takes nothing", one rail line above the provinces it concedes.
     "settlement_advisory_white_peace_talleyrand": (
-        "Sire, the white peace of {war_label} takes nothing and gives "
-        "nothing. {price_line}"
+        "Sire, the white peace of {war_label} writes no clause: each side "
+        "keeps what it holds on the day of signing, titled by the treaty. "
+        "{price_line}"
     ),
     "settlement_acceptance_castlereagh": (
         "His Majesty's Government accepts the settlement of {war_label}. "

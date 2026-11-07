@@ -1112,6 +1112,17 @@ THE_DIGEST_SEES_THE_WEB = True
 # per-turn GET: the pre-T0-C digest byte for byte.
 THE_DIGEST_SEES_THE_MARSHALS = True
 
+# T0-D (GR-12, ECON-2) "the purses name the bankrupt". The review read
+# Austria at -317 after turn 1 on every historical arm and found no
+# "bankrupt" anywhere: the cause is the Butcher's Bill (EC-W3, charged in
+# full at the battle — Ney's turn-1 victory costs Austria 1,072 against a
+# 700 chest), the courts' spend rungs hold, and `_update_bankruptcy` counts
+# the deficit (the mercy rule's first turn). With this up, the jsonl
+# `purses` record carries `bankrupt` — {court: deficit turns} for every court
+# whose count stands — whenever one does (omniscient, jsonl only, as the
+# purses are). False = the pre-T0-D record byte for byte.
+THE_PURSES_NAME_THE_BANKRUPT = True
+
 # GE-3 "The Congress of Paris": one CONGRESS line a turn off the Strategic
 # Ledger's `congress_clock` (the one-source `congress.state_line`) — while
 # the Congress sits, while it is cooling down, or once the gate OPENS (50
@@ -1859,6 +1870,22 @@ def _all_purses(transport):
         if not isinstance(gold, dict):
             return None
         return dict(gold)
+    except Exception:
+        return None
+
+
+def _all_bankruptcies(transport):
+    """T0-D (GR-12): {court: consecutive deficit turns} for every court whose
+    count stands (`world.nation_bankruptcy_turns`, the mercy rule's own
+    counter), or None — omniscient, jsonl only, the purses' contract."""
+    bm = getattr(transport, "backend_main", None)
+    if bm is None:
+        return None
+    try:
+        counts = getattr(getattr(bm, "world", None), "nation_bankruptcy_turns", None)
+        if not isinstance(counts, dict):
+            return None
+        return {str(k): int(v) for k, v in counts.items() if int(v or 0) > 0}
     except Exception:
         return None
 
@@ -2738,7 +2765,8 @@ class Digest:
         self.record("marshals", marshals=record)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
-                    economy=None, purses=None, army=None, vassals=None):
+                    economy=None, purses=None, army=None, vassals=None,
+                    bankrupt=None):
         bits = []
         if treasury is not None:
             bits.append(f"treasury {treasury}")
@@ -2821,8 +2849,11 @@ class Digest:
         # reads like a player's eye view, and it is None under --http, where
         # the driver has no world handle.
         if purses:
+            # T0-D (GR-12): the courts whose deficit count stands, beside.
+            extra = ({"bankrupt": {str(k): int(v) for k, v in bankrupt.items()}}
+                     if bankrupt else {})
             self.record("purses", purses={str(k): int(v)
-                                          for k, v in purses.items()})
+                                          for k, v in purses.items()}, **extra)
         # FA-37. Only the components that MOVED — a run's economy story is
         # which term turned on, and a line of eleven zeroes hides it.
         if isinstance(economy, dict):
@@ -5048,6 +5079,8 @@ def run(args):
                            len(own) if isinstance(own, list) else None,
                            economy=(body or {}).get("economy"),
                            purses=_all_purses(transport),
+                           bankrupt=(_all_bankruptcies(transport)
+                                     if THE_PURSES_NAME_THE_BANKRUPT else None),
                            army=((body or {}).get("economy") or {}).get(
                                "army_strength_total"),
                            # IQ-7 R4: the web. The GET is gated too, so the

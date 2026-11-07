@@ -65,7 +65,7 @@ run’s saves, which are never archived): every figure in the table reproduces.
 4. **Tier 2 is unreachable on the played arm.** Peak 14 of 26 (54%); tier 2 wants 16 (60%), the A2 anchor 21
    (80%). **Under the spec's own rule, the A2 anchor goes to the user** — §6 row 17.
 
-5. **Why Britain sues.** Britain asks for an armistice on **turn 8 on all three seeds**, at war exhaustion 70–79,
+5. **Why Britain sues.** *(T0-D, November 7, 2026 — GR-18: on the final tree this offer no longer comes on the shut-out arm. Its cause was Paget's capture at T7 (Soult at Aragon), which dropped Britain's war score under her P1 threshold; the drifted script no longer stages it (Paget lands at Lisbon at T3, the T7 attack falls to a clarification), and exhaustion alone cannot sue — at WE 81 her threshold reads −64 against a war score near 0, the break-ranks clause only frees her from the league. The war ends at T13–14 by the league's settlement letter. The arm's re-stage: `BUG_FIXES.md` GR-66, owner T0-I.)* Britain asks for an armistice on **turn 8 on all three seeds**, at war exhaustion 70–79,
    with the System at tier 0–1: the war's own tick (+8 a turn) carries Britain to the table; the System adds at
    most +1 a turn (tier 1). Refused, she asks again on turns 10–29 (armistice or a settlement offer), her
    exhaustion pinned at 200 from turn 23. The System is a pinch, not the reason.

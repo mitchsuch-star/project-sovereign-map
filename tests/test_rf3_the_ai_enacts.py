@@ -55,7 +55,7 @@ def carried(monkeypatch):
     which is the forecast arm's own business — pinned apart."""
     import backend.game_logic.ledger as L
     monkeypatch.setattr(L, "_build_economy",
-                        lambda w, n, income_data=None: {"net": 5000})
+                        lambda w, n, income_data=None, **k: {"net": 5000})
 
 
 def rich(world, nation, gold=60000):
@@ -167,9 +167,9 @@ class TestThePurseTest:
         import backend.game_logic.ledger as L
         rich(world, "Austria", 60000)
         row = R.find_law(world, "Austria", "corps_d_armee")
-        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None: {"net": 299})
+        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None, **k: {"net": 299})
         assert "forecast Net" in R.ai_purse_refusal(world, "Austria", row, 60000)
-        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None: {"net": 300})
+        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None, **k: {"net": 300})
         assert R.ai_purse_refusal(world, "Austria", row, 60000) == ""
 
     def test_authority_never_below_thirty(self, world, carried):

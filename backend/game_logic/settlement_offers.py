@@ -2873,6 +2873,29 @@ def _offer_manner_lines(world, covered, terms):
     return _designs.table_manner_lines(world, covered, list(terms or []))
 
 
+def indemnity_chest_note(world: Any, term: Mapping[str, Any]) -> str:
+    """T0-D (GR-40, ACH-1's class): a lump the payer's chest cannot cover,
+    said where the letter quotes it. PC-R3 prices the indemnity to the WAR
+    (`war_priced_indemnity` — no purse term), and the ratifier moves
+    `min(amount, chest)` at signing (`settlement_ratify`'s gold arm), so a
+    4,200 letter from a court holding 50 pays 50. "" when the chest covers
+    it or the payer keeps no chest."""
+    payer = str(term.get("from") or "")
+    try:
+        amount = int(term.get("amount") or 0)
+    except (TypeError, ValueError):
+        return ""
+    gold = getattr(world, "nation_gold", None) or {}
+    if not payer or amount <= 0 or payer not in gold:
+        return ""
+    chest = max(0, int(gold.get(payer, 0) or 0))
+    if chest >= amount:
+        return ""
+    from backend.display_names import display_nation, possessive
+    return (f" — {possessive(display_nation(payer))} chest holds {chest:,}: the lump "
+            f"is paid from the chest at signing, and what it lacks is never paid")
+
+
 def build_incoming_settlement_offer_popup(
     world: Any, offer: Mapping[str, Any]
 ) -> Dict[str, Any]:
@@ -3020,6 +3043,7 @@ def build_incoming_settlement_offer_popup(
         if ttype == "gold_indemnity":
             terms_summary.append(
                 f"{term.get('amount', 0)} gold ({term.get('from', '')} → {term.get('to', '')})"
+                + indemnity_chest_note(world, term)
             )
             continue
         if ttype == "gold_per_turn":

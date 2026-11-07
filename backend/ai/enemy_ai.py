@@ -3335,6 +3335,25 @@ class EnemyAI:
         from backend.game_logic.naval import crossing_allowed
         return bool(crossing_allowed(world, nation, origin, dest))
 
+    def _lead_barred_from_field(self, marshal: Marshal, enemy: Marshal,
+                                world: WorldState) -> bool:
+        """T0-D (GR-7): the PLAYER's rule for the player's own lead —
+        DDB-14's neutral arm, `combat_executor.field_on_peace_soil`: no corps
+        of the player's nation takes the field on soil the player is at peace
+        with. Inert for every court (the predicate answers None for a
+        non-player marshal — the AI keeps PT-F1), so it bites only where the
+        courts' tree drives the player's nation: the review's AI-France
+        harness (`tools/ai_france_sweep.py`, about 27 refused attacks a
+        campaign in its steward arm) and an autonomous player marshal through
+        `decide_single_action`. Read by P4, the counter-punch, the ally
+        support strike and the surrounded strike — the rungs that pick a
+        field away from the corps' own province."""
+        if marshal.nation != getattr(world, "player_nation", None):
+            return False
+        from backend.commands.combat_executor import field_on_peace_soil
+        return field_on_peace_soil(None, marshal, enemy.location, world,
+                                   enemy.nation) is not None
+
     def _engageable_enemies(self, marshal: Marshal, enemies, nation: str,
                             world: WorldState) -> List[Marshal]:
         """FA-N72 + FA-35: the co-located enemies this corps may still
@@ -3442,6 +3461,8 @@ class EnemyAI:
                                             enemy.location):
                         ai_debug(f"    P3.25: {enemy.name} is across barred water")
                         continue
+                if self._lead_barred_from_field(marshal, enemy, world):
+                    continue  # T0-D (GR-7)
                 adjacent_enemies.append(enemy)
 
         if not adjacent_enemies:
@@ -3646,6 +3667,11 @@ class EnemyAI:
             # FINAL-20: Skip nations in armistice
             if world.get_diplomatic_state(nation, enemy.nation) == "ARMISTICE":
                 ai_debug(f"    P4: Skipping {enemy.name} ({enemy.nation}) — armistice")
+                continue
+
+            # T0-D (GR-7): the player's lead keeps the player's rule.
+            if self._lead_barred_from_field(marshal, enemy, world):
+                ai_debug(f"    P4: {enemy.name} stands on soil we are at peace with")
                 continue
 
             # Check if in range
@@ -4737,6 +4763,8 @@ class EnemyAI:
                 if enemies_at_dest:
                     # Must attack to join ally
                     weakest = min(enemies_at_dest, key=lambda e: e.strength)
+                    if self._lead_barred_from_field(marshal, weakest, world):
+                        continue  # T0-D (GR-7)
                     if not self._ally_strike_is_worth_it(
                             marshal, nation, world, weakest, enemies_at_dest, ally):
                         continue
@@ -4943,6 +4971,8 @@ class EnemyAI:
                             for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation):
                                 if enemy.nation in _fellows:
                                     continue  # EAD-7 / EC-9 (the sweep)
+                                if self._lead_barred_from_field(marshal, enemy, world):
+                                    continue  # T0-D (GR-7)
                                 if enemy.strength < weakest_strength:
                                     weakest_adjacent = enemy
                                     weakest_strength = enemy.strength
@@ -7045,8 +7075,10 @@ class EnemyAI:
         # prices, through the same verb and executor; one enactment every
         # three turns; a purse test (the chest's bar, the forecast Net, the
         # authority floor and the diplomatic-point floor) the player meets
-        # as the ledger's forecast. The AI never repeals — the lapse rule is
-        # its discipline.
+        # as the ledger's forecast. It repeals only before a lapse — the
+        # Priority 0.5 rung above (`reforms.ai_repeal_before_lapse`, SFR-B14),
+        # and `ai_holds_the_purse` keeps a court on the edge from spending
+        # (T0-D GR-48: this comment said "the AI never repeals").
         if "enact_law" not in skip_actions:
             from backend.game_logic.reforms import find_ai_enactment
             enactment = find_ai_enactment(world, nation, treasury, admin_ap)
@@ -7319,7 +7351,7 @@ class EnemyAI:
         candidates.sort(key=lambda c: (c[0], c[1], c[2]))
         from backend.game_logic.ledger import _build_economy
         from backend.game_logic.reforms import ai_reads_net_before_charges
-        econ = _build_economy(world, nation)
+        econ = _build_economy(world, nation, rows=False)   # T0-D (GR-33): the purse read
         net = int(econ.get("net", 0) or 0)
         if ai_reads_net_before_charges():
             # S14j: the Charges fall with the chest, so a rich court's

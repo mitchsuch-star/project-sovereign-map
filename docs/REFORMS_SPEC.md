@@ -330,7 +330,7 @@ The per-corps road is always open, so a beaten Emperor loses tempo, never the ar
 - At most one enactment per court every 3 turns.
 - The rung sits in the admin chain beside P1.75 (commissions). The exact slot is the build's, recorded in `ENEMY_AI_REFERENCE.md`.
 
-**The AI never repeals.** The lapse rule is its discipline — the same rule the player meets when a forecast goes unanswered.
+**The AI repeals before a lapse (SFR-B14, October 21, 2026; corrected T0-D GR-16 — this line said it never repeals).** The lapse rule is still its discipline, and the player's one lever against it is the court's too: the court repeals a law BEFORE it lapses whenever the repeal keeps the doomed law (`reforms.ai_repeal_before_lapse`, SFR-B14 — the admin chain's P0.5, through the same `repeal_law` verb), and a court whose law would lapse at this turn's end spends no gold on anything else that admin phase (`reforms.ai_holds_the_purse`, RR4-X9).
 
 **The cures (added September 27, 2026 by the doctrines review, `DOCTRINES_SPEC.md` RV-10, RV-15).**
 - A doctrine's cure takes effect only while its court's Staff is in force (RV-15, ✅ CONFIRMED September 27, 2026). So every rival's catch-up arrives with its Staff, and no deck reorder is needed.
@@ -589,7 +589,7 @@ T7 measures all three.
 
 **The AI enacts** (rules `SYSTEMS_REFERENCE.md` §74.4). Every AI great power enacts from its own authored deck, in deck order, at the player's prices, through the SAME `enact_law` verb and executor (GR5). Lever `reforms.THE_AI_ENACTS`.
 
-- **The rung** (`reforms.find_ai_enactment`, the admin chain's P1.78, beside the P1.75 commissions — `ENEMY_AI_REFERENCE.md`). It takes the first law that `law_refusal` passes with the court's OWN admin budget and whose purse test passes; at most one enactment every 3 turns (paced off the laws in force — zero new fields); it never repeals. The executor defaults an AI actor to the one admin action the loop holds, so it never reads the player's pool.
+- **The rung** (`reforms.find_ai_enactment`, the admin chain's P1.78, beside the P1.75 commissions — `ENEMY_AI_REFERENCE.md`). It takes the first law that `law_refusal` passes with the court's OWN admin budget and whose purse test passes; at most one enactment every 3 turns (paced off the laws in force — zero new fields). It repeals only to keep a doomed law — the court repeals a law BEFORE it lapses whenever the repeal keeps the doomed law (`reforms.ai_repeal_before_lapse`, SFR-B14 — the admin chain's P0.5, through the same `repeal_law` verb), and a court whose law would lapse at this turn's end spends no gold on anything else that admin phase (`reforms.ai_holds_the_purse`, RR4-X9) (corrected T0-D GR-16). The executor defaults an AI actor to the one admin action the loop holds, so it never reads the player's pool.
 - **The purse test** (`reforms.ai_purse_refusal`), §7's three clauses plus the diplomatic term:
   - the chest ≥ the price (in gold; an authority price asks none) + any Arrears + 1,000 + 5 × the slate's upkeep including the new law;
   - the court's forecast Net (`ledger._build_economy`) stays ≥ 0 after the new upkeep;

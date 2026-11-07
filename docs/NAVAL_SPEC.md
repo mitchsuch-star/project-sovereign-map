@@ -2092,7 +2092,7 @@ unmemoised, 3.4 ms memoised (exact — every row re-asked directly).
 `sr5b-{accept,decline}-{historical,ulm,austerlitz}`, script `tools/playtest_scripts/sr5b_shut_out.json`). France declares war on
 Portugal and the Papal States, Soult marches on Lisbon, Massena on Rome, the rest of the army fights Austria.
 
-- **The A2 sue-path is played:** Britain proposes an armistice while losing on **turn 8 on six arms of six** (war exhaustion 74–77)
+- **The A2 sue-path is played:** Britain proposes an armistice while losing on **turn 8 on six arms of six** (war exhaustion 74–77) *(T0-D, November 7, 2026 — GR-18: on the final tree this offer no longer comes on the shut-out arm. Its cause was Paget's capture at T7 (Soult at Aragon), which dropped Britain's war score under her P1 threshold; the drifted script no longer stages it (Paget lands at Lisbon at T3, the T7 attack falls to a clarification), and exhaustion alone cannot sue — at WE 81 her threshold reads −64 against a war score near 0, the break-ranks clause only frees her from the league. The war ends at T13–14 by the league's settlement letter. The arm's re-stage: `BUG_FIXES.md` GR-66, owner T0-I.)* —
   and again on turns 14–24 when refused or when the war resumes — no soldier crosses to Britain. The Continental System contributes
   little to it: the closure reached tier 1 (≥40%) and never tier 2; the war's own tick (+8 a turn) carries Britain to the table.
   Anchor A2's "≥80% closure" is not reachable in play (peak 50%).

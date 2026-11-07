@@ -85,7 +85,7 @@ def insolvent(world, monkeypatch):
     forecast answers to the laws in force exactly as the real one does."""
     enact(world, "France", *SLATE)
     monkeypatch.setattr(L, "_build_economy",
-                        lambda w, n, income_data=None: {"net": BASE - R.law_upkeep_bill(w, n)})
+                        lambda w, n, income_data=None, **k: {"net": BASE - R.law_upkeep_bill(w, n)})
     world.admin_actions_remaining = 2
     return world
 
@@ -111,7 +111,7 @@ class TestTheForecast:
         assert R.lapse_forecast(insolvent, "France") is None
 
     def test_nothing_is_forecast_with_no_law_in_force(self, world, monkeypatch):
-        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None: {"net": -5000})
+        monkeypatch.setattr(L, "_build_economy", lambda w, n, income_data=None, **k: {"net": -5000})
         chest(world, 0)
         assert R.lapse_forecast(world, "France") is None
 
@@ -215,7 +215,7 @@ class TestTheForecast:
         at the new turn's start must stay under water for a forecast to
         exist there: a deep projected Net."""
         monkeypatch.setattr(L, "_build_economy",
-                            lambda w, n, income_data=None: {"net": -40000})
+                            lambda w, n, income_data=None, **k: {"net": -40000})
         chest(insolvent, 1100)
         r = post(client, "end turn")
         forecast = R.lapse_forecast(insolvent, "France")

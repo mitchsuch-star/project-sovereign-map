@@ -14383,7 +14383,13 @@ def break_treaty(
         add_threat(world, threat_amount, f"broke_{treaty_type}",
                    target=breaker_nation)
 
-    # Post-break state: one level below broken treaty (E11)
+    # Post-break state (E11): TWO rungs down `_DOWNGRADE_ORDER`, floored at
+    # PEACE — ALLIANCE -> NON_AGGRESSION, DEFENSIVE_ALLIANCE -> OPEN_BORDERS,
+    # NON_AGGRESSION -> PEACE, OPEN_BORDERS -> PEACE; a VASSAL bond drops to
+    # NON_AGGRESSION; a broken PEACE stays PEACE (the break is the casus
+    # belli, not a war); a broken TRUCE resumes the war. This map is the ONE
+    # truth — DIPLOMACY_SPEC §7d states it as written here (T0-D GR-43: the
+    # comment said "one level below", the spec said "two" and PEACE -> WAR).
     # IMPORTANT: Must include ALL diplomatic states. If you add a new
     # state to the diplomacy chain, add it here too. (Audit fix L-4)
     post_break_map = {

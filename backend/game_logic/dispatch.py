@@ -3798,6 +3798,9 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
             _new_memory["levy_said"] = levy_said
         if THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
             _new_memory["homeland_said"] = homeland_said
+        if memory.get("garrison_counter_said") is not None:
+            # T0-D (GR-63): the garrison counter, said once a campaign.
+            _new_memory["garrison_counter_said"] = memory["garrison_counter_said"]
         if memory.get("aura_band") is not None:
             _new_memory["aura_band"] = memory["aura_band"]
         if EVERY_MORNING_HAS_A_FRONT_PAGE:
@@ -3915,6 +3918,8 @@ def _select_headline(world, candidates: List[Dict[str, Any]],
     if record and THE_FALLEN_HOMELAND_STANDS_ON_THE_PAGE:
         world.headline_lead_memory["homeland_said"] = _homeland_count_statement(
             candidates, top, sub_beats, homeland_said)
+    if record:
+        _note_garrison_counter_said(world, top, sub_beats)
     if record:
         # RR3-X15: the declarations the page told (the lead or a sub-beat);
         # the key rides the memory only while it holds one.
@@ -4507,8 +4512,32 @@ def _home_captured_lever(world, region: str, player_nation: str, event) -> str:
             else:
                 who = f" {name} stands there."
             break
-    return (who + f" A garrison you detach ({detach:,} men) holds a province against a "
+    # T0-D (GR-63): the counter is said ONCE a campaign — the morning that
+    # printed it latches `garrison_counter_said` in `headline_lead_memory`
+    # (`_note_garrison_counter_said`, no new field) — and the fact of who
+    # stands there every time. Measured: seven times in eleven turns on the
+    # benchmark's CMD-H arm, leading six mornings. A LATER morning omits it;
+    # the morning that said it, re-built or re-read, says it again (the page
+    # is a function of its turn — the headline pins rebuild it and compare).
+    memory = getattr(world, "headline_lead_memory", None)
+    said = memory.get("garrison_counter_said") if isinstance(memory, dict) else None
+    if said is not None and int(said) < int(getattr(world, "current_turn", 0) or 0):
+        return who
+    return (who + GARRISON_COUNTER_HEAD + f"({detach:,} men) holds a province against a "
             f"march, as does any garrison of {floor:,}; a corps standing there forces a battle.")
+
+
+# T0-D (GR-63): the counter's opening words — the latch reads the page for it.
+GARRISON_COUNTER_HEAD = " A garrison you detach "
+
+
+def _note_garrison_counter_said(world, top, sub_beats) -> None:
+    """T0-D (GR-63): latch the garrison counter once the page the player
+    READ (the lead or a sub-beat) carried it."""
+    texts = [str((top or {}).get("text") or "")] + [str(t) for t in (sub_beats or [])]
+    if any(GARRISON_COUNTER_HEAD.strip() in t for t in texts):
+        world.headline_lead_memory["garrison_counter_said"] = int(
+            getattr(world, "current_turn", 0) or 0)
 
 
 # S14E-7: the morale below which a corps "fails". ONE constant — the
@@ -5923,7 +5952,7 @@ def _build_situation(world, player_nation: str,
     treasury_delta = int(_build_economy(
         world, player_nation,
         income_data=(getattr(world, "_income_phase_results", None) or {}).get(
-            player_nation))["net"])
+            player_nation), rows=False)["net"])   # T0-D (GR-33): the Net alone
     # PT-C4: CA9-N11 is not fully closed, and this is its definitional half.
     # Every NAMED component agrees with the end-turn banner on all 18 turns
     # of the played campaign; only the total differs, because this surface
@@ -8991,7 +9020,8 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
         # Slice 17 review round (L2-6): `share` is bloc POWER (regions ×
         # tier weight, coalition.py), the figure the sibling template calls
         # "European bloc power" — never "strength", which is men.
-        return (f"The courts breathe a little easier, Sire — {label}'s shadow over "
+        from backend.display_names import possessive
+        return (f"The courts breathe a little easier, Sire — {possessive(label)} shadow over "
                 f"Europe recedes; its share of Europe's bloc power has fallen "
                 f"to {share_pct}%.")
     if event_type == "diplomatic_mission_blowback":

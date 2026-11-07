@@ -4630,6 +4630,9 @@ class DiplomaticExecutor:
                 from_pool = world.manpower_pools.get(target_nation, {})
                 to_pool = world.manpower_pools.get(player, {})
                 transfer = min(int(value), from_pool.get(unit_type, 0))
+                # T0-D (GR-34): never debit for a pool that cannot receive.
+                if player not in world.manpower_pools:
+                    transfer = 0
                 if transfer > 0 and target_nation in world.manpower_pools:
                     world.manpower_pools[target_nation][unit_type] = max(
                         0, from_pool.get(unit_type, 0) - transfer)

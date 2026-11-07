@@ -1213,7 +1213,9 @@ def blockade_forecast_sentence(world, actor: str) -> str:
             from backend.game_logic.reforms import blockade_denial_factor
             _f = blockade_denial_factor(world, actor)
             if _f != 1.0:
-                _cut = (f"cut by {min(100, int(round((1.0 - BLOCKADE_TRADE_FACTOR) * _f * 100)))}%")
+                # T0-D (GR-50): the ONE source of the figure (RF-4a), never a
+                # second copy of its arithmetic.
+                _cut = f"cut by {blockade_cut_percent(_f)}%"
         parts.append(
             f"{_name_list([r['nation'] for r in fc['closes']])} "
             f"{'is' if _n == 1 else 'are'} closed — {_poss} "

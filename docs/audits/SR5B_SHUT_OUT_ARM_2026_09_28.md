@@ -23,7 +23,7 @@ has owed since August 2 (`NAVAL_SPEC.md` Â§15.12: the NV-10 drive was *scripted*
 
 ## Findings
 
-1. **The A2 sue-path is played.** Britain proposes an armistice while losing on **turn 8 on six arms of six**, at war
+1. **The A2 sue-path is played.** *(T0-D, November 7, 2026 — GR-18: on the final tree this offer no longer comes on the shut-out arm. Its cause was Paget's capture at T7 (Soult at Aragon), which dropped Britain's war score under her P1 threshold; the drifted script no longer stages it (Paget lands at Lisbon at T3, the T7 attack falls to a clarification), and exhaustion alone cannot sue — at WE 81 her threshold reads -64 against a war score near 0, the break-ranks clause only frees her from the league. The war ends at T13–14 by the league's settlement letter. The arm's re-stage: `BUG_FIXES.md` GR-66, owner T0-I.)* Britain proposes an armistice while losing on **turn 8 on six arms of six**, at war
    exhaustion 74â€“77, and again on turns 14â€“24 when refused or when the war resumes (in peace terms on turn 39 of
    `decline-ulm`). No soldier crosses to Britain. The Continental System contributes little: the closure reached
    tier 1 (â‰¥ 40%, +1 exhaustion a turn) and never tier 2; the war's own tick (+8 a turn) carries Britain to the

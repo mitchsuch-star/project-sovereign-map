@@ -240,8 +240,9 @@ def recruit_morale_terms(world, nation: str, arm: Optional[str]) -> List[tuple]:
     return _terms(world, nation, "recruit_morale", "arm", want, int)
 
 
-def recruit_morale_bonus(world, nation: str, arm: Optional[str]) -> int:
-    return int(sum(v for _n, v in recruit_morale_terms(world, nation, arm)))
+# T0-D (GR-49): `recruit_morale_bonus` — a second, unread sum of these terms
+# (tests only; the levy reads `recruit_morale_terms` to name each law) — is
+# removed: one reader per seam.
 
 
 def drill_morale_terms(world, nation: str) -> List[tuple]:
@@ -1236,7 +1237,7 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     if gold < bar:
         return f"the chest ({gold}) is under the bar ({bar})"
     from backend.game_logic.ledger import _build_economy
-    econ = _build_economy(world, nation)
+    econ = _build_economy(world, nation, rows=False)   # T0-D (GR-33): the purse read
     net = int(econ.get("net", 0) or 0)
     if net_before_charges:
         net += int(econ.get("state_charges", 0) or 0)

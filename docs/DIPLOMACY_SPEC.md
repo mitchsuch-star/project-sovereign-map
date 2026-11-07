@@ -1367,7 +1367,7 @@ This makes AP in treaties a late-game dominance move, not a routine negotiation 
   - Threat level: +15
   - Casus belli granted to victim
   - If breaking alliance/defensive alliance: more severe (-40 relation, +25 threat)
-  - **Post-break state (E11):** Breaking a treaty drops **two levels** below the broken treaty (2-level drop per design). Breaking ALLIANCE → NON_AGGRESSION. Breaking DEFENSIVE_ALLIANCE → OPEN_BORDERS. Breaking NON_AGGRESSION → PEACE. Breaking PEACE → WAR. Breaking ARMISTICE → WAR. This creates meaningful consequences — breaking a high-level treaty loses significant diplomatic progress.
+  - **Post-break state (E11):** Breaking a treaty drops **two rungs** down the downgrade order (ALLIANCE, DEFENSIVE_ALLIANCE, NON_AGGRESSION, OPEN_BORDERS, PEACE), floored at PEACE. Breaking ALLIANCE → NON_AGGRESSION. Breaking DEFENSIVE_ALLIANCE → OPEN_BORDERS. Breaking NON_AGGRESSION → PEACE. Breaking OPEN_BORDERS → PEACE. Breaking a VASSAL bond → NON_AGGRESSION. Breaking PEACE → PEACE (the break grants the casus belli; it declares no war). Breaking ARMISTICE → WAR (the war resumes at its age, PC-F82). The map in `diplomacy.break_treaty` (`post_break_map`) is the one truth, and this list states it (T0-D GR-43, November 7, 2026: this line had sent a broken PEACE to WAR, and the changelog's E11 said "one level below"). This creates meaningful consequences — breaking a high-level treaty loses significant diplomatic progress.
 
 ### 7e. Trade Income Integration
 
@@ -2770,7 +2770,7 @@ All design questions resolved in v1.1 feedback pass:
 - **E4:** Added +30 deal sweetener cap (§6b).
 - **E7:** Deferred — flagged for Building Blocks-aligned redesign next session.
 - **E8:** Reduced protection guarantee bonus from +5 to +3 when guarantor already at war with target's enemies.
-- **E11:** Clarified post-treaty-break state: returns to one level below the broken treaty (§7d).
+- **E11:** Clarified post-treaty-break state: returns to one level below the broken treaty (§7d). *(Superseded: the shipped map drops two rungs, floored at PEACE — §7d states it; T0-D GR-43.)*
 
 **New Mechanics (Design Decisions):**
 - **DD1: Vassal Carving** — New §8f. Carve vassals from conquered enemy territory. Auto-generated or player-chosen names. Size scaling (can't vassalize huge nations in one action). Grant carved regions to existing vassals. Full edge cases.

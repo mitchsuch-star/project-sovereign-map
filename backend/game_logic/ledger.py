@@ -1097,11 +1097,12 @@ def chest_forecast(world, nation: str) -> dict:
         chest = int(getattr(world, "gold", 0) or 0)
     else:
         chest = int((getattr(world, "nation_gold", {}) or {}).get(nation, 0) or 0)
-    net = int(_build_economy(world, nation).get("net", 0) or 0)
+    net = int(_build_economy(world, nation, rows=False).get("net", 0) or 0)
     return {"chest": chest, "net": net, "projected": chest + net}
 
 
-def _build_economy(world, player: str, income_data: dict = None) -> dict:
+def _build_economy(world, player: str, income_data: dict = None, *,
+                   rows: bool = True) -> dict:
     """Build economy section.
 
     CA9-N11: every treasury-FRACTION term — EB-1's Charges of Empire above
@@ -1110,6 +1111,16 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     turn that ALREADY HAPPENED passes the applied income-phase result; a
     caller projecting forward (the ledger's own economy tab) passes nothing
     and keeps today's behaviour byte-identically.
+
+    T0-D (GR-33 / GR-59, Golden Rule 8): `rows=False` is the purse read —
+    every figure of the Net, the treasury and the bankruptcy count exactly as
+    the full build computes them, with the DISPLAY rows left empty (the levy
+    block, the construction queue, the per-province income, the campaign
+    ground, the bill and Net notes, the blockade's words, the Charges'
+    relief price). `chest_forecast` and the courts' purse reads take it: it
+    was called 15–22 times a turn, each a full tab payload. The rows read the
+    nation's provinces through `get_nation_regions` (cached per turn,
+    cleared at every capture) in ONE pass, never two scans of the map.
     """
     if income_data is None:
         # SR-5a (IQ1-5-1): a forward projection prices the Charges of Empire
@@ -1144,7 +1155,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     garrison_pay = int(upkeep_data.get("garrison_pay", 0) or 0)
     garrison_men = int(upkeep_data.get("garrison_men", 0) or 0)
     campaign_ground = []
-    for row in upkeep_data.get("campaign_ground") or []:
+    for row in (upkeep_data.get("campaign_ground") or []) if rows else []:
         from backend.game_logic.formations import formed_display_name
         from backend.display_names import humanize_entity_name
         campaign_ground.append({
@@ -1175,7 +1186,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # (the ONE source, at the same projected rate the line quotes).
     charges_relief_per_1000 = (
         int(world.charges_relief(player, 1000))
-        if THE_CHARGES_NAME_THEIR_PRICE and state_charges > 0
+        if rows and THE_CHARGES_NAME_THEIR_PRICE and state_charges > 0
         and hasattr(world, "charges_relief") else 0)
     state_charges_terms = list(
         (income_data.get("breakdown") or {}).get("state_charges_terms") or [])
@@ -1192,7 +1203,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # SR-5r RF-2 (T8): what the blockade does to our trade, in words — the
     # ledger's Blockade line reads it ("halved", or the deeper cut and its law).
     blockade_note = ""
-    if getattr(world, "fleets", None):
+    if rows and getattr(world, "fleets", None):
         from backend.game_logic.naval import blockade_trade_words
         blockade_note = f"trade {blockade_trade_words(world, player)} under enemy sail"
     # EC-U2 (Combat Overhaul Phase 4): per-turn maintenance of built
@@ -1346,10 +1357,14 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         - infrastructure - blockade - admiralty - upkeep_base - upkeep_surcharge
     )
 
-    # Construction queue: iterate player regions with active builds
+    # Construction queue and income breakdown per province — ONE pass over
+    # the nation's own provinces (T0-D, GR-33: two full-map scans before),
+    # in the map's order as `get_nation_regions` keeps it; display rows.
     construction_queue = []
-    for region in world.regions.values():
-        if region.controller != player:
+    income_breakdown = []
+    for region_name in (world.get_nation_regions(player) if rows else []):
+        region = world.regions.get(region_name)
+        if region is None or region.controller != player:
             continue
         if region.building_under_construction is not None:
             buc = region.building_under_construction
@@ -1358,12 +1373,6 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
                 "building": buc["type"],
                 "turns_remaining": int(buc["turns_remaining"]),
             })
-
-    # Income breakdown per region
-    income_breakdown = []
-    for region in world.regions.values():
-        if region.controller != player:
-            continue
         income_breakdown.append({
             "region": region.name,
             "income": int(region.get_effective_income()),
@@ -1396,8 +1405,9 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         _ceiling_value = state_charges_ceiling(_ceiling_gross, _ceiling_rate)
         _ceiling_state = CEILING_BOUNDED
 
-    _why = why_the_bills_moved(world, player, upkeep_data, state_charges,
-                               state_charges_terms)
+    _why = (why_the_bills_moved(world, player, upkeep_data, state_charges,
+                                state_charges_terms)
+            if rows else {"upkeep_note": "", "charges_note": ""})
 
     economy = {
         "treasury": _treasury,
@@ -1468,7 +1478,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
         # panel read. Before this the force limit reached the ledger but was
         # rendered only inside the over-limit warning — visible exactly when
         # the gate was shut, invisible the moment it opened.
-        "levy": _levy_block(world, player),
+        "levy": _levy_block(world, player) if rows else {},
         "net": net,
         "bankruptcy_turns": _bankruptcy,
         "construction_queue": construction_queue,
@@ -1478,7 +1488,7 @@ def _build_economy(world, player: str, income_data: dict = None) -> dict:
     # of the player's own ledger only (an applied read describes a turn that
     # already ran; an AI court's Net is never narrated).
     economy["net_moves_note"] = (
-        "" if _applied_mode else why_the_net_moved(world, player, economy))
+        "" if (_applied_mode or not rows) else why_the_net_moved(world, player, economy))
     return economy
 
 

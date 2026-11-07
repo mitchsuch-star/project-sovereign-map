@@ -742,6 +742,14 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   the pre-T0-C digest byte for byte). Before T0-C the thirteen command arms of
   the November 6 review carried no trust figure but one typed question's, so
   "trust that moves and matters" could not be measured from a digest.
+- `bankrupt` on the jsonl `purses` record (T0-D, GR-12, November 7, 2026) —
+  {court: consecutive deficit turns} for every court whose bankruptcy count
+  stands (`world.nation_bankruptcy_turns`, the mercy rule's own counter), added
+  only when one does; omniscient, jsonl only, the purses' own contract (driver
+  lever `THE_PURSES_NAME_THE_BANKRUPT`; False = the pre-T0-D record byte for
+  byte). The review read Austria at -317 after turn 1 on every historical arm
+  and found "bankrupt" nowhere — the overdraft is the Butcher's Bill of Ney's
+  turn-1 victory, and the count reads 1.
 - `POPUP diplomatic_dialogue: <court>, client_petition #N → grant the petition`
   (IQ-7) — a client's petition, answered by the `--client-petition
   {grant,refuse}` dial (absent → mirrors `--diplomacy`: `accept`/`first`/
