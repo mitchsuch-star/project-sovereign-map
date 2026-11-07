@@ -2015,6 +2015,17 @@ def last_decree_turn(world, lord: str) -> Optional[int]:
     return max(turns) if turns else None
 
 
+def edicts_respect_the_save() -> bool:
+    """T0-G (GR-15, the November 6, 2026 review): the Edicts rung reads the
+    laws rung's saving — a court within reach of its Staff does not drain
+    2,000-2,500 gold a decree while the cure and the fifth action wait on
+    the chest the Staff needs (REFORMS_SPEC §7's "enacts nothing cheaper",
+    which gated only the laws rung). Gold decrees only: the authority
+    Decree spends no chest and stays open at its floors. Down (False):
+    the rung spends as before the fix."""
+    return True
+
+
 def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[Dict[str, Any]]:
     """The courts' rung (priority 1.79, beside the laws): the first offer in
     deck order whose premise holds this morning for the court and whose
@@ -2024,22 +2035,33 @@ def find_ai_edict(world, nation: str, treasury: int, admin_ap: int) -> Optional[
     (no streak — the streak paces the player's letter). The gate is read
     fresh, outside the premise memo. AU-3a (§5.7): gold first; where the gold
     refuses, the Decree at the court's floors (`standing.ai_refusal` — 30,
-    and three diplomatic points a turn), the order carrying its `currency`."""
+    and three diplomatic points a turn), the order carrying its `currency`.
+    T0-G (GR-15): while the court is saving for its Staff
+    (`reforms.ai_is_saving_for_the_staff` — the laws rung's own predicate,
+    reachability-guarded), the gold arm is held and only the authority
+    Decree may go out."""
     if not ai_decrees() or not armed(world) or not nation or int(admin_ap) < 1:
         return None
     if nation == getattr(world, "player_nation", None):
         return None
-    from backend.game_logic.reforms import AI_ENACTMENT_EVERY_TURNS, REFORM_DECKS, ai_holds_the_purse
+    from backend.game_logic.reforms import (AI_ENACTMENT_EVERY_TURNS,
+                                            REFORM_DECKS, ai_holds_the_purse,
+                                            ai_is_saving_for_the_staff)
     if nation not in REFORM_DECKS or ai_holds_the_purse(world, nation):
         return None
     last = last_decree_turn(world, nation)
     if last is not None and MO._turn(world) - last < int(AI_ENACTMENT_EVERY_TURNS):
         return None
+    _saving = (edicts_respect_the_save()
+               and ai_is_saving_for_the_staff(world, nation, int(treasury))
+               is not None)
     for e in deck(world):
         if not edict_block(e):
             continue
         currency = "gold"
-        if edict_refusal(world, nation, e, treasury=int(treasury), with_reserve=True):
+        if _saving or edict_refusal(world, nation, e, treasury=int(treasury), with_reserve=True):
+            # T0-G (GR-15): a saving court's gold is the Staff's — the
+            # authority fallback alone is read, as when the gold refuses.
             if edict_refusal(world, nation, e, currency="authority"):
                 continue
             currency = "authority"

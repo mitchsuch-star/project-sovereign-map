@@ -151,6 +151,16 @@ S14K_SEAMS_BY_ROW = {
 }
 OCT27_SEAMS_DOWN += [spec for row in S14K_SEAMS_BY_ROW for spec in S14K_SEAMS_BY_ROW[row]]
 
+# T0-E/F/G (November 7, 2026 — the sibling sweep, the eclipse brew, the
+# Staff and the Edicts): the fixes re-time the recorded boards too (the
+# Edicts' hold moves the courts' chests from turn 1 — EG-X5's CMD-H board
+# lost Lannes's turn-6 retaking of Munich), so the recorded boards hold
+# them down with the sweep's, as S14i/j/k's joined before them. The seams'
+# own rows: `tests/_t0efg_seams.py`.
+from tests._t0efg_seams import T0EFG_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in T0EFG_SEAMS_BY_ROW for spec in T0EFG_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

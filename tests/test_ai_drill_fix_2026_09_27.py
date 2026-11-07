@@ -577,11 +577,15 @@ class TestTheMeasuredArms:
         # reproduces; arm 0 is RE-6's; AUD (AU-20 held down — the courts' Decree
         # paid in gold) is the series part 1's AUC+ measured; ALL is the shipped
         # series, at [16]
+        # (T0-E/F/G, November 7, 2026: the flip's ALL is the live series no
+        # longer — the constant moved on, the flip record stays the flip's;
+        # its series is kept as SERIES_BEFORE_T0EFG.)
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_T0EFG
         flip = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
         assert flip["prior"] == flip["arms"]["AUC"]["series"] == SERIES_BEFORE_THE_COURTS
         assert flip["arms"]["0"]["series"] == SERIES_BEFORE_AU
         assert flip["arms"]["AUD"]["series"] == au["arms"]["AUC+"]["series"]
-        assert flip["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert flip["arms"]["ALL"]["series"] == SERIES_BEFORE_T0EFG
         assert flip["arms"]["ALL"]["first_divergence_vs_prior"] == 16
         # S15's head, RE3-6 (November 6, 2026 — the user's "Ask him; loyalty
         # pays"; `EVENTS_SPEC.md` §18, `SYSTEMS_REFERENCE.md` §177.2): the affairs
@@ -596,12 +600,39 @@ class TestTheMeasuredArms:
         # step, and the rig's board decreed nothing (`edicts_granted` 0 on every
         # arm, ALL diverging at [16] from a series the pin itself reproduces) —
         # every shim passes through whatever the caller passes now.
+        # (T0-E/F/G, November 7, 2026: S15's head recorded against the
+        # flip-era constant — its prior and arms read SERIES_BEFORE_T0EFG now.)
         s15 = json.loads((ROOT / "tools" / "_affairs_series_arms_s15_head.json").read_text(encoding="utf-8"))
-        assert s15["prior"] == BASELINE_SERIES
+        assert s15["prior"] == SERIES_BEFORE_T0EFG
         for arm in ("ALL", "AFR", "AF0", "AFB", "AFP", "AFN", "AFA", "AFH", "AFS"):
-            assert s15["arms"][arm]["series"] == BASELINE_SERIES, arm
+            assert s15["arms"][arm]["series"] == SERIES_BEFORE_T0EFG, arm
             assert s15["arms"][arm]["first_divergence_vs_prior"] is None, arm
         assert s15["arms"]["0"]["first_divergence_vs_prior"] == s15["arms"]["AFE"]["first_divergence_vs_prior"] == 10
         assert s15["arms"]["ALL"]["reach"]["counts"]["edicts_granted"] > 0
+        # T0-E/F/G (November 7, 2026 — the sibling sweep, the eclipse brew,
+        # the Staff and the Edicts; `SYSTEMS_REFERENCE.md` §182): the rig
+        # `tools/_t0efg_series_arms.py` holds each of the seven fix seams
+        # down on its own arm. Arm 0 (every fix down) AND T0G-EDS (the
+        # edicts' hold alone down) reproduce the prior byte for byte — the
+        # mover is GR-15 alone; ALL is the shipped series at [19]. The
+        # reach proves the quiet fixes were CONSULTED: the reachability
+        # guard read 226 times with 179 UNREACHABLE verdicts (the GR-47
+        # band opened), 26 asks rested, the brakes read on every evaluation
+        # — and the brew gate never read (the Third Coalition is active
+        # from boot, so the historical loop never brews).
+        t0 = json.loads((ROOT / "tools" / "_t0efg_series_arms_final.json").read_text(encoding="utf-8"))
+        assert t0["prior"] == SERIES_BEFORE_T0EFG
+        assert t0["arms"]["0"]["series"] == t0["arms"]["T0G-EDS"]["series"] == SERIES_BEFORE_T0EFG
+        assert t0["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert t0["arms"]["ALL"]["first_divergence_vs_prior"] == 19
+        for arm in ("T0E-P39", "T0E-STM", "T0E-DSP", "T0F-BRW", "T0F-ASK", "T0G-RCH"):
+            assert t0["arms"][arm]["first_divergence_vs_prior"] == 19, arm
+        _all = t0["arms"]["ALL"]["reach"]["counts"]
+        assert _all["reach_guard_reads"] > 0 and _all["staff_unreachable"] > 0
+        assert _all["asks_rested"] > 0 and _all["storm_reads"] > 0
+        assert _all["desperation_reads"] > 0 and _all["edict_save_reads"] > 0
+        assert _all["brew_gate_reads"] == 0, "the historical loop never brews"
+        assert t0["arms"]["T0F-ASK"]["reach"]["counts"]["asks_rested"] == 0
+        assert t0["arms"]["T0G-RCH"]["reach"]["counts"]["staff_unreachable"] == 0
         assert s15["arms"]["AFE"]["reach"]["counts"]["edicts_granted"] == 0
         assert all(s15["arms"][a]["reach"]["counts"]["crown_reads"] == 0 for a in s15["arms"])

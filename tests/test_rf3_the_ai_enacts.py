@@ -81,8 +81,15 @@ class TestTheRung:
         the cheaper laws' upkeep raising the Staff's bar past turn 30. The
         walk-on is the lever-down behaviour, pinned here with the lever down;
         the shipped arm holds (None) and is pinned in
-        `tests/test_sr7d_the_doctrines.py::TestTheAISavesForTheStaff`."""
+        `tests/test_sr7d_the_doctrines.py::TestTheAISavesForTheStaff`.
+
+        RE-SEATED by T0-G (GR-47, November 7, 2026): the shipped rung saves
+        only for a Staff its chest can REACH, and this fixture's Austria
+        cannot reach the bar — so the DC-2 save, this pin's subject, is
+        read with the reachability guard held down; the guard's own pins
+        are `tests/test_t0g_the_staff_and_the_edicts.py`."""
         rich(world, "Austria", 9500)
+        monkeypatch.setattr(R, "the_staff_must_be_reachable", lambda: False)
         assert R.law_refusal(world, "Austria", "corps_d_armee", admin_actions=2) == ""
         assert R.find_ai_enactment(world, "Austria", 9500, 2) is None
         monkeypatch.setattr(R, "THE_AI_SAVES_FOR_THE_STAFF", False)

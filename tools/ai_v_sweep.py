@@ -613,6 +613,7 @@ def derive_metrics(digest: dict) -> dict:
     # window leading into the peace — the DoD's "somebody bleeds and
     # Europe notices" measured at the level the engine actually ends
     # AI-vs-AI belligerency at.
+    from backend.game_logic.coalition import WAR_EXHAUSTION_MAX as _WE_MAX
     pair_peaces = []
     for row in turns:
         for event in row["events"]:
@@ -631,8 +632,14 @@ def derive_metrics(digest: dict) -> dict:
                 "turn": peace_turn, "war_id": event.get("war_id"),
                 "loser": loser, "winner": winner,
                 "we_window": series,
+                # T0-E/F/G (November 7, 2026): a window sitting AT the cap
+                # rose to it before the window — the strict-rise read
+                # called a maximally exhausted pair "not risen" (both
+                # parties flat at WAR_EXHAUSTION_MAX for ten turns before
+                # a late pair exit). The cap is the strongest rise there is.
                 "both_rose": all(
-                    s[-1] >= s[0] and any(b > a for a, b in zip(s, s[1:]))
+                    s[-1] >= s[0] and (any(b > a for a, b in zip(s, s[1:]))
+                                       or min(s) >= _WE_MAX)
                     for s in series.values() if len(s) >= 2),
             })
 

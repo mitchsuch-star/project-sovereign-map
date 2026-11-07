@@ -1205,6 +1205,74 @@ def ai_reads_net_before_charges() -> bool:
     return True
 
 
+def _purse_bar(world, nation: str, row: Dict, quote: Optional[Dict] = None) -> int:
+    """The chest a court must hold before it buys `row` (§7, ONE source —
+    `ai_purse_refusal`'s chest half and T0-G's reachability guard): the
+    gold price (and any arrears) + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS
+    × the slate's upkeep including the new law's own."""
+    if quote is None:
+        quote = restoration_price(world, nation, row)
+    need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
+    upkeep = int(row.get("upkeep", 0) or 0)
+    return need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (
+        law_upkeep_bill(world, nation) + upkeep)
+
+
+def the_staff_must_be_reachable() -> bool:
+    """T0-G (GR-47, the November 6, 2026 review): the save-for-the-Staff
+    rule's reachability guard — the rung saves only for a Staff its chest
+    can REACH, else it buys what it can afford. A court sitting in the
+    band [half the Staff's price, an unreachable bar) enacted nothing for
+    the rest of the game (Prussia and Russia never afford their Staff in
+    forty turns on any seed — DC-2's own landing record; the T8 probe at
+    this slice's head read 0 of 4 cured by T30). Down (False): the band —
+    saving unconditional, the pre-fix rule."""
+    return True
+
+
+def staff_is_reachable(world, nation: str, staff: Dict) -> bool:
+    """T0-G (GR-47): can this court's chest ever stand at the Staff's bar?
+    The purse ceiling is the Charges' fixed point (`state_charges_ceiling`
+    read through `_build_economy`, the caller distinguishing its two zero
+    states): CEILING_NO_RATE — the Charges do not draw — reaches any bar
+    while the gross is positive; CEILING_BOUNDED reaches the bar iff the
+    ceiling stands at or above it; CEILING_NO_SURPLUS — the chest is not
+    growing — reaches nothing it does not already hold. Re-read every
+    turn, so a court whose economy recovers resumes saving."""
+    from backend.game_logic.ledger import (CEILING_BOUNDED, CEILING_NO_RATE,
+                                           _build_economy)
+    econ = _build_economy(world, nation, rows=False)
+    state = econ.get("ceiling_state")
+    if state == CEILING_NO_RATE:
+        return True
+    if state == CEILING_BOUNDED:
+        return int(econ.get("ceiling", 0) or 0) >= _purse_bar(world, nation, staff)
+    return False
+
+
+def ai_is_saving_for_the_staff(world, nation: str, treasury: int) -> Optional[Dict]:
+    """§7 + T0-G: the ONE saving predicate — the lever up, a Staff pending,
+    the chest past AI_SAVES_FOR_THE_STAFF_FROM of its price, and (GR-47)
+    the Staff REACHABLE (`staff_is_reachable`, unless that guard's seam is
+    down). Returns the Staff row while the court is saving, else None.
+    Readers: `find_ai_enactment` (the laws rung) and `affairs.find_ai_edict`
+    (GR-15 — gold decrees held while saving). `counsel._law_terms` keeps
+    its own lever semantics (the player's hint must not flip with the AI
+    rung's flag) and reads only the guard, `staff_is_reachable`."""
+    if not THE_AI_SAVES_FOR_THE_STAFF:
+        return None
+    rows = deck(world, nation)
+    staff = next((r for r in rows
+                  if isinstance(r, dict) and is_staff(r)), None)
+    if staff is None or is_in_force(staff):
+        return None
+    if int(treasury) < int(staff.get("price", 0) or 0) * AI_SAVES_FOR_THE_STAFF_FROM:
+        return None
+    if the_staff_must_be_reachable() and not staff_is_reachable(world, nation, staff):
+        return None
+    return staff
+
+
 def ai_purse_refusal(world, nation: str, row: Dict,
                      treasury: Optional[int] = None,
                      net_before_charges: bool = False) -> str:
@@ -1230,10 +1298,8 @@ def ai_purse_refusal(world, nation: str, row: Dict,
     two reads disagree for every rich court."""
     quote = restoration_price(world, nation, row)
     gold = _court_gold(world, nation) if treasury is None else int(treasury)
-    need = (int(quote["price"]) if quote["currency"] == "gold" else 0) + int(quote["arrears"])
     upkeep = int(row.get("upkeep", 0) or 0)
-    bar = need + AI_PURSE_RESERVE + AI_PURSE_UPKEEP_TURNS * (
-        law_upkeep_bill(world, nation) + upkeep)
+    bar = _purse_bar(world, nation, row, quote=quote)
     if gold < bar:
         return f"the chest ({gold}) is under the bar ({bar})"
     from backend.game_logic.ledger import _build_economy
@@ -1307,12 +1373,10 @@ def find_ai_enactment(world, nation: str, treasury: int,
     now = int(getattr(world, "current_turn", 0) or 0)
     if last is not None and now - last < AI_ENACTMENT_EVERY_TURNS:
         return None
-    saving = False
-    if THE_AI_SAVES_FOR_THE_STAFF:
-        staff = next((r for r in rows if isinstance(r, dict) and is_staff(r)), None)
-        if (staff is not None and not is_in_force(staff)
-                and int(treasury) >= int(staff.get("price", 0) or 0) * AI_SAVES_FOR_THE_STAFF_FROM):
-            saving = True
+    # T0-G (GR-47): the ONE saving predicate, reachability-guarded — the
+    # rung saves only for a Staff its chest can reach (ceiling ≥ bar),
+    # else it buys what it can afford.
+    saving = ai_is_saving_for_the_staff(world, nation, int(treasury)) is not None
     for row in rows:
         if not isinstance(row, dict) or is_in_force(row):
             continue

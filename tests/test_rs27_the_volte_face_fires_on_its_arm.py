@@ -143,11 +143,22 @@ class TestTheVolteFaceFiresOnItsArm:
         forty turns; with the courts' rung held down (the AFE seam,
         `affairs.ai_decrees=False`) beside the two seams above it returns at
         turn 27 (measured on this drive). The arm keeps its purpose with the
-        rung down too — the Edicts stage the war, they are not the rule."""
+        rung down too — the Edicts stage the war, they are not the rule.
+
+        RE-SEATED by T0-E/F/G (GR-1, November 7, 2026; `SYSTEMS_REFERENCE.md`
+        §182.1): the stagnation breaker's attack arms read FA-N72's brakes
+        now, so a cornered corps no longer repeats a braked assault and the
+        historical board re-times from its changed battles. Measured on
+        this drive: the desperation seam held down ALONE beside the seams
+        above it returns the beat inside the window; the reachability
+        guard held down alone does not, and the other five T0-EFG seams
+        add nothing. The arm keeps its purpose with the one brake down —
+        the braked repeats staged the war, they are not the rule."""
         rows = _drive(tmp_path, "--seam", "backend.ai.enemy_ai:ai_rng=__import__('random')",
                       "--seam", "backend.models.world_state:deck_entry_stands="
                       "(a[1] or {}).get('id') != 'the_old_alliance'",
-                      "--seam", "backend.game_logic.affairs:ai_decrees=False")
+                      "--seam", "backend.game_logic.affairs:ai_decrees=False",
+                      "--seam", "backend.ai.enemy_ai:desperation_reads_the_brakes=False")
         turns = _volte_turns(rows)
         assert turns, "the VOLTE arm raised no volte_face beat (RS-27)"
         assert min(t for t in turns if t >= 0) <= 31, turns   # the war ends ~t11; window 20

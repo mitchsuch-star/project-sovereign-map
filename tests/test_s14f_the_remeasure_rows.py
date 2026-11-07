@@ -33044,6 +33044,13 @@ class TestS14EX241:
     def test_the_counsel_names_the_staff_only_to_a_chest_that_carries_it(self, _d19_boot, monkeypatch):
         from backend.ai import counsel
         from backend.game_logic import instruments
+        # RE-SEATED by T0-G (GR-47's counsel sibling, November 7, 2026): the
+        # hint saves only for a Staff the chest can REACH, and this staged
+        # board's France cannot — the D19 chest reading, this pin's subject,
+        # is read with the reachability guard held down; the guard's own
+        # pins are tests/test_t0g_the_staff_and_the_edicts.py.
+        from backend.game_logic import reforms as _R
+        monkeypatch.setattr(_R, "the_staff_must_be_reachable", lambda: False)
         rich = _d19_quiet(counsel._law_terms, _d19_world(_d19_boot, raw=30000), "France")
         assert rich and rich.startswith("enact the Staff — 9,000g")
         # 12,000 raw owing 6,000: a chest of 6,000 does not carry 9,000

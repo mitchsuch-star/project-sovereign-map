@@ -742,6 +742,17 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   the pre-T0-C digest byte for byte). Before T0-C the thirteen command arms of
   the November 6 review carried no trust figure but one typed question's, so
   "trust that moves and matters" could not be measured from a digest.
+- `FAULTS` at the close + `errors_tally` in meta.json (T0-E, GR-37, November 7,
+  2026) — an in-process run reads `backend.errors.tally()` when it finishes:
+  meta.json carries `errors_tally` whenever the lever is up (an EMPTY list is
+  "measured clean"; the key is ABSENT on a live-HTTP run, whose backend is
+  another process — never a false clean), and the markdown names each site
+  that reported (`FAULTS: <site> ×<count> — first: <error>`). The boot resets
+  the process-global tally, so the figure is THIS run's. A backend fault
+  report logs once per site and then only counts — before T0-E a persistent
+  swallowed fault (the muster priced 0, the defender's friends free) was one
+  console line and then silence (driver lever `THE_DIGEST_HEARS_THE_FAULTS`;
+  False = the pre-T0-E files byte for byte). The jsonl is untouched.
 - `bankrupt` on the jsonl `purses` record (T0-D, GR-12, November 7, 2026) —
   {court: consecutive deficit turns} for every court whose bankruptcy count
   stands (`world.nation_bankruptcy_turns`, the mercy rule's own counter), added

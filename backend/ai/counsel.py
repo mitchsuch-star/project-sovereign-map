@@ -491,7 +491,14 @@ def _law_terms(world, nation: str) -> Optional[str]:
     from backend.game_logic.instruments import purse_of
     chest = int(purse_of(world, nation)[1])
     saving = (staff is not None and R.AI_SAVES_FOR_THE_STAFF_FROM > 0
-              and chest >= int(staff.get("price", 0) or 0) * R.AI_SAVES_FOR_THE_STAFF_FROM)
+              and chest >= int(staff.get("price", 0) or 0) * R.AI_SAVES_FOR_THE_STAFF_FROM
+              # T0-G (GR-47's sibling, Rule 10): the hint saves only for a
+              # Staff the chest can reach, as the rung does — never "save
+              # for the Staff" toward a bar the ceiling cannot stand at.
+              # The counsel's own lever semantics are untouched (it reads
+              # the threshold, not the AI rung's flag — deliberate).
+              and (not R.the_staff_must_be_reachable()
+                   or R.staff_is_reachable(world, nation, staff)))
     for row in rows:
         if R.is_in_force(row) or str(row.get("currency") or "gold") != "gold":
             continue

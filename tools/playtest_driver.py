@@ -1112,6 +1112,18 @@ THE_DIGEST_SEES_THE_WEB = True
 # per-turn GET: the pre-T0-C digest byte for byte.
 THE_DIGEST_SEES_THE_MARSHALS = True
 
+# T0-E (GR-37) "the faults are counted where the sweeps read them". A backend
+# fault report (`backend.errors.report`) logs ONCE per site and then only
+# counts, so a persistent fault — the defender's friends priced at 0 by
+# `_muster_price`'s swallowed exception — degrades silently after one console
+# line. An in-process run reads the counter at the close: meta.json carries
+# `errors_tally` whenever this lever is up (empty list = measured clean;
+# ABSENT = not measured — a live-HTTP run's backend is another process, and
+# the driver's own tally would read clean whatever the server suffered), and
+# the digest's markdown names each site only when one reported. The jsonl is
+# untouched. False = the pre-T0-E file byte for byte.
+THE_DIGEST_HEARS_THE_FAULTS = True
+
 # T0-D (GR-12, ECON-2) "the purses name the bankrupt". The review read
 # Austria at -317 after turn 1 on every historical arm and found no
 # "bankrupt" anywhere: the cause is the Butcher's Bill (EC-W3, charged in
@@ -1827,6 +1839,14 @@ def make_inprocess_transport(args, out_dir):
         import backend.main as backend_main
     _apply_levers(getattr(args, "lever", None) or [])
     _apply_seams(getattr(args, "seam", None) or [])
+
+    # T0-E (GR-37; the slice's own review fleet found the leak): the errors
+    # tally is PROCESS-global, so a second in-process run in one process
+    # would report the first run's faults as its own. Reset at the run's
+    # start — `errors_tally` is THIS run's measure, and "empty = measured
+    # clean" holds per run, not per process.
+    import backend.errors as _errors
+    _errors.reset_tally()
 
     tx = Transport(TestClient(backend_main.app), "in-process", console_log)
     # IQ-8: the game-shaping environment AFTER the import — what the engine
@@ -3094,6 +3114,16 @@ class Digest:
         if standing is not None:
             self.meta["standing_trace"] = standing.summary()
             standing.uninstall()
+        # T0-E (GR-37): the errors tally surfaced at the close — see the
+        # lever's note. In-process only; empty = measured clean.
+        if (THE_DIGEST_HEARS_THE_FAULTS
+                and self.meta.get("transport") == "in-process"):
+            import backend.errors as _errors
+            _fault_rows = _errors.tally()
+            self.meta["errors_tally"] = _fault_rows
+            for _row in _fault_rows:
+                self._md(f"FAULTS: {_row['site']} ×{_row['count']}"
+                         f" — first: {_row['first']}")
         self._md(f"\n---\nfinished: **{status}** · commands "
                  f"{self.counters['commands']} · popups {self.counters['popups']}"
                  f" · battles {self.counters['battles']}")

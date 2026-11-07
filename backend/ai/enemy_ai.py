@@ -770,6 +770,38 @@ def orders_carry_their_purse() -> bool:
     return True
 
 
+def p39_reads_the_brakes() -> bool:
+    """T0-E (GR-35, the November 6, 2026 review; FA-N72's sibling): the P3.9
+    jealousy glory hunt routes its one candidate through
+    `_engageable_enemies` — the pair brake, the stub latch and the futility
+    counter, as P0 reads them. Down (False): the hunt reads only the
+    crossing and the odds, the pre-fix cadence (one corps on the same man
+    twice a phase, every phase)."""
+    return True
+
+
+def storms_read_the_pair() -> bool:
+    """T0-E (GR-36): P4.25 reads the pair stamp for its garrison target —
+    one storm per (marshal, garrison) a phase. The stamp has been written
+    for garrison targets since FA-N72 (`_attacked_targets_this_turn` keys
+    the order's `target` string, a region name here); this is its reader.
+    The futility counter never keys a garrison — an escalade emits no
+    "battle" event (CA8-19's separate resolver), so the pair brake is the
+    live half. Down (False): the same garrison stormed 2-3 times a phase,
+    re-priced fresh each time."""
+    return True
+
+
+def desperation_reads_the_brakes() -> bool:
+    """T0-E (GR-1, and its in-arm sibling): the stagnation breaker's two
+    attack arms — 'surrounded, attack weakest adjacent (desperate)' and the
+    turn-3+ lowered threshold — route their candidates through
+    `_engageable_enemies` before picking, as P0 does. Down (False): Deroy
+    repeats the same assault three times in a phase (austerlitz T33),
+    futility unread."""
+    return True
+
+
 class EnemyAI:
     """
     AI decision-making for enemy nations.
@@ -2672,6 +2704,16 @@ class EnemyAI:
                                                  glory_enemy) is not None:
                     ai_debug("  -> P3.9 held by the odds")
                     glory_target = None
+            if (glory_target is not None and p39_reads_the_brakes()
+                    and not self._engageable_enemies(
+                        marshal, [glory_target[0]], nation, world)):
+                # T0-E (GR-35): FA-N72's sibling swept — the glory hunt
+                # reads the pair brake, the stub latch and the futility
+                # counter through the ONE filter P0 reads (Rule 10). The
+                # finder returns a single man, so a braked target drops
+                # the rung; the next phase re-reads the board.
+                ai_debug("  -> P3.9 held by the brakes (pair / stub / futility)")
+                glory_target = None
             if glory_target is not None and self._admits({"action": "attack", "target": glory_target[0].name}):
                 ai_debug(f"  -> P3.9 Jealousy Glory Attack: {marshal.name} "
                          f"-> {glory_enemy.name} (weakest adjacent)")
@@ -3383,6 +3425,13 @@ class EnemyAI:
         exists for. Nation-scoped so an autonomous PLAYER marshal
         (`decide_single_action` reuses the tree) never reads another court's
         pairs.
+
+        Readers (T0-E, the November 6, 2026 review — FA-N72's sibling
+        sweep): P0, P4's engaged arm, `_get_default_action`, and now P3.9's
+        glory hunt (GR-35, seam `p39_reads_the_brakes`) and the stagnation
+        breaker's two attack arms (GR-1, seam `desperation_reads_the_brakes`).
+        P4.25's garrison storm reads the pair stamp directly — its target
+        is a region name, not a Marshal (GR-36, seam `storms_read_the_pair`).
         """
         from backend.commands.strategic import ATTACK_FUTILITY_LIMIT
         # FA-S2-D1: P0 reads the WORLD's occupancy lookup and hands it
@@ -4556,6 +4605,18 @@ class EnemyAI:
             if adj_region.controller and not world.is_at_war(nation, adj_region.controller):
                 continue
 
+            # T0-E (GR-36): one storm per (marshal, garrison) a phase — the
+            # pair stamp P4 reads, written for a garrison order's region
+            # target since FA-N72 but never read here. (The futility
+            # counter never keys a garrison: an escalade emits no "battle"
+            # event — CA8-19's separate resolver — so the pair is the live
+            # brake.)
+            if (storms_read_the_pair()
+                    and (marshal.name, adj_name) in (
+                        getattr(self, '_attacked_targets_this_turn', None) or set())):
+                ai_debug(f"    P4.25: {marshal.name} already stormed {adj_name} this phase")
+                continue
+
             # FA-8 (slice 4, Sept 4 2026): a garrisoned province with a FIELD
             # ARMY standing in it is P4's business. This rung priced the
             # garrison ALONE: measured, Charles (29k) read Munich's 10,000
@@ -4968,7 +5029,14 @@ class EnemyAI:
                         for adj_name in marshal_region.adjacent_regions:
                             if not self._stagnation_can_strike(world, nation, marshal.location, adj_name):
                                 continue
-                            for enemy in world.get_hostile_marshals_in_region_indexed(adj_name, nation):
+                            _hostiles = world.get_hostile_marshals_in_region_indexed(adj_name, nation)
+                            if desperation_reads_the_brakes():
+                                # T0-E (GR-1): FA-N72's brakes — the pair,
+                                # the stub, the futility — read where P0
+                                # reads them, before the weakest is picked.
+                                _hostiles = self._engageable_enemies(
+                                    marshal, _hostiles, nation, world)
+                            for enemy in _hostiles:
                                 if enemy.nation in _fellows:
                                     continue  # EAD-7 / EC-9 (the sweep)
                                 if self._lead_barred_from_field(marshal, enemy, world):
@@ -4987,6 +5055,11 @@ class EnemyAI:
         # ── TURN 3+: Lower attack threshold and try attacking ──
         if stagnation >= 3:
             enemies = self._get_enemy_contacts(nation, world, marshal=marshal)
+            if enemies and desperation_reads_the_brakes():
+                # T0-E (GR-1's in-arm sibling, Rule 10): the lowered-threshold
+                # strike carried the same bare class — no pair, no stub, no
+                # futility — one function above the surrounded arm.
+                enemies = self._engageable_enemies(marshal, enemies, nation, world)
             if enemies:
                 marshal_region = world.get_region(marshal.location)
                 if marshal_region and not getattr(marshal, 'fortified', False):

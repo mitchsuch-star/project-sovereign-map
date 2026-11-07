@@ -472,6 +472,23 @@ def rest_refused_pair(initiator: str, ptype: str, world, target: str) -> None:
     apply_rejection_cooldowns(initiator, ptype, world, recipient=target)
 
 
+def a_refused_ask_rests() -> bool:
+    """T0-F (GR-41, the November 6, 2026 review — OCT27-13's missing reader
+    on the AI-AI road): the `design_ask` refusal branch returns before the
+    generic path's `rest_refused_pair`, so the ordered-pair cooldown was
+    never stamped there, and trigger 0a never read it — the only governor
+    was the 6-turn dedupe window, a fixed cadence of identical rebuffs for
+    the whole game. Up (True): the refusal stamps the pair
+    (`TYPE_REJECTION_COOLDOWN` × `repeated_ask_factor` — 6, then 12, then
+    18 turns as refusals accrue inside `REFUSAL_MEMORY_TURNS`) and 0a
+    honors it through `_is_on_cooldown(..., recipient=target)`, so a
+    refused ask gets RARER, as AI-2a seam 4 specified. The +6 intent
+    hardening per refusal (capped at 12) is untouched — the ask's
+    consequence was never the dispute. Down (False): neither the stamp nor
+    the read — the pre-fix cadence."""
+    return True
+
+
 def flush_intent_on_refusal(world) -> None:
     """OCT27-18: a refusal hardens the asker this turn. Down (None): the
     turn-late read."""
@@ -5380,6 +5397,10 @@ def _resolve_ai_ai_proposal(proposal: Dict, world) -> Optional[Dict]:
     # fog-visible event AI-3's ladder gate escalates from).
     if ptype == "design_ask":
         if record_diplomatic_refusal(world, initiator, target, ptype):
+            if a_refused_ask_rests():
+                # T0-F (GR-41): OCT27-13's stamp on the AI-AI road — the
+                # generic path below writes it; this early return never did.
+                rest_refused_pair(initiator, ptype, world, target)
             event = {
                 "type": "ai_ai_proposal_refused",
                 "proposer": initiator,
@@ -5542,8 +5563,16 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
             # SF-LB-2c: the court still waits out its seeded dwell before
             # its FIRST ask — skipped like the dedupe window, so the pair's
             # other triggers are not shadowed while it waits.
-            if not recent and not design_ask_patience_holds(
-                    world, proposer, target):
+            # T0-F (GR-41): the ordered pair's rest has a reader now — the
+            # escalating type cooldown the refusal stamps (6/12/18) governs
+            # beside the dedupe window, so a refused ask gets rarer. A
+            # resting pair falls through to the pair's OTHER triggers, as
+            # the dedupe window's skip does.
+            if (not recent
+                    and not design_ask_patience_holds(world, proposer, target)
+                    and not (a_refused_ask_rests()
+                             and _is_on_cooldown(proposer, "design_ask",
+                                                 world, 0, recipient=target))):
                 return {"type": "design_ask", "proposer": proposer,
                         "target": target}
         # 0b — THE ALIGNMENT ASK: a court at `align` courts the enemies

@@ -2416,6 +2416,40 @@ def add_coalition_shock(defeated_nation: str, world) -> None:
 # §3e. COALITION FORMATION
 # ════════════════════════════════════════════════════════════════
 
+def brew_follows_formation() -> bool:
+    """T0-F (GR-4 / GR-39, the November 6, 2026 review): the brew reads the
+    league's own formation gate — no brew a formation cannot follow. Up
+    (True): a brew starts only when the set `form_coalition` would count
+    (`a_league_the_brew_could_form`) reaches two members, and a formation
+    that fails at the countdown's expiry rests the chanceries
+    (`COALITION_COOLDOWN_TURNS` on the one cooldown — §7c's threat-90
+    override still clears it for a France emergency) and says the effort
+    collapsed. Down (False): a one-court brew against a hegemon is
+    announced, cannot form, cancels without a cooldown and is re-announced
+    every `BREWING_COUNTDOWN` turns forever (friedland T18/21/24/27/30,
+    jena T22/28/31/34/37 — the November 6 review's evidence)."""
+    return True
+
+
+def a_league_the_brew_could_form(world, qualifying: List[str],
+                                 target: str) -> bool:
+    """T0-F (GR-4 / GR-39): the formation's own member rule read at the
+    BREW — the qualifying courts plus the non-vassal courts already at war
+    with the target (the player removed on a non-player target, §16.1-8),
+    two or more, exactly as `form_coalition` counts `all_members` before
+    it declares anything. A brew below that bar is a CRITICAL-looking
+    notice the player reads three turns running for a league that can
+    never exist."""
+    if not qualifying:
+        return False
+    already_at_war = get_nations_at_war_with_target(world, target)
+    if target != world.player_nation:
+        already_at_war = [n for n in already_at_war
+                          if n != world.player_nation]
+        qualifying = [n for n in qualifying if n != world.player_nation]
+    return len(set(already_at_war + qualifying)) >= 2
+
+
 def form_coalition(qualifying_nations: List[str], world,
                    target: Optional[str] = None) -> Dict:
     """Form a coalition against France (§3e).
@@ -3818,6 +3852,22 @@ def process_coalition_turn(world) -> List[Dict]:
                     # Not enough nations — cancel
                     world.coalition_brewing = None
                     world.notifications.dismiss_by_type(COALITION_BREWING)
+                    if brew_follows_formation():
+                        # T0-F (GR-39): the failed formation rests the
+                        # chanceries and says so — without the cooldown,
+                        # 7b re-brews the same impossible set on its next
+                        # pass and the player reads a fresh "brewing"
+                        # every three turns forever. §7c's threat-90
+                        # override still clears it for a France emergency.
+                        world.coalition_cooldown = max(
+                            int(world.coalition_cooldown),
+                            int(COALITION_COOLDOWN_TURNS))
+                        events.append({
+                            "type": "coalition_brewing_cancelled",
+                            "message": "The coalition effort has collapsed.",
+                        })
+                        world.log_event(
+                            {"type": "coalition_brewing_cancelled"})
             elif brewing_target == france:
                 # Update notification with remaining turns. Review fix
                 # [S-D r1]: the CRITICAL anti-France alarm copy must never
@@ -3860,9 +3910,15 @@ def process_coalition_turn(world) -> List[Dict]:
                         "message": f"{result['coalition_name']} declared! (Instant — threat {threat})",
                         "coalition": result,
                     })
-            elif threat >= brewing_gate(world) and qualifying:
+            elif (threat >= brewing_gate(world) and qualifying
+                  and (not brew_follows_formation()
+                       or a_league_the_brew_could_form(
+                           world, qualifying, france))):
                 # §3c: Start brewing at 60+ (GE-3: 40 while the Congress sits
-                # and two great powers refuse it)
+                # and two great powers refuse it). T0-F (GR-4's sibling,
+                # Rule 10): the same formation-gate read as the eclipse
+                # brew — one qualifying court with nobody at war with
+                # France cannot form a league either.
                 world.coalition_brewing = {
                     "qualifying_nations": qualifying,
                     "turns_remaining": BREWING_COUNTDOWN,
@@ -3917,7 +3973,11 @@ def process_coalition_turn(world) -> List[Dict]:
                 n for n in get_qualifying_nations(world, target=_tgt)
                 if n != france
             ]
-            if _eclipse_qualifying:
+            # T0-F (GR-4 / GR-39): no brew a formation cannot follow.
+            if _eclipse_qualifying and (
+                    not brew_follows_formation()
+                    or a_league_the_brew_could_form(
+                        world, _eclipse_qualifying, _tgt)):
                 world.coalition_brewing = {
                     "qualifying_nations": _eclipse_qualifying,
                     "turns_remaining": BREWING_COUNTDOWN,

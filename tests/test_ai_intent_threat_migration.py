@@ -1767,7 +1767,30 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # is RE-6's, AUD the review's courts-up series; every other arm and ALL are
 # this series. AU-4 part 1's series: SERIES_BEFORE_THE_COURTS below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by T0-E/F/G (November 7, 2026 — Tier 0 of the November 6 review:
+# the sibling sweep, the eclipse brew, the Staff and the Edicts;
+# `BUG_FIXES.md` §GR GR-35/36/1/37, GR-4/39/41, GR-47/15/46;
+# `SYSTEMS_REFERENCE.md` §182). Traced on the series' own loop. The
+# attribution: `tools/_t0efg_series_arms.py` →
+# `tools/_t0efg_series_arms_final.json` — arm 0 (every fix down) AND arm
+# T0G-EDS (the edicts' hold alone down) reproduce the prior byte for byte,
+# while every other single-fix arm is the shipped series diverging at [19]:
+# THE MOVER IS GR-15 ALONE. A court saving for its Staff holds its gold
+# decrees now, so the chests the Edicts drained from turn 19 re-arm the
+# courts and the wars that follow differ — [19]-[21] 8/5/2 → 0 (the alarm
+# decays clean), [22] 0 → 2, [25]-[27] 0 → 7/4/1. The other six fixes are
+# CONSULTED on this loop and move nothing here: the brakes read (storms
+# 120, the breaker 260) but the loop's battles never repeat a braked pair;
+# the ask's rest stamps 26 refusals whose cadence this series never sees;
+# the reachability guard reads 226 times — 179 verdicts UNREACHABLE, the
+# GR-47 band opened — and the laws it frees move no alarm; the brew gate is
+# never read (the Third Coalition is active from boot, so the loop never
+# brews). The prior's series: SERIES_BEFORE_T0EFG below.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 2, 0, 0, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# The courts' flip's series (T0-E/F/G's prior; the T0-EFG rig's arms 0 and T0G-EDS):
+SERIES_BEFORE_T0EFG = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # AU-4 part 1's series (the flip's prior; the AU-4 part 1 rig's ALL, the flip rig's AUC and AUY arms):
 SERIES_BEFORE_THE_COURTS = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 17, 14, 11, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # RE-6's series (AU's prior — every AU rig's ALL through AU-3b's arming; AU-4's arms 0 and AUF):

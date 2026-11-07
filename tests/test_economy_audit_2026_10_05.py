@@ -602,8 +602,15 @@ class TestTheCounselNamesTheLaw:
             why = R.ai_purse_refusal(w, "France", row, net_before_charges=True)
         assert why.startswith("the Net before the Charges of Empire"), why
 
-    def test_saving_for_the_staff_offers_no_smaller_law(self):
+    def test_saving_for_the_staff_offers_no_smaller_law(self, monkeypatch):
+        # RE-SEATED by T0-G (GR-47's counsel sibling, November 7, 2026):
+        # the hint saves only for a Staff the chest can REACH, and this
+        # fixture's France cannot reach the bar — the saving hold, this
+        # pin's subject, is read with the reachability guard held down;
+        # the guard's own pins are tests/test_t0g_the_staff_and_the_edicts.py.
         from backend.ai.counsel import _law_terms
+        from backend.game_logic import reforms as R
+        monkeypatch.setattr(R, "the_staff_must_be_reachable", lambda: False)
         w = self._rich()
         w.nation_gold["France"] = 6_000
         assert _law_terms(w, "France") is None

@@ -659,6 +659,12 @@ class TestTheCure:
 
 class TestTheAISavesForTheStaff:
     def test_a_court_past_half_the_staffs_price_enacts_nothing_cheaper(self, world, monkeypatch):
+        # RE-SEATED by T0-G (GR-47, November 7, 2026): the rung saves only
+        # for a Staff its chest can REACH, and Austria at war on this board
+        # cannot (the ceiling sits under the bar) — the DC-2 save, this
+        # pin's subject, is read with the reachability guard held down; the
+        # guard's own pins are `tests/test_t0g_the_staff_and_the_edicts.py`.
+        monkeypatch.setattr(RF, "the_staff_must_be_reachable", lambda: False)
         world.current_turn = 12
         world.nation_gold["Austria"] = 6000
         found = RF.find_ai_enactment(world, "Austria", 6000, 1)

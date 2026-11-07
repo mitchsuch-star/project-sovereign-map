@@ -30,6 +30,10 @@ sys.path.insert(0, {root!r})
 RIVALS = {rivals!r}
 import backend.game_logic.reforms as RF
 RF.THE_AI_SAVES_FOR_THE_STAFF = {saves!r}
+# T0-G (GR-46): an attribution arm holds a fix down through the same
+# channel the sweep and the first-arrival probe read.
+from tools._seams_env import apply_from_env
+apply_from_env()
 from backend.game_logic import doctrines as DC
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
@@ -95,6 +99,12 @@ def run(seed: str, saves: bool) -> dict:
 
 
 def main() -> int:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(ROOT / "tools" / "_sr7d_t8_probe.json"),
+                    help="a re-run writes its OWN record (the chain rule); "
+                         "the default is the committed record")
+    args = ap.parse_args()
     out = {"pass_rule": "no rival cured before turn 10; >= 2 of 4 cured by turn 30 on historical",
            "arms": {}}
     for saves in (True, False):
@@ -109,8 +119,12 @@ def main() -> int:
                  for n in RIVALS if arm[n]["cured_turn"] is not None and arm[n]["cured_turn"] < 10]
     out["t8"] = {"cured_by_30_on_historical": cured_by_30, "cured_before_10": before_10,
                  "pass": cured_by_30 >= 2 and not before_10}
+    seams = os.environ.get("INK_IRON_SEAMS", "")
+    if seams:
+        out["seams"] = seams
     print("T8:", out["t8"])
-    (ROOT / "tools" / "_sr7d_t8_probe.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
+    Path(args.out).write_text(json.dumps(out, indent=1), encoding="utf-8")
+    print("wrote", args.out)
     return 0
 
 
