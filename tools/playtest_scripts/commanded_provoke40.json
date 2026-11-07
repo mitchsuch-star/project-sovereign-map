@@ -1,0 +1,255 @@
+{
+  "name": "commanded-provoke40",
+  "seed": "historical",
+  "llm": "mock",
+  "_comment": "GR-2 / GR-3 (T0-I, November 7, 2026, the November 6 review's CMD-3/CMD-4): the DRAMA arm the instrument lacked. commanded_full40 is the stable open-loop control (29-40% refusals, the chest never spent, ONE objection in forty turns — its insist run measured nothing). This script PROVOKES and SPENDS, tuned to the 1805 personalities: in the hot window (loops 1-10, Mack at Swabia and Archduke Charles in the field) the aggressive marshals (Ney, Lannes, Murat) are held back — 'wait' is the staple, a MODERATE-to-EXTREME V2 concern with the enemy at hand (objection_v2.evaluate_aggressive) that stays VALID when repeated, where 'defend' re-refuses once it sticks ('already defending and fortified') — and the cautious ones (Davout, Bernadotte) are sent at Archduke Charles's prepared positions (evaluate_cautious: bad odds, fortified, +1). Soult (literal, never objects, never moved off Lorraine) works the chest on home ground. Pair with --objection insist (the arm's point: every objection pressed, the V2b defiance/compromise table rolled, the trust cost on the MARSHALS row) and --diplomacy accept; --reward pay exercises the marshal-pay surface whenever the reward rail asks, and the one scripted rente reads the rule honestly either way. Loop 11 clears the fortifications the insist fallbacks left (an unfortify on a free marshal refuses once, harmlessly). The cold window (12-40) keeps France PLAYED and solvent-to-the-floor on a 3-loop rotation whose states never collide: drill locks a marshal one turn (ready the second), Davout's fortify/unfortify alternates, the spend lands every third loop so the chest recovers between purchases. Bernadotte appears ONLY in the hot window — his insisted bad-odds attacks can end in capture, and a prisoner refuses every later line. No attack is aimed at a court France has signed with (the FA-S17-D6 ruling), and no blind attack-by-name is staged outside loops 3-8, when Archduke Charles stands in sight (the GR-66 lesson: an out-of-sight name falls to a nearest-foe clarification that rewrites the order). `turns` keys are the driver's 1-based LOOP INDEX (PC15-H).",
+  "turns": {
+    "1": [
+      "Ney, defend",
+      "Lannes, wait",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "2": [
+      "Bernadotte, attack Mack",
+      "Murat, wait",
+      "Ney, wait",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "3": [
+      "Bernadotte, attack Mack",
+      "Lannes, wait",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "4": [
+      "Bernadotte, attack Mack",
+      "Murat, defend",
+      "Ney, wait",
+      "status"
+    ],
+    "5": [
+      "Bernadotte, attack Archduke Charles",
+      "Lannes, wait",
+      "Ney, wait",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "6": [
+      "Murat, drill",
+      "Ney, wait",
+      "Lannes, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "7": [
+      "Murat, charge Archduke Charles",
+      "Davout, attack Archduke Charles",
+      "Ney, wait",
+      "status"
+    ],
+    "8": [
+      "Ney, wait",
+      "Bernadotte, attack Archduke Charles",
+      "Murat, wait",
+      "Lannes, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "9": [
+      "Lannes, wait",
+      "Murat, wait",
+      "Ney, wait",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "10": [
+      "Ney, wait",
+      "Davout, defend",
+      "Murat, wait",
+      "Lannes, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "11": [
+      "Ney, unfortify",
+      "Lannes, unfortify",
+      "Murat, unfortify",
+      "status"
+    ],
+    "12": [
+      "Ney, drill",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "13": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "14": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "status"
+    ],
+    "15": [
+      "Ney, drill",
+      "Murat, drill",
+      "grant Lannes a rente",
+      "status"
+    ],
+    "16": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "17": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "18": [
+      "Ney, drill",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "19": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "20": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "21": [
+      "Ney, drill",
+      "Murat, drill",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "22": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "23": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "24": [
+      "Ney, drill",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "25": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "26": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "27": [
+      "Ney, drill",
+      "Murat, drill",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "28": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "29": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "30": [
+      "Ney, drill",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "31": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "32": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "33": [
+      "Ney, drill",
+      "Murat, drill",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "34": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "35": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "36": [
+      "Ney, drill",
+      "Murat, wait",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "37": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ],
+    "38": [
+      "Massena, wait",
+      "Davout, unfortify",
+      "buy 10,000 substitutes for Soult",
+      "status"
+    ],
+    "39": [
+      "Ney, drill",
+      "Murat, drill",
+      "recruit 10000 infantry with Soult",
+      "status"
+    ],
+    "40": [
+      "Lannes, drill",
+      "Davout, fortify",
+      "status"
+    ]
+  },
+  "policy": {
+    "objection": "insist",
+    "diplomacy": "accept",
+    "reward": "pay",
+    "redemption": "dismiss"
+  }
+}

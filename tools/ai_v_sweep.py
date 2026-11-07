@@ -60,6 +60,13 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# T0-I AIF-9 (the November 6, 2026 review): the documented command line is
+# `python tools/ai_v_sweep.py --run ...`, which boots with sys.path[0] =
+# tools/ — so `--run`'s own `from tools._seams_env import apply_from_env`
+# (line one of that branch, BEFORE run_one's insert) died without
+# PYTHONPATH=. The root joins the path at import; no game module loads here.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
                  / "assets" / "maps" / "europe_1805.json")
 
@@ -294,6 +301,23 @@ class RunCapture:
         return sum(1 for row in state.values()
                    if isinstance(row, dict) and row.get("status") == "fired")
 
+    def _france_fate(self) -> dict:
+        """T0-I AIF-10: the player's own per-turn row — provinces held, laws
+        in force (by id), satellites with their loyalty. Men already ride
+        `strength`; gold rides `gold`."""
+        world = self.world
+        from backend.game_logic.reforms import laws_in_force
+        return {
+            "provinces": len(world.get_nation_regions(self.player) or []),
+            "laws": [str(row.get("id")) for row in
+                     laws_in_force(world, self.player)
+                     if isinstance(row, dict)],
+            "satellites": {
+                str(v): int((s or {}).get("loyalty", 0) or 0)
+                for v, s in (getattr(world, "vassals", {}) or {}).items()
+                if isinstance(s, dict) and s.get("lord") == self.player},
+        }
+
     def capture_turn(self, endturn_result) -> dict:
         world = self.world
         active = [n for n in world.get_active_nations() if n != self.player]
@@ -372,6 +396,13 @@ class RunCapture:
                      for n in [self.player] + active},
             "strength": {n: int(_standing_strength(world, n))
                          for n in [self.player] + active},
+            # T0-I AIF-10 (the November 6, 2026 review): France's own fate,
+            # per turn — the sweep captured gold and strength only, so no
+            # ambient arm could compare what FRANCE held, had enacted or
+            # still led turn by turn. All three are cached or O(vassals)
+            # reads (Rule 8: get_nation_regions, laws_in_force, the vassal
+            # store — never a region scan).
+            "france": self._france_fate(),
             "events": self._drain_events(),
             "dispatch_queue": dispatch_queue,
             "incoming_proposals": self._incoming_proposals(),

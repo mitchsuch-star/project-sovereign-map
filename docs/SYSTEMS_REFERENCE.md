@@ -13490,3 +13490,104 @@ Directional **7.57 → 7.69**, exercised pillars **11 → 12 of 14**; no pillar 
 
 `test_ai_drill_fix_2026_09_27.py` (the chain test's flip clauses re-pointed to the kept rig record + the fresh final's closing self-check), `test_standing_books.py` (the flip attribution against the kept file + the live record's own block), `test_vp1_the_decisive_peace.py` (the nine ends re-seated with the two-seed stamp narrated; the System road's blockade fulfilment; November 6's kept record byte-pinned beside October 22's; the note clause reads T0-H), `test_standing_band.py` (PROCLAIMED gains the two haiti arms), `test_affairs_pacing.py` (the firsts, the dues, the courts' five-seed move), `test_moments_pacing.py` (the Crown on both stamped seeds), `test_affairs_reach.py` (eight blocks: the Remounts 17, the treaty road's regained letter and Camps, the squadron's one sailing, the Bank's austerlitz pair, the Pope's five with the haiti accept, the Proclamation's 24/15 with the new road set, the Host's one-morning flicker still never a letter, the kept-roads and courts-move attribution sets, the sweep-firsts floor 12 with the ulm pair opening on the Memorial). Every re-seat quotes T0-H and §183; the records are seeded paths, not laws.
 
+## §184 Tier 0 of the November 6 review — T0-I, the benchmark's own arms (November 7, 2026)
+
+**The slice** (`PRE_DEPLOY_PLAN.md` §2 row S15-R; the review's §4.2 harness table; rows
+`BUG_FIXES.md` §GR GR-2, GR-3 FIXED and GR-66 CLOSED — all harness, no game rule moved,
+`BASELINE_SERIES` untouched by construction). The committed record is
+`tools/_t0i_benchmark_arms.json` (writer `tools/_t0i_benchmark_arms.py`, pure reads over the
+slice's Mode-A runs); the pins `tests/test_t0i_the_benchmarks_arms.py`.
+
+### §184.1 VOLTE — read, not re-staged
+
+The brief's own rule: READ the arm first. T0-H's benchmark (077efb37) shows the volte-face
+FIRING on the VOLTE arm's live line — Austria beaten, then courted to +100, takes France's
+hand at T27 and her court turns to The Eastern Question (`docs/audits/score_runs/
+2026_11_07_077efb37/arms/VOLTE/digest.md`, the RAIL at T27 and the LOG at T28). The
+commanded script beats Austria again on the final tree (T0-E/F/G freed the stagnation
+breaker's arms), so nothing is re-authored; the committed digest is byte-pinned. The rs27
+firing arm stays its own record — it holds the desperation seam down BY DESIGN.
+
+### §184.2 GR-66 — the shut-out arm re-staged, and the per-seed truth
+
+The staging defect (GR-18's trace, §181.3): `sr5b_shut_out.json` ordered `Soult, attack
+Paget` at loop 7 with the man out of sight — the line fell to an `attack_target`
+clarification whose FIRST option is the nearest visible foe, the driver's answer sent Soult
+after Archduke Charles, and the pursuit SET ASIDE the eight-turn Lisbon march; freed of that
+line the march completed and loop 9's blind name rewrote him again (a battle with Bernardim
+Freire). EVERY blind attack-by-name in loops 1-12 is gone; the storm lands at T8 on all
+three seeds, zero rewrites.
+
+The measured truth per seed (the accept arms, 12 turns): on **austerlitz** and **marengo**
+Spain takes Paget prisoner at T6, Britain lands Shrapnel at Lisbon at T7, loop 8's `Soult,
+attack Lisbon` beats him on Lisbon's field, and **Britain sues at T8** — naval C4's own bar
+(≤ T10). On **historical** Spain DESTROYS Paget outright at T7 (the saves: 2,117 men at
+Lisbon at T6, gone from the roster at T7), Britain lands no second corps inside the arm —
+Moore sits at London growing to 70,000 — and the GR-18 ruling stands: a court that has never
+fought France cannot sue her, and exhaustion alone cannot sue (§7c). France storms Lisbon's
+garrison at T8 and PORTUGAL sues at T9 instead. Naval C4's historical arm reads ✗ honestly
+until a British corps lands within the arm's reach; the checklist is frozen v1 and the
+absence is the seeded truth, reported per seed.
+
+### §184.3 SEA — the SF6-X2 precedent again, re-staged to the post-S14j chest
+
+The arm's loop-1 yard (1,200g) and loop-4 commission (3,500g) both met the rebalanced boot
+chest (800g), the Oudinot lines fell to `unknown_name` clarifications whose first answer
+REWROTE Soult's march, both landing lines were refused, and naval F2 read red on staging.
+Re-staged to the chest's own curve: the yard at loop 4 (the chest crosses 1,200 at T3), the
+commission at loop 8, the march at 9, the landing quoted with its levers at 10 and SAILED at
+11 — intercepted at sea on this line, which is a RESOLVED throw, not a refusal — keels after
+the commission. No SCRIPT PRECONDITION; both diversion quotes price at odds = readiness − 25
+(naval C1's arithmetic).
+
+### §184.4 GR-2 / GR-3 — the DRAMA arm the instrument lacked
+
+`commanded_full40` stays the stable open-loop control (29-40% refused, the chest never
+spent, ONE objection in forty turns — its insist run measured nothing). The new
+`commanded_provoke40.json` + the `DRAMA` arm (insist / accept / reward pay / redemption
+dismiss, historical, 40 turns; no frozen v1 item reads it — the NAV1 precedent) is tuned to
+the 1805 personalities: the aggressive marshals held back with `wait` (repeat-valid where
+`defend` re-refuses once it sticks) while Mack and Charles stand at hand, the cautious ones
+sent at bad odds, Soult the literal spender on home ground, the rente family on the pay
+surface. Measured on the committed line (the record's `drama` block): 13 objections pressed
+(the control's ONE in forty turns), refusals 13% of 201 commands (the control's 29–40%),
+the chest spent 23,857g toward its floor (the control never spent it), the trust cost on the
+MARSHALS row turn by turn (Lannes 77 → 23, Murat 75 → 31; Ney pressed until Austria took
+him), the redemption arc reached twice and REFUSED (`--redemption dismiss` — the men stay in
+the line), the pay surface on `--reward pay` plus one scripted rente whose refusal states
+the rule (the expectation already met — the honest read). The defiance count is ZERO, and
+that is the slice's measured FINDING, not a miss: the record embeds the `defiance_pricing`
+table — concern, trust, authority, chance and the PEEKED roll per insist, none consumed —
+and every window on the line is priced shut at authority 100; whether a full-authority
+Emperor should ever be defied is the user's, filed `DESIGN_REFINEMENT.md` GRD-38, whose
+ruling re-records the arm.
+
+Three mechanics the staging paid to learn, kept here so no one re-rolls them blind: a
+MODERATE concern at authority ≥ 80 prices defiance at effectively ZERO (`defiance.py`: base
+0.05 − 0.10 authority + U(−0.08, 0.08), clamped — a 0.0 roll still obeys); the redemption
+default `grant_autonomy` takes a pressed marshal OUT of command at rock-bottom trust, ending
+his objections exactly where the chance peaks (trust ≤ 20 is +0.15) — `--redemption dismiss`
+keeps him in the line; and a `status` line moves NO dice — only real actions (battles)
+shift the stream, so a staging lottery must perturb orders, never padding.
+
+### §184.5 The harness rows (DIP-3, ECON-1, AIF-9, AIF-10, LAW-5) and the watch item
+
+**DIP-3** — the driver digest states an incoming AI proposal's terms (`TERMS (incoming
+<type> from <court>)`, the popup's own `clauses`; `proposal_terms` jsonl rows; the
+letter-book's `envoy_digest_answer` records carry `clauses` too), so proportionality can be
+audited from a run. **ECON-1** — `chest_window` subtracts the treaty lump the rollover's own
+popups name (the ratification summary's `gold_received`/`gold_paid`, carried as
+`treaty_lump`): the NAV1T-H T18 case — France's 1,000g offered indemnity leaving the chest
+when Russia accepts at the rollover — no longer reads OFF THE BOOKS. **AIF-9** —
+`python tools/ai_v_sweep.py --run` works from the documented command line (the repo root
+joins `sys.path` at import; the `--run` branch's `tools._seams_env` import died before
+`run_one`'s insert). **AIF-10** — the sweep's per-turn capture carries France's own fate:
+`france.provinces` / `france.laws` / `france.satellites` (men already ride `strength`), all
+cached or O(vassals) reads (Rule 8). **LAW-5** — `rf3_commanded_enacts.json` asks for the
+Staff ALL forty loops (the commanded chest first crosses the bar ~T25; the old last ask was
+loop 20, so the law was never measured on that arm). **The T0-H watch item** (ai_aliveness
+C5's fortify churn, CMD-H Shrapnel T7-T8) was looked at once as briefed: London-fortify →
+sail → land Carniola → break camp → march Tyrol → fortify — a corps relocating after a
+landing, a sighting, not a loop; no row.
+
+

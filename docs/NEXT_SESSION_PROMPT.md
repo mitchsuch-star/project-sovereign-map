@@ -1,70 +1,59 @@
-# NEXT SESSION PROMPT — Tier 0 of the November 6 review: T0-I the benchmark's own arms (T0-A … T0-H ✅ landed), then the Concert Tiers 1–8, then the deploy
+# NEXT SESSION PROMPT — Tier 1 the seed (Tier 0 ✅ COMPLETE, nine slices), then the Concert Tiers 2–8, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 7, 2026 — T0-H THE RE-RECORD CHAIN ✅
-> LANDED (`SYSTEMS_REFERENCE.md` §183: one chain alone on 077efb37, 19 minutes; the reach, the probe, the standing
-> record (59 arms, residual 0), the road record, the standing rig, the flip record, the buys, the benchmark —
-> directional 7.57 → 7.69, 12 of 14 pillars exercised, THE VOLTE-FACE firing on the benchmark itself; every
-> record-value pin re-seated with its cause)**, after T0-E/F/G (§182), T0-D (§181), T0-C (§180), T0-B (§179),
-> T0-A (§178). The user's word for the tier: *"do tiered implementation of all of these — make this happen after
-> the bug fixes"*; T0-E/F/G under *"build it"*, T0-H under *"Yes, run T0-H"*. **The deploy (S15) follows Tier 0 and
-> the Concert Tiers 1–8 ("The Concert and the Awakening", owning spec `docs/DYNAMISM_SPEC.md`): Q1's deploy cut
-> REVERSED November 7, 2026 by the user's word, verbatim — "we should stop being afraid of adding conent to rush
-> deploy cuts keep happening without my consent" — so the Awakening (Tier 6) and Crowns & Recognition (Tier 8)
-> ship BEFORE the deploy; no cuts without consent (`DYNAMISM_SPEC.md` §0, the standing rule).**
+> Overwritten each time a session hands off. Current hand-over: **November 7, 2026 — T0-I THE BENCHMARK'S OWN
+> ARMS ✅ LANDED, TIER 0 COMPLETE (`SYSTEMS_REFERENCE.md` §184: VOLTE read, not re-staged — the beat fires on
+> T0-H's live benchmark arm, byte-pinned; GR-66 CLOSED — the shut-out arm's blind attack-by-names removed,
+> Britain sues T8 on austerlitz and marengo, historical's absence the GR-18 ruling's own truth; SEA re-staged
+> to the post-S14j chest's curve, naval F2 green; GR-2 FIXED / GR-3 MEASURED — the DRAMA arm presses 13
+> objections, spends 23,857g at 13% refusals, and the defiance road is PRICED SHUT at full authority, the
+> question filed GRD-38; DIP-3 / ECON-1 / AIF-9 / AIF-10 / LAW-5 landed; record `tools/_t0i_benchmark_arms.json`,
+> pins `tests/test_t0i_the_benchmarks_arms.py`)**, after T0-H (§183), T0-E/F/G (§182), T0-D (§181), T0-C (§180),
+> T0-B (§179), T0-A (§178). **The deploy (S15) follows the Concert Tiers 1–8 ("The Concert and the Awakening",
+> owning spec `docs/DYNAMISM_SPEC.md`): Q1's deploy cut REVERSED November 7, 2026 by the user's word, verbatim —
+> "we should stop being afraid of adding conent to rush deploy cuts keep happening without my consent" — so the
+> Awakening (Tier 6) and Crowns & Recognition (Tier 8) ship BEFORE the deploy; no cuts without consent
+> (`DYNAMISM_SPEC.md` §0, the standing rule).**
 >
-> **NOW — T0-I: the benchmark's own arms** (harness rows; the census's open GR rows are GR-66, GR-2, GR-3 — all
-> T0-I's own; `BUG_FIXES.md` §GR):
-> - **SEA** — the arm can no longer afford Oudinot's commission at loop 5; re-stage it later or cheaper (the
->   SF6-X2 precedent); naval F2 reads red on a staging failure, not the navy.
-> - **VOLTE — READ FIRST, then re-stage only if still needed:** T0-H's benchmark compare shows the volte-face
->   FIRING on the benchmark arm (diplomacy.C3: "Austria, beaten and then courted, takes France's hand. Her court
->   turns its gaze to The Eastern Question") — the commanded script's Austrian defeat may already be live on the
->   T0-E/F/G world-lines; read the VOLTE arm's digest in `docs/audits/score_runs/2026_11_07_077efb37/arms/VOLTE/`
->   before re-authoring anything (the rs27 firing arm holds the desperation seam down — its board is the OLD line
->   by design; the benchmark arm is the live one).
-> - **GR-66** — the shut-out arm's Paget battle re-staged (T0-D's finding: the drifted staging carried Britain's
->   turn-8 offer).
-> - **GR-2 / GR-3** — `commanded_provoke40.json`: the second commanded script that SPENDS and PROVOKES (the drama
->   arm the instrument lacks — orders marshals dislike, repeated; the chest spent; mostly-valid commands), so the
->   insist arm measures defiance instead of one popup in forty turns.
-> - **The digest rows** DIP-3 (incoming AI proposals' terms) and AIF-10 (the sweep's capture: France provinces and
->   laws); CMDFEEL-14 landed with T0-C.
-> - **ECON-1 play** (`chest_window` subtracts treaty lumps the end-turn popups name), **LAW-5 play**
->   (`rf3_commanded_enacts` keeps asking for the Staff past turn 20), **AIF-9** (`tools/ai_v_sweep.py --run`
->   inserts its own `sys.path` so the documented command line works without `PYTHONPATH=.`).
-> - **One watch item from T0-H's compare, for this slice's eyes:** ai_aliveness.C5 names a single
->   fortify→unfortify→fortify churn inside 3 turns (CMD-H, Shrapnel, T7–T8) — the pillar held; look once while the
->   arms are open, file only if it is a loop and not a sighting.
-> Each slice its own commit and the user's review; Plan Mode for each tier's gate (Tier 2 →
-> `AI_INTENT_SPEC.md` §3.8.2, Tier 3 → §13).
+> **NOW — TIER 1: THE SEED AT NEW GAME** (`DYNAMISM_SPEC.md` §2 Tier 1, ≈ 0.5 sessions; no gate at this tier's
+> head — the gates are Tier 2's §3.8.2 and Tier 3's §13, each in Plan Mode at its own head):
+> - The campaign seed ROLLED at New Game (`NewGameRequest.seed`; `roll_campaign_seed()` — a READABLE name,
+>   never `historical`) and SHOWN: a `LineEdit` on the New Game menu (type one or keep the roll), the first
+>   morning's line, the load dialog's row.
+> - The env (`SOVEREIGN_SEED`) and the suite's pin stay untouched — `historical`/unset reproduces today's boot
+>   byte for byte (the §3.8.1 law; conftest pins it suite-wide).
+> - Rule 9: owner row, landing slice, done-when and a behaviour test with the slice; the Godot half needs the
+>   dtype/UI wiring checked in the parse harness (a `.gd` edit regenerates `tools/godot_parse_report.json`).
 >
-> **T0-H, landed (for the record; §183):** the chain template is `tools/playtest_runs/t0h_2026_11_07/chain.sh`
-> (au4_flip's phases + RE3-7's road-commit step + the kept-record copies at the head); `score_run.py run` does NOT
-> write `checklist.json` — run `check` before `compare` (the template's one lesson). The kept records:
-> `tools/_standing_series_arms_flip.json` (the flip's rig — the AU attribution pins read it),
-> `tools/_vp1_road_arms_2026_11_06.json` (RE3-7's roads, byte-pinned). The records' stories: Pressburg stamps on
-> TWO benchmark seeds (austerlitz AND marengo, both T13, the Crown of the Reich arriving on both at T15); the
-> System road's blockade latches at historical (its first fulfilled term ever) and its Falls are gone at
-> historical/marengo; the Throne road Falls earlier everywhere (the freed courts press harder); the spender takes
-> all four of AU-3a's buys in play; the Pope answered on the haiti accept dial (800 gold, figure for figure); the
-> fresh standing rig's ALL reproduces the re-pinned `BASELINE_SERIES` byte for byte (nothing drifted since the
-> re-pin).
+> **Open with the user (none blocks Tier 1):** **GRD-38 — should a full-authority Emperor ever be defied?**
+> (T0-I's measured pricing: MODERATE = literally 0 at authority ≥ 80, STRONG ≤ 0.13; the table in
+> `tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`; a ruling re-records the DRAMA arm); **GRD-37 — T8
+> vs the post-S14j war economy** (RF-3's half); the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36
+> with their defaults); the flip's two readings (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings
+> (`EVENTS_SPEC.md` §18); the road record's readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three
+> questions (`REFORMS_SPEC.md` §5a); the crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md`
+> §4.2); SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1).
 >
-> **Open with the user (none blocks T0-I):** **GRD-37 — T8 vs the post-S14j war economy (RF-3's half: lower an
-> at-war court's effective bar, raise the courts' war purse, or re-base T8)**; the design rows of
-> `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36 with their defaults); the flip's two readings
-> (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18); the road record's readings
-> (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a); the crown term's level
-> (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1).
->
-> **After Tier 0 — the Concert ("The Concert and the Awakening", `docs/DYNAMISM_SPEC.md`; Q1's deploy cut
-> REVERSED November 7, 2026 — no cuts without consent, spec §0):** Tier 1 the seed at New Game → Tier 2 Europe
-> varies + T2-6 the casting band (gate §3.8.2 at its head, Plan Mode) → Tier 3 the strategist (gate §13) → Tier 4
-> the Alarm of Europe + promotion's teeth → Tier 5 the Questions of Europe → Tier 6 the Awakening → Tier 8 Crowns
-> & Recognition (Tier 7's bounded dice only if the story-class count still falls short at the gate) → **S15 the
-> deploy, the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in
-> a file — `deploy\build.bat`, `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`).
+> **After Tier 1 — the Concert (`docs/DYNAMISM_SPEC.md`; Q1's deploy cut REVERSED November 7, 2026 — no cuts
+> without consent, spec §0):** Tier 2 Europe varies + T2-6 the casting band (gate §3.8.2 at its head, Plan Mode)
+> → Tier 3 the strategist (gate §13) → Tier 4 the Alarm of Europe + promotion's teeth → Tier 5 the Questions of
+> Europe → Tier 6 the Awakening → Tier 8 Crowns & Recognition (Tier 7's bounded dice only if the story-class
+> count still falls short at the gate) → **S15 the deploy, the user's own** (the UXR-4 walk, the certificate —
+> `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in a file — `deploy\\build.bat`,
+> `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`).
 > **After the deploy:** S14k part 3, S16, S17c.
+>
+> **T0-I's own traps, paid for this slice (keep with the standing list below):** the driver reseeds the module
+> RNG at EVERY turn boundary (sha256(seed:turn)) — a `status` or any no-dice line moves NOTHING in the stream,
+> so a staging lottery must perturb REAL actions, and a turn's rolls are a pure function of its own draw order;
+> at authority ≥ 80 `defiance.py` prices a MODERATE concern at literally zero (a 0.0 roll still obeys) — do not
+> re-roll that lottery blind, read GRD-38; a scripted `defend` is state-sticky ("already defending and
+> fortified" re-refusals) where `wait` is repeat-valid — and `wait`/`defend` still OBJECT with an enemy at hand;
+> the redemption default `grant_autonomy` takes a pressed marshal OUT of command exactly where his defiance
+> chance peaks — a drama script runs `--redemption dismiss`; an attack-by-name with the man OUT OF SIGHT falls
+> to an `attack_target` clarification whose FIRST answer is the nearest visible foe and REWRITES the order (it
+> killed the shut-out arm's march at loop 7 and again at loop 9) — stage named attacks only in sight, region
+> attacks otherwise; the benchmark's arm list gained `DRAMA` (no frozen v1 item reads it — the NAV1 precedent);
+> `tools/_t0i_benchmark_arms.py` re-records the T0-I arms (`--rolls` embeds the instrumented pricing table).
 >
 > **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are
 > named functions; the seven T0-EFG seams are the pattern: zero-arg, in the module they gate), functions over 500
@@ -78,7 +67,7 @@
 > boards' hold-list is `tests/_oct27_seams.py` — a slice that re-times them APPENDS its seams there, never per-test;
 > **a record superseded but still pinned is KEPT under a dated or named file and its pins re-pointed — never re-run
 > a later slice's measure into an earlier slice's record file** (`_standing_series_arms_flip.json`,
-> `_vp1_road_arms_2026_11_06.json` are the fresh precedents); **the benchmark run dir is committed in the
+> `_vp1_road_arms_2026_11_06.json` are the precedents); **the benchmark run dir is committed in the
 > precedent's shape ONLY — per arm `digest.jsonl`/`digest.md`/`meta.json` and the top-level jsons, never `saves/`,
 > `server_console.log` or `_probe_saves` (224M raw vs 22M committed)**; the rig-record pins in
 > `test_ai_drill_fix_2026_09_27.py` re-link through `SERIES_BEFORE_*` constants when the live constant moves on;
@@ -95,9 +84,8 @@
 > suite, about 10 minutes; never `--no-verify`) and read the log's EXIT line; Godot: one engine at a time,
 > `--log-file` and every capture path ABSOLUTE; a `.gd` edit with the morning's parse report FAILS the hook
 > (regenerate `tools/godot_parse_report.json`); `tools/playtest_runs/` is gitignored (the chains live there as local
-> evidence; the records and the §-sections are the committed truth); `tools/ai_v_sweep.py --run` needs
-> `PYTHONPATH=.` from the shell (AIF-9 fixes it in T0-I); the blind `unrehearsed_*.json` are census inputs — the
-> driver refuses them by name (CMDFEEL-13); a review probe that ends a turn through `/command` MUST set
+> evidence; the records and the §-sections are the committed truth); the blind `unrehearsed_*.json` are census
+> inputs — the driver refuses them by name (CMDFEEL-13); a review probe that ends a turn through `/command` MUST set
 > `INK_IRON_SAVE_DIR` first; a workflow's result lands in its task file as `{"result": …}` JSON — parse it, never
 > read 700 KB raw; `get_visible_enemies` is the PLAYER's fog (a court's sight is `get_live_visible_enemies`);
 > `field_on_peace_soil` is the PLAYER's rule (the AI keeps PT-F1); a rung's structured field reaches the executor

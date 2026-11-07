@@ -136,9 +136,13 @@ exactly as the client posts it:
 While the NEXT line is a click, the dialogue a line opened is HELD: the digest
 says "(held for the script's own clicks)" and the answer policy never touches
 it. A settlement table's terms are recorded (`settlement_terms` jsonl rows, a
-`TERMS` line in the digest) before it is answered. The worked example is
-`tools/playtest_scripts/sf_agd1_tilsit_road.json` (the `AGD` arm of
-`tools/score_run.py`).
+`TERMS` line in the digest) before it is answered — and so are an INCOMING
+AI proposal's (T0-I DIP-3, November 7, 2026: `proposal_terms` jsonl rows, a
+`TERMS (incoming <type> from <court>)` line built from the popup's own
+`clauses`, and the letter-book's `envoy_digest_answer` records carry the
+row's `clauses` too), so proportionality can be audited from a run. The
+worked example is `tools/playtest_scripts/sf_agd1_tilsit_road.json` (the
+`AGD` arm of `tools/score_run.py`).
 
 ### Known-bad digests (read this before trusting an old run)
 
@@ -682,7 +686,10 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   `- EXPECTS:` / `- UNMET:` under the DISPATCH line (the Dispatch screen's
   Unmet Marshals block and its expectation rises, SF-RR6), a
   `⚠ OFF THE BOOKS` row when the chest moved across an end turn by more or
-  less than the accounts applied (SF-RR6, EA-2),
+  less than the accounts applied (SF-RR6, EA-2; since T0-I ECON-1 a treaty
+  lump the rollover's own popups name — the ratification summary's
+  `gold_received`/`gold_paid` — is on the books, carried as the record's
+  `treaty_lump` and named in the row when it part-explains a residue),
   `ORDER` rows for standing-order progress, `LEDGER` with
   treasury/net/**threat**/**`provinces N (+d)`**, the dispatch headline,
   its `RAIL` notices and `LOG` rows for the AI-vs-AI beats no other
@@ -772,9 +779,11 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   turn/command/battle/popup/enemy_phase/order_progress/ledger/dispatch/
   rail/dispatch_row/campaign_log/mission/note — and since SF-RR6
   `chest_window` (the chest measured across each end turn against the
-  applied Net, `off_books` 0 when the books are whole), `wars` (the courts
-  at war with France as each turn's end begins) and `precondition` (a
-  script line's staged board, held or failed)).
+  applied Net, `off_books` 0 when the books are whole, `treaty_lump` the
+  rollover payment the end-turn popups named — T0-I ECON-1), `wars` (the
+  courts at war with France as each turn's end begins), `precondition` (a
+  script line's staged board, held or failed) and `proposal_terms` (an
+  incoming AI proposal's clause lines, T0-I DIP-3)).
 
   > ⚠ **The `enemy_phase` record is the FOGGED view, not the full action
   > list.** An earlier version of this page said otherwise and it was wrong

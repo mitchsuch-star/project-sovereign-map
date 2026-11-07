@@ -2323,6 +2323,35 @@ class Digest:
                     dialogue_mode=dialogue.get("dialogue_mode"), terms=rows,
                     carves=carves)
 
+    def proposal_terms(self, dialogue):
+        """T0-I DIP-3 (the November 6, 2026 review): the terms an INCOMING
+        AI proposal states — the clause lines the player reads (the popup's
+        own `clauses`, written by `mailbox_payloads.
+        build_pending_envoy_popup_from_terms`; never a second rendering) —
+        so proportionality can be audited from a run. The settlement table
+        has `settlement_terms`; this is its sibling for the envoy's letter.
+        Display only; the same lever governs both."""
+        if not THE_DIGEST_STATES_THE_TERMS or not isinstance(dialogue, dict):
+            return
+        # The incoming-proposal shape (the bare-shape discriminator the
+        # answer arm uses): a proposer and a proposal type. Settlement
+        # dialogues keep their own TERMS row.
+        if not dialogue.get("from_nation") or not dialogue.get("proposal_type"):
+            return
+        clauses = dialogue.get("clauses")
+        rows = [first_line(str(c), 120) for c in (clauses or [])
+                if str(c).strip()] if isinstance(clauses, list) else []
+        if not rows:
+            return
+        who = str(dialogue.get("from_nation"))
+        ptype = str(dialogue.get("proposal_type"))
+        self._md(("  - TERMS (incoming " + ptype + " from " + who + "): "
+                  + " · ".join(rows))[:300])
+        self.record("proposal_terms", from_nation=who, proposal_type=ptype,
+                    clauses=rows,
+                    is_counter_offer=bool(dialogue.get("is_counter_offer")),
+                    is_ultimatum=bool(dialogue.get("is_ultimatum")))
+
     def loyalty_tick(self, response):
         """Step 5's exit (vassals C2's instrument correction): every
         `vassal_loyalty` event on the end-turn response, as a `loyalty` row —
@@ -2517,10 +2546,17 @@ class Digest:
         summary = (f"{row.get('from_nation', '?')}: "
                    f"{row.get('proposal_type_display') or row.get('proposal_type', '?')}")
         self._md(f"  - LETTER {summary} → {choice}{outcome}")
+        # T0-I DIP-3: the letter-book row carries the popup's own `clauses`
+        # (envoy_digest._digest_row) — recorded so the jsonl states the
+        # terms the letter asked, not just the type that was answered.
+        clauses = row.get("clauses")
         self.record("envoy_digest_answer", mailbox_id=row.get("mailbox_id"),
                     from_nation=row.get("from_nation"),
                     proposal_type=row.get("proposal_type"),
-                    choice=choice, outcome=outcome.strip() or "answered")
+                    choice=choice, outcome=outcome.strip() or "answered",
+                    clauses=[first_line(str(c), 120) for c in clauses
+                             if str(c).strip()]
+                    if isinstance(clauses, list) else None)
 
     # FA-37: the signed Net components, in the order the ledger states them.
     # `net` alone answers "is France solvent"; it cannot answer WHY, which is
@@ -2669,16 +2705,35 @@ class Digest:
         opened = int(event.get("treasury", 0) or 0) - int(event.get("net", 0) or 0)
         one_shots = opened - int(before)
         measured = int(after) - int(before)
-        off = (measured - one_shots + materiel - int(applied)) if applied is not None else None
+        # T0-I ECON-1 (the November 6, 2026 review): a treaty lump paid at
+        # the rollover is NAMED by the end turn's own popups — the
+        # ratification summary rides the response (top level, or on the
+        # `proposal_result` the drain will print: "Russia has accepted our
+        # Peace Treaty!" with the 1,000g indemnity France had offered) —
+        # and used to read as an off-the-books flow. A named lump is on the
+        # books; the residue line is for flows nothing named.
+        summary = response.get("peace_ratification_summary")
+        if not isinstance(summary, dict):
+            pr = response.get("proposal_result")
+            summary = (pr.get("peace_ratification_summary")
+                       if isinstance(pr, dict) else None)
+        treaty = ((int(summary.get("gold_received", 0) or 0)
+                   - int(summary.get("gold_paid", 0) or 0))
+                  if isinstance(summary, dict) else 0)
+        off = (measured - one_shots + materiel - treaty - int(applied)
+               ) if applied is not None else None
         self.record("chest_window", turn=int(event.get("old_turn", 0) or 0),
                     before=int(before), after=int(after), measured=measured,
                     one_shots=one_shots, materiel=materiel,
+                    treaty_lump=treaty,
                     applied_net=int(applied) if applied is not None else None,
                     off_books=off)
         if off:
             self._md(f"  - ⚠ OFF THE BOOKS {off:+,}g — the chest moved {measured:+,} across the "
                      f"end turn; the accounts applied {int(applied):+,} (Butcher's Bill "
-                     f"{materiel:,}, the window's one-shots {one_shots:+,})")
+                     f"{materiel:,}, the window's one-shots {one_shots:+,}"
+                     + (f", the treaty's lump {treaty:+,}" if treaty else "")
+                     + ")")
 
     def wars(self, turn, enemies):
         """SFR-I5: the courts at war with France as the turn ends (jsonl)."""
@@ -3742,6 +3797,11 @@ class Answerer:
                 and hasattr(self.d, "settlement_terms")):
             # SF-AGD-1: what the table states, before it is answered.
             self.d.settlement_terms(dialogue)
+        if (dialogue and isinstance(dialogue, dict)
+                and hasattr(self.d, "proposal_terms")):
+            # T0-I DIP-3: what the envoy's letter states, before it is
+            # answered (the method filters to the incoming-proposal shape).
+            self.d.proposal_terms(dialogue)
         if dialogue and isinstance(dialogue, dict):
             choice = self._dialogue_choice(dialogue)
             # The cycle guard's signature carries the dialogue identity, so

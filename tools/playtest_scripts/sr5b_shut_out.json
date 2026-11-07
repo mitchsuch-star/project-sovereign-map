@@ -41,37 +41,31 @@
     "7": [
       "Massena, attack Rome",
       "Soult, attack Lisbon",
-      "Soult, attack Paget",
       "Davout, attack Archduke Charles"
     ],
     "8": [
       "Massena, march to Rome",
       "Soult, attack Lisbon",
-      "Soult, attack Paget",
       "status"
     ],
     "9": [
       "Massena, attack Rome",
       "Soult, attack Lisbon",
-      "Soult, attack Paget",
-      "Soult, attack Wellesley"
+      "status"
     ],
     "10": [
       "Massena, march to Rome",
       "Soult, attack Lisbon",
-      "Soult, attack Wellesley",
-      "Soult, attack Paget"
+      "status"
     ],
     "11": [
       "Massena, attack Rome",
-      "Soult, attack Wellesley",
-      "Soult, attack Paget",
-      "Soult, attack Lisbon"
+      "Soult, attack Lisbon",
+      "status"
     ],
     "12": [
       "Massena, march to Rome",
-      "Soult, attack Wellesley",
-      "Soult, attack Paget",
+      "Soult, attack Lisbon",
       "status"
     ],
     "13": [
@@ -142,5 +136,6 @@
     "objection": "trust",
     "diplomacy": "accept"
   },
+  "_note_gr66": "GR-66 (T0-I, November 7, 2026): every blind attack-by-name in loops 7-12 is GONE — Paget lands at Lisbon at T3 and stays (he no longer marches inland to Aragon), so a named attack with the man out of sight fell to an attack_target clarification whose FIRST answer is the nearest visible foe, and the driver's answer REWROTE Soult's Lisbon march to a pursuit of Archduke Charles at loop 7 (GR-18's trace, SYSTEMS_REFERENCE §181.3) — and, once the march was freed, to a battle with Bernardim Freire at loop 9. The march now completes and loop 8's 'Soult, attack Lisbon' meets whatever Britain has ashore on Lisbon's field: on austerlitz and marengo that is Shrapnel (landed T7 after Spain took Paget at T6) and Britain sues at T8; on historical Spain destroys Paget outright at T7, Britain lands no second corps inside the arm, and a court that has never fought France cannot sue her (the GR-18 ruling) — the per-seed truth, recorded in SYSTEMS_REFERENCE §184.",
   "_note_variants": "Two arms. ACCEPT (--diplomacy accept): the A2 sue-path — the driver takes Britain's suit when it comes, which is the arc's end. DECLINE (--diplomacy decline): the SHUT OUT arm — France keeps the war with Britain (at peace the System closes nothing: `closure_against` counts the ports of courts AT WAR with Britain, vassals, members and conquered capitals) while Lisbon and Rome fall and Soult hunts the British corps in Portugal. Massena's march to Rome is re-issued because cannon fire at Munich pulls him to the guns."
 }

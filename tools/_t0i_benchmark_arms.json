@@ -1,0 +1,209 @@
+{
+ "_note": "T0-I (November 7, 2026) \u2014 the benchmark's own arms, measured on the re-staged scripts; written by tools/_t0i_benchmark_arms.py; pinned by tests/test_t0i_the_benchmarks_arms.py",
+ "drama": {
+  "ap_spent": 27,
+  "cmd_refused": 26,
+  "commands": 201,
+  "completed": true,
+  "defiance_pricing": [
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Ney",
+    "roll": 0.9126,
+    "trust": 65,
+    "turn": 1
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Lannes",
+    "roll": 0.3976,
+    "trust": 80,
+    "turn": 1
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Murat",
+    "roll": 0.75,
+    "trust": 65,
+    "turn": 2
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Ney",
+    "roll": 0.7129,
+    "trust": 52,
+    "turn": 2
+   },
+   {
+    "authority": 100,
+    "chance": 0.2202,
+    "concern": "STRONG",
+    "defies": false,
+    "marshal": "Bernadotte",
+    "roll": 0.5305,
+    "trust": 28,
+    "turn": 3
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Murat",
+    "roll": 0.6471,
+    "trust": 52,
+    "turn": 4
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Lannes",
+    "roll": 0.1749,
+    "trust": 67,
+    "turn": 5
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Ney",
+    "roll": 0.7508,
+    "trust": 37,
+    "turn": 6
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Lannes",
+    "roll": 0.9544,
+    "trust": 54,
+    "turn": 6
+   },
+   {
+    "authority": 100,
+    "chance": 0.0017,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Lannes",
+    "roll": 0.5847,
+    "trust": 41,
+    "turn": 8
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Ney",
+    "roll": 0.7024,
+    "trust": 22,
+    "turn": 10
+   },
+   {
+    "authority": 100,
+    "chance": 0.0,
+    "concern": "MODERATE",
+    "defies": false,
+    "marshal": "Murat",
+    "roll": 0.69,
+    "trust": 34,
+    "turn": 10
+   },
+   {
+    "authority": 100,
+    "chance": 0.0194,
+    "concern": "STRONG",
+    "defies": false,
+    "marshal": "Lannes",
+    "roll": 0.1938,
+    "trust": 26,
+    "turn": 10
+   }
+  ],
+  "defiances": 0,
+  "gold_spent": 23857,
+  "insists": 13,
+  "objection_popups": 13,
+  "redemptions": 2,
+  "refusal_rate_pct": 13,
+  "trust_first_turn": {
+   "Bernadotte": 40,
+   "Davout": 85,
+   "Lannes": 77,
+   "Murat": 75,
+   "Ney": 62
+  },
+  "trust_last_turn": {
+   "Bernadotte": null,
+   "Davout": 85,
+   "Lannes": 23,
+   "Murat": 31,
+   "Ney": null
+  }
+ },
+ "sea": {
+  "commission_turn": 8,
+  "completed": true,
+  "diversion_quotes": [
+   [
+    40,
+    65
+   ],
+   [
+    40,
+    65
+   ],
+   [
+    40,
+    65
+   ],
+   [
+    40,
+    65
+   ]
+  ],
+  "landing_quoted_turn": 10,
+  "landing_resolved": true,
+  "odds_are_readiness_minus_25": true,
+  "precondition_failed": false,
+  "resolved_throws": 6,
+  "yard_turn": 4
+ },
+ "shut": {
+  "austerlitz": {
+   "attack_target_rewrites": 0,
+   "britain_sues_turn": 8,
+   "completed": true,
+   "storm_turn": 8
+  },
+  "historical": {
+   "attack_target_rewrites": 0,
+   "britain_sues_turn": null,
+   "completed": true,
+   "storm_turn": 8
+  },
+  "marengo": {
+   "attack_target_rewrites": 0,
+   "britain_sues_turn": 8,
+   "completed": true,
+   "storm_turn": 8
+  }
+ }
+}

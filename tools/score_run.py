@@ -192,6 +192,33 @@ ARMS: dict[str, dict] = {
         "feeds": ["vassals"],
         "long": True,
     },
+    # GR-2 / GR-3 (T0-I, November 7, 2026): the DRAMA arm — the second
+    # commanded script, the one that PROVOKES and SPENDS (orders the 1805
+    # personalities dislike, pressed under --objection insist so the V2b
+    # defiance and compromise paths and the trust cost are ON the digest;
+    # the chest worked every other loop). commanded_full40 stays the
+    # stable open-loop control. No v1 checklist item reads this arm
+    # (v1 is frozen) — the NAV1 precedent.
+    "DRAMA": {
+        "argv": [
+            "--script",
+            f"{SCRIPTS}/commanded_provoke40.json",
+            "--turns",
+            "40",
+            "--objection",
+            "insist",
+            "--diplomacy",
+            "accept",
+            "--reward",
+            "pay",
+            "--redemption",
+            "dismiss",
+            "--seed",
+            "historical",
+        ],
+        "feeds": ["marshal_drama", "living_balance", "economy"],
+        "long": True,
+    },
     "FLD": {
         "argv": [
             "--script",

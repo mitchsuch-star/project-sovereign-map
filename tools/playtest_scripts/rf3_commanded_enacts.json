@@ -164,120 +164,140 @@
       "Massena, drill"
     ],
     "21": [
+      "enact the Staff",
       "Ney, fortify",
       "Davout, drill",
       "Lannes, fortify",
       "recruit 10000 infantry with Murat"
     ],
     "22": [
+      "enact the Staff",
       "status",
       "Soult, unfortify",
       "Murat, fortify",
       "Massena, unfortify"
     ],
     "23": [
+      "enact the Staff",
       "Ney, unfortify",
       "Davout, fortify",
       "Lannes, unfortify",
       "Soult, drill"
     ],
     "24": [
+      "enact the Staff",
       "status",
       "Murat, drill",
       "Massena, fortify",
       "recruit 10000 infantry with Soult"
     ],
     "25": [
+      "enact the Staff",
       "Ney, drill",
       "Davout, unfortify",
       "Lannes, drill",
       "Soult, fortify"
     ],
     "26": [
+      "enact the Staff",
       "status",
       "Murat, unfortify",
       "Massena, drill",
       "Ney, fortify"
     ],
     "27": [
+      "enact the Staff",
       "Davout, drill",
       "Lannes, fortify",
       "Soult, unfortify",
       "recruit 10000 infantry with Lannes"
     ],
     "28": [
+      "enact the Staff",
       "status",
       "Ney, unfortify",
       "Murat, fortify",
       "Massena, unfortify"
     ],
     "29": [
+      "enact the Staff",
       "Davout, fortify",
       "Lannes, unfortify",
       "Soult, drill",
       "Ney, drill"
     ],
     "30": [
+      "enact the Staff",
       "status",
       "Murat, drill",
       "Massena, fortify",
       "recruit 10000 infantry with Davout"
     ],
     "31": [
+      "enact the Staff",
       "Ney, fortify",
       "Davout, unfortify",
       "Lannes, drill",
       "Soult, fortify"
     ],
     "32": [
+      "enact the Staff",
       "status",
       "Murat, unfortify",
       "Massena, drill",
       "Ney, unfortify"
     ],
     "33": [
+      "enact the Staff",
       "Davout, drill",
       "Lannes, fortify",
       "Soult, unfortify",
       "recruit 10000 infantry with Murat"
     ],
     "34": [
+      "enact the Staff",
       "status",
       "Murat, fortify",
       "Massena, unfortify",
       "Ney, drill"
     ],
     "35": [
+      "enact the Staff",
       "Davout, fortify",
       "Lannes, unfortify",
       "Soult, drill",
       "Murat, drill"
     ],
     "36": [
+      "enact the Staff",
       "status",
       "Ney, fortify",
       "Massena, fortify",
       "recruit 10000 infantry with Soult"
     ],
     "37": [
+      "enact the Staff",
       "Davout, unfortify",
       "Lannes, drill",
       "Soult, fortify",
       "Murat, unfortify"
     ],
     "38": [
+      "enact the Staff",
       "status",
       "Ney, unfortify",
       "Massena, drill",
       "Lannes, fortify"
     ],
     "39": [
+      "enact the Staff",
       "Davout, drill",
       "Soult, unfortify",
       "Murat, fortify",
       "recruit 10000 infantry with Lannes"
     ],
     "40": [
+      "enact the Staff",
       "status",
       "Ney, drill",
       "Massena, fortify",
@@ -288,5 +308,5 @@
     "objection": "trust",
     "diplomacy": "accept"
   },
-  "_note_rf3": "SR-5r RF-3 balance arm: the commanded France ALSO uses its laws — the Staff at its first affordable turn, then the Anticipated Class (+25% infantry manpower) and the Code Abroad (two political acts, authority 100 -> 70, keeping the marshals' calm). Refused free when unaffordable or in force."
+  "_note_rf3": "SR-5r RF-3 balance arm: the commanded France ALSO uses its laws — the Staff at its first affordable turn, then the Anticipated Class (+25% infantry manpower) and the Code Abroad (two political acts, authority 100 -> 70, keeping the marshals' calm). Refused free when unaffordable or in force. T0-I LAW-5 (November 7, 2026): the Staff ask runs ALL FORTY loops — the commanded chest first crosses the Staff's bar around T25 on historical, past the old loop-20 last ask, so the law was never measured on this arm."
 }
