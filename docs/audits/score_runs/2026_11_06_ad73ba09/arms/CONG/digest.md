@@ -1,0 +1,300 @@
+# Playtest digest — CONG
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 24 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `ad73ba09665e` · content `e9a73e243b18` · driver `98b323710bf7`
+  - loaded save `retest_t24_summonable.json` → Loaded: retest_t24_summonable
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+
+## Turn 24 — Early September 1806
+- CMD `summon the congress` → ✓ The Emperor summons the powers of Europe to Paris. The Congress sits for 8 turns, to the end of turn 32. Britain REFUSES — at war with us (our war score -4 — it sues at …
+  - POPUP diplomatic_dialogue: Holland, client_petition #85 → grant the petition
+  - POPUP proposal_result: Oldenburg is ceded to Holland. Loyalty +0 (100 → 100, already full); bond 33 → 40 (+2 a turn). Cost: 1 DP. Our net is unchanged — 100g of income forfeited, 25g of occupation relieved, 75g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+  - POPUP diplomatic_dialogue: KingdomOfItaly, client_petition #86 → grant the petition
+  - POPUP proposal_result: The Kingdom of Italy's tribute is remitted for 8 collections (5096g forgone). Loyalty +2 (98 → 100); bond 13 → 33 (+1 a turn). Cost: 1 DP. → display-only
+- CMD `end turn` → ✓ Turn 24 ended. (Warning: 5 actions unused) Turn 25 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 5 other courts stirred, but their formations remain beyond our sight.
+- ENVOYS WAITING 1 · The Secretariat moment letter
+- LEDGER treasury 27260 · net -1285 · threat 57 · provinces 35 · ceiling 17808 · army 123933 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3748 · trade 499 · admin 50 · tribute 562 · upkeep 1132 · charges 3435 · occupation 353 · blockade 312 · admiralty 92 · rentes 270 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈24 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS SITS — turn 1 of 8 · 47 titled, 45 needed · Britain REFUSES (at war) · Russia REFUSES (relations) · Austria REFUSES (relations) · Prussia REFUSES
+- DISPATCH: Sire — THE EMPEROR SUMMONS THE POWERS TO PARIS. The Congress sits 8 turns, to the end of turn 32; every great power must sign, be shut out, or be gone. Vienna, London, Berlin and St Petersburg refuse…
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL diplomatic_ai_proposal: An envoy from the Kingdom of Italy has arrived with a petition.
+  - RAIL allegiance_settled: The bidding for Sardinia is closed: she signs a defensive alliance with Prussia.
+  - TURN EVENTS 3
+- COURTS: The court of Russia hardens over Arbiter of Europe — prepared now to go as far as war.
+- DIPLO +5 medium/low (diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_coalition_brewing, diplomatic_ai_ai_treaty, law_lapsed_abroad)
+  - LOG coalition_brewing_started: Coalition brewing — Russia, Austria, the Ottoman Empire, Sweden, Naples, Portugal, the Papal States and Sardinia alarmed (threat: 57)
+  - LOG diplomatic_ai_ai_treaty: Sardinia and Prussia sign a Defensive Alliance
+  - LOG moment: The Remounts — an affair of state is laid before the Emperor
+  - LOG sponsorship_granted: Britain sponsors Russia against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Prussia lapses
+  - LOG moment: Russia decrees the Camps of Instruction for 8 turns (2,000 gold)
+  - LOG moment: Prussia decrees the Camps of Instruction for 8 turns (2,000 gold)
+  - LOG moment: The Ottoman Empire decrees the Camps of Instruction for 8 turns (2,000 gold)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG sponsorship_expired: The compact between Britain and Prussia lapses
+  - LOG ai_ai_proposal_refused: KingdomOfItaly rebuffs Russia (defensive alliance)
+  - LOG ai_ai_proposal_refused: 13 courts rebuff Austria (open borders agreement)
+  - LOG sponsorship_granted: Russia sponsors Sardinia against France (300g/turn)
+  - LOG ai_ai_proposal_refused: 4 courts rebuff Russia (defensive alliance)
+  - LOG sponsorship_granted: Russia sponsors Sweden against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Sardinia lapses
+  - LOG coalition_member_left: The Ottoman Empire has left the coalition.
+  - LOG coalition_member_left: Sweden has left the coalition.
+  - LOG coalition_member_left: Naples has left the coalition.
+  - LOG coalition_member_left: Portugal has left the coalition.
+  - LOG coalition_member_left: The Papal States has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 97 to 48.
+  - LOG sponsorship_granted: Russia sponsors Britain against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Sweden lapses
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+  - LOG design_bought_off: France buys off Prussia's design — the want sleeps
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG ai_ai_proposal_refused: KingdomOfItaly rebuffs Russia (defensive alliance)
+  - LOG sponsorship_granted: Russia sponsors Prussia against France (200g/turn)
+  - LOG sponsorship_granted: Britain sponsors Russia against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Austria lapses
+  - LOG design_promoted: REVANCHE: Portugal swears to retake Beira and 1 more — Spain is not forgiven
+  - LOG diplomatic_treaty_broken: Austria has broken the Peace Treaty with France by declaring war.
+  - LOG defensive_cascade: Defensive cascade: Prussia joins war via France
+  - LOG defensive_cascade: Defensive cascade: Spain joins war via France
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Austria (cascade).
+  - LOG defensive_cascade: Defensive cascade: Bavaria joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG balance_of_europe_shifted: French System leads the current largest alignment at 51% of active European bloc power. Prussia is the decisive non-France slice of the bloc; letting…
+  - LOG coalition_declared: The Fourth Austrian Coalition — Coalition formed against France! Members: Austria, Hanover, Naples, the Ottoman Empire, the Papal States, Portugal, S…
+  - LOG sponsorship_granted: Britain sponsors Prussia against France (300g/turn)
+  - LOG ai_ai_proposal_refused: 4 courts rebuff Hanover (non-aggression pact)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Oldenburg and 4 more — France is not forgiven
+  - LOG coalition_member_left: Hanover has left the coalition.
+  - LOG nation_eliminated: Hanover has been eliminated from the war.
+  - LOG coalition_member_left: Saxony has left the coalition.
+  - LOG nation_eliminated: Saxony has been eliminated from the war.
+
+## Turn 25 — Late September 1806
+  - MAILBOX #24 The Secretariat incoming_proposal: The Secretariat — An Affair of State → activated
+  - POPUP diplomatic_dialogue: moment_letter #87 → reject_ai_proposal
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 25 ended. (Warning: 5 actions unused) Turn 26 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 5 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 26070 · net -1105 · threat 57 · provinces 35 (+0) · ceiling 18127 · army 123933 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3813 · trade 499 · admin 50 · tribute 562 · upkeep 1132 · charges 3350 · occupation 323 · blockade 312 · admiralty 92 · rentes 270 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈23 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS SITS — turn 2 of 8 · 47 titled, 45 needed · Britain REFUSES (at war) · Russia REFUSES (relations) · Austria REFUSES (relations) · Prussia REFUSES
+- DISPATCH: Sire — London now pays Sweden 400 gold a turn against us. She would march in the next league — the price to keep her out: Talleyrand brings her to −10 in 8 turns (8 DP); buying off her design costs 1…
+  - TURN EVENTS 4
+- DIPLO +2 medium/low (diplomatic_dp_regen, diplomatic_mission_progress)
+  - LOG moment: The Remounts — the Emperor answers: Let the depots wait
+
+## Turn 26 — Early October 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 26 ended. (Warning: 5 actions unused) Turn 27 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 5 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 24977 · net -1014 · threat 57 · provinces 35 (+0) · ceiling 17849 · army 123933 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3825 · trade 499 · admin 50 · tribute 562 · upkeep 1132 · charges 3271 · occupation 323 · blockade 312 · admiralty 92 · rentes 270 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈22 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS SITS — turn 3 of 8 · 47 titled, 45 needed · Britain REFUSES (at war) · Russia REFUSES (relations) · Austria REFUSES (relations) · Prussia REFUSES
+- DISPATCH: Sire — the levy has stood open 16 turns. 382 gold puts 10,000 foot in the line at Paris under Napoleon — 'recruit infantry in Paris'; the conscripts do not improve with keeping.
+  - TURN EVENTS 2
+- DIPLO +2 medium/low (diplomatic_dp_regen, diplomatic_mission_progress)
+  - LOG sponsorship_expired: The compact between Russia and Britain lapses
+
+## Turn 27 — Late October 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 27 ended. (Warning: 5 actions unused) Turn 28 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 8 other courts stirred, but their formations remain beyond our sight.
+- LEDGER treasury 23975 · net -705 · threat 57 · provinces 35 (+0) · ceiling 19129 · army 123933 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3837 · trade 499 · admin 50 · tribute 787 · upkeep 1132 · charges 3199 · occupation 323 · blockade 312 · admiralty 92 · rentes 270 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈21 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS SITS — turn 4 of 8 · 47 titled, 45 needed · Britain REFUSES (at war) · Russia REFUSES (at war) · Prussia REFUSES · Austria SUES (beaten)
+- DISPATCH: Sire — St Petersburg answers the Congress with cannon.
+  - RAIL diplomatic_alliance_cascade: Prussia, Spain and Bavaria enter the war against Russia, Austria, Ottoman Empire, Sweden, Naples, Portugal, Papal States and Sardinia via their allia…
+  - RAIL diplomatic_war_declared: Russia has declared war on France, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Austria has declared war on France, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Ottoman has declared war on France, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Sweden has declared war on France, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL diplomatic_war_declared: Naples has declared war on France, shattering the Peace Treaty, with 3 allied courts poised to follow.
+  - RAIL +6 more
+  - TURN EVENTS 1
+- COURTS: The court of Sweden hardens over Scourge of the Usurper — prepared now to go as far as war.
+- DIPLO +34 medium/low (diplomatic_dp_regen, diplomatic_mission_progress, witness_strike_recorded ×8, diplomatic_treaty_broken ×15, agenda_shift, diplomatic_relation_shift ×8)
+  - LOG diplomatic_treaty_broken: Russia has broken the Peace Treaty with France by declaring war.
+  - LOG defensive_cascade: Defensive cascade: Prussia joins war via France
+  - LOG defensive_cascade: Defensive cascade: Spain joins war via France
+  - LOG defensive_cascade: Defensive cascade: Bavaria joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG diplomatic_treaty_broken: Austria has broken the Peace Treaty with France by declaring war.
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with Austria (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Austria (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with Ottoman (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Ottoman (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with Sweden (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Sweden (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with Naples (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Naples (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with Portugal (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Portugal (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Peace Treaty with PapalStates (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with PapalStates (cascade).
+  - LOG diplomatic_treaty_broken: Prussia was forced to break the Defensive Alliance with Sardinia (cascade).
+  - LOG diplomatic_treaty_broken: Bavaria was forced to break the Peace Treaty with Sardinia (cascade).
+  - LOG coalition_declared: The Fifth Russian Coalition — Coalition formed against France! Members: Austria, Britain, Naples, the Ottoman Empire, the Papal States, Portugal, Rus…
+  - LOG third_party_peace: THE CONGRESS: Portugal and Spain make peace without France
+  - LOG sponsorship_expired: The compact between Russia and Sweden lapses
+  - LOG design_promoted: REVANCHE: Portugal swears again to retake Lisbon — Spain is not forgiven
+  - LOG moment: Britain decrees the Remounts for 8 turns (1,500 gold)
+
+## Turn 28 — Early November 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 28 ended. (Warning: 5 actions unused) Turn 29 begins!
+- enemy phase: 15 actions, 9 attacks — Britain, Spain, the Ottoman Empire and 4 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden attacks Ney · Kutuzov attacks Ney · Buxhowden attacks Massena · Archduke Charles attacks Carniola
+  - 🏴 Russia: Buxhowden attacks Ney — Moravia CAPTURED! (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Carniola — Carniola CAPTURED! (was France) (secured)
+  - ⚔ Buxhowden (lost 1884, own corps) vs Ney (lost 2098, own corps) — The toll on Ney's forces is heavy, Sire. This defeat will be felt. — Slow to concentrate's orders reached Bennigsen too late.
+  - ⚔ Kutuzov (lost 221) vs Ney (lost 3189) — Ney's army has been badly mauled. Kutuzov proved the stronger force today.
+  - ⚔ Buxhowden (lost 674) vs Massena (lost 7306) — Massena's army has been badly mauled. Buxhowden proved the stronger force today.
+  - ⚔ Archduke Charles (lost 1332) vs Davout (lost 2683, own corps) — Even the favorable ground could not save Davout, Sire. Archduke Charles overcame the terrain.
+  - ⚔ Archduke Charles (lost 139) vs Murat (lost 3396) — A grievous defeat for Murat, Sire. The losses are severe.
+  - ⚔ Brunswick (lost 1981) vs Archduke John (lost 3080) — Archduke John held superior ground, yet Brunswick prevailed. A grim day, Sire. — Frederick's Drill +10% (Brunswick)
+  - ⚔ Brunswick (lost 1614) vs Archduke John (lost 2410) — Neither Archduke John nor Brunswick could claim the field. The armies remain locked. — Frederick's Drill +10% (Brunswick)
+  - ⚔ Deroy (lost 1074) vs Archduke John (lost 2193) — Even the favorable ground could not save Archduke John, Sire. Deroy overcame the terrain.
+  - ⚔ Deroy (lost 671) vs Archduke John (lost 2038) — The hills were ours, but Deroy took them. Archduke John's position was overrun.
+  - verbs: attack×9, unfortify×2, retreat×1, stance_change×1, move×1, recruit×1
+- ORDER Murat [awaiting_response]: Murat is cornered at Bohemia with 2,433 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the las…
+- ORDER Ney [awaiting_response]: Ney is cornered at Dresden with 3,375 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last:…
+  - POPUP strategic_interrupt: Murat, last_stand, Murat is cornered at Bohemia with 2,433 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: one final defense at +25% that bleeds the enemy and halts his pursuit — then the survivors are taken, certainly. Attempt a breakout: 50% he cuts his way out, 50% he is taken. → fight_to_the_last
+  - POPUP strategic_interrupt: Ney, last_stand, Ney is cornered at Dresden with 3,375 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: one final defense at +25% that bleeds the enemy and halts his pursuit — then the survivors are taken, certainly. Attempt a breakout: 50% he cuts his way out, 50% he is taken. → fight_to_the_last
+- ENVOYS WAITING 1 · Austria peace
+- LEDGER treasury 21781 · net -734 · threat 72 · provinces 33 (-2) · ceiling 17469 · army 93999 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3471 · trade 499 · admin 50 · tribute 787 · upkeep 908 · charges 3370 · occupation 249 · blockade 312 · admiralty 92 · rentes 60 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈20 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled province fell (Moravia, Carniola taken); it may be summoned again on turn 38 (9 turns remain) · 45 of 45 titled
+- DISPATCH: Sire — Marshal Davout has been KILLED at Bohemia — struck down at the head of his corps. 9,906 men pass to Massena. He will not return to the order of battle.
+  - EXPECTS: Ney's victories raise his expectation — he now looks for 40g/turn (holds 0g).
+  - EXPECTS: Soult's victories raise his expectation — he now looks for 40g/turn (holds 0g).
+  - EXPECTS: Lannes's victories raise his expectation — he now looks for 40g/turn (holds 0g).
+  - EXPECTS: Murat's victories raise his expectation — he now looks for 80g/turn (holds 40g).
+  - EXPECTS: Bernadotte's victories raise his expectation — he now looks for 40g/turn (holds 0g).
+  - EXPECTS: Massena's victories raise his expectation — he now looks for 80g/turn (holds 40g).
+  - EXPECTS: Marmont's victories raise his expectation — he now looks for 40g/turn (holds 0g).
+  - UNMET: Massena expects 80g/turn, holds 40g (incl. 40g rente) — loyalty eroding
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - TURN EVENTS 3
+- DIPLO +8 medium/low (diplomatic_we_threshold, enemy_marshal_commissioned, diplomatic_dp_regen, diplomatic_mission_progress, diplomatic_vassal_contingent ×3, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_granted: Russia sponsors Sweden against France (300g/turn)
+  - LOG sponsorship_expired: The compact between Russia and Sardinia lapses
+
+## Turn 29 — Late November 1806
+  - MAILBOX #25 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Austria, peace #88 → accept_ai_proposal
+  - POPUP proposal_result: You have accepted Austria's proposal. Treaty signed: At War → Peace with Austria. → display-only
+  - RATIFIED Austria · PEACE · white_peace
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 29 ended. (Warning: 5 actions unused) Turn 30 begins!
+- enemy phase: 12 actions, 5 attacks — Britain, Spain, the Ottoman Empire and 4 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden attacks Yorck · Kutuzov attacks Vienna · Bennigsen attacks Silesia · Buxhowden attacks Dresden
+  - 🏴 Russia: Bennigsen attacks Silesia — The last 24 of the garrison of Silesia give way. · Region captured: Silesia (was Prussia) (secured)
+  - ⚔ Buxhowden (lost 654) vs Yorck (lost 2356) — Where was Hohenlohe? Yorck held the field alone — reinforcement never came. — the Prussian line broke: Brittle deepened the rout (−60 morale, not −40)
+  - ⚔ Wrede (lost 2531) vs Bennigsen (lost 1555) — The engagement proceeded as one might expect, Sire.
+  - verbs: attack×5, move×4, unfortify×1, wait×1, fortify×1
+- ENVOYS WAITING 1 · The Secretariat moment letter
+- LEDGER treasury 19849 · net -814 · threat 74 · provinces 33 (+0) · ceiling 15346 · army 98999 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3378 · trade 499 · admin 50 · tribute 787 · upkeep 948 · charges 3227 · occupation 279 · blockade 312 · admiralty 92 · rentes 120 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈19 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled province fell (Moravia, Carniola taken); it may be summoned again on turn 38 (8 turns remain) · 45 of 45 titled
+- DISPATCH: Sire — Marshal Murat has been taken. Austria holds him prisoner.
+  - RAIL peace_ratified: Peace ratified between Austria and France.
+  - TURN EVENTS 3
+- DIPLO +7 medium/low (diplomatic_treaty_signed, province_changed_hands ×2, diplomatic_we_threshold, diplomatic_dp_regen, diplomatic_mission_progress, paymaster_subsidy)
+  - LOG moment: The Squadron for Santo Domingo — an affair of state is laid before the Emperor
+  - LOG coalition_member_left: Austria has left the coalition.
+
+## Turn 30 — Early December 1806
+  - MAILBOX #26 The Secretariat incoming_proposal: The Secretariat — An Affair of State → activated
+  - POPUP diplomatic_dialogue: moment_letter #89 → reject_ai_proposal
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 30 ended. (Warning: 5 actions unused) Turn 31 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Austria, Prussia and 7 other courts stirred as well, but their formations remain beyond our sight. — Kutuzov attacks Vienna
+  - verbs: attack×1
+- LEDGER treasury 18652 · net -734 · threat 76 · provinces 33 (+0) · ceiling 14734 · army 98999 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3354 · trade 499 · admin 50 · tribute 787 · upkeep 948 · charges 3123 · occupation 279 · blockade 312 · admiralty 92 · rentes 120 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈18 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled province fell (Moravia, Carniola taken); it may be summoned again on turn 38 (7 turns remain) · 45 of 45 titled
+- DISPATCH: Sire — Vienna holds. Kutuzov left 4,262 men before the works; 7,250 of ours are still under arms.
+  - RAIL design_promoted: REVANCHE: Ottoman Empire will not forgive Prussia the loss of Albania and 1 more province. A new design hardens in their court.
+  - RAIL design_promoted: REVANCHE: Prussia will not forgive Russia the loss of Posen and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 3
+- DIPLO +12 medium/low (diplomatic_we_threshold, province_changed_hands ×6, diplomatic_dp_regen, diplomatic_mission_progress, paymaster_subsidy, agenda_shift ×2)
+  - LOG instrument_lapsed: The bargain between France and Prussia is served in full — the design wakes
+  - LOG moment: The Squadron for Santo Domingo — the Emperor answers: Ferrand must hold alone
+
+## Turn 31 — Late December 1806
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 31 ended. (Warning: 5 actions unused) Turn 32 begins!
+- enemy phase: 4 actions, 2 attacks — Britain, Austria, Spain and 6 other courts stirred as well, but their formations remain beyond our sight. — Kutuzov attacks Vienna · Buxhowden attacks Hungary
+  - 🏴 Russia: Kutuzov attacks Vienna — The garrison of Vienna is destroyed. · Region captured: Vienna (was France) (secured)
+  - 🏴 Russia: Buxhowden attacks Hungary — The garrison of Hungary is destroyed. · Region captured: Hungary (was Bavaria) (secured)
+  - verbs: attack×2, unfortify×1, move×1
+- ENVOYS WAITING 1 · Holland client petition
+- LEDGER treasury 17052 · net -479 · threat 76 · provinces 32 (-1) · ceiling 14921 · army 98999 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3166 · trade 499 · admin 50 · tribute 1421 · upkeep 948 · charges 3389 · occupation 204 · blockade 312 · admiralty 92 · rentes 120 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈17 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled province fell (Moravia, Carniola taken); it may be summoned again on turn 38 (6 turns remain) · 44 of 45 titled
+- DISPATCH: Sire — Vienna has been taken by Russia.
+  - UNMET: Soult expects 40g/turn, holds 0g — patience holds 2 more turns
+  - UNMET: Lannes expects 40g/turn, holds 0g — patience holds 2 more turns
+  - UNMET: Murat expects 80g/turn, holds 40g (incl. 40g rente) — patience holds 2 more turns
+  - UNMET: Bernadotte expects 40g/turn, holds 0g — patience holds 2 more turns
+  - UNMET: Massena expects 80g/turn, holds 40g (incl. 40g rente) — patience holds 2 more turns
+  - UNMET: Marmont expects 40g/turn, holds 0g — patience holds 2 more turns
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 2
+- DIPLO +6 medium/low (province_changed_hands ×2, diplomatic_dp_regen, diplomatic_mission_progress, paymaster_subsidy, hegemony_relaxation_aside)
+  - LOG design_promoted: REVANCHE: Ottoman Empire swears to retake Albania and 1 more — Prussia is not forgiven
+  - LOG design_promoted: REVANCHE: Prussia swears to retake Posen and 1 more — Russia is not forgiven
+
+## Turn 32 — Early January 1807
+  - MAILBOX #27 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Holland, client_petition #90 → grant the petition
+  - POPUP proposal_result: East Frisia is ceded to Holland. Loyalty +0 (100 → 100, already full); bond 40 → 40 (+2 a turn). Cost: 1 DP. Our net is unchanged — 50g of income forfeited, 12g of occupation relieved, 38g returned as tribute at today's 75% rate, the force limit falls 2,500 at no cost today. → display-only
+- CMD `status` → ✓ === BERTHIER'S INTELLIGENCE REPORT ===
+- CMD `end turn` → ✓ Turn 32 ended. (Warning: 5 actions unused) Turn 33 begins!
+- enemy phase: 12 actions, 5 attacks — Britain, Austria, Spain and 4 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden attacks Massena · Kutuzov attacks Yorck · Hohenlohe attacks Silesia · Hohenlohe attacks Posen
+  - 🏴 Russia: Bennigsen moves to Silesia — Silesia falls (was Prussia) and is secured
+  - 🏴 Russia: Buxhowden attacks Massena — Bohemia CAPTURED! (was Kingdom of Italy) (secured)
+  - 🏴 Prussia: Hohenlohe attacks Silesia — Region captured: Silesia (was Russia) (secured)
+  - 🏴 Prussia: Hohenlohe attacks Posen — Region captured: Posen (was Russia) (secured)
+  - ⚔ Buxhowden (lost 802, own corps) vs Massena (lost 6954) — A grievous defeat for Massena, Sire. The losses are severe.
+  - ⚔ Kutuzov (lost 1056) vs Yorck (lost 2638) — Yorck was driven from the field. His men are scattered. — the Prussian line broke: Brittle deepened the rout (−24 morale, not −16)
+  - ⚔ Hohenlohe (lost 2640) vs Armfelt (lost 1819) — An inconclusive affair. Both sides bloodied but unbroken. — Frederick's Drill +10% (Hohenlohe)
+  - verbs: attack×5, move×3, recruit×2, fortify×1, wait×1
+- LEDGER treasury 15268 · net -1075 · threat 76 · provinces 31 (-1) · ceiling 11486 · army 91713 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 100
+  - NET income 3112 · trade 499 · admin 50 · tribute 1312 · upkeep 892 · charges 3773 · contributions 117 · occupation 192 · blockade 312 · admiralty 92 · rentes 120 · laws 550
+- MISSION Reassuring Ally — Spain · net +3 a turn · ≈16 turns to +100 at the present rate · beat running
+- CONGRESS THE CONGRESS OF PARIS — dissolved on turn 28 — a titled province fell (Moravia, Carniola taken); it may be summoned again on turn 38 (5 turns remain) · 43 of 45 titled
+- DISPATCH: Sire — Massena's corps has been broken at Bohemia. He must reform before he fights again.
+  - UNMET: Soult expects 40g/turn, holds 0g — patience holds 1 more turn
+  - UNMET: Lannes expects 40g/turn, holds 0g — patience holds 1 more turn
+  - UNMET: Murat expects 80g/turn, holds 40g (incl. 40g rente) — patience holds 1 more turn
+  - UNMET: Bernadotte expects 40g/turn, holds 0g — patience holds 1 more turn
+  - UNMET: Massena expects 80g/turn, holds 40g (incl. 40g rente) — patience holds 1 more turn
+  - UNMET: Marmont expects 40g/turn, holds 0g — patience holds 1 more turn
+  - TURN EVENTS 4
+- DIPLO +7 medium/low (province_changed_hands ×4, diplomatic_dp_regen, diplomatic_mission_progress, paymaster_subsidy)
+  - LOG diplomatic_treaty_broken: Sweden has broken the Peace Treaty with France by declaring war.
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (400g/turn)
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG ai_ai_proposal_refused: 5 approaches from Britain and Russia are rebuffed (defensive alliance)
+
+---
+finished: **completed** · commands 19 · popups 13 · battles 14

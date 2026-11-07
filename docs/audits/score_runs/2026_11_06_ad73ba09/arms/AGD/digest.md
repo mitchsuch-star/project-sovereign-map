@@ -1,0 +1,152 @@
+# Playtest digest — AGD
+
+seed `historical` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "accept", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first", "decline_from": "Prussia"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 7 · campaign seed `historical` · dice `historical`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `ad73ba09665e` · content `e9a73e243b18` · driver `98b323710bf7`
+  - loaded save `fixture_agd_tilsit.json` → Loaded: fixture_agd_tilsit
+
+## Turn 7 — Late December 1805
+- CMD `Davout, move to Posen` → ✓ Davout moves from Silesia to Posen. Posen falls to France! (was Prussia) (572 lost to march)
+  - POPUP capture_choice[capture]: Posen, Davout → secure
+  - saved `AGD_t1` → Game saved: AGD_t1
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 3 actions unused) Turn 8 begins!
+- enemy phase: 6 actions, 2 attacks — Russia, Austria, the Ottoman Empire and 3 other courts stirred as well, but their formations remain beyond our sight. — Castanos attacks Leon · Castanos attacks Paget
+  - 🏴 Spain: Castanos attacks Paget — Leon CAPTURED! (was Britain) (secured)
+  - ⚔ Castanos (lost 602) vs Paget (lost 1111) — An aggressive stance invites disaster when one is not the attacker, Sire. Paget paid the price. — The Line Holds +15% (Paget)
+  - ⚔ Castanos (lost 282) vs Paget (lost 1237) — Paget's aggressive posture left the troops exposed when Castanos's attack came. — The Line Holds +15% (Paget)
+  - verbs: move×2, attack×2, break_square×1, wait×1
+- ENVOYS WAITING 3 · PapalStates open borders · Prussia settlement offer · The Secretariat moment letter
+- LEDGER treasury 20376 · net -2005 · threat 67 · provinces 31 · ceiling 8953 · army 187976 · vassals Holland 100 · Kingdom of Italy 100 · Switzerland 81
+  - NET income 3127 · trade 350 · admin 50 · tribute 937 · upkeep 2734 · charges 3226 · occupation 200 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Posen has fallen to our arms. The tricolor flies over it this morning.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - RAIL settlement_offer_arrival: Prussia has offered terms to settle the War for Posen — Prussia. Offering 2280 gold.
+  - TURN EVENTS 2
+- DIPLO +5 medium/low (enemy_marshal_commissioned, law_enacted_abroad, province_changed_hands, diplomatic_dp_regen, diplomatic_ai_ai_treaty)
+  - LOG sponsorship_granted: Russia sponsors Austria against France (200g/turn)
+  - LOG diplomatic_ai_ai_treaty: Russia and Sweden sign a Defensive Alliance
+  - LOG moment: The Bavarian Match — a letter of the record is laid before the Emperor
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG diplomatic_ai_ai_treaty: Russia and Naples sign a Non-Aggression Pact
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG moment: Britain decrees the Remounts for 8 turns (1,500 gold)
+  - LOG moment: Russia decrees the Camps of Instruction for 8 turns (4 authority)
+  - LOG moment: Austria decrees the Remounts for 8 turns (3 authority)
+  - LOG moment: The Ottoman Empire decrees the Remounts for 8 turns (1,500 gold)
+  - LOG coalition_brewing_started: Coalition brewing — the Ottoman Empire, Sweden, Naples, Portugal, Saxony, Hanover, the Papal States and Sardinia alarmed (threat: 65)
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 8 courts rebuff Austria (defensive alliance)
+  - LOG ai_proposal_rejected: We rejected Denmark's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's open borders agreement proposal
+  - LOG ai_ai_proposal_refused: Sweden and Bavaria rebuff Austria (open borders agreement)
+  - LOG ai_ai_proposal_refused: Sweden and Denmark rebuff Russia (defensive alliance)
+  - LOG ai_ai_proposal_refused: Spain and Denmark rebuff Austria (open borders agreement)
+  - LOG sponsorship_granted: Britain sponsors Austria against France (200g/turn)
+  - LOG ai_ai_proposal_refused: 15 approaches from Britain, Russia and Austria are rebuffed (defensive alliance)
+  - LOG ai_ai_proposal_refused: 30 approaches rebuffed, chiefly from Bavaria and Spain (open borders agreement)
+  - LOG ai_ai_proposal_refused: Sweden rebuffs Russia (design ask)
+  - LOG diplomatic_ai_ai_treaty: Naples and Russia sign an Open Borders Agreement
+  - LOG design_promoted: REVANCHE: Prussia swears to retake Silesia and 1 more — France is not forgiven
+  - LOG ai_proposal_rejected: We rejected Denmark's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's open borders agreement proposal
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG coalition_member_left: Russia has left the coalition.
+  - LOG coalition_member_left: Austria has left the coalition.
+  - LOG coalition_dissolved: Coalition against France has dissolved — the league is spent; Europe's alarm falls from 90 to 65; Britain and Prussia remain at war with us.
+
+## Turn 8 — Early January 1806
+  - LETTER PapalStates: Open Borders Agreement → accept
+  - MAILBOX #10 Prussia incoming_settlement_offer: Prussia — Settlement Offer → activated
+  - MAILBOX #11 The Secretariat incoming_proposal: The Secretariat — A Moment of History → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #11 → reject_settlement_offer
+  -     ↳ refused: Sire, another matter has arrived since — this concerns another court. Your earlier answer was not delivered; …
+  - POPUP diplomatic_dialogue: incoming_proposal #12 → reject_ai_proposal
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #11 → reject_settlement_offer
+  - POPUP diplomatic_dialogue: moment_letter #12 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `propose common peace with Prussia` → ✓ Sire, a white peace for the War for Posen — the table with Prussia cannot be sealed as it stands: their crown is asked to sign away too much of its own. Author terms or …
+  - POPUP diplomatic_dialogue: settlement_confirm #13 → (held for the script's own clicks)
+  - TERMS (settlement_confirm PROPOSE): peace
+- CMD `@settlement_demand_add {"nation": "Prussia", "group": "demand", "clause_type": "create_client", "tag": "DuchyOfWarsaw"}` → ✓ Demanded the erection of Duchy of Warsaw.
+  - POPUP diplomatic_dialogue: settlement_confirm #14 → (held for the script's own clicks)
+  - TERMS (settlement_confirm PROPOSE): peace, Duchy of Warsaw from Prussia (Posen)
+- CMD `@settlement_demand_add {"nation": "Prussia", "group": "offer", "clause_type": "gold_indemnity", "amount": 6000}` → ✓ Offered 1000 gold from France. Gold past 1,000 buys nothing more from Prussia at this table, Sire — set to 1,000.
+  - POPUP diplomatic_dialogue: settlement_confirm #15 → (held for the script's own clicks)
+  - TERMS (settlement_confirm PROPOSE): peace, Duchy of Warsaw from Prussia (Posen), gold_indemnity
+- CMD `@submit_settlement_for_review` → ✓ Sire, the settlement of the War for Posen — the table with Prussia stands ready for ratification. Acceptance reads as Will sign; what weighs heaviest: no single dominant…
+  - POPUP diplomatic_dialogue: settlement_confirm #16 → (held for the script's own clicks)
+  - TERMS (settlement_confirm REVIEW): peace, Duchy of Warsaw from Prussia (Posen), gold_indemnity
+- CMD `@confirm_settlement` → ✓ Settlement Ratified: the War for Posen — the table with Prussia (4 pairs resolved). Status quo: Berlin and Silesia stay ours by the treaty — titled. Revanche lapses: Pru…
+  - POPUP nation_proclamation: DuchyOfWarsaw → display-only
+  - POPUP proposal_result: Settlement Ratified, Settlement Ratified: the War for Posen — the table with Prussia (4 pairs resolved). Status quo: Berlin and Silesia stay ours by the treaty — titled. Revanche lapses: Prussia's cession of Posen reconciles her Revanche while the treaty holds. Recognition: Prussia will recognize the order at the Congress — Berlin stays ours by this treaty. → display-only
+  - saved `AGD_t2` → Game saved: AGD_t2
+- CMD `end turn` → ✓ Turn 8 ended. (Warning: 4 actions unused) Turn 9 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Austria and 4 other courts stirred as well, but their formations remain beyond our sight. — Castanos attacks Paget
+  - ⚔ Castanos (lost 58) vs Paget (lost 464) — Paget's corps broke, Sire. They are streaming back from the field. And Paget was taken on that field — Spain holds him. — The Line Holds +15% (Paget)
+  - verbs: attack×1, fortify×1, wait×1
+- ENVOYS WAITING 2 · Britain settlement offer · Holland client petition
+- LEDGER treasury 18310 · net -1091 · threat 66 · provinces 30 (-1) · ceiling 10971 · army 187976 · vassals Duchy of Warsaw 62 · Holland 99 · Kingdom of Italy 99 · Switzerland 77
+  - NET income 3090 · trade 350 · admin 50 · tribute 1021 · upkeep 2742 · charges 2426 · occupation 125 · blockade 219 · admiralty 90
+- DISPATCH: Sire — peace with Prussia is signed. The war is over. 1 corps stands on the wrong side of the new frontier. Berthier has given them the road home — Davout to Berlin. They have safe passage for 5 turn…
+  - RAIL nation_created: By the fortune of arms and the pen at the table — Duchy of Warsaw is erected upon the map, a client of France.
+  - RAIL settlement_summary: Settlement of the War for Posen — the table with Prussia: Client state erected: France erects Duchy of Warsaw (Posen) out of Prussia.
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 5,000 men ashore at Lisbon.
+  - RAIL settlement_offer_arrival: Britain has offered terms to settle the War with Britain.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - RAIL diplomatic_alliance_cascade: Spain and Bavaria enter the war against Russia, Austria, Ottoman Empire, Sweden, Naples, Portugal, Saxony, Hanover, Papal States and Sardinia via the…
+  - RAIL +11 more
+  - TURN EVENTS 3
+- DIPLO +17 medium/low (diplomatic_treaty_signed, status_quo_titled, enemy_marshal_commissioned, diplomatic_dp_regen, diplomatic_vassal_contingent ×2, witness_strike_recorded, diplomatic_relation_shift ×10)
+  - LOG defensive_cascade: Defensive cascade: Spain joins war via France
+  - LOG defensive_cascade: Defensive cascade: Bavaria joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Kingdom of Italy joined France's war.
+  - LOG vassal_auto_join_war: Vassal Switzerland joined France's war.
+  - LOG vassal_auto_join_war: Vassal Duchy of Warsaw joined France's war.
+  - LOG coalition_declared: The Fourth Austrian Coalition — Coalition formed against France! Members: Austria, Britain, Hanover, Naples, the Ottoman Empire, the Papal States, Po…
+  - LOG sponsorship_granted: Russia sponsors Sweden against France (300g/turn)
+  - LOG moment: The Bavarian Match — the Emperor answers: Let Baden keep her
+  - LOG ai_ai_proposal_refused: 27 approaches rebuffed, chiefly from Bavaria and Spain (open borders agreement)
+  - LOG ai_ai_proposal_refused: 14 approaches from Russia and Austria are rebuffed (defensive alliance)
+
+## Turn 9 — Late January 1806
+  - MAILBOX #12 Britain incoming_settlement_offer: Britain — Settlement Offer → activated
+  - MAILBOX #13 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #17 → accept_settlement_offer
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Holland. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #18 → grant the petition
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #17 → accept_settlement_offer
+  - POPUP proposal_result: Holland's tribute is remitted for 8 collections (2696g forgone). Loyalty +1 (99 → 100); bond -15 → 5 (+0 a turn). Cost: 1 DP. → display-only
+  - TERMS (settlement_confirm REVIEW): peace
+  - POPUP diplomatic_dialogue: settlement_confirm #19 → confirm_settlement
+  - POPUP proposal_result: Settlement Ratified, Settlement Ratified: the War with The Fourth Austrian Coalition — the table with Britain (3 pairs resolved). → display-only
+  - POPUP diplomatic_dialogue: Holland, client_petition #18 → grant the petition
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+  - saved `AGD_t3` → Game saved: AGD_t3
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 4 actions unused) Turn 10 begins!
+- enemy phase: 3 actions, 3 attacks — Britain, Spain, the Ottoman Empire and 6 other courts stirred as well, but their formations remain beyond our sight. — Kutuzov attacks Silesia · Mack attacks Bernadotte · Archduke Charles attacks Massena
+  - 🏴 Russia: Kutuzov attacks Silesia — Region captured: Silesia (was France) (secured)
+  - ⚔ Mack (lost 2742) vs Bernadotte (lost 5032) — The margin was slim. Training and preparation would serve Bernadotte well.
+  - ⚔ Archduke Charles (lost 4340) vs Massena (lost 5968) — An inconclusive affair. Both sides bloodied but unbroken.
+  - verbs: attack×3
+- ENVOYS WAITING 2 · Denmark open borders · Hesse open borders
+- LEDGER treasury 16668 · net -967 · threat 65 · provinces 29 (-1) · ceiling 10681 · army 176976 · vassals Duchy of Warsaw 80 · Holland 100 · Kingdom of Italy 100 · Switzerland 89
+  - NET income 2890 · trade 350 · admin 50 · tribute 642 · upkeep 2364 · charges 2370 · occupation 75 · admiralty 90
+- DISPATCH: Sire — Saxony is knocked out of the war. No army remains beneath their colours.
+  - RAIL settlement_summary: Sire, the white peace of the War with The Fourth Austrian Coalition — the table with Britain takes nothing and gives nothing. Spain is left out: -18 …
+  - RAIL nation_eliminated: Sire — Saxony has been eliminated from the war.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL strait_open: THE STRAIT: the Cagliari–Corsica crossing stands open to our armies.
+  - RAIL strait_open: THE STRAIT: the Corsica–Piedmont crossing stands open to our armies.
+  - RAIL +1 more
+  - TURN EVENTS 2
+- DIPLO +10 medium/low (province_changed_hands ×3, enemy_marshal_commissioned, diplomatic_dp_regen, sovereign_takes_field, cs_tier_shift, blockade_broken ×3)
+  - LOG coalition_member_left: Britain has left the coalition.
+  - LOG coalition_member_left: Saxony has left the coalition.
+
+---
+finished: **completed** · commands 9 · popups 19 · battles 5

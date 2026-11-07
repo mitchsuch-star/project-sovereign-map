@@ -1,0 +1,987 @@
+# Playtest digest — rev1106-amb-marengo
+
+seed `marengo` · llm `mock` · transport in-process · policy `{"objection": "trust", "diplomacy": "decline", "capture": "secure", "estate": "respect", "glorious_charge": "restrain", "diplomatic_objection": "proceed", "redemption": "grant_autonomy", "petition": "first_enabled", "audience": "open", "declare_war": "cancel", "interrupt": "first", "last_stand": "first", "contact": "first", "paradox": "honor", "rebellion": "accept", "sabotage": "confront", "reward": "ignore", "war_purpose": "1", "ultimatum": "defy", "clarification": "first"}`
+- played: board `The Third Coalition, 1805` · map `europe` (126 provinces) · France from turn 1 · campaign seed `marengo` · dice `marengo`
+- platform: CPython 3.13.12 · Windows-11-10.0.22000-SP0 (AMD64) · PYTHONHASHSEED `0` · engine `ad73ba09665e` · content `e9a73e243b18` · driver `98b323710bf7`
+  - new game → New campaign started. Autosave refreshed.
+
+## Turn 1 — Late September 1805
+- CMD `end turn` → ✓ Turn 1 ended. (Warning: 4 actions unused) Turn 2 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 8 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Bernadotte
+  - ⚔ Archduke Charles (lost 1998) vs Bernadotte (lost 5429) — Bernadotte's army has been badly mauled. Archduke Charles proved the stronger force today.
+  - verbs: move×1, attack×1
+- ENVOYS WAITING 2 · Prussia open borders · Ottoman open borders
+- LEDGER treasury 1565 · net +1036 · threat 64 · provinces 28 · ceiling 9801 · army 183450 · vassals Holland 98 · Kingdom of Italy 100 · Switzerland 96
+  - NET income 2590 · trade 350 · admin 50 · tribute 937 · upkeep 2582 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bernadotte was mauled at Franconia: a quarter of his corps — 5,429 men — lost in a single action.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +9 medium/low (law_enacted_abroad, province_changed_hands, diplomatic_dp_regen, sovereign_takes_field, diplomatic_vassal_contingent ×2, blockade_begins ×3)
+  - LOG moment: Britain decrees the Remounts for 8 turns (3 authority)
+  - LOG moment: Russia decrees the Remounts for 8 turns (3 authority)
+  - LOG moment: Austria decrees the Remounts for 8 turns (3 authority)
+  - LOG moment: Prussia decrees the Remounts for 8 turns (3 authority)
+  - LOG moment: The Ottoman Empire decrees the Remounts for 8 turns (3 authority)
+
+## Turn 2 — Early October 1805
+  - LETTER Ottoman: Open Borders Agreement → decline
+  - MAILBOX #1 Prussia incoming_proposal: Prussia — Open Borders Agreement → activated
+  - POPUP diplomatic_dialogue: Prussia, open_borders #1 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Prussia's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 2 ended. (Warning: 4 actions unused) Turn 3 begins!
+- enemy phase: 4 actions, 2 attacks — Britain, Russia, Prussia and 7 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Bernadotte · Mack attacks Bernadotte
+  - 🏴 Austria: Archduke Charles attacks Bernadotte — Franconia CAPTURED! (was Bavaria) (secured)
+  - ⚔ Archduke Charles (lost 866) vs Bernadotte (lost 6317) — A grievous defeat for Bernadotte, Sire. The losses are severe.
+  - ⚔ Mack (lost 7988) vs Bernadotte (lost 528, own corps) — Lannes, Massena and Teulie's timely arrival bolstered Bernadotte's position. Well-coordinated, Sire. — Berthier: the corps marched apart and arrived together.
+  - verbs: attack×2, move×1, wait×1
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- ENVOYS WAITING 2 · Portugal open borders · Denmark non aggression
+- LEDGER treasury 1895 · net +882 · threat 62 · provinces 28 (+0) · ceiling 8091 · army 170247 · vassals Holland 97 · Kingdom of Italy 98 · Switzerland 93
+  - NET income 2590 · trade 350 · admin 50 · tribute 937 · upkeep 2736 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bernadotte's corps has been broken at Munich. He must reform before he fights again.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL design_promoted: REVANCHE: Bavaria will not forgive Austria the loss of Franconia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 6
+- COURTS: The court of Prussia eases over The Hanoverian Prize — joining the stronger side for pay is now the length of its tether.
+- DIPLO +5 medium/low (law_enacted_abroad, province_changed_hands, diplomatic_we_threshold, diplomatic_dp_regen, agenda_shift)
+  - LOG ai_proposal_rejected: We rejected the Ottoman Empire's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Prussia's open borders agreement proposal
+
+## Turn 3 — Late October 1805
+  - LETTER Portugal: Open Borders Agreement → decline
+  - LETTER Denmark: Non-Aggression Pact → decline
+- CMD `end turn` → ✓ Turn 3 ended. (Warning: 4 actions unused) Turn 4 begins!
+- enemy phase: 7 actions, 2 attacks — Russia, Prussia, Spain and 7 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Bernadotte · Archduke John attacks Munich
+  - 🏴 Austria: Archduke John attacks Munich — The garrison of Munich is destroyed. · Region captured: Munich (was Bavaria) (secured)
+  - ⚔ Archduke Charles (lost 118) vs Bernadotte (lost 2764) — The hills were ours, but Archduke Charles took them. Bernadotte's position was overrun.
+  - verbs: stance_change×2, attack×2, fortify×1, naval_expedition×1, unfortify×1
+  - ⚡ AUTONOMOUS: [Combat] Murat leads the charge! (Aggressive: +15% attack)
+  - ⚔ Murat (lost 1739, own corps) vs Mack (lost 26914) — Reinforcements! Ney, Davout, Lannes, Massena, Napoleon and Teulie marched onto the field beside Murat. The enemy's adva… — The corps system brought Lannes in. — The corps system brought Teulie in. — Berthier: the corps marched apart and arrived together.
+- ENVOYS WAITING 2 · Saxony open borders · Hesse non aggression
+- LEDGER treasury 2106 · net +614 · threat 68 · provinces 28 (+0) · ceiling 6080 · army 154040 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 90
+  - NET income 2590 · trade 350 · admin 50 · tribute 937 · upkeep 2988 · charges 16 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bernadotte was mauled at Munich: half of his corps — 2,764 men — lost in a single action.
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Lisbon.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL agenda_violation: Portugal seethes: Britain's columns cross Lisbon in defiance of its declared neutrality.
+  - TURN EVENTS 7
+- COURTS: The court of Hesse hardens over The Westphalian Duchy — prepared now to go as far as alliance.
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as an ultimatum.
+- DIPLO +4 medium/low (diplomatic_we_threshold, province_changed_hands, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia (design ask)
+  - LOG design_promoted: REVANCHE: Bavaria swears to retake Franconia and 1 more — Austria is not forgiven
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG sponsorship_granted: Britain sponsors Russia against France (200g/turn)
+  - LOG ai_ai_proposal_refused: Britain rebuffs Sweden, Naples and Portugal (open borders agreement)
+
+## Turn 4 — Early November 1805
+  - LETTER Saxony: Open Borders Agreement → decline
+  - LETTER Hesse: Non-Aggression Pact → decline
+- CMD `end turn` → ✓ Turn 4 ended. (Warning: 4 actions unused) Turn 5 begins!
+- enemy phase: 8 actions, 6 attacks — Russia, Prussia, Spain and 6 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Milan · Archduke John attacks Bernadotte · Archduke Charles attacks Milan · Deroy attacks Munich
+  - 🏴 Austria: Archduke John attacks Bernadotte — Swabia CAPTURED! (was Bavaria) (secured)
+  - 🏴 Austria: Archduke Charles attacks Milan — The garrison of Milan is destroyed. · Region captured: Milan (was Kingdom of Italy) (secured)
+  - 🏴 Bavaria: Deroy attacks Munich — The last 2,000 of the garrison of Munich give way. · Region captured: Munich (was Austria) (secured)
+  - ⚔ Archduke John (lost 1232) vs Bernadotte (lost 338, own corps) — Lannes reached Bernadotte in time, Sire — but even together, the field could not be held. And Bernadotte was taken on t…
+  - ⚔ Deroy (lost 2403) vs Archduke John (lost 1466) — Archduke John's square formation provided a solid defensive anchor, Sire.
+  - ⚔ Deroy (lost 1946) vs Archduke John (lost 1311) — The square held its ground. Archduke John's infantry stood like a fortress on the field.
+  - verbs: attack×6, stance_change×1, form_square×1
+  - ⚡ AUTONOMOUS: [Combat] Lannes leads the charge! (Aggressive: +15% attack)
+  - ⚔ Lannes (lost 111, own corps) vs Mack (lost 17013) — Ney, Davout, Murat, Massena, Napoleon and Teulie's timely arrival bolstered Lannes's position. Well-coordinated, Sire.
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Murat seeks an audience → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- ENVOYS WAITING 1 · PapalStates open borders
+- LEDGER treasury 2829 · net +737 · threat 74 · provinces 28 (+0) · ceiling 7431 · army 142641 · vassals Holland 95 · Kingdom of Italy 95 · Switzerland 87
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 2524 · charges 132 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Marshal Bernadotte has been taken. Austria holds him prisoner.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - TURN EVENTS 9
+- DIPLO +9 medium/low (diplomatic_we_threshold ×3, province_changed_hands ×3, diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's non-aggression pact proposal
+  - LOG moment: Britain decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Russia decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Prussia decrees the Camps of Instruction for 8 turns (4 authority)
+  - LOG moment: The Ottoman Empire decrees the Camps of Instruction for 8 turns (2,000 gold)
+
+## Turn 5 — Late November 1805
+  - LETTER PapalStates: Open Borders Agreement → decline
+- CMD `end turn` → ✓ Turn 5 ended. (Warning: 4 actions unused) Turn 6 begins!
+- enemy phase: 5 actions, 1 attacks — Russia, Prussia, Spain and 6 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Deroy
+  - ⚔ Archduke Charles (lost 2047) vs Deroy (lost 3954) — The hills were ours, but Archduke Charles took them. Deroy's position was overrun.
+  - verbs: unfortify×1, attack×1, retreat×1, stance_change×1, wait×1
+  - ⚡ AUTONOMOUS: [Combat] Murat leads the charge! (Aggressive: +15% attack)
+  - ⚔ Murat (lost 388, own corps) vs Archduke John (lost 12205) — Reinforcements! Ney, Davout, Lannes, Massena, Napoleon and Teulie marched onto the field beside Murat. The enemy's adva…
+  - POPUP marshal_audience: jealousy_confrontation, Marshal Soult seeks an audience → acknowledge
+  -     ↳ Soult's grievance runs its course.
+  - POPUP diplomatic_dialogue: Prussia, open_borders #8 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Prussia's proposal. Talleyrand will convey your decision. → display-only
+- ENVOYS WAITING 3 · Prussia open borders · Ottoman open borders · Switzerland client petition
+- LEDGER treasury 3729 · net +814 · threat 80 · provinces 28 (+0) · ceiling 8689 · army 134349 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 86
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 2296 · charges 283 · blockade 219 · admiralty 90
+- DISPATCH: Sire — the Archduke John of Austria is taken at Swabia — he is our prisoner, and their order of battle is one commander shorter.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Switzerland has arrived with a petition.
+  - TURN EVENTS 6
+- COURTS: The court of Saxony hardens over The Wettin Crown — prepared now to go as far as alliance.
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_granted: Britain binds Austria to the war against France — no separate peace for 10 turns (200g/turn)
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Saxony (design ask)
+  - LOG ai_proposal_rejected: We rejected Prussia's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected the Papal States' open borders agreement proposal
+  - LOG sponsorship_granted: Russia sponsors Sweden against France (200g/turn)
+  - LOG diplomatic_ai_ai_treaty: Sweden and Russia sign an Open Borders Agreement
+  - LOG diplomatic_ai_ai_treaty: Naples and Russia sign an Open Borders Agreement
+
+## Turn 6 — Early December 1805
+  - LETTER Ottoman: Open Borders Agreement → decline
+  - MAILBOX #10 Switzerland incoming_proposal: Switzerland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Switzerland, client_petition #10 → refuse the petition
+  - POPUP proposal_result: Switzerland's petition for relief is refused: loyalty −10 (86 → 76); bond 0 → -20 (-1 a turn). Nothing is charged. → display-only
+- CMD `end turn` → ✓ Turn 6 ended. (Warning: 4 actions unused) Turn 7 begins!
+- enemy phase: 4 actions, 2 attacks — Britain, Russia, Prussia and 7 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Munich · Archduke Charles attacks Deroy
+  - 🏴 Austria: Archduke Charles attacks Munich — The last 4,000 of the garrison of Munich give way. · Region captured: Munich (was Bavaria) (secured)
+  - 🏴 Austria: Archduke Charles attacks Deroy — Franconia CAPTURED! (was Bavaria) (secured)
+  - ⚔ Archduke Charles (lost 825) vs Deroy (lost 6317) — The toll on Deroy's forces is heavy, Sire. This defeat will be felt.
+  - verbs: attack×2, form_square×1, wait×1
+  - POPUP marshal_audience: shadow_command, Marshal Ney asks for a command → detach
+  -     ↳ Ney straightens. "You will not regret it, Sire." March him to Franche-Comte and the front is his — the order …
+- ENVOYS WAITING 2 · Portugal open borders · Denmark open borders
+- LEDGER treasury 4699 · net +802 · threat 78 · provinces 28 (+0) · ceiling 9494 · army 128091 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 73
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 2140 · charges 451 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Munich has been taken by Austria.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL third_party_peace: THE CONGRESS: Bavaria and Austria have made their peace without France. Bavaria, beaten (-44), sues for peace and Austria takes it on the held line; …
+  - TURN EVENTS 5
+- DIPLO +7 medium/low (province_changed_hands ×2, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, diplomatic_ai_ai_treaty, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG diplomatic_ai_ai_treaty: Saxony and Austria sign a Non-Aggression Pact
+  - LOG ai_proposal_rejected: We rejected the Ottoman Empire's open borders agreement proposal
+
+## Turn 7 — Late December 1805
+  - LETTER Portugal: Open Borders Agreement → decline
+  - LETTER Denmark: Open Borders Agreement → decline
+- CMD `end turn` → ✓ Turn 7 ended. (Warning: 4 actions unused) Turn 8 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 8 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+  - POPUP marshal_audience: shadow_command, Marshal Davout asks for a command → detach
+  -     ↳ Davout straightens. "You will not regret it, Sire." March him to Normandy and the front is his — the order is…
+- ENVOYS WAITING 3 · Saxony open borders · The Secretariat moment letter · Hesse open borders
+- LEDGER treasury 5621 · net +756 · threat 76 · provinces 28 (+0) · ceiling 10057 · army 122208 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 70
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 2020 · charges 617 · blockade 219 · admiralty 90
+- DISPATCH: Sire — 3 turns of famine at Swabia now. 19,739 men gone, and not one of them to the enemy. Bavaria's magazines feed us as our own — the army is simply too large for the province. Rhineland can feed 6…
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - TURN EVENTS 5
+- DIPLO +3 medium/low (law_enacted_abroad ×2, diplomatic_dp_regen)
+  - LOG moment: The Bavarian Match — a letter of the record is laid before the Emperor
+  - LOG third_party_peace: THE CONGRESS: Bavaria and Austria make peace without France
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Denmark's open borders agreement proposal
+
+## Turn 8 — Early January 1806
+  - LETTER Saxony: Open Borders Agreement → decline
+  - LETTER Hesse: Open Borders Agreement → decline
+  - MAILBOX #15 The Secretariat incoming_proposal: The Secretariat — A Moment of History → activated
+  - POPUP diplomatic_dialogue: moment_letter #15 → reject_ai_proposal
+- CMD `end turn` → ✓ Turn 8 ended. (Warning: 4 actions unused) Turn 9 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 8 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ENVOYS WAITING 2 · PapalStates open borders · Austria settlement offer
+- LEDGER treasury 6477 · net +696 · threat 74 · provinces 28 (+0) · ceiling 10485 · army 116679 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 67
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1920 · charges 777 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Ney, Davout, Lannes, Murat, Massena, Napoleon and Teulie have been 4 turns over what Swabia can feed. 25,544 men dead. The country will ask where the army went. Bavaria's magazines feed us as …
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - RAIL settlement_offer_arrival: Austria, for Austria and Russia, has offered terms to settle the War for Milan — Britain + Austria + Russia. Offering 2210 gold. Its articles: Austri…
+  - TURN EVENTS 2
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's open borders agreement proposal
+  - LOG moment: The Bavarian Match — the Emperor answers: Let Baden keep her
+
+## Turn 9 — Late January 1806
+  - LETTER PapalStates: Open Borders Agreement → decline
+  - MAILBOX #17 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #17 → reject_settlement_offer
+- CMD `end turn` → ✓ Turn 9 ended. (Warning: 4 actions unused) Turn 10 begins!
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 8 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: defend×1, recruit×1
+- ENVOYS WAITING 2 · Prussia open borders · Ottoman open borders
+- LEDGER treasury 7313 · net +674 · threat 72 · provinces 28 (+0) · ceiling 11123 · army 111480 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 64
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1780 · charges 939 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Prussia moves toward war with Hanover. The design is open; the timing is not.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL crisis_brewing: THE BREWING CRISIS: Prussia will move on Hanover. You may compensate (1,188g — you can afford it); guarantee Hanover (1 DP — 7 in hand); or let the w…
+  - TURN EVENTS 2
+- COURTS: The court of Austria eases over Primacy in Germany — joining the stronger side for pay is now the length of its tether.
+- COURTS: The court of Hesse hardens over The Westphalian Duchy — prepared now to go as far as joining the stronger side for pay.
+- DIPLO +3 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG sponsorship_granted: Britain binds Russia to the war against France — no separate peace for 10 turns (200g/turn)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Bavaria (design ask)
+  - LOG british_subsidy: Britain's gold: 200g reaches Russia
+  - LOG ai_proposal_rejected: We rejected the Papal States' open borders agreement proposal
+
+## Turn 10 — Early February 1806
+  - LETTER Ottoman: Open Borders Agreement → decline
+  - MAILBOX #18 Prussia incoming_proposal: Prussia — Open Borders Agreement → activated
+  - POPUP diplomatic_dialogue: Prussia, open_borders #18 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Prussia's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 10 ended. (Warning: 4 actions unused) Turn 11 begins!
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 9 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1, recruit×1
+- ENVOYS WAITING 2 · Portugal open borders · Denmark non aggression
+- LEDGER treasury 8047 · net +585 · threat 70 · provinces 28 (+0) · ceiling 11294 · army 106595 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 61
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1720 · charges 1088 · blockade 219 · admiralty 90
+- DISPATCH: Sire — not every court of the league has struck us. Austria has an open road to us — 2 marches — and has not struck us. Britain has no road to us but the sea, and Normandy is a defended shore: she ca…
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL allegiance_in_play: The allegiance of Hesse is in play — every court with gold or standing now bids for the flip. Bid in the Cabinet: F1 → Hesse → Bid for Their Allegian…
+  - TURN EVENTS 3
+- COURTS: The court of Sardinia hardens over The House of Savoy Restored — prepared now to go as far as war.
+- COURTS: The court of Austria hardens over Primacy in Germany — prepared now to go as far as an ultimatum.
+- DIPLO +4 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, paymaster_subsidy, coercive_demand)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Austria (design ask)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_proposal_rejected: We rejected the Ottoman Empire's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Prussia's open borders agreement proposal
+
+## Turn 11 — Late February 1806
+  - LETTER Portugal: Open Borders Agreement → decline
+  - LETTER Denmark: Non-Aggression Pact → decline
+- CMD `end turn` → ✓ Turn 11 ended. (Warning: 4 actions unused) Turn 12 begins!
+- enemy phase: 2 actions, 0 attacks — Britain, Russia, Austria and 9 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1, recruit×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Murat demands to be heard → acknowledge
+  -     ↳ Murat's grievance runs its course.
+- ENVOYS WAITING 2 · Saxony open borders · Hesse non aggression
+- LEDGER treasury 8712 · net +524 · threat 68 · provinces 28 (+0) · ceiling 11568 · army 102002 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 58
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1640 · charges 1229 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Andalusia has been taken by Britain.
+  - RAIL expedition_landed: THE LANDING: Shrapnel has put 5,700 men ashore at Andalusia.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - TURN EVENTS 7
+- COURTS: The court of Hesse hardens over The Westphalian Duchy — prepared now to go as far as an ultimatum.
+- COURTS: The court of Prussia hardens over The Hanoverian Prize — prepared now to go as far as war.
+- COURTS: And Saxony stirs at its own design.
+- DIPLO +5 medium/low (province_changed_hands, law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy, diplomatic_relation_shift)
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+
+## Turn 12 — Early March 1806
+  - LETTER Saxony: Open Borders Agreement → decline
+  - LETTER Hesse: Non-Aggression Pact → decline
+- CMD `end turn` → ✓ Turn 12 ended. (Warning: 4 actions unused) Turn 13 begins!
+- enemy phase: 3 actions, 1 attacks — Russia, Austria, Prussia and 8 other courts stirred as well, but their formations remain beyond our sight. — Castanos attacks Cartagena
+  - 🏴 Britain: Shrapnel moves to Cartagena — Cartagena falls (was Spain) and is secured
+  - ⚔ Castanos (lost 747) vs Shrapnel (lost 1366) — Shrapnel's guns were caught in transit when Castanos struck. The crews had no time to deploy. — The Line Holds +15% (Shrapnel)
+  - verbs: move×1, attack×1, wait×1
+  - POPUP marshal_petition: jealousy_confrontation, Marshal Lannes demands to be heard → acknowledge
+  -     ↳ Lannes's grievance runs its course.
+- ENVOYS WAITING 1 · PapalStates open borders
+- LEDGER treasury 9356 · net +502 · threat 66 · provinces 28 (+0) · ceiling 12048 · army 97685 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 55
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1520 · charges 1371 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Cartagena has been taken by Britain.
+  - RAIL diplomatic_ai_proposal: An envoy from the Papal States has arrived with a proposal.
+  - RAIL allegiance_in_play: The allegiance of Saxony is in play — every court with gold or standing now bids for the flip. Bid in the Cabinet: F1 → Saxony → Bid for Their Allegi…
+  - RAIL allegiance_settled: The moment passes: Hesse no longer weighs the flip, and the bidding is closed.
+  - RAIL design_promoted: REVANCHE: Spain will not forgive Britain the loss of Andalusia and 1 more province. A new design hardens in their court.
+  - TURN EVENTS 6
+- COURTS: The court of Austria eases over Primacy in Germany — joining the stronger side for pay is now the length of its tether.
+- DIPLO +6 medium/low (province_changed_hands ×2, enemy_marshal_commissioned, law_enacted_abroad, diplomatic_dp_regen, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: Prussia rebuffs Saxony (design ask)
+  - LOG sponsorship_expired: The compact between Britain and Russia lapses
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's non-aggression pact proposal
+  - LOG ai_ai_proposal_refused: 3 approaches from Bavaria, Prussia and Hesse are rebuffed (design ask)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia and Hesse (design ask)
+
+## Turn 13 — Late March 1806
+  - LETTER PapalStates: Open Borders Agreement → decline
+- CMD `end turn` → ✓ Turn 13 ended. (Warning: 4 actions unused) Turn 14 begins!
+- enemy phase: 4 actions, 3 attacks — Britain, Russia, Austria and 8 other courts stirred as well, but their formations remain beyond our sight. — Blake attacks Andalusia · Castanos attacks Cartagena · Cuesta attacks Shrapnel
+  - 🏴 Spain: Blake attacks Andalusia — Andalusia CAPTURED! (was Britain) (secured)
+  - 🏴 Spain: Castanos attacks Cartagena — Cartagena CAPTURED! (was Britain) (secured)
+  - ⚔ Blake (lost 225, own corps) vs Shrapnel (lost 1588) — The toll on Shrapnel's forces is heavy, Sire. This defeat will be felt. — The Line Holds +15% (Shrapnel)
+  - ⚔ Castanos (lost 99) vs Shrapnel (lost 878) — Shrapnel was driven from the field. His men are scattered. — The Line Holds +15% (Shrapnel)
+  - ⚔ Cuesta (lost 56) vs Shrapnel (lost 996) — The hills were ours, but Cuesta took them. Shrapnel's position was overrun. — The Line Holds +15% (Shrapnel)
+  - verbs: attack×3, wait×1
+- ENVOYS WAITING 2 · Ottoman open borders · Austria settlement offer
+- LEDGER treasury 9958 · net +465 · threat 64 · provinces 28 (+0) · ceiling 12406 · army 93628 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 52
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1420 · charges 1508 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Shrapnel has crossed into Bordelais. No French corps stands in his path.
+  - RAIL diplomatic_ai_proposal: An envoy from the Ottoman Empire has arrived with a proposal.
+  - RAIL settlement_offer_arrival: Austria, for Austria and Russia, has offered terms to settle the War for Milan — Britain + Austria + Russia. Offering 2460 gold. Its articles: Austri…
+  - RAIL crisis_brewing: THE BREWING CRISIS: Hesse will move on Hanover. You may compensate (1,284g — you can afford it); guarantee Hanover (1 DP — 7 in hand); or let the war…
+  - TURN EVENTS 2
+- DIPLO +4 medium/low (province_changed_hands ×2, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG design_promoted: REVANCHE: Spain swears to retake Andalusia and 1 more — Britain is not forgiven
+  - LOG ai_proposal_rejected: We rejected the Papal States' open borders agreement proposal
+  - LOG ai_ai_proposal_refused: 2 approaches from Bavaria and Prussia are rebuffed (design ask)
+
+## Turn 14 — Early April 1806
+  - LETTER Ottoman: Open Borders Agreement → decline
+  - MAILBOX #26 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #26 → reject_settlement_offer
+- CMD `end turn` → ✓ Turn 14 ended. (Warning: 4 actions unused) Turn 15 begins!
+- enemy phase: 5 actions, 0 attacks — Britain, Russia, Austria and 8 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: move×2, recruit×2, wait×1
+- ENVOYS WAITING 2 · Portugal open borders · Denmark open borders
+- LEDGER treasury 10483 · net +398 · threat 62 · provinces 28 (+0) · ceiling 12544 · army 89815 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 49
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1360 · charges 1635 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Asturias has been taken by Britain.
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 5,000 men ashore at Asturias.
+  - RAIL diplomatic_ai_proposal: An envoy from Portugal has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - RAIL third_party_peace: THE CONGRESS: Hanover and Prussia have made their peace without France. Hanover pays 2,610 gold. Prussia is now free to look elsewhere.
+  - RAIL design_promoted: REVANCHE: Hanover will not forgive Prussia the loss of Brunswick and 2 more provinces. A new design hardens in their court.
+  - TURN EVENTS 4
+- COURTS: The court of Saxony eases over The Wettin Crown — alliance is now the length of its tether.
+- DIPLO +8 medium/low (province_changed_hands ×3, diplomatic_dp_regen, paymaster_subsidy, coercive_demand, agenda_shift ×2)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_granted: Russia sponsors Sweden against France (300g/turn)
+  - LOG ai_proposal_rejected: We rejected the Ottoman Empire's open borders agreement proposal
+  - LOG ai_ai_proposal_refused: Russia rebuffs Saxony (defensive alliance)
+  - LOG sponsorship_expired: The compact between Russia and Sweden lapses
+
+## Turn 15 — Late April 1806
+  - LETTER Portugal: Open Borders Agreement → decline
+  - LETTER Denmark: Open Borders Agreement → decline
+- CMD `end turn` → ✓ Turn 15 ended. (Warning: 4 actions unused) Turn 16 begins!
+- enemy phase: 8 actions, 3 attacks — Russia, Austria, Prussia and 8 other courts stirred as well, but their formations remain beyond our sight. — Wellesley attacks Cuesta · Cuesta attacks Wellesley · Castanos attacks Galicia
+  - 🏴 Britain: Wellesley moves to Galicia — Galicia falls (was Spain) and is secured
+  - 🏴 Spain: Castanos attacks Galicia — Galicia CAPTURED! (was Britain) (secured)
+  - ⚔ Wellesley (lost 394) vs Cuesta (lost 671) — Cuesta stood alone, Sire. Castanos never came.
+  - ⚔ Cuesta (lost 667) vs Wellesley (lost 273) — The exchange went Wellesley's way, Sire — Cuesta paid twice what Wellesley did, though the day decided nothing yet. — The Line Holds +15% (Wellesley)
+  - ⚔ Castanos (lost 32) vs Shrapnel (lost 221) — Shrapnel's corps broke, Sire. They are streaming back from the field. And Shrapnel was taken on that field — Spain hold… — The Line Holds +15% (Shrapnel)
+  - verbs: attack×3, recruit×2, move×1, grant_pension×1, wait×1
+- ENVOYS WAITING 4 · Britain armistice losing · Saxony open borders · Hesse non aggression · The Secretariat moment letter
+- LEDGER treasury 10921 · net +325 · threat 60 · provinces 28 (+0) · ceiling 12576 · army 86229 · vassals Holland 96 · Kingdom of Italy 96 · Switzerland 41
+  - NET income 2590 · trade 350 · admin 50 · tribute 712 · upkeep 1320 · charges 1748 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Galicia has been taken by Britain.
+  - RAIL diplomatic_ai_proposal: An envoy from Britain has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL allegiance_settled: The moment passes: Saxony no longer weighs the flip, and the bidding is closed.
+  - RAIL crisis_passed: Hesse stands down over Hanover, Sire — the moment passed — opportunism decayed.
+  - RAIL third_party_peace: THE CONGRESS: Britain and Spain have made their peace without France. Both courts are spent; their side of the war ends while the greater war goes on…
+  - RAIL +1 more
+  - TURN EVENTS 2
+- COURTS: The court of Sardinia eases over The House of Savoy Restored — an ultimatum is now the length of its tether.
+- DIPLO +6 medium/low (province_changed_hands ×2, diplomatic_vassal_courting, diplomatic_dp_regen, paymaster_subsidy, blockade_broken)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: 2 approaches from Bavaria and Hesse are rebuffed (design ask)
+  - LOG sponsorship_expired: The bond between Britain and Austria runs its term
+  - LOG moment: The Squadron for Santo Domingo — an affair of state is laid before the Emperor
+  - LOG sponsorship_granted: Britain sponsors Sweden against France (300g/turn)
+  - LOG design_promoted: REVANCHE: Hanover swears to retake Brunswick and 2 more — Prussia is not forgiven
+  - LOG ai_proposal_rejected: We rejected Portugal's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Denmark's open borders agreement proposal
+
+## Turn 16 — Early May 1806
+  - LETTER Saxony: Open Borders Agreement → decline
+  - LETTER Hesse: Non-Aggression Pact → decline
+  - MAILBOX #29 Britain incoming_proposal: Britain — Armistice → activated
+  - MAILBOX #32 The Secretariat incoming_proposal: The Secretariat — An Affair of State → activated
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #29 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns another court. Your earlier answer was not delivered; …
+  - POPUP diplomatic_dialogue: incoming_proposal #32 → reject_ai_proposal
+  - POPUP diplomatic_dialogue: Britain, armistice_losing #29 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Britain's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: moment_letter #32 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 16 ended. (Warning: 4 actions unused) Turn 17 begins!
+- enemy phase: 3 actions, 0 attacks — Britain, Russia, Austria and 9 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: drill×1, wait×1, recruit×1
+- LEDGER treasury 11042 · net +65 · threat 48 · provinces 27 (-1) · ceiling 11365 · army 82858 · vassals Holland 96 · Switzerland 33
+  - NET income 2440 · trade 350 · admin 50 · tribute 562 · upkeep 1220 · charges 1808 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Corsica has fallen to Britain. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing …
+  - RAIL expedition_landed: THE LANDING: Paget has put 5,000 men ashore at Corsica.
+  - RAIL nation_eliminated: Sire — the Kingdom of Italy has been eliminated from the war.
+  - TURN EVENTS 2
+- VASSALS: Talleyrand reports unrest in Switzerland (loyalty 33). Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them. Invest, Loosen Rein and Cede Province… are on the Diplomatic Ledger's Vassals tab (press D, then 6; Alt+D, then Alt+6 while you type).
+- COURTS: The court of Austria hardens over Primacy in Germany — prepared now to go as far as an ultimatum.
+- DIPLO +4 medium/low (province_changed_hands, diplomatic_dp_regen, diplomatic_vassal_contingent, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Austria (design ask)
+  - LOG third_party_peace: THE CONGRESS: Britain and Spain make peace without France
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hesse's non-aggression pact proposal
+  - LOG moment: The Squadron for Santo Domingo — the Emperor answers: Ferrand must hold alone
+  - LOG ai_proposal_rejected: We rejected Britain's armistice proposal
+  - LOG third_party_peace: THE CONGRESS: Hanover and Prussia make peace without France
+
+## Turn 17 — Late May 1806
+- CMD `end turn` → ✓ Turn 17 ended. (Warning: 4 actions unused) Turn 18 begins!
+- enemy phase: 3 actions, 1 attacks — Britain, Russia, Prussia and 9 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Provence
+  - 🏴 Austria: Archduke Charles attacks Provence — Region captured: Provence (was France) (secured)
+  - verbs: attack×1, wait×1, recruit×1
+- LEDGER treasury 10662 · net -327 · threat 46 · provinces 26 (-1) · ceiling 9265 · army 79690 · vassals Holland 96 · Switzerland 25
+  - NET income 2290 · trade 350 · admin 50 · tribute 562 · upkeep 1160 · charges 2030 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Provence has fallen to Austria. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a marc…
+  - RAIL expedition_landed: THE LANDING: Shrapnel has put 5,000 men ashore at Piedmont.
+  - RAIL crisis_brewing: THE BREWING CRISIS: Hesse will move on Hanover. You may compensate (1,308g — you can afford it); guarantee Hanover (1 DP — 7 in hand); or let the war…
+  - TURN EVENTS 2
+- VASSALS: Talleyrand reports unrest in Switzerland (loyalty 25). Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them. Invest, Loosen Rein and Cede Province… are on the Diplomatic Ledger's Vassals tab (press D, then 6; Alt+D, then Alt+6 while you type).
+- DIPLO +4 medium/low (law_enacted_abroad, diplomatic_vassal_courting, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG sponsorship_granted: Britain binds Austria to the war against France — no separate peace for 10 turns (400g/turn)
+  - LOG ai_ai_proposal_refused: 2 approaches from Austria and Sardinia are rebuffed (design ask)
+  - LOG nation_eliminated: The Kingdom of Italy has been eliminated from the war.
+
+## Turn 18 — Early June 1806
+- CMD `end turn` → ✓ Turn 18 ended. (Warning: 4 actions unused) Turn 19 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 9 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Lyonnais
+  - 🏴 Austria: Archduke Charles attacks Lyonnais — Region captured: Lyonnais (was France) (secured)
+  - verbs: attack×1, wait×1
+- ENVOYS WAITING 2 · Russia armistice losing · Denmark non aggression
+- LEDGER treasury 10202 · net -388 · threat 43 · provinces 25 (-1) · ceiling 8576 · army 76713 · vassals Holland 96 · Switzerland 17
+  - NET income 2210 · trade 350 · admin 50 · tribute 562 · upkeep 1140 · charges 1961 · contributions 150 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Lyonnais has fallen to Austria. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a marc…
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - TURN EVENTS 2
+- VASSALS: Talleyrand reports unrest in Switzerland (loyalty 17). Invest in them, grant them autonomy, garrison their capital, or cede them a province to steady them. Invest, Loosen Rein and Cede Province… are on the Diplomatic Ledger's Vassals tab (press D, then 6; Alt+D, then Alt+6 while you type).
+- DIPLO +5 medium/low (diplomatic_vassal_courting, diplomatic_dp_regen, paymaster_subsidy, balance_of_europe_shifted, coercive_demand)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG balance_of_europe_shifted: Austrian-led alignment leads the current largest alignment at 34% of active European bloc power.
+
+## Turn 19 — Late June 1806
+  - MAILBOX #33 Russia incoming_proposal: Russia — Armistice → activated
+  - MAILBOX #34 Denmark incoming_proposal: Denmark — Non-Aggression Pact → activated
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #33 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Denmark. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #34 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Denmark's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #33 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Russia's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #34 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 19 ended. (Warning: 4 actions unused) Turn 20 begins!
+- enemy phase: 5 actions, 3 attacks — Britain, Prussia, Spain and 8 other courts stirred as well, but their formations remain beyond our sight. — Kutuzov attacks Napoleon · Archduke Charles attacks Limousin · Archduke Charles attacks Paris
+  - 🏴 Austria: Archduke Charles attacks Limousin — Region captured: Limousin (was France) (secured)
+  - ⚔ Kutuzov (lost 4317) vs Napoleon (lost 180, own corps) — Victory for Napoleon, but at terrible cost. The ranks are thinned dangerously. — the Russian army would not break: Stubborn softened the rout (−6 morale, not −13)
+  - verbs: attack×3, wait×1, recruit×1
+- ENVOYS WAITING 2 · Hesse non aggression · Austria settlement offer
+- LEDGER treasury 9024 · net -382 · threat 32 · provinces 24 (-1) · ceiling 7507 · army 72203 · vassals Holland 99
+  - NET income 2060 · trade 350 · admin 50 · tribute 337 · upkeep 1020 · charges 1770 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Limousin has fallen to Austria. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~27,500 stands there. A garrison you detach (3,000 men) holds a province against a marc…
+  - RAIL expedition_landed: THE LANDING: Wellesley has put 3,932 men ashore at Piedmont.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - RAIL diplomatic_vassal_transferred: Switzerland passes from France's suzerainty to Austria's.
+  - RAIL diplomatic_alliance_cascade: Spain and Bavaria enter the war against Switzerland via their alliance with France.
+  - RAIL diplomatic_vassal_defected: THE DEFECTION: Austria's gold turns Switzerland against France.
+  - RAIL settlement_offer_arrival: Austria, for Austria and Russia, has offered terms to settle the War for Corsica — Britain + Austria + Russia.
+  - RAIL +1 more
+  - TURN EVENTS 3
+- COURTS: The court of Hesse hardens over The Westphalian Duchy — prepared now to go as far as war.
+- DIPLO +7 medium/low (diplomatic_vassal_courting, diplomatic_dp_regen, sovereign_takes_field, paymaster_subsidy, agenda_shift ×2, diplomatic_relation_shift)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_expired: The bond between Britain and Russia runs its term
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG ai_proposal_rejected: We rejected Russia's armistice proposal
+  - LOG defensive_cascade: Defensive cascade: Spain joins war via France
+  - LOG defensive_cascade: Defensive cascade: Bavaria joins war via France
+  - LOG vassal_auto_join_war: Vassal Holland joined France's war.
+
+## Turn 20 — Early July 1806
+  - MAILBOX #35 Hesse incoming_proposal: Hesse — Non-Aggression Pact → activated
+  - MAILBOX #36 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: Hesse, non_aggression #35 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Austria. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #36 → reject_settlement_offer
+  - POPUP diplomatic_dialogue: Hesse, non_aggression #35 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Hesse's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #36 → reject_settlement_offer
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 20 ended. (Warning: 4 actions unused) Turn 21 begins!
+- enemy phase: 8 actions, 5 attacks — Britain, Prussia, Spain and 8 other courts stirred as well, but their formations remain beyond our sight. — Bennigsen attacks Napoleon · Archduke Charles attacks Paris · Archduke Charles attacks Paris · Archduke Charles attacks Normandy
+  - 🏴 Austria: Archduke Charles attacks Paris — The garrison of Paris is destroyed. · Region captured: Paris (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Normandy — The garrison of Normandy is destroyed. · Region captured: Normandy (was France) (secured)
+  - ⚔ Bennigsen (lost 1873) vs Napoleon (lost 33, own corps) — A costly day for Bennigsen: the losses ran two to one in Napoleon's favour, and Bennigsen is still in the field. — the Russian army would not break: Stubborn softened the rout (−28 morale, not −55)
+  - verbs: attack×5, unfortify×1, garrison×1, recruit×1
+- LEDGER treasury 7515 · net -358 · threat 31 · provinces 22 (-2) · ceiling 6253 · army 69349 · vassals Holland 100
+  - NET income 1840 · trade 350 · admin 50 · tribute 337 · upkeep 980 · charges 1566 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Paris HAS FALLEN. Our capital is in Austria's hands, and every courier in Europe is already carrying the news.
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (diplomatic_dp_regen, paymaster_subsidy, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_granted: Britain binds Russia to the war against France — no separate peace for 10 turns (300g/turn)
+  - LOG ai_proposal_rejected: We rejected Hesse's non-aggression pact proposal
+  - LOG moment: Britain decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Russia decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Prussia decrees the Camps of Instruction for 8 turns (2,000 gold)
+  - LOG moment: The Ottoman Empire decrees the Camps of Instruction for 8 turns (2,000 gold)
+
+## Turn 21 — Late July 1806
+- CMD `end turn` → ✓ Turn 21 ended. (Warning: 4 actions unused) Turn 22 begins!
+- enemy phase: 6 actions, 5 attacks — Russia, Prussia, Spain and 8 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Berry · Archduke Charles attacks Artois · Archduke Charles attacks Picardy · Deroy attacks Bern
+  - 🏴 Britain: Moore attacks Berry — Region captured: Berry (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Artois — Region captured: Artois (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Picardy — Region captured: Picardy (was France) (secured)
+  - 🏴 Bavaria: Deroy attacks Bern — The garrison of Bern is destroyed. · Region captured: Bern (was Switzerland) (secured)
+  - verbs: attack×5, move×1
+- LEDGER treasury 6752 · net -524 · threat 30 · provinces 19 (-3) · ceiling 5082 · army 67385 · vassals Holland 100
+  - NET income 1540 · trade 350 · admin 50 · tribute 337 · upkeep 920 · charges 1492 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Berry has fallen to Britain. Enemy colours fly over French homeland soil. Moore's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a march, as does any…
+  - RAIL nation_eliminated: Sire — Switzerland has been eliminated from the war.
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (province_changed_hands, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG ai_ai_proposal_refused: 2 approaches from Russia and Bavaria are rebuffed (design ask)
+
+## Turn 22 — Early August 1806
+- CMD `end turn` → ✓ Turn 22 ended. (Warning: 4 actions unused) Turn 23 begins!
+- enemy phase: 5 actions, 4 attacks — Russia, Prussia, Spain and 8 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Gascony · Archduke Charles attacks Flanders · Archduke Charles attacks Flanders · Archduke Charles attacks Dumonceau
+  - 🏴 Britain: Moore attacks Gascony — Region captured: Gascony (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Flanders — The garrison of Flanders is destroyed. · Region captured: Flanders (was France) (secured)
+  - ⚔ Archduke Charles (lost 682) vs Dumonceau (lost 1357) — Dumonceau was close. A period of drilling could have changed the outcome.
+  - verbs: attack×4, wait×1
+- ENVOYS WAITING 2 · Hanover broker peace · The Secretariat moment letter
+- LEDGER treasury 5612 · net -424 · threat 29 · provinces 17 (-2) · ceiling 4284 · army 65519 · vassals Holland 96
+  - NET income 1280 · trade 350 · admin 50 · tribute 319 · upkeep 880 · charges 1154 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Gascony has fallen to Britain. Enemy colours fly over French homeland soil. Moore's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a march, as does a…
+  - RAIL diplomatic_ai_proposal: An envoy from Hanover has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (diplomatic_dp_regen, diplomatic_auto_downgrade, paymaster_subsidy)
+  - LOG auto_downgrade: Relations auto-downgraded: Austria–Russia (Alliance → Defensive Alliance)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Austria (design ask)
+  - LOG moment: The Host's Claims — an affair of state is laid before the Emperor
+  - LOG nation_eliminated: Switzerland has been eliminated from the war.
+
+## Turn 23 — Late August 1806
+  - MAILBOX #37 Hanover incoming_proposal: Hanover — Brokered Peace → activated
+  - MAILBOX #38 The Secretariat incoming_proposal: The Secretariat — An Affair of State → activated
+  - POPUP diplomatic_dialogue: Hanover, broker_peace #37 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns another court. Your earlier answer was not delivered; …
+  - POPUP diplomatic_dialogue: incoming_proposal #38 → reject_ai_proposal
+  - POPUP diplomatic_dialogue: Hanover, broker_peace #37 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Hanover's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: moment_letter #38 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 23 ended. (Warning: 4 actions unused) Turn 24 begins!
+- enemy phase: 4 actions, 4 attacks — Russia, Prussia, Spain and 9 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Guyenne · Moore attacks Anjou · Archduke Charles attacks Dumonceau · Hiller attacks Ney
+  - 🏴 Britain: Moore attacks Guyenne — Region captured: Guyenne (was France) (secured)
+  - 🏴 Britain: Moore attacks Anjou — Region captured: Anjou (was France) (secured)
+  - ⚔ Archduke Charles (lost 460) vs Dumonceau (lost 1955) — The toll on Dumonceau's forces is heavy, Sire. This defeat will be felt. And Dumonceau was taken on that field — Austri…
+  - ⚔ Hiller (lost 3460) vs Ney (lost 249, own corps) — Hiller bled two men for each of Ney's. A clear exchange, not yet a decision.
+  - verbs: attack×4
+- LEDGER treasury 4886 · net -393 · threat 26 · provinces 15 (-2) · ceiling 3658 · army 62792 · vassals Holland 80
+  - NET income 1060 · trade 350 · admin 50 · tribute 301 · upkeep 840 · charges 925 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Guyenne has fallen to Britain. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing …
+  - TURN EVENTS 2
+- DIPLO +3 medium/low (diplomatic_dp_regen, diplomatic_vassal_contingent, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Austria
+  - LOG sponsorship_expired: The compact between Russia and Sweden lapses
+  - LOG moment: The Host's Claims — the Emperor answers: Live off the land
+  - LOG ai_proposal_rejected: We rejected Hanover's brokered peace proposal
+
+## Turn 24 — Early September 1806
+- CMD `end turn` → ✓ Turn 24 ended. (Warning: 4 actions unused) Turn 25 begins!
+- enemy phase: 1 actions, 1 attacks — Russia, Austria, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Maine
+  - 🏴 Britain: Moore attacks Maine — Region captured: Maine (was France) (secured)
+  - verbs: attack×1
+- ENVOYS WAITING 1 · Austria settlement offer
+- LEDGER treasury 4458 · net -291 · threat 23 · provinces 14 (-1) · ceiling 3549 · army 61155 · vassals Holland 80
+  - NET income 980 · trade 350 · admin 50 · tribute 306 · upkeep 800 · charges 788 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Maine has fallen to Britain. Enemy colours fly over French homeland soil. Moore's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a march, as does any…
+  - RAIL settlement_offer_arrival: Austria, for Britain, Austria and Russia, has offered terms to settle the War for Paris — Britain + Austria + Russia. Asking 3210 gold. Its articles:…
+  - TURN EVENTS 1
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG sponsorship_expired: The compact between Britain and Sweden lapses
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Hesse (design ask)
+  - LOG ai_ai_proposal_refused: Hanover rebuffs Prussia and Hesse (design ask)
+
+## Turn 25 — Late September 1806
+  - MAILBOX #39 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #39 → reject_settlement_offer
+- CMD `end turn` → ✓ Turn 25 ended. (Warning: 4 actions unused) Turn 26 begins!
+- enemy phase: 1 actions, 1 attacks — Russia, Austria, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Brittany
+  - 🏴 Britain: Moore attacks Brittany — Region captured: Brittany (was France) (secured)
+  - verbs: attack×1
+- ENVOYS WAITING 2 · Russia armistice losing · Denmark non aggression
+- LEDGER treasury 4062 · net -261 · threat 20 · provinces 13 (-1) · ceiling 3294 · army 59599 · vassals Holland 80
+  - NET income 900 · trade 350 · admin 50 · tribute 310 · upkeep 780 · charges 702 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Brittany has fallen to Britain. Enemy colours fly over French homeland soil. Moore's corps of ~55,000 stands there. A garrison you detach (3,000 men) holds a province against a march, as does …
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+  - TURN EVENTS 1
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+
+## Turn 26 — Early October 1806
+  - MAILBOX #40 Russia incoming_proposal: Russia — Armistice → activated
+  - MAILBOX #41 Denmark incoming_proposal: Denmark — Non-Aggression Pact → activated
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #40 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Denmark. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #41 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Denmark's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #40 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Russia's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #41 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 26 ended. (Warning: 4 actions unused) Turn 27 begins!
+- enemy phase: 1 actions, 1 attacks — Britain, Russia, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Orleanais
+  - 🏴 Austria: Archduke Charles attacks Orleanais — Region captured: Orleanais (was France) (secured)
+  - verbs: attack×1
+- LEDGER treasury 3746 · net -209 · threat 19 · provinces 12 (-1) · ceiling 3132 · army 58123 · vassals Holland 80
+  - NET income 820 · trade 350 · admin 50 · tribute 315 · upkeep 760 · charges 595 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Orleanais has fallen to Austria. Enemy colours fly over French homeland soil. Archduke Charles's corps of ~27,500 stands there. A garrison you detach (3,000 men) holds a province against a mar…
+  - TURN EVENTS 1
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG ai_proposal_rejected: We rejected Russia's armistice proposal
+  - LOG ai_ai_proposal_refused: Austria rebuffs Bavaria (design ask)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Bavaria (design ask)
+
+## Turn 27 — Late October 1806
+- CMD `end turn` → ✓ Turn 27 ended. (Warning: 4 actions unused) Turn 28 begins!
+- enemy phase: 3 actions, 2 attacks — Britain, Russia, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Hiller attacks Ney · Archduke Charles attacks Nivernais
+  - 🏴 Austria: Archduke Charles attacks Nivernais — Region captured: Nivernais (was France) (secured)
+  - 🏴 Austria: Archduke Charles moves to Franche-Comte — Franche-Comte falls (was France) and is secured
+  - ⚔ Hiller (lost 3325) vs Ney (lost 192, own corps) — The exchange went Ney's way, Sire — Hiller paid twice what Ney did, though the day decided nothing yet.
+  - verbs: attack×2, move×1
+- ENVOYS WAITING 1 · The Secretariat moment letter
+- LEDGER treasury 3455 · net -166 · threat 18 · provinces 10 (-2) · ceiling 2967 · army 55979 · vassals Holland 81
+  - NET income 700 · trade 350 · admin 50 · tribute 319 · upkeep 700 · charges 496 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Nivernais has fallen to Austria. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standin…
+  - TURN EVENTS 1
+- COURTS: The court of Russia hardens over The Gulf and the Straits — prepared now to go as far as joining the stronger side for pay.
+- DIPLO +3 medium/low (enemy_marshal_commissioned, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG ai_ai_proposal_refused: Austria rebuffs Bavaria (design ask)
+  - LOG sponsorship_expired: The bond between Britain and Austria runs its term
+  - LOG moment: The Remounts — an affair of state is laid before the Emperor
+
+## Turn 28 — Early November 1806
+  - MAILBOX #42 The Secretariat incoming_proposal: The Secretariat — An Affair of State → activated
+  - POPUP diplomatic_dialogue: moment_letter #42 → reject_ai_proposal
+- CMD `end turn` → ✓ Turn 28 ended. (Warning: 4 actions unused) Turn 29 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 3 other courts stirred, but their formations remain beyond our sight.
+- ENVOYS WAITING 2 · Saxony open borders · Hanover broker peace
+- LEDGER treasury 3354 · net -66 · threat 17 · provinces 10 (+0) · ceiling 3157 · army 54683 · vassals Holland 81
+  - NET income 700 · trade 350 · admin 50 · tribute 324 · upkeep 640 · charges 461 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Paris, Anjou, Artois and 15 more lie in enemy hands — the capital among them. Austria and Britain hold them.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hanover has arrived with a proposal.
+  - TURN EVENTS 1
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_ai_proposal_refused: 2 approaches from Austria and Sardinia are rebuffed (design ask)
+  - LOG moment: The Remounts — the Emperor answers: Let the depots wait
+
+## Turn 29 — Late November 1806
+  - LETTER Saxony: Open Borders Agreement → decline
+  - MAILBOX #44 Hanover incoming_proposal: Hanover — Brokered Peace → activated
+  - POPUP diplomatic_dialogue: Hanover, broker_peace #44 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Hanover's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 29 ended. (Warning: 4 actions unused) Turn 30 begins!
+- enemy phase: 2 actions, 2 attacks — Britain, Russia, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Burgundy · Archduke Charles attacks Savoy
+  - 🏴 Austria: Archduke Charles attacks Burgundy — Region captured: Burgundy (was France) (secured)
+  - 🏴 Austria: Archduke Charles attacks Savoy — Region captured: Savoy (was France) (secured)
+  - verbs: attack×2
+- ENVOYS WAITING 1 · Austria settlement offer
+- LEDGER treasury 3292 · net -43 · threat 16 · provinces 8 (-2) · ceiling 3153 · army 53452 · vassals Holland 81
+  - NET income 580 · trade 350 · admin 50 · tribute 328 · upkeep 640 · charges 402 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Burgundy has fallen to Austria. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing…
+  - RAIL balance_of_europe_shifted: Vienna System leads the current largest alignment at 51% of active European bloc power.
+  - RAIL settlement_offer_arrival: Austria, for Britain, Austria and Russia, has offered terms to settle the War for Paris — Britain + Austria + Russia. Asking 3300 gold. Its articles:…
+  - TURN EVENTS 1
+- DIPLO +3 medium/low (diplomatic_dp_regen, diplomatic_vassal_contingent, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Hanover's brokered peace proposal
+
+## Turn 30 — Early December 1806
+  - MAILBOX #45 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #45 → reject_settlement_offer
+- CMD `end turn` → ✓ Turn 30 ended. (Warning: 4 actions unused) Turn 31 begins!
+- enemy phase: 4 actions, 4 attacks — Britain, Prussia, Spain and 9 other courts stirred as well, but their formations remain beyond our sight. — Buxhowden attacks Ney · Buxhowden attacks Davout · Hiller attacks Ney · Schwarzenberg attacks Massena
+  - ⚔ Buxhowden (lost 2076) vs Ney (lost 764, own corps) — The toll on Ney's forces is heavy, Sire. This defeat will be felt.
+  - ⚔ Buxhowden (lost 1812) vs Davout (lost 500, own corps) — An inconclusive affair. Both sides bloodied but unbroken.
+  - ⚔ Hiller (lost 2288) vs Ney (lost 259, own corps) — The battle unfolded without particular distinction.
+  - ⚔ Schwarzenberg (lost 1017) vs Massena (lost 603, own corps) — A grievous defeat for Massena, Sire. The losses are severe.
+  - verbs: attack×4
+- ORDER Massena [awaiting_response]: Massena is cornered at Swabia with 4,218 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the la…
+- ORDER Napoleon [awaiting_response]: Napoleon's Guard is SPENT at Swabia — 1,133 men cannot buy another road, Sire. Fight to the last, or cut our way out.
+  - POPUP strategic_interrupt: Massena, last_stand, Massena is cornered at Swabia with 4,218 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: one final defense at +25% that bleeds the enemy and halts his pursuit — then the survivors are taken, certainly. Attempt a breakout: 50% he cuts his way out, 50% he is taken. → fight_to_the_last
+  - POPUP strategic_interrupt: Napoleon, last_stand, Napoleon's Guard is SPENT at Swabia — 1,133 men cannot buy another road, Sire. Fight to the last, or cut our way out. → fight_to_the_last
+- LEDGER treasury 3015 · net +184 · threat 13 · provinces 8 (+0) · ceiling 3529 · army 37883 · vassals Holland 78
+  - NET income 580 · trade 350 · admin 50 · tribute 333 · upkeep 380 · charges 360 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Marshal Lannes has been taken. Austria holds him prisoner.
+  - TURN EVENTS 3
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG sponsorship_expired: The bond between Britain and Russia runs its term
+  - LOG balance_of_europe_shifted: Vienna System leads the current largest alignment at 51% of active European bloc power.
+  - LOG ai_ai_proposal_refused: 2 approaches from Russia and Bavaria are rebuffed (design ask)
+
+## Turn 31 — Late December 1806
+- CMD `end turn` → ✓ Turn 31 ended. (Warning: 4 actions unused) Turn 32 begins!
+- enemy phase: 2 actions, 2 attacks — Austria, Prussia, Spain and 9 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Bordelais · Buxhowden attacks Ney
+  - 🏴 Britain: Moore attacks Bordelais — Region captured: Bordelais (was France) (secured)
+  - ⚔ Buxhowden (lost 513) vs Ney (lost 925, own corps) — Ney's army has been badly mauled. Buxhowden proved the stronger force today.
+  - verbs: attack×2
+- ORDER Murat [awaiting_response]: Murat is cornered at Swabia with 1,709 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last…
+- ORDER Ney [awaiting_response]: Ney is cornered at Swabia with 1,604 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: …
+  - POPUP strategic_interrupt: Murat, last_stand, Murat is cornered at Swabia with 1,709 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: one final defense at +25% that bleeds the enemy and halts his pursuit — then the survivors are taken, certainly. Attempt a breakout: 50% he cuts his way out, 50% he is taken. → fight_to_the_last
+  - POPUP strategic_interrupt: Ney, last_stand, Ney is cornered at Swabia with 1,604 men, Sire — capture looms. He asks leave to fight to the last, or he can attempt a breakout. Fight to the last: one final defense at +25% that bleeds the enemy and halts his pursuit — then the survivors are taken, certainly. Attempt a breakout: 50% he cuts his way out, 50% he is taken. → fight_to_the_last
+- ENVOYS WAITING 2 · Austria peace · Holland client petition
+- LEDGER treasury 3128 · net +190 · threat 10 · provinces 7 (-1) · ceiling 3657 · army 32178 · vassals Holland 74
+  - NET income 500 · trade 350 · admin 50 · tribute 337 · upkeep 256 · charges 402 · contributions 80 · blockade 219 · admiralty 90
+- DISPATCH: Sire — the Emperor himself is TAKEN. Austria holds him, and the Empire holds its breath.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Holland has arrived with a petition.
+  - TURN EVENTS 4
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+
+## Turn 32 — Early January 1807
+  - MAILBOX #46 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - MAILBOX #47 Holland incoming_proposal: Holland — Client's Petition → activated
+  - POPUP diplomatic_dialogue: Austria, peace #46 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Holland. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #47 → refuse the petition
+  - POPUP diplomatic_dialogue: Austria, peace #46 → reject_ai_proposal
+  - POPUP proposal_result: Holland's petition for relief is refused: loyalty −10 (74 → 64); bond 0 → -20 (-1 a turn). Nothing is charged. → display-only
+  - POPUP diplomatic_dialogue: Holland, client_petition #47 → refuse the petition
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 32 ended. (Warning: 4 actions unused) Turn 33 begins!
+- enemy phase: 3 actions, 2 attacks — Russia, Prussia, Spain and 9 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Bearn · Archduke Charles attacks Champagne
+  - 🏴 Britain: Moore attacks Bearn — Region captured: Bearn (was France) (secured)
+  - 🏴 Britain: Moore moves to Languedoc — Languedoc falls (was France) and is secured
+  - 🏴 Austria: Archduke Charles attacks Champagne — Region captured: Champagne (was France) (secured)
+  - verbs: attack×2, move×1
+- ENVOYS WAITING 2 · Russia armistice losing · Austria peace
+- LEDGER treasury 3220 · net +61 · threat 9 · provinces 4 (-3) · ceiling 3399 · army 32178 · vassals Holland 61
+  - NET income 300 · trade 350 · admin 50 · tribute 337 · upkeep 256 · charges 411 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Bearn has fallen to Britain. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps standing th…
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +2 medium/low (diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 400g reaches Russia
+  - LOG ai_proposal_rejected: We rejected Austria's peace treaty proposal
+
+## Turn 33 — Late January 1807
+  - MAILBOX #48 Russia incoming_proposal: Russia — Armistice → activated
+  - MAILBOX #49 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #48 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Austria. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #49 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Austria's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #48 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Russia's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Austria, peace #49 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 33 ended. (Warning: 4 actions unused) Turn 34 begins!
+- enemy phase: 2 actions, 1 attacks — Britain, Russia, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Archduke Charles attacks Ile-de-France
+  - 🏴 Austria: Archduke Charles attacks Ile-de-France — Region captured: Ile-de-France (was France) (secured)
+  - 🏴 Austria: Archduke Charles moves to Ardennes — Ardennes falls (was France) and is secured
+  - verbs: attack×1, move×1
+- LEDGER treasury 3201 · net -12 · threat 10 · provinces 2 (-2) · ceiling 3162 · army 32178 · vassals Holland 51
+  - NET income 220 · trade 350 · admin 50 · tribute 337 · upkeep 256 · charges 404 · blockade 219 · admiralty 90
+- DISPATCH: Sire — Ile-de-France has fallen to Austria. Enemy colours fly over French homeland soil. A garrison you detach (3,000 men) holds a province against a march, as does any garrison of 5,000; a corps sta…
+  - TURN EVENTS 1
+- DIPLO +3 medium/low (law_enacted_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 200g reaches Austria
+  - LOG ai_ai_proposal_refused: 2 approaches from Russia and Bavaria are rebuffed (design ask)
+  - LOG ai_proposal_rejected: We rejected Austria's peace treaty proposal
+  - LOG ai_proposal_rejected: We rejected Russia's armistice proposal
+
+## Turn 34 — Early February 1807
+- CMD `end turn` → ✓ Turn 34 ended. (Warning: 4 actions unused) Turn 35 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 2 other courts stirred, but their formations remain beyond our sight.
+- ENVOYS WAITING 2 · Austria settlement offer · Hanover broker peace
+- LEDGER treasury 3175 · net -18 · threat 11 · provinces 2 (+0) · ceiling 3120 · army 32178 · vassals Holland 41
+  - NET income 220 · trade 312 · admin 50 · tribute 337 · upkeep 256 · charges 396 · blockade 195 · admiralty 90
+- DISPATCH: Sire — Paris, Anjou, Ardennes and 23 more lie in enemy hands — the capital among them. Austria and Britain hold them.
+  - RAIL settlement_offer_arrival: Austria, for Britain, Austria and Russia, has offered terms to settle the War for Paris — Britain + Austria + Russia. Asking 4270 gold. Its articles:…
+  - RAIL diplomatic_ai_proposal: An envoy from Hanover has arrived with a proposal.
+  - TURN EVENTS 1
+- DIPLO +4 medium/low (diplomatic_vassal_courting, diplomatic_dp_regen, diplomatic_auto_downgrade, paymaster_subsidy)
+  - LOG auto_downgrade: Relations auto-downgraded: France–Spain (Alliance → Defensive Alliance)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Austria (design ask)
+  - LOG ai_ai_proposal_refused: Austria rebuffs Bavaria (design ask)
+
+## Turn 35 — Late February 1807
+  - MAILBOX #50 Austria incoming_settlement_offer: Austria — Settlement Offer → activated
+  - MAILBOX #51 Hanover incoming_proposal: Hanover — Brokered Peace → activated
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #50 → reject_settlement_offer
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Hanover. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #51 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Hanover's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: incoming_settlement_offer #50 → reject_settlement_offer
+  - POPUP diplomatic_dialogue: Hanover, broker_peace #51 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 35 ended. (Warning: 4 actions unused) Turn 36 begins!
+- enemy phase: nothing visible — Britain, Russia, Austria and 2 other courts stirred, but their formations remain beyond our sight.
+- ENVOYS WAITING 2 · Austria peace · Saxony open borders
+- LEDGER treasury 2820 · net -235 · threat 2 · provinces 2 (+0) · ceiling 2121 · army 32178 · vassals none
+  - NET income 220 · trade 312 · admin 50 · upkeep 256 · charges 276 · blockade 195 · admiralty 90
+- DISPATCH: Sire — Holland is no longer ours. Russia is their protector now.
+  - RAIL balance_of_europe_shifted: Russian Sphere leads the current largest alignment at 59% of active European bloc power.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+  - RAIL diplomatic_vassal_transferred: Holland passes from France's suzerainty to Russia's.
+  - RAIL diplomatic_vassal_defected: THE DEFECTION: Russia's gold turns Holland against France.
+  - RAIL pool_left: THE FLEET: Holland's 12 sail no longer count with ours — she has made peace with Britain.
+- DIPLO +6 medium/low (diplomatic_vassal_courting, diplomatic_vassal_contingent, diplomatic_dp_regen, paymaster_subsidy, blockade_broken, agenda_shift)
+  - LOG british_subsidy: Britain's gold: 400g reaches Austria
+  - LOG ai_proposal_rejected: We rejected Hanover's brokered peace proposal
+
+## Turn 36 — Early March 1807
+  - LETTER Saxony: Open Borders Agreement → decline
+  - MAILBOX #52 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Austria, peace #52 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Austria's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 36 ended. (Warning: 4 actions unused) Turn 37 begins!
+- enemy phase: 2 actions, 1 attacks — Russia, Austria, Prussia and 10 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Davout
+  - ⚔ Moore (lost 2052) vs Davout (lost 462, own corps) — The toll on Davout's forces is heavy, Sire. This defeat will be felt.
+  - verbs: move×1, attack×1
+- ENVOYS WAITING 1 · Britain peace
+- LEDGER treasury 2362 · net -154 · threat 3 · provinces 2 (+0) · army 27619 · vassals none
+  - NET income 211 · trade 312 · admin 50 · upkeep 208 · charges 133 · contributions 101 · blockade 195 · admiralty 90
+- DISPATCH: Sire — Davout's corps has been broken at Lorraine. He must reform before he fights again.
+  - RAIL diplomatic_ai_proposal: An envoy from Britain has arrived with a proposal.
+  - TURN EVENTS 2
+- COURTS: The court of Sweden hardens over Scourge of the Usurper — prepared now to go as far as war.
+- DIPLO +4 medium/low (law_enacted_abroad, doctrine_cured_abroad, diplomatic_dp_regen, paymaster_subsidy)
+  - LOG british_subsidy: Britain's gold: 300g reaches Russia
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Austria's peace treaty proposal
+  - LOG moment: Britain decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Russia decrees the Magazines for 8 turns (2,500 gold)
+  - LOG moment: Prussia decrees the Camps of Instruction for 8 turns (2,000 gold)
+  - LOG moment: The Ottoman Empire decrees the Camps of Instruction for 8 turns (2,000 gold)
+
+## Turn 37 — Late March 1807
+  - MAILBOX #54 Britain incoming_proposal: Britain — Peace Treaty → activated
+  - POPUP diplomatic_dialogue: Britain, peace #54 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Britain's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 37 ended. (Warning: 4 actions unused) Turn 38 begins!
+- enemy phase: 5 actions, 4 attacks — Russia, Prussia, Spain and 9 other courts stirred as well, but their formations remain beyond our sight. — Moore attacks Soult · Paget attacks Soult · Archduke Charles attacks Soult · Archduke Charles attacks Davout
+  - 🏴 Austria: Archduke Charles attacks Soult — Lorraine CAPTURED! (was France) (secured)
+  - ⚔ Moore (lost 2482, own corps) vs Soult (lost 4942) — Soult was close. A period of drilling could have changed the outcome.
+  - ⚔ Paget (lost 435, own corps) vs Soult (lost 5067) — The margin was slim. Training and preparation would serve Soult well.
+  - ⚔ Archduke Charles (lost 1267) vs Soult (lost 3293) — Soult was driven from the field. His men are scattered.
+  - ⚔ Archduke Charles (lost 51) vs Davout (lost 620) — Davout's corps broke, Sire. They are streaming back from the field.
+  - verbs: attack×4, unfortify×1
+- ENVOYS WAITING 2 · Prussia open borders · Hesse open borders
+- LEDGER treasury 1628 · net -39 · threat 2 · provinces 1 (-1) · army 13692 · vassals none
+  - NET income 101 · trade 312 · admin 50 · upkeep 116 · contributions 101 · blockade 195 · admiralty 90
+- DISPATCH: Sire — France holds a single province: Rhineland. Archduke Charles stands on it. Soult stands in his path. Paris is in Austria's hands. 2 corps still stand under our colours — Soult and Davout, 13,69…
+  - RAIL balance_of_europe_shifted: Russian Sphere leads the current largest alignment at 60% of active European bloc power.
+  - RAIL diplomatic_ai_proposal: An envoy from Prussia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Hesse has arrived with a proposal.
+  - TURN EVENTS 2
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: Russia rebuffs Sweden (design ask)
+  - LOG ai_proposal_rejected: We rejected Britain's peace treaty proposal
+
+## Turn 38 — Early April 1807
+  - LETTER Hesse: Open Borders Agreement → decline
+  - MAILBOX #55 Prussia incoming_proposal: Prussia — Open Borders Agreement → activated
+  - POPUP diplomatic_dialogue: Prussia, open_borders #55 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Prussia's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 38 ended. (Warning: 4 actions unused) Turn 39 begins!
+- enemy phase: 14 actions, 10 attacks — Prussia, Spain, the Ottoman Empire and 7 other courts stirred as well, but their formations remain beyond our sight. — Paget attacks Davout · Moore attacks Soult · Paget attacks Soult · Bennigsen attacks Davout
+  - 🏴 Britain: Moore attacks Soult — Rhineland CAPTURED! (was France) (secured)
+  - ⚔ Paget (lost 38) vs Davout (lost 806) — Davout's corps broke, Sire. They are streaming back from the field.
+  - ⚔ Moore (lost 389, own corps) vs Soult (lost 6984) — A grievous defeat for Soult, Sire. The losses are severe.
+  - ⚔ Paget (lost 157) vs Soult (lost 3657) — The terrain heavily favored Paget. Soult's men paid the price.
+  - ⚔ Bennigsen (lost 7) vs Davout (lost 127) — Davout was driven from the field. His men are scattered. — Slow to concentrate's orders reached Kutuzov too late.
+  - ⚔ Buxhowden (lost 62) vs Soult (lost 1020) — Even the favorable ground could not save Soult, Sire. Buxhowden overcame the terrain.
+  - ⚔ Kutuzov (lost 3) vs Davout (lost 64) — The line gave way. Davout is falling back, and not in good order.
+  - ⚔ Bennigsen (lost 20) vs Soult (lost 463) — Soult was driven from the field. His men are scattered. — Slow to concentrate's orders reached Kutuzov too late.
+  - ⚔ Hiller (lost 3) vs Davout (lost 36) — Davout's corps broke, Sire. They are streaming back from the field. And Davout was taken on that field — Austria holds …
+  - ⚔ Hiller (lost 22) vs Soult (lost 158) — The line gave way. Soult is falling back, and not in good order.
+  - ⚔ Archduke Charles (lost 4) vs Soult (lost 146) — Soult's corps broke, Sire. They are streaming back from the field. And Soult was taken on that field — Austria holds hi…
+  - verbs: attack×10, fortify×1, move×1, grant_dotation×1, wait×1
+- ENVOYS WAITING 2 · Austria peace · Denmark non aggression
+- LEDGER treasury 1036 · net +77 · threat 1 · provinces 0 (-1) · ceiling 2233 · army 0 · vassals none
+  - NET trade 312 · admin 50 · blockade 195 · admiralty 90
+- DISPATCH: Sire — France holds no province of her own. Paris is in Austria's hands. No corps of ours stands free under arms. The Emperor is a prisoner of Austria.
+  - RAIL diplomatic_ai_proposal: An envoy from Austria has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Denmark has arrived with a proposal.
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG balance_of_europe_shifted: Russian Sphere leads the current largest alignment at 60% of active European bloc power.
+  - LOG ai_proposal_rejected: We rejected Hesse's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Prussia's open borders agreement proposal
+  - LOG balance_of_europe_shifted: Russian Sphere leads the current largest alignment at 59% of active European bloc power.
+
+## Turn 39 — Late April 1807
+  - MAILBOX #57 Austria incoming_proposal: Austria — Peace Treaty → activated
+  - MAILBOX #58 Denmark incoming_proposal: Denmark — Non-Aggression Pact → activated
+  - POPUP diplomatic_dialogue: Austria, peace #57 → reject_ai_proposal
+  -     ↳ refused: Sire, another matter has arrived since — this concerns Denmark. Your earlier answer was not delivered; the ma…
+  - POPUP diplomatic_dialogue: incoming_proposal #58 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Denmark's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Austria, peace #57 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Austria's proposal. Talleyrand will convey your decision. → display-only
+  - POPUP diplomatic_dialogue: Denmark, non_aggression #58 → reject_ai_proposal
+  -     ↳ refused: No diplomatic matter awaits your attention, Sire.
+- CMD `end turn` → ✓ Turn 39 ended. (Warning: 4 actions unused) Turn 40 begins!
+- enemy phase: 1 actions, 0 attacks — Britain, Russia, Austria and 10 other courts stirred as well, but their formations remain beyond our sight.
+  - verbs: wait×1
+- ENVOYS WAITING 2 · Russia armistice losing · Saxony open borders
+- LEDGER treasury 1113 · net +77 · threat 0 · provinces 0 (+0) · ceiling 2220 · army 0 · vassals none
+  - NET trade 312 · admin 50 · blockade 195 · admiralty 90
+- DISPATCH: Sire — 3 turns now the Empire has stood reduced. France holds no province of her own. Paris is in Austria's hands. No corps of ours stands free under arms. The Emperor is a prisoner of Austria.
+  - RAIL diplomatic_ai_proposal: An envoy from Russia has arrived with a proposal.
+  - RAIL diplomatic_ai_proposal: An envoy from Saxony has arrived with a proposal.
+- DIPLO +2 medium/low (law_enacted_abroad, diplomatic_dp_regen)
+  - LOG ai_ai_proposal_refused: 2 approaches from Russia and Bavaria are rebuffed (design ask)
+  - LOG ai_proposal_rejected: We rejected Denmark's non-aggression pact proposal
+  - LOG ai_proposal_rejected: We rejected Austria's peace treaty proposal
+  - LOG ai_ai_proposal_refused: Bavaria rebuffs Austria (design ask)
+
+## Turn 40 — Early May 1807
+  - LETTER Saxony: Open Borders Agreement → decline
+  - MAILBOX #59 Russia incoming_proposal: Russia — Armistice → activated
+  - POPUP diplomatic_dialogue: Russia, armistice_losing #59 → reject_ai_proposal
+  - POPUP proposal_result: You have rejected Russia's proposal. Talleyrand will convey your decision. → display-only
+- CMD `end turn` → ✓ Turn 40 ended. (Warning: 4 actions unused) Turn 41 begins!
+- enemy phase: nothing visible — Britain, Russia and Austria stirred, but their formations remain beyond our sight.
+  - ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]
+  -     ↳ Early May 1807 (turn 40) · register `fall` · TERMINAL — Load / Main Menu
+  -     ↳ THE VERDICT — THE ECLIPSE: The Empire is smaller and more alone than it began. / Its enemies have learned that it can be beaten. / History will call it the beginning of the end.
+  -     ↳ The Verdict of History: the eclipse.
+  -     ↳ THE RECORD — battles 41 (13 won, 27 lost) · men lost 120,235, inflicted 127,447 · provinces taken 3, lost 28 · marshals fallen 0, taken 9 · coalitions faced 1 · peaces signed 0
+  -     ↳ THE EXILE (captivity) — In early May 1807, the Empire fell. The Emperor, taken in late December 1806, had been a prisoner of Austria for 10 turns, and Paris stopped waiting. Austria sent him to the fortress of Olmütz — where Austria once kept Lafayette, and knew how to keep a man.
+  -     ↳ Bernadotte and Davout were still prisoners of the enemy.
+  -     ↳ In 41 battles the Empire won 13 and lost 27; 127,447 of the enemy fell against 120,235 of our own. The Great Battle of Swabia (late October 1805) was the high-water mark. The Second Battle of Rhineland was the worst day. 28 provinces were lost to the enemy; Austria took the most. One coalition stood against him — the Third Coalition.
+  -     ↳ The successor government signs the peace with Austria at Châtillon's terms — 4,660 gold and 466 a turn for 10 turns (Paris, Berry, Corsica held until paid) — recognition of the new government the term that bought the leniency (the 1792 frontiers's terms were the Emperor's to refuse).
+  -     ↳ The Verdict of History: the eclipse. Metternich, with perfect politeness: "A small inconvenience of residence. The air at Olmütz is said to be bracing."
+- LEDGER treasury 1190 · net +77 · threat 1 · provinces 0 (+0) · ceiling 2220 · army 0 · vassals none
+  - NET trade 312 · admin 50 · blockade 195 · admiralty 90
+- DISPATCH: Sire — an envoy from Hanover has arrived with a proposal.
+  - RAIL settlement_offer_arrival: Austria, for Britain, Austria and Russia, has offered terms to settle the War for Paris — Britain + Austria + Russia. Asking 4650 gold. Its articles:…
+  - RAIL diplomatic_ai_proposal: An envoy from Hanover has arrived with a proposal.
+- DIPLO +1 medium/low (diplomatic_dp_regen)
+  - LOG ai_proposal_rejected: We rejected Saxony's open borders agreement proposal
+  - LOG ai_proposal_rejected: We rejected Russia's armistice proposal
+  - GAME OVER reported — stopping
+
+---
+finished: **game-over** · commands 40 · popups 111 · battles 45
