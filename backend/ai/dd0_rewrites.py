@@ -179,17 +179,26 @@ def rewrite_send_marshal(text: str, friendly_names: Iterable[str]) -> str:
     # DD0-18 (c) (S4 part 4): "Shift Murat's horse to Lorraine", "Transfer
     # Bernadotte's corps to Berlin", "Advance Davout to Gelderland", "Pull
     # Bernadotte back out of Franconia to Frankfurt".
+    # T0-C (CMDFEEL-5, GR-25): a clause AFTER the destination ("March
+    # Bernadotte to Dresden and let the Elector see French bayonets", "… and
+    # attack Mack", "… to threaten John") rides along — the rewrite used to
+    # need the destination to end the line, so the whole sentence fell to the
+    # strategic layer, which read the NAME as the destination and asked
+    # "Which marshal shall march to Bernadotte?".
     m = re.match(
         r"^\s*(?:send|pull|bring|get|dispatch|order|shift|withdraw|transfer|advance|move|march|take|lead|direct)\s+(?:marshal\s+)?"
         r"(?P<name>" + alt + r")(?:['’]s\s+(?:corps|men|horse|cavalry|division|army|troops|guns|infantry|column))?"
         r"\s+(?:back\s+|over\s+|up\s+|down\s+|across\s+)?(?:out\s+of\s+[A-Za-z][\w'’-]*\s+)?"
-        r"(?:to|toward|towards|into|for|upon)\s+(?P<where>[A-Za-z][\w'’ -]{2,40}?)\s*[.!]*$",
+        r"(?:to|toward|towards|into|for|upon)\s+(?P<where>[A-Za-z][\w'’ -]{2,40}?)"
+        r"(?P<tail>\s*[,;]\s*(?:and\s+|then\s+)?[A-Za-z].*|\s+(?:and|then|so|before|after|once|until|while|unless)\s+[A-Za-z].*"
+        r"|\s+to\s+[A-Za-z].*|\s+in\s+order\s+to\s+[A-Za-z].*)?\s*[.!]*$",
         text, flags=re.IGNORECASE)
     if not m or _ORDER_VERB_RE.match(m.group("where").strip()):
         # "send Murat to scout Munich" — the verb after `to` is the order
         return text
     name = next(n for n in friendly_names if str(n).lower() == m.group("name").lower())
-    return f"{name}, move to {m.group('where').strip()}"
+    tail = (m.group("tail") or "").rstrip()
+    return f"{name}, move to {m.group('where').strip()}{tail}"
 
 
 def rewrite_kill(text: str, enemy_names: Iterable[str]) -> str:

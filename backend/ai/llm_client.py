@@ -834,6 +834,14 @@ def _match_known_name(command_lower: str, names,
     to White Russia. Full-name matches always outrank tokens, so nothing that
     resolves today can change.
     """
+    return _match_known_name_at(command_lower, names, allow_last_name)[0]
+
+
+def _match_known_name_at(command_lower: str, names,
+                         allow_last_name: bool = False):
+    """`_match_known_name` with WHERE it matched: ``(name, start)`` on the
+    folded line, or ``(None, -1)``. T0-C (CMDFEEL-4, GR-24): the move and
+    scout ladders read the two rosters' positions against each other."""
     best_key = None
     best_name = None
     # CRT-2 / CQ-29 (a): both sides folded, one character for one, so the
@@ -863,7 +871,17 @@ def _match_known_name(command_lower: str, names,
             token = _fold(token)
             for m in re.finditer(r'\b' + re.escape(token) + r'\b', command_lower):
                 _offer(owner, token, m.start(), True)
-    return best_name
+    return best_name, (best_key[2] if best_key is not None else -1)
+
+
+# T0-C (CMDFEEL-4, GR-24): the destination verbs on which a PROVINCE named
+# before a commander keeps the target — "ride for Swabia and find Mack's
+# flank", "send patrols into Tyrol and report John's strength", "to Tyrol to
+# threaten John": the ladder below read commanders FIRST, so the man in the
+# purpose clause took the slot and the reply told the player to name a
+# province he had named. A commander named BEFORE the province ("scout Mack
+# at Swabia") keeps the slot, as before.
+_A_PROVINCE_NAMED_FIRST_LEADS = frozenset({"move", "scout"})
 
 
 def _game_state_dict(game_state: Optional[Dict], key: str) -> Dict:
@@ -3969,6 +3987,9 @@ class LLMClient:
         elif ("scout" in command_lower or "reconnaissance" in command_lower
               or "recon" in command_lower or "acout" in command_lower
               or "scou" in command_lower
+              # T0-C (CMDFEEL-15, GR-32): "probe Piedmont for any Austrian
+              # movement" — the blind sets' word for a reconnaissance.
+              or re.search(r'\bprobes?\b', command_lower)
               or re.search(r'\bobserv(?:e|es|ing)\b', command_lower)
               or re.search(r'\bkeep\s+watch\b', command_lower)
               # SF-CMD-1 W3 (Oct 3, 2026): "keep an eye on Berlin" — the
@@ -4073,7 +4094,11 @@ class LLMClient:
               # before "as a marshal" is past the 12-character windows.
               or (_NAME_AS_A_MARSHAL_RE.search(command_lower)
                   and not _mentions_pension(command_lower))
-              or re.search(r'\bappoint\b.*\bmarshal', command_lower)
+              # T0-C (CMDFEEL-15, GR-32): "appoint Mortier" — the bare verb
+              # is the Marshalate's (it has no other object in this game);
+              # the pension guard the sibling branches carry.
+              or (re.search(r'\bappoint\b', command_lower)
+                  and not _mentions_pension(command_lower))
               # DD-0 S4 (the bench question): "promote Grouchy to marshal".
               or re.search(r'\bpromote\b.*\bmarshal', command_lower)
               or "marshalate" in command_lower
@@ -4450,9 +4475,21 @@ class LLMClient:
             # given the same latitude. game_state["enemies"] is already
             # fog-filtered (R5), so a surname can never name a general the
             # player cannot see.
-            target = _match_known_name(
+            _foe, _foe_at = _match_known_name_at(
                 command_lower, _game_state_dict(game_state, "enemies").keys(),
                 allow_last_name=True)
+            if _foe is not None and action in _A_PROVINCE_NAMED_FIRST_LEADS:
+                # T0-C (CMDFEEL-4): a province named EARLIER than the
+                # commander is the destination; the man is context.
+                _place, _place_at = _match_known_name_at(
+                    command_lower, _game_state_dict(game_state, "map_data").keys())
+                if _place is not None and 0 <= _place_at < _foe_at:
+                    from backend.ai import parse_trace as _ptrace
+                    _ptrace.note("mock_chain", "province_named_first_leads", _foe, _place)
+                    _foe = None
+                    target = _place
+            if target is None:
+                target = _foe
             if target is None:
                 target = _match_known_name(
                     command_lower, _game_state_dict(game_state, "map_data").keys())

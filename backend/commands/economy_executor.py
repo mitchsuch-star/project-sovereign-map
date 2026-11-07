@@ -16,6 +16,7 @@ from backend.models.world_state import (
     LEVY_MORALE_BASE, LEVY_MORALE_PREMIUM, LEVY_MAX_BATCH, severe_band_threshold,
 )
 from backend.display_names import marshal_title, plural  # SF5-X3: the ONE style for a marshal in prose
+from backend.ai.clause_guards import HONORIFIC as _HONORIFIC  # T0-C: the one spelling of the honorific
 from backend.errors import report
 
 
@@ -829,6 +830,49 @@ def recruit_arm_remedy(world, nation: str, arm: str,
                    f"waits on the bench.")
 
 
+_LEVY_RECIPIENT_RE = re.compile(
+    r"\b(?:for|to)\s+(?:" + _HONORIFIC + r")?(?P<name>[A-Za-z][A-Za-z'’-]+)")
+_LEVY_NOT_A_RECIPIENT = frozenset({
+    "infantry", "cavalry", "artillery", "guns", "horse", "foot", "men", "troops",
+    "recruits", "conscripts", "levy", "levies", "reinforcements", "strength",
+    "full", "war", "battle", "campaign", "front", "army", "corps", "guard",
+})
+
+
+def unbound_levy_recipient(world, raw_text: str) -> Optional[Dict]:
+    """T0-C (CMDFEEL-10, GR-29): the recipient a levy NAMES that the roster
+    cannot bind — "recruit for Marmont" with Marmont on the bench, "recruit
+    for Zorblax" with no such man. ``{"name", "on_the_bench"}`` or None: a
+    roster name (the parser bound him), a province, a court, an arm word or a
+    closed-class word is never read as one; a name the bench holds is read
+    whatever its case, any other only when the player capitalised it (so
+    "recruit for the campaign" falls through untouched)."""
+    if world is None or not raw_text:
+        return None
+    from backend.ai import clause_guards as _cg
+    from backend.ai.llm_client import name_match_patterns
+    from backend.ai.nation_names import resolve_typed_nation
+    from backend.game_logic.recruitment import find_candidate
+    roster_forms = set()
+    for name in (getattr(world, "marshals", None) or {}):
+        roster_forms.add(str(name).lower())
+        roster_forms.update(p.lower() for p in name_match_patterns(str(name)))
+    for m in _LEVY_RECIPIENT_RE.finditer(raw_text):
+        # "for Davout's corps" names Davout — the possessive is not the name
+        token = re.sub(r"['’]s$", "", m.group("name"))
+        low = token.lower()
+        if low in _LEVY_NOT_A_RECIPIENT or low in _cg._NOT_A_NAME or low in roster_forms:
+            continue
+        if world.get_region(token) is not None or resolve_typed_nation(token, world):
+            continue
+        candidate = find_candidate(world, world.player_nation, token)
+        if candidate:
+            return {"name": str(candidate.get("name") or token), "on_the_bench": True}
+        if token[:1].isupper():
+            return {"name": token, "on_the_bench": False}
+    return None
+
+
 def named_arm_refusal(world, marshal, arm: str) -> str:
     """DDB-R5 (Pre-Deploy S13b part 3; `DESIGN_REFINEMENT.md` DDB-D5 — REFUSE
     AT NO COST, NAMING BOTH ROADS, CN-2's own pre-stated branch): a named
@@ -1635,6 +1679,36 @@ class EconomyExecutor:
                 command, world, location_specified, raw_text,
                 lambda cmd: self._execute_recruit(
                     cmd, game_state, raw_text=raw_text))
+
+        # T0-C (CMDFEEL-10, GR-29): "recruit for Marmont" — a recipient the
+        # roster cannot bind was dropped in silence and the reply blamed range
+        # ("No marshal is available to receive reinforcements … Ney (out of
+        # range …)"), six times in one campaign. The name typed is answered:
+        # a man on the bench by the commission he needs (CX-R1's voice), an
+        # unknown name by the roster's own question. Nothing spent.
+        if not marshal_specified and world.player_nation and raw_text:
+            _named = unbound_levy_recipient(world, raw_text)
+            if _named is not None:
+                from backend.ai import parse_trace as _ptrace
+                _ptrace.decide("executor", "levy_recipient_unbound", _named)
+                if _named["on_the_bench"]:
+                    return {
+                        "success": False,
+                        "message": (
+                            f"{_named['name']} is not in your order of battle, Sire — "
+                            f"he waits on the bench. Commission him first "
+                            f"('commission {_named['name']}'), and the levy can go to "
+                            f"him. Nothing spent."),
+                        "remedy_command": f"commission {_named['name']}",
+                        "variable_action_cost": 0,
+                    }
+                return {
+                    "success": False,
+                    "message": (f"There is no '{_named['name']}' in the order of battle, "
+                                f"Sire. Whom did you intend?"),
+                    "kind": "marshal_not_found",
+                    "variable_action_cost": 0,
+                }
 
         # Determine which marshal gets the troops and where recruitment happens
         if marshal_specified:

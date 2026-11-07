@@ -8999,6 +8999,162 @@
       },
       "source": "VP-1 \"The Emperor's Designs\" (docs/VP1_DESIGNS_SPEC.md §5, S14b part 3) — new-action corpus coverage (checklist step 12).",
       "notes": "The Laws' parse; the executor answers it with the Act and its road-page row (never 'no such law') — tests/test_vp1_the_decisive_peace.py pins the answer."
+    },
+    {
+      "id": "t0c-ride-for-swabia-and-find-macks-flank",
+      "utterance": "Murat, ride for Swabia and find Mack's flank.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Murat",
+        "action": "move",
+        "target": "Swabia"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-4: a commander in the purpose clause never overrides a province named earlier (the ladder read commanders first and answered 'Mack is a commander, not a province')."
+    },
+    {
+      "id": "t0c-send-patrols-into-tyrol-and-report-johns-strength",
+      "utterance": "Massena, send patrols into Tyrol and report John's strength.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Massena",
+        "action": "scout",
+        "target": "Tyrol"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-4, the scout shape."
+    },
+    {
+      "id": "t0c-scout-the-man-named-first-keeps-the-slot",
+      "utterance": "Murat, scout Mack at Swabia",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Murat",
+        "action": "scout",
+        "target": "Mack"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-4's control: a commander named BEFORE the province keeps the slot, as before (the executor answers him as a man, not a province)."
+    },
+    {
+      "id": "t0c-probe-is-the-scout",
+      "utterance": "Massena, probe Piedmont for any Austrian movement.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Massena",
+        "action": "scout",
+        "target": "Piedmont"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-15: the blind sets' word for a reconnaissance (it shrugged)."
+    },
+    {
+      "id": "t0c-appoint-is-the-commission",
+      "utterance": "appoint Mortier",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "action": "recruit_marshal",
+        "target": "Mortier"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-15: the bare verb (the branch had required the word 'marshal' after it)."
+    },
+    {
+      "id": "t0c-a-defensive-position-in-a-place",
+      "utterance": "Napoleon, take up a defensive position in Lorraine",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Napoleon",
+        "action": "stance_change",
+        "target": "Lorraine",
+        "target_stance": "defensive"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-2: the place rides the parse; the executor's exit predicate refuses it by name when he stands elsewhere, else discloses it."
+    },
+    {
+      "id": "t0c-the-emperors-corps-in-subject-position",
+      "utterance": "The Emperor's corps will move to Orleanais.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Napoleon",
+        "action": "move",
+        "target": "Orleanais"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-6: the possessive subject is the sovereign (it answered \"no Marshal 'Emperor's'\")."
+    },
+    {
+      "id": "t0c-the-emperor-orders-a-general-attack",
+      "utterance": "The Emperor orders a general attack on Swabia.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Napoleon",
+        "action": "attack",
+        "target": "Swabia"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-6: the narration verb, the order after it carrying an order verb."
+    },
+    {
+      "id": "t0c-march-the-marshal-with-a-tail",
+      "utterance": "March Bernadotte to Dresden and let the Elector see French bayonets.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Bernadotte",
+        "action": "move",
+        "target": "Dresden"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-5: the send-marshal rewrite carries a clause after the destination (it asked 'Which marshal shall march to Bernadotte?')."
+    },
+    {
+      "id": "t0c-hold-ney-is-neys-hold",
+      "utterance": "hold ney",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Ney",
+        "action": "hold",
+        "strategic_type": "HOLD"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-5: a HOLD whose object is the man himself is his in-place hold (it asked 'Which marshal shall hold Ney?')."
+    },
+    {
+      "id": "t0c-bring-the-army-to-piedmont-and-hold-the-passes",
+      "utterance": "Massena, bring the Army of Italy to Piedmont and hold the passes.",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Massena",
+        "target": "Piedmont",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-7: a march with an arrival hold — the terrain noun is the ground he arrives on, never the phantom province 'Passes' (refused \"Did you mean 'Posen' or 'Paris'?\")."
+    },
+    {
+      "id": "t0c-march-to-here-and-attack-parses-as-the-march",
+      "utterance": "Lannes, march to Paris, then attack Mack",
+      "world": "1805",
+      "expected": {
+        "success": true,
+        "marshal": "Lannes",
+        "target": "Paris",
+        "strategic_type": "MOVE_TO"
+      },
+      "source": "T0-C \"the command road's silences\" (November 6, 2026; GAME_REVIEW_2026_11_06.md §4.1, BUG_FIXES.md §GR GR-21 … GR-32; tests/test_t0c_the_command_roads_silences.py)",
+      "notes": "CMDFEEL-1's parse (unchanged); the executor's reply now names the second leg, and the null march (to the province he stands in) is refused free."
     }
   ]
 }

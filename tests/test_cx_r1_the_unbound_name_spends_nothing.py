@@ -372,13 +372,22 @@ class TestTheVerbSetIsDerived:
         assert CG.address_of(f"Zorglub {word} Swabia", _ROSTER) == "Zorglub"
 
     @pytest.mark.parametrize("word", [
-        "sortie", "sally", "regroup", "probe", "levy", "watch"])
+        "sortie", "sally", "regroup", "levy", "watch"])
     def test_the_hand_list_words_the_harvest_dropped_route_nowhere(
             self, board, word):
         """The hand list carried words the parser does not route; a word
-        the router cannot act on cannot spend anything."""
+        the router cannot act on cannot spend anything. ("probe" left this
+        list on November 6, 2026 — T0-C, CMDFEEL-15: the blind sets' word
+        for a reconnaissance routes to the scout now, and the harvest
+        carries it.)"""
         parsed = M.parser.llm.fast_parse(f"{word} Swabia")
         assert parsed.action == "unknown", (word, parsed.action)
+
+    def test_probe_joined_the_harvest(self, board):
+        """T0-C (CMDFEEL-15, GR-32): "probe Swabia" is the scout, and the
+        addressee rule learned the word from the router (the census above)."""
+        assert M.parser.llm.fast_parse("probe Swabia").action == "scout"
+        assert "probe" in ROUTED_ORDER_WORDS
 
     def test_a_substring_keyword_still_reads_its_longer_forms(self, board):
         """`"recon" in command_lower` reads "reconnoitre" — the five-letter

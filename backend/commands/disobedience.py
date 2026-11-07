@@ -59,6 +59,22 @@ THE_ALTERNATIVE_IS_A_FOE_AT_WAR = True
 THE_OBJECTION_OFFERS_A_MAN_WE_HAVE_SEEN = True
 
 
+def field_is_barred(world, marshal, place, enemy) -> bool:
+    """T0-C (CMDFEEL-3, GR-23): the executor's own peace-soil rule, asked of an
+    alternative BEFORE it is offered — `combat_executor.field_on_peace_soil`,
+    the predicate behind "no corps of ours may take the field there" (the
+    player's lead only; the AI keeps PT-F1). The objection's Trust arm
+    promised "he will attack Kutuzov at Carniola" on a board at peace with
+    Austria, where the same attack typed was refused: the alternative builder
+    read only the war with the man, never the soil he stood on. True = the
+    attack on `enemy` at `place` would be refused."""
+    if world is None or not place or enemy is None:
+        return False
+    from backend.commands.combat_executor import field_on_peace_soil
+    return field_on_peace_soil(None, marshal, place, world,
+                               enemy_nation=getattr(enemy, "nation", None)) is not None
+
+
 def get_enemies_in_range(marshal, game_state) -> List:
     """Get all enemy marshals within this marshal's attack range."""
     if game_state is None:
@@ -81,6 +97,11 @@ def get_enemies_in_range(marshal, game_state) -> List:
             if is_at_war is not None and not is_at_war(marshal.nation, enemy.nation):
                 continue
             if visible_names is not None and enemy.name not in visible_names:
+                continue
+            # T0-C (CMDFEEL-3): a man standing on peace soil is no offer —
+            # the attack typed would be refused on the same board.
+            if (visible_names is not None and hasattr(game_state, "get_region")
+                    and field_is_barred(game_state, marshal, enemy.location, enemy)):
                 continue
         distance = game_state.get_distance(marshal.location, enemy.location)
         if distance <= movement_range:
@@ -319,6 +340,11 @@ def _can_execute_suggestion(marshal, action_dict, game_state) -> bool:
         if not enemy or enemy.strength <= 0:
             return False
         if getattr(marshal, 'fortified', False):
+            return False
+        # T0-C (CMDFEEL-3, GR-23): the executor's permission — a field on
+        # soil we are at peace with is refused there, so it is no suggestion.
+        if (hasattr(world, "get_region")
+                and field_is_barred(world, marshal, getattr(enemy, "location", None), enemy)):
             return False
         return True
 
@@ -2665,6 +2691,10 @@ def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
             believed = pursue_known_location(world, marshal, m)
             if not believed:
                 continue
+            # T0-C (CMDFEEL-3): a man believed to stand on peace soil is
+            # no offer — the attack would be refused there.
+            if field_is_barred(world, marshal, believed, m):
+                continue
             candidates.append((m, believed))
         candidates.sort(key=lambda pair: pair[0].name)
         # 1. Attack an adjacent enemy the navy lets us reach.
@@ -2686,6 +2716,9 @@ def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
         if region:
             for adj_name in region.adjacent_regions:
                 enemies = world.get_enemies_in_region(adj_name, marshal.nation)
+                # T0-C (CMDFEEL-3): never a field the executor refuses.
+                enemies = [e for e in enemies
+                           if not field_is_barred(world, marshal, adj_name, e)]
                 if enemies:
                     return {"action": "attack", "target": enemies[0].name}
 

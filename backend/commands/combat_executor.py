@@ -998,12 +998,69 @@ def field_on_peace_soil(executor, marshal, enemy_location, world, enemy_nation=N
     if (not enemy_location or enemy_location == marshal.location
             or getattr(marshal, "artillery", False)):
         return None
-    block = executor._pursuit_capture_guard(marshal, enemy_location, world)
+    # T0-C (CMDFEEL-3, GR-23): the objection's alternative builder asks this
+    # same predicate with no executor in hand — the guard is the module-level
+    # `pursuit_capture_block`, the method its delegate.
+    block = (executor._pursuit_capture_guard(marshal, enemy_location, world)
+             if executor is not None
+             else pursuit_capture_block(marshal, enemy_location, world))
     if block is not None and block.get("arm") == "neutral":
         if enemy_nation and block.get("owner") == enemy_nation:
             return None
         return block
     return None
+
+
+def pursuit_capture_block(marshal, region_name: str, world) -> Optional[dict]:
+    """PT-F1's frontier guard, module-level (T0-C): the body of
+    `CombatExecutor._pursuit_capture_guard`, which delegates here so a caller
+    without an executor — the objection's alternative builder
+    (`disobedience.get_enemies_in_range`) — reads the ONE predicate behind
+    "no corps of ours may take the field there". None when the capture may
+    proceed, else ``{"arm": "ally"|"neutral", "owner", "message"}``."""
+    region = world.get_region(region_name)
+    owner = getattr(region, "controller", None) if region else None
+    if not owner or owner == marshal.nation:
+        return None
+    if world.is_at_war(marshal.nation, owner):
+        return None
+    if not world.can_attack_nation(marshal.nation, owner):
+        rel = ("vassal" if world.get_diplomatic_state(
+            marshal.nation, owner) == "VASSAL" else "ally")
+        return {
+            "arm": "ally",
+            "owner": owner,
+            "message": (
+                f" {region_name} remains {owner}'s soil — we drove the "
+                f"enemy from our {rel}'s province; it is not ours to take."),
+        }
+    return {
+        "arm": "neutral",
+        "owner": owner,
+        "message": (
+            f" {region_name} is {owner}'s soil, and we are not at war "
+            f"with {owner}. {marshal.name} halts at the edge of conquest."),
+    }
+
+
+def war_purpose_bar(world, attacker_nation: str, target_nation: str) -> str:
+    """T0-C (CMDFEEL-9, GR-28): the sentence that bars a declaration of war on
+    `target_nation` today — the pair cooldown's own words (`pair_cooldown_words`:
+    a settlement's fresh-peace floor, a truce's cooldown, an armistice that
+    holds), the reading the declaration flow refuses on
+    (`diplomatic_executor`, "§4e") — or '' when nothing bars it. Read BEFORE
+    a War Purpose card is staged, so an attack the declaration would refuse
+    is refused once, here, naming the turns left, instead of two modal cards
+    and a refusal after the player has chosen a purpose."""
+    if world is None or not attacker_nation or not target_nation:
+        return ""
+    if attacker_nation == target_nation:
+        return ""
+    from backend.game_logic.diplomacy import pair_cooldown_words
+    words = pair_cooldown_words(world, attacker_nation, target_nation)
+    if int(words.get("turns") or 0) <= 0:
+        return ""
+    return str(words.get("display") or "")
 
 
 def peace_soil_refusal(marshal, enemy_marshal, block) -> dict:
@@ -7885,6 +7942,18 @@ class CombatExecutor:
 
         def _stage_war_purpose_for_attack(target_nation: str) -> Dict:
             """Stage WPS-A purpose selection instead of auto-declaring by attack."""
+            # T0-C (CMDFEEL-9, GR-28): the bar the declaration would refuse
+            # on is read first — one free refusal naming the turns left,
+            # never a purpose card the answer cannot honour.
+            _bar = war_purpose_bar(ctx.world, ctx.marshal.nation, target_nation)
+            if _bar:
+                return {
+                    "success": False,
+                    "message": (f"{ctx.marshal.name} cannot attack — "
+                                f"{_bar[0].lower()}{_bar[1:]} Nothing spent."),
+                    "war_purpose_barred": target_nation,
+                    "variable_action_cost": 0,
+                }
             popup = self._stage_war_purpose_selection(
                 ctx.world, ctx.marshal.nation, target_nation)
             return {
@@ -9801,12 +9870,10 @@ class CombatExecutor:
                     if (ctx.pursuit_block["arm"] == "neutral"
                             and ctx.marshal.nation == ctx.world.player_nation
                             and not _attack_is_unordered(ctx.command)):
-                        ctx.staged_war_purpose = self._stage_war_purpose_selection(
-                            ctx.world, ctx.marshal.nation, ctx.pursuit_block["owner"])
-                        ctx.conquest_msg = (
-                            f" To seize {ctx.battle_region_name} is to make war on "
-                            f"{ctx.pursuit_block['owner']} — choose our purpose, "
-                            f"or let the province stand.")
+                        # T0-C (CMDFEEL-9): no card while a bar stands.
+                        ctx.staged_war_purpose, ctx.conquest_msg = self._stage_or_bar_war_purpose(
+                            ctx.world, ctx.marshal.nation, ctx.pursuit_block,
+                            ctx.battle_region_name)
                 elif not ctx.remaining_defenders:
                     _bomb_region = ctx.world.get_region(ctx.battle_region_name)
                     _bomb_from = getattr(_bomb_region, "controller", "") or ""
@@ -11201,12 +11268,10 @@ class CombatExecutor:
                         and ctx.marshal.nation == ctx.world.player_nation
                         and can_advance and ctx.marshal.strength > 0
                         and not _attack_is_unordered(ctx.command)):
-                    ctx.staged_war_purpose = self._stage_war_purpose_selection(
-                        ctx.world, ctx.marshal.nation, ctx.pursuit_block["owner"])
-                    ctx.conquest_msg += (
-                        f" To seize it is to make war on "
-                        f"{ctx.pursuit_block['owner']} — choose our purpose, "
-                        f"or let the province stand.")
+                    # T0-C (CMDFEEL-9): no card while a bar stands.
+                    ctx.staged_war_purpose, _clause = self._stage_or_bar_war_purpose(
+                        ctx.world, ctx.marshal.nation, ctx.pursuit_block)
+                    ctx.conquest_msg += _clause
             # RS-3: the garrison still fights — the province is not taken by
             # a field win (the works line already printed if the victor was
             # halted outside; a co-located victor hears it here).
@@ -12710,12 +12775,10 @@ class CombatExecutor:
                     if (pursuit_block["arm"] == "neutral"
                             and marshal.nation == world.player_nation
                             and not (_attack_is_unordered(command))):
-                        staged_war_purpose = self._stage_war_purpose_selection(
-                            world, marshal.nation, pursuit_block["owner"])
-                        conquest_msg += (
-                            f" To seize it is to make war on "
-                            f"{pursuit_block['owner']} — choose our purpose, "
-                            f"or let the province stand.")
+                        # T0-C (CMDFEEL-9): no card while a bar stands.
+                        staged_war_purpose, _clause = self._stage_or_bar_war_purpose(
+                            world, marshal.nation, pursuit_block)
+                        conquest_msg += _clause
                 elif not remaining_defenders and works_halt_line(world, marshal, target_region):
                     # RS-3: the garrison still fights — the field is won,
                     # the province is not (a co-located charge never moved,
@@ -13008,6 +13071,25 @@ class CombatExecutor:
         result["awaiting_diplomatic_response"] = True
         return result
 
+    def _stage_or_bar_war_purpose(self, world, attacker_nation: str, pursuit_block: dict,
+                                  region_name: str = "") -> tuple:
+        """T0-C (CMDFEEL-9, GR-28): the three pursuit-capture sites' one answer
+        at the edge of conquest. Under a bar (`war_purpose_bar`: a settlement's
+        fresh-peace floor, a truce's cooldown, an armistice) no card is staged
+        and the clause says why the province stands; otherwise the War Purpose
+        card is staged and the clause asks the purpose. Returns
+        ``(staged_popup_or_None, clause)`` — the clause with its leading
+        space, as the sites append it."""
+        owner = pursuit_block["owner"]
+        what = f"To seize {region_name}" if region_name else "To seize it"
+        bar = war_purpose_bar(world, attacker_nation, owner)
+        if bar:
+            return None, (f" {what} is to make war on {owner} — and "
+                          f"{bar[0].lower()}{bar[1:]} The province stands.")
+        staged = self._stage_war_purpose_selection(world, attacker_nation, owner)
+        return staged, (f" {what} is to make war on {owner} — choose our purpose, "
+                        f"or let the province stand.")
+
     def _stage_war_purpose_selection(self, world, attacker_nation: str,
                                      target_nation: str) -> dict:
         """Push the WPS-A war-purpose selection dialogue (the pin-15
@@ -13060,29 +13142,7 @@ class CombatExecutor:
         on a peaceful court's soil is the movement rule this mirrors);
         the ally arm advances but never transfers — pursuit is not conquest.
         """
-        region = world.get_region(region_name)
-        owner = getattr(region, "controller", None) if region else None
-        if not owner or owner == marshal.nation:
-            return None
-        if world.is_at_war(marshal.nation, owner):
-            return None
-        if not world.can_attack_nation(marshal.nation, owner):
-            rel = ("vassal" if world.get_diplomatic_state(
-                marshal.nation, owner) == "VASSAL" else "ally")
-            return {
-                "arm": "ally",
-                "owner": owner,
-                "message": (
-                    f" {region_name} remains {owner}'s soil — we drove the "
-                    f"enemy from our {rel}'s province; it is not ours to take."),
-            }
-        return {
-            "arm": "neutral",
-            "owner": owner,
-            "message": (
-                f" {region_name} is {owner}'s soil, and we are not at war "
-                f"with {owner}. {marshal.name} halts at the edge of conquest."),
-        }
+        return pursuit_capture_block(marshal, region_name, world)
 
     def _get_ai_capture_choice(self, marshal, region, world) -> str:
         """AI decides plunder vs secure based on personality.

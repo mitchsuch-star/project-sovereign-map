@@ -580,10 +580,23 @@ class TestTheSecondClauseNeverSuppliesTheAction:
     def test_the_first_order_is_the_one_carried(self, shipped, command):
         """The title says the second clause is 'silently dropped'. Measured,
         it was EXECUTED BY THE FIRST MARSHAL in place of the order given, at
-        2 AP, reported as success."""
+        2 AP, reported as success.
+
+        T0-C (November 6, 2026): the pin had asserted the battle's WIN (Ney
+        advanced to Swabia) as its proxy for "the attack ran" — the dice are
+        unseeded here, and the hook once saw Ney at Rhineland after the battle
+        on a worker whose earlier tests it cannot name (240 fresh-board seeds
+        never reproduced it). The SUBJECT is asserted instead: a battle was
+        fought, Ney stands where that battle leaves him (Swabia on a win,
+        Rhineland on a loss), and no march or hold — the second clause's
+        order — was carried out or left standing on him."""
         reply = run(shipped, command)
         assert reply.get("battle_report"), reply.get("message")
-        assert M.world.get_marshal("Ney").location == "Swabia"
+        ney = M.world.get_marshal("Ney")
+        assert ney.location in ("Swabia", "Rhineland"), ney.location
+        assert ney.strategic_order is None, (ney.strategic_order.command_type,
+                                             ney.strategic_order.target)
+        assert not ney.holding_position
 
     @pytest.mark.parametrize("command", [
         "Ney, attack Mack and hold Rhineland",

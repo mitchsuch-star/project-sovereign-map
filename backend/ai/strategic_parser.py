@@ -1182,7 +1182,16 @@ ARRIVAL_CARRYING_TYPES = frozenset({"MOVE_TO", "PURSUE"})
 # only: a pursuit arrives at a man, not a place. Read at the END of the line,
 # so a third clause behind the verb is still split and reported.
 ARRIVAL_VERBS = ("fortify", "hold", "drill", "defend")
-_ARRIVAL_VERB_TAIL = r'(?P<verb>' + "|".join(ARRIVAL_VERBS) + r')\b(?:\s+(?:it|there|the\s+(?:place|province|ground|town|city|position)))?'
+# T0-C (CMDFEEL-7, GR-27): "… and hold the passes" / "then fortify the
+# heights" — a terrain noun the map does not draw (`UNMAPPED_TERRAIN_NOUNS`)
+# is the ground he arrives on, not a province of its own; the tail fuses
+# onto the march as its arrival verb instead of standing a HOLD on the
+# phantom province "Passes" (refused "Did you mean 'Posen' or 'Paris'?").
+_ARRIVAL_VERB_OBJECTS = (r'place|province|ground|town|city|position|'
+                         + "|".join(sorted(UNMAPPED_TERRAIN_NOUNS, key=len, reverse=True)))
+_ARRIVAL_VERB_TAIL = (r'(?P<verb>' + "|".join(ARRIVAL_VERBS) + r')\b'
+                      r'(?:\s+(?:it|there|(?:the|these|those|its|our)\s+(?:(?:mountain|river|high|low)\s+)?(?:'
+                      + _ARRIVAL_VERB_OBJECTS + r')))?')
 _ARRIVAL_VERB_HINT_RE = re.compile(
     r'(?:\b(?:and\s+)?then\b|\band\b|;|,)\s*' + _ARRIVAL_VERB_TAIL + r'\s*[.!]?\s*$',
     re.IGNORECASE)

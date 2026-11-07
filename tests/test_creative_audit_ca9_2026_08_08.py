@@ -181,13 +181,21 @@ class TestF6WarPurposeIsDelivered:
 
         src = inspect.getsource(ce)
         staged = src.count("self._stage_war_purpose_selection(")
+        barred = src.count("self._stage_or_bar_war_purpose(")
         attached = src.count("_attach_staged_war_purpose(")
-        # 4 staging sites; the helper is defined once and called 4 times
-        # (3 battle-advance returns + the auto-kill probe's own path),
-        # and `_stage_war_purpose_for_attack` inlines the same three keys.
-        assert staged == 4, (
-            f"{staged} war-purpose staging sites found, expected 4 — a new "
-            f"one was added; wire it through _attach_staged_war_purpose")
+        # T0-C (CMDFEEL-9, November 6, 2026): the three battle-advance sites
+        # stage through ONE helper, `_stage_or_bar_war_purpose`, which reads
+        # the fresh-peace bar first and stages the card only when nothing bars
+        # the declaration — so the card is staged from exactly two places
+        # (the attack site and that helper) and the three sites call the
+        # helper; the delivery helper is still called 4 times (3 battle-advance
+        # returns + the auto-kill probe's own path).
+        assert staged == 2, (
+            f"{staged} direct war-purpose staging sites found, expected 2 — a new "
+            f"one was added; route it through _stage_or_bar_war_purpose and wire "
+            f"it through _attach_staged_war_purpose")
+        assert barred == 3, (
+            f"{barred} battle-advance sites route through _stage_or_bar_war_purpose, expected 3")
         assert attached >= 4, (
             "a staging site is not paired with a delivery")
 

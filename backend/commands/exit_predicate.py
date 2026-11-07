@@ -45,12 +45,18 @@ from backend.display_names import humanize_entity_name as _h
 # (`garrison` has its own named refusal with the road — CX-R2 — and is not here.)
 STATIONARY_ARMS = frozenset({
     "drill", "fortify", "defend", "wait", "form_square", "unfortify",
+    # T0-C (CMDFEEL-2, GR-22): the stance verb with a place — "take up a
+    # defensive position in Lorraine" shifted the stance where he stood and
+    # the province vanished in silence, while "defend Lorraine" refused by
+    # name. The unswept sibling of SFR-D7's arms (Rule 10).
+    "stance_change",
 })
 
 _ARM_WORD = {
     "drill": "a drill is held", "fortify": "the works are dug", "defend": "a defence is stood",
     "wait": "a wait is kept", "form_square": "a square is formed",
     "unfortify": "the works are struck", "garrison": "a garrison is left",
+    "stance_change": "a stance is taken",
 }
 _ARM_VERB = {
     "drill": "drill", "fortify": "fortify", "defend": "defend", "wait": "wait",
@@ -84,6 +90,9 @@ def place_pre_check(command: Dict[str, Any], action: str, world) -> Optional[Dic
             or command.get("strategic_type")):
         return None
     target = command.get("target")
+    if action == "stance_change" and not command.get("target_stance"):
+        # the stance itself rides `target` ("Ney, aggressive") — no place named
+        return None
     place = _region_key(world, target)
     if place is None:
         return None
@@ -97,12 +106,17 @@ def place_pre_check(command: Dict[str, Any], action: str, world) -> Optional[Dic
     if not here or here == place:
         return None
     verb = _ARM_VERB.get(action, action)
+    if action == "stance_change":
+        stance = str(command.get("target_stance") or "").strip().lower()
+        remedy = f"'{marshal.name}, {stance} stance' to take it at {_h(here)}"
+    else:
+        remedy = f"'{marshal.name}, {verb}' to {verb} at {_h(here)}"
     return {
         "success": False,
         "message": (
             f"{marshal.name} stands at {_h(here)}, not {_h(place)}, Sire — {_ARM_WORD.get(action, 'the order is carried out')} "
             f"where the corps stands. Order '{marshal.name}, move to {_h(place)}' first, or "
-            f"'{marshal.name}, {verb}' to {verb} at {_h(here)}. Nothing has been relayed."),
+            f"{remedy}. Nothing has been relayed."),
         "free_action": True,
         "refusal": "place_mismatch",
         "named_place": place,

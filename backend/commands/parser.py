@@ -184,7 +184,14 @@ _ARRIVAL_TAIL_RE = levered_arrival_pattern(
 # preposition promote too — "ride to Swabia and attack Mack" was a tactical
 # move refused at the enemy's door with its tail dropped.
 _TACTICAL_MOVE_HEAD_RE = re.compile(
-    r'\b(?:move|go|ride|head|proceed|travel|push|advance)\s+(?:to|for|toward|towards)\b',
+    r'\b(?:move|go|ride|head|proceed|travel|push|advance)\s+(?:to|for|toward|towards)\b'
+    # T0-C (CMDFEEL-7, GR-27): the men as the object — "bring the Army of
+    # Italy to Piedmont and hold the passes" is a march with an arrival
+    # verb; the whole object phrase is what "march to" replaces.
+    r'|\b(?:bring|take|lead|send|get|shift|transfer)\s+(?:(?:the|your|his|our|my)\s+)?'
+    r'(?:(?:whole|entire|grande)\s+)?'
+    r'(?:arm[eé]e|army|corps|men|troops|column|division|horse|cavalry|guard|guns|infantry)'
+    r'(?:\s+of\s+[A-Za-z]+)?\s+(?:up\s+|down\s+|over\s+|across\s+|back\s+)?(?:to|for|toward|towards)\b',
     re.IGNORECASE)
 
 
@@ -718,6 +725,25 @@ _SOVEREIGN_EMPEROR_LEAD_RE = re.compile(
     r"^\s*the\s+emperor\s+" + _SOVEREIGN_MODALS
     + r"(?=(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s)?\b)",
     re.IGNORECASE)
+# T0-C (CMDFEEL-6, GR-26): the SUBJECT forms. The possessive — "the
+# Emperor's corps will move to Orleanais" — consumes the men and the modal
+# and gates on the same verb set as the lead arm; the narration verb — "the
+# Emperor orders a general attack on Swabia" — consumes the verb and the
+# article, and the function gates the rest on an order verb (so "the Emperor
+# orders his dinner" passes untouched). "the Emperor orders Ney to attack
+# Mack" is the tell idiom ("order Ney to attack Mack") and is handed to it.
+_SOVEREIGN_EMPEROR_POSSESSIVE_RE = re.compile(
+    r"^\s*the\s+emperor['’]s\s+(?:own\s+)?"
+    r"(?:corps|army|men|troops|guard|column|division|command|cavalry|horse|guns|infantry)\s+"
+    + _SOVEREIGN_MODALS
+    + r"(?=(?:" + _SOVEREIGN_ORDER_VERBS + r")(?:e?s)?\b)",
+    re.IGNORECASE)
+_SOVEREIGN_EMPEROR_ORDERS_RE = re.compile(
+    r"^\s*the\s+emperor\s+(?:orders|commands|directs|decrees|has\s+ordered|will\s+order)\s+"
+    r"(?:(?:an?|the)\s+)?",
+    re.IGNORECASE)
+_SOVEREIGN_ORDERS_A_MAN_RE = re.compile(
+    r"^\s*(?:" + HONORIFIC + r")?[A-Z][A-Za-z'’-]+\s+to\s+[a-z]", re.IGNORECASE)
 # Leading first person with a military/movement verb ONLY (gate b) —
 # "I will march to Ulm", "I'll attack Vienna", "I ride for the Rhine".
 # Diplomacy keeps its verbs (no "I offer/I propose" forms rewrite).
@@ -1262,6 +1288,23 @@ def normalize_sovereign_address(command_text: str,
     match = _SOVEREIGN_EMPEROR_LEAD_RE.match(text)
     if match:
         return f"{sovereign_name}, {text[match.end():]}"
+    # T0-C (CMDFEEL-6, GR-26): the title in SUBJECT position — "The Emperor's
+    # corps will move to Orleanais" (the possessive: his men are him), "The
+    # Emperor orders a general attack on Swabia" (the narration verb; the
+    # order after it must carry an order verb, the lead arm's own gate). Both
+    # fell through to name resolution as Marshal "Emperor's" / "Emperor".
+    match = _SOVEREIGN_EMPEROR_POSSESSIVE_RE.match(text)
+    if match:
+        return f"{sovereign_name}, {text[match.end():]}"
+    match = _SOVEREIGN_EMPEROR_ORDERS_RE.match(text)
+    if match:
+        rest = text[match.end():]
+        if _SOVEREIGN_ORDERS_A_MAN_RE.match(rest):
+            # "the Emperor orders Ney to attack Mack" — the tell idiom's own
+            # shape ("order Ney to attack Mack"), read by the parser as such.
+            return f"order {rest}"
+        if _SOVEREIGN_BODY_HAS_VERB_RE.search(rest):
+            return f"{sovereign_name}, {rest}"
     if _leading_addressed_token(text):
         # Gate (a): an address token always wins — this stays HIS order.
         # But the marker still must not survive into the destination:
@@ -3840,9 +3883,23 @@ class CommandParser:
                         # executor rejecting a self-targeted order.
                         if (strategic["target_type"] == "marshal"
                                 and result["command"].get("marshal") == strategic_target):
-                            _ptrace.note("strategic", "self_target_unbound",
-                                         result["command"].get("marshal"), None)
-                            result["command"]["marshal"] = None
+                            if strategic.get("strategic_type") == "HOLD":
+                                # T0-C (CMDFEEL-5, GR-25): "hold ney" — a HOLD
+                                # whose object is the man himself is HIS hold
+                                # where he stands, not an order to somebody to
+                                # hold a province called "Ney" ("Which marshal
+                                # shall hold Ney, Sire?").
+                                _ptrace.note("strategic", "self_hold_in_place",
+                                             strategic_target, None)
+                                result["command"]["target"] = None
+                                result["command"]["target_type"] = "generic"
+                                result["command"]["target_placed_by_the_game"] = True
+                                strategic["target"] = None
+                                strategic["target_type"] = "generic"
+                            else:
+                                _ptrace.note("strategic", "self_target_unbound",
+                                             result["command"].get("marshal"), None)
+                                result["command"]["marshal"] = None
 
                 # CR-2: tell the player the sequel clause was not relayed —
                 # design pillar: every input gets a response, nothing is

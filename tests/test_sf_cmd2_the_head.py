@@ -86,10 +86,21 @@ def order(world, name):
 
 class TestAReflexiveIsNeverAPlace:
     def test_the_emperor_marches_to_lorraine(self, shipped):
+        """The pin's subject is the reflexive: "Lorraine Myself" is never a
+        province. T0-C (CMDFEEL-1, GR-21, November 6, 2026): the Emperor
+        stands at Lorraine on the boot board, and a march to the province a
+        corps already stands in WITH an attack leg — which this pin had
+        leaned on as an empty MOVE_TO at 2 AP — is refused free now, the leg
+        handed back as the pursuit; the destination it names is Lorraine,
+        never "Lorraine Myself"."""
         client, world = shipped
+        ap = world.actions_remaining
         data = post(client, "I will march to Lorraine myself and attack Mack")
-        assert order(world, "Napoleon") == ("MOVE_TO", "Lorraine"), data.get("message")
+        assert order(world, "Napoleon") is None, data.get("message")
+        assert "Napoleon already stands at Lorraine" in str(data.get("message") or "")
+        assert "'Napoleon, pursue Mack'" in str(data.get("message") or "")
         assert "Myself" not in str(data.get("message") or "")
+        assert world.actions_remaining == ap
 
     def test_taking_the_field_himself_is_the_emperors_march(self, shipped):
         client, world = shipped

@@ -1098,6 +1098,20 @@ VASSAL_DISPATCH_TYPES = ("diplomatic_vassal_unrest",)
 # bit is appended LAST, so a lever-up row minus it IS the lever-down row.
 THE_DIGEST_SEES_THE_WEB = True
 
+# T0-C (CMDFEEL-14, GR-31) "the digest can see the marshals". The November 6
+# review's thirteen command arms carried no row with a marshal's trust,
+# relationship or vindication — the only trust figure in all of them came
+# from a typed question — so "trust that moves and matters" could not be
+# measured from a digest. With this up, every turn's LEDGER row is followed
+# by one MARSHALS row: each marshal of ours with his trust and its label, his
+# glory and ladder rank, his vindication score when one stands (and
+# `vind pending` while the tracker holds a claim), the man he envies when he
+# does, and `captured` when he is — read off `GET /marshal_overview` (the
+# Marshal Management card's own figures, player-side data, so it may go to
+# the markdown) — and the jsonl a `marshals` record. False = no row and no
+# per-turn GET: the pre-T0-C digest byte for byte.
+THE_DIGEST_SEES_THE_MARSHALS = True
+
 # GE-3 "The Congress of Paris": one CONGRESS line a turn off the Strategic
 # Ledger's `congress_clock` (the one-source `congress.state_line`) — while
 # the Congress sits, while it is cooling down, or once the gate OPENS (50
@@ -1845,6 +1859,43 @@ def _all_purses(transport):
         if not isinstance(gold, dict):
             return None
         return dict(gold)
+    except Exception:
+        return None
+
+
+_MARSHAL_STANDING_KEYS = ("trust", "label", "vindication", "pending", "glory", "rank",
+                          "jealous_of", "captured")
+
+
+def _marshal_standing(transport):
+    """T0-C (CMDFEEL-14, GR-31): the marshals as the Marshal Management card
+    shows them — one dict per marshal of ours, in the overview's order
+    (`name`, `trust`, `label`, `vindication`, `pending`, `glory`, `rank`,
+    `jealous_of`, `captured`), or None when the read fails. Read off
+    `GET /marshal_overview` (a pure read: `build_marshal_overview` drains no
+    queue and writes no world field), so it works under `--http` as well as
+    in-process. `[]` is a real answer (no marshal of ours stands), None is not."""
+    try:
+        payload = transport.get("/marshal_overview") or {}
+        cards = payload.get("marshals") if isinstance(payload, dict) else None
+        if not isinstance(cards, list):
+            return None
+        rows = []
+        for card in cards:
+            if not isinstance(card, dict) or not card.get("name"):
+                continue
+            rows.append({
+                "name": str(card.get("name")),
+                "trust": int(card.get("trust_value", 0) or 0),
+                "label": str(card.get("trust_label") or ""),
+                "vindication": int(card.get("vindication_score", 0) or 0),
+                "pending": bool(card.get("has_pending_vindication")),
+                "glory": int(card.get("glory", 0) or 0),
+                "rank": int(card.get("glory_rank", 0) or 0),
+                "jealous_of": str(card.get("jealous_of") or ""),
+                "captured": bool(card.get("captured")),
+            })
+        return rows
     except Exception:
         return None
 
@@ -2649,6 +2700,42 @@ class Digest:
             return
         self._md(f"- SPENT {spent}g on this turn's orders")
         self.record("turn_spend", spent=spent, treasury=treasury)
+
+    def marshals_line(self, standing):
+        """T0-C (CMDFEEL-14, GR-31): one MARSHALS row a turn — every marshal
+        of ours with his trust and its label, his glory and rank, his
+        vindication when it stands, the man he envies, `captured` when he is
+        — as `_marshal_standing` read them off the Marshal Management card.
+        None prints nothing (the read failed, or the lever is down); `[]`
+        prints `none`. The jsonl `marshals` record keys the same figures by
+        name, so a reader measures trust turn over turn without the markdown."""
+        if standing is None:
+            return
+        bits = []
+        record = {}
+        for row in standing:
+            if not isinstance(row, dict) or not row.get("name"):
+                continue
+            name = str(row["name"])
+            if row.get("captured"):
+                bit = f"{name} captured"
+            else:
+                bit = f"{name} trust {int(row.get('trust', 0) or 0)}"
+                if row.get("label"):
+                    bit += f" {row['label']}"
+                rank = int(row.get("rank", 0) or 0)
+                bit += f" glory {int(row.get('glory', 0) or 0)}" + (f" (#{rank})" if rank else "")
+                vind = int(row.get("vindication", 0) or 0)
+                if vind:
+                    bit += f" vind {vind:+d}"
+                if row.get("pending"):
+                    bit += " vind pending"
+                if row.get("jealous_of"):
+                    bit += f" envies {row['jealous_of']}"
+            bits.append(bit)
+            record[name] = {k: row.get(k) for k in _MARSHAL_STANDING_KEYS}
+        self._md("- MARSHALS " + (" · ".join(bits) if bits else "none"))
+        self.record("marshals", marshals=record)
 
     def ledger_line(self, treasury, net, threat, provinces=None,
                     economy=None, purses=None, army=None, vassals=None):
@@ -4457,10 +4544,48 @@ def _apply_seams(specs) -> None:
         setattr(owner, name, eval("lambda *a, **k: " + expr.strip(), {}))
 
 
+# T0-C (CMDFEEL-13, GR-30): the top-level keys this driver READS, and the
+# sidecar keys other tools read off the same script files (named, so a script
+# that carries one still runs here). Anything else is refused by name — the
+# blind `unrehearsed_*.json` census files carry an `orders` key, and run as
+# driver scripts they played ten "end turn"s that looked like a completed arm.
+# A key beginning with "_" is a note and is never read.
+SCRIPT_KEYS = frozenset({
+    "name", "seed", "llm", "scenario", "turns", "policy", "policy_at", "preconditions",
+})
+SCRIPT_SIDECAR_KEYS = frozenset({
+    "dl_lines",          # tools/score_run.py / tools/_score_probes.py (the DL walk's lines)
+    "clicks", "doors",   # tools/iq10_capture_payloads.py (the capture arm's UI walk)
+    "hold",              # tools/hold_arm_reread.py (the HOLD arm's re-read)
+})
+
+
+def unknown_script_keys(script) -> list:
+    """T0-C (CMDFEEL-13): the top-level keys of a script this driver would
+    silently ignore — sorted, '' when every key is read (or a sidecar's, or a
+    note). A script that is not an object answers `["<not an object>"]`."""
+    if not isinstance(script, dict):
+        return ["<not an object>"]
+    return sorted(str(k) for k in script
+                  if not str(k).startswith("_")
+                  and k not in SCRIPT_KEYS and k not in SCRIPT_SIDECAR_KEYS)
+
+
 def run(args):
     script = {}
     if args.script:
         script = json.loads(Path(args.script).read_text(encoding="utf-8"))
+        # T0-C (CMDFEEL-13, GR-30): a script this driver cannot read is refused
+        # by its keys, never played as empty turns.
+        _unknown = unknown_script_keys(script)
+        if _unknown:
+            print(f"[driver] {args.script}: this driver does not read the key(s) "
+                  f"{', '.join(repr(k) for k in _unknown)} and would play "
+                  f"{getattr(args, 'turns', '?')} empty turns. A driver script carries "
+                  f"its orders under 'turns' (the module docstring); a blind census file "
+                  f"('orders') runs through tools/unrehearsed_census.py. Nothing played.",
+                  file=sys.stderr)
+            return 2
     # Precedence (WO-H slice 1, learned the expensive way): an EXPLICIT CLI
     # flag beats the script's own key, which beats the built-in default. The
     # old rule — script always wins — silently ignored `--seed` (making a
@@ -4929,6 +5054,11 @@ def run(args):
                            # lever-down run makes exactly the pre-IQ-7 calls.
                            vassals=(_vassal_loyalties(transport)
                                     if THE_DIGEST_SEES_THE_WEB else None))
+        # T0-C (CMDFEEL-14): the marshals beside the chest — trust, glory,
+        # vindication, envy — off the Marshal Management card. The GET is
+        # gated too, so the lever-down run makes exactly the pre-T0-C calls.
+        digest.marshals_line(_marshal_standing(transport)
+                             if THE_DIGEST_SEES_THE_MARSHALS else None)
         # IQ-4 S4: Talleyrand's mission beside the chest — the cross-check on
         # the advisor's counts, read off the ledger the driver already holds.
         # Prints nothing while the desk is idle (every pre-IQ-4 arm).

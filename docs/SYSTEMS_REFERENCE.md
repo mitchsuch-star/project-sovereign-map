@@ -13326,3 +13326,66 @@ Three Sonnet reviewers (correctness, conventions, tests) read T0-A's commit and 
 | first-only reporting hides per-occurrence provider context | REFUTED (the typed arms still print each; the catch-all is the designed once) | — |
 | the second-assault pin can skip on the roll | REFUTED (the staging never takes the garrison on the first assault) | — |
 | missing cases for the resume (the enemy-victory path, the reload, a mixed court row) | REFUTED as a defect (a remark; the reload limit is documented) | — |
+
+## 180. T0-C — THE COMMAND ROAD'S SILENCES (Tier 0 of the November 6, 2026 whole-game review, the third slice; `PRE_DEPLOY_PLAN.md` §2 row S15-R; the rows `BUG_FIXES.md` §GR GR-21 … GR-32; one commit through the hook; the pins `tests/test_t0c_the_command_roads_silences.py`; no measured series moves — no board, deck or rule of play changed)
+
+The review's command section found the parser sound on 1,043 corpus rows and 358 typed lines, and its defects in narrow sentence shapes — the kind a blind set finds and a corpus cannot. Each row below is such a shape: what the game read or answered, the one rule that fixes it, and the pin. Every refusal here spends nothing (the CX-R1 harness's verdict is the reply AND the state delta, on a fresh 1805 board through `POST /command`). CMDFEEL-6 and CMDFEEL-7 are T0-C's own by their rows' owner line, though the brief's list named them by neither number. Measured on the review's own instrument after the slice (`tools/unrehearsed_census.py --blind`, mock, 300 orders a set): the seventh blind set reads right by hand 277 of 300 (276 at the review), the sixth 278 of 300 (277); the sixth's shrugs 4 (the review's 5) — the two `probe` lines and "berthier appoint mortier" read now, the four that remain being the trailing-addressee and colon shapes ("Fall on the Austrians at Swabia, Soult, …", "Murat: to Nivernais, …") and two lines no parser row owns ("Make a trade agreement with Holland", "Send money to the Dutch — 150"); the judge's `executed_when_refusal_meant` proxies are the same rows as before (the absurd levies, the Code of Hammurabi, the two-orders-at-once hold).
+
+### 180.1 CMDFEEL-3 — the objection's alternative passes the executor's permission (GR-23)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the defect | `disobedience.get_enemies_in_range`, `_can_execute_suggestion`, `_get_aggressive_preferred` | the Trust arm promised "he will attack Kutuzov at Carniola" on a board at peace with Austria; the same attack typed was refused — the builder read the war with the man, never the soil he stood on |
+| the fix | `disobedience.field_is_barred(world, marshal, place, enemy)` → `combat_executor.field_on_peace_soil(None, …)`; `_pursuit_capture_guard`'s body is the module-level `pursuit_capture_block`, so a caller with no executor reads the ONE predicate behind "no corps of ours may take the field there" | a man on peace soil is not in range, not a valid suggestion, not the aggressive chain's offer (his believed position is read, RS-5); the AI's lead keeps PT-F1 — the predicate answers False for a court's marshal |
+| the pins | `::TestTheAlternativePassesTheExecutorsPermission` | barred on Austrian soil, offered on Russian; the whole chain (`_generate_alternative` for a retreat) never names him; the AI untouched |
+
+### 180.2 CMDFEEL-1 — the null march with an attack leg (GR-21)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the defect | `strategic_executor._strategic_path` | S14G-4's own-province refusal stood aside for an attack leg: "Lannes, march to Franche-Comte and attack Mack" with Lannes at Franche-Comte spent 2 AP on a MOVE_TO with an EMPTY path, and no reply ever named the leg (CR-7's silence) |
+| the fix | `_null_march_with_an_attack_leg`; `_arrival_leg_clause` in the MOVE_TO reply | refused free as the plain march is, the leg handed back as the order that does it — `remedy_command` 'Lannes, pursue Mack' (the attack when the man stands in his province, the pursuit when he stands elsewhere, the plain fact when none was named; CR-7-8: offered, never sent); a real march says " On arrival he attacks Mack." / " On arrival he fortifies." — '' when the first step already fought or finished it |
+| the pins | `::TestTheNullMarchWithAnAttackLeg`; `test_sf_cmd2_the_head.py::test_the_emperor_marches_to_lorraine` re-seated | 0 AP, no order stands, the remedy; the real march's clause; the plain march carries none |
+
+### 180.3 CMDFEEL-2 — the stance verb with a place (GR-22)
+
+| Piece | Where | The rule |
+|---|---|---|
+| the defect | `exit_predicate.STATIONARY_ARMS` | "take up a defensive position in Lorraine" shifted the stance where he stood and the province vanished in silence; "defend Lorraine" refused by name — SFR-D7's unswept sibling (Rule 10) |
+| the fix | `stance_change` joins the arms ("a stance is taken where the corps stands"; the remedy "'Napoleon, defensive stance' to take it at Paris"); `tactical_executor._execute_stance_change` discloses the place he does stand in ("… DEFENSIVE stance at Lorraine") | a stance order that names the stance alone ("Ney, aggressive") names no place and is untouched |
+| the pins | `::TestTheStanceVerbWithAPlace` | disclosed where he stands; refused by name elsewhere, nothing spent, the stance unchanged; the bare stance untouched |
+
+### 180.4 CMDFEEL-4 / -5 / -6 / -7 — the parser's four readings (GR-24, GR-25, GR-26, GR-27)
+
+| Row | Where | The rule |
+|---|---|---|
+| CMDFEEL-4 | `llm_client._chain_read_target` (`_match_known_name_at`, `_A_PROVINCE_NAMED_FIRST_LEADS`) | the ladder read commanders FIRST, so "ride for Swabia and find Mack's flank" moved on "Mack" and the reply told the player to name a province he had named; on `move` and `scout` a province named EARLIER keeps the slot; a commander named first keeps his ("scout Mack at Swabia"); an attack is untouched |
+| CMDFEEL-5 | `group_orders.collective_head` (`COLLECTIVE_OBJECT_RE`, `_peel_place`, the head line), `dd0_rewrites.rewrite_send_marshal`, `parser._parse_text`'s self-target arm | the army named AFTER the verb fans out ("fortify everyone", "march everyone to Swabia"; the object form takes only the words that mean people, never the bare "all the"); the corps standing somewhere alone ("Move everybody at Rhineland to Swabia", "Everybody who is at Rhineland goes to Swabia" → "The order goes to the corps at Rhineland …"; "No corps of ours stands at Paris" free; a multi-word place read against the board's provinces); the send-marshal rewrite carries a clause after the destination ("March Bernadotte to Dresden and let the Elector see French bayonets" is Bernadotte's march); a HOLD whose object is the man himself is his hold where he stands ("hold ney") |
+| CMDFEEL-6 | `parser.normalize_sovereign_address` (`_SOVEREIGN_EMPEROR_POSSESSIVE_RE`, `_SOVEREIGN_EMPEROR_ORDERS_RE`, `_SOVEREIGN_ORDERS_A_MAN_RE`) | the title in SUBJECT position: "The Emperor's corps will move to Orleanais" → "Napoleon, move to Orleanais"; "The Emperor orders a general attack on Swabia" → his attack; "the Emperor orders Ney to attack Mack" → the tell idiom ("order Ney to …"); gated on an order verb, so "the Emperor's corps is exhausted" and "the Emperor orders his dinner" pass untouched |
+| CMDFEEL-7 | `strategic_parser._ARRIVAL_VERB_TAIL` (the terrain nouns `UNMAPPED_TERRAIN_NOUNS` as arrival objects), `parser._TACTICAL_MOVE_HEAD_RE` (the men as the object — "bring the Army of Italy to"), `strategic_executor._strategic_path` (the terrain noun read before the fuzzy pass) | "bring the Army of Italy to Piedmont and hold the passes" is a march to Piedmont with an arrival HOLD (it stood a HOLD on the phantom province "Passes", refused "Did you mean 'Posen' or 'Paris'?"); a bare "hold the passes" is answered as terrain ("The map knows no passes by that name"), never fuzzed |
+| the pins | `::TestAProvinceNamedFirstLeads`, `::TestTheArmyNamedAfterTheVerb`, `::TestTheEmperorInSubjectPosition`, `::TestTheMarchWithATerrainHold`; the twelve corpus rows `t0c-*` (CR-1) | each shape by parse and by reply; the controls (the man named first, the bare "all the guns", the remark about the Emperor, "hold Bavaria" never an arrival object) |
+
+### 180.5 CMDFEEL-9 / -10 / -15 — three small refusals and two words (GR-28, GR-29, GR-32)
+
+| Row | Where | The rule |
+|---|---|---|
+| CMDFEEL-9 | `combat_executor.war_purpose_bar` (the pair cooldown's own words, `pair_cooldown_words`: a settlement's fresh-peace floor, a truce's cooldown, an armistice that holds), `_stage_war_purpose_for_attack`, `_stage_or_bar_war_purpose` (the three pursuit-capture sites' one answer) | the bar is read BEFORE a War Purpose card is staged: one free refusal naming the turns left ("Ney cannot attack — our peace with Austria is fresh: no war may be declared on her for 4 more turns. Nothing spent."; at the edge of conquest "… — and our peace with Austria is fresh … The province stands."), never two modal cards and a refusal after the purpose was chosen |
+| CMDFEEL-10 | `economy_executor.unbound_levy_recipient` | "recruit for Marmont" names its man: a man on the bench by the commission he needs ("he waits on the bench. Commission him first ('commission Marmont') …", `remedy_command`), an unknown name by the roster's own question (CX-R1's words); a roster name, a province, a court, an arm word or a common noun ("recruit for the campaign") is never read as one |
+| CMDFEEL-15 | `llm_client` (`\bprobes?\b` → scout; the bare `\bappoint\b` → the Marshalate, the pension guard kept); `backend/ai/routed_order_words.py` regenerated (380 words: + probe, probes) | "Massena, probe Piedmont for any Austrian movement" scouts; "berthier appoint mortier" commissions; the trailing-addressee shapes ("Fall on the Austrians at Swabia, Soult, …") stay the blind sets' — no row |
+| the pins | `::TestTheWarPurposeBar`, `::TestTheLevyNamesItsMan`, `::TestProbeAndAppoint`; `test_cx_r1…::test_probe_joined_the_harvest`, `test_dd0_s4_part4…::test_a_bare_probe_is_the_scout` and `test_dd0_s5_the_register…::test_the_bare_probe_is_the_scout_now` re-seated (the hand-list pins had recorded that "probe" routed nowhere; the hook found the third) | the bar's words, the refusal free and no card, the card without the bar, the helper both ways; the bench, the unknown, the roster name and the common noun; the two words by parse and by reply |
+
+### 180.6 CMDFEEL-13 / -14 — the harness rows (GR-30, GR-31)
+
+| Row | Where | The rule |
+|---|---|---|
+| CMDFEEL-13 | `tools/playtest_driver.py` `SCRIPT_KEYS`, `SCRIPT_SIDECAR_KEYS`, `unknown_script_keys`, `run()` | a script with a top-level key the driver does not read is refused by name before anything boots (exit 2, nothing played) — the seven blind `unrehearsed_*.json` census files carry `orders` and, run as driver scripts, had played ten empty turns that looked like a completed arm; the sidecar keys other tools read off the same files (`dl_lines`, `clicks`, `doors`, `hold`) are named and pass; a key beginning with `_` is a note |
+| CMDFEEL-14 | `THE_DIGEST_SEES_THE_MARSHALS`, `_marshal_standing`, `Digest.marshals_line` | one MARSHALS row a turn after the LEDGER row — each marshal of ours with his trust and its label, his glory and rank, `vind ±N` when a vindication score stands (`vind pending` while the tracker holds a claim), `envies <Name>`, `captured` — off `GET /marshal_overview` (the Marshal Management card's own figures); the jsonl a `marshals` record keyed by name; the lever down = the pre-T0-C digest byte for byte and no per-turn GET |
+| the pins | `::TestTheDriverRefusesAnUnknownKey`, `::TestTheDigestSeesTheMarshals` | every committed driver script read and every census file refused; `run()` returns 2 naming the key; the row's words, `none` on an empty board, nothing on a failed read; the reader is the card's own figures; sited in the loop after the LEDGER line and gated |
+
+### 180.7 The hook's one finding on the slice
+
+The first hook run failed `tests/test_fa_slice1_the_two_words_2026_09_02.py::TestTheSecondClauseNeverSuppliesTheAction::test_the_first_order_is_the_one_carried[Ney, attack Mack and march to Vienna]` with Ney at Rhineland after the battle — the pin asserted the battle's WIN (Ney advanced to Swabia) as its proxy for "the attack ran", and the dice there are unseeded (`combat.py` rolls the global `random`). Alone, in its class and over 240 seeded fresh boards the battle was won every time, so the hook's board differed by something an earlier test on that worker left behind, which the `-q` log cannot name; nothing in this slice holds module state. The pin asserts its subject now — a battle fought, Ney where it leaves him, no second-clause order standing or held — and the observation stands here for the next session that meets it.
+
+### 180.8 Design rows kept for the user
+
+CMDFEEL-8 (a typo in a marshal's name gets no suggestion), CMDFEEL-11 (one objection string for four aggressive marshals; the audience's constant sentence) and CMDFEEL-12 (the repeated headline — refuted by its reproduction refuter) stay `DESIGN_REFINEMENT.md` §GRD GRD-16 … GRD-18 with their defaults.

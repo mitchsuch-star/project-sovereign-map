@@ -1031,7 +1031,15 @@ class TacticalExecutor:
             Stance.AGGRESSIVE: "+15% attack, -10% defense"
         }
 
-        message = f"{marshal.name} shifts from {old_stance.value.upper()} to {target_stance.value.upper()} stance. "
+        # T0-C (CMDFEEL-2, GR-22): a place named with the stance ("take up a
+        # defensive position in Lorraine") is where he stands — the exit
+        # predicate refused any other province by name — and the reply says so.
+        _named_place = command.get("target") if command.get("target_stance") else None
+        _at = ""
+        if (_named_place and isinstance(_named_place, str)
+                and _named_place.strip().lower() == str(marshal.location or "").strip().lower()):
+            _at = f" at {marshal.location}"
+        message = f"{marshal.name} shifts from {old_stance.value.upper()} to {target_stance.value.upper()} stance{_at}. "
         message += f"Effect: {stance_effects[target_stance]}."
 
         if action_cost == 0:

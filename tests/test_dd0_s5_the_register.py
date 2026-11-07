@@ -311,6 +311,10 @@ class TestTheParsersShareOfTheRefusals:
         assert p.get("action") == "repair" and p.get("target") == "Rhineland"
         assert "repair" in _dispatched(reply)
 
-    def test_the_bare_probe_stays_the_hand_lists(self, client):
+    def test_the_bare_probe_is_the_scout_now(self, client):
+        """This pin had recorded that "probe" stayed the hand list's — a word
+        the router did not route. T0-C (CMDFEEL-15, GR-32, November 6, 2026):
+        the blind sets' word for a reconnaissance is the scout."""
         reply = _post(client, "Massena, probe Piedmont for any Austrian movement.")
-        assert not reply.get("success") and "scout" not in _dispatched(reply)
+        assert reply.get("success") and "scout" in _dispatched(reply), reply.get("message")
+        assert _parsed(reply).get("target") == "Piedmont"

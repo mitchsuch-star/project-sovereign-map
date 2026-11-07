@@ -44,7 +44,7 @@ Nothing is held for a later turn (CR-7-8): the stash lives one question long.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.errors import report
 
@@ -88,6 +88,49 @@ _COLLECTIVE_CANCEL_RE = re.compile(
 _COLLECTIVE_ADDRESS_ONLY_RE = re.compile(
     r"^\s*" + _COLLECTIVE_PREFIX + r"(?:" + _COLLECTIVE_WHO + r")\s*[,:]?\s*$", re.IGNORECASE)
 
+# T0-C (CMDFEEL-5, GR-25): the army named AFTER the verb — "fortify everyone",
+# "march everyone to Swabia", "Move everybody at Rhineland to Swabia" — asked
+# "Which marshal shall carry out this order?" where "everyone fortify" fanned
+# out. The object form takes only the words that mean PEOPLE (never the bare
+# "all" / "all the", which is "take all the guns to Swabia"'s), optionally
+# the corps standing somewhere, then the rest of the order (a destination).
+_COLLECTIVE_OBJECT_WHO = (
+    r"everyone|everybody|every\s+(?:marshal|corps|general|commander|man)"
+    r"|all\s+of\s+(?:you|them)|all\s+(?:(?:my|the|our)\s+)?(?:marshals|corps|generals|commanders)"
+    r"|(?:the\s+)?(?:whole\s+|entire\s+)?(?:(?:grande\s+)?arm[eé]e|army)")
+# "… who is at Rhineland" / "… standing in Swabia" / "… at Rhineland": the
+# corps that stand somewhere. The place is read against the board's own
+# provinces by `collective_head` (longest first), so "East Prussia" holds.
+_COLLECTIVE_AT_LEAD = (r"(?:(?:who|that)\s+(?:is|are|stand|stands)\s+|standing\s+|posted\s+"
+                       r"|stationed\s+|camped\s+|now\s+)?(?:at|in)\s+")
+COLLECTIVE_OBJECT_RE = re.compile(
+    r"^\s*(?P<verb>[A-Za-z]+(?:\s+(?:up|down|out|back|on))?)\s+"
+    r"(?:(?:the|my|our)\s+)?(?P<who>" + _COLLECTIVE_OBJECT_WHO + r")"
+    r"(?P<tail>(?:\s+" + _COLLECTIVE_AT_LEAD + r"[A-Za-z][A-Za-z' -]*?)?"
+    r"(?:\s+(?:to|towards?|into|on|upon|for|home)\b.*)?)\s*[.!]*\s*$",
+    re.IGNORECASE)
+_COLLECTIVE_AT_RE = re.compile(r"^\s*" + _COLLECTIVE_AT_LEAD + r"(?P<rest>[A-Za-z].*)$", re.IGNORECASE)
+
+
+def _peel_place(rest: str, places) -> Tuple[Optional[str], str]:
+    """``(place, the rest after it)`` when `rest` opens with "(who is) at <a
+    province>", else ``(None, rest)``. `places` are the board's province names
+    (longest first wins); without them a one-word place is read."""
+    m = _COLLECTIVE_AT_RE.match(rest or "")
+    if not m:
+        return None, rest
+    after = m.group("rest")
+    low = after.lower()
+    for name in sorted((places or []), key=len, reverse=True):
+        key = str(name).lower()
+        if low == key or low.startswith(key + " ") or low.startswith(key + ","):
+            tail = after[len(key):].lstrip(" ,")
+            return str(name), tail
+    if not places:
+        word, _, tail = after.partition(" ")
+        return word.strip(",."), tail
+    return None, rest
+
 
 def is_collective_address(text: str) -> bool:
     """S14E-X177: the text is NOTHING BUT the words that mean the army
@@ -121,14 +164,33 @@ _THIRD_PERSON = {
 }
 
 
-def collective_head(text: str) -> Optional[Dict[str, str]]:
+def collective_head(text: str, places=None) -> Optional[Dict[str, str]]:
     """``{"who", "rest"}`` when the line addresses the army as a whole, with
     the order's words after the head normalised to the second person ("the
-    army marches on Swabia" -> "march to Swabia")."""
+    army marches on Swabia" -> "march to Swabia").
+
+    T0-C (CMDFEEL-5, GR-25): the army named after the verb ("fortify
+    everyone", "march everyone to Swabia") reads the same, the verb put back
+    at the head of `rest`; and the corps standing somewhere ("Move everybody
+    at Rhineland to Swabia", "Everybody who is at Rhineland goes to Swabia")
+    carry the place as ``"at"`` — the fan-out goes to the corps there alone.
+    `places` are the board's province names, for a multi-word place."""
+    at = None
     m = COLLECTIVE_HEAD_RE.match(text or "")
-    if not m:
-        return None
-    rest = m.group("rest").strip()
+    if m:
+        rest = m.group("rest").strip()
+        at, rest = _peel_place(rest, places)
+        if at is not None:
+            rest = rest.strip()
+            if not rest:
+                return None
+    else:
+        m = COLLECTIVE_OBJECT_RE.match(text or "")
+        if not m:
+            return None
+        tail = (m.group("tail") or "").strip()
+        at, tail = _peel_place(tail, places)
+        rest = (m.group("verb").strip() + (" " + tail.strip() if tail.strip() else "")).strip()
     words = rest.split()
     if words:
         first = words[0].lower()
@@ -136,7 +198,10 @@ def collective_head(text: str) -> Optional[Dict[str, str]]:
             words[0] = _THIRD_PERSON[first]
         rest = " ".join(words)
     rest = re.sub(r"^(march|move|advance|head)\s+(?:on|upon|for|towards?)\s+", r"\1 to ", rest, flags=re.I)
-    return {"who": m.group("who"), "rest": rest}
+    head = {"who": m.group("who"), "rest": rest}
+    if at is not None:
+        head["at"] = at
+    return head
 
 
 def question_pending(world) -> bool:
@@ -414,7 +479,9 @@ def _head_line(world, stash: Dict[str, Any], names: List[str]) -> str:
         # (each corps' cancel is the ordinary one: the price is its own).
         return (f"Every standing order is recalled, corps by corps — {n} corps, "
                 f"{total} action{'s' if total != 1 else ''} for the {have} in hand.")
-    line = (f"The order goes to the army, corps by corps — {n} corps, {total} action"
+    # T0-C (CMDFEEL-5): the corps at a named province, when the order named one.
+    whom = (f"the corps at {_display(stash['at'])}" if stash.get("at") else "the army")
+    line = (f"The order goes to {whom}, corps by corps — {n} corps, {total} action"
             f"{'s' if total != 1 else ''} for the {have} in hand: '{rest}'.")
     if stash.get("note"):
         line += " " + stash["note"]
@@ -475,7 +542,7 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
             and (is_collective_cancel(command_text) or collective_head(command_text) is not None)):
         return _collective_cancel(world, game_state, parser, executor, llm_game_state,
                                   command_text)
-    head = collective_head(command_text)
+    head = collective_head(command_text, places=list(getattr(world, "regions", {}) or {}))
     if head is None:
         return None
     action = str(command.get("action") or "")
@@ -486,6 +553,17 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
     elif action not in GROUPABLE_ACTIONS:
         return None
     field = _field_marshals(world)
+    at = head.get("at")
+    if at:
+        # T0-C (CMDFEEL-5): the corps standing at the named province alone.
+        field = [m for m in field
+                 if str(getattr(m, "location", "") or "").lower() == str(at).lower()]
+        if not field:
+            return {
+                "success": False,
+                "message": f"No corps of ours stands at {_display(at)}, Sire — nothing spent.",
+                "variable_action_cost": 0,
+            }
     if not field:
         return None
     rest = head["rest"]
@@ -511,7 +589,7 @@ def _try_collective(world, game_state, parser, executor, llm_game_state,
         "rest": rest, "action": p_action, "strategic_type": p_type, "target": target,
         "members": members, "turn": int(getattr(world, "current_turn", 0) or 0),
         "army": False, "band": None, "note": "", "lines": [], "events": [],
-        "raw": command_text,
+        "raw": command_text, "at": at or "",
     }
     army_refusal = ""
     if p_type in ARMY_STRATEGIC:

@@ -103,6 +103,17 @@ committed record a memo may cite).
 Turns not listed just end. The driver always ends the turn after a
 turn's list runs.
 
+A script carrying a top-level key the driver does not read is refused by
+name before anything boots (exit 2, nothing played) — T0-C, CMDFEEL-13,
+November 6, 2026: the blind `unrehearsed_*.json` census files carry
+`orders` and are `tools/unrehearsed_census.py`'s input, never driver
+scripts; run here they had played ten empty turns that looked like a
+completed arm. The keys the driver reads are `SCRIPT_KEYS` (`name`, `seed`,
+`llm`, `scenario`, `turns`, `policy`, `policy_at`, `preconditions`); the
+sidecar keys other tools read off the same files (`SCRIPT_SIDECAR_KEYS`:
+`dl_lines`, `clicks`, `doors`, `hold`) pass; a key beginning with `_` is a
+note.
+
 > **⚠ `turns` keys are the driver's own 1-based LOOP INDEX, not world
 > turn numbers** (PC15-H — this cost one probe run). With `--from-save`
 > the world may already be at turn 20 while the script's `"1"` fires on
@@ -720,6 +731,17 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   driver lever `THE_DIGEST_SEES_THE_WEB`). Before IQ-7 the digest showed 0 of
   67 loyalty ticks on a 40-turn commanded arm, which is how a row was filed
   on "0 vassal drama" while three satellites drifted to rebellion.
+- `MARSHALS` (T0-C, November 6, 2026) — one row a turn after `LEDGER`: every
+  marshal of ours with his trust and its label, his glory and ladder rank,
+  `vind ±N` when a vindication score stands (`vind pending` while the tracker
+  holds a claim), `envies <Name>` when he does, `captured` when he is — e.g.
+  `- MARSHALS Ney trust 40 Strained glory 12 (#1) · Murat trust 65 Loyal glory 3
+  (#4) vind +2 envies Ney` — read off `GET /marshal_overview` (the Marshal
+  Management card's own figures, player-side data); the jsonl a `marshals`
+  record keyed by name (driver lever `THE_DIGEST_SEES_THE_MARSHALS`; False =
+  the pre-T0-C digest byte for byte). Before T0-C the thirteen command arms of
+  the November 6 review carried no trust figure but one typed question's, so
+  "trust that moves and matters" could not be measured from a digest.
 - `POPUP diplomatic_dialogue: <court>, client_petition #N → grant the petition`
   (IQ-7) — a client's petition, answered by the `--client-petition
   {grant,refuse}` dial (absent → mirrors `--diplomacy`: `accept`/`first`/

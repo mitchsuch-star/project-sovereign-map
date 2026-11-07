@@ -230,11 +230,14 @@ class TestC_TheDesks:
         assert "rewrite_reward_idiom" in _rules(reply, "parser")
         assert "Reward dialog" in reply["message"]
 
-    def test_a_bare_probe_still_routes_nowhere(self, client):
-        """CX-R1's hand-list pin: "probe Swabia" is not an order."""
+    def test_a_bare_probe_is_the_scout(self, client):
+        """CX-R1's hand-list pin read "probe Swabia" as no order — the word
+        routed nowhere then. T0-C (CMDFEEL-15, GR-32, November 6, 2026): the
+        blind sets' word for a reconnaissance ("Massena, probe Piedmont for
+        any Austrian movement") is the scout now."""
         c, M = client
         _fresh(M)
-        assert M.parser.llm.fast_parse("probe Swabia").action == "unknown"
+        assert M.parser.llm.fast_parse("probe Swabia").action == "scout"
 
     @pytest.mark.parametrize("line", [
         "That is all for today, Berthier. Close the turn.",

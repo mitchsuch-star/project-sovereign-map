@@ -1613,8 +1613,14 @@ class StrategicExecutor:
                     # pass at all. It runs AFTER the phrase scan and AFTER the
                     # nation arm, so "march on Archduke John at Tyrol" and
                     # "march to Austria" keep their existing answers.
-                    typo_fix, typo_err = self._suggest_region_for_phrase(
-                        dest, ctx.world, near=getattr(ctx.marshal, "location", None))
+                    # T0-C (CMDFEEL-7, GR-27): a terrain noun the map does not
+                    # draw ("hold the passes") is answered as such, below —
+                    # never fuzzed into "Posen" or "Paris" first.
+                    _terrain_first = unmapped_terrain_noun(dest)
+                    typo_fix, typo_err = ((None, None) if _terrain_first
+                                          else self._suggest_region_for_phrase(
+                                              dest, ctx.world,
+                                              near=getattr(ctx.marshal, "location", None)))
                     if typo_fix is not None:
                         resolved = typo_fix
                     elif typo_err is not None:
@@ -1682,6 +1688,19 @@ class StrategicExecutor:
                     "message": own_province_march_refusal(ctx.marshal, dest),
                     "variable_action_cost": 0,
                 }
+            # T0-C (CMDFEEL-1, GR-21): the same march WITH an attack leg
+            # ("Lannes, march to Franche-Comte and attack Mack", Lannes at
+            # Franche-Comte) walked past the refusal above, skipped the road
+            # stage for a destination he stands in, and stood a MOVE_TO with an
+            # EMPTY path at 2 AP whose arrival attack nobody was told of. The
+            # null march is refused free as the plain one is, and the leg is
+            # handed back as the order it is — the attack (the man in his
+            # province) or the pursuit (a man elsewhere) — offered, never
+            # sent (CR-7-8's rule; `remedy_command`).
+            if (ctx.strategic_type == "MOVE_TO" and dest
+                    and dest == ctx.marshal.location
+                    and ctx.parsed_command.get("attack_on_arrival")):
+                return self._null_march_with_an_attack_leg(ctx, dest)
 
             if dest and dest != ctx.marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)
@@ -1790,6 +1809,68 @@ class StrategicExecutor:
                 if _guard is not None:
                     ctx.guard_rider = " " + march_guard_sentence(_guard)
         return _NEXT_STAGE
+
+    def _null_march_with_an_attack_leg(self, ctx: StrategicCommandContext, dest: str) -> Dict:
+        """T0-C (CMDFEEL-1, GR-21): the free refusal of a march to the province
+        the corps stands in when the sentence carried an attack leg — the
+        plain march's own sentence, then the leg named and handed back as the
+        order that does it: `attack` when the man stands in his province,
+        `pursue` when he stands elsewhere, and the plain fact when no man was
+        named and none is there."""
+        from backend.commands.strategic import own_province_march_refusal, pick_contact_enemy
+        wanted = ctx.parsed_command.get("arrival_target") or None
+        here = [e for e in ctx.world.get_enemies_in_region(ctx.marshal.location, ctx.marshal.nation)
+                if getattr(e, "strength", 0) > 0]
+        verb, target = None, None
+        if wanted and any(getattr(e, "name", None) == wanted for e in here):
+            verb, target = "attack", wanted
+        elif wanted:
+            verb, target = "pursue", wanted
+        elif here:
+            verb, target = "attack", getattr(pick_contact_enemy(None, here), "name", None)
+        message = own_province_march_refusal(ctx.marshal, dest)
+        remedy = ""
+        if verb and target:
+            shown = humanize_entity_name(target)
+            remedy = f"{ctx.marshal.name}, {verb} {shown}"
+            if verb == "attack":
+                message += f" {shown} stands there — the attack is the order: '{remedy}'."
+            else:
+                message += (f" {shown} is not there to attack — the pursuit is the "
+                            f"order: '{remedy}'.")
+        else:
+            message += " No enemy stands there to attack; name the man to pursue."
+        from backend.ai import parse_trace as _ptrace
+        _ptrace.decide("strategic", "null_march_attack_leg", remedy or "none")
+        return {
+            "success": False,
+            "message": message,
+            "variable_action_cost": 0,
+            "null_march_attack_leg": True,
+            **({"remedy_command": remedy} if remedy else {}),
+        }
+
+    @staticmethod
+    def _arrival_leg_clause(ctx: StrategicCommandContext) -> str:
+        """T0-C (CMDFEEL-1, GR-21): the march's second leg, said in the reply
+        (CR-7's relay rule — nothing a sentence carries goes unnamed): " On
+        arrival he attacks Mack." / " … attacks whatever enemy stands there." /
+        " On arrival he fortifies." '' for a plain march, and '' when the
+        first step already fought or finished it (the reply's own line says)."""
+        order = getattr(ctx, "order", None)
+        if order is None or getattr(ctx, "first_step_attack_result", None) is not None:
+            return ""
+        if getattr(ctx.marshal, "strategic_order", None) is not order:
+            return ""   # carried out on its first step
+        if getattr(order, "attack_on_arrival", False):
+            wanted = getattr(order, "arrival_target", None)
+            whom = humanize_entity_name(wanted) if wanted else "whatever enemy stands there"
+            return f" On arrival he attacks {whom}."
+        verb = getattr(order, "arrival_verb", None)
+        if verb:
+            from backend.commands.strategic import ARRIVAL_VERB_DONE
+            return f" On arrival he {ARRIVAL_VERB_DONE.get(verb, verb)}."
+        return ""
 
     def _strategic_objection(self, ctx: StrategicCommandContext):
         """Stage 7 of `_execute_strategic_command`: The V2a objection check,
@@ -2568,6 +2649,8 @@ class StrategicExecutor:
                        f"Route: {route_str}.{_guard_rider}"
                        f"{self._march_arrival_clause(ctx)}"
                        f"{ctx.first_step_msg}{_ground}")
+            # T0-C (CMDFEEL-1): the second leg, named.
+            ctx.msg += self._arrival_leg_clause(ctx)
             # S14G-2: the aggressive man's interrupt, said at the order.
             ctx.msg += _aggressive_interrupt_clause(ctx.world, ctx.marshal, ctx.order)
         elif ctx.strategic_type == "PURSUE":
