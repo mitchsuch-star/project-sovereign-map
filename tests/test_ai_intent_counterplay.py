@@ -143,7 +143,10 @@ class TestSponsorVerb:
     def test_designless_recipient_refused_honestly(self, world):
         executor, gs = _executor(world)
         world.diplomatic_points = 3
-        # Bavaria is a vassal at 1805 — indifferent (pin 18).
+        # T2-6 re-seat with its cause (November 8, 2026): Bavaria
+        # carries the Tyrol now, so the designless board is staged —
+        # the pin's subject is the honest refusal, not the court.
+        world.agendas.pop("Bavaria", None)
         result = executor._diplomatic._execute_sponsor_design(
             {"action": "sponsor_design", "target": "Bavaria",
              "raw_input": "sponsor bavaria against austria"}, gs)

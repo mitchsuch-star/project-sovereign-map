@@ -14965,6 +14965,17 @@ class WorldState:
         from backend.game_logic.game_end import take_status_quo_titled as _take_sq
         # ═══ Player-specific events ═══
         if ctx.is_player_treaty:
+            # T2-6's DD-1 catch: the pair's state just moved — a TWIN
+            # proposal still in the mailbox keeps its arrival stamp
+            # (shown signable, refused at the desk). Re-stamp the
+            # court's pending treaty letters at the one moment the
+            # staleness is born (`treaty.restamp_pending_treaty_letters`).
+            from backend.game_logic.treaty import (
+                restamp_pending_treaty_letters,
+            )
+            court = (ctx.proposer if ctx.target_nation == self.player_nation
+                     else ctx.target_nation)
+            restamp_pending_treaty_letters(self, court)
             self.log_event({
                 "type": "diplomatic_treaty_signed",
                 "nations": [ctx.proposer, ctx.target_nation],

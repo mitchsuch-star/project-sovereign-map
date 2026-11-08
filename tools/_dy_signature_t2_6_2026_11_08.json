@@ -1,0 +1,1253 @@
+{
+ "_note": "DY-0 pre-build story-class baseline (DYNAMISM_SPEC.md \u00a77; the gate record \u00a73.8.2) \u2014 ten ambient SWEEP_SEEDS x 40 turns at K=10000; written by tools/_dy0_baseline.py (a chain run ALONE); pinned by tests/test_dy0_the_signature.py. The count is the pre-band floor the Concert must beat; the deploy gate re-measures (>= 4 of 10).",
+ "ambient_base": 10000,
+ "seeds": {
+  "austerlitz": {
+   "signature": {
+    "affair_turns": {
+     "the_proclamation": [
+      14
+     ],
+     "the_remounts": [
+      21,
+      29
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Denmark",
+     "Hanover",
+     "Naples",
+     "Ottoman",
+     "Prussia",
+     "Russia",
+     "Saxony",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      14,
+      "KingdomOfItaly"
+     ],
+     [
+      34,
+      "Switzerland"
+     ],
+     [
+      40,
+      "Holland"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Denmark": 12,
+     "Hanover": 33,
+     "Naples": 40,
+     "Ottoman": 35,
+     "Prussia": 14,
+     "Russia": 2,
+     "Saxony": 33,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {
+     "bavarian_match": [
+      10
+     ]
+    },
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     14,
+     14,
+     23
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "Austria",
+       "Prussia"
+      ],
+      [
+       "Britain",
+       "Prussia"
+      ],
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Prussia",
+       "Russia"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Holland",
+      "KingdomOfItaly",
+      "Switzerland"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Denmark",
+      "Hanover",
+      "Naples",
+      "Ottoman",
+      "Prussia",
+      "Russia",
+      "Saxony",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "eylau": {
+   "signature": {
+    "affair_turns": {
+     "the_popes_ports": [
+      15
+     ],
+     "the_proclamation": [
+      7,
+      20
+     ],
+     "the_remounts": [
+      26
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      7,
+      "KingdomOfItaly"
+     ],
+     [
+      36,
+      "Holland"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 15,
+     "Russia": 2,
+     "Sardinia": 13,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     15,
+     15
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "Holland",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "friedland": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      14
+     ],
+     "the_proclamation": [
+      6
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      14,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 14,
+     "Russia": 2,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {
+     "bavarian_match": [
+      9
+     ],
+     "throne_of_holland": [
+      17
+     ]
+    },
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     14,
+     14
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "historical": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      12
+     ],
+     "the_proclamation": [
+      7,
+      20
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Hanover",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      9,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Hanover": 13,
+     "Prussia": 11,
+     "Russia": 2,
+     "Sardinia": 15,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     11,
+     11
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "jena": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      12,
+      24
+     ],
+     "the_proclamation": [
+      6,
+      18
+     ],
+     "the_remounts": [
+      31
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Spain",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      7,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 11,
+     "Russia": 2,
+     "Sardinia": 11,
+     "Spain": 15,
+     "Sweden": 7
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     11,
+     14
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Spain",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "lodi": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      14
+     ],
+     "the_proclamation": [
+      6
+     ],
+     "the_remounts": [
+      20
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Hanover",
+     "Hesse",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Saxony",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      15,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Hanover": 16,
+     "Hesse": 27,
+     "Prussia": 12,
+     "Russia": 2,
+     "Sardinia": 23,
+     "Saxony": 29,
+     "Sweden": 22
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {
+     "bavarian_match": [
+      9
+     ]
+    },
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     14,
+     14,
+     23
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "Austria",
+       "Prussia"
+      ],
+      [
+       "Britain",
+       "Prussia"
+      ],
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "KingdomOfItaly",
+       "Switzerland"
+      ],
+      [
+       "Prussia",
+       "Russia"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Hesse",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Saxony",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "marengo": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      13,
+      26
+     ],
+     "the_proclamation": [
+      6,
+      20
+     ]
+    },
+    "ai_war_count": 2,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Hanover",
+     "Hesse",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Saxony",
+     "Spain",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      23,
+      "Hanover"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Hanover": 20,
+     "Hesse": 14,
+     "Prussia": 12,
+     "Russia": 2,
+     "Sardinia": 10,
+     "Saxony": 12,
+     "Spain": 15,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     12,
+     20,
+     22
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Hesse"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "KingdomOfItaly",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "Hanover"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Hanover",
+      "Hesse",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Saxony",
+      "Spain",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "rivoli": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      15
+     ],
+     "the_proclamation": [
+      7,
+      22
+     ],
+     "the_remounts": [
+      29
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      7,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 15,
+     "Russia": 2,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     15,
+     15
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "ulm": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      15
+     ],
+     "the_proclamation": [
+      21
+     ],
+     "the_remounts": [
+      25
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      14,
+      "KingdomOfItaly"
+     ],
+     [
+      32,
+      "Holland"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 15,
+     "Russia": 2,
+     "Sardinia": 21,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {
+     "bavarian_match": [
+      9
+     ]
+    },
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     15,
+     15
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Holland",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  },
+  "wagram": {
+   "signature": {
+    "affair_turns": {
+     "santo_domingo": [
+      15
+     ],
+     "the_proclamation": [
+      9,
+      21
+     ]
+    },
+    "ai_war_count": 1,
+    "awakening_events": [],
+    "courts_at_fight": [
+     "Austria",
+     "Bavaria",
+     "Britain",
+     "Prussia",
+     "Russia",
+     "Sardinia",
+     "Sweden"
+    ],
+    "eliminations": [
+     [
+      6,
+      "Bavaria"
+     ],
+     [
+      9,
+      "KingdomOfItaly"
+     ]
+    ],
+    "first_fight_turn": {
+     "Austria": 2,
+     "Bavaria": 2,
+     "Britain": 2,
+     "Prussia": 13,
+     "Russia": 2,
+     "Sardinia": 17,
+     "Sweden": 2
+    },
+    "formations": [],
+    "guarantees_given": [],
+    "moment_turns": {},
+    "questions_turned": [],
+    "rank_promotions": [],
+    "war_turns": [
+     11,
+     13
+    ]
+   },
+   "story_class": [
+    [
+     "war_pairs",
+     [
+      [
+       "France",
+       "Switzerland"
+      ],
+      [
+       "Hanover",
+       "Prussia"
+      ],
+      [
+       "Holland",
+       "Switzerland"
+      ],
+      [
+       "Spain",
+       "Switzerland"
+      ]
+     ]
+    ],
+    [
+     "eliminations",
+     [
+      "Bavaria",
+      "KingdomOfItaly"
+     ]
+    ],
+    [
+     "fight",
+     [
+      "Austria",
+      "Bavaria",
+      "Britain",
+      "Prussia",
+      "Russia",
+      "Sardinia",
+      "Sweden"
+     ]
+    ],
+    [
+     "formations",
+     []
+    ],
+    [
+     "guarantees",
+     []
+    ],
+    [
+     "questions",
+     []
+    ],
+    [
+     "promotions",
+     []
+    ],
+    [
+     "awakened",
+     []
+    ]
+   ]
+  }
+ },
+ "story_class_count": 10,
+ "turns": 40
+}

@@ -87,9 +87,12 @@ class TestBootActivation:
 
     # S14k G1 (October 28, 2026): Portugal, Saxony, Hesse and Hanover carry
     # decks now (the Old Alliance, the Wettin Crown, the Westphalian Duchy,
-    # the Electorate); the courts still deckless are these.
+    # the Electorate); T2-6 (November 8, 2026) authored Bavaria's (the
+    # Tyrol — boot-LIVE, the Pressburg war aim) and Naples' (the September
+    # Treaty, then the Roman Expedition), so the courts still deckless
+    # are these.
     @pytest.mark.parametrize("nation", [
-        "France", "Spain", "Naples", "PapalStates", "Bavaria",
+        "France", "Spain", "PapalStates",
     ])
     def test_deckless_nations_have_no_agenda(self, world, nation):
         assert get_active_agenda(nation, world) is None

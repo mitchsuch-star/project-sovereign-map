@@ -244,11 +244,20 @@ class TestTierTwoBanded:
     @pytest.mark.parametrize("seed", VARIANCE_SEEDS)
     def test_deck_order_varies_only_where_banded(self, worlds, historical,
                                                  seed):
+        # T2-6 re-seat with its cause (November 8, 2026): the casting
+        # band is the SECOND lawful order-variance source — the cast
+        # court's first ACQUIRE boots at its deck's head (§3.8.2's own
+        # ruling, `campaign_variance.cast_understudy` the derivation),
+        # so exactly ONE non-Austria court per seed may differ from the
+        # authored order, and only as a rotation of the same content.
+        from backend.game_logic.campaign_variance import cast_understudy
+        cast = cast_understudy(seed, ["Saxony", "Bavaria", "Denmark",
+                                      "Naples"])
         world = worlds[seed]
         for nation in world.agendas:
             ours = [e["id"] for e in world.agendas[nation]]
             base = [e["id"] for e in historical.agendas[nation]]
-            if nation == "Austria":
+            if nation == "Austria" or nation == cast:
                 assert sorted(ours) == sorted(base)
             else:
                 assert ours == base, \

@@ -431,10 +431,11 @@ class TestTheRowsHeldDownAreTheOldBoot:
     strict=True,
     reason="S14k part 3 (after S15 — the user's ruling, October 28, 2026: "
            "'After S15'; PRE_DEPLOY_PLAN.md §2 row S14k-3): GR10's sibling of "
-           "G1 — Bavaria, Spain and Naples field armies but carry no goal of "
-           "their own (NATION_AGENDAS_SPEC.md's v1.1 deckless list). This "
-           "turns RED the day each carries an authored deck — then retire "
-           "the xfail.")
+           "G1. T2-6 (November 8, 2026) authored Bavaria's and Naples' decks "
+           "(the Tyrol; the September Treaty + the Roman Expedition), so "
+           "SPAIN alone still fields armies with no goal of its own — the "
+           "S14k-3 residue. This turns RED the day Spain carries an authored "
+           "deck — then retire the xfail.")
 def test_every_armed_court_carries_a_goal(world):
     """Every court that fields an army at boot or can raise one (a bench)
     carries a deck of its own — the player's France aside (the Victory Pass

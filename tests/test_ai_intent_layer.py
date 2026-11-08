@@ -90,7 +90,10 @@ class TestBootIntents:
     def test_deckless_and_vassal_and_player_are_indifferent(self, world1805):
         # §5 pin 18's backend arm: no live agenda → the bottom rung.
         # S14k G1 (October 28, 2026): Saxony and Hesse carry designs now.
-        for nation in ("France", "Bavaria", "Spain", "Naples",
+        # T2-6 (November 8, 2026): Bavaria (the Tyrol, boot-live) and
+        # Naples (the September Treaty) carry decks now — their intents
+        # are T2-6's own pins; the deckless courts are these.
+        for nation in ("France", "Spain",
                        "KingdomOfItaly", "Holland"):
             view = get_nation_intent(nation, world1805)
             assert view.price == "indifferent"
@@ -223,8 +226,12 @@ class TestSurfaces:
         assert "war" in austria["summary"]
         assert austria["against_display"] == "France"
         # Deckless court: the row carries None and the renderer omits
-        # (Bavaria; S14k G1 gave Saxony the Wettin Crown).
-        assert rows["Bavaria"]["intent"] is None
+        # (Spain — T2-6 gave Bavaria the Tyrol, boot-live against the
+        # Habsburg, so her row carries intent now; S14k G1 gave Saxony
+        # the Wettin Crown).
+        assert rows["Spain"]["intent"] is None
+        assert rows["Bavaria"]["intent"] is not None
+        assert rows["Bavaria"]["intent"]["against_display"] == "Austria"
         assert rows["Saxony"]["intent"]["against"] == "Prussia"
 
     def test_mirror_reads_the_hegemon(self, world1805):

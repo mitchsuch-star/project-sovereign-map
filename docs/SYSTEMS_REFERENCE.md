@@ -13950,3 +13950,85 @@ at war, Hanover's province passes to HESSE and stays coveted, so the prize never
 settles. The corridor is the played game's own: the player's Schönbrunn — take
 the dangled Hanover, find yourself at war, and Berlin's eye turns to Stralsund
 (the staged pins carry the behavior proof; the record pins the ambient silence).
+
+## §192 Tier 2, session 7 — T2-6, the casting band: the seed casts an understudy (November 8, 2026 — TIER 2 COMPLETE)
+
+**The slice** (`AI_INTENT_SPEC.md` §3.8.2's last ruled band; `DYNAMISM_SPEC.md` §2
+Tier 2 — "the lawful lucky nation"; §8 rows T2-6d and T2-6; pins
+`tests/test_t2_6_the_casting.py`, 26; plan-approved at the session's head — the
+live-first ruling, the two decks, the dial, the two-record measure). Two halves,
+measured apart by tree.
+
+**T2-6d, the decks (content — every seed).** Bavaria's `the_tyrol`
+(`acquire_regions`, ["Tyrol"]) is deliberately BOOT-LIVE: Bavaria boots at war
+with Austria and Tyrol is the actual Pressburg war aim — a live want for a
+boot-belligerent is 1805, not drift. Naples' deck is guard-then-claim in
+Denmark's shape: `september_treaty` (`guard_neutrality`, ["Naples"] — the real
+treaty of September 1805, signed and broken within the month; a belligerent's
+march on Neapolitan soil is a priced violation from boot) then
+`roman_expedition` (`acquire_regions`, ["Rome"] — Ferdinand's 1798 march, the
+standing Bourbon claim, speaking only at war). Spain alone remains deckless
+among armed courts (the S14k-3 residue; the strict xfail stands on her, its
+reason updated). Six deckless-court pins re-seated with their cause across five
+files (the designless boards now STAGED by popping the deck — the pin's subject
+is the honest answer, never the court), and `test_sr8c`'s §7a scene-1 record
+carries its second amendment: the Tyrol is an acquire on the Habsburg, not a
+Confederation design, so the Rhine league stays the player's act.
+
+**T2-6, the casting (variance — the seed).** Each non-historical seed casts ONE
+understudy from the authored shortlist (Saxony, Bavaria, Denmark, Naples —
+`casting` block in the scenario, validator-clamped):
+`campaign_variance.cast_understudy` picks it (pure hash, namespace
+`casting::understudy`; None on `historical`, structurally), and
+`_resolve_casting` — after the statecraft bands, the band-strip idiom, the key
+popped so the serialized world never carries it — boots the cast court's first
+ACQUIRE at its deck's head and writes the bold dial (8, band [4, 12]) over its
+lean in the statecraft overlay. **The live-first ruling:** a guard ahead of the
+ambition steps BEHIND on the cast seed — that is what being cast MEANS (an
+ambitious Denmark is not the neutral of 1807; a Naples pressing Rome has torn up
+the September treaty) — and satisfaction restores the posture (take Scania, the
+guard resurfaces); every uncast court and every court on `historical` keeps its
+authored order and lean. The ten ambient seeds cast all four courts between them
+(Saxony ×3, Bavaria ×2, Denmark ×2, Naples ×2; historical nobody — pinned per
+seed). The validator gains `_validate_casting`: the block's SHAPE is hard
+(unknown keys, a missing or out-of-clamp dial), but a shortlist court that is
+unknown, deckless, or acquireless on the booting board is a WARNING — the
+never-read idiom, because `from_scenario` validates the board THAT BOOTS, after
+the S14k deck seams, and a replayed pre-S14k board trims the shipped shortlist's
+decks out from under it. The envelope's order pin learned the casting as the
+second lawful order-variance source (one non-Austria court per seed, rotation
+only).
+
+**The DD-1 catch — found by the instrument, fixed at the cause.** Refreshing the
+committed sign-ability records on the decks' tree read **A=2 on SEED-dd1-one**
+(a shown-signable promise refused; letter surface): Denmark's SECOND
+Non-Aggression proposal sat in the mailbox with the stamp of its arrival while
+its twin's acceptance moved the pair to Non-Aggression — shown signable, refused
+at the desk (`no_downgrade`), the exact A-class defect DD-1 exists to forbid,
+newly REACHED by the content shift. The cure at the one moment staleness is
+born: `treaty.restamp_pending_treaty_letters`, called from
+`_ratify_player_events` — a player ratification re-stamps the court's pending
+treaty letters, so the twin's Accept greys with the ratifier's own clause (the
+S6 disable-with-reason idiom) and never refuses after a signable showing. The
+class search is the full re-record: **all ten committed arms read A=0, B=0**
+(`docs/audits/dd1/` refreshed on the fixed tree, SEED-quick included), the dd1
+pins green, and the catch pinned in T2-6's own file.
+
+**The measure — two dated records, attribution by tree (the kept-record
+idiom).** Chain A (`tools/_dy_signature_t2_6a_decks_2026_11_08.json`, the
+decks-only tree, vs the T2-5 record): the CONTENT moved **every world-line,
+historical included** — Bavaria's boot-live want touches every seed — with
+classes 10 of 10 and two class movers, named: Naples joins austerlitz's fight
+roster, Bavaria joins friedland's (courts that had no stance now hold one; no
+new wars, no new eliminations). Chain B
+(`tools/_dy_signature_t2_6_2026_11_08.json`, the final tree, vs A): the
+CASTING's own movers are **austerlitz** (cast Denmark, signature only) and
+**marengo** (cast Saxony: **she joins the fight roster and SWITZERLAND
+SURVIVES** — the old T27 elimination never happens on the stirred board), with
+**historical byte-identical A↔B** (the casting's silence, structural; the
+restamp fix unreachable ambiently — no player ratifies). Classes 10 of 10 on
+both. Per-seed honesty: seven of the nine casts are quiet inside 40 ambient
+turns — the per-seed truth, not a law; the dial bites where the board lets it,
+and the commanded arms and real play are where a cast court's boldness tells.
+**Tier 2 is complete: the opening varies where the gate ruled it may, and
+which minor stirs varies by seed.**

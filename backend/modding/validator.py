@@ -913,6 +913,76 @@ _READINESS_MIN = -10
 _READINESS_MAX = 10
 
 
+def _validate_casting(result, data: dict, known_nations: set) -> None:
+    """T2-6 (AI_INTENT_SPEC §3.8.2, the casting band): the top-level
+    `casting` block — {"shortlist": [nations], "weight_mod": int |
+    {value, band}}. The block's SHAPE is hard (unknown keys, a missing
+    or out-of-clamp dial, a non-list shortlist — a malformed casting
+    would read as variance that never happens), but a shortlist court
+    that is unknown, deckless, or without an acquire entry is a
+    WARNING ("the cast would stir nobody" — the statecraft never-read
+    idiom): `from_scenario` validates the board THAT BOOTS, after the
+    S14k deck seams, and a replayed pre-S14k board trims Saxony's and
+    Denmark's decks out from under the shipped shortlist — a deck its
+    seam empties is no deck at all, and the casting then stirs nobody
+    on that board, which is history, not rot. The resolver is the
+    graceful sibling: no acquire, no reorder."""
+    if "casting" not in data:
+        return
+    block = data.get("casting")
+    if not isinstance(block, dict):
+        result.add_error(
+            "casting", f"Must be an object, got {type(block).__name__}")
+        return
+    # The controller-derived set misses roster courts that author no
+    # region rows; widen with the roster on the europe map (the
+    # T2-B `_validate_statecraft` idiom — a shortlist court is always
+    # a court whose deck IS read).
+    known_nations = set(known_nations or ())
+    if data.get("sovereign_map") == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
+    for key in sorted(set(block) - {"shortlist", "weight_mod"}):
+        result.add_error(
+            f"casting.{key}",
+            "Unknown key (allowed: shortlist, weight_mod)")
+    shortlist = block.get("shortlist")
+    if not isinstance(shortlist, list) or not shortlist:
+        result.add_error("casting.shortlist",
+                         "Must be a nonempty list of nations")
+    else:
+        agendas = data.get("agendas") or {}
+        for nation in shortlist:
+            path = f"casting.shortlist.{nation}"
+            if known_nations and nation not in known_nations:
+                result.add_warning(
+                    path,
+                    f"References unknown nation '{nation}' - the cast "
+                    f"would stir nobody")
+                continue
+            deck = agendas.get(nation)
+            if not isinstance(deck, list) or not deck:
+                result.add_warning(
+                    path,
+                    "No top-level deck on this board - the cast would "
+                    "stir nobody")
+                continue
+            if not any(isinstance(entry, dict)
+                       and entry.get("type") == "acquire_regions"
+                       for entry in deck):
+                result.add_warning(
+                    path,
+                    "No acquire_regions entry on this board - the cast "
+                    "would boot nothing live-first")
+    if "weight_mod" not in block:
+        result.add_error(
+            "casting.weight_mod",
+            "The casting requires the bold dial (an integer or "
+            "{value, band})")
+    else:
+        _validate_weight_mod(result, "casting", block)
+
+
 def _validate_statecraft(result, data: dict, known_nations: set) -> None:
     """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
     per-nation; `wary_of`, and since T2-B (§3.8.2) `weight_mod` (a bare
@@ -3518,6 +3588,9 @@ def validate_scenario(
     if data.get("player_nation"):
         statecraft_known.add(data["player_nation"])
     _validate_statecraft(result, data, statecraft_known)
+
+    # T2-6 (AI_INTENT_SPEC §3.8.2): the authored `casting` block.
+    _validate_casting(result, data, statecraft_known)
 
     # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
     _validate_navies(result, data, statecraft_known)

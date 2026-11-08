@@ -1095,7 +1095,12 @@
         "Sardinia": { "weight_mod": { "value": 0, "band": [-6, 6] } },
         "Naples": { "weight_mod": { "value": 0, "band": [-6, 6] } }
     },
-    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war. T2-5 (November 8, 2026): Prussia's second territorial want, swedish_pomerania (Stralsund), is seated BEHIND armed_neutrality - the guard's seat is load-bearing (a latent guard prices nothing: the Ansbach trap reads ACTIVE guards only), so the claim speaks only when Prussia is already at war with the Hanover question settled; no order band for Prussia (the AI_INTENT_SPEC.md section 3.8.2 gate ruled none - Hanover-first is the plain history, and the guard's seat outranks a hypothetical band over now-non-contiguous acquires) and no readiness on a second design (the gulf_and_straits precedent).",
+    "_casting_comment": "T2-6 (AI_INTENT_SPEC.md section 3.8.2, the casting band - 'the lawful lucky nation', November 8, 2026): each non-historical seed casts ONE understudy from the shortlist - its first ACQUIRE boots at its deck's head (a guard ahead of it steps behind: the cast court has set its posture aside, and satisfaction restores it) and the bold dial below replaces the court's lean in the statecraft overlay. historical casts nobody, structurally. Resolved and STRIPPED at boot by campaign_variance._resolve_casting - the serialized world never carries this key.",
+    "casting": {
+        "shortlist": ["Saxony", "Bavaria", "Denmark", "Naples"],
+        "weight_mod": { "value": 8, "band": [4, 12] }
+    },
+    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war. T2-5 (November 8, 2026): Prussia's second territorial want, swedish_pomerania (Stralsund), is seated BEHIND armed_neutrality - the guard's seat is load-bearing (a latent guard prices nothing: the Ansbach trap reads ACTIVE guards only), so the claim speaks only when Prussia is already at war with the Hanover question settled; no order band for Prussia (the AI_INTENT_SPEC.md section 3.8.2 gate ruled none - Hanover-first is the plain history, and the guard's seat outranks a hypothetical band over now-non-contiguous acquires) and no readiness on a second design (the gulf_and_straits precedent). T2-6 (November 8, 2026): Bavaria's the_tyrol is deliberately boot-LIVE (Bavaria boots at war with Austria, and Tyrol is the actual Pressburg war aim - a live want for a boot-belligerent is 1805, not drift); Naples' deck is guard-then-claim in Denmark's shape (the September Treaty of 1805, signed and broken; the Roman Expedition of '98 behind it, speaking only at war). The casting band (the top-level `casting` key) may boot ONE shortlist court's first ACQUIRE at its deck's head with a bold weight_mod - the cast court has set its posture aside, satisfaction restores it, and historical casts nobody.",
     "agendas": {
         "Austria": [
             {
@@ -1149,6 +1154,31 @@
                 "title": "Swedish Pomerania",
                 "regions": ["Stralsund"],
                 "blurb": "Stralsund and Ruegen - the last Swedish foothold on German soil, the Baltic shore that would round off Prussian Pomerania. A claim Berlin presses only sword in hand: it waits behind the Prize and the court's own neutrality, and speaks when Prussia is already at war."
+            }
+        ],
+        "Bavaria": [
+            {
+                "id": "the_tyrol",
+                "type": "acquire_regions",
+                "title": "The Tyrol",
+                "regions": ["Tyrol"],
+                "blurb": "The Alpine passes and the Inn - the price Vienna must pay for Pressburg. Munich marches beside France to take from the Habsburg what the Wittelsbach claim remembers."
+            }
+        ],
+        "Naples": [
+            {
+                "id": "september_treaty",
+                "type": "guard_neutrality",
+                "title": "The September Treaty",
+                "regions": ["Naples"],
+                "blurb": "Signed with France in September 1805 and broken for the coalition within the month - the Bourbon court guards its neutrality precisely as loudly as it plots. A belligerent marching on Neapolitan soil enrages the Two Sicilies."
+            },
+            {
+                "id": "roman_expedition",
+                "type": "acquire_regions",
+                "title": "The Roman Expedition",
+                "regions": ["Rome"],
+                "blurb": "Ferdinand marched on Rome in '98 and the court of the Two Sicilies has never believed the French tenancy of Italy permanent. The claim waits behind the September Treaty and speaks when Naples is already at war."
             }
         ],
         "Britain": [

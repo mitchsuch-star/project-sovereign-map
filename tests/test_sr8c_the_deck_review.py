@@ -162,16 +162,23 @@ class TestTheConfederationIsRecordedUnreachable:
     # carry covet designs (the Wettin Crown, the Westphalian Duchy) on sleepier
     # courts. The refusal record SR-8c foresaw is measured (SYSTEMS_REFERENCE
     # §160.11): one refused ask every six turns, never on the dispatch, and each
-    # refusal a rung the design climbs. Bavaria, the Bogenhausen ally, still
-    # carries none; the scene stays the player's act through the vassalage road.
-    def test_bavaria_carries_no_deck_saxony_and_hesse_carry_s14ks(self, world):
-        assert "Bavaria" not in world.agendas
+    # refusal a rung the design climbs.
+    # AMENDED AGAIN by T2-6 (November 8, 2026): Bavaria, the Bogenhausen
+    # ally, carries the TYROL now — an acquire on the Habsburg (the
+    # Pressburg war aim, boot-live), NOT a Confederation design: no deck
+    # entry forms or joins the Rhine league, so §7a scene 1 STILL stays
+    # the player's act through the vassalage road; the record's claim
+    # survives with its reason re-stated.
+    def test_bavaria_carries_the_tyrol_saxony_and_hesse_carry_s14ks(self, world):
+        assert [e["id"] for e in world.agendas["Bavaria"]] == ["the_tyrol"]
         assert [e["id"] for e in world.agendas["Saxony"]] == ["the_wettin_crown"]
         assert [e["id"] for e in world.agendas["Hesse"]] == ["the_westphalian_duchy"]
 
-    def test_bavaria_reads_no_want_saxony_and_hesse_sleep(self, world):
+    def test_bavaria_wants_tyrol_saxony_and_hesse_sleep(self, world):
         from backend.game_logic.intent import get_nation_intent, rung_index
-        assert get_nation_intent("Bavaria", world).want_id is None
+        # The want is Vienna's province, never the Rhine league — the
+        # scene-1 claim survives T2-6 with its reason re-stated above.
+        assert get_nation_intent("Bavaria", world).want_id == "the_tyrol"
         for minor in ("Saxony", "Hesse"):
             view = get_nation_intent(minor, world)
             assert rung_index(view.price) < rung_index("coerce"), minor

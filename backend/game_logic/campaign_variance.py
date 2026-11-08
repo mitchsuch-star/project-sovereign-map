@@ -88,6 +88,21 @@ def roll_campaign_seed() -> str:
             f"{secrets.choice(_ROLL_NOUNS)}-{secrets.randbelow(100):02d}")
 
 
+def cast_understudy(seed: str,
+                    shortlist: Sequence[str]) -> Optional[str]:
+    """T2-6 (§3.8.2 "the casting band"; `DYNAMISM_SPEC.md` §2 Tier 2 —
+    "the lawful lucky nation"): the ONE understudy this seed casts from
+    the authored shortlist — None on `historical` (the structural
+    collapse: nobody is cast, no reorder, no dial) and on an empty
+    list. Pure hash (namespace `casting::understudy`), exported so
+    tests and tools can ask who a seed casts without booting a world."""
+    courts = [str(n) for n in (shortlist or []) if str(n).strip()]
+    if not courts or is_historical(seed):
+        return None
+    return courts[seeded_int(seed, "casting::understudy",
+                             0, len(courts) - 1)]
+
+
 def _unit(seed: str, namespace: str) -> float:
     """Deterministic float in [0, 1) from (seed, namespace). Pure hash —
     no module RNG consumed, no state anywhere."""
@@ -219,6 +234,11 @@ def apply_scenario_variance(scenario_data: Dict[str, Any],
     if isinstance(statecraft, dict):
         resolve_statecraft_bands(statecraft, seed, historical=historical)
 
+    # T2-6 (§3.8.2 — "the casting band"): AFTER the statecraft bands, so
+    # the cast court's bold dial lands as a plain int over its resolved
+    # lean (the override wins) and the key is stripped like every band.
+    _resolve_casting(scenario_data, seed, historical)
+
     moments = scenario_data.get("moments")
     if isinstance(moments, dict):
         resolve_moment_turns(moments, seed, historical=historical)
@@ -302,6 +322,53 @@ def resolve_moment_turns(moments: Dict[str, Any], seed: str,
                                int(band[0]), int(band[1]))
         entry["turn"] = value
     return moments
+
+
+def _resolve_casting(scenario_data: Dict[str, Any], seed: str,
+                     historical: bool) -> None:
+    """T2-6 (§3.8.2 "the casting band" — ruled at the tier's head; the
+    live-first ruling at the slice's own plan, November 8, 2026): pop
+    the authored `casting` key (the band-strip idiom — from_dict and
+    the serialized world never see it), pick the understudy
+    (`cast_understudy`), boot its first ACQUIRE at its deck's head —
+    a guard ahead of it steps behind: the cast court has set its
+    posture aside, which is what being cast MEANS (an ambitious
+    Denmark is not the neutral of 1807), and satisfaction restores it
+    (the acquire goes inactive, the guard resurfaces) — and write the
+    bold dial over the court's resolved lean in the statecraft overlay
+    (namespace `casting::weight_mod`, seeded in the authored band).
+    On `historical` the key is stripped and nothing else moves —
+    nobody is cast, structurally."""
+    casting = scenario_data.pop("casting", None)
+    if not isinstance(casting, dict) or historical:
+        return
+    cast = cast_understudy(seed, casting.get("shortlist") or [])
+    if not cast:
+        return
+    agendas = scenario_data.get("agendas")
+    deck = agendas.get(cast) if isinstance(agendas, dict) else None
+    if isinstance(deck, list):
+        index = next((i for i, entry in enumerate(deck)
+                      if isinstance(entry, dict)
+                      and entry.get("type") == "acquire_regions"), None)
+        if index is not None and index > 0:
+            deck.insert(0, deck.pop(index))
+    dial = casting.get("weight_mod")
+    value: Optional[int] = None
+    if isinstance(dial, dict):
+        band = dial.get("band")
+        if isinstance(band, (list, tuple)) and len(band) == 2:
+            value = seeded_int(seed, "casting::weight_mod",
+                               int(band[0]), int(band[1]))
+        else:
+            value = int(dial.get("value") or 0)
+    elif isinstance(dial, int) and not isinstance(dial, bool):
+        value = int(dial)
+    if value is not None:
+        statecraft = scenario_data.setdefault("statecraft", {})
+        overlay = statecraft.setdefault(cast, {})
+        if isinstance(overlay, dict):
+            overlay["weight_mod"] = int(value)
 
 
 def _resolve_deck_order(seed: str, nation: str, deck: List[Any],

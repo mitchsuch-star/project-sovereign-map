@@ -4767,8 +4767,11 @@ class TestS14G9:
         buy-off clause used to vanish and the row said nothing in its place."""
         from backend.game_logic.instruments import compute_buyoff_price
         w = _r9_world
-        # S14k G1 (October 28, 2026) gave Saxony the Wettin Crown: the court
-        # with no design read here is Naples.
+        # S14k G1 (October 28, 2026) gave Saxony the Wettin Crown; T2-6
+        # (November 8, 2026) gave Naples the September Treaty — the
+        # designless board is staged (the pin's subject is the row's
+        # honest clause, not the court).
+        w.agendas.pop("Naples", None)
         _r9_set_rel(w, "Naples", -30)
         assert compute_buyoff_price(w, "Naples") is None
         row = _r9_row(w, "Naples")
@@ -6123,7 +6126,10 @@ class TestS14GX43:
     def test_a_court_with_no_design_is_unchanged(self, _r11_boot):
         from backend.ai.state_desk import _answer_buyoff
         w = _r11_copy(_r11_boot)
-        # S14k G1 gave Portugal the Old Alliance: the court with no design is Naples.
+        # S14k G1 gave Portugal the Old Alliance; T2-6 gave Naples the
+        # September Treaty — the designless board is staged (the pin's
+        # subject is the desk's honest answer, not the court).
+        w.agendas.pop("Naples", None)
         said = _answer_buyoff(w, "Naples")
         assert "no design we could buy off" in said
         assert "league" not in said

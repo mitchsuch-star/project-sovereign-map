@@ -862,6 +862,47 @@ def stamp_letter(world, dialogue: Dict[str, Any]) -> Optional[Verdict]:
     return first
 
 
+def restamp_pending_treaty_letters(world, court: str) -> int:
+    """T2-6's DD-1 catch (November 8, 2026 — the refreshed sweep read
+    A=2 on SEED-dd1-one): a treaty with `court` has just RATIFIED, the
+    pair's state moved, and a TWIN proposal still in the mailbox keeps
+    the stamp of its arrival — shown signable, refused at the desk
+    (Denmark's second Non-Aggression against a pair already at
+    Non-Aggression; the A-class defect DD-1 exists to forbid, and the
+    sweep's dry-run reads the STORED options). Re-stamp every pending
+    treaty letter of that court at the one moment staleness is born,
+    so the Accept greys with the clause the ratifier would speak (the
+    S6 idiom — disabled, reason named, never refused after a signable
+    showing). Returns the letters re-stamped."""
+    manager = getattr(world, "dialogue_manager", None)
+    if manager is None or not court:
+        return 0
+    from backend.commands.dialogue_routing import dialogue_court
+    dialogues: List[Dict[str, Any]] = []
+    current = manager.peek() if hasattr(manager, "peek") else None
+    if isinstance(current, dict):
+        dialogues.append(current)
+    if hasattr(manager, "iter_queue"):
+        dialogues.extend(d for d in manager.iter_queue()
+                         if isinstance(d, dict))
+    count = 0
+    for dialogue in dialogues:
+        if _letter_kind(dialogue) != "treaty":
+            continue
+        try:
+            letter_court = dialogue_court(dialogue) or ""
+        except Exception as exc:
+            from backend.errors import report
+            report(exc, "treaty.restamp_pending_treaty_letters: "
+                        "dialogue_court")
+            continue
+        if letter_court != court:
+            continue
+        stamp_letter(world, dialogue)
+        count += 1
+    return count
+
+
 def _mirror_options(dialogue: Dict[str, Any], payload: Dict[str, Any]) -> None:
     """The popup payload's `options` mirror — the keys the popups read. A
     payload that already carries its own option set (a settlement offer's

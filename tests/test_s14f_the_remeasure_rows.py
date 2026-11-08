@@ -8810,10 +8810,14 @@ class TestS14E26:
         """Every refusal comes BEFORE the quote and charges nothing: a court at
         war, a court with no design, a lowball, an empty chest, no point."""
         w = _r26_world
+        # S14k G1 gave Hanover the Electorate; T2-6 (November 8, 2026)
+        # gave Naples the September Treaty — the designless board is
+        # staged (the pin's subject is the pre-quote refusal, not the
+        # court).
+        w.agendas.pop("Naples", None)
         before = _r26_book(w)
         with _r26_client(w) as client:
             at_war = _r26_say(client, "buy off Austria")
-            # S14k G1 gave Hanover the Electorate: the court with no design is Naples.
             no_design = _r26_say(client, "buy off Naples")
             lowball = _r26_say(client, "buy off Sweden, 50 gold")
             w.nation_gold["France"] = 100
