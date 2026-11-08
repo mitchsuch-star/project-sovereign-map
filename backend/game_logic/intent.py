@@ -398,6 +398,14 @@ def _derive_weight(nation: str, agenda: AgendaView,
     # that author a hungrier or sleepier great power.
     from backend.game_logic.statecraft import statecraft_weight_mod
     weight += statecraft_weight_mod(world, nation)
+    # T2-B (the Tier-2 gate record §3.8.2 — "initial ladder readiness"):
+    # the DESIGN's own authored readiness, banded in the scenario and
+    # resolved to a plain int at boot. 0 when unauthored — every pre-band
+    # deck derives byte-identically.
+    try:
+        weight += int((agenda.params or {}).get("readiness", 0) or 0)
+    except (TypeError, ValueError):
+        pass
     if against:
         relation = int(world.nation_relations.get(
             world._make_diplo_key(nation, against), 0) or 0)

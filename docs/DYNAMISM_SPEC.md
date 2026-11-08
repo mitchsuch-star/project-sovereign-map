@@ -344,6 +344,7 @@ by pin 14.
 | Slice | Tier | Scope (owner §) | Done-when | Test |
 |---|---|---|---|---|
 | T1 | 1 — ✅ LANDED November 8, 2026 | the seed at New Game (§2 Tier 1) | a bare New Game rolls and names a readable seed; explicit > env > roll; the env never rolls (the suite's law); shown on the reply, the first morning, the save rows and the menu box | `tests/test_tier1_the_seed.py` |
+| T2-B | 2 — ✅ LANDED November 8, 2026 | the gate's new bands (§3.8.2): readiness, the minors' lean (banded `weight_mod`), the three seams | authored + validator-clamped; historical byte-identical; the dated re-record reads 10 of 10 classes | `tests/test_t2b_the_new_bands.py` |
 | DY-0 | 2 (with T2-1) — ✅ LANDED November 8, 2026 | the signature columns + baseline (§7; §3.8.2's event-type contract) | columns derived, baseline archived by a lone chain (story classes 9 of 10 pre-band) | `tests/test_dy0_the_signature.py` |
 | DY-1 | 4 | the Alarm (§3) | the write, the guarantee rung, the brew reachable, words-only surfaces | `tests/test_dy1_the_alarm_of_europe.py` |
 | DY-1b | 4 (with DY-1) | promotion's teeth (§3b) | Saxony's promotion on an authored board; demotion; the beat | rides DY-1's file |

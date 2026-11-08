@@ -13637,6 +13637,43 @@ record; the gate's >= 4 of 10 is measured AT THE DEPLOY GATE on the full board, 
 The future-tier columns are empty on every seed (pinned: a nonzero before Tiers 4-6 land is a
 contract leak, not progress).
 
+## §187 Tier 2, session 2 — T2-B, the new bands of the gate record (November 8, 2026)
+
+**The slice** (`AI_INTENT_SPEC.md` §3.8.2's ruled additions, landed; `DYNAMISM_SPEC.md` §8 row
+T2-B; pins `tests/test_t2b_the_new_bands.py`). Europe's opening now varies where the gate ruled
+it may — and nowhere else: the historical seed is byte-identical (pinned at the resolver, the
+boot, and the record).
+
+**Initial ladder readiness.** A deck entry may author `readiness` (a turn-0 weight offset) with
+a `readiness_band` for the seed: resolved at boot (`campaign_variance._resolve_deck_readiness`,
+namespace `readiness::<nation>::<id>`, AFTER the order band so the key is the entry's own id),
+the band stripped, the int riding `AgendaView.params`; `intent._derive_weight` adds it — 0 when
+unauthored, so every pre-band deck derives byte-identically. Authored: Austria's pair
+(`redeem_italy`, `primacy_germany`), Prussia's `hanoverian_prize`, Britain's `low_countries`,
+each 0 ± 6; Russia carries none (pin 22's sibling, pinned). Validator: the clamp ±10, the band
+contains the value, the key refused outside the top-level decks (the formable-template rule
+order_group already keeps).
+
+**The minors' lean.** The statecraft block authors `weight_mod` beside `wary_of` — a bare int
+or {"value": N, "band": [lo, hi]}; `campaign_variance.resolve_statecraft_bands` collapses the
+band (namespace `statecraft::<nation>::weight_mod`), `get_statecraft` overlays the resolved int
+over the code table (the AI-3r R1 surface widened one key), and `statecraft_weight_mod` feeds
+`_derive_weight` as it always has. Authored: the §3.8.1 eligible set — Saxony −8 ± 6 and Hesse
+−12 ± 6 (centres the code table's own), Denmark, Portugal, Hanover, the Papal States, Sardinia,
+Naples, Sweden and the Ottomans 0 ± 6. `wary_of` stays unbanded by design — a fear is a
+profile, not a contingency. Validator: the clamp [−24, 12], the roster widening (the
+controller-derived known set missed Hesse, Hanover, the Papal States and Sardinia — live courts
+whose statecraft IS read; the `_validate_imperial_designs` idiom, so the four spurious warnings
+never shipped).
+
+**The measure** (the dated re-record `tools/_dy_signature_bands_2026_11_08.json`, the chain
+ALONE; the committed `_dy_signature_baseline.json` stays the PRE-BAND record, the kept-record
+idiom): **story classes 10 of 10 on the banded board** (the pre-band floor was 9 —
+eylau and rivoli shared); the seeds whose signatures moved: austerlitz, eylau, jena, lodi, marengo, ulm, wagram; **historical is
+byte-identical**, pinned record-to-record. The next benchmark chain reads the banded world-lines
+as its own compare — the committed arms of 2026_11_07 stay their slice's records.
+
+
 
 
 Three mechanics the staging paid to learn, kept here so no one re-rolls them blind: a

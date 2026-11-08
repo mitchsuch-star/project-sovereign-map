@@ -1080,11 +1080,20 @@
         ]
     },
     "_statecraft_comment": "AI-3r section 2.6 (docs/AI_WAR_DECISION_SPEC.md, gate ruling R1): authored rear-security posture. wary_of multiplies the neighbour's menace in the war council's reserve calculus - a fear the relations number alone would understate. v1 authors wary_of ONLY (profile keys stay in nation_config). Values clamp-validated to [0.5, 2.0]; absent pair = 1.0. Authored 1805 fears: the German dualism both ways (Silesia taken 1742 - Berlin and Vienna each garrison against the other), Prussia's dread of the Russian colossus marching through Poland, the standing Russo-Turkish menace on the straits (the 1806 war), and Sweden's fear for Finland (lost 1809).",
+    "_statecraft_lean_comment": "T2-B (AI_INTENT_SPEC.md 3.8.2, the Tier-2 gate record): the minors' lean - bandwagon readiness as a banded weight_mod over the 3.8.1 eligible set (the genuinely uncommitted courts; a minor committed by starting_wars or diplomatic_states is Tier 1 and carries none). Centres are today's effective values (nation_config: Saxony -8, Hesse -12, all else 0), so the historical seed is byte-identical; the band is the lean, +/-6. wary_of stays unbanded by design - a fear is a profile, not a contingency.",
     "statecraft": {
         "Prussia": { "wary_of": { "Austria": 1.25, "Russia": 1.4 } },
         "Austria": { "wary_of": { "Prussia": 1.25 } },
-        "Ottoman": { "wary_of": { "Russia": 1.5 } },
-        "Sweden": { "wary_of": { "Russia": 1.4 } }
+        "Ottoman": { "wary_of": { "Russia": 1.5 }, "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Sweden": { "wary_of": { "Russia": 1.4 }, "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Saxony": { "weight_mod": { "value": -8, "band": [-14, -2] } },
+        "Hesse": { "weight_mod": { "value": -12, "band": [-18, -6] } },
+        "Denmark": { "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Portugal": { "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Hanover": { "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "PapalStates": { "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Sardinia": { "weight_mod": { "value": 0, "band": [-6, 6] } },
+        "Naples": { "weight_mod": { "value": 0, "band": [-6, 6] } }
     },
     "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war.",
     "agendas": {
@@ -1092,6 +1101,8 @@
             {
                 "id": "redeem_italy",
                 "type": "acquire_regions",
+                "readiness": 0,
+                "readiness_band": [-6, 6],
                 "title": "Redeem Italy",
                 "regions": ["Milan", "Piedmont", "Savoy"],
                 "order_group": 1,
@@ -1100,6 +1111,8 @@
             {
                 "id": "primacy_germany",
                 "type": "acquire_regions",
+                "readiness": 0,
+                "readiness_band": [-6, 6],
                 "title": "Primacy in Germany",
                 "regions": ["Munich", "Swabia"],
                 "order_group": 1,
@@ -1117,6 +1130,8 @@
             {
                 "id": "hanoverian_prize",
                 "type": "acquire_regions",
+                "readiness": 0,
+                "readiness_band": [-6, 6],
                 "title": "The Hanoverian Prize",
                 "regions": ["Hanover"],
                 "blurb": "Napoleon dangles the Electorate at Schoenbrunn; Berlin covets it openly. The buy-Prussia lever."
@@ -1133,6 +1148,8 @@
             {
                 "id": "low_countries",
                 "type": "deny_regions",
+                "readiness": 0,
+                "readiness_band": [-6, 6],
                 "title": "The Low Countries",
                 "regions": ["Flanders", "Brabant", "Amsterdam"],
                 "blurb": "The Scheldt obsession - the invasion coast may not stay in French hands. London will not rest while the bloc holds it."

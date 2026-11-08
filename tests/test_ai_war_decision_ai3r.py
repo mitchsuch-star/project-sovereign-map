@@ -605,8 +605,12 @@ class TestWaryOfValidator:
                    for e in result.errors)
 
     def test_unknown_subkey_errors(self):
+        # T2-B (the Tier-2 gate record §3.8.2, November 8 2026): the
+        # allow-set widened to {wary_of, weight_mod} — an unknown sub-key
+        # is still a hard error, and the message names the pair now.
         result = self._validate({"Prussia": {"coercion": "hardens"}})
-        assert any("wary_of only" in e.message for e in result.errors)
+        assert any("wary_of and weight_mod only" in e.message
+                   for e in result.errors)
 
     def test_unknown_nation_warns(self):
         result = self._validate({"Atlantis": {"wary_of": {"France": 1.2}}})

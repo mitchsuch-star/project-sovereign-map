@@ -3705,11 +3705,12 @@ class WorldState:
         constant data with no runtime shadow map for the PROFILE table.
 
         AI-3r §2.6 (gate ruling R1, consciously amending the no-serialized
-        contract): the scenario `statecraft` key overlays `wary_of` ONLY —
-        per-scenario authored posture (D7: the bounds are authored content,
-        reviewable in the scenario file, validator-enforced). The v1
-        surface is deliberately narrow: no other profile key is moddable
-        through it.
+        contract): the scenario `statecraft` key overlays `wary_of` — and,
+        since T2-B (the Tier-2 gate record, AI_INTENT_SPEC.md §3.8.2,
+        November 8, 2026), `weight_mod` — per-scenario authored posture
+        (D7: the bounds are authored content, reviewable in the scenario
+        file, validator-enforced). The surface stays deliberately narrow:
+        no other profile key is moddable through it.
         """
         from backend.nation_config import (
             NATION_STATECRAFT,
@@ -3727,6 +3728,14 @@ class WorldState:
                 except (TypeError, ValueError):
                     continue
             profile["wary_of"] = merged
+        # T2-B (§3.8.2 — the minors' lean / the casting's dial): a plain
+        # int by boot (the band resolved and stripped in
+        # `apply_scenario_variance`); the code table's value stands where
+        # the scenario is silent, so every pre-band board is byte-identical.
+        weight_mod = override.get("weight_mod")
+        if (isinstance(weight_mod, (int, float))
+                and not isinstance(weight_mod, bool)):
+            profile["weight_mod"] = int(weight_mod)
         return profile
 
     def get_capital_garrison_target(self, nation: Optional[str]) -> int:

@@ -533,9 +533,111 @@ def _validate_agenda_deck(result, key_path: str, deck: Any,
                 result.add_error(
                     f"{path}.order_group",
                     f"Must be a positive integer, got {group!r}")
+        # T2-B (AI_INTENT_SPEC.md §3.8.2) — initial ladder readiness: an
+        # authored turn-0 weight offset, optionally banded for the seed.
+        # Malformed is an ERROR (a silent no-op band would read as
+        # variance that never happens); absent is the norm.
+        if "readiness" in entry or "readiness_band" in entry:
+            if not allow_order_group:
+                result.add_error(
+                    f"{path}.readiness",
+                    "readiness is only valid in the top-level `agendas` "
+                    "decks — the seed resolver never touches a dormant "
+                    "formable-template deck")
+                continue
+            readiness = entry.get("readiness", 0)
+            if (isinstance(readiness, bool)
+                    or not isinstance(readiness, int)
+                    or not (_READINESS_MIN <= readiness <= _READINESS_MAX)):
+                result.add_error(
+                    f"{path}.readiness",
+                    f"Must be an integer within [{_READINESS_MIN}, "
+                    f"{_READINESS_MAX}], got {readiness!r}")
+                continue
+            band = entry.get("readiness_band")
+            if band is None:
+                continue
+            if (not isinstance(band, (list, tuple)) or len(band) != 2
+                    or any(isinstance(edge, bool)
+                           or not isinstance(edge, int) for edge in band)):
+                result.add_error(
+                    f"{path}.readiness_band",
+                    f"Must be [lo, hi] (two integers), got {band!r}")
+                continue
+            lo, hi = int(band[0]), int(band[1])
+            if lo > hi:
+                result.add_error(f"{path}.readiness_band",
+                                 f"lo > hi: {band!r}")
+            elif not (lo <= int(readiness) <= hi):
+                result.add_error(
+                    f"{path}.readiness_band",
+                    f"The band must contain the authored readiness "
+                    f"{readiness}, got {band!r}")
+            if not (_READINESS_MIN <= lo and hi <= _READINESS_MAX):
+                result.add_error(
+                    f"{path}.readiness_band",
+                    f"Band edges must sit within [{_READINESS_MIN}, "
+                    f"{_READINESS_MAX}], got {band!r}")
 
     if allow_order_group:
         _validate_deck_order_groups(result, key_path, deck)
+
+
+def _validate_weight_mod(result, path: str, profile: dict) -> None:
+    """T2-B (§3.8.2): one nation's statecraft `weight_mod` — a bare int,
+    or the band shape {"value": N, "band": [lo, hi]}. Malformed is an
+    ERROR (a silent no-op lean would read as variance that never
+    happens); absent is the norm."""
+    if "weight_mod" not in profile:
+        return
+    wpath = f"{path}.weight_mod"
+    weight_mod = profile.get("weight_mod")
+    if isinstance(weight_mod, bool):
+        result.add_error(wpath, f"Must be an integer, got {weight_mod!r}")
+        return
+    if isinstance(weight_mod, int):
+        if not (_WEIGHT_MOD_MIN <= weight_mod <= _WEIGHT_MOD_MAX):
+            result.add_error(
+                wpath,
+                f"Must be within [{_WEIGHT_MOD_MIN}, {_WEIGHT_MOD_MAX}], "
+                f"got {weight_mod}")
+        return
+    if not isinstance(weight_mod, dict):
+        result.add_error(
+            wpath,
+            f"Must be an integer or {{value, band}}, got "
+            f"{type(weight_mod).__name__}")
+        return
+    value = weight_mod.get("value")
+    if isinstance(value, bool) or not isinstance(value, int):
+        result.add_error(f"{wpath}.value",
+                         f"Must be an integer, got {value!r}")
+        return
+    band = weight_mod.get("band")
+    if band is not None:
+        if (not isinstance(band, (list, tuple)) or len(band) != 2
+                or any(isinstance(edge, bool) or not isinstance(edge, int)
+                       for edge in band)):
+            result.add_error(
+                f"{wpath}.band",
+                f"Must be [lo, hi] (two integers), got {band!r}")
+            return
+        lo, hi = int(band[0]), int(band[1])
+        if lo > hi:
+            result.add_error(f"{wpath}.band", f"lo > hi: {band!r}")
+        elif not (lo <= int(value) <= hi):
+            result.add_error(
+                f"{wpath}.band",
+                f"The band must contain the authored value {value}, "
+                f"got {band!r}")
+        if not (_WEIGHT_MOD_MIN <= lo and hi <= _WEIGHT_MOD_MAX):
+            result.add_error(
+                f"{wpath}.band",
+                f"Band edges must sit within [{_WEIGHT_MOD_MIN}, "
+                f"{_WEIGHT_MOD_MAX}], got {band!r}")
+    unknown = sorted(set(weight_mod.keys()) - {"value", "band"})
+    if unknown:
+        result.add_error(wpath, f"Unknown key(s) {unknown}")
 
 
 def _validate_deck_order_groups(result, key_path: str, deck: Any) -> None:
@@ -799,15 +901,28 @@ def _validate_campaign_end(result, data: dict) -> None:
 
 _WARY_OF_MIN = 0.5
 _WARY_OF_MAX = 2.0
+# T2-B (the Tier-2 gate record, AI_INTENT_SPEC.md §3.8.2): the lean/dial
+# clamp — the authored value and every band edge stay inside it. Saxony's
+# −8 and Hesse's −12 (the code table's sleepiest) sit well inside; +12 is
+# a bolder understudy than any 1805 court has needed.
+_WEIGHT_MOD_MIN = -24
+_WEIGHT_MOD_MAX = 12
+# T2-B: the readiness clamp — the ruled band is ±6; ±10 is the hard wall
+# (a readiness past it would cross rung thresholds, the §3.8.1 clamp).
+_READINESS_MIN = -10
+_READINESS_MAX = 10
 
 
 def _validate_statecraft(result, data: dict, known_nations: set) -> None:
     """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
-    per-nation, `wary_of` sub-key ONLY in v1 (the profile table stays in
-    nation_config). D7's principle enforced at the schema: values clamp
-    to [0.5, 2.0], targets must be known nations (hard error — an
-    ahistorical fear of a phantom is data rot, not forward-compat),
-    self-reference is a hard error, unknown sub-keys are hard errors."""
+    per-nation; `wary_of`, and since T2-B (§3.8.2) `weight_mod` (a bare
+    int, or {"value": N, "band": [lo, hi]} for the seed to collapse —
+    the minors' lean and the casting's dial). D7's principle enforced at
+    the schema: wary_of values clamp to [0.5, 2.0], weight_mod and its
+    band edges to [-24, 12] with the band containing the value; targets
+    must be known nations (hard error — an ahistorical fear of a phantom
+    is data rot, not forward-compat), self-reference is a hard error,
+    unknown sub-keys are hard errors."""
     if "statecraft" not in data:
         return
     block = data.get("statecraft")
@@ -816,6 +931,14 @@ def _validate_statecraft(result, data: dict, known_nations: set) -> None:
             "statecraft",
             f"Must be an object, got {type(block).__name__}")
         return
+    # T2-B: the controller-derived set misses roster courts that author no
+    # region rows (Hesse, Hanover, the Papal States, Sardinia — all live
+    # courts whose statecraft IS read); widen with the roster on the
+    # europe map, the `_validate_imperial_designs` idiom.
+    known_nations = set(known_nations or ())
+    if data.get("sovereign_map") == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
     for nation, profile in block.items():
         path = f"statecraft.{nation}"
         if known_nations and nation not in known_nations:
@@ -827,11 +950,13 @@ def _validate_statecraft(result, data: dict, known_nations: set) -> None:
             result.add_error(
                 path, f"Must be an object, got {type(profile).__name__}")
             continue
-        unknown = sorted(set(profile.keys()) - {"wary_of"})
+        unknown = sorted(set(profile.keys()) - {"wary_of", "weight_mod"})
         if unknown:
             result.add_error(
                 path,
-                f"v1 authors wary_of only - unknown key(s) {unknown}")
+                f"statecraft authors wary_of and weight_mod only - "
+                f"unknown key(s) {unknown}")
+        _validate_weight_mod(result, path, profile)
         wary = profile.get("wary_of")
         if wary is None:
             continue

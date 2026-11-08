@@ -179,16 +179,26 @@ class TestTierOneFixed:
     @pytest.mark.parametrize("seed", VARIANCE_SEEDS)
     def test_deck_content_identical(self, worlds, historical, seed):
         # Deck CONTENT is Tier 1 (the designs ARE the history); only ORDER
-        # inside an authored order_group may vary.
+        # inside an authored order_group may vary — and, since T2-B (the
+        # Tier-2 gate record §3.8.2, November 8 2026), the entry's
+        # `readiness` int: the authored turn-0 offset the seed resolves
+        # inside its band ("initial ladder readiness", §3.8.1's own Tier-2
+        # row). WHICH designs a court holds stays fixed on every seed;
+        # readiness is compared by its clamp below, never by equality.
         world = worlds[seed]
         assert set(world.agendas) == set(historical.agendas)
         for nation in world.agendas:
-            ours = {json.dumps(e, sort_keys=True)
+            ours = {json.dumps({k: v for k, v in e.items()
+                                if k != "readiness"}, sort_keys=True)
                     for e in world.agendas[nation]}
-            base = {json.dumps(e, sort_keys=True)
+            base = {json.dumps({k: v for k, v in e.items()
+                                if k != "readiness"}, sort_keys=True)
                     for e in historical.agendas[nation]}
             assert ours == base, \
                 f"seed {seed}: {nation} deck content differs"
+            for entry in world.agendas[nation]:
+                if "readiness" in entry:
+                    assert -10 <= int(entry["readiness"]) <= 10, entry
 
     @pytest.mark.parametrize("seed", VARIANCE_SEEDS)
     def test_capitals_and_player_identical(self, worlds, historical, seed):

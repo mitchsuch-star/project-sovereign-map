@@ -206,12 +206,76 @@ def apply_scenario_variance(scenario_data: Dict[str, Any],
                 continue
             agendas[nation] = _resolve_deck_order(seed, nation, deck,
                                                   historical)
+            # T2-B (the Tier-2 gate record, AI_INTENT_SPEC.md §3.8.2 —
+            # "initial ladder readiness"): resolved AFTER the order band,
+            # so the namespace keys by the entry's own id, not its slot.
+            _resolve_deck_readiness(seed, nation, agendas[nation],
+                                    historical)
+
+    # T2-B (§3.8.2 — "the minors' lean" / T2-6's dial): the statecraft
+    # block's weight_mod bands, collapsed to plain ints before from_dict
+    # ingests the block (the save path never sees a band).
+    statecraft = scenario_data.get("statecraft")
+    if isinstance(statecraft, dict):
+        resolve_statecraft_bands(statecraft, seed, historical=historical)
 
     moments = scenario_data.get("moments")
     if isinstance(moments, dict):
         resolve_moment_turns(moments, seed, historical=historical)
 
     return scenario_data
+
+
+def _resolve_deck_readiness(seed: str, nation: str, deck: List[Any],
+                            historical: bool) -> None:
+    """T2-B (§3.8.2, "initial ladder readiness" — §3.8's jitter applied at
+    turn 0): collapse an entry's {"readiness": N, "readiness_band":
+    [lo, hi]} to a concrete int — the authored value on `historical`, a
+    seeded int in the band otherwise (namespace
+    `readiness::<nation>::<id>`). The band is stripped so the serialized
+    deck carries a plain int; an entry without the keys is untouched
+    (every pre-band deck, byte for byte). The int rides `AgendaView.params`
+    and `intent._derive_weight` adds it — 0 when unauthored."""
+    for entry in deck:
+        if not isinstance(entry, dict):
+            continue
+        band = entry.pop("readiness_band", None)
+        if band is None and "readiness" not in entry:
+            continue
+        value = int(entry.get("readiness") or 0)
+        if (not historical and isinstance(band, (list, tuple))
+                and len(band) == 2):
+            value = seeded_int(seed,
+                               f"readiness::{nation}::{entry.get('id')}",
+                               int(band[0]), int(band[1]))
+        entry["readiness"] = value
+
+
+def resolve_statecraft_bands(statecraft: Dict[str, Any], seed: str,
+                             historical: Optional[bool] = None
+                             ) -> Dict[str, Any]:
+    """T2-B (§3.8.2): collapse each nation's statecraft `weight_mod`
+    {"value": N, "band": [lo, hi]} to a plain int — the authored value on
+    `historical`, seeded in the band otherwise (namespace
+    `statecraft::<nation>::weight_mod`). A bare int is kept as authored;
+    `wary_of` is never touched here (it is unbanded by design — a fear is
+    a profile, not a contingency). Idempotent on a resolved int."""
+    if historical is None:
+        historical = is_historical(seed)
+    for nation, overlay in statecraft.items():
+        if not isinstance(overlay, dict):
+            continue
+        weight_mod = overlay.get("weight_mod")
+        if not isinstance(weight_mod, dict):
+            continue
+        value = int(weight_mod.get("value") or 0)
+        band = weight_mod.get("band")
+        if (not historical and isinstance(band, (list, tuple))
+                and len(band) == 2):
+            value = seeded_int(seed, f"statecraft::{nation}::weight_mod",
+                               int(band[0]), int(band[1]))
+        overlay["weight_mod"] = value
+    return statecraft
 
 
 def resolve_moment_turns(moments: Dict[str, Any], seed: str,

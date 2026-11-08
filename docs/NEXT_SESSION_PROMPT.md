@@ -1,33 +1,34 @@
-# NEXT SESSION PROMPT — Tier 2 session 2: the new bands per §3.8.2, then T2-2…T2-6 (the gate ✅ ruled, DY-0 ✅ landed), then Tiers 3–8, then the deploy
+# NEXT SESSION PROMPT — Tier 2 session 3: T2-2…T2-6 the content slices (the gate ✅, DY-0 ✅, T2-B the bands ✅), then Tiers 3–8, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — TIER 2'S GATE ✅ RULED
-> + T2-1/DY-0 ✅ LANDED (`AI_INTENT_SPEC.md` §3.8.2 authored in Plan Mode — the standing band catalog
-> recorded, the new bands ruled, the story class defined with its event-type contract; the sweep carries the
-> Concert's five columns; the baseline `tools/_dy_signature_baseline.json` reads 9 of 10 story classes
-> pre-band — the floor the tiers must beat; `SYSTEMS_REFERENCE.md` §186; pins
-> `tests/test_dy0_the_signature.py`)**, after Tier 1 the seed (§185) and Tier 0 complete (§178–§184).
-> **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-B THE NEW BANDS ✅
+> LANDED (§3.8.2's ruled additions: readiness 0 ± 6 on the majors' first designs, Russia none; the minors' lean
+> as banded statecraft `weight_mod` — Saxony −8 ± 6, Hesse −12 ± 6, eight courts 0 ± 6; resolvers, validator
+> clauses, the roster widening, the `get_statecraft` overlay; ONE envelope pin re-seated — readiness is the
+> gate's Tier-2 exception, compared by clamp; the dated re-record `tools/_dy_signature_bands_2026_11_08.json`
+> reads 10 of 10 story classes with historical byte-identical; `SYSTEMS_REFERENCE.md` §187; pins
+> `tests/test_t2b_the_new_bands.py`)**, after the gate + DY-0 (§186, floor 9 of 10), Tier 1 (§185), Tier 0
+> (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 2 SESSION 2: THE NEW BANDS, THEN THE CONTENT SLICES** (`AI_INTENT_SPEC.md` §3.8.2 is the
-> ruling — read it first; `DYNAMISM_SPEC.md` §2 Tier 2; ≈ 2 sessions left in the tier):
-> - **The new bands** (one slice, validator-clamped, historian test green on every seed, measured against the
->   DY-0 baseline): initial ladder readiness — a deck-entry `weight` band (±6) on each major's first live
->   design (new shape: `weight_band` beside the entry; resolver arm in `apply_scenario_variance`; validator
->   clause — contains the authored value, crosses no rung threshold); the minors' lean — banded statecraft
->   `weight_mod` over §3.8.1's eligible set (three seams TOGETHER: `get_statecraft` overlays only `wary_of`
->   today (`world_state.py:~3702`), the validator allow-set at `modding/validator.py:~830`, and a statecraft
->   resolver — `apply_scenario_variance` never touches the block today); a committed minor stays Tier 1.
-> - **Then the content slices, each its own commit:** T2-2 peace closes the theatre (the activation seam is
->   `agendas._acquire_active`/`region_coveted`; the fresh-peace read `coalition.fresh_peace_turns_left` +
->   `armistice_cooldowns`); T2-3 Prussia's hook (NO war-join machinery exists — `join_coalition` is
->   Congress-only, P-Bandwagon is a proposal flow; the renege quota is new; one renege a campaign); T2-4 the
->   contain design's quiet-window sleep (arbiter yields to `gulf_and_straits`, which is ALREADY authored —
->   pin 22 keeps Russia's deck unbanded); T2-5 Swedish Pomerania (does not exist — verify the region id
->   against `regions`; a Prussian `order_group` needs 2 contiguous entries); T2-6 the casting band (Bavaria
->   and Naples have NO decks — author them; one understudy boots live-first with a bolder `weight_mod`).
-> - The measure after each slice that can move boards: the DY-0 baseline re-run tells WHICH seeds' classes
->   moved (`tools/_dy0_baseline.py --out` a dated file — the kept-record idiom; the committed baseline is the
->   PRE-BAND record, never overwrite it without the re-seat).
+> **NOW — TIER 2 SESSION 3: THE CONTENT SLICES, EACH ITS OWN COMMIT** (`DYNAMISM_SPEC.md` §2 Tier 2; the
+> seams verified by the session-1 exploration; measure after any slice that moves boards — a dated DY-0
+> re-record, the kept-record idiom):
+> - **T2-2 peace closes the theatre:** an acquire design sleeps while a fresh peace holds its regions (Austria
+>   turns to the Eastern Question). The activation seam is `agendas._acquire_active`/`region_coveted` (the one
+>   place activation, obstacles and unmet targets all read); the fresh-peace read is
+>   `coalition.fresh_peace_turns_left` + `world.armistice_cooldowns` (`agendas` already imports from
+>   `coalition` locally). Dormancy stays DERIVED, never stored.
+> - **T2-3 Prussia's hook:** join the strong side's enemy at relation < 0 when the league is the stronger; ONE
+>   renege a campaign. NO war-join machinery exists today — `coalition.join_coalition` is Congress-only,
+>   P-Bandwagon (`ai_diplomacy.py:~2964`) is a proposal flow; the renege quota is new (the existing renege
+>   events are compensation/bond families).
+> - **T2-4 the quiet-window sleep:** `arbiter_of_europe` sleeps after a quiet window so `gulf_and_straits`
+>   (ALREADY authored behind it) can wake — `_contain_active` is the seam; pin 22 keeps Russia's deck unbanded.
+> - **T2-5 Prussia's second design:** Swedish Pomerania — does NOT exist; verify the region id against
+>   `regions` (the navies comment says Sweden's yard province is drawn as Stralsund); a Prussian `order_group`
+>   needs two CONTIGUOUS entries.
+> - **T2-6 the casting band:** the seed casts ONE understudy from (Saxony, Bavaria, Denmark, Naples) — its deck
+>   boots live-first with a bolder banded `weight_mod`; **Bavaria and Naples have NO decks — author them**
+>   (Rule 9 rows in `DYNAMISM_SPEC.md` §8 when they land); a new casting resolver beside the band machinery.
 >
 > **DY-0's own traps (fresh):** the three future-tier columns read event types the owning tiers MUST emit
 > (`question_turns` / `rank_promotion` / `awakening_*` — §3.8.2's contract; the baseline pin REDS on a leak
