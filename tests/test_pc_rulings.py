@@ -3337,7 +3337,13 @@ class TestPCR7:
         # The gap, measured first: spent at 174, she breaks ranks on exhaustion.
         assert AI.coalition_break_ranks_reason(w, "Austria", war_score=score, diplo_key=k) == "exhaustion"
         alone_before = _row(_preview(w, terms=[], covered=["Austria"]), "Austria")["total"]
-        assert alone_before == 7
+        # T2-2 re-seat (November 8, 2026): 7 → 15 — this board carries a
+        # fresh Austria–Bavaria peace (one floor turn left), so
+        # `primacy_germany` sleeps and its agenda_settlement_mod (−8)
+        # leaves the row (the France-held Italian targets stay coveted —
+        # the pair is at war, the theatre open). The bond's own
+        # arithmetic below is relative to this base and unchanged.
+        assert alone_before == 15
         # (1) MINTED by the paymaster — the member about to break ranks, whom the
         # bond's depth would hold; one D5 record of kind "bond", dated.
         with _quiet():

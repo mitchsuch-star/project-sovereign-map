@@ -185,6 +185,19 @@ def survival_override_active(world, nation: str) -> bool:
 
 # ═══════════════════════ PER-TYPE ACTIVATION ══════════════════════════════
 
+def a_fresh_peace_quiets_the_design() -> bool:
+    """T2-2 "peace closes the theatre" (`DYNAMISM_SPEC.md` §2 Tier 2;
+    November 8, 2026): a region whose holder has JUST made peace with the
+    coveter is not coveted while the fresh-peace floor runs
+    (`coalition.fresh_peace_turns_left` — the game's ONE fresh-peace rule,
+    5 turns; deliberately no second constant). The design sleeps DERIVED,
+    never stored: the deck advances past it (Austria signs Pressburg and
+    turns to the Eastern Question) and it wakes the turn the floor lapses
+    — or at once, if the peace breaks. Down: the pre-T2-2 reading — ink
+    on the treaty changed nothing the morning after."""
+    return True
+
+
 def region_coveted(world, nation: str, region_name: str) -> bool:
     """SF-LB-1's ONE predicate (the October 27, 2026 sweep): is `region_name`
     a target `nation` still covets - not its own or its vassal's, and (with
@@ -192,7 +205,33 @@ def region_coveted(world, nation: str, region_name: str) -> bool:
     obstacle derivation and the unmet-target list alike; before, only the
     activation skipped the ally, so a two-holder design named an ALLY as
     the obstacle, read "Sweden stands in the way" on the ledger and opened
-    a crisis against her."""
+    a crisis against her. T2-2 adds the theatre's peace: a holder the
+    coveter has just signed with is no obstacle while the floor runs
+    (`a_fresh_peace_quiets_the_design` above)."""
+    if not _region_coveted_theatre_open(world, nation, region_name):
+        return False
+    if a_fresh_peace_quiets_the_design():
+        holder = _region_controller(world, region_name)
+        effective = (world._top_overlord(holder) or holder) if holder else None
+        # A pair back AT WAR has no quiet theatre: the ONE rule reads only
+        # the ended instances (its coalition callers gate on war
+        # separately), so the broken peace is this clause's own check —
+        # the design wakes at once, as the seam's docstring promises.
+        if (effective and effective != nation
+                and not world.is_at_war(nation, effective)):
+            from backend.game_logic.coalition import fresh_peace_turns_left
+            if fresh_peace_turns_left(nation, world, effective) > 0:
+                return False
+    return True
+
+
+def _region_coveted_theatre_open(world, nation: str, region_name: str) -> bool:
+    """The pre-T2-2 covet — the self/vassal and ally clauses WITHOUT the
+    fresh-peace one. Two readers: `region_coveted` (every activation and
+    obstacle surface) layers the peace clause on top; the GRUDGE reader
+    asks this form directly, because §5.8's subject is exactly the design
+    the peace suppressed ("whose design remains denied") — a court that
+    signs and still wants is the grudge, not a court gone content."""
     if _controlled_by_self_or_vassal(world, nation, region_name):
         return False
     if AN_ALLY_IS_NOT_COVETED:
@@ -450,10 +489,17 @@ def _entry_satisfied(world, nation: str, entry: dict) -> bool:
         # Revanche whose every province was signed away is RECONCILED, not
         # achieved — never read satisfied (that would hand the court the
         # NA-3 +10 resolve and an early separate peace for winning nothing).
+        # T2-2: satisfaction reads the THEATRE-OPEN covet, never the
+        # peace-layered one — a fresh peace is a DORMANCY condition (this
+        # function's own law above), so a design quieted by the ink must
+        # not read SATISFIED: that proclaimed the United Netherlands
+        # without Flanders ever being taken (the formation poll reads
+        # `entry_satisfied`) and is the GE-1 pathology by another door.
         _regions = _entry_regions(world, nation, entry)
         if not _regions and entry.get("regions"):
             return False
-        return not _acquire_active(world, nation, _regions)
+        return not any(_region_coveted_theatre_open(world, nation, r)
+                       for r in _regions)
     if agenda_type == "deny_regions":
         # SATISFACTION IS A STATEMENT ABOUT THE PROVINCES, NOT ABOUT BLOC
         # RANKINGS. Britain's design is the Scheldt; whether Austria has
@@ -768,8 +814,14 @@ def _agenda_concerns_bloc_of(nation: str, anchor: str, world) -> bool:
     """The anchor-general body of `agenda_concerns_player_bloc` (AI-5b:
     emergent designs make grudges point at non-player authors, so the
     grudge query below takes an author). Player-anchor calls are
-    byte-identical to the pre-refactor function."""
-    view = get_active_agenda(nation, world)
+    byte-identical to the pre-refactor function. T2-2 extracted the
+    view-level body (`_view_concerns_bloc_of`) so the grudge reader can
+    ask it of a theatre-open view."""
+    return _view_concerns_bloc_of(
+        get_active_agenda(nation, world), nation, anchor, world)
+
+
+def _view_concerns_bloc_of(view, nation: str, anchor: str, world) -> bool:
     if view is None or view.survival:
         return False
     if view.type == "acquire_regions":
@@ -1130,14 +1182,57 @@ def get_agenda_grudge_nations(world, author: Optional[str] = None,
             continue
         if world.is_at_war(nation, player):
             continue  # back at war — the grudge is the war now
-        view = get_active_agenda(nation, world)
-        if view is None or view.survival:
-            continue
-        if view.type not in ("acquire_regions", "deny_regions"):
-            continue
-        if _agenda_concerns_bloc_of(nation, player, world):
-            grudged.append(nation)
+        for view in _grudge_candidate_views(nation, world):
+            if view is None or view.survival:
+                continue
+            if view.type not in ("acquire_regions", "deny_regions"):
+                continue
+            if _view_concerns_bloc_of(view, nation, player, world):
+                grudged.append(nation)
+                break
     return sorted(grudged)
+
+
+def _grudge_candidate_views(nation: str, world):
+    """The views the grudge question reads: the ACTIVE design, and —
+    T2-2's companion — the design the fresh peace suppressed. §5.8's own
+    words are "whose active acquire/deny design remains denied ... and
+    whose war ended recently": with the theatre's peace clause the very
+    peace that opens the grudge window also advances the deck past the
+    denied design, so a court that signed and still wants read as content
+    the moment the ink dried. The suppressed design is read with the
+    theatre OPEN (`_region_coveted_theatre_open` — the self/vassal and
+    ally clauses still apply: returned targets still dissolve the grudge,
+    the R156 payoff). Derived, uncached, one deck walk per recently-ended
+    court per ask."""
+    active = get_active_agenda(nation, world)
+    if active is not None:
+        yield active
+    if not a_fresh_peace_quiets_the_design():
+        return
+    active_id = getattr(active, "id", None)
+    for entry in ((getattr(world, "agendas", {}) or {}).get(nation) or []):
+        if not isinstance(entry, dict):
+            continue
+        # ONLY acquire: the clause lives in `region_coveted`, which
+        # `_deny_active` never reads — a deny design cannot be the one
+        # the peace suppressed, and yielding one here widened the grudge
+        # set on boards with no fresh peace at all (the hook's own catch:
+        # the T24 alarm forecast rose by the extra candidate).
+        if entry.get("type") != "acquire_regions":
+            continue
+        if str(entry.get("id") or "") == str(active_id or ""):
+            continue
+        regions = _entry_regions(world, nation, entry)
+        # The suppressed design, exactly: active with the theatre OPEN,
+        # inactive under the live (peace-layered) read. Without a fresh
+        # peace the two reads agree and nothing extra is yielded — the
+        # pre-T2-2 grudge set, byte for byte.
+        if (any(_region_coveted_theatre_open(world, nation, r)
+                for r in regions)
+                and not _acquire_active(world, nation, regions)):
+            yield _view_from_entry(nation, entry, regions=regions)
+            return
 
 
 def get_agenda_military_targets(nation: str, world) -> List[str]:

@@ -13705,3 +13705,65 @@ sail → land Carniola → break camp → march Tyrol → fortify — a corps re
 landing, a sighting, not a loop; no row.
 
 
+
+## §188 Tier 2, session 3 — T2-2, peace closes the theatre (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 2 + §8 row T2-2; pins
+`tests/test_t2_2_peace_closes_the_theatre.py`, 16; the seam
+`a_fresh_peace_quiets_the_design` in `tests/_t2_seams.py`, appended to the recorded
+boards' hold-list `tests/_oct27_seams.py`). The first Tier-2 slice that changes a RULE
+of play — T2-B moved only the dice, so its record pinned historical byte-identical by
+construction; this slice's record earns the same reading by the rule's own reach.
+
+**The rule, one clause in the ONE predicate.** `agendas.region_coveted` (SF-LB-1's one
+coveting predicate — activation, obstacle derivation and unmet-target list alike) gains
+the theatre's peace: the holder resolves through `_top_overlord` (a vassal's region
+reads its overlord — the peace with FRANCE quiets Milan), and at
+`fresh_peace_turns_left(nation, world, effective) > 0` the region is not coveted —
+`coalition.fresh_peace_turns_left`, the game's ONE fresh-peace rule (5 turns),
+deliberately no second constant. A pair back AT WAR has no quiet theatre: the ONE rule
+reads only the ended instances (its coalition callers gate on war separately), so the
+broken peace is the clause's own check and the design wakes at once. Dormancy is
+DERIVED, never stored: `get_active_agenda` advances past the sleeping design (Austria
+signs with France and Bavaria and turns to the Eastern Question) and it wakes the turn
+the floor lapses; `to_dict` carries nothing new.
+
+**Dormancy is never satisfaction — the slice's own catch.** The first dated chain read
+Holland proclaiming the United Netherlands on historical and wagram WITHOUT Flanders
+ever taken: `_entry_satisfied`'s acquire arm computed `not _acquire_active` through the
+peace-layered predicate, so a freed Holland's fresh peace with Flanders' holder made
+`the_seventeen_provinces` read SATISFIED, and the formation poll (`process_formations`
+reads `entry_satisfied`) proclaimed the crown — the GE-1 "+10 resolve and an early
+separate peace for winning nothing" pathology by another door. Satisfaction now reads
+the THEATRE-OPEN covet (`_region_coveted_theatre_open` — the pre-T2-2 self/vassal +
+ally clauses), pinned both ways: the sleeping design stays unsatisfied, and a Holland
+actually holding Flanders still proclaims.
+
+**The grudge keeps its subject.** §5.8's grudge subject is exactly the design the peace
+suppressed ("whose design remains denied"), so `get_agenda_grudge_nations` walks
+`_grudge_candidate_views` — the active view, then the first acquire/deny entry active
+under theatre-open reads — and Austria at fresh peace with France still grudges her,
+while returned targets still dissolve the grudge (the R156 payoff; three grudge pins
+went red before the companion and are its evidence). The companion's first cut leaked
+— the hook's own catch: it yielded a second candidate on boards with NO fresh peace,
+and a deny entry, which the clause cannot suppress (`_deny_active` never reads
+`region_coveted`); the T24 alarm forecast rose by the extra grudge
+(`test_step1_the_peace_holds.py` RS-16, one red in 38,620). The suppressed design is
+now read EXACTLY — acquire only, active with the theatre OPEN and inactive under the
+live read — so without a fresh peace the two reads agree and the grudge set is the
+pre-T2-2 one, byte for byte.
+
+**One pin re-seated with its cause.** `test_pc_rulings.py` PCR7 (ii): the ulm_t18
+crafted board carries an incidental fresh Austria–Bavaria peace (one floor turn left),
+so `primacy_germany` sleeps and `agenda_settlement_mod` (−8) leaves her bilateral row —
+`alone_before` 7 → 15; the France-held Italian targets stay coveted (the pair at war,
+the theatre open) and the bond's arithmetic below the literal is relative, unchanged.
+
+**The measure** (the dated re-record `tools/_dy_signature_t2_2_2026_11_08.json`, the
+chain ALONE over the ten ambient `SWEEP_SEEDS` × 40 turns, compared to the T2-B record
+`_dy_signature_bands_2026_11_08.json` — the kept-record idiom): **story classes 10 of
+10 held**; the movers are **austerlitz, lodi, ulm** alone — only boards where an AI–AI
+peace actually touches a coveted theatre move — and **historical is byte-identical
+record-to-record**, pinned (the pre-fix chain had moved historical and wagram too, by
+the phantom crown alone; `TestTheMeasure` pins the movers, the count, historical's
+identity and the empty formations columns).

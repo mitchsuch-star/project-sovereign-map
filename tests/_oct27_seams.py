@@ -161,6 +161,14 @@ from tests._t0efg_seams import T0EFG_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in T0EFG_SEAMS_BY_ROW for spec in T0EFG_SEAMS_BY_ROW[row]]
 
+# T2-2 "peace closes the theatre" (November 8, 2026) re-times the boards
+# the same way — a post-peace design now sleeps the floor out, so the
+# recorded boards hold its seam down with the rest. The seam's own row:
+# `tests/_t2_seams.py`.
+from tests._t2_seams import T2_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in T2_SEAMS_BY_ROW for spec in T2_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

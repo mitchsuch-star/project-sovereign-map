@@ -1,42 +1,53 @@
-# NEXT SESSION PROMPT — Tier 2 session 3: T2-2…T2-6 the content slices (the gate ✅, DY-0 ✅, T2-B the bands ✅), then Tiers 3–8, then the deploy
+# NEXT SESSION PROMPT — Tier 2 session 4: T2-3 Prussia's hook (the gate ✅, DY-0 ✅, T2-B ✅, T2-2 ✅), then T2-4…T2-6, then Tiers 3–8, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-B THE NEW BANDS ✅
-> LANDED (§3.8.2's ruled additions: readiness 0 ± 6 on the majors' first designs, Russia none; the minors' lean
-> as banded statecraft `weight_mod` — Saxony −8 ± 6, Hesse −12 ± 6, eight courts 0 ± 6; resolvers, validator
-> clauses, the roster widening, the `get_statecraft` overlay; ONE envelope pin re-seated — readiness is the
-> gate's Tier-2 exception, compared by clamp; the dated re-record `tools/_dy_signature_bands_2026_11_08.json`
-> reads 10 of 10 story classes with historical byte-identical; `SYSTEMS_REFERENCE.md` §187; pins
-> `tests/test_t2b_the_new_bands.py`)**, after the gate + DY-0 (§186, floor 9 of 10), Tier 1 (§185), Tier 0
-> (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-2 PEACE CLOSES THE
+> THEATRE ✅ LANDED (the fresh-peace clause in the ONE coveting predicate `agendas.region_coveted` —
+> `coalition.fresh_peace_turns_left`, 5 turns, no second constant; the holder resolved through `_top_overlord`;
+> a pair back AT WAR has no quiet theatre; dormancy DERIVED — Austria signs and turns to the Eastern Question,
+> wakes at the floor's lapse; dormancy never satisfies — the phantom United Netherlands caught, satisfaction
+> reads the theatre-open covet; the grudge keeps its subject; the dated re-record
+> `tools/_dy_signature_t2_2_2026_11_08.json` holds 10 of 10 with movers austerlitz/lodi/ulm and historical
+> byte-identical; `SYSTEMS_REFERENCE.md` §188; pins `tests/test_t2_2_peace_closes_the_theatre.py`, 16)**, after
+> T2-B the bands (§187), the gate + DY-0 (§186, floor 9 of 10), Tier 1 (§185), Tier 0 (§178–§184). **The deploy
+> (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 2 SESSION 3: THE CONTENT SLICES, EACH ITS OWN COMMIT** (`DYNAMISM_SPEC.md` §2 Tier 2; the
-> seams verified by the session-1 exploration; measure after any slice that moves boards — a dated DY-0
-> re-record, the kept-record idiom):
-> - **T2-2 peace closes the theatre:** an acquire design sleeps while a fresh peace holds its regions (Austria
->   turns to the Eastern Question). The activation seam is `agendas._acquire_active`/`region_coveted` (the one
->   place activation, obstacles and unmet targets all read); the fresh-peace read is
->   `coalition.fresh_peace_turns_left` + `world.armistice_cooldowns` (`agendas` already imports from
->   `coalition` locally). Dormancy stays DERIVED, never stored.
+> **NOW — TIER 2 SESSION 4: T2-3 PRUSSIA'S HOOK, ITS OWN COMMIT** (`DYNAMISM_SPEC.md` §2 Tier 2; measure after
+> any slice that moves boards — a dated DY-0 re-record against the T2-2 record, the kept-record idiom):
 > - **T2-3 Prussia's hook:** join the strong side's enemy at relation < 0 when the league is the stronger; ONE
 >   renege a campaign. NO war-join machinery exists today — `coalition.join_coalition` is Congress-only,
 >   P-Bandwagon (`ai_diplomacy.py:~2964`) is a proposal flow; the renege quota is new (the existing renege
->   events are compensation/bond families).
-> - **T2-4 the quiet-window sleep:** `arbiter_of_europe` sleeps after a quiet window so `gulf_and_straits`
+>   events are compensation/bond families). The seam idiom: a zero-arg named function in the module it gates,
+>   the spec in `tests/_t2_seams.py` T2_SEAMS_BY_ROW["T2-3"], APPENDED to `tests/_oct27_seams.py` so the
+>   recorded boards replay the old reading.
+> - **Then T2-4 the quiet-window sleep:** `arbiter_of_europe` sleeps after a quiet window so `gulf_and_straits`
 >   (ALREADY authored behind it) can wake — `_contain_active` is the seam; pin 22 keeps Russia's deck unbanded.
-> - **T2-5 Prussia's second design:** Swedish Pomerania — does NOT exist; verify the region id against
+> - **Then T2-5 Prussia's second design:** Swedish Pomerania — does NOT exist; verify the region id against
 >   `regions` (the navies comment says Sweden's yard province is drawn as Stralsund); a Prussian `order_group`
 >   needs two CONTIGUOUS entries.
-> - **T2-6 the casting band:** the seed casts ONE understudy from (Saxony, Bavaria, Denmark, Naples) — its deck
->   boots live-first with a bolder banded `weight_mod`; **Bavaria and Naples have NO decks — author them**
+> - **Then T2-6 the casting band:** the seed casts ONE understudy from (Saxony, Bavaria, Denmark, Naples) — its
+>   deck boots live-first with a bolder banded `weight_mod`; **Bavaria and Naples have NO decks — author them**
 >   (Rule 9 rows in `DYNAMISM_SPEC.md` §8 when they land); a new casting resolver beside the band machinery.
 >
-> **DY-0's own traps (fresh):** the three future-tier columns read event types the owning tiers MUST emit
+> **T2-2's own traps (fresh):** satisfaction reads the THEATRE-OPEN covet, never the peace-layered one —
+> `_entry_satisfied`'s acquire arm goes through `_region_coveted_theatre_open`, and any NEW dormancy clause
+> added to `region_coveted` must stay OUT of satisfaction (dormancy ≠ satisfaction; the formation poll reads
+> `entry_satisfied`, and the pre-fix chain proclaimed the United Netherlands without Flanders ever taken); the
+> at-war guard is the CLAUSE's own (`fresh_peace_turns_left` reads only ended instances — its coalition callers
+> gate on war separately); a staged fresh peace must END the live boot war AND set the pair state to PEACE (the
+> `_sign_peace` idiom in the T2-2 pins — an ended instance beside a live war reads "back at war" and suppresses
+> everything); crafted boards carry INCIDENTAL fresh peaces (ulm_t18's Austria–Bavaria moved PCR7's
+> `alone_before` 7 → 15) — a moved absolute literal is re-seated with its cause named, the relative arithmetic
+> below it untouched; the grudge's subject is the SUPPRESSED design, read EXACTLY — acquire only,
+> theatre-open active AND live-inactive (`_grudge_candidate_views`): a wider read moves the T24 alarm forecast
+> (`test_step1_the_peace_holds.py` RS-16 — the hook caught it, one red in 38,620).
+>
+> **DY-0's own traps:** the three future-tier columns read event types the owning tiers MUST emit
 > (`question_turns` / `rank_promotion` / `awakening_*` — §3.8.2's contract; the baseline pin REDS on a leak
 > before Tiers 4–6); `story_class` is sets-never-turns by design — do not add timing to it; the assurance
 > controls (same-seed EQUAL, variance-off EQUAL) must stay green when widening the signature; the baseline
 > runner's parent runs PLAIN (`spawn_run` children carry PYTHONHASHSEED=0).
 >
-> **Open with the user (none blocks Tier 1):** **GRD-38 — should a full-authority Emperor ever be defied?**
+> **Open with the user (none blocks Tier 2):** **GRD-38 — should a full-authority Emperor ever be defied?**
 > (T0-I's measured pricing: MODERATE = literally 0 at authority ≥ 80, STRONG ≤ 0.13; the table in
 > `tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`; a ruling re-records the DRAMA arm); **GRD-37 — T8
 > vs the post-S14j war economy** (RF-3's half); the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36
@@ -45,13 +56,12 @@
 > questions (`REFORMS_SPEC.md` §5a); the crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md`
 > §4.2); SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1).
 >
-> **After Tier 1 — the Concert (`docs/DYNAMISM_SPEC.md`; Q1's deploy cut REVERSED November 7, 2026 — no cuts
-> without consent, spec §0):** Tier 2 Europe varies + T2-6 the casting band (gate §3.8.2 at its head, Plan Mode)
-> → Tier 3 the strategist (gate §13) → Tier 4 the Alarm of Europe + promotion's teeth → Tier 5 the Questions of
-> Europe → Tier 6 the Awakening → Tier 8 Crowns & Recognition (Tier 7's bounded dice only if the story-class
-> count still falls short at the gate) → **S15 the deploy, the user's own** (the UXR-4 walk, the certificate —
-> `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in a file — `deploy\\build.bat`,
-> `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`).
+> **After Tier 2 — the Concert (`docs/DYNAMISM_SPEC.md`; Q1's deploy cut REVERSED November 7, 2026 — no cuts
+> without consent, spec §0):** Tier 3 the strategist (gate §13) → Tier 4 the Alarm of Europe + promotion's teeth
+> → Tier 5 the Questions of Europe → Tier 6 the Awakening → Tier 8 Crowns & Recognition (Tier 7's bounded dice
+> only if the story-class count still falls short at the gate) → **S15 the deploy, the user's own** (the UXR-4
+> walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in a file —
+> `deploy\\build.bat`, `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`).
 > **After the deploy:** S14k part 3, S16, S17c.
 >
 > **T0-I's own traps, paid for this slice (keep with the standing list below):** the driver reseeds the module
