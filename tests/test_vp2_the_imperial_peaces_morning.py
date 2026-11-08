@@ -405,7 +405,13 @@ class TestDDBX4:
 # ════════════════════════════════════════════════════════════════════════
 
 _HELD_DOWN = ("backend.game_logic.congress:league_waits_on_paris=\"\"",
-              "backend.game_logic.congress:the_signing_spends={}")
+              "backend.game_logic.congress:the_signing_spends={}",
+              # T2-3 re-seat (November 8, 2026): this arm REPRODUCES the
+              # econ_gate archive's recorded gap, and on the live tree the
+              # bandwagoner moves the pressed board's league membership —
+              # the archived reading needs the pre-T2-3 rules, exactly as
+              # the recorded boards hold them down.
+              "backend.game_logic.war_council:a_bandwagoner_joins_the_stronger_side=False")
 
 
 def _drive_press(tmp_path, name, *seams):

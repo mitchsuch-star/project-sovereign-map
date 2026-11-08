@@ -1307,3 +1307,250 @@ def process_war_council(world) -> List[Dict]:
             _run_ai_instrument_producers(world, coveter, record, events)
 
     return events
+
+
+# ════════════════════════════════════════════════════════════════════════
+# T2-3 — PRUSSIA'S HOOK: THE BANDWAGONER (DYNAMISM_SPEC.md §2 Tier 2,
+# November 8, 2026). A court whose statecraft prefers the bandwagon rung
+# (§3.4: Prussia, the hesitant opportunist) attaches itself to a running
+# AI-vs-AI war on the STRONGER side, against the weaker side's leader —
+# and may quit ONCE a campaign when the scales turn. Deterministic
+# (AI-0b: no dice in politics); everything derived or written inside the
+# serialized `war_instances` rows (no new world field).
+# ════════════════════════════════════════════════════════════════════════
+
+def a_bandwagoner_joins_the_stronger_side() -> bool:
+    """T2-3 "Prussia's hook" (`DYNAMISM_SPEC.md` §2 Tier 2; November 8,
+    2026): a court whose statecraft `reaches_first` carries "bandwagon"
+    joins a live AI-vs-AI war on the stronger side when its relation with
+    the weaker side's leader is below 0 — the ally-entry join idiom
+    (`ensure_war_instance_for_pair` + WAR), one join a turn world-wide —
+    and RENEGES (a separate peace out of a war it bandwagoned into) at
+    most ONCE a campaign, the turn its side reads strictly weaker. Down:
+    the pre-T2-3 board — no court ever attaches itself to a running war
+    it was not called to, and no one quits by the scales."""
+    return True
+
+
+def _bandwagon_courts(world) -> List[str]:
+    """The hook's courts, DERIVED from statecraft (never a name): active,
+    non-vassal, not the player, not fighting for survival, and the
+    profile's `reaches_first` carries "bandwagon" — Prussia alone on the
+    shipped table (`nation_config.NATION_STATECRAFT`)."""
+    from backend.game_logic.agendas import survival_override_active
+    player = getattr(world, "player_nation", "France")
+    vassals = set(getattr(world, "vassals", {}) or {})
+    out = []
+    for nation in sorted(world.get_active_nations()):
+        if nation == player or nation in vassals:
+            continue
+        profile = world.get_statecraft(nation)
+        if "bandwagon" not in tuple(profile.get("reaches_first") or ()):
+            continue
+        if survival_override_active(world, nation):
+            continue
+        out.append(nation)
+    return out
+
+
+def _side_strengths(world, instance) -> tuple:
+    """Both sides' ACTIVE standing strength — `_standing_strength` summed
+    over `active_participants` per side (an exited court weighs nothing)."""
+    active = set(instance.get("active_participants") or [])
+    att = [n for n in (instance.get("attackers") or []) if n in active]
+    dfd = [n for n in (instance.get("defenders") or []) if n in active]
+    s_att = sum(_standing_strength(world, n) for n in att)
+    s_dfd = sum(_standing_strength(world, n) for n in dfd)
+    return att, dfd, s_att, s_dfd
+
+
+def _bandwagon_renege_spent(world, nation: str) -> bool:
+    """One renege a campaign — DERIVED from the `reneged_turn` stamp the
+    renege writes into the instance's own `participant_meta` row (the
+    serialized store; no new world field). O(wars), once per tick."""
+    for inst in (getattr(world, "war_instances", {}) or {}).values():
+        meta = (inst.get("participant_meta") or {}).get(nation) or {}
+        if meta.get("reneged_turn") is not None:
+            return True
+    return False
+
+
+def process_bandwagon(world) -> List[Dict]:
+    """The per-turn tick (world_state, after `process_war_council` so the
+    council's fresh declarations are on the board, before the third-party
+    settlements so a join cannot land on a war already closing this
+    turn). Deckless worlds (legacy fixtures) no-op, the council's own
+    gate."""
+    if not a_bandwagoner_joins_the_stronger_side():
+        return []
+    if not (getattr(world, "agendas", {}) or {}):
+        return []
+    events: List[Dict] = []
+    for nation in _bandwagon_courts(world):
+        _bandwagon_renege(world, nation, events)
+        _bandwagon_join(world, nation, events)
+    return events
+
+
+def _bandwagon_join(world, nation: str, events: List[Dict]) -> None:
+    """The join: a live AI-vs-AI war (the player on neither side — §16.2's
+    v1 narrowing: the anti-France road stays the coalition's, and France's
+    own side is the player's to invite), the would-be side STRICTLY
+    stronger, relation with the weaker side's leader below 0, the shared
+    declaration preview clean (armistice cooldown — the fresh-peace floor
+    — side conflict, treaty in the way), and free strength at home. One
+    join a turn, world-wide (pin 13: measured, not a soap opera)."""
+    from backend.game_logic.diplomacy import get_relation, set_diplomatic_state
+    player = getattr(world, "player_nation", "France")
+    instances = getattr(world, "war_instances", {}) or {}
+    for war_id in sorted(instances):
+        inst = instances[war_id]
+        if inst.get("ended_turn") is not None:
+            continue
+        active = set(inst.get("active_participants") or [])
+        if len(active) < 2 or nation in active or player in active:
+            continue
+        # Never re-enter a war this court has already left — a renege
+        # followed by a same-turn join of the OTHER side would be the
+        # soap opera pin 13 bars, and rejoining any exited war reads
+        # wrong whatever the exit was.
+        prior = (inst.get("participant_meta") or {}).get(nation) or {}
+        if prior.get("exited_turn") is not None \
+                or prior.get("reneged_turn") is not None:
+            continue
+        att, dfd, s_att, s_dfd = _side_strengths(world, inst)
+        if not att or not dfd or s_att == s_dfd:
+            continue
+        enemy_leader_key = ("defender_leader" if s_att > s_dfd
+                            else "attacker_leader")
+        enemy = str(inst.get(enemy_leader_key) or "")
+        if not enemy or enemy == player or enemy not in active:
+            continue
+        if int(get_relation(world, nation, enemy)) >= 0:
+            continue
+        if not can_declare_war(world, nation, enemy).get("ok"):
+            continue
+        if get_free_strength(world, nation) <= 0:
+            continue
+        from backend.game_logic.settlement_helpers import (
+            ensure_war_instance_for_pair,
+        )
+        prior_state = world.get_diplomatic_state(nation, enemy)
+        attach = ensure_war_instance_for_pair(
+            world, nation, enemy, entry_path="bandwagon",
+            reason="T2-3: the bandwagoner joins the stronger side")
+        if not attach.get("ok"):
+            continue
+        set_diplomatic_state(world, nation, enemy, "WAR", "bandwagon_join")
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        modify_relation_booked(world, nation, enemy, -20,
+                               "bandwagon_join", nation, enemy)
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+        from backend.display_names import humanize_entity_name
+        beside = str(inst.get("attacker_leader" if s_att > s_dfd
+                              else "defender_leader") or "")
+        message = (f"{humanize_entity_name(nation)} has watched the scales "
+                   f"— and marches with the stronger: war against "
+                   f"{humanize_entity_name(enemy)}, beside "
+                   f"{humanize_entity_name(beside)}.")
+        world.log_event({
+            "type": "war_declaration",
+            "aggressor": nation,
+            "target": enemy,
+            "previous_state": prior_state,
+            "war_objective": "",
+            "stated_reason": "the bandwagon — the stronger side's new friend",
+            "entry_path": "bandwagon",
+        })
+        events.append({
+            "type": "ai_bandwagon_joined",
+            "nation": nation,
+            "against": enemy,
+            "beside": beside,
+            "war_id": str(attach.get("war_id") or war_id),
+            "message": message,
+        })
+        return
+
+
+def _bandwagon_renege(world, nation: str, events: List[Dict]) -> None:
+    """The renege: out of a war entered by bandwagon (the participant
+    row's own `entry_path`), the turn its side reads STRICTLY weaker —
+    a separate peace with every opposing court (the defection-exit idiom:
+    PEACE + `cleanup_war_end`, whose ONE EXIT resolves the pairs), the
+    abandoned leader's resentment booked, the `reneged_turn` stamp
+    spending the campaign's one renege. A court's OWN design war never
+    reneges — only a bandwagoned entry carries the path."""
+    if _bandwagon_renege_spent(world, nation):
+        return
+    from backend.game_logic.diplomacy import cleanup_war_end, set_diplomatic_state
+    instances = getattr(world, "war_instances", {}) or {}
+    for war_id in sorted(instances):
+        inst = instances[war_id]
+        if inst.get("ended_turn") is not None:
+            continue
+        meta_row = (inst.get("participant_meta") or {}).get(nation) or {}
+        if (meta_row.get("entry_path") != "bandwagon"
+                or meta_row.get("exited_turn") is not None):
+            continue
+        active = set(inst.get("active_participants") or [])
+        if nation not in active:
+            continue
+        att, dfd, s_att, s_dfd = _side_strengths(world, inst)
+        side = (inst.get("side_by_nation") or {}).get(nation)
+        mine, theirs = ((s_att, s_dfd) if side == "attackers"
+                        else (s_dfd, s_att))
+        if mine >= theirs:
+            continue
+        opposing = dfd if side == "attackers" else att
+        abandoned = [n for n in (att if side == "attackers" else dfd)
+                     if n != nation]
+        for other in list(opposing):
+            if world.get_diplomatic_state(nation, other) == "WAR":
+                set_diplomatic_state(world, nation, other, "PEACE",
+                                     "bandwagon_renege")
+                cleanup_war_end(world, world._make_diplo_key(nation, other),
+                                conclude_objectives=True)
+        row = inst.setdefault("participant_meta", {}).setdefault(nation, {})
+        turn = int(getattr(world, "current_turn", 0) or 0)
+        row["reneged_turn"] = turn
+        if row.get("exited_turn") is None:
+            row["exited_turn"] = turn
+            row["exit_path"] = "separate_peace"
+        from backend.game_logic.diplomatic_dialogue import modify_relation_booked
+        leader = str(inst.get("attacker_leader" if side == "attackers"
+                              else "defender_leader") or "")
+        if leader == nation and abandoned:
+            leader = abandoned[0]
+        if leader and leader != nation:
+            modify_relation_booked(world, nation, leader, -20,
+                                   "bandwagon_renege", nation, leader)
+        world.invalidate_bloc_members_cache()
+        world.invalidate_active_nations_cache()
+        from backend.display_names import humanize_entity_name
+        quit_names = ", ".join(humanize_entity_name(n) for n in opposing)
+        message = (f"{humanize_entity_name(nation)} quits the field — the "
+                   f"scales turned; a separate peace with {quit_names}.")
+        world.log_event({
+            "type": "third_party_peace",
+            "proposer": nation,
+            "accepter": opposing[0] if opposing else "",
+            "broker": "",
+            "consequence": "The bandwagoner's one renege is spent.",
+            "message": message,
+        })
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "third_party_peace", {
+            "proposer": humanize_entity_name(nation),
+            "accepter": humanize_entity_name(opposing[0]) if opposing else "",
+            "consequence": "the bandwagoner quits the weaker side",
+        }, "always")
+        events.append({
+            "type": "ai_bandwagon_reneged",
+            "nation": nation,
+            "abandoned": abandoned,
+            "war_id": war_id,
+            "message": message,
+        })
+        return

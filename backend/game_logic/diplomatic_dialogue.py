@@ -582,6 +582,12 @@ def mission_shock_cause(shock: dict, player: str = "France") -> str:
         return f"{_ledger_name(on)}'s rejection of {who} ultimatum"
     if kind == "renege":
         return f"{who} broken bargain"
+    if kind == "bandwagon_join":
+        # T2-3: the bandwagoner's entry — the march with the stronger.
+        return f"{who} march with the stronger against {_ledger_name(on)}"
+    if kind == "bandwagon_renege":
+        # T2-3: the one renege — `on` is the abandoned leader.
+        return f"{who} desertion of {_ledger_name(on)}"
     if kind == "make_amends":
         return f"{who} amends to {_ledger_name(on)}"
     if kind == "counter_rejection":

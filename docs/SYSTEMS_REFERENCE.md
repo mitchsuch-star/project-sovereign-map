@@ -13767,3 +13767,53 @@ peace actually touches a coveted theatre move — and **historical is byte-ident
 record-to-record**, pinned (the pre-fix chain had moved historical and wagram too, by
 the phantom crown alone; `TestTheMeasure` pins the movers, the count, historical's
 identity and the empty formations columns).
+
+## §189 Tier 2, session 4 — T2-3, Prussia's hook: the bandwagoner (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 2 + §8 row T2-3; pins
+`tests/test_t2_3_prussias_hook.py`, 18; the seam
+`war_council.a_bandwagoner_joins_the_stronger_side` in `tests/_t2_seams.py`, the
+recorded boards' hold-list picking it up through `T2_SEAMS_BY_ROW`). The brief's "NO
+war-join machinery exists" was half right: no AI reaches it, but the ALLY-ENTRY join
+idiom exists (`ensure_war_instance_for_pair` + WAR + the booked −20 —
+`resolve_join_opportunity`'s accept arm), and the hook is that idiom given a court.
+
+**The join.** `war_council.process_bandwagon` (ticked after `process_war_council`, so
+the bandwagoner reads the board the council just set, before the third-party
+settlements): a court whose statecraft `reaches_first` carries "bandwagon" — DERIVED,
+never a name; Prussia alone on the shipped table (§3.4, the hesitant opportunist) —
+joins a live AI-vs-AI war on the STRONGER side (strictly, by
+`_standing_strength` summed over each side's active participants), against the weaker
+side's LEADER, when every gate reads clear: relation with that leader below 0, the
+shared declaration preview `can_declare_war` clean (armistice cooldown — the
+fresh-peace floor — side conflict, treaty in the way), free strength at home
+(`get_free_strength` > 0), the player on NEITHER side (§16.2's v1 narrowing: the
+anti-France road stays the coalition's, France's own side is the player's to invite),
+and never a war this court has already exited (pin 13's guard — a renege followed by a
+same-turn join of the other side would be the soap opera). One join a turn,
+world-wide; deterministic throughout (AI-0b — no dice in politics); deckless worlds
+no-op. The join logs a minimal `war_declaration` row (`entry_path: "bandwagon"` — the
+campaign log renders it with zero new wiring) and emits `ai_bandwagon_joined`.
+
+**The renege — one a campaign.** Out of a war entered by bandwagon ONLY (the
+participant row's own `entry_path`; a court's own design war is fought to its end),
+the turn its side reads strictly weaker: a separate peace with every opposing court
+(the defection-exit idiom — PEACE + `cleanup_war_end`, whose ONE EXIT resolves the
+pairs), the abandoned leader's resentment booked (−20), a `third_party_peace` row
+logged and queued to the dispatch. The quota is the `reneged_turn` stamp written into
+the instance's own serialized `participant_meta` row — no new world field
+(`to_dict` stands at 497/500), DERIVED by one O(wars) scan, round-tripped through the
+save (pinned).
+
+**The measure** (the dated re-record `tools/_dy_signature_t2_3_2026_11_08.json`, the
+chain ALONE, against the T2-2 record — the kept-record idiom): **story classes 10 of
+10 held**; the mover is **marengo alone**, and its story is the hook's own: Prussia
+bandwagons into Hesse's war on Hanover at T20 — the very turn the council opens it —
+and Hanover, which survived before, is ELIMINATED at T23 (the one new eliminations
+row; verified by replaying the chain child through `spawn_run` and reading the
+digest's own `war_declaration` row). **Historical is byte-identical** — Prussia at
+peace in 1805, the historian clause untouched. No ambient renege fired (the quota
+unspent on every seed); the pins own that arm. A method note the probe paid for: an
+in-process `advance_turn` loop is NOT the chain's world-line (the ambient arm drives
+the sweep's own runner under a process-level hash seed) — replay one `spawn_run`
+child when a chain row needs its cause named.

@@ -13100,6 +13100,16 @@ class WorldState:
         tactical_events.extend(process_war_council(self))
 
         # ════════════════════════════════════════════════════════════
+        # T2-3: PRUSSIA'S HOOK (DYNAMISM_SPEC §2 Tier 2) — the
+        # bandwagoner reads the board the council just set: joins the
+        # stronger side of a live AI-vs-AI war, quits once a campaign
+        # when the scales turn. Before the third-party settlements so a
+        # join never lands on a war already closing this turn.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.war_council import process_bandwagon
+        tactical_events.extend(process_bandwagon(self))
+
+        # ════════════════════════════════════════════════════════════
         # AI-4b: THIRD-PARTY SETTLEMENTS (AI_INTENT_SPEC §4.4, Stage D)
         # Wars France is not in can END — the descent's (d) seam. After
         # the war council (a fresh war never settles the turn it opens;
