@@ -33,6 +33,7 @@
 > | v1.3 | July 21, 2026 | the verification pass — ten ground-truth readers, ten lenses, two refuters per finding; **19 factual corrections** (row AI-0 deleted; the historian test's false clause; third-party war exhaustion *decays*); §3.1a the descent · §3.9 attractors · §2 principle 9; contracts §4.2c / §4.3a / §4.4a steps 5–6 / §4.4b / §4.6b; pins 15–20; AI-V three arms | §9a, §10 |
 > | **v1.4** | **July 24, 2026** | **the structure & creative pass — §11 the phased build plan (the builder's front door); §12 six gameplay additions: the deterrence receipt · Russia's second design · the licence · the purchased dispatch + the player's seal · armed mediation · the allegiance auction; pins 21–24; beat 7** | **§11, §12** |
 | v1.4.1 | July 24, 2026 | §13 the standing review questions (user-directed): border massing (new row AI-3c, Stage D) · multi-front conduct (AI-V assertions) · recruit/commission budgeting (the §8 economy re-measure) · AI-vs-AI wars (=Stage D) · the non-France hegemon (=D3 + pin 16d). **Same day: Stage A (AI-0b/0c/0d) and Stage B (AI-1/AI-1b/AI-2a) BUILT — landing record §14.** | §13, §14 |
+| v1.4.3 | November 8, 2026 | **§3.8.2 the Tier-2 gate record** — the standing band catalog recorded, the new bands ruled (readiness ±6, the minors' lean and the casting as banded statecraft `weight_mod`, Britain's client derived), the story class + its event-type contract (`question_turns` / `rank_promotion` / `awakening_*`), the DY-0 baseline | §3.8.2 |
 | v1.4.2 | July 24, 2026 | **Stage C BUILT** (landing record §15; evidence pack `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md`) · **⛩ THE RE-CHECK HELD** (gate record §16: D1 cap confirmed 2; AI-3b slipped out of Stage D; AI-5c keeps Stage E; pin 17b re-sited to §17; the §4.4b exclusive ruling) · **Stage D BUILT** — war and peace, indivisible (landing record §17: AI-3 + §4.3a + AI-3c · AI-4a steps 5–6 · §4.4b · AI-4c · AI-4b + broker/join · beats 2/3/6/7; pins 15/16/17/19/21 green) | §15, §16, §17 |
 >
 > **Motivating evidence:** `docs/audits/CREATIVE_AUDIT_2026_07_19.md` §2.1, §3, §7 + the AI
@@ -789,6 +790,53 @@ opening can be replayed or reported against. One string, real value.
 still *looks* like 1805 on every seed — Tier 1 guarantees the tableau — and what varies at boot is
 **dispositions, not the map**. The two levers are complementary: Tier 2 supplies the spread in initial
 conditions, the §3.8 jitter supplies the compounding that turns it into a different mid-game.
+
+### 3.8.2 The Tier-2 gate record — the authored bands and the story class (ruled November 8, 2026, in Plan Mode at the tier's head; `DYNAMISM_SPEC.md` §2 Tier 2)
+
+**The standing catalog, recorded.** Most of §3.8.1's menu is ALREADY authored in
+`europe_1805.json` and validator-clamped: ten banded `nation_relations` pairs (France|Prussia —
+the definitional contingency — and the three starting grudges Austria|Prussia, Ottoman|Russia,
+Hanover|Prussia among them), `threat_level_band: [65, 75]`, Austria's deck `order_group`
+(Italy-first vs Germany-first — AI-0c's re-point), and the moments' windows (the S14c A3
+amendment above). Russia's deck is deliberately unbanded (pin 22: `gulf_and_straits` stays
+authored BEHIND `arbiter_of_europe` at boot on every seed). The resolver
+(`campaign_variance.apply_scenario_variance`), the validator clamps and the historical collapse
+all stand; none of this moves at Tier 2.
+
+**The new bands Tier 2 adds — ruled now, landed in later Tier-2 sessions, each
+validator-clamped with the historian test green on every seed:**
+
+* **Initial ladder readiness** — a `weight` band (±6) on each major's FIRST live design: a new
+  deck-entry band shape (`{"weight": N, "weight_band": [lo, hi]}` beside the entry), a resolver
+  arm in `apply_scenario_variance`, a validator clause (the band contains the authored value and
+  crosses no rung threshold). §3.8's jitter applied at turn 0.
+* **The minors' lean** — bandwagon readiness over §3.8.1's eligible set (Saxony, Denmark,
+  Portugal, Hanover, Hesse, the Papal States, Sardinia; the secondaries Naples, Sweden, the
+  Ottomans), expressed as a banded statecraft `weight_mod` per eligible minor — the one existing
+  sleepy/bold dial (Saxony −8 and Hesse −12 sit in `nation_config.NATION_STATECRAFT` today).
+  Three seams open together: `get_statecraft` overlays `weight_mod` from the scenario (it takes
+  only `wary_of` today), the validator allow-set widens past `wary_of`, and
+  `apply_scenario_variance` gains a statecraft resolver (it never touches the block today). A
+  minor committed by `starting_wars` or `diplomatic_states` stays Tier 1 for this band.
+* **T2-6, the casting band** — the seed casts ONE understudy from the authored shortlist
+  (Saxony, Bavaria, Denmark, Naples): its ambition deck boots live-first with a bolder banded
+  `weight_mod`. Bavaria and Naples carry no decks today — T2-6 authors them (Rule 9: owner rows
+  in `DYNAMISM_SPEC.md` §8 when it lands). The lawful lucky nation.
+* **Britain's first client** — derived from the relations band
+  (`get_british_subsidy_recipient`); no separate key, recorded as such.
+
+**The story class (DY-0, landed with this record — `tools/ai_v_sweep.py story_class`).** The
+signature answers "the same world-line?"; the class answers "the same STORY?" — a canonical,
+COARSE, timing-blind projection (sets, never turns): the belligerent pairs of every war opened
+(all three channels), the eliminations, the courts at `fight`, the formations, the guarantees
+pledged, and the Concert's three — the Questions turned, the rank promotions, the awakened
+nations. **The columns' event-type contract binds the owning tiers:** Tier 5 emits
+`question_turns`, Tier 4 `rank_promotion`, Tier 6 `awakening_*` — the columns exist from today
+and read empty until each tier lands, so a tier's first nonzero is its own signature change.
+`story_class_count` over the ten ambient `SWEEP_SEEDS` is the deploy gate's number (≥ 4 of 10;
+the raise question sits at Tier 6's head). The pre-build baseline is archived at
+`tools/_dy_signature_baseline.json` by `tools/_dy0_baseline.py`, a chain run ALONE — its count
+is the pre-band floor the Concert must beat, re-measured at the gate, never today.
 
 ### 3.9 Historical attractors — why turn 40 still rhymes *(v1.3)*
 

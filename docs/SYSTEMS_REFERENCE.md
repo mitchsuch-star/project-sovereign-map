@@ -13603,6 +13603,41 @@ exactly — the pin loads the autosave back), the band law (§3.8.1: no authored
 variance — Tier 2 authors the first bands), and `resolve_campaign_seed`'s own chain, which
 every one of the 75 direct `from_scenario` callers keeps.
 
+## §186 Tier 2, session 1 — the §3.8.2 gate record and DY-0, the Concert's instrument (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 2 head + §7/§8 row DY-0; the gate record
+`AI_INTENT_SPEC.md` §3.8.2, authored in Plan Mode, the plan the user's word; pins
+`tests/test_dy0_the_signature.py`). No band, no behavior, no backend line moved — the measure
+precedes the build.
+
+**The gate record** (§3.8.2): the STANDING catalog recorded honestly — ten relation pair bands,
+`threat_level_band [65, 75]`, Austria's `order_group` and the moments' windows are ALREADY
+authored in `europe_1805.json` (the session's exploration corrected the premise that the bands
+were still to write); Russia's deck unbanded by pin 22. The NEW bands ruled for later Tier-2
+sessions: initial ladder readiness (a deck-entry `weight` band, ±6, a new shape), the minors'
+lean and T2-6's casting as banded statecraft `weight_mod` (three seams open together —
+`get_statecraft`'s overlay takes only `wary_of` today, the validator allow-set, a statecraft
+resolver `apply_scenario_variance` does not have), Bavaria's and Naples' decks owed by T2-6,
+Britain's first client derived, never keyed.
+
+**DY-0, the instrument**: `derive_metrics` and `_variance_signature` carry the Concert's five
+columns (`questions_turned`, `awakening_events`, `rank_promotions`, `guarantees_given`,
+`formations` promoted from the final block); the three future-tier columns read EMPTY until
+their owning tiers emit their contracted event types (`question_turns` — Tier 5; `rank_promotion`
+— Tier 4; `awakening_*` — Tier 6), so each landing is its own signature change, and the
+assurance suite's controls (same seed EQUAL, variance-off EQUAL to historical, 54 green on the
+widened signature) hold by construction. **The story class** (`story_class`): the coarse,
+timing-blind projection — war pairs, eliminations, the fight roster, formations, guarantees,
+and the Concert's three, sets never turns; `story_class_count` is the deploy gate's number.
+
+**The baseline** (`tools/_dy_signature_baseline.json`, written by `tools/_dy0_baseline.py` — a
+chain run ALONE, ten ambient `SWEEP_SEEDS` x 40 turns at K=10000): **the pre-band story-class
+count reads 9 of 10** — the floor the Concert's tiers must beat, byte-pinned with the
+record; the gate's >= 4 of 10 is measured AT THE DEPLOY GATE on the full board, never today.
+The future-tier columns are empty on every seed (pinned: a nonzero before Tiers 4-6 land is a
+contract leak, not progress).
+
+
 
 Three mechanics the staging paid to learn, kept here so no one re-rolls them blind: a
 MODERATE concern at authority ≥ 80 prices defiance at effectively ZERO (`defiance.py`: base

@@ -51,6 +51,10 @@ to every piece added — owner row, landing slice, done-when, test: the rule bar
 cuts, not discipline. Any future proposal to defer ANY DY slice goes to the user as an
 explicit question with no default. ([[feedback-no-cuts-without-consent]])
 
+**The Tier-2 gate is RULED (November 8, 2026)** — the band catalog and the story class
+live in `AI_INTENT_SPEC.md` §3.8.2 (authored at the tier's head in Plan Mode, the plan
+approved by the user); DY-0's baseline `tools/_dy_signature_baseline.json`.
+
 **Q2–Q6 stand with defaults** — each is put to the user at its owning tier's head (the
 Plan Mode gate the plan row already requires), and each is one line to reverse:
 
@@ -316,6 +320,8 @@ block to a derived column. **The story-class count** — the deploy gate's numbe
 count of distinct signature classes across the ten ambient seeds, computed by the
 signature tool itself; the pre-build baseline is archived
 (`tools/_dy_signature_baseline.json`, written by a chain run that runs ALONE).
+**DY-0 ✅ LANDED November 8, 2026** (`SYSTEMS_REFERENCE.md` §186): the baseline reads
+**9 of 10 story classes** pre-band — the floor the tiers must beat.
 
 **The gates, restated in one place:** the DEPLOY gate (after Tier 8 — Q1 as reversed,
 §0) is unchanged in substance — 0 open GR rows, story classes ≥ 4 of 10 with the
@@ -338,7 +344,7 @@ by pin 14.
 | Slice | Tier | Scope (owner §) | Done-when | Test |
 |---|---|---|---|---|
 | T1 | 1 — ✅ LANDED November 8, 2026 | the seed at New Game (§2 Tier 1) | a bare New Game rolls and names a readable seed; explicit > env > roll; the env never rolls (the suite's law); shown on the reply, the first morning, the save rows and the menu box | `tests/test_tier1_the_seed.py` |
-| DY-0 | 2 (with T2-1) | the signature columns + baseline (§7) | columns derived, baseline archived by a lone chain | `tests/test_dy0_the_signature.py` |
+| DY-0 | 2 (with T2-1) — ✅ LANDED November 8, 2026 | the signature columns + baseline (§7; §3.8.2's event-type contract) | columns derived, baseline archived by a lone chain (story classes 9 of 10 pre-band) | `tests/test_dy0_the_signature.py` |
 | DY-1 | 4 | the Alarm (§3) | the write, the guarantee rung, the brew reachable, words-only surfaces | `tests/test_dy1_the_alarm_of_europe.py` |
 | DY-1b | 4 (with DY-1) | promotion's teeth (§3b) | Saxony's promotion on an authored board; demotion; the beat | rides DY-1's file |
 | DY-2 | 5 | the Questions (§4) | the latch, the envy term, the beat, the panel, the validator | `tests/test_dy2_the_questions_of_europe.py` |

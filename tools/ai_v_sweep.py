@@ -757,6 +757,37 @@ def derive_metrics(digest: dict) -> dict:
     if crowded:
         moments_passed["crowded"] = crowded
 
+    # DY-0 (Tier 2's head — DYNAMISM_SPEC.md §7, the Tier-2 gate record
+    # AI_INTENT_SPEC.md §3.8.2; November 8, 2026): the Concert's own
+    # columns, carried from day one. Three derive from event types their
+    # OWNING TIERS must emit (`question_turns` — Tier 5 DY-2;
+    # `awakening_*` — Tier 6 DY-4; `rank_promotion` — Tier 4 DY-1b): they
+    # read EMPTY on every seed today, deliberately, so each tier's first
+    # nonzero is its own signature change — the contract is recorded in
+    # §3.8.2 beside the class definition. All are row/event reads on the
+    # digest's one clock (the row turn), like every column above.
+    guarantees_given = sorted(
+        [row["turn"], str(e.get("guarantor") or ""),
+         str(e.get("protected") or "")]
+        for row in turns for e in row["events"]
+        if str(e.get("type", "")) == "guarantee_pledged")
+    questions_turned = sorted(
+        [row["turn"], str(e.get("question") or e.get("question_id") or "")]
+        for row in turns for e in row["events"]
+        if str(e.get("type", "")) == "question_turns")
+    rank_promotions = sorted(
+        [row["turn"], str(e.get("nation") or "")]
+        for row in turns for e in row["events"]
+        if str(e.get("type", "")) == "rank_promotion")
+    awakening_events = sorted(
+        [row["turn"], str(e.get("nation") or "")]
+        for row in turns for e in row["events"]
+        if str(e.get("type", "")).startswith("awakening"))
+    # `formations` promoted from the digest's final block to a derived
+    # column — the formed nations as the run ends.
+    formations = sorted(
+        ((digest.get("final") or {}).get("formations") or {}).keys())
+
     return _jsonify({
         "ai_initiated_wars": ai_wars,
         "seam_ai_ai_wars": seam_wars,
@@ -796,6 +827,12 @@ def derive_metrics(digest: dict) -> dict:
         # shown = applied, read where the engine decided ({} on a digest
         # written before the trace).
         "moments_judged": ((digest.get("final") or {}).get("moments_trace") or {}).get("judged") or {},
+        # DY-0 (DYNAMISM_SPEC.md §7): the Concert's columns.
+        "questions_turned": questions_turned,
+        "awakening_events": awakening_events,
+        "rank_promotions": rank_promotions,
+        "guarantees_given": guarantees_given,
+        "formations": formations,
     })
 
 
@@ -1356,7 +1393,82 @@ def _variance_signature(digest: dict) -> dict:
         # the same way — the same seed twice compares EQUAL; variance forced
         # off compares EQUAL to `historical`.
         "affair_turns": derived.get("affair_turns", {}),
+        # DY-0 (Tier 2's head — DYNAMISM_SPEC.md §7, the gate record
+        # §3.8.2): the Concert's columns, row-sourced like everything
+        # above. Empty until their owning tiers emit (Tiers 4–6), so the
+        # suite's controls — same seed twice EQUAL, variance forced off
+        # EQUAL to historical — hold by construction, and each tier's
+        # landing is its own signature change.
+        "questions_turned": derived.get("questions_turned", []),
+        "awakening_events": derived.get("awakening_events", []),
+        "rank_promotions": derived.get("rank_promotions", []),
+        "guarantees_given": derived.get("guarantees_given", []),
+        "formations": derived.get("formations", []),
     }
+
+
+def story_class(digest: dict) -> tuple:
+    """DY-0 (DYNAMISM_SPEC.md §7; the Tier-2 gate record §3.8.2): the
+    STORY CLASS — a canonical, COARSE, timing-blind projection of one
+    run. Two campaigns share a class when the same things happened to the
+    same courts, whatever the turn: the signature above answers "are these
+    two runs the same world-line?" (it is fine-grained and timing-laden);
+    the class answers "is this the same STORY?" — the deploy gate's
+    question (story classes >= 4 of 10 across the ten ambient seeds).
+
+    Deliberately sets, never turns: the T0-E/F/G after-sweep's
+    hand-grouping (SYSTEMS_REFERENCE §182.5's line of color) read its ten
+    arms on the war columns — who fought whom, who fell — and DY-0
+    formalizes exactly that reading plus the Concert's own columns. A
+    class member list:
+
+      * `war_pairs`   — the belligerent pairs of every war OPENED in the
+        run (all three channels: AI-initiated, AI-vs-AI seam, France's);
+        each pair sorted, the set sorted.
+      * `eliminations`— the nations eliminated (turns dropped).
+      * `fight`       — the courts that reach the `fight` rung.
+      * `formations`  — the nations formed as the run ends.
+      * `guarantees`  — the (guarantor, protected) pairs pledged.
+      * `questions`   — the Question ids turned (Tier 5's column).
+      * `promotions`  — the nations promoted in rank (Tier 4's column).
+      * `awakened`    — the nations named by awakening events (Tier 6's).
+
+    Returns a hashable canonical tuple; `story_class_count` counts the
+    distinct classes. Reads `derived` (re-apply `derive_metrics` to a
+    digest that lacks the DY-0 columns)."""
+    derived = digest["derived"]
+
+    def _pairs(wars):
+        out = set()
+        for war in wars:
+            for attacker in war.get("attackers") or []:
+                for defender in war.get("defenders") or []:
+                    out.add(tuple(sorted((str(attacker), str(defender)))))
+        return out
+
+    war_pairs = (_pairs(derived["ai_initiated_wars"])
+                 | _pairs(derived["seam_ai_ai_wars"])
+                 | _pairs(derived["france_wars_opened"]))
+    return (
+        ("war_pairs", tuple(sorted(war_pairs))),
+        ("eliminations", tuple(sorted({nation for _, nation
+                                       in derived["eliminations"]}))),
+        ("fight", tuple(sorted(derived["courts_at_fight"]))),
+        ("formations", tuple(sorted(derived.get("formations", [])))),
+        ("guarantees", tuple(sorted({(g, p) for _, g, p
+                                     in derived.get("guarantees_given", [])}))),
+        ("questions", tuple(sorted({q for _, q
+                                    in derived.get("questions_turned", [])}))),
+        ("promotions", tuple(sorted({n for _, n
+                                     in derived.get("rank_promotions", [])}))),
+        ("awakened", tuple(sorted({n for _, n
+                                   in derived.get("awakening_events", [])}))),
+    )
+
+
+def story_class_count(classes) -> int:
+    """The deploy gate's number: distinct story classes in a collection."""
+    return len(set(classes))
 
 
 def run_arm_b(baseline: dict, turns: int, out_dir: Path = None) -> dict:
