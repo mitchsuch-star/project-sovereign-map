@@ -48,6 +48,12 @@ func show_saves(saves: Array, damaged: Array = []):
 			var display_turn = str(int(turn_val)) if turn_val != null else "?"
 
 			btn.text = "%s (Turn %s)" % [display_name, display_turn]
+			# Tier 1 (DYNAMISM_SPEC §2): the campaign's seed on its row —
+			# the metadata copy save_manager has written since AI-0b; a
+			# pre-seed save reads 'historical', which is the truth.
+			var row_seed := str(meta.get("campaign_seed", "")) if meta is Dictionary else ""
+			if row_seed != "":
+				btn.text += " · seed '%s'" % row_seed
 			btn.custom_minimum_size = Vector2(0, 40)
 			btn.pressed.connect(_on_save_chosen.bind(filename_val))
 			saves_container.add_child(btn)

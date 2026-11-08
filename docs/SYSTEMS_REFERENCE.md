@@ -13562,6 +13562,48 @@ and every window on the line is priced shut at authority 100; whether a full-aut
 Emperor should ever be defied is the user's, filed `DESIGN_REFINEMENT.md` GRD-38, whose
 ruling re-records the arm.
 
+## §185 Tier 1 — the seed at New Game (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 1, the plan's S15-R row; pins
+`tests/test_tier1_the_seed.py`, 16). A plain player New Game now ROLLS a readable campaign
+seed and SHOWS it; nothing else moves — the suite, every harness arm and every rig keeps
+today's boot byte for byte.
+
+**The roll** (`campaign_variance.roll_campaign_seed()`): "adjective-noun-NN" from two
+authored 24-word era lists plus a two-digit mark ("iron-eagle-07"), fed by `secrets` and
+NEVER the ambient `random` module (§5 pin 2 — the module streams are pinned by 21 test
+files; the pin asserts `random.getstate()` is untouched across a roll). No word is
+`historical`, structurally.
+
+**The precedence, resolved at the route** (`/new_game`): the request's `seed` (the player's
+own, typed or kept from the menu's roll) > the `SOVEREIGN_SEED` env > a fresh roll. The env
+arm is THE SUITE-SAFETY LAW: conftest pins `SOVEREIGN_SEED=historical` autouse, the driver
+and the sweep set it per `--seed`, so no test and no harness arm ever rolls — and under the
+env the /new_game message stays byte-identical ("New campaign started. Autosave
+refreshed."), named only when the player or the roll chose the seed. A School lesson
+(scenario override) never rolls either: a lesson's beats stay identical for every player
+unless a seed is asked for by name. The process boot (`_reset_world_state()` at import) is
+untouched — `seed=None` resolves the env chain exactly as before.
+
+**Shown, four places:** the /new_game reply (`campaign_seed` always; the message names it
+when chosen), the first morning's briefing (`situation.campaign_seed_line`, BOOT ONLY —
+"The clerks open the campaign ledger under the seed '…'" — rendered by both briefing
+views, the R screen and the terminal; every later morning renders exactly as before), the
+save rows (the `campaign_seed` metadata copy save_manager has written since AI-0b, now on
+the load dialog's row — a pre-seed save reads 'historical', the truth), and the menu's
+seed box (a `LineEdit` under Begin, prefilled ONCE from GET /test's fresh `suggested_seed`,
+never over the player's typing; only Begin carries it — the School buttons and
+Continue/Load never seed; the pause menu's New Campaign sends none and the backend rolls).
+The box's text travels the MenuBoot idiom (`pending_seed` / `take_seed()` — Golden Rule 4),
+and `api_client.new_game` adds `seed` to the wire body only when non-empty, byte-identical
+otherwise.
+
+**What this does NOT change:** `world.campaign_seed`'s serialization (AI-0b's, round-trips
+exactly — the pin loads the autosave back), the band law (§3.8.1: no authored band, no
+variance — Tier 2 authors the first bands), and `resolve_campaign_seed`'s own chain, which
+every one of the 75 direct `from_scenario` callers keeps.
+
+
 Three mechanics the staging paid to learn, kept here so no one re-rolls them blind: a
 MODERATE concern at authority ≥ 80 prices defiance at effectively ZERO (`defiance.py`: base
 0.05 − 0.10 authority + U(−0.08, 0.08), clamped — a 0.0 roll still obeys); the redemption

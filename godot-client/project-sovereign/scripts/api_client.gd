@@ -266,12 +266,16 @@ func save_game(save_name: String, callback: Callable):
 func load_game(filename: String, callback: Callable):
 	_send_post("/load", {"filename": filename}, callback)
 
-func new_game(callback: Callable, scenario: String = ""):
+func new_game(callback: Callable, scenario: String = "", seed: String = ""):
 	# POSITION 7: `scenario` is an allowlist NAME ("tutorial"), never a path.
 	# Empty keeps the wire body {} byte-identical to the pre-tutorial client.
+	# Tier 1 (DYNAMISM_SPEC §2): `seed` is the campaign seed the player kept
+	# or typed on the menu — absent, the backend rolls (or honors its env).
 	var body = {}
 	if scenario != "":
 		body["scenario"] = scenario
+	if seed != "":
+		body["seed"] = seed
 	_send_post("/new_game", body, callback)
 
 

@@ -27,6 +27,11 @@ class_name MenuBoot
 
 static var pending_action := ""
 
+# Tier 1 (DYNAMISM_SPEC §2): the campaign seed the player kept or typed in
+# the menu's seed box — consumed once with the action (Golden Rule 4).
+# Empty = the backend decides (its env, else a fresh roll).
+static var pending_seed := ""
+
 # Set by main.gd when the player leaves a running campaign for the menu, so
 # the menu can offer "Return to the war room" (plain re-entry, no /load — the
 # live world still sits in the backend's memory) instead of only Continue.
@@ -42,3 +47,9 @@ static func take_action() -> String:
 	var action := pending_action
 	pending_action = ""
 	return action
+
+
+static func take_seed() -> String:
+	var seed_text := pending_seed
+	pending_seed = ""
+	return seed_text

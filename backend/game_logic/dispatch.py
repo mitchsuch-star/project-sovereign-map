@@ -6164,6 +6164,15 @@ def _build_situation(world, player_nation: str,
         situation["no_field_army"] = bool(french_strength == 0)
         _realm = realm_collapse.get_collapse_state(world, player_nation)
         situation["collapse"] = dict(_realm) if _realm is not None else None
+    if boot:
+        # Tier 1 (DYNAMISM_SPEC.md §2): the first morning names the
+        # campaign's seed — the one line the plan owes the briefing. Boot
+        # only: every later morning stays byte-identical, and a renderer
+        # without the key prints exactly what it printed before.
+        _seed = str(getattr(world, "campaign_seed", "") or "historical")
+        situation["campaign_seed"] = _seed
+        situation["campaign_seed_line"] = (
+            f"The clerks open the campaign ledger under the seed '{_seed}'.")
     return situation
 
 

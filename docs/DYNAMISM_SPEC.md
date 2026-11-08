@@ -105,8 +105,8 @@ the commanded arms' France band 23–28 as the difficulty guard.
 
 | Tier | Content | Size | Signature change when it lands |
 |---|---|---|---|
-| 0 | The review's defects — unchanged, in flight (T0-A … T0-H ✅ landed; T0-I the remainder). T0-F, the eclipse brew, is the first Alarm stone: the league must bite the blob. | ≈1 left | — |
-| 1 | The seed at New Game (unchanged from the old plan). | 0.5 | — |
+| 0 | The review's defects — ✅ COMPLETE November 7, 2026, nine slices (T0-A … T0-I; `SYSTEMS_REFERENCE.md` §178–§184). T0-F, the eclipse brew, is the first Alarm stone: the league must bite the blob. | done | — |
+| 1 | The seed at New Game (unchanged from the old plan) — ✅ LANDED November 8, 2026 (`SYSTEMS_REFERENCE.md` §185): a bare New Game ROLLS a readable seed (`roll_campaign_seed()`, adjective-noun-NN, `secrets`-fed — the ambient RNG untouched) and SHOWS it (the reply's message, the first morning's briefing line, the save rows, the menu box prefilled from GET /test's `suggested_seed`); precedence explicit > SOVEREIGN_SEED env > roll, so the suite (conftest pins the env), every harness arm and every rig keeps today's boot byte for byte and never rolls; a School lesson never rolls (a lesson's beats are identical for every player). Pins `tests/test_tier1_the_seed.py`. | 0.5 | — |
 | 2 | **Europe varies** (gate `AI_INTENT_SPEC.md` §3.8.2, authored at this tier's head): T2-1 the story signature FIRST and its baseline archived — carrying the NEW columns of §7 from day one; T2-2 peace closes the theatre; T2-3 Prussia's hook; T2-4 Russia's two shores; T2-5 Prussia's second design; **T2-6 the casting band — the seed casts an understudy**: among an authored shortlist (Saxony, Bavaria, Denmark, Naples), the seed boots ONE minor's ambition deck live with a bolder authored statecraft dial. Bands in the scenario, validator-clamped; the scenario's statecraft overlay widens from `wary_of` alone to a banded `weight_mod` (`get_statecraft`, `world_state.py:3702`). The lawful lucky nation. | ≈3 | which minor stirs varies by seed |
 | 3 | **The strategist** (gate §13; unchanged): the march metric first, `war_council.war_aim`, one leash predicate, the home front, terms when the aim is held — AI–AI cessions move provinces ALONG AUTHORED AIMS. | ≈4 | maps diverge in role-true directions |
 | 4 | **The Alarm of Europe** (§3, DY-1) + **promotion's first teeth** (§3b, DY-1b). | ≈2 | eliminations vary; `guarantees_given` > 0; a minor can rise |
@@ -337,6 +337,7 @@ by pin 14.
 
 | Slice | Tier | Scope (owner §) | Done-when | Test |
 |---|---|---|---|---|
+| T1 | 1 — ✅ LANDED November 8, 2026 | the seed at New Game (§2 Tier 1) | a bare New Game rolls and names a readable seed; explicit > env > roll; the env never rolls (the suite's law); shown on the reply, the first morning, the save rows and the menu box | `tests/test_tier1_the_seed.py` |
 | DY-0 | 2 (with T2-1) | the signature columns + baseline (§7) | columns derived, baseline archived by a lone chain | `tests/test_dy0_the_signature.py` |
 | DY-1 | 4 | the Alarm (§3) | the write, the guarantee rung, the brew reachable, words-only surfaces | `tests/test_dy1_the_alarm_of_europe.py` |
 | DY-1b | 4 (with DY-1) | promotion's teeth (§3b) | Saxony's promotion on an authored board; demotion; the beat | rides DY-1's file |

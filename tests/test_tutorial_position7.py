@@ -183,10 +183,12 @@ def _func_body(source: str, func_name: str) -> str:
 
 class TestClientStructuralPins:
     def test_g1_consume_arms_old_and_new(self):
-        """T-G1: the NEW tutorial arm exists AND the position-6 pinned
-        new_game literal survives byte-for-byte."""
+        """T-G1: the NEW tutorial arm exists AND the new_game arm keeps the
+        one pause flow. Tier 1 (November 8 2026) re-seated the new_game
+        literal: the arm carries the menu's seed through
+        MenuBoot.take_seed() — same one-flow contract, new argument."""
         gd = _read("scripts/main.gd")
-        assert '"new_game":\n\t\t\t_on_pause_new_game_requested()' in gd
+        assert "_on_pause_new_game_requested(MenuBoot.take_seed())" in gd
         assert '"tutorial":\n\t\t\t_on_tutorial_boot_requested()' in gd
 
     def test_g2_nonmodal_registration_and_observe_only(self):
@@ -221,8 +223,12 @@ class TestClientStructuralPins:
         assert '"tutorial"' in _read("scripts/menu_boot.gd")
 
     def test_g5_api_client_signature(self):
+        # Tier 1 (November 8 2026): the signature gained a trailing
+        # `seed: String = ""` — defaulted, so every existing call site is
+        # untouched; the wire body carries "seed" only when non-empty.
         api = _read("scripts/api_client.gd")
-        assert 'func new_game(callback: Callable, scenario: String = "")' in api
+        assert ('func new_game(callback: Callable, scenario: String = "", '
+                'seed: String = "")') in api
         assert '"scenario"' in api
 
     def test_g6_overlay_hygiene(self):

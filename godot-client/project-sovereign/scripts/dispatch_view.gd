@@ -232,6 +232,12 @@ func _on_dispatch_received(response):
 	if sink_suffix == "" and act_sink != "":
 		sink_suffix = "[color=#" + Utils.COLOR_INFO + "] — " + act_sink + " (F1 → The Emperor's Designs)[/color]"
 	bbcode += "[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix + "\n"
+	# Tier 1 (DYNAMISM_SPEC §2): the first morning names the campaign's
+	# seed — the key rides the boot briefing only, so every later morning
+	# renders exactly as before.
+	var seed_line := str(situation.get("campaign_seed_line", ""))
+	if seed_line != "":
+		bbcode += "[color=#" + Utils.COLOR_INFO + "]  " + seed_line + "[/color]\n"
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named, and
 	# the forecast — the same source as the terminal's dispatch.
 	var staff_arrived = situation.get("staff_arrived", null)

@@ -1,6 +1,12 @@
-# NEXT SESSION PROMPT — Tier 1 the seed (Tier 0 ✅ COMPLETE, nine slices), then the Concert Tiers 2–8, then the deploy
+# NEXT SESSION PROMPT — Tier 2 Europe varies: THE GATE FIRST, in Plan Mode (Tier 0 ✅, Tier 1 the seed ✅), then the Concert Tiers 3–8, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 7, 2026 — T0-I THE BENCHMARK'S OWN
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — TIER 1 THE SEED ✅ LANDED
+> (`SYSTEMS_REFERENCE.md` §185; pins `tests/test_tier1_the_seed.py`, 16): a bare New Game ROLLS a readable seed
+> (`roll_campaign_seed()`, adjective-noun-NN, `secrets`-fed) and SHOWS it — the reply's message, the first morning's
+> briefing line (boot only, both renderers), the load dialog's rows, the menu's seed box prefilled from GET /test's
+> `suggested_seed`; precedence explicit > SOVEREIGN_SEED env > roll, so the suite, every harness arm and every rig
+> keeps today's boot byte for byte and NEVER rolls; a School lesson never rolls; the parse harness re-run clean**,
+> after **November 7, 2026 — T0-I THE BENCHMARK'S OWN
 > ARMS ✅ LANDED, TIER 0 COMPLETE (`SYSTEMS_REFERENCE.md` §184: VOLTE read, not re-staged — the beat fires on
 > T0-H's live benchmark arm, byte-pinned; GR-66 CLOSED — the shut-out arm's blind attack-by-names removed,
 > Britain sues T8 on austerlitz and marengo, historical's absence the GR-18 ruling's own truth; SEA re-staged
@@ -14,15 +20,32 @@
 > Awakening (Tier 6) and Crowns & Recognition (Tier 8) ship BEFORE the deploy; no cuts without consent
 > (`DYNAMISM_SPEC.md` §0, the standing rule).**
 >
-> **NOW — TIER 1: THE SEED AT NEW GAME** (`DYNAMISM_SPEC.md` §2 Tier 1, ≈ 0.5 sessions; no gate at this tier's
-> head — the gates are Tier 2's §3.8.2 and Tier 3's §13, each in Plan Mode at its own head):
-> - The campaign seed ROLLED at New Game (`NewGameRequest.seed`; `roll_campaign_seed()` — a READABLE name,
->   never `historical`) and SHOWN: a `LineEdit` on the New Game menu (type one or keep the roll), the first
->   morning's line, the load dialog's row.
-> - The env (`SOVEREIGN_SEED`) and the suite's pin stay untouched — `historical`/unset reproduces today's boot
->   byte for byte (the §3.8.1 law; conftest pins it suite-wide).
-> - Rule 9: owner row, landing slice, done-when and a behaviour test with the slice; the Godot half needs the
->   dtype/UI wiring checked in the parse harness (a `.gd` edit regenerates `tools/godot_parse_report.json`).
+> **NOW — TIER 2: EUROPE VARIES — THE GATE FIRST, IN PLAN MODE** (`DYNAMISM_SPEC.md` §2 Tier 2, ≈ 3 sessions;
+> the plan's S15-R row):
+> - **The gate** (`AI_INTENT_SPEC.md` §3.8.2) is AUTHORED AT THIS TIER'S HEAD, in Plan Mode, with §0's standing
+>   questions put to the user where they bite (Q2–Q6 have recorded defaults, one line to reverse). Read §3.8.1's
+>   envelope law and the historian test FIRST — Tier 1 changed nothing there (no authored band exists yet; this
+>   tier authors the first ones, validator-clamped).
+> - **T2-1 the story signature FIRST** and its baseline archived by a LONE chain run — carrying DY-0's columns
+>   from day one (`questions_turned`, `awakening_events`, `rank_promotions`, `guarantees_given`, `formations`
+>   promoted to a derived column — `DYNAMISM_SPEC.md` §7; `derive_metrics` / `_variance_signature` in
+>   `tools/ai_v_sweep.py`). The story-class count is THE deploy gate's number; nothing builds before the
+>   instrument and its baseline exist.
+> - Then **T2-2** peace closes the theatre (an acquire design sleeps while a fresh peace holds its regions),
+>   **T2-3** Prussia's hook (join the strong side's enemy at relation < 0 when the league is the stronger; one
+>   renege a campaign), **T2-4** Russia's two shores (`the_gulf` / `the_straits` banded behind arbiter) + a
+>   contain design that sleeps, **T2-5** Prussia's second design (Swedish Pomerania), **T2-6** the casting band —
+>   the seed casts an understudy minor (Saxony, Bavaria, Denmark, Naples) with a banded statecraft `weight_mod`
+>   (the overlay widens past `wary_of`; `get_statecraft`, `world_state.py:3702`).
+> - Each slice its own commit and the user's review; the measure chains run ALONE; `BASELINE_SERIES` discipline
+>   as always (bands move boards only on NON-historical seeds — the suite's env pin keeps every arm on today's).
+>
+> **Tier 1's own traps (fresh):** GET /test now carries a FRESH `suggested_seed` per call — never byte-compare
+> /test payloads across calls; the first morning's seed line is BOOT ONLY (`situation.campaign_seed_line` — a
+> later-morning pin must not expect it); only Begin carries the menu box's seed (the School buttons,
+> Continue/Load and the pause-menu road send none); a School lesson never rolls (deliberate — a lesson's beats
+> are identical for every player); `roll_campaign_seed` draws from `secrets`, never `random` (the module streams
+> are pinned by 21 test files — keep it that way).
 >
 > **Open with the user (none blocks Tier 1):** **GRD-38 — should a full-authority Emperor ever be defied?**
 > (T0-I's measured pricing: MODERATE = literally 0 at authority ≥ 80, STRONG ≤ 0.13; the table in

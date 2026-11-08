@@ -56,6 +56,38 @@ def is_historical(seed: Optional[str]) -> bool:
     return (text or HISTORICAL_SEED) == HISTORICAL_SEED
 
 
+# ── The rolled seed (Tier 1, DYNAMISM_SPEC.md §2 — November 7, 2026) ──────
+#
+# `roll_campaign_seed()` names a fresh campaign: a READABLE adjective-noun
+# pair with a two-digit mark ("iron-eagle-07"), never `historical` (no word
+# below is it, structurally). Entropy comes from `secrets` — NEVER the
+# ambient `random` module, whose streams 21 test files and M1–M7 pin by
+# draw order (§5 pin 2; the same law the hash derivations above keep).
+# The roll happens exactly once per New Game without an explicit seed or a
+# SOVEREIGN_SEED env (main.py's /new_game precedence) — the suite's
+# conftest pins the env, so no test and no harness arm ever rolls.
+
+_ROLL_ADJECTIVES = (
+    "iron", "gilded", "wintry", "scarlet", "stormy", "quiet", "burning",
+    "frozen", "broken", "proud", "hungry", "distant", "thundering", "pale",
+    "crimson", "long", "bitter", "gallant", "restless", "shrouded",
+    "swift", "old", "silent", "midnight",
+)
+_ROLL_NOUNS = (
+    "eagle", "bayonet", "grenadier", "hussar", "cannon", "standard",
+    "bivouac", "frontier", "crossing", "redoubt", "salient", "vanguard",
+    "dispatch", "campfire", "squadron", "lancer", "courier", "bastion",
+    "caisson", "sabre", "musket", "colours", "march", "levee",
+)
+
+
+def roll_campaign_seed() -> str:
+    """One readable seed, freshly rolled — "adjective-noun-NN"."""
+    import secrets
+    return (f"{secrets.choice(_ROLL_ADJECTIVES)}-"
+            f"{secrets.choice(_ROLL_NOUNS)}-{secrets.randbelow(100):02d}")
+
+
 def _unit(seed: str, namespace: str) -> float:
     """Deterministic float in [0, 1) from (seed, namespace). Pure hash —
     no module RNG consumed, no state anywhere."""

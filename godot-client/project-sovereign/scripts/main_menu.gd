@@ -76,6 +76,10 @@ var _confirm_box: VBoxContainer
 var _confirm_action := "new_game"
 var _confirm_label: Label
 var _confirm_yes: Button
+# Tier 1: the seed box — prefilled once from GET /test's `suggested_seed`;
+# `_seed_touched` keeps a later poll from clobbering what the player typed.
+var _seed_edit: LineEdit
+var _seed_touched := false
 var _menu_column: VBoxContainer
 var _settings_view: PanelContainer
 var _settings_panel: SettingsPanel
@@ -314,6 +318,27 @@ func _build_menu_column() -> void:
 	if MenuBoot.came_from_game:
 		_add_menu_button("return", "Return to the War Room", _on_return_pressed, true)
 	_add_menu_button("begin", "Begin the 1805 Campaign", _on_begin_pressed, not MenuBoot.came_from_game)
+
+	# Tier 1 (DYNAMISM_SPEC §2): the campaign's seed — rolled by the backend
+	# (GET /test prefills the box once), kept or overtyped by the player.
+	# Only Begin reads it; the School's lessons stay seedless by design.
+	var seed_row := HBoxContainer.new()
+	seed_row.add_theme_constant_override("separation", 8)
+	var seed_label := Label.new()
+	seed_label.text = "Seed"
+	seed_label.theme_type_variation = &"Caption"
+	seed_label.add_theme_color_override("font_color", Utils.UI_HINT_GREY)
+	seed_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	seed_label.add_theme_constant_override("shadow_offset_y", 1)
+	seed_label.tooltip_text = "Every campaign is recorded under a seed. Keep the roll, or type one to replay a campaign's variance."
+	seed_row.add_child(seed_label)
+	_seed_edit = LineEdit.new()
+	_seed_edit.custom_minimum_size = Vector2(240, 34)
+	_seed_edit.placeholder_text = "rolling…"
+	_seed_edit.tooltip_text = seed_label.tooltip_text
+	_seed_edit.text_changed.connect(func(_t: String): _seed_touched = true)
+	seed_row.add_child(_seed_edit)
+	_menu_column.add_child(seed_row)
 
 	# the Begin confirm row (shown only when Begin would replace a campaign)
 	_confirm_box = VBoxContainer.new()
@@ -645,6 +670,11 @@ func _launch(action: String) -> void:
 		# S14d part 2: the School's other lessons carry their own latch.
 		UiSettings.set_tutorial_done(false, action)
 	MenuBoot.pending_action = action
+	# Tier 1: only Begin carries the seed box's text — the School's lessons
+	# and Continue/Load never seed.
+	MenuBoot.pending_seed = (_seed_edit.text.strip_edges()
+							 if (action == "new_game" and _seed_edit != null)
+							 else "")
 	MenuBoot.came_from_game = false
 	_fade_rect.mouse_filter = Control.MOUSE_FILTER_STOP
 	var tw := create_tween()
@@ -683,6 +713,12 @@ func _on_http_completed(result: int, code: int, _headers: PackedStringArray, bod
 			if test_data is Dictionary:
 				_server_version = str(test_data.get("version", ""))
 				MenuBoot.server_version = _server_version
+				# Tier 1: prefill the seed box once — never over the
+				# player's own typing.
+				var suggested := str(test_data.get("suggested_seed", ""))
+				if (suggested != "" and _seed_edit != null
+						and not _seed_touched and _seed_edit.text == ""):
+					_seed_edit.text = suggested
 			_apply_backend_state()
 			# now learn what there is to continue
 			_http_mode = "saves"

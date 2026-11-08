@@ -174,8 +174,11 @@ class TestMainGdHandOff:
         main = _read(SCRIPTS / "main.gd")
         assert "_consume_menu_boot_action()" in main
         assert "func _consume_menu_boot_action" in main
-        # new_game reuses the pause flow — ONE world-swap machinery
-        assert '"new_game":\n\t\t\t_on_pause_new_game_requested()' in main
+        # new_game reuses the pause flow — ONE world-swap machinery.
+        # Tier 1 (DYNAMISM_SPEC §2, November 8 2026): the arm now carries
+        # the menu's seed through MenuBoot.take_seed() (Golden Rule 4);
+        # the pin re-seated to the new literal, same one-flow contract.
+        assert "_on_pause_new_game_requested(MenuBoot.take_seed())" in main
 
     def test_continue_gates_on_payload_shape_not_success(self):
         """/saves returns a bare {"saves": [...]} with NO success field —

@@ -1184,7 +1184,9 @@ func _consume_menu_boot_action() -> void:
 	var action := MenuBoot.take_action()
 	match action:
 		"new_game":
-			_on_pause_new_game_requested()
+			# Tier 1: the menu's seed box rides the boot action (Golden
+			# Rule 4 — taken once, cleared by the take).
+			_on_pause_new_game_requested(MenuBoot.take_seed())
 		"tutorial":
 			_on_tutorial_boot_requested()
 		"tutorial_table":
@@ -5597,6 +5599,11 @@ func _display_morning_dispatch(data: Dictionary):
 	if sink_suffix == "" and act_sink != "":
 		sink_suffix = "[color=#" + Utils.COLOR_INFO + "] — " + act_sink + " (F1 → The Emperor's Designs)[/color]"
 	add_output("[color=#" + Utils.COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + _format_number(treasury_delta) + delta_suffix + ")[/color]" + sink_suffix)
+	# Tier 1 (DYNAMISM_SPEC §2): the first morning names the campaign's
+	# seed — boot briefing only (the key rides no later morning).
+	var seed_line := str(situation.get("campaign_seed_line", ""))
+	if seed_line != "":
+		add_output("[color=#" + Utils.COLOR_INFO + "]  " + seed_line + "[/color]")
 	# SR-5r RF-4b (REFORMS_SPEC §8a): the Staff's first refill, named ("the
 	# dispatch names why"), and the forecast — the same source as the
 	# end-turn banner and the LAWS tab.
@@ -10556,11 +10563,14 @@ func _on_pause_load_requested():
 	"""Handle Load Game from pause menu."""
 	_show_load_dialog()
 
-func _on_pause_new_game_requested():
-	"""Handle New Campaign from pause menu."""
+func _on_pause_new_game_requested(seed: String = ""):
+	"""Handle New Campaign from the pause menu or the main menu's Begin.
+	Tier 1 (DYNAMISM_SPEC §2): `seed` is the menu box's text — empty lets
+	the backend roll (the pause-menu road), and the backend's reply names
+	whichever seed the campaign got."""
 	add_output("[color=#" + Utils.COLOR_INFO + "]Starting a new campaign. Current autosave will be replaced.[/color]")
 	set_input_enabled(false)
-	api_client.new_game(_on_new_game_result)
+	api_client.new_game(_on_new_game_result, "", seed)
 
 func _on_tutorial_boot_requested(scenario: String = "tutorial"):
 	"""POSITION 7: boot a School of War scenario (replaces the running

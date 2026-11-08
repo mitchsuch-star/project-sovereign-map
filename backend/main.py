@@ -44,6 +44,8 @@ from backend.models.intel import FULL  # noqa: E402, F811 — used by the forced
 from backend.commands.meta_executor import _filter_tactical_events_by_fog
 import backend.save_manager as save_manager
 from backend.save_manager import autosave, save_game, load_game, list_saves, delete_save, scan_saves
+# Tier 1 (DYNAMISM_SPEC.md §2): the menu's seed roll (GET /test).
+from backend.game_logic.campaign_variance import roll_campaign_seed as _roll_campaign_seed
 from backend.display_names import marshal_title  # SF5-X3: the ONE style for a marshal in prose
 
 # ════════════════════════════════════════════════════════════
@@ -177,6 +179,7 @@ def _resolve_scenario_path() -> str:
 def _build_new_world(
     player_nation: str = DEFAULT_PLAYER_NATION,
     scenario_override: str = "",
+    seed: Optional[str] = None,
 ) -> WorldState:
     """Create a fresh campaign world with the default start-state.
 
@@ -204,8 +207,16 @@ def _build_new_world(
                 "'Diplomacy accommodations')."
             )
         print(f"SOVEREIGN_SCENARIO: loading scenario from {scenario_path!r}")
-        return WorldState.from_scenario(scenario_path)
-    return WorldState(player_nation=player_nation, sovereign_map=_resolve_sovereign_map())
+        # Tier 1: `seed=None` resolves inside from_scenario exactly as
+        # before (env, else historical) — the process boot is byte-identical.
+        return WorldState.from_scenario(scenario_path, seed=seed)
+    legacy_world = WorldState(
+        player_nation=player_nation, sovereign_map=_resolve_sovereign_map())
+    if seed is not None and str(seed).strip():
+        # The legacy fixture board authors no bands, so the seed is carried
+        # for display and the in-campaign levers (jitter, tie-breaks) only.
+        legacy_world.campaign_seed = str(seed).strip()
+    return legacy_world
 
 
 def _set_active_world(new_world: WorldState) -> WorldState:
@@ -307,10 +318,16 @@ def _dispatch_roster_moved(stored_rows, live_rows) -> bool:
 def _reset_world_state(
     player_nation: str = DEFAULT_PLAYER_NATION,
     scenario_override: str = "",
+    seed: Optional[str] = None,
 ) -> WorldState:
-    """Replace the active campaign with a fresh world."""
+    """Replace the active campaign with a fresh world.
+
+    `seed=None` (the process boot) keeps today's resolution exactly
+    (SOVEREIGN_SEED env, else historical); /new_game passes the effective
+    seed it resolved (Tier 1)."""
     new_world = _build_new_world(
-        player_nation=player_nation, scenario_override=scenario_override)
+        player_nation=player_nation, scenario_override=scenario_override,
+        seed=seed)
     # LV-1: the first morning has a briefing — every creation road (the
     # process boot, New Campaign, the School of War) passes here.
     _ensure_first_morning(new_world)
@@ -3207,8 +3224,15 @@ class NewGameRequest(BaseModel):
 
     `scenario` is an ALLOWLIST NAME (see SCENARIO_ALLOWLIST), never a path;
     empty/absent keeps today's boot byte-identical.
+
+    `seed` (Tier 1, DYNAMISM_SPEC.md §2): the campaign seed the player
+    typed or kept from the menu's roll. Precedence at the route: this
+    field > the SOVEREIGN_SEED env > a fresh `roll_campaign_seed()` —
+    so a test rig or harness arm with the env set never rolls, and a
+    plain player New Game always gets a named campaign.
     """
     scenario: str = ""
+    seed: str = ""
 
 
 @app.get("/test")
@@ -3222,6 +3246,10 @@ def test_connection():
         # PB-4: the build stamp — the main menu prints it and launch.bat
         # refuses to reuse a server whose stamp is not the zip's own.
         "version": build_version(),
+        # Tier 1 (DYNAMISM_SPEC.md §2): a fresh roll for the menu's seed
+        # box — the player keeps it or types their own; /new_game only
+        # honors what the request carries.
+        "suggested_seed": _roll_campaign_seed(),
         # C1 (the release build): whether hard phrasings go to the live
         # parser — the client's once-ever keyless hint reads it at boot.
         "smarter_parsing": bool(getattr(parser.llm, "use_real_api", False)),
@@ -6486,13 +6514,34 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
                     ),
                 )
             scenario_override = str(SCENARIO_ALLOWLIST[requested])
+        # Tier 1 (DYNAMISM_SPEC.md §2): the seed precedence at the route —
+        # the player's own (typed or kept from the menu's roll) > the
+        # SOVEREIGN_SEED env (test rigs and harness arms, which must never
+        # roll — the suite's conftest pins it) > a fresh roll. A School
+        # lesson (scenario override) never rolls: the lesson's beats stay
+        # identical for every player unless a seed is asked for by name.
+        from backend.game_logic.campaign_variance import (
+            SEED_ENV, roll_campaign_seed)
+        requested_seed = (request.seed or "").strip() if request else ""
+        rolled = ""
+        effective_seed: Optional[str] = requested_seed or None
+        if (not requested_seed and not scenario_override
+                and not os.environ.get(SEED_ENV, "").strip()):
+            rolled = roll_campaign_seed()
+            effective_seed = rolled
         player_nation = get_player_nation(world)
         new_world = _reset_world_state(
-            player_nation=player_nation, scenario_override=scenario_override
+            player_nation=player_nation, scenario_override=scenario_override,
+            seed=effective_seed,
         )
         autosave_result = autosave(new_world)
         autosave_ok = bool(autosave_result.get("success", False))
         message = "New campaign started."
+        if requested_seed or rolled:
+            # Named only when the player (or the roll) chose it — a rig's
+            # env boot keeps the message byte-identical to every archive.
+            message = ("New campaign started — the seed is "
+                       f"'{new_world.campaign_seed}'.")
         if autosave_result.get("skipped") == "tutorial":
             # The lesson never writes the campaign's autosave slot — shown,
             # not silent, so nobody reads "refreshed" over a skip.
@@ -6505,6 +6554,9 @@ async def new_game_endpoint(request: Optional[NewGameRequest] = None):
             new_world,
             message=message,
             new_game=True,
+            # Tier 1: the campaign's seed, for the client to show.
+            campaign_seed=str(getattr(new_world, "campaign_seed",
+                                      "historical")),
             autosave_success=autosave_ok,
             autosave_message=autosave_result.get("message", ""),
             # LV-1 (row EP F1): the turn-1 briefing, rendered by the client's
