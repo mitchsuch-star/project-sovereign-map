@@ -45,6 +45,12 @@ AGENDA_SUBSIDY_TIER_3 = 400           # paymaster subsidy above 8,000 treasury
 AGENDA_SUBSIDY_TIER_4 = 500           # paymaster subsidy above 15,000 treasury
 AGENDA_SUBSIDY_CAP = 500              # was 400 pre-EB-2 (conscious re-bless)
 AGENDA_GRUDGE_TURNS = 10              # post-peace grudge horizon
+AGENDA_QUIET_WINDOW_TURNS = 8         # T2-4: contain sleeps after this long a
+#                                       peace with the hegemon — strictly above
+#                                       the fresh-peace floor (5: fresh is not
+#                                       yet quiet), strictly below retention
+#                                       (10: every end inside the window is
+#                                       still in the live store)
 AGENDA_GRUDGE_CAP = 2                 # +threat/turn cap across all nations
 AGENDA_VIOLATION_RELATION_PENALTY = -25  # the Ansbach trap, one-time per pair
 AGENDA_VIOLATION_COOLDOWN = 10        # turns between violation firings per pair
@@ -284,10 +290,33 @@ def _deny_active(world, nation: str, regions) -> bool:
     return any(_region_controller(world, r) in bloc for r in regions)
 
 
+def a_quiet_window_sleeps_the_arbiter() -> bool:
+    """T2-4 "Russia's two shores" (`DYNAMISM_SPEC.md` §2 Tier 2;
+    November 8, 2026): a contain design sleeps once the court's OWN war
+    with its hegemon has been over for a quiet window
+    (`AGENDA_QUIET_WINDOW_TURNS`, 8 — `coalition.pair_war_quiet_turns`,
+    the fresh-peace scan's shape over both war stores). The deck
+    advances past it — the arbiter stands down and `gulf_and_straits`
+    wakes, the Tsar turned to Finland and the Straits exactly as the
+    blurb promises ("the day that war is no longer the Tsar's concern")
+    — and it wakes the instant the pair is belligerent again. A court
+    that NEVER fought its hegemon keeps the design armed (contain must
+    be able to drive its first war — 1805 itself), which also re-arms
+    the watch when the hegemon CHANGES: no war with the new one is on
+    record. Down: the pre-T2-4 reading — the arbiter watches forever,
+    and the second shore never wakes by peace alone."""
+    return True
+
+
 def _contain_active(world, nation: str, share_floor: float) -> bool:
     """Active while the hegemon bloc share >= floor AND self is outside
     that bloc. SF-LB-1: dormant while the Armed Peace holds for that
-    hegemon and this court is at PEACE with it."""
+    hegemon and this court is at PEACE with it. T2-4: dormant once the
+    court's own war with the hegemon is a quiet window past
+    (`a_quiet_window_sleeps_the_arbiter` above — the ended-war witness
+    required, WAR or ARMISTICE waking it at once). Both sleeps are
+    dormancy, never satisfaction (`_entry_satisfied`'s contain arm reads
+    the share directly)."""
     hegemon, share = _hegemon(world, nation)
     if hegemon is None or share < share_floor:
         return False
@@ -298,6 +327,12 @@ def _contain_active(world, nation: str, share_floor: float) -> bool:
         from backend.game_logic.coalition import armed_peace_reading
         reading = armed_peace_reading(world)
         if reading.get("holds") and reading.get("hegemon") == hegemon:
+            return False
+    if a_quiet_window_sleeps_the_arbiter() \
+            and not _belligerent(world, nation, hegemon):
+        from backend.game_logic.coalition import pair_war_quiet_turns
+        quiet = pair_war_quiet_turns(nation, world, hegemon)
+        if quiet is not None and quiet >= AGENDA_QUIET_WINDOW_TURNS:
             return False
     return True
 

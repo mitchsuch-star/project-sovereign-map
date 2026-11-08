@@ -2296,7 +2296,12 @@ live at boot (France's share 0.396 ≥ its 0.33 floor) and first-predicate-wins;
 **no order band** (no band → no variance, §3.8.1), so this cannot move the opening anywhere —
 **pin 22**. It activates by exactly two routes, both wanted: arbiter goes inactive (France genuinely
 contained — the late game gains an eastern storyline instead of a frozen board), or the volte-face
-retires it (Tilsit — the AI-5b(ii) clause v1.4 adds). Its two victims collide with two authored
+retires it (Tilsit — the AI-5b(ii) clause v1.4 adds). *(T2-4, November 8, 2026 — recorded, not
+silently edited: a THIRD route landed, the quiet-window sleep (`DYNAMISM_SPEC.md` §2 Tier 2;
+`SYSTEMS_REFERENCE.md` §190) — the arbiter stands down once Russia's own war with the hegemon has
+been over a quiet window (8 turns, the ended-war witness required) and wakes the instant the pair
+is belligerent again; derived from the war stores, never dice, so pin 22 and the unbanded deck
+stand untouched.)* Its two victims collide with two authored
 designs — Sweden's `scourge_of_the_usurper` and the Ottoman `guard_the_straits`, giving the guard
 type its first real thing to guard against — and both targets are non-capital provinces, so the wars
 it generates end in settlements, not eliminations (D2 untouched; the victims survive their loss

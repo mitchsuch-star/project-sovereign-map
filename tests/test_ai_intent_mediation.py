@@ -270,10 +270,24 @@ class TestResolution:
             relation_before + MEDIATION_REFUSED_RELATIONS)
         assert int(world.threat_level) == threat_before
 
-    def test_refusal_hardens_the_arbiter_then_expires(self, world):
+    def test_refusal_hardens_the_arbiter_then_expires(self, world,
+                                                      monkeypatch):
         """The §12.5 elegance clause as a test: the refusal feeds the
         mediator's own ladder through a derived weight term, and it
-        EXPIRES with the record's memory window — no latch."""
+        EXPIRES with the record's memory window — no latch.
+
+        T2-4 re-seat with its cause (November 8, 2026): the staged
+        board frees the arbiter by a separate-peace exit stamped at the
+        CURRENT turn, so the +13 jump below crosses the quiet window
+        (8) and the arbiter itself stands down — the deck advances to
+        `gulf_and_straits` and the cooled arbiter weight is no longer
+        on the active view. This pin's subject is the refusal record's
+        expiry on the arbiter's OWN ladder, so the T2-4 seam is held
+        down (the recorded-rules replay discipline); the sleep's
+        interplay is the quiet window's own, pinned in
+        `test_t2_4_the_quiet_window.py`."""
+        from tests._t2_seams import T2_SEAMS_BY_ROW, hold_down
+        hold_down(monkeypatch, T2_SEAMS_BY_ROW["T2-4"])
         from backend.game_logic.settlement_offers import (
             handle_incoming_settlement_offer_action,
         )

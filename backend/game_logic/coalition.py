@@ -1835,6 +1835,55 @@ def fresh_peace_turns_left(nation: str, world, target: str) -> int:
     return int(best)
 
 
+def pair_war_quiet_turns(nation: str, world, target: str) -> Optional[int]:
+    """Turns since the last war between `nation` and `target` ended —
+    None when no ended war between them is on record. The quiet-window
+    clock (T2-4, `DYNAMISM_SPEC.md` §2 Tier 2): the same per-pair end
+    reads as `fresh_peace_turns_left` above (the pair's resolved record
+    first, then the per-nation exit or the instance end on opposite-side
+    rows), but over BOTH stores — `war_instances` AND
+    `archived_war_instances`. The archive matters HERE and deliberately
+    not there: retention (10) exceeds the fresh-peace floor (5), so that
+    scan's archive arm was measured dead and removed — while the quiet
+    window needs the WITNESS that a war ever ended to outlive retention,
+    or a sleep begun at age 8 would flap awake at age 10 for want of
+    evidence (the archive deep-copies the whole instance,
+    `settlement_helpers.archive_terminal_war_instances`)."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    pair_key = world._make_diplo_key(str(nation), str(target))
+    latest: Optional[int] = None
+
+    def _note(value) -> None:
+        nonlocal latest
+        if value is None:
+            return
+        end = int(value)
+        if latest is None or end > latest:
+            latest = end
+
+    live = (getattr(world, "war_instances", {}) or {}).values()
+    archived = getattr(world, "archived_war_instances", None) or []
+    for inst in list(live) + list(archived):
+        if not isinstance(inst, dict):
+            continue
+        pair_meta = ((inst.get("diplo_key_meta") or {}).get(pair_key) or {})
+        if pair_meta.get("pair_status") == "resolved":
+            _note(pair_meta.get("resolved_turn"))
+        meta = inst.get("participant_meta") or {}
+        mine, theirs = meta.get(str(nation)), meta.get(str(target))
+        if not mine or not theirs:
+            continue
+        if mine.get("side") and mine.get("side") == theirs.get("side"):
+            continue
+        if mine.get("exited_turn") is not None:
+            _note(mine.get("exited_turn"))
+        else:
+            _note(inst.get("ended_turn"))
+    if latest is None:
+        return None
+    return int(turn - latest)
+
+
 def qualifies_for_coalition(nation: str, world, target: Optional[str] = None,
                             relation_shift: int = 0) -> bool:
     """Check if a nation qualifies for coalition membership (§3b).

@@ -13817,3 +13817,82 @@ unspent on every seed); the pins own that arm. A method note the probe paid for:
 in-process `advance_turn` loop is NOT the chain's world-line (the ambient arm drives
 the sweep's own runner under a process-level hash seed) — replay one `spawn_run`
 child when a chain row needs its cause named.
+
+## §190 Tier 2, session 5 — T2-4, Russia's two shores: the quiet-window sleep (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 2 + §8 row T2-4; pins
+`tests/test_t2_4_the_quiet_window.py`, 18; the seam
+`agendas.a_quiet_window_sleeps_the_arbiter` in `tests/_t2_seams.py`, the recorded
+boards' hold-list picking it up through `T2_SEAMS_BY_ROW`). Russia's second design
+`gulf_and_straits` (AI-0d — Finland and Rumelia, the Tsar's two shores) woke by
+exactly two routes: France genuinely contained (share under the floor) or the
+volte-face (Russia inside France's bloc — Tilsit). T2-4 lands the third and
+historically truest: **a contain design sleeps once the court's own war with its
+hegemon has been over for a quiet window** — the arbiter stands down and the deck
+advances to the shores (Tilsit → the Finnish War and the Russo-Turkish war, fought
+while France still fought Britain). Pin 22 stands untouched: Russia's deck stays
+UNBANDED — the sleep is DERIVED from the war stores, never dice, and no scenario
+line moved.
+
+**The rule** — one clause in `_contain_active` (`agendas.py`), after the SF-LB-1
+Armed-Peace sibling (the two sleeps are independent: the Armed Peace sleeps even the
+morning after the treaty; the quiet window needs no league-free Europe). The design
+sleeps when ALL of: **(a) not belligerent with the hegemon** — the module's own
+`_belligerent` doctrine, WAR or ARMISTICE waking it at once (a paused war is the
+war; deliberately wider than the sibling's literal PEACE — OPEN_BORDERS and
+NON_AGGRESSION are quieter still; ALLIED states never reach the clause, the in-bloc
+check preceding); **(b) the witness** — a war between this court and the CURRENT
+hegemon has actually ENDED on record: a court that never fought its hegemon keeps
+the design ARMED, so contain can still drive its first war (1805 itself — and the
+shipped board's own proof: Sweden boots at PEACE with France with no war on record,
+and her `scourge_of_the_usurper` must not sleep at boot), which also re-arms the
+watch when the hegemon CHANGES (no war with the new one on record — D3's eclipse
+keeps its watcher); **(c) the window** — that last war ended
+`AGENDA_QUIET_WINDOW_TURNS` (8) or more turns ago: strictly above the fresh-peace
+floor (5 — a fresh peace is not yet a quiet one), strictly below retention (10 —
+every end inside the window still sits in the live store, no archiving boundary
+race).
+
+**The clock** — `coalition.pair_war_quiet_turns(nation, world, target)`, beside
+`fresh_peace_turns_left` and in its exact shape (the pair's `diplo_key_meta`
+resolved record first — the T2-3 renege writes it — then the per-nation
+`exited_turn` or the instance `ended_turn` on opposite-side `participant_meta`
+rows), but over BOTH stores: `war_instances` AND `archived_war_instances`. The
+archive matters HERE and deliberately not there: retention (10) exceeds the
+fresh-peace floor (5), so that scan's archive arm was measured dead and removed —
+while the quiet window needs the WITNESS to outlive retention, or a sleep begun at
+age 8 would flap awake at age 10 for want of evidence (the archive deep-copies the
+whole instance). Returns None when no ended war between the pair is on record — the
+witness law's carrier. No new world field (`to_dict` stands at 497/500), no new log
+type (the wake is the existing `agenda_shift` row — "Russia takes up a new design:
+The Gulf and the Straits" — and a re-wake of the same design is silent by T0-D's
+dormant mark), and the sleep round-trips through the save because both stores
+serialize (pinned).
+
+**The laws, pinned both ways.** Dormancy is never satisfaction (the T2-2 law):
+`_entry_satisfied`'s contain arm reads the share directly, so a sleeping arbiter
+never reads satisfied — no +10 resolve, no early separate peace; share under the
+floor satisfies asleep or awake alike. The volte-face route is untouched (in-bloc
+precedes the clause; the Tilsit read is identical with the seam down). One pin
+re-seated with its cause: `test_ai_intent_mediation.py`'s refusal-expiry pin frees
+the arbiter by a separate-peace exit stamped at the CURRENT turn and then jumps +13
+to watch the refusal record expire — the jump crosses the quiet window and the
+arbiter itself stood down, so the pin holds the T2-4 seam down (its subject is the
+record's expiry on the arbiter's OWN ladder; the interplay — a scorned courier's
+ramp rides the arbiter only while the arbiter stands, the record and its relations
+chill persisting regardless — is the quiet window's own, pinned in T2-4's file).
+
+**The measure** (the dated re-record `tools/_dy_signature_t2_4_2026_11_08.json`, the
+chain ALONE, against the T2-3 record — the kept-record idiom): **story classes 10 of
+10 held, ZERO ambient movers** — every seed's signature and class byte-identical
+record-to-record, historical among them, all three pinned. Deliberately read, not
+shrugged off: the ten ambient boards never end a war of FRANCE'S own (the idle
+player signs nothing), so no pair with the hegemon reaches the quiet window inside
+40 turns — **the road to the second shore is the PLAYER'S own peace**: sign with the
+Tsar, and eight quiet turns later Russia turns to Finland and the Straits (the
+reward-reactive principle — a discoverable consequence of the player's own treaty,
+proven by the staged pins). And the zero is itself the witness law's receipt: Sweden
+sits at peace with France from boot on every seed — the session's first probe
+revealed it — and without the ended-war witness her never-fought scourge would
+have slept at boot and moved every world-line, wrongly; the law was ruled for the
+first-war and eclipse cases, and the shipped board handed it this third.

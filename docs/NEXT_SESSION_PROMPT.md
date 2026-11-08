@@ -1,42 +1,47 @@
-# NEXT SESSION PROMPT — Tier 2 session 5: T2-4 the quiet-window sleep and Russia's two shores (T2-2 ✅, T2-3 ✅), then T2-5/T2-6, then Tiers 3–8, then the deploy
+# NEXT SESSION PROMPT — Tier 2 session 6: T2-5 Swedish Pomerania, then T2-6 the casting (T2-2 ✅, T2-3 ✅, T2-4 ✅), then Tiers 3–8, then the deploy
 
-> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-3 PRUSSIA'S HOOK ✅
-> LANDED (the bandwagoner: statecraft-derived — `reaches_first` carries "bandwagon", Prussia alone — joins the
-> stronger side of a live AI-vs-AI war against the weaker side's leader at relation < 0, the ally-entry join
-> idiom, one join a turn, player's wars excluded, no rejoin of an exited war; reneges ONCE a campaign when the
-> scales turn — the quota a `reneged_turn` stamp in the instance's own `participant_meta`, no new world field;
-> the dated re-record `tools/_dy_signature_t2_3_2026_11_08.json` holds 10 of 10 — marengo ALONE moves: Prussia
-> joins Hesse's war on Hanover at T20 and Hanover falls at T23 — historical byte-identical;
-> `SYSTEMS_REFERENCE.md` §189; pins `tests/test_t2_3_prussias_hook.py`, 18)**, after T2-2 peace closes the
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-4 RUSSIA'S TWO
+> SHORES ✅ LANDED (the quiet-window sleep: a contain design sleeps once the court's own war with its hegemon
+> has been over `AGENDA_QUIET_WINDOW_TURNS` (8) — the clause in `_contain_active` beside the SF-LB-1 sibling,
+> not-belligerent (WAR/ARMISTICE wakes at once) + the ended-war WITNESS + 8 turns past; the clock
+> `coalition.pair_war_quiet_turns` over BOTH war stores, the archive the witness's keeper; the arbiter stands
+> down and `gulf_and_straits` wakes; pin 22 untouched — derived, never dice, no scenario line moved; the dated
+> re-record `tools/_dy_signature_t2_4_2026_11_08.json` holds 10 of 10 with ZERO ambient movers, historical
+> byte-identical — the road to the second shore is the PLAYER'S own peace; `SYSTEMS_REFERENCE.md` §190; pins
+> `tests/test_t2_4_the_quiet_window.py`, 21)**, after T2-3 Prussia's hook (§189), T2-2 peace closes the
 > theatre (§188), T2-B the bands (§187), the gate + DY-0 (§186, floor 9 of 10), Tier 1 (§185), Tier 0
 > (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 2 SESSION 5: T2-4 THE QUIET-WINDOW SLEEP AND RUSSIA'S TWO SHORES, ITS OWN COMMIT**
+> **NOW — TIER 2 SESSION 6: T2-5 PRUSSIA'S SECOND DESIGN, ITS OWN COMMIT; THEN T2-6 THE CASTING**
 > (`DYNAMISM_SPEC.md` §2 Tier 2; measure after any slice that moves boards — a dated DY-0 re-record against the
-> T2-3 record, the kept-record idiom):
-> - **T2-4:** `arbiter_of_europe` sleeps after a quiet window so `gulf_and_straits` (ALREADY authored behind
->   it, pin 22's deliberate second design) can wake — `_contain_active` is the seam (`agendas.py`; SF-LB-1
->   already sleeps a contain design in the Armed Peace, the sibling read); pin 22 keeps Russia's deck UNBANDED
->   (the order never varies by seed — the sleep is derived, not dice). Define the quiet window from existing
->   clocks (no new world field; `to_dict` is 497/500 — any new state goes inside an existing store, the T2-3
->   `participant_meta` precedent). The seam spec joins `tests/_t2_seams.py` T2_SEAMS_BY_ROW["T2-4"] — the
->   hold-list `tests/_oct27_seams.py` picks it up through the import.
-> - **Then T2-5 Prussia's second design:** Swedish Pomerania — the region does NOT exist; verify the id against
+> T2-4 record, the kept-record idiom):
+> - **T2-5 Prussia's second design:** Swedish Pomerania — the region does NOT exist; verify the id against
 >   `regions` (the navies comment says Sweden's yard province is drawn as Stralsund); a Prussian `order_group`
->   needs two CONTIGUOUS entries.
+>   needs two CONTIGUOUS entries. Rule 9 row in `DYNAMISM_SPEC.md` §8 when it lands.
 > - **Then T2-6 the casting band:** the seed casts ONE understudy from (Saxony, Bavaria, Denmark, Naples) — its
 >   deck boots live-first with a bolder banded `weight_mod`; **Bavaria and Naples have NO decks — author them**
 >   (Rule 9 rows in `DYNAMISM_SPEC.md` §8 when they land); a new casting resolver beside the band machinery.
 >
-> **T2-3's own traps (fresh):** an in-process `advance_turn` loop is NOT the chain's world-line (the ambient
+> **T2-4's own traps (fresh):** a pin that AGES a freed arbiter crosses the quiet window — a board whose
+> separate-peace exit is stamped TODAY and then jumped ≥ 8 turns sleeps the contain design, so any such pin
+> either holds the T2-4 seam down (`T2_SEAMS_BY_ROW["T2-4"]`; the mediation refusal-expiry re-seat is the
+> precedent and its comment the template) or re-stages its clock; the WITNESS law is why crafted boards did
+> not move — a board with NO war record between the pair never sleeps (Sweden boots at PEACE with France and
+> her scourge is held awake by the ABSENT witness, not by state), so stage an ended instance when you WANT the
+> sleep and none when you don't; an end older than retention (10) is staged in `archived_war_instances`, not
+> the live store (the clock reads both); ZERO ambient movers is the honest record — the ten ambient boards
+> never end a war of FRANCE'S own (the idle player signs nothing), so the quiet window shows on commanded
+> arms and in real play, never in the ambient chain; the DY chain is FAST (~3 minutes, ten seeds) — it is not
+> the benchmark, run it freely but still ALONE on the final tree.
+>
+> **T2-3's own traps:** an in-process `advance_turn` loop is NOT the chain's world-line (the ambient
 > arm drives the sweep's own runner under a process-level hash seed) — replay ONE `spawn_run` child and read
 > the digest when a chain row needs its cause named; the ally-entry join idiom is the war-join machinery
-> (`ensure_war_instance_for_pair` + WAR + the booked −20 — `resolve_join_opportunity`'s accept arm; the brief's
-> "none exists" was half right: no AI reached it); a join logs a minimal `war_declaration` row and a renege a
-> `third_party_peace` row — NO new log type (a new type moves 14 pins); quota-like state rides the instance's
-> own serialized `participant_meta` row (free keys), never a new world field; a court never re-enters a war it
-> exited (pin 13's guard — a renege must not become a same-turn side-flip); the Bash heredoc broke AGAIN on a
-> large code block — write code blocks with the Write tool and append via Python.
+> (`ensure_war_instance_for_pair` + WAR + the booked −20 — `resolve_join_opportunity`'s accept arm); a join
+> logs a minimal `war_declaration` row and a renege a `third_party_peace` row — NO new log type (a new type
+> moves 14 pins); quota-like state rides the instance's own serialized `participant_meta` row (free keys),
+> never a new world field; a court never re-enters a war it exited (pin 13's guard); the Bash heredoc breaks
+> on large code blocks — write code blocks with the Write tool and append via Python.
 >
 > **T2-2's own traps:** satisfaction reads the THEATRE-OPEN covet, never the peace-layered one — any NEW
 > dormancy clause added to `region_coveted` must stay OUT of `_entry_satisfied` (the formation poll reads
