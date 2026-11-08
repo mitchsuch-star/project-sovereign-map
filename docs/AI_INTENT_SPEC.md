@@ -33,6 +33,7 @@
 > | v1.3 | July 21, 2026 | the verification pass — ten ground-truth readers, ten lenses, two refuters per finding; **19 factual corrections** (row AI-0 deleted; the historian test's false clause; third-party war exhaustion *decays*); §3.1a the descent · §3.9 attractors · §2 principle 9; contracts §4.2c / §4.3a / §4.4a steps 5–6 / §4.4b / §4.6b; pins 15–20; AI-V three arms | §9a, §10 |
 > | **v1.4** | **July 24, 2026** | **the structure & creative pass — §11 the phased build plan (the builder's front door); §12 six gameplay additions: the deterrence receipt · Russia's second design · the licence · the purchased dispatch + the player's seal · armed mediation · the allegiance auction; pins 21–24; beat 7** | **§11, §12** |
 | v1.4.1 | July 24, 2026 | §13 the standing review questions (user-directed): border massing (new row AI-3c, Stage D) · multi-front conduct (AI-V assertions) · recruit/commission budgeting (the §8 economy re-measure) · AI-vs-AI wars (=Stage D) · the non-France hegemon (=D3 + pin 16d). **Same day: Stage A (AI-0b/0c/0d) and Stage B (AI-1/AI-1b/AI-2a) BUILT — landing record §14.** | §13, §14 |
+| v1.4.4 | November 8, 2026 | **§13.2 the Tier-3 gate record — the strategist** (ruled in Plan Mode at the tier's head): R1 the aim-set (deliberately narrow — enemy soil never automatically in-aim), R2 the march metric first (`captures_outside_aim`, offline from the digest, the dated baseline the tier's starting debt), R3 `war_council.war_aim` as ONE read of the existing objective record, R4 the leash + §13.1's AI-3c folded in (Q1 closes at T3-3), R5 the aim-held sue (AI–AI along authored aims; AI–player the new P8 at war score ≥ 25), R6 "chains C and D" resolved as the tier's closing chains, R7 the scope guards | §13.2 |
 | v1.4.3 | November 8, 2026 | **§3.8.2 the Tier-2 gate record** — the standing band catalog recorded, the new bands ruled (readiness ±6, the minors' lean and the casting as banded statecraft `weight_mod`, Britain's client derived), the story class + its event-type contract (`question_turns` / `rank_promotion` / `awakening_*`), the DY-0 baseline | §3.8.2 |
 | v1.4.2 | July 24, 2026 | **Stage C BUILT** (landing record §15; evidence pack `docs/audits/STAGE_C_EVIDENCE_2026_07_24.md`) · **⛩ THE RE-CHECK HELD** (gate record §16: D1 cap confirmed 2; AI-3b slipped out of Stage D; AI-5c keeps Stage E; pin 17b re-sited to §17; the §4.4b exclusive ruling) · **Stage D BUILT** — war and peace, indivisible (landing record §17: AI-3 + §4.3a + AI-3c · AI-4a steps 5–6 · §4.4b · AI-4c · AI-4b + broker/join · beats 2/3/6/7; pins 15/16/17/19/21 green) | §15, §16, §17 |
 >
@@ -2441,7 +2442,9 @@ anywhere in the acceptance layer (six → seven, with the AI-V arm map extended 
 
 Six questions the user put to the phase at the Stage A/B build session, recorded here so the
 re-check and AI-V review them against evidence rather than memory. Each row names where the spec
-already answers, and what remains open with its owner. **Nothing here reopens §6.**
+already answers, and what remains open with its owner. **Nothing here reopens §6.** *(§13.2 below
+is the Tier-3 gate record — the strategist, ruled November 8, 2026; it folds §13.1's AI-3c into
+T3-3 and closes Q1 there.)*
 
 | # | Question | Where the spec answers it today | What remains open — owner |
 |---|---|---|---|
@@ -2461,6 +2464,79 @@ already answers, and what remains open with its owner. **Nothing here reopens §
 *Scope honesty:* AI-3c is a bias term inside Stage D's existing work, not a new stage; if the D6
 re-check finds Stage D over-budget, AI-3c may slip to Stage E carrying its Q1 row here as the
 written record — it must not silently vanish, because Q1 is a user question with a name on it.
+*(T3-3 takes it — §13.2 R4, November 8, 2026: the leash's bias read at `coerce`+ before the
+declaration IS the massing; Q1 closes at T3-3's landing.)*
+
+### 13.2 The Tier-3 gate record — the strategist *(ruled November 8, 2026, in Plan Mode at the tier's head; `DYNAMISM_SPEC.md` §2 Tier 3)*
+
+**The thesis.** Tier 2 made Europe's openings vary; Tier 3 makes AI wars GO somewhere — a court's
+war serves its AIM, its corps march the aim's way, and the war ENDS with the aim's terms ("maps
+diverge in role-true directions"; "AI–AI cessions move provinces ALONG AUTHORED AIMS"). The
+November 6 review's AI-France finding is the tier's target: France storms Vienna, then "marches to
+Estonia with no object." The deploy-gate condition this tier owns: `captures_outside_aim` reads 0
+on the ten ambient seeds AND the AI-France sweep's France entry.
+
+**The standing catalog, recorded.** The objective record EXISTS —
+`world.war_objectives[diplo_key][declarer]`, resolved region names throughout, and council-opened
+design wars already stamp `design_id` / `stated_reason` / the design's own provinces as
+`target_regions` (AI-3r; the default road the capital). P4's NA-3 agenda bias, the exposure
+calculus, the FA-N72 brakes and the third-party settlement machinery EXIST; the diplomacy
+triggers run P1–P7 with no P8; the sweep's digest drains the raw event log (`region_captured`
+rows ride it, capturer and prior controller named) and `ai_france_sweep` imports `derive_metrics`
+from `ai_v_sweep` — ONE instrument serves both gate surfaces. What did NOT exist before this
+tier: a read answering "was this capture inside the war's aim?", a leash keeping a marching
+court near its aim, an aim-held sue, and §13.1's AI-3c (Q1) stood open.
+
+**The rulings.**
+
+1. **R1 — the aim-set (the metric's law).** A belligerent AI court's aim-set for a war = its
+   `war_objectives` record's `target_regions` (resolved names; the capital default rides there)
+   ∪ its ACTIVE acquire design's regions held by the opposing side (overlord-resolved — a
+   client's soil reads as its lord's). DELIBERATELY NARROW: enemy soil is never automatically
+   in-aim (that would make the metric vacuous and bless the Estonia march), and there is no
+   adjacency ring (the approaches are the leash's business — a corps that should not be there
+   should not capture there). A capture from a court the capturer is not at war with is outside
+   by definition (the honesty counter). The ambient total never counts the PLAYER (France idle
+   in the chains); the per-court map keeps everyone, and the AI-France surface reads its France
+   entry from the map.
+2. **R2 — the metric first (T3-1 ✅, landed with this record).** `captures_outside_aim` derives
+   OFFLINE from the digest alone — the instrument, never the engine: the aims are read ONCE at
+   each war's opening onto the `wars_opened` rows (the BOOT wars' onto `boot.wars`, since the
+   runner pre-seeds `_war_ids` with them), and the joiner runs on the digest's one clock.
+   `derive_metrics` carries the total + the per-court map; `_variance_signature` carries the
+   total; `story_class` does NOT take it (the class is the story — this is a discipline gauge
+   with its own gate line). The baseline is a dated record by a lone chain
+   (`tools/_t3_march_baseline_2026_11_08.json`) — today's honest number is the tier's starting
+   DEBT; the gate measures at the gate, never today (the DY-0 floor idiom).
+3. **R3 — the war aim (T3-2).** `war_council.war_aim(world, nation, enemy)` — ONE public read of
+   the existing objective record per R1's union, no new store; consumed by the leash, the terms,
+   and the surfaces in WORDS (the war room and the ledger say the aim; Q6 — never a tooltip
+   number).
+4. **R4 — the leash (T3-3, AI-3c folded in).** ONE predicate biasing the EXISTING ranged
+   movement rungs (enumerated at landing by a census of the rungs that pick targets at range)
+   so an at-war court's target-picks weight toward its aim-set; the HOME-FRONT RECALL outranks
+   the aim when home soil is threatened (P3.7 generalized, never duplicated). §13.1's AI-3c
+   lands here: the same bias read at `coerce`+ BEFORE the declaration is the border massing —
+   Q1 answered on the map. GR5 stands: same rungs, new bias input, no new movement system, no
+   teleports; a bought-off or cooled design releases the bias the same turn.
+5. **R5 — the terms (T3-4).** Aim HELD (every aim region controlled by the court or its side) →
+   the court SUES: AI–AI through the existing third-party settlement machinery with cessions =
+   the aim's regions, never a random carve; AI–player as a NEW P8 diplomacy trigger at war
+   score ≥ 25, proposing the aim's terms through the existing proposal road. D2 untouched.
+6. **R6 — "chains C and D", resolved.** The restructure's phrase (November 7) is defined
+   nowhere; RULED here as the tier's two closing measure chains, continuing T2-6's A/B
+   lettering: chain C = the tier's ambient re-record (ten seeds against the T2-6 record, the
+   kept-record idiom), chain D = the AI-France sweep re-run (the second gate surface). T3-5 =
+   the two chains + the tier's landing record. If the restructure meant otherwise, this ruling
+   is the recorded resolution and the alternative is invited at review.
+7. **R7 — scope guards.** No new serialized world field (`to_dict` 497/500 — state rides
+   `war_objectives` / `participant_meta`); no new log types; bias, never dice (AI-0b); D1, D2,
+   D3, D4 stand; the France-literal diplomacy seams stay — an AI France is not a mode, the
+   sweep is a harness.
+
+**The slices** (Rule 9 rows in `DYNAMISM_SPEC.md` §8 at each landing): T3-1 ✅ the march metric
+(this record's session) → T3-2 the war aim → T3-3 the leash + AI-3c → T3-4 the terms → T3-5
+chains C and D.
 
 ---
 

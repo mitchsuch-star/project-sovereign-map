@@ -14015,7 +14015,7 @@ class search is the full re-record: **all ten committed arms read A=0, B=0**
 pins green, and the catch pinned in T2-6's own file.
 
 **The measure — two dated records, attribution by tree (the kept-record
-idiom).** Chain A (`tools/_dy_signature_t2_6a_decks_2026_11_08.json`, the
+idiom), T2-6's.** Chain A (`tools/_dy_signature_t2_6a_decks_2026_11_08.json`, the
 decks-only tree, vs the T2-5 record): the CONTENT moved **every world-line,
 historical included** — Bavaria's boot-live want touches every seed — with
 classes 10 of 10 and two class movers, named: Naples joins austerlitz's fight
@@ -14032,3 +14032,51 @@ turns — the per-seed truth, not a law; the dial bites where the board lets it,
 and the commanded arms and real play are where a cast court's boldness tells.
 **Tier 2 is complete: the opening varies where the gate ruled it may, and
 which minor stirs varies by seed.**
+
+## §193 Tier 3, session 1 — the gate (§13.2) and T3-1, the march metric (November 8, 2026)
+
+**The gate** (`AI_INTENT_SPEC.md` §13.2, ruled in Plan Mode at the tier's head —
+the §8 law; the approved plan the user's word): seven rulings open the
+strategist — R1 the AIM-SET (deliberately narrow: the `war_objectives` record's
+resolved `target_regions` ∪ the active acquire design's regions held by the
+opposing side, overlord-resolved; enemy soil NEVER automatically in-aim — that
+would bless the Estonia march; a capture from a non-belligerent is outside by
+definition), R2 the metric FIRST (the DY-0 pattern — the measure precedes the
+machinery), R3 `war_council.war_aim` as ONE read of the EXISTING objective
+record, R4 the leash biasing the EXISTING ranged rungs with §13.1's AI-3c
+folded in (the user's Q1 — border massing — closes at T3-3), R5 the aim-held
+sue (AI–AI cessions along authored aims through the third-party settlements;
+AI–player a NEW P8 trigger at war score ≥ 25), R6 the restructure's undefined
+"chains C and D" RESOLVED as the tier's two closing chains (C the ambient
+re-record, D the AI-France re-run), R7 the scope guards (no new world field,
+no new log types, bias never dice, D1–D4 stand).
+
+**T3-1, the instrument** (pins `tests/test_t3_1_the_march_metric.py`;
+instrument-only — no engine line moved). `RunCapture._war_aims` reads each
+participant's aim-set ONCE at a war's opening onto the digest (`aims` on the
+`wars_opened` rows — and on `boot.wars`, because the runner pre-seeds
+`_war_ids` with the boot instances, so the Third Coalition's wars never reach
+the opened rows and the joiner reads them off the boot block); `derive_metrics`
+joins the `region_captured` event rows (capturer and prior controller are the
+event's own fields) against the live wars on the digest's one clock —
+`captures_outside_aim` (the ambient total, PLAYER excluded — France is idle in
+the chains) and `captures_outside_aim_by_court` (everyone, France included —
+the AI-France sweep's gate line reads ITS France entry from the map: one
+instrument, two surfaces, since `ai_france_sweep` imports `derive_metrics`).
+`_variance_signature` carries the total; `story_class` does NOT (the class is
+the story — this is a discipline gauge with its own deploy-gate line). The
+live aim-reader pin proves the overlord arm on the real boot: Austria's Milan
+through the Kingdom of Italy — France's client — is Austria's aim in HER war
+with France. The assurance controls hold on the widened signature (same seed
+twice EQUAL; variance forced off EQUAL to historical).
+
+**The baseline — the tier's starting debt, honestly measured** (the dated record
+`tools/_t3_march_baseline_2026_11_08.json`, a lone chain over the ten ambient
+seeds × 40 turns; per-seed totals, per-court maps and each seed's full
+signature — the compatibility pin strips the new column and reads the
+signatures byte-identical to the T2-6 record's, so the widening moved no
+world-line): **397 ambient captures outside aim**, 22–72 per seed (marengo 22
+… austerlitz 72), **Austria the chief offender on every seed (11–26)** —
+the blob's spread captures — with Britain's continental grabs (6–16) second
+everywhere she fights. The Estonia-march class is now a number; T3-2…T3-4
+exist to drive it to the deploy gate's 0, measured at the gate, never today.

@@ -226,8 +226,61 @@ class RunCapture:
                 "stated_reason": inst.get("stated_reason"),
                 "ended_turn": inst.get("ended_turn"),
                 "end_reason": inst.get("end_reason"),
+                # T3-1 (§13.2 R1): the boot wars' aim-sets — `_war_ids`
+                # pre-seeds with the boot instances, so these wars never
+                # reach `wars_opened` and the joiner reads them HERE.
+                "aims": self._war_aims(inst),
             }
         return out
+
+    def _war_aims(self, inst) -> dict:
+        """T3-1 (the Tier-3 gate record, AI_INTENT_SPEC.md §13.2 R1 —
+        November 8, 2026): each participant's AIM-SET for this war, read
+        once at the war's opening (or the boot) onto the digest, so
+        `captures_outside_aim` derives OFFLINE — the instrument, never
+        the engine. Per court: every `war_objectives` record of a pair
+        inside this war's participants (`target_regions` are resolved
+        names — the council writes the design's provinces, the default
+        road the capital), plus the active ACQUIRE design's regions
+        currently held by the opposing side (overlord-resolved — R1's
+        design arm). DELIBERATELY NARROW: enemy soil is never
+        automatically in-aim (that would bless the Estonia march)."""
+        world = self.world
+        attackers = set(inst.get("attackers") or [])
+        defenders = set(inst.get("defenders") or [])
+        party = attackers | defenders
+        objectives = getattr(world, "war_objectives", {}) or {}
+        aims = {}
+        for nation in sorted(party):
+            regions = set()
+            for diplo_key, records in objectives.items():
+                pair = set(str(diplo_key).split("|"))
+                if nation not in pair or not pair <= party:
+                    continue
+                record = (records or {}).get(nation)
+                if isinstance(record, dict):
+                    regions.update(
+                        str(r) for r in (record.get("target_regions") or []))
+            opposing = defenders if nation in attackers else attackers
+            try:
+                from backend.game_logic.agendas import get_active_agenda
+                view = get_active_agenda(nation, world)
+            except Exception:
+                view = None
+            if (view is not None
+                    and getattr(view, "type", "") == "acquire_regions"):
+                for region_name in getattr(view, "regions", ()) or ():
+                    region = (getattr(world, "regions", {}) or {}).get(
+                        str(region_name))
+                    holder = (getattr(region, "controller", None)
+                              if region is not None else None)
+                    effective = ((world._top_overlord(holder) or holder)
+                                 if holder else None)
+                    if effective in opposing or holder in opposing:
+                        regions.add(str(region_name))
+            if regions:
+                aims[nation] = sorted(regions)
+        return aims
 
     def _drain_events(self) -> list:
         world = self.world
@@ -339,6 +392,9 @@ class RunCapture:
                 "stated_reason": inst.get("stated_reason"),
                 "entry_path": (inst.get("participant_meta") or {}).get(
                     (inst.get("attackers") or [""])[0], {}).get("entry_path"),
+                # T3-1 (§13.2 R1/R2): the participants' aim-sets at the
+                # war's opening, for the offline march-metric join.
+                "aims": self._war_aims(inst),
             })
         ended = []
         for wid, inst in wars_now.items():
@@ -534,6 +590,74 @@ def derive_metrics(digest: dict) -> dict:
         nation for row in turns
         for nation, view in row["intents"].items()
         if view[3] in ("coerce", "fight")})
+
+    # T3-1 (the Tier-3 gate record §13.2 R1/R2 — the march metric,
+    # November 8, 2026): `captures_outside_aim`, joined OFFLINE on the
+    # digest's one clock. A war's aims were read at its opening (the
+    # `aims` map on the `wars_opened` row; BOOT wars never reach those
+    # rows — `_war_ids` pre-seeds — so theirs are read off
+    # `boot.wars`). A court's live wars at a row are those opened at or
+    # before it and not ended before it. A capture is INSIDE the aim
+    # when some live war holds the prior controller on the opposing
+    # side AND the region in the capturer's aims FOR THAT WAR; a
+    # capture from a court the capturer is not at war with is outside
+    # by definition (the honesty counter). The ambient total excludes
+    # the PLAYER (France idle in the chains); the per-court map keeps
+    # everyone, and the AI-France sweep's gate line reads its France
+    # entry from the map (one instrument, two surfaces — §13.2 R2).
+    war_rows = []
+    boot_wars = ((digest.get("boot") or {}).get("wars") or {})
+    for wid, war in boot_wars.items():
+        if war.get("ended_turn") is None:
+            war_rows.append((0, dict(war, war_id=wid)))
+    ended_by_id = {}
+    for wid, war in boot_wars.items():
+        if war.get("ended_turn") is not None:
+            ended_by_id[wid] = int(war["ended_turn"])
+    for row in turns:
+        for war in row["wars_opened"]:
+            war_rows.append((row["turn"], war))
+        for war in row["wars_ended"]:
+            ended_by_id.setdefault(
+                war["war_id"], int(war.get("ended_turn") or row["turn"]))
+    outside_by_court = {}
+    for row in turns:
+        for event in row["events"]:
+            if str(event.get("type", "")) != "region_captured":
+                continue
+            capturer = str(event.get("captured_by", "") or "")
+            prior = str(event.get("captured_from", "") or "")
+            region = str(event.get("region", "") or "")
+            if not capturer:
+                continue
+            inside = False
+            for opened_turn, war in war_rows:
+                if opened_turn > row["turn"]:
+                    continue
+                ended = ended_by_id.get(war["war_id"])
+                if ended is not None and ended < row["turn"]:
+                    continue
+                attackers = set(war.get("attackers") or [])
+                defenders = set(war.get("defenders") or [])
+                if capturer in attackers:
+                    opposing = defenders
+                elif capturer in defenders:
+                    opposing = attackers
+                else:
+                    continue
+                if prior not in opposing:
+                    continue
+                if region in set((war.get("aims") or {}).get(capturer)
+                                 or ()):
+                    inside = True
+                    break
+            if not inside:
+                outside_by_court[capturer] = (
+                    outside_by_court.get(capturer, 0) + 1)
+    captures_outside_aim_by_court = dict(sorted(outside_by_court.items()))
+    captures_outside_aim = sum(
+        count for nation, count in captures_outside_aim_by_court.items()
+        if nation != player)
 
     # Beats: most types log an event AND queue a dispatch copy, but beat 4
     # (broken_bargain) is dispatch-only (the log gets bargain_reneged /
@@ -800,6 +924,11 @@ def derive_metrics(digest: dict) -> dict:
         "first_fight_turn": first_fight_turn,
         "eliminations": eliminations,
         "courts_at_coerce_plus": courts_at_coerce_plus,
+        # T3-1 (§13.2 R2): the march metric — the ambient total (player
+        # excluded) and the full per-court map (the AI-France surface
+        # reads its France entry from the map).
+        "captures_outside_aim": captures_outside_aim,
+        "captures_outside_aim_by_court": captures_outside_aim_by_court,
         "beats": beats,
         "routine_intent_lines_max_per_turn": (
             max(routine_per_turn) if routine_per_turn else 0),
@@ -1404,6 +1533,14 @@ def _variance_signature(digest: dict) -> dict:
         "rank_promotions": derived.get("rank_promotions", []),
         "guarantees_given": derived.get("guarantees_given", []),
         "formations": derived.get("formations", []),
+        # T3-1 (the Tier-3 gate record §13.2 R2 — the march metric,
+        # November 8, 2026): the ambient discipline gauge, row-sourced
+        # like everything above. Today's number is the tier's starting
+        # DEBT (the dated baseline holds it per seed); the deploy gate
+        # reads 0 here and on the AI-France sweep's France entry once
+        # T3-2…T3-4 land. The controls hold as ever: same seed twice
+        # EQUAL, variance forced off EQUAL to historical.
+        "captures_outside_aim": derived.get("captures_outside_aim", 0),
     }
 
 

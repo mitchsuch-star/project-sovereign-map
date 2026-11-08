@@ -1,76 +1,75 @@
-# NEXT SESSION PROMPT — Tier 3 session 1: the strategist's gate (§13) IN PLAN MODE, then T3-1 the march metric (TIER 2 ✅ COMPLETE November 8, 2026)
+# NEXT SESSION PROMPT — Tier 3 session 2: T3-2 `war_council.war_aim` (the gate §13.2 ✅ RULED, T3-1 ✅ LANDED — the debt 397)
 
-> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T2-6 THE CASTING BAND ✅
-> LANDED, TIER 2 COMPLETE (the seed casts ONE understudy from (Saxony, Bavaria, Denmark, Naples): its first
-> ACQUIRE boots at its deck's head — the live-first ruling, a guard ahead steps BEHIND, satisfaction restores
-> the posture — with the bold dial (8, band [4, 12]) over its lean; Bavaria's and Naples' decks authored (the
-> Tyrol boot-live — the Pressburg war aim; the September Treaty then the Roman Expedition — Spain alone remains
-> S14k-3's residue, the plan row re-scoped to 0.5); historical casts NOBODY, structurally; the two dated
-> records split content from variance BY TREE — chain A (decks) moved every world-line with two named class
-> movers, chain B (casting) moved austerlitz and marengo, where the cast Saxony joins the fight and
-> SWITZERLAND SURVIVES, historical byte-identical A↔B; the DD-1 twin-letter catch found by the refreshed
-> instrument and fixed at the cause (`treaty.restamp_pending_treaty_letters` from `_ratify_player_events`),
-> all ten committed arms A=0; `SYSTEMS_REFERENCE.md` §192; pins `tests/test_t2_6_the_casting.py`, 26)**, after
-> T2-5 (§191), T2-4 (§190), T2-3 (§189), T2-2 (§188), T2-B (§187), the gate + DY-0 (§186), Tier 1 (§185),
-> Tier 0 (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — TIER 3's GATE §13.2 ✅
+> RULED (in Plan Mode at the tier's head — seven rulings: R1 the aim-set DELIBERATELY NARROW — the
+> `war_objectives` record's resolved `target_regions` ∪ the active acquire design's regions held by the
+> opposing side, overlord-resolved; enemy soil NEVER automatically in-aim; a capture from a non-belligerent
+> outside by definition — R2 the metric first, R3 ONE `war_aim` read, R4 the leash + §13.1's AI-3c folded in
+> (Q1 closes at T3-3), R5 the aim-held sue (AI–AI along authored aims; AI–player the NEW P8 at war score
+> ≥ 25), R6 "chains C and D" = the tier's closing chains (C ambient re-record, D the AI-France re-run), R7
+> the scope guards) AND T3-1 THE MARCH METRIC ✅ LANDED (aims read ONCE at each war's opening onto the
+> digest — `aims` on the opened rows, the BOOT wars' on `boot.wars` since the runner pre-seeds `_war_ids`;
+> `derive_metrics` joins `region_captured` rows offline; the ambient total excludes the player, the
+> per-court map keeps everyone — the AI-France surface reads its France entry; the signature carries the
+> column, `story_class` does not; **the dated baseline `tools/_t3_march_baseline_2026_11_08.json` reads the
+> tier's starting DEBT: 397 ambient captures outside aim, 22–72 per seed, AUSTRIA the chief offender on
+> every seed (11–26), Britain second (6–16)**; the compatibility pin — minus the column, every signature
+> reads the T2-6 record's byte for byte; `SYSTEMS_REFERENCE.md` §193; pins
+> `tests/test_t3_1_the_march_metric.py`, 12)**, after Tier 2 COMPLETE (§186–§192), Tier 1 (§185), Tier 0
+> (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent
 > (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 3 SESSION 1: THE STRATEGIST'S GATE, THEN THE MARCH METRIC**
-> (`DYNAMISM_SPEC.md` §2 Tier 3; the plan's S15-R row — "AI–AI cessions move provinces ALONG AUTHORED AIMS"):
-> - **The gate FIRST, IN PLAN MODE** (the §8 law: "Plan Mode at each tier's gate"): author/settle
->   `AI_INTENT_SPEC.md` §13 at the tier's head — read what §13 already holds before drafting; the approved
->   plan is the user's word (the §3.8.2 precedent). Put §0's open questions for this tier there.
-> - **Then T3-1 the march metric** (its own commit): the measure of marching BEFORE the machinery — the
->   `captures_outside_aim` deploy-gate condition (0 on the ten ambient seeds and the AI-France sweep) needs
->   its instrument first, the DY-0 pattern (the measure precedes the build).
-> - **The tier's remaining slices** (later sessions): T3-2 `war_council.war_aim` on the existing objective
->   record; T3-3 ONE leash predicate for the four movement rungs and the home-front recall; T3-4 the terms
->   when the aim is held (AI–AI cessions through the third-party settlements; AI–player through P8 at 25);
->   T3-5 chains C and D. Measure after any slice that moves boards — a dated DY-0 re-record against the T2-6
->   record (`tools/_dy_signature_t2_6_2026_11_08.json` is the current truth), the kept-record idiom.
+> **NOW — TIER 3 SESSION 2: T3-2 `war_council.war_aim`, ITS OWN COMMIT** (§13.2 R3 — the ruling is final,
+> build against it, never re-litigate):
+> - **ONE public read of the EXISTING objective record** per R1's union: `war_council.war_aim(world,
+>   nation, enemy)` — the `war_objectives` records of every pair inside the war's participants (resolved
+>   names; the capital default rides `target_regions`) ∪ the active ACQUIRE design's regions held by the
+>   opposing side (overlord-resolved). NO new store (`to_dict` 497/500). The instrument's own
+>   `RunCapture._war_aims` (tools/ai_v_sweep.py) is R1's reference implementation — T3-2's live read must
+>   agree with it; a divergence pin (the live `war_aim` on a staged war == the digest's `aims` for the
+>   same war) keeps the two honest.
+> - **Consumed in WORDS** (Q6 — never a tooltip number): the war room / ledger name the aim ("Vienna and
+>   the Tyrol are the Emperor's object in this war" — the existing surfaces' idiom); the leash (T3-3) and
+>   the terms (T3-4) read the same function next sessions.
+> - **Measure after any slice that moves boards:** a dated DY-signature re-record (the signature now
+>   carries `captures_outside_aim`, so every later chain shows the debt moving) against the T3-1
+>   baseline's signatures (`_t3_march_baseline_2026_11_08.json` — they equal the T2-6 record's plus the
+>   column). T3-2 alone is a READ + surfaces: expect zero movers; the chain confirms.
 >
-> **T2-6's own traps (fresh):** `from_scenario` validates the SEAM-FILTERED board (the S14k deck seams run
-> first) — a validator clause that reads `agendas` or any seam-filtered block must WARN, never error, on
-> absences the seams can cause (the 593-red lesson: Saxony's deck empties on replayed pre-S14k boards and a
-> hard error killed 474 fixtures); **the suite's output must NEVER pipe through `tail`** (bitten twice —
-> capture to a file, read the biggest bucket's setup error; identical FAILED+ERROR counts across two runs =
-> deterministic, never memory pressure); deckless-court fixtures stage the designless board by POPPING the
-> deck in the test-local world, never by hunting another court; the dd1 records (`docs/audits/dd1/`) are the
-> LIVING committed reading — refresh them when content lawfully moves verdicts, and the full-arm run EXCLUDES
-> SEED-quick (re-record it separately with `--arms SEED-quick`); **a refreshed instrument can CATCH a real
-> defect — treat a nonzero as a defect first** (the twin-letter A=2: a second identical proposal sat signable
-> while its sibling's acceptance moved the pair; the cure is `restamp_pending_treaty_letters` at the ratify
-> chokepoint, the S6 disable-with-reason idiom); two dated records split content from variance BY TREE (build
-> content, freeze, chain A; build variance, freeze, chain B); a §7a scene record in a test takes an
-> AMENDED-BY paragraph, never a deletion.
+> **T3-1's own traps (fresh):** the runner PRE-SEEDS `_war_ids` with the boot instances — boot wars never
+> reach `wars_opened`, their aims live on `boot.wars`, and ANY digest reader must check both; a baseline
+> runner stores the full per-seed SIGNATURE too (the compatibility pin needs it — re-running a chain into
+> the slice's own not-yet-committed file is lawful, after the commit it is the kept-record idiom's dated
+> files only); crafted digests for `derive_metrics` must carry the FULL row shape — reuse
+> `test_dy0_the_signature._row/_digest`, never hand-roll; the aim-set is read AT THE WAR'S OPENING (a
+> design that grows later is not credited — deliberate, documented in §13.2 R2); the honesty counter means
+> walk-in captures from non-belligerents always count (watch it when staging).
 >
-> **Tier 2's standing traps (condensed):** the map's names are the audit's, not the era's — verify region ids
-> against the LIVE world (`w.regions`); a deck entry seated ABOVE a guard kills the guard (`_active_guard_map`
-> prices ACTIVE guards only); new deck entries APPEND — index 0 belongs to the emergent prepend contract; a
-> content slice needs NO seam (the kept-record idiom covers the measure) and its re-seat class is the
-> deck-runs-out pin; the validator's health check is the warnings COUNT (the shipped scenario reads 11); a pin
-> that AGES a freed arbiter ≥ 8 turns crosses the T2-4 quiet window — hold `T2_SEAMS_BY_ROW["T2-4"]` down or
-> re-stage (the mediation re-seat is the template); staged quiet-window sleeps need an ENDED war instance
-> (ends older than retention go in `archived_war_instances`); satisfaction reads the THEATRE-OPEN covet — new
-> dormancy clauses stay OUT of `_entry_satisfied`; a staged fresh peace ENDS the live war AND sets PEACE (the
-> `_sign_peace` idiom); an in-process `advance_turn` loop is NOT the chain's world-line — replay ONE
-> `spawn_run` child and read the digest; no new log types (a new type moves 14 pins); quota-like AI state
-> rides `participant_meta`, never a new world field; the DY chain is ~3 minutes and still runs ALONE on a
-> frozen tree.
+> **Tier 2's standing traps (condensed):** verify region ids against the LIVE world; a deck entry seated
+> ABOVE a guard kills the guard; new deck entries APPEND (index 0 = the emergent prepend contract);
+> content slices need NO seam and their re-seat class is the deck-runs-out pin; the validator's health
+> check is the warnings COUNT (11); a pin that AGES a freed arbiter ≥ 8 turns crosses the T2-4 quiet
+> window (hold `T2_SEAMS_BY_ROW["T2-4"]` down or re-stage); staged quiet-window sleeps need an ENDED war
+> instance (old ends in `archived_war_instances`); new dormancy clauses stay OUT of `_entry_satisfied`;
+> the `_sign_peace` idiom (end the live war AND set PEACE); an in-process `advance_turn` loop is NOT the
+> chain's world-line — replay ONE `spawn_run` child; no new log types (14 pins); quota-like AI state rides
+> `participant_meta`; a validator clause on a seam-filtered block WARNS, never errors; the suite's output
+> NEVER pipes through tail; a refreshed instrument's nonzero is a DEFECT first (the dd1 twin-letter
+> precedent — `restamp_pending_treaty_letters` at the ratify chokepoint); the dd1 full run excludes
+> SEED-quick (re-record it with `--arms SEED-quick`).
 >
 > **DY-0's own traps:** the three future-tier columns read event types the owning tiers MUST emit
-> (`question_turns` Tier 5 / `rank_promotion` Tier 4 / `awakening_*` Tier 6 — §3.8.2's contract; the baseline
-> pin REDS on a leak before those tiers; TIER 4 IS NEXT AFTER TIER 3 — its landing is its own signature
-> change); `story_class` is sets-never-turns by design; the assurance controls (same-seed EQUAL, variance-off
-> EQUAL) must stay green when widening anything; a sweep or driver PARENT runs PLAIN.
+> (`question_turns` Tier 5 / `rank_promotion` Tier 4 / `awakening_*` Tier 6 — Tier 4 is NEXT AFTER THIS
+> TIER); `story_class` is sets-never-turns; the assurance controls (same-seed EQUAL, variance-off EQUAL)
+> stay green on any widening; a sweep or driver PARENT runs PLAIN.
 >
 > **Open with the user (none blocks Tier 3):** **GRD-38 — should a full-authority Emperor ever be defied?**
-> (T0-I's measured pricing; `tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`); **GRD-37 — T8 vs the
-> post-S14j war economy** (RF-3's half); the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36);
-> the flip's two readings (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18);
-> the road record's readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions
-> (`REFORMS_SPEC.md` §5a); the crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2);
-> SF-NAV-1-D1; Britain's letter without contact (GRD, NAVVAS-1).
+> (`tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`); **GRD-37 — T8 vs the post-S14j war economy**;
+> the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36); the flip's two readings
+> (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18); the road record's
+> readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a); the
+> crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter
+> without contact (GRD, NAVVAS-1).
 >
 > **After Tier 3 — the Concert (`docs/DYNAMISM_SPEC.md`; no cuts without consent, spec §0):** Tier 4 the
 > Alarm of Europe + promotion's teeth → Tier 5 the Questions of Europe → Tier 6 the Awakening (the
@@ -78,8 +77,7 @@
 > Recognition (Tier 7's bounded dice only if the count still falls short at the gate) → **S15 the deploy,
 > the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session,
 > never in a file — `deploy\\build.bat`, `tools/clean_env_run.ps1`, the release record from
-> `docs/audits/RELEASE_TEMPLATE.md`). **After the deploy:** S14k-3 (Spain alone — re-scoped by T2-6), S16,
-> S17c.
+> `docs/audits/RELEASE_TEMPLATE.md`). **After the deploy:** S14k-3 (Spain alone), S16, S17c.
 >
 > **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are
 > named functions; the seven T0-EFG seams are the pattern: zero-arg, in the module they gate), functions over 500
