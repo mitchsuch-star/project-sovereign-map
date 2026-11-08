@@ -266,6 +266,16 @@ def _peace_table(world, france: str, row: Dict[str, Any]) -> Optional[Dict[str, 
         if _words:
             out["lines"].append(
                 f"{formed_display_name(world, c['nation'])} is bound not to sign alone: {_words}")
+    # T3-2 (§13.2 R3, the war room says the aim): each court's object
+    # in this war, in words — the outstanding regions of war_council's
+    # ONE read; a court with no object standing gets no line.
+    from backend.game_logic.war_council import war_aim_clause
+    for c in out["courts"]:
+        _clause = war_aim_clause(world, c["nation"], france)
+        if _clause:
+            out["lines"].append(
+                f"{formed_display_name(world, c['nation'])}'s object in "
+                f"this war: {_clause}.")
     if int(field) != int(pressure):
         out["lag_note"] = (
             f"This turn's battles and captures count from next turn: the table "
@@ -364,6 +374,16 @@ def _objective_block(world, france: str, opponent: str, coalition_members,
             enemy_objective_info["declared_display"] = _theirs
             enemy_objective_info["type_display"] = (
                 f"{enemy_objective_info['type_display']} — declared: {_theirs}")
+        # T3-2 (§13.2 R3, the war room says the aim): the enemy's WAR
+        # AIM in words, folded into the one rendered string (the PC-R7
+        # idiom — zero client changes). Empty folds nothing.
+        from backend.game_logic.war_council import war_aim_line
+        _aim = war_aim_line(world, str(enemy_objective_by or opponent),
+                            france)
+        if _aim:
+            enemy_objective_info["aim_display"] = _aim
+            enemy_objective_info["type_display"] = (
+                f"{enemy_objective_info['type_display']} — {_aim}")
     return objective_info, enemy_objective_info
 
 

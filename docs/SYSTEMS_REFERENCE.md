@@ -14080,3 +14080,44 @@ world-line): **397 ambient captures outside aim**, 22–72 per seed (marengo 22
 the blob's spread captures — with Britain's continental grabs (6–16) second
 everywhere she fights. The Estonia-march class is now a number; T3-2…T3-4
 exist to drive it to the deploy gate's 0, measured at the gate, never today.
+
+## §194 Tier 3, session 2 — T3-2, `war_council.war_aim`: one read, spoken in words (November 8, 2026)
+
+**The slice** (§13.2 R3, built against the ruling; `DYNAMISM_SPEC.md` §8 row
+T3-2; pins `tests/test_t3_2_the_war_aim.py`, 13; words and a derivation's move
+— no new store, no new log type, no seam). **The one derivation moves home:**
+`war_council.war_aims_of_instance(world, inst)` is §13.2 R1's union, moved
+VERBATIM from the instrument; `RunCapture._war_aims` now DELEGATES to it, so
+the live read and the march metric cannot diverge (one body; the delegation
+pinned output-identical on the boot instances). **The public read:**
+`war_council.war_aim(world, nation, enemy)` — the union of the court's aims
+over every LIVE instance holding the pair on opposite sides; `[]` at peace.
+**The words:** `war_aim_clause` / `war_aim_line` speak the OUTSTANDING object
+— the aim regions the court does not presently hold (itself or through a
+client). The session's own catch, found by the live probe before a line was
+pinned: the boot pairs carry the declaration's default DEFENSE objective
+(FA-D4), which rightly puts a court's OWN soil in the metric's set
+(recapturing Vienna is never drift — T3-1's 397 counts that way,
+deliberately) and reads as noise in words — so a held province is no object,
+and a LOST one joins the line the turn it falls (the recapture spoken:
+Austria's boot line is "her object: Milan, Piedmont and Savoy", and a staged
+loss of Tyrol appends it).
+
+**Three surfaces, in words, zero client changes.** The war room's enemy
+block folds the line into `type_display` (the PC-R7 "declared:" idiom) and
+carries `aim_display` beside it; the peace table's court-by-court lines gain
+"{Court}'s object in this war: …" per consulted court with an object standing
+(the boot war room renders ONE row — Britain the leader, whose outstanding
+object is honestly empty: the Low Countries design is DENY, outside R1's
+acquire arm — so the coalition's aims speak in the table's lines, where the
+sue-at and bond sentences already live); the intent summary folds "— at war,
+her object: …" when the court is at war with the power in its way (the
+defenceless-prize fold's twin; DPF-1 — diplomacy carries no fog). One pin
+re-seated with its cause: PC-X38's `endswith("— declared: …")` learned `in` —
+the articles are still named, the aim now trails them.
+
+**The measure** (the dated chain `tools/_dy_signature_t3_2_2026_11_08.json`
+against the T3-1 baseline's signatures — the kept-record idiom): **ZERO
+movers, the debt 397 unchanged, historical byte-identical, classes 10 of 10**
+— words live in payloads, not the world-line, and the derivation's move is
+byte-neutral by delegation; all four pinned.

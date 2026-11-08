@@ -434,6 +434,124 @@ def exit_shared_wars_for_defection(world, defector: str, new_enemy: str,
     return {"success": True, "exited": exited}
 
 
+# ── The war aim (T3-2 — the Tier-3 gate record §13.2 R1/R3) ─────────────
+
+def war_aims_of_instance(world, inst: Dict) -> Dict[str, List[str]]:
+    """§13.2 R1's union, THE one derivation (November 8, 2026 — moved
+    home from the instrument; `RunCapture._war_aims` delegates here, so
+    the live read and the march metric cannot diverge). Per participant
+    of `inst`: every `war_objectives` record of a pair inside this
+    war's participants (`target_regions` are resolved names — the
+    council writes the design's provinces, the default road the
+    capital), plus the active ACQUIRE design's regions currently held
+    by the opposing side (overlord-resolved — a client's soil reads as
+    its lord's). DELIBERATELY NARROW: enemy soil is never
+    automatically in-aim (that would bless the Estonia march)."""
+    attackers = set(inst.get("attackers") or [])
+    defenders = set(inst.get("defenders") or [])
+    party = attackers | defenders
+    objectives = getattr(world, "war_objectives", {}) or {}
+    aims: Dict[str, List[str]] = {}
+    for nation in sorted(party):
+        regions = set()
+        for diplo_key, records in objectives.items():
+            pair = set(str(diplo_key).split("|"))
+            if nation not in pair or not pair <= party:
+                continue
+            record = (records or {}).get(nation)
+            if isinstance(record, dict):
+                regions.update(
+                    str(r) for r in (record.get("target_regions") or []))
+        opposing = defenders if nation in attackers else attackers
+        try:
+            from backend.game_logic.agendas import get_active_agenda
+            view = get_active_agenda(nation, world)
+        except Exception as exc:
+            from backend.errors import report
+            report(exc, "war_council.war_aims_of_instance: "
+                        "get_active_agenda")
+            view = None
+        if (view is not None
+                and getattr(view, "type", "") == "acquire_regions"):
+            for region_name in getattr(view, "regions", ()) or ():
+                region = (getattr(world, "regions", {}) or {}).get(
+                    str(region_name))
+                holder = (getattr(region, "controller", None)
+                          if region is not None else None)
+                effective = ((world._top_overlord(holder) or holder)
+                             if holder else None)
+                if effective in opposing or holder in opposing:
+                    regions.add(str(region_name))
+        if regions:
+            aims[nation] = sorted(regions)
+    return aims
+
+
+def war_aim(world, nation: str, enemy: str) -> List[str]:
+    """§13.2 R3 — ONE public read of the existing objective record:
+    `nation`'s aim against `enemy`, the union of its aims over every
+    LIVE instance holding the pair on opposite sides. `[]` when the
+    pair is not at war or no aim stands. Consumed by the surfaces in
+    WORDS (`war_aim_line`), the leash (T3-3) and the terms (T3-4)."""
+    aims: set = set()
+    for inst in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
+            continue
+        attackers = set(inst.get("attackers") or [])
+        defenders = set(inst.get("defenders") or [])
+        if not ({nation} <= attackers | defenders
+                and {enemy} <= attackers | defenders):
+            continue
+        same_side = ((nation in attackers and enemy in attackers)
+                     or (nation in defenders and enemy in defenders))
+        if same_side:
+            continue
+        aims.update(war_aims_of_instance(world, inst).get(nation) or ())
+    return sorted(aims)
+
+
+def _regions_clause(regions: List[str]) -> str:
+    """'Milan', 'Milan and Piedmont', 'Milan, Piedmont and Savoy'."""
+    names = [str(r) for r in regions]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def war_aim_clause(world, nation: str, enemy: str) -> str:
+    """The aim's WORDS alone — 'Milan, Piedmont and Savoy'; '' when
+    nothing is outstanding.
+
+    Spoken is the OUTSTANDING object — the aim regions the court does
+    not presently hold (itself or through a client). The metric's set
+    (`war_aim`) keeps the full R1 union: a boot DEFENSE objective puts
+    a court's own soil in its aim, which is right for the march gauge
+    (recapturing Vienna is never drift) and noise as words — a held
+    province is no object, a LOST one joins the line the turn it
+    falls (the recapture spoken)."""
+    outstanding = []
+    for region_name in war_aim(world, nation, enemy):
+        region = (getattr(world, "regions", {}) or {}).get(str(region_name))
+        holder = getattr(region, "controller", None) if region is not None else None
+        effective = (world._top_overlord(holder) or holder) if holder else None
+        if holder == nation or effective == nation:
+            continue
+        outstanding.append(str(region_name))
+    return _regions_clause(outstanding)
+
+
+def war_aim_line(world, nation: str, enemy: str) -> str:
+    """The aim in WORDS (Q6 — never a tooltip number): 'her object:
+    Milan, Piedmont and Savoy'; '' when nothing is outstanding (the
+    surfaces fold only a non-empty line)."""
+    clause = war_aim_clause(world, nation, enemy)
+    if not clause:
+        return ""
+    return f"her object: {clause}"
+
+
 # ── Crisis lifecycle ────────────────────────────────────────────────────
 
 

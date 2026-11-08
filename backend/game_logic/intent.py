@@ -554,6 +554,15 @@ def build_intent_payload(nation: str, world) -> Optional[dict]:
                   if prize else None)
     if prize_line:
         summary = f"{summary} — {prize_line}"
+    # T3-2 (§13.2 R3, the ledger says the aim): a court AT WAR with the
+    # power in its way speaks its war aim in the same breath (the
+    # defenceless-prize fold's twin; empty folds nothing — a war with
+    # no objective and no design arm stays as it reads today).
+    if view.against and world.is_at_war(nation, view.against):
+        from backend.game_logic.war_council import war_aim_line
+        aim_line = war_aim_line(world, nation, view.against)
+        if aim_line:
+            summary = f"{summary} — at war, {aim_line}"
     return {
         "want_id": view.want_id,
         "want_title": view.want_title,

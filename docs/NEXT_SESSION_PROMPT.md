@@ -1,49 +1,53 @@
-# NEXT SESSION PROMPT — Tier 3 session 2: T3-2 `war_council.war_aim` (the gate §13.2 ✅ RULED, T3-1 ✅ LANDED — the debt 397)
+# NEXT SESSION PROMPT — Tier 3 session 3: T3-3 the leash + AI-3c (the gate §13.2 ✅, T3-1 ✅, T3-2 ✅ — the debt 397 stands)
 
-> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — TIER 3's GATE §13.2 ✅
-> RULED (in Plan Mode at the tier's head — seven rulings: R1 the aim-set DELIBERATELY NARROW — the
-> `war_objectives` record's resolved `target_regions` ∪ the active acquire design's regions held by the
-> opposing side, overlord-resolved; enemy soil NEVER automatically in-aim; a capture from a non-belligerent
-> outside by definition — R2 the metric first, R3 ONE `war_aim` read, R4 the leash + §13.1's AI-3c folded in
-> (Q1 closes at T3-3), R5 the aim-held sue (AI–AI along authored aims; AI–player the NEW P8 at war score
-> ≥ 25), R6 "chains C and D" = the tier's closing chains (C ambient re-record, D the AI-France re-run), R7
-> the scope guards) AND T3-1 THE MARCH METRIC ✅ LANDED (aims read ONCE at each war's opening onto the
-> digest — `aims` on the opened rows, the BOOT wars' on `boot.wars` since the runner pre-seeds `_war_ids`;
-> `derive_metrics` joins `region_captured` rows offline; the ambient total excludes the player, the
-> per-court map keeps everyone — the AI-France surface reads its France entry; the signature carries the
-> column, `story_class` does not; **the dated baseline `tools/_t3_march_baseline_2026_11_08.json` reads the
-> tier's starting DEBT: 397 ambient captures outside aim, 22–72 per seed, AUSTRIA the chief offender on
-> every seed (11–26), Britain second (6–16)**; the compatibility pin — minus the column, every signature
-> reads the T2-6 record's byte for byte; `SYSTEMS_REFERENCE.md` §193; pins
-> `tests/test_t3_1_the_march_metric.py`, 12)**, after Tier 2 COMPLETE (§186–§192), Tier 1 (§185), Tier 0
-> (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no cuts without consent
-> (`DYNAMISM_SPEC.md` §0).**
+> Overwritten each time a session hands off. Current hand-over: **November 8, 2026 — T3-2
+> `war_council.war_aim` ✅ LANDED (§13.2 R3: `war_aims_of_instance` is THE derivation, moved home VERBATIM
+> — the instrument's `RunCapture._war_aims` DELEGATES, one body, the delegation pinned; `war_aim(world,
+> nation, enemy)` unions the pair's live wars; the WORDS speak the OUTSTANDING object — the boot pairs
+> carry FA-D4's default DEFENSE objective, rightly in the metric's set (recapturing Vienna is never
+> drift, the 397 counts that way) and noise as words, so a held province is no object and a LOST one
+> joins the line the turn it falls; three surfaces fold with ZERO client changes — the enemy block's
+> PC-R7 `type_display` fold + `aim_display`, the peace table's per-court "object in this war" lines (the
+> boot war room renders ONE row, Britain the leader, whose outstanding object is honestly empty — the Low
+> Countries design is DENY, outside R1's acquire arm), the intent summary's at-war fold; one re-seat with
+> cause — PC-X38's `endswith("— declared: …")` learned `in`; the chain read ZERO movers, the debt 397
+> unchanged, historical byte-identical; `SYSTEMS_REFERENCE.md` §194; pins
+> `tests/test_t3_2_the_war_aim.py`, 14)**, after the gate + T3-1 (§13.2, §193 — the debt 397, Austria the
+> chief offender on every seed), Tier 2 COMPLETE (§186–§192), Tier 1 (§185), Tier 0 (§178–§184). **The
+> deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 3 SESSION 2: T3-2 `war_council.war_aim`, ITS OWN COMMIT** (§13.2 R3 — the ruling is final,
-> build against it, never re-litigate):
-> - **ONE public read of the EXISTING objective record** per R1's union: `war_council.war_aim(world,
->   nation, enemy)` — the `war_objectives` records of every pair inside the war's participants (resolved
->   names; the capital default rides `target_regions`) ∪ the active ACQUIRE design's regions held by the
->   opposing side (overlord-resolved). NO new store (`to_dict` 497/500). The instrument's own
->   `RunCapture._war_aims` (tools/ai_v_sweep.py) is R1's reference implementation — T3-2's live read must
->   agree with it; a divergence pin (the live `war_aim` on a staged war == the digest's `aims` for the
->   same war) keeps the two honest.
-> - **Consumed in WORDS** (Q6 — never a tooltip number): the war room / ledger name the aim ("Vienna and
->   the Tyrol are the Emperor's object in this war" — the existing surfaces' idiom); the leash (T3-3) and
->   the terms (T3-4) read the same function next sessions.
-> - **Measure after any slice that moves boards:** a dated DY-signature re-record (the signature now
->   carries `captures_outside_aim`, so every later chain shows the debt moving) against the T3-1
->   baseline's signatures (`_t3_march_baseline_2026_11_08.json` — they equal the T2-6 record's plus the
->   column). T3-2 alone is a READ + surfaces: expect zero movers; the chain confirms.
+> **NOW — TIER 3 SESSION 3: T3-3 THE LEASH + AI-3c, ITS OWN COMMIT** (§13.2 R4 — the ruling is final,
+> build against it; THIS is the slice that starts paying the 397 down):
+> - **The census FIRST:** enumerate the ranged movement rungs (the rungs that pick targets at range —
+>   T0-D's "the AI's four ranged rungs"; the P-ladder lives in `ENEMY_AI_REFERENCE.md` ~P3.7 Homeland
+>   Defense / P4's nearest-picks / P4.75 Ally Support / P4.8 Consolidation are the candidates) — the
+>   landing names them exactly, in the plan.
+> - **ONE predicate** (`war_council`, beside `war_aim` — its consumer): an at-war court's target-picks
+>   weight toward its aim-set (`war_aim`, T3-2's read); GR5 stands — same rungs, new bias input, no new
+>   movement system, no teleports. A bought-off or cooled design releases the bias the same turn (no
+>   latch — derive, never store).
+> - **THE HOME-FRONT RECALL outranks the aim** when home soil is threatened — P3.7 generalized, never
+>   duplicated (read its redirect machinery first).
+> - **AI-3c folds in** (§13.1's row — the user's Q1 closes): the same bias read at `coerce`+ BEFORE the
+>   declaration is the border massing — the fore-warned war visible on the map. AI-V arm (a)'s massing
+>   assertion is the row's tracking; fold what fits, file what doesn't.
+> - **Measure:** the dated DY chain vs the T3-2 record (`_dy_signature_t3_2_2026_11_08.json`) — the leash
+>   SHOULD move boards (the debt should FALL; movers cause-named by replaying a `spawn_run` child); the
+>   historian clauses and classes ≥ the floor hold.
 >
-> **T3-1's own traps (fresh):** the runner PRE-SEEDS `_war_ids` with the boot instances — boot wars never
-> reach `wars_opened`, their aims live on `boot.wars`, and ANY digest reader must check both; a baseline
-> runner stores the full per-seed SIGNATURE too (the compatibility pin needs it — re-running a chain into
-> the slice's own not-yet-committed file is lawful, after the commit it is the kept-record idiom's dated
-> files only); crafted digests for `derive_metrics` must carry the FULL row shape — reuse
-> `test_dy0_the_signature._row/_digest`, never hand-roll; the aim-set is read AT THE WAR'S OPENING (a
-> design that grows later is not credited — deliberate, documented in §13.2 R2); the honesty counter means
-> walk-in captures from non-belligerents always count (watch it when staging).
+> **T3-2's own traps (fresh):** the boot DEFENSE objectives put a court's OWN soil in its aim-set — right
+> for the metric, noise for words (speak the OUTSTANDING object; any new aim consumer decides which read
+> it needs); the boot war room renders ONE row (Britain the leader) plus the coalition — per-belligerent
+> speech lives in the peace table's lines, not per-opponent rows; a `type_display` fold breaks `endswith`
+> pins (re-seat to `in` with cause); the war-aim words change NO world-line (words live in payloads) — a
+> words slice expects zero movers and pins it.
+>
+> **T3-1's own traps:** the runner PRE-SEEDS `_war_ids` with the boot instances — boot wars never reach
+> `wars_opened`, their aims live on `boot.wars`, and ANY digest reader must check both; a baseline runner
+> stores the full per-seed SIGNATURE (the compatibility pin needs it); crafted digests for
+> `derive_metrics` reuse `test_dy0_the_signature._row/_digest`, never hand-rolled; the aim-set is read AT
+> THE WAR'S OPENING (deliberate — §13.2 R2); the honesty counter means walk-in captures from
+> non-belligerents always count (watch it when staging).
 >
 > **Tier 2's standing traps (condensed):** verify region ids against the LIVE world; a deck entry seated
 > ABOVE a guard kills the guard; new deck entries APPEND (index 0 = the emergent prepend contract);

@@ -3721,7 +3721,12 @@ class TestTheS14Part2Siblings:
         line = f"declared: Tyrol; Austria declared: {first['region']}"
         assert snap["war_objective"]["target_summary"].endswith(line)
         assert row["objective"]["target_summary"].endswith(line)
-        assert row["enemy_objective"]["type_display"].endswith(f"— declared: {first['region']}")
+        # T3-2 re-seat with its cause (November 8, 2026): the enemy
+        # block's type_display now folds the WAR AIM after the declared
+        # clause (§13.2 R3 — the war room says the aim), so the string
+        # no longer ENDS with the articles; they are still named in it.
+        assert f"— declared: {first['region']}" \
+            in row["enemy_objective"]["type_display"]
         assert f"The articles of the war — {line}." in _answer_why_war(w, "Austria")
         assert _declared_tail(w, {"declared_articles": [
             {"kind": "province", "from": "Hanover", "region": "Hanover"}]}) == "; declaring Hanover"

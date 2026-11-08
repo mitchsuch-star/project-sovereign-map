@@ -234,53 +234,13 @@ class RunCapture:
         return out
 
     def _war_aims(self, inst) -> dict:
-        """T3-1 (the Tier-3 gate record, AI_INTENT_SPEC.md §13.2 R1 —
-        November 8, 2026): each participant's AIM-SET for this war, read
-        once at the war's opening (or the boot) onto the digest, so
-        `captures_outside_aim` derives OFFLINE — the instrument, never
-        the engine. Per court: every `war_objectives` record of a pair
-        inside this war's participants (`target_regions` are resolved
-        names — the council writes the design's provinces, the default
-        road the capital), plus the active ACQUIRE design's regions
-        currently held by the opposing side (overlord-resolved — R1's
-        design arm). DELIBERATELY NARROW: enemy soil is never
-        automatically in-aim (that would bless the Estonia march)."""
-        world = self.world
-        attackers = set(inst.get("attackers") or [])
-        defenders = set(inst.get("defenders") or [])
-        party = attackers | defenders
-        objectives = getattr(world, "war_objectives", {}) or {}
-        aims = {}
-        for nation in sorted(party):
-            regions = set()
-            for diplo_key, records in objectives.items():
-                pair = set(str(diplo_key).split("|"))
-                if nation not in pair or not pair <= party:
-                    continue
-                record = (records or {}).get(nation)
-                if isinstance(record, dict):
-                    regions.update(
-                        str(r) for r in (record.get("target_regions") or []))
-            opposing = defenders if nation in attackers else attackers
-            try:
-                from backend.game_logic.agendas import get_active_agenda
-                view = get_active_agenda(nation, world)
-            except Exception:
-                view = None
-            if (view is not None
-                    and getattr(view, "type", "") == "acquire_regions"):
-                for region_name in getattr(view, "regions", ()) or ():
-                    region = (getattr(world, "regions", {}) or {}).get(
-                        str(region_name))
-                    holder = (getattr(region, "controller", None)
-                              if region is not None else None)
-                    effective = ((world._top_overlord(holder) or holder)
-                                 if holder else None)
-                    if effective in opposing or holder in opposing:
-                        regions.add(str(region_name))
-            if regions:
-                aims[nation] = sorted(regions)
-        return aims
+        """T3-1's aim-set read, since T3-2 a DELEGATION: §13.2 R1's one
+        derivation lives in `war_council.war_aims_of_instance` (the
+        live read `war_aim` and this instrument cannot diverge — one
+        body). Read once at the war's opening (or the boot) onto the
+        digest, so `captures_outside_aim` derives OFFLINE."""
+        from backend.game_logic.war_council import war_aims_of_instance
+        return war_aims_of_instance(self.world, inst)
 
     def _drain_events(self) -> list:
         world = self.world
