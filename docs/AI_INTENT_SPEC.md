@@ -2406,7 +2406,13 @@ Recorded so the restraint is auditable, in the §10 discipline: **no espionage s
 different game); **no mediation teeth beyond derived weight** (an auto-join on refusal would mint a
 new PEACE→WAR edge and violate §4.3a); **no second designs beyond Russia's** (Prussia, Britain and
 the minors' decks are correctly shaped — more authored appetite is exactly the drift pin 1 exists
-to stop, and Austria's variance need is served by ordering, not content); **no beat for
+to stop, and Austria's variance need is served by ordering, not content) *(T2-5, November 8, 2026
+— recorded, not silently edited: superseded for PRUSSIA by the November 7 restructure
+(`DYNAMISM_SPEC.md` §2 Tier 2, the user's ruled plan): `swedish_pomerania` authored BEHIND
+`armed_neutrality`, so the guard's seat and the Ansbach trap stand and the claim speaks only when
+Prussia is already at war with the Hanover question settled — the restraint's reason, drift by
+authored appetite, answered by SEAT rather than volume; Britain's and the minors' clauses stand;
+no order band and no readiness on the entry; `SYSTEMS_REFERENCE.md` §191)*; **no beat for
 non-foregrounded coolings** (the tail stays quiet or pin 13 dies by a thousand stand-down notices);
 and **no reopening of the §9a scope arithmetic** — the two genuine additions here (AI-0d authoring,
 AI-5c) are priced above and one of them may slip.

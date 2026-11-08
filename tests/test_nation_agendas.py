@@ -134,10 +134,18 @@ class TestPredicatesAndPriority:
         assert view.id == "armed_neutrality"
 
     def test_guard_inactive_at_war(self, world):
+        # T2-5 re-seat with its cause (November 8, 2026): this board read
+        # None because the deck RAN OUT — the guard skipped at war, nothing
+        # behind it. The deck no longer runs out: swedish_pomerania sits
+        # behind the guard (an acquire carries no belligerency gate, and
+        # Stralsund is Sweden's), so the guard's inactivity at war is now
+        # shown by the view FALLING PAST it to the third entry — exactly
+        # the seat `tests/test_t2_5_swedish_pomerania.py` pins.
         _conquer(world, "Hanover", "Prussia")
         _war(world, "Prussia", "Russia")
         world.invalidate_active_nations_cache()
-        assert get_active_agenda("Prussia", world) is None
+        view = get_active_agenda("Prussia", world)
+        assert view is not None and view.id == "swedish_pomerania"
 
     def test_austria_satisfied_italy_falls_to_germany(self, world):
         for region in ("Milan", "Piedmont", "Savoy"):

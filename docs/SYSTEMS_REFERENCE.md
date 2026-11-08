@@ -13896,3 +13896,57 @@ sits at peace with France from boot on every seed — the session's first probe
 revealed it — and without the ended-war witness her never-fought scourge would
 have slept at boot and moved every world-line, wrongly; the law was ruled for the
 first-war and eclipse cases, and the shipped board handed it this third.
+
+## §191 Tier 2, session 6 — T2-5, Prussia's second design: Swedish Pomerania (November 8, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §2 Tier 2 + §8 row T2-5; pins
+`tests/test_t2_5_swedish_pomerania.py`, 11). Authored content, no new rule of play:
+`swedish_pomerania` (`acquire_regions`, `["Stralsund"]`) joins Prussia's deck. The
+region question the brief flagged resolves on the map itself: "Swedish Pomerania"
+is drawn as the ONE province **Stralsund** (Sweden's at boot, coveted by Prussia —
+the navies comment records the yard-province naming, Armfelt's army standing
+there). No seam (content, the T2-B precedent — the kept-record idiom covers the
+measure), no new world field, no new log type (the shift announces via the
+existing `agenda_shift` row), no validator clause (the deck validation covers it;
+the run reads the same 11 warnings). The v1.4 restraint "no second designs beyond
+Russia's" (`AI_INTENT_SPEC.md` §12.7) carries the dated supersession annotation —
+recorded, not silently edited; the November 7 restructure is the ruling.
+
+**The seat — the slice's ruling, measured before it was taken:**
+`[hanoverian_prize, armed_neutrality, swedish_pomerania]` — BEHIND the guard,
+never between. `_active_guard_map` prices ACTIVE guards only ("a latent guard
+prices nothing," the S14G-11 chokepoint), and Stralsund is coveted on essentially
+every board — an acquire seated above the guard would have left `armed_neutrality`
+latent almost always, killing the Ansbach trap (the −25 Berlin march) and retiring
+Prussia's ruled neutral posture (the S14k word). Seated third, the claim is **the
+want a belligerent Prussia presses once the Hanover question is settled** — the
+guard is skipped at war, the deck no longer runs out — which is the actual
+history: Stettin taken in arms in 1715, the whole shore at the peace table in
+1815. The blurb states the deck truth (the `gulf_and_straits` idiom). Boot is
+invisible on every seed (the prize leads; the pin-22 sibling, pinned on historical
+and rolled seeds). Consequence recorded: the two acquires are now non-contiguous,
+so a FUTURE order band over them would need re-ordering — the §3.8.2 gate ruled
+none for Prussia (Hanover-first is the plain history, not Vienna's contested
+debate), no readiness rides a second design (the `gulf_and_straits` precedent),
+and the guard's seat outranks the hypothetical band. The session prompt's "two
+CONTIGUOUS entries" note resolves as this recorded constraint, not a commitment.
+
+**One pin re-seated with its cause:** `test_nation_agendas.py::
+test_guard_inactive_at_war` read `None` at "Hanover taken + at war" because the
+deck RAN OUT — it no longer does: the view falls past the skipped guard to
+`swedish_pomerania` (an acquire carries no belligerency gate), which is the
+re-seat's mirror pin in T2-5's own file. The guard pins stand unchanged
+(Hanover taken + peace → `armed_neutrality`; Berlin still priced on that board),
+and the emergent idiom is untouched (a revanche still prepends and leads).
+
+**The measure** (the dated re-record `tools/_dy_signature_t2_5_2026_11_08.json`,
+the chain ALONE, against the T2-4 record — the kept-record idiom): **story classes
+10 of 10 held, ZERO ambient movers** — every seed's signature and class
+byte-identical record-to-record, historical among them, all three pinned. The
+zero is exact, not hollow: the claim is boot-invisible by SEAT (the prize leads)
+and ambient-invisible by CORRIDOR — the waterfall needs Hanover settled AND
+Prussia belligerent, and even on marengo, where the T2-3 bandwagon puts Prussia
+at war, Hanover's province passes to HESSE and stays coveted, so the prize never
+settles. The corridor is the played game's own: the player's Schönbrunn — take
+the dangled Hanover, find yourself at war, and Berlin's eye turns to Stralsund
+(the staged pins carry the behavior proof; the record pins the ambient silence).

@@ -1095,7 +1095,7 @@
         "Sardinia": { "weight_mod": { "value": 0, "band": [-6, 6] } },
         "Naples": { "weight_mod": { "value": 0, "band": [-6, 6] } }
     },
-    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war.",
+    "_agendas_comment": "Nation Agendas NA-0 (docs/NATION_AGENDAS_SPEC.md section 4): authored historical decks. Deck order = priority - the first agenda whose predicate holds is ACTIVE. Vassals never activate agendas while vassalized (the KingdomOfItaly and Holland decks lie DORMANT at boot and wake on independence). Nations without decks get the survival override only. AI-0c deck-order band: entries sharing an `order_group` value (contiguous run) are equally-live designs the campaign seed may reorder; the historical seed keeps authored order. Austria's pair carries the phase's one order band - the Vienna war council's real debate, Italy-first (Charles) vs Germany-first (Mack). Russia's deck is deliberately unbanded (pin 22): arbiter_of_europe leads on every seed and gulf_and_straits stays behind it at boot. S14k (ruled October 28, 2026 - the user: 'it should be possible for underdog stories ... generally the same but some runs are surprising'): the courts that had no deck have goals - Saxony's Wettin Crown and Hesse's Westphalian Duchy (acquiring, their courts sleepier than the ladder's default, so the moment wakes them), and the neutral postures of Portugal, Hanover and Switzerland; Denmark's Scania and the Porte's Black Sea Shore stand behind their neutrality and wake only in a war. T2-5 (November 8, 2026): Prussia's second territorial want, swedish_pomerania (Stralsund), is seated BEHIND armed_neutrality - the guard's seat is load-bearing (a latent guard prices nothing: the Ansbach trap reads ACTIVE guards only), so the claim speaks only when Prussia is already at war with the Hanover question settled; no order band for Prussia (the AI_INTENT_SPEC.md section 3.8.2 gate ruled none - Hanover-first is the plain history, and the guard's seat outranks a hypothetical band over now-non-contiguous acquires) and no readiness on a second design (the gulf_and_straits precedent).",
     "agendas": {
         "Austria": [
             {
@@ -1142,6 +1142,13 @@
                 "title": "Armed Neutrality",
                 "regions": ["Hanover", "Westphalia", "Brunswick", "Berlin", "Brandenburg"],
                 "blurb": "North Germany is Prussia's yard - a belligerent marching through it, as at Ansbach, enrages Berlin."
+            },
+            {
+                "id": "swedish_pomerania",
+                "type": "acquire_regions",
+                "title": "Swedish Pomerania",
+                "regions": ["Stralsund"],
+                "blurb": "Stralsund and Ruegen - the last Swedish foothold on German soil, the Baltic shore that would round off Prussian Pomerania. A claim Berlin presses only sword in hand: it waits behind the Prize and the court's own neutrality, and speaks when Prussia is already at war."
             }
         ],
         "Britain": [
