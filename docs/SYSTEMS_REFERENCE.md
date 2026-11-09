@@ -14206,3 +14206,109 @@ story (Holland, no longer annexed off-aim, survives on eylau; Spain never
 reaches the fight on jena). Discipline means fewer free-for-all eliminations;
 the deploy gate's ≥ 4 of 10 holds, and the Concert's content tiers (4–8) are
 where the variance is owed.
+
+## §196 Tier 3, session 4 — T3-4, the terms: a court that holds its aim offers peace on it (November 9, 2026)
+
+**The slice** (§13.2 R5, built against the ruling; `DYNAMISM_SPEC.md` §8 row
+T3-4; pins `tests/test_t3_4_the_terms.py`; seams
+`settlement_third_party.a_held_aim_sues` and
+`ai_diplomacy.a_held_aim_offers_terms` in `tests/_t3_seams.py`, the recorded
+boards' hold-list picking them up). The census corrected the gate twice,
+recorded rather than silently edited. **P8 was ALREADY BUILT** — R116's
+Aggressive Dominance, the harsh peace past war score 40 with PC-R3's dictated
+tiers — so the gate record's "P1–P7 with no P8" was wrong, and R5's trigger
+lands as **P8-Aim**, P8's first arm, sited above it at R5's 25. And **R5's
+literal "held" was degenerate**: the live aim's design arm counts only
+provinces the enemy still holds, and a defense record's provinces are the
+court's own homeland, so read literally every defender held its aim on turn 1.
+A held aim is one that was GAINED.
+
+**The predicate — ONE, both roads** (`war_council`, beside `war_aim`).
+`war_aim_delivered`: the stated object taken from THIS enemy — every acquire
+design's provinces lying in the boot homeland of the enemy's house (the enemy
+and its clients), counted when wholly held by the court's house (a new public
+reader, `agendas.acquire_design_regions`, strips reconciled provinces as
+`_entry_regions` does). Per enemy, so a design spanning two holders is
+delivered piecewise — Russia's Finland against Sweden while Rumelia stays the
+Porte's (the Finnish War ended at Fredrikshamn, not with the Porte). `[]`
+without a live war record (T3-3's lesson). `war_aim_held`: a delivered gain
+and nothing still owed — no province of the live stated object
+(`war_aim_core`) held by the enemy's house (the enemy's own SEAT skipped: a
+bare declaration's objective defaults to it, and R5 reads the capital default
+never — a court that had to take Stockholm to sue for Scania would never sue),
+and none of the court's own homeland held by the enemy's bloc or, on the
+whole-war road, the opposing side (a peace would title it away under SR-1a).
+`aim_sue_due`: an AI court (the player answers letters; a client fights its
+lord's war) at war score ≥ `AIM_SUE_SCORE` (25, R5's number).
+`aim_cessions`: the delivered provinces the court holds ITSELF (a client's
+holding counts toward "held" and stays with the status quo); never a great
+power's capital (D2, read precisely — Milan is a client's capital, a minor's);
+an enemy left holding nothing is never stripped below the total-annexation
+score (90), and a great power never; the AI–AI road cedes the enemy's own
+homeland only (the validator's occupied-homeland clause — Tyrol at Pressburg).
+
+**The AI–AI roads** (`settlement_third_party`). The loser's consent,
+`aim_terms_signable`: its pair score at or below its own peace line — the ONE
+seam P1 and the loser's suit read, `effective_peace_threshold`, the bond's
+depth subtracted — plus `AIM_TERMS_BAND` (15: the base −40 lands on R5's −25
+read from the loser's side; a stubborn diplomat or a war that advances the
+loser's own design holds out longer, a spent court signs sooner); an eclipse
+league's member holds the table, as on the loser's road. **An AI-only war
+ends WHOLE on its leaders' aims** (`attempt_aim_held_settlement`, tried
+before the loser's suit in the once-per-turn pass): the aim's terms
+(`held_aim_terms` — the peace and one cession per province, NO indemnity: the
+aim is the price), the validator, the scorer's hard stops (absolute — the
+standing patch seam; its verdict is the harshness ladder's, which this peace
+does not price), the headless ratify — extracted verbatim into
+`_ratify_third_party`, the loser's arm's event byte for byte, the aim arm's
+alone carrying `exit: "aim_held_sue"`. The broker road never runs it. **A
+pair inside France's war exits on its own** (`held_aim_suit`, the pair exits'
+third road, tried first inside the one-exit tempo, after three turns of the
+pair): the cessions applied BEFORE the state write (the instance road's order
+— the signed TREATY title stands, SR-1a's retention never overwrites it), the
+peace by reason `aim_held_sue` (now in `SIGNED_PEACE_REASONS`, so the rest of
+the held line is titled), the punitive record (GR5 with the table), and
+`_return_unheld_homeland(keep=…)`, so a ceded province is never handed back
+however lightly it is held.
+
+**The AI–player road** (`ai_diplomacy`): **P8-Aim** — at war, war score ≥
+25, the aim held, a province to cede, P8's own gates (the one-envoy rule, the
+bond's letter, the cooldown). The letter's stable label is its own,
+`aim_peace` (a refusal cools it, never P1's peace); its terms type is `peace`
+(the harsh peace's pattern), one cession demand per province through the
+AI-2a envelope, forced past the send filter (a statement of terms the payer
+may refuse — the dictated letter's idiom), `decision_reason` `aim_held` ("the
+war's object held"); Talleyrand's reading names the provinces, and so does
+the rail ("Austria offers peace on her war's object" — the PC-F65 idiom).
+Accepting titles them through the bilateral ratifier's held-cession road;
+refusing leaves P8's dictated ladder to follow past 40. The label joined
+`PROPOSAL_TYPE_DISPLAY`, `DECISION_REASON_DISPLAY`, `WAR_DECISION_LETTER_TYPES`
+and `PEACE_FAMILY_PROPOSAL_TYPES`. No Godot change, no new world field, no new
+log type (the existing `third_party_peace` carries `exit`), no instrument
+change.
+
+**The measure — two chains on the final tree** (`tools/_t3_4_measure.py`,
+each ALONE; the signature record and the terms' census from the same
+digests). The CONTROL (`tools/_dy_signature_t3_4_control_2026_11_09.json`,
+both seams down through `INK_IRON_SEAMS`) reproduces **T3-3's final record
+byte for byte on every seed** — the seams cover the whole slice. The FINAL
+(`tools/_dy_signature_t3_4_2026_11_09.json`; the census
+`tools/_t3_4_aim_terms_2026_11_09.json`) reads **ten aim peaces, one a seed,
+every one the same story: Prussia's war on Hanover ends on her aim's terms**
+(turns 14–22) — the very turn Hanover's own suit had ended it in the control.
+The peace's CONTENT changed, not its timing: the province ceded by treaty and
+nothing more asked, where the suit had Hanover pay about 2,610 gold and left
+the province on the status quo. Austria's aim letter reaches France twice
+(turn 9 on historical and wagram; the ambient France answers none). **Two
+world-lines move, both through that gold.** Marengo: Hanover keeps its
+treasury and rebuilds (5,000 → 17,000 by turn 17), is no longer the outmatched
+prize, and Hesse's Westphalian want stays at 72 instead of climbing to 92 —
+the second war on Hanover (turn 20) never comes and **Hanover survives** (the
+debt 20 → 17). Austerlitz: Prussia, 2,610 gold poorer, re-times the league war she
+opens on Austria at turn 24, which runs to the window's end instead of closing
+at 33 — Saxony survives, Switzerland falls at 33, and Prussia's captures
+outside her aim in the longer war rise 5 → 17 (the debt 34 → 57). **Story
+classes hold at 8** (the partition unchanged); **the debt reads 208 → 228**,
+the rise austerlitz's alone — a butterfly through a purse, reported, never
+hidden. The standing series, wo_slice9's courting cap, the IQ-6 drives and
+the dd1 records did not move.

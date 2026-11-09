@@ -595,13 +595,20 @@ def war_aim_outstanding(world, nation: str, enemy: str) -> List[str]:
     below its fold)."""
     outstanding = []
     for region_name in war_aim_core(world, nation, enemy):
-        region = (getattr(world, "regions", {}) or {}).get(str(region_name))
-        holder = getattr(region, "controller", None) if region is not None else None
-        effective = (world._top_overlord(holder) or holder) if holder else None
-        if holder == nation or effective == nation:
+        if _held_by_house(world, nation, region_name):
             continue
         outstanding.append(str(region_name))
     return outstanding
+
+
+def _held_by_house(world, nation: str, region_name: str) -> bool:
+    """Is `region_name` held by `nation` itself or through a client (the
+    overlord-resolved read every aim consumer shares)?"""
+    region = (getattr(world, "regions", {}) or {}).get(str(region_name))
+    holder = getattr(region, "controller", None) if region is not None else None
+    if not holder:
+        return False
+    return holder == nation or (world._top_overlord(holder) or holder) == nation
 
 
 def war_aim_clause(world, nation: str, enemy: str) -> str:
@@ -711,6 +718,166 @@ def war_aim_line(world, nation: str, enemy: str) -> str:
     if not clause:
         return ""
     return f"her object: {clause}"
+
+
+# ── The terms (T3-4 — the Tier-3 gate record §13.2 R5) ──────────────────
+#
+# A court that HOLDS the object of its war sues to lock it: AI–AI through
+# the third-party settlement roads (`settlement_third_party`), AI–player
+# as P8-Aim (`ai_diplomacy`). ONE predicate, both roads (GR5); only the
+# consent differs — the AI's readiness, the player's answer.
+
+AIM_SUE_SCORE = 25   # §13.2 R5's own number: the war score a held aim sues at
+
+
+def _house_of(world, nation: str) -> set:
+    """`nation` and every court whose top overlord it is (its clients)."""
+    house = {str(nation)}
+    for client in (getattr(world, "vassals", {}) or {}):
+        if world._top_overlord(client) == nation:
+            house.add(str(client))
+    return house
+
+
+def _held_within(world, courts: set, region_name: str) -> bool:
+    """Is `region_name` held by one of `courts` (overlord-resolved)?"""
+    region = (getattr(world, "regions", {}) or {}).get(str(region_name))
+    holder = getattr(region, "controller", None) if region is not None else None
+    if not holder:
+        return False
+    return holder in courts or (world._top_overlord(holder) or holder) in courts
+
+
+def war_aim_delivered(world, nation: str, enemy: str) -> List[str]:
+    """T3-4 — the stated object `nation` has TAKEN from `enemy`: for every
+    acquire design in its deck (`agendas.acquire_design_regions`), the
+    design's provinces lying in the boot homeland of the enemy's HOUSE
+    (the enemy and its clients), counted when ALL of them are held by
+    `nation`'s house. A design spanning two holders is delivered per
+    enemy — Russia's Finland from Sweden while Rumelia is still the
+    Porte's (the Finnish War ended at Fredrikshamn, not with the Porte).
+    The council's design-war record carries the same provinces (AI-3r),
+    so the design is the one read. `[]` without a live war record (T3-3's
+    lesson: a war standing only as a diplomatic state has no aim to read).
+    The capital default is never here — a court that had to take the
+    enemy's seat to sue would never sue."""
+    if not has_live_war_record(world, nation, enemy):
+        return []
+    homes = getattr(world, "nation_starting_regions", {}) or {}
+    enemy_home = set()
+    for court in _house_of(world, enemy):
+        enemy_home.update(str(r) for r in (homes.get(court) or []))
+    if not enemy_home:
+        return []
+    from backend.game_logic.agendas import acquire_design_regions
+    delivered = set()
+    for regions in acquire_design_regions(world, nation):
+        part = [r for r in regions if r in enemy_home]
+        if part and all(_held_by_house(world, nation, r) for r in part):
+            delivered.update(part)
+    return sorted(delivered)
+
+
+def war_aim_held(world, nation: str, enemy: str, side=()) -> bool:
+    """T3-4 — is `nation`'s aim against `enemy` HELD? A DELIVERED gain
+    (`war_aim_delivered`) and nothing still owed: (a) no province of its
+    live stated object (`war_aim_core`) held by the enemy's house — it
+    still wants that from this enemy; and (b) none of its own homeland
+    held by the enemy's bloc or by `side` (the instance road passes the
+    whole opposing side) — a peace would title it away (SR-1a's status
+    quo). §13.2 R5's literal reading was degenerate: the design arm
+    counts only provinces the enemy still holds, and a defense record's
+    provinces are the court's own homeland, so every defender would have
+    'held' its aim on turn 1. A held aim is one that was GAINED; a court
+    with no stated gain never sues on 'held' (the existing roads stand).
+
+    The enemy's own SEAT is skipped in (a): a bare declaration's objective
+    defaults to the enemy's capital (`declare_war`'s road; the council
+    writes its design's provinces over it), and §13.2 R5 reads the
+    capital default NEVER — a court that had to take Stockholm to sue for
+    Scania would never sue. A design that names a seat (Hanover's) still
+    needs it in hand: it is delivered only when held."""
+    if not war_aim_delivered(world, nation, enemy):
+        return False
+    enemy_house = _house_of(world, enemy)
+    seat = _pair_capital(world, enemy)
+    for region_name in war_aim_core(world, nation, enemy):
+        if region_name == seat:
+            continue
+        if _held_within(world, enemy_house, region_name):
+            return False
+    blockers = set(world.get_bloc_members(enemy) or []) | {str(enemy)}
+    blockers |= {str(n) for n in (side or ())}
+    homes = getattr(world, "nation_starting_regions", {}) or {}
+    for region_name in homes.get(nation) or []:
+        if _held_within(world, blockers, region_name):
+            return False
+    return True
+
+
+def aim_sue_due(world, nation: str, enemy: str, side=()) -> bool:
+    """T3-4 — does `nation` sue `enemy` on its held aim? An AI court (the
+    player answers letters, a client fights its lord's war), the pair's
+    war score at or past `AIM_SUE_SCORE` (R5's 25 — read first, it is
+    the cheap gate), and the aim held (`war_aim_held`)."""
+    if nation == getattr(world, "player_nation", "France"):
+        return False
+    if nation in (getattr(world, "vassals", {}) or {}):
+        return False
+    from backend.game_logic.diplomacy import get_war_score_for
+    if int(get_war_score_for(world, nation, enemy)) < int(AIM_SUE_SCORE):
+        return False
+    return war_aim_held(world, nation, enemy, side=side)
+
+
+def _is_great_power_capital(world, region_name: str) -> bool:
+    from backend.game_logic.coalition import _CANONICAL_MAJORS
+    return any(world.get_nation_capital(major) == str(region_name)
+               for major in _CANONICAL_MAJORS)
+
+
+def aim_cessions(world, nation: str, enemy: str, *,
+                 homeland_only: bool) -> List[str]:
+    """T3-4 — the provinces the aim's terms CEDE: the delivered provinces
+    `nation` holds ITSELF (a client's holding counts toward 'held' but
+    stays with the status quo — the treaty names the signatory's ground).
+    The existing road's guards: never a great power's capital (D2's
+    routine-cession floor, read precisely — a client's capital such as
+    Milan is a minor's); and an enemy that holds no province of its own is
+    never stripped below the total-annexation score (90) — the applier
+    eliminates a ceder left with nothing — and a great power never.
+    `homeland_only` (the AI–AI road): the enemy's own homeland alone, the
+    clause the validator carries (PC-F52's occupied-homeland cession —
+    Tyrol at Pressburg); the bilateral ratifier carries any held cession."""
+    delivered = war_aim_delivered(world, nation, enemy)
+    if not delivered:
+        return []
+    from backend.game_logic.coalition import _CANONICAL_MAJORS
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.settlement_scoring import TOTAL_ANNEXATION_WAR_SCORE
+    if not world.get_nation_regions(enemy):
+        if (enemy in _CANONICAL_MAJORS
+                or int(get_war_score_for(world, nation, enemy))
+                < int(TOTAL_ANNEXATION_WAR_SCORE)):
+            return []
+    own_home = set((getattr(world, "nation_starting_regions", {}) or {})
+                   .get(enemy) or [])
+    out = []
+    for region_name in delivered:
+        region = (getattr(world, "regions", {}) or {}).get(region_name)
+        if region is None or getattr(region, "controller", None) != nation:
+            continue
+        if homeland_only and region_name not in own_home:
+            continue
+        if _is_great_power_capital(world, region_name):
+            continue
+        out.append(region_name)
+    return out
+
+
+def held_aim_clause(regions) -> str:
+    """'Tyrol', 'Milan and Piedmont', 'Milan, Piedmont and Savoy'."""
+    return _regions_clause([str(r) for r in regions or []])
 
 
 # ── Crisis lifecycle ────────────────────────────────────────────────────

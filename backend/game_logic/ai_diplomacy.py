@@ -1701,6 +1701,70 @@ def successor_peace(world, player: str) -> Optional[Dict]:
             "refused_label": full["label"], "terms": demands, "words": words,
             "recognition": True, "line": line}
 
+# ═══════════════════════════════════════════════════════════════════════════
+# T3-4 — P8-AIM, THE AIM'S TERMS (the Tier-3 gate record §13.2 R5, November
+# 9, 2026). A court at war with France that HOLDS the object of its war
+# (`war_council.aim_sue_due` — ONE predicate with the AI–AI roads in
+# `settlement_third_party`) offers peace on exactly that: its delivered
+# provinces ceded, nothing more asked. The census found P8 already built
+# (R116's Aggressive Dominance — the harsh peace past 40, PC-R3's dictated
+# tiers), so R5's "new P8" lands as P8's first arm, sited above it at R5's
+# 25: the aim's terms first; refused, the dictated ladder. The stable label
+# is its own (`AIM_PEACE_TYPE`, so a refusal cools this letter and never
+# P1's peace); the terms' type is "peace", the harsh peace's own pattern.
+# ═══════════════════════════════════════════════════════════════════════════
+AIM_PEACE_TYPE = "aim_peace"
+
+
+def a_held_aim_offers_terms() -> bool:
+    """T3-4's AI–player half: P8-Aim — a court holding its war's aim
+    against France writes the aim's terms (`_aim_peace_letter`). Down:
+    the pre-T3-4 ladder — the court writes only P8's dictated letter past
+    40, or nothing."""
+    return True
+
+
+def aim_peace_assessment(world, nation: str, regions: List[str]) -> str:
+    """Talleyrand's reading of the aim's letter, the provinces named."""
+    from backend.game_logic.formations import formed_display_name
+    from backend.game_logic.war_council import held_aim_clause
+    court = formed_display_name(world, nation)
+    clause = held_aim_clause(regions)
+    verb = "is" if len(regions) == 1 else "are"
+    return (f"Sire — {court} holds {clause}, the object she went to war for, "
+            f"and offers peace if {'it' if len(regions) == 1 else 'they'} {verb} "
+            f"ceded; nothing more is asked. Sign, and that front closes on her "
+            f"terms; refuse, and she fights on.")
+
+
+def _aim_peace_letter(nation: str, player: str, war_score: int, world,
+                      gold_mult: float) -> Optional[Dict]:
+    """The P8-Aim letter, or None: the aim held against France
+    (`aim_sue_due`) and a province to cede (`aim_cessions` — the bilateral
+    ratifier carries any held cession, so the client's soil the court took
+    is named too). Built through the AI-2a envelope (`_build_proposal_terms`
+    — at a winning score the peace arm adds nothing), one cession demand
+    per province (the dictated letter's dialect), forced past the send
+    filter (a statement of terms the payer may refuse — the captor's and
+    the dictated letter's idiom)."""
+    from backend.game_logic.war_council import aim_cessions, aim_sue_due
+    if not aim_sue_due(world, nation, player):
+        return None
+    cessions = aim_cessions(world, nation, player, homeland_only=False)
+    if not cessions:
+        return None
+    terms = _build_proposal_terms(nation, "peace", int(war_score), world,
+                                  gold_mult=gold_mult)
+    terms["demands"].extend({"type": "territory_cede", "value": 1,
+                             "regions": [str(r)]} for r in cessions)
+    proposal = _make_proposal(nation, AIM_PEACE_TYPE, 8, terms, world)
+    proposal["_force_send"] = True
+    proposal["decision_reason"] = "aim_held"
+    proposal["aim_regions"] = list(cessions)
+    proposal["talleyrand_assessment"] = aim_peace_assessment(world, nation, cessions)
+    return proposal
+
+
 def _p8_purse_floor(proposal: Dict, world) -> int:
     """The smallest indemnity a P8 peace will settle for, in the payer's coin.
 
@@ -2942,6 +3006,20 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if proposal is None and not is_at_war and relation < 0:
         proposal = _generate_agenda_ultimatum(nation, world)
 
+    # ── P8-Aim (T3-4, §13.2 R5): THE AIM'S TERMS — a court holding the
+    # object of its war offers peace on exactly that, P8's own gates (the
+    # one-envoy rule, the bond's letter — PC-F20 / PC-X65 below — and the
+    # cooldown) at R5's 25. Above P8: the aim's terms first; refused, the
+    # dictated ladder past 40. ──
+    from backend.game_logic.bond import holds_her_letter
+    from backend.game_logic.war_council import AIM_SUE_SCORE
+    if (proposal is None and is_at_war and a_held_aim_offers_terms()
+            and war_score >= AIM_SUE_SCORE
+            and not _one_envoy_for_this_war(world, nation, player)
+            and not holds_her_letter(world, nation, player)
+            and not _is_on_cooldown(nation, AIM_PEACE_TYPE, world, war_score)):
+        proposal = _aim_peace_letter(nation, player, war_score, world, gold_mult)
+
     # ── P8: Aggressive Dominance — AI winning badly (war_score > 40) ──
     # R116: When AI is dominating, demand harsh peace terms
     # PC-F20: the one-envoy rule rides P8 too (a settlement letter on the
@@ -3814,6 +3892,20 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
             f"{with_definite_article(sender, capitalize=True)} asks for {_region} back — a home "
             f"province of its crown that we hold. Return it, or keep it (relations fall "
             f"{abs(int(PROVINCE_RETURN_REFUSAL_RELATION))}).",
+            int(world.current_turn),
+        ))
+    elif proposal.get("proposal_type") == AIM_PEACE_TYPE:
+        # T3-4: the aim's terms name their provinces on the rail (the PC-F65
+        # idiom — never "has arrived with a proposal").
+        from backend.game_logic.war_council import held_aim_clause
+        _aim = list(proposal.get("aim_regions") or [])
+        world.notifications.add(create_notification(
+            DIPLOMATIC_PROPOSAL,
+            NotificationPriority.HIGH,
+            f"{sender} offers peace on her war's object",
+            f"An envoy from {sender} has arrived: she holds "
+            f"{held_aim_clause(_aim)}, the object of her war, and offers peace "
+            f"if {'it is' if len(_aim) == 1 else 'they are'} ceded.",
             int(world.current_turn),
         ))
     elif proposal.get("proposal_type") == "harsh_peace":

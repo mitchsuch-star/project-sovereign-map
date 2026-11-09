@@ -1,0 +1,61 @@
+{
+ "_note": "T3-4 the terms \u2014 the census (aim peaces by both AI\u2013AI roads, P8-Aim letters France received, the debt) per seed, from the same digests as the signature record.",
+ "seeds": {
+  "austerlitz": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 34
+  },
+  "eylau": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 18
+  },
+  "friedland": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 26
+  },
+  "historical": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 21
+  },
+  "jena": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20
+  },
+  "lodi": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 22
+  },
+  "marengo": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20
+  },
+  "rivoli": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 11
+  },
+  "ulm": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20
+  },
+  "wagram": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 16
+  }
+ },
+ "totals": {
+  "aim_letters": 0,
+  "aim_peaces": 0,
+  "captures_outside_aim": 208
+ },
+ "turns": 40
+}

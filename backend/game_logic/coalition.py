@@ -1304,7 +1304,7 @@ SCHEMER_PEACE_REJECTION_PRESSURE_AMOUNT = 2   # per-turn threat while a marker i
 SCHEMER_PEACE_REJECTION_PRESSURE_CAP = 4      # total cap across all active markers
 
 PEACE_FAMILY_PROPOSAL_TYPES = frozenset({
-    "peace", "harsh_peace",
+    "peace", "harsh_peace", "aim_peace",
     "armistice", "armistice_losing", "armistice_winning", "armistice_stalemate",
 })
 

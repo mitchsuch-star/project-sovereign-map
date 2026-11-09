@@ -112,6 +112,7 @@ SIGNED_PEACE_REASONS = frozenset({
     "common_peace_settlement",      # the settlement table + the third-party peace
     "mutual_exhaustion",            # the exhausted-pair exit (an AI white peace)
     "sub_pair_loser_sues",          # PC-F28: a beaten sub-pair's loser sues; the held line titled
+    "aim_held_sue",                 # T3-4: a court holding its war's aim sues; the aim ceded, the rest titled
     "treaty_vassalization",         # a court submitting by signed clause
     "conquest_vassalization",       # a beaten court subjugated (GEV-1's gate)
     "vassalage_entry",              # DD1-8: a new client's wars follow its lord's peace

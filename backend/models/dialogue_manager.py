@@ -44,6 +44,7 @@ def _nation_display(source: str) -> str:
 WAR_DECISION_LETTER_TYPES = frozenset({
     "peace",
     "harsh_peace",
+    "aim_peace",          # T3-4: P8-Aim, the war's object held
     "armistice",
     "armistice_losing",
     "armistice_stalemate",

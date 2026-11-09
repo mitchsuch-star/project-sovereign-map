@@ -663,6 +663,31 @@ def _satisfied_views(world, nation: str) -> List[AgendaView]:
     ]
 
 
+def acquire_design_regions(world, nation: str) -> List[List[str]]:
+    """T3-4 (§13.2 R5, the terms): every ACQUIRE design in the court's
+    deck as the provinces it pursues (`_entry_regions` — an emergent
+    design's signed-away provinces stripped while the treaty holds), in
+    deck order. The terms' reader (`war_council.war_aim_delivered`) asks
+    which of them a war has DELIVERED — a design need not be the active
+    one: a won design is no longer active (the deck walks past it), and
+    winning it is exactly what the court sues to lock.
+
+    Gated exactly like `_satisfied_views` — a vassalized, eliminated, or
+    survival-overridden court has no design voice. Pure."""
+    if _is_vassal(world, nation) or nation not in world.get_active_nations():
+        return []
+    if survival_override_active(world, nation):
+        return []
+    out: List[List[str]] = []
+    for entry in ((getattr(world, "agendas", {}) or {}).get(nation) or []):
+        if str(entry.get("type") or "") != "acquire_regions":
+            continue
+        regions = _entry_regions(world, nation, entry)
+        if regions:
+            out.append([str(r) for r in regions])
+    return out
+
+
 def is_agenda_satisfied(view: AgendaView, world) -> bool:
     if view is None or view.survival:
         return False

@@ -360,6 +360,9 @@ PROPOSAL_TYPE_DISPLAY = {
     "vassalage": "Vassalage",
     "opportunistic": "Non-Aggression Pact",
     "harsh_peace": "Harsh Peace Treaty",  # R18: AI-generated harsh peace proposals
+    # T3-4 (§13.2 R5): P8-Aim — a court holding its war's object offers peace
+    # on it (stable P-rule label; the terms type underneath is "peace")
+    "aim_peace": "Peace on the War's Object",
     "broker_peace": "Brokered Peace",  # AI-4b (§4.2b): mediate a third-party war
     # DDB-2 (DDB-D8): an ally's offensive war asks France to join (a letter)
     "call_to_arms": "Call to Arms",
@@ -983,6 +986,8 @@ DECISION_REASON_DISPLAY = {
     "distrust_promiser": "remembered betrayals",
     "hegemony_pressure": "hegemony pressure",
     "agenda_pursuit": "national design",
+    # T3-4: P8-Aim's stamp — the court holds the object of its war.
+    "aim_held": "the war's object held",
     # S14D-X37: the stamp follows the feedback's top term (the league; a cold court).
     "league_loyalty": "the league's bond",
     "cold_court": "an old hostility",

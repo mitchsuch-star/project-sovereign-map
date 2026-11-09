@@ -2487,7 +2487,9 @@ on the ten ambient seeds AND the AI-France sweep's France entry.
 design wars already stamp `design_id` / `stated_reason` / the design's own provinces as
 `target_regions` (AI-3r; the default road the capital). P4's NA-3 agenda bias, the exposure
 calculus, the FA-N72 brakes and the third-party settlement machinery EXIST; the diplomacy
-triggers run P1–P7 with no P8; the sweep's digest drains the raw event log (`region_captured`
+triggers run P1–P7 with no P8 *(wrong — corrected at T3-4, November 9, 2026: P8 was
+R116's Aggressive Dominance, the harsh peace past 40; R5's trigger landed as its first arm,
+P8-Aim)*; the sweep's digest drains the raw event log (`region_captured`
 rows ride it, capturer and prior controller named) and `ai_france_sweep` imports `derive_metrics`
 from `ai_v_sweep` — ONE instrument serves both gate surfaces. What did NOT exist before this
 tier: a read answering "was this capture inside the war's aim?", a leash keeping a marching
@@ -2542,6 +2544,18 @@ court near its aim, an aim-held sue, and §13.1's AI-3c (Q1) stood open.
    the court SUES: AI–AI through the existing third-party settlement machinery with cessions =
    the aim's regions, never a random carve; AI–player as a NEW P8 diplomacy trigger at war
    score ≥ 25, proposing the aim's terms through the existing proposal road. D2 untouched.
+   *(T3-4 ✅, November 9, 2026 — two census corrections, recorded not silently edited: P8 was
+   ALREADY built (the catalog above), so the trigger landed as P8-Aim, sited above P8 at 25;
+   and the literal "held" was degenerate — the design arm counts only provinces the enemy still
+   holds and a defense record's provinces are the court's own homeland, so every defender would
+   have held its aim on turn 1. "Held" reads a DELIVERED gain from that enemy
+   (`war_council.war_aim_delivered` — the designs' provinces in its house's homeland, wholly in
+   hand) with nothing still owed, never the capital default; "its side" is read as its HOUSE
+   (the court and its clients — an ally's holding is never titled to the court). The AI–AI
+   cessions carry no indemnity (the aim is the price) and the loser signs inside a band of its
+   own peace line. The measure: ten aim peaces (Prussia on Hanover on every seed, the same
+   turns, the terms changed), story classes held at 8, the debt 208 → 228 — a purse butterfly
+   on austerlitz, Hanover saved on marengo — `SYSTEMS_REFERENCE.md` §196.)*
 6. **R6 — "chains C and D", resolved.** The restructure's phrase (November 7) is defined
    nowhere; RULED here as the tier's two closing measure chains, continuing T2-6's A/B
    lettering: chain C = the tier's ambient re-record (ten seeds against the T2-6 record, the

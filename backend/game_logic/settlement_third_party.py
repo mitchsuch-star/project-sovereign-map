@@ -70,6 +70,60 @@ PAIR_EXIT_TRUCE_FLOOR_TURNS = 8
 # marengo: Austria–Bavaria sat at +35 to +60 for eight turns until Bavaria
 # was destroyed. The loser sues after this many turns of its pair.
 SUB_PAIR_SUE_MIN_TURNS = 4
+# T3-4 (the Tier-3 gate record §13.2 R5, November 9, 2026): a court that
+# HOLDS the object of its war sues to lock it — the aim's own provinces
+# ceded by treaty, nothing more asked (`war_council.aim_sue_due` /
+# `aim_cessions`, ONE predicate with P8-Aim). The loser signs within this
+# band of its OWN peace line (`effective_peace_threshold`, the one seam
+# P1 and the loser's suit read): P1's base −40 + 15 = −25, R5's line read
+# from the loser's side — so at the base reading every held aim at +25 is
+# signed, a stubborn diplomat or a war that advances the loser's own
+# design holds out longer, and a spent court signs sooner.
+AIM_TERMS_BAND = 15
+AIM_HELD_EXIT = "aim_held_sue"      # the pair exit's reason (a SIGNED peace)
+
+
+def a_held_aim_sues() -> bool:
+    """T3-4 "the terms" (the Tier-3 gate record §13.2 R5;
+    `DYNAMISM_SPEC.md` §2 Tier 3; November 9, 2026): a court that holds
+    the object of its war against another AI court offers the aim's terms
+    — its delivered provinces ceded by treaty — and the loser signs inside
+    `AIM_TERMS_BAND` of its own peace line. An AI-only war ends whole on
+    its leaders' aims (`attempt_aim_held_settlement`); a pair inside
+    France's war exits on its own (`held_aim_suit`, the pair exits' third
+    road). Down: the pre-T3-4 roads alone — an AI war ends only when the
+    loser breaks, both are spent, or a court falls."""
+    return True
+
+
+def aim_terms_signable(world, loser: str, winner: str) -> bool:
+    """T3-4 — the loser's consent to the aim's terms: its pair score at
+    or below its own peace line (`effective_peace_threshold`, the bond's
+    deeper line subtracted — PC-X55's read) plus `AIM_TERMS_BAND`. A
+    peace that asks only for ground already lost is priced by the loser's
+    readiness, not by the table's harshness ladder (which would price
+    every lost province as a fresh cession). An eclipse league's member
+    holds the table here as on the loser's own road (OCT27-D2)."""
+    from backend.game_logic.ai_diplomacy import effective_peace_threshold
+    from backend.game_logic.bond import break_ranks_depth
+    from backend.game_logic.diplomacy import get_war_score_for
+    score = int(get_war_score_for(world, loser, winner))
+    if eclipse_league_holds(world, loser, winner, score):
+        return False
+    line = int(effective_peace_threshold(loser, winner, world)) - int(
+        break_ranks_depth(world, loser, winner)["score"])
+    return score <= line + int(AIM_TERMS_BAND)
+
+
+def held_aim_terms(winner: str, loser: str, cessions: List[str]) -> List[Dict]:
+    """T3-4 — the aim's terms in the table's dialect: the peace and one
+    cession per delivered province, no indemnity (the aim is the price —
+    "AI–AI cessions move provinces ALONG AUTHORED AIMS", never a carve)."""
+    terms: List[Dict] = [{"type": "peace"}]
+    for region_name in cessions:
+        terms.append({"type": "territory_cede", "from": loser, "to": winner,
+                      "region": str(region_name)})
+    return terms
 
 
 def _side_leader_active(war: Dict, side: str) -> Optional[str]:
@@ -261,14 +315,12 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     `force` relaxes the loser's suing threshold by the broker margin —
     the broker arm's lever (France pressing both courts to the table).
     """
-    from backend.game_logic import settlement_ratify, settlement_scoring
+    from backend.game_logic import settlement_scoring
     from backend.game_logic.ai_diplomacy import effective_peace_threshold
     from backend.game_logic.diplomacy import get_war_score_for
-    from backend.game_logic.formations import process_formations
     from backend.game_logic.settlement_validation import validate_settlement_terms
 
     player = getattr(world, "player_nation", "France")
-    turn = int(getattr(world, "current_turn", 0))
     # A war France has since joined is France's to end (the October 27,
     # 2026 sweep: a broker answer accepted after France entered the war
     # closed it "without France", France's own pair with it).
@@ -384,6 +436,30 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         if not surrender_shaped and not mutual_exhaustion and not force and not band_white:
             return None
 
+    return _ratify_third_party(
+        world, war_id, war,
+        proposer=loser, accepter=winner, winner=winner, loser=loser,
+        proposer_side=proposer_side, covered=covered, terms=terms,
+        broker=broker)
+
+
+def _ratify_third_party(world, war_id: str, war: Dict, *, proposer: str,
+                        accepter: str, winner: str, loser: str,
+                        proposer_side: str, covered: List[str],
+                        terms: List[Dict], broker: Optional[str] = None,
+                        exit_reason: Optional[str] = None) -> Optional[Dict]:
+    """The headless ratify both third-party arms share — the loser's suit
+    (`attempt_third_party_settlement`, the proposer the LOSER) and the
+    held aim's terms (`attempt_aim_held_settlement`, T3-4, the proposer
+    the WINNER). Extracted verbatim from the loser's arm: its event keeps
+    its keys and their order byte for byte; the aim arm's event alone
+    carries `exit`. Returns the third_party_peace event, or None when the
+    plan is empty."""
+    from backend.game_logic import settlement_ratify
+    from backend.game_logic.formations import process_formations
+
+    player = getattr(world, "player_nation", "France")
+    turn = int(getattr(world, "current_turn", 0))
     # ── Headless ratify: the four internals + invalidations. Never
     # touches dialogue_manager (pin 19c). ──
     plan = settlement_ratify._build_pair_ratification_plan(
@@ -435,22 +511,24 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
     event = {
         "type": "third_party_peace",
         "war_id": war_id,
-        "proposer": loser,
-        "accepter": winner,
+        "proposer": proposer,
+        "accepter": accepter,
         "broker": broker,
         "terms": [dict(t) for t in settled],
         "consequence": consequence,
-        "message": (f"Peace concluded between {humanize_entity_name(loser)} "
-                    f"and {humanize_entity_name(winner)} without France. "
+        "message": (f"Peace concluded between {humanize_entity_name(proposer)} "
+                    f"and {humanize_entity_name(accepter)} without France. "
                     f"{consequence}"),
     }
+    if exit_reason:
+        event["exit"] = exit_reason
     world.log_event({k: v for k, v in event.items() if k != "terms"})
 
     from backend.display_names import humanize_entity_name
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "third_party_peace", {
-        "proposer": humanize_entity_name(loser),
-        "accepter": humanize_entity_name(winner),
+        "proposer": humanize_entity_name(proposer),
+        "accepter": humanize_entity_name(accepter),
         "consequence": consequence,
     }, "always")
 
@@ -461,6 +539,82 @@ def attempt_third_party_settlement(world, war_id: str, war: Dict,
         modify_relation_booked(world, player, loser, 10, "broker_fee", player, loser)
         modify_relation_booked(world, player, winner, 10, "broker_fee", player, winner)
     return event
+
+
+def attempt_aim_held_settlement(world, war_id: str, war: Dict) -> Optional[Dict]:
+    """T3-4 — the held aim's terms for one AI-vs-AI war, ended WHOLE on its
+    LEADERS' aims (the loser's road ends wars by leaders too; a
+    co-belligerent's holdings ride the status quo). The leader whose aim
+    against the other is held (`war_council.aim_sue_due`, the whole
+    opposing side read for its homeland) proposes the aim's terms
+    (`held_aim_terms` — the delivered provinces of the loser's own
+    homeland it holds, `aim_cessions`); the loser signs inside its band
+    (`aim_terms_signable`). The existing machinery verbatim: the
+    validator, the scorer's hard stops (absolute — the standing patch
+    seam; its verdict is the harshness ladder's, which this peace does not
+    price), the headless ratify. Returns the third_party_peace event
+    (`exit` = `AIM_HELD_EXIT`), else None. The broker road
+    (`attempt_third_party_settlement`) never runs this arm."""
+    if not a_held_aim_sues():
+        return None
+    from backend.game_logic import settlement_scoring
+    from backend.game_logic.settlement_validation import validate_settlement_terms
+    from backend.game_logic.war_council import aim_cessions, aim_sue_due
+
+    player = getattr(world, "player_nation", "France")
+    if war_is_the_players(world, war, player):
+        return None
+    if client_war_waits_for_france(world, war, player):
+        return None
+    attackers_leader = _side_leader_active(war, "attackers")
+    defenders_leader = _side_leader_active(war, "defenders")
+    if not attackers_leader or not defenders_leader:
+        return None
+    side_of = war.get("side_by_nation") or {}
+    for winner, loser in ((attackers_leader, defenders_leader),
+                          (defenders_leader, attackers_leader)):
+        winner_side = side_of.get(winner)
+        if winner_side not in ("attackers", "defenders"):
+            continue
+        covered = [n for n in (war.get("active_participants") or [])
+                   if side_of.get(n) != winner_side]
+        if not covered:
+            continue
+        if not aim_sue_due(world, winner, loser, side=covered):
+            continue
+        cessions = aim_cessions(world, winner, loser, homeland_only=True)
+        if not cessions or not aim_terms_signable(world, loser, winner):
+            continue
+        terms = held_aim_terms(winner, loser, cessions)
+        validation = validate_settlement_terms(
+            terms,
+            proposer_side=winner_side,
+            world=world,
+            war_instance=war,
+            enforce_solvency=False,
+        )
+        if not validation.get("valid", False):
+            continue
+        acceptance = settlement_scoring.calculate_common_peace_acceptance(
+            world,
+            war_id=war_id,
+            war_instance=war,
+            proposer_side=winner_side,
+            accepting_side=("defenders" if winner_side == "attackers"
+                            else "attackers"),
+            accepting_leader=loser,
+            proposer_side_leader=winner,
+            covered_enemy_participants=covered,
+            settlement_terms=terms,
+        )
+        if acceptance.get("hard_stops"):
+            return None  # the scorer's veto is absolute (and the patch seam)
+        return _ratify_third_party(
+            world, war_id, war,
+            proposer=winner, accepter=loser, winner=winner, loser=loser,
+            proposer_side=winner_side, covered=covered, terms=terms,
+            exit_reason=AIM_HELD_EXIT)
+    return None
 
 
 def process_third_party_settlements(world) -> List[Dict]:
@@ -490,7 +644,10 @@ def process_third_party_settlements(world) -> List[Dict]:
                 and turn - int(last_attempt) < THIRD_PARTY_RETRY_TURNS):
             continue
         war["third_party_peace_attempt_turn"] = turn
-        event = attempt_third_party_settlement(world, str(war_id), war)
+        # T3-4: a leader holding its war's aim offers its terms first.
+        event = attempt_aim_held_settlement(world, str(war_id), war)
+        if event is None:
+            event = attempt_third_party_settlement(world, str(war_id), war)
         if event is not None:
             events.append(event)
             continue
@@ -498,14 +655,18 @@ def process_third_party_settlements(world) -> List[Dict]:
     return events
 
 
-def _return_unheld_homeland(world, war_id: str, a: str, b: str) -> List[str]:
+def _return_unheld_homeland(world, war_id: str, a: str, b: str,
+                            keep=()) -> List[str]:
     """PC15-D4 piece 3: build territory_cede terms for each direction —
     provinces of one court's HOMELAND (nation_starting_regions) held by
     the other with NO standing marshal of the holder — and run them
     through `settlement_ratify._apply_settlement_terms` (the negotiated
-    path's own applier). Returns the region names actually transferred."""
+    path's own applier). Returns the region names actually transferred.
+    `keep` (T3-4): provinces this very peace ceded by treaty — signed
+    away, never handed back however lightly held."""
     from backend.game_logic import settlement_ratify
 
+    kept = {str(r) for r in keep or ()}
     terms = []
     for holder, owner in ((a, b), (b, a)):
         home = set(
@@ -513,6 +674,8 @@ def _return_unheld_homeland(world, war_id: str, a: str, b: str) -> List[str]:
                 owner, []) or [])
         give_back = []
         for region_name in home:
+            if region_name in kept:
+                continue
             region = world.regions.get(region_name)
             if region is None or region.controller != holder:
                 continue
@@ -629,6 +792,51 @@ def client_pair_is_the_lords_war(world, client: str, court: str) -> bool:
     return world.get_diplomatic_state(lord, court) == "WAR"
 
 
+def held_aim_suit(world, a: str, b: str, joined_turn: int):
+    """T3-4 — the pair exits' third road: (winner, loser, cessions) when
+    one court of a sub-pair holds its war's aim against the other
+    (`war_council.aim_sue_due`), the aim's terms carry a province of the
+    loser's own homeland (`aim_cessions`) and the loser signs inside its
+    band (`aim_terms_signable`); else None. A war must be felt first
+    (`THIRD_PARTY_MIN_WAR_TURNS` of the pair). Both directions cannot hold
+    at once: a held aim needs the holder's homeland free of the other's
+    bloc, and the other's needs the reverse. The seam holds it down."""
+    if not a_held_aim_sues():
+        return None
+    turn = int(getattr(world, "current_turn", 0))
+    if turn - int(joined_turn) < THIRD_PARTY_MIN_WAR_TURNS:
+        return None
+    from backend.game_logic.war_council import aim_cessions, aim_sue_due
+    for winner, loser in ((a, b), (b, a)):
+        if not aim_sue_due(world, winner, loser):
+            continue
+        cessions = aim_cessions(world, winner, loser, homeland_only=True)
+        if cessions and aim_terms_signable(world, loser, winner):
+            return winner, loser, list(cessions)
+    return None
+
+
+def _cede_the_held_aim(world, war_id: str, aim) -> List[Dict]:
+    """T3-4 — apply the aim's cessions through the negotiated path's own
+    applier (`settlement_ratify._apply_settlement_terms`, the exits'
+    idiom): a signed TREATY title on each province (the loser reconciled
+    while the treaty holds), the annexation's alarm on the winner's slot.
+    Returns the APPLIED clauses (what the record and the words read)."""
+    from backend.game_logic import settlement_ratify
+    winner, loser, cessions = aim
+    clauses = [t for t in held_aim_terms(winner, loser, cessions)
+               if t.get("type") == "territory_cede"]
+    applied = settlement_ratify._apply_settlement_terms(
+        world, settlement_terms=clauses, war_id=str(war_id),
+        settlement_route_id=f"aim_exit:{war_id}:{int(world.current_turn)}")
+    return [dict(c) for c in applied or [] if c.get("type") == "territory_cede"]
+
+
+def _ceded_regions(clauses: List[Dict]) -> List[str]:
+    from backend.game_logic.settlement_validation import _territory_term_regions
+    return [str(r) for c in clauses or [] for r in _territory_term_regions(c)]
+
+
 def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                                   events: List[Dict]) -> None:
     """The mutual-exhaustion white peace for a non-player sub-pair inside
@@ -667,15 +875,25 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                 or (b in vassals and client_pair_is_the_lords_war(world, b, a))):
             continue
         joined = int(pair_meta.get("joined_turn", war.get("created_turn", turn)) or 0)
+        # T3-4 (§13.2 R5): a court holding its war's aim against the other
+        # offers the aim's terms — the third exit, tried FIRST, inside the
+        # one-exit tempo (`held_aim_suit`; the seam holds it down).
+        aim = held_aim_suit(world, a, b, joined)
         # WO slice 5: the three inequalities now live in ONE place (above),
         # which the war room's counsel reads too. Same order, same answers.
         sued = None
-        if not pair_is_mutually_exhausted(world, a, b, joined):
+        if aim is None and not pair_is_mutually_exhausted(world, a, b, joined):
             # PC-F28: a decisive sub-pair — the loser sues past its threshold.
             sued = sub_pair_loser_sues(world, a, b, joined)
             if sued is None:
                 continue
         exit_reason = "sub_pair_loser_sues" if sued else "mutual_exhaustion"
+        ceded: List[Dict] = []
+        if aim is not None:
+            exit_reason = AIM_HELD_EXIT
+            # Applied BEFORE the state write — the instance road's own order:
+            # the signed title stands, SR-1a's retention never overwrites it.
+            ceded = _cede_the_held_aim(world, war_id, aim)
 
         set_diplomatic_state(world, a, b, "PEACE", exit_reason)
         cleanup_war_end(world, pair_key, conclude_objectives=True)
@@ -695,16 +913,43 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
         # possidetis for ground actually held). Runs through the SAME
         # applier the negotiated third-party path uses, so garrison /
         # cache / threat / event invariants are inherited.
-        returned_regions = _return_unheld_homeland(world, war_id, a, b)
+        # T3-4: what this peace ceded by treaty is never handed back.
+        ceded_names = _ceded_regions(ceded)
+        returned_regions = _return_unheld_homeland(world, war_id, a, b,
+                                                   keep=ceded_names)
         # PC-R7 (ii) part 2: the pair's declared articles settle on the held line.
         from backend.game_logic.declared_goals import settle_at_peace
-        settle_at_peace(world, [pair_key])
+        settle_at_peace(world, [pair_key], ceded)
+        if ceded:
+            # AI-5b(i), GR5 with the instance road and the player's table: a
+            # dictated cession leaves the durable punitive record.
+            from backend.game_logic.compensation import compensation_offsets
+            from backend.game_logic.emergent_designs import (
+                collect_cessions_from_clauses, record_punitive_cessions,
+            )
+            record_punitive_cessions(
+                world, collect_cessions_from_clauses(ceded),
+                offsets=compensation_offsets(ceded))
         # PC15-D4 piece 1 — the truce floor (constant above).
         world.armistice_cooldowns[pair_key] = PAIR_EXIT_TRUCE_FLOOR_TURNS
         world._pair_exit_this_turn = int(world.current_turn)
 
         from backend.display_names import humanize_entity_name
-        if sued:
+        if aim is not None:
+            # T3-4: the court holds the object of its war; the other signs.
+            from backend.game_logic.war_council import held_aim_clause
+            if ceded_names:
+                consequence = (f"{humanize_entity_name(aim[0])} holds "
+                               f"{held_aim_clause(ceded_names)}, the object of her war, "
+                               f"and {humanize_entity_name(aim[1])} signs "
+                               f"{'it' if len(ceded_names) == 1 else 'them'} away; "
+                               "their side of the war ends while the greater war goes on.")
+            else:
+                consequence = (f"{humanize_entity_name(aim[0])} holds the object of her "
+                               f"war and {humanize_entity_name(aim[1])} makes peace on the "
+                               "held line; their side of the war ends while the greater "
+                               "war goes on.")
+        elif sued:
             # PC-F28: the loser sues; the winner keeps what it holds.
             loser, winner, sued_score = sued
             consequence = (f"{humanize_entity_name(loser)}, beaten "
@@ -719,6 +964,8 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                 " Unheld homeland returns to its crown: "
                 + ", ".join(sorted(returned_regions)) + ".")
         proposer, accepter = ((sued[0], sued[1]) if sued else (a, b))
+        if aim is not None:
+            proposer, accepter = aim[0], aim[1]
         event = {
             "type": "third_party_peace",
             "war_id": war_id,
