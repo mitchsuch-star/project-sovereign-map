@@ -1,45 +1,48 @@
-# NEXT SESSION PROMPT — the T3-6 ruling, then Tier 4's head: the Alarm of Europe (TIER 3 ✅ COMPLETE November 9, 2026)
+# NEXT SESSION PROMPT — Tier 4's head: the Alarm of Europe (TIER 3 ✅ COMPLETE; T3-6 occupation is not annexation ✅)
 
-> Overwritten each time a session hands off. Current hand-over: **November 9, 2026 — T3-5 TIER 3 CLOSES ✅
-> LANDED — TIER 3 COMPLETE (§13.2 R6; the landing record `AI_INTENT_SPEC.md` §13.3; `SYSTEMS_REFERENCE.md`
-> §197): the terms made consistent by the user's "do what's best" — `aim_terms_signable` signs the victor's
-> LENIENT aim peace only while the loser stands (`line ≤ score ≤ line + AIM_TERMS_BAND`), a broken loser sues
-> and pays its indemnity as before, and `held_aim_lock` signs a held aim over by name in every peace (the
-> loser's suit and the broker road through `build_third_party_terms`, both pair exits); the conduct rule binds
-> the harness France (`the_conduct_binds_every_runner`; `annexation_permitted` takes the acting marshal — a
-> marshal under the player's independent command stays exempt, found while planning); chain C reproduces
-> T3-3's world-lines byte for byte (T3-4's purse butterfly gone; the lock on every seed), against T2-6 nine
-> of ten world-lines moved, **story classes 10 → 8, the debt 386 → 208**; chain D: France's entry **245 →
-> 194** with the harness bound, the Estonia road still taken as the road to St. Petersburg, 41 of France's
-> 213 captures liberations)**, after T3-4 (§196), T3-3 (§195), T3-2 (§194), the gate + T3-1 (§193), Tier 2
-> COMPLETE (§186–§192), Tier 1 (§185), Tier 0 (§178–§184). **The deploy (S15) follows the Concert Tiers
-> 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
+> Overwritten each time a session hands off. Current hand-over: **November 9, 2026 — T3-6 OCCUPATION IS NOT
+> ANNEXATION ✅ LANDED (row T3-6, ruled by the user's "make best call, best design not easiest";
+> `SYSTEMS_REFERENCE.md` §198): at a peace between AI courts the winner keeps what the treaty cedes and what it
+> may keep (`war_council.keepable_regions` — its house's authored aims and its declared articles) and hands the
+> rest of the loser's homeland back (`game_end.aim_evacuations`, inside the one titling pass; the player's
+> peaces keep SR-1a whole; a corps left standing walks home by the Road Home corridor); the deploy gate now
+> measures ANNEXATION, not occupation (`war_council.annexations_outside_aim`, recorded at the run's end — a new
+> signature column, never the story class; `captures_outside_aim` the war's footprint); the control reproduced
+> T3-5's chain C, the kept debt fell **42 → 7** ambient (Franconia alone — the spoils of Bavaria's elimination
+> on seven seeds), the AI courts of the AI-France harness keep **8**, story classes held at 8 (Saxony survives
+> on austerlitz, Hanover on marengo)**, after T3-5 TIER 3 COMPLETE (§197: the terms made consistent, the
+> harness France bound, chains C and D), T3-4 (§196), T3-3 (§195), T3-2 (§194), the gate + T3-1 (§193), Tier 2
+> COMPLETE (§186–§192), Tier 1 (§185), Tier 0 (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no
+> cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — FIRST, THE USER'S RULING ON ROW T3-6, THE RESIDUAL DEBT** (`DYNAMISM_SPEC.md` §8 row T3-6; put at
-> T3-5's close, neither option pre-decided — if the user answered at the close, build that branch; if not,
-> ask, the two options co-equal):
-> - **(a) the march's discipline:** a corps crossing enemy soil outside its aim passes through without
->   annexing (the movement executor's capture-on-entry reads the conduct rule), and an ally's homeland retaken
->   counts as the alliance's aim — the gate's literal 0 becomes reachable by play. Read the capture
->   chokepoint first (`movement_executor` walk-in → `_attempt_region_capture`; the battle follow-up), and
->   mind that a march that cannot take what it crosses changes supply, titles and the player's own war: the
->   rule binds AI courts (and the harness France), never a human's orders.
-> - **(b) the gate's definition:** the deploy gate counts DELIBERATE annexations outside the aim (the conduct
->   rule's own reach — P4.5 walk-ins, P4.25 storms), liberations credited; every `region_captured` event
->   tagged with its road (march, storm, battle, liberation) so the instrument can tell them apart.
-> - Either way: `tests/test_t3_6_the_residual_debt.py`, a dated chain pair (ambient + AI-France) proving the
->   gate's 0 under the ruled definition, the STATUS line "T3-6 the residual debt — ruled (a)/(b)".
+> **NOW — TIER 4, THE ALARM OF EUROPE (`DYNAMISM_SPEC.md` §3, DY-1) + PROMOTION'S FIRST TEETH (§3b, DY-1b), ITS
+> GATE IN PLAN MODE AT THE TIER'S HEAD** (the §8 law: author the tier's gate record before a line is built — the
+> user approves the plan):
+> - **The Alarm:** every AI court's annexation writes threat against the CONQUEROR at the ONE capture
+>   chokepoint (`coalition.add_threat(world, amount, source_key="alarm:<region>", target=…)`; N-DY1: a province 6,
+>   a capital 12, a third court's vassal or formation-peer 8; the player's captures write NOTHING new); felt only
+>   through existing instruments (the brew, the eclipse, a NEW guarantee rung in the AI's diplomatic phase issuing
+>   the existing D5 guarantee for the likely next victim); in WORDS only (Q6 — Talleyrand, the Balance tab).
+> - **Promotion's teeth (§3b):** a minor that fulfils its design and holds its grounds enacts its promotion law;
+>   the tier MUST emit `rank_promotion` events (DY-0's future column, `rank_promotions`).
+> - **The T3-6 residual is Tier 4's (Rule 9, §3's done-when):** the deploy gate's `annexations_outside_aim` reads
+>   7 ambient (Franconia — Bavaria eaten by Austria on seven seeds) and 8 for the AI courts of the AI-France
+>   harness; the Alarm is what makes eating a minor cost — done when both read 0 (or each remaining province is
+>   ruled by the user). Measure with `tools/_t3_4_measure.py` (signature + census) and `tools/_t3_5_chain_d.py
+>   --arms D`, against the T3-6 records (`tools/_dy_signature_t3_6_2026_11_09.json`, `_t3_6_chain_d_…`).
+> - Done when §3's list holds; test `tests/test_dy1_the_alarm_of_europe.py`; the STATUS line "Tier 4 the Alarm —
+>   conquest pays in standing" with the sweep columns.
 >
-> **THEN — TIER 4, THE ALARM OF EUROPE (`DYNAMISM_SPEC.md` §3, DY-1) + PROMOTION'S FIRST TEETH (§3b, DY-1b),
-> ITS GATE IN PLAN MODE AT THE TIER'S HEAD:** every AI annexation writes threat against the CONQUEROR at the
-> ONE capture chokepoint (`coalition.add_threat(world, amount, source_key="alarm:<region>", target=…)`;
-> numbers N-DY1: a province 6, a capital 12, a third court's vassal or formation-peer 8; the player's captures
-> write nothing new); the instruments are the existing ones (the brew, the eclipse, a NEW guarantee rung in
-> the AI's diplomatic phase issuing the existing D5 guarantee); alarm only ever in WORDS (Q6); promotion's
-> teeth MUST emit `rank_promotion` events (DY-0's future column). Done when §3's list holds; test
-> `tests/test_dy1_the_alarm_of_europe.py`; the STATUS line "Tier 4 the Alarm — conquest pays in standing".
+> **T3-6's own traps (fresh):** a new rule at the peace belongs in the ONE titling pass
+> (`game_end.title_status_quo_retentions`) — every signed road runs it, and the Road Home corridor opens right
+> after it on the same setter; the pair road ALSO runs the unheld-homeland return (`_return_unheld_homeland`,
+> PC15-D4) regardless of aims or titles — isolate a peace rule in a pin by standing a corps on the ground (and
+> Mack boots at Ulm, in Swabia — moving him strips Swabia); "kept" is `game_end.holds_by_title` (a retention or a
+> conquest past its 12-turn quiet clock), never mere control — an ongoing war's ground is occupation; the spoils
+> of an ELIMINATED court never meet a peace, so no peace rule reaches them; the instrument's end-of-run reads go in
+> `RunCapture.capture_final` (a run fact — never the boot block, the IQ-7 graft control's law).
 >
-> **T3-5's own traps (fresh):** a lenient offer that runs first in a pass pre-empts the loser's own road —
+> **T3-5's own traps:** a lenient offer that runs first in a pass pre-empts the loser's own road —
 > order peace roads by WHO IS BREAKING, never by which function the pass calls first; a peace that ends a war
 > whose aim is held signs it by name (`held_aim_lock`) or the lightly held province walks home with the
 > unheld-homeland return; "the player's rungs never run here" was false — independent command

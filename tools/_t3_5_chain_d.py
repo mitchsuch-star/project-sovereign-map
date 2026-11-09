@@ -53,7 +53,13 @@ def summarize(digest: dict) -> dict:
     derived = digest.get("derived") or {}
     by_court = dict(derived.get("captures_outside_aim_by_court") or {})
     series = digest.get("france_series") or []
+    annexed = dict((digest.get("final") or {}).get("annexations_outside_aim") or {})
     return {
+        # T3-6: the gate's read (annexation, not occupation) — the AI courts'
+        # total gated, France's own entry reported (`annexations_outside_aim`
+        # derives the total with the player excluded).
+        "annexations_outside_aim": int(derived.get("annexations_outside_aim", 0) or 0),
+        "annexations_outside_aim_by_court": annexed,
         "france_outside_aim": int(by_court.get("France", 0) or 0),
         "captures_outside_aim": int(derived.get("captures_outside_aim", 0) or 0),
         "captures_outside_aim_by_court": by_court,
@@ -96,9 +102,11 @@ def main() -> None:
     ap.add_argument("--turns", type=int, default=40)
     ap.add_argument("--out", required=True)
     ap.add_argument("--run-dir", default=str(ROOT / "tools" / "playtest_runs" / "t3_5_chain_d"))
+    ap.add_argument("--arms", default="D0,D",
+                    help="T3-6: the arms to run (its re-run takes the bound arm D alone)")
     args = ap.parse_args()
     run_dir = pathlib.Path(args.run_dir)
-    arms = {arm: run_arm(arm, run_dir, args.turns) for arm in ("D0", "D")}
+    arms = {arm: run_arm(arm, run_dir, args.turns) for arm in args.arms.split(",") if arm}
     record = {
         "_note": ("T3-5 chain D — the AI-France sweep, Tier 3's second gate surface "
                   "(AI_INTENT_SPEC.md §13.2 R6): ten SWEEP_SEEDS x "
@@ -110,7 +118,9 @@ def main() -> None:
         "turns": int(args.turns),
         "arms": arms,
         "totals": {arm: {"france_outside_aim": sum(s["france_outside_aim"] for s in seeds.values()),
-                         "captures_outside_aim": sum(s["captures_outside_aim"] for s in seeds.values())}
+                         "captures_outside_aim": sum(s["captures_outside_aim"] for s in seeds.values()),
+                         "annexations_outside_aim": sum(s["annexations_outside_aim"]
+                                                        for s in seeds.values())}
                    for arm, seeds in arms.items()},
         "nov6_france_captures": nov6(),
     }

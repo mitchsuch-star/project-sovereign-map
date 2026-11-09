@@ -63,9 +63,15 @@ def _signs_provinces(event: dict) -> bool:
 
 
 def census_of(digest: dict) -> dict:
-    peaces, letters, signed = [], [], []
+    peaces, letters, signed, evacuations = [], [], [], []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if (event.get("type") == "third_party_peace"
+                    and " evacuates " in str(event.get("consequence") or "")):
+                evacuations.append({"turn": int(row.get("turn", 0)),
+                                    "proposer": str(event.get("proposer") or ""),
+                                    "accepter": str(event.get("accepter") or ""),
+                                    "consequence": str(event.get("consequence") or "")})
             if event.get("type") == "third_party_peace" and _signs_provinces(event):
                 signed.append({"turn": int(row.get("turn", 0)),
                                "proposer": str(event.get("proposer") or ""),
@@ -84,7 +90,11 @@ def census_of(digest: dict) -> dict:
                                 "proposer": str(prop.get("proposer") or "")})
     metrics = derive_metrics(digest)
     return {"aim_peaces": peaces, "aim_letters": letters, "signed_cessions": signed,
-            "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0)}
+            "evacuations": evacuations,
+            "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
+            "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
+            "annexations_outside_aim_by_court": dict(
+                (digest.get("final") or {}).get("annexations_outside_aim") or {})}
 
 
 def main() -> None:
@@ -135,6 +145,9 @@ def main() -> None:
             "aim_peaces": sum(len(c["aim_peaces"]) for c in census.values()),
             "aim_letters": sum(len(c["aim_letters"]) for c in census.values()),
             "signed_cessions": sum(len(c["signed_cessions"]) for c in census.values()),
+            "evacuations": sum(len(c["evacuations"]) for c in census.values()),
+            "annexations_outside_aim": sum(c["annexations_outside_aim"]
+                                           for c in census.values()),
             "captures_outside_aim": sum(c["captures_outside_aim"]
                                         for c in census.values()),
         },

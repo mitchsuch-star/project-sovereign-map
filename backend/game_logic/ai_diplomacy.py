@@ -1733,7 +1733,7 @@ def aim_peace_assessment(world, nation: str, regions: List[str]) -> str:
     verb = "is" if len(regions) == 1 else "are"
     return (f"Sire — {court} holds {clause}, the object she went to war for, "
             f"and offers peace if {'it' if len(regions) == 1 else 'they'} {verb} "
-            f"ceded; nothing more is asked. Sign, and that front closes on her "
+            f"ceded; the articles ask nothing more. Sign, and that front closes on her "
             f"terms; refuse, and she fights on.")
 
 

@@ -243,9 +243,33 @@ def build_third_party_terms(world, war: Dict, *, loser: str,
     return terms
 
 
+def _evacuations_for(world, pairs) -> Dict[str, List[str]]:
+    """T3-6 — what this turn's peace on `pairs` evacuated, {holder:
+    [provinces]}, read from the titling pass's same-turn hand-off
+    (`game_end.title_status_quo_retentions` stashes `evacuated`)."""
+    wanted = {str(p) for p in pairs or [] if p}
+    turn = int(getattr(world, "current_turn", 0))
+    out: Dict[str, List[str]] = {}
+    for entry in getattr(world, "_status_quo_titled", None) or []:
+        if int(entry.get("turn", -1)) != turn or str(entry.get("pair") or "") not in wanted:
+            continue
+        for holder, regions in (entry.get("evacuated") or {}).items():
+            out.setdefault(str(holder), [])
+            out[str(holder)] = sorted(set(out[str(holder)]) | {str(r) for r in regions})
+    return out
+
+
+def _evacuation_words(world, evacuated: Dict[str, List[str]]) -> List[str]:
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.war_council import held_aim_clause
+    return [f"{humanize_entity_name(holder)} evacuates {held_aim_clause(regions)}."
+            for holder, regions in sorted((evacuated or {}).items()) if regions]
+
+
 def _consequence_line(world, winner: str, loser: str,
-                      terms: List[Dict]) -> str:
-    """Beat 6's contract: name what the peace MEANS for France."""
+                      terms: List[Dict], evacuated=None) -> str:
+    """Beat 6's contract: name what the peace MEANS for France. T3-6:
+    the ground the winner hands back is named too."""
     from backend.display_names import humanize_entity_name
     player = getattr(world, "player_nation", "France")
     from backend.game_logic.settlement_validation import _territory_term_regions
@@ -259,6 +283,7 @@ def _consequence_line(world, winner: str, loser: str,
     if gold and int(gold.get("amount", 0)) > 0:
         parts.append(f"{humanize_entity_name(str(gold.get('from')))} pays "
                      f"{int(gold.get('amount', 0)):,} gold.")
+    parts.extend(_evacuation_words(world, evacuated))
     borders_france = False
     for region_name in ceded:
         region = world.regions.get(str(region_name))
@@ -547,7 +572,9 @@ def _ratify_third_party(world, war_id: str, war: Dict, *, proposer: str,
     # sweep): the ask said "Hanover pays 4,800 gold" where the chest held
     # 120 and 120 moved - the same clamp `record_punitive_cessions` reads.
     settled = list(applied_clauses or []) + list(_fa or [])
-    consequence = _consequence_line(world, winner, loser, settled)
+    consequence = _consequence_line(
+        world, winner, loser, settled,
+        evacuated=_evacuations_for(world, [p.get("pair") for p in _resolved or []]))
     from backend.display_names import humanize_entity_name
     event = {
         "type": "third_party_peace",
@@ -1028,6 +1055,9 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
             from backend.game_logic.war_council import held_aim_clause
             consequence += (f" {humanize_entity_name(lock[0])} keeps "
                             f"{held_aim_clause(ceded_names)} by treaty.")
+        # T3-6: what the peace handed back, named.
+        for words in _evacuation_words(world, _evacuations_for(world, [pair_key])):
+            consequence += " " + words
         if returned_regions:
             consequence += (
                 " Unheld homeland returns to its crown: "

@@ -902,6 +902,70 @@ def held_aim_clause(regions) -> str:
     return _regions_clause([str(r) for r in regions or []])
 
 
+# ── Occupation is not annexation (T3-6 — the residual debt, ruled) ───────
+
+def _house_aims(world, nation: str) -> set:
+    """Every province of the authored acquire designs of `nation`'s HOUSE
+    (its top overlord's deck — a client's own deck is dormant, it holds
+    for its lord), reconciled provinces stripped (`agendas.acquire_design_
+    regions`). The authored aims, whatever design is active now."""
+    from backend.game_logic.agendas import acquire_design_regions
+    house = world._top_overlord(nation) or nation
+    aims = set()
+    for regions in acquire_design_regions(world, house):
+        aims.update(str(r) for r in regions)
+    return aims
+
+
+def keepable_regions(world, holder: str, ceder: str) -> set:
+    """T3-6 — what an AI holder may KEEP of `ceder`'s at their peace: its
+    house's authored aims (`_house_aims`) and the province articles it
+    declared at the war against the ceder (`declared_goals` — the war's
+    stated object, PC-R7). The enemy's capital is never a keeper by
+    itself: storming it was a permission (R1's default), not a claim."""
+    keep = set(_house_aims(world, holder))
+    try:
+        from backend.game_logic.declared_goals import declared_articles
+        for article in declared_articles(world, holder, ceder, live_only=False):
+            if article.get("kind") == "province" and article.get("region"):
+                keep.add(str(article.get("region")))
+    except Exception as exc:
+        from backend.errors import report
+        report(exc, "war_council.keepable_regions: declared_articles")
+    return keep
+
+
+def annexations_outside_aim(world) -> Dict[str, List[str]]:
+    """T3-6 — THE GATE'S READ, annexation rather than occupation: per court,
+    the provinces it holds BY RIGHT (`game_end.holds_by_title` — a signed
+    peace's retention or a conquest settled past its quiet clock) that are
+    neither its homeland nor an explicit treaty article (the aim's lock, a
+    compensation, a dictated cession — agreed, never sprawl) and that lie
+    outside its house's authored aims. A liberation is the ally's homeland
+    and never counts. Pure, end-of-run (the instrument's `capture_final`
+    calls it); {court: [provinces]} for every court with any."""
+    from backend.game_logic.game_end import TITLE_TREATY, _is_homeland, holds_by_title
+    store = getattr(world, "province_title", None)
+    store = store if isinstance(store, dict) else {}
+    out: Dict[str, List[str]] = {}
+    for court in sorted(world.get_active_nations() or []):
+        aims = None
+        for region_name in world.get_nation_regions(court) or []:
+            if _is_homeland(world, region_name, court):
+                continue
+            if not holds_by_title(world, region_name, court):
+                continue
+            rec = store.get(region_name) or {}
+            if rec.get("kind") == TITLE_TREATY and not rec.get("retained"):
+                continue
+            if aims is None:
+                aims = _house_aims(world, court)
+            if region_name in aims:
+                continue
+            out.setdefault(court, []).append(str(region_name))
+    return {court: sorted(regions) for court, regions in out.items()}
+
+
 # ── Crisis lifecycle ────────────────────────────────────────────────────
 
 

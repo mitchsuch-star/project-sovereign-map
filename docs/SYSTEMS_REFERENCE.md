@@ -14369,3 +14369,62 @@ march's discipline (a corps crossing enemy soil outside its aim passes through w
 annexing; an ally's homeland retaken counts as the alliance's aim) or (b) the gate's definition
 (deliberate annexations outside the aim, liberations credited, capture events tagged with their
 road). Neither pre-decided; the row names its owner, landing, completion and test.
+
+## §198 Tier 3, session 6 — T3-6, occupation is not annexation: an AI court's peace keeps its aims and hands the rest back (November 9, 2026)
+
+**The ruling** (row T3-6, put at Tier 3's close; the user chose "redefine the gate", then: "make
+best call, best design not easiest"). The residual debt (208 ambient captures outside aim, 194
+for the AI-run France) was what the conduct rule leaves by design — march entry, a battle's
+follow-up, liberations. March discipline (armies passing through enemy soil without taking it)
+was the wrong fix: no Napoleonic army crossed a province without occupying it, and it would
+have bent war score, supply and routing and set the AI's armies apart from the player's.
+Redefining the gate alone was the easy fix and would have hidden the problem: SR-1a's status
+quo titled every occupied province to its holder at an AI peace, so off-aim conquest became
+permanent map drift. The call: **occupation is not annexation** — armies occupy what they enter;
+the PEACE decides what is kept (Pressburg: Vienna evacuated, Venetia and the Tyrol kept) — and
+**the gate measures annexation, not occupation**.
+
+**The handback** (`game_end.aim_evacuations`, inside the ONE titling pass every signed peace
+runs — `title_status_quo_retentions`, after the co-belligerents' homeland returns; seam
+`game_end.a_peace_evacuates_what_it_does_not_cede`, `tests/_t3_seams.py` row T3-6): at a peace
+between AI COURTS, the loser's homeland an AI holder occupies outside what it may keep goes home
+through the pass's own `_return_home`. What it may keep is `war_council.keepable_regions` — its
+HOUSE's authored acquire designs (`_house_aims`, a client reading its lord's deck) and the
+province articles it declared at the war (`declared_goals`); the enemy's capital is never a
+keeper by itself (storming it was R1's permission, not a claim). Signed titles are never touched
+(T3-5's lock, compensations — the pass never overwrites a signed title). A corps left standing
+on handed-back ground walks home by the Road Home's corridor, opened at the same setter right
+after the pass (`withdrawal.open_evacuation_corridor`) — no teleport. The player's house is
+exempt on either side: the human's peace keeps SR-1a whole, and the AI's dictated letters keep
+PC-R3's held line. Both AI peace roads name it ("Prussia evacuates Brunswick and Oldenburg."),
+read from the pass's same-turn stash (`evacuated`). SR-1a's own comment carries the dated note.
+P8-Aim's annotation now says "the articles ask nothing more" (the status quo still keeps an AI
+court's other holdings in a war with France).
+
+**The gate's read** (`war_council.annexations_outside_aim`, recorded by the instrument at the
+run's end — `RunCapture.capture_final`; `derive_metrics` carries the total, the player excluded,
+and the per-court map; `_variance_signature` the new column, never the story class): the
+provinces a court holds BY RIGHT (`game_end.holds_by_title` — a signed peace's retention or a
+conquest settled past its quiet clock) that are neither its homeland nor an explicit treaty
+article, outside its house's authored aims. A liberation is the ally's homeland and never
+counts; an unsettled conquest is occupation. `captures_outside_aim` stays as the war's-footprint
+diagnostic. The deploy gate's line is amended (`AI_INTENT_SPEC.md` §13.2, `DYNAMISM_SPEC.md` §2
+and §7): `annexations_outside_aim` reads 0 on the ambient seeds and for the AI courts of the
+AI-France harness; France's own entry is reported, not gated (an AI-run France signs peace under
+the human's rule and has no authored aim — R7).
+
+**The measure — three chains on the final tree, each ALONE.** The CONTROL
+(`tools/_dy_signature_t3_6_control_2026_11_09.json`, the seam down) minus the new column
+reproduces T3-5's chain C byte for byte — the column is the instrument's, the seam covers the
+rule — and reads the kept debt at **42**. The FINAL (`tools/_dy_signature_t3_6_2026_11_09.json`;
+census `tools/_t3_6_census_2026_11_09.json`): **the kept debt 42 → 7**; fifteen peaces hand
+ground back (every seed's Hanover peace: "Prussia evacuates Brunswick and Oldenburg", historical's
+four); four world-lines move — austerlitz (Saxony survives), marengo (Hanover survives: its
+handed-back ground keeps it out of Hesse's reach), lodi and ulm (Bavaria survives its suits) —
+and **story classes hold at 8**. The residual is ONE province: **Franconia, the spoils of
+Bavaria's elimination on the seven seeds where Austria eats Bavaria by turn 6–12** — no peace is
+ever signed to hand it back. The AI-France harness (`tools/_t3_6_chain_d_2026_11_09.json`, the
+bound arm): the AI courts keep **8** outside their aims (eylau 1, friedland 2, jena 5 — again
+eliminated courts' spoils; France's own entry reported). **The residual's owner is Tier 4, the
+Alarm of Europe** — "Austria eats Bavaria by turn 7 on seven of ten seeds" is its own named
+defect; its done-when now reads the residual to 0 (`DYNAMISM_SPEC.md` §3, Rule 9).

@@ -37,6 +37,12 @@ prior tree's reading byte for byte.
           whole player nation exempt (T3-3's reading). (The terms'
           consistency fix of T3-5 rides T3-4's `a_held_aim_sues`.)
 
+    T3-6  `game_end.a_peace_evacuates_what_it_does_not_cede` — occupation
+          is not annexation: at a peace between AI courts the winner keeps
+          what the treaty cedes and its authored aims and hands the rest of
+          the loser's homeland back; down: SR-1a's retention of everything
+          held (the player's peaces keep SR-1a either way).
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -55,6 +61,9 @@ T3_SEAMS_BY_ROW = {
     ],
     "T3-5": [
         "backend.game_logic.war_council:the_conduct_binds_every_runner=False",
+    ],
+    "T3-6": [
+        "backend.game_logic.game_end:a_peace_evacuates_what_it_does_not_cede=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

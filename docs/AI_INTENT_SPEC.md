@@ -2480,7 +2480,7 @@ war serves its AIM, its corps march the aim's way, and the war ENDS with the aim
 diverge in role-true directions"; "AI–AI cessions move provinces ALONG AUTHORED AIMS"). The
 November 6 review's AI-France finding is the tier's target: France storms Vienna, then "marches to
 Estonia with no object." The deploy-gate condition this tier owns: `captures_outside_aim` reads 0
-on the ten ambient seeds AND the AI-France sweep's France entry.
+on the ten ambient seeds AND the AI-France sweep's France entry. *(Amended at T3-6, November 9, 2026 — the residual debt ruled by the user's "make best call, best design not easiest": the gate measures ANNEXATION, not occupation — `annexations_outside_aim`, the provinces a court keeps by right outside its authored aims at the run's end, reads 0 on the ten ambient seeds and for the AI courts of the AI-France sweep; France's own entry is reported, not gated; `captures_outside_aim` stays as the war's footprint. The mechanic that makes the line honest landed with it: an AI peace keeps its aims and hands the rest of the loser's homeland back — `SYSTEMS_REFERENCE.md` §198.)*
 
 **The standing catalog, recorded.** The objective record EXISTS —
 `world.war_objectives[diplo_key][declarer]`, resolved region names throughout, and council-opened
@@ -2625,6 +2625,17 @@ annexing, and an ally's homeland retaken counts as the alliance's aim; or (b) th
 definition — it counts deliberate annexations outside the aim (which the conduct rule already
 holds), liberations credited, the capture events tagged with their road so the instrument can
 tell. Neither is pre-decided.
+
+**Addendum — T3-6, the residual debt ruled (November 9, 2026).** The user picked "redefine the
+gate", then asked for the best design rather than the easiest. The call: **occupation is not
+annexation** — armies still occupy what they enter, but at a peace between AI courts the winner
+keeps what the treaty cedes and its authored aims and hands the rest of the loser's homeland back
+(`game_end.aim_evacuations`; the player's peaces keep SR-1a whole) — and the gate now measures
+annexation (`annexations_outside_aim`), not occupation. Chains: the control reproduces T3-5's
+chain C; the kept debt falls **42 → 7** ambient (Franconia alone, the spoils of Bavaria's
+elimination on seven seeds) and reads **8** for the AI courts of the AI-France harness; story
+classes hold at 8. The residual — the spoils of eliminated minors, which no peace hands back —
+is Tier 4's (the Alarm of Europe's own named defect; `DYNAMISM_SPEC.md` §3's done-when).
 
 ---
 

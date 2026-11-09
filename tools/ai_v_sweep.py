@@ -221,6 +221,13 @@ class RunCapture:
                             view.price]
         return snap
 
+    def _annexations_outside_aim(self) -> dict:
+        """T3-6: the gate's read at the run's end — {court: [provinces]}
+        kept outside its authored aims (`war_council.annexations_outside_
+        aim`, the engine's own read; the instrument only records it)."""
+        from backend.game_logic.war_council import annexations_outside_aim
+        return annexations_outside_aim(self.world)
+
     def _war_summaries(self) -> dict:
         out = {}
         for wid, inst in (getattr(self.world, "war_instances", None)
@@ -498,6 +505,10 @@ class RunCapture:
             "diplomatic_guarantees": _project(
                 getattr(world, "diplomatic_guarantees", []) or []),
             "war_instances": self._war_summaries(),
+            # T3-6 (the residual debt, ruled): the gate's read — annexation,
+            # not occupation — taken from the world at the run's END (a run
+            # fact: `war_council.annexations_outside_aim`, the engine's own).
+            "annexations_outside_aim": self._annexations_outside_aim(),
             "vassals": {v: {"lord": s.get("lord"),
                             "loyalty": int(s.get("loyalty", 0))}
                         for v, s in (getattr(world, "vassals", {})
@@ -652,6 +663,16 @@ def derive_metrics(digest: dict) -> dict:
     captures_outside_aim_by_court = dict(sorted(outside_by_court.items()))
     captures_outside_aim = sum(
         count for nation, count in captures_outside_aim_by_court.items()
+        if nation != player)
+    # T3-6: the gate's read — what a court KEEPS outside its aims at the
+    # run's end (`final.annexations_outside_aim`; a digest written before
+    # T3-6 carries none and reads 0).
+    annexed = dict(sorted(((digest.get("final") or {})
+                           .get("annexations_outside_aim") or {}).items()))
+    annexations_outside_aim_by_court = {
+        nation: len(regions) for nation, regions in annexed.items()}
+    annexations_outside_aim = sum(
+        count for nation, count in annexations_outside_aim_by_court.items()
         if nation != player)
 
     # Beats: most types log an event AND queue a dispatch copy, but beat 4
@@ -924,6 +945,10 @@ def derive_metrics(digest: dict) -> dict:
         # reads its France entry from the map).
         "captures_outside_aim": captures_outside_aim,
         "captures_outside_aim_by_court": captures_outside_aim_by_court,
+        # T3-6: the deploy gate's line (annexation, not occupation) — the
+        # total (player excluded) and the per-court map.
+        "annexations_outside_aim": annexations_outside_aim,
+        "annexations_outside_aim_by_court": annexations_outside_aim_by_court,
         "beats": beats,
         "routine_intent_lines_max_per_turn": (
             max(routine_per_turn) if routine_per_turn else 0),
@@ -1536,6 +1561,12 @@ def _variance_signature(digest: dict) -> dict:
         # T3-2…T3-4 land. The controls hold as ever: same seed twice
         # EQUAL, variance forced off EQUAL to historical.
         "captures_outside_aim": derived.get("captures_outside_aim", 0),
+        # T3-6 (the residual debt, ruled November 9, 2026): the gate's line
+        # — provinces KEPT outside a court's authored aims at the run's end
+        # (annexation, not occupation; `captures_outside_aim` above stays as
+        # the war's footprint). Run-sourced (the final block); the controls
+        # hold as ever.
+        "annexations_outside_aim": derived.get("annexations_outside_aim", 0),
     }
 
 

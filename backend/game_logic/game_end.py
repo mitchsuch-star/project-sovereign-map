@@ -98,6 +98,12 @@ BATTLEFIELD_CAUSES = frozenset({"battle", "charge", "bombardment"})
 # loser signed no cession, so its designs still covet the ground and the
 # Congress still has to be won at the table — uti possidetis titles the
 # province for the COUNT, recognition is bought separately. Flip lever.
+# T3-6 (November 9, 2026 — recorded, not silently edited): at a peace
+# between AI COURTS the retention keeps only what the holder may keep — its
+# house's authored aims and its declared articles; the rest of the loser's
+# homeland it occupies is evacuated (`aim_evacuations`, the seam
+# `a_peace_evacuates_what_it_does_not_cede`). The player's peaces keep this
+# rule whole.
 # SF7-X7 (Score Finish Step 7 slice 7, October 4, 2026): a peace says what
 # EACH side keeps under the status quo — before it is signed (the proposal's
 # forecast, read off the same `status_quo_retentions` the ratifier titles
@@ -979,6 +985,52 @@ def _return_home(world, region_name: str, home: str, holder: str) -> None:
     })
 
 
+def a_peace_evacuates_what_it_does_not_cede() -> bool:
+    """T3-6 "occupation is not annexation" (DYNAMISM_SPEC.md §8 row T3-6,
+    the residual debt ruled November 9, 2026 — the user's "make best call,
+    best design not easiest"): at a peace between AI courts, the winner
+    keeps what the treaty cedes and its authored aims, and EVACUATES the
+    rest of the loser's homeland it occupies — Pressburg (Vienna evacuated,
+    Venetia and the Tyrol kept). Armies still occupy what they enter during
+    the war; only the peace decides what is kept. The player's peaces keep
+    SR-1a whole (and PC-R3's held line). Down: SR-1a's retention for every
+    peace (an AI court keeps all it holds of the loser's)."""
+    return True
+
+
+def aim_evacuations(world, nation_a: str, nation_b: str, holder_leader: str,
+                    ceder: str, kept: Dict[str, List[str]]
+                    ) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    """T3-6 — split a retention map at a peace between AI courts: the
+    CEDER's homeland an AI holder occupies OUTSIDE what it may keep
+    (`war_council.keepable_regions` — its house's authored aims and the
+    articles it declared) goes home; the rest is retained as before.
+    Untouched (returns the map whole) with the seam down, or when either
+    signatory belongs to the player's house (the human's peace keeps
+    SR-1a — and the AI's dictated letters their held line). Ground that
+    is not the ceder's homeland stays retained (its home may be a third
+    court's). Pure read; (kept, evacuated) keyed by the holder."""
+    if not a_peace_evacuates_what_it_does_not_cede():
+        return kept, {}
+    player = str(getattr(world, "player_nation", "") or "")
+    if player and player in {world._top_overlord(nation_a) or nation_a,
+                             world._top_overlord(nation_b) or nation_b}:
+        return kept, {}
+    from backend.game_logic.war_council import keepable_regions
+    home = set((getattr(world, "nation_starting_regions", {}) or {}).get(ceder, []) or [])
+    keep: Dict[str, List[str]] = {}
+    gone: Dict[str, List[str]] = {}
+    for holder, regions in (kept or {}).items():
+        allowed = keepable_regions(world, holder, ceder)
+        for region_name in regions:
+            if region_name in home and region_name not in allowed:
+                gone.setdefault(holder, []).append(region_name)
+            else:
+                keep.setdefault(holder, []).append(region_name)
+    return ({h: sorted(r) for h, r in keep.items()},
+            {h: sorted(r) for h, r in gone.items()})
+
+
 def status_quo_retentions(world, holder_leader: str, ceder: str,
                           *, forecast: bool = False) -> Dict[str, List[str]]:
     """The provinces `holder_leader`'s bloc holds of `ceder`'s that a peace
@@ -1047,6 +1099,14 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
             # DDB-12: a co-belligerent's homeland retaken by an ally goes
             # home, titled back; the rest is retained as before.
             kept, returned = homeland_returns(world, holder_leader, ceder, kept)
+            # T3-6 — occupation is not annexation: at a peace between AI
+            # courts the ceder's homeland an AI holder occupies outside its
+            # authored aims goes home (`aim_evacuations`).
+            kept, evacuated = aim_evacuations(world, nation_a, nation_b,
+                                              holder_leader, ceder, kept)
+            if evacuated:
+                gone = {r for regions in evacuated.values() for r in regions}
+                returned[ceder] = sorted(set(returned.get(ceder) or []) | gone)
             for home, regions in ally_home.items():
                 returned.setdefault(home, [])
                 returned[home] = sorted(set(returned[home]) | set(regions))
@@ -1065,7 +1125,7 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
                     record_province_title(world, region_name, TITLE_TREATY,
                                           ceder, holder, house=house,
                                           retained=True)
-            entries.append({
+            entry = {
                 "pair": world._make_diplo_key(nation_a, nation_b),
                 "turn": turn,
                 "house": house,
@@ -1073,7 +1133,10 @@ def title_status_quo_retentions(world, nation_a: str, nation_b: str,
                 "reason": str(reason or ""),
                 "titled": {h: list(r) for h, r in kept.items()},
                 "returned": {h: list(r) for h, r in returned.items()},
-            })
+            }
+            if evacuated:
+                entry["evacuated"] = {h: list(r) for h, r in evacuated.items()}
+            entries.append(entry)
         if entries:
             stash = getattr(world, "_status_quo_titled", None)
             if not isinstance(stash, list):

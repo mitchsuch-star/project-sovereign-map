@@ -403,7 +403,12 @@ class TestD4TruceFloor:
     def test_unheld_homeland_returns_and_held_ground_stays(self):
         """The Moravia shape: a home province held with NO standing army
         returns at the exit; an army-occupied one stays (uti
-        possidetis)."""
+        possidetis). Re-seated at T3-6 (November 9, 2026 — "occupation is
+        not annexation"): at a peace between AI courts army-held ground
+        stays only where the holder may KEEP it (its authored aims), so the
+        held province is the Tyrol — Bavaria's own design; off-aim
+        army-held ground now goes home (`tests/test_t3_6_the_residual_
+        debt.py` pins that half)."""
         from backend.game_logic.settlement_third_party import (
             process_third_party_settlements,
         )
@@ -411,7 +416,10 @@ class TestD4TruceFloor:
         self._arm_pair_exit(world, "Bavaria", "Austria")
         austrian_home = list(
             world.nation_starting_regions.get("Austria", []))
-        unheld, held = austrian_home[0], austrian_home[1]
+        held = "Tyrol"
+        assert held in austrian_home
+        unheld = next(r for r in austrian_home
+                      if r not in (held, world.get_nation_capital("Austria")))
         world.get_region(unheld).controller = "Bavaria"
         world.get_region(held).controller = "Bavaria"
         # Stand a Bavarian marshal on `held` only.
