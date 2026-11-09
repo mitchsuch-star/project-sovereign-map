@@ -54,10 +54,16 @@ def world1805() -> WorldState:
 # ══════════════════════════ DEF-6: the cross-Channel link ══════════════════════════
 
 
-def test_channel_depot_blocks_p45_walk_in():
+def test_channel_depot_blocks_p45_walk_in(monkeypatch):
     """Moore's live-observed turn-1 walk-in is closed: with the 12k Channel
     depot, P4.5 (undefended capture) can never pick the beach — entry into
     France via the sea link requires a garrison assault (opposed).
+
+    T3-3 re-seat with its cause (November 8, 2026): the conduct rule
+    keeps Britain's walk-ins to her aim, so the fixture's provocation —
+    the depot-less control that MUST tempt P4.5 onto the beach — no
+    longer fires (the self-check below caught it); this pin's subject
+    is the DEPOT, so the conduct seam is held down.
 
     NV-8c (Aug 2, 2026): the Flanders line is cut, so the beach this test
     owns is NORMANDY — the one remaining Channel crossing. Flanders keeps
@@ -70,6 +76,9 @@ def test_channel_depot_blocks_p45_walk_in():
     layer is therefore neutralised below (France's fleet sunk = the
     crossing is an uncontested ferry) so that the DEPOT is the only thing
     left that can refuse the walk-in, which is what DEF-6 owns."""
+    from tests._t3_seams import hold_down
+    hold_down(monkeypatch, [
+        "backend.game_logic.war_council:annexation_follows_the_aim=False"])
     from backend.ai.enemy_ai import EnemyAI
 
     world = _load()

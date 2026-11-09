@@ -3263,7 +3263,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "The Squadron for Santo Domingo — Send five of the line: 500 gold (the treasury holds 19,695); 1 administrative action (1 left today); five of the line sail (46 → 41 in port until Early February 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\nDecrès: the squadron slips out of Brest on the night tide.",
+   "message": "The Squadron for Santo Domingo — Send five of the line: 500 gold (the treasury holds 20,386); 1 administrative action (1 left today); five of the line sail (46 → 41 in port until Early February 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\nDecrès: the squadron slips out of Brest on the night tide.",
    "arm": "CONG",
    "clause": ""
   },
@@ -3281,7 +3281,7 @@
    "disabled_reason": "",
    "state_moved": [],
    "verdict": "signed",
-   "message": "The Squadron for Santo Domingo — Send five of the line: 500 gold (the treasury holds 19,695); 1 administrative action (1 left today); five of the line sail (46 → 41 in port until Early February 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\nDecrès: the squadron slips out of Brest on the night tide.",
+   "message": "The Squadron for Santo Domingo — Send five of the line: 500 gold (the treasury holds 20,386); 1 administrative action (1 left today); five of the line sail (46 → 41 in port until Early February 1807) — 36 in 100 they come home whole; caught, the five are lost and the men are ashore.\nDecrès: the squadron slips out of Brest on the night tide.",
    "arm": "CONG",
    "clause": ""
   },
@@ -4726,7 +4726,7 @@
    "action": "propose_peace",
    "shown_signable": true,
    "disabled_reason": "",
-   "likelihood": "Doubtful — may counter",
+   "likelihood": "Uncertain — a counter is likely",
    "verdict": "signed",
    "message": "Treaty signed: At War → Peace with the Ottoman Empire.",
    "type_sent": "peace",
@@ -5132,9 +5132,9 @@
   }
  ],
  "errors": [],
- "clone_ms_mean": 16.83,
+ "clone_ms_mean": 16.36,
  "clones": 166,
- "seconds": 12.8,
+ "seconds": 13.3,
  "counts": {
   "A_shown_signable_refused": 0,
   "A_dry": 0,

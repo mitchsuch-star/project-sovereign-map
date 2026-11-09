@@ -583,7 +583,8 @@ class TestTheMeasuredArms:
         # chain re-ran the rig on the final tree, so the flip's RECORD is
         # kept too — `tools/_standing_series_arms_flip.json` — and these
         # clauses read the kept file; the fresh final closes the chain below.)
-        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_T0EFG
+        from tests.test_ai_intent_threat_migration import (
+            SERIES_BEFORE_T0EFG, SERIES_BEFORE_T3_3)
         flip = json.loads((ROOT / "tools" / "_standing_series_arms_flip.json").read_text(encoding="utf-8"))
         assert flip["prior"] == flip["arms"]["AUC"]["series"] == SERIES_BEFORE_THE_COURTS
         assert flip["arms"]["0"]["series"] == SERIES_BEFORE_AU
@@ -626,7 +627,9 @@ class TestTheMeasuredArms:
         t0 = json.loads((ROOT / "tools" / "_t0efg_series_arms_final.json").read_text(encoding="utf-8"))
         assert t0["prior"] == SERIES_BEFORE_T0EFG
         assert t0["arms"]["0"]["series"] == t0["arms"]["T0G-EDS"]["series"] == SERIES_BEFORE_T0EFG
-        assert t0["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # Re-linked by T3-3 (November 8, 2026): the T0-EFG record's ALL
+        # was the standing series in its day — T3-3's prior now.
+        assert t0["arms"]["ALL"]["series"] == SERIES_BEFORE_T3_3
         assert t0["arms"]["ALL"]["first_divergence_vs_prior"] == 19
         for arm in ("T0E-P39", "T0E-STM", "T0E-DSP", "T0F-BRW", "T0F-ASK", "T0G-RCH"):
             assert t0["arms"][arm]["first_divergence_vs_prior"] == 19, arm
@@ -648,8 +651,27 @@ class TestTheMeasuredArms:
         # flip-era attributions live in the KEPT record above. AUB stays
         # byte-identical to ALL: the books change no figure on this tree
         # either, AU-1's law standing.
+        # (Re-linked by T3-3, November 8, 2026: T0-H's fresh rig recorded
+        # the standing series of its day — T3-3's prior now.)
         fresh = json.loads((ROOT / "tools" / "_standing_series_arms_final.json").read_text(encoding="utf-8"))
-        assert fresh["prior"] == BASELINE_SERIES
-        assert fresh["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert fresh["prior"] == SERIES_BEFORE_T3_3
+        assert fresh["arms"]["ALL"]["series"] == SERIES_BEFORE_T3_3
         assert fresh["arms"]["ALL"]["first_divergence_vs_prior"] is None
         assert fresh["arms"]["AUB"]["first_divergence_vs_prior"] is None
+        # T3-3 (November 8, 2026 — the leash and its conduct rule; the
+        # Tier-3 gate record AI_INTENT_SPEC.md §13.2 R4;
+        # `SYSTEMS_REFERENCE.md` §195): the rig `tools/_t3_3_series_arms.py`
+        # holds each seam down on its own arm. Arm 0 (both down) and the
+        # CONDUCT-down arm reproduce the prior byte for byte; the
+        # LEASH-down arm IS the shipped series — THE MOVER IS THE CONDUCT
+        # RULE ALONE, the leash consulted and inert on this loop (the boot
+        # pull equals the design). The reach proves both were read.
+        t33 = json.loads((ROOT / "tools" / "_t3_3_series_arms_final.json").read_text(encoding="utf-8"))
+        assert t33["prior"] == SERIES_BEFORE_T3_3
+        assert t33["arms"]["0"]["series"] == t33["arms"]["CONDUCT"]["series"] == SERIES_BEFORE_T3_3
+        assert t33["arms"]["LEASH"]["series"] == t33["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert t33["arms"]["ALL"]["first_divergence_vs_prior"] == 10
+        _t33 = t33["arms"]["ALL"]["reach"]["counts"]
+        assert _t33["leash_reads"] > 0 and _t33["annexations_refused"] > 0
+        assert t33["arms"]["0"]["reach"]["counts"]["annexations_refused"] == 0
+        assert t33["arms"]["CONDUCT"]["reach"]["counts"]["annexations_refused"] == 0

@@ -14121,3 +14121,88 @@ against the T3-1 baseline's signatures — the kept-record idiom): **ZERO
 movers, the debt 397 unchanged, historical byte-identical, classes 10 of 10**
 — words live in payloads, not the world-line, and the derivation's move is
 byte-neutral by delegation; all four pinned.
+
+## §195 Tier 3, session 3 — T3-3, the leash and its conduct rule (November 8, 2026)
+
+**The slice** (§13.2 R4; the conduct half by the user's "Extend with conduct
+rule"; `DYNAMISM_SPEC.md` §8 row T3-3; pins `tests/test_t3_3_the_leash.py`;
+seams `war_council.a_leash_pulls_the_march` and
+`war_council.annexation_follows_the_aim` in `tests/_t3_seams.py`, the recorded
+boards' hold-list picking them up). The census corrected the gate's premise
+first, recorded rather than silently edited: **AI-3c, the pre-war massing, was
+ALREADY BUILT at Stage D** (`get_intent_frontier` + P7's crisis-frontier arm,
+pinned in `TestAI3cFrontier`) — the user's Q1 closed then; §13.1's "remains
+open" column was the July reading.
+
+**The leash** — ONE predicate, `war_council.aim_pull_set(world, nation)`: the
+design's unmet targets (the NA-3 read, byte-identical at peace) ∪ for every
+enemy at war the OUTSTANDING stated object (`war_aim_outstanding` — the
+objective records and the design arm, minus what the court or its clients
+hold). The recall rides the aim: a lost home province sits in a defense
+record, hence outstanding, hence in the pull; P3.7 keeps the hard recall
+structurally earlier. `enemy_ai._agenda_covet_set` consults it through the
+same per-(nation, turn) memo, so the four ranged pick surfaces read exactly
+what they always read (GR5).
+
+**The conduct rule** (the slice's extension, after the first chain read the
+pull ALONE raising the debt 397 → 421 — the marches re-aimed and the
+annexation rungs grabbed every off-aim province on the longer roads):
+`annexation_permitted` — an at-war AI court deliberately ANNEXES only its
+pull or an ENEMY'S SEAT; P4.5's walk-ins and P4.25's storms skip everything
+else. Field battles stay lawful everywhere and a march that ENTERS undefended
+enemy soil still takes it (the movement executor captures on entry — so the
+coalition can still march on Paris, and the player's war keeps its teeth).
+The player's own rungs never run here; a vassal's contingent fights its
+lord's war (both exempt).
+
+**Three catches the extension paid for, each fixed at its cause.**
+(1) **A war without a record has no aim to read** — the first cut froze the
+AI outright on the legacy rollback world (its wars are diplomatic states
+alone: 0 instances) and on crafted boards; the rule now binds only where a
+live war instance stands between the court and the holder (`has_live_war_
+record`), and the 1805 boot is fully covered (every WAR pair carries one —
+probed). (2) **R1's capital default, restored and read per pair** — the
+approved plan's own union term ("∪ the objective's capital default") that
+T3-1 under-implemented (the boot pairs carry DEFENSE records, so no enemy
+capital ever sat in an aim, and the rule left Paris unstormable); a first cut
+took the opposing LEADER's capital and gave Bavaria, fighting Austria inside
+France's war, London — the default is the ENEMY'S own seat. (3) **The four
+reads separated** — with the seat in the WORDS every coalition court's
+peace-table line read "Paris" and pushed the PC-F46 table below its fold (the
+layout pin's catch), and with the seat in the PULL Austria marched across
+France instead of for Italy. So: the words and the pull read the STATED
+object (`war_aim_core` — T3-2's lines restored exactly); the conduct rule
+adds the enemy's seat as a PERMISSION; the metric (`war_aims_of_instance`)
+credits it (taking an enemy capital is in-aim).
+
+**The instrument's own catch** (the IQ-7 graft control): the debt column read
+the BOOT wars' aims off the boot block — a boot-sourced signature key, which
+let a converged run pass on its boot; the boot wars are now recorded on the
+FIRST per-turn row (`boot_wars`, a run fact) and the joiner reads them there.
+
+**The standing series, re-pinned with attribution** (`tools/_t3_3_series_arms.py`
+→ `tools/_t3_3_series_arms_final.json`): arm 0 (both seams down) reproduces
+the prior byte for byte; **the mover is the conduct rule ALONE** (the
+LEASH-down arm IS the shipped series, the CONDUCT-down arm IS the prior — the
+leash is consulted and inert on that loop, its boot pull equal to the
+design). The series diverges at [10] (the satellite's break moves from world
+turn 11 to 13); the prior kept as `SERIES_BEFORE_T3_3`; the conduct rule
+refuses 1,800 deliberate annexations and permits 230 on the shipped arm.
+wo_slice9's courting cap re-measured 13 (11 with both seams down; the conduct
+rule alone the mover).
+
+**The measure — two chains on the final tree.** The CONTROL
+(`tools/_dy_signature_t3_3_control_2026_11_08.json`, both seams held down
+through `INK_IRON_SEAMS`) reads **zero world-line movers against the T3-2
+record** — the instrument corrections moved nothing in the game — and its
+debt column, under the corrected metric, reads **386** (397 under T3-1's
+under-implemented one). The FINAL (`tools/_dy_signature_t3_3_2026_11_08.json`)
+against the control: **the debt falls 386 → 208, −46%, on EVERY seed** (rivoli
+28 → 11, lodi 70 → 22, austerlitz 70 → 34; marengo 23 → 20 with its other
+columns unmoved), nine world-lines move, historical among them (a rule of
+play — the boot and the historian clauses untouched). **The honest cost:
+story classes 10 → 8** — eylau and jena converge onto wagram's unchanged
+story (Holland, no longer annexed off-aim, survives on eylau; Spain never
+reaches the fight on jena). Discipline means fewer free-for-all eliminations;
+the deploy gate's ≥ 4 of 10 holds, and the Concert's content tiers (4–8) are
+where the variance is owed.

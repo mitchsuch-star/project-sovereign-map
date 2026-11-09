@@ -436,22 +436,19 @@ def exit_shared_wars_for_defection(world, defector: str, new_enemy: str,
 
 # ── The war aim (T3-2 — the Tier-3 gate record §13.2 R1/R3) ─────────────
 
-def war_aims_of_instance(world, inst: Dict) -> Dict[str, List[str]]:
-    """§13.2 R1's union, THE one derivation (November 8, 2026 — moved
-    home from the instrument; `RunCapture._war_aims` delegates here, so
-    the live read and the march metric cannot diverge). Per participant
-    of `inst`: every `war_objectives` record of a pair inside this
+def _instance_core_aims(world, inst: Dict) -> Dict[str, set]:
+    """§13.2 R1's CORE, per participant of `inst` (the T3-2 derivation,
+    unchanged): every `war_objectives` record of a pair inside this
     war's participants (`target_regions` are resolved names — the
-    council writes the design's provinces, the default road the
-    capital), plus the active ACQUIRE design's regions currently held
-    by the opposing side (overlord-resolved — a client's soil reads as
-    its lord's). DELIBERATELY NARROW: enemy soil is never
-    automatically in-aim (that would bless the Estonia march)."""
+    council writes the design's provinces), plus the active ACQUIRE
+    design's regions currently held by the opposing side
+    (overlord-resolved — a client's soil reads as its lord's).
+    DELIBERATELY NARROW: enemy soil is never automatically in-aim."""
     attackers = set(inst.get("attackers") or [])
     defenders = set(inst.get("defenders") or [])
     party = attackers | defenders
     objectives = getattr(world, "war_objectives", {}) or {}
-    aims: Dict[str, List[str]] = {}
+    core: Dict[str, set] = {}
     for nation in sorted(party):
         regions = set()
         for diplo_key, records in objectives.items():
@@ -468,7 +465,7 @@ def war_aims_of_instance(world, inst: Dict) -> Dict[str, List[str]]:
             view = get_active_agenda(nation, world)
         except Exception as exc:
             from backend.errors import report
-            report(exc, "war_council.war_aims_of_instance: "
+            report(exc, "war_council._instance_core_aims: "
                         "get_active_agenda")
             view = None
         if (view is not None
@@ -482,31 +479,93 @@ def war_aims_of_instance(world, inst: Dict) -> Dict[str, List[str]]:
                              if holder else None)
                 if effective in opposing or holder in opposing:
                     regions.add(str(region_name))
+        core[nation] = regions
+    return core
+
+
+def _pair_capital(world, enemy: str) -> Optional[str]:
+    """R1's CAPITAL DEFAULT for one pair: the enemy's own seat. Per
+    PAIR, never per side — a court's object against X names X's
+    capital, not a co-belligerent's (the conduct extension's first cut
+    took the opposing LEADER's capital and gave Bavaria, fighting
+    Austria inside France's 1805 war, London as her aim)."""
+    capital = world.get_nation_capital(enemy) if enemy else None
+    return str(capital) if capital else None
+
+
+def war_aims_of_instance(world, inst: Dict) -> Dict[str, List[str]]:
+    """§13.2 R1's full union per participant, THE instrument's per-war
+    aims (`RunCapture._war_aims` delegates here): the core
+    (`_instance_core_aims`) ∪ the CAPITAL DEFAULT of every pair the
+    participant fights in this war — each opposing court's seat.
+
+    The capital default is R1's own union term (the approved plan:
+    "∪ the objective's capital default"); T3-1 under-implemented it —
+    the boot pairs carry DEFENSE records, so no enemy capital ever sat
+    in an aim — and the T3-3 conduct extension caught it the moment
+    the rule left every enemy capital, Paris included, unstormable.
+    Decapitation is war-prosecution, the era's own object."""
+    attackers = set(inst.get("attackers") or [])
+    defenders = set(inst.get("defenders") or [])
+    core = _instance_core_aims(world, inst)
+    aims: Dict[str, List[str]] = {}
+    for nation in sorted(attackers | defenders):
+        regions = set(core.get(nation) or ())
+        opposing = defenders if nation in attackers else attackers
+        for enemy in opposing:
+            capital = _pair_capital(world, enemy)
+            if capital:
+                regions.add(capital)
         if regions:
             aims[nation] = sorted(regions)
     return aims
 
 
-def war_aim(world, nation: str, enemy: str) -> List[str]:
-    """§13.2 R3 — ONE public read of the existing objective record:
-    `nation`'s aim against `enemy`, the union of its aims over every
-    LIVE instance holding the pair on opposite sides. `[]` when the
-    pair is not at war or no aim stands. Consumed by the surfaces in
-    WORDS (`war_aim_line`), the leash (T3-3) and the terms (T3-4)."""
+def _opposed_live(inst, nation: str, enemy: str) -> bool:
+    """Does the live instance hold the pair on opposite sides?"""
+    if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
+        return False
+    attackers = set(inst.get("attackers") or [])
+    defenders = set(inst.get("defenders") or [])
+    return ((nation in attackers and enemy in defenders)
+            or (nation in defenders and enemy in attackers))
+
+
+def has_live_war_record(world, nation: str, enemy: str) -> bool:
+    """Is there a live war RECORD (instance) between the pair? A war
+    that exists only as a diplomatic state — the legacy fixture world,
+    a crafted board — has no aim record to read."""
+    return any(_opposed_live(inst, nation, enemy)
+               for inst in (getattr(world, "war_instances", {}) or {}).values())
+
+
+def war_aim_core(world, nation: str, enemy: str) -> List[str]:
+    """The pair's STATED object — R1's core (the objective records and
+    the acquire design's arm) over every LIVE instance holding the pair
+    on opposite sides, WITHOUT the capital default. What the words
+    speak and the leash pulls toward: a court's object is what it
+    declared and designed, never merely the enemy's seat."""
     aims: set = set()
     for inst in (getattr(world, "war_instances", {}) or {}).values():
-        if not isinstance(inst, dict) or inst.get("ended_turn") is not None:
-            continue
-        attackers = set(inst.get("attackers") or [])
-        defenders = set(inst.get("defenders") or [])
-        if not ({nation} <= attackers | defenders
-                and {enemy} <= attackers | defenders):
-            continue
-        same_side = ((nation in attackers and enemy in attackers)
-                     or (nation in defenders and enemy in defenders))
-        if same_side:
-            continue
-        aims.update(war_aims_of_instance(world, inst).get(nation) or ())
+        if _opposed_live(inst, nation, enemy):
+            aims.update(_instance_core_aims(world, inst).get(nation) or ())
+    return sorted(aims)
+
+
+def war_aim(world, nation: str, enemy: str) -> List[str]:
+    """§13.2 R3 — ONE public read of the existing objective record:
+    `nation`'s FULL aim against `enemy` — the stated object
+    (`war_aim_core`) plus the pair's capital default (the enemy's seat)
+    wherever a live war record stands. `[]` with no record. The union
+    over a court's enemies is exactly the instrument's per-war aims
+    (`war_aims_of_instance`). The capital default is a PERMISSION and
+    a metric credit (decapitation is war-prosecution), never a stated
+    object: the words and the leash read the core alone."""
+    aims = set(war_aim_core(world, nation, enemy))
+    if has_live_war_record(world, nation, enemy):
+        capital = _pair_capital(world, enemy)
+        if capital:
+            aims.add(capital)
     return sorted(aims)
 
 
@@ -520,26 +579,128 @@ def _regions_clause(regions: List[str]) -> str:
     return f"{', '.join(names[:-1])} and {names[-1]}"
 
 
-def war_aim_clause(world, nation: str, enemy: str) -> str:
-    """The aim's WORDS alone — 'Milan, Piedmont and Savoy'; '' when
-    nothing is outstanding.
-
-    Spoken is the OUTSTANDING object — the aim regions the court does
-    not presently hold (itself or through a client). The metric's set
-    (`war_aim`) keeps the full R1 union: a boot DEFENSE objective puts
-    a court's own soil in its aim, which is right for the march gauge
-    (recapturing Vienna is never drift) and noise as words — a held
-    province is no object, a LOST one joins the line the turn it
-    falls (the recapture spoken)."""
+def war_aim_outstanding(world, nation: str, enemy: str) -> List[str]:
+    """The OUTSTANDING stated object — `war_aim_core`'s regions the
+    court does not presently hold (itself or through a client). A boot
+    DEFENSE objective puts a court's own soil in its core, which is
+    right for the march gauge (recapturing Vienna is never drift);
+    what remains OUTSTANDING is what the words speak (T3-2) and what
+    the leash pulls toward (T3-3) — a held province is no object, a
+    LOST one joins the moment it falls (the recapture spoken, and
+    marched for). The capital default is deliberately absent: it
+    permits the storm, it does not steer the march (the conduct
+    extension's catch — with the seat in the pull, Austria marched
+    across France for Paris instead of for Italy, and every coalition
+    court's peace-table line read 'Paris', pushing the PC-F46 table
+    below its fold)."""
     outstanding = []
-    for region_name in war_aim(world, nation, enemy):
+    for region_name in war_aim_core(world, nation, enemy):
         region = (getattr(world, "regions", {}) or {}).get(str(region_name))
         holder = getattr(region, "controller", None) if region is not None else None
         effective = (world._top_overlord(holder) or holder) if holder else None
         if holder == nation or effective == nation:
             continue
         outstanding.append(str(region_name))
-    return _regions_clause(outstanding)
+    return outstanding
+
+
+def war_aim_clause(world, nation: str, enemy: str) -> str:
+    """The aim's WORDS alone — 'Milan, Piedmont and Savoy'; '' when
+    nothing is outstanding (`war_aim_outstanding`, the shared read)."""
+    return _regions_clause(war_aim_outstanding(world, nation, enemy))
+
+
+def a_leash_pulls_the_march() -> bool:
+    """T3-3 "the leash" (the Tier-3 gate record §13.2 R4;
+    `DYNAMISM_SPEC.md` §2 Tier 3; November 8, 2026): an AT-WAR court's
+    pull set widens from its design's unmet targets to its WAR AIMS —
+    the objective record's targets and the recapture of its own lost
+    soil join the pick bias (`aim_pull_set`, consulted by the one
+    covet memo the four ranged pick surfaces read). The recall rides
+    the aim itself: a lost home province is a defense-objective
+    target, hence outstanding, hence in the pull — and P3.7 keeps the
+    hard recall, structurally earlier in the ladder. Down: the
+    pre-T3-3 read — the design's targets alone, a court at war never
+    credits its objective and never feels the pull home."""
+    return True
+
+
+def annexation_follows_the_aim() -> bool:
+    """T3-3's second half, the CONDUCT rule (§13.2 R4's own sentence —
+    "a corps that should not be there should not capture there";
+    extended into the slice by the user's word, November 8, 2026,
+    after the first chain read the pull ALONE raising the debt 397 →
+    421: the leash re-aimed the marches and the annexation rungs
+    grabbed every off-aim province along the longer roads): an
+    at-war AI court ANNEXES only its aim — the deliberate annexation
+    verbs (P4.5 capture-undefended, P4.25 garrison storms) skip soil
+    outside the pull. Field battles stay lawful everywhere (destroying
+    armies is war-prosecution, never annexation); their incidental
+    flips are the measured residual. Down: the pre-conduct reading —
+    a court at war grabs whatever lies adjacent."""
+    return True
+
+
+def _is_enemy_seat(world, nation: str, region_name: str) -> bool:
+    """Is `region_name` the capital of a court `nation` holds a live war
+    record against? R1's capital default read as a PERMISSION."""
+    for enemy in world.get_nations_at_war_with(nation):
+        if (_pair_capital(world, enemy) == str(region_name)
+                and has_live_war_record(world, nation, enemy)):
+            return True
+    return False
+
+
+def annexation_permitted(world, nation: str, region_name: str) -> bool:
+    """May `nation` deliberately ANNEX `region_name`? The conduct rule:
+    an at-war court annexes only its aim — the pull (`aim_pull_set`:
+    the design's unmet targets and the outstanding stated objects, the
+    recapture of its own lost soil among them) and any ENEMY'S SEAT
+    (R1's capital default, as a permission: decapitation is
+    war-prosecution).
+
+    The rule READS THE WAR'S AIM RECORD, so it binds only where one
+    exists — a live war instance between the court and the province's
+    holder (or the holder's overlord). A war that stands only as a
+    diplomatic state (the legacy rollback world, a crafted board) has
+    no aim to read, and the court fights there as it always did: the
+    first conduct cut froze the AI outright on such worlds — the
+    extension's own catch. The player's conduct is their own (their
+    rungs never run here), and a VASSAL'S contingent fights its lord's
+    war under the lord's direction (VD-C) — both exempt."""
+    if not annexation_follows_the_aim():
+        return True
+    if nation == getattr(world, "player_nation", "France"):
+        return True
+    if nation in (getattr(world, "vassals", {}) or {}):
+        return True
+    region = (getattr(world, "regions", {}) or {}).get(str(region_name))
+    holder = getattr(region, "controller", None) if region is not None else None
+    if not holder:
+        return True
+    effective = world._top_overlord(holder) or holder
+    if not (has_live_war_record(world, nation, holder)
+            or has_live_war_record(world, nation, effective)):
+        return True
+    return (str(region_name) in aim_pull_set(world, nation)
+            or _is_enemy_seat(world, nation, region_name))
+
+
+def aim_pull_set(world, nation: str) -> frozenset:
+    """§13.2 R4 — THE leash's pull set, ONE predicate: the active
+    design's unmet targets (the NA-3 covet bias's own read — byte-
+    identical at peace and with the seam down) ∪ for every enemy at
+    WAR, the OUTSTANDING stated object (`war_aim_outstanding` — the
+    objective records and the design arm, minus what the court or its
+    clients hold; the capital default steers nothing). Pure and
+    uncached here — the consumer memoizes per (nation, turn)
+    (`enemy_ai`'s covet memo, GR8)."""
+    from backend.game_logic.agendas import get_agenda_military_targets
+    pull = set(get_agenda_military_targets(nation, world))
+    if a_leash_pulls_the_march():
+        for enemy in world.get_nations_at_war_with(nation):
+            pull.update(war_aim_outstanding(world, nation, enemy))
+    return frozenset(pull)
 
 
 def war_aim_line(world, nation: str, enemy: str) -> str:

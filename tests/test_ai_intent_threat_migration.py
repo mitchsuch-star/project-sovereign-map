@@ -1788,7 +1788,28 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # never read (the Third Coalition is active from boot, so the loop never
 # brews). The prior's series: SERIES_BEFORE_T0EFG below.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 2, 0, 0, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by T3-3 (November 8, 2026 — the leash and its conduct rule;
+# the Tier-3 gate record AI_INTENT_SPEC.md §13.2 R4, the conduct half by
+# the user's "Extend with conduct rule"; `SYSTEMS_REFERENCE.md` §195).
+# Traced on the series' own loop. The attribution:
+# `tools/_t3_3_series_arms.py` → `tools/_t3_3_series_arms_final.json` —
+# arm 0 (both seams down) reproduces the prior BYTE FOR BYTE, so the two
+# seams isolate the slice exactly, and THE MOVER IS THE CONDUCT RULE
+# ALONE: the LEASH-down arm IS the shipped series, the CONDUCT-down arm
+# IS the prior. On this loop the leash is consulted and inert — the boot
+# pull equals the design, and its widening bites only where an objective
+# record targets foreign soil or home soil is lost. The shipped series
+# diverges at [10]: [10]-[11] 27/24 → 37/34 (the satellite's break moves
+# from world turn 11 to 13 — Switzerland's −10 lands at [12],
+# `vassal_broke_free`, traced), then [20] 0 → 2, [22] 2 → 0, [23] 0 → 2,
+# and the late [25]-[27] 7/4/1 never comes. Reach on the shipped arm: the
+# leash read 2,448 times, the conduct rule refused 1,800 deliberate
+# annexations and permitted 230. The prior's series: SERIES_BEFORE_T3_3.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# T0-E/F/G's series (T3-3's prior; the T3-3 rig's arm 0):
+SERIES_BEFORE_T3_3 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 2, 0, 0, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The courts' flip's series (T0-E/F/G's prior; the T0-EFG rig's arms 0 and T0G-EDS):
 SERIES_BEFORE_T0EFG = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 8, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # AU-4 part 1's series (the flip's prior; the AU-4 part 1 rig's ALL, the flip rig's AUC and AUY arms):

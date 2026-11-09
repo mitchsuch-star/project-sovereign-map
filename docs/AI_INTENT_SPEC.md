@@ -2465,7 +2465,13 @@ T3-3 and closes Q1 there.)*
 re-check finds Stage D over-budget, AI-3c may slip to Stage E carrying its Q1 row here as the
 written record — it must not silently vanish, because Q1 is a user question with a name on it.
 *(T3-3 takes it — §13.2 R4, November 8, 2026: the leash's bias read at `coerce`+ before the
-declaration IS the massing; Q1 closes at T3-3's landing.)*
+declaration IS the massing; Q1 closes at T3-3's landing.)* *(Corrected at T3-3's census,
+November 8, 2026 — recorded, not silently edited: AI-3c was ALREADY BUILT at Stage D (v1.4.2;
+`get_intent_frontier` + P7's crisis-frontier arm, pinned in
+`test_ai_intent_war_decision.py::TestAI3cFrontier` — massing ground, release with the crisis,
+deckless-empty). The "remains open" column above is the July reading; Q1 closed at Stage D and
+was re-verified at T3-3, whose leash adds the AT-WAR pull beside it — `SYSTEMS_REFERENCE.md`
+§195.)*
 
 ### 13.2 The Tier-3 gate record — the strategist *(ruled November 8, 2026, in Plan Mode at the tier's head; `DYNAMISM_SPEC.md` §2 Tier 3)*
 
@@ -2498,7 +2504,14 @@ court near its aim, an aim-held sue, and §13.1's AI-3c (Q1) stood open.
    should not capture there). A capture from a court the capturer is not at war with is outside
    by definition (the honesty counter). The ambient total never counts the PLAYER (France idle
    in the chains); the per-court map keeps everyone, and the AI-France surface reads its France
-   entry from the map.
+   entry from the map. *(Corrected at T3-3, November 8, 2026 — recorded, not silently edited:
+   the approved plan's R1 carried the capital default as its OWN union term ("∪ the objective's
+   capital default"); T3-1 folded it into `target_regions`, where the boot pairs' DEFENSE
+   records never carry it, so no enemy capital sat in any aim. It is restored PER PAIR — the
+   enemy's own seat, never the opposing leader's — as a metric credit (`war_aims_of_instance`)
+   and a conduct PERMISSION; the words and the leash read the STATED object alone
+   (`war_aim_core`). The T3-1 baseline (397) stays its slice's record; the corrected metric
+   reads 386 on the same world-lines — `SYSTEMS_REFERENCE.md` §195.)*
 2. **R2 — the metric first (T3-1 ✅, landed with this record).** `captures_outside_aim` derives
    OFFLINE from the digest alone — the instrument, never the engine: the aims are read ONCE at
    each war's opening onto the `wars_opened` rows (the BOOT wars' onto `boot.wars`, since the
@@ -2518,7 +2531,13 @@ court near its aim, an aim-held sue, and §13.1's AI-3c (Q1) stood open.
    the aim when home soil is threatened (P3.7 generalized, never duplicated). §13.1's AI-3c
    lands here: the same bias read at `coerce`+ BEFORE the declaration is the border massing —
    Q1 answered on the map. GR5 stands: same rungs, new bias input, no new movement system, no
-   teleports; a bought-off or cooled design releases the bias the same turn.
+   teleports; a bought-off or cooled design releases the bias the same turn. *(T3-3 ✅,
+   November 8, 2026: AI-3c was found already built at Stage D (§13.1's correction); the leash
+   landed as `aim_pull_set`, and — by the user's "Extend with conduct rule", after the pull
+   alone raised the debt 397 → 421 — its CONDUCT half: an at-war court deliberately annexes
+   only its pull or an enemy's seat (P4.5 and P4.25), binding only where a live war record
+   stands. The debt fell 386 → 208 on every seed; story classes 10 → 8, the honest cost —
+   `SYSTEMS_REFERENCE.md` §195.)*
 5. **R5 — the terms (T3-4).** Aim HELD (every aim region controlled by the court or its side) →
    the court SUES: AI–AI through the existing third-party settlement machinery with cessions =
    the aim's regions, never a random carve; AI–player as a NEW P8 diplomacy trigger at war

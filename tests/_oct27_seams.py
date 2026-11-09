@@ -169,6 +169,13 @@ from tests._t2_seams import T2_SEAMS_BY_ROW  # noqa: E402
 
 OCT27_SEAMS_DOWN += [spec for row in T2_SEAMS_BY_ROW for spec in T2_SEAMS_BY_ROW[row]]
 
+# Tier 3's seams ride the same hold-list (the T2 idiom): a recorded
+# board replays under the rules it was recorded under. The seams' own
+# rows: `tests/_t3_seams.py`.
+from tests._t3_seams import T3_SEAMS_BY_ROW  # noqa: E402
+
+OCT27_SEAMS_DOWN += [spec for row in T3_SEAMS_BY_ROW for spec in T3_SEAMS_BY_ROW[row]]
+
 
 def parse(spec: str):
     target, expr = str(spec).split("=", 1)

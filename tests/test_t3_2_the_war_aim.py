@@ -82,7 +82,11 @@ class TestTheRead:
 class TestTheWords:
     def test_the_line_speaks_the_outstanding_object(self, world):
         # Held soil is no object: the boot line is the Italian design,
-        # never the defense record's own provinces.
+        # never the defense record's own provinces — and never the
+        # capital default (T3-3: the enemy's seat is a PERMISSION and a
+        # metric credit, not a stated object; in the words it read
+        # 'Paris' for every coalition court and pushed the PC-F46 peace
+        # table below its fold).
         line = war_aim_line(world, "Austria", "France")
         assert line == "her object: Milan, Piedmont and Savoy"
 
@@ -159,10 +163,15 @@ class TestTheWords:
         assert t31["seeds"]["historical"]["signature"] \
             == t32["seeds"]["historical"]["signature"]
 
-    def test_an_aimless_war_folds_nothing(self, world):
-        # A staged war with no objective record and no design arm:
-        # the read is empty, both surfaces stay as they were.
-        from backend.game_logic.intent import build_intent_payload
+    def test_every_war_floors_at_the_enemys_capital(self, world):
+        # The T3-3 conduct extension's re-read of R1's capital default
+        # (the approved plan's own union term, under-implemented at
+        # T3-1): a staged war with no objective record and no design
+        # arm still carries the ENEMY'S seat in its FULL aim (the
+        # metric credit and the storm's permission) — per pair, never
+        # the opposing leader's. The words speak none of it: the stated
+        # object is empty, so no line folds.
+        from backend.game_logic.war_council import war_aim_core
         world.war_instances["t3_2::Sweden|Denmark"] = {
             "attackers": ["Sweden"], "defenders": ["Denmark"],
             "participant_meta": {"Sweden": {"side": "attackers"},
@@ -171,9 +180,6 @@ class TestTheWords:
         world.diplomatic_states[world._make_diplo_key(
             "Sweden", "Denmark")] = "WAR"
         _fresh_eyes(world)
-        # Sweden's contain design carries no acquire arm vs Denmark and
-        # no objective record exists for the staged pair.
-        assert war_aim(world, "Sweden", "Denmark") == []
-        payload = build_intent_payload("Sweden", world)
-        if payload is not None:
-            assert "her object" not in payload["summary"]
+        assert war_aim(world, "Sweden", "Denmark") == ["Copenhagen"]
+        assert war_aim_core(world, "Sweden", "Denmark") == []
+        assert war_aim_line(world, "Sweden", "Denmark") == ""

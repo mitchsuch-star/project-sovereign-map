@@ -349,18 +349,32 @@ def _NO_PROVINCE_LETTER(*a, **k):
     return None
 
 
+def _leash_off() -> bool:
+    """T3-3 held down (November 8, 2026): this file's drives replay the
+    committed courting script's RECORDED world-line, and the leash's
+    at-war pull lawfully re-times the ambient walk (the courtship
+    window arithmetic shifted a turn on the live rules) — a recorded
+    reading replays under the rules it was recorded under (the
+    VP2/mediation precedent; the seam's own row: tests/_t3_seams.py)."""
+    return False
+
+
 _PRE_SR1D_LEAGUE = ((AD, "THE_LEAGUE_TREATS_WHEN_SPENT", False),
                     (_IN, "A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE", False),
                     (_WC, "THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE", False),
                     (_CG, "THE_CLIENT_SENDS_ITS_CONTINGENT", False),
                     (ED, "A_CLIENTS_PARTITION_IS_THE_HEGEMONS", False),
-                    (AD, "province_letter_to_player", _NO_PROVINCE_LETTER))
+                    (AD, "province_letter_to_player", _NO_PROVINCE_LETTER),
+                    (_WC, "a_leash_pulls_the_march", _leash_off),
+                    (_WC, "annexation_follows_the_aim", _leash_off))
 _PRE_SR1D_LEAGUE_CLI = ["--lever", "backend.game_logic.ai_diplomacy:THE_LEAGUE_TREATS_WHEN_SPENT=0",
                         "--lever", "backend.game_logic.intent:A_HOLDER_WITHOUT_AN_ARMY_IS_A_PRIZE=0",
                         "--lever", "backend.game_logic.war_council:THE_DEFENCELESS_PRIZE_OPENS_AT_COERCE=0",
                         "--lever", "backend.game_logic.contingent:THE_CLIENT_SENDS_ITS_CONTINGENT=0",
                         "--lever", "backend.game_logic.emergent_designs:A_CLIENTS_PARTITION_IS_THE_HEGEMONS=0",
-                        "--seam", "backend.game_logic.ai_diplomacy:province_letter_to_player=None"]
+                        "--seam", "backend.game_logic.ai_diplomacy:province_letter_to_player=None",
+                        "--seam", "backend.game_logic.war_council:a_leash_pulls_the_march=False",
+                        "--seam", "backend.game_logic.war_council:annexation_follows_the_aim=False"]
 
 
 @pytest.fixture(autouse=True)

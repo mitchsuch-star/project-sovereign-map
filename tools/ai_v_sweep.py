@@ -173,6 +173,12 @@ class RunCapture:
         # of events a run produces, which the digest already retains anyway.
         self._seen_events = {id(e): e for e in world.event_log}
         self._war_ids = set((getattr(world, "war_instances", None) or {}))
+        # T3-3's instrument fix (the IQ-7 graft control's catch): the
+        # boot wars' records are read on the FIRST per-turn row, never
+        # off the boot block — a signature key sourced from the boot
+        # lets a converged run pass on its boot alone.
+        self._boot_war_ids = set(self._war_ids)
+        self._boot_wars_read = False
         self._ended_ids = {
             wid for wid, inst in
             (getattr(world, "war_instances", None) or {}).items()
@@ -229,6 +235,25 @@ class RunCapture:
                 # T3-1 (§13.2 R1): the boot wars' aim-sets — `_war_ids`
                 # pre-seeds with the boot instances, so these wars never
                 # reach `wars_opened` and the joiner reads them HERE.
+                "aims": self._war_aims(inst),
+            }
+        return out
+
+    def _first_row_boot_wars(self, wars_now) -> dict:
+        """The boot wars' records (membership, end, aims) on the FIRST
+        per-turn row only; `{}` on every later row."""
+        if self._boot_wars_read:
+            return {}
+        self._boot_wars_read = True
+        out = {}
+        for wid in sorted(self._boot_war_ids):
+            inst = wars_now.get(wid)
+            if not isinstance(inst, dict):
+                continue
+            out[wid] = {
+                "attackers": list(inst.get("attackers") or []),
+                "defenders": list(inst.get("defenders") or []),
+                "ended_turn": inst.get("ended_turn"),
                 "aims": self._war_aims(inst),
             }
         return out
@@ -407,6 +432,11 @@ class RunCapture:
             "war_intents": war_intents,
             "wars_opened": opened,
             "wars_ended": ended,
+            # T3-3 (the IQ-7 graft control's catch): the boot wars, with
+            # their aim-sets, recorded ONCE on the first row — a RUN fact
+            # (`derive_metrics` reads them here; the boot block's copy is
+            # read only for digests written before the fix).
+            "boot_wars": self._first_row_boot_wars(wars_now),
             "exhaustion": dict(getattr(world, "war_exhaustion", {}) or {}),
             "gold": {n: int(world.nation_gold.get(n, 0))
                      for n in [self.player] + active},
@@ -566,7 +596,12 @@ def derive_metrics(digest: dict) -> dict:
     # everyone, and the AI-France sweep's gate line reads its France
     # entry from the map (one instrument, two surfaces — §13.2 R2).
     war_rows = []
-    boot_wars = ((digest.get("boot") or {}).get("wars") or {})
+    # T3-3 (the IQ-7 graft control's catch): the boot wars come off the
+    # FIRST ROW — a run fact. The boot block's copy is the fallback only
+    # for a digest written before the fix (and crafted digests).
+    boot_wars = (turns[0].get("boot_wars") if turns else None)
+    if not boot_wars:
+        boot_wars = ((digest.get("boot") or {}).get("wars") or {})
     for wid, war in boot_wars.items():
         if war.get("ended_turn") is None:
             war_rows.append((0, dict(war, war_id=wid)))

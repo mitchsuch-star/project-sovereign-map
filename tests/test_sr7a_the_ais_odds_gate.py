@@ -119,7 +119,15 @@ class TestTheSmallGarrisonSurrenders:
         assert "detachment of 120 at Bohemia lays down its arms" in result["message"]
         assert bohemia.garrison_strength == 0
 
-    def test_p425_never_assaults_it_and_p45_prices_it_as_open_ground(self):
+    def test_p425_never_assaults_it_and_p45_prices_it_as_open_ground(
+            self, monkeypatch):
+        # T3-3 re-seat with its cause (November 8, 2026): the conduct
+        # rule keeps an at-war court's walk-ins to its aim, and Franconia
+        # is no aim of Austria's — this pin's subject is the surrender
+        # FLOOR (SR-7a), so the conduct seam is held down.
+        from tests._t3_seams import hold_down
+        hold_down(monkeypatch, [
+            "backend.game_logic.war_council:annexation_follows_the_aim=False"])
         world, executor, _gs = _boot()
         _stage_franconia(world, 47)
         ai = EnemyAI(executor)

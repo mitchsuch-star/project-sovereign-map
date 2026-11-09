@@ -319,7 +319,14 @@ class TestTheRepairedCandidateFilters:
     turns, and `BASELINE_SERIES` byte-identical, because every order these
     gates remove was already being refused."""
 
-    def test_undefended_capture_reads_the_crossing_gate(self, world, ai):
+    def test_undefended_capture_reads_the_crossing_gate(self, world, ai,
+                                                         monkeypatch):
+        # T3-3 re-seat with its cause: the conduct rule keeps Britain's
+        # walk-ins to her aim; this pin's subject is the CROSSING GATE
+        # (DEF-5 §4.1), so the conduct seam is held down.
+        from tests._t3_seams import hold_down
+        hold_down(monkeypatch, [
+            "backend.game_logic.war_council:annexation_follows_the_aim=False"])
         british = world.get_marshals_by_nation("Britain")
         marshal = british[0]
         marshal.location = "London"
@@ -350,7 +357,14 @@ class TestTheRepairedCandidateFilters:
         offered = ai._find_attack_opportunity(marshal, "Britain", world)
         assert offered is not None and offered["target"] == french.name
 
-    def test_garrison_assault_reads_the_crossing_gate(self, world, ai):
+    def test_garrison_assault_reads_the_crossing_gate(self, world, ai,
+                                                       monkeypatch):
+        # T3-3 re-seat with its cause: a storm is a deliberate annexation
+        # and the conduct rule keeps it to the aim; this pin's subject is
+        # the CROSSING GATE, so the conduct seam is held down.
+        from tests._t3_seams import hold_down
+        hold_down(monkeypatch, [
+            "backend.game_logic.war_council:annexation_follows_the_aim=False"])
         british = world.get_marshals_by_nation("Britain")
         marshal = british[0]
         marshal.location = "London"

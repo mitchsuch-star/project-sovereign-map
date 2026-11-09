@@ -1170,8 +1170,14 @@ class EnemyAI:
         key = (nation, world.current_turn)
         if cache is not None and cache.get("key") == key:
             return cache["covets"]
-        from backend.game_logic.agendas import get_agenda_military_targets
-        covets = frozenset(get_agenda_military_targets(nation, world))
+        # T3-3 (the Tier-3 gate record §13.2 R4 — the leash): the pull
+        # widens at war to the court's WAR AIMS (the objective record's
+        # targets and the recapture of its own lost soil join the
+        # design's unmet targets); `war_council.aim_pull_set` is the ONE
+        # predicate, this memo its per-(nation, turn) cache, and the
+        # four ranged pick surfaces read exactly what they always read.
+        from backend.game_logic.war_council import aim_pull_set
+        covets = aim_pull_set(world, nation)
         self._agenda_covet_cache = {"key": key, "covets": covets}
         return covets
 
@@ -4482,6 +4488,15 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: not at war with {adj_region.controller}")
                 continue
 
+            # T3-3 (§13.2 R4, the conduct rule): an at-war court ANNEXES
+            # only its aim — off-pull soil is not grabbed in passing
+            # (`war_council.annexation_permitted`; the recapture of own
+            # lost soil rides the pull, so the road home stays open).
+            from backend.game_logic.war_council import annexation_permitted
+            if not annexation_permitted(world, nation, adj_name):
+                ai_debug(f"        -> Skip: {adj_name} is outside the aim")
+                continue
+
             # DEF-5 naval §4.1 — the crossing gate. This rung was MISSED by
             # NV-2's 18 threaded candidate sites: an undefended enemy
             # province across a sea link was offered as an ordinary capture
@@ -4603,6 +4618,14 @@ class EnemyAI:
                 continue
             # Skip garrisons of nations we're not at war with
             if adj_region.controller and not world.is_at_war(nation, adj_region.controller):
+                continue
+
+            # T3-3 (§13.2 R4, the conduct rule): a storm is a deliberate
+            # annexation — an at-war court takes only its aim
+            # (`war_council.annexation_permitted`).
+            from backend.game_logic.war_council import annexation_permitted
+            if not annexation_permitted(world, nation, adj_name):
+                ai_debug(f"    P4.25: {adj_name} is outside the aim — no storm")
                 continue
 
             # T0-E (GR-36): one storm per (marshal, garrison) a phase — the

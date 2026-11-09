@@ -1109,7 +1109,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # rebellion of turn 14 reads verbatim (`vassal_broke_free`,
         # exit=vassal_rebellion; the trace in the attribution block). The
         # contract — the cap DELAYS, it does not save — stands.
-        assert capped == 11, capped
+        # Re-measured by T3-3 (November 8, 2026; the leash and its conduct
+        # rule, SYSTEMS_REFERENCE §195; `tools/_t3_3_series_arms_final.json`):
+        # capped 13 — the satellite breaks two turns later on the board the
+        # re-aimed marches re-time (`vassal_broke_free` during the twelfth
+        # end_turn, its −10 at series index [12]). With both T3-3 seams
+        # held down in the child it reads 11 verbatim; the conduct rule
+        # alone up (leash down) 13, the leash alone up (conduct down) 11 —
+        # the conduct rule is the mover. The contract — the cap DELAYS,
+        # it does not save — stands.
+        assert capped == 13, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.
@@ -1283,6 +1292,16 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     27, the step from index 9 to 10, world turn 11): -3 decay - 10
         #     as Switzerland rebels (`vassal_broke_free`,
         #     exit=vassal_rebellion). `_rebellion_turn(True)` measures 11 =
+        #     index + 1.
+        # T3-3, the leash and its conduct rule (November 8, 2026;
+        # SYSTEMS_REFERENCE §195): the re-recorded series keeps the form.
+        # Traced on the rebellion runner's own loop:
+        #   - the Kingdom of Italy still falls at world turn 9 (the step from
+        #     index 7 to 8, 56 -> 43, signature -13). Named and excluded;
+        #   - the capped exit is the unique largest ORDINARY fall, -13 (34 ->
+        #     21, the step from index 11 to 12, world turn 13): -3 decay - 10
+        #     as Switzerland rebels (`vassal_broke_free`, traced during the
+        #     twelfth end_turn). `_rebellion_turn(True)` measures 13 =
         #     index + 1.
         ELIMINATION_STEP = 7
         assert steps[ELIMINATION_STEP] == -13, steps

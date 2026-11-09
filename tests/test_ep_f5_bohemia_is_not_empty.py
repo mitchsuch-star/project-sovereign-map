@@ -101,10 +101,18 @@ class TestTheWalkInCap:
         taken = _bavarias_phase(_boot())
         assert len(taken) <= 1, taken
 
-    def test_the_cap_is_the_corps_movement_range(self):
+    def test_the_cap_is_the_corps_movement_range(self, monkeypatch):
         """A cavalry corps (range 2) may take two; the counter is per corps.
         Staged on the board where the literal check passes (every Austrian
-        corps far from the frontier), so only the cap can refuse him."""
+        corps far from the frontier), so only the cap can refuse him.
+
+        T3-3 re-seat with its cause (November 8, 2026): the conduct rule
+        keeps Bavaria's walk-ins to her aim (the Tyrol and Vienna), so
+        Bohemia and Carniola are no longer hers to take at all; this
+        pin's subject is the CAP, so the conduct seam is held down."""
+        from tests._t3_seams import hold_down
+        hold_down(monkeypatch, [
+            "backend.game_logic.war_council:annexation_follows_the_aim=False"])
         world = _check_passes_board()
         deroy = world.marshals["Deroy"]
         ai = EnemyAI(CommandExecutor())
@@ -115,10 +123,17 @@ class TestTheWalkInCap:
         ai._walk_ins_this_turn = {"Deroy": 2}
         assert ai._find_undefended_capture(deroy, "Bavaria", world) is None
 
-    def test_the_action_is_tagged_and_the_loop_counts_it(self):
+    def test_the_action_is_tagged_and_the_loop_counts_it(self, monkeypatch):
         """The rung's dict carries `walk_in` so the loop can count it (staged
         on the board where the literal check passes: at boot it refuses Deroy
-        Bohemia, 74,000 against 22,000 — the other half of the slice)."""
+        Bohemia, 74,000 against 22,000 — the other half of the slice).
+
+        T3-3 re-seat with its cause: the conduct rule closes Bohemia to
+        Bavaria (no aim of hers); the subject is the TAG and the COUNT,
+        so the conduct seam is held down."""
+        from tests._t3_seams import hold_down
+        hold_down(monkeypatch, [
+            "backend.game_logic.war_council:annexation_follows_the_aim=False"])
         world = _check_passes_board()
         deroy = world.marshals["Deroy"]
         ai = EnemyAI(CommandExecutor())
