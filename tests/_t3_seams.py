@@ -31,6 +31,12 @@ prior tree's reading byte for byte.
           P8-Aim, the aim's letter to France at war score 25; down: only
           P8's dictated letter past 40.
 
+    T3-5  `war_council.the_conduct_binds_every_runner` — the conduct rule
+          binds an AI-run France (the harness) as every court; a marshal
+          under the player's independent command stays exempt; down: the
+          whole player nation exempt (T3-3's reading). (The terms'
+          consistency fix of T3-5 rides T3-4's `a_held_aim_sues`.)
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -46,6 +52,9 @@ T3_SEAMS_BY_ROW = {
     "T3-4": [
         "backend.game_logic.settlement_third_party:a_held_aim_sues=False",
         "backend.game_logic.ai_diplomacy:a_held_aim_offers_terms=False",
+    ],
+    "T3-5": [
+        "backend.game_logic.war_council:the_conduct_binds_every_runner=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

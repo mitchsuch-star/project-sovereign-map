@@ -1,0 +1,162 @@
+{
+ "_note": "T3-4 the terms \u2014 the census (aim peaces by both AI\u2013AI roads, P8-Aim letters France received, the debt) per seed, from the same digests as the signature record.",
+ "seeds": {
+  "austerlitz": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 34,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "eylau": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 18,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,502 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "friedland": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 26,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,024 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "historical": {
+   "aim_letters": [
+    {
+     "proposer": "Austria",
+     "turn": 9
+    }
+   ],
+   "aim_peaces": [],
+   "captures_outside_aim": 21,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,459 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ]
+  },
+  "jena": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 14
+    }
+   ]
+  },
+  "lodi": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 22,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,760 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 21
+    }
+   ]
+  },
+  "marengo": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 15
+    }
+   ]
+  },
+  "rivoli": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 11,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,485 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "ulm": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "captures_outside_aim": 20,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,730 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 18
+    }
+   ]
+  },
+  "wagram": {
+   "aim_letters": [
+    {
+     "proposer": "Austria",
+     "turn": 9
+    }
+   ],
+   "aim_peaces": [],
+   "captures_outside_aim": 16,
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,007 gold. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ]
+  }
+ },
+ "totals": {
+  "aim_letters": 2,
+  "aim_peaces": 0,
+  "captures_outside_aim": 208,
+  "signed_cessions": 10
+ },
+ "turns": 40
+}

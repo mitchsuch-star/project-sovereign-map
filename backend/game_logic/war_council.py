@@ -648,6 +648,19 @@ def annexation_follows_the_aim() -> bool:
     return True
 
 
+def the_conduct_binds_every_runner() -> bool:
+    """T3-5 (the Tier-3 gate record §13.2 R7 kept — no France-literal mode):
+    the conduct rule binds WHOEVER runs the AI's rungs. The player-nation
+    clause T3-3 wrote ("the player's own rungs never run here") never
+    bound a human — the turn manager runs the AI's rungs for the AI courts
+    alone (`_process_enemy_turns`; the debug turn refuses the player) — so
+    its only reach was the AI-run France of the harness
+    (`tools/ai_france_sweep.py`), left free to annex off its aim: the
+    deploy gate's AI-France surface (France's `captures_outside_aim`
+    entry) could never read 0. Down: the exemption restored."""
+    return True
+
+
 def _is_enemy_seat(world, nation: str, region_name: str) -> bool:
     """Is `region_name` the capital of a court `nation` holds a live war
     record against? R1's capital default read as a PERMISSION."""
@@ -658,7 +671,8 @@ def _is_enemy_seat(world, nation: str, region_name: str) -> bool:
     return False
 
 
-def annexation_permitted(world, nation: str, region_name: str) -> bool:
+def annexation_permitted(world, nation: str, region_name: str,
+                         marshal=None) -> bool:
     """May `nation` deliberately ANNEX `region_name`? The conduct rule:
     an at-war court annexes only its aim — the pull (`aim_pull_set`:
     the design's unmet targets and the outstanding stated objects, the
@@ -672,13 +686,21 @@ def annexation_permitted(world, nation: str, region_name: str) -> bool:
     diplomatic state (the legacy rollback world, a crafted board) has
     no aim to read, and the court fights there as it always did: the
     first conduct cut froze the AI outright on such worlds — the
-    extension's own catch. The player's conduct is their own (their
-    rungs never run here), and a VASSAL'S contingent fights its lord's
-    war under the lord's direction (VD-C) — both exempt."""
+    extension's own catch. A VASSAL'S contingent fights its lord's war
+    under the lord's direction (VD-C) — exempt. The player's nation was
+    wholly exempt until T3-5 (`the_conduct_binds_every_runner`): a human's
+    own commands never pass through here, and the one human road that runs
+    the AI's rungs — a marshal granted INDEPENDENT COMMAND
+    (`EnemyAI.decide_single_action`, the player's grant) — stays exempt by
+    the `marshal` it acts with; an AI-run France (the harness) is bound. A
+    read with no `marshal` keeps the T3-3 reading (it cannot tell the
+    two apart)."""
     if not annexation_follows_the_aim():
         return True
     if nation == getattr(world, "player_nation", "France"):
-        return True
+        if (not the_conduct_binds_every_runner() or marshal is None
+                or getattr(marshal, "autonomous", False)):
+            return True
     if nation in (getattr(world, "vassals", {}) or {}):
         return True
     region = (getattr(world, "regions", {}) or {}).get(str(region_name))

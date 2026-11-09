@@ -389,6 +389,11 @@ def run_one(seed, ambient_base, turns, steward=False):
     os.environ["LLM_MODE"] = "mock"
     os.environ.pop("SOVEREIGN_SCENARIO", None)
     os.environ.pop("SOVEREIGN_MAP", None)
+    # T3-5: the measure's seam channel (AU-2c's hook, `tools/_seams_env.py`)
+    # reaches this child too — a chain holds a seam down through
+    # `INK_IRON_SEAMS` exactly as the ambient sweep's children do.
+    from tools._seams_env import apply_from_env
+    apply_from_env()
     import random
 
     from backend.commands.executor import CommandExecutor
@@ -483,8 +488,11 @@ def spawn(seed, ambient_base, turns, json_out, timeout=900, steward=False):
             "--turns", str(turns), "--json-out", str(json_out)]
     if steward:
         args.append("--steward")
+    # T3-5: the child prints UTF-8 (`-X utf8`); a cp1252 reader thread died
+    # on it silently, losing exactly the stderr a failure line prints.
     proc = subprocess.run(args, env=env, cwd=str(REPO_ROOT),
-                          capture_output=True, text=True, timeout=timeout)
+                          capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", timeout=timeout)
     if proc.returncode != 0:
         print(f"FAILED {seed}: {proc.stderr[-1500:]}")
     return proc.returncode

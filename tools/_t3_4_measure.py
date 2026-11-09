@@ -48,10 +48,30 @@ AIM_EXIT = "aim_held_sue"
 AIM_LETTER = "aim_peace"
 
 
+def _signs_provinces(event: dict) -> bool:
+    """T3-5: an AI peace whose words name provinces signed over — "X takes
+    Y" (the instance road's consequence) or "X keeps Y by treaty" (the pair
+    exits' lock)."""
+    words = str(event.get("consequence") or "")
+    if event.get("exit") == AIM_EXIT:
+        return True
+    if event.get("exit"):
+        # a pair exit's own words ("… takes it on the held line") are no
+        # cession; only the lock's sentence is
+        return "keeps " in words and "by treaty" in words
+    return " takes " in f" {words}"
+
+
 def census_of(digest: dict) -> dict:
-    peaces, letters = [], []
+    peaces, letters, signed = [], [], []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if event.get("type") == "third_party_peace" and _signs_provinces(event):
+                signed.append({"turn": int(row.get("turn", 0)),
+                               "proposer": str(event.get("proposer") or ""),
+                               "accepter": str(event.get("accepter") or ""),
+                               "exit": str(event.get("exit") or ""),
+                               "consequence": str(event.get("consequence") or "")})
             if (event.get("type") == "third_party_peace"
                     and event.get("exit") == AIM_EXIT):
                 peaces.append({"turn": int(row.get("turn", 0)),
@@ -63,7 +83,7 @@ def census_of(digest: dict) -> dict:
                 letters.append({"turn": int(row.get("turn", 0)),
                                 "proposer": str(prop.get("proposer") or "")})
     metrics = derive_metrics(digest)
-    return {"aim_peaces": peaces, "aim_letters": letters,
+    return {"aim_peaces": peaces, "aim_letters": letters, "signed_cessions": signed,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0)}
 
 
@@ -114,6 +134,7 @@ def main() -> None:
         "totals": {
             "aim_peaces": sum(len(c["aim_peaces"]) for c in census.values()),
             "aim_letters": sum(len(c["aim_letters"]) for c in census.values()),
+            "signed_cessions": sum(len(c["signed_cessions"]) for c in census.values()),
             "captures_outside_aim": sum(c["captures_outside_aim"]
                                         for c in census.values()),
         },

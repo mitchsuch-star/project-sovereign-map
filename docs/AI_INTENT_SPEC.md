@@ -2571,6 +2571,61 @@ court near its aim, an aim-held sue, and §13.1's AI-3c (Q1) stood open.
 (this record's session) → T3-2 the war aim → T3-3 the leash + AI-3c → T3-4 the terms → T3-5
 chains C and D.
 
+### 13.3 The Tier-3 landing record — the strategist *(T3-1 … T3-5, November 8–9, 2026; authoritative)*
+
+**What the tier set out to do** (§13.2's thesis): AI wars GO somewhere — a court's war serves
+its aim, its corps march the aim's way, and the war ends on the aim's terms. The deploy-gate
+condition it took on: `captures_outside_aim` reads 0 on the ten ambient seeds AND on the
+AI-France sweep's France entry — measured at the gate, never claimed here.
+
+**The slices, as landed** (each its own commit through the hook):
+
+| Slice | Commit | What landed | The measure it moved |
+|---|---|---|---|
+| gate + T3-1 | `929e2255` | §13.2 ruled; the march metric, offline from the digest | the starting debt: 397 (386 once T3-3 restored R1's capital default) |
+| T3-2 | `4cc88453` | `war_council.war_aim`, one read spoken in words | zero movers |
+| T3-3 | `99b5506f` | the leash (`aim_pull_set`) and the conduct rule (the user's "Extend with conduct rule") | the debt 386 → 208 on every seed; story classes 10 → 8, the honest cost |
+| T3-4 | `40c73480` | the terms: an aim-held court sues (AI–AI along authored aims; P8-Aim to France) | ten aim peaces; the debt 208 → 228 (a purse butterfly) |
+| T3-5 | this record's commit | the terms made consistent (the user's "do what's best"); the conduct rule binds the harness France; chains C and D | the debt back to 208; France's entry 245 → 194 |
+
+**The rulings as landed, with every correction the slices recorded:** R1 — the capital default
+restored PER PAIR (T3-3), a metric credit and a conduct permission, never a stated object;
+R2 — as ruled; R3 — the words speak the OUTSTANDING object (T3-2); R4 — AI-3c found already built
+at Stage D (T3-3), the conduct half added by the user's word; R5 — P8 found already built
+(T3-4: the aim letter is its first arm), "held" read as a DELIVERED gain, and (T3-5) the victor's
+lenient peace taken only by a loser still standing, a broken loser suing and paying on its own
+road with the aim signed over by name in every peace; R6 — chains C and D as ruled; R7 — kept:
+no new world field, no new log type, bias never dice, D1–D4 standing, and no France-literal
+mode (T3-5 bound the AI-run France of the harness by the courts' own conduct rule, a marshal
+under the player's independent command left exempt — a narrowing, not a mode).
+
+**Chain C — the tier's ambient re-record** (`tools/_dy_signature_t3_5_chain_c_2026_11_09.json`,
+the census beside it): the final tree reproduces T3-3's world-lines BYTE FOR BYTE on every seed
+— T3-4's two movers were the purse butterfly the consistency fix removed (Hanover, broken when
+Prussia takes its capital, pays its indemnity again — and signs the province over by name, on
+every seed). Against T2-6, the tier moved nine of ten world-lines (marengo's alone unmoved),
+story classes 10 → 8 (eylau and jena joined wagram's story when the conduct rule spared Holland
+and kept Spain out of the fight), and the debt column reads **208** (from 386 at the tier's
+head).
+
+**Chain D — the AI-France sweep** (`tools/_t3_5_chain_d_2026_11_09.json`, two arms on one tree):
+France's entry reads **245 with the T3-3 exemption, 194 with the harness France bound** — a
+fifth gone, and the march toward Estonia (Lithuania, Samogitia, Estonia) still taken on every
+seed in both arms: it is the road to St. Petersburg, a permitted seat, and its provinces fall
+as France's columns enter them. 41 of France's 213 captures in the bound arm are LIBERATIONS —
+an ally's homeland retaken and handed back — which R1's narrow aim-set counts outside France's
+aim.
+
+**What stays open — the residual debt** (DYNAMISM_SPEC.md §8 row T3-6, the user's ruling at the
+tier's close): the conduct rule refuses DELIBERATE off-aim annexations, so what remains is what
+it leaves by design — a march entering undefended soil on the road to a permitted target, a
+field battle's follow-up, and a liberation. The gate's 0 needs one of two rulings: (a) the
+march's discipline — a corps crossing enemy soil outside its aim passes through it without
+annexing, and an ally's homeland retaken counts as the alliance's aim; or (b) the gate's
+definition — it counts deliberate annexations outside the aim (which the conduct rule already
+holds), liberations credited, the capture events tagged with their road so the instrument can
+tell. Neither is pre-decided.
+
 ---
 
 ## 14. Landing record — Stage A + Stage B *(July 24, 2026, one session; authoritative)*

@@ -14312,3 +14312,60 @@ classes hold at 8** (the partition unchanged); **the debt reads 208 → 228**,
 the rise austerlitz's alone — a butterfly through a purse, reported, never
 hidden. The standing series, wo_slice9's courting cap, the IQ-6 drives and
 the dd1 records did not move.
+
+## §197 Tier 3, session 5 — T3-5, the tier closes: the terms made consistent, chains C and D (November 9, 2026 — TIER 3 COMPLETE)
+
+**The slice** (§13.2 R6; the landing record `AI_INTENT_SPEC.md` §13.3; `DYNAMISM_SPEC.md` §8
+rows T3-5 ✅ and T3-6 (open, the user's ruling); pins `tests/test_t3_5_the_tier_closes.py`; the
+new seam `war_council.the_conduct_binds_every_runner` in `tests/_t3_seams.py`).
+
+**The terms made consistent** (the user's answer at the session's head: "lets do whats best not
+whats easiest" — under T3-4's seam `a_held_aim_sues`, so T3-4's control record stays the
+seams-down truth). T3-4's lenient aim peace ran FIRST in the turn's pass and pre-empted a broken
+loser's own surrender: on all ten ambient seeds Prussia took Hanover's capital on the very turn
+Hanover was past its peace line, so Prussia took LESS than Hanover was about to give (its suit
+carried ~2,610 gold), and Hanover's survival on marengo came from that inconsistency. The fix
+decides by WHO IS BREAKING — the shape the letter to France already had (the aim's terms at 25,
+the dictated ladder past 40): `aim_terms_signable` signs only while the loser STANDS near its
+line (`line ≤ score ≤ line + AIM_TERMS_BAND`), the limited peace that ends a war before collapse
+(Basel, Campo Formio); a loser PAST its line sues on its own road and pays the war's indemnity
+as it always has, and every peace that ends a war whose victor holds its aim signs the aim's
+provinces over by name — `held_aim_lock`, read by `build_third_party_terms` (the loser's suit
+and the broker road) and by the loser-sues and mutual-exhaustion pair exits ("Bavaria keeps
+Tyrol by treaty") — so the gain is a signed title, never a status-quo retention that a lightly
+held province loses to the unheld-homeland return (Pressburg, Tilsit).
+
+**The conduct rule binds the harness France.** Planning chain D found that T3-3's player-nation
+exemption never bound a human — the turn manager runs the AI's rungs for the AI courts — except
+on ONE road: a marshal under the player's INDEPENDENT COMMAND acts through the same rungs
+(`EnemyAI.decide_single_action`). So the exemption is narrowed, not dropped:
+`annexation_permitted` takes the acting `marshal`, binds an AI-run France (the harness) as every
+court, and leaves an autonomous player marshal exempt; a read with no marshal keeps T3-3's
+reading. The AI-France sweep's child now reads `INK_IRON_SEAMS` (the AU-2c hook) and decodes its
+child's UTF-8 (a cp1252 reader thread had been dying on it silently).
+
+**Chain C — the tier's ambient re-record** (`tools/_t3_4_measure.py` → `tools/_dy_signature_t3_5_chain_c_2026_11_09.json`,
+census `tools/_t3_5_chain_c_census_2026_11_09.json`; run twice, byte-identical): the final tree
+reproduces **T3-3's world-lines BYTE FOR BYTE on every seed** — T3-4's two movers were the purse
+butterfly the fix removed. The census reads the lock on every seed (ten signed cessions:
+"Prussia takes Hanover. Hanover pays … gold."), no lenient aim peace (Hanover was broken each
+time), Austria's aim letter to France twice (turn 9, historical and wagram). **Against T2-6
+the tier moved nine of ten world-lines** (marengo's alone unmoved), story classes **10 → 8** (the
+conduct rule's honest cost) and the debt column reads **208** (386 at the tier's head).
+
+**Chain D — the AI-France sweep** (`tools/_t3_5_chain_d.py` → `tools/_t3_5_chain_d_2026_11_09.json`;
+the digests in the gitignored `tools/playtest_runs/t3_5_chain_d/`): France's
+`captures_outside_aim` entry reads **245 with T3-3's exemption (arm D0), 194 with the harness
+France bound (arm D)**. The march toward Estonia — the November 6 review's finding — is still
+taken on every seed in both arms: Lithuania, Samogitia and Estonia lie on the road to St.
+Petersburg, a permitted seat, and fall as France's columns enter them. 41 of France's 213
+captures in arm D are LIBERATIONS (an ally's homeland retaken and handed back), which R1's narrow
+aim-set counts outside France's aim.
+
+**What stays open — the residual debt, row T3-6.** The conduct rule refuses deliberate off-aim
+annexations; the residual (ambient 208, AI-France 194) is what it leaves by design — march
+entry, a battle's follow-up, liberations. The deploy gate's 0 needs the user's ruling: (a) the
+march's discipline (a corps crossing enemy soil outside its aim passes through without
+annexing; an ally's homeland retaken counts as the alliance's aim) or (b) the gate's definition
+(deliberate annexations outside the aim, liberations credited, capture events tagged with their
+road). Neither pre-decided; the row names its owner, landing, completion and test.

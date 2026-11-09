@@ -4493,7 +4493,7 @@ class EnemyAI:
             # (`war_council.annexation_permitted`; the recapture of own
             # lost soil rides the pull, so the road home stays open).
             from backend.game_logic.war_council import annexation_permitted
-            if not annexation_permitted(world, nation, adj_name):
+            if not annexation_permitted(world, nation, adj_name, marshal=marshal):
                 ai_debug(f"        -> Skip: {adj_name} is outside the aim")
                 continue
 
@@ -4624,7 +4624,7 @@ class EnemyAI:
             # annexation — an at-war court takes only its aim
             # (`war_council.annexation_permitted`).
             from backend.game_logic.war_council import annexation_permitted
-            if not annexation_permitted(world, nation, adj_name):
+            if not annexation_permitted(world, nation, adj_name, marshal=marshal):
                 ai_debug(f"    P4.25: {adj_name} is outside the aim — no storm")
                 continue
 
