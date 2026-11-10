@@ -68,6 +68,19 @@ prior tree's reading byte for byte.
           province's capture erases the court, and the auto-charge asks
           nothing (the pre-T4-2 world).
 
+    T4-2b `game_end.a_court_removes_its_seat` — the court removes (§3c
+          "The seat", session A): a court whose seat a treaty of its own
+          house titles to another holder moves it to the richest homeland
+          province in its hands, and the seat returns with the authored
+          capital; the moved seat rides `Region.is_capital` (no field);
+          down: a court's seat is its authored capital for ever.
+
+    T4-3  `reforms.a_minor_may_rise` — promotion (§3c G6, row DY-1b): a
+          `rank` law — the 1806 crowns — may be enacted on its design's
+          grounds and raises its court's DERIVED rank, and lapses when the
+          grounds are lost; down: the promotion laws are struck at boot,
+          a rank law enacts and raises nothing.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -99,6 +112,12 @@ T3_SEAMS_BY_ROW = {
     ],
     "T4-2": [
         "backend.game_logic.settlement_third_party:a_crown_falls_only_by_treaty=False",
+    ],
+    "T4-2b": [
+        "backend.game_logic.game_end:a_court_removes_its_seat=False",
+    ],
+    "T4-3": [
+        "backend.game_logic.reforms:a_minor_may_rise=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

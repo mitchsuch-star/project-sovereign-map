@@ -2867,7 +2867,9 @@ def _court_seat(world, court: str) -> str:
     the court's display name when the capital is unknown."""
     from backend.game_logic.formations import formed_display_name
     try:
-        seat = world.get_nation_capital(court)
+        # T4-2b: a seat that has removed is a province's name, no metonym.
+        from backend.game_logic.game_end import seat_as_metonym
+        seat = seat_as_metonym(world, court)
     except Exception as exc:
         report(exc, "settlement_staging._court_seat: world.get_nation_capital")
         seat = ""

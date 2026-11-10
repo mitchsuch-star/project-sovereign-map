@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 This is a single-developer project with pre-commit-hook test gating and Codex audits run by commit SHA. Branch-per-slice / worktree-per-slice creates state-drift bugs (the branch falls behind master between slices, the merge back is noisy, and the audit prompt still ends up referencing master after merge anyway). The workflow is intentionally single-threaded: one local master worktree, one active implementation path, and audit/fix follow-ups recorded by master commit SHA. The default is:
 
 - **Commit directly to master.** No `claude/<slice-id>` feature branch, no worktree.
-- **The pre-commit hook runs `ruff check backend/` + the full pytest suite, IN PARALLEL** (`-n 10 --dist loadgroup` under pytest-xdist; measured 8:49 on this machine November 10, 2026 — the user's "the gate stays, the wait goes", then "Yes, split it"; `tests/conftest.py` keeps each test module on one worker, the window-opening modules in ONE `engine` lane with two headless lanes beside it, and gives a worker's child processes `stdin=DEVNULL` so none can eat the execnet channel). If a commit is blocked, fix the underlying lint/test failures — do not bypass with `--no-verify`. The hook source is tracked at `scripts/git-hooks/pre-commit`; since `.git/hooks/` is not version-controlled, install it after a fresh clone with `cp scripts/git-hooks/pre-commit .git/hooks/pre-commit` (PowerShell: `Copy-Item scripts/git-hooks/pre-commit .git/hooks/pre-commit`).
+- **The pre-commit hook runs `ruff check backend/` + the full pytest suite, IN PARALLEL** (`-n 10 --dist loadgroup` under pytest-xdist; measured 8:22 on this machine November 10, 2026 — the user's "the gate stays, the wait goes", then "Yes, split it"; `tests/conftest.py` keeps each test module on one worker, the window-opening modules in ONE `engine` lane with two headless lanes beside it, and gives a worker's child processes `stdin=DEVNULL` so none can eat the execnet channel). If a commit is blocked, fix the underlying lint/test failures — do not bypass with `--no-verify`. The hook source is tracked at `scripts/git-hooks/pre-commit`; since `.git/hooks/` is not version-controlled, install it after a fresh clone with `cp scripts/git-hooks/pre-commit .git/hooks/pre-commit` (PowerShell: `Copy-Item scripts/git-hooks/pre-commit .git/hooks/pre-commit`).
 - **Codex audits target master at the slice's commit SHA.** When emitting an audit prompt, write `Audit master at commit <SHA>...` rather than naming a feature branch. The audit prompt should also instruct Codex to verify any follow-up work continues on master.
 - **If the harness spawns a worktree on a `claude/...` branch anyway:** finish the slice in the worktree (avoid mid-session churn), push branch-tip-to-master via `git push origin <branch>:master`, and add a note to the session summary recommending the user disable auto-worktree creation in their launcher.
 - **Exception:** Use a feature branch only when the slice is genuinely throwaway/experimental and the user explicitly asks for one.
@@ -32,7 +32,7 @@ This is a single-developer project with pre-commit-hook test gating and Codex au
 > its plans are `docs/CODE_HEALTH_PLAN.md` and `docs/UX_UI_REVIEW_PLAN.md`.
 > **`docs/STATUS.md` ▶ NEXT UP says what is next, what landed last and what the
 > user owes — read it first, every session.** S14b–S14f COMPLETE, D12–D22 BUILT (§152);
-> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R the review's tiers, then the deploy**.
+> **S14j (§159); S14k (§160); RE ✅ COMPLETE Nov 2; AU GATE ✅ RULED Nov 3 (`AUTHORITY_CURRENCY_SPEC.md` §4–§7); AU-1 ✅ Nov 3, AU-2a/2b/2c ✅ Nov 4, AU-3a/3b ✅ Nov 5, AU-4 ✅ Nov 6 (§6.1–§6.8) — ROW AU ✅ COMPLETE; S15's head ✅ Nov 6 (§177); S15-R the review's tiers (0–4 ✅ Nov 10; next 5), then the deploy**.
 
 **▶ LIVE STATE (Nov 6, 2026).** The three most recent rows:
 - **S15's head (Nov 6) — RE3-9/6/7 FIXED: the sidecars, the Crown's vassal Francis, the roads re-recorded; 0 open rows** (§177).
@@ -344,7 +344,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD) cost 2 AP (1 for literal and the sovere
 
 # Tests (MUST use Windows paths — see note above)
 cd "C:\Users\User\PycharmProjects\project-sovereign-map"
-".venv\Scripts\python.exe" -m pytest tests/ -q -n 10 --dist loadgroup  # Full suite, parallel (what the hook runs; ~8:49)
+".venv\Scripts\python.exe" -m pytest tests/ -q -n 10 --dist loadgroup  # Full suite, parallel (what the hook runs; ~8:22)
 ".venv\Scripts\python.exe" -m pytest tests/ -v                          # Full suite, serial (~26 min)
 ".venv\Scripts\python.exe" -m pytest tests/ -v --tb=no -q              # Quick count
 ".venv\Scripts\python.exe" -m pytest tests/test_objection_v2.py -v     # V2 tests only

@@ -57,7 +57,12 @@ class TestTheAuthoredCatalogue:
         # amended R6: the five great powers' decks and the Porte's one-law
         # deck, the New Order.
         block = scenario["reforms"]
-        assert set(block) == set(R.REFORM_DECKS)
+        # RE-SEATED by T4-3 (session A, November 10, 2026): the five crowns of
+        # 1806 are promotion decks (every row a `rank` law) — no R6 deck.
+        assert {c for c, rows in block.items()
+                if not all(R.is_promotion(r) for r in rows)} == set(R.REFORM_DECKS)
+        assert {c for c, rows in block.items() if all(R.is_promotion(r) for r in rows)} == {
+            "Bavaria", "Saxony", "Hesse", "Denmark", "Sardinia"}
         assert set(R.REFORM_DECKS) == set(R.GREAT_POWERS) | {"Ottoman"}
 
     def test_one_staff_per_court_one_price_for_all(self, scenario):
@@ -263,7 +268,11 @@ class TestTheStore:
         world.reforms = {}
         save_manager._backfill_reforms(world)
         # S14k G3: the scenario NOW authors the Porte's deck too.
-        assert set(world.reforms) == set(R.REFORM_DECKS)
+        # RE-SEATED by T4-3 (session A, November 10, 2026): the five crowns of
+        # 1806 are promotion decks (every row a `rank` law) — no R6 deck.
+        assert {c for c, rows in world.reforms.items()
+                if not all(R.is_promotion(r) for r in rows)} == set(R.REFORM_DECKS)
+        assert len(world.reforms) == len(R.REFORM_DECKS) + 5
         assert R.laws_in_force(world, "France") == []
 
     def test_an_armed_save_is_never_overwritten(self, world):
@@ -290,5 +299,8 @@ class TestTheStore:
         loaded = save_manager.load_game(fixture)
         assert loaded["success"], loaded["message"]
         world = loaded["world"]
-        assert set(world.reforms) == set(R.REFORM_DECKS)   # S14k G3: + the Porte
+        # RE-SEATED by T4-3 (session A, November 10, 2026): the five crowns of
+        # 1806 are promotion decks (every row a `rank` law) — no R6 deck.
+        assert {c for c, rows in world.reforms.items()
+                if not all(R.is_promotion(r) for r in rows)} == set(R.REFORM_DECKS)   # S14k G3: + the Porte
         assert all(R.laws_in_force(world, n) == [] for n in R.REFORM_DECKS)

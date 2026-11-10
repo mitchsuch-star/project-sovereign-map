@@ -3711,9 +3711,20 @@ class WorldState:
         There is NO writable `world.nation_power_tiers` map — authored
         scenario data is the single source of truth per
         `docs/SCALE_READINESS_PLAN.md` §"Phase 0 Cross-Cutting Taxonomy".
+
+        T4-3 (DYNAMISM_SPEC.md §3c G6): rank is DERIVED — the higher of the
+        authored tier and a `rank` law in force (`reforms.rank_of_laws`: the
+        1806 crowns; no court rises to major by law). Still no store: a
+        lapse or a repeal lowers it by construction.
         """
         from backend.nation_config import NATION_POWER_TIERS
-        return NATION_POWER_TIERS.get(nation)
+        authored = NATION_POWER_TIERS.get(nation)
+        if getattr(self, "reforms", None):      # (read during construction too)
+            from backend.game_logic.reforms import RANK_ORDER, rank_of_laws
+            raised = rank_of_laws(self, nation)
+            if raised and RANK_ORDER[raised] > RANK_ORDER.get(authored or "secondary", 2):
+                return raised
+        return authored
 
     def get_honor_bias(self, nation: str) -> float:
         """Return authored DG-4 honor-bias for `nation`, defaulting to 1.0.
@@ -3772,13 +3783,18 @@ class WorldState:
         by authored power tier (majors 25k / secondary 15k / minors 10k);
         the legacy fixture keeps its flat 15,000. Keyed off the CURRENT
         holder so a captured capital regens toward its new owner's tier.
+        T4-3: the tier is the holder's DERIVED rank (`get_power_tier`) — a
+        promoted minor's capital is guarded as a secondary power's.
         """
         from backend.nation_config import (
+            _POWER_TIER_DEFAULT,
+            CAPITAL_GARRISON_BY_TIER,
             LEGACY_CAPITAL_GARRISON,
-            get_europe_capital_garrison,
         )
         if getattr(self, "sovereign_map", "legacy") == "europe":
-            return int(get_europe_capital_garrison(nation))
+            tier = self.get_power_tier(nation or "") or _POWER_TIER_DEFAULT
+            return int(CAPITAL_GARRISON_BY_TIER.get(
+                tier, CAPITAL_GARRISON_BY_TIER[_POWER_TIER_DEFAULT]))
         return int(LEGACY_CAPITAL_GARRISON)
 
     def capital_garrison_regen(self, region) -> int:
@@ -5838,6 +5854,11 @@ class WorldState:
         if nation in latched:
             return
         latched.add(nation)
+
+        # T4-2b: a court that falls leaves no seat behind — the map reads
+        # its authored capital again, the temporary flag comes down.
+        from backend.game_logic.game_end import restore_authored_seat
+        restore_authored_seat(self, nation)
 
         # FA-S12-2, the FIFTH exit. Read the satellites of a dying LORD and
         # hand their corps back BEFORE the sweep below, which keys on
@@ -10545,6 +10566,10 @@ class WorldState:
                 if controller:
                     derived_starting.setdefault(controller, []).append(_region_name)
             world.nation_starting_regions = derived_starting
+        # T4-2b: `nation_capitals` was rebuilt from the authored table above;
+        # a court's MOVED seat is re-read off its region flag (no field).
+        from backend.game_logic.game_end import rederive_moved_seats
+        rederive_moved_seats(world)
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
@@ -11562,9 +11587,17 @@ class WorldState:
                     decks[nation] = kept
             scenario_data["agendas"] = decks
         if isinstance(scenario_data.get("reforms"), dict):
-            scenario_data["reforms"] = {
-                court: rows for court, rows in scenario_data["reforms"].items()
-                if reform_deck_stands(court)}
+            # T4-3: the promotion laws stand through their own seam (down:
+            # struck — a deck it empties is no deck, as before T4-3).
+            from backend.game_logic.reforms import standing_deck
+            _law_decks = {}
+            for court, rows in scenario_data["reforms"].items():
+                if not reform_deck_stands(court):
+                    continue
+                kept = standing_deck(rows)
+                if kept or not rows or not isinstance(rows, list):
+                    _law_decks[court] = kept
+            scenario_data["reforms"] = _law_decks
 
         # Validate scenario before loading
         from backend.modding.validator import validate_scenario

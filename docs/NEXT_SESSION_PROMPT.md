@@ -1,78 +1,109 @@
-# NEXT SESSION PROMPT — Session A: Tier 4 closes — T4-2b the seat + T4-3 promotion + the tier's close (ONE session, ONE commit)
+# NEXT SESSION PROMPT — Session B: Tier 5 whole — the Questions of Europe + the Congress rules a Question (ONE session, ONE commit)
 
-> Overwritten each time a session hands off. Current hand-over: **November 9, 2026 — the ledger closed
-> (339f2673, pushed: T0-I's seven harness rows, GR-11 fixed at the cause, 0 open defect rows) and T4-2 SIGN
-> AT THE LAST ✅ LANDED (`SYSTEMS_REFERENCE.md` §200)**: a court whose last province falls signs with every AI
-> court holding homeland it may not keep, gets that ground back and lives on
-> (`settlement_third_party.sign_at_the_last`, called from the ONE military erasure point
-> `WorldState._settle_a_court_without_ground`; the pair close ONE body, `_close_the_pair`). The measure: the
-> control reproduced T4-1 byte for byte; **`annexations_outside_aim` 0 on BOTH gate surfaces** (7 → 0 ambient,
-> 7 → 0 the AI-France harness's AI courts); eight courts sign ambient (Bavaria on all seven seeds where she
-> fell), ten in the harness; story classes 10 → 9 and the fallen-courts column CONVERGED (the Kingdom of Italy
-> alone on all ten seeds) — reported to the user as the honest cost, variety T4-3's and Tier 5's. **The
-> remaining plan is RE-CUT into seven sessions, A–G, by the user's word (`DYNAMISM_SPEC.md` §2b) — read §2b
-> first: a session is a tier or a tier-half; one switch a rule, ONE measure sweep with arms, the hook the
-> ONE full-suite run, ONE commit and ONE landing record a session.** No cuts without consent (§0).
+> Overwritten each time a session hands off. Current hand-over: **November 10, 2026 — SESSION A ✅ LANDED:
+> TIER 4 COMPLETE (`SYSTEMS_REFERENCE.md` §201; `DYNAMISM_SPEC.md` §3c "The seat landed" / "G6 landed" /
+> "The tier's close").** Two rules behind their own seams, ONE sweep with three arms, ONE commit:
+> **T4-2b the court removes** (`game_end.a_court_removes_its_seat`, row T4-2b — a court whose seat a treaty
+> of its own house titles to another AI court removes to the richest homeland province in its hands and
+> returns with its authored capital; the moved seat rides `Region.is_capital`, no new field; the player's
+> house exempt on either side) and **T4-3 promotion** (`reforms.a_minor_may_rise`, row T4-3 — rank DERIVED
+> from a `rank` law in force; the five crowns of 1806 on their designs' grounds held six turns;
+> `rank_promotion` the one new log type, the count 182). The measure: arm 0 reproduces the T4-2 records byte
+> for byte on both surfaces; **the seat ALONE moves all ten seeds** (story classes 9 → 10; Bavaria's court in
+> Franconia on every seed, Hanover's in Brunswick on six; Prussia's word for Bavaria honoured on seven
+> seeds; Switzerland falls on ulm); **the crowns move NOTHING — no court took one on either surface**; the
+> France band on the commanded arms 28 / 27 / 26; the standing series unmoved (`BASELINE_SERIES` stands);
+> `annexations_outside_aim` 0 in the harness and **1 ambient (Bern, kept by Bavaria on ulm — a fallen
+> client's spoils), put to the user**. The hook's banner and CLAUDE.md read 8:22.
 >
-> **NOW — SESSION A (both rules are RULED — no gate, no Plan Mode stop, no question to open with: the seat by
-> the user's "use best judgment but focus on utmost quality" at T4-2's plan; promotion by §3c G6). Build
-> both, measure once with three arms, run the suite once, commit once.**
+> **NOW — SESSION B (`DYNAMISM_SPEC.md` §2b: the gate OPENS the session and the build follows in it). Put
+> the rulings below to the user ONCE, in one batch, at the head; then the gate in Plan Mode; then build,
+> measure once with arms, commit once.**
 >
-> **1. T4-2b — the court removes (the seat).** A court whose capital a signed treaty titles to another
-> holder moves its seat to the richest homeland province not signed away (authored order breaks ties); when
-> the authored capital comes home, the seat returns. Bavaria's court at Würzburg (Franconia), as in 1805;
-> Hanover after Prussia's aim peace is the same case. The survey's facts (verified, do not re-discover):
-> - `world.nation_capitals` is IN-MEMORY — rebuilt from the authored table at construction, re-derived at load
->   for carved clients (`world_state.py`, the "NA-6c §11.10 decision 6" block; `formations._ensure_owned_capitals`
->   is the copy-on-write guard — the legacy world ALIASES the module global). `Region.is_capital` IS serialized.
->   So the moved seat rides the new seat's `is_capital` flag: **no new serialized field** (`to_dict` is at
->   497 of 500). At load, a region flagged capital that is no court's authored capital is the moved seat of
->   its home nation (`game_end.home_nation_of`) — re-derive after the formations' block.
-> - ONE writer at the treaty-title chokepoint, `game_end.record_province_title`: a TREATY record written on a
->   court's current seat for another holder re-seats it; the homeland branch (the record popped — a return
->   home, a liberation, the court's own recapture) on the AUTHORED capital returns the seat and clears the
->   temporary flag. `formations.py` ~866–880 is the pattern (the map AND the region flag, the garrison seeded
->   to `get_capital_garrison_target`).
-> - Readers: 126 through `get_nation_capital`, 78 through `is_capital`, about 30 through the static tables
->   (`EUROPE_NATION_CAPITALS` / `NATION_CAPITALS`) — AUDIT the static ones so none disagrees with a moved seat.
->   The old capital keeps `is_capital` (a capital-class city regens toward its holder's tier, as any captured
->   capital does today).
-> - Words: one dispatch line and one Gazette line ("The court of Bavaria removes to Würzburg."), an existing
->   log type; the client only if the map draws seats (`main.py` ships `is_capital` per region).
-> - Seam `a_court_removes_its_seat` (zero-arg, in the module it gates), row `T4-2b` in `tests/_t3_seams.py`;
->   pins ride `tests/test_dy1_the_alarm_of_europe.py`.
+> **The rulings session B opens with (nothing here is decided; content-first options co-equal, no speed
+> option recommended — spec §0):**
+> 1. **Q4 — the Questions.** The default stands until ruled: FOUR (German, Italian, Eastern, Polish); the
+>    Maritime Question stays folded into the blockade machinery `NAVAL_SPEC.md` owns.
+> 2. **Their provinces — the draft lists do not fit the map** (read against `europe.json` on November 10):
+>    `Saxony` is drawn as `Dresden`; `Venetia`, `Moldavia`, `Wallachia` and `Warsaw` are NOT drawn;
+>    `Galicia` on this map is SPAIN's. As drafted the Polish Question holds `Posen` alone and the Eastern
+>    Question `Rumelia` and `Albania`. Two ways, both whole: (a) four Questions on the provinces the map
+>    does draw — the Polish Question from the partition shares that are drawn (Prussia's `Posen`; Russia's
+>    `Lithuania`, `Volhynia`, `Podolia`, `Vilna`), the Eastern from `Rumelia`, `Albania`, `Epirus`,
+>    `Constantinople` and Russia's `New Russia`; (b) three Questions now, the Polish one authored the day
+>    the map draws Warsaw. The user's to choose; the claimants per Question go with it.
+> 3. **The latch's store.** `{question_id: {nation, turn}}` must live inside an EXISTING serialized store
+>    (`WorldState.to_dict` is at 497 of 500). Survey the candidates at the head and say which and why;
+>    it is plumbing unless a candidate shows in play.
+> 4. **The numbers (N-DY2):** `ENVY_WINDOW` 8 turns, `WEIGHT_QUESTION_ENVY` +15 — tuneable at the gate.
+> 5. **DY-3, the Congress rules a Question.** The spec calls it the tier's "cut-first tail"; under the
+>    standing rule on cuts it is BUILT in session B. If the session cannot hold it, that goes to the user
+>    as a question with no default — never a silent slip.
+> 6. **Three things session A leaves with the user:**
+>    (a) **Bern** — the one province on the deploy gate's annexation line. A client that falls signs
+>    nothing (T4-2's exemption), so its last province stays with an AI taker outside that taker's aims.
+>    Leave it, or rule a road home for a fallen client's ground.
+>    (b) **The crowns were not seen.** No court held its grounds six turns in forty on any seed. The levers
+>    are K (6) and the price (3,000 gold) — or Tier 5's envy may bring the wars that deliver grounds; the
+>    measure after B will say.
+>    (c) **The seat's two boundaries**, each one line to reverse: the player's own court never removes; a
+>    court whose capital the PLAYER's house holds by treaty does not remove (reversing this one needs the
+>    Congress's recognition-by-defeat reads moved to `game_end.authored_capital` first).
 >
-> **2. T4-3 — promotion (DY-1b; the contract RULED at `DYNAMISM_SPEC.md` §3c G6 — build it as written):**
-> rank DERIVED (`get_power_tier` = the higher of the authored tier and an in-force law's `rank` clause; no
-> new store), `requires_design` held K=6 by title age, demotion a `grounds_lost` lapse, the five 1806 crowns
-> authored (Bavaria the Royal Crown — the Tyrol; Saxony — Posen; Hesse — Westphalia; Denmark — Scania;
-> Sardinia — Piedmont and Savoy; 3,000 gold, upkeep 100), `rank_promotion` the new log type (DY-0's column;
-> the census pins flipped knowingly), a beat and a Gazette line, the validator's `rank` / `requires_design`.
-> The capital garrison routes through the derived tier — the seat and promotion meet there, which is why
-> they share a session. Its own seam, row `T4-3`.
+> **The build (the contract `DYNAMISM_SPEC.md` §4; §8 rows DY-2 and DY-3; tests
+> `tests/test_dy2_the_questions_of_europe.py`):** the `questions` scenario block and its validator (every
+> province exists, every claimant boots active, at least two claimants — and the T2-6 lesson: a clause on a
+> seam-filtered block WARNS); the latch at the ONE capture chokepoint and nowhere else; the envy term in
+> `intent._derive_weight` (a claimant's gain quickens the OTHER claimants' designs at that table, inside the
+> window, never a non-claimant's); the "Question turns" beat (the `question_turns` log type — DY-0's column
+> reads it; the count pin flips 182 → 183 with the fourteen-line idiom and the census in `test_iq7`); the
+> Balance tab's Questions panel in sentences (client pass — if it does not fit beside the engine, §2b names
+> the split: engine and words first, the panel second); the Alarm's guarantee rung's Question arm (§3c G2);
+> DY-3 (a sitting Congress recognizes the holder, the latch clears, the unseated claimants take a relation
+> write). Each rule its own zero-arg seam in the module it gates, its row in `tests/_t3_seams.py`.
 >
-> **3. The measure — ONE sweep, three arms** (`tools/_t3_4_measure.py`, `tools/_t3_5_chain_d.py --arms D`;
-> ten ambient seeds run in 49 seconds, chain D in about three minutes):
-> - arm 0 — both new seams down (`INK_IRON_SEAMS`) → MUST reproduce `tools/_dy_signature_t4_2_2026_11_09.json`
->   and `_t4_2_chain_d_2026_11_09.json` byte for byte;
-> - arm SEAT — the seat alone; arm ALL — both. Movers named per seed against the arm that moved them.
-> - the standing series: clone `tools/_t4_2_series_arms.py` with an arm per seam (arm 0 = HEAD's series);
->   if it moves, re-pin with `SERIES_BEFORE_T4_3`, re-link the drill-fix records, re-measure wo_slice9.
+> **The measure — ONE sweep with arms** (clone `tools/_t4_3_measure.py`: it runs three arms on three
+> surfaces in about a quarter of an hour): arm 0, every Tier-5 seam down, MUST reproduce
+> `tools/_dy_signature_t4_3_2026_11_10.json` and arm `ALL` of `tools/_t4_3_chain_d_2026_11_10.json` byte
+> for byte; one more arm a seam. The standing series: clone `tools/_t4_3_series_arms.py` (arm 0 = HEAD's
+> series); if it moves, re-pin with `SERIES_BEFORE_T5`, re-link the drill-fix records, re-measure
+> wo_slice9. The tier's close reads the second-war count per seed (Tier 5's signature change: "the war
+> column stops reading Prussia–Hanover alone" — at session A's close five seeds already open NO council war
+> at all: the honour war for Bavaria stands in its place) and `questions_turned`.
 >
-> **4. The tier's close:** the France band re-read on the commanded arms (23–28), `rank_promotions` on the
-> signature, Tier 4's landing record (`DYNAMISM_SPEC.md` §3c + §8, `SYSTEMS_REFERENCE.md` §201), STATUS,
-> this file rewritten for **session B (Tier 5 whole — its gate's questions listed for the user: Q4 the four
-> Questions, the latch's store)**.
+> **The commit:** run the touched families (113 modules ran in under four minutes at eight workers — never
+> the engine lanes), then COMMIT — the hook IS the one full-suite run (about 8.5 minutes; do not pre-run
+> the suite). If the hook is red, its failure list is the re-pin list. Push is the user's call — ask.
 >
-> **5. The commit:** run the touched families, then COMMIT — the hook IS the one full-suite run (about 9
-> minutes; do NOT pre-run the suite: T4-2 paid it twice). If the hook is red, its failure list is the re-pin
-> list: re-seat each with its cause, re-run the final ambient arm to confirm the records reproduce, commit
-> again. Push is the user's call — ask.
+> **Session A's own traps (fresh):** a SEAT IS A CAPITAL in every read — the conduct rule's "enemy's
+> seat", a bare declaration's default object, the AI's 100-value pick, the Alarm's 12, the tables'
+> never-demand — so making a province a seat made it a target and moved all ten seeds: measure, never
+> assume; "the capital" is TWO reads now — the seat (`world.get_nation_capital`) and the grievance's
+> (`game_end.historic_capital`: the punitive bar, the partition manner, the Revanche) — a new reader picks
+> deliberately, and a reader that prints the capital's NAME for the court uses `game_end.seat_as_metonym`;
+> a reader that runs AFTER a treaty's clauses apply sees the moved seat (`record_punitive_cessions` wrote no
+> record for a ceded capital until it read the grievance's); the Congress's hold (RS-D1, `game_end` ~2434,
+> `congress.py`) reads a court's capital in the Emperor's BLOC — ten pins fell when the rule bound the
+> player's treaties; a cession is applied BEFORE the same treaty's evacuations, so any rule at the title
+> chokepoint that chooses among what a court holds must settle inside the turn (`_removal_this_turn`);
+> `WorldState.get_power_tier` is called during `__init__` (`_setup_initial_control`) — read attributes
+> with `getattr`; `filter_campaign_log` stands at 499 of 500 lines and `to_dict` at 497 — a new
+> always-visible type rides an existing line of its tuple; the campaign-log count is 182 and its flip is
+> fourteen pins (`== N  # N-1->N flipped consciously:` — one script) plus the census's docstring and its
+> `unexplained` list in `test_iq7`; the laws store carries ELEVEN decks — a pin that equates the decks
+> with `REFORM_DECKS` reads the non-promotion decks (`reforms.is_promotion`); the validator run on the
+> BARE scenario file (no injected provinces) knows no armyless minor — a new block for the minors must not
+> error on "unknown nation" (a court with an agenda deck has already drawn that warning); a pre-reform
+> save's backfill reads the boot's seams (`reforms.standing_deck`); a DoD pin on the LIVE historical
+> world-line (`test_ai_intent_assurance.TestArmAAmbientDoD`) re-reads whenever the ambient board moves — a
+> forced peace (`last_refuge`) is no weary peace; `tools/_t3_5_chain_d.py` pops `INK_IRON_SEAMS` for arm D
+> — hold an arm's seams with `--arm-seams ARM=SPEC;SPEC`; the Bash heredoc eats backslashes even behind a
+> quoted delimiter (a patch script written through it lost a line continuation, and a failed step chained
+> by a NEWLINE let the next step run and append a section twice) — write every script with the Write tool
+> and chain with `&&`; autocrlf is on, so a file's working copy may be CRLF while its blob is LF — patch
+> on bytes and keep the file's own endings.
 >
-> **To say to the user in the report (not a stop):** whether T4-3's crowns bring the fallen-courts variety
-> back (T4-2 made the set uniform), with the per-seed column.
->
-> **T4-2's own traps (fresh):** `get_bloc_members` is the ALLIANCE bloc, never the house — a title or
+> **T4-2's own traps:** `get_bloc_members` is the ALLIANCE bloc, never the house — a title or
 > "keeps by treaty" read uses `war_council._house_of` (the first words gave France Frankfurt "by treaty" for
 > her ally's peace); both capture callers act on the province AFTER `capture_region` returns (plunder,
 > secure, the estate rule, the row) — a rule that can move the controller inside the chokepoint must be
@@ -182,27 +213,26 @@
 > TIER); `story_class` is sets-never-turns; the assurance controls (same-seed EQUAL, variance-off EQUAL)
 > stay green on any widening; a sweep or driver PARENT runs PLAIN.
 >
-> **Open with the user (none blocks session A):** **the fallen-courts column converged at T4-2 — should Tier 4
-> answer it, or T4-3 and Tier 5 as planned?**; **GRD-38 — should a full-authority Emperor ever be defied?**
-> (`tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`); **GRD-37 — T8 vs the post-S14j war economy**;
-> the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36); the flip's two readings
-> (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18); the road record's
-> readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a); the
-> crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter
+> **Open with the user beyond session B's own batch (none blocks it):** **GRD-38 — should a full-authority
+> Emperor ever be defied?** (`tools/_t0i_benchmark_arms.json` `drama.defiance_pricing`); **GRD-37 — T8 vs the
+> post-S14j war economy**; the design rows of `DESIGN_REFINEMENT.md` §GRD (GRD-16 … GRD-36); the flip's two
+> readings (`AUTHORITY_CURRENCY_SPEC.md` §6.8.3); the Crown's readings (`EVENTS_SPEC.md` §18); the road
+> record's readings (`VP1_DESIGNS_SPEC.md` §14.6); S14d's A1; AO's three questions (`REFORMS_SPEC.md` §5a);
+> the crown term's level (`docs/audits/ECONOMY_REBALANCE_2026_10_27.md` §4.2); SF-NAV-1-D1; Britain's letter
 > without contact (GRD, NAVVAS-1).
 >
-> **After session A — the session plan (`docs/DYNAMISM_SPEC.md` §2b; no cuts without consent, spec §0):**
-> **B** Tier 5 whole (the Questions + the Congress ruling) → **C** and **D** the Awakening (the story-class
-> gate's raise question goes to the user at C's head, no default — spec §7) → **E** and **F** Crowns &
-> Recognition (Tier 7's bounded dice only if the count still falls short, read in F) → **G: S15 the deploy,
-> the user's own** (the UXR-4 walk, the certificate — `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session,
-> never in a file — `deploy\\build.bat`, `tools/clean_env_run.ps1`, the release record from
-> `docs/audits/RELEASE_TEMPLATE.md`). **After the deploy:** S14k-3 (Spain alone), S16, S17c.
+> **After session B — the session plan (`docs/DYNAMISM_SPEC.md` §2b; no cuts without consent, spec §0):**
+> **C** and **D** the Awakening (the story-class gate's raise question goes to the user at C's head, no
+> default — spec §7) → **E** and **F** Crowns & Recognition (Tier 7's bounded dice only if the count still
+> falls short, read in F) → **G: S15 the deploy, the user's own** (the UXR-4 walk, the certificate —
+> `INK_IRON_SIGNTOOL_ARGS`/`SIGNTOOL` for the session, never in a file — `deploy\\build.bat`,
+> `tools/clean_env_run.ps1`, the release record from `docs/audits/RELEASE_TEMPLATE.md`). **After the
+> deploy:** S14k-3 (Spain alone), S16, S17c.
 >
 > **Traps the rows have paid for (do not re-discover):** the ratchet has NO headroom — levers 231 of 231 (seams are
 > named functions; the seven T0-EFG seams are the pattern: zero-arg, in the module they gate), functions over 500
 > lines 28 of 28, `WorldState.to_dict` 497 of 500 (every new field in an existing store), CLAUDE.md within 62,000 LF
-> bytes (19 bytes of headroom), STATUS at most 7 "▶ ▶ ▶" entries (archive the oldest to the top of
+> bytes (86 bytes of headroom), STATUS at most 7 "▶ ▶ ▶" entries (archive the oldest to the top of
 > `docs/archive/STATUS_2026_Q4.md`); every `except Exception` must speak; a measure chain runs ALONE and no backend,
 > test or deck edit lands while it runs; **a sweep or driver PARENT runs PLAIN, never `-X utf8` — the children print
 > cp1252 and a utf8 parent's pipe reader dies silently (stdout None, rc 0)**; **never pipe a measure's output

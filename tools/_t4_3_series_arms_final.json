@@ -1,0 +1,262 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  44,
+  42,
+  39,
+  26,
+  28,
+  25,
+  22,
+  27,
+  24,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "RISE",
+   "SEAT"
+  ],
+  "SEAT": [
+   "RISE"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "RISE",
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "seat_seam_reads": 2556,
+     "rise_seam_reads": 11374,
+     "seats_moved": 0,
+     "promotions": 0
+    },
+    "moves": []
+   }
+  },
+  "SEAT": {
+   "down": [
+    "RISE"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "seat_seam_reads": 2674,
+     "rise_seam_reads": 11406,
+     "seats_moved": 3,
+     "promotions": 0
+    },
+    "moves": [
+     [
+      5,
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      16,
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "Hanover",
+      "Brunswick"
+     ]
+    ]
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "seat_seam_reads": 2674,
+     "rise_seam_reads": 17034,
+     "seats_moved": 3,
+     "promotions": 0
+    },
+    "moves": [
+     [
+      5,
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      16,
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "Hanover",
+      "Brunswick"
+     ]
+    ]
+   }
+  }
+ }
+}

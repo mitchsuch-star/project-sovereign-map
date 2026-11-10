@@ -1302,7 +1302,9 @@ class _Slots(dict):
 
 def _seat_of(world, host: str) -> str:
     try:
-        return str(world.get_nation_capital(host) or host)
+        # T4-2b: a seat that has removed is a province's name, no metonym.
+        from backend.game_logic.game_end import seat_as_metonym
+        return str(seat_as_metonym(world, host) or host)
     except Exception as exc:
         report(exc, "affairs._seat_of: world.get_nation_capital")
         return str(host)

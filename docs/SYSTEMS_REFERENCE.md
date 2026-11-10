@@ -14695,3 +14695,280 @@ quality"). The survey's facts for it: `world.nation_capitals` is in-memory (rebu
 authored table, re-derived at load for carved clients), `Region.is_capital` IS serialized, so
 a moved seat can ride that flag with no new field; 126 reads go through `get_nation_capital`,
 78 through `is_capital`, about 30 through the static tables.
+## §201 Tier 4, session 3 — session A: T4-2b the court removes, T4-3 promotion, the tier's close (November 10, 2026 — TIER 4 COMPLETE)
+
+**The session** (`DYNAMISM_SPEC.md` §2b session A; §3c "The seat" and G6 with their landing
+notes; §8 rows DY-1b and DY-1d; pins `tests/test_dy1_the_alarm_of_europe.py` —
+`TestTheCourtRemoves` 24, `TestPromotion` 22, `TestTheSessionAMeasure` 9; the seams
+`game_end.a_court_removes_its_seat` (row T4-2b) and `reforms.a_minor_may_rise` (row T4-3) of
+`tests/_t3_seams.py`, which the recorded boards' hold-list folds). Two rules, each behind its
+own seam, ONE measure sweep with three arms, ONE commit. No new store and no new serialized
+field; ONE new log type, `rank_promotion` (181 → 182, flipped knowingly in the fourteen count
+pins and their census).
+
+### T4-2b — the court removes
+
+**The rule.** A court whose SEAT a treaty of its OWN house titles to another holder removes to
+the richest homeland province still in its hands (`income_value`; authored order breaks a tie),
+and the seat returns the day its authored capital comes home. Bavaria's court at Würzburg in
+1805 — on this map "The court of Bavaria removes to Franconia — Munich is Austria's by
+treaty."
+
+- **The seat rides the flag.** `world.nation_capitals` is in-memory (rebuilt from the authored
+  table at construction), so the moved seat is the new seat's serialized `Region.is_capital`
+  and nothing else. `game_end._seat_the_court` is the ONE writer of the map and the flag
+  (`formations._seed_client_roster`'s pattern — both garrison seams key off the flag): a
+  temporary seat left behind is a province again (flag down, its guard gone with the court —
+  home with it when the seat returns in the court's own hands), a new temporary seat is
+  guarded at once to the court's tier target (never a detachment's province). The authored
+  capital keeps its own flag throughout — a capital-class city regens toward its holder's
+  tier, as any captured capital does.
+- **The chokepoint, two arms.** `game_end.record_province_title` — the one place every signed
+  title is written. (1) A TREATY record written on a court's current seat for another holder,
+  signed away by the court's own house (the court, or its lord for it): the court removes
+  (`a_treaty_takes_a_seat`). (2) The homeland branch (the record popped — a return by treaty,
+  a liberation, the court's own recapture): the AUTHORED capital home in the court's hands
+  returns the seat; any other province seats a court whose seat was signed away while it
+  held none (`a_province_comes_home`). The sibling writer `record_carve_titles` calls arm (1)
+  too. `WorldState._eliminate_nation` resets a fallen court's seat to its authored capital
+  (`restore_authored_seat`) — a court that falls leaves no seat behind.
+- **At load** (`WorldState.from_dict`, after the formations' block, the regions and the
+  homelands): `rederive_moved_seats` — a court whose authored capital is not in its hands sits
+  at its homeland province flagged capital that is no court's authored capital (the one in
+  its own hands first, then authored order). One region scan, at load only. The flag is the
+  durable fact: the old capital's title may break or change hands and the seat still loads.
+- **Only a signature moves a seat.** An OCCUPIED capital stays the capital (its recapture is
+  still the court's first business); a treaty between two other courts moves no third court's
+  seat (the ceder must be of the court's house).
+- **The player's house is exempt on either side** (T4-2's own exemption). The player's court
+  never removes — Paris signed away is the Emperor's own catastrophe. And a court whose
+  capital the PLAYER's house holds by treaty does not remove (`_in_the_emperors_hands`): the
+  Congress's hold on a beaten court (RS-D1's recognition by defeat) reads that capital in his
+  bloc, and his designs and tables were built on that read. The rule binds between the AI
+  courts. Both boundaries are Claude's under the delegation, each one line to reverse.
+
+**What reads the seat.** Everything that asks where the court SITS reads
+`world.get_nation_capital` and follows the move with no edit: the guard and its regen, the
+capital's diplomatic point (`_process_dp_regen`), the war score's capital component, the
+agenda's survival override, the conduct rule's "enemy's seat", a bare declaration's default
+object, the Road Home's seed, the settlement's home capital. The seat's flag makes it a
+capital for the readers of `is_capital`: the Alarm writes 12 for it, a decisive victor's
+terms never take it, no table demands it.
+
+**Two reads of "the capital", kept apart.** The capital whose LOSS is the court's grievance is
+the authored one — `game_end.historic_capital` (the live seat for every court that has not
+removed). Six reads moved to it: `emergent_designs` ×4 (the punitive bar, the forecast line,
+the grievance's author, the partition test), `compensation.net_of_compensation` (a capital
+ceded is never struck from the count), `imperial_designs`'s partition manner. Three readers
+that print the capital's NAME for the court ("Vienna's appetite", "London could sign",
+the letters' seat slot) read `game_end.seat_as_metonym` — a seat that has removed is a
+province's name, so the court is named instead.
+
+**The audit of the static tables** (the survey's "about 30"): every reader of
+`EUROPE_NATION_CAPITALS` / `NATION_CAPITALS` either reads the world's own map first
+(`personality`, `strategic_parser`, `diplomacy`'s deal balance, both `settlement_baseline`
+reads, `war_contribution`, the recruit default) or is the authoring surface itself (the
+constructor, the validator's roster, the copy-on-write guard). One reads the table alone:
+`diplomatic_dialogue._court_named_by_seat`, the Cabinet's typed alias ("Mission to Vienna").
+Left as it is, with the judgement recorded: it is a NAME table — a city's name stays a name
+for its court — and a removed seat is a province's name the alias never matched. One reader
+of the flag was wrong for a removed court and is fixed under the seam:
+`EnemyAI._is_capital_lost` scanned the homeland for any flagged province in other hands, so a
+court that had signed its capital away read "capital lost" for ever; it reads the seat.
+
+**The words.** One campaign-log row and one dispatch line a move, in an EXISTING log type —
+`province_returned` keyed by its `outcome` (`court_removed` / `court_returned`) — and Le
+Moniteur's courts column prints those two rows and no other of that type
+(`gazette._is_seat_row`). Two dispatch types, `court_removes` and `court_returns`. A second
+removal in one turn rewrites the first row and line: the turn's removal is ONE sentence,
+naming the capital actually left.
+
+### T4-3 — promotion (the gate §3c G6, built as ruled)
+
+**Rank is derived.** `WorldState.get_power_tier` returns the higher of the authored tier and a
+`rank` law in force (`reforms.rank_of_laws` — the court's own laws, never an edict; one dict
+lookup for a court with no deck). No store, no field: a lapse or a repeal lowers it by
+construction, and a save keeps it through the law row's `enacted_turn`. `rank` is the twelfth
+effect type, wired, its one parameter `tier: "secondary"` — no court rises to major by law.
+The capital garrison now routes through the derived tier
+(`WorldState.get_capital_garrison_target`), so everything that reads rank moves at once: the
+force limit's floor 15,000 → 30,000, the capital's guard 10,000 → 15,000, the bloc's weight,
+the table's standing, the call to arms against it, the Alarm's guarantor tiers, vassal
+eligibility (the ledger's `non_minor_power`).
+
+**The grounds.** A law may name `requires_design` — an `acquire_regions` design of the court's
+own agenda deck. `reforms.law_refusal` (the ONE predicate of the verb, its chip, the AI rung)
+refuses it until every province of the design is in the court's hands with a title record at
+least `PROMOTION_HOLD_TURNS` (6) old — `grounds_title_age`: the record's own `since`, which
+the quiet clock resets while the province is contested; the court's homeland counts; no hold
+clock was added. `process_grounds_lapses` (the head of `process_law_lapses`): a law in force
+whose grounds are lost lapses — `law_lapsed` with `reason: grounds_lost`, nothing refunded,
+`lapsed_turn` stamped, so the Arrears price restores it once the grounds have stood six turns
+again.
+
+**The five crowns of 1806** (the scenario's `reforms` block; 3,000 gold, upkeep 100, one `rank`
+clause each): Bavaria's Royal Crown on `the_tyrol`; Saxony's Royal Dignity on
+`the_wettin_crown` (Posen); Hesse's Grand Ducal Title on `the_westphalian_duchy`; Denmark's
+Both Shores of the Sound on `scania`; Sardinia's Mainland Restored on
+`house_of_savoy_restored` (Piedmont and Savoy). The AI enacts through the existing 1.78 rung
+with no promotion arm — the rung's own purse test stands (a Saxony whose Net cannot carry 100
+a turn waits, as the player would). With the seam down the decks are struck at boot
+(`reforms.standing_deck`, read by `from_scenario` and by the pre-reform save's backfill).
+
+**The record.** `reforms.announce_promotion`: one `rank_promotion` row (DY-0's column reads
+it; lead tier; court knowledge — no fog) and one beat, `rank_promoted` ("A CROWN: Saxony
+proclaims the Royal Dignity — with Posen held, she ranks among the secondary powers of Europe
+from this day: …"), in place of the routine law line. The demotion's beat is `rank_lost`. Le
+Moniteur's courts column carries `rank_promotion`.
+
+**The validator.** `rank` through `CLAUSE_SHAPES`; `requires_design` — a non-string, or a
+design that is no `acquire_regions` design with provinces, is an error; a design absent from
+the deck WARNS (the validator reads the board that boots, and G1's seam may have struck the
+design — the T2-6 lesson; the law then waits unenactable); a deck of promotion laws alone
+draws no R6 warning. The shipped scenario keeps its eleven warnings.
+
+### What the build and the measure found
+
+1. **The punitive bar read the seat after the treaty had moved it.** Prussia's Diktat on
+   Hanover — the capital ceded — wrote NO punitive record: `record_punitive_cessions` runs
+   after the clauses apply and asked `get_nation_capital`, which by then answered Brunswick.
+   The read is the grievance's, not the seat's (`historic_capital`, above).
+2. **The Congress's hold read the capital in the Emperor's hands.** With the rule binding the
+   player's treaties, ten RS-D1 pins fell: a white peace that left Vienna French moved
+   Austria's court and the recognition latch found no capital to read. The player's house is
+   exempt as the RECEIVER too (above) — T4-2's exemption, on either side.
+3. **A cession is applied before the same treaty's evacuations.** The first measure seated
+   Hanover's court in Westphalia (50) — the one province it held in that hour — with
+   Brunswick (150) home a line later. A richer province home in the removal's own turn takes
+   the seat (`a_province_comes_home`'s last arm); after that turn the seat is sticky.
+4. **The bare scenario file knows no armyless minor.** The validator run on the file alone
+   (no injected provinces) refused Hesse's and Sardinia's decks as unknown nations; a court
+   that carries an agenda deck already drew that block's warning and draws no second.
+5. **`filter_campaign_log` stood at 499 lines.** The new type rides an existing line of its
+   tuple; the functions-over-500 ratchet stays at 28.
+6. **A forced peace is no weary peace.** The DoD pin "each pair peace follows a rising
+   exhaustion window" held at T4-2 only because Bavaria's turn-6 peace happened to rise; the
+   board now carries Saxony's third forced peace at turn 39. The pin reads the weary peaces
+   and names the forced ones (`last_refuge`) apart.
+7. **The hook's one catch — the council's war on austerlitz.** The session's one full-suite
+   run (the pre-commit hook) named one pin of the old world-line: SF-LB2's driven board
+   asserted that Prussia's council declares its war on Hanover on historical, austerlitz AND
+   eylau. On austerlitz it no longer does — the crisis opens at coerce on 12 as before,
+   Prussia marches for its word for Bavaria at 13, and the crisis starves ("busy") and
+   passes on screen at 18. Re-seated with that cause; historical and eylau unchanged. (The
+   same run's second red, `test_ep_f4`'s decisive-victory pin, is an unseeded roll — the same
+   random seed fails it at HEAD — filed as a follow-up, not this session's.) After the
+   re-seat the final ambient arm was run again: the signature record and the census
+   reproduce byte for byte.
+
+### The measure — one sweep, three arms, both surfaces
+
+`tools/_t4_3_measure.py` (a chain run ALONE): arm 0 both seams down, arm SEAT T4-2b alone, arm
+ALL the shipped tree — the ten ambient seeds × 40 turns (`tools/_t3_4_measure.py`; a signature
+record and a census an arm), the AI-France harness (`tools/_t3_5_chain_d.py --arm-seams`, one
+record holding the three arms), and the France band on the commanded arms (the scored run's
+CMD-H / CMD-A / CMD-M through the driver's own `--seam`). The records:
+`tools/_dy_signature_t4_3_control_2026_11_10.json`, `_dy_signature_t4_2b_2026_11_10.json`,
+`_dy_signature_t4_3_2026_11_10.json` and their censuses, `_t4_3_chain_d_2026_11_10.json`,
+`_t4_3_band_2026_11_10.json`.
+
+| | arm 0 (both down) | arm SEAT | arm ALL |
+|---|---|---|---|
+| ambient vs the T4-2 record | **byte for byte, all ten seeds** | — | — |
+| the harness vs the T4-2 chain D record (that record's own keys) | **byte for byte, all ten seeds** | — | — |
+| seeds whose record moves against the arm before | — | **all ten**, both surfaces | **none** — ALL is SEAT byte for byte |
+| story classes | 9 | **10** | 10 |
+| courts' seats removed / returned, ambient | 0 / 0 | 16 / 3 | 16 / 3 |
+| the same, the harness | 0 | 13 removed | 13 |
+| crowns taken (`rank_promotions`), either surface | 0 | 0 | **0** |
+| the Alarm's guarantees given / honoured, ambient | 9 / 0 | 11 / **7** | 11 / 7 |
+| courts that signed at the last, ambient | 8 | 22 | 22 |
+| `annexations_outside_aim`, ambient | 0 | **1** | 1 |
+| `annexations_outside_aim`, the harness's AI courts | 0 | 0 | 0 |
+| `captures_outside_aim` (the war's footprint), ambient / the harness's AI courts | 275 / 151 | 252 / 119 | 252 / 119 |
+| France on the commanded arms at turn 40 (CMD-H / CMD-A / CMD-M) | 28 / 25 / 25 | — | **28 / 27 / 26** |
+
+**Where the courts remove (ambient).** Bavaria to Franconia on every seed — turn 6 on nine,
+turn 12 on friedland (Austria keeps Munich by the peace); Hanover to Brunswick on six (eylau
+22, friedland 17, historical 16, jena 14, marengo 15, ulm 18 — Prussia's aim peace takes the
+Electorate's capital). Three returns: Bavaria home to Munich on austerlitz (30), lodi (38) and
+marengo (41). In the harness Hanover's court sits at Brunswick on all ten seeds (turns 14–22),
+and on austerlitz, lodi and ulm Bavaria removes and returns within turn 5.
+
+**The movers, per seed, all against arm SEAT** (the columns of the signature that move; every
+seed's first move is the seat's own — Bavaria's at turn 6, friedland's at 12):
+
+| seed | what moves |
+|---|---|
+| austerlitz | Prussia honours its word for Bavaria against Switzerland (13); the war council opens no war of its own; Prussia and Saxony leave the fight roster |
+| eylau | the story class alone (it no longer reads as ulm); Hanover removes at 22 |
+| friedland | the war's footprint (41 → 42); Bavaria takes the Tyrol at 34 and loses it at 36; she signs at the last a second time at 38 |
+| historical | three more wars begin (27, 27, 37); Saxony joins the fight and signs at the last three times (30 with Prussia, 31 with Austria, 39 with Prussia again) |
+| jena | three more wars (15, 24, 38); Saxony at fight; Prussia's word honoured (15) |
+| lodi | Prussia's word honoured (12); no council war; a moment re-timed |
+| marengo | two more wars (20, 28); Prussia's word honoured (20) |
+| rivoli | Prussia's word honoured (14); no council war; Spain gives its word for the Porte (29) |
+| ulm | Prussia's word honoured (12); no council war; **Switzerland falls at 14**; Saxony at fight; Bavaria keeps Bern |
+| wagram | Prussia's word honoured (11); no council war; Sardinia at fight; Spain's word for the Porte (34) |
+
+**Why the seat moves so much.** A seat is a capital: Franconia, Bavaria's last province, was
+off every enemy's aim at T4-2 and so could not be annexed (the conduct rule); as her SEAT it
+is a lawful object ("its pull or an enemy's seat"), a bare declaration's default target and a
+100-value pick. She is attacked there — by Switzerland, gone over to Britain — and Prussia's
+word, given at T4-1 and never once called on at T4-2, is honoured on seven seeds. On the five
+seeds where the honour comes before turn 15 the war council opens no war of its own
+(`ai_war_count` 1 → 0): the honour war stands where the Hanover war stood; across the ten
+seeds 24 wars begin at arm 0 and 33 at arm SEAT.
+
+**The fallen courts, per seed** — what the user asked to know. T4-2 made the column uniform
+(the Kingdom of Italy alone on all ten). **The crowns do not bring the variety back: no court
+took a crown on any seed of either surface, and the run with the crowns is the run without
+them.** The nearest: Bavaria in the Tyrol on friedland, two turns of the six (taken at 34,
+lost to Austria at 36); on lodi and marengo it is Saxony that takes the Tyrol (36). The seat
+parts ONE seed from the rest:
+
+| seed | arm 0 (= T4-2) | arm ALL |
+|---|---|---|
+| austerlitz | Kingdom of Italy (10) | Kingdom of Italy (10) |
+| eylau | Kingdom of Italy (7) | Kingdom of Italy (7) |
+| friedland | Kingdom of Italy (23) | Kingdom of Italy (23) |
+| historical | Kingdom of Italy (9) | Kingdom of Italy (9) |
+| jena | Kingdom of Italy (7) | Kingdom of Italy (7) |
+| lodi | Kingdom of Italy (10) | Kingdom of Italy (10) |
+| marengo | Kingdom of Italy (21) | Kingdom of Italy (21) |
+| rivoli | Kingdom of Italy (7) | Kingdom of Italy (7) |
+| ulm | Kingdom of Italy (10) | Kingdom of Italy (10), **Switzerland (14)** |
+| wagram | Kingdom of Italy (9) | Kingdom of Italy (9) |
+
+In the harness the fallen sets do not move (Austria on all ten; Switzerland beside her on
+historical and wagram); France's final province count moves on eight seeds (eylau 33 → 34,
+friedland 29 → 35, historical 39 → 44, jena 37 → 42, lodi 42 → 43, marengo 47 → 43, rivoli
+43 → 42, wagram 37 → 43).
+
+**One province on the deploy gate's annexation line — for the user.** Bern, kept by Bavaria on
+ulm. Switzerland — bribed over to Britain — attacks Bavaria's seat; Prussia honours its word;
+Bavaria takes Bern, Switzerland's last province and its seat. A CLIENT victim signs nothing
+(T4-2's exemption: its war is its lord's), so it falls, and the spoils of a fallen court meet
+no peace. T4-2's done-when names the way out — "each remaining province goes to the user":
+recorded and pinned, not hidden. The harness's AI courts read 0.
+
+**The France band holds.** On the three commanded arms France ends at 28 / 27 / 26 provinces
+(historical / austerlitz / marengo) on the shipped tree and 28 / 25 / 25 with both seams down
+— inside the deploy gate's 23–28 on both.
+
+**The standing series does not move** (`tools/_t4_3_series_arms.py` →
+`tools/_t4_3_series_arms_final.json`, an arm per seam, each seam's reach counted): all three
+arms reproduce the prior byte for byte. The seat seam is read 2,674 times on that loop and
+the seat moves three times — Bavaria to Franconia at world turn 5, Hanover to Westphalia and
+on to Brunswick within turn 16 (finding 3, seen in the reach) — with no promotion.
+`BASELINE_SERIES` stands; no re-pin, no re-link.
+
+**The tier's signature change, read at its close** (`DYNAMISM_SPEC.md` §2: "eliminations vary;
+`guarantees_given` > 0; a minor can rise"): the guarantees are given and now kept (11 / 7);
+the eliminations vary on one seed of ten; a minor CAN rise — the rule stands and is pinned on
+an authored board — and none did in forty ambient turns. Story classes 10 of 10; the deploy
+gate's ≥ 4 holds.
+
+**The hook's figure.** The banner of `scripts/git-hooks/pre-commit` and CLAUDE.md's two figures
+read 8:22 (the hook run at f0b048d2, after `test_iq7_review_round` restored its turn-6 board
+once a module); the installed copy matches.

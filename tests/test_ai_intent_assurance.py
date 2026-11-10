@@ -687,7 +687,20 @@ class TestArmAAmbientDoD:
         window for both parties."""
         peaces = hist1["derived"]["pair_peaces"]
         assert peaces, "no third-party pair peace in 40 ambient turns"
-        for peace in peaces:
+        # RE-SEATED at session A (November 10, 2026, T4-2b): a court at its
+        # LAST province signs by force, not by weariness (T4-2's
+        # `last_refuge` — the hour of the last province is the hour a peace
+        # is forced). The first such peace on this board fell where both
+        # windows happened to rise (Bavaria, turn 6); with the court's seat
+        # a lawful target the board now carries Saxony's, signed at turn 39
+        # a truce after her last. The DoD's claim is the WEARY peace's.
+        forced = {(int(row["turn"]), str(event.get("proposer") or ""))
+                  for row in hist1["turns"] for event in row["events"]
+                  if event.get("type") == "third_party_peace"
+                  and event.get("exit") == "last_refuge"}
+        weary = [p for p in peaces if (int(p["turn"]), p["loser"]) not in forced]
+        assert weary, "no exhaustion-driven pair peace in 40 ambient turns"
+        for peace in weary:
             assert peace["both_rose"], peace
 
     def test_formation_absence_carries_its_predicate(self, hist1):

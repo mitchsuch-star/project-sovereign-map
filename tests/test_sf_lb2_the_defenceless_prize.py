@@ -698,9 +698,30 @@ class TestTheDrivenBoard:
 
     def test_the_war_is_produced_on_every_seed(self, records):
         """Living balance C1 (>= 1 AI-vs-AI war in 40 turns on >= 3 of 7
-        seeds): measured 7 of 7 on October 3, 2026; three driven here."""
+        seeds): measured 7 of 7 on October 3, 2026; three driven here.
+
+        RE-SEATED at session A (November 10, 2026, T4-2b "the court
+        removes" — `SYSTEMS_REFERENCE.md` §201): on austerlitz the war the
+        board produces is no longer the council's. Bavaria's court removes
+        to Franconia at turn 6 and a seat is a lawful object: Switzerland
+        attacks it at 13, Prussia marches for the word it gave her at 7
+        (`guarantee_honored`), and the Hanover crisis — opened at coerce on
+        12, as before — starves ("busy") and passes on screen at 18. An
+        AI-vs-AI war all the same, produced by the instrument; historical
+        and eylau declare Prussia's war on Hanover as they did. The mover
+        is the seat alone (the session's sweep: austerlitz reads
+        `ai_war_count` 1 with both seams down and 0 with the seat up)."""
+        ctl = json.loads((REPO_ROOT / "tools" / "_dy_signature_t4_3_control_2026_11_10.json")
+                         .read_text(encoding="utf-8"))["seeds"]["austerlitz"]["signature"]
+        seat = json.loads((REPO_ROOT / "tools" / "_dy_signature_t4_2b_2026_11_10.json")
+                          .read_text(encoding="utf-8"))["seeds"]["austerlitz"]["signature"]
+        assert (ctl["ai_war_count"], seat["ai_war_count"]) == (1, 0)
         for seed, rec in records.items():
             wars = rec["wars_declared"]
+            if seed == "austerlitz":
+                assert wars == [], (seed, wars)
+                assert "Prussia|Switzerland" in rec["wars_at_end"], rec["wars_at_end"]
+                continue
             assert wars, f"{seed}: no council war in 40 turns"
             assert any(w["attackers"] == ["Prussia"] and w["defenders"] == ["Hanover"]
                        for w in wars), (seed, wars)

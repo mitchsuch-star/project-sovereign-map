@@ -329,7 +329,9 @@ def process_alarm_guarantees(world) -> List[Dict]:
 def _seat(world, nation: str) -> str:
     """A great court named by its seat, the era's diplomatic idiom ("the
     cabinet of Vienna"); any other court by its display name."""
-    capital = world.get_nation_capital(nation)
+    # T4-2b: a seat that has removed is a province's name, no metonym.
+    from backend.game_logic.game_end import seat_as_metonym
+    capital = seat_as_metonym(world, nation)
     if (capital and capital in (getattr(world, "regions", {}) or {})
             and world.get_power_tier(nation) == "major"):
         return str(capital)

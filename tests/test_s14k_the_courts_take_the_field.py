@@ -378,7 +378,10 @@ def _reform_findings(scenario, mutate):
 
 class TestTheNewOrderValidates:
     def test_the_portes_deck_carries_no_staff_and_validates(self, scenario):
-        assert set(scenario["reforms"]) == set(RF.REFORM_DECKS)
+        # RE-SEATED by T4-3 (session A, November 10, 2026): the crowns of 1806 are
+        # promotion decks beside the R6 decks, and draw no warning either.
+        assert {c for c, rows in scenario["reforms"].items()
+                if not all(RF.is_promotion(r) for r in rows)} == set(RF.REFORM_DECKS)
         assert _reform_findings(scenario, lambda b: None) == ([], [])
 
     def test_a_great_power_still_carries_its_one_staff(self, scenario):
@@ -423,7 +426,12 @@ class TestTheRowsHeldDownAreTheOldBoot:
         assert not any(nation in world.agendas for nation in
                        ("Saxony", "Hesse", "Portugal", "Hanover", "Switzerland"))
         assert _ids(world, "Ottoman") == ["guard_the_straits"]
-        assert set(world.reforms) == set(RF.GREAT_POWERS)
+        # RE-SEATED by T4-3 (session A, November 10, 2026): a later tier's content
+        # under its own seam — the crowns stand (three of them on designs G1's
+        # seam struck here: they boot with a warning and wait unenactable).
+        assert {c for c, rows in world.reforms.items()
+                if not all(RF.is_promotion(r) for r in rows)} == set(RF.GREAT_POWERS)
+        assert RF.promotion_grounds(world, "Saxony", RF.deck(world, "Saxony")[0]) is None
         assert SC.statecraft_weight_mod(world, "Hesse") == 0
 
 

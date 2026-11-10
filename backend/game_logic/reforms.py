@@ -51,6 +51,7 @@ EFFECT_TYPES = (
     "blockade_denial",    # ×m on a blockaded court's trade loss
     "cures",              # removes one named doctrine flaw (lands at DC-2)
     "force_limit",        # S14k G3: the force-limit floor rises to a tier's — world_state.force_limit_floor
+    "rank",               # T4-3: the court's rank rises to a tier's — WorldState.get_power_tier
 )
 # The types WIRED to their seam in this build. The validator refuses a row
 # whose effect is not wired: a law must do what it says the day it ships
@@ -62,6 +63,7 @@ WIRED_EFFECT_TYPES = (
     "supply_capacity", "satellite_loyalty", "cs_closure", "blockade_denial",
     "cures",              # SR-7d DC-2: read at the doctrine's own seam (DOCTRINES_SPEC §3)
     "force_limit",        # S14k G3: read at `world_state.force_limit_floor` (K5's seam)
+    "rank",               # T4-3: read at `WorldState.get_power_tier` (`rank_of_laws`)
 )
 # RF-2: each wired type's clause parameters — what the validator checks (a
 # number inside a type is in-band; a new type or a new parameter is
@@ -81,6 +83,8 @@ CLAUSE_SHAPES = {
     "cs_closure": {"rule": ("every_client",)},
     "blockade_denial": {"value": ("float", 1.0, 2.0)},
     "force_limit": {"tier": ("major", "secondary")},
+    # T4-3 (DYNAMISM_SPEC.md §3c G6): no court rises to major by law.
+    "rank": {"tier": ("secondary",)},
 }
 CURRENCIES = ("gold", "authority")
 MAX_CLAUSES = 2                       # §4: at most two clauses per law
@@ -169,6 +173,140 @@ def force_limit_floor_of_laws(world, nation: str) -> int:
     from backend.models.world_state import FORCE_LIMIT_BASE_BY_TIER
     return max((int(FORCE_LIMIT_BASE_BY_TIER.get(str(clause.get("tier")), 0))
                 for clause in effect_clauses(world, nation, "force_limit")), default=0)
+
+
+# ══════════════ T4-3 — promotion (DYNAMISM_SPEC.md §3b, the gate §3c G6) ══════
+# A minor that fulfils an ambition and HOLDS its grounds may rise: its
+# promotion law (the 1806 crowns — Bavaria's Royal Crown for the Tyrol,
+# Saxony's Royal Dignity for Posen, Hesse's Grand Ducal Title for
+# Westphalia, Denmark's both shores of the Sound for Scania, Sardinia's
+# mainland restored for Piedmont and Savoy) carries a `rank` clause and
+# names the design whose provinces are its grounds (`requires_design`).
+# Rank is DERIVED — `WorldState.get_power_tier` reads the higher of the
+# authored tier and a rank law in force — so everything that reads rank
+# moves at once (Q5: teeth at once): the force limit, the capital's guard,
+# the table's standing, the bloc's weight, the call to arms against it,
+# vassal eligibility. No store, no hold clock: the grounds are the design's
+# provinces in the court's hands with a title record at least
+# PROMOTION_HOLD_TURNS old (its `since`, which the quiet clock resets while
+# the province is contested); the law LAPSES the turn any of them is lost
+# (`reason: grounds_lost` — the demotion).
+PROMOTION_HOLD_TURNS = 6            # N-DY1b: K
+RANK_ORDER = {"minor": 1, "secondary": 2, "major": 3}
+GROUNDS_LOST = "grounds_lost"       # `law_lapsed`'s reason for a demotion
+
+
+def a_minor_may_rise() -> bool:
+    """T4-3 seam: a `rank` law may be enacted and raises its court's rank.
+    Down: the promotion laws are struck at boot (no deck — as before they
+    were authored), a rank law enacts nothing and raises nothing, and no
+    law lapses for its grounds."""
+    return True
+
+
+def is_promotion(row) -> bool:
+    return isinstance(row, dict) and any(
+        isinstance(clause, dict) and clause.get("type") == "rank"
+        for clause in row.get("effects") or [])
+
+
+def standing_deck(rows):
+    """The deck as it boots: with the T4-3 seam down the promotion laws are
+    struck (`WorldState.from_scenario`, before validation)."""
+    if a_minor_may_rise() or not isinstance(rows, list):
+        return rows
+    return [row for row in rows if not is_promotion(row)]
+
+
+def rank_of_laws(world, nation: str) -> str:
+    """The highest tier a `rank` law in force raises the court to ('' =
+    none). The court's OWN laws only — an edict never crowns. Read at
+    `WorldState.get_power_tier`, on every rank read: one dict lookup for a
+    court with no deck."""
+    rows = (getattr(world, "reforms", None) or {}).get(nation)
+    if not rows or not a_minor_may_rise():
+        return ""
+    best = ""
+    for row in rows:
+        if not is_in_force(row):
+            continue
+        for clause in row.get("effects") or []:
+            if isinstance(clause, dict) and clause.get("type") == "rank":
+                tier = str(clause.get("tier") or "")
+                if RANK_ORDER.get(tier, 0) > RANK_ORDER.get(best, 0):
+                    best = tier
+    return best
+
+
+def promotion_grounds(world, nation: str, row) -> Optional[List[str]]:
+    """The provinces a law's `requires_design` names — that design's
+    regions on the court's own deck; None when the law names no design or
+    the deck carries none by that id (a seam that strikes the design
+    leaves the law unenactable, never wrongly open)."""
+    design_id = str((row or {}).get("requires_design") or "")
+    if not design_id:
+        return None
+    for entry in (getattr(world, "agendas", None) or {}).get(nation) or []:
+        if isinstance(entry, dict) and str(entry.get("id") or "") == design_id:
+            return [str(r) for r in entry.get("regions") or [] if r]
+    return None
+
+
+def grounds_title_age(world, nation: str, region_name: str) -> Optional[int]:
+    """Turns the court has held `region_name` by its title record — None
+    when it does not hold it; its own homeland is title by construction (a
+    very old one); a province held with no record reads 0."""
+    region = (getattr(world, "regions", None) or {}).get(region_name)
+    if region is None or region.controller != nation:
+        return None
+    if region_name in ((getattr(world, "nation_starting_regions", None) or {})
+                       .get(nation) or []):
+        return 10 ** 6
+    rec = (getattr(world, "province_title", None) or {}).get(region_name) or {}
+    if str(rec.get("holder") or "") != nation:
+        return 0
+    return max(0, int(getattr(world, "current_turn", 0) or 0)
+               - int(rec.get("since", 0) or 0))
+
+
+def _join_grounds(names: List[str]) -> str:
+    names = [str(n) for n in names if n]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def grounds_refusal(world, nation: str, row) -> str:
+    """"" when the law's grounds stand (or it names none): every province
+    of its design in the court's hands, each title at least
+    PROMOTION_HOLD_TURNS old. Otherwise the reason — what is not held, or
+    how long the youngest title still wants."""
+    if not (row or {}).get("requires_design"):
+        return ""
+    name = display_name(row)
+    head = name[0].upper() + name[1:]
+    grounds = promotion_grounds(world, nation, row)
+    if not grounds:
+        return f"{head} rests on a design this court does not pursue."
+    ages = {r: grounds_title_age(world, nation, r) for r in grounds}
+    missing = [r for r in grounds if ages[r] is None]
+    if missing:
+        return f"{head} waits on {_join_grounds(missing)}: the court does not hold it."
+    young = [r for r in grounds if int(ages[r]) < PROMOTION_HOLD_TURNS]
+    if young:
+        wait = PROMOTION_HOLD_TURNS - min(int(ages[r]) for r in young)
+        return (f"{head} waits on {_join_grounds(young)}: held, but not yet "
+                f"{PROMOTION_HOLD_TURNS} quiet turns ({wait} more).")
+    return ""
+
+
+def grounds_lost(world, nation: str, row) -> List[str]:
+    """The provinces of a law's grounds the court no longer holds ([] =
+    the grounds stand, or the law names none it can read)."""
+    grounds = promotion_grounds(world, nation, row) or []
+    regions = getattr(world, "regions", None) or {}
+    return [r for r in grounds
+            if getattr(regions.get(r), "controller", None) != nation]
 
 
 def threat_moves_the_court(world, nation: str) -> bool:
@@ -372,6 +510,12 @@ def law_refusal(world, nation: str, law_id: str,
     head = name[0].upper() + name[1:]     # at a sentence's head
     if is_in_force(row):
         return f"{head} is already in force (since turn {int(row['enacted_turn'])})."
+    # T4-3: a promotion law waits on its grounds (and on its seam).
+    if is_promotion(row) and not a_minor_may_rise():
+        return f"{head} is not this court's to take."
+    grounds = grounds_refusal(world, nation, row)
+    if grounds:
+        return grounds
     quote = restoration_price(world, nation, row)
     # S14E-X196 / S14E-D19: the PLAYER's gold is the chest (`_court_gold`);
     # the sentence says so where the coffers hold more than the chest.
@@ -536,6 +680,7 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
     authority_before = _court_authority(world, nation)
     from backend.game_logic.doctrines import flaw_cured as _flaw_cured
     _cured_before = _flaw_cured(world, nation)
+    _tier_before = str(world.get_power_tier(nation) or "")
     if gold:
         world.nation_gold[nation] = int(world.nation_gold.get(nation, 0) or 0) - gold
         world.record_gold_spent(nation, gold)
@@ -553,8 +698,14 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
         "authority": int(authority),
         "upkeep": int(row.get("upkeep", 0) or 0),
     })
-    queue_law_beat(world, nation, row,
-                   "restored" if quote["kind"] == "restore" else "enacted")
+    # T4-3: a law that RAISES the court's rank is a promotion — its own log
+    # row and its own beat (in place of the routine law line).
+    _tier_after = str(world.get_power_tier(nation) or "")
+    if is_promotion(row) and _tier_after != _tier_before:
+        announce_promotion(world, nation, row, _tier_before, _tier_after)
+    else:
+        queue_law_beat(world, nation, row,
+                       "restored" if quote["kind"] == "restore" else "enacted")
     # SR-7d DC-2 (DOCTRINES_SPEC §4 "the catch-up is announced"): the cure
     # takes effect the moment its law AND the court's Staff both stand —
     # once, derived from the before/after read, zero new fields.
@@ -566,6 +717,84 @@ def enact_law(world, nation: str, row: Dict) -> Dict:
             "authority_before": int(authority_before),
             "authority_after": int(_court_authority(world, nation)),
             "cure_took_effect": bool(_cured_now and not _cured_before)}
+
+
+def announce_promotion(world, nation: str, row: Dict, tier_before: str,
+                       tier_after: str) -> None:
+    """T4-3 — THE promotion's record: ONE `rank_promotion` log row (DY-0's
+    column reads it) and one beat, "A CROWN: Bavaria proclaims the Royal
+    Crown — …". The rank itself is derived (nothing is written here but the
+    words); every per-turn cache that weighs a court by its tier is
+    released."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    grounds = promotion_grounds(world, nation, row) or []
+    name = display_name(row)
+    world.log_event({
+        "type": "rank_promotion",
+        "nation": nation,
+        "law": str(row.get("id") or ""),
+        "name": str(row.get("name") or ""),
+        "tier": tier_after,
+        "from_tier": tier_before,
+        "grounds": list(grounds),
+    })
+    queue_dispatch_event(world, "rank_promoted", {
+        "nation": nation, "law": name,
+        "grounds_clause": (f"with {_join_grounds(grounds)} held, " if grounds else ""),
+    }, "always")
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+
+
+def process_grounds_lapses(world) -> List[Dict]:
+    """T4-3 — the demotion: a law in force whose grounds are lost (any
+    province of its `requires_design` out of the court's hands) LAPSES —
+    `law_lapsed` with `reason: grounds_lost`, the Arrears clock started as
+    for any lapse (it restores at the Arrears price once the grounds have
+    stood PROMOTION_HOLD_TURNS again). Nothing is refunded: the law stood
+    this turn. Walks the courts with a deck and their laws in force only
+    (Rule 8). Returns the player's tactical events."""
+    events: List[Dict] = []
+    if not a_minor_may_rise():
+        return events
+    from backend.game_logic.dispatch import queue_dispatch_event
+    store = getattr(world, "reforms", None) or {}
+    player = getattr(world, "player_nation", None)
+    for nation in world.get_active_nations():
+        if nation not in store:
+            continue
+        for row in list(laws_in_force(world, nation)):
+            if not row.get("requires_design"):
+                continue
+            lost = grounds_lost(world, nation, row)
+            if not lost:
+                continue
+            tier_before = str(world.get_power_tier(nation) or "")
+            row.pop("enacted_turn", None)
+            row["lapsed_turn"] = int(getattr(world, "current_turn", 0) or 0)
+            _refresh_doctrines(world)
+            name = display_name(row)
+            world.log_event({
+                "type": "law_lapsed",
+                "nation": nation,
+                "law": str(row.get("id") or ""),
+                "name": str(row.get("name") or ""),
+                "upkeep": int(row.get("upkeep", 0) or 0),
+                "reason": GROUNDS_LOST,
+                "grounds": list(lost),
+                "demoted": str(world.get_power_tier(nation) or "") != tier_before,
+            })
+            queue_dispatch_event(world, "rank_lost", {
+                "nation": nation, "law": name, "grounds": _join_grounds(lost)}, "always")
+            if hasattr(world, "invalidate_active_nations_cache"):
+                world.invalidate_active_nations_cache()
+            if nation == player:
+                events.append({
+                    "type": "law_lapsed", "nation": nation,
+                    "law": str(row.get("id") or ""),
+                    "message": (f"{_join_grounds(lost)} is out of our hands, Sire — "
+                                f"{name} lapses with its grounds.")})
+    return events
 
 
 def _refresh_doctrines(world) -> None:
@@ -653,6 +882,8 @@ def process_law_lapses(world) -> List[Dict]:
     store = getattr(world, "reforms", None) or {}
     if not store:
         return events
+    # T4-3: a law whose grounds are lost lapses first (the demotion).
+    events.extend(process_grounds_lapses(world))
     for nation in world.get_active_nations():
         if nation not in store:
             continue
@@ -798,6 +1029,15 @@ def effect_line(clause) -> str:
         tier = str(clause.get("tier"))
         return (f"the army may grow as a {tier} power's — the force limit's floor rises to "
                 f"{int(FORCE_LIMIT_BASE_BY_TIER.get(tier, 0)):,}")
+    if etype == "rank":
+        # T4-3: the 1806 crowns — everything that reads rank moves at once
+        from backend.models.world_state import FORCE_LIMIT_BASE_BY_TIER
+        from backend.nation_config import CAPITAL_GARRISON_BY_TIER
+        tier = str(clause.get("tier"))
+        return (f"the court ranks as a {tier} power — its army may grow to "
+                f"{int(FORCE_LIMIT_BASE_BY_TIER.get(tier, 0)):,}, its capital's guard to "
+                f"{int(CAPITAL_GARRISON_BY_TIER.get(tier, 0)):,}, and its voice at the "
+                f"table rises with it")
     return ""
 
 

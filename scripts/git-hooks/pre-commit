@@ -52,7 +52,7 @@ fi
 # The parallel run needs pytest-xdist (requirements.txt). Without it the
 # gate falls back to the serial run rather than skipping anything.
 if "$PYTHON" -c "import xdist" 2>/dev/null; then
-  echo "[pre-commit] full pytest suite (tests/), 10 workers -- measured 8:49 on this machine (November 10, 2026) ..."
+  echo "[pre-commit] full pytest suite (tests/), 10 workers -- measured 8:22 on this machine (November 10, 2026) ..."
   "$PYTHON" -m pytest tests/ -q -n 10 --dist loadgroup \
     || { echo "[pre-commit] tests failed -- commit aborted." 1>&2; exit 1; }
 else

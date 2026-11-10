@@ -1931,6 +1931,10 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "diplomatic_auto_downgrade": ("courts_treaties", 80),
     "diplomatic_treaty_signed": ("courts_treaties", 78),
     "province_returned": ("courts_treaties", 77),
+    "rank_promoted": ("courts_treaties", 88),        # T4-3: a crown is news
+    "rank_lost": ("courts_treaties", 87),            # T4-3
+    "court_removes": ("courts_treaties", 79),        # T4-2b
+    "court_returns": ("courts_treaties", 79),        # T4-2b
     "diplomatic_relation_shift": ("courts_treaties", 76),
     "paymaster_subsidy": ("courts_purse", 74),
     "design_promoted": ("courts_designs", 72),
@@ -8421,6 +8425,24 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "{holder_display} hands {region} back to {asker_display} — the liberated "
         "soil comes home."
     ),
+    # T4-2b (DYNAMISM_SPEC.md §3c "The seat"): a court whose seat is signed
+    # away removes; the seat returns with the authored capital.
+    "court_removes": (
+        "The court of {nation_display} removes to {seat} — {lost} is "
+        "{holder_name}'s by treaty."
+    ),
+    "court_returns": "The court of {nation_display} returns to {seat}.",
+    # T4-3 (DYNAMISM_SPEC.md §3c G6): a minor that holds its design's
+    # grounds takes its crown — and loses it with them.
+    "rank_promoted": (
+        "A CROWN: {nation_display} proclaims {law} — {grounds_clause}she ranks "
+        "among the secondary powers of Europe from this day: a larger army, a "
+        "stronger guard on her capital, a louder voice at every table."
+    ),
+    "rank_lost": (
+        "A CROWN: {nation_display} no longer holds {grounds} — {law} lapses, "
+        "and her rank among the powers with it."
+    ),
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -8671,6 +8693,10 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "allegiance_in_play": "HIGH",
     "allegiance_settled": "HIGH",
     "province_returned": "HIGH",
+    "court_removes": "HIGH",             # T4-2b
+    "court_returns": "HIGH",             # T4-2b
+    "rank_promoted": "HIGH",             # T4-3 — a beat, never a routine line
+    "rank_lost": "HIGH",                 # T4-3
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",

@@ -172,6 +172,14 @@ def volte_face_window() -> int:
     return int(VOLTE_FACE_WINDOW)
 
 PUNITIVE_MEMORY_TYPE = "punitive_settlement"
+
+
+def _historic_capital(world, nation: str):
+    """T4-2b: the capital whose LOSS is the grievance — the authored one
+    once the court's seat has removed (`game_end.historic_capital`); the
+    live seat for every court that has not."""
+    from backend.game_logic.game_end import historic_capital
+    return historic_capital(world, nation) or None
 EMERGENT_DESIGN_TITLE = "Revanche"
 
 
@@ -219,7 +227,7 @@ def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]],
         if not homeland_pairs:
             continue
         provinces = [p for p, _r in homeland_pairs]
-        capital = world.get_nation_capital(victim)
+        capital = _historic_capital(world, victim)  # T4-2b: the capital whose loss is the grievance
         if (len(provinces) < PUNITIVE_SETTLEMENT_MIN_PROVINCES
                 and capital not in provinces):
             continue
@@ -279,7 +287,7 @@ def revanche_line_for_terms(world, terms) -> str:
     paid = _compensation_words_by_court(terms, compensation_phrase)
     lines: List[str] = []
     for victim, provinces in sorted(_cession_victims(world, terms).items()):
-        capital = world.get_nation_capital(victim)
+        capital = _historic_capital(world, victim)  # T4-2b: the capital whose loss is the grievance
         ceded = sorted(set(provinces))
         net = net_of_compensation(world, victim, ceded, int(offsets.get(victim, 0) or 0))
         punitive = (len(set(net)) >= PUNITIVE_SETTLEMENT_MIN_PROVINCES
@@ -476,7 +484,7 @@ def _grievance_author(world, nation: str, lost: List[str]) -> Tuple[Optional[str
         if has_renege_grievance(world, nation, holder):
             return holder, True
 
-    capital = world.get_nation_capital(nation)
+    capital = _historic_capital(world, nation)  # T4-2b: the capital whose loss is the grievance
     if capital in lost:
         region = world.regions.get(capital)
         controller = getattr(region, "controller", None) if region else None
@@ -508,7 +516,7 @@ def process_emergent_designs(world) -> List[Dict]:
         if not lost:
             continue
         author, record_backed = _grievance_author(world, nation, lost)
-        capital = world.get_nation_capital(nation)
+        capital = _historic_capital(world, nation)  # T4-2b: the capital whose loss is the grievance
         partitioned = (capital in lost
                        or len(lost) >= EMERGENT_DESIGN_MIN_LOST)
         if not partitioned and not record_backed:

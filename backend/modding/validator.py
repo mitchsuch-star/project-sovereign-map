@@ -1098,30 +1098,47 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
     is a warning (the five great powers, and the Porte's New Order since
     S14k G3 — a deck beyond the great powers carries no Staff). A row may
     mark itself `under_threat` (a boolean: the AI enacts it only at war or
-    called to arms)."""
+    called to arms). T4-3 (DYNAMISM_SPEC.md §3c G6): a `rank` clause raises
+    the court's derived rank (tier `secondary` only); a row may name its
+    grounds, `requires_design` — an `acquire_regions` design of the court's
+    own agenda deck (the shape is hard; a design the boot's seams struck
+    WARNS); and a deck of promotion laws alone draws no R6 warning."""
     if "reforms" not in data:
         return
     from backend.game_logic.reforms import (
         CLAUSE_SHAPES, CURRENCIES, EFFECT_TYPES, GREAT_POWERS, MAX_CLAUSES,
-        REFORM_DECKS, WIRED_EFFECT_TYPES)
+        REFORM_DECKS, WIRED_EFFECT_TYPES, is_promotion)
     block = data.get("reforms")
     if not isinstance(block, dict):
         result.add_error("reforms",
                          f"Must be an object, got {type(block).__name__}")
         return
     staff_terms: Dict[str, tuple] = {}
+    agenda_courts = (set(data.get("agendas") or {})
+                     if isinstance(data.get("agendas"), dict) else set())
     for court, rows in block.items():
         if str(court).startswith("_"):
             continue
         path = f"reforms.{court}"
-        if known_nations and court not in known_nations:
+        # T4-3: an armyless minor read without its provinces (the bare file —
+        # `from_scenario` injects them) is unknown here; one that carries an
+        # agenda deck already drew that block's warning, never a second.
+        if (known_nations and court not in known_nations
+                and court not in agenda_courts):
             result.add_error(path, f"Unknown nation '{court}'")
-        if court not in REFORM_DECKS:
+        # T4-3 (DYNAMISM_SPEC.md §3c G6): a deck of promotion laws alone —
+        # every row carrying a `rank` clause — is any court's to keep.
+        if court not in REFORM_DECKS and not (
+                isinstance(rows, list) and rows and all(is_promotion(r) for r in rows)):
             result.add_warning(
                 path, "R6: the decks are the five great powers' and the Porte's only")
         if not isinstance(rows, list):
             result.add_error(path, "Must be a list of law rows")
             continue
+        court_designs = {
+            str(e.get("id") or ""): e
+            for e in ((data.get("agendas") or {}).get(court) or [])
+            if isinstance(e, dict)} if isinstance(data.get("agendas"), dict) else {}
         seen_ids: Set[str] = set()
         staffs = []
         for i, row in enumerate(rows):
@@ -1143,6 +1160,26 @@ def _validate_reforms(result, data: dict, known_nations: Set[str]) -> None:
                         "in force at boot (REFORMS_SPEC §1)")
             if "under_threat" in row and not isinstance(row.get("under_threat"), bool):
                 result.add_error(rp, "under_threat must be true or false")
+            if "requires_design" in row:
+                # T4-3: the law's grounds — an `acquire_regions` design of
+                # the court's own deck. The shape is hard; a design the
+                # boot's seams struck from the deck WARNS (the validator
+                # reads the board that boots — the T2-6 lesson), and the
+                # law then waits unenactable.
+                wanted = row.get("requires_design")
+                if not isinstance(wanted, str) or not wanted.strip():
+                    result.add_error(rp, "requires_design must name a design id")
+                else:
+                    design = court_designs.get(wanted)
+                    if design is None:
+                        result.add_warning(
+                            rp, f"requires_design {wanted!r} is not on {court}'s "
+                                f"agenda deck — the law cannot be enacted")
+                    elif (design.get("type") != "acquire_regions"
+                            or not design.get("regions")):
+                        result.add_error(
+                            rp, f"requires_design {wanted!r} must be an "
+                                f"acquire_regions design with provinces")
             if "currency" in row and row.get("currency") not in CURRENCIES:
                 result.add_error(
                     rp, f"currency must be one of {CURRENCIES}, got "

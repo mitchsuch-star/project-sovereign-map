@@ -4059,7 +4059,16 @@ class EnemyAI:
     # ═══════════════════════════════════════════════════════════════════
 
     def _is_capital_lost(self, nation: str, world: WorldState) -> bool:
-        """Check if this nation has lost its capital region."""
+        """Check if this nation has lost its capital region.
+
+        T4-2b: the capital is the court's SEAT — a court that signed its
+        capital away and removed has not "lost its capital" while its seat
+        stands (the flag scan below read the old capital's flag for ever).
+        Seam down: the flag scan, as before."""
+        from backend.game_logic.game_end import a_court_removes_its_seat
+        if a_court_removes_its_seat():
+            seat = world.get_region(world.get_nation_capital(nation) or "")
+            return bool(seat and seat.controller != nation)
         starting = world.nation_starting_regions.get(nation, [])
         for region_name in starting:
             region = world.get_region(region_name)

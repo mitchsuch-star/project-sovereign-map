@@ -83,6 +83,9 @@ _COURT_TYPES = {
     # the Alarm of Europe is FELT through it (`instruments.pledge_guarantee`
     # writes it with a literal `log_event`).
     "guarantee_pledged",
+    # T4-3 (DYNAMISM_SPEC.md §3c G6): a crown taken is the courts' news
+    # (`reforms.announce_promotion` writes it with a literal `log_event`).
+    "rank_promotion",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no
@@ -118,6 +121,14 @@ _ARMY_TYPES = {
 }
 
 _SECTION_CAP = 8  # rows per section — a paper, not a ledger dump
+
+
+def _is_seat_row(event: Dict) -> bool:
+    """T4-2b: the two `province_returned` rows the courts column prints — a
+    court's seat removed by a treaty, and home again (`game_end._say_the_seat`
+    writes each with a literal `log_event`)."""
+    return (str(event.get("type", "")) == "province_returned"
+            and str(event.get("outcome", "")) in ("court_removed", "court_returned"))
 
 
 def _is_great_power(world, nation: str) -> bool:
@@ -815,8 +826,13 @@ def compose_issue(world, since_turn: int,
     # authored `press` on an `answered` or `outcome` row, and nothing
     # otherwise — the arrival, a withdrawal, a crowding-out, Berthier's Not
     # now and the squadron form's Accept (its paper line is its outcome's).
+    # T4-2b (DYNAMISM_SPEC.md §3c "The seat"): a court removing its seat, or
+    # returning to its capital, is court news — it rides `province_returned`
+    # by its outcome (no new log type); the province hand-backs of that type
+    # stay off the paper, as before.
     court_rows = [e for e in events
-                  if str(e.get("type", "")) in _court and _affair_courts_line(e) != ""]
+                  if (str(e.get("type", "")) in _court and _affair_courts_line(e) != "")
+                  or _is_seat_row(e)]
     army_rows = [e for e in events if str(e.get("type", "")) in _army]
 
     # Review round [1/4]: the number continues from the last ISSUE, not

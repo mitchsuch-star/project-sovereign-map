@@ -1459,7 +1459,7 @@
             "grudge_label": "The Irish Question"
         }
     },
-    "_reforms_comment": "SR-5r RF-0 (docs/REFORMS_SPEC.md, gate record section 0 RULED September 27, 2026; readings section 0.1 CONFIRMED). One deck per great power (R6), in the order the AI court enacts (section 7). A row is bought once (currency gold or authority, plus one admin action) and pays upkeep gold every turn as the signed Net component 'Laws'; it lapses, largest upkeep first, when the treasury cannot pay (R5), and a lapsed law may be restored within ten turns for half its price plus its arrears (R8 'The Arrears'). Nothing is in force at boot: the validator refuses enacted_turn / lapsed_turn here. effects draw from the closed set of section 4 (at most two clauses); a type not yet wired to its seam is refused ('strike, never invent'). RF-0 authors each court's Staff - the ONE actions law, the only road to a fifth action, one price for every court (section 5, Q3); the rest of the section 6 catalogue arrives with RF-2, when its effect types are wired. R6 AMENDED by S14k (October 28, 2026 - the user: 'what if ottomans reformed'): the Porte's one-row deck, the New Order (Nizam-i Cedid) - no Staff (the one-Staff rule binds the five great powers); its force_limit clause raises the Porte's force-limit floor to a great power's, and under_threat lets the AI proclaim it only at war or when a design is priced against the Porte.",
+    "_reforms_comment": "SR-5r RF-0 (docs/REFORMS_SPEC.md, gate record section 0 RULED September 27, 2026; readings section 0.1 CONFIRMED). One deck per great power (R6), in the order the AI court enacts (section 7). A row is bought once (currency gold or authority, plus one admin action) and pays upkeep gold every turn as the signed Net component 'Laws'; it lapses, largest upkeep first, when the treasury cannot pay (R5), and a lapsed law may be restored within ten turns for half its price plus its arrears (R8 'The Arrears'). Nothing is in force at boot: the validator refuses enacted_turn / lapsed_turn here. effects draw from the closed set of section 4 (at most two clauses); a type not yet wired to its seam is refused ('strike, never invent'). RF-0 authors each court's Staff - the ONE actions law, the only road to a fifth action, one price for every court (section 5, Q3); the rest of the section 6 catalogue arrives with RF-2, when its effect types are wired. R6 AMENDED by S14k (October 28, 2026 - the user: 'what if ottomans reformed'): the Porte's one-row deck, the New Order (Nizam-i Cedid) - no Staff (the one-Staff rule binds the five great powers); its force_limit clause raises the Porte's force-limit floor to a great power's, and under_threat lets the AI proclaim it only at war or when a design is priced against the Porte. R6 AMENDED again by T4-3 (November 10, 2026 - docs/DYNAMISM_SPEC.md section 3c G6, promotion): five minor courts carry a one-row PROMOTION deck, the crowns of 1806 - Bavaria's Royal Crown, Saxony's Royal Dignity, Hesse's Grand Ducal Title, Denmark's Both Shores of the Sound, Sardinia's Mainland Restored. A promotion law's one clause is rank (tier secondary - no court rises to major by law): while it is in force the court's rank is DERIVED as secondary everywhere rank is read (force limit, the capital's guard, the table's standing, the bloc's weight, the call to arms against it, vassal eligibility). requires_design names the acquire design of the court's own agenda deck whose provinces are the law's grounds: it may be enacted only while every one of them is in the court's hands with a title record at least six turns old, and it lapses (reason grounds_lost - the demotion) the turn any of them is lost. A deck of promotion laws alone carries no Staff and draws no R6 warning.",
     "reforms": {
         "France": [
             {
@@ -1916,6 +1916,96 @@
                     }
                 ],
                 "says": "Selim's drilled regiments on the European pattern: the Porte may field an army as a great power does, and its infantry drafts muster steadier - while the treasury pays the New Order its wages. The Porte proclaims it only at war, or when a design is priced against it."
+            }
+        ],
+        "Bavaria": [
+            {
+                "id": "the_royal_crown",
+                "name": "The Royal Crown",
+                "date": "the Kingdom of Bavaria, proclaimed at Munich on January 1, 1806 - the Tyrol its prize by the Peace of Pressburg",
+                "currency": "gold",
+                "price": 3000,
+                "upkeep": 100,
+                "requires_design": "the_tyrol",
+                "effects": [
+                    {
+                        "type": "rank",
+                        "tier": "secondary"
+                    }
+                ],
+                "says": "Max Joseph is Elector no longer: with the Tyrol held, Bavaria is a kingdom and counts in Europe as one - a larger army, a stronger guard on its capital, a louder voice at every table. The crown stands only while the Tyrol does."
+            }
+        ],
+        "Saxony": [
+            {
+                "id": "the_royal_dignity",
+                "name": "The Royal Dignity",
+                "date": "the Kingdom of Saxony, by the Peace of Posen, December 11, 1806",
+                "currency": "gold",
+                "price": 3000,
+                "upkeep": 100,
+                "requires_design": "the_wettin_crown",
+                "effects": [
+                    {
+                        "type": "rank",
+                        "tier": "secondary"
+                    }
+                ],
+                "says": "Frederick Augustus takes the royal title his house once wore in Poland: with Posen held, Saxony ranks among the secondary powers of Europe - a larger army, a stronger guard on Dresden, a louder voice at every table. The dignity stands only while Posen does."
+            }
+        ],
+        "Hesse": [
+            {
+                "id": "the_grand_ducal_title",
+                "name": "The Grand Ducal Title",
+                "date": "the Grand Duchy of Hesse, proclaimed at Darmstadt in August 1806",
+                "currency": "gold",
+                "price": 3000,
+                "upkeep": 100,
+                "requires_design": "the_westphalian_duchy",
+                "effects": [
+                    {
+                        "type": "rank",
+                        "tier": "secondary"
+                    }
+                ],
+                "says": "The Landgrave is a Grand Duke: with the whole Duchy of Westphalia held, Hesse ranks among the secondary powers of Europe - a larger army, a stronger guard on its capital, a louder voice at every table. The title stands only while Westphalia does."
+            }
+        ],
+        "Denmark": [
+            {
+                "id": "both_shores_of_the_sound",
+                "name": "Both Shores of the Sound",
+                "date": "Scania, Danish until the Peace of Roskilde in 1658 - the eastern shore of the Sound",
+                "currency": "gold",
+                "price": 3000,
+                "upkeep": 100,
+                "requires_design": "scania",
+                "effects": [
+                    {
+                        "type": "rank",
+                        "tier": "secondary"
+                    }
+                ],
+                "says": "With Scania recovered the Danish crown holds both shores of the Sound again, as it did before Roskilde: Denmark ranks among the secondary powers of Europe - a larger army, a stronger guard on Copenhagen, a louder voice at every table. It stands only while Scania does."
+            }
+        ],
+        "Sardinia": [
+            {
+                "id": "the_mainland_restored",
+                "name": "The Mainland Restored",
+                "date": "the House of Savoy at Turin again - as the Congress of Vienna restored it in 1814",
+                "currency": "gold",
+                "price": 3000,
+                "upkeep": 100,
+                "requires_design": "house_of_savoy_restored",
+                "effects": [
+                    {
+                        "type": "rank",
+                        "tier": "secondary"
+                    }
+                ],
+                "says": "The court leaves Cagliari for Turin: with Piedmont and Savoy held, the House of Savoy is a mainland power again and ranks among the secondary powers of Europe - a larger army, a stronger guard on its capital, a louder voice at every table. It stands only while both are held."
             }
         ]
     },

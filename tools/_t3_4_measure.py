@@ -63,11 +63,34 @@ def _signs_provinces(event: dict) -> bool:
     return " takes " in f" {words}"
 
 
+def crown_grounds() -> dict:
+    """T4-3: {province: court} — the provinces the scenario's promotion
+    laws rest on (each law's `requires_design` on its court's agenda deck),
+    read off the file (no backend import in this parent)."""
+    scenario = json.loads((ROOT / "godot-client" / "project-sovereign" / "assets" / "maps"
+                           / "europe_1805.json").read_text(encoding="utf-8"))
+    out = {}
+    for court, rows in (scenario.get("reforms") or {}).items():
+        for row in rows if isinstance(rows, list) else []:
+            design_id = row.get("requires_design") if isinstance(row, dict) else None
+            for entry in (scenario.get("agendas") or {}).get(court) or []:
+                if design_id and isinstance(entry, dict) and entry.get("id") == design_id:
+                    out.update({str(r): str(court) for r in entry.get("regions") or []})
+    return out
+
+
+_CROWN_GROUNDS = crown_grounds()
+
+
 def census_of(digest: dict) -> dict:
     peaces, letters, signed, evacuations, refuges = [], [], [], [], []
+    # T4-3: every change of hands of a province a crown rests on — how near
+    # a promotion came (the crown's court taking it starts its six turns).
+    grounds = []
     # T4-1 (DYNAMISM_SPEC.md §3c G2): the Alarm's guarantees — a pledge
     # that names the conqueror it answers (`against`) — and every honour.
     alarm_guarantees, honoured = [], []
+    seats, promotions, demotions = [], [], []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
             if event.get("type") == "guarantee_pledged" and event.get("against"):
@@ -106,6 +129,34 @@ def census_of(digest: dict) -> dict:
                                 "proposer": str(event.get("proposer") or ""),
                                 "accepter": str(event.get("accepter") or ""),
                                 "consequence": str(event.get("consequence") or "")})
+            # T4-2b (DYNAMISM_SPEC.md §3c "The seat"): a court's seat moved
+            # by a treaty, and home again — `province_returned` by outcome.
+            if (event.get("type") == "province_returned"
+                    and event.get("outcome") in ("court_removed", "court_returned")):
+                seats.append({"turn": int(row.get("turn", 0)),
+                              "court": str(event.get("nation") or ""),
+                              "outcome": str(event.get("outcome") or ""),
+                              "seat": str(event.get("region") or ""),
+                              "lost": str(event.get("lost") or ""),
+                              "holder": str(event.get("target_nation") or "")})
+            if (event.get("type") == "region_captured"
+                    and str(event.get("region") or "") in _CROWN_GROUNDS):
+                grounds.append({"turn": int(row.get("turn", 0)),
+                                "region": str(event.get("region") or ""),
+                                "crown_of": _CROWN_GROUNDS[str(event.get("region"))],
+                                "by": str(event.get("captured_by") or ""),
+                                "from": str(event.get("captured_from") or "")})
+            # T4-3 (§3c G6): a crown taken, and a crown lost with its grounds.
+            if event.get("type") == "rank_promotion":
+                promotions.append({"turn": int(row.get("turn", 0)),
+                                   "court": str(event.get("nation") or ""),
+                                   "law": str(event.get("law") or ""),
+                                   "grounds": list(event.get("grounds") or [])})
+            if event.get("type") == "law_lapsed" and event.get("reason") == "grounds_lost":
+                demotions.append({"turn": int(row.get("turn", 0)),
+                                  "court": str(event.get("nation") or ""),
+                                  "law": str(event.get("law") or ""),
+                                  "grounds": list(event.get("grounds") or [])})
         for prop in row.get("incoming_proposals") or []:
             if prop.get("ptype") == AIM_LETTER:
                 letters.append({"turn": int(row.get("turn", 0)),
@@ -114,6 +165,10 @@ def census_of(digest: dict) -> dict:
     return {"aim_peaces": peaces, "aim_letters": letters, "signed_cessions": signed,
             "evacuations": evacuations,
             "last_refuges": refuges,
+            "seats": seats,
+            "rank_promotions": promotions,
+            "grounds_lapses": demotions,
+            "crown_grounds": grounds,
             "alarm_guarantees": alarm_guarantees,
             "guarantees_honoured": honoured,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
@@ -175,6 +230,12 @@ def main() -> None:
             "signed_cessions": sum(len(c["signed_cessions"]) for c in census.values()),
             "evacuations": sum(len(c["evacuations"]) for c in census.values()),
             "last_refuges": sum(len(c["last_refuges"]) for c in census.values()),
+            "seats_removed": sum(1 for c in census.values() for s in c["seats"]
+                                 if s["outcome"] == "court_removed"),
+            "seats_returned": sum(1 for c in census.values() for s in c["seats"]
+                                  if s["outcome"] == "court_returned"),
+            "rank_promotions": sum(len(c["rank_promotions"]) for c in census.values()),
+            "grounds_lapses": sum(len(c["grounds_lapses"]) for c in census.values()),
             "alarm_guarantees": sum(len(c["alarm_guarantees"]) for c in census.values()),
             "guarantees_honoured": sum(len(c["guarantees_honoured"])
                                        for c in census.values()),

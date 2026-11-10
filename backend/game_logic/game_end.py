@@ -855,6 +855,9 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
         store = _title_store(world)
         if _is_homeland(world, region, receiver):
             store.pop(region, None)
+            # T4-2b: the court's own ground comes home — its authored
+            # capital returns the seat; a court left seatless seats itself.
+            a_province_comes_home(world, str(region), str(receiver))
             return
         rec = {
             "kind": str(kind),
@@ -866,9 +869,349 @@ def record_province_title(world, region: str, kind: str, from_nation: str,
         if retained:
             rec["retained"] = True
         store[region] = rec
+        if str(kind) == TITLE_TREATY:
+            # T4-2b: a treaty that titles a court's seat to another holder.
+            a_treaty_takes_a_seat(world, str(region), str(from_nation or ""),
+                                  str(receiver))
     except Exception as exc:
         report(exc, "game_end.record_province_title: _title_store")
         return
+
+
+# ════════════════════════════════════════════════════════════════════════
+# T4-2b — the court removes (DYNAMISM_SPEC.md §3c, "The seat"; session A,
+# November 10, 2026 — the user's "use best judgment but focus on utmost
+# quality" at T4-2's plan).
+#
+# A court whose seat a treaty of its OWN house titles to another holder
+# removes to the richest homeland province still in its hands (authored
+# order breaks ties) — the Bavarian court at Würzburg in 1805, the
+# Habsburgs out of Vienna, the Bourbons of Naples at Palermo — and returns
+# the day its authored capital comes home. Only a signature moves a seat:
+# an OCCUPIED capital stays the capital (its recapture is still the
+# court's first business), and a treaty between two other courts moves no
+# third court's seat. The player's house is exempt on either side (T4-2's
+# own exemption): Paris signed away is the Emperor's own catastrophe and no
+# rule softens it, and a court whose capital HIS house holds by treaty stays
+# under the knife — the Congress's hold (RS-D1) reads that capital in his
+# hands. The rule binds between the AI courts.
+#
+# Two reads of "the capital", kept apart: the court's SEAT is where it
+# sits (`world.get_nation_capital` — the guard, the diplomatic point, the
+# war score, the conduct rule's "enemy's seat", the homing); the capital
+# whose LOSS is its grievance is the authored one (`historic_capital` —
+# the punitive bar, the partition manner, the Revanche).
+#
+# NO new store, NO new serialized field: `world.nation_capitals` is
+# in-memory (rebuilt from the authored table at construction), so the
+# moved seat rides the new seat's serialized `Region.is_capital` flag and
+# is re-derived at load (`rederive_moved_seats`). The authored capital
+# keeps its own flag — a capital-class city regens toward its holder's
+# tier, as any captured capital does. ONE writer of the map and the flag:
+# `_seat_the_court`; its three callers are the two arms of the treaty-title
+# chokepoint above and a fallen court's reset.
+# ════════════════════════════════════════════════════════════════════════
+
+def a_court_removes_its_seat() -> bool:
+    """T4-2b seam: a court whose seat is signed away moves it, and the
+    seat returns with the authored capital. Down: a court's seat is its
+    authored capital for ever (the pre-T4-2b world — a court that signed
+    its capital away read "capital lost" until it fell)."""
+    return True
+
+
+def authored_capital(world, nation: str) -> str:
+    """The capital the scenario AUTHORS for `nation` — the map's own table
+    (Europe or legacy), or a carved client's template capital; '' when
+    none. The live seat is `world.get_nation_capital`."""
+    if getattr(world, "sovereign_map", "legacy") == "europe":
+        from backend.nation_config import EUROPE_NATION_CAPITALS as table
+    else:
+        from backend.models.region import NATION_CAPITALS as table
+    capital = table.get(nation)
+    if capital:
+        return str(capital)
+    record = (getattr(world, "nation_formations", None) or {}).get(nation) or {}
+    template = ((getattr(world, "formable_nations", None) or {})
+                .get(str(record.get("template") or "")) or {})
+    provinces = [str(p) for p in (template.get("provinces") or []) if p]
+    return provinces[0] if provinces else ""
+
+
+def seat_is_removed(world, nation: str) -> bool:
+    """Has the court's seat removed? — its live seat is not its authored
+    capital, and that capital is out of its hands (the rule's own
+    precondition; a world that carries no capital map of its own, a test
+    double, reads False)."""
+    capitals = getattr(world, "nation_capitals", None)
+    if not isinstance(capitals, dict):
+        return False
+    seat = str(capitals.get(nation) or "")
+    home = authored_capital(world, nation)
+    if not seat or not home or seat == home:
+        return False
+    region = (getattr(world, "regions", None) or {}).get(home)
+    return region is not None and getattr(region, "controller", None) != nation
+
+
+def historic_capital(world, nation: str) -> str:
+    """The capital whose LOSS is the court's grievance — the authored one.
+    A seat that has removed is where the court sits, not what it lost: the
+    punitive bar, the partition manner and the Revanche ask "did they take
+    the capital", and Munich stays the answer while the court sits at
+    Würzburg. The live seat for every court that has not removed."""
+    if seat_is_removed(world, nation):
+        return authored_capital(world, nation)
+    return str(world.get_nation_capital(nation) or "")
+
+
+def seat_as_metonym(world, nation: str) -> str:
+    """The seat's name where it may stand for the court — "Vienna", "the
+    cabinet of Berlin" — which is only while the court sits at its AUTHORED
+    capital (a city's name); '' once the seat has removed (the new seat is
+    a province's name, no court's metonym), and the caller names the court."""
+    if seat_is_removed(world, nation):
+        return ""
+    return str(world.get_nation_capital(nation) or "")
+
+
+def _same_house(world, a: str, b: str) -> bool:
+    return bool(a) and bool(b) and (
+        str(world._top_overlord(a) or a) == str(world._top_overlord(b) or b))
+
+
+def _seat_candidate(world, court: str, leaving: str = "", keep: str = "") -> str:
+    """The richest homeland province in the court's own hands that is no
+    capital already (authored order breaks ties); '' when it holds none.
+    `keep` is the temporary seat it sits at now, weighed with the rest.
+    Walks the court's homeland only (Rule 8)."""
+    regions = getattr(world, "regions", {}) or {}
+    best, best_income = "", -1
+    for name in (getattr(world, "nation_starting_regions", {}) or {}).get(court) or []:
+        region = regions.get(name)
+        if (name == leaving or region is None or region.controller != court
+                or (getattr(region, "is_capital", False) and name != keep)):
+            continue
+        income = int(getattr(region, "income_value", 0) or 0)
+        if income > best_income:
+            best, best_income = str(name), income
+    return best
+
+
+def _seat_the_court(world, court: str, seat: str) -> bool:
+    """THE one writer of a court's seat — the map AND the region flag
+    (`formations._seed_client_roster`'s pattern: both garrison seams key off
+    `region.is_capital`, never the map). A TEMPORARY seat left behind is a
+    province again: its flag comes down and its guard goes with the court —
+    home with it when the seat returns in the court's own hands. A new
+    temporary seat is guarded at once (to the court's tier target, as a
+    carved client's capital is), never a detachment's province."""
+    regions = getattr(world, "regions", {}) or {}
+    new_region = regions.get(seat)
+    if new_region is None:
+        return False
+    from backend.game_logic.formations import _ensure_owned_capitals
+    _ensure_owned_capitals(world)
+    old = str(world.nation_capitals.get(court) or "")
+    if old == seat:
+        return False
+    home = authored_capital(world, court)
+    world.nation_capitals[court] = seat
+    guard = 0
+    old_region = regions.get(old)
+    if old_region is not None and old != home:
+        old_region.is_capital = False
+        if not getattr(old_region, "garrison_detachment", False):
+            if old_region.controller == court:
+                guard = int(getattr(old_region, "garrison_strength", 0) or 0)
+            old_region.garrison_strength = 0
+    if seat != home:
+        new_region.is_capital = True
+        guard = int(world.get_capital_garrison_target(court))
+    if (guard > 0 and new_region.controller == court
+            and not getattr(new_region, "garrison_detachment", False)):
+        new_region.garrison_strength = max(
+            int(getattr(new_region, "garrison_strength", 0) or 0), guard)
+    if hasattr(world, "invalidate_active_nations_cache"):
+        world.invalidate_active_nations_cache()
+    return True
+
+
+SEAT_REMOVED = "court_removed"      # `province_returned`'s outcome keys —
+SEAT_RETURNED = "court_returned"    # no new log type
+
+
+def _removal_this_turn(world, court: str):
+    """The log row of the court's removal THIS turn, or None — the one
+    sentence a turn's removal is, and the mark of a peace still settling."""
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    for row in reversed((getattr(world, "event_log", None) or [])[-80:]):
+        if (row.get("type") == "province_returned" and row.get("nation") == court
+                and row.get("outcome") == SEAT_REMOVED and row.get("turn") == turn):
+            return row
+    return None
+
+
+def _say_the_seat(world, court: str, seat: str, outcome: str,
+                  lost: str = "", holder: str = "") -> None:
+    """One campaign-log row (an existing type, `province_returned`, keyed
+    by its `outcome`) and one dispatch line a move. A second removal in the
+    same turn — one treaty signing away the capital and then the province
+    the court had just removed to — rewrites the first row and line: the
+    turn's removal is ONE sentence, naming the capital actually left."""
+    from backend.game_logic.dispatch import queue_dispatch_event
+    from backend.game_logic.formations import formed_display_name
+    turn = int(getattr(world, "current_turn", 0) or 0)
+    row = _removal_this_turn(world, court) if outcome == SEAT_REMOVED else None
+    if row is not None:
+        row["region"] = seat
+        for queued in reversed(getattr(world, "pending_dispatch_events", None) or []):
+            if (queued.get("type") == "court_removes"
+                    and (queued.get("template_vars") or {}).get("nation") == court
+                    and queued.get("queued_turn") == turn):
+                queued["template_vars"]["seat"] = seat
+                break
+        return
+    world.log_event({
+        "type": "province_returned",
+        "nation": court, "target_nation": holder, "region": seat,
+        "outcome": outcome, "lost": lost, "by": "seat", "turn": turn,
+    })
+    if outcome == SEAT_REMOVED:
+        queue_dispatch_event(world, "court_removes", {
+            "nation": court, "seat": seat, "lost": lost,
+            "holder_name": formed_display_name(world, holder) if holder else "another court",
+        }, "always")
+    else:
+        queue_dispatch_event(world, "court_returns", {
+            "nation": court, "seat": seat}, "always")
+
+
+def _court_removes(world, court: str, lost: str, holder: str) -> bool:
+    seat = _seat_candidate(world, court, leaving=lost)
+    if not seat or not _seat_the_court(world, court, seat):
+        return False
+    _say_the_seat(world, court, seat, SEAT_REMOVED, lost=lost, holder=holder)
+    return True
+
+
+def _seat_signed_away(world, court: str, seat: str) -> str:
+    """The holder a treaty of the court's own house titled `seat` to, or ''
+    — the standing form of `a_treaty_takes_a_seat`'s condition."""
+    region = (getattr(world, "regions", {}) or {}).get(seat)
+    rec = (getattr(world, "province_title", None) or {}).get(seat) or {}
+    holder = str(rec.get("holder") or "")
+    if (region is None or region.controller == court or not holder
+            or holder == court or rec.get("kind") != TITLE_TREATY
+            or not _same_house(world, str(rec.get("from") or ""), court)
+            or _in_the_emperors_hands(world, holder)):
+        return ""
+    return holder
+
+
+def _in_the_emperors_hands(world, holder: str) -> bool:
+    """A capital the PLAYER's house holds by treaty moves no seat: the
+    Emperor's table is its own (T4-2's exemption, the player's house on
+    either side). A court whose capital sits in his hands by a signed peace
+    stays under the knife — which is the Congress's whole hold on it
+    (RS-D1's recognition by defeat reads that capital in his bloc), and the
+    read his designs and his tables were built on."""
+    player = str(getattr(world, "player_nation", "") or "")
+    return bool(player) and _same_house(world, holder, player)
+
+
+def a_treaty_takes_a_seat(world, region: str, ceder: str, receiver: str) -> None:
+    """T4-2b — the treaty-title chokepoint's first arm: a TREATY record was
+    just written on `region` for `receiver`, signed away by `ceder`. Every
+    court whose CURRENT seat it is — and whose own house signed it (the
+    court itself, its lord for it) — removes. A court with no homeland
+    province in hand stays where it is until one comes home
+    (`a_province_comes_home`). Never for a capital titled to the player's
+    house (`_in_the_emperors_hands`). Reads one dict of courts (Rule 8)."""
+    if not a_court_removes_its_seat() or _in_the_emperors_hands(world, receiver):
+        return
+    capitals = getattr(world, "nation_capitals", None) or {}
+    player = str(getattr(world, "player_nation", "") or "")
+    for court in sorted(c for c, seat in capitals.items() if seat == region):
+        if court in (receiver, player) or not _same_house(world, ceder, court):
+            continue
+        _court_removes(world, court, region, receiver)
+
+
+def a_province_comes_home(world, region: str, court: str) -> None:
+    """T4-2b — the chokepoint's second arm (the record popped: a return by
+    treaty, a liberation, the court's own recapture). The AUTHORED capital
+    home in the court's hands returns the seat; any other homeland province
+    seats a court whose seat was signed away while it held none."""
+    if not a_court_removes_its_seat():
+        return
+    if court == str(getattr(world, "player_nation", "") or ""):
+        return
+    seat = str((getattr(world, "nation_capitals", None) or {}).get(court) or "")
+    if not seat or seat == region:
+        return
+    held = (getattr(world, "regions", {}) or {}).get(region)
+    if held is None or held.controller != court:
+        return
+    if region == authored_capital(world, court):
+        if _seat_the_court(world, court, region):
+            _say_the_seat(world, court, region, SEAT_RETURNED)
+        return
+    holder = _seat_signed_away(world, court, seat)
+    if holder:
+        _court_removes(world, court, seat, holder)
+        return
+    # The peace is still settling: a cession is applied before the same
+    # treaty's evacuations come home, so the court first sat at whatever it
+    # held in that hour. A richer province home in the removal's own turn
+    # takes the seat — "the richest homeland province not signed away" is
+    # read once the peace has settled, and the turn's removal stays ONE
+    # sentence.
+    if _removal_this_turn(world, court) is not None:
+        best = _seat_candidate(world, court, keep=seat)
+        if best and best != seat and _seat_the_court(world, court, best):
+            _say_the_seat(world, court, best, SEAT_REMOVED)
+
+
+def restore_authored_seat(world, court: str) -> None:
+    """T4-2b — a court that falls leaves no seat behind: the map reads its
+    authored capital again and the temporary flag comes down (silent — the
+    fall is its own event). Called by `WorldState._eliminate_nation`."""
+    home = authored_capital(world, court)
+    seat = str((getattr(world, "nation_capitals", None) or {}).get(court) or "")
+    if home and seat and seat != home:
+        _seat_the_court(world, court, home)
+
+
+def rederive_moved_seats(world) -> None:
+    """T4-2b at LOAD (`WorldState.from_dict`, after the formations' block
+    and the regions): `nation_capitals` is rebuilt from the authored table,
+    so a moved seat is re-read off its flag — a court whose authored
+    capital is not in its hands sits at the homeland province flagged
+    capital that is no court's authored capital (the one in its own hands
+    first, then authored order). One region scan, at load only."""
+    capitals = getattr(world, "nation_capitals", None)
+    regions = getattr(world, "regions", {}) or {}
+    if not isinstance(capitals, dict) or not regions:
+        return
+    authored = {str(c) for c in capitals.values() if c}
+    flagged = {name for name, region in regions.items()
+               if getattr(region, "is_capital", False) and name not in authored}
+    if not flagged:
+        return
+    homes = getattr(world, "nation_starting_regions", {}) or {}
+    for court, capital in sorted(capitals.items()):
+        seat_region = regions.get(capital)
+        if seat_region is None or seat_region.controller == court:
+            continue
+        mine = [name for name in homes.get(court) or [] if name in flagged]
+        if not mine:
+            continue
+        held = [name for name in mine if regions[name].controller == court]
+        from backend.game_logic.formations import _ensure_owned_capitals
+        _ensure_owned_capitals(world)
+        world.nation_capitals[court] = str((held or mine)[0])
+        flagged.discard(world.nation_capitals[court])
 
 
 def _bloc_of(world, leader: str) -> List[str]:
@@ -1362,6 +1705,8 @@ def record_carve_titles(world, provinces: Iterable[str], ceder: str,
                 "house": str(carver or world._top_overlord(client) or client),
                 "carve": True,
             }
+            # T4-2b, the sibling writer: a carve that takes a court's seat.
+            a_treaty_takes_a_seat(world, str(name), str(ceder), str(client))
     except Exception as exc:
         report(exc, "game_end.record_carve_titles: _title_store")
         return

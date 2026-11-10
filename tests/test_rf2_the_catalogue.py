@@ -122,7 +122,14 @@ class TestTheCatalogue:
         # deck at DC-2 (D-R3) — 25 laws became 26.
         # S14k G3 (October 28, 2026 — the user: "what if ottomans
         # reformed"): R6 amended, the Porte's one-law deck — 27 laws, six decks.
-        decks = {c: rows for c, rows in scenario["reforms"].items() if not c.startswith("_")}
+        # T4-3 (session A, November 10, 2026): + the five crowns of 1806, one-row
+        # promotion decks — no R6 deck, counted apart (32 laws, eleven decks).
+        decks = {c: rows for c, rows in scenario["reforms"].items()
+                 if not c.startswith("_") and not all(R.is_promotion(r) for r in rows)}
+        crowns = {c: rows for c, rows in scenario["reforms"].items()
+                  if not c.startswith("_") and all(R.is_promotion(r) for r in rows)}
+        assert {c: len(rows) for c, rows in crowns.items()} == {
+            "Bavaria": 1, "Saxony": 1, "Hesse": 1, "Denmark": 1, "Sardinia": 1}
         assert set(decks) == set(R.REFORM_DECKS)
         assert {c: len(rows) for c, rows in decks.items()} == {
             "France": 6, "Austria": 5, "Prussia": 5, "Russia": 5, "Britain": 5, "Ottoman": 1}

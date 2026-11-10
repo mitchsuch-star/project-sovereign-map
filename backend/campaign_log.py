@@ -501,6 +501,9 @@ CAMPAIGN_LOG_TYPES = {
     "law_enacted",              # a law put in force, or restored in arrears (R8)
     "law_repealed",             # a law struck down by its own court (R4)
     "law_lapsed",               # a law the treasury could not pay (R5)
+    # T4-3 (DYNAMISM_SPEC.md §3c G6 — 181→182 flipped consciously, DY-0's
+    # column): a minor that holds its design's grounds takes its crown.
+    "rank_promotion",
 }
 
 # ============================================================================
@@ -616,6 +619,8 @@ CATEGORY_MAP = {
     "law_enacted": "economy",
     "law_repealed": "economy",
     "law_lapsed": "economy",
+    # T4-3: a court's rank among the powers.
+    "rank_promotion": "diplomacy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -752,7 +757,8 @@ LOG_TIER_LEAD = frozenset({
     "diplomatic_treaty_broken", "diplomatic_treaty_signed",
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
-    "nation_formed", "peace_ratified", "trafalgar", "ultimatum_issued",
+    "nation_formed", "peace_ratified", "rank_promotion", "trafalgar",
+    "ultimatum_issued",
     "vassal_broke_free", "vassal_defected", "vassal_liberated",
     "volte_face", "war_declaration",
 })
@@ -1202,7 +1208,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "allegiance_auction_resolved",
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
-                          "third_party_peace",
+                          "third_party_peace", "rank_promotion",   # T4-3: a crown
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -3107,10 +3113,25 @@ def _oneliner_laws(ctx: OnelinerContext):
         if ctx.event_type == "law_repealed":
             return f"{nation} repeals {name}"
         if ctx.event_type == "law_lapsed":
+            if ctx.event.get("reason") == "grounds_lost":
+                # T4-3: the demotion — the law's grounds are out of its hands.
+                lost = [str(r) for r in ctx.event.get("grounds") or [] if r]
+                where = ((", ".join(lost[:-1]) + " and " + lost[-1]) if len(lost) > 1
+                         else "".join(lost) or "its grounds")
+                return f"{nation} no longer holds {where} — {name} lapses, and its rank with it"
             return (f"{nation} cannot pay for {name} ({upkeep:,}g a turn) — "
                     f"the law lapses")
         verb = "restores" if ctx.event.get("restored") else "enacts"
         return f"{nation} {verb} {name} ({upkeep:,}g a turn)"
+    if ctx.event_type == "rank_promotion":
+        # T4-3 (DYNAMISM_SPEC.md §3c G6): the crown taken.
+        nation = with_definite_article(
+            display_nation(ctx.event.get("nation", "Unknown")), capitalize=True)
+        name = str(ctx.event.get("name") or "its crown")
+        if name.startswith("The "):
+            name = "the " + name[4:]
+        tier = str(ctx.event.get("tier") or "secondary")
+        return f"A CROWN: {nation} takes {name} and ranks among the {tier} powers of Europe"
     return _NEXT_STAGE
 
 
@@ -3254,6 +3275,16 @@ def _oneliner_allegiance(ctx: OnelinerContext):
         asker = display_nation(ctx.event.get("nation", "Unknown"))
         holder = display_nation(ctx.event.get("target_nation", "Unknown"))
         region = ctx.event.get("region", "a province")
+        # T4-2b (DYNAMISM_SPEC.md §3c "The seat"): a court's seat moved by
+        # a treaty, and home again — the same type, keyed by its outcome.
+        if ctx.event.get("outcome") == "court_removed":
+            lost = str(ctx.event.get("lost") or "its capital")
+            whose = (f"{with_definite_article(holder)}'s"
+                     if ctx.event.get("target_nation") else "another court's")
+            return (f"The court of {with_definite_article(asker)} removes to {region} — "
+                    f"{lost} is {whose} by treaty")
+        if ctx.event.get("outcome") == "court_returned":
+            return f"The court of {with_definite_article(asker)} returns to {region}"
         if ctx.event.get("outcome") == "returned":
             return f"{holder} hands {region} back to {asker} — the liberated soil comes home"
         if ctx.event.get("kept"):

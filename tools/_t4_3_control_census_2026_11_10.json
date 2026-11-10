@@ -1,0 +1,852 @@
+{
+ "_note": "T3-4 the terms \u2014 the census (aim peaces by both AI\u2013AI roads, P8-Aim letters France received, the debt) per seed, from the same digests as the signature record.",
+ "seeds": {
+  "austerlitz": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 19,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 11
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    },
+    {
+     "accepter": "Saxony",
+     "consequence": "Both courts are spent; their side of the war ends while the greater war goes on. Saxony evacuates Ukraine.",
+     "proposer": "Russia",
+     "turn": 39
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "eylau": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 18,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    },
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "Switzerland",
+     "region": "Savoy",
+     "turn": 22
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 866 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 866 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "friedland": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 41,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 23
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 24
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 12
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 390 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-30), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Bavaria evacuates Bohemia. Unheld homeland returns to its crown: Munich, Swabia.",
+     "proposer": "Bavaria",
+     "turn": 33
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Saxony, beaten (-17), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Saxony evacuates Bohemia.",
+     "proposer": "Saxony",
+     "turn": 41
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "proposer": "Bavaria",
+     "turn": 12
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia. Her other wars go on.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 12
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 390 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "historical": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 21,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 9
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 16
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,640 gold. Prussia evacuates Brunswick, Oldenburg and Osnabruck. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,640 gold. Prussia evacuates Brunswick, Oldenburg and Osnabruck. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-32), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria keeps Munich and Swabia by treaty.",
+     "exit": "sub_pair_loser_sues",
+     "proposer": "Bavaria",
+     "turn": 30
+    }
+   ]
+  },
+  "jena": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 37,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    },
+    {
+     "by": "Spain",
+     "crown_of": "Sardinia",
+     "from": "Switzerland",
+     "region": "Savoy",
+     "turn": 21
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 25
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Prussia",
+     "region": "Tyrol",
+     "turn": 29
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 34
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Prussia",
+     "region": "Tyrol",
+     "turn": 35
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,013 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 14
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Switzerland signs at the last \u2014 Russia evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 27
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Switzerland signs at the last \u2014 Russia evacuates Bern. Her other wars go on.",
+     "proposer": "Switzerland",
+     "turn": 27
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,013 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 14
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-33), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria keeps Munich and Swabia by treaty.",
+     "exit": "sub_pair_loser_sues",
+     "proposer": "Bavaria",
+     "turn": 26
+    }
+   ]
+  },
+  "lodi": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 40,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 11
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 25
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Prussia",
+     "region": "Tyrol",
+     "turn": 38
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 450 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-32), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia. Unheld homeland returns to its crown: Munich.",
+     "proposer": "Bavaria",
+     "turn": 24
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Saxony, beaten (-27), sues for peace and Russia takes it on the held line; their side of the war ends while the greater war goes on. Russia evacuates Dresden.",
+     "proposer": "Saxony",
+     "turn": 31
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 450 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "marengo": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 22,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 21
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 22
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 15
+    },
+    {
+     "accepter": "Spain",
+     "consequence": "Both courts are spent; their side of the war ends while the greater war goes on. Britain evacuates Andalusia.",
+     "proposer": "Britain",
+     "turn": 16
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-28), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Munich.",
+     "proposer": "Bavaria",
+     "turn": 35
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 15
+    }
+   ]
+  },
+  "rivoli": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 17,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 7
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 9
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,483 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,483 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "ulm": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 7
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 23,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 10
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,730 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 18
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Both courts are spent; their side of the war ends while the greater war goes on. Russia evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 41
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,730 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 18
+    }
+   ]
+  },
+  "wagram": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [
+    {
+     "against": "Austria",
+     "guarantor": "Prussia",
+     "protected": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 37,
+   "crown_grounds": [
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "KingdomOfItaly",
+     "region": "Piedmont",
+     "turn": 9
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Sardinia",
+     "from": "France",
+     "region": "Savoy",
+     "turn": 14
+    },
+    {
+     "by": "Prussia",
+     "crown_of": "Bavaria",
+     "from": "Austria",
+     "region": "Tyrol",
+     "turn": 30
+    },
+    {
+     "by": "Austria",
+     "crown_of": "Bavaria",
+     "from": "Prussia",
+     "region": "Tyrol",
+     "turn": 32
+    }
+   ],
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,007 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 16
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Prussia pays 3,323 gold. Austria evacuates Berlin. Austria is now free to look elsewhere.",
+     "proposer": "Prussia",
+     "turn": 40
+    }
+   ],
+   "grounds_lapses": [],
+   "guarantees_honoured": [],
+   "last_refuges": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    }
+   ],
+   "rank_promotions": [],
+   "seats": [],
+   "signed_cessions": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria signs at the last \u2014 Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia.",
+     "exit": "last_refuge",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,007 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-30), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria keeps Munich and Swabia by treaty.",
+     "exit": "sub_pair_loser_sues",
+     "proposer": "Bavaria",
+     "turn": 41
+    }
+   ]
+  }
+ },
+ "totals": {
+  "aim_letters": 0,
+  "aim_peaces": 0,
+  "alarm_guarantees": 9,
+  "annexations_outside_aim": 0,
+  "captures_outside_aim": 275,
+  "evacuations": 30,
+  "grounds_lapses": 0,
+  "guarantees_honoured": 0,
+  "last_refuges": 8,
+  "rank_promotions": 0,
+  "seats_removed": 0,
+  "seats_returned": 0,
+  "signed_cessions": 20
+ },
+ "turns": 40
+}

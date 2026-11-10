@@ -533,7 +533,8 @@ def manner_for_terms(world, victor: str, court: str,
         ceded.extend(str(r) for r in regions if str(r) in home)
     if not ceded:
         return ""
-    capital = world.get_nation_capital(court) or ""
+    from backend.game_logic.game_end import historic_capital   # T4-2b: the grievance's capital
+    capital = historic_capital(world, court)
     offset = int(compensation_offsets(terms).get(court, 0) or 0)
     net = net_of_compensation(world, court, sorted(set(ceded)), offset)
     if len(set(net)) >= PARTITION_MIN_PROVINCES or (capital and capital in net):

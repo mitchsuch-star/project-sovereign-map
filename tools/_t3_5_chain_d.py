@@ -85,14 +85,36 @@ def summarize(digest: dict) -> dict:
              str(e.get("accepter") or ""), str(e.get("consequence") or "")]
             for row in digest.get("turns") or [] for e in row.get("events") or []
             if e.get("type") == "third_party_peace" and e.get("exit") == "last_refuge"],
+        # T4-2b (§3c "The seat"): a court's seat moved by a treaty, and home
+        # again; T4-3 (§3c G6): a crown taken, a crown lost with its grounds.
+        "seats": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("outcome") or ""),
+             str(e.get("region") or ""), str(e.get("lost") or ""), str(e.get("target_nation") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "province_returned"
+            and e.get("outcome") in ("court_removed", "court_returned")],
+        "rank_promotions": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("law") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "rank_promotion"],
+        "grounds_lapses": [
+            [int(row.get("turn", 0)), str(e.get("nation") or ""), str(e.get("law") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "law_lapsed" and e.get("reason") == "grounds_lost"],
+        "eliminations": list((digest.get("derived") or {}).get("eliminations") or []),
     }
 
 
-def run_arm(arm: str, run_dir: pathlib.Path, turns: int) -> dict:
+def run_arm(arm: str, run_dir: pathlib.Path, turns: int, seams: str = "") -> dict:
+    """`seams` (session A, T4-2b/T4-3): the `INK_IRON_SEAMS` an arm's
+    children run under — an arm per seam on ONE tree (`--arm-seams`); the
+    T3-5 arm `D0` keeps its own."""
     out_dir = run_dir / arm
     out_dir.mkdir(parents=True, exist_ok=True)
     if arm == "D0":
         os.environ["INK_IRON_SEAMS"] = SEAM_DOWN
+    elif seams:
+        os.environ["INK_IRON_SEAMS"] = seams
     else:
         os.environ.pop("INK_IRON_SEAMS", None)
     seeds = {}
@@ -123,9 +145,13 @@ def main() -> None:
     ap.add_argument("--run-dir", default=str(ROOT / "tools" / "playtest_runs" / "t3_5_chain_d"))
     ap.add_argument("--arms", default="D0,D",
                     help="T3-6: the arms to run (its re-run takes the bound arm D alone)")
+    ap.add_argument("--arm-seams", action="append", default=[], metavar="ARM=SPEC;SPEC",
+                    help="session A: the seams an arm holds down (INK_IRON_SEAMS' own form)")
     args = ap.parse_args()
     run_dir = pathlib.Path(args.run_dir)
-    arms = {arm: run_arm(arm, run_dir, args.turns) for arm in args.arms.split(",") if arm}
+    arm_seams = dict(spec.split("=", 1) for spec in args.arm_seams)
+    arms = {arm: run_arm(arm, run_dir, args.turns, seams=arm_seams.get(arm, ""))
+            for arm in args.arms.split(",") if arm}
     record = {
         "_note": ("T3-5 chain D — the AI-France sweep, Tier 3's second gate surface "
                   "(AI_INTENT_SPEC.md §13.2 R6): ten SWEEP_SEEDS x "
@@ -136,7 +162,12 @@ def main() -> None:
                   "is the gate's to measure."),
         "turns": int(args.turns),
         "arms": arms,
+        "arm_seams": arm_seams,
         "totals": {arm: {"france_outside_aim": sum(s["france_outside_aim"] for s in seeds.values()),
+                         "seats_removed": sum(1 for s in seeds.values() for row in s["seats"]
+                                              if row[2] == "court_removed"),
+                         "rank_promotions": sum(len(s["rank_promotions"])
+                                                for s in seeds.values()),
                          "captures_outside_aim": sum(s["captures_outside_aim"] for s in seeds.values()),
                          "annexations_outside_aim": sum(s["annexations_outside_aim"]
                                                         for s in seeds.values()),

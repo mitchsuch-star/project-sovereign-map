@@ -588,7 +588,9 @@ def net_of_compensation(world, victim: str, provinces: List[str], offset: int) -
     the capital never (a capital ceded stays punitive whatever is paid)."""
     if offset <= 0:
         return list(provinces)
-    capital = world.get_nation_capital(victim) if hasattr(world, "get_nation_capital") else None
+    # T4-2b: the capital whose loss is the grievance (a removed court's authored one)
+    from backend.game_logic.game_end import historic_capital
+    capital = historic_capital(world, victim) if hasattr(world, "get_nation_capital") else None
     kept = list(provinces)
     for i in range(len(kept) - 1, -1, -1):
         if offset <= 0:
