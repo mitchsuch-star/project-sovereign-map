@@ -32,13 +32,24 @@ Method notes, recorded rather than hidden:
 * The turn-6 board is booted ONCE per module — `seed="historical"` passed
   explicitly, because a module-scoped fixture is built BEFORE conftest's
   function-scoped `SOVEREIGN_SEED` pin (the AI-V seed-escape trap) — and
-  each test restores it through `to_dict`/`from_dict`, so the save/load
-  road is exercised by every board pin. `from_dict` restores the
-  settlement offer's popup as deliverable (the integrator's G1 artefact),
-  so the board fixture drains it with one `status` before the test's own
-  responses.
+  restored through `to_dict`/`from_dict`, so every board pin reads a LOADED
+  save. `from_dict` restores the settlement offer's popup as deliverable
+  (the integrator's G1 artefact), so the restored board is drained with
+  `status` before a test's own responses.
+* That restore-and-drain runs ONCE per module (November 10, 2026), in the
+  first test that asks for `board` and under that test's conftest pins;
+  each test takes its own deep copy of the drained board, sparing it one
+  `from_dict` and the drain's `status` posts. Measured before the change,
+  the module run both ways under one PYTHONHASHSEED: each of the 300 board
+  tests starts from the same world object graph, module RNG, executor,
+  parser and backend module-level state its own restore-and-drain gave it,
+  and the kept board is unchanged after the last of them. (Read apart: the
+  marshal index's memory-address stamp, which names the kept board's
+  objects on a copy, so the copy's first refresh rebuilds the same index.)
+  A test that pins the restore itself still calls `_restore`.
 * Combat jitter rides the unseeded `random` module (the IQ-7 file's
-  docstring); the module RNG is re-seeded on every restore.
+  docstring); the module RNG is re-seeded on every restore and every copy
+  (the drain spends none of it).
 * `_stage_tyrol_for_koi` MIRRORS the IQ-7 file's helper of the same name
   rather than importing that test module: its import loads
   `tools/playtest_driver.py`, which IQ-8 is editing in this tree.
@@ -493,12 +504,27 @@ def _drain(client, keys=_RESTORED_POPUP_KEYS, limit=5):
     raise AssertionError("the restored popups did not drain")
 
 
+@pytest.fixture(scope="module")
+def _drained_turn6():
+    """Where `board` keeps the module's one restored-and-drained turn-6 board.
+    Empty until the first test asks: the drain posts to the live endpoint, so
+    it runs inside a test, under conftest's function-scoped pins."""
+    return {}
+
+
 @pytest.fixture
-def board(turn6_snapshot, monkeypatch):
-    """The ordinary geometry, restored for one test: the settlement offer
-    current, the petition queued, the restored popups drained."""
-    w, client = _restore(monkeypatch, turn6_snapshot)
-    _drain(client)
+def board(turn6_snapshot, _drained_turn6, monkeypatch):
+    """The ordinary geometry for one test: the settlement offer current, the
+    petition queued, the restored popups drained — the test's own deep copy
+    of the module's one restored-and-drained board (the method note)."""
+    if "world" not in _drained_turn6:
+        with pytest.MonkeyPatch.context() as staging:
+            drained, client = _restore(staging, turn6_snapshot)
+            _drain(client)
+        _drained_turn6["world"] = drained
+    w = copy.deepcopy(_drained_turn6["world"])
+    _seed()
+    client = _swap(monkeypatch, w)
     pets = _petitions(w)
     assert len(pets) == 1 and _pending(w)[0] is not pets[0]
     return w, client

@@ -183,14 +183,17 @@ _LANE_OF = {module: lane for lane, modules in ENGINE_LANES.items() for module in
 # had them, and the scheduler is told to keep that order. A name that has gone
 # stale costs time, never a test: re-read it off `--durations=0` when the
 # suite's shape moves (tests/test_the_engine_lanes.py pins that each exists).
+# `test_iq7_review_round` stood second at 302 s; its board is now restored
+# once a module (233 s → 96 s alone), about 125 s here by its own ratio — an
+# estimate until the next timed run reads it.
 HEAVIEST_FIRST = (
     "test_cx_r2_the_offer_is_reachable",
-    "test_iq7_review_round",
     "engine",
     "engine_frames",
     "engine_panels",
     "test_s14f_the_remeasure_rows",
     "test_iq6_europe_speaks_its_mind",
+    "test_iq7_review_round",
     "test_iq6_volte_face",
     "test_rs27_the_volte_face_fires_on_its_arm",
     "test_dd_c_nothing_fails_silently",

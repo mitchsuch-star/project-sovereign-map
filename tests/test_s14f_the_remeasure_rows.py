@@ -15,6 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 import contextlib
+import functools
 import io
 import json
 import re
@@ -7587,10 +7588,16 @@ _R32_QUOTED = re.compile(
     r"""(['"])((?:\x00|[A-Z][a-z]+(?: [A-Z][a-z]+)?)), ([a-z]+)((?: [^'"\n]*)?)\1""")
 
 
+@functools.lru_cache(maxsize=1)
 def _r32_harvest():
     """Every `'<Name>, <order verb> ...'` sentence the game's own message
     strings quote (docstrings and comments excluded), as
-    {(file, line, head, verb, tail)}. A placeholder is \\x00."""
+    {(file, line, head, verb, tail)}. A placeholder is \\x00.
+
+    Read ONCE per run (November 10, 2026): the harvest parses every backend
+    source file, about eight seconds, and its three readers each took their
+    own. It reads the tree on disk and the generated verb set alone, neither
+    of which a test changes, so the one frozen reading is every reader's."""
     import ast
     from backend.ai.routed_order_words import ROUTED_ORDER_WORDS
     root = Path(__file__).resolve().parents[1]
@@ -7623,7 +7630,7 @@ def _r32_harvest():
                     head, verb, tail = m.group(2), m.group(3), m.group(4)
                     if verb in ROUTED_ORDER_WORDS and head != "Sire":
                         found.add((f"{folder}/{path.name}", node.lineno, head, verb, tail))
-    return found
+    return frozenset(found)
 
 
 def _r32_sentence(head: str, verb: str, tail: str) -> str:
