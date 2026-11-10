@@ -276,14 +276,16 @@ def played(tmp_path_factory) -> dict:
     engine = _engine()
     if engine is None:
         pytest.skip("Godot engine not on this machine — the driven pins skip, and a skip is not a pass")
-    if P._godot_running():
-        pytest.skip("another Godot engine is running — never two at once")
+    # A headless engine in another lane is no second window (conftest,
+    # ENGINE_LANES): only a WINDOW skips the pins, and a skip is not a pass.
+    if P._godot_running(windowed_only=True):
+        pytest.skip("another Godot window is open — never two at once")
     run = tmp_path_factory.mktemp("dd_b_hands") / "run"
     env = dict(os.environ)
     env.pop("PYTHONIOENCODING", None)
     log = (run.parent / "start.log").open("w", encoding="utf-8")
     sup = subprocess.Popen([sys.executable, "-X", "utf8", str(PLAY), "start", "--road", "conquest",
-                            "--out", str(run), "--godot", engine],
+                            "--out", str(run), "--godot", engine, "--beside-headless"],
                            cwd=str(REPO), env=env, stdout=log, stderr=subprocess.STDOUT,
                            stdin=subprocess.DEVNULL)
     states: dict = {"answered": []}
@@ -353,14 +355,16 @@ def _start_engine_run(tmp_path_factory, name: str):
     engine = _engine()
     if engine is None:
         pytest.skip("Godot engine not on this machine — the driven pins skip, and a skip is not a pass")
-    if P._godot_running():
-        pytest.skip("another Godot engine is running — never two at once")
+    # A headless engine in another lane is no second window (conftest,
+    # ENGINE_LANES): only a WINDOW skips the pins, and a skip is not a pass.
+    if P._godot_running(windowed_only=True):
+        pytest.skip("another Godot window is open — never two at once")
     run = tmp_path_factory.mktemp(name) / "run"
     env = dict(os.environ)
     env.pop("PYTHONIOENCODING", None)
     log = (run.parent / "start.log").open("w", encoding="utf-8")
     sup = subprocess.Popen([sys.executable, "-X", "utf8", str(PLAY), "start", "--road", "diplomacy",
-                            "--out", str(run), "--godot", engine],
+                            "--out", str(run), "--godot", engine, "--beside-headless"],
                            cwd=str(REPO), env=env, stdout=log, stderr=subprocess.STDOUT,
                            stdin=subprocess.DEVNULL)
     t0 = time.time()

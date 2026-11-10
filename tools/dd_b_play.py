@@ -37,8 +37,11 @@ can: one action at a time on the REAL client (`tools/dd_b_client.gd`) at
         or an `executed_when_refusal_meant` is a P1 row by itself. A line the
         engine never sent (typed under a modal) is listed under `unsent`.
 
-Rails: never two engines (start refuses while any Godot runs); never the
-player's 8005; the engine's UiSettings are in memory only.
+Rails: never two engines (start refuses while any Godot runs — with
+`--beside-headless`, the suite's road, while any WINDOWED one runs: a headless
+engine has no window, GPU or focus to contend for; a measure never passes
+it, its settle timing is the reason for the rail); never the player's 8005;
+the engine's UiSettings are in memory only.
 """
 from __future__ import annotations
 
@@ -107,7 +110,38 @@ def _write(path: pathlib.Path, value) -> None:
     os.replace(tmp, path)
 
 
-def _godot_running() -> int:
+def _godot_command_lines():
+    """One entry per Godot process on the machine: its command line, '' where
+    Windows will not show it. None when the listing itself could not be made."""
+    script = ("Get-CimInstance Win32_Process | Where-Object { $_.Name -like '*godot*' } | "
+              "ForEach-Object { 'GODOT ' + $_.CommandLine }")
+    try:
+        proc = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                              capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
+    except Exception as exc:
+        print(f"[dd_b_play] the engines' command lines could not be read ({exc}); "
+              "counting every engine", file=sys.stderr)
+        return None
+    if proc.returncode != 0:
+        print(f"[dd_b_play] the engines' command lines could not be read (exit {proc.returncode}); "
+              "counting every engine", file=sys.stderr)
+        return None
+    return [line[len("GODOT "):] for line in proc.stdout.splitlines() if line.startswith("GODOT ")]
+
+
+def _godot_running(windowed_only: bool = False) -> int:
+    """The Godot engines running on this machine.
+
+    `windowed_only` (November 10, 2026) leaves out the engines started
+    `--headless`: they open no window and take neither the GPU nor the focus,
+    and the suite runs its headless harnesses beside the window lane
+    (`tests/conftest.py`, ENGINE_LANES). The rail fails CLOSED: an engine
+    whose command line cannot be read counts, and when the listing cannot be
+    made at all the answer is the plain count."""
+    if windowed_only:
+        lines = _godot_command_lines()
+        if lines is not None:
+            return sum(1 for line in lines if "--headless" not in line)
     try:
         out = subprocess.run(["tasklist"], capture_output=True, text=True, timeout=30,
                              stdin=subprocess.DEVNULL).stdout
@@ -150,7 +184,7 @@ def cmd_start(args) -> int:
     run = pathlib.Path(args.out).resolve()
     if (run / "state").is_dir() and any((run / "state").glob("*.json")):
         raise SystemExit(f"{run} already holds a run — choose a fresh --out")
-    n = _godot_running()
+    n = _godot_running(windowed_only=bool(getattr(args, "beside_headless", False)))
     if n:
         raise SystemExit(f"refused: {n} Godot process(es) already running — never two engines at once")
     run.mkdir(parents=True, exist_ok=True)
@@ -668,6 +702,9 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=8006)
     p.add_argument("--godot")
     p.add_argument("--no-supervise", action="store_true", help="return after the boot (tests)")
+    p.add_argument("--beside-headless", action="store_true",
+                   help="count WINDOWED engines only: headless ones may run beside this one "
+                        "(the suite's lanes; a measure leaves this off)")
     p.set_defaults(fn=cmd_start)
     p = sub.add_parser("act")
     p.add_argument("--out", required=True)

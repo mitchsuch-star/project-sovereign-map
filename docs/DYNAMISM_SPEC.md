@@ -142,8 +142,12 @@ commit a session pays them once.
    session's measure is ONE sweep with ARMS: arm 0 holds every new seam down and must
    reproduce the prior record byte for byte; each further arm raises one more seam. A moved
    seed is still attributed to exactly one rule — without a commit per rule.
-3. **One full-suite run BEFORE the commit** finds every re-pin in one pass (T4-2 found its
-   eight that way); the hook then runs once, green.
+3. **The hook IS the session's one full-suite run.** Commit when the touched families are
+   green; if the hook is red, its failure list is the re-pin list. *(Corrected the same day:
+   T4-2 ran the suite by hand to find its eight re-pins and then paid the hook again — eleven
+   minutes for nothing. Measured: the suite's wall time was the Godot lane — 28 files on one
+   worker, 10.0 of its 10.8 minutes. November 10: the lane split in three and ten workers,
+   8:49 measured; what binds now is the suite's total work on eight cores.)*
 4. **One commit, one landing record, one review a session** — one STATUS entry, one
    `SYSTEMS_REFERENCE.md` section, one series attribution (an arm per seam), one memory.
 5. **A rule that is not finished is not committed.** It rolls whole to the next session's

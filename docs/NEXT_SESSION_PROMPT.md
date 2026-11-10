@@ -11,8 +11,8 @@
 > fell), ten in the harness; story classes 10 → 9 and the fallen-courts column CONVERGED (the Kingdom of Italy
 > alone on all ten seeds) — reported to the user as the honest cost, variety T4-3's and Tier 5's. **The
 > remaining plan is RE-CUT into seven sessions, A–G, by the user's word (`DYNAMISM_SPEC.md` §2b) — read §2b
-> first: a session is a tier or a tier-half; one switch a rule, ONE measure sweep with arms, ONE full-suite
-> run before the commit, ONE commit and ONE landing record a session.** No cuts without consent (§0).
+> first: a session is a tier or a tier-half; one switch a rule, ONE measure sweep with arms, the hook the
+> ONE full-suite run, ONE commit and ONE landing record a session.** No cuts without consent (§0).
 >
 > **NOW — SESSION A (both rules are RULED — no gate, no Plan Mode stop, no question to open with: the seat by
 > the user's "use best judgment but focus on utmost quality" at T4-2's plan; promotion by §3c G6). Build
@@ -64,9 +64,10 @@
 > this file rewritten for **session B (Tier 5 whole — its gate's questions listed for the user: Q4 the four
 > Questions, the latch's store)**.
 >
-> **5. Before the commit:** the full suite ONCE (`-n 8 --dist loadgroup`, about 11 minutes) to find every
-> re-pin in one pass (T4-2 found its eight that way), re-seat each with its cause, re-run the final ambient
-> arm to confirm the records reproduce, then ONE commit through the hook. Push is the user's call — ask.
+> **5. The commit:** run the touched families, then COMMIT — the hook IS the one full-suite run (about 9
+> minutes; do NOT pre-run the suite: T4-2 paid it twice). If the hook is red, its failure list is the re-pin
+> list: re-seat each with its cause, re-run the final ambient arm to confirm the records reproduce, commit
+> again. Push is the user's call — ask.
 >
 > **To say to the user in the report (not a stop):** whether T4-3's crowns bring the fallen-courts variety
 > back (T4-2 made the set uniform), with the per-seed column.
@@ -224,7 +225,10 @@
 > `tests/fixtures/moments_block.json`, `tests/fixtures/affairs_block.json`) are one deck, in lockstep; a moments op
 > added reds `tests/test_moments_pacing.py` until the chain re-records; commit with
 > `env -u PYTHONDONTWRITEBYTECODE git commit -F <file>` from Bash in the background (the hook runs ruff and the full
-> suite, about 10 minutes; never `--no-verify`) and read the log's EXIT line; Godot: one engine at a time,
+> suite, about 9 minutes at ten workers; never `--no-verify`) and read the log's EXIT line; a test module that
+> opens a Godot WINDOW or starts a sandboxed backend joins `ENGINE_LANES["engine"]` in `tests/conftest.py`
+> (the census in `tests/test_the_engine_lanes.py` reds otherwise; a headless harness needs no lane); never run
+> a full suite with `PYTHONDONTWRITEBYTECODE` set (two bytecode pins red); Godot by hand: one engine at a time,
 > `--log-file` and every capture path ABSOLUTE; a `.gd` edit with the morning's parse report FAILS the hook
 > (regenerate `tools/godot_parse_report.json`); `tools/playtest_runs/` is gitignored (the chains live there as local
 > evidence; the records and the §-sections are the committed truth); the blind `unrehearsed_*.json` are census

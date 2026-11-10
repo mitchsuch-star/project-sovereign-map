@@ -90,54 +90,148 @@ from tests._parser_replay import install_network_guard  # noqa: E402
 # ═══════════════════════════════════════════════════════════════════════
 # THE PARALLEL SUITE (Pre-Deploy S2 step 0, October 9, 2026)
 # ═══════════════════════════════════════════════════════════════════════
-# The pre-commit hook runs the suite under pytest-xdist (`-n 8 --dist
-# loadgroup`; `scripts/git-hooks/pre-commit`). Under `loadgroup` a test
-# with an `xdist_group` mark is scheduled with its group on ONE worker, so:
-#   * every test is grouped by its MODULE by default — a file's tests stay
-#     together in order, exactly as the serial run had them (module-scoped
-#     fixtures build once, sibling-order assumptions hold);
-#   * the modules that launch the Godot binary or bind a fixed loopback port
-#     (the IQ-10 capture harness on 8999, the driven `main.tscn` tests, the
-#     parse harness, the GE-3 client arm on 8997, the release smoke on 8099)
-#     share ONE group, `engine`, so two workers never share a window or a
-#     port.
+# The pre-commit hook runs the suite under pytest-xdist (`--dist loadgroup`;
+# the worker count is the hook's, `scripts/git-hooks/pre-commit`). Under
+# `loadgroup` a test with an `xdist_group` mark is scheduled with its group on
+# ONE worker, so every test is grouped by its MODULE by default — a file's
+# tests stay together in order, exactly as the serial run had them
+# (module-scoped fixtures build once, sibling-order assumptions hold).
 # A serial run (`pytest tests/`) ignores the marks and is unchanged.
-ENGINE_GROUP_MODULES = frozenset({
-    # the Godot binary, headless (tests/_chip_census.render, the driven
-    # harnesses under tools/, the IQ-10 capture runner on port 8999)
-    "test_b4b_the_one_tail",
-    "test_cn3_the_chip_tells_the_truth",
-    "test_cn4_the_chip_honesty_census",
-    "test_cx7_predictor_driven",
-    "test_dd_b_the_client_hands",          # + a sandboxed backend from 8006
-    "test_economy_gate_2026_10_05",
-    "test_ep_f1_the_first_ten_minutes",
-    "test_ep_f3_the_client_layout_pass",
-    "test_ge2_the_client",
-    "test_godot_parse_harness",
-    "test_iq10_client_pass",
-    "test_map_owner_fill",
-    "test_nui2_the_fleet_rides_at_anchor",
-    "test_nui_the_admiralty_on_the_map",
-    "test_s14h_p2_driven",                 # S14G-19: the label-click harness, headless
-    "test_score_finish_step8",
-    "test_sf7_s8_the_screen_says",
-    "test_sf7_s9_the_frames",
-    "test_sf_page_the_front_page_of_the_peace",
-    "test_sf_rr5_the_frames",
-    "test_tutorial_unbreakable_2026_09_23",
-    "test_ui_visual_foundation",
-    "test_uxr0_readability",
-    "test_uxr1_scale_fix",
-    "test_uxr2_grips_driven",
-    "test_uxr2b_hud_band",
-    "test_uxr3_s12_fixes",
-    "test_uxr4_s15_pc_layout",             # PC-F46/F47: the harness headless on pc_layout
-    "test_uxr_d4_the_side_desk",           # + a sandboxed backend from 8006
-    # a fixed loopback port of their own
-    "test_ge3_the_client",                 # SOVEREIGN_PORT 8997
-    "test_release_build_2026_09_25",       # the smoke on 8099
-})
+#
+# THE ENGINE LANES (November 10, 2026 — the user's "the hook takes so long",
+# then "Yes, split it"). Until then every module below shared ONE group,
+# `engine`; the timed run at 62a3f241 read that one worker busy for 600.8 s of
+# the suite's 648 s, the other seven idle at the end. What the survey found:
+#   * the only things that cannot be shared are a WINDOW (four modules open a
+#     real one, parked at 5200,20, on the GPU) and the SANDBOXED BACKEND's
+#     port scan (`uxr3_action_probe.start_backend` probes upward from 8006,
+#     then binds — two at once would race for the same port);
+#   * a HEADLESS engine shares nothing: its spec, result and log are the
+#     test's own temp files, the ports named for it (8999, 8997) are dead
+#     ports nothing listens on, and eight modules outside this table have
+#     always run headless engines beside the lane.
+# So the lane is three:
+#   `engine`         the window and the sandboxed backends — ONE at a time,
+#                    always. A module that passes `--windowed`, calls
+#                    `start_backend` or starts `tools/dd_b_play.py` MUST be
+#                    here (pinned: tests/test_the_engine_lanes.py);
+#   `engine_frames`  } the headless harnesses that shared the old lane, in two
+#   `engine_panels`  } halves so neither is the suite's floor. A headless
+#                    harness needs no lane; these two only bound how many
+#                    engines are up at once. A module stays with the others
+#                    that share its harness or its dead port.
+# `tools/dd_b_play.py start` refuses while another engine runs; the suite
+# passes `--beside-headless`, so it counts WINDOWS only (a headless engine in
+# another lane no longer skips the client-hands pins — a skip is not a pass).
+ENGINE_LANES = {
+    "engine": frozenset({
+        # a real window
+        "test_dd_b_the_client_hands",          # + a sandboxed backend from 8006, twice
+        "test_uxr2_grips_driven",
+        "test_uxr2b_hud_band",
+        "test_uxr_d4_the_side_desk",           # + a sandboxed backend from 8006
+        # a fixed loopback port of its own
+        "test_release_build_2026_09_25",       # the smoke on 8099
+        # source pins that launch nothing (they rode the one lane; they stay
+        # in one — about three seconds between them)
+        "test_economy_gate_2026_10_05",
+        "test_godot_parse_harness",
+        "test_iq10_client_pass",
+        "test_map_owner_fill",
+        "test_score_finish_step8",
+        "test_sf7_s9_the_frames",
+        "test_ui_visual_foundation",
+        "test_uxr0_readability",
+    }),
+    "engine_frames": frozenset({
+        # the IQ-10 capture runner, headless, on the dead port 8999
+        "test_sf_rr5_the_frames",
+        "test_uxr4_s15_pc_layout",             # PC-F46/F47: the harness headless on pc_layout
+        "test_ge3_the_client",                 # the dead port 8997
+        # the real `main.tscn` behind an API stub, headless
+        "test_b4b_the_one_tail",
+        "test_ep_f1_the_first_ten_minutes",
+        "test_ep_f3_the_client_layout_pass",
+        "test_ge2_the_client",
+        "test_s14h_p2_driven",                 # S14G-19: the label-click harness
+        "test_tutorial_unbreakable_2026_09_23",
+    }),
+    "engine_panels": frozenset({
+        # the CN-3 region-panel harness and its kin (tests/_chip_census.render)
+        "test_cn3_the_chip_tells_the_truth",
+        "test_cn4_the_chip_honesty_census",
+        "test_cx7_predictor_driven",
+        "test_nui2_the_fleet_rides_at_anchor",
+        "test_nui_the_admiralty_on_the_map",
+        "test_sf7_s8_the_screen_says",
+        "test_uxr1_scale_fix",
+        "test_uxr3_s12_fixes",
+        # four 40-turn driver children at once and no engine: it rode the one
+        # lane, and it stays in one so its load never lands on all three
+        "test_sf_page_the_front_page_of_the_peace",
+    }),
+}
+ENGINE_GROUP_MODULES = frozenset().union(*ENGINE_LANES.values())
+_LANE_OF = {module: lane for lane, modules in ENGINE_LANES.items() for module in modules}
+
+# THE HEAVIEST GO FIRST (November 10, 2026). xdist hands groups out
+# largest-test-count first, so a group of few tests and many minutes starts
+# late and the whole run waits on it (`test_cx_r2_the_offer_is_reachable`: 74
+# tests, 4.8 minutes, 86th in the queue). Under a worker the groups named here
+# — each a minute or more in the timed run at 62a3f241, heaviest first — move
+# to the head of the collection, the rest follow largest-count first as xdist
+# had them, and the scheduler is told to keep that order. A name that has gone
+# stale costs time, never a test: re-read it off `--durations=0` when the
+# suite's shape moves (tests/test_the_engine_lanes.py pins that each exists).
+HEAVIEST_FIRST = (
+    "test_cx_r2_the_offer_is_reachable",
+    "test_iq7_review_round",
+    "engine",
+    "engine_frames",
+    "engine_panels",
+    "test_s14f_the_remeasure_rows",
+    "test_iq6_europe_speaks_its_mind",
+    "test_iq6_volte_face",
+    "test_rs27_the_volte_face_fires_on_its_arm",
+    "test_dd_c_nothing_fails_silently",
+    "test_cc2_march_here",
+    "test_dd1_answer_binding_shuffle",
+    "test_dd0_metamorphic_corpus",
+)
+
+
+def _module_of(nodeid: str) -> str:
+    module = nodeid.split("::", 1)[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    return module[:-3] if module.endswith(".py") else module
+
+
+def _group_of(item) -> str:
+    mark = item.get_closest_marker("xdist_group")
+    if mark is None:
+        return ""
+    return str(mark.kwargs.get("name") or (mark.args[0] if mark.args else ""))
+
+
+def heaviest_first(groups: list) -> list:
+    """The order the scheduler is given, as indexes into `groups` (one group
+    name per collected test): the HEAVIEST_FIRST groups in their listed order,
+    then every other group largest-count first (xdist's own rule), a group's
+    tests kept together and in the order they were collected."""
+    rank = {name: i for i, name in enumerate(HEAVIEST_FIRST)}
+    count: dict = {}
+    first: dict = {}
+    for index, group in enumerate(groups):
+        count[group] = count.get(group, 0) + 1
+        first.setdefault(group, index)
+    return sorted(range(len(groups)), key=lambda i: (
+        rank.get(groups[i], len(rank)), -count[groups[i]], first[groups[i]], i))
+
+
+def pytest_configure(config):
+    """The controller keeps the collection's order (see HEAVIEST_FIRST): the
+    workers hand it one already sorted."""
+    if getattr(config.option, "dist", "no") == "loadgroup":
+        config.option.loadscopereorder = False
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -151,10 +245,12 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.get_closest_marker("xdist_group"):
             continue
-        module = item.nodeid.split("::", 1)[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
-        module = module[:-3] if module.endswith(".py") else module
-        group = "engine" if module in ENGINE_GROUP_MODULES else module
-        item.add_marker(pytest.mark.xdist_group(group))
+        module = _module_of(item.nodeid)
+        item.add_marker(pytest.mark.xdist_group(_LANE_OF.get(module, module)))
+    # Only a worker reorders: a serial run keeps the order it always had.
+    if hasattr(config, "workerinput"):
+        order = heaviest_first([_group_of(item) for item in items])
+        items[:] = [items[i] for i in order]
 
 
 # A worker talks to the controller over its own stdin/stdout (execnet). A
