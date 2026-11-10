@@ -467,7 +467,13 @@ class TestTheWoundStillFiresWhenItIsReal:
         # the occupation completing and the reckless auto-charge all call it)
         # - stamps `captured_from` and `method: "liberated"` like the
         # producers above, and adds `liberated_to` (the court it was handed to).
-        assert len(producers) == 10, [p for p, _ in producers]
+        # Pin flipped consciously 10 -> 11 (T4-2 "sign at the last", November
+        # 9, 2026): `world_state.record_capture_signed_home` - the ONE writer
+        # of the row for a court's LAST province stormed and handed home by
+        # the peace its fall forced (the instant capture and the completing
+        # occupation both call it) - stamps `captured_from` and `method:
+        # "handed back"`.
+        assert len(producers) == 11, [p for p, _ in producers]
 
 
 # ════════════════════════════════════════════════════════════════════════

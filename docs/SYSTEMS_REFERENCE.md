@@ -14574,3 +14574,124 @@ the sixth with the league line beneath. And one label: the `alarm:` family reads
 **Pins:** `tests/test_dy1_the_alarm_of_europe.py` (53 — the write, the scale contract, the rung, the brew, the words, the page's sibling, the measure); the seams registered as row T4-1 in
 `tests/_t3_seams.py` (the recorded boards hold them down). No new store, no new serialized
 field, no new log type.
+
+## §200 Tier 4, session 2 — T4-2, sign at the last: a crown falls by treaty, never by the sword alone (November 9, 2026)
+
+**The slice** (`DYNAMISM_SPEC.md` §3c G5 and its landing note, §8 row DY-1c; pins
+`tests/test_dy1_the_alarm_of_europe.py` — `TestSignAtTheLast` 21, `TestTheT42Measure` 7; the
+seam `settlement_third_party.a_crown_falls_only_by_treaty`, row T4-2 of `tests/_t3_seams.py`,
+which the recorded boards' hold-list folds). No new store, no new serialized field, no new
+log type.
+
+**The rule.** `WorldState.capture_region` ends with ONE question,
+`_settle_a_court_without_ground(old_controller, capturing_nation)` — the one military erasure
+point. If the court that just lost a province holds none, it calls
+`settlement_third_party.sign_at_the_last(world, victim)`; `None` means the court falls as
+before (`_eliminate_nation`), an event means it signed and lives.
+
+- **The read, `last_refuge_holders(world, victim)`** — `{signatory: {holder: [provinces]}}`:
+  the victim's homeland (`nation_starting_regions`, never a region scan — Rule 8) that an AI
+  court AT WAR with it holds OUTSIDE that holder's keepable set
+  (`war_council.keepable_regions` — its house's authored aims and its declared province
+  articles). The signatory is the holder, or its lord when the holder is a client fighting
+  the lord's war (`client_pair_is_the_lords_war`). Never counted: a holder of the player's
+  house; a holder at peace with the victim (it holds by right); a pair with no live war
+  instance (the T3-3 lesson — the legacy world's wars are bare states, so the rule binds
+  nothing there).
+- **`None` — the court falls:** the seam down; a client victim (its war is its lord's); a
+  court of the player's house; nobody qualifying (the Kingdom of Italy: France's client, both
+  provinces inside Austria's Redeem Italy).
+- **Otherwise, in this order:** (1) the off-aim provinces go home FIRST
+  (`game_end._return_home` — the court holds ground again before anything reads
+  `get_active_nations`), the touched pairs' war scores re-stamped; (2) one pair peace per
+  signatory through `_close_the_pair`, reason `last_refuge` (added to
+  `game_end.SIGNED_PEACE_REASONS`); (3) one `third_party_peace` event, `exit: "last_refuge"`,
+  carrying `signatories`, `kept` and `evacuated`, and its dispatch row.
+- **The words:** "Bavaria signs at the last — Austria keeps Munich and Swabia by treaty;
+  Austria evacuates Franconia." — plus "Her other wars go on." when any still stands. `kept`
+  reads the signatory's HOUSE (`war_council._house_of` — itself and its clients), never its
+  alliance bloc: an ally of the signatory keeps nothing "by treaty", its war goes on.
+
+**`_close_the_pair` — the single-pair close, ONE body.** Factored out of
+`_process_exhausted_pair_exits` (the three pair exits) so the forced peace reuses it: the held
+aim signed over (the aim's own suit, else T3-5's lock), the state write by a signed reason
+(SR-1a's titling pass and the Road Home corridor run at the setter), the war's cleanup, the
+clients following their lord on the eight-turn floor (SR-1b), the unheld homeland returned
+(PC15-D4), the declared articles settled (PC-R7), the punitive record (AI-5b(i)), the truce
+floor. The one-exit-a-turn tempo stamp stays with the exits: a forced peace neither spends
+nor waits for it. `test_sr1b`'s two source-pinned lines followed the body to its one home —
+a conscious re-seat.
+
+**The player.** His holdings never move and his house is never a signatory. If he takes a
+court's last province while an AI ally of his holds part of its homeland outside that ally's
+aims, the court signs with the ally, gets that ground back and fights on against him; the
+command window says so through the existing transient receipts
+(`last_refuge_receipt_line`: "Hesse signs at the last with Bavaria and lives on in Nassau —
+your war with her goes on, Sire."). Where only his house holds the ground, the court falls
+and the old line stands ("… has no province left — the war is over, Sire.").
+
+**Four things the build found.**
+
+1. **The capture arms act AFTER the capture.** The instant capture
+   (`combat_executor._attempt_region_capture`) and the completing occupation
+   (`_apply_occupation_capture_effects`) plunder or secure, apply the estate rule and log the
+   row once `capture_region` returns. When the last province is itself off-aim for an AI
+   capturer it has already gone home, so both arms ask `capture_was_signed_home` and skip all
+   three; `record_capture_signed_home` is the ONE writer of the chronicle's row (`method:
+   "handed back"`, `captured_from` stamped — the capture-producer census reads 11).
+2. **The reckless auto-charge never asked.** The one conquest outside the chokepoint wrote
+   the controller itself and never checked whether it took a court's last province — a court
+   could be left alive with no ground. It now queues the court and asks the chokepoint's
+   question once the charges are done (the battle's own bookkeeping still reads the beaten
+   corps), under T4-2's seam so the control reproduces the prior world.
+3. **A conqueror with no aim on its victim hands everything back.** Prussia declaring on
+   Hesse and taking both provinces ends the war with Hesse keeping both ("Hesse signs at the
+   last — Prussia evacuates Frankfurt and Nassau."). The rule as ruled; stated because it
+   shows.
+4. **Liberation meets a living court.** With Bavaria alive in Franconia, France retaking
+   Munich from Austria is a liberation handed back to her ally (S14G-1), where a fallen
+   Bavaria left it "held for the peace". Two S14G-D1 pins whose subject is a court truly gone
+   hold the T4-2 seam down, with that cause.
+
+**The measure** (three chains, each alone; `tools/_t3_4_measure.py --label t4-2[-control]`,
+`tools/_t3_5_chain_d.py --arms D`; the ambient records re-run byte-identically on the
+finished tree):
+
+| | T4-1 | T4-2 |
+|---|---|---|
+| control (the seam down) vs the T4-1 record | — | byte for byte, all ten seeds |
+| `annexations_outside_aim`, ambient | 7 | **0** |
+| `annexations_outside_aim`, the AI courts of the AI-France harness | 7 | **0** |
+| courts that signed at the last, ambient | — | 8 (Bavaria on eylau, historical, jena, marengo, rivoli, wagram at turn 6 and friedland at 12; Switzerland on jena at 27) |
+| the same, the harness | — | 10 (Austria on eylau and friedland at 11 — "Bavaria evacuates Vienna"; Switzerland five times, Holland three) |
+| the Alarm's guarantees given, ambient | 3 | 9 (Prussia's word for a living Bavaria at turn 6 on six more seeds) |
+| the Bavarian Match letter | 4 seeds | all ten |
+| story classes | 10 | **9** (eylau reads as ulm) |
+| the SET of fallen courts across the ten seeds | four different sets | **one** — the Kingdom of Italy alone, at turns 7, 9, 10, 21 and 23 |
+
+The movers are exactly the seven seeds where Bavaria used to fall; austerlitz, lodi and ulm
+are byte-identical (Prussia's word had already kept her alive there). In the harness, France's
+final province count moves on six seeds — eylau 41 → 33 and friedland 38 → 29 where Austria
+lives on in Vienna and fights on; jena 41 → 37, rivoli 40 → 43, ulm 40 → 39, wagram 38 → 37.
+
+**The honest cost.** The gate's done-when read "the eliminations column varies". It does not,
+by set: the rule saves Bavaria on every seed where she fell, and Saxony's wagram erasure
+leaves with that world-line. Only the turn varies. Story classes 10 → 9; the deploy gate's
+≥ 4 holds. Recorded, not hidden — the variety is T4-3's and Tier 5's to bring.
+
+**The standing series, re-pinned with its cause** (`tools/_t4_2_series_arms.py` →
+`tools/_t4_2_series_arms_final.json`): arm 0 (the seam down) reproduces the prior byte for
+byte; the seam is read at both last-province captures of the loop and signs once (Bavaria,
+world turn 5). France's ally lives, so France's bloc keeps its weight: `hegemony_passive` +1
+at world turns 9 and 10 (first divergence [8], 43 → 44), a rival's bribe takes Switzerland at
+11 where the prior board had its rebellion at 13, and France's decisive defensive wins hold
+the slot up until [24]. `SERIES_BEFORE_T4_2` kept; the drill-fix records re-linked; the
+courting-cap pin re-measured (capped 13 → 12; 13 verbatim with the seam down) and its
+elimination step re-anchored at −12 (−3 decay − 10 relief + 1 `hegemony_passive`).
+
+**The seat** — what the gate did not cover — is T4-2b: a court whose capital is signed away
+moves its seat to ground it still holds (the user's "use best judgment but focus on utmost
+quality"). The survey's facts for it: `world.nation_capitals` is in-memory (rebuilt from the
+authored table, re-derived at load for carved clients), `Region.is_capital` IS serialized, so
+a moved seat can ride that flag with no new field; 126 reads go through `get_nation_capital`,
+78 through `is_capital`, about 30 through the static tables.

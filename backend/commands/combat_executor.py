@@ -13264,6 +13264,23 @@ class CombatExecutor:
                     "message": _line,
                 }
 
+            if _ws_mod.capture_was_signed_home(world, region, marshal.nation):
+                # T4-2 "sign at the last": this was the court's LAST province
+                # and the peace signed in that hour handed it home (it lies
+                # outside what the capturer may keep) — nothing to plunder or
+                # secure, no estate to seize; the chronicle keeps the storm.
+                _ws_mod.record_capture_signed_home(
+                    world, region_name, marshal.nation, old_controller)
+                return {
+                    "captured": True,
+                    "occupation_started": False,
+                    "old_controller": old_controller,
+                    "capture_choice": None,
+                    "auto_secured": False,
+                    "signed_home": True,
+                    "message": "",
+                }
+
             # Phase 6.2.E: Plunder/Secure choice
             ai_choice = None
             auto_secured = False

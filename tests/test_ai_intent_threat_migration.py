@@ -1825,7 +1825,31 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # post-combat pipeline) — so [26] and [29] 0 → 2. The prior's series:
 # SERIES_BEFORE_T4_1.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by T4-2 (November 9, 2026 — "sign at the last"; the Tier-4
+# gate record DYNAMISM_SPEC.md §3c G5, row DY-1c; `SYSTEMS_REFERENCE.md`
+# §200). Traced on the series' own loop. The attribution:
+# `tools/_t4_2_series_arms.py` → `tools/_t4_2_series_arms_final.json` —
+# arm 0 (the seam down) reproduces the prior BYTE FOR BYTE, so the one
+# seam isolates the slice exactly; the seam is read at both last-province
+# captures of the loop and signs ONE peace (reach: 2 last provinces, 1
+# signed — Bavaria at world turn 5: "Bavaria signs at the last — Austria
+# keeps Munich and Swabia by treaty; Austria evacuates Franconia."; the
+# Kingdom of Italy, a client inside Austria's Redeem Italy, still falls).
+# France's ally LIVES, so France's bloc keeps its weight, and the series
+# diverges at [8] — France's writes, traced through `add_threat` /
+# `reduce_threat`: `hegemony_passive` +1 at world turns 9 and 10 ([8]
+# 43 → 44, [9] 40 → 42); Switzerland leaves the web by a rival's bribe at
+# 11 (`vassal_defection` −10, [11] 26 — Russia's, on the ambient sweep's
+# historical line) where the prior rebelled at 13;
+# then France's decisive defensive wins — +5 at 12, +3 and +5 at 15 —
+# hold the slot up ([12] 28, [15] 27), and it reaches 0 at [24], not
+# [19]. Mack's late assaults on Lorraine ([20]–[29]'s 2s) never come.
+# The prior's series: SERIES_BEFORE_T4_2.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 44, 42, 39, 26, 28, 25, 22, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# T4-1's series (T4-2's prior; the T4-2 rig's arm 0):
+SERIES_BEFORE_T4_2 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T3-3's series (T4-1's prior; the T4-1 rig's arm 0):
 SERIES_BEFORE_T4_1 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T0-E/F/G's series (T3-3's prior; the T3-3 rig's arm 0):

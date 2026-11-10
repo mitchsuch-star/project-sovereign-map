@@ -46,6 +46,7 @@ from tools.ai_v_sweep import (  # noqa: E402
 
 AIM_EXIT = "aim_held_sue"
 AIM_LETTER = "aim_peace"
+LAST_REFUGE_EXIT = "last_refuge"
 
 
 def _signs_provinces(event: dict) -> bool:
@@ -63,7 +64,7 @@ def _signs_provinces(event: dict) -> bool:
 
 
 def census_of(digest: dict) -> dict:
-    peaces, letters, signed, evacuations = [], [], [], []
+    peaces, letters, signed, evacuations, refuges = [], [], [], [], []
     # T4-1 (DYNAMISM_SPEC.md §3c G2): the Alarm's guarantees — a pledge
     # that names the conqueror it answers (`against`) — and every honour.
     alarm_guarantees, honoured = [], []
@@ -97,6 +98,14 @@ def census_of(digest: dict) -> dict:
                                "proposer": str(event.get("proposer") or ""),
                                "accepter": str(event.get("accepter") or ""),
                                "consequence": str(event.get("consequence") or "")})
+            # T4-2 (DYNAMISM_SPEC.md §3c G5): a court that signed at its
+            # last province instead of falling.
+            if (event.get("type") == "third_party_peace"
+                    and event.get("exit") == LAST_REFUGE_EXIT):
+                refuges.append({"turn": int(row.get("turn", 0)),
+                                "proposer": str(event.get("proposer") or ""),
+                                "accepter": str(event.get("accepter") or ""),
+                                "consequence": str(event.get("consequence") or "")})
         for prop in row.get("incoming_proposals") or []:
             if prop.get("ptype") == AIM_LETTER:
                 letters.append({"turn": int(row.get("turn", 0)),
@@ -104,6 +113,7 @@ def census_of(digest: dict) -> dict:
     metrics = derive_metrics(digest)
     return {"aim_peaces": peaces, "aim_letters": letters, "signed_cessions": signed,
             "evacuations": evacuations,
+            "last_refuges": refuges,
             "alarm_guarantees": alarm_guarantees,
             "guarantees_honoured": honoured,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
@@ -164,6 +174,7 @@ def main() -> None:
             "aim_letters": sum(len(c["aim_letters"]) for c in census.values()),
             "signed_cessions": sum(len(c["signed_cessions"]) for c in census.values()),
             "evacuations": sum(len(c["evacuations"]) for c in census.values()),
+            "last_refuges": sum(len(c["last_refuges"]) for c in census.values()),
             "alarm_guarantees": sum(len(c["alarm_guarantees"]) for c in census.values()),
             "guarantees_honoured": sum(len(c["guarantees_honoured"])
                                        for c in census.values()),

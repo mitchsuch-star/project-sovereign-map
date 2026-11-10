@@ -19,6 +19,15 @@ T4-1 — the Alarm (`backend/game_logic/alarm.py`, seams `the_alarm_sounds` and
   non-France conqueror into the eclipse brew.
 * THE WORDS (§3c G4, Q6): "Vienna's appetite is remarked in Berlin …" —
   Talleyrand, the Balance tab, Le Moniteur; never a figure.
+
+T4-2 — sign at the last (§3c G5, row DY-1c; `settlement_third_party.
+sign_at_the_last`, seam `a_crown_falls_only_by_treaty` in row T4-2; the rules
+`SYSTEMS_REFERENCE.md` §200): a crown falls by treaty, never by the sword
+alone — a court whose last province falls signs with every AI court holding
+homeland it may not keep, gets that ground back and lives on; D2 narrowed,
+not deleted; the player's holdings never move; the pair close is ONE body
+(`_close_the_pair`); the two capture arms never plunder ground signed home;
+the reckless auto-charge asks the chokepoint's question (the sibling sweep).
 """
 from __future__ import annotations
 
@@ -34,11 +43,14 @@ sys.path.insert(0, str(REPO))
 
 from backend.game_logic import alarm as AL  # noqa: E402
 from backend.game_logic import instruments as INS  # noqa: E402
+from backend.game_logic import settlement_third_party as TP  # noqa: E402
+from backend.game_logic import war_council as WC  # noqa: E402
 from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down  # noqa: E402
 
 SCENARIO = (REPO / "godot-client" / "project-sovereign" / "assets"
             / "maps" / "europe_1805.json")
 T4_1_DOWN = T3_SEAMS_BY_ROW["T4-1"]
+T4_2_DOWN = T3_SEAMS_BY_ROW["T4-2"]
 
 
 @pytest.fixture()
@@ -480,6 +492,264 @@ class TestThePageSibling:
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# T4-2 — sign at the last (§3c G5, row DY-1c)
+# ═══════════════════════════════════════════════════════════════════════
+
+BAVARIA = ("Munich", "Swabia", "Franconia")
+THE_WORDS = ("Bavaria signs at the last — Austria keeps Munich and Swabia by "
+             "treaty; Austria evacuates Franconia.")
+_LONE = {"war_objective": "conquest", "suppress_unresolved_offensive_cascade": True}
+
+
+def _quiet():
+    import contextlib
+    import io
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+def _events(world, etype: str):
+    return [e for e in world.event_log if e.get("type") == etype]
+
+
+def _fallen(world):
+    return [e["nation"] for e in _events(world, "nation_eliminated")]
+
+
+def _last_refuges(world):
+    return [e for e in _events(world, "third_party_peace")
+            if e.get("exit") == TP.LAST_REFUGE_EXIT]
+
+
+def _takes(world, nation: str, *regions: str) -> None:
+    with _quiet():
+        for region_name in regions:
+            world.capture_region(region_name, nation)
+
+
+def _declares(world, aggressor: str, target: str) -> None:
+    from backend.game_logic.diplomacy import declare_war
+    with _quiet():
+        assert declare_war(world, aggressor, target, **_LONE).get("success")
+
+
+class TestSignAtTheLast:
+    """The 1805 board: Austria's Redeem-the-Reich aim names Munich and
+    Swabia of Bavaria's three provinces; Franconia she may not keep."""
+
+    def test_bavaria_lives_on_in_franconia(self, world):
+        _takes(world, "Austria", *BAVARIA)
+        assert sorted(world.get_nation_regions("Bavaria")) == ["Franconia"]
+        assert "Bavaria" in world.get_active_nations()
+        assert _fallen(world) == []
+        assert world.get_diplomatic_state("Austria", "Bavaria") == "PEACE"
+        key = world._make_diplo_key("Austria", "Bavaria")
+        assert world.armistice_cooldowns[key] == TP.PAIR_EXIT_TRUCE_FLOOR_TURNS == 8
+        # her corps is not swept with a fallen court's
+        assert [n for n, m in world.marshals.items() if m.nation == "Bavaria"] == ["Deroy"]
+        [event] = _last_refuges(world)
+        assert event["consequence"] == THE_WORDS
+        assert (event["proposer"], event["accepter"]) == ("Bavaria", "Austria")
+        assert event["signatories"] == ["Austria"]
+        assert event["kept"] == {"Austria": ["Munich", "Swabia"]}
+        assert event["evacuated"] == {"Austria": ["Franconia"]}
+
+    def test_what_austria_keeps_she_keeps_by_treaty(self, world):
+        from backend.game_logic.game_end import TITLE_TREATY, holds_by_title
+        _takes(world, "Austria", *BAVARIA)
+        for region_name in ("Munich", "Swabia"):
+            assert holds_by_title(world, region_name, "Austria")
+            assert world.province_title[region_name]["kind"] == TITLE_TREATY
+        assert "Franconia" not in world.province_title, "homeland: title by construction"
+        assert WC.annexations_outside_aim(world) == {}
+
+    def test_whichever_province_falls_last(self, world):
+        _takes(world, "Austria", "Franconia", "Swabia", "Munich")
+        assert sorted(world.get_nation_regions("Bavaria")) == ["Franconia"]
+        assert world.regions["Munich"].controller == "Austria"
+        assert [e["consequence"] for e in _last_refuges(world)] == [THE_WORDS]
+
+    def test_the_seam_down_is_the_old_erasure(self, world, monkeypatch):
+        hold_down(monkeypatch, T4_2_DOWN)
+        _takes(world, "Austria", *BAVARIA)
+        assert world.get_nation_regions("Bavaria") == []
+        assert _fallen(world) == ["Bavaria"]
+        assert _last_refuges(world) == []
+
+    def test_d2_is_narrowed_not_deleted(self, world, monkeypatch):
+        """A court whose whole homeland lies in hands that may keep it still
+        falls — the read is the holders' keepable sets, nothing else."""
+        monkeypatch.setattr(WC, "keepable_regions", lambda w, holder, ceder: set(BAVARIA))
+        _takes(world, "Austria", *BAVARIA)
+        assert _fallen(world) == ["Bavaria"]
+
+    def test_the_kingdom_of_italy_still_falls(self, world):
+        """The shape the gate names: France's client, its two provinces both
+        inside Austria's Redeem Italy."""
+        home = set(world.nation_starting_regions["KingdomOfItaly"])
+        assert WC.keepable_regions(world, "Austria", "KingdomOfItaly") >= home
+        _takes(world, "Austria", "Piedmont", "Milan")
+        assert _fallen(world) == ["KingdomOfItaly"]
+        assert _last_refuges(world) == []
+
+    def test_a_client_victim_falls_with_its_lords_war(self, world):
+        world.vassals["Bavaria"] = dict(world.vassals["Holland"])
+        assert TP.sign_at_the_last(world, "Bavaria") is None
+        _takes(world, "Austria", *BAVARIA)
+        assert _fallen(world) == ["Bavaria"]
+
+    def test_a_conqueror_with_no_aim_there_hands_everything_back(self, world):
+        """Prussia's war on Hesse names no province of Hesse's in any design
+        of hers: taking both ends the war, and Hesse keeps both."""
+        _declares(world, "Prussia", "Hesse")
+        _takes(world, "Prussia", "Nassau", "Frankfurt")
+        assert sorted(world.get_nation_regions("Hesse")) == ["Frankfurt", "Nassau"]
+        assert [e["consequence"] for e in _last_refuges(world)] == [
+            "Hesse signs at the last — Prussia evacuates Frankfurt and Nassau."]
+
+    def test_a_war_with_no_record_binds_nothing(self, world):
+        """The T3-3 lesson: the legacy world's wars are bare states — a rule
+        that reads the war's record binds only where one stands."""
+        world.diplomatic_states[world._make_diplo_key("Prussia", "Hesse")] = "WAR"
+        _takes(world, "Prussia", "Nassau")
+        assert TP.last_refuge_holders(world, "Hesse") == {}
+        _takes(world, "Prussia", "Frankfurt")
+        assert _fallen(world) == ["Hesse"]
+
+    def test_a_holder_at_peace_holds_by_right(self, world):
+        _declares(world, "Prussia", "Hesse")
+        world.regions["Nassau"].controller = "Saxony"      # never at war with Hesse
+        world.invalidate_active_nations_cache()
+        assert TP.last_refuge_holders(world, "Hesse") == {}
+
+    # ── the player ────────────────────────────────────────────────────
+    def test_the_players_holdings_never_move(self, world):
+        """France takes Hesse's last province while her ally Bavaria holds
+        Nassau outside Bavaria's aims: Hesse signs with Bavaria, gets Nassau
+        back and lives on — at war with France, who keeps what she took."""
+        _declares(world, "Bavaria", "Hesse")
+        _declares(world, "France", "Hesse")
+        _takes(world, "Bavaria", "Nassau")
+        _takes(world, "France", "Frankfurt")
+        assert world.regions["Frankfurt"].controller == "France"
+        assert sorted(world.get_nation_regions("Hesse")) == ["Nassau"]
+        assert world.get_diplomatic_state("Bavaria", "Hesse") == "PEACE"
+        assert world.get_diplomatic_state("France", "Hesse") == "WAR"
+        [event] = _last_refuges(world)
+        # an ally of the signatory is not of its house: France keeps nothing
+        # "by treaty" — her war goes on
+        assert event["consequence"] == ("Hesse signs at the last — Bavaria evacuates "
+                                        "Nassau. Her other wars go on.")
+        assert world._elimination_receipts == [
+            "Hesse signs at the last with Bavaria and lives on in Nassau — "
+            "your war with her goes on, Sire."]
+
+    def test_only_the_players_house_holding_her_ground_she_falls(self, world):
+        """Erasing a court outright stays the hegemon's prerogative (D2): a
+        client of France holding the ground is the player's house."""
+        _declares(world, "France", "Hesse")
+        assert world.get_diplomatic_state("Holland", "Hesse") == "WAR"
+        _takes(world, "Holland", "Nassau")
+        assert TP.last_refuge_holders(world, "Hesse") == {}
+        _takes(world, "France", "Frankfurt")
+        assert _fallen(world) == ["Hesse"]
+        assert world._elimination_receipts == [
+            "Hesse has no province left — the war is over, Sire."]
+
+    # ── the two capture arms ──────────────────────────────────────────
+    def test_the_instant_capture_does_not_plunder_ground_signed_home(self, world):
+        from backend.commands.executor import CommandExecutor
+        _takes(world, "Austria", "Munich", "Swabia")
+        franconia = world.get_region("Franconia")
+        assert not franconia.has_building("fortification")
+        buildings = [dict(b) for b in franconia.buildings]
+        gold = int(world.nation_gold["Austria"])
+        with _quiet():
+            result = CommandExecutor()._combat._attempt_region_capture(
+                world.marshals["Mack"], "Franconia", world, {"world": world})
+        assert result["captured"] is True and result["signed_home"] is True
+        assert result["capture_choice"] is None
+        assert (franconia.controller, franconia.stability) == ("Bavaria", 50)
+        assert [dict(b) for b in franconia.buildings] == buildings
+        assert int(world.nation_gold["Austria"]) == gold
+        row = [e for e in _events(world, "region_captured") if e["region"] == "Franconia"][-1]
+        assert (row["captured_by"], row["method"]) == ("Austria", "handed back")
+
+    def test_the_occupation_arm_does_not_plunder_it_either(self, world):
+        _takes(world, "Austria", "Munich", "Swabia")
+        gold = int(world.nation_gold["Austria"])
+        with _quiet():
+            message = world._apply_occupation_capture_effects(world.marshals["Mack"], "Franconia")
+        assert message == (" Franconia falls to Austria — and goes home by the "
+                           "peace signed in that hour.")
+        assert world.regions["Franconia"].controller == "Bavaria"
+        assert world._last_occupation_capture_choice is None
+        assert int(world.nation_gold["Austria"]) == gold
+
+    def test_a_province_the_capturer_keeps_is_captured_as_before(self, world):
+        from backend.models.world_state import capture_was_signed_home
+        _takes(world, "Austria", "Franconia", "Swabia", "Munich")
+        assert not capture_was_signed_home(world, world.get_region("Munich"), "Austria")
+        # the player's holdings never move, so his arm never asks
+        assert not capture_was_signed_home(world, world.get_region("Franconia"), "France")
+
+    # ── the sibling sweep: the one conquest outside the chokepoint ────
+    def test_the_auto_charge_asks_the_chokepoints_question(self, world):
+        """The reckless auto-charge writes the controller itself; before
+        T4-2 it never asked whether it took a court's LAST province. The
+        same method answers for both (bare writes are the charge's shape)."""
+        for region_name in BAVARIA:
+            world.regions[region_name].controller = "Austria"
+        world.invalidate_active_nations_cache()
+        with _quiet():
+            world._settle_a_court_without_ground("Bavaria", "Austria")
+        assert sorted(world.get_nation_regions("Bavaria")) == ["Franconia"]
+        assert [e["consequence"] for e in _last_refuges(world)] == [THE_WORDS]
+
+    def test_the_charge_site_calls_it_under_the_seam(self):
+        from backend.models.world_state import WorldState
+        charge = inspect.getsource(WorldState._process_reckless_cavalry_turn_start)
+        assert "a_crown_falls_only_by_treaty as _ac_asks" in charge
+        assert "self._settle_a_court_without_ground(_lost_ground, _taker)" in charge
+        capture = inspect.getsource(WorldState.capture_region)
+        assert "self._settle_a_court_without_ground(old_controller, capturing_nation)" in capture
+        assert "_eliminate_nation(" not in capture, "ONE military erasure point"
+
+    # ── the contract's edges ──────────────────────────────────────────
+    def test_the_forced_peace_is_a_signed_peace_and_no_new_log_type(self):
+        from backend.campaign_log import CAMPAIGN_LOG_TYPES
+        from backend.game_logic.game_end import SIGNED_PEACE_REASONS
+        assert TP.LAST_REFUGE_EXIT in SIGNED_PEACE_REASONS
+        assert "third_party_peace" in CAMPAIGN_LOG_TYPES
+        assert "last_refuge" not in CAMPAIGN_LOG_TYPES
+
+    def test_the_exits_and_the_refuge_close_by_one_body(self):
+        exits = inspect.getsource(TP._process_exhausted_pair_exits)
+        refuge = inspect.getsource(TP.sign_at_the_last)
+        assert "_close_the_pair(" in exits and "_close_the_pair(" in refuge
+        for copy in ("set_diplomatic_state(", "follow_the_lord(", "_return_unheld_homeland("):
+            assert copy not in exits and copy not in refuge, copy
+        # the tempo stamp is the exits' alone — a forced peace neither
+        # spends nor waits for the one-exit-a-turn rule
+        assert "_pair_exit_this_turn" not in inspect.getsource(TP._close_the_pair)
+        assert "_pair_exit_this_turn" not in refuge
+
+    def test_the_peace_survives_a_save(self, world):
+        from backend.models.world_state import WorldState
+        _takes(world, "Austria", *BAVARIA)
+        with _quiet():
+            loaded = WorldState.from_dict(world.to_dict())
+        assert sorted(loaded.get_nation_regions("Bavaria")) == ["Franconia"]
+        assert loaded.get_diplomatic_state("Austria", "Bavaria") == "PEACE"
+        key = loaded._make_diplo_key("Austria", "Bavaria")
+        assert loaded.armistice_cooldowns[key] == 8
+
+    def test_the_seam_is_registered(self):
+        assert T4_2_DOWN == [
+            "backend.game_logic.settlement_third_party:a_crown_falls_only_by_treaty=False"]
+        assert TP.a_crown_falls_only_by_treaty() is True
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # The measure — the committed records (seeded paths, not laws)
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -527,3 +797,116 @@ class TestTheMeasure:
         # never a war on France from an alarm word (the conqueror-alone rule)
         assert not any(h[3] == "France" for v in d["arms"]["D"].values()
                        for h in v["guarantees_honoured"])
+
+
+BAVARIA_FELL = ["eylau", "friedland", "historical", "jena", "marengo", "rivoli", "wagram"]
+
+
+def _dump(row) -> str:
+    import json
+    return json.dumps(row, sort_keys=True)
+
+
+class TestTheT42Measure:
+    """T4-2's three chains, each on the tree it names, each ALONE
+    (`tools/_t3_4_measure.py --label t4-2[-control]`,
+    `tools/_t3_5_chain_d.py --arms D`). Seeded paths, not laws."""
+
+    def test_the_control_reproduces_the_t4_1_record(self):
+        t41 = _record("_dy_signature_t4_1_2026_11_09.json")
+        ctl = _record("_dy_signature_t4_2_control_2026_11_09.json")
+        for seed in t41["seeds"]:
+            assert _dump(ctl["seeds"][seed]) == _dump(t41["seeds"][seed]), seed
+        assert _record("_t4_2_control_census_2026_11_09.json")["totals"]["last_refuges"] == 0
+
+    def test_the_kept_debt_is_cleared_on_both_surfaces(self):
+        """The deploy gate's line: annexation outside aim, 7 → 0 ambient and
+        7 → 0 for the AI courts of the AI-France harness — nothing left to
+        put to the user province by province (the done-when's way out)."""
+        census = _record("_t4_2_census_2026_11_09.json")
+        assert census["totals"]["annexations_outside_aim"] == 0
+        assert all(c["annexations_outside_aim_by_court"] == {} for c in census["seeds"].values())
+        d = _record("_t4_2_chain_d_2026_11_09.json")
+        assert d["totals"]["D"]["annexations_outside_aim"] == 0
+        # the harness's France is the player nation: its own entries are
+        # reported, never gated
+        assert all(set(v["annexations_outside_aim_by_court"]) <= {"France"}
+                   for v in d["arms"]["D"].values())
+
+    def test_bavaria_signs_wherever_she_used_to_fall(self):
+        census = _record("_t4_2_census_2026_11_09.json")
+        signed = {seed: [(r["turn"], r["proposer"]) for r in c["last_refuges"]]
+                  for seed, c in census["seeds"].items() if c["last_refuges"]}
+        assert signed == {
+            "eylau": [(6, "Bavaria")], "friedland": [(12, "Bavaria")],
+            "historical": [(6, "Bavaria")],
+            "jena": [(6, "Bavaria"), (27, "Switzerland")],
+            "marengo": [(6, "Bavaria")], "rivoli": [(6, "Bavaria")],
+            "wagram": [(6, "Bavaria")]}
+        assert census["totals"]["last_refuges"] == 8
+        words = [r["consequence"] for c in census["seeds"].values()
+                 for r in c["last_refuges"] if r["proposer"] == "Bavaria"]
+        assert len(words) == 7 and all(w.startswith(THE_WORDS) for w in words)
+
+    def test_the_movers_are_exactly_the_seeds_where_bavaria_fell(self):
+        t41 = _record("_dy_signature_t4_1_2026_11_09.json")
+        fin = _record("_dy_signature_t4_2_2026_11_09.json")
+        movers = sorted(seed for seed in t41["seeds"]
+                        if _dump(fin["seeds"][seed]) != _dump(t41["seeds"][seed]))
+        fell = sorted(seed for seed, s in t41["seeds"].items()
+                      if any(nation == "Bavaria" for _, nation in s["signature"]["eliminations"]))
+        assert movers == fell == BAVARIA_FELL
+
+    def test_what_a_living_bavaria_brings(self):
+        """Prussia's word for her on six more seeds (the alarm rung finds a
+        living victim) and the Bavarian Match on every seed — the letter
+        could not fire for a court that was gone."""
+        fin = _record("_dy_signature_t4_2_2026_11_09.json")
+        given = {seed: s["signature"]["guarantees_given"] for seed, s in fin["seeds"].items()}
+        assert given["friedland"] == []
+        for seed in ("austerlitz", "lodi", "ulm"):
+            assert given[seed] == [[7, "Prussia", "Bavaria"]]
+        for seed in ("eylau", "historical", "jena", "marengo", "rivoli", "wagram"):
+            assert given[seed] == [[6, "Prussia", "Bavaria"]]
+        assert _record("_t4_2_census_2026_11_09.json")["totals"]["alarm_guarantees"] == 9
+        assert all(s["signature"]["moment_turns"].get("bavarian_match")
+                   for s in fin["seeds"].values())
+
+    def test_the_honest_cost_the_fallen_courts_converge(self):
+        """Reported, never hidden: the gate's done-when read "the
+        eliminations column varies". With Bavaria signing on every seed
+        where she fell (and Saxony's wagram erasure gone with that
+        world-line) the SET of fallen courts is the same on all ten — the
+        Kingdom of Italy alone; only its turn varies. Before T4-2 there
+        were four different sets. Story classes 10 → 9 (eylau reads as
+        ulm); the deploy gate's ≥ 4 holds; T4-3 and Tier 5 own the
+        variety."""
+        t41 = _record("_dy_signature_t4_1_2026_11_09.json")
+        fin = _record("_dy_signature_t4_2_2026_11_09.json")
+
+        def sets(record):
+            return {tuple(sorted({nation for _, nation in s["signature"]["eliminations"]}))
+                    for s in record["seeds"].values()}
+
+        assert len(sets(t41)) == 4
+        assert sets(fin) == {("KingdomOfItaly",)}
+        turns = sorted({turn for s in fin["seeds"].values()
+                        for turn, _ in s["signature"]["eliminations"]})
+        assert turns == [7, 9, 10, 21, 23]
+        assert (t41["story_class_count"], fin["story_class_count"]) == (10, 9)
+
+    def test_the_ai_france_harness(self):
+        """Ten courts sign at the last in France's own wars — Austria twice
+        (Bavaria hands Vienna back the turn France takes her last
+        province: the harness's France fights on against a living
+        Austria)."""
+        d = _record("_t4_2_chain_d_2026_11_09.json")
+        assert d["totals"]["D"]["last_refuges"] == 10
+        signed = {seed: [(r[0], r[1], r[2]) for r in v["last_refuges"]]
+                  for seed, v in d["arms"]["D"].items() if v["last_refuges"]}
+        assert signed["eylau"][0] == signed["friedland"][0] == (11, "Austria", "Bavaria")
+        assert sorted({court for rows in signed.values() for _, court, _ in rows}) == [
+            "Austria", "Holland", "Switzerland"]
+        words = d["arms"]["D"]["eylau"]["last_refuges"][0][3]
+        assert words == ("Austria signs at the last — Bavaria evacuates Vienna. "
+                         "Her other wars go on.")

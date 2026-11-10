@@ -1711,6 +1711,34 @@ def elimination_receipt_line(world, nation: str) -> str:
             f"— the war is over, Sire.")
 
 
+def capture_was_signed_home(world, region, capturer: str) -> bool:
+    """T4-2 "sign at the last": did the capture `capturer` just made of
+    `region` end with the province handed HOME by the peace its fall forced
+    (`settlement_third_party.sign_at_the_last`)? True only for an AI
+    capturer whose capture no longer holds the ground — the player's
+    holdings never move, and a liberation is answered before this is asked.
+    The two capture callers read it to skip plunder, secure and the estate
+    rule on ground that is no longer the capturer's."""
+    return bool(region is not None
+                and capturer != getattr(world, "player_nation", None)
+                and getattr(region, "controller", None) != capturer)
+
+
+def record_capture_signed_home(world, region_name: str, capturer: str,
+                               old_controller: str) -> None:
+    """T4-2: the chronicle's row for a capture the peace handed home — THE
+    one writer (the instant capture and the completing occupation both call
+    it), stamping `captured_from` like every `region_captured` producer and
+    `method: "handed back"` (the storm happened; the treaty returned it)."""
+    world.log_event({
+        "type": "region_captured",
+        "region": region_name,
+        "captured_by": capturer,
+        "captured_from": old_controller,
+        "method": "handed back",
+    })
+
+
 def announce_third_party_capture(self, region_name: str, old_controller,
                                  capturing_nation: str) -> None:
     """DDB-43: the dispatch lines of a province changing hands between
@@ -5652,28 +5680,51 @@ class WorldState:
             region_name, old_controller, capturing_nation)
 
         # R81: Check for elimination after capture
-        if (old_controller and old_controller != capturing_nation
-                and old_controller != self.player_nation):
-            if not self.get_nation_regions(old_controller):
-                # S14E-X22: was the player at war with the dying court? Read
-                # BEFORE the teardown below sets the pair to PEACE — an
-                # ally's (or a third court's) capture of its last province
-                # ends the player's war just as his own does.
-                _player_war_ended = (self.get_diplomatic_state(
-                    self.player_nation, old_controller) == "WAR")
-                self._eliminate_nation(old_controller)
-                # S14E-5: the player's own capture of a court's LAST province
-                # ends the war — said in the command window of the command
-                # that did it (the rail icon and the next morning's dispatch
-                # were all the player had). Transient (never serialized);
-                # `main.build_base_response` reads it onto the reply and
-                # clears it (Golden Rule 4).
-                if capturing_nation == self.player_nation or _player_war_ended:
-                    self._elimination_receipts = list(
-                        getattr(self, "_elimination_receipts", None) or []
-                    ) + [elimination_receipt_line(self, old_controller)]
+        self._settle_a_court_without_ground(old_controller, capturing_nation)
 
         return True
+
+    def _settle_a_court_without_ground(self, old_controller, capturing_nation) -> None:
+        """R81 + T4-2 — the ONE military erasure point: `old_controller` just
+        lost a province to `capturing_nation`; if it was its LAST, the court
+        signs at the last (`settlement_third_party.sign_at_the_last`) or
+        falls (`_eliminate_nation`). Called by `capture_region` and, since
+        T4-2's sibling sweep, by the reckless auto-charge — the one conquest
+        outside the chokepoint, which never asked the question at all. The
+        player's own fall is game-over, handled elsewhere."""
+        if not (old_controller and old_controller != capturing_nation
+                and old_controller != self.player_nation):
+            return
+        if self.get_nation_regions(old_controller):
+            return
+        # S14E-X22: was the player at war with the dying court? Read
+        # BEFORE the teardown below sets the pair to PEACE — an
+        # ally's (or a third court's) capture of its last province
+        # ends the player's war just as his own does.
+        _player_war_ended = (self.get_diplomatic_state(
+            self.player_nation, old_controller) == "WAR")
+        # T4-2 "sign at the last" (DYNAMISM_SPEC.md §3c G5): a crown
+        # falls by treaty, never by the sword alone — the court
+        # signs with every AI court holding homeland it may not
+        # keep, gets that ground back and lives on; None = it falls
+        # as before. ONE writer: `settlement_third_party`.
+        from backend.game_logic import settlement_third_party as _refuge
+        _signed = _refuge.sign_at_the_last(self, old_controller)
+        if _signed is None:
+            self._eliminate_nation(old_controller)
+        # S14E-5: the player's own capture of a court's LAST province
+        # ends the war — said in the command window of the command
+        # that did it (the rail icon and the next morning's dispatch
+        # were all the player had). Transient (never serialized);
+        # `main.build_base_response` reads it onto the reply and
+        # clears it (Golden Rule 4). T4-2: when the court signed
+        # instead, the same window says why the war did not end.
+        if capturing_nation == self.player_nation or _player_war_ended:
+            self._elimination_receipts = list(
+                getattr(self, "_elimination_receipts", None) or []
+            ) + [elimination_receipt_line(self, old_controller)
+                 if _signed is None
+                 else _refuge.last_refuge_receipt_line(self, _signed)]
 
     def _recalculate_capture_war_scores(self, region_name: str,
                                         old_controller, capturing_nation) -> None:
@@ -6026,6 +6077,14 @@ class WorldState:
                 self, region, marshal.nation, old_controller, _liberated_to)
             self._last_occupation_capture_choice = "liberated"
             return f" {_line}"
+
+        if capture_was_signed_home(self, region, marshal.nation):
+            # T4-2 "sign at the last": the fortress was the court's LAST
+            # province and the peace signed in that hour handed it home —
+            # nothing to plunder or secure (the instant capture's sibling).
+            record_capture_signed_home(self, region_name, marshal.nation, old_controller)
+            return (f" {region_name} falls to {marshal.nation} — and goes home "
+                    f"by the peace signed in that hour.")
 
         if marshal.nation == self.player_nation:
             if is_own_soil_recapture(self, region_name, marshal.nation):
@@ -16547,6 +16606,9 @@ class WorldState:
 
         events = []
         combat_resolver = CombatResolver()
+        # T4-2 sibling sweep: (the court that lost ground, the capturer) for
+        # each province a charge took — settled after the loop (below).
+        _courts_without_ground: list = []
 
         # Process all player reckless cavalry at recklessness 4+
         # Also process AI reckless cavalry
@@ -17219,6 +17281,19 @@ class WorldState:
                             conquest_msg = (
                                 f" {_ac_line}" if _ac_liberated_to else
                                 f" {auto_charge_battle_region} captured by {marshal.nation}!")
+                            # T4-2, the sibling sweep (Rule 10): the one
+                            # conquest outside the chokepoint never asked
+                            # whether it took a court's LAST province — a
+                            # court could be left alive without ground.
+                            # Asked once the charges are done (the battle's
+                            # own bookkeeping below still reads the beaten
+                            # corps), under T4-2's seam so its control
+                            # reproduces the prior world.
+                            from backend.game_logic.settlement_third_party import (
+                                a_crown_falls_only_by_treaty as _ac_asks)
+                            if _ac_asks():
+                                _courts_without_ground.append(
+                                    (_charge_from, marshal.nation))
 
                 # ── Authority: Major victory / defeat ──
                 player_nation = self.player_nation
@@ -17557,6 +17632,12 @@ class WorldState:
                         "message": f"[Cavalry][!] {_shown_name(marshal.name)} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
                                   f"The cavalry strains at the bit but is blocked."
                     })
+
+        # T4-2 sibling sweep: a court a charge left without ground signs at
+        # the last or falls — the chokepoint's own question, asked here once
+        # the charges are done.
+        for _lost_ground, _taker in _courts_without_ground:
+            self._settle_a_court_without_ground(_lost_ground, _taker)
 
         return events
 

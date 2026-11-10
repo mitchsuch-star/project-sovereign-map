@@ -1118,7 +1118,17 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         # alone up (leash down) 13, the leash alone up (conduct down) 11 —
         # the conduct rule is the mover. The contract — the cap DELAYS,
         # it does not save — stands.
-        assert capped == 13, capped
+        # Re-measured by T4-2 (November 9, 2026; "sign at the last",
+        # SYSTEMS_REFERENCE §200; `tools/_t4_2_series_arms_final.json`):
+        # capped 12 — Bavaria signs at her last province instead of
+        # falling, France's bloc keeps its weight, and on that board a
+        # rival's VS-6 bribe takes Switzerland a turn sooner
+        # (`vassal_defection` −10 at world turn 11, where the prior board
+        # had its own rebellion at 13; `_rebellion_turn` reads the turn it
+        # stops being a VASSAL, which covers both). With the T4-2 seam
+        # held down in the child it reads 13 verbatim. The contract — the
+        # cap DELAYS, it does not save — stands.
+        assert capped == 12, capped
 
     def test_the_delay_is_where_the_series_falls_furthest(self):
         """Series index i is the reading after the i-th `end_turn`, i.e.
@@ -1303,8 +1313,22 @@ class TestWhatTheCapActuallyDoesToTheSatellite:
         #     as Switzerland rebels (`vassal_broke_free`, traced during the
         #     twelfth end_turn). `_rebellion_turn(True)` measures 13 =
         #     index + 1.
+        # T4-2, sign at the last (November 9, 2026; SYSTEMS_REFERENCE
+        # §200): the re-recorded series keeps the form. Traced through
+        # France's threat writes on the series' own loop:
+        #   - the Kingdom of Italy still falls at world turn 9 (the step
+        #     from index 7 to 8), but Bavaria LIVES and France's bloc
+        #     stands above the passive-hegemony line that turn, so the
+        #     step is 56 -> 44: -3 decay - 10 relief + 1
+        #     `hegemony_passive` — the "-12/-13 signature" at its -12
+        #     end. Named and excluded;
+        #   - the capped exit is the unique largest ORDINARY fall, -13
+        #     (39 -> 26, the step from index 10 to 11, world turn 12):
+        #     -3 decay - 10 as a rival's bribe takes Switzerland
+        #     (`vassal_defection`). `_rebellion_turn(True)` measures 12 =
+        #     index + 1.
         ELIMINATION_STEP = 7
-        assert steps[ELIMINATION_STEP] == -13, steps
+        assert steps[ELIMINATION_STEP] == -12, steps
         ordinary = [0 if i == ELIMINATION_STEP else step
                     for i, step in enumerate(steps)]
         worst = min(ordinary)

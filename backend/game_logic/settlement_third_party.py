@@ -922,6 +922,294 @@ def _ceded_regions(clauses: List[Dict]) -> List[str]:
     return [str(r) for c in clauses or [] for r in _territory_term_regions(c)]
 
 
+def _close_the_pair(world, war_id: str, pair_key: str, a: str, b: str,
+                    exit_reason: str, *, aim=None, sued=None):
+    """THE single-pair close — one body for every road that ends one pair
+    of an instance on its own account: the three pair exits
+    (`_process_exhausted_pair_exits`) and the last refuge
+    (`sign_at_the_last`, T4-2). Factored out of the exits on November 9,
+    2026 so the forced peace reuses it — never a copy. In order: the
+    held aim signed over (`aim`, the aim's own suit; else T3-5's LOCK,
+    whichever road ends the pair); the state write by a SIGNED reason
+    (SR-1a's titling pass and the Road Home corridor run at the setter);
+    the war's cleanup; the clients following their lord out on the truce
+    floor (SR-1b); the unheld homeland returned (PC15-D4 piece 3); the
+    declared articles settled (PC-R7); the punitive record of a dictated
+    cession (AI-5b(i)); the truce floor on the pair (PC15-D4 piece 1).
+    Returns (the APPLIED cession clauses, the lock or None, the unheld
+    homeland handed back)."""
+    from backend.game_logic.diplomacy import (
+        cleanup_war_end,
+        follow_the_lord,
+        set_diplomatic_state,
+    )
+    ceded: List[Dict] = []
+    lock = None
+    if aim is not None:
+        # Applied BEFORE the state write — the instance road's own order:
+        # the signed title stands, SR-1a's retention never overwrites it.
+        ceded = _cede_the_held_aim(world, war_id, aim)
+    else:
+        # T3-5 — the LOCK: whichever road ends the pair (the broken
+        # loser's suit, both courts spent), a held aim is signed over.
+        lock = _pair_lock(world, a, b, sued)
+        if lock is not None:
+            ceded = _cede_the_held_aim(world, war_id, lock)
+
+    set_diplomatic_state(world, a, b, "PEACE", exit_reason)
+    cleanup_war_end(world, pair_key, conclude_objectives=True)
+    # SR-1b: the client's war is the lord's war — a spent lord's exit
+    # takes its satellites' pairs with the same court out too, on the
+    # same truce floor (a vassal's own pair is never exited on its own
+    # account; it follows).
+    follow_the_lord(world, a, b, "PEACE", exit_reason,
+                    truce_floor=PAIR_EXIT_TRUCE_FLOOR_TURNS)
+    # PC15-D4 piece 3 — status-quo-ante-lite: each court returns the
+    # OTHER's homeland provinces it holds with no standing army (the
+    # measured Moravia shape: a 1-troop detachment, no marshal). The
+    # unreturned homeland was the landmine that GUARANTEED re-entry —
+    # Austria's P3.7 homeland defense marched straight back through
+    # the peace the same turn. Army-occupied ground stays (uti
+    # possidetis for ground actually held). Runs through the SAME
+    # applier the negotiated third-party path uses, so garrison /
+    # cache / threat / event invariants are inherited.
+    # T3-4: what this peace ceded by treaty is never handed back.
+    returned_regions = _return_unheld_homeland(world, war_id, a, b,
+                                               keep=_ceded_regions(ceded))
+    # PC-R7 (ii) part 2: the pair's declared articles settle on the held line.
+    from backend.game_logic.declared_goals import settle_at_peace
+    settle_at_peace(world, [pair_key], ceded)
+    if ceded:
+        # AI-5b(i), GR5 with the instance road and the player's table: a
+        # dictated cession leaves the durable punitive record.
+        from backend.game_logic.compensation import compensation_offsets
+        from backend.game_logic.emergent_designs import (
+            collect_cessions_from_clauses, record_punitive_cessions,
+        )
+        record_punitive_cessions(
+            world, collect_cessions_from_clauses(ceded),
+            offsets=compensation_offsets(ceded))
+    # PC15-D4 piece 1 — the truce floor (constant above).
+    world.armistice_cooldowns[pair_key] = PAIR_EXIT_TRUCE_FLOOR_TURNS
+    return ceded, lock, returned_regions
+
+
+# ── T4-2 — sign at the last (DYNAMISM_SPEC.md §3c G5, row DY-1c) ─────────
+LAST_REFUGE_EXIT = "last_refuge"    # the forced peace's reason (a SIGNED peace)
+
+
+def a_crown_falls_only_by_treaty() -> bool:
+    """T4-2 "sign at the last" (the Tier-4 gate record §3c G5, ruled
+    November 9, 2026 — "make best decision for immersion and design"): a
+    crown falls by treaty, never by the sword alone. A court whose last
+    province falls is erased only when no AI court at war with it holds
+    its homeland outside what that holder may keep
+    (`war_council.keepable_regions`); otherwise that ground goes home and
+    the court signs a pair peace with each such holder and lives on —
+    Austria at Pressburg with Vienna occupied, Prussia at Tilsit reduced
+    to the Memel. D2 is narrowed, not deleted: a court whose whole
+    homeland lies in hands that may keep it still falls (the Kingdom of
+    Italy inside Austria's Redeem Italy). Down: the pre-T4-2 rule — the
+    last province's capture erases the court."""
+    return True
+
+
+def last_refuge_holders(world, victim: str) -> Dict[str, Dict[str, List[str]]]:
+    """T4-2 — the read: `{signatory: {holder: [provinces]}}`, the homeland
+    of `victim` an AI court AT WAR with it holds OUTSIDE that holder's
+    keepable set. The signatory is the court the peace is signed with —
+    the holder itself, or its lord when the holder is a client fighting
+    its lord's war (`client_pair_is_the_lords_war`; the client follows the
+    lord out, SR-1b). Never counted: a holder of the player's house (the
+    player's holdings never move — erasing a court outright stays the
+    hegemon's prerogative, D2), a holder at peace with the victim (it
+    holds by right), and a pair with no live war instance (a rule binds
+    only where its record stands — the legacy world's wars are bare
+    states, the T3-3 lesson). Walks the victim's homeland only (Rule 8)."""
+    from backend.game_logic.settlement_helpers import (
+        _find_active_war_instance_for_pair,
+    )
+    from backend.game_logic.war_council import keepable_regions
+    player = str(getattr(world, "player_nation", "") or "")
+    player_house = str(world._top_overlord(player) or player) if player else ""
+    vassals = getattr(world, "vassals", {}) or {}
+    homes = getattr(world, "nation_starting_regions", {}) or {}
+    keep_of: Dict[str, set] = {}
+    signs_for: Dict[str, Optional[str]] = {}
+    out: Dict[str, Dict[str, List[str]]] = {}
+    for region_name in sorted(homes.get(victim) or []):
+        region = (getattr(world, "regions", {}) or {}).get(region_name)
+        holder = str(getattr(region, "controller", "") or "")
+        if not holder or holder == victim:
+            continue
+        if player_house and str(world._top_overlord(holder) or holder) == player_house:
+            continue
+        if holder not in signs_for:
+            signatory = holder
+            if holder in vassals and client_pair_is_the_lords_war(world, holder, victim):
+                signatory = str((vassals.get(holder) or {}).get("lord") or holder)
+            pair_key = world._make_diplo_key(signatory, victim)
+            live = (world.get_diplomatic_state(signatory, victim) == "WAR"
+                    and _find_active_war_instance_for_pair(world, pair_key) is not None)
+            signs_for[holder] = signatory if live else None
+        signatory = signs_for[holder]
+        if signatory is None:
+            continue
+        if holder not in keep_of:
+            keep_of[holder] = set(keepable_regions(world, holder, victim))
+        if region_name in keep_of[holder]:
+            continue
+        out.setdefault(signatory, {}).setdefault(holder, []).append(str(region_name))
+    return out
+
+
+def _last_refuge_words(world, victim: str, kept: Dict[str, List[str]],
+                       evacuated: Dict[str, List[str]]) -> str:
+    """"Bavaria signs at the last — Austria keeps Munich and Swabia by
+    treaty; Austria evacuates Franconia." One sentence, each court's
+    clauses in order; "her other wars go on" when any still stands."""
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.war_council import held_aim_clause
+    clauses: List[str] = []
+    for court in sorted(set(kept) | set(evacuated)):
+        if kept.get(court):
+            clauses.append(f"{humanize_entity_name(court)} keeps "
+                           f"{held_aim_clause(sorted(kept[court]))} by treaty")
+        if evacuated.get(court):
+            clauses.append(f"{humanize_entity_name(court)} evacuates "
+                           f"{held_aim_clause(sorted(evacuated[court]))}")
+    words = f"{humanize_entity_name(victim)} signs at the last — " + "; ".join(clauses) + "."
+    if world.get_nations_at_war_with(victim):
+        words += " Her other wars go on."
+    return words
+
+
+def sign_at_the_last(world, victim: str) -> Optional[Dict]:
+    """T4-2 — THE ACT, called from the one military erasure point
+    (`WorldState.capture_region`'s elimination check) when `victim` has
+    just lost its last province. Returns the peace's event, or None — the
+    caller erases the court as before: the seam down, a client victim
+    (its war is its lord's), a court of the player's house, or nobody at
+    war with it holding homeland it may not keep (`last_refuge_holders`).
+
+    Otherwise, in this order: (1) that homeland goes home FIRST
+    (`game_end._return_home` — the court holds ground again before
+    anything reads `get_active_nations`), the touched pairs' war scores
+    re-stamped; (2) one pair peace per signatory through the exits' own
+    close (`_close_the_pair`, reason `last_refuge` — a SIGNED peace: the
+    titling pass, T3-5's lock, the declared articles, the truce floor,
+    the Road Home corridor, `follow_the_lord`); (3) one event with the
+    words. Its other wars go on, any with the player among them."""
+    if not a_crown_falls_only_by_treaty():
+        return None
+    player = str(getattr(world, "player_nation", "") or "")
+    if not victim or victim == player or victim in (getattr(world, "vassals", {}) or {}):
+        return None
+    holders = last_refuge_holders(world, victim)
+    if not holders:
+        return None
+    from backend.game_logic.diplomacy import get_war_score_for
+    from backend.game_logic.game_end import _return_home
+    from backend.game_logic.settlement_helpers import (
+        _find_active_war_instance_for_pair,
+    )
+
+    evacuated: Dict[str, List[str]] = {}
+    for signatory in sorted(holders):
+        for holder, regions in sorted(holders[signatory].items()):
+            for region_name in sorted(regions):
+                _return_home(world, region_name, victim, holder)
+                world._recalculate_capture_war_scores(region_name, holder, victim)
+                evacuated.setdefault(holder, []).append(region_name)
+
+    homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(victim) or [])
+    kept: Dict[str, List[str]] = {}
+    war_ids: List[str] = []
+    for signatory in sorted(holders):
+        pair_key = world._make_diplo_key(signatory, victim)
+        war_id = _find_active_war_instance_for_pair(world, pair_key)
+        if war_id is None:
+            continue
+        war_ids.append(str(war_id))
+        a, b = str(pair_key).split("|")
+        score = int(get_war_score_for(world, victim, signatory))
+        _ceded, _lock, returned = _close_the_pair(
+            world, str(war_id), pair_key, a, b, LAST_REFUGE_EXIT,
+            sued=(victim, signatory, score))
+        # What the close itself handed back (the titling pass's own
+        # evacuation, the unheld homeland) is said with the rest.
+        for holder, regions in _evacuations_for(world, [pair_key]).items():
+            evacuated.setdefault(holder, [])
+            evacuated[holder] = sorted(set(evacuated[holder]) | set(regions))
+        handed = {str(r) for r in returned or [] if str(r) in homeland}
+        if handed:
+            evacuated.setdefault(signatory, [])
+            evacuated[signatory] = sorted(set(evacuated[signatory]) | handed)
+        # What the signatory's HOUSE (itself and its clients — never its
+        # allies, whose wars go on) still holds of the homeland is its by
+        # this treaty (the lock's cession or SR-1a's retention).
+        from backend.game_logic.war_council import _house_of
+        house = _house_of(world, signatory)
+        for region_name in sorted(homeland):
+            region = (getattr(world, "regions", {}) or {}).get(region_name)
+            holder = str(getattr(region, "controller", "") or "")
+            if holder in house:
+                kept.setdefault(holder, []).append(region_name)
+
+    from backend.display_names import humanize_entity_name
+    consequence = _last_refuge_words(world, victim, kept, evacuated)
+    signatories = sorted(holders)
+    named = _join_courts([humanize_entity_name(s) for s in signatories])
+    event = {
+        "type": "third_party_peace",
+        "war_id": war_ids[0] if war_ids else "",
+        "proposer": victim,
+        "accepter": signatories[0],
+        "signatories": list(signatories),
+        "broker": None,
+        "exit": LAST_REFUGE_EXIT,
+        "kept": {court: list(regions) for court, regions in sorted(kept.items())},
+        "evacuated": {court: list(regions) for court, regions in sorted(evacuated.items())},
+        "consequence": consequence,
+        "message": (f"Peace concluded between {humanize_entity_name(victim)} "
+                    f"and {named} without France. {consequence}"),
+    }
+    world.log_event(dict(event))
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "third_party_peace", {
+        "proposer": humanize_entity_name(victim),
+        "accepter": named,
+        "consequence": consequence,
+    }, "always")
+    return event
+
+
+def _join_courts(names: List[str]) -> str:
+    names = [str(n) for n in names if n]
+    if len(names) <= 1:
+        return "".join(names)
+    return ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def last_refuge_receipt_line(world, event: Dict) -> str:
+    """T4-2 — the command-window line when the player's own capture (or his
+    war) brought a court to its last province and it signed with others
+    instead of falling: "Bavaria signs at the last with Austria and lives
+    on in Franconia — your war with her goes on, Sire." (S14E-5's sibling:
+    the capture that would have ended the war says why it did not.)"""
+    from backend.display_names import humanize_entity_name
+    from backend.game_logic.war_council import held_aim_clause
+    victim = str(event.get("proposer") or "")
+    named = _join_courts([humanize_entity_name(s)
+                          for s in (event.get("signatories") or [])])
+    lives_on = sorted(world.get_nation_regions(victim) or [])
+    where = f" and lives on in {held_aim_clause(lives_on)}" if lives_on else ""
+    player = str(getattr(world, "player_nation", "") or "")
+    tail = (" — your war with her goes on, Sire."
+            if player and world.get_diplomatic_state(player, victim) == "WAR" else ".")
+    return f"{humanize_entity_name(victim)} signs at the last with {named}{where}{tail}"
+
+
 def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
                                   events: List[Dict]) -> None:
     """The mutual-exhaustion white peace for a non-player sub-pair inside
@@ -931,10 +1219,6 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
     war` — it follows the lord out, SR-1b). PC-F29: the weariness of a
     client fighting its lord's war is NOT read by the lord's scorer (Part V
     §43 found the claim unbacked); its war ends with the lord's."""
-    from backend.game_logic.diplomacy import (
-        cleanup_war_end,
-        set_diplomatic_state,
-    )
     if getattr(world, "_pair_exit_this_turn", -1) == int(world.current_turn):
         return
     player = getattr(world, "player_nation", "France")
@@ -973,57 +1257,15 @@ def _process_exhausted_pair_exits(world, war_id: str, war: Dict,
             if sued is None:
                 continue
         exit_reason = "sub_pair_loser_sues" if sued else "mutual_exhaustion"
-        ceded: List[Dict] = []
-        lock = None
         if aim is not None:
             exit_reason = AIM_HELD_EXIT
-            # Applied BEFORE the state write — the instance road's own order:
-            # the signed title stands, SR-1a's retention never overwrites it.
-            ceded = _cede_the_held_aim(world, war_id, aim)
-        else:
-            # T3-5 — the LOCK: whichever road ends the pair (the broken
-            # loser's suit, both courts spent), a held aim is signed over.
-            lock = _pair_lock(world, a, b, sued)
-            if lock is not None:
-                ceded = _cede_the_held_aim(world, war_id, lock)
-
-        set_diplomatic_state(world, a, b, "PEACE", exit_reason)
-        cleanup_war_end(world, pair_key, conclude_objectives=True)
-        # SR-1b: the client's war is the lord's war — a spent lord's exit
-        # takes its satellites' pairs with the same court out too, on the
-        # same truce floor (a vassal's own pair is never exited on its own
-        # account; it follows).
-        from backend.game_logic.diplomacy import follow_the_lord
-        follow_the_lord(world, a, b, "PEACE", exit_reason,
-                        truce_floor=PAIR_EXIT_TRUCE_FLOOR_TURNS)
-        # PC15-D4 piece 3 — status-quo-ante-lite: each court returns the
-        # OTHER's homeland provinces it holds with no standing army (the
-        # measured Moravia shape: a 1-troop detachment, no marshal). The
-        # unreturned homeland was the landmine that GUARANTEED re-entry —
-        # Austria's P3.7 homeland defense marched straight back through
-        # the peace the same turn. Army-occupied ground stays (uti
-        # possidetis for ground actually held). Runs through the SAME
-        # applier the negotiated third-party path uses, so garrison /
-        # cache / threat / event invariants are inherited.
-        # T3-4: what this peace ceded by treaty is never handed back.
+        # T4-2: the close itself is ONE body (`_close_the_pair`) — the pair
+        # exits and the last refuge sign by the same road.
+        ceded, lock, returned_regions = _close_the_pair(
+            world, war_id, pair_key, a, b, exit_reason, aim=aim, sued=sued)
         ceded_names = _ceded_regions(ceded)
-        returned_regions = _return_unheld_homeland(world, war_id, a, b,
-                                                   keep=ceded_names)
-        # PC-R7 (ii) part 2: the pair's declared articles settle on the held line.
-        from backend.game_logic.declared_goals import settle_at_peace
-        settle_at_peace(world, [pair_key], ceded)
-        if ceded:
-            # AI-5b(i), GR5 with the instance road and the player's table: a
-            # dictated cession leaves the durable punitive record.
-            from backend.game_logic.compensation import compensation_offsets
-            from backend.game_logic.emergent_designs import (
-                collect_cessions_from_clauses, record_punitive_cessions,
-            )
-            record_punitive_cessions(
-                world, collect_cessions_from_clauses(ceded),
-                offsets=compensation_offsets(ceded))
-        # PC15-D4 piece 1 — the truce floor (constant above).
-        world.armistice_cooldowns[pair_key] = PAIR_EXIT_TRUCE_FLOOR_TURNS
+        # The tempo stamp is the EXITS' own (one a turn world-wide); a peace
+        # forced at the last province neither spends it nor waits for it.
         world._pair_exit_this_turn = int(world.current_turn)
 
         from backend.display_names import humanize_entity_name

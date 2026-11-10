@@ -688,10 +688,28 @@ class TestTheMeasuredArms:
         t41 = json.loads((ROOT / "tools" / "_t4_1_series_arms_final.json").read_text(encoding="utf-8"))
         assert t41["prior"] == SERIES_BEFORE_T4_1
         assert t41["arms"]["0"]["series"] == t41["arms"]["WRITE"]["series"] == SERIES_BEFORE_T4_1
-        assert t41["arms"]["RUNG"]["series"] == t41["arms"]["ALL"]["series"] == BASELINE_SERIES
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_T4_2
+        assert t41["arms"]["RUNG"]["series"] == t41["arms"]["ALL"]["series"] == SERIES_BEFORE_T4_2
         assert t41["arms"]["ALL"]["first_divergence_vs_prior"] == 26
         _t41 = t41["arms"]["ALL"]["reach"]["counts"]
         assert _t41["alarms_written"] > 0 and _t41["rung_reads"] > 0
         assert _t41["guarantees_pledged"] == 0, "the rung pledges nothing on this loop"
         assert t41["arms"]["0"]["reach"]["counts"]["alarms_written"] == 0
         assert t41["arms"]["WRITE"]["reach"]["counts"]["alarms_written"] == 0
+        # T4-2 (November 9, 2026 — "sign at the last"; DYNAMISM_SPEC.md §3c
+        # G5; `SYSTEMS_REFERENCE.md` §200): the rig
+        # `tools/_t4_2_series_arms.py` holds the one seam down on arm 0,
+        # which reproduces the prior byte for byte; the seam up IS the
+        # shipped series. The reach proves the question was asked on both
+        # arms (two last provinces fall on this loop) and answered ONCE:
+        # Bavaria signs, the Kingdom of Italy still falls.
+        t42 = json.loads((ROOT / "tools" / "_t4_2_series_arms_final.json").read_text(encoding="utf-8"))
+        assert t42["prior"] == SERIES_BEFORE_T4_2
+        assert t42["arms"]["0"]["series"] == SERIES_BEFORE_T4_2
+        assert t42["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert t42["arms"]["ALL"]["first_divergence_vs_prior"] == 8
+        for _arm in ("0", "ALL"):
+            assert t42["arms"][_arm]["reach"]["counts"]["last_provinces"] == 2
+        assert t42["arms"]["0"]["reach"]["counts"]["signed"] == 0
+        assert t42["arms"]["ALL"]["reach"]["counts"]["signed"] == 1
+        assert t42["arms"]["ALL"]["reach"]["signed"][0][:2] == [5, "Bavaria"]

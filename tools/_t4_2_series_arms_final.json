@@ -1,0 +1,171 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  43,
+  40,
+  37,
+  34,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  2,
+  0,
+  0,
+  2,
+  0,
+  0,
+  2,
+  0,
+  0,
+  2,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "REFUGE"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "REFUGE"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    43,
+    40,
+    37,
+    34,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "seam_reads": 2,
+     "last_provinces": 2,
+     "signed": 0
+    },
+    "signed": []
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": 8,
+   "reach": {
+    "counts": {
+     "seam_reads": 2,
+     "last_provinces": 2,
+     "signed": 1
+    },
+    "signed": [
+     [
+      5,
+      "Bavaria",
+      "Bavaria signs at the last \ufffd Austria keeps Munich and Swabia by treaty; Austria evacuates Franconia."
+     ]
+    ]
+   }
+  }
+ }
+}

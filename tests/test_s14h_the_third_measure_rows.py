@@ -376,11 +376,19 @@ class TestS14GD1:
         assert ws.liberates_ally_ground(world, "", "France") == ""
         assert ws.liberates_ally_ground(world, "Munich", "") == ""
 
-    def test_a_gone_home_court_stays_a_conquest_and_says_so(self, _r1_boot):
+    def test_a_gone_home_court_stays_a_conquest_and_says_so(self, _r1_boot, monkeypatch):
         """Austria takes ALL of Bavaria (the court is eliminated, its ties go
         with it): nobody is left to hand Munich to. The capture is today's
         conquest - France holds it, the question is asked, the +2 and the +15
-        stand - and the reply says why in one clause."""
+        stand - and the reply says why in one clause.
+
+        T4-2 (November 9, 2026), a conscious re-seat: the subject is a court
+        that is truly GONE. Since "sign at the last" Bavaria signs at her
+        last province and lives on in Franconia (Austria may not keep it), so
+        the staging holds that seam down - the gone-court clause itself is
+        untouched and still reached wherever a court does fall."""
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+        hold_down(monkeypatch, T3_SEAMS_BY_ROW["T4-2"])
         world = _r1_copy(_r1_boot)
         for region in ("Franconia", "Swabia", "Munich"):
             _r1_take(world, region)
@@ -508,10 +516,16 @@ class TestS14GX1:
                 if e.get("type") == "region_captured" and e.get("region") == "Swabia"
                 and e.get("captured_by") == "France"] == ["Bavaria"]
 
-    def test_a_gone_court_says_so_at_the_siege_and_at_the_completion(self, _r1_boot):
+    def test_a_gone_court_says_so_at_the_siege_and_at_the_completion(self, _r1_boot, monkeypatch):
         """The occupation road carries the D1 clause too: a fortress of a
         vanished court is a conquest as today, and both the siege's opening
-        and the completing tick say why the province is held, not handed."""
+        and the completing tick say why the province is held, not handed.
+
+        T4-2 (November 9, 2026): the staging holds "sign at the last" down
+        so Bavaria truly falls (the re-seat's cause is on the sibling test
+        above)."""
+        from tests._t3_seams import T3_SEAMS_BY_ROW, hold_down
+        hold_down(monkeypatch, T3_SEAMS_BY_ROW["T4-2"])
         world = _r1_copy(_r1_boot)
         for region in ("Franconia", "Swabia", "Munich"):
             _r1_take(world, region)

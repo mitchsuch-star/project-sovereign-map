@@ -266,8 +266,14 @@ class TestTheOtherRoads:
         # PC-F28 (S13e part 4): the exit's reason is the mutual-exhaustion
         # white peace or the beaten loser's suit — both follow the lord
         assert 'exit_reason = "sub_pair_loser_sues" if sued else "mutual_exhaustion"' in body
-        assert 'set_diplomatic_state(world, a, b, "PEACE", exit_reason)' in body
-        assert "follow_the_lord(world, a, b, \"PEACE\", exit_reason" in body
+        # T4-2 (November 9, 2026), a conscious re-seat: the single-pair close
+        # was factored out of the exits into `_close_the_pair` so the last
+        # refuge signs by the SAME road — the two pinned lines moved with it
+        # to their one home, and the exit must call it (never a copy).
+        assert "_close_the_pair(" in body
+        close = src.split("def _close_the_pair(", 1)[1].split("\ndef ", 1)[0]
+        assert 'set_diplomatic_state(world, a, b, "PEACE", exit_reason)' in close
+        assert "follow_the_lord(world, a, b, \"PEACE\", exit_reason" in close
 
 
 class TestGR5:

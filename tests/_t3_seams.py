@@ -60,6 +60,14 @@ prior tree's reading byte for byte.
           rotation guard's own "alternates rather than repeats"); down: the
           lone filler leads a fifth time in ten.
 
+    T4-2  `settlement_third_party.a_crown_falls_only_by_treaty` — sign at
+          the last (§3c G5, row DY-1c): a court whose last province falls
+          signs a pair peace with every AI court holding homeland it may not
+          keep, gets that ground back and lives on; the reckless auto-charge
+          asks the same question (the sibling sweep); down: the last
+          province's capture erases the court, and the auto-charge asks
+          nothing (the pre-T4-2 world).
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -88,6 +96,9 @@ T3_SEAMS_BY_ROW = {
         "backend.game_logic.alarm:the_alarm_sounds=False",
         "backend.game_logic.alarm:an_alarmed_court_guarantees=False",
         "backend.game_logic.dispatch:a_lone_filler_yields_to_the_quiet_floor=False",
+    ],
+    "T4-2": [
+        "backend.game_logic.settlement_third_party:a_crown_falls_only_by_treaty=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

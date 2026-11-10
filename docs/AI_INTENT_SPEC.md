@@ -1691,6 +1691,8 @@ answer, not merely the playable one: Venice, Genoa and the HRE were extinguished
 while Prussia and Austria survived catastrophic defeat *because the hegemon chose to keep them*.
 Annihilating a great power is a hegemon's prerogative, and in this game the hegemon is the player.
 
+*(Narrowed, not deleted — T4-2 "sign at the last", November 9, 2026; `DYNAMISM_SPEC.md` §3c G5, `SYSTEMS_REFERENCE.md` §200: a court whose last province falls is erased only when no AI court at war with it holds its homeland outside what that holder may keep (`war_council.keepable_regions`); otherwise that ground goes home, the court signs with each such holder and lives on. An AI war may still eliminate a minor whose whole homeland lies in hands that may keep it (the Kingdom of Italy inside Austria's Redeem Italy), and erasing a court outright stays the hegemon's prerogative: a holder of the player's house is never counted, and the player's holdings never move.)*
+
 ### D3 — France stays the gravitational centre — **and that is a design choice, not an omission.**
 
 Generalise the *machinery* (threat is per-target, coalitions take a target, settlements are

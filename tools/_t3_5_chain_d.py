@@ -78,6 +78,13 @@ def summarize(digest: dict) -> dict:
              str(e.get("ward") or ""), str(e.get("aggressor") or "")]
             for row in digest.get("turns") or [] for e in row.get("events") or []
             if e.get("type") == "guarantee_honored"],
+        # T4-2 (DYNAMISM_SPEC.md §3c G5): a court that signed at its last
+        # province instead of falling, with the words.
+        "last_refuges": [
+            [int(row.get("turn", 0)), str(e.get("proposer") or ""),
+             str(e.get("accepter") or ""), str(e.get("consequence") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "third_party_peace" and e.get("exit") == "last_refuge"],
     }
 
 
@@ -134,7 +141,9 @@ def main() -> None:
                          "annexations_outside_aim": sum(s["annexations_outside_aim"]
                                                         for s in seeds.values()),
                          "alarm_guarantees": sum(len(s["alarm_guarantees"])
-                                                 for s in seeds.values())}
+                                                 for s in seeds.values()),
+                         "last_refuges": sum(len(s["last_refuges"])
+                                             for s in seeds.values())}
                    for arm, seeds in arms.items()},
         "nov6_france_captures": nov6(),
     }
