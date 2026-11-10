@@ -449,6 +449,9 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # NOW authors the recurring deck gains it, every streak at 0, its first
     # letter no sooner than the save turn + 3 — nothing retroactive.
     _backfill_affairs(world)
+    # DY-2 (docs/DYNAMISM_SPEC.md §4): a pre-Tier-5 save whose scenario NOW
+    # authors the Questions of Europe gains the block, its latch empty.
+    _backfill_questions(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -776,7 +779,10 @@ def _backfill_moments(world: WorldState) -> None:
     overwritten. The block's windows resolve with the save's own
     `campaign_seed` (`moments.backfill_store`), so a saved campaign reads the
     turns its boot would have."""
-    if getattr(world, "moments", None):
+    # DY-2 (Tier 5): the Questions ride the same store under their own key
+    # — a save armed with Questions alone is still a pre-S14c save here.
+    existing = getattr(world, "moments", None)
+    if isinstance(existing, dict) and existing.get("block"):
         return
     parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
     if not parts:
@@ -786,6 +792,7 @@ def _backfill_moments(world: WorldState) -> None:
     if base:
         candidates.append(Path(base).joinpath(*parts))
     from backend.game_logic.moments import backfill_store
+    from backend.game_logic.questions import STORE_KEY as _QUESTIONS
     for path in candidates:
         try:
             with open(path, encoding="utf-8") as fh:
@@ -794,7 +801,35 @@ def _backfill_moments(world: WorldState) -> None:
             continue
         store = backfill_store(world, data, str(getattr(world, "campaign_seed", "") or "historical"))
         if store:
+            carried = (existing or {}).get(_QUESTIONS) if isinstance(existing, dict) else None
+            if isinstance(carried, dict) and carried:
+                store[_QUESTIONS] = carried
             world.moments = store
+        return
+
+
+def _backfill_questions(world: WorldState) -> None:
+    """DY-2 (DYNAMISM_SPEC.md §4, Tier 5): a pre-Tier-5 save of a scenario
+    that NOW authors the Questions of Europe gains the block on load (the
+    `_backfill_moments` idiom), its latch empty — nothing retroactive; a
+    save carrying the store is never overwritten."""
+    from backend.game_logic import questions as _questions
+    if _questions.armed(world):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        _questions.backfill(world, data)
         return
 
 

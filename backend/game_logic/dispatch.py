@@ -1933,6 +1933,8 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "province_returned": ("courts_treaties", 77),
     "rank_promoted": ("courts_treaties", 88),        # T4-3: a crown is news
     "rank_lost": ("courts_treaties", 87),            # T4-3
+    "question_turns": ("courts_treaties", 89),       # DY-2: a Question of Europe turns
+    "question_ruled": ("courts_treaties", 86),       # DY-3: the Congress rules it
     "court_removes": ("courts_treaties", 79),        # T4-2b
     "court_returns": ("courts_treaties", 79),        # T4-2b
     "diplomatic_relation_shift": ("courts_treaties", 76),
@@ -8443,6 +8445,10 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
         "A CROWN: {nation_display} no longer holds {grounds} — {law} lapses, "
         "and her rank among the powers with it."
     ),
+    # DY-2 / DY-3 (DYNAMISM_SPEC.md §4): the Questions of Europe — the line
+    # is composed by `questions` (R7 names, the Question's own voice).
+    "question_turns": "{line}",
+    "question_ruled": "{line}",
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -8697,6 +8703,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "court_returns": "HIGH",             # T4-2b
     "rank_promoted": "HIGH",             # T4-3 — a beat, never a routine line
     "rank_lost": "HIGH",                 # T4-3
+    "question_turns": "HIGH",            # DY-2 — a beat, never a routine line
+    "question_ruled": "HIGH",            # DY-3
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",

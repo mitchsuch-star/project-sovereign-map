@@ -86,6 +86,9 @@ _COURT_TYPES = {
     # T4-3 (DYNAMISM_SPEC.md §3c G6): a crown taken is the courts' news
     # (`reforms.announce_promotion` writes it with a literal `log_event`).
     "rank_promotion",
+    # DY-2 (DYNAMISM_SPEC.md §4): a Question of Europe turning is the
+    # courts' news (`questions._the_question_turns`, a literal `log_event`).
+    "question_turns",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no

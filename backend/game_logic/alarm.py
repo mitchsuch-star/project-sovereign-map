@@ -242,6 +242,7 @@ def alarmed_guarantor(world, conqueror: str, victim: str) -> Optional[str]:
         guarantee_join_refusal,
         guarantors_of,
     )
+    from backend.game_logic import questions as _questions
     from backend.game_logic.war_council import _standing_strength
     from backend.nation_config import _POWER_TIER_DEFAULT
     player = _player(world)
@@ -253,7 +254,12 @@ def alarmed_guarantor(world, conqueror: str, victim: str) -> Optional[str]:
     for court in world.get_active_nations():
         if court in (conqueror, victim, player) or court in vassals:
             continue
-        if _in_player_house(world, court) or court not in neighbours:
+        if _in_player_house(world, court):
+            continue
+        # DY-2 (§3c G2's Question arm): a court seated at a Question of
+        # Europe with the victim may give its word, not only a neighbour.
+        if (court not in neighbours
+                and not _questions.share_a_table(world, court, victim)):
             continue
         tier = world.get_power_tier(court) or _POWER_TIER_DEFAULT
         if tier not in ALARM_GUARANTOR_TIERS:

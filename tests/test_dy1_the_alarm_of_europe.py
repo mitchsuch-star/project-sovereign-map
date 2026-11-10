@@ -1097,22 +1097,29 @@ class TestTheCourtRemoves:
         assert world.get_nation_capital("France") == "Paris" == world.player_capital
         assert _seat_rows(world) == []
 
-    def test_a_capital_in_the_emperors_hands_moves_no_seat(self, world):
-        """T4-2's exemption, the player's house on either side: the
-        Congress's hold on a beaten court (RS-D1) reads its capital in the
-        Emperor's bloc — the court stays under the knife."""
-        from backend.ai.enemy_ai import EnemyAI
+    def test_a_capital_in_the_emperors_hands_moves_the_seat_too(self, world, monkeypatch):
+        """Session A's boundary (2) — a capital the player's house holds by
+        treaty moved no seat, because the Congress's hold on a beaten court
+        (RS-D1) read its capital in the Emperor's bloc. REVERSED by T5-SEAT
+        (session B, the user's "reason best solution for gameplay"): the
+        Congress reads the HISTORIC capital now, so the court removes like
+        any other. The old boundary stands behind the seam
+        (`tests/test_dy2_the_questions_of_europe.py` pins the Congress's
+        reads)."""
+        from backend.game_logic import congress as CG
         _signs_away(world, "Vienna", "Austria", "France")
-        assert world.get_nation_capital("Austria") == "Vienna"
-        assert EnemyAI._is_capital_lost(None, "Austria", world) is True
+        assert world.get_nation_capital("Austria") == "Bohemia"
+        assert CG._historic(world, "Austria") == "Vienna" and CG._capital_taken(world, "Austria")
         _signs_away(world, "Munich", "Bavaria", "Holland")       # the Emperor's client
-        assert world.get_nation_capital("Bavaria") == "Munich"
-        assert _seat_rows(world) == []
-        # ...and no later return of ground seats the court either
-        world.regions["Bohemia"].controller = "France"
-        with _quiet():
-            GE._return_home(world, "Bohemia", "Austria", "France")
-        assert world.get_nation_capital("Austria") == "Vienna"
+        assert world.get_nation_capital("Bavaria") == "Franconia"
+        assert [r["nation"] for r in _seat_rows(world)] == ["Austria", "Bavaria"]
+        # the seam down: session A's boundary, byte for byte
+        from tests._t3_seams import T3_SEAMS_BY_ROW as ROWS
+        hold_down(monkeypatch, ROWS["T5-SEAT"])
+        again = type(world).from_scenario(str(SCENARIO), seed="historical")
+        _signs_away(again, "Vienna", "Austria", "France")
+        assert again.get_nation_capital("Austria") == "Vienna"
+        assert _seat_rows(again) == []
 
     def test_a_fallen_court_leaves_no_seat_behind(self, world, monkeypatch):
         _takes(world, "Austria", *BAVARIA)

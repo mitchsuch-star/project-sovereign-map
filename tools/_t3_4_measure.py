@@ -91,8 +91,37 @@ def census_of(digest: dict) -> dict:
     # that names the conqueror it answers (`against`) — and every honour.
     alarm_guarantees, honoured = [], []
     seats, promotions, demotions = [], [], []
+    # Tier 5 (session B, DYNAMISM_SPEC.md §4): the Questions turned, the
+    # Congress's rulings, a lord signing for its client at the last, and
+    # the aim peaces that signed for an ally (a second "takes" receiver).
+    questions_turned, rulings, lord_refuges, ally_cessions = [], [], [], []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if event.get("type") == "question_turns":
+                questions_turned.append({"turn": int(row.get("turn", 0)),
+                                         "question": str(event.get("question") or ""),
+                                         "court": str(event.get("nation") or ""),
+                                         "holds": list(event.get("holds") or [])})
+            if event.get("type") == "congress" and event.get("phase") == "ruling":
+                rulings.append({"turn": int(row.get("turn", 0)),
+                                "question": str(event.get("question") or ""),
+                                "court": str(event.get("court") or ""),
+                                "aggrieved": list(event.get("aggrieved") or [])})
+            if (event.get("type") == "third_party_peace"
+                    and event.get("exit") == LAST_REFUGE_EXIT
+                    and any(s != event.get("proposer")
+                            for s in (event.get("signed_by") or {}).values())):
+                lord_refuges.append({"turn": int(row.get("turn", 0)),
+                                     "client": str(event.get("proposer") or ""),
+                                     "signed_by": dict(event.get("signed_by") or {}),
+                                     "consequence": str(event.get("consequence") or "")})
+            if (event.get("type") == "third_party_peace"
+                    and event.get("exit") == AIM_EXIT
+                    and str(event.get("consequence") or "").count(" takes ") >= 2):
+                ally_cessions.append({"turn": int(row.get("turn", 0)),
+                                      "proposer": str(event.get("proposer") or ""),
+                                      "accepter": str(event.get("accepter") or ""),
+                                      "consequence": str(event.get("consequence") or "")})
             if event.get("type") == "guarantee_pledged" and event.get("against"):
                 alarm_guarantees.append({"turn": int(row.get("turn", 0)),
                                          "guarantor": str(event.get("guarantor") or ""),
@@ -171,6 +200,10 @@ def census_of(digest: dict) -> dict:
             "crown_grounds": grounds,
             "alarm_guarantees": alarm_guarantees,
             "guarantees_honoured": honoured,
+            "questions_turned": questions_turned,
+            "question_rulings": rulings,
+            "lord_refuges": lord_refuges,
+            "ally_cessions": ally_cessions,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
             "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
             "annexations_outside_aim_by_court": dict(
@@ -243,6 +276,12 @@ def main() -> None:
                                            for c in census.values()),
             "captures_outside_aim": sum(c["captures_outside_aim"]
                                         for c in census.values()),
+            # Tier 5 (session B): summed from the next run on — the session's
+            # own records predate these totals (their pins sum per seed).
+            "questions_turned": sum(len(c["questions_turned"]) for c in census.values()),
+            "question_rulings": sum(len(c["question_rulings"]) for c in census.values()),
+            "lord_refuges": sum(len(c["lord_refuges"]) for c in census.values()),
+            "ally_cessions": sum(len(c["ally_cessions"]) for c in census.values()),
         },
     }
     pathlib.Path(args.census).write_text(

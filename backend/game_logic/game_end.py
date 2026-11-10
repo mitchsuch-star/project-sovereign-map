@@ -1109,13 +1109,30 @@ def _seat_signed_away(world, court: str, seat: str) -> str:
     return holder
 
 
+def the_emperors_treaty_moves_a_seat() -> bool:
+    """T5-SEAT seam (DY-1g, session B, November 10, 2026 — the user's
+    "reason best solution for gameplay" on the seat's boundaries): a court
+    whose capital the PLAYER's house takes by treaty removes its seat like
+    any other (his Pressburg is the most-played road, and every read that
+    follows the seat — the guard, the AI's object, the war score, the
+    homing — read a province the court did not hold); the Congress's
+    recognition by defeat reads the HISTORIC capital (`historic_capital`),
+    so its hold is unchanged. The player's OWN court never removes
+    (boundary 1 kept: Paris signed away is the Fall's story). Down: session
+    A's boundary (2) — a capital in the Emperor's hands by treaty moves no
+    seat."""
+    return True
+
+
 def _in_the_emperors_hands(world, holder: str) -> bool:
-    """A capital the PLAYER's house holds by treaty moves no seat: the
-    Emperor's table is its own (T4-2's exemption, the player's house on
-    either side). A court whose capital sits in his hands by a signed peace
-    stays under the knife — which is the Congress's whole hold on it
-    (RS-D1's recognition by defeat reads that capital in his bloc), and the
-    read his designs and his tables were built on."""
+    """A capital the PLAYER's house holds by treaty moved no seat at session
+    A: the Emperor's table is its own (T4-2's exemption, the player's house
+    on either side), and the Congress's whole hold on such a court (RS-D1's
+    recognition by defeat) read that capital in his bloc. T5-SEAT: the
+    Congress reads the historic capital now, so with the seam up this stops
+    nothing and the court removes."""
+    if the_emperors_treaty_moves_a_seat():
+        return False
     player = str(getattr(world, "player_nation", "") or "")
     return bool(player) and _same_house(world, holder, player)
 
@@ -2501,7 +2518,10 @@ def note_ratification(world, *, signed_terms: Iterable[Dict[str, Any]],
     for court in set(parties):
         if court not in set(_congress.great_powers(world)):
             continue
-        capital = str(world.get_nation_capital(court) or "")
+        # T5-SEAT: the capital whose LOSS is the court's grievance — the
+        # authored one; the seat may already have removed under this very
+        # treaty's cession.
+        capital = str(historic_capital(world, court) or "")
         region = regions.get(capital) if capital else None
         holder = getattr(region, "controller", None) if region is not None else None
         if holder and world._top_overlord(holder) == player:

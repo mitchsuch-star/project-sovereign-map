@@ -1,0 +1,887 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  44,
+  42,
+  39,
+  26,
+  28,
+  25,
+  22,
+  27,
+  24,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "BERN",
+   "C",
+   "GIFT",
+   "Q",
+   "SEAT"
+  ],
+  "Q": [
+   "BERN",
+   "C",
+   "GIFT",
+   "SEAT"
+  ],
+  "QC": [
+   "BERN",
+   "GIFT",
+   "SEAT"
+  ],
+  "BERN": [
+   "GIFT",
+   "SEAT"
+  ],
+  "GIFT": [
+   "SEAT"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "BERN",
+    "C",
+    "GIFT",
+    "Q",
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 0,
+     "turns": 0,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ]
+    ]
+   }
+  },
+  "Q": {
+   "down": [
+    "BERN",
+    "C",
+    "GIFT",
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 8,
+     "turns": 2,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      1,
+      "latch",
+      "Swabia",
+      "Austria"
+     ],
+     [
+      1,
+      "turns",
+      "german_question",
+      "Austria"
+     ],
+     [
+      5,
+      "latch",
+      "Munich",
+      "Austria"
+     ],
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      6,
+      "latch",
+      "Milan",
+      "Austria"
+     ],
+     [
+      8,
+      "latch",
+      "Piedmont",
+      "Austria"
+     ],
+     [
+      8,
+      "turns",
+      "italian_question",
+      "Austria"
+     ],
+     [
+      15,
+      "latch",
+      "Hanover",
+      "Prussia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ],
+     [
+      29,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ],
+     [
+      30,
+      "latch",
+      "Dresden",
+      "Austria"
+     ],
+     [
+      38,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ]
+    ]
+   }
+  },
+  "QC": {
+   "down": [
+    "BERN",
+    "GIFT",
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 8,
+     "turns": 2,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      1,
+      "latch",
+      "Swabia",
+      "Austria"
+     ],
+     [
+      1,
+      "turns",
+      "german_question",
+      "Austria"
+     ],
+     [
+      5,
+      "latch",
+      "Munich",
+      "Austria"
+     ],
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      6,
+      "latch",
+      "Milan",
+      "Austria"
+     ],
+     [
+      8,
+      "latch",
+      "Piedmont",
+      "Austria"
+     ],
+     [
+      8,
+      "turns",
+      "italian_question",
+      "Austria"
+     ],
+     [
+      15,
+      "latch",
+      "Hanover",
+      "Prussia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ],
+     [
+      29,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ],
+     [
+      30,
+      "latch",
+      "Dresden",
+      "Austria"
+     ],
+     [
+      38,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ]
+    ]
+   }
+  },
+  "BERN": {
+   "down": [
+    "GIFT",
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 8,
+     "turns": 2,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      1,
+      "latch",
+      "Swabia",
+      "Austria"
+     ],
+     [
+      1,
+      "turns",
+      "german_question",
+      "Austria"
+     ],
+     [
+      5,
+      "latch",
+      "Munich",
+      "Austria"
+     ],
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      6,
+      "latch",
+      "Milan",
+      "Austria"
+     ],
+     [
+      8,
+      "latch",
+      "Piedmont",
+      "Austria"
+     ],
+     [
+      8,
+      "turns",
+      "italian_question",
+      "Austria"
+     ],
+     [
+      15,
+      "latch",
+      "Hanover",
+      "Prussia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ],
+     [
+      29,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ],
+     [
+      30,
+      "latch",
+      "Dresden",
+      "Austria"
+     ],
+     [
+      38,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ]
+    ]
+   }
+  },
+  "GIFT": {
+   "down": [
+    "SEAT"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 8,
+     "turns": 2,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      1,
+      "latch",
+      "Swabia",
+      "Austria"
+     ],
+     [
+      1,
+      "turns",
+      "german_question",
+      "Austria"
+     ],
+     [
+      5,
+      "latch",
+      "Munich",
+      "Austria"
+     ],
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      6,
+      "latch",
+      "Milan",
+      "Austria"
+     ],
+     [
+      8,
+      "latch",
+      "Piedmont",
+      "Austria"
+     ],
+     [
+      8,
+      "turns",
+      "italian_question",
+      "Austria"
+     ],
+     [
+      15,
+      "latch",
+      "Hanover",
+      "Prussia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ],
+     [
+      29,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ],
+     [
+      30,
+      "latch",
+      "Dresden",
+      "Austria"
+     ],
+     [
+      38,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ]
+    ]
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "q_seam_reads": 2215,
+     "c_seam_reads": 0,
+     "bern_seam_reads": 1,
+     "gift_seam_reads": 0,
+     "seat_seam_reads": 3,
+     "latches": 8,
+     "turns": 2,
+     "rulings": 0,
+     "lord_refuges": 0,
+     "ally_cessions": 0,
+     "seats_moved": 3
+    },
+    "moves": [
+     [
+      1,
+      "latch",
+      "Swabia",
+      "Austria"
+     ],
+     [
+      1,
+      "turns",
+      "german_question",
+      "Austria"
+     ],
+     [
+      5,
+      "latch",
+      "Munich",
+      "Austria"
+     ],
+     [
+      5,
+      "seat",
+      "Bavaria",
+      "Franconia"
+     ],
+     [
+      6,
+      "latch",
+      "Milan",
+      "Austria"
+     ],
+     [
+      8,
+      "latch",
+      "Piedmont",
+      "Austria"
+     ],
+     [
+      8,
+      "turns",
+      "italian_question",
+      "Austria"
+     ],
+     [
+      15,
+      "latch",
+      "Hanover",
+      "Prussia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Westphalia"
+     ],
+     [
+      16,
+      "seat",
+      "Hanover",
+      "Brunswick"
+     ],
+     [
+      29,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ],
+     [
+      30,
+      "latch",
+      "Dresden",
+      "Austria"
+     ],
+     [
+      38,
+      "latch",
+      "Dresden",
+      "Prussia"
+     ]
+    ]
+   }
+  }
+ }
+}

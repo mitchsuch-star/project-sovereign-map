@@ -798,10 +798,21 @@ def _our_score_text(world, court: str, court_score: int,
     return text
 
 
+def _historic(world, court: str) -> str:
+    """RS-D1 reads the capital whose LOSS is the court's grievance — the
+    AUTHORED one (`game_end.historic_capital`). T5-SEAT (session B): a court
+    whose capital the Emperor holds by treaty removes its seat, so the seat
+    is no longer the capital he holds; every recognition-by-defeat read
+    here asks "did they lose the capital", never "where do they sit". The
+    live seat for every court that has not removed — byte-identical."""
+    from backend.game_logic.game_end import historic_capital
+    return str(historic_capital(world, court) or "")
+
+
 def _capital_taken(world, court: str, overrides: Optional[Dict] = None) -> bool:
     if overrides and "capital_taken" in overrides:
         return bool(overrides["capital_taken"])
-    capital = world.get_nation_capital(court) or ""
+    capital = _historic(world, court)
     region = getattr(world, "regions", {}).get(capital) if capital else None
     holder = getattr(region, "controller", None) if region is not None else None
     return bool(holder) and world._top_overlord(holder) == _player(world)
@@ -1285,7 +1296,7 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
             score <= int(line["score"]) or _capital_taken(world, court, ov))
         if court_must_sue(world, court, ov) or projected:
             taken = _capital_taken(world, court, ov)
-            reason = (f"we hold {world.get_nation_capital(court)}" if taken
+            reason = (f"we hold {_historic(world, court)}" if taken
                       else f"beaten in the field ({ours})")
             if projected:
                 # Before a summons no envoy comes (the sue rung is the
@@ -1294,7 +1305,7 @@ def answer(world, court: str, overrides: Optional[Dict] = None) -> Dict[str, Any
                 reason += " — it would sue once the Congress sits"
             if taken:
                 # RS-D1: the SUES projection names the road the ruling opened.
-                reason += (f"; a peace that leaves {world.get_nation_capital(court)} "
+                reason += (f"; a peace that leaves {_historic(world, court)} "
                            f"in our hands recognizes the order")
             if line.get("payer"):
                 # PC-X69: her suit is her separate peace — the bond told.
@@ -1615,7 +1626,7 @@ def price(world, court: str, row: Optional[Dict[str, Any]] = None) -> Dict[str, 
     levers: List[Dict[str, Any]] = []
     if row.get("by") == "war":
         score = int(row.get("war_score", 0) or 0)
-        capital = world.get_nation_capital(court) or ""
+        capital = _historic(world, court)
         line = sue_line(world, court)
         held = _bond_held_clause(world, line)
         levers.append({"key": "war", "value": None,
@@ -2199,6 +2210,11 @@ def process_end_of_turn(world, turn_ended: int) -> List[Dict[str, Any]]:
         _lapse_grudges(world)
         return stamped
     take_the_signatures(world)
+    # DY-3 (DYNAMISM_SPEC.md §4, Tier 5): the Congress rules the open
+    # Questions of Europe — the present holder recognized, the latch
+    # cleared, the unseated claimants aggrieved — before the answers.
+    from backend.game_logic import questions as _questions
+    _questions.congress_rules(world)
     table = _take_answers(world)
     _london_pays(world, table)
     _the_war_of_the_congress(world, table)
@@ -2627,7 +2643,7 @@ def note_ratification(world, parties: Iterable[str], war_ending: bool,
                 "beaten" if court in beaten_set else "capital")
         rec: Dict[str, Any] = {"turn": _turn(world), "broken": None, "kind": kind}
         if kind == "capital":
-            rec["capital"] = str(world.get_nation_capital(court) or "")
+            rec["capital"] = _historic(world, court)
         c.setdefault("signed", {})[court] = rec
         written[court] = kind
         if now_sitting:
@@ -2644,7 +2660,7 @@ def recognition_lines(world, latched: Dict[str, str]) -> List[str]:
     for court, kind in sorted((latched or {}).items()):
         if kind != "capital":
             continue
-        capital = str(world.get_nation_capital(court) or "its capital")
+        capital = _historic(world, court) or "its capital"
         out.append(f"Recognition: {_display(court)} will recognize the order at "
                    f"the Congress — {capital} stays ours by this treaty.")
     return out
@@ -2673,7 +2689,7 @@ def recognition_by_capital_preview(world, courts: Iterable[str],
     for court in sorted({str(c) for c in courts if c}):
         if court not in powers or court_gone(world, court):
             continue
-        capital = str(world.get_nation_capital(court) or "")
+        capital = _historic(world, court)
         if capital and capital not in returned and capital_in_our_hands(world, court):
             latched[court] = "capital"
     return recognition_lines(world, latched)

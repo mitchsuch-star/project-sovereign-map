@@ -500,6 +500,16 @@ def _derive_weight(nation: str, agenda: AgendaView,
         INTENT_WEIGHT_JITTER,
         int(world.current_turn),
     )
+    # DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the envy term — a claimant's gain
+    # at a Question of Europe quickens the OTHER claimants' designs at that
+    # table inside the window; a court not seated feels nothing. Read off
+    # the latch, never dice (`questions.envy_weight` reads one block). The
+    # ladder is honoured — the addend is capped against the running figure
+    # AFTER the jitter (what the ladder reads): below the coerce floor until
+    # the court's ladder has climbed, below the fight floor until its crisis
+    # stands, whole once it does or at war.
+    from backend.game_logic.questions import envy_weight
+    weight += envy_weight(world, nation, agenda, int(weight), against)
     return max(0, min(100, int(weight)))
 
 

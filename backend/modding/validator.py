@@ -983,6 +983,85 @@ def _validate_casting(result, data: dict, known_nations: set) -> None:
         _validate_weight_mod(result, "casting", block)
 
 
+def _validate_questions(result, data: dict, known_nations: Set[str]) -> None:
+    """DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the top-level `questions` block —
+    a list of {id, title, voice, provinces, claimants}, the Questions of
+    Europe. The SHAPE is hard (a malformed table would latch nothing or
+    everything): an unknown province is an ERROR (the imperial-designs
+    idiom — the spec's "refuses"), a province at two tables an ERROR, fewer
+    than two KNOWN claimants an ERROR. A claimant unknown on the board that
+    boots is a WARNING ("the table would seat nobody" — the T2-6 lesson:
+    `from_scenario` validates the board after the seams, and the bare file
+    knows no armyless minor)."""
+    if "questions" not in data:
+        return
+    block = data.get("questions")
+    if not isinstance(block, list) or not block:
+        result.add_error(
+            "questions", f"Must be a nonempty list, got {type(block).__name__}")
+        return
+    from backend.game_logic.questions import QUESTION_ID, TITLE_MAX, VOICE_MAX
+    known_nations = set(known_nations or ())
+    if data.get("sovereign_map") == "europe":
+        from backend.nation_config import EUROPE_ROSTER
+        known_nations |= set(EUROPE_ROSTER)
+    regions = _known_region_names(data)
+    allowed = {"id", "title", "voice", "provinces", "claimants"}
+    seen_ids: Set[str] = set()
+    tables: Dict[str, str] = {}
+    for index, q in enumerate(block):
+        path = f"questions[{index}]"
+        if not isinstance(q, dict):
+            result.add_error(path, f"Must be an object, got {type(q).__name__}")
+            continue
+        for key in sorted(set(q) - allowed):
+            result.add_error(f"{path}.{key}",
+                             "Unknown key (allowed: id, title, voice, provinces, claimants)")
+        qid = str(q.get("id") or "")
+        if not QUESTION_ID.match(qid):
+            result.add_error(f"{path}.id", "Must match [a-z_]{1,32}")
+        elif qid in seen_ids:
+            result.add_error(f"{path}.id", f"Duplicate question '{qid}'")
+        seen_ids.add(qid)
+        title = q.get("title")
+        if not isinstance(title, str) or not title.strip() or len(title) > TITLE_MAX:
+            result.add_error(f"{path}.title",
+                             f"Required: a string of at most {TITLE_MAX} characters")
+        voice = q.get("voice")
+        if not isinstance(voice, str) or not voice.strip() or len(voice) > VOICE_MAX:
+            result.add_error(f"{path}.voice",
+                             f"Required: a string of at most {VOICE_MAX} characters")
+        provinces = q.get("provinces")
+        if not isinstance(provinces, list) or not provinces:
+            result.add_error(f"{path}.provinces", "Must be a nonempty list of provinces")
+        else:
+            for province in provinces:
+                if regions and province not in regions:
+                    result.add_error(f"{path}.provinces", f"Unknown region '{province}'")
+                elif province in tables and tables[province] != qid:
+                    result.add_error(
+                        f"{path}.provinces",
+                        f"'{province}' already sits at '{tables[province]}' - a province is one table's")
+                tables[str(province)] = qid
+        claimants = q.get("claimants")
+        if not isinstance(claimants, list):
+            result.add_error(f"{path}.claimants", "Must be a list of nations")
+            continue
+        seated: List[str] = []
+        for court in claimants:
+            if known_nations and court not in known_nations:
+                result.add_warning(
+                    f"{path}.claimants.{court}",
+                    f"References unknown nation '{court}' - the table would seat nobody there")
+                continue
+            if court in seated:
+                result.add_error(f"{path}.claimants", f"Duplicate claimant '{court}'")
+            seated.append(str(court))
+        if len(seated) < 2:
+            result.add_error(f"{path}.claimants",
+                             "At least two seated claimants - a table with one seat is no Question")
+
+
 def _validate_statecraft(result, data: dict, known_nations: set) -> None:
     """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
     per-nation; `wary_of`, and since T2-B (§3.8.2) `weight_mod` (a bare
@@ -3628,6 +3707,9 @@ def validate_scenario(
 
     # T2-6 (AI_INTENT_SPEC §3.8.2): the authored `casting` block.
     _validate_casting(result, data, statecraft_known)
+
+    # DY-2 (DYNAMISM_SPEC §4): the authored `questions` block.
+    _validate_questions(result, data, statecraft_known)
 
     # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
     _validate_navies(result, data, statecraft_known)

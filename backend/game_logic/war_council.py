@@ -897,6 +897,55 @@ def aim_cessions(world, nation: str, enemy: str, *,
     return out
 
 
+def side_aim_cessions(world, war: Dict, winner_side: str, loser: str,
+                      leader: str, taken=()) -> List[Dict]:
+    """T5-GIFT (DY-1f, session B — the Emperor's gift, the AI's road): the
+    co-belligerents' DELIVERED aims the leader signs for at its aim peace.
+    For each ACTIVE court on the winner's side other than the leader (never
+    the player's house — his table is his own; a client has no design
+    voice, `acquire_design_regions` reads [] for it), every province of its
+    acquire designs in the loser's OWN homeland that the winner's SIDE
+    holds — the Pressburg idiom the validator carries
+    (`occupied_homeland_cession_ok`: an occupier hands the conquest to the
+    beneficiary under the ceder's signature) — never a great power's
+    capital (D2's floor), never a province the leader's own cessions
+    (`taken`) already name. One `territory_cede` clause per province, `to`
+    the ally. Walks the allies' designs only (Rule 8)."""
+    from backend.game_logic.agendas import acquire_design_regions
+    side_of = war.get("side_by_nation") or {}
+    active = set(war.get("active_participants") or [])
+    player = str(getattr(world, "player_nation", "France") or "France")
+    homeland = set((getattr(world, "nation_starting_regions", {}) or {})
+                   .get(loser) or [])
+    regions = getattr(world, "regions", {}) or {}
+    named = {str(r) for r in (taken or ())}
+    out: List[Dict] = []
+    allies = sorted(n for n in active
+                    if side_of.get(n) == winner_side and n != leader)
+    for ally in allies:
+        if str(world._top_overlord(ally) or ally) == player:
+            continue
+        for design in acquire_design_regions(world, ally):
+            for region_name in design:
+                name = str(region_name)
+                if name in named or name not in homeland:
+                    continue
+                region = regions.get(name)
+                holder = str(getattr(region, "controller", "") or "") if region is not None else ""
+                if not holder:
+                    continue
+                holder_house = str(world._top_overlord(holder) or holder)
+                if (side_of.get(holder) != winner_side
+                        and side_of.get(holder_house) != winner_side):
+                    continue
+                if _is_great_power_capital(world, name):
+                    continue
+                named.add(name)
+                out.append({"type": "territory_cede", "from": loser,
+                            "to": ally, "region": name})
+    return out
+
+
 def held_aim_clause(regions) -> str:
     """'Tyrol', 'Milan and Piedmont', 'Milan, Piedmont and Savoy'."""
     return _regions_clause([str(r) for r in regions or []])

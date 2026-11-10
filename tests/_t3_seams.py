@@ -81,6 +81,32 @@ prior tree's reading byte for byte.
           grounds are lost; down: the promotion laws are struck at boot,
           a rank law enacts and raises nothing.
 
+    T5-Q  `questions.the_questions_of_europe` — the Questions of Europe
+          (DY-2, DYNAMISM_SPEC.md §4): the latch at the capture chokepoint,
+          the envy term, the beat, the Balance tab's sentences, the
+          guarantee rung's Question arm; down: no Question is read
+          anywhere (the block still loads and saves).
+
+    T5-C  `questions.the_congress_rules_a_question` — DY-3: a sitting
+          Congress recognizes each open Question's present holder (the
+          latch clears, the unseated claimants aggrieved); down: a
+          sitting Congress rules nothing.
+
+    T5-BERN `settlement_third_party.a_lord_signs_for_its_client` — DY-1e,
+          the user's "Road home" for Bern: a client at its last province
+          does not fall by the sword either — its lord signs for it;
+          down: T4-2's client exemption (a client victim falls).
+
+    T5-GIFT `settlement_third_party.a_leader_signs_for_its_allies` — DY-1f,
+          the Emperor's gift (the AI's road): an aim peace carries each
+          co-belligerent's delivered aim the side holds, ceded to that
+          ally; down: the leaders' aims alone (T3-4).
+
+    T5-SEAT `game_end.the_emperors_treaty_moves_a_seat` — DY-1g: a court
+          whose capital the player's house takes by treaty removes its
+          seat too, the Congress reading the historic capital; down:
+          session A's boundary (2).
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -118,6 +144,22 @@ T3_SEAMS_BY_ROW = {
     ],
     "T4-3": [
         "backend.game_logic.reforms:a_minor_may_rise=False",
+    ],
+    # Tier 5 (session B, November 10, 2026) rides the same registry.
+    "T5-Q": [
+        "backend.game_logic.questions:the_questions_of_europe=False",
+    ],
+    "T5-C": [
+        "backend.game_logic.questions:the_congress_rules_a_question=False",
+    ],
+    "T5-BERN": [
+        "backend.game_logic.settlement_third_party:a_lord_signs_for_its_client=False",
+    ],
+    "T5-GIFT": [
+        "backend.game_logic.settlement_third_party:a_leader_signs_for_its_allies=False",
+    ],
+    "T5-SEAT": [
+        "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

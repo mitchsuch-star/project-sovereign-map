@@ -14972,3 +14972,205 @@ gate's ≥ 4 holds.
 **The hook's figure.** The banner of `scripts/git-hooks/pre-commit` and CLAUDE.md's two figures
 read 8:22 (the hook run at f0b048d2, after `test_iq7_review_round` restored its turn-6 board
 once a module); the installed copy matches.
+
+## §202 Tier 5, session B — the Questions of Europe, the Congress rules a Question, and the three leftovers (November 10, 2026 — TIER 5 COMPLETE)
+
+**The gate** (`DYNAMISM_SPEC.md` §4a, ruled in Plan Mode at the session's head — the §2b idiom, four
+rulings in one batch): the four tables **"Four on the drawn map"**; Bern **"Road home"**; the crowns'
+levers **"best solution no corner cutting"** (delegated); the seat's boundaries **"reason best solution
+for gameplay"** (delegated). Five rules, each behind its own zero-arg seam (`tests/_t3_seams.py` rows
+T5-Q, T5-C, T5-BERN, T5-GIFT, T5-SEAT — the recorded boards' hold-list folds them), ONE sweep with six
+arms on three surfaces, ONE commit. Tests: `tests/test_dy2_the_questions_of_europe.py`.
+
+**DY-2 — the Questions of Europe** (`backend/game_logic/questions.py`; seam `the_questions_of_europe`).
+A Question is a named object — provinces in dispute — with CLAIMANT courts seated at it: the era's own
+vocabulary, never EU4's declared pair. **The block:** the scenario's top-level `questions` key, four
+tables — the German (Hanover, Munich, Swabia, Dresden, Frankfurt — Austria, Prussia, France; "Who speaks
+for Germany?"), the Italian (Milan, Piedmont, Naples, Rome — France, Austria, Sardinia, Naples; "Whose
+is Italy?"), the Eastern (Rumelia, Albania, Epirus, Constantinople, New Russia — Russia, Austria,
+Ottoman, Britain; "Who inherits the Porte?"), the Polish (Posen, Lithuania, Volhynia, Podolia — Russia,
+Prussia, Austria, France, Saxony; "Is Poland to rise again?"; Vilna, Russia's seat on this map, left
+out). `modding.validator._validate_questions`: the shape hard; an unknown province an ERROR, a province
+at two tables an ERROR, fewer than two known claimants an ERROR; an unknown claimant a WARNING ("the
+table would seat nobody there" — the T2-6 lesson); the shipped file keeps its eleven warnings. **The
+store:** `world.moments["questions"] = {block, latch, turned, ruled}` — the affairs precedent (RE-1),
+no new top-level field (`to_dict` at 497 of 500); carried by `questions.install` on `from_dict` (a
+scenario's key is the block, a save's `moments.questions` the store); written only where a table is
+authored (the bare flag world's `moments` stays `{}`); a pre-Tier-5 save gains the block with an empty
+latch (`save_manager._backfill_questions`; `_backfill_moments` reads the deck, not the store's
+truthiness). **The latch:** `questions.note_capture` at the ONE capture chokepoint beside the Alarm's
+write and at the reckless auto-charge's mirror — a Question province taken by a claimant's HOUSE (the
+capturer's top overlord; a client's conquest is its lord's) writes `latch[question] = {nation, turn}`;
+nowhere else writes it; the turn's intent cache is NOT flushed (intent is turn-granular by `intent.py`'s
+contract — the envy reads from the next derivation). **The envy term:** one addend in
+`intent._derive_weight`, outside the `against` block — `+WEIGHT_QUESTION_ENVY` (15) when the court's
+house is seated at a table whose provinces its design touches and the latch names ANOTHER house inside
+`ENVY_WINDOW` (8 turns); a court not seated feels nothing, a court's own gain quickens nobody of its
+house, once and not per table; derived, never dice. **The ladder honoured** (the session's own catch,
+found on the sweep's first run and the driven board's): a court climbs its ladder by ASKING — asks
+are made at the ask, buy, align and bandwagon rungs, and of an AI court nothing is asked at the
+ultimatum — and the council's patient-ask gate (`war_council._ladder_climbed`, two refused asks on
+record) opens its crisis; a court the envy carried straight to the ultimatum stopped asking (the
+driven austerlitz lost its Hanover crisis), and one carried to `fight` never fought (the historical
+Prussia sat at `fight` ten turns and never fought Hanover). The addend is therefore applied AFTER the
+seeded jitter (the cap reads the figure the ladder reads — on austerlitz the jitter pushed a capped
+84 to 85 and the fight rung) and capped in three stages (`questions._below_the_floors`): below the
+COERCE floor until the court's ladder against its object has climbed, below the FIGHT floor until its
+crisis stands (`world.war_intents`), the whole addend once it stands or once the court is at war with
+its object — the envy hastens what the fore-warning already promised (beat 2 — no cold-open wars).
+**The beat:** when
+a latch write makes its house the STRICT plurality holder among the CLAIMANT houses of the table's
+provinces where it was not before THIS capture (the board read with the captured province as the old
+controller's; a table held from the boot does not turn for its holder; a tie turns nothing) — ONE
+`question_turns` log row (`question` is what DY-0's `questions_turned` column reads; the log census
+182 → 183, the fourteen pins flipped; a lead, court knowledge across Europe, Le Moniteur prints it) and
+a HIGH dispatch line in the table's own voice: "THE GERMAN QUESTION TURNS: Prussia holds Hanover; Vienna
+watches. Who speaks for Germany?". **The words:** the Balance of Europe tab's `question_lines`, one
+sentence a table — "open — Prussia gains (turn 5); Vienna watches." / "ruled at the Congress (turn 12)
+— Prussia recognized." / "quiet; Russia holds the most of it." — the player's house never named as a
+watcher, never a figure; one `.gd` block below THE COURTS TAKE NOTE. **The rung's Question arm** (§3c
+G2): `alarm.alarmed_guarantor` — a court seated with the victim may give its word though no neighbour
+(`questions.share_a_table`).
+
+**DY-3 — the Congress rules a Question** (`questions.congress_rules`; seam
+`the_congress_rules_a_question`). On the sitting's tick (`congress.process_end_of_turn`, after the
+signatures are taken and before the answers), each Question with a live latch and no ruling this
+sitting is RULED: its present plurality holder recognized, the latch cleared (envy relief), every other
+standing claimant's relation to the holder written `QUESTION_RULING_GRIEVANCE` (−10; the player's house
+takes no grievance — the Congress is his), one `congress` row (phase `ruling`, no new type), one HIGH
+beat ("The Congress rules the German Question: Prussia is recognized in what it holds; Vienna takes it
+ill."). Once a sitting; a table nobody holds is not ruled; a later capture re-latches it.
+
+**DY-1e — the lord signs for its client at the last** (`settlement_third_party.sign_at_the_last`; seam
+`a_lord_signs_for_its_client`; the user's "Road home" for Bern). The fact: on ulm Switzerland, bribed
+over to Britain, attacked Bavaria's seat, Prussia honoured its word, Bavaria took Bern, and a CLIENT
+victim signed nothing (T4-2's exemption), so it fell and the spoils met no peace — the one province on
+the deploy gate's annexation line. The rule, T4-2's own principle carried to clients: a client at its
+last province does not fall by the sword either — its LORD signs for it. The pair closed with each
+holder is the lord's where the client's war with that holder is the lord's
+(`client_pair_is_the_lords_war` and a live record on the lord's pair — `_signs_for_the_client`; SR-1b:
+a vassal's pair never exits on its own account, `follow_the_lord` inside `_close_the_pair` carries the
+client out), else the client's own; the homeland outside the holders' keepable sets goes home first.
+Exempt as before: the player's house on either side. "Britain signs for Switzerland at the last — Saxony
+evacuates Bern." The event carries `signed_by`.
+
+**DY-1f — the Emperor's gift** (the user's "best solution no corner cutting" on the crowns). The levers
+stand (K = 6, the price 3,000): session A's own measure read no court holding its grounds longer than
+two turns in forty, so neither ever bit. In history four of the five crowns came by the Emperor's
+treaty. **(i) The player's road** — the ally petition asks for the ally's AUTHORED designs' provinces
+(`settlement_offers._coveted_regions_of_ally`: the designs first, the desire profile after — one source
+for every road that asks what an ally wants; Saxony asks for Posen, Hesse for Westphalia, Denmark for
+Scania, Sardinia for Piedmont and Savoy, Bavaria for the Tyrol, where three of the five could never be
+asked for), and the petition's prevalidation reads the validator's own occupied-homeland rule
+(`_occupied_homeland_ok` → `settlement_validation.occupied_homeland_cession_ok`, the ONE rule the
+validator, the preview and the ratifier read) — before, the petition asked only for what the payer
+STILL HELD, so the bill branch's own Pressburg case (France holds the Tyrol, Austria cedes it) could
+never fire. Pinned end to end: the petition carries the Tyrol → the cession titles it to Bavaria by
+treaty → six quiet turns → `law_refusal` clears → the AI's own 1.78 rung enacts the Royal Crown → the
+`rank_promotion` row. **(ii) The AI's road** (seam `a_leader_signs_for_its_allies`): an AI war's aim
+peace (T3-4's `attempt_aim_held_settlement`) carries each co-belligerent's DELIVERED aim that the
+winner's SIDE holds, ceded to that ally by the same treaty (`war_council.side_aim_cessions` — never the
+player's house, never a great power's capital, never a province the leader's own cessions name); the
+consequence names each receiver ("Russia takes Finland. Denmark takes Scania."). Down, a junior's aim in
+its leader's hands went HOME to the loser by T3-6.
+
+**DY-1g — the Emperor's treaty moves a seat** (`game_end`; seam `the_emperors_treaty_moves_a_seat`;
+the user's "reason best solution for gameplay"). Boundary (1), the player's own court never removes, is
+KEPT — Paris signed away is the Fall's story. Boundary (2), a court whose capital the PLAYER's house
+holds by treaty does not remove, is REVERSED — the player's own Pressburg is the most-played road, and
+every read that follows the seat (the guard, the AI's "enemy's seat" object, the war-score component,
+the homing) read a province the court did not hold. The one reader the boundary protected, the
+Congress's recognition by defeat (RS-D1), asks "did they lose the capital" — the grievance's read — and
+`game_end.historic_capital` answers it: every Congress capital read moved to `congress._historic`
+(`_capital_taken`, the `capital` latch, the recognition lines and preview, the sue reasons, the war
+lever; `game_end`'s `capital_kept` producer, which reads the map AFTER the clauses apply). With no seat
+removed every read is byte-identical. "The court of Austria removes to Bohemia — Vienna is France's by
+treaty." — and the Congress still reads Vienna in his hands.
+
+**Three defects the sweep's first run and the hook's first run found, fixed at the cause before the
+record:** the envy carrying a court past the ultimatum before its crisis stood; a mid-turn flush of
+the turn's intent cache at the latch (removed — intent is turn-granular by contract; the chokepoint's
+own region-control flush is the engine's); and, on the SF-LB-2 driven board, the envy lifting a court
+off its asking rungs before its ladder had climbed, with the seeded jitter applied after the cap
+pushing 84 to 85 — hence the three stages and the jitter order above. The three live-historical-board
+pins of `test_ai_intent_assurance.py` and the six driven-board pins of
+`test_sf_lb2_the_defenceless_prize.py` that named them held green once all were fixed, the standing
+series byte for byte. A live-board pin that moves is a DEFECT first, a re-seat last.
+
+**The measure, said plainly** (`tools/_t5_measure.py` — six arms on three surfaces, run ALONE, three
+times: the first run and the hook's first run named the three defects above; the record is the third
+run's; pinned by `TestTheSessionBMeasure`). **Arm 0 reproduces session A's records byte for byte** on
+the ten ambient seeds and on the AI-France harness (`_dy_signature_t5_control_2026_11_10.json` =
+`_dy_signature_t4_3_2026_11_10.json`; `_t5_chain_d_2026_11_10.json` arm 0 = the T4-3 record's arm
+ALL on its own keys). **The Questions ALONE (arm Q) move all ten ambient seeds** — on seven only the
+new column and the turn Prussia first reaches `fight` (the envy hastens a climb already under way:
+historical 11 → 9, jena 11 → 9, marengo 12 → 10, friedland 14 → 12, eylau 15 → 13; on austerlitz,
+rivoli and wagram she reaches it where she did not), the whole signature on rivoli alone — and one
+harness seed (ulm); **story classes 10 of 10 on every arm**. Arms QC (the Congress's ruling), GIFT
+(the leader signs for its allies) and ALL (the seat under the Emperor's treaty) move NO ambient or
+harness seed: no Congress sits in forty ambient turns, no co-belligerent's delivered aim meets an aim
+peace (`aim_peaces` 0 on every arm, as at session A), no commanded script cedes a capital by treaty —
+each rule is pinned on its authored board (the Congress rules the German Question; Russia's aim peace
+cedes Scania to Denmark; Vienna's cession removes Austria's court to Bohemia). Arm BERN moves ulm
+alone.
+
+**The Questions turned, per seed (arm ALL — 26 turns of a table):** the German Question turns for
+AUSTRIA at turn 2 on every seed — her Munich and Swabia in the opening war — and again on
+austerlitz, friedland, lodi and ulm (6–10); the Italian for Austria on every seed (austerlitz 10,
+eylau 7, friedland 23, historical 9, jena 7, lodi 10, marengo 21, rivoli 7, ulm 10, wagram 9 — Milan
+and Piedmont from the Kingdom of Italy); the German once for PRUSSIA (jena, 41 — Hanover; and on arm
+Q ulm at 36, before Bern's road re-timed that seed: 27 there). The Polish and the Eastern tables
+never turn: the Porte holds four of its five from the boot and Russia three of her four, and no
+claimant takes from them in forty turns.
+
+**The war column, arm 0 → arm ALL** (the tier's signature change, read honestly):
+
+| seed | war pairs | what moves |
+|---|---|---|
+| austerlitz | 5 → 5 | nothing in the column; Prussia reaches `fight` at 13 where she did not |
+| eylau | 5 → 5 | nothing; Prussia's first `fight` 15 → 13 |
+| friedland | 6 → 6 | nothing; 14 → 12 |
+| historical | 10 → 10 | nothing — the war turns [11, 12, 27, 27, 37] unchanged; 11 → 9 |
+| jena | 11 → 11 | nothing; 11 → 9; the German table turns for Prussia at 41 |
+| lodi | 7 → 7 | nothing |
+| marengo | 10 → 10 | nothing; 12 → 10 |
+| rivoli | 5 → 5 | **the Hanover war (15) where Prussia's honour war for Bavaria stood** — her crisis at 13 comes before the word is called on; `ai_war_count` 0 → 1; Spain's word for the Porte (29) not given |
+| ulm | 13 → 5 | the late Saxon and Prussian cluster calms (Austria–Prussia, Austria–Saxony, Britain–Prussia, Britain–Saxony, Prussia–Russia, Prussia–Saxony, Russia–Saxony gone) |
+| wagram | 5 → 5 | nothing; Prussia reaches `fight` at 11 where she did not |
+
+**"A second great-power war appears" — NOT MET.** The war column stands where session A left it on
+eight seeds, moves on rivoli from one Prussian war to another, and calms on ulm. The reason is the
+1805 board, not the term: the tables turn for Austria, who is at war with France already and feels
+no envy of her own gains; the courts seated against her are the player (France — the words and the
+latch, never the envy), Prussia (her Hanover design, already live on every seed — the envy hastens
+it by two turns), and minors with no armies (Sardinia and Naples at the Italian table); at the Polish
+table nobody takes from Russia and the Eastern table never turns. Put to the user at session C's
+head (`NEXT_SESSION_PROMPT.md` item 5): the levers are content — a second German design for Prussia
+(the Fürstenbund: Dresden and Frankfurt), a Russian design on a table Austria turns, or the Eastern
+table's designs made boot-live — and the numbers (`ENVY_WINDOW` 8, the addend +15). Reported.
+
+**The eliminations column converges again:** with Bern's road Switzerland lives on ulm, and the
+Kingdom of Italy alone falls on all ten seeds (turns 7–23); the classes still read 10 of 10 on the
+other columns. **The annexation line:** `annexations_outside_aim` 1 → 0 ambient at arm BERN (ulm:
+"Switzerland signs at the last — Bavaria evacuates Bern." at turn 14 — Britain, her lord, was at
+peace with Bavaria, so the war was the client's own and the rule's second branch signed it), 0 for
+the harness's AI courts on every arm; the harness's France entry 119 → 118 (reported, never gated).
+**No crown:** `rank_promotions` 0 on every seed and arm — the Grand Ducal Title the first run saw on
+lodi came with the defect's re-timing and is gone with it. The levers stand; the gift's roads are
+pinned on their boards and wait for a played game.
+
+**The totals** (arm 0 → arm ALL): the last refuges 22 → 22; the Alarm's guarantees 11 → 10, honoured
+7 → 6 (rivoli — Prussia's word for Bavaria given at 6 and never called on; Spain's for the Porte not
+given); `captures_outside_aim` 252 → 258 (Q) → 248 (BERN); the seats removed 16, returned 3 (session
+A's own). **The France band holds** on the commanded arms: 28 / 27 / 26 (historical / austerlitz /
+marengo) on every arm, inside 23–28. **The standing series does not move**
+(`tools/_t5_series_arms.py` → `_t5_series_arms_final.json`): all six arms reproduce HEAD's
+`BASELINE_SERIES` byte for byte — the Questions' seam read 2,215 times on that loop, eight latches
+and two turns, no ruling, no lord's refuge, no ally's cession; the seat seam's three moves are
+session A's; `BASELINE_SERIES` stands, no re-pin, no re-link.
+
+**What session B leaves with the user** (`NEXT_SESSION_PROMPT.md` item 5): the second great-power war
+the Questions did not bring on the 1805 board (the content levers above); the crowns (none taken —
+the AI's purse rung the next lever if the played game shows none either); the envy's numbers.
+**The deploy gate** stands: 0 open defect rows, story classes 10 of 10, `annexations_outside_aim` 0
+on both surfaces, the France band inside 23–28.

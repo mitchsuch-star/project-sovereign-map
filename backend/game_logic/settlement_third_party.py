@@ -276,9 +276,19 @@ def _consequence_line(world, winner: str, loser: str,
     ceded = [r for t in terms if t.get("type") == "territory_cede"
              for r in _territory_term_regions(t)]
     parts = []
-    if ceded:
-        parts.append(f"{humanize_entity_name(winner)} takes "
-                     f"{', '.join(str(r) for r in ceded)}.")
+    # T5-GIFT: a cession names its RECEIVER — the leader's first, then each
+    # ally the treaty signs for ("Prussia takes Silesia. Bavaria takes
+    # Tyrol."); a one-receiver treaty reads as before, byte for byte.
+    by_receiver: Dict[str, List[str]] = {}
+    for t in terms:
+        if t.get("type") == "territory_cede":
+            receiver = str(t.get("to") or winner)
+            by_receiver.setdefault(receiver, []).extend(
+                str(r) for r in _territory_term_regions(t))
+    for receiver in [winner] + sorted(r for r in by_receiver if r != winner):
+        if by_receiver.get(receiver):
+            parts.append(f"{humanize_entity_name(receiver)} takes "
+                         f"{', '.join(by_receiver[receiver])}.")
     gold = next((t for t in terms if t.get("type") == "gold_indemnity"), None)
     if gold and int(gold.get("amount", 0)) > 0:
         parts.append(f"{humanize_entity_name(str(gold.get('from')))} pays "
@@ -654,6 +664,13 @@ def attempt_aim_held_settlement(world, war_id: str, war: Dict) -> Optional[Dict]
         if not cessions or not aim_terms_signable(world, loser, winner):
             continue
         terms = held_aim_terms(winner, loser, cessions)
+        if a_leader_signs_for_its_allies():
+            # T5-GIFT (DY-1f): the leader signs for its allies — their
+            # delivered aims in the loser's homeland that the SIDE holds,
+            # ceded to them by the same treaty (the Pressburg idiom).
+            from backend.game_logic.war_council import side_aim_cessions
+            terms = terms + side_aim_cessions(
+                world, war, winner_side, loser, winner, taken=cessions)
         validation = validate_settlement_terms(
             terms,
             proposer_side=winner_side,
@@ -998,6 +1015,26 @@ def _close_the_pair(world, war_id: str, pair_key: str, a: str, b: str,
 LAST_REFUGE_EXIT = "last_refuge"    # the forced peace's reason (a SIGNED peace)
 
 
+def a_lord_signs_for_its_client() -> bool:
+    """T5-BERN seam (DY-1e, session B — the user's "Road home" for Bern,
+    November 10, 2026): a client at its last province does not fall by the
+    sword either — its lord signs the pair with every AI holder of its
+    homeland outside that holder's keepable set, and the client lives on.
+    Down: T4-2's client exemption — a client victim signs nothing and
+    falls, its spoils meeting no peace (ulm's Bern)."""
+    return True
+
+
+def a_leader_signs_for_its_allies() -> bool:
+    """T5-GIFT seam (DY-1f, session B — the Emperor's gift, the AI's road):
+    an AI war's aim peace carries each co-belligerent's DELIVERED aim that
+    the winner's side holds, ceded to that ally by the same treaty
+    (`war_council.side_aim_cessions` — Pressburg's Tyrol to Bavaria). Down:
+    T3-4's terms, the leaders' aims alone, a junior's aim in its leader's
+    hands evacuated home by T3-6."""
+    return True
+
+
 def a_crown_falls_only_by_treaty() -> bool:
     """T4-2 "sign at the last" (the Tier-4 gate record §3c G5, ruled
     November 9, 2026 — "make best decision for immersion and design"): a
@@ -1064,10 +1101,13 @@ def last_refuge_holders(world, victim: str) -> Dict[str, Dict[str, List[str]]]:
 
 
 def _last_refuge_words(world, victim: str, kept: Dict[str, List[str]],
-                       evacuated: Dict[str, List[str]]) -> str:
+                       evacuated: Dict[str, List[str]],
+                       signers: Optional[Dict[str, str]] = None) -> str:
     """"Bavaria signs at the last — Austria keeps Munich and Swabia by
     treaty; Austria evacuates Franconia." One sentence, each court's
-    clauses in order; "her other wars go on" when any still stands."""
+    clauses in order; "her other wars go on" when any still stands. T5-BERN:
+    "Britain signs for Switzerland at the last — Bavaria evacuates Bern."
+    when the client's lord signed."""
     from backend.display_names import humanize_entity_name
     from backend.game_logic.war_council import held_aim_clause
     clauses: List[str] = []
@@ -1078,10 +1118,35 @@ def _last_refuge_words(world, victim: str, kept: Dict[str, List[str]],
         if evacuated.get(court):
             clauses.append(f"{humanize_entity_name(court)} evacuates "
                            f"{held_aim_clause(sorted(evacuated[court]))}")
-    words = f"{humanize_entity_name(victim)} signs at the last — " + "; ".join(clauses) + "."
+    lords = sorted({s for s in (signers or {}).values() if s and s != victim})
+    if lords:
+        lead = (f"{_join_courts([humanize_entity_name(l) for l in lords])} "
+                f"{'signs' if len(lords) == 1 else 'sign'} for "
+                f"{humanize_entity_name(victim)} at the last — ")
+    else:
+        lead = f"{humanize_entity_name(victim)} signs at the last — "
+    words = lead + "; ".join(clauses) + "."
     if world.get_nations_at_war_with(victim):
         words += " Her other wars go on."
     return words
+
+
+def _signs_for_the_client(world, victim: str, lord: str, signatory: str) -> str:
+    """T5-BERN — who signs the pair with `signatory` for a client at its
+    last province: its lord, where the client's war with the signatory is
+    the lord's (`client_pair_is_the_lords_war`) and the lord's own pair
+    has a live record; else the client itself (its own war, which takes
+    the pair exits like any court's). A court with no lord signs its own."""
+    if not lord:
+        return victim
+    from backend.game_logic.settlement_helpers import (
+        _find_active_war_instance_for_pair,
+    )
+    if (client_pair_is_the_lords_war(world, victim, signatory)
+            and _find_active_war_instance_for_pair(
+                world, world._make_diplo_key(lord, signatory)) is not None):
+        return lord
+    return victim
 
 
 def sign_at_the_last(world, victim: str) -> Optional[Dict]:
@@ -1103,8 +1168,21 @@ def sign_at_the_last(world, victim: str) -> Optional[Dict]:
     if not a_crown_falls_only_by_treaty():
         return None
     player = str(getattr(world, "player_nation", "") or "")
-    if not victim or victim == player or victim in (getattr(world, "vassals", {}) or {}):
+    if not victim or victim == player:
         return None
+    vassals = getattr(world, "vassals", {}) or {}
+    lord = ""
+    if victim in vassals:
+        # T5-BERN (DY-1e, session B — the user's "Road home" for Bern): a
+        # client at its last province does not fall by the sword either —
+        # its LORD signs for it (SR-1b: a vassal's pair never exits on its
+        # own account; the lord's pair closes and the client follows it
+        # out). The player's house stays exempt: his clients that fall are
+        # his to liberate by treaty, and his holdings never move.
+        lord = str((vassals.get(victim) or {}).get("lord") or "")
+        if (not a_lord_signs_for_its_client() or not lord
+                or str(world._top_overlord(lord) or lord) == player):
+            return None
     holders = last_refuge_holders(world, victim)
     if not holders:
         return None
@@ -1125,14 +1203,19 @@ def sign_at_the_last(world, victim: str) -> Optional[Dict]:
     homeland = set((getattr(world, "nation_starting_regions", {}) or {}).get(victim) or [])
     kept: Dict[str, List[str]] = {}
     war_ids: List[str] = []
+    signers: Dict[str, str] = {}
     for signatory in sorted(holders):
-        pair_key = world._make_diplo_key(signatory, victim)
+        # T5-BERN: the client's lord signs the pair where the client's war
+        # with the signatory is the lord's; a court signs its own.
+        signer = _signs_for_the_client(world, victim, lord, signatory)
+        signers[signatory] = signer
+        pair_key = world._make_diplo_key(signatory, signer)
         war_id = _find_active_war_instance_for_pair(world, pair_key)
         if war_id is None:
             continue
         war_ids.append(str(war_id))
         a, b = str(pair_key).split("|")
-        score = int(get_war_score_for(world, victim, signatory))
+        score = int(get_war_score_for(world, signer, signatory))
         _ceded, _lock, returned = _close_the_pair(
             world, str(war_id), pair_key, a, b, LAST_REFUGE_EXIT,
             sued=(victim, signatory, score))
@@ -1157,7 +1240,7 @@ def sign_at_the_last(world, victim: str) -> Optional[Dict]:
                 kept.setdefault(holder, []).append(region_name)
 
     from backend.display_names import humanize_entity_name
-    consequence = _last_refuge_words(world, victim, kept, evacuated)
+    consequence = _last_refuge_words(world, victim, kept, evacuated, signers)
     signatories = sorted(holders)
     named = _join_courts([humanize_entity_name(s) for s in signatories])
     event = {
@@ -1168,6 +1251,8 @@ def sign_at_the_last(world, victim: str) -> Optional[Dict]:
         "signatories": list(signatories),
         "broker": None,
         "exit": LAST_REFUGE_EXIT,
+        # T5-BERN: who signed each pair — the client itself, or its lord.
+        "signed_by": {court: signers[court] for court in signatories if court in signers},
         "kept": {court: list(regions) for court, regions in sorted(kept.items())},
         "evacuated": {court: list(regions) for court, regions in sorted(evacuated.items())},
         "consequence": consequence,

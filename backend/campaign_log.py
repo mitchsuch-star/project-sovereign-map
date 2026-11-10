@@ -504,6 +504,10 @@ CAMPAIGN_LOG_TYPES = {
     # T4-3 (DYNAMISM_SPEC.md §3c G6 — 181→182 flipped consciously, DY-0's
     # column): a minor that holds its design's grounds takes its crown.
     "rank_promotion",
+    # DY-2 (DYNAMISM_SPEC.md §4 — 182→183 flipped consciously, DY-0's
+    # column): a Question of Europe turns — a claimant's capture made it
+    # the table's plurality holder.
+    "question_turns",
 }
 
 # ============================================================================
@@ -621,6 +625,8 @@ CATEGORY_MAP = {
     "law_lapsed": "economy",
     # T4-3: a court's rank among the powers.
     "rank_promotion": "diplomacy",
+    # DY-2: a Question of Europe turns.
+    "question_turns": "diplomacy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -757,8 +763,8 @@ LOG_TIER_LEAD = frozenset({
     "diplomatic_treaty_broken", "diplomatic_treaty_signed",
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
-    "nation_formed", "peace_ratified", "rank_promotion", "trafalgar",
-    "ultimatum_issued",
+    "nation_formed", "peace_ratified", "question_turns", "rank_promotion",
+    "trafalgar", "ultimatum_issued",
     "vassal_broke_free", "vassal_defected", "vassal_liberated",
     "volte_face", "war_declaration",
 })
@@ -1208,7 +1214,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "allegiance_auction_resolved",
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
-                          "third_party_peace", "rank_promotion",   # T4-3: a crown
+                          "third_party_peace", "rank_promotion", "question_turns",   # T4-3: a crown; DY-2: a Question turns
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -3132,6 +3138,17 @@ def _oneliner_laws(ctx: OnelinerContext):
             name = "the " + name[4:]
         tier = str(ctx.event.get("tier") or "secondary")
         return f"A CROWN: {nation} takes {name} and ranks among the {tier} powers of Europe"
+    if ctx.event_type == "question_turns":
+        # DY-2 (DYNAMISM_SPEC.md §4): a Question of Europe turns — the
+        # claimant that now holds the most of it, by name.
+        nation = with_definite_article(
+            display_nation(ctx.event.get("nation", "Unknown")), capitalize=True)
+        title = str(ctx.event.get("title") or "A Question of Europe")
+        holds = [str(r) for r in (ctx.event.get("holds") or []) if r]
+        where = (f" — {nation} holds " + (", ".join(holds[:-1]) + " and " + holds[-1]
+                                          if len(holds) > 1 else holds[0])
+                 if holds else f" — {nation} gains")
+        return f"{title.upper()} TURNS{where}"
     return _NEXT_STAGE
 
 

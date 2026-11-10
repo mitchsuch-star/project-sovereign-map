@@ -598,6 +598,10 @@ def mission_shock_cause(shock: dict, player: str = "France") -> str:
         return f"{who} leaving the coalition"
     if kind == "settlement_shut_out":
         return f"{_ledger_name(on)} left out of {who} peace"
+    if kind == "question_ruling":
+        # DY-3 (Tier 5): the Congress recognized `on` at a Question's table
+        # and `by`, unseated, took it ill.
+        return f"{who} grievance at the Congress's ruling for {_ledger_name(on)}"
     if kind == "settlement_sold_out":
         return f"{_ledger_name(on)} sold out at the peace"
     if kind == "vassal_rebellion":

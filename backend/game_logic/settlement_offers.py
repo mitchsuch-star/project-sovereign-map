@@ -735,6 +735,32 @@ def _find_request_open_settlement_petition_context(
     return None
 
 
+def _coveted_regions_of_ally(world: Any, ally_nation: str) -> List[str]:
+    """What an ally may ASK for: the provinces of its authored acquire
+    designs (`agendas.acquire_design_regions` — the ONE derivation T3-2
+    moved home; DY-1f, session B: the desire profiles name no grounds for
+    Saxony's, Hesse's or Denmark's crowns, so their roads ran through
+    nothing), then its desire profile's `covets_regions`; deck order,
+    de-duplicated. [] for a court with neither."""
+    from backend.game_logic.agendas import acquire_design_regions
+    from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
+    out: List[str] = []
+    try:
+        designs = acquire_design_regions(world, ally_nation)
+    except Exception as exc:
+        report(exc, "settlement_offers._coveted_regions_of_ally: acquire_design_regions")
+        designs = []
+    for design in designs:
+        for region_name in design or []:
+            if region_name and str(region_name) not in out:
+                out.append(str(region_name))
+    profile = NATION_DESIRE_PROFILES.get(str(ally_nation or "")) or {}
+    for region_name in profile.get("covets_regions") or []:
+        if region_name and str(region_name) not in out:
+            out.append(str(region_name))
+    return out
+
+
 def _desire_profile_claims_for_ally(
     world: Any,
     ally_nation: str,
@@ -749,9 +775,7 @@ def _desire_profile_claims_for_ally(
     1805 board). A claim per coveted province of the enemy's homeland
     (`NATION_DESIRE_PROFILES[...]["covets_regions"]`) that the enemy still
     holds or our side has taken — the reward the leader may stipulate."""
-    from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
-    profile = NATION_DESIRE_PROFILES.get(str(ally_nation or "")) or {}
-    coveted = [str(r) for r in (profile.get("covets_regions") or []) if r]
+    coveted = _coveted_regions_of_ally(world, str(ally_nation or ""))
     if not coveted or not target_enemy:
         return []
     enemy_home = set((getattr(world, "nation_starting_regions", {}) or {}).get(target_enemy, []) or [])
@@ -978,6 +1002,27 @@ def _territory_clause_regions(term: Mapping[str, Any]) -> List[str]:
     return regions
 
 
+def _occupied_homeland_ok(world: Any, region: str, payer: str, receiver: str,
+                          holder: str) -> bool:
+    """DY-1f (session B, the Emperor's gift): the Pressburg idiom the
+    validator, the preview and the ratifier read
+    (`settlement_validation.occupied_homeland_cession_ok`) — a province the
+    payer no longer holds may still be asked for when it is the payer's
+    own homeland and its holder stands on the receiver's side of a live
+    war (Tyrol at Pressburg: France holds it, Austria cedes it to
+    Bavaria). Before, the petition asked only for what the payer still
+    held, and the bill branch's own Pressburg case could never fire."""
+    from backend.game_logic.settlement_validation import (
+        occupied_homeland_cession_ok,
+    )
+    for instance in (getattr(world, "war_instances", {}) or {}).values():
+        if not isinstance(instance, Mapping) or instance.get("ended_turn") is not None:
+            continue
+        if occupied_homeland_cession_ok(world, instance, region, payer, receiver, holder):
+            return True
+    return False
+
+
 def _petition_clause_prevalidates(
     world: Any,
     clause: Mapping[str, Any],
@@ -1011,9 +1056,11 @@ def _petition_clause_prevalidates(
             if region in promised:
                 return False
             region_obj = (getattr(world, "regions", {}) or {}).get(region)
-            if region_obj is None or str(
-                getattr(region_obj, "controller", "") or ""
-            ) != payer:
+            if region_obj is None:
+                return False
+            holder = str(getattr(region_obj, "controller", "") or "")
+            if holder != payer and not _occupied_homeland_ok(
+                    world, region, payer, str(clause.get("to") or ""), holder):
                 return False
         return True
     if ctype == "gold_indemnity":
@@ -1108,10 +1155,9 @@ def _reward_region_for_ally(
         holder = str(getattr(region_obj, "controller", "") or "")
         if holder in covered and holder != ally:
             return claim_region, holder
-    from backend.game_logic.diplomatic_templates import NATION_DESIRE_PROFILES
-
-    profile = NATION_DESIRE_PROFILES.get(ally) or {}
-    for region in [str(r) for r in (profile.get("covets_regions") or [])]:
+    # DY-1f (session B): the ally's authored designs first, then its desire
+    # profile — one source for every road that asks what an ally wants.
+    for region in _coveted_regions_of_ally(world, ally):
         region_obj = regions.get(region)
         if region_obj is None:
             continue

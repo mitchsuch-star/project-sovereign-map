@@ -5654,6 +5654,11 @@ class WorldState:
             _alarm.sound_the_alarm(
                 self, region_name, capturing_nation, old_controller,
                 liberated=bool(_liberated_to), prior_title=_prior_title)
+            # DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the Questions' latch — the
+            # court that NOW holds a Question province, if seated at its
+            # table; the beat when the table turns. ONE writer: `questions`.
+            from backend.game_logic import questions as _questions
+            _questions.note_capture(self, region_name, _holder, old_controller)
 
         # Imperial Settlement B2: occupation event accrual happens BEFORE
         # `_eliminate_nation` so a final-region capture still credits the
@@ -10341,6 +10346,12 @@ class WorldState:
         # shape for the scenario key and the save; {} = unarmed.
         from backend.game_logic.moments import store_from_data as _moments_store
         world.moments = _moments_store(data)
+        # DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the Questions of Europe — a
+        # scenario's top-level `questions` block, or a save's store carried
+        # inside the moments store (the affairs precedent, RE-1); nothing
+        # is written where none are authored.
+        from backend.game_logic import questions as _questions
+        _questions.install(world, data)
         # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open store — ids are
         # validated by the reader; values coerced to int; a bad value dropped.
         _first_opens: Dict[str, int] = {}
@@ -17310,6 +17321,12 @@ class WorldState:
                                 marshal.nation, _charge_from,
                                 liberated=bool(_ac_liberated_to),
                                 prior_title=_ac_prior_title)
+                            # DY-2: the Questions' latch, mirrored here as
+                            # the Alarm's write is (the sibling sweep).
+                            from backend.game_logic import questions as _ac_questions
+                            _ac_questions.note_capture(
+                                self, auto_charge_battle_region,
+                                _ac_liberated_to or marshal.nation, _charge_from)
                             conquered = True
                             conquest_msg = (
                                 f" {_ac_line}" if _ac_liberated_to else

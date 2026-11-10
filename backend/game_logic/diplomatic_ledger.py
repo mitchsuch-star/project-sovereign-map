@@ -1626,6 +1626,13 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
     _alarm = _alarm_lines(world)
     if _alarm:
         result["alarm_lines"] = _alarm
+    # DY-2 (DYNAMISM_SPEC.md §4, Tier 5): the Questions of Europe in
+    # sentences, one a table (`questions.question_lines`, the one composer);
+    # absent where the scenario authors none, so the payload is unchanged.
+    from backend.game_logic.questions import question_lines as _question_lines
+    _questions = _question_lines(world)
+    if _questions:
+        result["question_lines"] = _questions
     return result
 
 # ============================================================================

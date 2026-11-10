@@ -1,0 +1,137 @@
+{
+ "_note": "Session B (Tier 5 whole) \u2014 the France band on the commanded arms (DYNAMISM_SPEC.md \u00a72: the deploy gate's difficulty guard, 23\u201328): score_run's CMD-H / CMD-A / CMD-M (commanded_full40.json, forty turns, the mock parser) per arm \u2014 France's provinces on the last ledger row; written by tools/_t5_measure.py --surfaces band (a chain run ALONE).",
+ "arms": {
+  "0": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.questions:the_questions_of_europe=False",
+    "backend.game_logic.questions:the_congress_rules_a_question=False",
+    "backend.game_logic.settlement_third_party:a_lord_signs_for_its_client=False",
+    "backend.game_logic.settlement_third_party:a_leader_signs_for_its_allies=False",
+    "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False"
+   ]
+  },
+  "ALL": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": []
+  },
+  "BERN": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.settlement_third_party:a_leader_signs_for_its_allies=False",
+    "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False"
+   ]
+  },
+  "GIFT": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False"
+   ]
+  },
+  "Q": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.questions:the_congress_rules_a_question=False",
+    "backend.game_logic.settlement_third_party:a_lord_signs_for_its_client=False",
+    "backend.game_logic.settlement_third_party:a_leader_signs_for_its_allies=False",
+    "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False"
+   ]
+  },
+  "QC": {
+   "CMD-A": {
+    "provinces": 27,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-H": {
+    "provinces": 28,
+    "status": "completed",
+    "turn": 40
+   },
+   "CMD-M": {
+    "provinces": 26,
+    "status": "completed",
+    "turn": 40
+   },
+   "seams_down": [
+    "backend.game_logic.settlement_third_party:a_lord_signs_for_its_client=False",
+    "backend.game_logic.settlement_third_party:a_leader_signs_for_its_allies=False",
+    "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False"
+   ]
+  }
+ },
+ "band": [
+  23,
+  28
+ ]
+}

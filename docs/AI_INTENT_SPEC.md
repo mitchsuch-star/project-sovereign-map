@@ -833,7 +833,7 @@ COARSE, timing-blind projection (sets, never turns): the belligerent pairs of ev
 pledged, and the Concert's three — the Questions turned, the rank promotions, the awakened
 nations. **The columns' event-type contract binds the owning tiers:** Tier 5 emits
 `question_turns`, Tier 4 `rank_promotion`, Tier 6 `awakening_*` — the columns exist from today
-and read empty until each tier lands, so a tier's first nonzero is its own signature change.
+and read empty until each tier lands, so a tier's first nonzero is its own signature change. *(Tier 4 landed November 10, 2026 with `rank_promotion`; Tier 5 landed the same day — session B, `DYNAMISM_SPEC.md` §4a — and `question_turns` reads nonzero from it.)*
 `story_class_count` over the ten ambient `SWEEP_SEEDS` is the deploy gate's number (≥ 4 of 10;
 the raise question sits at Tier 6's head). The pre-build baseline is archived at
 `tools/_dy_signature_baseline.json` by `tools/_dy0_baseline.py`, a chain run ALONE — its count

@@ -1099,6 +1099,15 @@ func _render_balance_of_europe():
 			bbcode += "  [color=#" + COLOR_AMBER + "]" + str(aline) + "[/color]\n"
 		bbcode += "\n"
 
+	# DY-2 (DYNAMISM_SPEC.md §4): the Questions of Europe — one sentence a
+	# table, composed by the backend (R7); never a bar, never a figure.
+	var question_lines = boe.get("question_lines", [])
+	if question_lines is Array and question_lines.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]THE QUESTIONS OF EUROPE[/color]\n"
+		for qline in question_lines:
+			bbcode += "  [color=#" + COLOR_AMBER + "]" + str(qline) + "[/color]\n"
+		bbcode += "\n"
+
 	# Coalition status
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]Coalition Status:[/color]\n"
 	var coalition_state = str(boe.get("coalition_state", "NO_HEGEMON"))
