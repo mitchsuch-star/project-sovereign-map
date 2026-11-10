@@ -755,6 +755,166 @@
           "press": "ROME — English ships are seen again at Civitavecchia.",
           "remember": "In {month} you let the Pope refuse; Caprara writes again."
         }
+      },
+      {
+        "id": "the_people_stir",
+        "kind": "affair",
+        "shape": "bill",
+        "title": "The People Stir",
+        "source": "research — Fouché's police bulletins (Bulletins de la police, 1804–1810; Tulard, Joseph Fouché): the Minister read a country's temper in waylaid couriers and refused requisitions months before any rising; DYNAMISM_SPEC.md §5 (DY-4, the Awakening)",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "people_stir"
+        },
+        "streak": 2,
+        "bites": "clamp",
+        "since": "DY-4",
+        "cooldown": 12,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Fouché, Minister of Police"
+        },
+        "record": "Historically the Minister of Police read a country's temper in its small refusals — a courier waylaid, a requisition unmet — months before the first shot of a rising.",
+        "line": "Sire, the country of {host} answers our prefects with silence: couriers are waylaid, requisitions refused, and the garrisons sleep under arms.",
+        "watch": "The people of {host} stir under our garrisons ({n} provinces): {m} of 2 mornings — Fouché may write.",
+        "counsel": "Talleyrand — A proclamation of liberties costs gold and a little pride, Sire; a people left to its silence costs an army.",
+        "accept": {
+          "caption": "Proclaim the liberties",
+          "button_line": "−{gold} gold · 1 action · {Host} cools",
+          "ops": [
+            {
+              "op": "gold",
+              "amount": 600
+            },
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "awakening",
+              "court": "$host",
+              "delta": -15
+            }
+          ],
+          "echo": "Fouché: the proclamation is posted in {seat}; the prefects report the roads open again.",
+          "situation": "The liberties of {host} are proclaimed; its people cool under the Emperor's word.",
+          "press": "{SEAT} — The Emperor proclaims the liberties of {host}; the prefects report the country quieter.",
+          "remember": "In {month} you proclaimed the liberties of {host}; Fouché writes again."
+        },
+        "decline": {
+          "caption": "Let the prefects manage",
+          "button_line": "auth {authority_before} → {authority_after} · {Host} cools not",
+          "ops": [
+            {
+              "op": "authority",
+              "amount": -2,
+              "tiers": {
+                "2": -3,
+                "3": -4
+              }
+            },
+            {
+              "op": "relation",
+              "court": "$host",
+              "delta": -3,
+              "unless": "vassal"
+            },
+            {
+              "op": "loyalty",
+              "court": "$host",
+              "delta": -3
+            }
+          ],
+          "echo": "Fouché: the prefects will manage, Sire; the roads will not.",
+          "situation": "The people of {host} stir on; the prefects manage as they can.",
+          "press": "{SEAT} — The prefects of {host} report the roads unquiet.",
+          "remember": "In {month} you left {host} to its prefects; Fouché writes again."
+        }
+      },
+      {
+        "id": "the_ulcer",
+        "kind": "affair",
+        "shape": "bill",
+        "title": "The Ulcer",
+        "source": "research — Napoleon at St Helena on Spain ('that unfortunate war … the Spanish ulcer'); Berthier's Peninsula correspondence, 1808–09: every convoy needed a brigade, every courier an escort; DYNAMISM_SPEC.md §5 (DY-4, the Awakening)",
+        "scope": "owner",
+        "roads": [
+          "any"
+        ],
+        "when": {
+          "predicate": "people_risen"
+        },
+        "streak": 2,
+        "bites": "clamp",
+        "since": "DY-4",
+        "cooldown": 14,
+        "cap": 2,
+        "grace": 4,
+        "voice": {
+          "speaker": "named",
+          "name": "Berthier, Major-General of the Grande Armée"
+        },
+        "record": "Historically the Peninsula bled the Grande Armée on its roads: every convoy needed a brigade, every courier an escort, and the Emperor called it his ulcer.",
+        "line": "Sire, {host} is an ulcer: the people have risen, our columns bleed on their roads, and every convoy needs a brigade to reach the next town.",
+        "watch": "The people of {host} have risen under our garrisons ({n} provinces): {m} of 2 mornings — Berthier may write.",
+        "counsel": "Talleyrand — An amnesty and a charter are cheaper than a second army, Sire; the sword has answered once and the country answered back.",
+        "accept": {
+          "caption": "An amnesty and a charter",
+          "button_line": "−{gold} gold · 1 action · {Host} cools",
+          "ops": [
+            {
+              "op": "gold",
+              "amount": 1000
+            },
+            {
+              "op": "admin",
+              "amount": 1
+            },
+            {
+              "op": "awakening",
+              "court": "$host",
+              "delta": -20
+            }
+          ],
+          "echo": "Berthier: the amnesty is published and the charter read in {seat}; the roads are quieter by the week.",
+          "situation": "An amnesty and a charter for {host}; the country draws breath.",
+          "press": "{SEAT} — The Emperor grants {host} an amnesty and a charter; the roads are reported quieter.",
+          "remember": "In {month} you granted {host} an amnesty; Berthier writes again."
+        },
+        "decline": {
+          "caption": "The sword answers",
+          "button_line": "auth {authority_before} → {authority_after} · {Host} cools not",
+          "ops": [
+            {
+              "op": "authority",
+              "amount": -3,
+              "tiers": {
+                "2": -4,
+                "3": -5
+              }
+            },
+            {
+              "op": "relation",
+              "court": "$host",
+              "delta": -5,
+              "unless": "vassal"
+            },
+            {
+              "op": "loyalty",
+              "court": "$host",
+              "delta": -5
+            }
+          ],
+          "echo": "Berthier: the columns will answer, Sire — and bleed.",
+          "situation": "The sword answers in {host}; the columns bleed on.",
+          "press": "{SEAT} — The Grande Armée holds {host} by the sword.",
+          "remember": "In {month} the sword answered in {host}; Berthier writes again."
+        }
       }
     ]
   }

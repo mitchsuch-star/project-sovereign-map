@@ -452,6 +452,9 @@ def _rebuild_world(world_data: Dict, filepath: Path) -> WorldState:
     # DY-2 (docs/DYNAMISM_SPEC.md §4): a pre-Tier-5 save whose scenario NOW
     # authors the Questions of Europe gains the block, its latch empty.
     _backfill_questions(world)
+    # DY-4 (docs/DYNAMISM_SPEC.md §5): a pre-Tier-6 save whose scenario NOW
+    # authors the Awakening gains the store, every people at 0.
+    _backfill_awakening(world)
 
     # GE-1 verification round: a fallen campaign's save that does not
     # name its own Final file — written by 975f1f13, which stamped
@@ -793,6 +796,7 @@ def _backfill_moments(world: WorldState) -> None:
         candidates.append(Path(base).joinpath(*parts))
     from backend.game_logic.moments import backfill_store
     from backend.game_logic.questions import STORE_KEY as _QUESTIONS
+    from backend.game_logic.awakening import STORE_KEY as _AWAKENING
     for path in candidates:
         try:
             with open(path, encoding="utf-8") as fh:
@@ -801,9 +805,12 @@ def _backfill_moments(world: WorldState) -> None:
             continue
         store = backfill_store(world, data, str(getattr(world, "campaign_seed", "") or "historical"))
         if store:
-            carried = (existing or {}).get(_QUESTIONS) if isinstance(existing, dict) else None
-            if isinstance(carried, dict) and carried:
-                store[_QUESTIONS] = carried
+            # DY-2 / DY-4: the sibling stores ride the same key — carried
+            # across the rebuild, never rebuilt.
+            for sibling in (_QUESTIONS, _AWAKENING):
+                carried = (existing or {}).get(sibling) if isinstance(existing, dict) else None
+                if isinstance(carried, dict) and carried:
+                    store[sibling] = carried
             world.moments = store
         return
 
@@ -830,6 +837,32 @@ def _backfill_questions(world: WorldState) -> None:
         except (OSError, ValueError):
             continue
         _questions.backfill(world, data)
+        return
+
+
+def _backfill_awakening(world: WorldState) -> None:
+    """DY-4 (DYNAMISM_SPEC.md §5, Tier 6): a pre-Tier-6 save of a scenario
+    that NOW authors the Awakening gains the store on load (the
+    `_backfill_questions` idiom): every people at 0, the save's own web as
+    the boot web — nothing retroactive; a save carrying the store is never
+    overwritten."""
+    from backend.game_logic import awakening as _awakening
+    if _awakening.armed(world):
+        return
+    parts = _BACKFILL_SCENARIOS.get(str(getattr(world, "scenario_name", "") or ""))
+    if not parts:
+        return
+    candidates = [Path(__file__).resolve().parents[1].joinpath(*parts)]
+    base = getattr(sys, "_MEIPASS", None)
+    if base:
+        candidates.append(Path(base).joinpath(*parts))
+    for path in candidates:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        _awakening.backfill(world, data)
         return
 
 

@@ -95,8 +95,23 @@ def census_of(digest: dict) -> dict:
     # Congress's rulings, a lord signing for its client at the last, and
     # the aim peaces that signed for an ally (a second "takes" receiver).
     questions_turned, rulings, lord_refuges, ally_cessions = [], [], [], []
+    # Tier 6 (session C, DYNAMISM_SPEC.md §5): the peoples' beats — a court
+    # crossing a phase of the Awakening — and the supply bill by nation (the
+    # ulcer's own footprint, summed from the attrition rows).
+    awakening_beats: list = []
+    supply_losses: dict = {}
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if event.get("type") == "awakening":
+                awakening_beats.append({"turn": int(row.get("turn", 0)),
+                                        "court": str(event.get("nation") or ""),
+                                        "phase": str(event.get("phase") or ""),
+                                        "direction": str(event.get("direction") or ""),
+                                        "occupied": int(event.get("occupied", 0) or 0),
+                                        "cause": str(event.get("cause") or "")})
+            if event.get("type") == "supply_attrition":
+                nation = str(event.get("nation") or "")
+                supply_losses[nation] = int(supply_losses.get(nation, 0)) + int(event.get("losses", 0) or 0)
             if event.get("type") == "question_turns":
                 questions_turned.append({"turn": int(row.get("turn", 0)),
                                          "question": str(event.get("question") or ""),
@@ -204,6 +219,8 @@ def census_of(digest: dict) -> dict:
             "question_rulings": rulings,
             "lord_refuges": lord_refuges,
             "ally_cessions": ally_cessions,
+            "awakening_beats": awakening_beats,
+            "supply_losses": dict(sorted(supply_losses.items())),
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
             "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
             "annexations_outside_aim_by_court": dict(
@@ -282,6 +299,9 @@ def main() -> None:
             "question_rulings": sum(len(c["question_rulings"]) for c in census.values()),
             "lord_refuges": sum(len(c["lord_refuges"]) for c in census.values()),
             "ally_cessions": sum(len(c["ally_cessions"]) for c in census.values()),
+            # Tier 6 (session C): the peoples' beats and the supply bill, summed
+            "awakening_beats": sum(len(c["awakening_beats"]) for c in census.values()),
+            "supply_losses": sum(sum(c["supply_losses"].values()) for c in census.values()),
         },
     }
     pathlib.Path(args.census).write_text(

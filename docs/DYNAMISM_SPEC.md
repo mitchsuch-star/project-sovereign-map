@@ -60,8 +60,8 @@ Plan Mode gate the plan row already requires), and each is one line to reverse:
 
 | # | Question | Default | Owner tier |
 |---|---|---|---|
-| Q2 | The Awakening's grain | **Per-court scalar**, regional expression derived (a per-region store costs save size and Rule 8 care for no v1 behavior the scalar cannot express) | Tier 6 (DY-4) |
-| Q3 | Does the ulcer bleed France too? | **Yes** — Spain is the point: the player feels the mechanic they inflict (an AI-only ulcer would be a rule the player reads about but never meets) | Tier 6 (DY-4) |
+| Q2 | The Awakening's grain | **Per-court scalar**, regional expression derived (a per-region store costs save size and Rule 8 care for no v1 behavior the scalar cannot express) — **✅ RULED November 10, 2026 at session C's head, under the user's delegation ("rule yourself be rigorous make it good"): the per-court scalar, the store `world.moments["awakening"]` (§5a)** | Tier 6 (DY-4) |
+| Q3 | Does the ulcer bleed France too? | **Yes** — Spain is the point: the player feels the mechanic they inflict (an AI-only ulcer would be a rule the player reads about but never meets) — **✅ RULED November 10, 2026 at session C's head (delegated): YES, with no player exemption anywhere in the module, and the corollary — the player's own people stir when invaded (§5a)** | Tier 6 (DY-4) |
 | Q4 | The Questions list | **Four** (German, Italian, Eastern, Polish); the Maritime Question stays folded into the blockade/CS machinery `NAVAL_SPEC.md` already owns — **✅ RULED November 10, 2026 at session B's head: "Four on the drawn map" (§4a)** | Tier 5 (DY-2) |
 | Q5 | Promotion: teeth at once? | **Yes** — force-limit tier, call-to-arms weight and table standing move with the rank; a display-only rank would be a promise with no teeth | Tier 4 (DY-1b) |
 | Q6 | Is alarm ever a number on a player surface? | **No** — alarm is felt through acts (a guarantee given, a brew begun) and read in Talleyrand's words and the Balance tab's sentences ([[feedback-talleyrand-counsel-alive]]: a reading, not a lookup) | Tier 4 (DY-1) |
@@ -115,10 +115,10 @@ the commanded arms' France band 23–28 as the difficulty guard.
 | 3 | **The strategist** (gate record `AI_INTENT_SPEC.md` §13.2 ✅ RULED November 8, 2026 in Plan Mode at the tier's head — the aim-set deliberately narrow, the metric first, ONE war_aim read, the leash with AI-3c folded in, the aim-held sue, "chains C and D" resolved, the scope guards): **T3-1 ✅ LANDED November 8, 2026** — the march metric (`captures_outside_aim` offline from the digest; the dated baseline `tools/_t3_march_baseline_2026_11_08.json` reads the tier's starting DEBT: **397 ambient captures outside aim** across the ten seeds, 22–72 per seed, Austria the chief offender on every one — `SYSTEMS_REFERENCE.md` §193); **T3-2 ✅ LANDED November 8, 2026** — `war_council.war_aim`, one read spoken in words (the derivation moved home, the instrument delegates; the line speaks the OUTSTANDING object — a held province is no object, a lost one joins the line; three surfaces fold, zero client changes — `SYSTEMS_REFERENCE.md` §194); **T3-3 ✅ LANDED November 8, 2026** — the leash and its conduct rule (the at-war pull toward the stated object; the conduct half by the user's word — an at-war court annexes only its pull or an enemy's seat; AI-3c found already built at Stage D; the debt falls 386 → 208 on every seed, story classes 10 → 8 the honest cost — `SYSTEMS_REFERENCE.md` §195); **T3-4 ✅ LANDED November 9, 2026** — the terms (a court holding its aim offers peace on it: AI–AI the aim's provinces ceded by treaty along authored aims — an AI-only war ending whole on its leaders' aims, a pair inside France's war exiting on its own; AI–player P8-Aim at 25, P8 found already built and the aim letter its first arm; "held" = a delivered gain; ten aim peaces, story classes held at 8, the debt 208 → 228 a purse butterfly on austerlitz, Hanover saved on marengo — `SYSTEMS_REFERENCE.md` §196); **T3-5 ✅ LANDED November 9, 2026 — TIER 3 COMPLETE** — the terms made consistent by the user's "do what's best" (the victor's lenient aim peace only for a loser still standing; a broken loser sues and pays, and every peace signs a held aim over by name), the conduct rule binding the harness France (a marshal under the player's independent command left exempt), chain C (the final tree reproduces T3-3's world-lines byte for byte; against T2-6 nine of ten world-lines moved, story classes 10 → 8, the debt 386 → 208) and chain D (France's entry 245 → 194 with the harness bound; the march toward Estonia still taken as the road to St. Petersburg) — `AI_INTENT_SPEC.md` §13.3, `SYSTEMS_REFERENCE.md` §197; **T3-6 ✅ LANDED November 9, 2026** — occupation is not annexation (an AI peace keeps its aims and hands the rest of the loser's homeland back; the gate measures `annexations_outside_aim`; the kept debt 42 → 7 ambient, the residual Tier 4's — `SYSTEMS_REFERENCE.md` §198). | ≈4 | maps diverge in role-true directions |
 | 4 | **The Alarm of Europe** (§3, DY-1) + **promotion's first teeth** (§3b, DY-1b) — and the deploy gate's T3-6 residual (the spoils of eliminated minors kept outside aims: 7 ambient, 8 in the AI-France harness) to 0. **The gate ✅ RULED November 9, 2026 (§3c)** — five census corrections; the erasure rule "sign at the last" added as row DY-1c; Q5 teeth at once, Q6 words only (each the user's "your call"). **T4-1 ✅ LANDED November 9, 2026** — the Alarm (an AI court's capture alarms Europe against its house — 6 a province, 12 a capital, 8 a third court's client — and an alarmed neighbour gives its word for the next victim, only where it binds against the conqueror alone; Prussia's word for Bavaria against Austria at turn 7 on austerlitz, lodi and ulm; story classes 8 → 10; the kept debt 7 unchanged, T4-2's; the AI-France harness's AI courts 8 → 7; `SYSTEMS_REFERENCE.md` §199). **T4-2 ✅ LANDED November 9, 2026** — sign at the last (row DY-1c; `SYSTEMS_REFERENCE.md` §200): a court at its last province signs with every AI court holding homeland it may not keep and lives on; the kept debt 7 → 0 on the ambient seeds and 7 → 0 for the AI courts of the AI-France harness; eight courts sign ambient (Bavaria on every seed where she fell), ten in the harness; story classes 10 → 9 and the fallen-courts column CONVERGES (the Kingdom of Italy alone on all ten seeds, only its turn varying) — the honest cost, reported. **Session A ✅ LANDED November 10, 2026 — TIER 4 COMPLETE** (`SYSTEMS_REFERENCE.md` §201): T4-2b the court removes (a court whose seat a treaty of its own house titles to another AI court removes to the richest homeland province in its hands and returns with its authored capital; the moved seat rides `Region.is_capital`, no field — Bavaria to Franconia on all ten ambient seeds, Hanover to Brunswick on six) and T4-3 promotion (rank DERIVED from a `rank` law in force; the five crowns of 1806 authored on their designs' grounds; `rank_promotion` the one new log type). ONE sweep, three arms: arm 0 reproduces the T4-2 records byte for byte on both surfaces; the seat alone moves every seed (story classes 9 → 10; Prussia's word for Bavaria honoured on seven seeds; Switzerland falls on ulm); **the crowns move nothing — no court held its grounds six turns on either surface** (the nearest: Bavaria in the Tyrol on friedland, two turns); the France band holds on the commanded arms (28 / 27 / 26); the standing series does not move; one province left on the annexation line for the user (Bern, kept by Bavaria on ulm — a fallen client's spoils). | ≈2 | eliminations vary; `guarantees_given` > 0; a minor can rise |
 | 5 | **The Questions of Europe** (§4, DY-2) — **✅ COMPLETE November 10, 2026, session B** (`SYSTEMS_REFERENCE.md` §202; the gate §4a): DY-2 the Questions, DY-3 the Congress rules a Question, and the three leftovers — DY-1e Bern's road home, DY-1f the Emperor's gift, DY-1g the Emperor's treaty moves a seat. ONE sweep, six arms: arm 0 reproduces session A on both surfaces; the Questions ALONE move all ten ambient seeds (story classes held 10 of 10); the tables turn 26 times — the German for Austria at turn 2 on every seed, the Italian on every seed, once for Prussia; **no second great-power war appears** (the war column unchanged on eight seeds; rivoli gains the Hanover war where the honour war stood; ulm calms) — the 1805 board's tables turn for Austria, who is at war already, and the only envious design with an army is Prussia's — put to the user at session C's head; Bern's road clears the annexation line (1 → 0, Switzerland lives on ulm); no crown taken; the band 28 / 27 / 26 on every arm; the standing series unmoved. | ≈2 (one session) | a second great-power war appears; the war column stops reading Prussia–Hanover alone — ❌ NOT MET ambiently on the 1805 board (reported; the reason and the levers in §4a) |
-| 6 | **The Awakening** (§5, DY-4/DY-5). | ≈3–4 | occupiers bleed; a liberation war surges; a client rebellion names its cause |
+| 6 | **The Awakening** (§5, DY-4/DY-5) — **session C ✅ LANDED November 10, 2026 (the gate §5a ruled under the user's delegation; THE DEPLOY GATE RAISED, §7; DY-4: the store, the derived count with the boot-web house read, the bands, the cools, the lumps, the dictated peace by rank, the sovereign taken, the client squeezed, the beats, the ulcer, the two letters and the `awakening` op — `SYSTEMS_REFERENCE.md` §203)**; DY-5 session D. | ≈3–4 | occupiers bleed; a liberation war surges; a client rebellion names its cause — **measured at C: the peoples stir and rise on every surface (France's own ambiently, Austria's and Russia's under the AI-France march); the march does NOT visibly bleed (the ulcer taxes the cap, a corps under it pays nothing — reported, the lever to the user); the letters appear by their own conditions on the frozen board and on no measured arm** |
 | 7 | **Bounded timing dice** (the old Tier 4) — evaluated at the deploy gate on the story-class count; built only if the count falls short of 4. | gated | — |
 | 8 | **Crowns & Recognition** (§6, DY-6/DY-7) — the marquee. | ≈4 | `formations` stops reading "none"; the map gains states history gained |
-| — | **S15 THE DEPLOY** (Q1 as REVERSED November 7, 2026 — after Tier 8; §0). Deploy gate: 0 open GR rows, story classes ≥ 4 of 10 (the raise question sits at Tier 6's head — §7), `annexations_outside_aim` 0 (amended at T3-6 — annexation, not occupation; `captures_outside_aim` the war's footprint), France band 23–28, historian test green on every seed. | — | — |
+| — | **S15 THE DEPLOY** (Q1 as REVERSED November 7, 2026 — after Tier 8; §0). Deploy gate — **RAISED November 10, 2026 at Tier 6's head (§7, ruled under the user's delegation):** 0 open GR rows; story classes **≥ 6 of 10**; **at least one ambient seed with a minor at secondary rank by promotion** (`rank_promotions`); **the map's roster varying** — at least two distinct (fallen courts, formed states) readings across the ten seeds (`eliminations` ∪ `formations`); `annexations_outside_aim` 0 (amended at T3-6 — annexation, not occupation; `captures_outside_aim` the war's footprint); France band 23–28; historian test green on every seed. The second and third clauses are UNMET today and are content's to earn (§7); a clause still unmet after session F goes to the user as an explicit question with no default — never a silent cut (§0). | — | — |
 
 ### §2b The session plan — the same content in fewer sessions (✅ RE-CUT November 9, 2026)
 
@@ -161,7 +161,7 @@ default (§7); the deploy gate; no cuts without consent.
 |---|---|---|---|
 | **A** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §201) | **Tier 4 closes:** T4-2b the seat (a court whose capital is signed away moves its seat — the user's "use best judgment but focus on utmost quality") + T4-3 promotion (DY-1b, §3c G6) + the tier's close (the France band re-read on the commanded arms, `rank_promotions`). Arms: 0 / seat / seat + promotion. | nothing to rule — both are ruled | one |
 | **B** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §202; the gate record §4a) | **Tier 5 whole:** the gate + DY-2 the Questions (the `questions` block and its validator, the latch, the envy term, the beat, the Balance panel, the guarantee rung's Question arm) + DY-3 the Congress rules a Question — and the three leftovers session A put to the user: DY-1e Bern's road home, DY-1f the Emperor's gift (both roads), DY-1g the Emperor's treaty moves a seat. Arms: 0 / Q / QC / BERN / GIFT / ALL. | Q4 (the four Questions) and the latch's store, Bern, the crowns, the seat's boundaries — one batch | one |
-| **C** | **The Awakening, first half:** the gate + DY-4 (the store, the raises and cools, the ulcer, the letters — the three decks in lockstep, the pacing chain re-recorded). | Q2, Q3 and **the raise-the-gate question (no default)**, one batch | one |
+| **C** ✅ LANDED November 10, 2026 (`SYSTEMS_REFERENCE.md` §203; the gate record §5a; the gate raised §7) | **The Awakening, first half:** the gate + DY-4 (the store, the raises and cools, the ulcer, the letters — the three decks in lockstep, the pacing chain re-recorded). Arms: 0 / STIR / ULCER / ALL. | Q2, Q3 and **the raise-the-gate question (no default)**, one batch — the user's "rule yourself be rigioprous make it good" | one |
 | **D** | **The Awakening, second half:** DY-5 (the levée, the client dial, the interplays) + the tier's measure chain and close. | nothing new | one |
 | **E** | **Crowns:** Tier 8's gate + DY-6 (the crown erected as a guided settlement term, the marshal king — Naples under Murat end to end). | Tier 8's questions, one batch | one |
 | **F** | **Recognition and the gate's reading:** DY-7 + Tier 8's close + **Tier 7 evaluated** (the story-class count against the gate; the bounded dice built only if it falls short). | nothing new, unless Tier 7 is needed | one |
@@ -707,7 +707,197 @@ it to loyalty; the sweep carries `awakening_events`; Rule 8 pin on the tick. **T
 DY-4 the store, the raises/cools, the ulcer, the letters; DY-5 the levée, the client
 dial, the measure chain. **STATUS lines** at each landing.
 
+**Amended at the gate (§5a, November 10, 2026 — the census corrections, each binding on
+the build):** the occupied-home count is DERIVED once a turn, never a maintained counter
+(C1); "foreign-held" is a HOUSE read against the court's live house AND its BOOT house
+(C2); every court of the boot roster carries the scalar, eliminated ones and the player's
+house included (C3); "the sovereign captured" is the marshal event, not the capital (C4);
+"a dictated peace" rides the one punitive writer, tier-scaled by the court's DERIVED rank
+(C5); "tribute raised" is the autonomy write (C6); the two thresholds are AUTHORED in the
+scenario's `awakening` block, the raises, cools and the ulcer's factor code constants (Q2).
+
 ---
+
+### §5a The Tier-6 gate record (✅ RULED November 10, 2026, in Plan Mode at session C's head)
+
+**The user's words at the gate**, verbatim, on the three questions put in one batch (the §2b
+idiom — the rulings listed in the session's prompt beforehand): **"rule yourself be rigioprous
+make it good"** — a delegation of all three. The calls below are Claude's under it, approved
+with the plan (the user's plan file `transient-hatching-kurzweil.md`). Each is one line to
+reverse.
+
+**Q2 — the grain: a PER-COURT scalar 0–100, regional expression DERIVED.** A per-region store
+would cost save size and Rule 8 care for no v1 behavior the scalar cannot express; the
+regional teeth are derived — the ulcer reads the province's boot owner, the count reads the
+boot homeland. **The store** is `world.moments["awakening"] = {"block": {stirring, risen},
+"houses": {client: boot lord}, "courts": {court: {"level", "occupied"}}}` — the T5 precedent
+(`questions.py`: `install` beside the moments line on `from_dict`; `moments.store_from_data`
+drops unknown keys, so the sibling re-adds itself; `save_manager._backfill_moments` carries
+both siblings across a rebuild; `_backfill_awakening` arms a pre-Tier-6 save of the 1805
+campaign, every people at 0, the save's own web as the boot web — nothing retroactive).
+Sparse: a court's row exists once its level or its count is nonzero. `WorldState.to_dict`
+gains no line (497 of 500 stands). **Armed by the scenario's top-level `awakening` block**
+`{"stirring": 40, "risen": 70}` — the two thresholds the letters and the teeth read, authored
+content validator-clamped (`_validate_awakening`: integers in [1, 99], `stirring` below
+`risen`, an unknown key an ERROR — the `statecraft` idiom; an empty object arms the code
+defaults; D7's principle: a hotter or colder era is a mod's dial, reviewable in the file).
+The bare flag world, the tutorials and the legacy rollback author none and write nothing
+(`moments == {}` pinned). The raises, the cools and the ulcer's factor stay code constants
+(N-DY4, the `ENVY_WINDOW` idiom).
+
+**Q3 — the ulcer bleeds France too: YES, with no player exemption anywhere in the module.**
+Spain is the point; an AI-only ulcer is a rule the player reads about and never meets.
+Corollary, ruled with it: the player's own house carries the scalar like every court — when
+Austria stands on French soil the French people stir and the invader bleeds (1814's question,
+answered symmetrically — Building Blocks: the same systems, different input values).
+
+**THE RAISE-THE-GATE QUESTION — ruled in §7: THE GATE RISES** (the three clauses, their
+columns and their owners are recorded there; §2's deploy row carries the gate as ruled).
+
+**Census corrections — what the survey found that §5 did not know** (the Tier-3, -4 and -5
+gates' idiom):
+- **C1.** A maintained occupied-home counter would drift. Fifteen writers set
+  `region.controller` outside `capture_region` — the three treaty roads
+  (`settlement_ratify._apply_settlement_terms`, `_ratify_one_time_clauses`, the surety
+  return), `compensation`'s paid territory, `diplomacy.hand_back_province`,
+  `game_end._return_home` (the status quo's and T3-6's evacuations), `formations`' client
+  carve, the vassal grants and reclaims, the transfer to the player, the debug cheats. The
+  count is therefore DERIVED once a turn at the tick: the court's boot homeland
+  (`nation_starting_regions`, serialized) against the holders' HOUSES — O(Σ homeland), 126
+  lookups a turn on the 1805 map, no `regions.values()` walk (the Rule-8 source pin). The
+  capture chokepoint writes nothing for DY-4.
+- **C2.** "Foreign-held" is a HOUSE read: the holder's live house (`_top_overlord`, the
+  Alarm's and the Questions' read) is outside the court's HOME houses (`awakening.
+  home_houses`) — the court itself, and its BOOT lord while the court is still (or again)
+  that lord's client or has been erased: the web the court was born into, snapshotted into
+  the store once the vassals are final (the Europe boot seeds its web in `__init__`; the
+  file carries no `vassals` key). So a boot client's soil under its lord is home; the
+  Kingdom of Italy's under France is home though the court was erased, under Austria
+  occupied; Spain's under France is occupied though Spain marched beside France in 1805
+  (the ulcer's own case); Hanover's under Prussia is occupied though a treaty signed it.
+  **A court SUBJUGATED later keeps its boot house** — its new lord's holdings are foreign
+  (Spain under Joseph; Austria under the Emperor's own Pressburg): the people rise against
+  the garrisons of the lord imposed on them, and DY-5's client dial reads the same scalar
+  (the first sweep's read — a vassalized court's soil "home" to its new lord — would have
+  left the player's most-played road without an ulcer and the dial without a road; refined
+  before the final record). A client that broke free reads its old lord's holdings as
+  foreign from then on. An empty controller is nobody's garrison.
+- **C3.** Every court of the boot roster carries the scalar — ELIMINATED ONES INCLUDED (a
+  people outlives its court: Poland; the Kingdom of Italy's soil under Austria stirs on
+  every ambient seed) and the player's house. The letters bind ACTIVE hosts only (the
+  display slots assume a court); an erased court's people act through the ulcer and the beat.
+- **C4.** "The sovereign captured" is a marshal event, not the capital: `WorldState.
+  capture_marshal` (the ONE capture seam, W6-7 / NP-4) with `marshal.is_sovereign` — Bayonne:
+  Ferdinand taken, Spain rises (+10). On the 1805 roster the sovereign marshal is Napoleon's
+  own: the Emperor taken raises the French people (Q3's corollary, pinned).
+- **C5.** "A dictated peace" already has ONE writer: `emergent_designs.record_punitive_cessions`
+  (the three ratify roads call it; the punitive bar = homeland cessions ≥ N or the historic
+  capital, compensation netted). The Awakening's write rides inside it, scaled by the court's
+  DERIVED rank (`get_power_tier` — a promoted minor feels it as a secondary): major +15,
+  secondary +10, minor +5 — a great power's people feel a partition more (Tilsit → 1813;
+  Pressburg → 1809). A peace below the bar writes nothing.
+- **C6.** "Tribute raised" is the same write as autonomy lowered (`TRIBUTE_RATES[level]`; no
+  separate tribute verb exists): `change_vassal_autonomy` down = the squeeze (+5), up = home
+  rule restored (−10); `release_vassal` is the lump's other road — every road to a release
+  passes it (the liberation term on both ratify roads, the voluntary release, the rebellion).
+- **C7.** The affairs deck's mechanical hash (`deck_sha` descends into `affairs`) is pinned by
+  `test_moments_pacing.py`, `test_affairs_reach.py` and `test_affairs_pacing.py`: two letters
+  and one op re-record the reach and the probe (the au4 chain's phases 1–3 and `record`, run
+  ALONE after the sweep — `tools/playtest_runs/t6_pacing_2026_11_10/chain.sh`).
+- **C8.** `since` rows arm a template by seam (`affairs.row_armed`): the letters carry
+  `since: "DY-4"` → `awakening.the_people_write()`; arm 0 holds them out of the deck whole.
+
+**DY-4 as built** — `backend/game_logic/awakening.py`, three seams (`tests/_t3_seams.py`
+rows T6-STIR, T6-ULCER, T6-LETTERS): **the scalar** (seam `the_people_stir`) — the tick sited
+in `_advance_turn_internal` right before `moments.tick` so the morning's letters read the
+fresh scalar: per boot court the derived count, +band (N-DY4: 1–2 foreign-held +1 a turn,
+3–5 +2, 6 or more +3) or −1 with none held, the lump −10 on the transition occupied → none;
+the event writes at their one sites (C4–C6); ONE writer `move` for every change, clamped
+0–100, the beat on a phase crossing — one `awakening` log row (`phase` quiet / stirring /
+risen, `direction`, `occupied`, `cause`; the log census 183 → 184, the fifteen pins flipped;
+DY-0's `awakening_events` column reads the prefix, the `awakened` class the nations named)
+and a HIGH dispatch line in the courts' register, in WORDS ("THE PEOPLE OF SPAIN STIR: 4
+home provinces under foreign garrisons; couriers are waylaid and requisitions refused." /
+"THE PEOPLE OF SPAIN HAVE RISEN: an occupier's columns bleed on their roads — the country is
+an ulcer." / "The people of Spain are quiet again — home rule is theirs."), never a figure
+of the scalar (Q6's spirit); Le Moniteur's courts column names the stirring. **The ulcer**
+(seam `the_ulcer_bleeds`) — `_supply_multiplier`'s read after the naval verdict and BEFORE
+the doctrine's step (SF-DC-1's "last step" contract kept): ×0.75 when the province's boot
+owner stands at `risen`, the soil is foreign-held and the army's house is outside the
+owner's; the owner's own army never bleeds, nobody bleeds on home-held soil, an ally beside
+the occupier bleeds; shown = applied by construction (`get_effective_supply_cap` feeds the
+bill, the dispatch's strain headline, the ledger and the depot chip). **The letters** (seam
+`the_people_write`) — two templates in the affairs deck, the scenario and the fixture in
+lockstep: *The People Stir* (predicate `people_stir`: the most-occupied ACTIVE court at
+`stirring` below `risen` whose homeland the lord's house holds; Fouché writes; Accept
+"Proclaim the liberties" 600 gold, an action, the people −15; Decline "Let the prefects
+manage" authority −2 / −3 / −4 by tier beside the host's goodwill and loyalty −3, `bites:
+"clamp"` — the Host's shape, the user's "Clamp it first": a people's rising arrives on a
+bled board too) and *The Ulcer* (`people_risen`;
+Berthier writes; Accept "An amnesty and a charter" 1,000 gold, an action, the people −20;
+Decline "The sword answers" authority −3 / −4 / −5 beside goodwill and loyalty −5, clamped
+the same); the `awakening` op — the twelfth
+(`moments.OPS` 11 → 12, the four pins flipped) — Accept-only, bounds −30..−1, quoted in
+words ("the people of Bavaria quieten (risen → stirring)"), applied through the one writer;
+the dated deck's vocabulary stays closed (not in `OP_BOUNDS`). The lord's own clients never
+bind (their soil under him is home); another house's garrisons are not the Emperor's affair.
+**What DY-5 (session D) owns from here:** the levée, the client dial, the interplays, and the
+third letter — *The Nation in Arms* (the player's own people risen against an invader, the
+levée's own letter), named here so it has a home (Rule 9).
+
+**The session landed (November 10, 2026; `SYSTEMS_REFERENCE.md` §203; the pins
+`tests/test_dy4_the_awakening.py` `TestTheSessionCMeasure`).** ONE sweep, four arms (0 / STIR /
+ULCER / ALL) on three surfaces (`tools/_t6_measure.py`), run ALONE — twice: the first run's read of
+a subjugated court's soil as "home" to its new lord was refined before the record (§5a C2), and the
+second run reproduces the first on every surface. **Arm 0 reproduces session B's records byte for
+byte on both surfaces**; the France band holds at 28 / 27 / 26 on every arm; story classes **10 of
+10 on every arm**; **the standing series does not move** (`tools/_t6_series_arms_final.json`: every
+arm reproduces HEAD's `BASELINE_SERIES`; on that loop the scalar's seam is read 180 times with 139
+raises, one cool and three beats, the ulcer's 3,427 times with 145 bites, the letters' predicates
+never hold — no re-pin, no re-link). **The scalar ALONE moves every ambient seed, by the
+`awakening_events` column and nothing else** — no war column, no elimination, no capture moves; 25
+beats across the ten seeds: the FRENCH people stir on every seed (turns 25–33 — the idle France
+loses 5–18 home provinces to the coalition) and rise on seven (32–41); the Bavarians stir on seven
+seeds (36–41: Munich and Swabia under Austria, two provinces at +1 a turn) and quieten on marengo at
+41 (home rule — Austria's peace hands them back); no other people reaches 40 in forty turns (the
+Kingdom of Italy's two provinces under Austria climb to about 31, Hanover's one under Prussia the
+same — the bands are the pace, and the ambient board occupies little). **The ulcer alone moves ulm**
+(`captures_outside_aim` 248 → 251 — Austria's corps bleed on risen French soil and the war's spread
+captures shift) and no class; the supply bill rises on six seeds (ulm +3,522 men, wagram +1,085,
+jena +345, friedland +287, historical +182, lodi +66; 1,190,952 → 1,196,439 across the ten, +0.46%),
+the French bill unchanged (an idle France is never an occupier), Austria's +5,152, Spain's +260,
+Russia's +75 — the invaders of a risen France. **The letters move nothing ambiently** (the idle France
+holds no stirring people's soil). The totals: `annexations_outside_aim` 0 on every arm; the tables
+turn 26 times; the Alarm's guarantees 10, honoured 6; last refuges 22; `rank_promotions` 0 on every
+seed (the raised gate's second clause unmet, as reported); the eliminations column the Kingdom of
+Italy alone on all ten (the third clause unmet). **The AI-France harness** (`tools/
+_t6_chain_d_2026_11_10.json`): arm 0 reproduces session B's arm ALL on its keys; the scalar alone
+moves no world-line but the column — Austria's people stir on every seed at 19–21 and rise at 29–31
+(the march holds six and more Austrian provinces from turn 10, +3 a turn), Russia's stir on eight
+seeds at 26–30 and rise at 36–40 (the Estonia road; on eylau and friedland the march never reaches
+Estonia and Russia's people never stir); **the ulcer moves austerlitz and eylau** (France's final
+provinces 47 → 48, 34 → 36; its captures 29 → 31, 11 → 13 — re-routed world-lines), the Estonia
+turns unchanged on every seed, France's supply bill 499,833 → 488,612 (−2.2%: up on friedland,
+marengo, ulm and wagram, down on austerlitz, eylau, jena and rivoli, unchanged on historical and
+lodi). **The march does not visibly bleed — said plainly:** the ulcer taxes the CAP, a corps under
+the reduced cap pays nothing, and the AI-France's corps crowd on risen soil late and briefly; §5's
+done-when ("the AI-France march to Estonia bleeds") is NOT met as written, and the lever is below.
+The harness's France received neither letter: the desk's own rules (RE §7 — the pick by the
+longest-standing premise, the crowding past grace, the cooldown re-armed) seat a people's
+late-arising stir behind the bills that have stood longer. The AI courts' annexations 0 on every
+arm; France's own entry 178 → 181 (reported, never gated). **The letters' reach** — the pacing chain
+re-recorded (the deck changed: `tools/_s14c_sweep_final.json`, `tools/_affairs_first_arrival.json`):
+on the 53 measured arms *The People Stir*'s premise never held on 52 (the commanded arms end with
+France's 28 boot provinces and hold no foreign soil; the passive runs' France is idle; the Danube
+script returns Austria's soil at its peace) and held one morning on the hand-played DDB-25 conquest
+board; *The Ulcer*'s never — no measured arm holds a people's soil fourteen turns; the frozen-board
+pin is the letters' proof. **The pacing record moved — attributed, not assumed:** forty-eight of the record's fifty-five arms read different letter timings against the November 7 record (T0-H's, the last run). The attribution arms (`tools/playtest_runs/t6_pacing_2026_11_10/attrib_*`: the commanded and accept families and the 21 sweep runs under the Awakening's seams) read the Awakening out of it — with the scalar and the ulcer held down and the letters up, every row reproduces the shipped record row for row; with every seam down, or the letters alone down, the rows differ by the two letters' "held out" label alone; the Throne road at austerlitz ends at 36 against its control's 40 on the letters arm with every Awakening seam down too. What moved is four tiers of world-lines since November 7 — the seed, the Questions' envy, the Alarm, the seat, the terms — read by the pacing record for the first time because the deck change forced the re-record; the pins that read its seeded figures are re-seated to the record's truth with that cause (`test_affairs_reach.py`, `test_affairs_pacing.py`, `test_moments_pacing.py`, `test_vp1_the_decisive_peace.py`; the road record `tools/_vp1_road_arms_final.json` re-recorded from the same armed run, T0-H's kept as `tools/_vp1_road_arms_2026_11_07.json`). One chain correction, recorded: Road I answered runs with `--moment accept --affair accept` (the measure tool's own form — the copied au4 chain lacked `--moment accept`, and the Crown read "declined" on the accept arms until it was restored). **The levers for the user, reported and none pre-recommended
+(§0):** (a) the ulcer's teeth — a tax on the cap bites crowded corps only; a flat attrition on risen
+soil ("every convoy needs a brigade") would bite a lone corps too — session D's option if wanted;
+(b) the desk's seat for a people's rising — RE §7's ruled pick seats it behind the standing bills; a
+crisis-class priority, or the letters recast as causal moments anchored on the beat, would bring it
+forward — RE's design, the user's call; (c) the bands' pace on the ambient board (two provinces at
++1 a turn: Bavaria stirs at 36–41, the Kingdom of Italy never in forty) — N-DY4's numbers, tuneable.
 
 ## §6 Crowns & Recognition (DY-6 and DY-7 — Tier 8, the pre-deploy marquee, after §5)
 
@@ -750,18 +940,42 @@ signature tool itself; the pre-build baseline is archived
 **9 of 10 story classes** pre-band — the floor the tiers must beat.
 
 **The gates, restated in one place:** the DEPLOY gate (after Tier 8 — Q1 as reversed,
-§0) is unchanged in substance — 0 open GR rows, story classes ≥ 4 of 10 with the
-historian test green on every seed, `annexations_outside_aim` 0 (amended at T3-6), France band 23–28. Whether
-the story-class GATE should RISE now that the Awakening and the Crowns ship pre-deploy
-is a question for Tier 6's head, put to the user with NO default marked; until the user
-rules, ≥ 4 of 10 stands, and the post-Awakening reading — ≥ 6 of 10, at least one seed
-with a minor at secondary rank, the eliminations column varying — stays an aspiration,
-not a gate. (One line of color, not a gate's evidence: T0-E/F/G's after-sweep
-hand-grouping read 10 of 10 story classes on the war columns alone,
-`SYSTEMS_REFERENCE.md` §182.5 — but DY-0's own signature is the instrument, and it lands
-at Tier 2's head.) Tier 7's dice are built only if the deploy-gate count falls short of
-4 — variance must first be earned by content, dice are the last resort and stay bounded
-by pin 14.
+§0) — 0 open GR rows, the story-class clause below with the historian test green on every
+seed, `annexations_outside_aim` 0 (amended at T3-6), France band 23–28. Whether the
+story-class GATE should RISE now that the Awakening and the Crowns ship pre-deploy was
+the question for Tier 6's head, put to the user with NO default marked (the reading as it
+stood: ≥ 4 of 10, the post-Awakening reading — ≥ 6 of 10, at least one seed with a minor at
+secondary rank, the eliminations column varying — an aspiration, not a gate; one line of
+color, not a gate's evidence: T0-E/F/G's after-sweep hand-grouping read 10 of 10 story
+classes on the war columns alone, `SYSTEMS_REFERENCE.md` §182.5 — DY-0's own signature is
+the instrument).
+
+**✅ RULED November 10, 2026 at session C's head — THE GATE RISES** (put to the user with
+no default; the user's word, verbatim: *"rule yourself be rigioprous make it good"* — the
+ruling Claude's under that delegation, approved with the plan). A gate at 4 while the
+record has read 8–10 on every tier since Tier 2 is a gate that cannot fail, and a gate
+that cannot fail is not a gate. The post-Awakening reading becomes THE gate, each clause
+tied to an instrument column and an owner:
+
+1. **story classes ≥ 6 of 10** (`story_class_count`) — margin below the measured 10,
+   above Tier 3's honest 8; MET today;
+2. **at least one ambient seed with a minor at secondary rank by promotion**
+   (`rank_promotions` non-empty on ≥ 1 seed) — the user's own words made a gate
+   (*"sometimes even minor powers get big"*); UNMET today on every seed (no crown taken,
+   sessions A and B); owners: session D's levée (a court at war on contested home soil
+   keeps its ground), Tier 8's crowns, session B's content levers (§4a's landing note);
+3. **the map's roster varies** — at least two distinct (fallen courts, formed states)
+   readings across the ten seeds (`eliminations` ∪ `formations`): Tier 8's own signature
+   ("the map gains states history gained") folded in — the honest reading of the user's
+   "cool maps arise" where "the eliminations column varying" alone fought T4-2's own
+   design (a crown falls by treaty, never by the sword alone); UNMET today (the Kingdom
+   of Italy alone on all ten seeds, no formation); owners: session D's levée (a client at
+   war on its own soil may hold), Tier 8's formations.
+
+Tier 7's bounded dice may satisfy clause 1 alone and never 2 or 3; they are built only if
+the count falls short of **6** (variance must first be earned by content, dice are the
+last resort and stay bounded by pin 14). A clause still unmet after session F goes to the
+user as an explicit question with NO default — never a silent cut (§0's standing rule).
 
 ---
 
@@ -793,8 +1007,8 @@ by pin 14.
 | DY-1e | 5 — ✅ LANDED November 10, 2026 (session B; the user's "Road home" for Bern) | the lord signs for its client at the last (§4a): a client at its last province signs through its AI lord's pair with each holder of its homeland outside that holder's keepable set (SR-1b — the client follows its lord out; `_signs_for_the_client`), the homeland going home first; the player's house exempt on either side; seam `settlement_third_party.a_lord_signs_for_its_client` | on a crafted board Britain signs for Switzerland against Saxony and Bern goes home, the client living on as Britain's; the seam down falls as T4-2 did; the player's client still falls; a client at war on its own account signs its own; `annexations_outside_aim` 0 on both surfaces — **measured:** see §4a's landing note | rides DY-2's file (`TestTheLordSignsForItsClient`) |
 | DY-1f | 5 — ✅ LANDED November 10, 2026 (session B; the user's "best solution no corner cutting") | the Emperor's gift (§4a): (i) the player's road — the ally petition asks for the ally's authored designs (`_coveted_regions_of_ally`) and its prevalidation reads the validator's occupied-homeland rule (`_occupied_homeland_ok`); (ii) the AI's road — an aim peace carries each co-belligerent's delivered aim the side holds, ceded to that ally (`war_council.side_aim_cessions`), seam `settlement_third_party.a_leader_signs_for_its_allies`; the levers K = 6 and 3,000 stand | Pressburg's Tyrol to Bavaria pinned end to end (the petition, the cession, the treaty title, six quiet turns, the AI's own rung, the `rank_promotion` row); Russia's aim peace cedes Scania to Denmark and her crown's refusal clears; the seam down is T3-4's leaders-only peace; five crowns askable where three were not — **measured:** `rank_promotions` on the sweep, see §4a's landing note | rides DY-2's file (`TestTheEmperorsGift`) |
 | DY-1g | 5 — ✅ LANDED November 10, 2026 (session B; the user's "reason best solution for gameplay") | the Emperor's treaty moves a seat (§4a): boundary (1) kept, boundary (2) reversed — a court whose capital the player's house takes by treaty removes like any other; the Congress's recognition-by-defeat reads the historic capital (`congress._historic`, `game_end`'s `capital_kept`); seam `game_end.the_emperors_treaty_moves_a_seat` | Vienna's cession removes Austria's court to Bohemia while the Congress reads Vienna in the Emperor's hands and the `capital` latch names it; the Emperor's client takes a seat too; the player's own court never removes; the seam down is session A's boundary; no `get_nation_capital(court)` read left in `congress.py` — **measured:** the France band on the commanded arms, see §4a's landing note | rides DY-2's file (`TestTheEmperorsTreatyMovesASeat`); `test_a_capital_in_the_emperors_hands_moves_the_seat_too` re-seated with cause in DY-1's file |
-| DY-4 | 6 | the store, raises/cools, the ulcer, the letters (§5) | the AI-France march bleeds; the letters appear by condition | `tests/test_dy4_the_awakening.py` |
-| DY-5 | 6 | the levée, the client dial, the measure chain (§5) | 1813 surges; the tiger ridden at autonomy ≥ 2 | `tests/test_dy5_the_tiger_ridden.py` |
+| DY-4 | 6 — ✅ LANDED November 10, 2026 (session C) | the store, raises/cools, the ulcer, the letters (§5; the gate §5a): `awakening.py` — the store inside `world.moments` armed by the scenario's `awakening` block, the DERIVED occupied count with the boot-web house read (C1, C2), the bands and cools, the one writer `move` and the beats (`awakening`, 183 → 184), the dictated peace by rank, the sovereign taken, the client squeezed, the ulcer at `_supply_multiplier`, the two letters and the `awakening` op; three seams (T6-STIR / T6-ULCER / T6-LETTERS) | the AI-France march bleeds; the letters appear by condition — **measured:** arm 0 reproduces session B byte for byte on both surfaces; the scalar alone moves every ambient seed by the new column (the French people stir on every seed, the Bavarians on seven); the ulcer alone moves ulm and the harness's austerlitz and eylau; **the march does NOT visibly bleed** — the ulcer taxes the cap and a corps under it pays nothing (reported; the lever to the user); **the letters never arrive on a measured arm** (no measured France holds a people's soil fourteen turns; the desk seats a late premise behind the standing bills) and appear by their own conditions on the frozen board (stir 15, the letter 18, risen 25, The Ulcer 30 — the pin); the band holds; the series unmoved; the pacing record re-recorded and its drift attributed to Tiers 1–5, not the Awakening (§5a's landing note) | `tests/test_dy4_the_awakening.py` |
+| DY-5 | 6 | the levée, the client dial, the measure chain (§5) — and, from session C's gate (§5a), the third letter *The Nation in Arms* (the player's own people risen against an invader — the levée's own letter) and the boot-web boundary of C2 if the client dial needs it | 1813 surges; the tiger ridden at autonomy ≥ 2 | `tests/test_dy5_the_tiger_ridden.py` |
 | DY-6 | 8 | the crown erected + the marshal king (§6) | Naples under Murat, end to end, guided UI | `tests/test_dy6_the_crown_erected.py` |
 | DY-7 | 8 | Recognition (§6) | recognition moves acceptance/trade; the Congress grants | `tests/test_dy7_recognition.py` |
 

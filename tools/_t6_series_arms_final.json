@@ -1,0 +1,389 @@
+{
+ "prior": [
+  70,
+  68,
+  66,
+  64,
+  62,
+  60,
+  58,
+  56,
+  44,
+  42,
+  39,
+  26,
+  28,
+  25,
+  22,
+  27,
+  24,
+  21,
+  18,
+  15,
+  12,
+  9,
+  6,
+  3,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "seams_down": {
+  "0": [
+   "LETTERS",
+   "STIR",
+   "ULCER"
+  ],
+  "STIR": [
+   "LETTERS",
+   "ULCER"
+  ],
+  "ULCER": [
+   "LETTERS"
+  ],
+  "ALL": []
+ },
+ "arms": {
+  "0": {
+   "down": [
+    "LETTERS",
+    "STIR",
+    "ULCER"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "stir_seam_reads": 43,
+     "ulcer_seam_reads": 3427,
+     "letters_seam_reads": 12322,
+     "moves": 0,
+     "raises": 0,
+     "cools": 0,
+     "beats": 0,
+     "ulcer_reads": 3427,
+     "ulcer_bites": 0,
+     "letters_people_stir": 0,
+     "letters_people_risen": 0
+    },
+    "moves": []
+   }
+  },
+  "STIR": {
+   "down": [
+    "LETTERS",
+    "ULCER"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "stir_seam_reads": 180,
+     "ulcer_seam_reads": 3427,
+     "letters_seam_reads": 12322,
+     "moves": 140,
+     "raises": 139,
+     "cools": 1,
+     "beats": 3,
+     "ulcer_reads": 3427,
+     "ulcer_bites": 0,
+     "letters_people_stir": 0,
+     "letters_people_risen": 0
+    },
+    "moves": [
+     [
+      25,
+      "beat",
+      "France",
+      "stirring",
+      "occupation"
+     ],
+     [
+      32,
+      "beat",
+      "France",
+      "risen",
+      "occupation"
+     ],
+     [
+      36,
+      "beat",
+      "Bavaria",
+      "stirring",
+      "occupation"
+     ]
+    ]
+   }
+  },
+  "ULCER": {
+   "down": [
+    "LETTERS"
+   ],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "stir_seam_reads": 180,
+     "ulcer_seam_reads": 3427,
+     "letters_seam_reads": 12322,
+     "moves": 140,
+     "raises": 139,
+     "cools": 1,
+     "beats": 3,
+     "ulcer_reads": 3427,
+     "ulcer_bites": 145,
+     "letters_people_stir": 0,
+     "letters_people_risen": 0
+    },
+    "moves": [
+     [
+      25,
+      "beat",
+      "France",
+      "stirring",
+      "occupation"
+     ],
+     [
+      32,
+      "beat",
+      "France",
+      "risen",
+      "occupation"
+     ],
+     [
+      36,
+      "beat",
+      "Bavaria",
+      "stirring",
+      "occupation"
+     ]
+    ]
+   }
+  },
+  "ALL": {
+   "down": [],
+   "series": [
+    70,
+    68,
+    66,
+    64,
+    62,
+    60,
+    58,
+    56,
+    44,
+    42,
+    39,
+    26,
+    28,
+    25,
+    22,
+    27,
+    24,
+    21,
+    18,
+    15,
+    12,
+    9,
+    6,
+    3,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "first_divergence_vs_prior": null,
+   "reach": {
+    "counts": {
+     "stir_seam_reads": 180,
+     "ulcer_seam_reads": 3427,
+     "letters_seam_reads": 12400,
+     "moves": 140,
+     "raises": 139,
+     "cools": 1,
+     "beats": 3,
+     "ulcer_reads": 3427,
+     "ulcer_bites": 145,
+     "letters_people_stir": 0,
+     "letters_people_risen": 0
+    },
+    "moves": [
+     [
+      25,
+      "beat",
+      "France",
+      "stirring",
+      "occupation"
+     ],
+     [
+      32,
+      "beat",
+      "France",
+      "risen",
+      "occupation"
+     ],
+     [
+      36,
+      "beat",
+      "Bavaria",
+      "stirring",
+      "occupation"
+     ]
+    ]
+   }
+  }
+ }
+}

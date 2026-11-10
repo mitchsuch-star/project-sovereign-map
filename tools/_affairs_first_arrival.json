@@ -1,7 +1,7 @@
 {
  "_part": "RE-1 — the look-ahead and the first arrival on the ten SWEEP_SEEDS, the passive board to turn 20, the staged deck grafted on the shipped boot (docs/RECURRING_EVENTS_SPEC.md §0b P8, §17b)",
  "turns": 20,
- "fixture_sha": "04c9f1a07348961a7acdd2662fbda31f9a95d18f19b66837ccb3ce2fdbcee76a",
+ "fixture_sha": "372def12bd1f1215eb67e6f896a1f870459db29f871b0f915c77f40e135d0f3d",
  "affairs": [
   "chancellors_letters",
   "the_host",
@@ -12,7 +12,9 @@
   "camps_of_instruction",
   "the_proclamation",
   "the_bank",
-  "the_popes_ports"
+  "the_popes_ports",
+  "the_people_stir",
+  "the_ulcer"
  ],
  "seeds": {
   "historical": {
@@ -21,7 +23,7 @@
     "arm": "control",
     "last_turn": 21,
     "moments": {
-     "throne_of_holland": 18
+     "bavarian_match": 8
     },
     "affairs": {},
     "first_affair": null,
@@ -31,8 +33,8 @@
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "throne_of_holland": {
-       "first_due": 18,
+      "bavarian_match": {
+       "first_due": 8,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -40,10 +42,10 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "throne_of_holland": 18
+      "bavarian_match": 8
      },
      "passed": {
-      "bavarian_match": "premise"
+      "throne_of_holland": "premise"
      }
     },
     "errors": []
@@ -53,18 +55,18 @@
     "arm": "letters",
     "last_turn": 21,
     "moments": {
-     "throne_of_holland": 18
+     "bavarian_match": 8
     },
     "affairs": {
      "the_proclamation#1": {
-      "turn": 7,
+      "turn": 13,
       "status": "lapsed",
       "reason": "",
       "bind": {},
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 12,
+      "turn": 18,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -75,21 +77,24 @@
      }
     },
     "first_affair": {
-     "turn": 7,
+     "turn": 13,
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
      "the_bank|": 18
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "throne_of_holland": {
-       "first_due": 18,
+      "bavarian_match": {
+       "first_due": 8,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -104,7 +109,7 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 7,
@@ -113,7 +118,7 @@
        "verdict": "ok"
       },
       "the_remounts|": {
-       "first_due": 13,
+       "first_due": 11,
        "status": "",
        "reason": "",
        "verdict": "released"
@@ -121,12 +126,12 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 7,
-      "santo_domingo#1": 12,
-      "throne_of_holland": 18
+      "bavarian_match": 8,
+      "the_proclamation#1": 13,
+      "santo_domingo#1": 18
      },
      "passed": {
-      "bavarian_match": "premise"
+      "throne_of_holland": "premise"
      }
     },
     "errors": []
@@ -135,48 +140,51 @@
     "seed": "historical",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 8
+    },
     "affairs": {
      "the_proclamation#1": {
-      "turn": 7,
+      "turn": 13,
       "status": "lapsed",
       "reason": "",
       "bind": {},
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 12,
+      "turn": 18,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "region": "Lorraine",
+       "region": "Franche-Comte",
        "sovereign": "Napoleon"
       },
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 20,
-      "status": "fired",
-      "reason": "",
-      "bind": {},
       "tier": 1
      }
     },
     "first_affair": {
-     "turn": 7,
+     "turn": 13,
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
-     "the_bank|": 18,
-     "the_proclamation|": 3
+     "the_bank|": 18
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 7,
        "status": "lapsed",
@@ -187,7 +195,7 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 7,
@@ -196,7 +204,7 @@
        "verdict": "ok"
       },
       "the_remounts|": {
-       "first_due": 13,
+       "first_due": 11,
        "status": "",
        "reason": "",
        "verdict": "released"
@@ -204,12 +212,11 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 7,
-      "santo_domingo#1": 12,
-      "the_proclamation#2": 20
+      "bavarian_match": 8,
+      "the_proclamation#1": 13,
+      "santo_domingo#1": 18
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -222,8 +229,7 @@
     "arm": "control",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 9,
-     "throne_of_holland": 19
+     "bavarian_match": 9
     },
     "affairs": {},
     "first_affair": null,
@@ -238,18 +244,11 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
-      },
-      "throne_of_holland": {
-       "first_due": 19,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "bavarian_match": 9,
-      "throne_of_holland": 19
+      "bavarian_match": 9
      },
      "passed": {}
     },
@@ -260,12 +259,11 @@
     "arm": "letters",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 9,
-     "throne_of_holland": 19
+     "bavarian_match": 9
     },
     "affairs": {
      "santo_domingo#1": {
-      "turn": 15,
+      "turn": 14,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -273,30 +271,36 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_proclamation#1": {
+      "turn": 20,
+      "status": "fired",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
-     "turn": 15,
+     "turn": 14,
      "id": "santo_domingo#1"
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_proclamation|": 20,
      "the_bank|": 19,
-     "the_popes_ports|": 19
+     "the_popes_ports|": 19,
+     "the_remounts|": 11
     },
-    "due": {},
+    "due": {
+     "the_remounts|": 2,
+     "the_popes_ports|": 2
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
       "bavarian_match": {
        "first_due": 9,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "throne_of_holland": {
-       "first_due": 19,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -311,20 +315,26 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
-       "first_due": 16,
+       "first_due": 12,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 11,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "bavarian_match": 9,
-      "santo_domingo#1": 15,
-      "throne_of_holland": 19
+      "santo_domingo#1": 14,
+      "the_proclamation#1": 20
      },
      "passed": {}
     },
@@ -339,7 +349,7 @@
     },
     "affairs": {
      "santo_domingo#1": {
-      "turn": 15,
+      "turn": 14,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -347,18 +357,28 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_proclamation#1": {
+      "turn": 20,
+      "status": "fired",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
-     "turn": 15,
+     "turn": 14,
      "id": "santo_domingo#1"
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_proclamation|": 20,
      "the_bank|": 19,
      "the_popes_ports|": 19
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 2
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -379,13 +399,26 @@
        "first_due": 14,
        "status": "",
        "reason": "",
+       "verdict": "pending"
+      },
+      "the_proclamation|": {
+       "first_due": 13,
+       "status": "fired",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 12,
+       "status": "",
+       "reason": "",
        "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "bavarian_match": 9,
-      "santo_domingo#1": 15
+      "santo_domingo#1": 14,
+      "the_proclamation#1": 20
      },
      "passed": {}
     },
@@ -398,7 +431,8 @@
     "arm": "control",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 10
+     "bavarian_match": 10,
+     "throne_of_holland": 19
     },
     "affairs": {},
     "first_affair": null,
@@ -413,11 +447,18 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "throne_of_holland": {
+       "first_due": 19,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "bavarian_match": 10
+      "bavarian_match": 10,
+      "throne_of_holland": 19
      },
      "passed": {}
     },
@@ -428,99 +469,22 @@
     "arm": "letters",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 10
-    },
-    "affairs": {
-     "santo_domingo#1": {
-      "turn": 14,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {
-       "region": "Lorraine",
-       "sovereign": "Napoleon"
-      },
-      "tier": 1
-     }
-    },
-    "first_affair": {
-     "turn": 14,
-     "id": "santo_domingo#1"
-    },
-    "streaks": {
-     "santo_domingo|": 20,
-     "the_bank|": 19,
-     "the_popes_ports|": 19
-    },
-    "due": {},
-    "judged": {
-     "ceiling_breaches": [],
-     "floor_breaches": [],
-     "floors": {
-      "bavarian_match": {
-       "first_due": 10,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "santo_domingo|": {
-       "first_due": 9,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "the_popes_ports|": {
-       "first_due": 14,
-       "status": "",
-       "reason": "",
-       "verdict": "released"
-      },
-      "the_proclamation|": {
-       "first_due": 16,
-       "status": "",
-       "reason": "",
-       "verdict": "released"
-      }
-     },
-     "shown_equals_applied": true,
-     "arrived": {
-      "bavarian_match": 10,
-      "santo_domingo#1": 14
-     },
-     "passed": {}
-    },
-    "errors": []
-   },
-   "armed": {
-    "seed": "austerlitz",
-    "arm": "armed",
-    "last_turn": 21,
-    "moments": {
      "bavarian_match": 10,
      "throne_of_holland": 19
     },
-    "affairs": {
-     "santo_domingo#1": {
-      "turn": 14,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {
-       "region": "Lorraine",
-       "sovereign": "Napoleon"
-      },
-      "tier": 1
-     }
-    },
-    "first_affair": {
-     "turn": 14,
-     "id": "santo_domingo#1"
-    },
+    "affairs": {},
+    "first_affair": null,
     "streaks": {
      "santo_domingo|": 20,
      "the_proclamation|": 20,
      "the_bank|": 19,
      "the_popes_ports|": 19
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 3,
+     "the_proclamation|": 3,
+     "the_popes_ports|": 3
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -539,12 +503,24 @@
       },
       "santo_domingo|": {
        "first_due": 9,
-       "status": "lapsed",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "the_popes_ports|": {
        "first_due": 14,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_proclamation|": {
+       "first_due": 12,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_remounts|": {
+       "first_due": 11,
        "status": "",
        "reason": "",
        "verdict": "released"
@@ -553,8 +529,86 @@
      "shown_equals_applied": true,
      "arrived": {
       "bavarian_match": 10,
-      "santo_domingo#1": 14,
       "throne_of_holland": 19
+     },
+     "passed": {}
+    },
+    "errors": []
+   },
+   "armed": {
+    "seed": "austerlitz",
+    "arm": "armed",
+    "last_turn": 21,
+    "moments": {
+     "bavarian_match": 10
+    },
+    "affairs": {
+     "santo_domingo#1": {
+      "turn": 18,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {
+       "region": "Franche-Comte",
+       "sovereign": "Napoleon"
+      },
+      "tier": 1
+     }
+    },
+    "first_affair": {
+     "turn": 18,
+     "id": "santo_domingo#1"
+    },
+    "streaks": {
+     "santo_domingo|": 20,
+     "the_proclamation|": 20,
+     "the_bank|": 19,
+     "the_popes_ports|": 19,
+     "the_remounts|": 10
+    },
+    "due": {
+     "the_remounts|": 4,
+     "the_proclamation|": 4,
+     "the_popes_ports|": 4
+    },
+    "judged": {
+     "ceiling_breaches": [],
+     "floor_breaches": [],
+     "floors": {
+      "bavarian_match": {
+       "first_due": 10,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "santo_domingo|": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_proclamation|": {
+       "first_due": 12,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_remounts|": {
+       "first_due": 12,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      }
+     },
+     "shown_equals_applied": true,
+     "arrived": {
+      "bavarian_match": 10,
+      "santo_domingo#1": 18
      },
      "passed": {}
     },
@@ -566,7 +620,9 @@
     "seed": "jena",
     "arm": "control",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 11
+    },
     "affairs": {},
     "first_affair": null,
     "streaks": {},
@@ -574,12 +630,19 @@
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
-     "floors": {},
+     "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
      "shown_equals_applied": true,
-     "arrived": {},
-     "passed": {
-      "bavarian_match": "premise"
-     }
+     "arrived": {
+      "bavarian_match": 11
+     },
+     "passed": {}
     },
     "errors": []
    },
@@ -587,7 +650,9 @@
     "seed": "jena",
     "arm": "letters",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 11
+    },
     "affairs": {
      "the_proclamation#1": {
       "turn": 6,
@@ -597,20 +662,13 @@
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 12,
+      "turn": 17,
       "status": "lapsed",
       "reason": "",
       "bind": {
        "region": "Franche-Comte",
        "sovereign": "Napoleon"
       },
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 18,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
       "tier": 1
      }
     },
@@ -622,14 +680,21 @@
      "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_bank|": 19,
-     "the_popes_ports|": 19,
-     "chancellors_letters|": 3
+     "the_popes_ports|": 19
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",
@@ -640,24 +705,28 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 6,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 19,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "the_proclamation#1": 6,
-      "santo_domingo#1": 12,
-      "the_proclamation#2": 18
+      "bavarian_match": 11,
+      "santo_domingo#1": 17
      },
-     "passed": {
-      "bavarian_match": "premise"
-     }
+     "passed": {}
     },
     "errors": []
    },
@@ -665,7 +734,9 @@
     "seed": "jena",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 11
+    },
     "affairs": {
      "the_proclamation#1": {
       "turn": 6,
@@ -675,20 +746,13 @@
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 12,
+      "turn": 17,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "region": "Franche-Comte",
+       "region": "Lorraine",
        "sovereign": "Napoleon"
       },
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 18,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
       "tier": 1
      }
     },
@@ -700,14 +764,21 @@
      "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_bank|": 19,
-     "the_popes_ports|": 19,
-     "chancellors_letters|": 5
+     "the_popes_ports|": 19
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",
@@ -718,24 +789,28 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 6,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 17,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "the_proclamation#1": 6,
-      "santo_domingo#1": 12,
-      "the_proclamation#2": 18
+      "bavarian_match": 11,
+      "santo_domingo#1": 17
      },
-     "passed": {
-      "bavarian_match": "premise"
-     }
+     "passed": {}
     },
     "errors": []
    }
@@ -745,7 +820,9 @@
     "seed": "marengo",
     "arm": "control",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 8
+    },
     "affairs": {},
     "first_affair": null,
     "streaks": {},
@@ -753,11 +830,19 @@
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
-     "floors": {},
+     "floors": {
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
      "shown_equals_applied": true,
-     "arrived": {},
+     "arrived": {
+      "bavarian_match": 8
+     },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -767,17 +852,12 @@
     "seed": "marengo",
     "arm": "letters",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 8
+    },
     "affairs": {
-     "the_proclamation#1": {
-      "turn": 6,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
      "santo_domingo#1": {
-      "turn": 13,
+      "turn": 16,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -785,34 +865,31 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 18,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
      }
     },
     "first_affair": {
-     "turn": 6,
-     "id": "the_proclamation#1"
+     "turn": 16,
+     "id": "santo_domingo#1"
     },
     "streaks": {
      "santo_domingo|": 20,
      "the_proclamation|": 20,
      "the_bank|": 19,
-     "the_popes_ports|": 19,
-     "chancellors_letters|": 5,
-     "the_remounts|": 2
+     "the_popes_ports|": 19
     },
     "due": {
-     "the_popes_ports|": 1
+     "the_popes_ports|": 3
     },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 6,
        "status": "lapsed",
@@ -827,25 +904,17 @@
       },
       "the_proclamation|": {
        "first_due": 6,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "the_remounts|": {
-       "first_due": 20,
        "status": "",
        "reason": "",
-       "verdict": "pending"
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 6,
-      "santo_domingo#1": 13,
-      "the_proclamation#2": 18
+      "bavarian_match": 8,
+      "santo_domingo#1": 16
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -855,65 +924,43 @@
     "seed": "marengo",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 8
+    },
     "affairs": {
-     "the_proclamation#1": {
-      "turn": 6,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
      "santo_domingo#1": {
-      "turn": 13,
+      "turn": 16,
       "status": "lapsed",
       "reason": "",
       "bind": {
-       "region": "Swabia",
+       "region": "Lorraine",
        "sovereign": "Napoleon"
       },
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 18,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
       "tier": 1
      }
     },
     "first_affair": {
-     "turn": 6,
-     "id": "the_proclamation#1"
+     "turn": 16,
+     "id": "santo_domingo#1"
     },
     "streaks": {
      "santo_domingo|": 20,
      "the_proclamation|": 20,
      "the_bank|": 19,
-     "the_popes_ports|": 19,
-     "chancellors_letters|": 10,
-     "the_remounts|": 4
+     "the_popes_ports|": 19
     },
     "due": {
-     "chancellors_letters|": 1,
-     "the_remounts|": 1,
-     "the_popes_ports|": 1
+     "the_popes_ports|": 3
     },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "berthiers_memorial|": {
-       "first_due": 17,
-       "status": "",
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
        "reason": "",
-       "verdict": "released"
-      },
-      "chancellors_letters|": {
-       "first_due": 17,
-       "status": "",
-       "reason": "",
-       "verdict": "pending"
+       "verdict": "ok"
       },
       "santo_domingo|": {
        "first_due": 6,
@@ -929,25 +976,17 @@
       },
       "the_proclamation|": {
        "first_due": 6,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "the_remounts|": {
-       "first_due": 18,
        "status": "",
        "reason": "",
-       "verdict": "pending"
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 6,
-      "santo_domingo#1": 13,
-      "the_proclamation#2": 18
+      "bavarian_match": 8,
+      "santo_domingo#1": 16
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -959,7 +998,9 @@
     "seed": "eylau",
     "arm": "control",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 9
+    },
     "affairs": {},
     "first_affair": null,
     "streaks": {},
@@ -967,11 +1008,19 @@
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
-     "floors": {},
+     "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
      "shown_equals_applied": true,
-     "arrived": {},
+     "arrived": {
+      "bavarian_match": 9
+     },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -981,24 +1030,12 @@
     "seed": "eylau",
     "arm": "letters",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 9
+    },
     "affairs": {
      "the_proclamation#1": {
-      "turn": 7,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
-     "the_popes_ports#1": {
-      "turn": 15,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 19,
+      "turn": 16,
       "status": "lapsed",
       "reason": "",
       "bind": {},
@@ -1006,7 +1043,7 @@
      }
     },
     "first_affair": {
-     "turn": 7,
+     "turn": 16,
      "id": "the_proclamation#1"
     },
     "streaks": {
@@ -1014,25 +1051,33 @@
      "santo_domingo|": 19,
      "the_bank|": 19,
      "the_popes_ports|": 19,
-     "chancellors_letters|": 5,
-     "the_remounts|": 1
+     "the_remounts|": 3
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 1,
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 7,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_popes_ports|": {
        "first_due": 14,
-       "status": "lapsed",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 7,
@@ -1041,7 +1086,7 @@
        "verdict": "ok"
       },
       "the_remounts|": {
-       "first_due": 21,
+       "first_due": 19,
        "status": "",
        "reason": "",
        "verdict": "pending"
@@ -1049,12 +1094,10 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 7,
-      "the_popes_ports#1": 15,
-      "the_proclamation#2": 19
+      "bavarian_match": 9,
+      "the_proclamation#1": 16
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -1064,57 +1107,60 @@
     "seed": "eylau",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 9
+    },
     "affairs": {
      "the_proclamation#1": {
-      "turn": 7,
+      "turn": 16,
       "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
-     "the_popes_ports#1": {
-      "turn": 15,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
-     "the_proclamation#2": {
-      "turn": 20,
-      "status": "fired",
       "reason": "",
       "bind": {},
       "tier": 1
      }
     },
     "first_affair": {
-     "turn": 7,
+     "turn": 16,
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_bank|": 19,
      "the_popes_ports|": 19,
-     "chancellors_letters|": 5,
-     "the_proclamation|": 3
+     "chancellors_letters|": 8
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 1,
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 9,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
+      "chancellors_letters|": {
+       "first_due": 19,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
       "santo_domingo|": {
        "first_due": 7,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_popes_ports|": {
        "first_due": 14,
-       "status": "lapsed",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 7,
@@ -1125,12 +1171,10 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 7,
-      "the_popes_ports#1": 15,
-      "the_proclamation#2": 20
+      "bavarian_match": 9,
+      "the_proclamation#1": 16
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -1143,8 +1187,7 @@
     "arm": "control",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 9,
-     "throne_of_holland": 17
+     "bavarian_match": 9
     },
     "affairs": {},
     "first_affair": null,
@@ -1159,20 +1202,15 @@
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
-      },
-      "throne_of_holland": {
-       "first_due": 17,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "bavarian_match": 9,
-      "throne_of_holland": 17
+      "bavarian_match": 9
      },
-     "passed": {}
+     "passed": {
+      "throne_of_holland": "premise"
+     }
     },
     "errors": []
    },
@@ -1181,8 +1219,7 @@
     "arm": "letters",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 9,
-     "throne_of_holland": 17
+     "bavarian_match": 9
     },
     "affairs": {
      "the_proclamation#1": {
@@ -1201,6 +1238,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_proclamation#2": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -1208,23 +1252,21 @@
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
-     "the_bank|": 18
+     "the_bank|": 18,
+     "the_magazines|": 2
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 2
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
       "bavarian_match": {
        "first_due": 9,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "throne_of_holland": {
-       "first_due": 17,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -1245,7 +1287,7 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 6,
@@ -1265,9 +1307,11 @@
       "the_proclamation#1": 6,
       "bavarian_match": 9,
       "santo_domingo#1": 14,
-      "throne_of_holland": 17
+      "the_proclamation#2": 19
      },
-     "passed": {}
+     "passed": {
+      "throne_of_holland": "premise"
+     }
     },
     "errors": []
    },
@@ -1276,8 +1320,7 @@
     "arm": "armed",
     "last_turn": 21,
     "moments": {
-     "bavarian_match": 9,
-     "throne_of_holland": 17
+     "bavarian_match": 9
     },
     "affairs": {
      "the_proclamation#1": {
@@ -1296,6 +1339,13 @@
        "sovereign": "Napoleon"
       },
       "tier": 1
+     },
+     "the_proclamation#2": {
+      "turn": 19,
+      "status": "lapsed",
+      "reason": "",
+      "bind": {},
+      "tier": 1
      }
     },
     "first_affair": {
@@ -1303,23 +1353,20 @@
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
      "the_bank|": 18
     },
-    "due": {},
+    "due": {
+     "the_popes_ports|": 2
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
       "bavarian_match": {
        "first_due": 9,
-       "status": "lapsed",
-       "reason": "",
-       "verdict": "ok"
-      },
-      "throne_of_holland": {
-       "first_due": 17,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
@@ -1340,7 +1387,7 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 6,
@@ -1360,9 +1407,11 @@
       "the_proclamation#1": 6,
       "bavarian_match": 9,
       "santo_domingo#1": 14,
-      "throne_of_holland": 17
+      "the_proclamation#2": 19
      },
-     "passed": {}
+     "passed": {
+      "throne_of_holland": "premise"
+     }
     },
     "errors": []
    }
@@ -1373,6 +1422,7 @@
     "arm": "control",
     "last_turn": 21,
     "moments": {
+     "bavarian_match": 8,
      "throne_of_holland": 18
     },
     "affairs": {},
@@ -1383,6 +1433,12 @@
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "throne_of_holland": {
        "first_due": 18,
        "status": "lapsed",
@@ -1392,11 +1448,10 @@
      },
      "shown_equals_applied": true,
      "arrived": {
+      "bavarian_match": 8,
       "throne_of_holland": 18
      },
-     "passed": {
-      "bavarian_match": "premise"
-     }
+     "passed": {}
     },
     "errors": []
    },
@@ -1405,18 +1460,12 @@
     "arm": "letters",
     "last_turn": 21,
     "moments": {
+     "bavarian_match": 8,
      "throne_of_holland": 18
     },
     "affairs": {
-     "the_proclamation#1": {
-      "turn": 9,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
      "santo_domingo#1": {
-      "turn": 15,
+      "turn": 13,
       "status": "lapsed",
       "reason": "",
       "bind": {
@@ -1427,10 +1476,11 @@
      }
     },
     "first_affair": {
-     "turn": 9,
-     "id": "the_proclamation#1"
+     "turn": 13,
+     "id": "santo_domingo#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
      "the_bank|": 18
@@ -1440,6 +1490,12 @@
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
+      "bavarian_match": {
+       "first_due": 8,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      },
       "throne_of_holland": {
        "first_due": 18,
        "status": "lapsed",
@@ -1456,16 +1512,16 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 9,
-       "status": "lapsed",
+       "status": "",
        "reason": "",
-       "verdict": "ok"
+       "verdict": "released"
       },
       "the_remounts|": {
-       "first_due": 13,
+       "first_due": 16,
        "status": "",
        "reason": "",
        "verdict": "released"
@@ -1473,13 +1529,11 @@
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 9,
-      "santo_domingo#1": 15,
+      "bavarian_match": 8,
+      "santo_domingo#1": 13,
       "throne_of_holland": 18
      },
-     "passed": {
-      "bavarian_match": "premise"
-     }
+     "passed": {}
     },
     "errors": []
    },
@@ -1487,27 +1541,29 @@
     "seed": "wagram",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 8
+    },
     "affairs": {
-     "the_proclamation#1": {
-      "turn": 9,
-      "status": "lapsed",
-      "reason": "",
-      "bind": {},
-      "tier": 1
-     },
      "santo_domingo#1": {
-      "turn": 15,
-      "status": "lapsed",
-      "reason": "",
+      "turn": 16,
+      "status": "passed",
+      "reason": "crowded",
       "bind": {
        "region": "Lorraine",
        "sovereign": "Napoleon"
       },
       "tier": 1
      },
-     "the_proclamation#2": {
-      "turn": 21,
+     "the_popes_ports#1": {
+      "turn": 18,
+      "status": "passed",
+      "reason": "crowded",
+      "bind": {},
+      "tier": 1
+     },
+     "the_proclamation#1": {
+      "turn": 20,
       "status": "fired",
       "reason": "",
       "bind": {},
@@ -1515,53 +1571,53 @@
      }
     },
     "first_affair": {
-     "turn": 9,
+     "turn": 20,
      "id": "the_proclamation#1"
     },
     "streaks": {
+     "the_proclamation|": 20,
      "santo_domingo|": 19,
      "the_popes_ports|": 19,
-     "the_bank|": 18,
-     "the_proclamation|": 4
+     "the_bank|": 18
     },
     "due": {},
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "santo_domingo|": {
-       "first_due": 9,
+      "bavarian_match": {
+       "first_due": 8,
        "status": "lapsed",
        "reason": "",
+       "verdict": "ok"
+      },
+      "santo_domingo|": {
+       "first_due": 9,
+       "status": "passed",
+       "reason": "crowded",
        "verdict": "ok"
       },
       "the_popes_ports|": {
        "first_due": 14,
-       "status": "",
-       "reason": "",
-       "verdict": "released"
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
       },
       "the_proclamation|": {
        "first_due": 9,
-       "status": "lapsed",
+       "status": "fired",
        "reason": "",
        "verdict": "ok"
-      },
-      "the_remounts|": {
-       "first_due": 13,
-       "status": "",
-       "reason": "",
-       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
-      "the_proclamation#1": 9,
-      "santo_domingo#1": 15,
-      "the_proclamation#2": 21
+      "bavarian_match": 8,
+      "the_proclamation#1": 20
      },
      "passed": {
-      "bavarian_match": "premise",
+      "santo_domingo#1": "crowded",
+      "the_popes_ports#1": "crowded",
       "throne_of_holland": "premise"
      }
     },
@@ -1640,10 +1696,15 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_proclamation|": 20,
      "the_bank|": 19,
-     "the_popes_ports|": 19
+     "the_popes_ports|": 19,
+     "the_remounts|": 11
     },
-    "due": {},
+    "due": {
+     "the_remounts|": 1,
+     "the_popes_ports|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
@@ -1670,13 +1731,19 @@
        "first_due": 14,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
       },
       "the_proclamation|": {
        "first_due": 6,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 11,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
       }
      },
      "shown_equals_applied": true,
@@ -1706,13 +1773,27 @@
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 14,
-      "status": "lapsed",
-      "reason": "",
+      "turn": 19,
+      "status": "passed",
+      "reason": "crowded",
       "bind": {
        "region": "Lorraine",
        "sovereign": "Napoleon"
       },
+      "tier": 1
+     },
+     "the_popes_ports#1": {
+      "turn": 20,
+      "status": "passed",
+      "reason": "crowded",
+      "bind": {},
+      "tier": 1
+     },
+     "the_proclamation#2": {
+      "turn": 21,
+      "status": "fired",
+      "reason": "",
+      "bind": {},
       "tier": 1
      }
     },
@@ -1722,9 +1803,9 @@
     },
     "streaks": {
      "santo_domingo|": 20,
+     "the_proclamation|": 20,
      "the_bank|": 19,
-     "the_popes_ports|": 19,
-     "the_proclamation|": 1
+     "the_popes_ports|": 19
     },
     "due": {},
     "judged": {
@@ -1737,33 +1818,47 @@
        "reason": "",
        "verdict": "ok"
       },
+      "throne_of_holland": {
+       "first_due": 18,
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
+      },
       "santo_domingo|": {
        "first_due": 6,
-       "status": "lapsed",
-       "reason": "",
+       "status": "passed",
+       "reason": "crowded",
        "verdict": "ok"
       },
       "the_popes_ports|": {
        "first_due": 14,
-       "status": "",
-       "reason": "",
-       "verdict": "released"
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
       },
       "the_proclamation|": {
        "first_due": 6,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 12,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "the_proclamation#1": 6,
       "bavarian_match": 9,
-      "santo_domingo#1": 14
+      "the_proclamation#2": 21
      },
      "passed": {
-      "throne_of_holland": "premise"
+      "santo_domingo#1": "crowded",
+      "throne_of_holland": "crowded",
+      "the_popes_ports#1": "crowded"
      }
     },
     "errors": []
@@ -1774,7 +1869,9 @@
     "seed": "rivoli",
     "arm": "control",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 10
+    },
     "affairs": {},
     "first_affair": null,
     "streaks": {},
@@ -1782,11 +1879,19 @@
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
-     "floors": {},
+     "floors": {
+      "bavarian_match": {
+       "first_due": 10,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
+      }
+     },
      "shown_equals_applied": true,
-     "arrived": {},
+     "arrived": {
+      "bavarian_match": 10
+     },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },
@@ -1796,7 +1901,9 @@
     "seed": "rivoli",
     "arm": "letters",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 10
+    },
     "affairs": {
      "the_proclamation#1": {
       "turn": 7,
@@ -1806,13 +1913,20 @@
       "tier": 1
      },
      "santo_domingo#1": {
-      "turn": 15,
-      "status": "lapsed",
-      "reason": "",
+      "turn": 20,
+      "status": "passed",
+      "reason": "crowded",
       "bind": {
-       "region": "Franche-Comte",
+       "region": "Lorraine",
        "sovereign": "Napoleon"
       },
+      "tier": 1
+     },
+     "the_popes_ports#1": {
+      "turn": 21,
+      "status": "passed",
+      "reason": "crowded",
+      "bind": {},
       "tier": 1
      }
     },
@@ -1825,40 +1939,70 @@
      "santo_domingo|": 19,
      "the_bank|": 19,
      "the_popes_ports|": 19,
-     "chancellors_letters|": 3
+     "the_host|Bavaria": 3,
+     "the_magazines|": 3
     },
-    "due": {},
+    "due": {
+     "the_proclamation|": 3,
+     "the_magazines|": 2,
+     "the_host|Bavaria": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "santo_domingo|": {
-       "first_due": 7,
+      "bavarian_match": {
+       "first_due": 10,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
       },
-      "the_popes_ports|": {
-       "first_due": 14,
+      "santo_domingo|": {
+       "first_due": 7,
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
+      },
+      "the_host|Bavaria": {
+       "first_due": 21,
        "status": "",
        "reason": "",
-       "verdict": "released"
+       "verdict": "pending"
+      },
+      "the_magazines|": {
+       "first_due": 20,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "passed",
+       "reason": "crowded",
+       "verdict": "ok"
       },
       "the_proclamation|": {
        "first_due": 7,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 18,
+       "status": "",
+       "reason": "",
+       "verdict": "released"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "the_proclamation#1": 7,
-      "santo_domingo#1": 15
+      "bavarian_match": 10
      },
      "passed": {
-      "bavarian_match": "premise",
-      "throne_of_holland": "premise"
+      "santo_domingo#1": "crowded",
+      "throne_of_holland": "premise",
+      "the_popes_ports#1": "crowded"
      }
     },
     "errors": []
@@ -1867,7 +2011,9 @@
     "seed": "rivoli",
     "arm": "armed",
     "last_turn": 21,
-    "moments": {},
+    "moments": {
+     "bavarian_match": 10
+    },
     "affairs": {
      "the_proclamation#1": {
       "turn": 7,
@@ -1876,14 +2022,11 @@
       "bind": {},
       "tier": 1
      },
-     "santo_domingo#1": {
-      "turn": 15,
+     "the_popes_ports#1": {
+      "turn": 17,
       "status": "lapsed",
       "reason": "",
-      "bind": {
-       "region": "Franche-Comte",
-       "sovereign": "Napoleon"
-      },
+      "bind": {},
       "tier": 1
      }
     },
@@ -1896,39 +2039,60 @@
      "santo_domingo|": 19,
      "the_bank|": 19,
      "the_popes_ports|": 19,
-     "chancellors_letters|": 5
+     "the_remounts|": 5
     },
-    "due": {},
+    "due": {
+     "santo_domingo|": 2,
+     "the_remounts|": 1
+    },
     "judged": {
      "ceiling_breaches": [],
      "floor_breaches": [],
      "floors": {
-      "santo_domingo|": {
-       "first_due": 7,
+      "bavarian_match": {
+       "first_due": 10,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
       },
-      "the_popes_ports|": {
-       "first_due": 14,
+      "chancellors_letters|": {
+       "first_due": 20,
        "status": "",
        "reason": "",
        "verdict": "released"
+      },
+      "santo_domingo|": {
+       "first_due": 7,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
+      },
+      "the_popes_ports|": {
+       "first_due": 14,
+       "status": "lapsed",
+       "reason": "",
+       "verdict": "ok"
       },
       "the_proclamation|": {
        "first_due": 7,
        "status": "lapsed",
        "reason": "",
        "verdict": "ok"
+      },
+      "the_remounts|": {
+       "first_due": 17,
+       "status": "",
+       "reason": "",
+       "verdict": "pending"
       }
      },
      "shown_equals_applied": true,
      "arrived": {
       "the_proclamation#1": 7,
-      "santo_domingo#1": 15
+      "bavarian_match": 10,
+      "the_popes_ports#1": 17
      },
      "passed": {
-      "bavarian_match": "premise",
       "throne_of_holland": "premise"
      }
     },

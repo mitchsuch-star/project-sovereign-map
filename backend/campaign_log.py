@@ -508,6 +508,10 @@ CAMPAIGN_LOG_TYPES = {
     # column): a Question of Europe turns — a claimant's capture made it
     # the table's plurality holder.
     "question_turns",
+    # DY-4 (DYNAMISM_SPEC.md §5 — 183→184 flipped consciously, DY-0's
+    # column reads the prefix): a people crosses a phase of the Awakening
+    # — stirring, risen, quiet again (`awakening._the_people_cross`).
+    "awakening",
 }
 
 # ============================================================================
@@ -627,6 +631,8 @@ CATEGORY_MAP = {
     "rank_promotion": "diplomacy",
     # DY-2: a Question of Europe turns.
     "question_turns": "diplomacy",
+    # DY-4: a people of Europe stirs, rises or quietens.
+    "awakening": "diplomacy",
     # DEF-5 naval (NV-0..NV-3): the Wooden Wall's fourteen types.
     "fleet_laid_down": "economy",
     "fleet_posture": "command",
@@ -763,7 +769,7 @@ LOG_TIER_LEAD = frozenset({
     "diplomatic_treaty_broken", "diplomatic_treaty_signed",
     "diplomatic_war_declared", "expedition_landed", "last_stand",
     "marshal_captured", "marshal_destroyed", "nation_eliminated",
-    "nation_formed", "peace_ratified", "question_turns", "rank_promotion",
+    "nation_formed", "peace_ratified", "question_turns", "rank_promotion", "awakening",
     "trafalgar", "ultimatum_issued",
     "vassal_broke_free", "vassal_defected", "vassal_liberated",
     "volte_face", "war_declaration",
@@ -1214,7 +1220,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                           "allegiance_auction_resolved",
                           "crisis_brewing", "coercive_demand",
                           "crisis_passed", "guarantee_honored",
-                          "third_party_peace", "rank_promotion", "question_turns",   # T4-3: a crown; DY-2: a Question turns
+                          "third_party_peace", "rank_promotion", "question_turns", "awakening",   # T4-3: a crown; DY-2: a Question turns; DY-4: a people stirs
                           "coalition_dissolved_for_france",
                           "design_promoted", "volte_face",
                           # SR-5r RF-1: a court's laws are court knowledge
@@ -3149,6 +3155,24 @@ def _oneliner_laws(ctx: OnelinerContext):
                                           if len(holds) > 1 else holds[0])
                  if holds else f" — {nation} gains")
         return f"{title.upper()} TURNS{where}"
+    if ctx.event_type == "awakening":
+        # DY-4 (DYNAMISM_SPEC.md §5): a people crosses a phase — the
+        # courts' news, in words; never a figure of the scalar.
+        nation = with_definite_article(
+            display_nation(ctx.event.get("nation", "Unknown")), capitalize=False)
+        phase = str(ctx.event.get("phase") or "")
+        rising = str(ctx.event.get("direction") or "up") == "up"
+        occupied = int(ctx.event.get("occupied", 0) or 0)
+        if phase == "risen":
+            return (f"THE PEOPLE OF {nation.upper()} HAVE RISEN — an occupier's columns "
+                    f"bleed on their roads")
+        if phase == "stirring" and rising:
+            under = (f" — {occupied} home province{'s' if occupied != 1 else ''} under "
+                     f"foreign garrisons" if occupied > 0 else "")
+            return f"THE PEOPLE OF {nation.upper()} STIR{under}"
+        if phase == "stirring":
+            return f"The people of {nation} subside — the ulcer closes"
+        return f"The people of {nation} are quiet again — home rule is theirs"
     return _NEXT_STAGE
 
 

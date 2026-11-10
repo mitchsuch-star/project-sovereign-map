@@ -2547,6 +2547,14 @@ def change_vassal_autonomy(world, vassal_name: str, new_level: int,
     state["autonomy"] = int(new_level)
     state["tribute_rate"] = TRIBUTE_RATES[new_level]
     state["loyalty"] = int(plan["loyalty_after"])
+    # DY-4 (DYNAMISM_SPEC.md §5): the client squeezed — autonomy lowered,
+    # the tribute rising with it — stirs its people (+5); autonomy raised is
+    # home rule restored (−10). The ONE autonomy writer, every lord alike.
+    from backend.game_logic import awakening as _awakening
+    if int(new_level) < int(old_level):
+        _awakening.note_client_squeezed(world, vassal_name)
+    elif int(new_level) > int(old_level):
+        _awakening.home_rule_restored(world, vassal_name, "autonomy_raised")
 
     # Loyalty adjustment, in words — T0-D (GR-20, ACH-1's class): the APPLIED
     # change (`loyalty_after - loyalty_before`, clamped at 0 and 100), never
@@ -5165,6 +5173,11 @@ def release_vassal(
     # Remove vassal state
     del world.vassals[vassal_name]
     world.invalidate_active_nations_cache()
+    # DY-4 (DYNAMISM_SPEC.md §5): home rule restored — every road to a
+    # release (the liberation term on both ratify roads, the voluntary
+    # release, the rebellion) passes here, so the lump is written once.
+    from backend.game_logic import awakening as _awakening
+    _awakening.home_rule_restored(world, vassal_name, "rebellion" if rebellion else "released")
 
     # Clear stale popup/dialogue referencing this vassal
     if getattr(world, 'vassal_rebellion_imminent_popup', None):

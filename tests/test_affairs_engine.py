@@ -208,10 +208,12 @@ class TestUnarmed:
         # authored `since: "AU-2c"`, armed by the user's word (November 5);
         # AU-3b (November 5, 2026): the Proclamation after the offers, authored
         # `since: "AU-3b"`, armed by the user's "Arm it" (November 5)
+        # DY-4 (November 10, 2026): The People Stir and The Ulcer, the Awakening's
+        # letters (DYNAMISM_SPEC.md §5), authored `since: "DY-4"`
         assert [e["id"] for e in block["affairs"]["deck"]] == [
             "chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
             "the_magazines", "the_remounts", "camps_of_instruction", "the_proclamation",
-            "the_bank", "the_popes_ports"]
+            "the_bank", "the_popes_ports", "the_people_stir", "the_ulcer"]
         from tools._s14c_sweep_record import mechanical_block
         assert set(mechanical_block(block)) == {"owner", "pacing", "deck", "affairs"}
         for name in ("tutorial_1805.json", "tutorial_table_1805.json"):
@@ -239,9 +241,12 @@ class TestTheStoreAndTheIds:
         # RE-H: the fourth; RE-6: the three offers (the Edicts); AU-2c: the
         # Bank and the Pope, armed by the user's word (November 5, 2026); AU-3b:
         # the Proclamation, armed by the user's "Arm it" the same evening
+        # DY-4 (November 10, 2026): the Awakening's two letters, armed through
+        # `awakening.the_people_write` (DYNAMISM_SPEC.md §5)
         assert [e["id"] for e in AF.deck(armed)] == [T1, T2, T3, "santo_domingo",
                                                       "the_magazines", "the_remounts", "camps_of_instruction",
-                                                      "the_proclamation", "the_bank", "the_popes_ports"]
+                                                      "the_proclamation", "the_bank", "the_popes_ports",
+                                                      "the_people_stir", "the_ulcer"]
 
     def test_an_occurrence_id_resolves_to_its_template(self, armed):
         assert MO.entry(armed, "the_host#2")["id"] == T2
@@ -539,8 +544,8 @@ OCC_T1 = {"id": "chancellors_letters#1", "lord": "France", "bind": {}, "tier": 1
 
 class TestTheTwoOps:
     def test_the_op_table_grew_by_two_and_no_affair_reaches_the_alarm(self):
-        # RE-H: the squadron (10); RE-6: the edict (11), flipped consciously
-        assert set(MO.OPS) >= {"authority", "admin", "squadron", "edict"} and len(MO.OPS) == 11
+        # RE-H: the squadron (10); RE-6: the edict (11); DY-4: the awakening (12), flipped consciously
+        assert set(MO.OPS) >= {"authority", "admin", "squadron", "edict", "awakening"} and len(MO.OPS) == 12
         assert "alarm" in AF.BARRED_OPS and "alarm" not in AF.AFFAIR_OPS
 
     @pytest.mark.parametrize("authority, loss", [(80, 5), (73, 2), (70, 0)])

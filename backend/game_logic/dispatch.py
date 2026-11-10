@@ -1935,6 +1935,7 @@ _COURTS_ROWS: Dict[str, Tuple[str, int]] = {
     "rank_lost": ("courts_treaties", 87),            # T4-3
     "question_turns": ("courts_treaties", 89),       # DY-2: a Question of Europe turns
     "question_ruled": ("courts_treaties", 86),       # DY-3: the Congress rules it
+    "awakening": ("courts_treaties", 90),            # DY-4: a people stirs, rises, quietens
     "court_removes": ("courts_treaties", 79),        # T4-2b
     "court_returns": ("courts_treaties", 79),        # T4-2b
     "diplomatic_relation_shift": ("courts_treaties", 76),
@@ -8449,6 +8450,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     # is composed by `questions` (R7 names, the Question's own voice).
     "question_turns": "{line}",
     "question_ruled": "{line}",
+    # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's beat — composed by
+    # `awakening.beat_line` (R7 names, never a figure).
+    "awakening": "{line}",
     # AI-2e §3.7 — the paymaster's gold, made visible.
     "paymaster_subsidy": (
         "{payer_display}'s gold reaches {nation_display} — the subsidy stands at "
@@ -8705,6 +8709,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "rank_lost": "HIGH",                 # T4-3
     "question_turns": "HIGH",            # DY-2 — a beat, never a routine line
     "question_ruled": "HIGH",            # DY-3
+    "awakening": "HIGH",                 # DY-4 — a beat, never a routine line
     "province_changed_hands": "MEDIUM",  # DDB-43
     "corps_on_closed_soil": "HIGH",      # DDB-43
     "paymaster_subsidy": "MEDIUM",

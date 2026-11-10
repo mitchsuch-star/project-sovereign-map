@@ -1062,6 +1062,37 @@ def _validate_questions(result, data: dict, known_nations: Set[str]) -> None:
                              "At least two seated claimants - a table with one seat is no Question")
 
 
+def _validate_awakening(result, data: dict) -> None:
+    """DY-4 (DYNAMISM_SPEC.md §5, Tier 6): the top-level `awakening` block
+    arms the Awakening — an object (empty allowed: the code defaults) whose
+    `stirring` and `risen` are the two thresholds the letters and the teeth
+    read, integers in [1, 99] with `stirring` below `risen`; an unknown key
+    is an ERROR (the `statecraft` idiom — D7's principle: the bounds are
+    authored content, reviewable in the file). Absent = unarmed."""
+    if "awakening" not in data:
+        return
+    block = data.get("awakening")
+    if not isinstance(block, dict):
+        result.add_error("awakening", f"Must be an object, got {type(block).__name__}")
+        return
+    from backend.game_logic.awakening import THRESHOLD_BOUNDS
+    allowed = {"stirring", "risen"}
+    for key in sorted(set(block) - allowed):
+        result.add_error(f"awakening.{key}", "Unknown key (allowed: stirring, risen)")
+    lo, hi = THRESHOLD_BOUNDS
+    values = {}
+    for key in ("stirring", "risen"):
+        if key not in block:
+            continue
+        value = block.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or not (lo <= value <= hi):
+            result.add_error(f"awakening.{key}", f"Must be an integer in [{lo}, {hi}]")
+        else:
+            values[key] = int(value)
+    if "stirring" in values and "risen" in values and values["stirring"] >= values["risen"]:
+        result.add_error("awakening.stirring", "Must be below `risen`")
+
+
 def _validate_statecraft(result, data: dict, known_nations: set) -> None:
     """AI-3r §2.6 (gate ruling R1): the scenario `statecraft` block —
     per-nation; `wary_of`, and since T2-B (§3.8.2) `weight_mod` (a bare
@@ -2303,6 +2334,12 @@ def _validate_affairs(result, block: dict, owner, moment_ids: Set[str], law_ids:
                         _int_in(f"{opath}.away", op.get("away"), *AF.SQUADRON_BOUNDS["away"])
                         _text(f"{opath}.to", op.get("to"), AF.SQUADRON_BOUNDS["to"])
                     if name in ("relation", "loyalty"):
+                        _int_in(f"{opath}.delta", op.get("delta"), *AF.AFFAIR_OP_BOUNDS[name])
+                        if op.get("court") not in ("$host", "$lord"):
+                            _court(f"{opath}.court", op.get("court"))
+                    if name == "awakening":
+                        # DY-4: the Accept's cooling of a people — a court
+                        # (the bound host, or a known court) and a delta in band
                         _int_in(f"{opath}.delta", op.get("delta"), *AF.AFFAIR_OP_BOUNDS[name])
                         if op.get("court") not in ("$host", "$lord"):
                             _court(f"{opath}.court", op.get("court"))
@@ -3710,6 +3747,9 @@ def validate_scenario(
 
     # DY-2 (DYNAMISM_SPEC §4): the authored `questions` block.
     _validate_questions(result, data, statecraft_known)
+
+    # DY-4 (DYNAMISM_SPEC §5): the authored `awakening` block.
+    _validate_awakening(result, data)
 
     # DEF-5 naval (NAVAL_SPEC §8): the authored `navies` block.
     _validate_navies(result, data, statecraft_known)

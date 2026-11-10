@@ -247,6 +247,11 @@ def record_punitive_cessions(world, cessions: Dict[str, List[Tuple[str, str]]],
         )
         if record:
             written.append(record)
+            # DY-4 (DYNAMISM_SPEC.md §5): a dictated peace — the people of
+            # the court stripped of its homeland stir (+15 by its rank).
+            # The ONE writer, so the three ratify roads write once.
+            from backend.game_logic import awakening as _awakening
+            _awakening.note_dictated_peace(world, victim)
     return written
 
 

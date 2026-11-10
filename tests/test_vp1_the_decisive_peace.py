@@ -528,10 +528,20 @@ class TestTheRoadArms:
         rec = self._record()
         assert rec["done_when"] is True
         ends = {(r["arm"], r["seed"]): (r["end_turns"], r["stamped_turn"]) for r in rec["results"]}
+        # Session C (November 10, 2026 — the first re-record since T0-H, after
+        # Tiers 1–5 of the Concert; SYSTEMS_REFERENCE.md §203): the Rhine road
+        # stamps at austerlitz (T13, the full forty after) and at marengo (T13,
+        # the Fall at 34); historical runs the full forty unstamped. The System
+        # road Falls at historical (28) and marengo (25) now and austerlitz as
+        # before (21); the Throne road no longer Falls anywhere (the full forty
+        # on all three — the Alarm's guarantees and the seat hold the coalition's
+        # march on Paris). T0-H's record is kept as
+        # `tools/_vp1_road_arms_2026_11_07.json`. The Awakening moved none of
+        # these (the attribution arms). Seeded paths, not laws.
         assert ends == {
-            ("VP1-RH", "historical"): (40, -1), ("VP1-RH", "austerlitz"): (39, 13), ("VP1-RH", "marengo"): (33, 13),
-            ("VP1-CS", "historical"): (40, -1), ("VP1-CS", "austerlitz"): (21, -1), ("VP1-CS", "marengo"): (40, -1),
-            ("VP1-TH", "historical"): (35, -1), ("VP1-TH", "austerlitz"): (31, -1), ("VP1-TH", "marengo"): (25, -1),
+            ("VP1-RH", "historical"): (40, -1), ("VP1-RH", "austerlitz"): (40, 13), ("VP1-RH", "marengo"): (34, 13),
+            ("VP1-CS", "historical"): (28, -1), ("VP1-CS", "austerlitz"): (21, -1), ("VP1-CS", "marengo"): (25, -1),
+            ("VP1-TH", "historical"): (40, -1), ("VP1-TH", "austerlitz"): (40, -1), ("VP1-TH", "marengo"): (40, -1),
         }, ends
         for seed in ("austerlitz", "marengo"):
             sealed = next(r for r in rec["results"] if r["arm"] == "VP1-RH" and r["seed"] == seed)
@@ -544,13 +554,20 @@ class TestTheRoadArms:
         # historical (T13 — the run goes the full forty with its first term
         # fulfilled and the rest never holding); the Throne road fulfils
         # nothing anywhere, and the System road nothing elsewhere.
+        # Session C (November 10, 2026 — the first re-record since T0-H, after
+        # Tiers 1–5 of the Concert; SYSTEMS_REFERENCE.md §203): the System road's
+        # BLOCKADE latches at MARENGO now (T14) and no longer at historical (the
+        # road there ends at 28 on the tiers' tree); the Throne road fulfils
+        # nothing anywhere. T0-H's record is kept beside this one
+        # (`tools/_vp1_road_arms_2026_11_07.json`, pinned below). The
+        # Awakening moved none of these (the attribution arms).
         for r in rec["results"]:
             if r["arm"] == "VP1-TH":
                 assert r["fulfilled"] == {}, (r["seed"], r["fulfilled"])
             elif r["arm"] == "VP1-CS":
-                want = {"system.blockade": 13} if r["seed"] == "historical" else {}
+                want = {"system.blockade": 14} if r["seed"] == "marengo" else {}
                 assert r["fulfilled"] == want, (r["seed"], r["fulfilled"])
-        assert "--affair lapse" in " ".join(rec["driver_flags"]) and "T0-H" in rec["note"]
+        assert "--affair lapse" in " ".join(rec["driver_flags"]) and "Session C" in rec["note"]
 
     def test_the_record_is_the_reach_record_s_armed_run(self):
         """One measure, two records (RE3-7): the road record's nine arms equal the
@@ -563,6 +580,20 @@ class TestTheRoadArms:
             row = armed[f"{r['arm']}-{r['seed']}"]["armed"]
             assert (row["end_turns"], row["stamped_turn"], row["fulfilled"], row["reason"]) == (
                 r["end_turns"], r["stamped_turn"], r["fulfilled"], r["reason"]), (r["arm"], r["seed"])
+
+    def test_november_7_s_record_is_kept_unchanged(self):
+        """Session C's prior beside the re-record (the `SERIES_BEFORE` idiom):
+        T0-H's record of November 7 — RH stamped at austerlitz and marengo (13),
+        the System road's blockade at historical (13); its bytes pinned
+        line-ending-blind."""
+        import hashlib
+        kept = REPO / "tools" / "_vp1_road_arms_2026_11_07.json"
+        digest = hashlib.sha256(kept.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        assert digest == "31487e90821036872d692fffa7390dcea56f2dee3d788d546267cdb37e90aef8", digest
+        old = json.loads(kept.read_text(encoding="utf-8"))
+        assert "T0-H" in old["note"]
+        stamped = {(r["arm"], r["seed"]): r["stamped_turn"] for r in old["results"]}
+        assert stamped[("VP1-RH", "austerlitz")] == 13 and stamped[("VP1-RH", "marengo")] == 13
 
     def test_november_6_s_record_is_kept_unchanged(self):
         """T0-H's prior beside the re-record (the `SERIES_BEFORE` idiom):

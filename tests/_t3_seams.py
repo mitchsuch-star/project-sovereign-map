@@ -161,6 +161,16 @@ T3_SEAMS_BY_ROW = {
     "T5-SEAT": [
         "backend.game_logic.game_end:the_emperors_treaty_moves_a_seat=False",
     ],
+    # Tier 6 (session C, November 10, 2026) rides the same registry.
+    "T6-STIR": [
+        "backend.game_logic.awakening:the_people_stir=False",
+    ],
+    "T6-ULCER": [
+        "backend.game_logic.awakening:the_ulcer_bleeds=False",
+    ],
+    "T6-LETTERS": [
+        "backend.game_logic.awakening:the_people_write=False",
+    ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW
                  for spec in T3_SEAMS_BY_ROW[row]]

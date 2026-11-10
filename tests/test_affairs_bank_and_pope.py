@@ -95,15 +95,21 @@ class TestTheUsersWordArmedThem:
 
     def test_both_letters_stand_last_in_the_shipped_deck(self, world):
         # AU-3b: the Proclamation, armed by the user's "Arm it" (November 5),
-        # stands after the offers and before the two
-        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation", BANK, POPE]
+        # stands after the offers and before the two; DY-4 (session C, November
+        # 10, 2026 — DYNAMISM_SPEC.md §5): the Awakening's two letters follow
+        # them, on their own seam (`awakening.the_people_write`, row DY-4)
+        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation", BANK, POPE,
+                                                                  "the_people_stir", "the_ulcer"]
         assert AF.entry_armed(MO.entry(world, BANK)) and AF.entry_armed({"id": "x"})
 
     def test_held_down_every_reader_sees_the_deck_before_au_2c(self, world, monkeypatch):
         monkeypatch.setattr(ST, "letters_armed", lambda *a, **k: False)
         assert AF.row_armed("AU-2c") is False
-        # the Proclamation stands on its own seam (AUR), armed November 5
-        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation"]
+        # the Proclamation stands on its own seam (AUR), armed November 5; the
+        # Awakening's letters on theirs (DY-4, session C — held out by
+        # `awakening.the_people_write`, never by AU-2c's seam)
+        assert [e["id"] for e in AF.deck(world)] == BEFORE_AU2C + ["the_proclamation",
+                                                                  "the_people_stir", "the_ulcer"]
         assert MO.entry(world, BANK) is None and MO.entry(world, POPE) is None
         world.nation_gold["France"] = 20_000
         world.authority_tracker.authority = 100

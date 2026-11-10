@@ -6683,6 +6683,11 @@ class WorldState:
                  f"{captor_nation} at {old_location}.")
             ),
         })
+        if is_sovereign:
+            # DY-4 (DYNAMISM_SPEC.md §5): the king taken — Bayonne — and the
+            # people rise (+10). ONE capture seam, so one write.
+            from backend.game_logic import awakening as _awakening
+            _awakening.note_sovereign_captured(self, owner)
 
         # S14E-D14 / S14E-X223 (S14f p3): a prisoner moves two live components
         # of the pair's war score - the Captive Eagle when he is a sovereign,
@@ -9116,6 +9121,14 @@ class WorldState:
         # slice-8 invariant holds and the depot chip's counterfactual stays
         # exact. Stripped is read FORWARD (`forecast`): the next attrition
         # pass runs after the recovery tick. The bill passes forecast=False.
+        # DY-4 the ulcer (DYNAMISM_SPEC.md §5, Q3 — France bleeds too): an
+        # occupier's cap ×0.75 on soil whose boot owner's people have RISEN;
+        # the owner's own army never bleeds, nobody bleeds on home-held soil.
+        # Reads the nation, the province's identity and the store — never the
+        # capacity (the WO slice-8 invariant holds); before the doctrine's
+        # step, which stays this multiplier's LAST (SF-DC-1's contract).
+        from backend.game_logic.awakening import ulcer_factor
+        multiplier *= ulcer_factor(self, nation, region)
         # SF-DC-1: `with_doctrine=False` is the attrition line's counterfactual
         # (what the corps would have lost without the clause) — the clause is
         # this multiplier's LAST step, so the reading is exact.
@@ -10352,6 +10365,12 @@ class WorldState:
         # is written where none are authored.
         from backend.game_logic import questions as _questions
         _questions.install(world, data)
+        # DY-4 (DYNAMISM_SPEC.md §5, Tier 6): the Awakening's store — the
+        # scenario's top-level `awakening` block arms it (the boot web
+        # snapshotted off the raw `vassals`), a save's `moments.awakening`
+        # is carried whole; nothing is written where none is authored.
+        from backend.game_logic import awakening as _awakening
+        _awakening.install(world, data)
         # S14d (docs/TABLE_LESSON_SPEC.md §3): the first-open store — ids are
         # validated by the reader; values coerced to int; a bad value dropped.
         _first_opens: Dict[str, int] = {}
@@ -11264,6 +11283,12 @@ class WorldState:
         # PC15-10 B2 (F10): one validity pass over every restored popup slot,
         # now that the marshals, the treaties and the dialogues are all back.
         world._retire_stale_restored_popups()
+
+        # DY-4 (DYNAMISM_SPEC.md §5): the peoples' boot web — snapshotted
+        # once the vassals are final (the Europe boot seeds its web in
+        # `__init__`, the file carries no `vassals` key); a save carries it.
+        from backend.game_logic import awakening as _awakening
+        _awakening.ensure_houses(world)
 
         # SR-7d RV-6: every marshal's standing doctrine term is DERIVED here,
         # as the last statement — after the `reforms` store, or a loaded cure
@@ -13584,6 +13609,11 @@ class WorldState:
         # S14c (docs/EVENTS_SPEC.md §3.5): the morning's moments — after the
         # war council and the intent movements (R1 reads this morning's
         # foreground), before the fog and Le Moniteur. Unarmed: returns at once.
+        # DY-4 (DYNAMISM_SPEC.md §5): the peoples' tick FIRST — the derived
+        # occupied count per boot court, the bands and the cools, the beats —
+        # so the morning's letters read the fresh scalar. Unarmed: [].
+        from backend.game_logic import awakening as _awakening
+        _awakening.tick(self)
         from backend.game_logic import moments as _moments
         _moments.tick(self)
 

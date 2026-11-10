@@ -235,7 +235,7 @@ class TestTheDeck:
                 assert variant["key"] == "arrival" and len(variant["text"]) <= AF.TEXT_MAX["variant"]
 
     def test_the_op_table_and_the_constants(self):
-        assert "edict" in MO.OPS and len(MO.OPS) == 11
+        assert "edict" in MO.OPS and len(MO.OPS) == 12   # DY-4 (Nov 10, 2026): + `awakening`, flipped consciously
         assert "edict" in AF.AFFAIR_OPS and "edict" in MO.DECLINE_FORBIDDEN_OPS
         assert "edict" not in MO.OP_BOUNDS                       # the moments' own vocabulary is closed
         assert AF.EDICT_EFFECT_TYPES == ("supply_capacity", "recruit_price", "drill_morale")
@@ -261,7 +261,9 @@ class TestTheDeck:
         # armed by the user's "Arm it" — `tests/test_standing_offices.py`)
         assert [e["id"] for e in scenario["affairs"]["deck"] if e.get("shape") == "offer"] == [
             *OFFERS, "the_proclamation"]
-        assert [e["id"] for e in scenario["affairs"]["deck"]][-2:] == ["the_bank", "the_popes_ports"]
+        # DY-4 (November 10, 2026) appends the Awakening's two letters after them
+        assert [e["id"] for e in scenario["affairs"]["deck"]][-4:] == [
+            "the_bank", "the_popes_ports", "the_people_stir", "the_ulcer"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════

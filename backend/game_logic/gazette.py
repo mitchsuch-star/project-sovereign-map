@@ -89,6 +89,10 @@ _COURT_TYPES = {
     # DY-2 (DYNAMISM_SPEC.md §4): a Question of Europe turning is the
     # courts' news (`questions._the_question_turns`, a literal `log_event`).
     "question_turns",
+    # DY-4 (DYNAMISM_SPEC.md §5): a people of Europe stirring, risen or
+    # quiet again is the courts' news (`awakening._the_people_cross`, a
+    # literal `log_event`) — the Gazette names the stirring.
+    "awakening",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no

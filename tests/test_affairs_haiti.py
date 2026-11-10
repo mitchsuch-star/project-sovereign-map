@@ -722,9 +722,10 @@ def _peace_with_britain(w):
 
 class TestTheOddsAndTheQuote:
     def test_the_op_table_grew_to_ten_and_the_dated_deck_cannot_author_it(self, armed):
-        # RE-6 (November 2, 2026): the eleventh, `edict` — flipped consciously
+        # RE-6 (November 2, 2026): the eleventh, `edict`; DY-4 (November 10, 2026): the
+        # twelfth, `awakening` — each flipped consciously
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron", "edict"}
+                               "authority", "admin", "squadron", "edict", "awakening"}
         assert "squadron" in AF.AFFAIR_OPS and "squadron" in MO.DECLINE_FORBIDDEN_OPS
         assert "squadron" not in MO.OP_BOUNDS                     # the moments' own vocabulary is closed
 

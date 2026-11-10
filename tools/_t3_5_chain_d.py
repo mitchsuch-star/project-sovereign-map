@@ -102,7 +102,22 @@ def summarize(digest: dict) -> dict:
             for row in digest.get("turns") or [] for e in row.get("events") or []
             if e.get("type") == "law_lapsed" and e.get("reason") == "grounds_lost"],
         "eliminations": list((digest.get("derived") or {}).get("eliminations") or []),
+        # Tier 6 (session C, DYNAMISM_SPEC.md §5): the peoples' beats (DY-0's
+        # column) and the supply bill by nation — the ulcer's footprint on
+        # the AI-France march, read beside `france_captures`.
+        "awakening_events": list(derived.get("awakening_events") or []),
+        "supply_losses": _supply_losses(digest),
     }
+
+
+def _supply_losses(digest: dict) -> dict:
+    out: dict = {}
+    for row in digest.get("turns") or []:
+        for e in row.get("events") or []:
+            if e.get("type") == "supply_attrition":
+                nation = str(e.get("nation") or "")
+                out[nation] = int(out.get(nation, 0)) + int(e.get("losses", 0) or 0)
+    return dict(sorted(out.items()))
 
 
 def run_arm(arm: str, run_dir: pathlib.Path, turns: int, seams: str = "") -> dict:

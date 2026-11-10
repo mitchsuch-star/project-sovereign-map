@@ -75,9 +75,12 @@ SET_ASIDE_EVERY = 6    # §7: the aggregated "set aside" line, at most once in s
 
 # The op table (§5): the moments' closed table less the alarm (barred from
 # every affair) and the autonomy write, plus `authority` and `admin`.
-AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron", "edict")
+AFFAIR_OPS = ("gold", "authority", "admin", "dp", "relation", "loyalty", "enact_law", "squadron", "edict",
+              # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's op — an Accept
+              # cools a people (the amnesty, the charter); never a Decline's
+              "awakening")
 AFFAIR_OP_BOUNDS = {"gold": (1, 2000), "authority": (-10, 0), "admin": (1, 1), "dp": (1, 2),
-                    "relation": (-20, 20), "loyalty": (-20, 20)}
+                    "relation": (-20, 20), "loyalty": (-20, 20), "awakening": (-30, -1)}
 # RE-H (§6.5, P4): the squadron op — Accept-only, at most one per entry, an
 # entry carrying it authors a fallback form (the bill) and its owner a navy.
 SQUADRON_BOUNDS = {"ships": (1, 8), "away": (3, 6), "to": 32}
@@ -145,7 +148,10 @@ BITES_MODES = (True, BITES_FLOOR, BITES_CLAMP)
 # entry's `bites_since` — each naming a row whose seam `row_armed` reads.
 # AU-2c: an ENTRY's own `since` holds the whole template out of the deck
 # (`moments.affairs_deck`) while its row is unarmed.
-SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a", "AU-3b")
+SINCE_ROWS = ("AU-2a", "AU-2b", "AU-2c", "AU-3a", "AU-3b",
+              # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's two letters ride
+              # `awakening.the_people_write` — the seam holds them out whole
+              "DY-4")
 
 
 def row_armed(row: str) -> bool:
@@ -156,6 +162,9 @@ def row_armed(row: str) -> bool:
     armed by the user's word); AU-3a's is `standing.buys_armed` (the Edict
     letters' third answer, "Decree it"); AU-3b's is `standing.proclamation_armed`
     (the Proclamation, armed by the user's word)."""
+    if row == "DY-4":
+        from backend.game_logic import awakening
+        return bool(awakening.the_people_write())
     if row == "AU-3b":
         from backend.game_logic import standing
         return bool(standing.proclamation_armed())
@@ -708,6 +717,20 @@ def _ports_defied(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
     return {"holds": True, "bind": {}, "measure": None, "latch": False}
 
 
+def _people_stir(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """DY-4: the People Stir — a court at `stirring` under the lord's
+    garrisons (`awakening.people_stir`; the host bound, the measure the
+    provinces held)."""
+    from backend.game_logic import awakening
+    return awakening.people_stir(world, lord, params)
+
+
+def _people_risen(world, lord: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    """DY-4: the Ulcer — a court at `risen` under the lord's garrisons."""
+    from backend.game_logic import awakening
+    return awakening.people_risen(world, lord, params)
+
+
 PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     "sovereign_afield": _sovereign_afield,
     "corps_on_host": _corps_on_host,
@@ -722,9 +745,16 @@ PREDICATES: Dict[str, Callable[[Any, str, Dict[str, Any]], Dict[str, Any]]] = {
     # AU-2c: the Bank's Panic and the Pope's Refusal (AUTHORITY_CURRENCY_SPEC.md §5.4)
     "chest_strained": _chest_strained,
     "ports_defied": _ports_defied,
+    # DY-4 (DYNAMISM_SPEC.md §5): the Awakening's letters — the conditions
+    # are the scalar's own thresholds, never a rare gate; the predicates
+    # live with the store (`awakening.py`) and bind the host court.
+    "people_stir": _people_stir,
+    "people_risen": _people_risen,
 }
 # The parameters each predicate requires (the validator reads them).
 PREDICATE_PARAMS: Dict[str, Tuple[str, ...]] = {
+    "people_stir": (),
+    "people_risen": (),
     "sovereign_afield": (),
     "corps_on_host": (),
     "staff_offered": ("law",),

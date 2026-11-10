@@ -123,7 +123,9 @@ TITLE_MAX = 40
 RECORD_MAX = 240
 CAPTION_MAX = 36
 ALARM_SOURCE_PREFIX = "moment_"
-DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron", "edict")
+DECLINE_FORBIDDEN_OPS = ("gold", "dp", "autonomy", "enact_law", "squadron", "edict",
+                         # DY-4: a people is cooled by an act, never by a refusal
+                         "awakening")
 PACING_DEFAULTS = {"max_open": 1, "min_gap": 3}
 PACING_BOUNDS = {"max_open": (1, 1), "min_gap": (2, 5)}
 GRACE_BOUNDS = (1, 3)
@@ -709,6 +711,30 @@ def _apply_loyalty(world, lord, row) -> None:
         adjust_loyalty(world, str(court_row["court"]), int(row["delta"]), lord=lord)
 
 
+def _plan_awakening(world, lord, op) -> Dict[str, Any]:
+    """DY-4 (DYNAMISM_SPEC.md §5): the Accept's cooling of a people — the
+    host's level moved by `delta` (the bounds the validator's). The quote is
+    in WORDS (Q6's spirit: a people's temper is felt, never read as a figure):
+    'the people of Spain quieten (risen → stirring)'."""
+    from backend.game_logic import awakening as AW
+    court = str(op.get("court") or "")
+    delta = int(op.get("delta", 0) or 0)
+    if not court or not AW.armed(world) or not AW.the_people_stir():
+        return {"op": "awakening", "court": court, "delta": delta, "skip": True,
+                "refusal": "", "line": ""}
+    before = AW.level(world, court)
+    after = max(0, min(AW.LEVEL_MAX, before + delta))
+    return {"op": "awakening", "court": court, "delta": delta, "before": before, "after": after,
+            "refusal": "",
+            "line": f"the people of {_court(world, court)} {AW.phase_words(world, before, after)}"}
+
+
+def _apply_awakening(world, lord, row) -> None:
+    if not row.get("skip"):
+        from backend.game_logic import awakening as AW
+        AW.move(world, str(row["court"]), int(row["delta"]), "letter")
+
+
 def _plan_autonomy(world, lord, op) -> Dict[str, Any]:
     from backend.game_logic.vassal import AUTONOMY_NAMES, autonomy_change_plan, _dp_available
     court = str(op.get("court") or "")
@@ -958,6 +984,10 @@ OPS: Dict[str, Tuple[Callable[..., Dict[str, Any]], Callable[..., None]]] = {
     "squadron": (_plan_squadron, _apply_squadron),
     # RE-6: the eleventh — 10 → 11, flipped consciously (§0 Q2, §16 "RE-6")
     "edict": (_plan_edict, _apply_edict),
+    # DY-4 (DYNAMISM_SPEC.md §5): the twelfth — 11 → 12, flipped consciously:
+    # the Awakening's letters' Accept cools a people (an affair's op alone;
+    # the dated deck's vocabulary stays closed — not in OP_BOUNDS)
+    "awakening": (_plan_awakening, _apply_awakening),
 }
 OP_TYPES = tuple(OPS)
 

@@ -923,8 +923,9 @@ class TestTheAlarmLabels:
         # (RECURRING_EVENTS_SPEC.md §0 Q2, §16 "RE-6"), 10 → 11, flipped
         # consciously; it writes the affairs store through `affairs.grant_edict`
         # and reaches no VP-1 verb.
+        # DY-4 (November 10, 2026): the twelfth, `awakening` — flipped consciously
         assert set(MO.OPS) == {"gold", "dp", "relation", "alarm", "loyalty", "autonomy", "enact_law",
-                               "authority", "admin", "squadron", "edict"}
+                               "authority", "admin", "squadron", "edict", "awakening"}
 
     def test_no_nation_literal_in_the_engine(self):
         """Q6: the deck is France's content, never the code's."""

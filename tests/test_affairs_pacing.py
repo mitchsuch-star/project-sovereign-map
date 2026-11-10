@@ -42,10 +42,13 @@ class TestTheRecordMeasuredTheStagedDeck:
         # AU-2c (November 4, 2026): the Bank's and the Pope's letters, authored,
         # ARMED November 5 by the user's word (the probe's arms read with them);
         # AU-3b (November 5, 2026): the Proclamation authored after the offers,
-        # ARMED by the user's "Arm it" the same evening (the probe's arms read it)
+        # ARMED by the user's "Arm it" the same evening (the probe's arms read it);
+        # DY-4 (November 10, 2026): The People Stir and The Ulcer — the Awakening's
+        # letters (DYNAMISM_SPEC.md §5), armed through `awakening.the_people_write`
         assert record["affairs"] == ["chancellors_letters", "the_host", "berthiers_memorial", "santo_domingo",
                                      "the_magazines", "the_remounts", "camps_of_instruction",
-                                     "the_proclamation", "the_bank", "the_popes_ports"]
+                                     "the_proclamation", "the_bank", "the_popes_ports",
+                                     "the_people_stir", "the_ulcer"]
 
     def test_every_seed_was_played_on_the_three_arms_to_turn_twenty(self, record):
         assert record["turns"] == 20
@@ -97,13 +100,26 @@ class TestTheMomentsAreBlindOnEverySeed:
         # Holland's loyalty past the window per seed; friedland's T17/T18
         # morning-early move is subsumed in the wider set (its two arms agree
         # within the window now)
-        assert moved == {"austerlitz", "historical", "lodi", "ulm", "wagram"}, moved
-        for seed in ("historical", "wagram"):
-            assert record["seeds"][seed]["letters"]["moments"] == {"throne_of_holland": 18}, seed
-            assert record["seeds"][seed]["armed"]["moments"] == {}, seed
-        assert record["seeds"]["rivoli"]["letters"]["moments"] == record["seeds"]["rivoli"]["armed"]["moments"] == {}
+        # Session C (November 10, 2026 — the first re-record since T0-H, after
+        # Tiers 1–5 of the Concert; SYSTEMS_REFERENCE.md §203): the deck gained
+        # the Awakening's two letters and the probe re-ran on four tiers of
+        # world-lines (the seed, the Questions' envy, the Alarm, the seat, the
+        # terms). The Awakening itself moved no pacing row — its scalar and
+        # ulcer held down reproduce the shipped record row for row (the
+        # attribution arms `tools/playtest_runs/t6_pacing_2026_11_10/attrib_*`);
+        # what moved is the tiers' drift, read here for the first time. The
+        # courts' move is THREE seeds now, every one Holland's letter due on the
+        # letters arm and not the armed (austerlitz T19, lodi T18, wagram T18);
+        # the Match arrives on every seed on both arms (T8–T11), and historical,
+        # ulm, rivoli and friedland agree within the window.
+        assert moved == {"austerlitz", "lodi", "wagram"}, moved
+        for seed, turn in (("austerlitz", 19), ("lodi", 18), ("wagram", 18)):
+            assert record["seeds"][seed]["letters"]["moments"]["throne_of_holland"] == turn, seed
+            assert "throne_of_holland" not in record["seeds"][seed]["armed"]["moments"], seed
+        for seed in ("historical", "rivoli", "ulm", "friedland"):
+            assert record["seeds"][seed]["letters"]["moments"] == record["seeds"][seed]["armed"]["moments"], seed
+            assert set(record["seeds"][seed]["armed"]["moments"]) == {"bavarian_match"}, seed
         friedland = record["seeds"]["friedland"]
-        assert (friedland["letters"]["moments"]["throne_of_holland"], friedland["armed"]["moments"]["throne_of_holland"]) == (17, 17)
         assert friedland["armed"]["moments"]["bavarian_match"] == friedland["letters"]["moments"]["bavarian_match"] == 9
 
     @pytest.mark.parametrize("seed", SWEEP_SEEDS)
@@ -148,13 +164,23 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # early there, so the Proclamation's eve never opens the pulse
         # (santo_domingo at T14 on austerlitz, T15 on ulm); the other eight
         # seeds keep the Proclamation at T6–T9, historical its authored T7
+        # Session C (November 10, 2026 — the first re-record since T0-H, after
+        # Tiers 1–5; §203): the tiers' world-lines re-time the first morning on
+        # six seeds — the Marine's letter first on ulm (T14), austerlitz (T18)
+        # and marengo (T16); the Proclamation first elsewhere, on the pulse's
+        # first morning on jena, friedland, lodi and rivoli (T6–T7) and later on
+        # historical (T13), eylau (T16) and wagram (T20), where no enemy stands
+        # within a march of the Emperor until then. The Awakening moved none
+        # of these (the attribution arms).
         assert set(reached) == set(SWEEP_SEEDS), reached
-        assert all(f["id"] == "the_proclamation#1" and 6 <= f["turn"] <= 9
-                   for seed, f in reached.items()
-                   if seed not in ("austerlitz", "ulm")), reached
-        assert reached["austerlitz"] == {"id": "santo_domingo#1", "turn": 14}
-        assert reached["ulm"] == {"id": "santo_domingo#1", "turn": 15}
-        assert reached["historical"]["turn"] == 7                  # the authored `first`
+        assert {seed: f["id"] for seed, f in reached.items()} == {
+            "historical": "the_proclamation#1", "ulm": "santo_domingo#1", "austerlitz": "santo_domingo#1",
+            "jena": "the_proclamation#1", "marengo": "santo_domingo#1", "eylau": "the_proclamation#1",
+            "friedland": "the_proclamation#1", "wagram": "the_proclamation#1", "lodi": "the_proclamation#1",
+            "rivoli": "the_proclamation#1"}, reached
+        assert {seed: f["turn"] for seed, f in reached.items()} == {
+            "historical": 13, "ulm": 14, "austerlitz": 18, "jena": 6, "marengo": 16, "eylau": 16,
+            "friedland": 6, "wagram": 20, "lodi": 6, "rivoli": 7}, reached
 
     def test_every_occurrence_is_lapsed_on_a_passive_france(self, record):
         """The unattended France answers nothing: every letter lapses to its
@@ -180,7 +206,15 @@ class TestTheFirstArrivalIsReportedPerSeed:
                        for mid in rows), (seed, list(rows))
             for mid, row in rows.items():
                 standing = row["status"] == "fired" and int(row["turn"]) > int(record["turns"]) - 4
-                assert (row["status"] == "lapsed" or standing) and row["tier"] == 1, (seed, row)
+                # Session C (November 10, 2026 — the re-record after Tiers 1–5,
+                # §203): on wagram and lodi the Marine's letter and the Pope's
+                # are CROWDED OUT (passed, never fired — the desk busy past
+                # their grace), the engine's own §7 rule on the tiers' boards
+                crowded = row["status"] == "passed" and row.get("reason") == "crowded"
+                assert (row["status"] == "lapsed" or standing or crowded) and row["tier"] == 1, (seed, row)
+                if crowded:
+                    assert seed in ("wagram", "lodi") and mid.startswith(("santo_domingo#", "the_popes_ports#")), (seed, mid)
+                    continue
                 if mid.startswith("berthiers_memorial#"):
                     assert row["bind"] == {"law": "grand_quartier_general"}, (seed, row)
                 elif mid.startswith(("the_remounts#", "the_popes_ports#", "the_proclamation#")):
@@ -222,8 +256,18 @@ class TestTheFirstArrivalIsReportedPerSeed:
         # marengo, where the Chancellor's letter, the Remounts and the Pope's
         # stand due (each once — the pulse re-timed under the courts' kept
         # chests and the later Proclamations)
-        due_at_the_end = {"marengo": {"chancellors_letters|": 1, "the_remounts|": 1,
-                                      "the_popes_ports|": 1}}
+        # Session C (November 10, 2026 — the first re-record since T0-H, after
+        # Tiers 1–5; §203): the Pope's letter stands due on the last morning on
+        # seven seeds (the war with Britain kept longer on the tiers' boards),
+        # the Marine's on eylau and rivoli, the Remounts and the Proclamation
+        # beside them on austerlitz (four busy mornings) and rivoli; wagram and
+        # lodi clear (their due matters crowded out). The Awakening moved none.
+        due_at_the_end = {"historical": {"the_popes_ports|": 1}, "ulm": {"the_popes_ports|": 2},
+                          "austerlitz": {"the_remounts|": 4, "the_proclamation|": 4, "the_popes_ports|": 4},
+                          "jena": {"the_popes_ports|": 1}, "marengo": {"the_popes_ports|": 3},
+                          "eylau": {"santo_domingo|": 1, "the_popes_ports|": 1},
+                          "friedland": {"the_popes_ports|": 2},
+                          "rivoli": {"santo_domingo|": 2, "the_remounts|": 1}}
         for seed, arms in record["seeds"].items():
             armed = arms["armed"]
             assert armed["due"] == due_at_the_end.get(seed, {}), (seed, armed["due"])

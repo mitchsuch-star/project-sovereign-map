@@ -1,6 +1,6 @@
 {
  "_part": "S14b part 3 — VP-1's road arms, per seed (seeded paths, not laws)",
- "note": "T0-H (November 7, 2026, the user's \"Yes, run T0-H\"): the re-record chain on the FINAL tree, 077efb37 (T0-E/F/G landed — the brakes, the brew gate, the Staff's reachability guard and the edicts' hold in the tree); the same armed run the reach record's road_control reads (--affair lapse --standing-trace); RE3-7's record of November 6 kept as tools/_vp1_road_arms_2026_11_06.json",
+ "note": "Session C (November 10, 2026 — the first re-record since T0-H, after Tiers 1–5 of the Concert; SYSTEMS_REFERENCE.md §203): the armed run of the shipped tree, the Awakening's seams up; the reach record's road_control reads this same run",
  "driver_flags": [
   "--affair",
   "lapse",
@@ -80,17 +80,16 @@
     "Hesse": "subjugation",
     "Austria": "subjugation"
    },
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (35), proclaimed (8)",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (35), homeland_whole (23)",
    "moments": {
     "arrived": {
      "bavarian_match": 8,
      "chancellors_letters#1": 13,
      "the_proclamation#1": 18,
-     "throne_of_holland": 20,
-     "santo_domingo#1": 25,
-     "the_host#1": 30,
-     "chancellors_letters#2": 35,
-     "the_host#2": 40
+     "throne_of_holland": 19,
+     "chancellors_letters#2": 24,
+     "santo_domingo#1": 29,
+     "the_proclamation#2": 34
     },
     "passed": {
      "decree_of_berlin": "forsworn"
@@ -103,7 +102,7 @@
       "verdict": "ok"
      },
      "throne_of_holland": {
-      "first_due": 20,
+      "first_due": 19,
       "status": "answered",
       "reason": "",
       "verdict": "ok"
@@ -128,19 +127,25 @@
      },
      "the_host|Austria": {
       "first_due": 15,
-      "status": "lapsed",
+      "status": "",
       "reason": "",
-      "verdict": "ok"
+      "verdict": "released"
      },
      "the_host|Bavaria": {
       "first_due": 7,
-      "status": "lapsed",
+      "status": "",
       "reason": "",
-      "verdict": "ok"
+      "verdict": "released"
+     },
+     "the_popes_ports|": {
+      "first_due": 28,
+      "status": "",
+      "reason": "",
+      "verdict": "released"
      },
      "the_proclamation|": {
       "first_due": 7,
-      "status": "lapsed",
+      "status": "withdrawn",
       "reason": "",
       "verdict": "ok"
      },
@@ -160,7 +165,7 @@
    "arm": "VP1-RH",
    "seed": "austerlitz",
    "exit": 0,
-   "end_turns": 39,
+   "end_turns": 40,
    "stamped_turn": 13,
    "fulfilled": {
     "rhine.german_crown": 12,
@@ -180,7 +185,7 @@
      "throne_of_holland": 19,
      "chancellors_letters#1": 26,
      "the_host#2": 30,
-     "the_remounts#1": 37
+     "chancellors_letters#2": 37
     },
     "passed": {
      "decree_of_berlin": "forsworn"
@@ -220,7 +225,7 @@
       "first_due": 9,
       "status": "",
       "reason": "",
-      "verdict": "released"
+      "verdict": "pending"
      },
      "the_host|Bavaria": {
       "first_due": 9,
@@ -235,16 +240,10 @@
       "verdict": "released"
      },
      "the_proclamation|": {
-      "first_due": 30,
+      "first_due": 38,
       "status": "",
       "reason": "",
-      "verdict": "released"
-     },
-     "the_remounts|": {
-      "first_due": 37,
-      "status": "lapsed",
-      "reason": "",
-      "verdict": "ok"
+      "verdict": "pending"
      }
     },
     "floor_breaches": [],
@@ -256,7 +255,7 @@
    "arm": "VP1-RH",
    "seed": "marengo",
    "exit": 0,
-   "end_turns": 33,
+   "end_turns": 34,
    "stamped_turn": 13,
    "fulfilled": {
     "rhine.german_crown": 12,
@@ -317,14 +316,14 @@
       "reason": "",
       "verdict": "released"
      },
-     "the_host|Austria": {
-      "first_due": 16,
+     "the_host|Bavaria": {
+      "first_due": 6,
       "status": "",
       "reason": "",
       "verdict": "released"
      },
-     "the_host|Bavaria": {
-      "first_due": 6,
+     "the_host|Saxony": {
+      "first_due": 17,
       "status": "",
       "reason": "",
       "verdict": "released"
@@ -342,7 +341,7 @@
       "verdict": "ok"
      },
      "the_remounts|": {
-      "first_due": 13,
+      "first_due": 10,
       "status": "",
       "reason": "",
       "verdict": "released"
@@ -357,24 +356,20 @@
    "arm": "VP1-CS",
    "seed": "historical",
    "exit": 0,
-   "end_turns": 40,
+   "end_turns": 28,
    "stamped_turn": -1,
-   "fulfilled": {
-    "system.blockade": 13
-   },
+   "fulfilled": {},
    "terms": {},
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (25), sealing_court_at_peace (25), homeland_whole (24)",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (28), construction_holds (28), sealing_court_at_peace (28), homeland_whole (19); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]",
    "moments": {
     "arrived": {
      "bavarian_match": 8,
-     "santo_domingo#1": 13,
-     "the_proclamation#1": 18
+     "santo_domingo#1": 13
     },
     "passed": {
      "crown_of_the_reich": "forsworn",
      "throne_of_holland": "premise",
-     "the_magazines#1": "crowded",
-     "decree_of_berlin": "premise"
+     "the_magazines#1": "crowded"
     },
     "floors": {
      "bavarian_match": {
@@ -383,15 +378,9 @@
       "reason": "",
       "verdict": "ok"
      },
-     "chancellors_letters|": {
-      "first_due": 21,
-      "status": "",
-      "reason": "",
-      "verdict": "released"
-     },
      "santo_domingo|": {
       "first_due": 7,
-      "status": "lapsed",
+      "status": "fired",
       "reason": "",
       "verdict": "ok"
      },
@@ -409,9 +398,9 @@
      },
      "the_proclamation|": {
       "first_due": 16,
-      "status": "fired",
+      "status": "",
       "reason": "",
-      "verdict": "ok"
+      "verdict": "released"
      },
      "the_remounts|": {
       "first_due": 7,
@@ -437,21 +426,15 @@
    "moments": {
     "arrived": {
      "bavarian_match": 10,
-     "the_magazines#1": 19,
-     "throne_of_holland": 21
+     "the_magazines#1": 19
     },
     "passed": {
-     "crown_of_the_reich": "forsworn"
+     "crown_of_the_reich": "forsworn",
+     "throne_of_holland": "premise"
     },
     "floors": {
      "bavarian_match": {
       "first_due": 10,
-      "status": "answered",
-      "reason": "",
-      "verdict": "ok"
-     },
-     "throne_of_holland": {
-      "first_due": 21,
       "status": "answered",
       "reason": "",
       "verdict": "ok"
@@ -464,7 +447,7 @@
      },
      "the_magazines|": {
       "first_due": 9,
-      "status": "withdrawn",
+      "status": "lapsed",
       "reason": "",
       "verdict": "ok"
      },
@@ -490,27 +473,32 @@
    "arm": "VP1-CS",
    "seed": "marengo",
    "exit": 0,
-   "end_turns": 40,
+   "end_turns": 25,
    "stamped_turn": -1,
-   "fulfilled": {},
+   "fulfilled": {
+    "system.blockade": 14
+   },
    "terms": {},
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (40), homeland_whole (36)",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (25), construction_holds (25), sealing_court_at_peace (25), homeland_whole (21); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]",
    "moments": {
     "arrived": {
      "bavarian_match": 8,
      "santo_domingo#1": 14,
-     "the_host#1": 21,
-     "santo_domingo#2": 26,
-     "the_magazines#1": 32
+     "throne_of_holland": 17,
+     "the_magazines#1": 26
     },
     "passed": {
-     "crown_of_the_reich": "forsworn",
-     "throne_of_holland": "premise",
-     "decree_of_berlin": "premise"
+     "crown_of_the_reich": "forsworn"
     },
     "floors": {
      "bavarian_match": {
       "first_due": 8,
+      "status": "answered",
+      "reason": "",
+      "verdict": "ok"
+     },
+     "throne_of_holland": {
+      "first_due": 17,
       "status": "answered",
       "reason": "",
       "verdict": "ok"
@@ -523,18 +511,24 @@
      },
      "the_host|Bavaria": {
       "first_due": 6,
-      "status": "lapsed",
+      "status": "",
       "reason": "",
-      "verdict": "ok"
+      "verdict": "released"
      },
      "the_magazines|": {
       "first_due": 6,
-      "status": "lapsed",
+      "status": "fired",
       "reason": "",
       "verdict": "ok"
      },
+     "the_proclamation|": {
+      "first_due": 11,
+      "status": "",
+      "reason": "",
+      "verdict": "released"
+     },
      "the_remounts|": {
-      "first_due": 12,
+      "first_due": 10,
       "status": "",
       "reason": "",
       "verdict": "released"
@@ -549,11 +543,11 @@
    "arm": "VP1-TH",
    "seed": "historical",
    "exit": 0,
-   "end_turns": 35,
+   "end_turns": 40,
    "stamped_turn": -1,
    "fulfilled": {},
    "terms": {},
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (35), construction_holds (35), sealing_court_at_peace (35), homeland_whole (18); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (40), homeland_whole (23)",
    "moments": {
     "arrived": {
      "bavarian_match": 8,
@@ -561,7 +555,8 @@
      "the_proclamation#1": 18,
      "chancellors_letters#2": 23,
      "the_magazines#1": 28,
-     "the_magazines#2": 36
+     "the_host#1": 33,
+     "the_magazines#2": 38
     },
     "passed": {
      "crown_of_the_reich": "forsworn",
@@ -576,7 +571,7 @@
       "verdict": "ok"
      },
      "berthiers_memorial|": {
-      "first_due": 20,
+      "first_due": 21,
       "status": "",
       "reason": "",
       "verdict": "released"
@@ -595,9 +590,9 @@
      },
      "the_host|Bavaria": {
       "first_due": 12,
-      "status": "",
+      "status": "lapsed",
       "reason": "",
-      "verdict": "released"
+      "verdict": "ok"
      },
      "the_magazines|": {
       "first_due": 7,
@@ -627,17 +622,18 @@
    "arm": "VP1-TH",
    "seed": "austerlitz",
    "exit": 0,
-   "end_turns": 31,
+   "end_turns": 40,
    "stamped_turn": -1,
    "fulfilled": {},
    "terms": {},
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (31), construction_holds (31), sealing_court_at_peace (31), homeland_whole (14); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (40), homeland_whole (23)",
    "moments": {
     "arrived": {
      "bavarian_match": 10,
      "the_host#1": 14,
-     "the_remounts#1": 21,
-     "the_magazines#1": 25
+     "the_proclamation#1": 21,
+     "the_host#2": 25,
+     "the_remounts#1": 32
     },
     "passed": {
      "crown_of_the_reich": "forsworn",
@@ -677,15 +673,15 @@
      },
      "the_magazines|": {
       "first_due": 9,
-      "status": "lapsed",
-      "reason": "",
-      "verdict": "ok"
-     },
-     "the_proclamation|": {
-      "first_due": 9,
       "status": "",
       "reason": "",
       "verdict": "released"
+     },
+     "the_proclamation|": {
+      "first_due": 9,
+      "status": "lapsed",
+      "reason": "",
+      "verdict": "ok"
      },
      "the_remounts|": {
       "first_due": 9,
@@ -703,17 +699,17 @@
    "arm": "VP1-TH",
    "seed": "marengo",
    "exit": 0,
-   "end_turns": 25,
+   "end_turns": 40,
    "stamped_turn": -1,
    "fulfilled": {},
    "terms": {},
-   "reason": "never stamped — the conditions false at the most end turns: both_latched (25), construction_holds (25), sealing_court_at_peace (25), homeland_whole (10); ENDING — THE FALL OF THE EMPIRE: The Emperor, a prisoner these 10 turns, is deposed. [THE ECLIPSE]",
+   "reason": "never stamped — the conditions false at the most end turns: both_latched (40), construction_holds (40), sealing_court_at_peace (40), homeland_whole (17)",
    "moments": {
     "arrived": {
      "bavarian_match": 8,
-     "chancellors_letters#1": 14,
-     "the_host#1": 21,
-     "the_remounts#1": 26
+     "chancellors_letters#1": 16,
+     "the_remounts#1": 23,
+     "berthiers_memorial#1": 28
     },
     "passed": {
      "crown_of_the_reich": "forsworn",
@@ -729,9 +725,9 @@
      },
      "berthiers_memorial|": {
       "first_due": 15,
-      "status": "",
+      "status": "lapsed",
       "reason": "",
-      "verdict": "released"
+      "verdict": "ok"
      },
      "chancellors_letters|": {
       "first_due": 7,
@@ -747,9 +743,9 @@
      },
      "the_host|KingdomOfItaly": {
       "first_due": 10,
-      "status": "lapsed",
+      "status": "",
       "reason": "",
-      "verdict": "ok"
+      "verdict": "released"
      },
      "the_magazines|": {
       "first_due": 7,
@@ -765,7 +761,7 @@
      },
      "the_remounts|": {
       "first_due": 8,
-      "status": "fired",
+      "status": "lapsed",
       "reason": "",
       "verdict": "ok"
      }
