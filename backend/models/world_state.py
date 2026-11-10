@@ -15328,11 +15328,16 @@ class WorldState:
             # applied (the lump at the amount the purse could meet, the soil
             # that moved), in the player's own terms. The accept handlers
             # append it to the confirmation; a peace's summary stands for it.
-            from backend.display_names import treaty_receipt_lines
+            from backend.display_names import treaty_receipt_gold, treaty_receipt_lines
             result["receipt_lines"] = treaty_receipt_lines(
                 ctx.treaty_clauses, ctx.applied_treaty_clauses, self.player_nation,
                 name_of=lambda n: formed_display_name(self, n),
                 dropped=getattr(ctx, "_bilateral_dropped", None) or [])
+            # GR-11: the same receipt as a figure (signed, the player's purse),
+            # present only where a lump moved - the lines above are its words.
+            _receipt_gold = treaty_receipt_gold(ctx.applied_treaty_clauses, self.player_nation)
+            if _receipt_gold:
+                result["receipt_gold"] = _receipt_gold
             if ctx.bargain_breach_events:
                 result["bargain_breach_events"] = ctx.bargain_breach_events
             return result

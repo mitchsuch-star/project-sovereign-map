@@ -332,6 +332,75 @@ class TestTheTreatyLumpIsOnTheBooks:
         assert "OFF THE BOOKS" in (
             (tmp_path / "digest.md").read_text(encoding="utf-8"))
 
+    # ── GR-11's own evidence (closed November 9, 2026): T0-I's arm read a
+    # PEACE's summary; the row's digests showed a VASSALAGE ("Austria has
+    # accepted our Vassalage! You paid Austria 750 gold from the treasury.")
+    # — no peace, no summary — still reading OFF THE BOOKS −150 / −124 / −750
+    # on the review's own repro at HEAD. The treaty event carries the figure
+    # now (`receipt_gold`), and the window reads every treaty the rollover
+    # signed.
+    def _window(self, tmp_path, response):
+        d = _digest(tmp_path)
+        d.chest_window(response, 4_900, 4_000)
+        rows = [json.loads(line) for line in
+                io.open(tmp_path / "digest.jsonl", encoding="utf-8")]
+        md = (tmp_path / "digest.md").read_text(encoding="utf-8")
+        return [r for r in rows if r.get("kind") == "chest_window"][0], md
+
+    def test_a_treaty_that_is_no_peace_is_explained(self, tmp_path):
+        response = dict(self.RESPONSE)
+        response["events"] = list(response["events"]) + [{
+            "type": "diplomatic_treaty_signed", "target": "Austria",
+            "treaty_type": "vassalage", "receipt_gold": -1_000,
+            "receipt_lines": ["You paid Austria 1,000 gold from the treasury."]}]
+        response["proposal_result"] = {
+            "outcome": "ACCEPT",
+            "message": "Austria has accepted our Vassalage! "
+                       "You paid Austria 1,000 gold from the treasury."}
+        window, md = self._window(tmp_path, response)
+        assert window["treaty_lump"] == -1_000
+        assert window["off_books"] == 0
+        assert "OFF THE BOOKS" not in md
+
+    def test_every_treaty_of_the_rollover_is_summed(self, tmp_path):
+        """The popup slot holds ONE treaty; the events hold them all — and a
+        lump paid IN (an AI court's sweetener) offsets one paid out."""
+        response = dict(self.RESPONSE)
+        response["events"] = list(response["events"]) + [
+            {"type": "diplomatic_treaty_signed", "target": "Bavaria",
+             "treaty_type": "vassalage", "receipt_gold": -1_150},
+            {"type": "diplomatic_treaty_signed", "target": "Saxony",
+             "treaty_type": "open_borders", "receipt_gold": 150},
+            {"type": "diplomatic_treaty_signed", "target": "Baden",
+             "treaty_type": "open_borders"}]
+        window, md = self._window(tmp_path, response)
+        assert window["treaty_lump"] == -1_000
+        assert window["off_books"] == 0
+
+    def test_one_peace_is_counted_once(self, tmp_path):
+        """A peace accepted in transit rides BOTH the treaty event and the
+        popup (`world_state` copies the summary onto the popup) — the
+        window reads the event and leaves the copy alone."""
+        summary = {"gold_received": 0, "gold_paid": 1_000}
+        response = dict(self.RESPONSE)
+        response["events"] = list(response["events"]) + [{
+            "type": "diplomatic_treaty_signed", "target": "Russia",
+            "treaty_type": "peace", "peace_ratification_summary": summary,
+            "receipt_gold": -1_000}]
+        response["proposal_result"] = {"peace_ratification_summary": summary}
+        window, md = self._window(tmp_path, response)
+        assert window["treaty_lump"] == -1_000
+        assert window["off_books"] == 0
+
+    def test_the_lump_reader_survives_any_shape(self):
+        import tools.playtest_driver as drv
+        assert drv.rollover_treaty_lump(None) == 0
+        assert drv.rollover_treaty_lump({}) == 0
+        assert drv.rollover_treaty_lump({"events": [None, "x", {"type": "battle"}]}) == 0
+        assert drv.rollover_treaty_lump(
+            {"events": [{"type": "diplomatic_treaty_signed",
+                         "receipt_gold": None}]}) == 0
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # AIF-9 / AIF-10 — the sweep's seams

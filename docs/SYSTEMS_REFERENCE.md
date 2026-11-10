@@ -13704,6 +13704,49 @@ C5's fortify churn, CMD-H Shrapnel T7-T8) was looked at once as briefed: London-
 sail → land Carniola → break camp → march Tyrol → fortify — a corps relocating after a
 landing, a sighting, not a loop; no row.
 
+### §184.6 The seven rows re-read and closed; ECON-1 completed (November 9, 2026)
+
+T0-I's record named the review's handles (DIP-3, ECON-1, AIF-9, AIF-10, LAW-5) and the two
+arms (SEA, VOLTE), never the ledger ids — GR-14, GR-11, GR-9, GR-10, GR-17, GR-64, GR-65 — so
+seven status cells of `BUG_FIXES.md` §GR still read OPEN two days after the fixes landed,
+against a deploy gate of 0 open defect rows. Each was re-read against the TREE at ab2d43ea
+by its own repro, never closed on the record's word:
+
+| Row | The re-read at ab2d43ea | Verdict |
+|---|---|---|
+| GR-9 (AIF-9) | the documented `--run` line without `PYTHONPATH`: exit 0, three turns recorded | stands |
+| GR-10 (AIF-10) | that run's first row: `france` = provinces 28, laws [], satellites Holland 98 / KingdomOfItaly 100 / Switzerland 96 | stands |
+| GR-14 (DIP-3) | twelve `TERMS (incoming …)` rows on the re-run VOLTE digest | stands |
+| GR-17 (LAW-5) | forty asks; the Staff in force at turn 17 on historical | stands |
+| GR-64 (SEA) | through `score_run`: yard T4, commission T8 (3,500g ✓), march T9, quote T10, sailed T11 (intercepted); no SCRIPT PRECONDITION | stands |
+| GR-65 (VOLTE) | through `score_run`: the beat fires at T26 (T27 on November 7), Tiers 1–4 of the Concert later | stands |
+| GR-11 (ECON-1) | the review's repro: OFF THE BOOKS −124 / −750 (austerlitz), −150 / −750 (historical) | **not fixed — completed here** |
+
+**ECON-1 completed.** §184.5's arm reads a PEACE's ratification summary. The row's own
+evidence was "Austria has accepted our Vassalage! You paid Austria 750 gold from the
+treasury." — a treaty that is no peace carries no summary, and its receipt was prose only
+(`receipt_lines`, S14E-28). Two changes, one figure:
+
+- `display_names.treaty_receipt_gold(applied, viewer)` — the applied `gold_lump` clauses
+  through the viewer's purse, signed (received − paid), an int (Rule 2);
+  `_ratify_player_events` stamps it on the `diplomatic_treaty_signed` event as
+  `receipt_gold` beside `receipt_lines`, ONLY where a lump moved — every other treaty
+  event keeps its shape. Nothing in play reads it.
+- `playtest_driver.rollover_treaty_lump(response)` — every `diplomatic_treaty_signed`
+  event of the end turn: a peace by its summary, any other treaty by `receipt_gold`. The
+  summary riding the response alone (the settlement road signs with no treaty event) is
+  read only when no event carried one, so a peace that rides both the event and the popup
+  is counted once. The popup slot holds ONE treaty; the events hold them all.
+
+Measured on the row's own repro (14 turns, both seeds): 0 OFF THE BOOKS lines,
+`treaty_lump` −124 / −150 at T1 and −750 at T12, every other digest line identical to the
+unfixed run's. A command-time payment (an accepted counter — "You paid Hesse 1,550 gold")
+was always the window's one-shot and still is. Pins:
+`tests/test_t0i_the_benchmarks_arms.py::TestTheTreatyLumpIsOnTheBooks` (the vassalage, the
+sum of a rollover's treaties, one peace counted once, any shape survived) and
+`tests/test_s14f_the_remeasure_rows.py` (the figure on the event, its sign, none where no
+gold moved). The census: defect rows 7 → 0 open.
+
 
 
 ## §188 Tier 2, session 3 — T2-2, peace closes the theatre (November 8, 2026)

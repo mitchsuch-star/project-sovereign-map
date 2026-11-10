@@ -2645,6 +2645,22 @@ def treaty_receipt_lines(promised, applied, viewer: str, *, name_of=None, droppe
     return lines
 
 
+def treaty_receipt_gold(applied, viewer: str) -> int:
+    """GR-11 (November 9, 2026): the gold the applied lumps moved through the
+    viewer's purse, signed - received minus paid. It is the figure behind the
+    receipt's sentences ("You paid Bavaria 150 gold from the treasury." reads
+    -150), so an instrument measuring the chest across a signing reads a
+    number, never the prose. 0 when the viewer is party to no lump; always an
+    int (Rule 2)."""
+    total = 0
+    for (payer, payee), amount in _clause_gold_by_pair(applied).items():
+        if payee == viewer:
+            total += amount
+        if payer == viewer:
+            total -= amount
+    return int(total)
+
+
 def treaty_receipt_text(treaty_event) -> str:
     """S14E-28: a signed treaty's receipt as the run of sentences the accept
     handlers append to "Treaty signed: ..." - "" for a peace (its ratified-terms

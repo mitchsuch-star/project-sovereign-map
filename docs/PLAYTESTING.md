@@ -688,7 +688,9 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   `⚠ OFF THE BOOKS` row when the chest moved across an end turn by more or
   less than the accounts applied (SF-RR6, EA-2; since T0-I ECON-1 a treaty
   lump the rollover's own popups name — the ratification summary's
-  `gold_received`/`gold_paid` — is on the books, carried as the record's
+  `gold_received`/`gold_paid`, and since GR-11 (November 9, 2026) any other
+  treaty's `receipt_gold` on its `diplomatic_treaty_signed` event, every
+  treaty of the rollover summed — is on the books, carried as the record's
   `treaty_lump` and named in the row when it part-explains a residue),
   `ORDER` rows for standing-order progress, `LEDGER` with
   treasury/net/**threat**/**`provinces N (+d)`**, the dispatch headline,
@@ -780,7 +782,8 @@ PYTHONHASHSEED=0 .venv/Scripts/python.exe tools/_pc15_10_acceptance_probe.py OUT
   rail/dispatch_row/campaign_log/mission/note — and since SF-RR6
   `chest_window` (the chest measured across each end turn against the
   applied Net, `off_books` 0 when the books are whole, `treaty_lump` the
-  rollover payment the end-turn popups named — T0-I ECON-1), `wars` (the
+  rollover payment the end turn's own treaties named — T0-I ECON-1, GR-11),
+  `wars` (the
   courts at war with France as each turn's end begins), `precondition` (a
   script line's staged board, held or failed) and `proposal_terms` (an
   incoming AI proposal's clause lines, T0-I DIP-3)).

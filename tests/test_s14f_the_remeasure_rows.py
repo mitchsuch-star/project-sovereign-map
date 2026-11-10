@@ -6794,6 +6794,42 @@ class TestS14E28:
         signed = next(e for e in events if e.get("type") == "diplomatic_treaty_signed")
         assert signed["message"].endswith("You paid Saxony 80 gold from the treasury.")
         assert w.nation_gold["France"] == 420
+        # GR-11 (November 9, 2026): the same receipt as a FIGURE on the treaty
+        # event, signed for the player's purse - what the driver's chest
+        # window reads for a treaty that is no peace (it has no summary).
+        assert signed["receipt_gold"] == -80 and isinstance(signed["receipt_gold"], int)
+
+    def test_a_treaty_that_moves_no_gold_carries_no_figure(self, _r23_w, monkeypatch):
+        """GR-11: `receipt_gold` rides only a signing that moved a lump through
+        the player's purse - every other treaty event keeps its old shape."""
+        w = _r23_w
+        w.current_turn = 4
+        w.proposal_in_transit = {
+            "turn_sent": 3, "target": "Saxony",
+            "proposal": _r28_terms(clauses=["open_borders"], proposer="France", target="Saxony"),
+        }
+        monkeypatch.setattr(
+            "backend.game_logic.diplomacy.calculate_acceptance",
+            lambda proposal, world, *a, **k: {"score": 90, "outcome": "ACCEPT", "components": {},
+                                              "feedback": ""})
+        with _r23_quiet():
+            events = w._process_proposal_in_transit()
+        signed = next(e for e in events if e.get("type") == "diplomatic_treaty_signed")
+        assert "receipt_gold" not in signed
+
+    def test_the_figure_is_signed_for_the_viewers_purse(self):
+        """GR-11: received is positive, paid is negative, a third party's lump
+        is nothing, and what was APPLIED is what counts (never the promise)."""
+        from backend.display_names import treaty_receipt_gold
+        paid = [{"type": "gold_lump", "from": "France", "to": "Austria", "amount": 750}]
+        got = [{"type": "gold_lump", "from": "Saxony", "to": "France", "amount": 35}]
+        other = [{"type": "gold_lump", "from": "Austria", "to": "Prussia", "amount": 40}]
+        assert treaty_receipt_gold(paid, "France") == -750
+        assert treaty_receipt_gold(got, "France") == 35
+        assert treaty_receipt_gold(paid + got + other, "France") == -715
+        assert treaty_receipt_gold(other, "France") == 0
+        assert treaty_receipt_gold([], "France") == 0 and treaty_receipt_gold(None, "France") == 0
+        assert isinstance(treaty_receipt_gold(got, "France"), int)
 
     def test_the_receipt_names_a_cession_the_bilateral_arm_could_not_carry(self):
         from backend.display_names import treaty_receipt_lines

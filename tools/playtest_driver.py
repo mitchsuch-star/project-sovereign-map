@@ -1471,6 +1471,49 @@ def _seen(digest, name):
     return digest.__dict__.setdefault(name, set())
 
 
+def _summary_gold(summary):
+    """A peace's ratification summary as one signed figure (the player's)."""
+    return (int(summary.get("gold_received", 0) or 0)
+            - int(summary.get("gold_paid", 0) or 0))
+
+
+def rollover_treaty_lump(response):
+    """The gold the end turn's OWN treaties moved through the chest, signed.
+
+    T0-I ECON-1 read one peace's ratification summary. GR-11's own evidence
+    was a treaty that is no peace — "Austria has accepted our Vassalage! You
+    paid Austria 750 gold from the treasury." — which carries no summary, so
+    it still read OFF THE BOOKS (closed November 9, 2026). The end turn's
+    events hold every treaty the rollover signed: a peace by its summary, any
+    other treaty by `receipt_gold` (`display_names.treaty_receipt_gold` — the
+    figure behind the receipt's sentence). A peace the settlement road signs
+    with no treaty event still rides the response alone, as before; it is
+    read only when no event carried a summary, so one peace is counted once.
+    """
+    if not isinstance(response, dict):
+        return 0
+    lump, peace_on_an_event = 0, False
+    for event in (response.get("events") or []):
+        if (not isinstance(event, dict)
+                or event.get("type") != "diplomatic_treaty_signed"):
+            continue
+        summary = event.get("peace_ratification_summary")
+        if isinstance(summary, dict):
+            peace_on_an_event = True
+            lump += _summary_gold(summary)
+        else:
+            lump += int(event.get("receipt_gold", 0) or 0)
+    if not peace_on_an_event:
+        summary = response.get("peace_ratification_summary")
+        if not isinstance(summary, dict):
+            pr = response.get("proposal_result")
+            summary = (pr.get("peace_ratification_summary")
+                       if isinstance(pr, dict) else None)
+        if isinstance(summary, dict):
+            lump += _summary_gold(summary)
+    return lump
+
+
 def _dispatch_type_counts(digest):
     """IQ-6 N1 (c): the run's per-type dispatch-row tally, created lazily on
     any object, stub or real (the `_seen` idiom — a borrowed `dispatch` must
@@ -2712,14 +2755,7 @@ class Digest:
         # Peace Treaty!" with the 1,000g indemnity France had offered) —
         # and used to read as an off-the-books flow. A named lump is on the
         # books; the residue line is for flows nothing named.
-        summary = response.get("peace_ratification_summary")
-        if not isinstance(summary, dict):
-            pr = response.get("proposal_result")
-            summary = (pr.get("peace_ratification_summary")
-                       if isinstance(pr, dict) else None)
-        treaty = ((int(summary.get("gold_received", 0) or 0)
-                   - int(summary.get("gold_paid", 0) or 0))
-                  if isinstance(summary, dict) else 0)
+        treaty = rollover_treaty_lump(response)
         off = (measured - one_shots + materiel - treaty - int(applied)
                ) if applied is not None else None
         self.record("chest_window", turn=int(event.get("old_turn", 0) or 0),
