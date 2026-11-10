@@ -1807,7 +1807,27 @@ SCENARIO_PATH = (REPO_ROOT / "godot-client" / "project-sovereign"
 # leash read 2,448 times, the conduct rule refused 1,800 deliberate
 # annexations and permitted 230. The prior's series: SERIES_BEFORE_T3_3.
 # ══════════════════════════════════════════════════════════════════
-BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# ══════════════════════════════════════════════════════════════════
+# RE-PINNED by T4-1 (November 9, 2026 — the Alarm of Europe; the Tier-4
+# gate record DYNAMISM_SPEC.md §3c G1/G2; `SYSTEMS_REFERENCE.md` §199).
+# Traced on the series' own loop. The attribution:
+# `tools/_t4_1_series_arms.py` → `tools/_t4_1_series_arms_final.json` —
+# arm 0 (both seams down) reproduces the prior BYTE FOR BYTE, so the two
+# seams isolate the slice exactly, and THE MOVER IS THE WRITE ALONE: the
+# RUNG-down arm IS the shipped series, the WRITE-down arm IS the prior.
+# The rung is consulted (40 reads) and pledges nothing on this loop. The
+# write lifts the AI courts' slots (22 alarms written; Austria 95 by world
+# turn 7 against 60, Prussia 88 by turn 20 against 52), and on this loop
+# Mack's corps keeps returning to Lorraine: two more assaults, at world
+# turns 26 and 29 (36,859 and 46,818 men), break on Lannes and Ney —
+# France's decisive defensive wins, `decisive_victory` +5 each, net +2
+# after the decay (traced through `add_threat`'s defender arm in the
+# post-combat pipeline) — so [26] and [29] 0 → 2. The prior's series:
+# SERIES_BEFORE_T4_1.
+# ══════════════════════════════════════════════════════════════════
+BASELINE_SERIES = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# T3-3's series (T4-1's prior; the T4-1 rig's arm 0):
+SERIES_BEFORE_T4_1 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 37, 34, 21, 18, 15, 12, 9, 6, 3, 0, 2, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # T0-E/F/G's series (T3-3's prior; the T3-3 rig's arm 0):
 SERIES_BEFORE_T3_3 = [70, 68, 66, 64, 62, 60, 58, 56, 43, 40, 27, 24, 21, 18, 15, 12, 9, 6, 3, 0, 0, 0, 2, 0, 0, 7, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # The courts' flip's series (T0-E/F/G's prior; the T0-EFG rig's arms 0 and T0G-EDS):

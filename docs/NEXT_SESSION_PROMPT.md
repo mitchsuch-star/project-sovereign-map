@@ -1,39 +1,63 @@
-# NEXT SESSION PROMPT — Tier 4's head: the Alarm of Europe (TIER 3 ✅ COMPLETE; T3-6 occupation is not annexation ✅)
+# NEXT SESSION PROMPT — Tier 4, session 2: T4-2 sign at the last (the gate ✅ RULED §3c; T4-1 the Alarm ✅)
 
-> Overwritten each time a session hands off. Current hand-over: **November 9, 2026 — T3-6 OCCUPATION IS NOT
-> ANNEXATION ✅ LANDED (row T3-6, ruled by the user's "make best call, best design not easiest";
-> `SYSTEMS_REFERENCE.md` §198): at a peace between AI courts the winner keeps what the treaty cedes and what it
-> may keep (`war_council.keepable_regions` — its house's authored aims and its declared articles) and hands the
-> rest of the loser's homeland back (`game_end.aim_evacuations`, inside the one titling pass; the player's
-> peaces keep SR-1a whole; a corps left standing walks home by the Road Home corridor); the deploy gate now
-> measures ANNEXATION, not occupation (`war_council.annexations_outside_aim`, recorded at the run's end — a new
-> signature column, never the story class; `captures_outside_aim` the war's footprint); the control reproduced
-> T3-5's chain C, the kept debt fell **42 → 7** ambient (Franconia alone — the spoils of Bavaria's elimination
-> on seven seeds), the AI courts of the AI-France harness keep **8**, story classes held at 8 (Saxony survives
-> on austerlitz, Hanover on marengo)**, after T3-5 TIER 3 COMPLETE (§197: the terms made consistent, the
-> harness France bound, chains C and D), T3-4 (§196), T3-3 (§195), T3-2 (§194), the gate + T3-1 (§193), Tier 2
-> COMPLETE (§186–§192), Tier 1 (§185), Tier 0 (§178–§184). **The deploy (S15) follows the Concert Tiers 1–8: no
-> cuts without consent (`DYNAMISM_SPEC.md` §0).**
+> Overwritten each time a session hands off. Current hand-over: **November 9, 2026 — TIER 4'S GATE ✅ RULED
+> (`DYNAMISM_SPEC.md` §3c, in Plan Mode; the user's "your call" on all three questions — the erasure rule, Q5,
+> Q6) and T4-1 THE ALARM OF EUROPE ✅ LANDED (`SYSTEMS_REFERENCE.md` §199)**: an AI court's capture writes
+> Europe's alarm against its house at the one chokepoint (`alarm.sound_the_alarm` — 6 / a capital 12 / a third
+> court's client 8, on top of the +2 every conqueror already paid; the player's house nothing new); an alarmed
+> neighbour pledges the existing D5 guarantee for the likely next victim (`alarm.process_alarm_guarantees`, in the
+> AI-AI phase, only where the word binds against the conqueror alone); the words in Talleyrand, the Balance tab
+> and Le Moniteur, never a figure. The measure: the control reproduced T3-6 byte for byte; story classes 8 → 10;
+> Prussia's word for Bavaria against Austria at turn 7 on austerlitz, lodi and ulm; eight movers named; the kept
+> debt **7** ambient (friedland, historical, marengo, rivoli: Austria keeps Franconia; jena: Hesse Swabia,
+> Prussia Franconia, Switzerland Piedmont) and **7** for the AI courts of the AI-France harness (eylau Bavaria
+> Vienna, friedland Bavaria Bohemia, jena Bavaria four Dutch/Swiss provinces + Spain Friesland). After T3-6
+> (§198), Tier 3 COMPLETE (§193–§197), Tier 2 COMPLETE (§186–§192), Tier 1 (§185), Tier 0 (§178–§184). **The
+> deploy (S15) follows the Concert Tiers 1–8: no cuts without consent (`DYNAMISM_SPEC.md` §0).**
 >
-> **NOW — TIER 4, THE ALARM OF EUROPE (`DYNAMISM_SPEC.md` §3, DY-1) + PROMOTION'S FIRST TEETH (§3b, DY-1b), ITS
-> GATE IN PLAN MODE AT THE TIER'S HEAD** (the §8 law: author the tier's gate record before a line is built — the
-> user approves the plan):
-> - **The Alarm:** every AI court's annexation writes threat against the CONQUEROR at the ONE capture
->   chokepoint (`coalition.add_threat(world, amount, source_key="alarm:<region>", target=…)`; N-DY1: a province 6,
->   a capital 12, a third court's vassal or formation-peer 8; the player's captures write NOTHING new); felt only
->   through existing instruments (the brew, the eclipse, a NEW guarantee rung in the AI's diplomatic phase issuing
->   the existing D5 guarantee for the likely next victim); in WORDS only (Q6 — Talleyrand, the Balance tab).
-> - **Promotion's teeth (§3b):** a minor that fulfils its design and holds its grounds enacts its promotion law;
->   the tier MUST emit `rank_promotion` events (DY-0's future column, `rank_promotions`).
-> - **The T3-6 residual is Tier 4's (Rule 9, §3's done-when):** the deploy gate's `annexations_outside_aim` reads
->   7 ambient (Franconia — Bavaria eaten by Austria on seven seeds) and 8 for the AI courts of the AI-France
->   harness; the Alarm is what makes eating a minor cost — done when both read 0 (or each remaining province is
->   ruled by the user). Measure with `tools/_t3_4_measure.py` (signature + census) and `tools/_t3_5_chain_d.py
->   --arms D`, against the T3-6 records (`tools/_dy_signature_t3_6_2026_11_09.json`, `_t3_6_chain_d_…`).
-> - Done when §3's list holds; test `tests/test_dy1_the_alarm_of_europe.py`; the STATUS line "Tier 4 the Alarm —
->   conquest pays in standing" with the sweep columns.
+> **NOW — T4-2, SIGN AT THE LAST (row DY-1c; the contract RULED at `DYNAMISM_SPEC.md` §3c G5 — build it as
+> written, Plan Mode for the build's shape only):**
+> - **Where:** `WorldState.capture_region`'s elimination check (`world_state.py`, "R81: Check for elimination") —
+>   the one MILITARY erasure point; erasures by treaty (`_eliminate_nation(by_treaty=True)`) are untouched.
+> - **The test:** the victim is erased only when no AI court AT WAR with it holds its homeland outside that
+>   holder's keepable set (`war_council.keepable_regions(holder, victim)`).
+> - **Otherwise it signs:** (1) those provinces go home FIRST (`game_end._return_home` — the court must hold
+>   ground again before anything reads `get_active_nations`); (2) a pair peace with each such holder, reason
+>   `last_refuge` added to `game_end.SIGNED_PEACE_REASONS` so the titling pass runs (T3-6's handback, SR-1a for
+>   the keepable), T3-5's lock (`held_aim_lock` — the held aim by name), `declared_goals.settle_at_peace`,
+>   `PAIR_EXIT_TRUCE_FLOOR_TURNS`, the Road Home corridor, `follow_the_lord` — factor the single-pair close out of
+>   `settlement_third_party._process_exhausted_pair_exits` and reuse it, never a copy; (3) one event with the
+>   words ("Bavaria signs at the last — Austria keeps Munich and Swabia by treaty; Austria evacuates
+>   Franconia.").
+> - **Exempt:** a client victim (its war is its lord's) and the player's house on either side; the player's
+>   holdings never move. **D2 is narrowed, not deleted** — annotate `AI_INTENT_SPEC.md` §6 D2 (dated).
+> - **Seam** `a_crown_falls_only_by_treaty` in `tests/_t3_seams.py` row T4-2; pins ride
+>   `tests/test_dy1_the_alarm_of_europe.py`.
+> - **Watch for jena's shape:** its 3 are spoils changing hands AFTER the erasure (Hesse takes Swabia from
+>   Austria). If Bavaria survives, Swabia is Austria's by treaty and a later Hesse–Austria peace keeps it under
+>   SR-1a (T3-6 hands back only the LOSER's homeland) — measure, then rule each remaining province with the
+>   user (the done-when's own way out), never a silent widening.
+> - **Done when:** the crafted board (Bavaria lives in Franconia at peace; the Kingdom-of-Italy shape still
+>   erases); `annexations_outside_aim` 0 ambient and for the AI courts of the AI-France harness (or each
+>   remaining province put to the user); the eliminations column varies; movers named against
+>   `tools/_dy_signature_t4_1_2026_11_09.json` and `_t4_1_chain_d_2026_11_09.json` (the control with T4-2's seam
+>   down must reproduce them).
+> - Then **T4-3** promotion (§3c G6 — the 1806 crowns, rank derived from a `rank` law, `rank_promotion` the new
+>   log type) and the tier's close (the France band re-read on the commanded arms, the landing record).
 >
-> **T3-6's own traps (fresh):** a new rule at the peace belongs in the ONE titling pass
+> **T4-1's own traps (fresh):** a guarantee binds against EVERY attacker of a defending ward — an AI word must
+> check `instruments.guarantee_exposure` ⊆ {its target} or it declares war on courts nobody meant (the Porte
+> marched on France before the fix); `declare_war` brings the aggressor's allies by cascade — stage a lone war
+> with `suppress_unresolved_offensive_cascade=True`; raising AI slots moves the standing series through the
+> BATTLES (the levy price, Mack's assaults), not the rung — attribute with `tools/_t4_1_series_arms.py`, and a
+> `BASELINE_SERIES` re-pin is the rig + `SERIES_BEFORE_*` + the drill-fix re-links; a quieter world floods the
+> page with its lone filler (fixed: `dispatch.a_lone_filler_yields_to_the_quiet_floor`) — read the front-page
+> driven arms after any change that calms the board; `coalition._eclipse_candidate` returns `(court, slot)`;
+> every `add_threat` source needs a label row (the AST census in `test_moments_engine.py`) — a dynamic family
+> needs a prefix arm in `_threat_source_label`; the words read the STORE, so `alarm_lines` speaks of any AI slot
+> ≥ 30 even with the write held down.
+>
+> **T3-6's own traps:** a new rule at the peace belongs in the ONE titling pass
 > (`game_end.title_status_quo_retentions`) — every signed road runs it, and the Road Home corridor opens right
 > after it on the same setter; the pair road ALSO runs the unheld-homeland return (`_return_unheld_homeland`,
 > PC15-D4) regardless of aims or titles — isolate a peace rule in a pin by standing a corps on the ground (and

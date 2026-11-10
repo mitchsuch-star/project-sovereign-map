@@ -64,8 +64,21 @@ def _signs_provinces(event: dict) -> bool:
 
 def census_of(digest: dict) -> dict:
     peaces, letters, signed, evacuations = [], [], [], []
+    # T4-1 (DYNAMISM_SPEC.md §3c G2): the Alarm's guarantees — a pledge
+    # that names the conqueror it answers (`against`) — and every honour.
+    alarm_guarantees, honoured = [], []
     for row in digest.get("turns") or []:
         for event in row.get("events") or []:
+            if event.get("type") == "guarantee_pledged" and event.get("against"):
+                alarm_guarantees.append({"turn": int(row.get("turn", 0)),
+                                         "guarantor": str(event.get("guarantor") or ""),
+                                         "protected": str(event.get("protected") or ""),
+                                         "against": str(event.get("against") or "")})
+            if event.get("type") == "guarantee_honored":
+                honoured.append({"turn": int(row.get("turn", 0)),
+                                 "guarantor": str(event.get("guarantor") or ""),
+                                 "ward": str(event.get("ward") or ""),
+                                 "aggressor": str(event.get("aggressor") or "")})
             if (event.get("type") == "third_party_peace"
                     and " evacuates " in str(event.get("consequence") or "")):
                 evacuations.append({"turn": int(row.get("turn", 0)),
@@ -91,6 +104,8 @@ def census_of(digest: dict) -> dict:
     metrics = derive_metrics(digest)
     return {"aim_peaces": peaces, "aim_letters": letters, "signed_cessions": signed,
             "evacuations": evacuations,
+            "alarm_guarantees": alarm_guarantees,
+            "guarantees_honoured": honoured,
             "captures_outside_aim": int(metrics.get("captures_outside_aim", 0) or 0),
             "annexations_outside_aim": int(metrics.get("annexations_outside_aim", 0) or 0),
             "annexations_outside_aim_by_court": dict(
@@ -102,6 +117,8 @@ def main() -> None:
     ap.add_argument("--turns", type=int, default=40)
     ap.add_argument("--out", required=True)
     ap.add_argument("--census", required=True)
+    ap.add_argument("--label", default="t3-4",
+                    help="the slice the record belongs to (its notes' head)")
     args = ap.parse_args()
 
     seeds, census = {}, {}
@@ -121,7 +138,8 @@ def main() -> None:
                for s in SWEEP_SEEDS]
     count = story_class_count(classes)
     record = {
-        "_note": ("T3-4 the terms — the DY signature record (DYNAMISM_SPEC.md "
+        "_note": ((f"{args.label.upper()} — " if args.label != "t3-4" else "")
+                  + "T3-4 the terms — the DY signature record (DYNAMISM_SPEC.md "
                   "§2 Tier 3; the gate record §13.2 R5) — ten ambient "
                   f"SWEEP_SEEDS x {args.turns} turns at K={AMBIENT_K}; "
                   "written by tools/_t3_4_measure.py (a chain run ALONE) in "
@@ -146,6 +164,9 @@ def main() -> None:
             "aim_letters": sum(len(c["aim_letters"]) for c in census.values()),
             "signed_cessions": sum(len(c["signed_cessions"]) for c in census.values()),
             "evacuations": sum(len(c["evacuations"]) for c in census.values()),
+            "alarm_guarantees": sum(len(c["alarm_guarantees"]) for c in census.values()),
+            "guarantees_honoured": sum(len(c["guarantees_honoured"])
+                                       for c in census.values()),
             "annexations_outside_aim": sum(c["annexations_outside_aim"]
                                            for c in census.values()),
             "captures_outside_aim": sum(c["captures_outside_aim"]

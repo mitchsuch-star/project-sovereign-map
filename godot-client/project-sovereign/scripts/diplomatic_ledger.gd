@@ -1089,6 +1089,16 @@ func _render_balance_of_europe():
 			bbcode += "  " + ", ".join(PackedStringArray(qual_strs)) + "\n"
 	bbcode += "\n"
 
+	# DY-1 (DYNAMISM_SPEC.md §3, Q6): the Alarm of Europe in words — the
+	# courts whose appetite Europe has remarked. The backend composes every
+	# sentence (R7) and never sends a figure.
+	var alarm_lines = boe.get("alarm_lines", [])
+	if alarm_lines is Array and alarm_lines.size() > 0:
+		bbcode += "[color=#" + Utils.COLOR_HEADER + "]THE COURTS TAKE NOTE[/color]\n"
+		for aline in alarm_lines:
+			bbcode += "  [color=#" + COLOR_AMBER + "]" + str(aline) + "[/color]\n"
+		bbcode += "\n"
+
 	# Coalition status
 	bbcode += "[color=#" + Utils.COLOR_HEADER + "]Coalition Status:[/color]\n"
 	var coalition_state = str(boe.get("coalition_state", "NO_HEGEMON"))

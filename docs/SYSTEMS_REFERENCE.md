@@ -14428,3 +14428,106 @@ bound arm): the AI courts keep **8** outside their aims (eylau 1, friedland 2, j
 eliminated courts' spoils; France's own entry reported). **The residual's owner is Tier 4, the
 Alarm of Europe** — "Austria eats Bavaria by turn 7 on seven of ten seeds" is its own named
 defect; its done-when now reads the residual to 0 (`DYNAMISM_SPEC.md` §3, Rule 9).
+
+## §199 Tier 4, session 1 — the gate (§3c) and T4-1, the Alarm of Europe: conquest pays in standing (November 9, 2026)
+
+**The gate** (`DYNAMISM_SPEC.md` §3c, ruled in Plan Mode at the tier's head; the user's words on
+the three questions put — "make best decision for immpersion and design dont do whats easy",
+"your call make smartest call for quality", "your call" — the calls Claude's under that
+delegation, approved with the plan). Five census corrections first, the Tier-3 idiom: every
+conqueror ALREADY paid threat at capture, AI courts included (C1 — the +2 in `capture_region`,
++15 a capital and +3/+5 a battle in the combat pipeline), and nothing read a non-France slot
+short of D3's eclipse; a guarantee marches into a ward's DEFENSIVE war only, and 1805 seats
+Bavaria among Austria's attackers (C2); the one AI guarantee producer ran on a design crisis
+alone and had never fired in the ambient (C3); rank is static and no law has a prerequisite
+(C4); every residual province is an ERASURE's spoils (C5). The rulings: G1 the write, G2 the
+guarantee rung, G3 the brew untouched, G4 words only (Q6), G5 **sign at the last** — the
+erasure rule, new row DY-1c (a crown falls by treaty, never by the sword alone; D2 narrowed, not
+deleted), G6 promotion with teeth at once (Q5; the 1806 crowns), G7 the slices T4-1 → T4-2 →
+T4-3, G8 the gates restated.
+
+**The write** (`alarm.sound_the_alarm`, seam `alarm.the_alarm_sounds`): at the ONE capture
+chokepoint (`WorldState.capture_region`), beside the +2 and under its three skips (the capturer's
+own soil, a title it recovers, a liberation), an AI court's capture writes
+`coalition.add_threat(amount, "alarm:<region>", target=<its house leader>)` — a province 6, a
+capital 12, a province of some third court's client 8 (N-DY1; the formation-peer arm removed,
+explicitly — no such relation exists). A client's conquest alarms Europe against its lord's
+house; the player's house writes nothing new (France's machinery untouched — nothing
+double-charges). The reckless auto-charge — the one conquest outside the chokepoint — mirrors
+the write through the same writer, reading the prior title before its own title record (the
+sibling sweep). Event-driven, one region read, no scan (GR8, pinned). Decay is the store's own,
+and the existing readers feel it unchanged: the eclipse (D3), `menace_for`'s shelter rung, the
+levy price.
+
+**The guarantee rung** (`alarm.process_alarm_guarantees`, seam `alarm.an_alarmed_court_guarantees`;
+in `ai_diplomacy.process_ai_ai_diplomatic_phase` beside the sponsorships — before the war council
+and before the instruments tick): an alarming conqueror (an AI house leader at or above the
+tension line, 30) gets its likely next victim guaranteed — (a) a standing court whose homeland
+it holds (at war first, then the remnant at peace; read off its own regions' boot owners), (b)
+else its defenceless prize; never the player's house, a client, or a court already under a live
+word. The guarantor: an AI court of major or secondary rank, not a client, at peace, cold toward
+the conqueror (≤ 0) and no enemy of the victim (≥ 0), bordering the victim's remnant, able to
+march lawfully, the strongest such. One AI guarantee a turn world-wide (the crisis producer's
+stamp, shared); the guarantor rests 12 turns (`ai_proposal_cooldowns`). The pledge is
+`instruments.pledge_guarantee` — which now carries `against` on the logged event when given, so
+the player's verb and the crisis producer log exactly what they logged — and the instruments do
+the rest: a DEFENDING ward's guarantor marches at the tick (the Fürstenbund of 1785, Prussia's
+word for Bavaria against Joseph II's exchange); a ward that declared its own war is neither
+marched for nor branded; the deterrent is the design weight −8 and the guarantor's army in the
+holder's scale.
+
+**The words** (Q6): `alarm.alarm_line` — "Vienna's appetite is remarked in Berlin and
+Hesse." — names the seat of a great court (the era's idiom) and up to two remarking courts (the
+victims' guarantors, then the cold great powers, then the cold neighbours; a victim complains, it
+does not remark; the player is never named). Talleyrand's war room and his reading of the court
+carry it; the Balance tab's `alarm_lines` (up to three, rendered by one `diplomatic_ledger.gd`
+block under "THE COURTS TAKE NOTE"; the headless parse clean); Le Moniteur prints the pledge
+("Prussia guarantees Bavaria against Austria's appetite"). Absent when Europe has taken notice of
+no one — every payload otherwise unchanged, key for key. No surface carries an AI court's alarm
+as a figure.
+
+**The measure — three chains, each on the tree it names and each ALONE** (`tools/_t3_4_measure.py
+--label`, its census learning the alarm's guarantees and every honour; `tools/_t3_5_chain_d.py`
+the same). The CONTROL (`tools/_dy_signature_t4_1_control_2026_11_09.json`, every T4-1 seam
+down) reproduces T3-6's final record BYTE FOR BYTE — the seams cover the slice. The FINAL
+(`tools/_dy_signature_t4_1_2026_11_09.json`; census `tools/_t4_1_census_2026_11_09.json`):
+**story classes 8 → 10**; three alarm guarantees — **Prussia gives its word for Bavaria against
+Austria at turn 7 on austerlitz, lodi and ulm**, the three seeds where Bavaria lives through the
+opening — none marched (Bavaria declared her war, C2), each a deterrent in Austria's scale;
+eight world-lines move, each named by a single-run replay with the rung held down: the WRITE
+alone on eylau, historical, jena, marengo and wagram (on wagram Saxony fights from turn 32 and is
+erased at turn 39), the RUNG alone on lodi (the guarantee is the signature's whole move), BOTH on
+austerlitz and ulm; the war's footprint widens (`captures_outside_aim` 210 → 235); **the kept
+debt reads 7, its total unchanged and its shape moved** (eylau and wagram 1 → 0; jena 1 → 3 —
+Hesse keeps Swabia, Prussia Franconia, Switzerland Piedmont: the spoils of Bavaria's and the
+Kingdom of Italy's erasures changing hands) — T4-2's to clear. The AI-FRANCE harness
+(`tools/_t4_1_chain_d_2026_11_09.json`, the bound arm): the AI courts keep **7** outside their
+aims (8 at T3-6); Prussia gives its word for Bavaria against Austria at turn 4 on austerlitz,
+lodi and marengo and honours it at turns 21–24 against Switzerland (Bavaria attacked — a word
+given is a word kept); France's own entry 202 → 186, reported. **The standing series moved and
+is re-pinned with its cause** (`tools/_t4_1_series_arms.py` → `_t4_1_series_arms_final.json`:
+arm 0 reproduces the prior byte for byte; THE WRITE ALONE moves it, the rung read 40 times and
+pledging nothing on that loop; Mack's corps returns to Lorraine twice more, at world turns 26 and
+29, and breaks on Lannes and Ney — France's decisive defensive wins, [26] and [29] 0 → 2;
+`SERIES_BEFORE_T4_1` kept, the drill-fix chain re-linked).
+
+**Two siblings the measure caught, fixed in the slice (Rule 10).** (1) **The word answers the
+conqueror alone.** The first final's Porte gave its word for Austria against Prussia's appetite,
+and the tick marched it on FRANCE, Austria's attacker of 1805 (Sweden likewise, for Russia): a
+guarantee binds against every attacker of a defending ward, so the rung now refuses a pledge
+whose exposure (`instruments.guarantee_exposure`) names any court but the conqueror — Austria's
+declaration on a minor brings Britain and Russia by cascade, and no word is given there either.
+(2) **The page's lone filler.** On the commanded marengo arm Prussia's word deterred Austria's
+crisis on Bavaria, the mornings went quiet, and the league's standing line — the page's only
+candidate — led five of ten, against the rotation rule's own statement; a board with ONE kind of
+capped filler now gets the quiet floor as its second kind
+(`dispatch.a_lone_filler_yields_to_the_quiet_floor`, the third T4-1 seam), the two-kinds
+alternation untouched. One pin re-seated with its cause: SR6's
+`test_three_statements_then_the_ledger` asserted the league line leads all six quiet mornings —
+its sixth a FIFTH lead in the window, the gap itself; it leads four now, and the quiet floor takes
+the sixth with the league line beneath. And one label: the `alarm:` family reads "A conquest Europe remarked"
+(the S14C-X4 census).
+
+**Pins:** `tests/test_dy1_the_alarm_of_europe.py` (53 — the write, the scale contract, the rung, the brew, the words, the page's sibling, the measure); the seams registered as row T4-1 in
+`tests/_t3_seams.py` (the recorded boards hold them down). No new store, no new serialized
+field, no new log type.

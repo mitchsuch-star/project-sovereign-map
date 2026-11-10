@@ -5413,6 +5413,15 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
     sponsorship_events = _process_ai_sponsorships(world)
     rivalry_events = rivalry_events + sponsorship_events
 
+    # DY-1 (DYNAMISM_SPEC.md §3, the Tier-4 gate §3c G2): the Alarm's
+    # guarantee rung — a court alarmed by a conqueror gives its word for the
+    # likely next victim (the existing D5 guarantee; one AI guarantee a turn
+    # world-wide, the stamp shared with the crisis producer). Before the war
+    # council, so the deterrent lands before the crisis poll; before the
+    # instruments tick, so an honour marches the same turn.
+    from backend.game_logic.alarm import process_alarm_guarantees
+    rivalry_events = rivalry_events + process_alarm_guarantees(world)
+
     # §12.6: the allegiance auction — announce/resolve minors' flips.
     rivalry_events = rivalry_events + process_allegiance_auctions(world)
 

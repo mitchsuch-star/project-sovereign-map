@@ -43,6 +43,23 @@ prior tree's reading byte for byte.
           the loser's homeland back; down: SR-1a's retention of everything
           held (the player's peaces keep SR-1a either way).
 
+    T4-1  `alarm.the_alarm_sounds` — the Alarm of Europe's write
+          (DYNAMISM_SPEC.md §3, the Tier-4 gate §3c G1): an AI court's
+          capture writes Europe's alarm against its house (6 / a capital
+          12 / a third court's client 8, on top of the +2 every conqueror
+          already paid); down: no `alarm:` write.
+
+    T4-1  `alarm.an_alarmed_court_guarantees` — the guarantee rung (§3c
+          G2): a court alarmed by a conqueror pledges the existing D5
+          guarantee for the likely next victim; down: only the crisis
+          producer ever pledges an AI guarantee.
+
+    T4-1  `dispatch.a_lone_filler_yields_to_the_quiet_floor` — the page's
+          sibling the Alarm's measure found: a board with ONE kind of capped
+          front-page filler gets the quiet floor as its second kind (the
+          rotation guard's own "alternates rather than repeats"); down: the
+          lone filler leads a fifth time in ten.
+
 `hold_down(monkeypatch)` applies the list in-process
 (`tests._standing_seams.hold_down` — one parser, one semantics).
 """
@@ -64,6 +81,13 @@ T3_SEAMS_BY_ROW = {
     ],
     "T3-6": [
         "backend.game_logic.game_end:a_peace_evacuates_what_it_does_not_cede=False",
+    ],
+    # Tier 4 rides the same registry (the recorded boards' hold-list folds
+    # every row — `tests/_oct27_seams.py`).
+    "T4-1": [
+        "backend.game_logic.alarm:the_alarm_sounds=False",
+        "backend.game_logic.alarm:an_alarmed_court_guarantees=False",
+        "backend.game_logic.dispatch:a_lone_filler_yields_to_the_quiet_floor=False",
     ],
 }
 T3_SEAMS_DOWN = [spec for row in T3_SEAMS_BY_ROW

@@ -187,6 +187,11 @@ _THREAT_SOURCE_LABELS = {
     "broke_non_aggression": "Broke a non-aggression pact",
     "broke_open_borders": "Broke an open-borders treaty",
     "broke_treaty": "Broke a treaty",
+    # DY-1 (DYNAMISM_SPEC.md §3c G1): the Alarm of Europe's write is a
+    # dynamic family, `alarm:<region>` — an AI court's conquest remarked.
+    # It never targets the player's house, so it never reaches France's
+    # panel; the row keeps the census whole and any reader honest.
+    "alarm": "A conquest Europe remarked",
 }
 
 
@@ -209,6 +214,9 @@ def _threat_source_label(world, source_key: str) -> str:
     # treaty type with no row of its own reads as the family.
     if source_key.startswith("broke_") and source_key not in _THREAT_SOURCE_LABELS:
         return _THREAT_SOURCE_LABELS["broke_treaty"]
+    # DY-1: `alarm:<region>` reads as its family (§3c G1).
+    if source_key.startswith("alarm:"):
+        return _THREAT_SOURCE_LABELS["alarm"]
     return _THREAT_SOURCE_LABELS.get(
         source_key, source_key.replace("_", " ").title())
 
@@ -1610,6 +1618,14 @@ def _build_balance_of_europe(world) -> Dict[str, Any]:
         _line = _league.league_summary_line(world)
         if _line:
             result["league_line"] = _line
+    # DY-1 (DYNAMISM_SPEC.md §3, the gate §3c G4; Q6 — words only): the
+    # Alarm of Europe — the courts whose appetite Europe has remarked, in
+    # sentences (`alarm.alarm_lines`, the one composer); absent when Europe
+    # has taken notice of no one, so the payload is otherwise unchanged.
+    from backend.game_logic.alarm import alarm_lines as _alarm_lines
+    _alarm = _alarm_lines(world)
+    if _alarm:
+        result["alarm_lines"] = _alarm
     return result
 
 # ============================================================================

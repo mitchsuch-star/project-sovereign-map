@@ -590,7 +590,15 @@ class TestTheLevyYieldsOnceStated:
         "a quiet morning" — is the floor Step 7b's front page replaces
         (RS-D2's own record: "narration F1's floor until Step 7b's front
         page"). The board here is never alone any more: the next league and
-        the price to keep a court out of it lead the quiet mornings."""
+        the price to keep a court out of it lead the quiet mornings.
+
+        RE-SEATED by T4-1 (November 9, 2026; `SYSTEMS_REFERENCE.md` §199),
+        consciously: the sixth morning would be the league line's FIFTH lead
+        in the window — the rotation rule's own cap (`FRONT_PAGE_ROTATION_MAX`),
+        which a lone filler used to slip because it had nothing to alternate
+        with. The quiet floor leads that morning now and the league line rides
+        beneath it (`dispatch.a_lone_filler_yields_to_the_quiet_floor` — the
+        driven arms' C1 catch on CMD-M); RS-D2's rule is untouched."""
         _peace_with_the_levy_open(world)
         heads = [_headline(world) for _ in range(6)]
         on_page = [h.get("class") == "levy_open"
@@ -599,7 +607,11 @@ class TestTheLevyYieldsOnceStated:
                    for h in heads]
         assert on_page == [True] * 3 + [False] * 3, [h.get("class") for h in heads]
         assert [h.get("class") for h in heads].count("levy_open") == dispatch.LEVY_LEAD_MAX
-        assert all(h.get("class") in dispatch.FRONT_PAGE_CLASSES for h in heads[3:]), heads
+        assert all(h.get("class") in dispatch.FRONT_PAGE_CLASSES for h in heads[3:5]), heads
+        assert [h.get("class") for h in heads[1:5]] == ["realm_league"] * 4, heads
+        assert heads[5]["class"] == "quiet_morning", heads
+        assert any("relations reach" in beat or "declare on turn" in beat
+                   for beat in heads[5]["sub_beats"]), heads[5]
 
     def test_it_leads_at_most_once_beside_other_news(self, world):
         _peace_with_the_levy_open(world)

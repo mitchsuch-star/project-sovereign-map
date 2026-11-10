@@ -79,6 +79,10 @@ _COURT_TYPES = {
     # `coalition_declared`. The producer census pins every key here to a
     # literal `log_event` writer.
     "nation_eliminated", "ultimatum_accepted", "ultimatum_rejected",
+    # DY-1 (DYNAMISM_SPEC.md §3c G4): a guarantee given is a public act —
+    # the Alarm of Europe is FELT through it (`instruments.pledge_guarantee`
+    # writes it with a literal `log_event`).
+    "guarantee_pledged",
     "ai_ultimatum_accepted", "ai_ultimatum_rejected",
     "coalition_declared",
     # FA-N74 (slice 11): `vassal_rebellion` was whitelisted here and had no

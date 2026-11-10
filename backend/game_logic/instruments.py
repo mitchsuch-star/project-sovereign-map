@@ -847,9 +847,15 @@ def guarantee_exposure(world, guarantor: str, protected: str) -> List[str]:
     return exposed
 
 
-def pledge_guarantee(world, *, guarantor: str, protected: str) -> Dict:
+def pledge_guarantee(world, *, guarantor: str, protected: str,
+                     against: str = "") -> Dict:
     """Pledge to defend `protected`. Deters coveters (intent reads it);
-    stakes the guarantor's credibility (the abandonment grievance)."""
+    stakes the guarantor's credibility (the abandonment grievance).
+
+    DY-1 (`DYNAMISM_SPEC.md` §3c G2): `against` names the conqueror an
+    ALARM guarantee answers (the rung in `alarm.process_alarm_guarantees`);
+    it rides the logged event only when given, so the player's verb and the
+    crisis producer log exactly what they logged before."""
     records = getattr(world, "diplomatic_guarantees", [])
     for record in records:
         if (record.get("guarantor") == guarantor
@@ -876,6 +882,8 @@ def pledge_guarantee(world, *, guarantor: str, protected: str) -> Dict:
         "protected": protected,
         "turn": int(world.current_turn),
     }
+    if against:
+        event["against"] = str(against)
     world.log_event(event)
     return {"success": True, "record": record, "event": event}
 

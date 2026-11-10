@@ -1158,6 +1158,17 @@ def _assess_situation(world) -> Dict:
         for row in prize_rows[:2]:
             lines.append(row["text"])
 
+    # ── DY-1: the Alarm of Europe (DYNAMISM_SPEC.md §3, the gate §3c G4) ──
+    # The courts whose appetite Europe has remarked, read in Talleyrand's
+    # words and never as a figure (Q6). The ONE composer (`alarm.alarm_line`)
+    # the Balance tab reads too; two lines at most, loudest first.
+    from backend.game_logic.alarm import alarm_lines as _alarm_lines
+    alarm_rows = _alarm_lines(world)[:2]
+    if alarm_rows:
+        lines.append("")
+        for alarm_text in alarm_rows:
+            lines.append(f"  {alarm_text}")
+
     # ── IQ-6 V4: the open door (a beaten great power we may yet court) ──
     # The volte-face window was on no surface a player reads (the AI-V
     # memo: a real player would need Talleyrand to find it). One sentence
@@ -1293,6 +1304,10 @@ def _assess_situation(world) -> Dict:
         # IQ-6 V4: only when a door is open — with the lever down (or no
         # door) the payload is the pre-IQ-6 one key for key.
         context_extra["volte_openings"] = volte_openings
+    if alarm_rows:
+        # DY-1: only when Europe has taken notice of someone — otherwise the
+        # payload is the pre-DY-1 one key for key (the IQ-6 idiom above).
+        context_extra["alarm_lines"] = list(alarm_rows)
     return {
         "type": "advisory",
         "target_nation": "",
@@ -1427,6 +1442,13 @@ def _assess_nation(nation: str, world) -> Dict:
         else:
             recommendation = f"{nation} harbors deep resentment. Diplomatic progress will be slow and costly."
             hints = [f"Improve relations with {nation}", "Consider whether confrontation is inevitable"]
+
+    # DY-1 (DYNAMISM_SPEC.md §3c G4): a court Europe has taken notice of is
+    # read with its alarm, in words — never a figure (Q6).
+    from backend.game_logic.alarm import alarm_line as _alarm_line
+    _alarm_text = _alarm_line(world, nation)
+    if _alarm_text:
+        situation = f"{situation} {_alarm_text}"
 
     # Build options
     options = []

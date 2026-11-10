@@ -66,6 +66,18 @@ def summarize(digest: dict) -> dict:
         "france_captures": france_captures(digest),
         "france_provinces_final": int((series[-1] if series else {}).get("provinces", 0) or 0),
         "ending": digest.get("ending"),
+        # T4-1 (DYNAMISM_SPEC.md §3c G2): the Alarm's guarantees (a pledge
+        # naming the conqueror it answers) and every honour, per seed.
+        "alarm_guarantees": [
+            [int(row.get("turn", 0)), str(e.get("guarantor") or ""),
+             str(e.get("protected") or ""), str(e.get("against") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "guarantee_pledged" and e.get("against")],
+        "guarantees_honoured": [
+            [int(row.get("turn", 0)), str(e.get("guarantor") or ""),
+             str(e.get("ward") or ""), str(e.get("aggressor") or "")]
+            for row in digest.get("turns") or [] for e in row.get("events") or []
+            if e.get("type") == "guarantee_honored"],
     }
 
 
@@ -120,7 +132,9 @@ def main() -> None:
         "totals": {arm: {"france_outside_aim": sum(s["france_outside_aim"] for s in seeds.values()),
                          "captures_outside_aim": sum(s["captures_outside_aim"] for s in seeds.values()),
                          "annexations_outside_aim": sum(s["annexations_outside_aim"]
-                                                        for s in seeds.values())}
+                                                        for s in seeds.values()),
+                         "alarm_guarantees": sum(len(s["alarm_guarantees"])
+                                                 for s in seeds.values())}
                    for arm, seeds in arms.items()},
         "nov6_france_captures": nov6(),
     }

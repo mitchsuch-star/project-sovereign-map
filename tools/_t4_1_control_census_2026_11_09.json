@@ -1,0 +1,344 @@
+{
+ "_note": "T3-4 the terms \u2014 the census (aim peaces by both AI\u2013AI roads, P8-Aim letters France received, the debt) per seed, from the same digests as the signature record.",
+ "seeds": {
+  "austerlitz": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 23,
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "eylau": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 18,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,502 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,502 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "friedland": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 26,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,024 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,024 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "historical": {
+   "aim_letters": [
+    {
+     "proposer": "Austria",
+     "turn": 9
+    }
+   ],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 21,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,459 gold. Prussia evacuates Brunswick, Oldenburg, Osnabruck and Westphalia. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,459 gold. Prussia evacuates Brunswick, Oldenburg, Osnabruck and Westphalia. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ]
+  },
+  "jena": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 20,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 14
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 14
+    }
+   ]
+  },
+  "lodi": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 40,
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 450 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 17
+    },
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-32), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia. Unheld homeland returns to its crown: Munich.",
+     "proposer": "Bavaria",
+     "turn": 24
+    },
+    {
+     "accepter": "Russia",
+     "consequence": "Saxony, beaten (-27), sues for peace and Russia takes it on the held line; their side of the war ends while the greater war goes on. Russia evacuates Dresden.",
+     "proposer": "Saxony",
+     "turn": 31
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 450 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 17
+    }
+   ]
+  },
+  "marengo": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 17,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 15
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,610 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 15
+    }
+   ]
+  },
+  "rivoli": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 11,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,485 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 1,485 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 22
+    }
+   ]
+  },
+  "ulm": {
+   "aim_letters": [],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 0,
+   "annexations_outside_aim_by_court": {},
+   "captures_outside_aim": 18,
+   "evacuations": [
+    {
+     "accepter": "Austria",
+     "consequence": "Bavaria, beaten (-34), sues for peace and Austria takes it on the held line; their side of the war ends while the greater war goes on. Austria evacuates Franconia.",
+     "proposer": "Bavaria",
+     "turn": 6
+    },
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,730 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 18
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,730 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 18
+    }
+   ]
+  },
+  "wagram": {
+   "aim_letters": [
+    {
+     "proposer": "Austria",
+     "turn": 9
+    }
+   ],
+   "aim_peaces": [],
+   "alarm_guarantees": [],
+   "annexations_outside_aim": 1,
+   "annexations_outside_aim_by_court": {
+    "Austria": [
+     "Franconia"
+    ]
+   },
+   "captures_outside_aim": 16,
+   "evacuations": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,007 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ],
+   "guarantees_honoured": [],
+   "signed_cessions": [
+    {
+     "accepter": "Prussia",
+     "consequence": "Prussia takes Hanover. Hanover pays 2,007 gold. Prussia evacuates Brunswick and Oldenburg. Prussia is now free to look elsewhere.",
+     "exit": "",
+     "proposer": "Hanover",
+     "turn": 16
+    }
+   ]
+  }
+ },
+ "totals": {
+  "aim_letters": 2,
+  "aim_peaces": 0,
+  "alarm_guarantees": 0,
+  "annexations_outside_aim": 7,
+  "captures_outside_aim": 210,
+  "evacuations": 15,
+  "guarantees_honoured": 0,
+  "signed_cessions": 10
+ },
+ "turns": 40
+}

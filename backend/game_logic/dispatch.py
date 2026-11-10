@@ -1873,6 +1873,21 @@ def _quiet_morning_candidate(world) -> Dict[str, Any]:
 EVERY_MORNING_HAS_A_FRONT_PAGE = True
 FRONT_PAGE_ROTATION_WINDOW = 10
 FRONT_PAGE_ROTATION_MAX = 4
+
+
+def a_lone_filler_yields_to_the_quiet_floor() -> bool:
+    """T4-1's sibling (`DYNAMISM_SPEC.md` §3c; `SYSTEMS_REFERENCE.md` §199),
+    found by the Alarm's own measure: the rotation guard alternates a board
+    with TWO kinds of capped news (the least led leads), but a board with ONE
+    kind had nothing to alternate with, so a lone front-page filler led a
+    fifth time in ten — on the commanded marengo arm, once Prussia's word for
+    Bavaria deterred Austria's crisis, the league's standing line led five
+    quiet mornings of ten, against the rule's own statement. The quiet floor
+    is that board's second kind: it leads, the filler rides beneath. Down:
+    the lone filler leads again (the gap)."""
+    return True
+
+
 # SF7-X37: France's own truce ending is event news — a truce collapsing
 # back into war leads as `war_touches_us`, one ripening into peace as
 # `peace_signed` (the turn's queue, where the expiry is told).
@@ -2351,6 +2366,16 @@ def _front_page_order(world, player_nation: str, candidates, memory,
         if cls in FRONT_PAGE_CLASSES or cls == "quiet_morning":
             return 1
         return 0
+
+    # T4-1's sibling (`a_lone_filler_yields_to_the_quiet_floor`): ONE kind of
+    # capped filler and nothing else on the page — the quiet floor joins as
+    # the board's second kind, so it alternates rather than repeats.
+    if a_lone_filler_yields_to_the_quiet_floor():
+        kinds = {c["class"] for c in candidates}
+        if (len(kinds) == 1 and "quiet_morning" not in kinds
+                and all(c["class"] in FRONT_PAGE_CLASSES and _tier(c) == 3
+                        for c in candidates)):
+            candidates = list(candidates) + [_quiet_morning_candidate(world)]
 
     indexed = list(enumerate(candidates))
     # Everything capped: the class that led least in the window leads, so a

@@ -3002,6 +3002,12 @@ def _oneliner_diplomacy(ctx: OnelinerContext):
     if ctx.event_type == "guarantee_pledged":
         guarantor = display_nation(ctx.event.get("guarantor", "Unknown"))
         protected = display_nation(ctx.event.get("protected", "Unknown"))
+        # DY-1 (DYNAMISM_SPEC.md §3c G2/G4): an ALARM guarantee names the
+        # conqueror it answers — in words, never a figure.
+        against = ctx.event.get("against")
+        if against:
+            return (f"{guarantor} guarantees {protected} against "
+                    f"{display_nation(against)}'s appetite")
         return f"{guarantor} guarantees {protected}"
 
     if ctx.event_type == "guarantee_abandoned":

@@ -5601,6 +5601,15 @@ class WorldState:
                     and not _liberated_to):
                 from backend.game_logic.coalition import add_threat
                 add_threat(self, 2, "region_capture", target=capturing_nation)
+            # DY-1 "The Alarm of Europe" (DYNAMISM_SPEC.md §3, the Tier-4
+            # gate §3c G1): an AI court's conquest writes Europe's alarm
+            # against its HOUSE — on top of the +2 above, under the same
+            # three skips (own soil, recovered title, liberation); the
+            # player's house writes nothing new. ONE writer: `alarm`.
+            from backend.game_logic import alarm as _alarm
+            _alarm.sound_the_alarm(
+                self, region_name, capturing_nation, old_controller,
+                liberated=bool(_liberated_to), prior_title=_prior_title)
 
         # Imperial Settlement B2: occupation event accrual happens BEFORE
         # `_eliminate_nation` so a final-region capture still credits the
@@ -17127,6 +17136,11 @@ class WorldState:
                             # back to its home nation too.
                             _ac_liberated_to = liberates_ally_ground(
                                 self, auto_charge_battle_region, marshal.nation)
+                            # DY-1 (§3c G1), the mirror: the title the
+                            # province carried BEFORE this charge's record.
+                            _ac_prior_title = dict(((getattr(
+                                self, "province_title", None) or {}).get(
+                                    auto_charge_battle_region)) or {})
                             _ac_holder = _ac_liberated_to or marshal.nation
                             cap_region.controller = _ac_holder
                             self.invalidate_active_nations_cache()
@@ -17186,6 +17200,16 @@ class WorldState:
                             self._recalculate_capture_war_scores(
                                 auto_charge_battle_region, _charge_from,
                                 marshal.nation)
+                            # DY-1 (§3c G1), the sibling sweep: the alarm
+                            # the chokepoint writes, mirrored here as every
+                            # other capture write is — same writer, same
+                            # skips.
+                            from backend.game_logic import alarm as _ac_alarm
+                            _ac_alarm.sound_the_alarm(
+                                self, auto_charge_battle_region,
+                                marshal.nation, _charge_from,
+                                liberated=bool(_ac_liberated_to),
+                                prior_title=_ac_prior_title)
                             conquered = True
                             conquest_msg = (
                                 f" {_ac_line}" if _ac_liberated_to else

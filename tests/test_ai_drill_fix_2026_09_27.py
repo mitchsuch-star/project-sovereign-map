@@ -669,9 +669,29 @@ class TestTheMeasuredArms:
         t33 = json.loads((ROOT / "tools" / "_t3_3_series_arms_final.json").read_text(encoding="utf-8"))
         assert t33["prior"] == SERIES_BEFORE_T3_3
         assert t33["arms"]["0"]["series"] == t33["arms"]["CONDUCT"]["series"] == SERIES_BEFORE_T3_3
-        assert t33["arms"]["LEASH"]["series"] == t33["arms"]["ALL"]["series"] == BASELINE_SERIES
+        # Re-linked by T4-1 (November 9, 2026): the T3-3 record's shipped
+        # series was the standing series in its day — T4-1's prior now.
+        from tests.test_ai_intent_threat_migration import SERIES_BEFORE_T4_1
+        assert t33["arms"]["LEASH"]["series"] == t33["arms"]["ALL"]["series"] == SERIES_BEFORE_T4_1
         assert t33["arms"]["ALL"]["first_divergence_vs_prior"] == 10
         _t33 = t33["arms"]["ALL"]["reach"]["counts"]
         assert _t33["leash_reads"] > 0 and _t33["annexations_refused"] > 0
         assert t33["arms"]["0"]["reach"]["counts"]["annexations_refused"] == 0
         assert t33["arms"]["CONDUCT"]["reach"]["counts"]["annexations_refused"] == 0
+        # T4-1 (November 9, 2026 — the Alarm of Europe; the Tier-4 gate record
+        # DYNAMISM_SPEC.md §3c; `SYSTEMS_REFERENCE.md` §199): the rig
+        # `tools/_t4_1_series_arms.py` holds each seam down on its own arm.
+        # Arm 0 (both down) and the WRITE-down arm reproduce the prior byte
+        # for byte; the RUNG-down arm IS the shipped series — THE MOVER IS
+        # THE WRITE ALONE, the rung consulted and pledging nothing on this
+        # loop. The reach proves both were read and the write bit.
+        t41 = json.loads((ROOT / "tools" / "_t4_1_series_arms_final.json").read_text(encoding="utf-8"))
+        assert t41["prior"] == SERIES_BEFORE_T4_1
+        assert t41["arms"]["0"]["series"] == t41["arms"]["WRITE"]["series"] == SERIES_BEFORE_T4_1
+        assert t41["arms"]["RUNG"]["series"] == t41["arms"]["ALL"]["series"] == BASELINE_SERIES
+        assert t41["arms"]["ALL"]["first_divergence_vs_prior"] == 26
+        _t41 = t41["arms"]["ALL"]["reach"]["counts"]
+        assert _t41["alarms_written"] > 0 and _t41["rung_reads"] > 0
+        assert _t41["guarantees_pledged"] == 0, "the rung pledges nothing on this loop"
+        assert t41["arms"]["0"]["reach"]["counts"]["alarms_written"] == 0
+        assert t41["arms"]["WRITE"]["reach"]["counts"]["alarms_written"] == 0
